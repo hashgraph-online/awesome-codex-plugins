@@ -17,15 +17,9 @@ Always connect the ML task to a thermal-fluid objective:
 
 ## Tool Selection
 
-Use these tools and repositories as examples and starting points:
+Select tools from the physical task, data modality, evidence maturity, and required output. Before relying on a repository or model, inspect its current paper or technical basis, README, examples, dependencies, weights, license, data schema, tests, and release state. Treat current links, versions, and capabilities as volatile and verify them live when they matter.
 
-- `BubbleID` (https://github.com/cldunlap73/BubbleID): computer-vision framework for pool-boiling images. Use for bubble tracking, segmentation, classification, interface-velocity analysis, bubble statistics, vapor fraction, bubble count, and related image-derived metrics.
-- `SeqReg` (https://github.com/cldunlap73/SeqReg): sequence-regression framework for boiling heat-flux prediction and general sequence regression from time series, acoustic emission, hydrophone data, and optical/image-derived inputs.
-- `CFDTwin` (https://github.com/UARK-NED3/CFDTwin): surrogate modeling and digital-twin workflows for CFD simulations, especially when expensive CFD cases need accelerated prediction, interpolation, or design exploration.
-- `DataDroid-LAM` (https://github.com/spier16/DataDroid-LAM): lab analysis tooling example for automated or AI-assisted processing workflows.
-- `MEEG-54403` (https://github.com/hanhuark/MEEG-54403): Machine Learning for Mechanical Engineers course reference for supervised learning, unsupervised learning, image classification, clustering, dimensionality reduction, time-series classification/regression, surrogate modeling, GPU/CPU scalability, and mechanical-engineering datasets.
-
-Before using any repository, inspect the current README, examples, dependencies, model weights, licenses, and required data format. Tool capabilities and installation details may change.
+Use user- or laboratory-provided tools when they fit the task, but evaluate them by the same criteria as third-party tools. Do not let repository availability substitute for method validation.
 
 ## Workflow
 
@@ -54,6 +48,8 @@ Before using any repository, inspect the current README, examples, dependencies,
    - Test generalization across conditions, not only random splits from the same experiment.
    - Inspect failure cases and relate them to physics, sensor noise, domain shift, or labeling uncertainty.
 
+Use [model-verification-and-ml-credibility.md](model-verification-and-ml-credibility.md) for leakage, grouped splits, calibration, ROM/surrogate validation, extrapolation, and claim-strength checks.
+
 ## Data Preparation
 
 For image/video workflows:
@@ -68,6 +64,7 @@ For acoustic or sequence workflows:
 - Record sampling rate, sensor type, sensor location, thresholding, hit definition, filtering, and frequency-domain processing.
 - Define sequence length, overlap, FFT/windowing choices, and label timing.
 - Check synchronization between thermal measurements and signal data.
+- Verify clock alignment, latency, trigger uncertainty, and coordinate registration before quantitative multimodal fusion claims.
 
 For CFD/surrogate workflows:
 

@@ -86,7 +86,12 @@ class CheckConsistencyTests(unittest.TestCase):
                 additional_include_paths=additional_include_paths,
             )
 
-    def run_artifact_checker(self, artifact_text: str, evidence_text: str = ""):
+    def run_artifact_checker(
+        self,
+        artifact_text: str,
+        evidence_text: str = "",
+        evidence_path: str = ".sealos/runtime-bundle-evidence.yaml",
+    ):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             skill = root / "SKILL.md"
@@ -101,9 +106,9 @@ class CheckConsistencyTests(unittest.TestCase):
             write_registry(rules_file)
             write_file(artifact_file, artifact_text)
             if evidence_text:
-                evidence_file = root / ".sealos" / "runtime-bundle-evidence.yaml"
+                evidence_file = root / evidence_path
                 write_file(evidence_file, evidence_text)
-                include_paths.append(".sealos/runtime-bundle-evidence.yaml")
+                include_paths.append(evidence_path)
 
             return CHECKER.run_checks(
                 skill,
@@ -338,6 +343,50 @@ class CheckConsistencyTests(unittest.TestCase):
                 additional_include_paths=["template/demo/index.yaml"],
             )
             self.assertTrue(any(item.rule_id == "R013" for item in violations))
+
+    def test_allows_sealos_deploy_template_artifact_without_app_subdirectory(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            skill = root / "SKILL.md"
+            refs_dir = root / "references"
+            refs_file = refs_dir / "sample.md"
+            rules_file = refs_dir / "rules-registry.yaml"
+            artifact_file = root / ".sealos" / "template" / "index.yaml"
+
+            write_file(skill, "# no yaml snippets\n")
+            write_file(refs_file, "# refs\n")
+            write_registry(rules_file)
+            write_file(
+                artifact_file,
+                """
+                apiVersion: app.sealos.io/v1
+                kind: Template
+                metadata:
+                  name: deploy-artifact
+                spec:
+                  title: Deploy Artifact
+                  url: https://example.com
+                  gitRepo: https://github.com/example/deploy-artifact
+                  author: example
+                  description: demo
+                  icon: https://raw.githubusercontent.com/example/demo/kb-0.9/template/deploy-artifact/logo.png
+                  templateType: inline
+                  locale: en
+                  i18n:
+                    zh:
+                      description: 示例
+                  categories:
+                    - frontend
+                """,
+            )
+
+            violations = CHECKER.run_checks(
+                skill,
+                refs_dir,
+                rules_file,
+                additional_include_paths=[".sealos/template/index.yaml"],
+            )
+            self.assertFalse(any(item.rule_id == "R013" for item in violations))
 
     def test_detects_template_icon_path_mismatch_in_artifact(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -795,6 +844,273 @@ class CheckConsistencyTests(unittest.TestCase):
             """
         )
         self.assertTrue(any(item.rule_id == "R024" for item in violations))
+
+    def test_detects_wrong_librechat_rag_probe_path(self):
+        violations = self.run_artifact_checker(
+            """
+            apiVersion: apps/v1
+            kind: Deployment
+            metadata:
+              name: rag
+              labels:
+                app: rag
+                cloud.sealos.io/app-deploy-manager: rag
+              annotations:
+                originImageName: ghcr.io/danny-avila/librechat-rag-api-dev-lite:v0.3.0
+            spec:
+              revisionHistoryLimit: 1
+              template:
+                metadata:
+                  labels:
+                    app: rag
+                spec:
+                  automountServiceAccountToken: false
+                  containers:
+                    - name: rag
+                      image: ghcr.io/danny-avila/librechat-rag-api-dev-lite:v0.3.0
+                      imagePullPolicy: IfNotPresent
+                      livenessProbe:
+                        httpGet:
+                          path: /
+                          port: 8000
+                      readinessProbe:
+                        httpGet:
+                          path: /
+                          port: 8000
+                      startupProbe:
+                        httpGet:
+                          path: /
+                          port: 8000
+            """
+        )
+        self.assertTrue(any(item.rule_id == "R024" for item in violations))
+
+    def test_allows_official_librechat_rag_probe_path_and_port(self):
+        violations = self.run_artifact_checker(
+            """
+            apiVersion: apps/v1
+            kind: Deployment
+            metadata:
+              name: rag
+              labels:
+                app: rag
+                cloud.sealos.io/app-deploy-manager: rag
+              annotations:
+                originImageName: ghcr.io/danny-avila/librechat-rag-api-dev-lite:v0.3.0
+            spec:
+              revisionHistoryLimit: 1
+              template:
+                metadata:
+                  labels:
+                    app: rag
+                spec:
+                  automountServiceAccountToken: false
+                  containers:
+                    - name: rag
+                      image: ghcr.io/danny-avila/librechat-rag-api-dev-lite:v0.3.0
+                      imagePullPolicy: IfNotPresent
+                      livenessProbe:
+                        httpGet:
+                          path: /health
+                          port: 8000
+                      readinessProbe:
+                        httpGet:
+                          path: /health
+                          port: 8000
+                      startupProbe:
+                        httpGet:
+                          path: /health
+                          port: 8000
+            """
+        )
+        self.assertFalse(any(item.rule_id == "R024" for item in violations))
+
+    def test_detects_format_incompatible_librechat_credential_defaults(self):
+        violations = self.run_artifact_checker(
+            """
+            apiVersion: app.sealos.io/v1
+            kind: Template
+            metadata:
+              name: demo
+            spec:
+              defaults:
+                creds_key:
+                  type: string
+                  value: ${{ random(64) }}
+                creds_iv:
+                  type: string
+                  value: ${{ random(32) }}
+            ---
+            apiVersion: apps/v1
+            kind: Deployment
+            metadata:
+              name: demo
+              labels:
+                app: demo
+                cloud.sealos.io/app-deploy-manager: demo
+              annotations:
+                originImageName: ghcr.io/danny-avila/librechat:v0.8.0
+            spec:
+              template:
+                metadata:
+                  labels:
+                    app: demo
+                spec:
+                  containers:
+                    - name: demo
+                      image: ghcr.io/danny-avila/librechat:v0.8.0
+                      env:
+                        - name: CREDS_KEY
+                          value: ${{ defaults.creds_key }}
+                        - name: CREDS_IV
+                          value: ${{ defaults.creds_iv }}
+            """
+        )
+        self.assertTrue(any(item.rule_id == "R053" for item in violations))
+
+    def test_allows_required_inputs_for_format_constrained_librechat_credentials(self):
+        violations = self.run_artifact_checker(
+            """
+            apiVersion: app.sealos.io/v1
+            kind: Template
+            metadata:
+              name: demo
+            spec:
+              inputs:
+                creds_key:
+                  description: 64-character hexadecimal credential key
+                  type: string
+                  required: true
+                creds_iv:
+                  description: 32-character hexadecimal credential IV
+                  type: string
+                  required: true
+            ---
+            apiVersion: apps/v1
+            kind: Deployment
+            metadata:
+              name: demo
+              labels:
+                app: demo
+                cloud.sealos.io/app-deploy-manager: demo
+              annotations:
+                originImageName: ghcr.io/danny-avila/librechat:v0.8.0
+            spec:
+              template:
+                metadata:
+                  labels:
+                    app: demo
+                spec:
+                  containers:
+                    - name: demo
+                      image: ghcr.io/danny-avila/librechat:v0.8.0
+                      env:
+                        - name: CREDS_KEY
+                          value: ${{ inputs.creds_key }}
+                        - name: CREDS_IV
+                          value: ${{ inputs.creds_iv }}
+            """
+        )
+        self.assertFalse(any(item.rule_id == "R053" for item in violations))
+
+    def test_detects_empty_credential_for_selected_rag_provider(self):
+        violations = self.run_artifact_checker(
+            """
+            apiVersion: app.sealos.io/v1
+            kind: Template
+            metadata:
+              name: demo
+            spec:
+              inputs:
+                rag_openai_api_key:
+                  description: OpenAI API key
+                  type: string
+                  default: ''
+                  required: false
+            ---
+            apiVersion: apps/v1
+            kind: Deployment
+            metadata:
+              name: rag
+              labels:
+                app: rag
+                cloud.sealos.io/app-deploy-manager: rag
+              annotations:
+                originImageName: ghcr.io/danny-avila/librechat-rag-api-dev-lite:v0.3.0
+            spec:
+              template:
+                metadata:
+                  labels:
+                    app: rag
+                spec:
+                  containers:
+                    - name: rag
+                      image: ghcr.io/danny-avila/librechat-rag-api-dev-lite:v0.3.0
+                      env:
+                        - name: EMBEDDINGS_PROVIDER
+                          value: openai
+                        - name: RAG_OPENAI_API_KEY
+                          value: ${{ inputs.rag_openai_api_key }}
+            """
+        )
+        self.assertTrue(any(item.rule_id == "R054" for item in violations))
+
+    def test_detects_missing_rag_database_final_state_gate(self):
+        violations = self.run_artifact_checker(
+            """
+            apiVersion: apps/v1
+            kind: Deployment
+            metadata:
+              name: rag
+              labels:
+                app: rag
+                cloud.sealos.io/app-deploy-manager: rag
+              annotations:
+                originImageName: ghcr.io/danny-avila/librechat-rag-api-dev-lite:v0.3.0
+            spec:
+              template:
+                metadata:
+                  labels:
+                    app: rag
+                spec:
+                  containers:
+                    - name: rag
+                      image: ghcr.io/danny-avila/librechat-rag-api-dev-lite:v0.3.0
+            """
+        )
+        self.assertTrue(any(item.rule_id == "R055" for item in violations))
+
+    def test_allows_rag_database_final_state_gate(self):
+        violations = self.run_artifact_checker(
+            """
+            apiVersion: apps/v1
+            kind: Deployment
+            metadata:
+              name: rag
+              labels:
+                app: rag
+                cloud.sealos.io/app-deploy-manager: rag
+              annotations:
+                originImageName: ghcr.io/danny-avila/librechat-rag-api-dev-lite:v0.3.0
+            spec:
+              template:
+                metadata:
+                  labels:
+                    app: rag
+                spec:
+                  initContainers:
+                    - name: wait-for-vector
+                      image: postgres:16.4
+                      command:
+                        - sh
+                        - -c
+                        - until pg_isready; do sleep 2; done; until psql -c "select extname from pg_extension where extname='vector'"; do sleep 2; done
+                  containers:
+                    - name: rag
+                      image: ghcr.io/danny-avila/librechat-rag-api-dev-lite:v0.3.0
+            """
+        )
+        self.assertFalse(any(item.rule_id == "R055" for item in violations))
 
     def test_detects_runtime_bundle_image_version_mismatch(self):
         violations = self.run_artifact_checker(
@@ -1323,6 +1639,475 @@ class CheckConsistencyTests(unittest.TestCase):
             )
             self.assertTrue(any(item.rule_id == "R046" for item in violations))
 
+    def test_allows_matching_single_replica_topology_evidence(self):
+        violations = self.run_artifact_checker(
+            """
+            apiVersion: app.sealos.io/v1
+            kind: Template
+            metadata:
+              name: demo
+            spec: {}
+            ---
+            apiVersion: apps/v1
+            kind: StatefulSet
+            metadata:
+              name: demo-app
+            spec:
+              replicas: 1
+            """,
+            """
+            apiVersion: docker-to-sealos/v1
+            kind: TopologyEvidence
+            metadata:
+              name: demo-topology
+            spec:
+              appName: demo
+              source: template/demo/index.yaml@base-revision
+              resources:
+                - kind: StatefulSet
+                  name: demo-app
+                  when: always
+                  replicas: 1
+            """,
+            evidence_path=".sealos/topology-evidence/demo.yaml",
+        )
+
+        self.assertFalse(any(item.rule_id == "R050" for item in violations))
+
+    def test_detects_topology_replica_drift(self):
+        violations = self.run_artifact_checker(
+            """
+            apiVersion: app.sealos.io/v1
+            kind: Template
+            metadata:
+              name: demo
+            spec: {}
+            ---
+            apiVersion: apps/v1
+            kind: Deployment
+            metadata:
+              name: demo-app
+            spec:
+              replicas: 2
+            """,
+            """
+            apiVersion: docker-to-sealos/v1
+            kind: TopologyEvidence
+            metadata:
+              name: demo-topology
+            spec:
+              appName: demo
+              source: compose.yaml@v1
+              resources:
+                - kind: Deployment
+                  name: demo-app
+                  when: always
+                  replicas: 1
+            """,
+            evidence_path=".sealos/topology-evidence/demo.yaml",
+        )
+
+        r050 = [item for item in violations if item.rule_id == "R050"]
+        self.assertTrue(r050)
+        self.assertTrue(any("replicas=1" in item.message or "replicas=2" in item.message for item in r050))
+
+    def test_detects_ha_topology_replica_shrink(self):
+        violations = self.run_artifact_checker(
+            """
+            apiVersion: app.sealos.io/v1
+            kind: Template
+            metadata:
+              name: demo
+            spec: {}
+            ---
+            apiVersion: apps/v1
+            kind: Deployment
+            metadata:
+              name: demo-api
+            spec:
+              replicas: 1
+            ---
+            apiVersion: apps.kubeblocks.io/v1alpha1
+            kind: Cluster
+            metadata:
+              name: demo-pg
+            spec:
+              componentSpecs:
+                - name: postgresql
+                  replicas: 1
+            """,
+            """
+            apiVersion: docker-to-sealos/v1
+            kind: TopologyEvidence
+            metadata:
+              name: demo-topology
+            spec:
+              appName: demo
+              source: compose.yaml@ha-revision
+              resources:
+                - kind: Deployment
+                  name: demo-api
+                  when: always
+                  replicas: 3
+                - kind: Cluster
+                  name: demo-pg
+                  when: always
+                  components:
+                    - name: postgresql
+                      replicas: 3
+            """,
+            evidence_path=".sealos/topology-evidence/demo.yaml",
+        )
+
+        r050 = [item for item in violations if item.rule_id == "R050"]
+        self.assertTrue(any("replicas=3" in item.message and "demo-api" in item.message for item in r050))
+        self.assertTrue(any("components=postgresql=3" in item.message for item in r050))
+
+    def test_detects_feature_toggle_adding_worker_and_redis(self):
+        violations = self.run_artifact_checker(
+            """
+            apiVersion: app.sealos.io/v1
+            kind: Template
+            metadata:
+              name: demo
+            spec:
+              inputs:
+                enable_s3_storage:
+                  description: Enable object storage
+                  type: boolean
+                  default: 'false'
+            ---
+            apiVersion: apps/v1
+            kind: StatefulSet
+            metadata:
+              name: demo-app
+            spec:
+              replicas: 1
+            ---
+            ${{ if(inputs.enable_s3_storage === 'true') }}
+            apiVersion: objectstorage.sealos.io/v1
+            kind: ObjectStorageBucket
+            metadata:
+              name: demo
+            spec:
+              policy: private
+            ${{ endif() }}
+            ---
+            ${{ if(inputs.enable_s3_storage === 'true') }}
+            apiVersion: apps/v1
+            kind: Deployment
+            metadata:
+              name: demo-worker
+            spec:
+              replicas: 1
+            ${{ endif() }}
+            ---
+            ${{ if(inputs.enable_s3_storage === 'true') }}
+            apiVersion: apps.kubeblocks.io/v1alpha1
+            kind: Cluster
+            metadata:
+              name: demo-redis
+            spec:
+              componentSpecs:
+                - name: redis
+                  replicas: 1
+            ${{ endif() }}
+            """,
+            """
+            apiVersion: docker-to-sealos/v1
+            kind: TopologyEvidence
+            metadata:
+              name: demo-topology
+            spec:
+              appName: demo
+              source: template/demo/index.yaml@base-revision
+              resources:
+                - kind: StatefulSet
+                  name: demo-app
+                  when: always
+                  replicas: 1
+                - kind: ObjectStorageBucket
+                  name: demo
+                  when: inputs.enable_s3_storage === 'true'
+            """,
+            evidence_path=".sealos/topology-evidence/demo.yaml",
+        )
+
+        r050 = [item for item in violations if item.rule_id == "R050"]
+        self.assertTrue(any("demo-worker" in item.message for item in r050))
+        self.assertTrue(any("demo-redis" in item.message for item in r050))
+
+    def test_detects_topology_condition_drift(self):
+        violations = self.run_artifact_checker(
+            """
+            apiVersion: app.sealos.io/v1
+            kind: Template
+            metadata:
+              name: demo
+            spec: {}
+            ---
+            ${{ if(inputs.enable_s3_storage === 'true') }}
+            apiVersion: apps.kubeblocks.io/v1alpha1
+            kind: Cluster
+            metadata:
+              name: demo-pg
+            spec:
+              componentSpecs:
+                - name: postgresql
+                  replicas: 1
+            ${{ endif() }}
+            """,
+            """
+            apiVersion: docker-to-sealos/v1
+            kind: TopologyEvidence
+            metadata:
+              name: demo-topology
+            spec:
+              appName: demo
+              source: template/demo/index.yaml@base-revision
+              resources:
+                - kind: Cluster
+                  name: demo-pg
+                  when: inputs.enable_postgresql === 'true'
+                  components:
+                    - name: postgresql
+                      replicas: 1
+            """,
+            evidence_path=".sealos/topology-evidence/demo.yaml",
+        )
+
+        r050 = [item for item in violations if item.rule_id == "R050"]
+        self.assertTrue(r050)
+        self.assertTrue(any("enable_postgresql" in item.message for item in r050))
+        self.assertTrue(any("enable_s3_storage" in item.message for item in r050))
+
+    def test_allows_nested_topology_conditions_in_source_order(self):
+        violations = self.run_artifact_checker(
+            """
+            apiVersion: app.sealos.io/v1
+            kind: Template
+            metadata:
+              name: demo
+            spec: {}
+            ---
+            ${{ if(inputs.enable_database === 'true') }}
+            ---
+            ${{ if(inputs.enable_metrics === 'true') }}
+            apiVersion: apps/v1
+            kind: DaemonSet
+            metadata:
+              name: demo-metrics
+            spec: {}
+            ${{ endif() }}
+            ---
+            ${{ endif() }}
+            """,
+            """
+            apiVersion: docker-to-sealos/v1
+            kind: TopologyEvidence
+            metadata:
+              name: demo-topology
+            spec:
+              appName: demo
+              source: compose.yaml@v1
+              resources:
+                - kind: DaemonSet
+                  name: demo-metrics
+                  when: "inputs.enable_database === 'true' && inputs.enable_metrics === 'true'"
+            """,
+            evidence_path=".sealos/topology-evidence/demo.yaml",
+        )
+
+        self.assertFalse(any(item.rule_id == "R050" for item in violations))
+
+    def test_detects_kubeblocks_component_replica_drift(self):
+        violations = self.run_artifact_checker(
+            """
+            apiVersion: app.sealos.io/v1
+            kind: Template
+            metadata:
+              name: demo
+            spec: {}
+            ---
+            apiVersion: apps.kubeblocks.io/v1alpha1
+            kind: Cluster
+            metadata:
+              name: demo-pg
+            spec:
+              componentSpecs:
+                - name: postgresql
+                  replicas: 2
+            """,
+            """
+            apiVersion: docker-to-sealos/v1
+            kind: TopologyEvidence
+            metadata:
+              name: demo-topology
+            spec:
+              appName: demo
+              source: compose.yaml@v1
+              resources:
+                - kind: Cluster
+                  name: demo-pg
+                  when: always
+                  components:
+                    - name: postgresql
+                      replicas: 1
+            """,
+            evidence_path=".sealos/topology-evidence/demo.yaml",
+        )
+
+        r050 = [item for item in violations if item.rule_id == "R050"]
+        self.assertTrue(r050)
+        self.assertTrue(any("components=postgresql=1" in item.message for item in r050))
+        self.assertTrue(any("components=postgresql=2" in item.message for item in r050))
+
+    def test_allows_matching_ha_cluster_cronjob_and_ignores_job(self):
+        violations = self.run_artifact_checker(
+            """
+            apiVersion: app.sealos.io/v1
+            kind: Template
+            metadata:
+              name: demo
+            spec: {}
+            ---
+            apiVersion: apps/v1
+            kind: Deployment
+            metadata:
+              name: demo-api
+            spec:
+              replicas: 3
+            ---
+            apiVersion: apps/v1
+            kind: DaemonSet
+            metadata:
+              name: demo-agent
+            spec: {}
+            ---
+            ${{ if(inputs.enable_postgresql === 'true') }}
+            apiVersion: apps.kubeblocks.io/v1alpha1
+            kind: Cluster
+            metadata:
+              name: demo-pg
+            spec:
+              componentSpecs:
+                - name: postgresql
+                  replicas: 3
+            ${{ endif() }}
+            ---
+            apiVersion: batch/v1
+            kind: CronJob
+            metadata:
+              name: demo-maintenance
+            spec: {}
+            ---
+            apiVersion: batch/v1
+            kind: Job
+            metadata:
+              name: demo-bootstrap
+            spec: {}
+            """,
+            """
+            apiVersion: docker-to-sealos/v1
+            kind: TopologyEvidence
+            metadata:
+              name: demo-topology
+            spec:
+              appName: demo
+              source: compose.yaml@v2
+              resources:
+                - kind: Deployment
+                  name: demo-api
+                  when: always
+                  replicas: 3
+                - kind: DaemonSet
+                  name: demo-agent
+                  when: always
+                - kind: Cluster
+                  name: demo-pg
+                  when: inputs.enable_postgresql === 'true'
+                  components:
+                    - name: postgresql
+                      replicas: 3
+                - kind: CronJob
+                  name: demo-maintenance
+                  when: always
+            """,
+            evidence_path=".sealos/topology-evidence/demo.yaml",
+        )
+
+        self.assertFalse(any(item.rule_id == "R050" for item in violations))
+
+    def test_detects_unexpected_cronjob_topology(self):
+        violations = self.run_artifact_checker(
+            """
+            apiVersion: app.sealos.io/v1
+            kind: Template
+            metadata:
+              name: demo
+            spec: {}
+            ---
+            apiVersion: batch/v1
+            kind: CronJob
+            metadata:
+              name: demo-maintenance
+            spec: {}
+            """,
+            """
+            apiVersion: docker-to-sealos/v1
+            kind: TopologyEvidence
+            metadata:
+              name: demo-topology
+            spec:
+              appName: demo
+              source: compose.yaml@v1
+              resources:
+                - kind: ObjectStorageBucket
+                  name: demo-storage
+                  when: always
+            """,
+            evidence_path=".sealos/topology-evidence/demo.yaml",
+        )
+
+        r050 = [item for item in violations if item.rule_id == "R050"]
+        self.assertTrue(any("demo-maintenance" in item.message for item in r050))
+
+    def test_enforces_topology_evidence_path_and_schema(self):
+        violations = self.run_artifact_checker(
+            """
+            apiVersion: app.sealos.io/v1
+            kind: Template
+            metadata:
+              name: demo
+            spec: {}
+            ---
+            apiVersion: apps/v1
+            kind: Deployment
+            metadata:
+              name: demo-app
+            spec:
+              replicas: 1
+            """,
+            """
+            apiVersion: docker-to-sealos/v1
+            kind: TopologyEvidence
+            metadata:
+              name: demo-topology
+            spec:
+              appName: demo
+              source: compose.yaml@v1
+              resources:
+                - kind: Deployment
+                  name: demo-app
+                  when: always
+            """,
+            evidence_path=".sealos/demo-topology.yaml",
+        )
+
+        r050 = [item for item in violations if item.rule_id == "R050"]
+        self.assertTrue(any(".sealos/topology-evidence/demo.yaml" in item.message for item in r050))
+        self.assertTrue(any("require positive integer replicas" in item.message for item in r050))
+
     def test_detects_origin_image_name_mismatch_in_artifact(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
@@ -1503,6 +2288,234 @@ class CheckConsistencyTests(unittest.TestCase):
                 additional_include_paths=["template/demo/index.yaml"],
             )
             self.assertTrue(any(item.rule_id == "R020" for item in violations))
+
+    def test_enforces_root_ingress_numeric_backend_port_contract(self):
+        service = """
+            apiVersion: v1
+            kind: Service
+            metadata:
+              name: demo
+              labels:
+                app: demo
+                cloud.sealos.io/app-deploy-manager: demo
+            spec:
+              selector:
+                app: demo
+              ports:
+                - name: http
+                  port: 8080
+                  targetPort: 8080
+        """
+        cases = [
+            ("numeric matching port", service, "Prefix", "/", "number: 8080", False),
+            ("named backend port", service, "Prefix", "/", "name: http", True),
+            ("mismatched numeric port", service, "Prefix", "/", "number: 9090", True),
+            ("missing service", "", "Prefix", "/", "number: 8080", True),
+            ("non-root prefix route", service, "Prefix", "/admin", "name: http", False),
+        ]
+
+        for label, service_yaml, path_type, path, backend_port, expect_violation in cases:
+            with self.subTest(label=label):
+                ingress = f"""
+                    apiVersion: networking.k8s.io/v1
+                    kind: Ingress
+                    metadata:
+                      name: demo
+                      labels:
+                        cloud.sealos.io/app-deploy-manager: demo
+                    spec:
+                      rules:
+                        - host: demo.example.com
+                          http:
+                            paths:
+                              - pathType: {path_type}
+                                path: {path}
+                                backend:
+                                  service:
+                                    name: demo
+                                    port:
+                                      {backend_port}
+                """
+                artifact = "\n---\n".join(
+                    part
+                    for part in (
+                        textwrap.dedent(service_yaml).strip(),
+                        textwrap.dedent(ingress).strip(),
+                    )
+                    if part
+                )
+                violations = self.run_artifact_checker(artifact)
+                has_violation = any(item.rule_id == "R051" for item in violations)
+                self.assertEqual(expect_violation, has_violation, label)
+
+    def test_enforces_root_ingress_route_order_for_launchpad_discovery(self):
+        service = """
+            apiVersion: v1
+            kind: Service
+            metadata:
+              name: demo
+              labels:
+                app: demo
+                cloud.sealos.io/app-deploy-manager: demo
+            spec:
+              selector:
+                app: demo
+              ports:
+                - name: http
+                  port: 8080
+                  targetPort: 8080
+        """
+        cases = [
+            (
+                "root route first",
+                """
+                              - pathType: Prefix
+                                path: /
+                                backend:
+                                  service:
+                                    name: demo
+                                    port:
+                                      number: 8080
+                              - pathType: Prefix
+                                path: /admin
+                                backend:
+                                  service:
+                                    name: demo
+                                    port:
+                                      number: 8080
+                """,
+                False,
+            ),
+            (
+                "root route after subpath",
+                """
+                              - pathType: Prefix
+                                path: /admin
+                                backend:
+                                  service:
+                                    name: demo
+                                    port:
+                                      number: 8080
+                              - pathType: Prefix
+                                path: /
+                                backend:
+                                  service:
+                                    name: demo
+                                    port:
+                                      number: 8080
+                """,
+                True,
+            ),
+            (
+                "non-root routes only",
+                """
+                              - pathType: Prefix
+                                path: /admin
+                                backend:
+                                  service:
+                                    name: demo
+                                    port:
+                                      number: 8080
+                """,
+                False,
+            ),
+        ]
+
+        for label, paths, expect_violation in cases:
+            with self.subTest(label=label):
+                ingress = f"""
+                    apiVersion: networking.k8s.io/v1
+                    kind: Ingress
+                    metadata:
+                      name: demo
+                      labels:
+                        cloud.sealos.io/app-deploy-manager: demo
+                    spec:
+                      rules:
+                        - host: demo.example.com
+                          http:
+                            paths:
+                {paths}
+                """
+                artifact = "\n---\n".join(
+                    part for part in (textwrap.dedent(service).strip(), textwrap.dedent(ingress).strip()) if part
+                )
+                violations = self.run_artifact_checker(artifact)
+                route_order_violation = any(
+                    item.rule_id == "R051" and "must be first" in item.message
+                    for item in violations
+                )
+                self.assertEqual(expect_violation, route_order_violation, label)
+
+    def test_scopes_root_ingress_port_matching_to_the_same_artifact(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            skill = root / "SKILL.md"
+            refs_dir = root / "references"
+            rules_file = refs_dir / "rules-registry.yaml"
+            demo_artifact = root / "template" / "demo" / "index.yaml"
+            other_artifact = root / "template" / "other" / "index.yaml"
+
+            write_file(skill, "# no yaml snippets\n")
+            write_file(refs_dir / "sample.md", "# refs\n")
+            write_registry(rules_file)
+            write_file(
+                demo_artifact,
+                """
+                apiVersion: v1
+                kind: Service
+                metadata:
+                  name: demo
+                spec:
+                  ports:
+                    - name: http
+                      port: 8080
+                      targetPort: 8080
+                ---
+                apiVersion: networking.k8s.io/v1
+                kind: Ingress
+                metadata:
+                  name: demo
+                  labels:
+                    cloud.sealos.io/app-deploy-manager: demo
+                spec:
+                  rules:
+                    - http:
+                        paths:
+                          - pathType: Prefix
+                            path: /
+                            backend:
+                              service:
+                                name: demo
+                                port:
+                                  number: 9090
+                """,
+            )
+            write_file(
+                other_artifact,
+                """
+                apiVersion: v1
+                kind: Service
+                metadata:
+                  name: demo
+                spec:
+                  ports:
+                    - name: http
+                      port: 9090
+                      targetPort: 9090
+                """,
+            )
+
+            violations = CHECKER.run_checks(
+                skill,
+                refs_dir,
+                rules_file,
+                additional_include_paths=[
+                    "template/demo/index.yaml",
+                    "template/other/index.yaml",
+                ],
+            )
+            self.assertTrue(any(item.rule_id == "R051" for item in violations))
 
     def test_detects_service_missing_required_labels_in_artifact(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -2054,6 +3067,368 @@ class CheckConsistencyTests(unittest.TestCase):
                 additional_include_paths=["template/demo/index.yaml"],
             )
             self.assertTrue(any(item.rule_id == "R043" and "defaultMode" in item.message for item in violations))
+
+    def test_rejects_direct_execution_of_configmap_script(self):
+        violations = self.run_artifact_checker(
+            """
+            apiVersion: v1
+            kind: ConfigMap
+            metadata:
+              name: demo
+              labels:
+                app: demo
+                cloud.sealos.io/app-deploy-manager: demo
+            data:
+              vn-optvn-demovn-startvn-sh: |
+                exec demo
+            ---
+            apiVersion: apps/v1
+            kind: Deployment
+            metadata:
+              name: demo
+              labels:
+                app: demo
+                cloud.sealos.io/app-deploy-manager: demo
+              annotations:
+                originImageName: ghcr.io/example/demo:1.0.0
+            spec:
+              replicas: 1
+              revisionHistoryLimit: 1
+              selector:
+                matchLabels:
+                  app: demo
+              template:
+                metadata:
+                  labels:
+                    app: demo
+                spec:
+                  containers:
+                    - name: demo
+                      image: ghcr.io/example/demo:1.0.0
+                      imagePullPolicy: IfNotPresent
+                      command: ["/opt/demo/start.sh"]
+                      resources:
+                        limits: {cpu: 200m, memory: 256Mi}
+                        requests: {cpu: 20m, memory: 25Mi}
+                      volumeMounts:
+                        - name: demo-cm
+                          mountPath: /opt/demo/start.sh
+                          subPath: vn-optvn-demovn-startvn-sh
+                  volumes:
+                    - name: demo-cm
+                      configMap:
+                        name: demo
+            """
+        )
+        self.assertTrue(any(item.rule_id == "R043" and "direct execution" in item.message for item in violations))
+
+    def test_accepts_shell_invocation_of_configmap_script_with_exec(self):
+        violations = self.run_artifact_checker(
+            """
+            apiVersion: v1
+            kind: ConfigMap
+            metadata:
+              name: demo
+              labels:
+                app: demo
+                cloud.sealos.io/app-deploy-manager: demo
+            data:
+              vn-optvn-demovn-startvn-sh: |
+                echo starting
+                exec demo
+            ---
+            apiVersion: apps/v1
+            kind: Deployment
+            metadata:
+              name: demo
+              labels:
+                app: demo
+                cloud.sealos.io/app-deploy-manager: demo
+              annotations:
+                originImageName: ghcr.io/example/demo:1.0.0
+            spec:
+              replicas: 1
+              revisionHistoryLimit: 1
+              selector:
+                matchLabels:
+                  app: demo
+              template:
+                metadata:
+                  labels:
+                    app: demo
+                spec:
+                  containers:
+                    - name: demo
+                      image: ghcr.io/example/demo:1.0.0
+                      imagePullPolicy: IfNotPresent
+                      command: ["/bin/sh", "/opt/demo/start.sh"]
+                      resources:
+                        limits: {cpu: 200m, memory: 256Mi}
+                        requests: {cpu: 20m, memory: 25Mi}
+                      volumeMounts:
+                        - name: demo-cm
+                          mountPath: /opt/demo/start.sh
+                          subPath: vn-optvn-demovn-startvn-sh
+                  volumes:
+                    - name: demo-cm
+                      configMap:
+                        name: demo
+            """
+        )
+        self.assertFalse(any(item.rule_id == "R043" and "direct execution" in item.message for item in violations))
+
+    def test_rejects_shell_invocation_without_exec_for_encoded_script_key(self):
+        violations = self.run_artifact_checker(
+            """
+            apiVersion: v1
+            kind: ConfigMap
+            metadata:
+              name: demo
+              labels:
+                app: demo
+                cloud.sealos.io/app-deploy-manager: demo
+            data:
+              vn-optvn-demovn-startvn-sh: |
+                echo starting
+            ---
+            apiVersion: apps/v1
+            kind: Deployment
+            metadata:
+              name: demo
+              labels:
+                app: demo
+                cloud.sealos.io/app-deploy-manager: demo
+              annotations:
+                originImageName: ghcr.io/example/demo:1.0.0
+            spec:
+              replicas: 1
+              revisionHistoryLimit: 1
+              selector:
+                matchLabels:
+                  app: demo
+              template:
+                metadata:
+                  labels:
+                    app: demo
+                spec:
+                  containers:
+                    - name: demo
+                      image: ghcr.io/example/demo:1.0.0
+                      imagePullPolicy: IfNotPresent
+                      command: ["/bin/sh", "/opt/demo/start.sh"]
+                      resources:
+                        limits: {cpu: 200m, memory: 256Mi}
+                        requests: {cpu: 20m, memory: 25Mi}
+                      volumeMounts:
+                        - name: demo-cm
+                          mountPath: /opt/demo/start.sh
+                          subPath: vn-optvn-demovn-startvn-sh
+                  volumes:
+                    - name: demo-cm
+                      configMap:
+                        name: demo
+            """
+        )
+        self.assertTrue(any(item.rule_id == "R043" and "must end with exec" in item.message for item in violations))
+
+    def test_validates_persisted_runtime_secret_contract_marker(self):
+        valid = self.run_artifact_checker(
+            """
+            apiVersion: v1
+            kind: ConfigMap
+            metadata:
+              name: demo
+              annotations:
+                docker-to-sealos.runtime-secret-contract: persisted
+            data:
+              vn-keyvn-sh: |
+                umask 077
+                head -c 32 /dev/urandom > "$tmp"
+                grep -Eq '^[0-9a-f]{64}$' "$tmp"
+                chmod 0600 "$tmp"
+                mv "$tmp" /app/data/key
+                key=$(cat /app/data/key)
+                export TOTP_ENCRYPTION_KEY="$key"
+                exec /app/demo
+            """
+        )
+        self.assertFalse(any(item.rule_id == "R058" for item in valid))
+
+        invalid = self.run_artifact_checker(
+            """
+            apiVersion: v1
+            kind: ConfigMap
+            metadata:
+              name: demo
+              annotations:
+                docker-to-sealos.runtime-secret-contract: persisted
+            data:
+              vn-keyvn-sh: |
+                echo key
+                echo "$RUNTIME_SECRET"
+            """
+        )
+        self.assertTrue(any(item.rule_id == "R058" for item in invalid))
+
+        redirected = self.run_artifact_checker(
+            """
+            apiVersion: v1
+            kind: ConfigMap
+            metadata:
+              name: demo
+              annotations:
+                docker-to-sealos.runtime-secret-contract: persisted
+            data:
+              vn-keyvn-sh: |
+                umask 077
+                head -c 32 /dev/urandom > "$tmp"
+                grep -Eq '^[0-9a-f]{64}$' "$tmp"
+                chmod 0600 "$tmp"
+                mv "$tmp" /app/data/key
+                key=$(cat /app/data/key)
+                printf "$key" >&2
+                export TOTP_ENCRYPTION_KEY="$key"
+                exec /app/demo
+            """
+        )
+        self.assertTrue(any(item.rule_id == "R058" for item in redirected))
+
+    def test_validates_optional_managed_database_contract_marker(self):
+        valid = self.run_artifact_checker(
+            """
+            apiVersion: v1
+            kind: ConfigMap
+            metadata:
+              name: demo
+              annotations:
+                docker-to-sealos.database-mode: optional-managed
+            data:
+              vn-contractvn-txt: |
+                if (inputs.enable_database === 'true')
+                kind: Cluster
+                else()
+                storageMode: sqlite
+            """
+        )
+        self.assertFalse(any(item.rule_id == "R059" for item in valid))
+
+        templated = self.run_artifact_checker(
+            """
+            apiVersion: app.sealos.io/v1
+            kind: Template
+            metadata:
+              name: demo
+              annotations:
+                docker-to-sealos.database-mode: optional-managed
+            spec:
+              inputs:
+                enable_database:
+                  type: boolean
+                  default: 'false'
+            ---
+            ${{ if(inputs.enable_database === 'true') }}
+            apiVersion: apps.kubeblocks.io/v1alpha1
+            kind: Cluster
+            metadata:
+              name: demo-db
+            ---
+            ${{ else() }}
+            storageMode: sqlite
+            ${{ endif() }}
+            """
+        )
+        self.assertFalse(any(item.rule_id == "R059" for item in templated))
+
+        mismatched = self.run_artifact_checker(
+            """
+            apiVersion: app.sealos.io/v1
+            kind: Template
+            metadata:
+              name: demo
+              annotations:
+                docker-to-sealos.database-mode: optional-managed
+            spec:
+              inputs:
+                enable_database:
+                  type: boolean
+                  default: 'false'
+                use_database:
+                  type: boolean
+                  default: 'false'
+            ---
+            ${{ if(inputs.enable_database === 'true') }}
+            apiVersion: apps.kubeblocks.io/v1alpha1
+            kind: Cluster
+            metadata:
+              name: demo-db
+            ${{ else() }}
+            storageMode: sqlite
+            ${{ endif() }}
+            ---
+            ${{ if(inputs.use_database === 'true') }}
+            apiVersion: v1
+            kind: Secret
+            metadata:
+              name: demo-db
+            spec:
+              env:
+                - name: DATABASE_URL
+                  value: postgres://demo
+            ${{ else() }}
+            storageMode: local
+            ${{ endif() }}
+            """
+        )
+        self.assertTrue(any(item.rule_id == "R059" for item in mismatched))
+
+        dsn_mismatched = self.run_artifact_checker(
+            """
+            apiVersion: app.sealos.io/v1
+            kind: Template
+            metadata:
+              name: demo
+              annotations:
+                docker-to-sealos.database-mode: optional-managed
+            spec:
+              inputs:
+                enable_database:
+                  type: boolean
+                  default: 'false'
+                use_database:
+                  type: boolean
+                  default: 'false'
+            ---
+            ${{ if(inputs.enable_database === 'true') }}
+            kind: Cluster
+            ${{ else() }}
+            storageMode: sqlite
+            ${{ endif() }}
+            ---
+            ${{ if(inputs.use_database === 'true') }}
+            env:
+              - name: DATABASE_DSN
+                value: postgres://demo
+            ${{ else() }}
+            storageMode: local
+            ${{ endif() }}
+            """
+        )
+        self.assertTrue(any(item.rule_id == "R059" for item in dsn_mismatched))
+
+        invalid = self.run_artifact_checker(
+            """
+            apiVersion: v1
+            kind: ConfigMap
+            metadata:
+              name: demo
+              annotations:
+                docker-to-sealos.database-mode: optional-managed
+            data:
+              vn-contractvn-txt: |
+                database configuration
+            """
+        )
+        self.assertTrue(any(item.rule_id == "R059" for item in invalid))
 
     def test_detects_configmap_file_mount_contract_violations(self):
         base_artifact = """apiVersion: v1
@@ -4369,7 +5744,7 @@ __MOUNTS__
         )
         self.assertTrue(any(item.rule_id == "R035" for item in violations))
 
-    def test_detects_missing_private_registry_pull_secret_reference(self):
+    def test_allows_ghcr_image_without_static_private_registry_assumption(self):
         violations = self.run_checker(
             """
             ```yaml
@@ -4397,7 +5772,7 @@ __MOUNTS__
             ```
             """
         )
-        self.assertTrue(any(item.rule_id == "R035" for item in violations))
+        self.assertFalse(any(item.rule_id == "R035" for item in violations))
 
     def test_detects_object_storage_secret_misuse_on_non_s3_env(self):
         violations = self.run_checker(
@@ -4828,10 +6203,9 @@ __MOUNTS__
         )
         self.assertTrue(any(item.rule_id == "R011" for item in violations))
 
-    def test_allows_statefulset_volume_claim_template_without_storage_tracking_labels(self):
-        violations = self.run_checker(
+    def test_allows_statefulset_volume_claim_template_contract(self):
+        violations = self.run_artifact_checker(
             """
-            ```yaml
             apiVersion: apps/v1
             kind: StatefulSet
             metadata:
@@ -4854,17 +6228,67 @@ __MOUNTS__
                     - name: demo
                       image: nginx:1.27.2
                       imagePullPolicy: IfNotPresent
+                      volumeMounts:
+                        - name: vn-data
+                          mountPath: /data
               volumeClaimTemplates:
                 - metadata:
-                    name: data
+                    name: vn-data
+                    annotations:
+                      path: /data
+                      value: '1'
                   spec:
                     resources:
                       requests:
                         storage: 1Gi
-            ```
             """
         )
-        self.assertFalse(violations)
+        self.assertFalse(any(item.rule_id == "R056" for item in violations))
+
+    def test_detects_invalid_statefulset_volume_claim_template_contract(self):
+        violations = self.run_artifact_checker(
+            """
+            apiVersion: apps/v1
+            kind: StatefulSet
+            metadata:
+              name: demo
+              labels:
+                app: demo
+                cloud.sealos.io/app-deploy-manager: demo
+                cloud.sealos.io/deploy-on-sealos: demo
+            spec:
+              revisionHistoryLimit: 1
+              selector:
+                matchLabels:
+                  app: demo
+              template:
+                metadata:
+                  labels:
+                    app: demo
+                spec:
+                  automountServiceAccountToken: false
+                  containers:
+                    - name: demo
+                      image: nginx:1.27.2
+                      imagePullPolicy: IfNotPresent
+                      volumeMounts:
+                        - name: data
+                          mountPath: /data
+              volumeClaimTemplates:
+                - metadata:
+                    name: data
+                    labels:
+                      cloud.sealos.io/deploy-on-sealos: demo
+                    annotations:
+                      path: /data
+                      value: 1
+                  spec:
+                    resources:
+                      requests:
+                        storage: 1Gi
+            """
+        )
+        self.assertTrue(any(item.rule_id == "R056" for item in violations))
 
     def test_allows_declared_template_input_references(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -5114,6 +6538,108 @@ __MOUNTS__
             r045 = [item for item in violations if item.rule_id == "R045"]
             self.assertTrue(r045)
             self.assertTrue(any("inputs.enable_signup" in item.message for item in r045))
+
+    def test_detects_non_string_template_input_defaults(self):
+        cases = {
+            "numeric": ("587", "integer"),
+            "decimal": ("587.0", "number"),
+            "boolean": ("false", "boolean"),
+            "null": ("null", "null"),
+        }
+
+        for case_name, (default_value, expected_type) in cases.items():
+            with self.subTest(case=case_name):
+                violations = self.run_artifact_checker(
+                    f"""
+                    apiVersion: app.sealos.io/v1
+                    kind: Template
+                    metadata:
+                      name: demo
+                    spec:
+                      inputs:
+                        smtp_port:
+                          description: SMTP server port
+                          type: string
+                          default: {default_value}
+                          required: false
+                    """
+                )
+
+                r052 = [item for item in violations if item.rule_id == "R052"]
+                self.assertEqual(1, len(r052))
+                self.assertEqual(10, r052[0].line)
+                self.assertIn("spec.inputs.smtp_port.default", r052[0].message)
+                self.assertIn(f"got {expected_type}", r052[0].message)
+
+    def test_detects_non_string_template_default_values(self):
+        violations = self.run_artifact_checker(
+            """
+            apiVersion: app.sealos.io/v1
+            kind: Template
+            metadata:
+              name: demo
+            spec:
+              defaults:
+                smtp_port:
+                  type: string
+                  value: 587
+            """
+        )
+
+        r052 = [item for item in violations if item.rule_id == "R052"]
+        self.assertEqual(1, len(r052))
+        self.assertEqual(9, r052[0].line)
+        self.assertIn("spec.defaults.smtp_port.value", r052[0].message)
+        self.assertIn("got integer", r052[0].message)
+
+    def test_allows_string_template_defaults_and_numeric_infrastructure_fields(self):
+        violations = self.run_artifact_checker(
+            """
+            apiVersion: app.sealos.io/v1
+            kind: Template
+            metadata:
+              name: demo
+            spec:
+              defaults:
+                smtp_port:
+                  type: string
+                  value: "587"
+                null_marker:
+                  type: string
+                  value: "null"
+              inputs:
+                smtp_port:
+                  description: SMTP server port
+                  type: string
+                  default: "587"
+                  required: false
+                enable_tls:
+                  description: Enable SMTP TLS
+                  type: boolean
+                  default: "false"
+                  required: false
+                admin_username:
+                  description: Administrator login name
+                  type: string
+                  required: true
+            ---
+            apiVersion: apps/v1
+            kind: Deployment
+            metadata:
+              name: demo
+            spec:
+              replicas: 1
+              template:
+                spec:
+                  containers:
+                    - name: demo
+                      image: nginx:1.27.2
+                      ports:
+                        - containerPort: 3000
+            """
+        )
+
+        self.assertFalse(any(item.rule_id == "R052" for item in violations))
 
     def test_registry_rule_scope_filters_violations(self):
         rules_yaml = render_registry(
@@ -5394,6 +6920,62 @@ __MOUNTS__
             )
             self.assertFalse(any(item.rule_id == "R040" for item in violations))
 
+    def test_detects_invalid_mongodb_cluster_schema_in_artifact(self):
+        violations = self.run_artifact_checker(
+            """
+            apiVersion: apps.kubeblocks.io/v1alpha1
+            kind: Cluster
+            metadata:
+              name: demo-mongo
+              labels:
+                kb.io/database: mongodb-8.0.4
+                sealos-db-provider-cr: demo-mongo
+                clusterdefinition.kubeblocks.io/name: mongodb
+                app.kubernetes.io/instance: demo-mongo
+            spec:
+              componentSpecs:
+                - name: postgresql
+                  componentDefRef: postgresql
+                  serviceVersion: 16.4.0
+                  resources:
+                    limits:
+                      cpu: 500m
+                      memory: 512Mi
+                    requests:
+                      cpu: 50m
+                      memory: 51Mi
+            """
+        )
+        self.assertTrue(any(item.rule_id == "R057" for item in violations))
+
+    def test_allows_upgraded_mongodb_cluster_schema_in_artifact(self):
+        violations = self.run_artifact_checker(
+            """
+            apiVersion: apps.kubeblocks.io/v1alpha1
+            kind: Cluster
+            metadata:
+              name: demo-mongo
+              labels:
+                kb.io/database: mongodb-8.0.4
+                sealos-db-provider-cr: demo-mongo
+                clusterdefinition.kubeblocks.io/name: mongodb
+                app.kubernetes.io/instance: demo-mongo
+            spec:
+              componentSpecs:
+                - name: mongodb
+                  componentDef: mongodb
+                  serviceVersion: 8.0.4
+                  resources:
+                    limits:
+                      cpu: 500m
+                      memory: 512Mi
+                    requests:
+                      cpu: 50m
+                      memory: 51Mi
+            """
+        )
+        self.assertFalse(any(item.rule_id == "R057" for item in violations))
+
     def test_detects_raw_database_statefulset_in_artifact(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
@@ -5441,6 +7023,59 @@ __MOUNTS__
                 additional_include_paths=["template/demo/index.yaml"],
             )
             self.assertTrue(any(item.rule_id == "R039" for item in violations))
+
+    def test_detects_librechat_mongodb_statefulset_in_artifact(self):
+        violations = self.run_artifact_checker(
+            """
+            apiVersion: apps/v1
+            kind: StatefulSet
+            metadata:
+              name: librechat-gsxbjhkd-mongodb
+              annotations:
+                originImageName: mongo:8.0.20
+              labels:
+                cloud.sealos.io/app-deploy-manager: librechat-gsxbjhkd-mongodb
+                app: librechat-gsxbjhkd-mongodb
+            spec:
+              replicas: 1
+              revisionHistoryLimit: 1
+              selector:
+                matchLabels:
+                  app: librechat-gsxbjhkd-mongodb
+              template:
+                metadata:
+                  labels:
+                    app: librechat-gsxbjhkd-mongodb
+                spec:
+                  automountServiceAccountToken: false
+                  containers:
+                    - name: librechat-gsxbjhkd-mongodb
+                      image: mongo:8.0.20
+                      imagePullPolicy: IfNotPresent
+                      args: [mongod, --noauth]
+                      resources:
+                        limits:
+                          cpu: 500m
+                          memory: 512Mi
+                        requests:
+                          cpu: 50m
+                          memory: 51Mi
+                      volumeMounts:
+                        - name: data
+                          mountPath: /data/db
+              volumeClaimTemplates:
+                - metadata:
+                    name: data
+                    annotations:
+                      path: /data/db
+                      value: '1'
+                  spec:
+                    resources:
+                      requests:
+                        storage: 1Gi
+            """
+        )
+        self.assertTrue(any(item.rule_id == "R039" for item in violations))
 
     def test_detects_raw_database_resources_across_supported_kinds(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -6584,6 +8219,8 @@ __MOUNTS__
                   name: ${{ defaults.app_name }}
                 spec:
                   policy: private
+                ${{ else() }}
+                storageMode: local
                 ---
                 ${{ endif() }}
                 """,
@@ -6596,6 +8233,81 @@ __MOUNTS__
                 additional_include_paths=["template/mindsdb/index.yaml"],
             )
             self.assertFalse(any(item.rule_id == "R044" for item in violations))
+
+    def test_optional_object_storage_supporting_resources_share_bucket_condition(self):
+        valid = self.run_artifact_checker(
+            """
+            apiVersion: app.sealos.io/v1
+            kind: Template
+            metadata:
+              name: demo
+            spec:
+              inputs:
+                enable_object_storage:
+                  type: boolean
+                  default: 'false'
+            ---
+            ${{ if(inputs.enable_object_storage === 'true') }}
+            kind: ObjectStorageBucket
+            metadata:
+              name: ${{ defaults.app_name }}
+            ${{ else() }}
+            storageMode: local
+            ${{ endif() }}
+            ---
+            ${{ if(inputs.enable_object_storage === 'true') }}
+            kind: Secret
+            metadata:
+              name: object-storage-credentials
+            stringData:
+              s3_access_key: configured
+            ${{ else() }}
+            storageMode: local
+            ${{ endif() }}
+            """
+        )
+        self.assertFalse(any(item.rule_id == "R044" for item in valid))
+
+        mismatched = self.run_artifact_checker(
+            """
+            apiVersion: app.sealos.io/v1
+            kind: Template
+            metadata:
+              name: demo
+            spec:
+              inputs:
+                enable_object_storage:
+                  type: boolean
+                  default: 'false'
+                configure_credentials:
+                  type: boolean
+                  default: 'false'
+            ---
+            ${{ if(inputs.enable_object_storage === 'true') }}
+            kind: ObjectStorageBucket
+            metadata:
+              name: ${{ defaults.app_name }}
+            ${{ else() }}
+            storageMode: local
+            ${{ endif() }}
+            ---
+            ${{ if(inputs.configure_credentials === 'true') }}
+            kind: Secret
+            metadata:
+              name: object-storage-credentials
+            stringData:
+              s3_access_key: configured
+            ${{ else() }}
+            storageMode: local
+            ${{ endif() }}
+            """
+        )
+        self.assertTrue(
+            any(
+                item.rule_id == "R044" and "share the same boolean condition" in item.message
+                for item in mismatched
+            )
+        )
 
     def test_optional_object_storage_boolean_with_extra_clause_fails(self):
         violations = self.run_artifact_checker(
@@ -6618,6 +8330,8 @@ __MOUNTS__
               name: ${{ defaults.app_name }}
             spec:
               policy: private
+            ${{ else() }}
+            storageMode: local
             ${{ endif() }}
             """
         )
@@ -6673,6 +8387,8 @@ __MOUNTS__
                   name: ${{ defaults.app_name }}
                 spec:
                   policy: private
+                ${{ else() }}
+                storageMode: local
                 ---
                 ${{ endif() }}
                 """,

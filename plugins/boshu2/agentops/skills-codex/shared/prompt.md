@@ -1,6 +1,6 @@
 # shared
 
-Shared AgentOps skill contracts. Triggers: "shared", "shared agentops skill contracts.", "shared skill".
+Retired — its runtime-neutrality contract moved to docs/contracts/runtime-neutrality.md. Triggers: none — not routable.
 
 ## Instructions
 

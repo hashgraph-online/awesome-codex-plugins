@@ -1,13 +1,13 @@
 {
   "name": "superloopy",
-  "version": "0.10.0",
+  "version": "0.17.0",
   "description": "A lightweight loop harness for Codex and Claude Code with strict evidence gates.",
   "type": "module",
   "bin": {
     "superloopy": "src/cli.js"
   },
   "scripts": {
-    "test": "node --test test/*.test.js",
+    "test": "node --test \"test/**/*.test.js\" \"test/**/*.test.mjs\" \"examples/**/*.test.js\" \"examples/**/*.test.mjs\"",
     "check": "npm test",
     "sync-version": "node scripts/sync-version.mjs"
   },
@@ -24,6 +24,6 @@
   "author": "beefiker",
   "license": "MIT",
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.0.0"
   }
 }

@@ -1,6 +1,6 @@
 ---
 name: campaign-orchestrator
-description: "Orchestrate full campaign lifecycle. Use when: planning, launching, managing, UTM setup, media plan, post-mortem."
+description: "Full campaign-lifecycle module — produces campaign briefs, budget allocations via three models (70/20/10, efficiency-ranked, funnel-weighted), channel-mix and media plans, UTM taxonomies with governance rules, launch checklists, ABM plans, and post-mortem reports. Plans and documents; it does not launch or edit live campaigns. Triggers on \"/digital-marketing-pro:campaign-orchestrator\", \"build a media plan\", \"how should we split budget across channels\", \"set up UTM naming conventions\", \"run a post-mortem on the campaign\". Reads the brand profile, guidelines, and campaign history via campaign-tracker.py; its reference docs are consumed by /digital-marketing-pro:campaign-plan rather than duplicated."
 ---
 
 # Campaign Orchestrator
@@ -25,15 +25,14 @@ Activate this module when the user's request involves any of the following:
 
 Before producing any marketing output from this module:
 
-1. **Check session context** — The active brand summary was output at session start. Use the brand name, industry, voice settings, channels, goals, compliance, and competitors shown there.
-2. **If you need the full profile**, read: `~/.claude-marketing/brands/{slug}/profile.json`
-3. **Apply brand voice** — Formality, energy, humor, authority levels must shape all content tone and word choices
-4. **Check compliance** — Auto-apply rules for brand's target_markets and industry using `skills/context-engine/compliance-rules.md`
-5. **Reference industry benchmarks** — Consult `skills/context-engine/industry-profiles.md` for the brand's industry
-6. **Use platform specs** — Reference `skills/context-engine/platform-specs.md` for character limits and format requirements
-7. **Check campaign history** — Run `python "${CLAUDE_PLUGIN_ROOT}/scripts/campaign-tracker.py" --brand {slug} --action list-campaigns` before planning new work
-8. **If no brand exists**, say: "No brand profile found. Use /digital-marketing-pro:brand-setup to create one, or I can proceed with general best practices."
-9. **Check brand guidelines** — If `~/.claude-marketing/brands/{slug}/guidelines/_manifest.json` exists, load and enforce: `restrictions.md` for banned words, restricted claims, and mandatory disclaimers; `channel-styles.md` for channel-specific tone overrides (may differ from base voice); `messaging.md` for approved key messages, taglines, and positioning language; `voice-and-tone.md` for detailed voice rules beyond the 4 numeric scores. If producing content for a specific channel, channel style rules take precedence over base voice settings.
+1. **Load brand context** — Read `~/.claude-marketing/brands/_active-brand.json` for the active slug, then load `~/.claude-marketing/brands/{slug}/profile.json`. Use the brand name, industry, voice settings, channels, goals, compliance, and competitors from the profile.
+2. **Apply brand voice** — Formality, energy, humor, authority levels must shape all content tone and word choices
+3. **Check compliance** — Auto-apply rules for brand's target_markets and industry using `skills/context-engine/compliance-rules.md`
+4. **Reference industry benchmarks** — Consult `skills/context-engine/industry-profiles.md` for the brand's industry
+5. **Use platform specs** — Reference `skills/context-engine/platform-specs.md` for character limits and format requirements
+6. **Check campaign history** — Run `python "${CLAUDE_PLUGIN_ROOT}/scripts/campaign-tracker.py" --brand {slug} --action list-campaigns` before planning new work
+7. **If no brand exists**, say: "No brand profile found. Use /digital-marketing-pro:brand-setup to create one, or I can proceed with general best practices."
+8. **Check brand guidelines** — If `~/.claude-marketing/brands/{slug}/guidelines/_manifest.json` exists, load and enforce: `restrictions.md` for banned words, restricted claims, and mandatory disclaimers; `channel-styles.md` for channel-specific tone overrides (may differ from base voice); `messaging.md` for approved key messages, taglines, and positioning language; `voice-and-tone.md` for detailed voice rules beyond the 4 numeric scores. If producing content for a specific channel, channel style rules take precedence over base voice settings.
 
 Do not ask the user for information that already exists in their brand profile.
 
@@ -146,6 +145,7 @@ If budget and objective are known, proceed and fill in gaps with best-practice a
 - `utm-tracking.md` — UTM naming conventions, URL builder specification, governance rules, and common UTM mistakes to avoid
 - `post-mortem.md` — Post-mortem framework, analysis template, learning extraction methodology, and benchmark updating process
 - `abm-strategy.md` — Account selection criteria, personalization tier framework, ABM channel playbook, and sales-marketing alignment protocol
+- `sales-enablement.md` — Sales enablement content taxonomy, battle card anatomy, content mapping to sales stages, objection handling library, and sales content metrics
 
 ## Output Formats
 

@@ -19,7 +19,7 @@ description: >
 
 This skill runs when the Bootstrap Gate is closed (missing CLAUDE.md, Session Config, or `.orchestrator/bootstrap.lock`) or when the user invokes `/bootstrap` directly. It scaffolds the minimum structure required by all session-orchestrator skills, commits it, and writes the lock file that opens the gate for all future invocations.
 
-**Anti-bureaucracy contract:** At most ONE `AskUserQuestion` call in the normal case (tier confirmation). A second question is only asked when the archetype is truly ambiguous on the Public Path for Standard/Deep tiers. No wizard, no multi-step flow.
+**Anti-bureaucracy contract:** On a first-time full bootstrap (no tier flags, no `--no-interview`), expect **7–9** `AskUserQuestion` prompts in three fixed blocks — not an open-ended wizard. (1) **Tier/stack** (Phase 2): one tier-confirmation question, plus an optional second archetype question when `PATH_TYPE = public` and archetype confidence is low (Standard/Deep only). (2) **Owner persona** (Phase 3.5): five questions from `scripts/lib/owner-interview.mjs` (first-run only). (3) **Dispatcher autonomy** (Phase 3.5.1): one question from `scripts/lib/config/dispatcher-autonomy-capture.mjs`. Flagged flows (`--upgrade`, `--retroactive`, `--sync-rules`, `--ecosystem-health`) and `--no-interview` skip some or all of these blocks.
 
 ## Invocation Context
 
@@ -33,6 +33,7 @@ Store `INVOCATION_MODE = transitive | direct`.
 **Mode dispatch (direct invocation only):**
 - If `--upgrade <tier>` is present in `$ARGUMENTS`: jump to **Upgrade Flow** section. Do not proceed to Phase 1.
 - If `--retroactive` is present in `$ARGUMENTS`: jump to **Retroactive Flow** section. Do not proceed to Phase 1.
+- If `--refresh-lock` is present in `$ARGUMENTS`: jump to **Refresh-Lock Flow** section. Do not proceed to Phase 1.
 - If `--sync-rules` is present in `$ARGUMENTS`: jump to **Sync-Rules Flow** section. Do not proceed to Phase 1.
 - If `--ecosystem-health` is present in `$ARGUMENTS`: jump to **Ecosystem-Health Flow** section. Do not proceed to Phase 1.
 - Otherwise: continue to Phase 1 below.
@@ -78,7 +79,6 @@ AskUserQuestion({
     question: "Leeres Repo erkannt. Basierend auf '<HEURISTIC_REASON>' empfehle ich **<RECOMMENDED_TIER>**. Passt das?",
     header: "Bootstrap",
     options: [
-      { label: "<RECOMMENDED_TIER> (Empfohlen)", description: "<one-line description of what this tier scaffolds>" },
       { label: "fast", description: "Nur CLAUDE.md + .gitignore + README. Für Demos, Spikes, Playgrounds." },
       { label: "standard", description: "Fast + package.json/Manifest + TypeScript + Linting + Tests. Für MVPs und echte Produkte." },
       { label: "deep", description: "Standard + CI + CODEOWNERS + CHANGELOG. Für Production, Team, Langlebige Repos." },
@@ -88,6 +88,8 @@ AskUserQuestion({
   }]
 })
 ```
+
+Before rendering: append ` (Empfohlen)` to whichever of the three tier labels equals `<RECOMMENDED_TIER>`, and move that option to position 1. The recommended tier is one of the three — listing it a fourth time as its own option made five options, one more than `AskUserQuestion` accepts, and repeated the same choice twice.
 
 If user selects "Abbrechen": stop. Report "Bootstrap abgebrochen. Kein Kommando wird ausgeführt." Do not continue.
 
@@ -118,7 +120,7 @@ AskUserQuestion({
 })
 ```
 
-Store as `CONFIRMED_ARCHETYPE`. Maximum interactions in bootstrap flow: **2 questions total**.
+Store as `CONFIRMED_ARCHETYPE`. The tier/stack block contributes **1–2** questions; a first-run full bootstrap adds **6 more** from the owner interview (Phase 3.5, five questions) and dispatcher-autonomy capture (Phase 3.5.1, one question) — **7–9 total**.
 
 ## Upgrade Flow (`--upgrade <tier>`)
 
@@ -257,6 +259,38 @@ Entered when `$ARGUMENTS` contains `--retroactive`. Writes the lock file and, pe
    ```
 
 8. **Report.** Print: `Retroactive bootstrap complete. Lock written (tier: <INFERRED_TIER>, source: retroactive).` Include a second line `Patched Session Config: <fields>` when step 6 applied any patches, otherwise `No config changes.`.
+
+---
+
+## Refresh-Lock Flow (`--refresh-lock`)
+
+Entered when `$ARGUMENTS` contains `--refresh-lock`. No scaffolding questions are asked, and — unlike the Retroactive Flow above — this is NOT a no-op once the lock already has valid `version`/`tier` fields: refreshing is the load-bearing action.
+
+**Purpose (#57):** Acknowledge the current plugin version and reset the freshness clock on an existing, already-valid `bootstrap.lock` without disturbing its original bootstrap provenance. This closes the gap left by the Retroactive Flow: once a lock already has `version` + `tier`, re-running `/bootstrap --retroactive` reports "bootstrap.lock already present ... Nothing to do." and changes nothing — exactly the no-op the bootstrap-lock-freshness probe (#186/#290) was recommending as its remediation. `--refresh-lock` is the actual remediation for a present-but-stale or version-drifted lock.
+
+**Steps:**
+
+1. **Precondition check.** Read `.orchestrator/bootstrap.lock`. If missing, or present but missing a non-empty `version` or `tier` field, abort with: `Error: No valid bootstrap.lock found. Run /bootstrap or /bootstrap --retroactive first.` Do not fabricate a lock — this flow only refreshes an existing one.
+
+2. **Resolve the current plugin version.** Read `plugin-version` from `$PLUGIN_ROOT/package.json` (same source Phase 4 uses).
+
+3. **Call the refresh writer.**
+
+   ```js
+   import { refreshBootstrapLock } from '$PLUGIN_ROOT/scripts/lib/bootstrap-lock-refresh.mjs';
+   const result = refreshBootstrapLock({
+     repoRoot: REPO_ROOT,
+     currentPluginVersion: PLUGIN_VERSION,
+   });
+   ```
+
+   `refreshBootstrapLock` writes (or replaces, if already present) exactly two lines — `refreshed-at: <ISO 8601 UTC>` and `refreshed-plugin-version: <current plugin version>` — via the same atomic tmp-file + rename pattern used by the Retroactive Flow's lock write: write to a sibling tmp file, then rename over the target so the lock is never observed half-written. **Every other line of the lock — `bootstrapped-at`, `timestamp`, `plugin-version`, `tier`, `archetype`, `source`, … — is left byte-identical.** This is the provenance-honesty guarantee: a refresh is an acknowledgement, not a re-bootstrap. On failure (`result.ok === false`), surface `result.message` and stop — do not retry with a fabricated lock.
+
+4. **No auto-commit.** Unlike the Retroactive Flow, `--refresh-lock` does not stage or commit. The refreshed lock is a small, reviewable diff (two changed/added lines); the user commits it alongside their own work at their own cadence.
+
+5. **Report.** Print: `Lock refreshed (refreshed-at: <now>, plugin-version: <current>). Original bootstrap provenance unchanged.`
+
+**Idempotency.** Running `/bootstrap --refresh-lock` twice in a row replaces the same two lines in place — it never duplicates them.
 
 ---
 
@@ -552,7 +586,7 @@ If invoked directly via `/bootstrap`: report the created files list and stop.
 
 - **NEVER create application code during bootstrap** — only structural files (CLAUDE.md, .gitignore, README.md, manifests, CI). The feature that follows brings its own implementation.
 - **NEVER skip the lock file write** — `.orchestrator/bootstrap.lock` is the gate's mechanical truth. Bootstrap without a lock file is incomplete.
-- **NEVER ask more than 2 questions** — even if the user's intent is unclear, make a best-effort recommendation and let the user correct via `/bootstrap --upgrade` later.
+- **Fixed question budget, no ad-hoc prompts** — tier/stack (1–2), owner interview (5, Phase 3.5), dispatcher-autonomy capture (1, Phase 3.5.1) sum to **7–9** on a first-run full bootstrap; `--no-interview` and flag short-circuits reduce this. Make a best-effort tier recommendation and let the user correct via `/bootstrap --upgrade` later — do not add prompts beyond these blocks.
 - **ALWAYS commit** — bootstrap ends with a git commit. The lock file is part of that commit.
 - **ALWAYS check for retroactive flag** — if `--retroactive` is in `$ARGUMENTS`, skip all scaffolding and jump directly to writing `bootstrap.lock` (tier inferred from existing file inventory, fallback: `fast`).
 - **NEVER abort bootstrap on rules-fetch failure** — rules-fetch is opt-in and best-effort. The legacy Clank sync path is the safety net.

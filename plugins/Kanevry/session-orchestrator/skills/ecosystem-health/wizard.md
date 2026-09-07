@@ -78,8 +78,8 @@ CI pipeline identifiers (format "id" or "id:label", comma-separated, blank to sk
 ### Prompt 2c — Critical Issue Labels
 
 ```
-Critical issue labels (comma-separated, e.g. "priority:critical,severity:blocker", blank to skip):
-> priority:critical, severity:blocker
+Critical issue labels (comma-separated, e.g. "priority::critical,severity:blocker", blank to skip):
+> priority::critical, severity:blocker
 ```
 
 - Raw label strings as they appear in the VCS issue tracker.
@@ -121,12 +121,17 @@ ecosystem-health:
   pipelines:
     - id: main
     - id: deploy-production # Deploy
-  critical-issue-labels: ["priority:critical", "severity:blocker"]
+  critical-issue-labels: ["priority::critical", "severity:blocker"]
 ```
 
 **Idempotency:** If an `ecosystem-health:` key already exists in Session Config,
 the block is NOT overwritten. The wizard prints "Skipped (already present)" and
 exits 0. Re-run to edit: remove the existing block first, then re-run.
+
+This nested `health-endpoints:` block (an indented list under a valueless header) is now parsed
+content-scoped by `scripts/lib/config/health-endpoints.mjs` (#1174) — before that fix the flat
+key/value reader bailed to `null` the moment it saw the `{`/nested-list shape this wizard writes,
+so the block above wrote successfully but the ecosystem-health skill silently never saw it.
 
 ### 4b — `.orchestrator/policy/ecosystem.json`
 
@@ -141,7 +146,7 @@ exits 0. Re-run to edit: remove the existing block first, then re-run.
     { "id": "main" },
     { "id": "deploy-production", "label": "Deploy" }
   ],
-  "criticalIssueLabels": ["priority:critical", "severity:blocker"]
+  "criticalIssueLabels": ["priority::critical", "severity:blocker"]
 }
 ```
 

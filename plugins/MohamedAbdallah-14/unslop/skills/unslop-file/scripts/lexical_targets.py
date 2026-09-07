@@ -10,17 +10,15 @@ from __future__ import annotations
 
 import json
 import re
+import sys
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from typing import Any
 
 from .stylometry import analyze
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _BASELINE_PATH = _REPO_ROOT / "benchmarks" / "results" / "stylometric_baseline.json"
-
-_DEFAULT_BASELINES: dict[str, dict[str, float]] = {}
 
 
 @dataclass(frozen=True)
@@ -32,7 +30,9 @@ class TargetGap:
     delta: float
 
 
-def _normalize_baseline_payload(payload: dict[str, Any]) -> dict[str, dict[str, float]]:
+def _normalize_baseline_payload(payload: object) -> dict[str, dict[str, float]]:
+    if not isinstance(payload, dict):
+        return {}
     fields = payload.get("fields", payload)
     out: dict[str, dict[str, float]] = {}
     if not isinstance(fields, dict):
@@ -42,24 +42,63 @@ def _normalize_baseline_payload(payload: dict[str, Any]) -> dict[str, dict[str, 
             continue
         if "human_p25" not in stats or "human_p75" not in stats:
             continue
-        out[field] = {
-            "human_p25": float(stats["human_p25"]),
-            "human_p75": float(stats["human_p75"]),
-        }
+        try:
+            out[field] = {
+                "human_p25": float(stats["human_p25"]),
+                "human_p75": float(stats["human_p75"]),
+            }
+        except (TypeError, ValueError):
+            continue
     return out
+
+
+def _load_package_baseline() -> dict[str, dict[str, float]]:
+    """Try importlib.resources for the packaged baseline copy.
+
+    Derives the package from __package__ so both source imports
+    (unslop.scripts) and installed-wheel imports (scripts) resolve.
+    """
+    try:
+        import importlib.resources as ir
+        pkg = __package__ or "scripts"
+        ref = ir.files(f"{pkg}.data").joinpath("stylometric_baseline.json")
+        payload = json.loads(ref.read_text(encoding="utf-8"))
+        return _normalize_baseline_payload(payload)
+    except (FileNotFoundError, ModuleNotFoundError, TypeError):
+        return {}
 
 
 @lru_cache(maxsize=1)
 def load_baselines(path: str | None = None) -> dict[str, dict[str, float]]:
-    baseline_path = Path(path) if path is not None else _BASELINE_PATH
-    if not baseline_path.exists():
-        return dict(_DEFAULT_BASELINES)
-    try:
-        payload = json.loads(baseline_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return dict(_DEFAULT_BASELINES)
-    parsed = _normalize_baseline_payload(payload)
-    return parsed or dict(_DEFAULT_BASELINES)
+    if path is not None:
+        try:
+            payload = json.loads(Path(path).read_text(encoding="utf-8"))
+            parsed = _normalize_baseline_payload(payload)
+            if parsed:
+                return parsed
+        except (OSError, json.JSONDecodeError):
+            pass
+        return {}
+
+    if _BASELINE_PATH.exists():
+        try:
+            payload = json.loads(_BASELINE_PATH.read_text(encoding="utf-8"))
+            parsed = _normalize_baseline_payload(payload)
+            if parsed:
+                return parsed
+        except (OSError, json.JSONDecodeError):
+            pass
+
+    pkg = _load_package_baseline()
+    if pkg:
+        return pkg
+
+    sys.stderr.write(
+        "unslop: stylometric baseline not found; anti-detector lexical "
+        "targets disabled. Generate with: python3 benchmarks/"
+        "stylometric_baseline.py\n"
+    )
+    return {}
 
 
 def measure_gaps(

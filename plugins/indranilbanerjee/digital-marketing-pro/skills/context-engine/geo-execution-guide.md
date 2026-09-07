@@ -22,7 +22,7 @@ Reference knowledge for AI visibility monitoring, optimization execution, entity
 
 | Platform | Access Method | Notes |
 |---|---|---|
-| **ChatGPT** (OpenAI) | Web UI or API (`/v1/chat/completions`) | Test both GPT-4o and GPT-4o-mini. Web browsing mode vs. training data mode yield different results |
+| **ChatGPT** (OpenAI) | Web UI or API (`/v1/chat/completions`) | Test both the current default model and its lighter tier (GPT-5.6 family as of July 2026 — resolve current ids via `scripts/model_registry.json`). Web browsing mode vs. training data mode yield different results |
 | **Perplexity** | Web UI or API | Always cites sources with links. Pro mode uses multiple search passes. Test both default and Pro |
 | **Google AI Mode** | Google Search → AI Mode tab (or default for opted-in users since I/O, 19 May 2026) | Distinct conversational surface on a Gemini 3.5 Flash backbone. Frequently cites **different** sources than AI Overviews for the same query — test it separately, don't roll it into "AI Overviews". Supports multi-turn follow-ups |
 | **Google AI Overviews** | Google Search (standard query) | Appears above organic results for qualifying queries. Not triggered for all queries. Test from incognito/logged-out |

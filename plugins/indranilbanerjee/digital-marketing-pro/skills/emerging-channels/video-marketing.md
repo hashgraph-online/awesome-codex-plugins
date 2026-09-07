@@ -1,5 +1,7 @@
 # Video Marketing — Format & Distribution Guide
 
+> **Benchmark provenance (as of 2026-08):** Dollar figures in this document are planning priors, not quotes — market and auction rates drift continuously. Before any figure enters a media plan, budget, or client deliverable, refresh it live (platform dashboards and current published reports beat memory) and record it with `python scripts/benchmark_book.py --action record ... --source <url>`; quote from the book thereafter (`--action quote`). Never present an unstamped figure as current market fact.
+
 > Video is the dominant content format across every major platform. This guide covers format specifications, production tiers, SEO optimization, distribution strategy, and repurposing workflows to maximize the ROI of every video asset you produce.
 
 ---

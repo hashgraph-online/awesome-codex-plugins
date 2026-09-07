@@ -14,7 +14,18 @@ import time
 from pathlib import Path
 from urllib.parse import urlparse
 
-import requests
+for candidate in (
+    Path(__file__).resolve().parents[3] / "scripts",
+    Path(os.environ.get("CODEX_HOME", Path.home() / ".codex")) / "plugins/yandex-direct-for-all/scripts",
+    Path(os.environ.get("CLAUDE_HOME", Path.home() / ".claude")) / "plugins/yandex-direct-for-all/scripts",
+):
+    if (candidate / "portable_http.py").is_file():
+        sys.path.insert(0, str(candidate))
+        break
+else:
+    raise RuntimeError("Не найден переносимый HTTP-слой yandex-direct-for-all")
+
+import portable_http as requests  # noqa: E402
 
 
 DEFAULT_API_URL = "https://api.firecrawl.dev/v2/scrape"

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Go CLI Terminal Experience"
+  short_description: "Design safe, adaptive Go CLI terminal UX"
+  default_prompt: "Use $go-cli-terminal-experience to design a terminal experience that works for people, scripts, agents, and CI."

@@ -1,42 +1,15 @@
-# Research Protocol
+# Research
 
-Research should reduce plan risk, not produce a literature review.
+Research only facts that can change design, scope, risk, or tests.
 
-In `standard` mode, the final `codex-research.md` should normally be at least
-1,500 words. In `deep` mode, target at least 2,500 words. The file should be
-substantial when the codebase or external docs are substantial: include verified
-paths, decisions, constraints, test commands, and unresolved risks.
+- Search local code, manifests, tests, config, and CI first with `rg`.
+- For libraries, APIs, CLIs, SDKs, or cloud services, follow repo instructions
+  and use current official documentation.
+- Record `evidence -> implication -> plan change`; omit generic summaries.
+- Keep findings in `codex-plan.md` unless they need independent provenance or
+  may be reused. Only then create `codex-research.md`.
+- If agents help, they return concise findings. One parent writer owns shared
+  artifacts.
 
-## Codebase Research
-
-Use fast local discovery first:
-
-- `rg --files`
-- `rg` for relevant names, routes, schemas, tests, config, and commands
-- package manifests and existing test setup
-
-Return findings as:
-
-- relevant files and responsibilities
-- existing patterns to follow
-- test command and fixture strategy
-- integration points and constraints
-- risks or unknowns
-
-For each finding, prefer "evidence -> implication -> planning consequence".
-Avoid generic summaries that cannot directly change the plan.
-
-## Documentation Research
-
-For library, framework, SDK, API, CLI, or cloud-service details, follow the
-repo's documentation instructions. If Context7 is required, resolve the library
-ID first, query docs, and use the fetched docs in the plan.
-
-Use web search only when current external facts are needed and repo/system
-instructions allow it.
-
-## Parent-Writes Rule
-
-If agents are used, they return concise findings. The parent combines results
-and writes `codex-research.md`. This avoids racing writes and keeps ownership
-clear.
+Stop when remaining unknowns cannot change implementation. Ask the user only
+when a material product or risk decision cannot be resolved from evidence.

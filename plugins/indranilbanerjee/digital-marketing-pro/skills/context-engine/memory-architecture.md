@@ -32,7 +32,7 @@ The plugin uses a **5-layer memory architecture**. Each layer serves a different
 - Brand profile (identity, voice, audiences, competitors, goals)
 - Active brand state (`_active-brand.json`)
 
-**Query pattern:** Automatic — loaded at session start via the `SessionStart` hook. No manual retrieval needed.
+**Query pattern:** Loaded at session start by the brand-context step of each skill (`setup.py --summary`); no hook involved — the plugin ships zero hooks by design.
 
 **Setup:** Zero config. Works out of the box with `setup.py` and `campaign-tracker.py`.
 

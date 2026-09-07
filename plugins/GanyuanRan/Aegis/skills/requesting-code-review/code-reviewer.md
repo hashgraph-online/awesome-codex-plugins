@@ -35,15 +35,29 @@ of inventing an authority source.
 
 {RETIREMENT_NOTES}
 
-## Git Range to Review
+## Git Review Scope
 
+**Scope:** {REVIEW_SCOPE}
 **Base:** {BASE_SHA}
 **Head:** {HEAD_SHA}
+
+For `committed-range`:
 
 ```bash
 git diff --stat {BASE_SHA}..{HEAD_SHA}
 git diff {BASE_SHA}..{HEAD_SHA}
 ```
+
+For `working-tree`, review tracked staged/unstaged changes and caller-declared
+task-owned untracked paths without mutating Git:
+
+```bash
+git status --short
+git diff --stat {BASE_SHA}
+git diff {BASE_SHA}
+```
+
+Do not stage, commit, branch, create/remove worktrees, or edit the implementation.
 
 ## Findings First
 

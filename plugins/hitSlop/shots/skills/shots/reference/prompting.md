@@ -28,6 +28,26 @@ Every prompt should answer the relevant parts of this list:
 Use visual facts over praise words. Avoid vague terms like `stunning`,
 `beautiful`, `masterpiece`, `innovative`, and `seamless`.
 
+## Truth Precedence And Closed-World UI
+
+Use this precedence for every screenshot prompt:
+
+1. Critical user direction or revision feedback.
+2. Current product UI references.
+3. Saved app, listing, and research context.
+4. Creative inference.
+
+User direction is authoritative and may identify stale reference details. State
+those overrides explicitly and preserve them verbatim in a `Critical user
+overrides` block. Never restore an element the user removes, even when it is
+visible in a reference.
+
+Otherwise treat visible product UI as closed-world: preserve the reference
+screen structure, navigation, rows, controls, labels, values, and state. Never
+invent plausible UI, settings, toggles, dropdowns, stats, descriptions, or
+system chrome. If the user explicitly requests new or changed UI, make only
+that requested departure and do not invent adjacent details.
+
 ## Detail Bar
 
 The prompt can be markdown, but it should not be thin. A good natural-language
@@ -89,6 +109,8 @@ Create one App Store screenshot for "AppName".
 Campaign job:
 Audience:
 Core promise:
+
+Critical user overrides:
 
 Visible text:
 Composition:
@@ -197,6 +219,11 @@ mood.
 Use real app references to describe product UI. Be specific about layout, data,
 states, and controls.
 
+Keep UI faithful to those references unless the user explicitly requests a
+change. App descriptions, listing copy, research, and category conventions may
+inform marketing strategy, but they are not evidence that a control or screen
+exists. Do not fill reference gaps with plausible product UI.
+
 Good:
 
 - `Alarm setup screen with dark background, yellow accent switch, Ringtones tab
@@ -228,7 +255,8 @@ Call out exactly what each reference should do:
 
 ```text
 Reference image usage:
-- Reference 1 / product truth: real app UI layout, visible controls, and product accuracy.
+- Reference 1 / product truth: preserve its real app UI layout, visible rows,
+  controls, labels, values, and state unless a critical user override says otherwise.
 - Reference 2 / campaign continuity: existing English campaign style, palette, typography, device treatment, and background rhythm.
 - Reference 3 / brand asset: app icon color and brand symbol language.
 - Gallery inspiration: style and composition only; do not copy its UI, claims, or branding.
@@ -579,6 +607,10 @@ REVISION INSTRUCTIONS
 
 Change:
 - {exact requested change}
+
+Critical user feedback — highest priority:
+- Preserve the user's exact wording; it overrides stale source and reference details.
+- Never restore anything the user explicitly removes.
 
 Preserve:
 - positioning, panel role, crop safety

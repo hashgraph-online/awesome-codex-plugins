@@ -1,5 +1,7 @@
 # Industry Profiles Reference
 
+> **Benchmark provenance (as of 2026-08):** Dollar figures in this document are planning priors, not quotes — market and auction rates drift continuously. Before any figure enters a media plan, budget, or client deliverable, refresh it live (platform dashboards and current published reports beat memory) and record it with `python scripts/benchmark_book.py --action record ... --source <url>`; quote from the book thereafter (`--action quote`). Never present an unstamped figure as current market fact.
+
 > **Purpose:** Machine-readable reference for marketing modules. Each profile provides benchmarks, channel priorities, compliance notes, and strategic context so the agent can tailor recommendations to the client's industry without hallucinating numbers.
 >
 > **Last updated:** 2026-02-11
@@ -1277,7 +1279,7 @@
 
 **Seasonal Peaks:**
 - Holiday season (November-December): Major title releases and gifting
-- Summer: E3 / Summer Game Fest announcements
+- Summer: Summer Game Fest / Gamescom announcement season
 - Back-to-school (August-September)
 - Spring break
 - Aligned with major release calendars and platform sale events

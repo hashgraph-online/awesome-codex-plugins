@@ -118,7 +118,9 @@ exit 0
 ```bash
 #!/bin/bash
 INPUT=$(cat)
-PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path')
+# Never assign to $PATH — it clobbers the shell's executable search path and
+# breaks every command after it. Use a distinct variable name.
+FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path')
 
 BLOCKED_PATTERNS=(
   "/prod/"
@@ -128,8 +130,8 @@ BLOCKED_PATTERNS=(
 )
 
 for pattern in "${BLOCKED_PATTERNS[@]}"; do
-  if [[ "$PATH" == *"$pattern"* ]]; then
-    echo "Blocked: production file $PATH" >&2
+  if [[ "$FILE_PATH" == *"$pattern"* ]]; then
+    echo "Blocked: production file $FILE_PATH" >&2
     exit 2
   fi
 done

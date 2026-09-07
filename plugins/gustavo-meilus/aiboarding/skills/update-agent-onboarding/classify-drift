@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+# Deterministic onboarding-drift evidence classifier.  Kept self-contained so
+# skills can carry it without requiring Claude hook files.
+set -euo pipefail
+
+project="."
+base=""
+head=""
+semantic=""
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --project) project="$2"; shift 2 ;;
+    --base) base="$2"; shift 2 ;;
+    --head) head="$2"; shift 2 ;;
+    --semantic) semantic="$2"; shift 2 ;;
+    *) printf 'usage: %s --project DIR --base SHA --head SHA [--semantic complete-no-op]\n' "$0" >&2; exit 64 ;;
+  esac
+done
+
+json_string() {
+  local value="$1"
+  value="${value//\\/\\\\}"
+  value="${value//\"/\\\"}"
+  value="${value//$'\n'/\\n}"
+  value="${value//$'\r'/\\r}"
+  value="${value//$'\t'/\\t}"
+  printf '"%s"' "$value"
+}
+
+array_items() {
+  local file="$1" key="$2" line item in_array=0
+  [ -f "$file" ] || return 0
+  while IFS= read -r line || [ -n "$line" ]; do
+    if [ "$in_array" -eq 0 ]; then
+      case "$line" in *"\"${key}\""*:*\[*) case "$line" in *\]*) return 0;; *) in_array=1;; esac;; esac
+    else
+      case "$line" in *\]*) return 0;; *\"*\"*) item="${line#*\"}"; item="${item%\"*}"; printf '%s\n' "$item";; esac
+    fi
+  done < "$file"
+}
+
+matches() {
+  local path="$1" patterns="$2" pattern
+  while IFS= read -r pattern; do
+    [ -n "$pattern" ] || continue
+    case "$path" in $pattern) return 0;; esac
+  done <<EOF
+$patterns
+EOF
+  return 1
+}
+
+signal_for() {
+  case "$1" in
+    package.json|*/package.json|package-lock.json|*/package-lock.json|npm-shrinkwrap.json|*/npm-shrinkwrap.json|yarn.lock|*/yarn.lock|pnpm-lock.yaml|*/pnpm-lock.yaml|pyproject.toml|*/pyproject.toml|poetry.lock|*/poetry.lock|requirements*.txt|*/requirements*.txt|Pipfile|*/Pipfile|Pipfile.lock|*/Pipfile.lock|go.mod|*/go.mod|go.sum|*/go.sum|Cargo.toml|*/Cargo.toml|Cargo.lock|*/Cargo.lock|Gemfile|*/Gemfile|Gemfile.lock|*/Gemfile.lock|composer.json|*/composer.json|composer.lock|*/composer.lock) printf manifest;;
+    .github/workflows/*|*/.github/workflows/*|.gitlab-ci.yml|*/.gitlab-ci.yml|azure-pipelines.yml|*/azure-pipelines.yml|Jenkinsfile|*/Jenkinsfile) printf ci;;
+    Dockerfile|*/Dockerfile|docker-compose*.yml|*/docker-compose*.yml|Makefile|*/Makefile|justfile|*/justfile|Taskfile*.yml|*/Taskfile*.yml|scripts/build*|*/scripts/build*|scripts/test*|*/scripts/test*|tests/*|*/tests/*|test/*|*/test/*) printf build-test-runtime;;
+    migrations/*|*/migrations/*|migration/*|*/migration/*|schema/*|*/schema/*|db/migrate/*|*/db/migrate/*) printf schema-migration;;
+    ARCHITECTURE.md|*/ARCHITECTURE.md|ARCHITECTURE.adoc|*/ARCHITECTURE.adoc|docs/architecture/*|*/docs/architecture/*|adr/*|*/adr/*|docs/adr/*|*/docs/adr/*) printf architecture;;
+    *) return 1;;
+  esac
+}
+
+invalid() {
+  printf '{"base_commit":'; json_string "$base"; printf ',"head_commit":'; json_string "$head"; printf ',"route":"invalid-pointer","reason":'; json_string "$1"; printf ',"provably_irrelevant":[],"potentially_relevant":[],"definitely_relevant":[]}\n'
+  exit 0
+}
+
+case "$base" in ''|*[!0-9a-fA-F]*) invalid malformed-base;; esac
+case "$head" in ''|*[!0-9a-fA-F]*) invalid malformed-head;; esac
+[ "${#base}" -ge 7 ] && [ "${#head}" -ge 7 ] || invalid malformed-pointer
+git -C "$project" rev-parse --verify -q "$base^{commit}" >/dev/null 2>&1 || invalid unresolvable-base
+git -C "$project" rev-parse --verify -q "$head^{commit}" >/dev/null 2>&1 || invalid unresolvable-head
+git -C "$project" merge-base --is-ancestor "$base" "$head" >/dev/null 2>&1 || invalid rebased-pointer
+
+config="$project/.aiboarding/config.json"
+ignored="$(array_items "$config" ignored_paths)"
+high_risk="$(array_items "$config" high_risk_paths)"
+irrelevant=()
+potential=()
+definite=()
+while IFS= read -r -d '' path; do
+  case "$path" in AGENTS.md|CLAUDE.md|.aiboarding/*) irrelevant+=("$path|bookkeeping"); continue;; esac
+  if matches "$path" "$high_risk"; then definite+=("$path|configured-high-risk"); continue; fi
+  if signal="$(signal_for "$path")"; then definite+=("$path|$signal"); continue; fi
+  if matches "$path" "$ignored"; then irrelevant+=("$path|configured-ignore"); continue; fi
+  potential+=("$path")
+done < <(git -C "$project" diff --name-only -z "$base..$head")
+
+[ "${#irrelevant[@]}" -gt 0 ] || [ "${#potential[@]}" -gt 0 ] || [ "${#definite[@]}" -gt 0 ] || invalid empty-range
+route="semantic-review"
+[ "${#definite[@]}" -gt 0 ] && route="mandatory-revalidation"
+if [ "${#definite[@]}" -eq 0 ] && [ "${#potential[@]}" -eq 0 ]; then route="irrelevant"; fi
+if [ "${#definite[@]}" -eq 0 ] && [ "$semantic" = complete-no-op ] && [ "${#potential[@]}" -gt 0 ]; then route="irrelevant"; fi
+
+printf '{"base_commit":'; json_string "$(git -C "$project" rev-parse "$base")"; printf ',"head_commit":'; json_string "$(git -C "$project" rev-parse "$head")"; printf ',"route":'; json_string "$route"; printf ',"semantic_disposition":'; json_string "${semantic:-pending}"; printf ',"provably_irrelevant":['
+for i in "${!irrelevant[@]}"; do [ "$i" -eq 0 ] || printf ','; path="${irrelevant[$i]%|*}"; signal="${irrelevant[$i]#*|}"; printf '{"path":'; json_string "$path"; printf ',"signal":'; json_string "$signal"; printf '}'; done
+printf '],"potentially_relevant":['
+for i in "${!potential[@]}"; do [ "$i" -eq 0 ] || printf ','; json_string "${potential[$i]}"; done
+printf '],"definitely_relevant":['
+for i in "${!definite[@]}"; do [ "$i" -eq 0 ] || printf ','; path="${definite[$i]%|*}"; signal="${definite[$i]#*|}"; printf '{"path":'; json_string "$path"; printf ',"signal":'; json_string "$signal"; printf '}'; done
+printf ']}\n'

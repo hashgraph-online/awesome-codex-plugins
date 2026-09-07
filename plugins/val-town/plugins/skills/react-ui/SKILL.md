@@ -36,6 +36,23 @@ Then use Tailwind classes directly in JSX:
 
 Avoid inline `<style>` tags, CSS-in-JS objects, or separate `.css` files, unless the user says otherwise.
 
+## Serving assets: versioned + immutable
+
+Serve client modules with `serveImmutableFile` from `std/utils` — browsers cache
+them immutably, and publishing bumps the val's version, which invalidates
+automatically (full pattern: the `client-side-js` skill). A never-cached
+`frontend/root.tsx` shell (hono/jsx) stamps the entry and favicon with
+`immutableFileUrl`:
+
+```tsx
+// frontend/root.tsx — in the Root() HTML shell:
+<script src={immutableFileUrl("/frontend/index.tsx")} type="module" />
+
+// index.ts:
+app.get("/", (c) => c.html(Root()));
+app.get("/__immutable/*", (c) => serveImmutableFile(c.req.path));
+```
+
 ## View source link
 
 Every UI val should expose a way for users to see and remix its source. Both parts are required:

@@ -111,9 +111,9 @@ Source: PRD Section 3 (Acceptance Criteria).
 
 Apply this scoring:
 
-1. **Technical dependencies** — Issues that block other issues get `priority:critical` or `priority:high`. DB before API, API before UI, shared before consumers.
-2. **Core acceptance criteria** — Issues covering primary happy-path scenarios get `priority:high`.
-3. **Edge cases / nice-to-haves** — Defensive scenarios, error handling, optional behaviors get `priority:medium` or `priority:low`.
+1. **Technical dependencies** — Issues that block other issues get `priority::critical` or `priority::high`. DB before API, API before UI, shared before consumers.
+2. **Core acceptance criteria** — Issues covering primary happy-path scenarios get `priority::high`.
+3. **Edge cases / nice-to-haves** — Defensive scenarios, error handling, optional behaviors get `priority::medium` or `priority::low`.
 4. **Risk factor — Impact × Risk 2×2 triage:** Classify by Impact (high/low) × Risk (high/low): **High-Impact + Low-Risk → Implement** (bump priority up one level); **High-Impact + High-Risk → Experiment** (smallest spike first); **Low-Impact + Low-Risk → Defer** (backlog, no issue in this set); **Low-Impact + High-Risk → Reject** (no issue — note rationale in § Risks & Dependencies). Full quadrant definitions: `SKILL.md` § 6.2 Auto-Prioritize.
 
 ### Labels
@@ -121,13 +121,13 @@ Apply this scoring:
 Apply per gitlab-ops skill label taxonomy:
 
 - **Type:** `type:feature` for new capabilities, `type:enhancement` for extensions of existing features.
-- **Priority:** `priority:critical` / `priority:high` / `priority:medium` / `priority:low` from auto-prioritize above.
+- **Priority:** `priority::critical` / `priority::high` / `priority::medium` / `priority::low` from auto-prioritize above.
 - **Area:** Infer from affected code paths (e.g., `area:api`, `area:frontend`, `area:infra`).
 - **Appetite:** Map from Wave 1 Q5 scope answer (`appetite:1w`, `appetite:2w`, `appetite:6w`).
 
 ### User Review Gate
 
-Present the full issue structure via AskUserQuestion before creation:
+Present the full issue structure via the AskUserQuestion payload in `SKILL.md` § 6.3 — the issue table belongs in the option's `preview` field, not in the question text:
 
 - Epic title and description
 - Each sub-issue: title, priority, labels, dependency links

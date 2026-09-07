@@ -1,15 +1,39 @@
 {
   "name": "unslop",
-  "displayName": "Unslop",
-  "version": "0.6.2",
+  "version": "0.7.0",
   "description": "Make Codex output sound like a careful human wrote it. Strip AI-isms, engineer burstiness, preserve every code block and technical term.",
-  "author": "Mohamed Abdallah",
-  "license": "MIT",
-  "skills": "./skills/",
-  "ui": {
-    "icon": "./assets/unslop-small.svg",
-    "logo": "./assets/unslop.svg",
-    "color": "#7C9885"
+  "author": {
+    "name": "Mohamed Abdallah",
+    "url": "https://github.com/MohamedAbdallah-14"
   },
-  "defaultPrompt": "Activate unslop mode for this and every following response. Strip AI-isms (sycophancy, stock vocab, hedging stacks, em-dash pileups). Engineer burstiness. Preserve technical accuracy and code exactly. Read ./skills/unslop/SKILL.md for the full ruleset."
+  "homepage": "https://github.com/MohamedAbdallah-14/unslop",
+  "repository": "https://github.com/MohamedAbdallah-14/unslop",
+  "license": "MIT",
+  "keywords": [
+    "writing",
+    "humanize",
+    "anti-slop",
+    "voice",
+    "editing"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Unslop",
+    "shortDescription": "Strip AI residue without breaking technical content.",
+    "longDescription": "Make Codex output read like careful human writing while preserving code, links, headings, and technical detail.",
+    "developerName": "Mohamed Abdallah",
+    "category": "Productivity",
+    "capabilities": [
+      "Write"
+    ],
+    "websiteURL": "https://github.com/MohamedAbdallah-14/unslop",
+    "defaultPrompt": [
+      "Use unslop to make this draft sound human without changing the facts.",
+      "Review this text for AI residue and rewrite only what needs it."
+    ],
+    "brandColor": "#7C9885",
+    "composerIcon": "./assets/unslop-small.svg",
+    "logo": "./assets/unslop.svg",
+    "logoDark": "./assets/unslop.svg"
+  }
 }

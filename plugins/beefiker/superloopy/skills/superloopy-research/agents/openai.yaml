@@ -1,4 +1,4 @@
 interface:
   display_name: "Superloopy Research"
-  short_description: "Deep research with Superloopy evidence"
-  default_prompt: "Use superloopy-research to run exhaustive research with EXPAND waves, cited synthesis, and Superloopy evidence artifacts."
+  short_description: "Explicit exhaustive-research workflow"
+  default_prompt: "Use `$superloopy:superloopy-research` only after explicit invocation for exhaustive research with EXPAND waves, cited synthesis, and Superloopy evidence artifacts; a plain research, investigate, look-up, or summarize request is not activation and stays with its primary workflow."

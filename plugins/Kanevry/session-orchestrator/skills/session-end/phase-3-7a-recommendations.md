@@ -11,12 +11,20 @@ Compute the v0 recommendation from in-memory session metrics and additively writ
 ```bash
 node --input-type=module -e "
 import {appendFileSync, mkdirSync} from 'node:fs';
+import {execSync} from 'node:child_process';
 import {updateFrontmatterFieldsOnDisk} from '${PLUGIN_ROOT}/scripts/lib/state-md.mjs';
 import {computeV0Recommendation} from '${PLUGIN_ROOT}/scripts/lib/recommendations-v0.mjs';
 
 const SWEEP_LOG = '.orchestrator/metrics/sweep.log';
 
 try {
+  // repoRoot is REQUIRED — updateFrontmatterFieldsOnDisk calls requireRepoRoot()
+  // and THROWS on undefined (scripts/lib/state-md/frontmatter-mutators.mjs).
+  // Resolve it explicitly; there is no implicit cwd fallback by design (PSA
+  // parallel-session CWD drift). Passing an undefined repoRoot here sends every close down
+  // the fail-open catch below and silently omits all 5 fields (GitLab #1036).
+  const repoRoot = execSync('git rev-parse --show-toplevel', {encoding: 'utf8'}).trim();
+
   // In-memory session metrics — pulled from the session's running state,
   // NOT re-read from sessions.jsonl (which was just-written in Phase 3.7).
   const completionRate = <number from session metrics: completed_issues / planned_issues>;
@@ -33,7 +41,7 @@ try {
     'rationale': rec.rationale,
   };
 
-  await updateFrontmatterFieldsOnDisk(undefined, fields);
+  await updateFrontmatterFieldsOnDisk(repoRoot, fields);
   console.log('Recommendations written: ' + rec.mode + ' (' + rec.rationale + ')');
 } catch (err) {
   // AC3: defensive — exception must NOT block Phase 3.4 status: completed.
@@ -44,10 +52,16 @@ try {
     error: String(err && err.message ? err.message : err),
   };
   appendFileSync(SWEEP_LOG, JSON.stringify(evt) + '\n');
-  console.error('⚠ Phase 3.7a: recommendation compute failed — fields omitted, sweep.log entry written. Continuing.');
+  // Name the CAUSE on stderr, not just the consequence: the fail-open path is
+  // correct policy, but a WARN that says only 'fields omitted' is what let
+  // #1036 survive 5 weeks across two closes (sweep.log had the message, nobody
+  // read sweep.log). The operator sees this line in the close transcript.
+  console.error('⚠ Phase 3.7a: recommendation compute failed — ' + evt.error + ' — fields omitted, sweep.log entry written. Continuing.');
 }
 "
 ```
+
+**Repo-root contract (#1036 / Kanevry#65):** `updateFrontmatterFieldsOnDisk(repoRoot, fields)` takes the repo root as its FIRST argument and rejects a missing one via `requireRepoRoot()` — there is no implicit `process.cwd()` fallback, deliberately (parallel-session CWD drift, PSA rules). Run the snippet verbatim, including the `repoRoot` binding: an `undefined` first argument throws *before* STATE.md is touched, and the AC3 catch in the snippet turns that throw into a green close with all 5 fields missing. That failure is invisible in STATE.md — it looks exactly like "this session produced no recommendation".
 
 **Data source guarantee:** The three inputs (`completionRate`, `carryoverRatio`, `carryoverIssues`) MUST come from the in-memory session metrics object built in Phase 1.7, NOT from a re-read of `.orchestrator/metrics/sessions.jsonl`. Reading the just-written JSONL would introduce a circular dependency and risk reading a truncated line if Phase 3.7's `appendJsonl` was mid-flush.
 
@@ -62,7 +76,7 @@ try {
 
 ## Phase 3.7b: Durable-Commit Session Telemetry (#490 AC2)
 
-> **Ordering:** Runs AFTER Phase 3.7a (Recommendation fields just-written to STATE.md) and BEFORE Phase 3.4 (`status: completed`). The canonical runtime order is `… → 3.6.7 → 3.7 → 3.7a → 3.7b → 3.4`. Both session-end-owned files (`sessions.jsonl` from Phase 3.7, `STATE.md` from Phase 3.7a) have already been written to disk; this step only declares them as the durable-commit set.
+> **Ordering:** Runs AFTER Phase 3.7a (Recommendation fields just-written to STATE.md) and BEFORE Phase 3.4 (`status: completed`). The canonical runtime order is `… → 3.6.7 → 3.6.8 → 3.7 → 3.7a → 3.7b → 3.7c → 3.7d → 3.4`. Both session-end-owned files (`sessions.jsonl` from Phase 3.7, `STATE.md` from Phase 3.7a) have already been written to disk; this step only declares them as the durable-commit set.
 
 > **Ownership:** session-end commits ONLY the two files it owns — `.orchestrator/metrics/sessions.jsonl` and `<state-dir>/STATE.md`. `.orchestrator/metrics/autopilot.jsonl` is NOT session-end's responsibility: `scripts/lib/autopilot/loop.mjs` commits that file in the autopilot loop (the core `loop.mjs` wiring shipped in #490 Wave-2). Do not add autopilot.jsonl to the files array here.
 

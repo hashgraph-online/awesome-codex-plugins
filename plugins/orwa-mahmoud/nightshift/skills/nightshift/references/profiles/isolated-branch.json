@@ -1,0 +1,9 @@
+{
+  "name": "isolated-branch",
+  "version": 1,
+  "risk": "low",
+  "use": "Keep an unattended shift off the default branch, off merges, and off the remote.",
+  "rules": {
+    "forbiddenCommands": "git .*push|git .*merge|git .*(checkout|switch)[^;&|]*[[:space:]/](main|master)([[:space:]]|$)"
+  }
+}

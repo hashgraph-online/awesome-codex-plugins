@@ -149,7 +149,7 @@ def _v1_view(extraction: dict) -> dict:
         v_op_max = None
         # First check pin-level absolute_max (array-of-SpecValue per
         # pinout.schema.json, usually null) — overrides the domain lookup
-        pin_abs_max = _spec_max(pin.get("absolute_max"))
+        pin_abs_max = _spec_max_voltage(pin.get("absolute_max"))
         if isinstance(pin_abs_max, (int, float)):
             v_abs_max = pin_abs_max
         # Then domain-level lookup
@@ -757,6 +757,21 @@ def _spec_max(sv_list):
 def _spec_min(sv_list):
     if isinstance(sv_list, list) and sv_list and isinstance(sv_list[0], dict):
         return sv_list[0].get("min")
+    return None
+
+
+def _spec_max_voltage(sv_list):
+    """First SpecValue max with a voltage (or unspecified) unit.
+
+    KH-346: per-pin absolute_max lists may mix voltage and current entries
+    (pinout.schema.json) — comparing a current rating against net volts
+    would fabricate false CRITICALs.
+    """
+    if not isinstance(sv_list, list):
+        return None
+    for sv in sv_list:
+        if isinstance(sv, dict) and sv.get("unit") in (None, "", "V"):
+            return sv.get("max")
     return None
 
 

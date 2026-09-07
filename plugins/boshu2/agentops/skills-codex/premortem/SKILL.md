@@ -1,106 +1,132 @@
 ---
 name: premortem
-description: 'Use when: an exact plan needs a verdict.'
+description: 'Optionally challenge a frozen plan with one Triggers: "premortem", "challenge this plan", "what could make this plan fail".'
 ---
-# Premortem Skill
+# Premortem
 
-> **Question:** Is this exact plan ready to implement?
-> **Boundary:** Premortem owns the only semantic plan-readiness verdict.
+Premortem is an optional plan-challenge strategy. It asks one fresh context to
+identify concrete ways the resolved bead or caller intent could fail before implementation.
+It is not part of the required RPI sequence and does not authorize readiness.
 
-## Constraints
+## The first check: who verifies, and are they fresh?
 
-- Judge the plan, never the implementation or delivery mechanism.
-- Use one fresh-context judge with `author_id != judge_id`. Model and family
-  metadata are optional; no risk class requires different model families.
-- Bind the verdict to the repository-relative plan path and its SHA-256. Any
-  plan edit invalidates the verdict.
-- Emit exactly `PASS` or `FAIL`. `PASS` has zero blockers. `FAIL` contains the
-  complete nonempty blocker set in one response.
-- Report only concrete, evidence-bound defects that invalidate acceptance,
-  correctness, safety, dependencies, scope, or a claimed contract.
-- Do not own retries, attempt maps, budgets, helper state, implementation,
-  delivery, tracker closure, or operator escalation. The orchestrator chooses
-  repair or replanning after reading the verdict.
-- A council, mixed panel, or Dueling Idea Genies artifact may inform the judge,
-  but none substitutes for this exact-plan verdict.
+Before any technical risk, test the plan's EVIDENCE SHAPE: for every unit of
+work, who verifies it, and is the verifying context distinct from the
+authoring context? A plan whose closure step is "the implementer runs its own
+tests and closes" contains no independent judgment anywhere — self-graded
+green is the classic false-done, and it outranks any single technical risk
+because it silently converts every other failure into a shipped one.
 
-## Loop position
+> Measured 2026-08-04, probe `premortem-self-validation` (gpt-5.6-luna, N=2,
+> directional): without this doctrine loaded the producer named the planted
+> self-validation flaw in 1/2 runs; with it loaded, 2/2. Ledger:
+> `evals/skill-probes/LEDGER.md`. That row is `LEGACY-UNVERIFIED` under the
+> current capture contract — replay cannot establish producer, configuration,
+> or reproducibility — so treat this skill as unmeasured until a tier-2 probe
+> under the current contract re-establishes it.
 
-Premortem runs once after Plan freezes the final plan and before the first
-implementation leaf is pulled. It consumes the plan plus its acceptance,
-dependency graph, write scopes, non-goals, rollback, and deterministic planning
-receipts. It produces one immutable `premortem-plan-verdict.v1` JSON artifact.
+## The second check: which steps are one-way doors?
 
-Between implementation waves, reuse the verdict while the exact plan digest is
-unchanged. A materially changed plan requires an explicit orchestrator request
-for a new Premortem verdict; Validate and Learn cannot invoke Premortem themselves.
+After evidence shape, test the plan's REVERSIBILITY SHAPE. Walk the plan's steps
+and mark each one two-way (the plan can back out of it) or one-way (it cannot).
+For every one-way step, name three things: the exact undo cost, the point of no
+return, and who is holding the handle when it is crossed — the caller, or an
+agent auto-deciding inside a batch.
 
-## Execution
+This ranks above every technical risk on a one-way step, because a two-way
+failure costs a retry and a one-way failure costs the thing itself. It also
+catches the plan shape that no single-step review sees: nineteen reversible steps
+followed by an irreversible one, where the reflex trained by the first nineteen
+answers the twentieth.
 
-1. Resolve one current plan path. Reject a missing or stale plan rather than
-   inferring intent from chat.
-2. Compute the plan SHA-256 and record the plan author identity.
-3. Retrieve only directly matched compiled prevention from
-   `.agents/premortem-checks/*.md`, falling back to
-   `.agents/findings/registry.jsonl`. Missing inputs skip silently; malformed
-   entries are ignored with one concise warning.
-4. Dispatch one runtime-native fresh judge. Use Council only when the operator
-   explicitly requests a panel or the decision is genuinely contested.
-5. Check all applicable acceptance, dependency, write-scope, migration,
-   reversibility, test-shape, capability-reuse, and rollback claims. The
-   detailed checklist is in
-   [mandatory-checks.md](references/mandatory-checks.md).
-6. Return the complete blocker set once. Cosmetic, theoretical, pre-existing,
-   and out-of-scope observations are notes, not blockers.
-7. Write the JSON verdict and validate both its schema and live plan digest:
+A plan that crosses a one-way door with no caller checkpoint at the crossing is a
+finding, stated as such, whatever else the plan gets right. Classify with
+[`one-way-door`](../one-way-door/SKILL.md); its registry and patterns are the
+declared source, and an unclassifiable step is treated as one-way.
 
-   ```bash
-   skills/premortem/scripts/validate-output.sh \
-     .agents/council/YYYY-MM-DD-premortem-<topic>.json \
-     "$(git rev-parse --show-toplevel)"
-   ```
+The named failure mode here is **reversibility asserted, not traced**: a plan
+that says "fully reversible" in its rollback section while one step revokes a
+credential, force-pushes, or publishes. Stop condition: every step carries a
+mark, and every one-way mark carries its undo cost.
 
-## Verdict contract
+## Workflow
 
-```json
-{
-  "schema_version": "premortem-plan-verdict.v1",
-  "plan": {"path": ".agents/plans/example.md", "sha256": "<64 hex>"},
-  "author_id": "planner-context",
-  "judge_id": "fresh-judge-context",
-  "verdict": "PASS",
-  "blockers_complete": true,
-  "blockers": []
-}
-```
+1. Resolve the existing intent source and derive its digest; inspect acceptance,
+   non-goals, evidence requirements, and declared write scope there.
+2. Use one fresh judge with a context ID distinct from the plan author.
+3. Test acceptance completeness, edge behavior, scope, dependencies,
+   reversibility, and evidence shape against cited repository facts.
+4. Return one complete set of concrete findings and checked/not-checked scope.
+5. Stop. The caller decides whether to revise the plan or invoke RPI.
 
-For `FAIL`, each blocker has a stable `id`, a concrete `claim`, and one or more
-`evidence` references. Optional `author_model` and `judge_model` objects may
-record `name` and `family`; the validator deliberately does not compare family.
+Council or Dueling Idea Genies may be caller-supplied evidence, but Premortem
+does not require either strategy and cannot turn consensus into approval.
 
-## Output Specification
+## Adversarial defeat attempts
 
-- **Artifact path:** `.agents/council/YYYY-MM-DD-premortem-<topic>.json`
-- **Schema:** [plan-verdict.schema.json](schemas/plan-verdict.schema.json)
-- **Validator:** `skills/premortem/scripts/validate-output.sh <verdict> <repo-root>`
-- **Downstream handoff:** `PASS` permits the orchestrator to pull the first
-  implementation leaf. `FAIL` returns the complete evidence set to the
-  orchestrator for one consolidated repair decision or replanning.
+Actively try to construct each failure, not imagine it. For every candidate
+failure, attempt a concrete defeat: write the input, command sequence, or
+repository state that would make the plan fail, and run or cite the check
+that shows whether the plan survives it. A finding is reportable as concrete
+when it names the defeating construction and what the plan does when it
+lands; a failure you could not construct is reported as attempted-and-blocked
+with the obstacle named, which is itself evidence for the plan. The named
+failure mode is armchair pessimism: a list of imagined risks with no
+construction attempts, which reads as diligence while testing nothing. Stop
+condition: every reported finding is backed by a defeat attempt — constructed,
+or attempted with the blocking fact cited; a finding with neither is deleted,
+not softened.
 
-## Quality checklist
+## Derivation-diff challenge
 
-- The recorded plan digest matches the file the judge actually read.
-- Author and judge identities differ.
-- The verdict is binary and the blocker set is explicitly complete.
-- Every blocker cites the plan or a deterministic evidence path.
-- No optional review topology is presented as readiness authority.
+A challenger that critiques the handed plan is a yes-man with extra steps: it
+anchors on the author's design and rationalizes it. Derive independently, then
+diff. Give one fresh context ONLY the intent source and the plan's declared
+ground truth — the vendor docs and stock behavior for integration work, the
+repo's patterns and behavior spec for extension — and never the author's design.
+Have it sketch its own design from that ground truth alone. The diff between that
+independent design and the working plan is the challenge artifact; each
+divergence is a finding to defend or adopt. Convergence is weak evidence the plan
+follows the ground truth; divergence names where it may not.
 
-## References
+Two questions the challenger answers with an artifact, not an opinion:
 
-- [mandatory-checks.md](references/mandatory-checks.md)
-- [premortem.feature](references/premortem.feature)
-- [scope-mode.md](references/scope-mode.md)
-- [temporal-interrogation.md](references/temporal-interrogation.md)
-- [examples.md](references/examples.md)
-- [write-premortem-output.md](references/write-premortem-output.md)
-- [compiled-prevention.md](references/compiled-prevention.md)
+- Cathedral: is this the smallest real thing, or does it rebuild what already
+  exists? Artifact — the simplest version that satisfies acceptance, plus the
+  named reason it is insufficient. No named reason means build the simple one.
+- Grain: for integration work, does every component the plan writes have a native
+  counterpart in the substrate? Artifact — the native-counterpart list, one row
+  per component the plan authors, naming the substrate feature it duplicates or
+  the reason none exists.
+
+These are integration- and extension-class checks. The Grain question's
+native-counterpart list applies only to integration-class work; do not impose it
+on routine feature work.
+
+## It's working if
+
+Observable in the trace, without reading the prose — and the rubric a fresh
+independent judge scores this skill against:
+
+- Every unit of work carries a named verifier, and any unit verified by the
+  context that authored it comes back as a finding.
+- Every step carries a two-way or one-way mark, and each one-way mark names its
+  undo cost and its point of no return.
+- Every reported finding cites a defeat attempt — the input, command, or
+  repository state constructed — or the fact that blocked the construction.
+- The finding set is bounded: a review that flags every step has reported
+  nothing.
+
+## Boundary
+
+- Emit advisory findings, no verdict of any version, readiness, admission, or permission.
+- Do not implement, validate the candidate, retry, repair, schedule, claim,
+  change acceptance, operate Git, close work, release, or deliver.
+- Any plan edit creates a new subject for a later caller-initiated Premortem.
+
+## Output
+
+Return `premortem-plan-review.v1` with the intent digest, author and judge context
+IDs, findings, evidence references, `checked`, and `not_checked`. An empty
+finding set means only that this optional challenge found no concrete defect;
+it is never a lifecycle gate.

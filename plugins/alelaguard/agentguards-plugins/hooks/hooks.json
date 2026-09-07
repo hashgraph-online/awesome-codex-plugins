@@ -31,6 +31,17 @@
           }
         ]
       }
+    ],
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "AGENTGUARDS_URL=\"${AGENTGUARDS_URL:-https://prod.agentguards.co}\" python3 \"${PLUGIN_ROOT}/scripts/agentguards_codex_hook.py\" PermissionRequest",
+            "statusMessage": "Authorizing command with AgentGuards"
+          }
+        ]
+      }
     ]
   }
 }

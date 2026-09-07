@@ -1,6 +1,6 @@
 ---
 name: goal-framing
-description: Use when the user explicitly sets an Aegis goal with /aegis-goal, Aegis goal:, or asks to define goal, success evidence, stop condition, or task boundaries before work.
+description: "Use when the user explicitly sets an Aegis goal with /aegis-goal, Aegis goal:, or asks to define goal, success evidence, stop condition, or task boundaries before work."
 ---
 
 # Aegis Goal Framing

@@ -1,0 +1,24 @@
+# Local state and dependency caches
+.agent-memory/
+.agent-sessions/
+.codex-context/
+.data/
+.pnpm-store/
+node_modules/
+
+# Product source is delivered by the pinned OCI image, not the plugin archive.
+apps/
+deploy/
+docs/
+packages/
+tools/
+
+# Repository-only configuration
+.agents/
+.devcontainer/
+.github/
+.opencode/
+.codex/
+.plugin-scanner.toml
+glama.json
+.env*

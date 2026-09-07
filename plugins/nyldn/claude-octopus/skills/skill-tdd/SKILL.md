@@ -1,6 +1,7 @@
 ---
 name: skill-tdd
 description: "Build features with tests-before-code rigor — use for new features needing test coverage"
+disable-model-invocation: true
 ---
 
 > **Host: Codex CLI** — This skill was designed for Claude Code and adapted for Codex.
@@ -106,7 +107,6 @@ test('retry works', async () => {  // Vague name
 review_provider=""
 command -v codex >/dev/null 2>&1 && review_provider="codex"
 [[ -z "$review_provider" ]] && command -v agy >/dev/null 2>&1 && review_provider="agy"
-[[ -z "$review_provider" ]] && command -v gemini >/dev/null 2>&1 && review_provider="gemini"
 
 if [[ -n "$review_provider" ]]; then
   "${HOME}/.claude-octopus/plugin/scripts/orchestrate.sh" spawn "$review_provider" \

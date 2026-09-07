@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${PLUGIN_ROOT}/bin/session-start"
+            "command": "ARCHCORE_HOST=codex \"${PLUGIN_ROOT}\"/bin/session-start"
           }
         ]
       }
@@ -17,45 +17,20 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${PLUGIN_ROOT}/bin/check-archcore-write",
-            "timeout": 1
-          },
-          {
-            "type": "command",
-            "command": "${PLUGIN_ROOT}/bin/check-code-alignment",
-            "timeout": 1
+            "command": "ARCHCORE_HOST=codex \"${PLUGIN_ROOT}\"/bin/pre-tool-use",
+            "timeout": 2
           }
         ]
       }
     ],
     "PostToolUse": [
       {
-        "matcher": "mcp__archcore__create_document|mcp__archcore__update_document|mcp__archcore__remove_document|mcp__archcore__add_relation|mcp__archcore__remove_relation",
+        "matcher": "mcp__archcore__create_document|mcp__plugin_archcore_archcore__create_document|mcp__archcore__update_document|mcp__plugin_archcore_archcore__update_document|mcp__archcore__remove_document|mcp__plugin_archcore_archcore__remove_document|mcp__archcore__add_relation|mcp__plugin_archcore_archcore__add_relation|mcp__archcore__remove_relation|mcp__plugin_archcore_archcore__remove_relation",
         "hooks": [
           {
             "type": "command",
-            "command": "${PLUGIN_ROOT}/bin/validate-archcore",
-            "timeout": 3
-          }
-        ]
-      },
-      {
-        "matcher": "mcp__archcore__update_document",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${PLUGIN_ROOT}/bin/check-cascade",
-            "timeout": 3
-          }
-        ]
-      },
-      {
-        "matcher": "mcp__archcore__create_document|mcp__archcore__update_document",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${PLUGIN_ROOT}/bin/check-precision",
-            "timeout": 3
+            "command": "ARCHCORE_HOST=codex \"${PLUGIN_ROOT}\"/bin/post-tool-use",
+            "timeout": 4
           }
         ]
       }

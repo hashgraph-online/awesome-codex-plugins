@@ -1,34 +1,62 @@
 #!/usr/bin/env bash
+# Domain skill contract validator.
+#
+# Domain is a read-only lookup: it returns the exact definition of an AgentOps
+# term from the two cited contract files and stops. The failure this guards is
+# a citation that has silently decayed — a contract path that moved, or a term
+# the skill promises to resolve that is no longer present in its cited source.
+# Both are the "floating citation" failure the skill's own prose warns about,
+# made checkable. This is the entry point audit.sh looks for.
 set -euo pipefail
 
-SKILL_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-PASS=0
-FAIL=0
+# pwd -P: this skill is invoked through a symlink (~/.claude/skills/domain ->
+# the checkout); a logical pwd would resolve ../.. against the symlink's parent
+# (.claude) and false-report the cited contracts as missing.
+skill_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+repo_root="$(cd "$skill_dir/../.." && pwd -P)"
 
-check() {
-  if bash -c "$2"; then
-    echo "PASS: $1"
-    PASS=$((PASS + 1))
-  else
-    echo "FAIL: $1"
-    FAIL=$((FAIL + 1))
+lang="$repo_root/docs/contracts/ubiquitous-language.md"
+contexts="$repo_root/docs/contracts/bounded-contexts.yaml"
+
+fail=0
+
+for path in "$lang" "$contexts"; do
+  if [[ ! -f "$path" ]]; then
+    echo "domain: cited contract path missing: ${path#"$repo_root"/}" >&2
+    fail=1
   fi
-}
+done
 
-check "SKILL.md exists" "test -f '$SKILL_DIR/SKILL.md'"
-check "SKILL.md has name: domain" "grep -q '^name: domain' '$SKILL_DIR/SKILL.md'"
-check "constraints preserve JIT loading" "grep -q '^## Constraints' '$SKILL_DIR/SKILL.md' && grep -qi 'preloading.*defeats.*JIT' '$SKILL_DIR/SKILL.md'"
-check "canonical promotion requires operator approval" "grep -qi 'never self-promote.*canonical' '$SKILL_DIR/SKILL.md'"
-check "output specification is explicit" "grep -q '^## Output Specification' '$SKILL_DIR/SKILL.md'"
-check "output declares path and filename" "grep -q '\*\*Path:\*\*' '$SKILL_DIR/SKILL.md' && grep -q '\*\*Filename:\*\*' '$SKILL_DIR/SKILL.md'"
-check "output declares validation and handoff" "grep -qi 'validation command' '$SKILL_DIR/SKILL.md' && grep -qi 'downstream handoff' '$SKILL_DIR/SKILL.md'"
-check "mutations target canonical domain source" "grep -q 'skills/domain/references/<slug>.md' '$SKILL_DIR/SKILL.md' && grep -q 'skills/domain/references/INDEX.md' '$SKILL_DIR/SKILL.md'"
-check "Codex projection is read-only" "grep -Eqi 'skills-codex/domain/.*generated, read-only consumption projection' '$SKILL_DIR/SKILL.md' && grep -qi 'Never edit it' '$SKILL_DIR/SKILL.md'"
-check "Codex projection requires regeneration and convergence" "grep -q 'codex-sync.sh --force --only domain' '$SKILL_DIR/SKILL.md' && grep -q 'codex-sync.sh --check --only domain' '$SKILL_DIR/SKILL.md'"
-check "no generated-tree mutation instruction" "! grep -Eqi 'skills-codex/domain/.*(write|mutat|update)|(write|mutat|update).*skills-codex/domain/' '$SKILL_DIR/SKILL.md'"
-check "quality checklist is explicit" "grep -q '^## Quality Checklist' '$SKILL_DIR/SKILL.md'"
-check "domain index and entry schema exist" "test -f '$SKILL_DIR/references/INDEX.md' && test -f '$SKILL_DIR/references/entry.md'"
+# The skill's failure-mode example turns on "verdict" keeping its exact meaning;
+# assert that term still resolves inside the cited definition source.
+if [[ -f "$lang" ]] && grep -Fq '| Verdict |' "$lang"; then
+  :
+else
+  echo "domain: term 'Verdict' no longer resolves in ubiquitous-language.md" >&2
+  fail=1
+fi
 
-echo
-echo "Results: $PASS passed, $FAIL failed"
-(( FAIL == 0 ))
+# The Judgment bounded context (BC2) owns Verdict; assert it still resolves so
+# the ownership half of a lookup cannot drift out from under the skill.
+if [[ -f "$contexts" ]] && grep -Fq 'name: Judgment' "$contexts"; then
+  :
+else
+  echo "domain: bounded context 'Judgment' no longer resolves in bounded-contexts.yaml" >&2
+  fail=1
+fi
+
+# The SKILL.md contract itself must still forbid smuggling caller-lifecycle
+# words in as synonyms — the whole reason the lookup is authoritative.
+if grep -Fq 'synonym smuggling' "$skill_dir/SKILL.md"; then
+  :
+else
+  echo "domain: SKILL.md dropped the synonym-smuggling failure mode" >&2
+  fail=1
+fi
+
+if [[ "$fail" -ne 0 ]]; then
+  echo 'domain skill contract: FAIL' >&2
+  exit 1
+fi
+
+echo 'domain skill contract: PASS'

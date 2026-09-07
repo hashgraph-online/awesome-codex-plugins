@@ -193,10 +193,10 @@ find ~/.claude/projects -path "*/subagents/*.jsonl" | head -20
 FILE="$1"
 
 # Detect format and extract
-if jq -e '.[0].type == "user"' "$FILE" >/dev/null 2>&1; then
+if jq -se '.[0].type == "user"' "$FILE" >/dev/null 2>&1; then
     # Claude Code format
     jq -s '[.[] | select(.type == "user")] | .[] | .message.content' "$FILE"
-elif jq -e '.[0].role == "user"' "$FILE" >/dev/null 2>&1; then
+elif jq -se '.[0].role == "user"' "$FILE" >/dev/null 2>&1; then
     # Codex/Gemini format
     jq -s '[.[] | select(.role == "user")] | .[] | .content' "$FILE"
 else

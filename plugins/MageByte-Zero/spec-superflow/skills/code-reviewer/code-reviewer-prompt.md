@@ -87,7 +87,7 @@ Subagent (general-purpose):
 
     ## Output Format
 
-    Write your full verdict to [REVIEW_REPORT_FILE]. This review report path
+    Write your full verdict to `[CHANGE_DIR]/.superpowers/sdd/reviews/[WAVE_ID].md`. This review report path
     must point to a non-empty, persisted review report before the controller
     records a receipt. Include the wave ID, base SHA, head SHA, and that review
     report path. End with the exact receipt command:

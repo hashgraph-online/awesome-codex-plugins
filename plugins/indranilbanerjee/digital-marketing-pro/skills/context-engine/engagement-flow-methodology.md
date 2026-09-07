@@ -65,9 +65,9 @@ Not every Part 5 client validation triggers a full v2 re-build. The Decision Mat
 |---|---|
 | Competitors changed (added, removed, re-tiered) | All four Core Documents (3.1–3.4) AND 4.1 Competitor Ad Analysis AND 4.2 Competitor Positioning |
 | Target market data changed (geography, market size, segments) | 4.3 Customer Analysis AND 4.4 Market Analysis |
-| Audiences changed | Core Doc 2 (Segmentation) + Core Doc 3 (Brand Positioning) + Core Doc 4 (DMFlow) |
-| Positioning changed | Core Doc 3 (Brand Positioning) |
-| Budget / scope changed | Core Doc 4 (DMFlow) |
+| Audiences changed | Core Doc 3.2 (Segmentation) + Core Doc 3.3 (Brand Positioning) + Core Doc 3.4 (DMFlow) |
+| Positioning changed | Core Doc 3.3 (Brand Positioning) |
+| Budget / scope changed | Core Doc 3.4 (DMFlow) |
 | Minor corrections only | Update inline in v1, tag as v1.1. No full re-run |
 
 Most engagements trigger only a subset of these. The matrix prevents over-re-running (which wastes tokens) and under-re-running (which leaves stale assumptions in the v2 layer).

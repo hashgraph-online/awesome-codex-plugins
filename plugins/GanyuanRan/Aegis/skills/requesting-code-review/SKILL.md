@@ -1,6 +1,6 @@
 ---
 name: requesting-code-review
-description: Use when explicitly requesting an independent code review, after subagent-driven implementation slices, before merging high-risk work, or when verification finds evidence, baseline, architecture, compatibility, or retirement uncertainty that needs reviewer scrutiny.
+description: "Use when requesting independent code review, after implementation slices, before merging high-risk work, or when verification exposes evidence, baseline, architecture, compatibility, or retirement uncertainty."
 ---
 
 # Requesting Code Review
@@ -52,6 +52,8 @@ Before you leave this workflow, you must be able to state:
 10. **Aegis Visibility**: why findings-first ordering, evidence sufficiency,
     baseline alignment, compatibility, or retirement risk matters for this
     review request
+11. **Semantic context scope**: which relevant canonical terms, deprecated
+    aliases, or public naming boundaries the review must preserve
 
 Review in this method pack is advisory and evidence-oriented. It is not authoritative completion by itself.
 
@@ -70,14 +72,25 @@ Review in this method pack is advisory and evidence-oriented. It is not authorit
   Auto Backfill or baseline sync findings
 - Whether `recording-architecture-decisions` was used, or should be used, when
   an ADR action or baseline sync closure is in scope
+- Relevant active `CONTEXT.md` language when public/domain naming is in scope;
+  passive reading does not load active modeling
 
 If you cannot answer these, stop and gather them before dispatching review.
 
-**2. Get git SHAs:**
+**2. Define the Git review scope:**
 ```bash
-BASE_SHA=$(git rev-parse HEAD~1)  # or origin/main
+# Before the coordinator's task commit
+REVIEW_SCOPE=working-tree
+BASE_SHA=$(git rev-parse HEAD)
+
+# Or for already committed work
+REVIEW_SCOPE=committed-range
+BASE_SHA=<known-start>
 HEAD_SHA=$(git rev-parse HEAD)
 ```
+
+For working-tree review, identify task-owned untracked paths explicitly. Do not
+stage merely to make them visible to a reviewer.
 
 **3. Dispatch reviewer subagent:**
 
@@ -91,8 +104,9 @@ separate named agent prompt.
 - `{EVIDENCE}` - Fresh tests, commands, logs, or verification already available
 - `{COMPATIBILITY_BOUNDARY}` - What existing behavior or interfaces must not break
 - `{RETIREMENT_NOTES}` - Old owner / fallback / patch / duplicate branch and expected disposition
+- `{REVIEW_SCOPE}` - `working-tree` or `committed-range`
 - `{BASE_SHA}` - Starting commit
-- `{HEAD_SHA}` - Ending commit
+- `{HEAD_SHA}` - Ending commit, or `WORKTREE`
 - `{DESCRIPTION}` - Brief summary
 
 **4. Act on feedback:**
@@ -175,6 +189,8 @@ The review request must prompt the reviewer to inspect at least:
   baseline sync closure is in scope
 - unverified claims or missing proof
 - old logic that should retire, stay temporarily, or converge
+- public-name drift, deprecated-term re-entry, or a semantic change recorded in
+  code/docs without composing `establishing-project-context`
 
 If the review only asks “is this code good?”, it is underspecified.
 

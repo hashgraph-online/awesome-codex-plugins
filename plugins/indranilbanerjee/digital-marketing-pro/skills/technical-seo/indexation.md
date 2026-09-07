@@ -224,7 +224,8 @@ Index bloat occurs when a search engine indexes significantly more pages than th
 
 **Tier 2: Supplementary (do within 24 hours)**
 - Share the URL on social media (Google discovers URLs through social platforms)
-- Ping the sitemap: `https://www.google.com/ping?sitemap=https://example.com/sitemap.xml`
+- Ensure the sitemap is submitted in GSC and referenced via a `Sitemap:` directive in robots.txt (the old `google.com/ping` sitemap-ping endpoint was shut down in 2023)
+- For Bing and Yandex, submit new URLs via IndexNow for near-instant discovery
 - If the site uses Google's Indexing API (eligible for job postings and live streaming content), submit through the API (much faster than standard crawling)
 
 **Tier 3: Long-term (ongoing)**

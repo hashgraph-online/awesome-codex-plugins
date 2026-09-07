@@ -24,9 +24,9 @@ Wrong|Correct
 Дефис вместо тире: "Москва - столица"|Москва -- столица (em-dash)
 Три точки "..."|Многоточие … (U+2026, single glyph)
 Знак номера: "No." или "#"|№ (знак номера)
-CAPS LOCK ДЛЯ ВЫДЕЛЕНИЯ|**Полужирный** или *курсив*
+ЭТО НУЖНО СДЕЛАТЬ СЕГОДНЯ, ИНАЧЕ РЕЛИЗ СОРВЁТСЯ|Обычный регистр; одно-два слова прописными не трогать — правило и его карв-ауты в AD-18
 
-Remaining 10: nested quotes, en-dash in ranges, double dashes, space before comma, no space after period, latin x vs multiplication sign, inconsistent ё, double spaces, (c) vs ©, minus vs em-dash in text. All covered in [typography.md](typography.md).
+Remaining 10: nested quotes (R4), en-dash in ranges (R21–R26), double dashes (R14), space before comma (R40), no space after period (R41), latin x vs multiplication sign (R82), (c) vs © (R87), minus vs em-dash in text (R28) — all in [typography.md](typography.md). ⚠ Two of the ten are NOT in `typography.md` and were claimed to be. **Double spaces** have no rule anywhere in the corpus — they stay as hygiene the Quality Checklist asks for. **Inconsistent ё** is governed, but by [ux-writing.md](ux-writing.md) § L.3–L.5, not here. ⚠ An earlier repair of this sentence said the corpus has no rule for either, and that was the same error one layer down.
 
 ## Critical: Канцелярит и номинализация (32 entries)
 
@@ -63,6 +63,8 @@ Vague|Fix
 ## High: Passive Voice (10 entries)
 
 Passive hides the actor, making text evasive and bureaucratic.
+
+Carve-out -- the passive says how the product behaves, not what a person did. Not flagged where the verb is something the product, tool or service does by itself and the sentence carries nothing but that: «Предупреждение выводится один раз за сессию», «Токены перестанут приниматься первого сентября», «Поле `updated_at` меняется при каждой записи». Naming the actor there only repeats the thing the page is already about. The verb decides first, so no heading buys the exemption: deciding, checking, reviewing, approving, notifying and sending are done by people, and «информация подлежит рассмотрению в установленные сроки» stays a finding -- naming the регламент beside it names nobody. A passive carried inside a larger point is not a behaviour line -- more of the same behaviour alongside keeps the exemption, an instruction, an inference or a person's commitment in the same sentence breaks it: «сколько запросов обрабатывается», set inside a sentence about what the real question is, stays a finding. A message shown to the reader is the message, not documentation about one: «Ваш запрос не может быть обработан» withholds the cause and the next step -- «Не смогли обработать запрос: истёк срок токена». Nothing else changes, including the default that the passive is fine when the agent is unknown or irrelevant. No row of the table below is exempt -- not one names a machine.
 
 Passive|Active
 Было принято решение|Мы решили / Руководитель решил
@@ -133,12 +135,12 @@ Remaining 17 (период времени, передовой авангард, 
 
 Use Russian when it carries the same meaning. Some anglicisms have no precise equivalent -- those are fine.
 
-Anglicism|Russian|When anglicism OK
-Дедлайн|Срок / Крайний срок|IT context
+Anglicism|Russian|Replace when
+Дедлайн|Срок / Крайний срок|Non-IT context
 Фидбэк|Обратная связь / Отзыв|Non-IT audience
 Митинг|Встреча / Совещание|General business
 Апрувить|Утвердить / Согласовать|Any formal text
-Кейс|Случай / Пример / Ситуация|Legal/marketing term
+Кейс|Случай / Пример / Ситуация|Outside legal/marketing use
 Ворк-шоп|Мастерская / Практикум|General audience
 Тимлид|Руководитель группы|Formal HR documents
 Коллаборация|Сотрудничество|General text

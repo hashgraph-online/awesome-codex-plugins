@@ -1,0 +1,50 @@
+{
+  "name": "youtube-skills",
+  "version": "1.0.0",
+  "description": "Twelve drop-in agent skills for YouTube transcripts, captions, subtitles, video and channel search, playlists and channel browsing, powered by the TranscriptAPI service.",
+  "author": {
+    "name": "Zero Point Studio",
+    "email": "hello@transcriptapi.com",
+    "url": "https://transcriptapi.com"
+  },
+  "homepage": "https://transcriptapi.com",
+  "repository": "https://github.com/ZeroPointRepo/youtube-skills",
+  "license": "MIT",
+  "keywords": [
+    "youtube",
+    "transcript",
+    "captions",
+    "subtitles",
+    "video-search",
+    "channel-search",
+    "playlists",
+    "transcriptapi",
+    "agent-skills"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "YouTube Skills by TranscriptAPI",
+    "shortDescription": "YouTube transcripts, captions, search and channel data as agent skills.",
+    "longDescription": "A set of twelve agent skills that give any skills-compatible agent reliable access to YouTube video transcripts, timestamped captions and subtitles, video and channel search, playlist contents and within-channel search through the TranscriptAPI service. Each skill ships with trigger vocabulary, exact API usage and error handling, so agents call the right endpoint on the first try. Sign up at transcriptapi.com for an API key (100 free credits, no card, one-time). TranscriptAPI is a third-party, independent service. It is not affiliated with, endorsed by, or sponsored by YouTube or Google.",
+    "developerName": "Zero Point Studio",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Interactive"
+    ],
+    "defaultPrompt": [
+      "Summarize this YouTube video for me.",
+      "Get the transcript of this YouTube link.",
+      "Find recent videos about a topic and pull their transcripts."
+    ],
+    "composerIcon": "./assets/icon.svg",
+    "brandColor": "#CC2F02",
+    "websiteURL": "https://transcriptapi.com",
+    "privacyPolicyURL": "https://transcriptapi.com/privacy",
+    "termsOfServiceURL": "https://transcriptapi.com/terms",
+    "logo": "./assets/icon.svg",
+    "screenshots": [
+      "./assets/screenshot-transcriptapi.png"
+    ]
+  }
+}

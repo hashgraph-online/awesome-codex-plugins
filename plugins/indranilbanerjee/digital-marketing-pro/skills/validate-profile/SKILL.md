@@ -1,6 +1,6 @@
 ---
 name: validate-profile
-description: "Validate a brand profile end-to-end — required fields, voice/audience completeness, connector reachability, credentials health, and compliance prerequisites — without exposing credential values. Run after any credential change or brand-profile edit."
+description: "Read-only health check that a brand profile is production-ready: required fields, voice and audience completeness, guardrails, compliance-jurisdiction coverage, connector configuration and MCP reachability, output-path writeability, and model-registry age — reported per check as BLOCKER or WARNING without ever printing credential values. Triggers on \"/digital-marketing-pro:validate-profile\", \"is the brand setup correct\", \"check connector credentials\", \"profile sanity check\", \"we rotated an API key — is it wired up\". Reads profile.json and probes connectors via connector-status.py; the prerequisite gate before /digital-marketing-pro:engagement, /digital-marketing-pro:campaign-plan, and /digital-marketing-pro:launch-campaign."
 user-invocable: true
 triggers:
   - validate brand profile
@@ -33,15 +33,15 @@ The skill is **read-only** — it inspects state, never modifies it. It also **n
 
 | Dimension | What's checked | Severity |
 |---|---|---|
-| **Required identity** | `brand_name`, `industry`, `target_jurisdictions` non-empty | BLOCKER |
-| **Voice profile** | `voice.tone`, `voice.formality`, `voice.energy` populated | BLOCKER for content work |
+| **Required identity** | `brand_name`, `industry`, and a market/jurisdiction list non-empty — accept **`target_markets`** (what `brand-setup` actually writes) or `target_jurisdictions` (legacy). Checking only the legacy name made every freshly created brand fail its own validator on a BLOCKER | BLOCKER |
+| **Voice profile** | tone, formality and energy populated under **`brand_voice`** (what `brand-setup` writes, and what `content-engine` and `brand-voice-scorer.py` both read) or under `voice` (legacy). The generator is the source of truth here — two consumers already follow it, so this validator was the outlier | BLOCKER for content work |
 | **Audience profile** | `target_audience.primary_persona` with `role` + `reading_level` | WARNING |
-| **Guardrails** | `guardrails.prohibited_terms` + `guardrails.prohibited_claims` non-empty | BLOCKER for regulated industries (pharma, BFSI, healthcare, legal) |
+| **Guardrails** | `guardrails.prohibited_terms` + `guardrails.prohibited_claims` non-empty. `brand-setup` does not create this block, so report it as a WARNING with the exact command to add it for an unregulated brand, and reserve BLOCKER for regulated industries — where a missing guardrail is a real risk, not a setup gap | BLOCKER for regulated industries (pharma, BFSI, healthcare, legal); WARNING otherwise |
 | **Compliance jurisdictions** | Each declared jurisdiction has a matching rules entry in `skills/context-engine/compliance-rules.md` | BLOCKER |
 | **Connector config present** | Every connector named in `tracking.backend`, `integrations.*`, `analytics.*` has its env vars / `.mcp.json` entry present (local check; live reachability comes from the MCP/curl probe below) | BLOCKER per unconfigured connector |
 | **MCP server health** | Every entry in `.mcp.json` (if present) responds to a tools/list ping | WARNING |
-| **Credential storage** | `~/.claude-marketing/{brand}/credentials.json` (or env vars) present for every backend referenced | BLOCKER |
-| **Output paths writeable** | `~/.claude-marketing/{brand}/` is writeable; `$CONTENTFORGE_PUBLISH_DIR` (if cross-plugin) is writeable | BLOCKER |
+| **Credential storage** | `~/.claude-marketing/brands/{brand}/credentials.json` (or env vars) present for every backend referenced | BLOCKER |
+| **Output paths writeable** | `~/.claude-marketing/brands/{brand}/` is writeable; the user-visible publish dir (`$DIGITAL_MARKETING_PRO_PUBLISH_DIR` or `~/Documents/DigitalMarketingPro/`) is writeable | BLOCKER |
 | **Model curator currency** | `scripts/resolve_model.py --registry-age` returns < 90 days | WARNING |
 
 A **BLOCKER** means "do not let the user run engagement / campaign-plan / launch-campaign until this is fixed." A **WARNING** is surfaced but does not gate.
@@ -50,15 +50,15 @@ A **BLOCKER** means "do not let the user run engagement / campaign-plan / launch
 
 ### Step 0 — Resolve the brand to validate
 
-If `--brand <slug>` was passed, use it. Otherwise read the active brand from `~/.claude-marketing/active-brand` (set by `/digital-marketing-pro:switch-brand`). If neither is available, error: `"--brand <slug> required, or run /digital-marketing-pro:switch-brand first."` Do NOT validate "everything" — validation is per-brand by design.
+If `--brand <slug>` was passed, use it. Otherwise read the active brand from `~/.claude-marketing/brands/_active-brand.json` (set by `/digital-marketing-pro:switch-brand`). If neither is available, error: `"--brand <slug> required, or run /digital-marketing-pro:switch-brand first."` Do NOT validate "everything" — validation is per-brand by design.
 
 ### Step 1 — Load the brand profile
 
 ```bash
-BRAND_DIR="$HOME/.claude-marketing/{brand}"
+BRAND_DIR="$HOME/.claude-marketing/brands/{brand}"
 test -d "$BRAND_DIR" || { echo "Brand directory not found at $BRAND_DIR — run /digital-marketing-pro:brand-setup first."; exit 1; }
-PROFILE="$BRAND_DIR/brand-profile.json"
-test -f "$PROFILE" || { echo "brand-profile.json missing under $BRAND_DIR — run /digital-marketing-pro:brand-setup."; exit 1; }
+PROFILE="$BRAND_DIR/profile.json"
+test -f "$PROFILE" || { echo "profile.json missing under $BRAND_DIR — run /digital-marketing-pro:brand-setup."; exit 1; }
 ```
 
 Parse the profile JSON and capture: `brand_name`, `industry`, `target_jurisdictions`, `voice.*`, `target_audience.*`, `guardrails.*`, `tracking.backend`, `integrations.*`, `analytics.*`.
@@ -101,12 +101,12 @@ HTTP `200`, `204`, `401` (auth required for GET — POST will work), and `405` (
 ### Step 5 — Output-path writeability
 
 ```bash
-test -w "$HOME/.claude-marketing/{brand}/" || echo "BLOCK: brand directory is not writeable"
-# Cross-plugin: if ContentForge is installed, check its publish dir too
-if [ -n "$CONTENTFORGE_PUBLISH_DIR" ]; then
-    test -w "$CONTENTFORGE_PUBLISH_DIR" || echo "WARN: CONTENTFORGE_PUBLISH_DIR ($CONTENTFORGE_PUBLISH_DIR) is not writeable"
+test -w "$HOME/.claude-marketing/brands/{brand}/" || echo "BLOCK: brand directory is not writeable"
+# User-visible publish dir (dual-copy pattern)
+if [ -n "$DIGITAL_MARKETING_PRO_PUBLISH_DIR" ]; then
+    test -w "$DIGITAL_MARKETING_PRO_PUBLISH_DIR" || echo "WARN: DIGITAL_MARKETING_PRO_PUBLISH_DIR ($DIGITAL_MARKETING_PRO_PUBLISH_DIR) is not writeable"
 elif [ -d "$HOME/Documents" ]; then
-    test -w "$HOME/Documents" || echo "WARN: ~/Documents is not writeable — ContentForge publish copy will fail"
+    test -w "$HOME/Documents" || echo "WARN: ~/Documents is not writeable — the user-visible publish copy will fail"
 fi
 ```
 
@@ -135,7 +135,7 @@ Print a structured report. ALWAYS show every check (don't only print failures �
 ✅ Connector — HubSpot     OK (workspace acme-corp, 1247 contacts)
 ✅ Connector — Stripe      OK
 ✅ MCP — gmailmcp.googleapis.com  HTTP 405 (alive)
-✅ Output paths            ~/.claude-marketing/{brand}/ writeable; ~/Documents/ContentForge/ writeable
+✅ Output paths            ~/.claude-marketing/brands/{brand}/ writeable; ~/Documents/DigitalMarketingPro/ writeable
 ⚠️  Model curator           registry is 102 days old — consider scripts/refresh_models.py
 
 Decision: 🛑 BLOCKED — Slack connector not configured. Fix before running:

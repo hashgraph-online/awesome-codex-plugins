@@ -1,6 +1,11 @@
 ---
 name: tmux-layout
-description: Use this skill when the operator wants a prepared tmux visualization layout for the session's side-channels (STATE.md tail, CI-watch, events.jsonl tail). Renders a 4-pane default layout or debug layout. Read-only side-channel observability — the coordinator chat stays in the operator's original terminal. Trigger phrases: "tmux layout", "split panes for ci watch", "visualize session side-channels", "show me state-md tail and ci".
+description: >
+  Use this skill when the operator wants a prepared tmux visualization layout for the session's
+  side-channels (STATE.md tail, CI-watch, events.jsonl tail). Renders a 4-pane default layout or debug
+  layout. Read-only side-channel observability — the coordinator chat stays in the operator's original
+  terminal. Trigger phrases: "tmux layout", "split panes for ci watch", "visualize session side-channels",
+  "show me state-md tail and ci".
 model: inherit
 color: cyan
 tools: Read, Bash, Grep, Glob
@@ -47,7 +52,7 @@ The skill prints a one-line tmux command. Paste it into a SECOND terminal (do no
 |---|---|---|
 | 1 | **Shell** (operator scratch — NOT claude) | `bash` (interactive) |
 | 2 | STATE.md tail | `tail -F <state-dir>/STATE.md` |
-| 3 | CI watch (poll-loop wrapper) | `while true; do clear; glab ci status --pipeline-id LATEST --output json \| jq ...; sleep 15; done` |
+| 3 | CI watch (poll-loop wrapper) | `while true; do clear; glab ci status -R <spec> --output json \| jq -r '.jobs[] \| ...'; sleep 15; done` |
 | 4 | events.jsonl wave/gate filter | `tail -F .orchestrator/metrics/events.jsonl \| jq --unbuffered 'select(.event \| test("wave\|gate\|spiral"))'` |
 | 5 | agent-status telemetry (#565, only with `--with-status-pane`) | `while true; do clear; jq . .orchestrator/runtime/agent-status-current.json 2>/dev/null \|\| echo ...; sleep 2; done` |
 

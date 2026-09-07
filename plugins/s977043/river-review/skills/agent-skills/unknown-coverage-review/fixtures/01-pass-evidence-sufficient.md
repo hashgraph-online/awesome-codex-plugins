@@ -11,7 +11,7 @@ diff --git a/src/config/loader.mjs b/src/config/loader.mjs
 index 1111111..2222222 100644
 --- a/src/config/loader.mjs
 +++ b/src/config/loader.mjs
-@@ -10,6 +10,14 @@ export function loadConfig(raw) {
+@@ -10,1 +10,5 @@ export function loadConfig(raw) {
 -  return normalizeV2(raw);
 +  // 旧 v1 形式との後方互換を維持する（利用箇所は repo 全体を grep 済み）
 +  if (raw.schemaVersion === 1) {
@@ -22,7 +22,7 @@ diff --git a/test/config/loader.test.mjs b/test/config/loader.test.mjs
 index 3333333..4444444 100644
 --- a/test/config/loader.test.mjs
 +++ b/test/config/loader.test.mjs
-@@ -20,0 +21,8 @@ describe('loadConfig', () => {
+@@ -20,0 +21,3 @@ describe('loadConfig', () => {
 +  it('v1 形式を v2 へ移行して読み込む', () => {
 +    expect(loadConfig({ schemaVersion: 1, legacy: true })).toEqual(expectedV2);
 +  });

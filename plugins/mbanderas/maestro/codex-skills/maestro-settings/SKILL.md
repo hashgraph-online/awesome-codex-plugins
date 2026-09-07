@@ -6,8 +6,8 @@ license: MIT
 
 View or change **Maestro settings** for this project. The settings CLI manages
 five primary toggles: `terse`, `frontier`, `context-bar`, `discipline`
-(the enforcement-hook pack; `off` silences it, the doctrine text stays loaded),
-and `verify` (the S7.3 verify-gate Stop hook: `warn`/`block`/`off`).
+(the optional enforcement-hook pack; `off` is the default), and `verify`
+(the optional S7.3 verify-gate Stop hook; `off` is the default).
 
 When the user invokes this skill, run the settings CLI from the repo root.
 Do not edit settings files by hand.

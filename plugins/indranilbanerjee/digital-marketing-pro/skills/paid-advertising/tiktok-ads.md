@@ -1,5 +1,7 @@
 # TikTok Ads — Creative & Campaign Reference
 
+> **Benchmark provenance (as of 2026-08):** Dollar figures in this document are planning priors, not quotes — market and auction rates drift continuously. Before any figure enters a media plan, budget, or client deliverable, refresh it live (platform dashboards and current published reports beat memory) and record it with `python scripts/benchmark_book.py --action record ... --source <url>`; quote from the book thereafter (`--action quote`). Never present an unstamped figure as current market fact.
+
 ## Campaign Types Overview
 
 | Campaign Objective | Use Case | Optimization Event | Billing Model |
@@ -174,10 +176,10 @@ TikTok Creator Marketplace connects brands with creators for sponsored content t
 
 | Tier | Followers | Cost Range | Best For |
 |---|---|---|---|
-| Nano | 1K–10K | $50–$500 | Authentic UGC, niche communities |
-| Micro | 10K–100K | $500–$5,000 | Targeted reach, high engagement |
-| Mid | 100K–1M | $5,000–$25,000 | Balanced reach + credibility |
-| Macro | 1M+ | $25,000–$100,000+ | Mass awareness, trend creation |
+| Nano | 1K–10K | $50–$200 | Authentic UGC, niche communities |
+| Micro | 10K–100K | $200–$2,500 | Targeted reach, high engagement |
+| Mid | 100K–1M | $800–$5,000 | Balanced reach + credibility |
+| Macro | 1M+ | $5,000–$50,000+ | Mass awareness, trend creation |
 
 ## Pixel & Events API Setup
 
@@ -248,7 +250,7 @@ TikTok Creator Marketplace connects brands with creators for sponsored content t
 |---|---|---|---|
 | CTR | 0.8–1.5% | 1.5–3.0% | 12–16% |
 | CPC | $0.50–$2.00 | $0.30–$1.50 | N/A (CPM buy) |
-| CPM | $6–$15 | $5–$12 | $50–$80 |
+| CPM | $6–$15 | $5–$12 | $11–$19 |
 | Video View Rate (6s) | 15–25% | 20–35% | 40–60% |
 | Conv Rate (landing page) | 1–3% | 1.5–4% | 2–5% |
 

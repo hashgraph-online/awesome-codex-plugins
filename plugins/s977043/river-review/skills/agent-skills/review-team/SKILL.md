@@ -77,7 +77,10 @@ Step 3: consensusLevel の付与（finding ごと）
   agreement.length ≤ 1  → "single"    ★
 
 Step 4: Tech Lead レポートの生成（追加 LLM コストなし）
-  top3Findings    : consensusLevel → severity 順の上位3件
+  top3Findings    : consensusLevel → severity → scope 順の上位3件
+                    （consensusLevel が severity に優先する。severity は
+                      consensusLevel が同値のときだけ効き、scope は上位2キーが
+                      同値のときだけ in-diff を先に置く）
   blindSpots      : 今回実行されなかったロール一覧
   consensusSummary: consensus / multi / single の件数集計
 ```
@@ -92,7 +95,8 @@ Step 4: Tech Lead レポートの生成（追加 LLM コストなし）
   "severity": "critical",
   "consensusLevel": "consensus",
   "agreement": ["bug-hunter", "security-scanner", "test-gap"],
-  "reviewerRole": "bug-hunter"
+  "reviewerRole": "bug-hunter",
+  "scope": "in-diff"
 }
 ```
 
@@ -149,6 +153,7 @@ Actions では CLI が実行エンジンとして起動される。ワークフ�
 2. **`multi` 指摘を次に確認する** — 2ロールが合意した指摘
 3. **blindSpots を見て追加実行を検討する** — 未実行ロールが多い場合はそのロールを追加して再実行
 4. **`single` 指摘はノイズ混入の可能性がある** — ロール固有の観点からの指摘なので文脈に応じて判断
+5. **`scope` で対応範囲を切り分ける** — `in-diff` は本 PR が追加行で持ち込んだ問題、`pre-existing` は変更ファイル内だが追加行の外にある既存コードへの指摘。`pre-existing` は文脈参考として扱い、本 PR のスコープを超えた修正を招かないようにする。値が無い場合は fail-safe で `in-diff` 扱いになる
 
 ## Cost / コスト
 

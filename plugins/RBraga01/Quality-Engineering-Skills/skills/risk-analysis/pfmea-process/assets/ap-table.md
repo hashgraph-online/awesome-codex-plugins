@@ -10,17 +10,33 @@ last_updated: "2026-06-03"
 updated_by: RBraga01
 reviewed_by: RBraga01
 license: MIT
+license-note: >-
+  MIT covers the original expression in this file. It does not extend to the
+  AIAG-VDA FMEA Handbook, which is a separately licensed third-party work.
+  See THIRD_PARTY_CONTENT.md.
 ---
 
-# AIAG-VDA Action Priority (AP) Table
+# Action Priority (AP) Determination Rules
 
-Reference: AIAG-VDA FMEA Handbook 2019, Step 5, Table 5-3
+**What this file is.** An independent restatement of the Action Priority decision
+logic used in the AIAG-VDA FMEA methodology (2019 joint edition), expressed as
+banded rules. It is **not** a reproduction of the handbook's Action Priority
+table, and it does not replace it.
 
-## How to read the table
+**What this file is not.** The authoritative AP table enumerates every S/O/D
+combination and comes with the rating criteria tables that define what each S, O
+and D value means. Those criteria are what make a rating defensible in an audit,
+and they are not in this file. For formal PPAP submissions, customer-facing FMEA
+work, or any disputed rating, use your own licensed copy of the handbook.
+
+AIAG and VDA are trademarks of their respective owners. This project is not
+affiliated with, endorsed by, or certified by either organisation.
+
+## How to apply the rules
 
 1. Find the Severity (S) row
-2. Find the Occurrence (O) column range
-3. Find the Detection (D) range
+2. Find the Occurrence (O) band
+3. Find the Detection (D) band
 4. Read the Action Priority: **H** (High), **M** (Medium), **L** (Low)
 
 ## Absolute rules (override the table)
@@ -30,7 +46,7 @@ Reference: AIAG-VDA FMEA Handbook 2019, Step 5, Table 5-3
 | S = 9 or 10 | Always **H** — regardless of O and D |
 | S = 8, O = 4–10 | **H** if D ≥ 5; **M** if D ≤ 4 |
 
-## AP Table (AIAG-VDA 2019 summary)
+## AP decision rules (banded)
 
 | S | O | D | AP |
 |---|---|---|----|

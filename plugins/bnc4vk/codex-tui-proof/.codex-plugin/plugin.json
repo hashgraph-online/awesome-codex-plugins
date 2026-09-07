@@ -1,0 +1,47 @@
+{
+  "name": "codex-tui-proof",
+  "version": "0.1.0",
+  "description": "Validate real local terminal UIs visually in Codex's in-app browser without desktop takeover.",
+  "author": {
+    "name": "Ben Cohen",
+    "url": "https://github.com/bnc4vk"
+  },
+  "homepage": "https://github.com/bnc4vk/codex-tui-proof#readme",
+  "repository": "https://github.com/bnc4vk/codex-tui-proof",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "terminal-ui",
+    "tui-testing",
+    "visual-validation",
+    "developer-tools"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Codex TUI Proof",
+    "shortDescription": "Visual TUI proof without desktop takeover",
+    "longDescription": "Launch a real local PTY in a deterministic browser terminal, let Codex interact with it through the in-app browser, and attach screenshot plus session evidence without Computer Use.",
+    "developerName": "Ben Cohen",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Local",
+      "Visual validation"
+    ],
+    "defaultPrompt": [
+      "Visually validate this TUI in Codex without Computer Use.",
+      "Run this CLI in the browser terminal and attach proof.",
+      "Check this TUI change at a fixed terminal size."
+    ],
+    "websiteURL": "https://github.com/bnc4vk/codex-tui-proof",
+    "privacyPolicyURL": "https://github.com/bnc4vk/codex-tui-proof/blob/main/PRIVACY.md",
+    "termsOfServiceURL": "https://github.com/bnc4vk/codex-tui-proof/blob/main/TERMS.md",
+    "brandColor": "#7AA2F7",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png",
+    "screenshots": [
+      "./assets/opencode-final.png",
+      "./assets/opencode-command-palette.png"
+    ]
+  }
+}

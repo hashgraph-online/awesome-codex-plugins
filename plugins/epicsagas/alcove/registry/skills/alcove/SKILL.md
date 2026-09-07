@@ -210,6 +210,52 @@ curl -s -X POST $ALCOVE_URL/promote \
 | Backup vault | POST | `/vaults/backup` |
 | Promote doc | POST | `/promote` |
 
+### Agent Memory (#37)
+
+Durable cross-session memory backed by the `memory` vault. Store facts/decisions/preferences; recall them before acting. `valid_until` (ISO 8601) makes time-sensitive facts drop out of recall automatically.
+
+```bash
+# Store a memory (title defaults to first line)
+curl -s -X POST $ALCOVE_URL/memory/store \
+  -H 'Content-Type: application/json' \
+  -d '{"content": "user prefers turbofish syntax", "project": "alcove", "valid_until": "2027-01-01T00:00:00Z"}'
+
+# Recall memories (hybrid BM25 + vector)
+curl -s '$ALCOVE_URL/memory/recall?q= syntax  preference&limit=10'
+```
+
+| Action | Method | Endpoint |
+|--------|--------|----------|
+| Store memory | POST | `/memory/store` |
+| Recall memories | GET | `/memory/recall?q=...` |
+
+Memory files live in `~/.alcove/vaults/memory/` — editable/removable directly; changes are picked up on next store (which re-indexes).
+
+### Doc Graph (backlinks/related) — requires `doc-graph` feature
+
+```bash
+# Docs linking TO a file (backlinks)
+curl -s '$ALCOVE_URL/docs/backlinks?file=PROJECT/PRD.md'
+
+# Docs a file links TO (related)
+curl -s '$ALCOVE_URL/docs/related?file=PROJECT/PRD.md'
+
+# Stamp last_verified=now on a doc
+curl -s -X POST '$ALCOVE_URL/docs/verify?file=PROJECT/PRD.md'
+
+# Count docs excluded from recall by expiry
+curl -s $ALCOVE_URL/docs/expired
+```
+
+| Action | Method | Endpoint |
+|--------|--------|----------|
+| Backlinks | GET | `/docs/backlinks?file=...` |
+| Related docs | GET | `/docs/related?file=...` |
+| Verify doc | POST | `/docs/verify?file=...` |
+| Expired count | GET | `/docs/expired` |
+
+Expired docs (valid_until in the past) are excluded from backlinks/related recall in both directions.
+
 ### MCP Proxy (Legacy)
 
 The JSON-RPC proxy remains available for MCP clients:

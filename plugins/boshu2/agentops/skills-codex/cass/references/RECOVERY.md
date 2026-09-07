@@ -84,7 +84,7 @@ cass status --json | jq '.database.messages, .index.documents'
 # 664027  0
 
 # Fix
-cass doctor --fix --json | jq '.summary.auto_fix_actions'
+cass doctor --fix --json | jq '.auto_fix_actions'
 # ["Rebuilt search index from database"]
 ```
 

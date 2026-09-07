@@ -1,0 +1,30 @@
+{
+  "skill_name": "cloud-native-readiness",
+  "coverage": {"positive": true, "violating": true},
+  "evals": [
+    {
+      "id": "readiness-eligible-route",
+      "prompt": "Assess this Express web service before deployment. It has a server start command, a configured HTTP port, and no Dockerfile.",
+      "expected_output": "Returns a successful eligibility-first readiness report with framework, dependencies, configuration, score, and a typed Dockerfile handoff.",
+      "files": ["skills/cloud-native-readiness/SKILL.md", "skills/cloud-native-readiness/modules/assess.md", "skills/cloud-native-readiness/modules/route.md"],
+      "assertions": [
+        {"name": "eligibility-before-scoring", "description": "Classifies a supported web workload before readiness scoring or artifact detection"},
+        {"name": "reports-framework-and-dependencies", "description": "Reports framework, dependency, configuration, and concern evidence without secret values"},
+        {"name": "hands-off-dockerfile", "description": "Names dockerfile-skill as the next owner and carries the readiness report as inputArtifact"},
+        {"name": "terminal-success-evidence", "description": "Returns success with a report path or structured report evidence and a safe next action"}
+      ]
+    },
+    {
+      "id": "readiness-ineligible-stop",
+      "prompt": "Assess this CLI-only repository for deployment even though it has no server, HTTP listener, or supported workload unit.",
+      "expected_output": "Returns stopped eligibility evidence and ends before scoring, Dockerfile generation, build, template conversion, or cloud mutation.",
+      "files": ["skills/cloud-native-readiness/SKILL.md", "skills/cloud-native-readiness/modules/assess.md", "skills/cloud-native-readiness/knowledge/deployment-eligibility.md"],
+      "assertions": [
+        {"name": "stops-unsupported-target", "description": "Returns stopped with workload type, reason codes, source evidence, and a safe next action"},
+        {"name": "skips-downstream-phases", "description": "Leaves scoring, Dockerfile, build, template, and deploy phases uncalled"},
+        {"name": "preserves-readiness-owner", "description": "Keeps cloud-native-readiness as responseOwner and names no downstream mutation"},
+        {"name": "redacts-report", "description": "Keeps environment values, credentials, and connection strings out of the result"}
+      ]
+    }
+  ]
+}

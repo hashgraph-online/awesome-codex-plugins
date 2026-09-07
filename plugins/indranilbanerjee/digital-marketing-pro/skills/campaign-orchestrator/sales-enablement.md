@@ -323,8 +323,8 @@ Thanks,
 ```
 Sales Enablement Hub/
 ├── Battle Cards/
-│   ├── [Competitor A] — Battle Card (v3, Q1 2025).pdf
-│   ├── [Competitor B] — Battle Card (v2, Q4 2024).pdf
+│   ├── [Competitor A] — Battle Card (v3, Q1 2027).pdf
+│   ├── [Competitor B] — Battle Card (v2, Q4 2026).pdf
 │   └── ...
 ├── Case Studies/
 │   ├── By Industry/

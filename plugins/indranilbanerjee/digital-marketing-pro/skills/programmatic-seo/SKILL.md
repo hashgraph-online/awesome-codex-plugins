@@ -1,6 +1,6 @@
 ---
 name: programmatic-seo
-description: "Plan programmatic SEO pages. Use when: building template engines, URL patterns, thin content safeguards, or quality gates."
+description: "Plan or audit SEO pages generated at scale from structured data — data-source quality, template uniqueness, URL patterns, internal linking, canonicals, sitemaps, and index-bloat prevention — enforcing hard quality gates against thin content and Google's Scaled Content Abuse policy (uniqueness thresholds, batch rollout limits, standalone value test). Produces a /100 scorecard with prioritized fixes and a progressive rollout plan. Triggers on \"/digital-marketing-pro:programmatic-seo\", \"plan programmatic landing pages\", \"audit our location pages\", \"will 5000 generated pages get us penalized\", \"design a template engine for pSEO\". Reads the brand profile and guidelines; plans and audits only — it does not generate or publish the pages."
 argument-hint: "[URL or plan]"
 user-invocable: true
 ---

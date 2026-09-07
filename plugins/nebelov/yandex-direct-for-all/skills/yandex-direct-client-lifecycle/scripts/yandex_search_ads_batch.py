@@ -9,17 +9,28 @@ import csv
 import json
 import os
 import re
+import stat
+import sys
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from html import unescape
+from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-import requests
-from lxml import html
+for candidate in (
+    Path(__file__).resolve().parents[3] / "scripts",
+    Path(os.environ.get("CODEX_HOME", Path.home() / ".codex")) / "plugins/yandex-direct-for-all/scripts",
+    Path(os.environ.get("CLAUDE_HOME", Path.home() / ".claude")) / "plugins/yandex-direct-for-all/scripts",
+):
+    if (candidate / "portable_http.py").is_file():
+        sys.path.insert(0, str(candidate))
+        break
+else:
+    raise RuntimeError("Не найден переносимый HTTP-слой yandex-direct-for-all")
+
+import portable_http as requests  # noqa: E402
 
 
 DEFAULT_ENDPOINT = "https://searchapi.api.cloud.yandex.net/v2/web/search"
@@ -73,6 +84,62 @@ SPACE_RE = re.compile(r"\s+")
 META_VALUE_RE = re.compile(r"^(snippetUrl|countUrl)$")
 
 
+@dataclass
+class HtmlNode:
+    tag: str
+    attributes: dict[str, str]
+    children: list[HtmlNode | str]
+
+    def descendants(self) -> list[HtmlNode]:
+        result: list[HtmlNode] = []
+        for child in self.children:
+            if isinstance(child, HtmlNode):
+                result.append(child)
+                result.extend(child.descendants())
+        return result
+
+    def text_content(self) -> str:
+        return "".join(child.text_content() if isinstance(child, HtmlNode) else child for child in self.children)
+
+    def has_class(self, name: str, *, exact_token: bool = False) -> bool:
+        value = self.attributes.get("class", "")
+        return name in value.split() if exact_token else name in value
+
+
+class HtmlTreeBuilder(HTMLParser):
+    VOID_TAGS = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"}
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.root = HtmlNode("document", {}, [])
+        self.stack = [self.root]
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        node = HtmlNode(tag, {key: value or "" for key, value in attrs}, [])
+        self.stack[-1].children.append(node)
+        if tag.lower() not in self.VOID_TAGS:
+            self.stack.append(node)
+
+    def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        self.stack[-1].children.append(HtmlNode(tag, {key: value or "" for key, value in attrs}, []))
+
+    def handle_endtag(self, tag: str) -> None:
+        for index in range(len(self.stack) - 1, 0, -1):
+            if self.stack[index].tag.lower() == tag.lower():
+                del self.stack[index:]
+                return
+
+    def handle_data(self, data: str) -> None:
+        self.stack[-1].children.append(data)
+
+
+def parse_html(html_text: str) -> HtmlNode:
+    parser = HtmlTreeBuilder()
+    parser.feed(html_text)
+    parser.close()
+    return parser.root
+
+
 def now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
@@ -107,36 +174,20 @@ def load_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def build_auth_and_folder() -> tuple[dict[str, str], str, str]:
-    api_key = os.environ.get("YANDEX_SEARCH_API_KEY", "").strip()
-    iam_token = os.environ.get("YANDEX_SEARCH_IAM_TOKEN", "").strip()
-    folder_id = os.environ.get("YANDEX_SEARCH_FOLDER_ID", "").strip()
-    credential_path = ""
-    if (api_key or iam_token) and folder_id:
-        header = {"Authorization": f"Api-Key {api_key}"} if api_key else {"Authorization": f"Bearer {iam_token}"}
-        return header, folder_id, "env"
-
-    candidates = [
-        os.environ.get("YANDEX_SEARCH_CREDENTIALS_FILE", "").strip(),
-        str(Path.cwd() / ".yandex_cloud_search_api.json"),
-        str(Path.cwd() / ".codex" / "yandex-cloud-search-api.json"),
-    ]
-    for raw in candidates:
-        if not raw:
-            continue
-        path = Path(raw).expanduser().resolve()
-        if not path.exists():
-            continue
-        payload = load_json(path)
-        nested = payload.get("search_api") if isinstance(payload.get("search_api"), dict) else {}
-        api_key = str(payload.get("api_key") or nested.get("api_key") or "").strip()
-        folder_id = str(payload.get("folder_id") or nested.get("folder_id") or "").strip()
-        iam_token = str(payload.get("iam_token") or nested.get("iam_token") or "").strip()
-        if folder_id and (api_key or iam_token):
-            credential_path = str(path)
-            header = {"Authorization": f"Api-Key {api_key}"} if api_key else {"Authorization": f"Bearer {iam_token}"}
-            return header, folder_id, credential_path
-    raise RuntimeError("Не найдены Yandex Search API credentials")
+def build_auth_and_folder(credentials_file: Path) -> tuple[dict[str, str], str]:
+    if not credentials_file.is_file():
+        raise RuntimeError("Явно указанный файл доступа не найден")
+    if stat.S_IMODE(credentials_file.stat().st_mode) & 0o077:
+        raise RuntimeError("Файл доступа должен иметь права 0600")
+    payload = load_json(credentials_file)
+    nested = payload.get("search_api") if isinstance(payload.get("search_api"), dict) else payload
+    api_key = str(nested.get("api_key") or "").strip()
+    iam_token = str(nested.get("iam_token") or "").strip()
+    folder_id = str(nested.get("folder_id") or "").strip()
+    if not folder_id or bool(api_key) == bool(iam_token):
+        raise RuntimeError("Файл доступа должен содержать folder_id и ровно один способ авторизации")
+    header = {"Authorization": f"Api-Key {api_key}"} if api_key else {"Authorization": f"Bearer {iam_token}"}
+    return header, folder_id
 
 
 @dataclass
@@ -177,17 +228,17 @@ class Job:
     def request_body(self, folder_id: str) -> dict[str, Any]:
         return {
             "query": {
-                "searchType": "SEARCH_TYPE_RU",
+                "searchType": "ru",
                 "queryText": self.search_query,
-                "page": self.page,
-                "fixTypoMode": "FIX_TYPO_MODE_OFF",
+                "page": str(self.page),
+                "fixTypoMode": "off",
             },
             "folderId": folder_id,
-            "responseFormat": "FORMAT_HTML",
+            "responseFormat": "HTML",
             "region": self.region_id,
-            "l10n": "LOCALIZATION_RU",
+            "l10N": "ru",
             "groupSpec": {
-                "groupMode": "GROUP_MODE_FLAT",
+                "groupMode": "flat",
                 "groupsOnPage": "10",
                 "docsInGroup": "1",
             },
@@ -212,9 +263,12 @@ def decode_raw_data(raw_data: str) -> str:
     return base64.b64decode(raw_data).decode("utf-8", errors="ignore")
 
 
-def collect_vnl_objects(item: Any) -> list[dict[str, Any]]:
+def collect_vnl_objects(item: HtmlNode) -> list[dict[str, Any]]:
     collected: list[dict[str, Any]] = []
-    for raw in item.xpath('.//*[@data-vnl]/@data-vnl'):
+    for node in item.descendants():
+        raw = node.attributes.get("data-vnl")
+        if raw is None:
+            continue
         try:
             payload = json.loads(raw)
         except Exception:
@@ -241,7 +295,7 @@ def extract_feedback_meta(feedback: dict[str, Any]) -> dict[str, str]:
     return result
 
 
-def extract_ad_meta(item: Any) -> dict[str, str]:
+def extract_ad_meta(item: HtmlNode) -> dict[str, str]:
     meta = {"feature": "", "snippet_url": "", "count_url": "", "header_title": ""}
     for payload in collect_vnl_objects(item):
         header = payload.get("headerProps")
@@ -268,23 +322,22 @@ def extract_ad_meta(item: Any) -> dict[str, str]:
     return meta
 
 
-def extract_title(item: Any, fallback: str) -> str:
-    parts = [" ".join(text.split()) for text in item.xpath('.//*[contains(@class, "OrganicTitle-Link")]//text()')]
+def extract_title(item: HtmlNode, fallback: str) -> str:
+    parts = [" ".join(node.text_content().split()) for node in item.descendants() if node.has_class("OrganicTitle-Link")]
     title = " ".join(part for part in parts if part).strip()
     return title or fallback
 
 
-def extract_snippet(item: Any) -> str:
-    parts = [" ".join(text.split()) for text in item.xpath('.//*[contains(@class, "OrganicTextContentSpan")]//text()')]
+def extract_snippet(item: HtmlNode) -> str:
+    parts = [" ".join(node.text_content().split()) for node in item.descendants() if node.has_class("OrganicTextContentSpan")]
     snippet = " ".join(part for part in parts if part).strip()
     if snippet:
         return snippet
-    text_parts = [" ".join(text.split()) for text in item.xpath(".//text()")]
-    return " ".join(part for part in text_parts if part).strip()
+    return " ".join(item.text_content().split())
 
 
-def extract_href(item: Any, fallback: str) -> str:
-    hrefs = [str(value).strip() for value in item.xpath('.//*[contains(@class, "OrganicTitle-Link")]/@href') if str(value).strip()]
+def extract_href(item: HtmlNode, fallback: str) -> str:
+    hrefs = [node.attributes.get("href", "").strip() for node in item.descendants() if node.has_class("OrganicTitle-Link") and node.attributes.get("href", "").strip()]
     return hrefs[0] if hrefs else fallback
 
 
@@ -297,12 +350,14 @@ def extract_domain(href: str) -> str:
 
 
 def extract_search_ad_rows(html_text: str, job: Job, fetched_at: str, raw_json_path: Path, raw_html_path: Path) -> list[dict[str, Any]]:
-    document = html.fromstring(html_text)
+    document = parse_html(html_text)
     rows: list[dict[str, Any]] = []
     ad_position = 0
     serp_position = 0
-    for item in document.xpath('//*[contains(concat(" ", normalize-space(@class), " "), " serp-item ")]'):
-        classes = str(item.get("class") or "").strip()
+    for item in document.descendants():
+        if not item.has_class("serp-item", exact_token=True):
+            continue
+        classes = item.attributes.get("class", "").strip()
         if "RsyaGuarantee" in classes:
             continue
         title = extract_title(item, "")
@@ -414,8 +469,10 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--jobs-file", required=True)
     parser.add_argument("--output-dir", required=True)
+    parser.add_argument("--credentials-file", required=True, help="Закрытый файл доступа с правами 0600")
+    parser.add_argument("--max-cost-units", type=int, required=True, help="Предельная стоимость волны в условных единицах")
+    parser.add_argument("--cost-units-per-request", type=int, default=1)
     parser.add_argument("--endpoint", default=DEFAULT_ENDPOINT)
-    parser.add_argument("--concurrency", type=int, default=8)
     parser.add_argument("--pause-seconds", type=float, default=0.0)
     args = parser.parse_args()
 
@@ -423,19 +480,19 @@ def main() -> int:
     output_dir = Path(args.output_dir).expanduser().resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
     jobs = parse_jobs(jobs_file)
-    auth_header, folder_id, credential_path = build_auth_and_folder()
+    if args.max_cost_units <= 0 or args.cost_units_per_request <= 0:
+        parser.error("Ограничения стоимости должны быть положительными")
+    planned_cost_units = len(jobs) * args.cost_units_per_request
+    if planned_cost_units > args.max_cost_units:
+        parser.error("Волна превышает явно заданный предел стоимости; сетевых вызовов не было")
+    auth_header, folder_id = build_auth_and_folder(Path(args.credentials_file).expanduser().resolve())
 
     manifest_rows: list[dict[str, Any]] = []
     ad_rows: list[dict[str, Any]] = []
-    with ThreadPoolExecutor(max_workers=max(1, int(args.concurrency))) as executor:
-        futures = {
-            executor.submit(fetch_job, job, output_dir, args.endpoint, auth_header, folder_id, args.pause_seconds): job
-            for job in jobs
-        }
-        for future in as_completed(futures):
-            manifest_row, rows = future.result()
-            manifest_rows.append(manifest_row)
-            ad_rows.extend(rows)
+    for job in jobs:
+        manifest_row, rows = fetch_job(job, output_dir, args.endpoint, auth_header, folder_id, args.pause_seconds)
+        manifest_rows.append(manifest_row)
+        ad_rows.extend(rows)
 
     manifest_rows.sort(key=lambda row: (row["job_id"], row["search_query"], row["search_region"]))
     ad_rows.sort(key=lambda row: (row["search_query"], row["search_region"], int(row["result_rank"]), row["result_domain"], row["source_url"]))
@@ -451,10 +508,9 @@ def main() -> int:
         "ad_rows_total": len(ad_rows),
         "unique_queries": len({row["search_query"] for row in ad_rows}),
         "unique_domains": len({row["result_domain"] for row in ad_rows if row["result_domain"]}),
-        "credential_path": credential_path,
-        "folder_id": folder_id,
-        "jobs_file": str(jobs_file),
-        "output_dir": str(output_dir),
+        "planned_cost_units": planned_cost_units,
+        "max_cost_units": args.max_cost_units,
+        "credentials_source": "explicit_private_file",
     }
     (output_dir / "_summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(summary, ensure_ascii=False))

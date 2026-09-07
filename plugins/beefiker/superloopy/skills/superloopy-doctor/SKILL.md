@@ -15,18 +15,22 @@ Use this skill to prove whether a local Superloopy surface can support the Super
 
 This is a Superloopy health check, not a generic plugin drift audit.
 
-- Treat `superloopy doctor --json` as the primary truth surface.
+- Treat `superloopy doctor --scope source --json` as the source-checkout truth surface and `superloopy doctor --scope installed --json` as the machine-local installation truth surface. The JSON `scope` field records which verdict contract was used.
 - Treat loop commands as the behavioral truth surface, but keep their limits clear: `superloopy loop status --json`, `superloopy loop check`, `superloopy loop guide --json`, and evidence files under `.superloopy/evidence/` can show current plan and artifact readiness.
 - Read the installed plugin cache only to identify which Superloopy code the wrapper runs.
 - Do not clone external repos, search issue trackers, or compare unrelated harness layouts unless the user separately asks for research.
-- `superloopy doctor` reports the plugin root it checked: by default it uses the current directory when that is a Superloopy checkout, otherwise it checks the installed CLI root. Use `superloopy doctor --root <checkout-or-cache> --json` when you need to pin the target explicitly.
+- `superloopy doctor` reports the plugin root it checked: by default it uses `source` scope in a recognized Superloopy checkout and `installed` scope elsewhere. Pin a checkout with `superloopy doctor --root <checkout> --scope source --json`; pin an installed cache with `superloopy doctor --root <cache> --scope installed --json`. Source verdicts still return machine-local diagnostics, but `installedModelPolicy` and `wrapper` do not gate source health.
+
+## Installed-plugin Authority
+
+`installedPluginTruth` runs the read-only `codex plugin list --json` authority probe for `superloopy@beefiker`; it never infers the installed version from cache directory names. A confirmed version mismatch is informational in source scope, but fails installed scope. Missing Codex, no registered plugin, and invalid authority output are informational and do not fail doctor. Report these four states as `current`, `version_mismatch`, `not_registered`, or `authority_unavailable`; never repair from this probe without explicit approval.
 
 ## Diagnostic Spine
 
 1. Identify the target root: `pwd`, `git rev-parse --show-toplevel` when it is a checkout, and the installed plugin cache path when the wrapper points into one.
 2. Locate the user-visible command: `command -v superloopy`, `which -a superloopy`, and the wrapper text or symlink target.
 3. Inspect Codex registry state with `codex plugin list --json` when Codex is available; use it only to locate `superloopy@beefiker` and its version.
-4. Run `superloopy doctor --json` and record the reported `root`. If the wrapper is missing or stale, run `node src/cli.js doctor --root <checkout-or-cache> --json` from the checkout or installed cache being evaluated.
+4. Run the matching scoped command and record the reported `scope` and `root`. For checkout health use `superloopy doctor --root <checkout> --scope source --json`; for a machine-local wrapper, managed-agent fleet, or installed cache use `superloopy doctor --root <cache> --scope installed --json`.
 5. Read the named doctor checks, especially `skills`, `fileAudit`, `reviewability`, `dispatchCoherence`, `hostContract`, `modelPolicy`, and `claudeHostWiring`.
 6. Probe loop readiness without changing state: use `superloopy loop status --json` if a plan exists, otherwise note "no active plan" instead of creating one. Use `superloopy loop check` only to validate trace/artifact readiness for an existing plan; read-only diagnosis cannot prove completion safety because it does not re-run recorded commands. If the user asks whether completion is actually safe, point at the real gates: `superloopy loop review`, `superloopy loop checkpoint`, or `superloopy loop finish`.
 7. Verify crew install shape by name: `franky`, `zoro`, `usopp`, `jinbe`, `robin`, and `nami`; judge by files and doctor checks, not by role labels alone.
@@ -46,7 +50,7 @@ This is a Superloopy health check, not a generic plugin drift audit.
 Recommend repair commands only after the read-only report explains the failure:
 
 - Marketplace refresh: `codex plugin marketplace upgrade beefiker`.
-- Repair reinstall: `codex plugin add superloopy@beefiker`.
+- Confirmed `installedPluginTruth` mismatch after approval: `codex plugin add superloopy@beefiker --json`, then start a new Codex session.
 - Checkout install: `node src/cli.js install --json`.
 - Forced local wrapper/agent overwrite: `node src/cli.js install --force --json`.
 

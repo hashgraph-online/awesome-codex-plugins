@@ -8,6 +8,7 @@
 # Use --all-goals to show all goals, or --goals to specify goal IDs manually.
 
 set -e
+umask 077
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 . "$SCRIPT_DIR/common.sh"

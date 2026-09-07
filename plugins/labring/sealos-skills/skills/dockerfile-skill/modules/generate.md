@@ -4,6 +4,18 @@
 
 Generate production-ready Dockerfile based on analysis results.
 
+## Input and Mutation Contract
+
+Consume the analysis payload, including `owned_files`, migration/runtime concerns,
+workspace requirements, readiness provenance when available, and `redaction.ok`.
+Before any write, print the named output set and the action for every existing file:
+`preserve`, `create`, or `update_with_authorization`. A missing authorization for a
+replacement returns `stopped` and leaves the project unchanged.
+
+Keep generated secrets and build placeholders synthetic and out of terminal
+results. Generated files must remain inside the selected project and the named
+output set.
+
 ## Input
 
 Project analysis from `analyze.md` module.
@@ -16,6 +28,7 @@ Based on `analysis.framework` and `analysis.package_manager`:
 
 | Framework | Package Manager | Template |
 |-----------|-----------------|----------|
+| source-ready static HTML | none | [templates/static-nginx.dockerfile](../templates/static-nginx.dockerfile) |
 | express / koa / nestjs | npm/yarn/pnpm | [templates/nodejs-express.dockerfile](../templates/nodejs-express.dockerfile) |
 | nextjs | npm/yarn/pnpm | [templates/nodejs-nextjs.dockerfile](../templates/nodejs-nextjs.dockerfile) |
 | nextjs | bun | [templates/nodejs-nextjs-bun.dockerfile](../templates/nodejs-nextjs-bun.dockerfile) |
@@ -24,6 +37,10 @@ Based on `analysis.framework` and `analysis.package_manager`:
 | django | any | [templates/python-django.dockerfile](../templates/python-django.dockerfile) |
 | go (any) | any | [templates/golang.dockerfile](../templates/golang.dockerfile) |
 | springboot | any | [templates/java-springboot.dockerfile](../templates/java-springboot.dockerfile) |
+
+For source-ready static HTML, also copy
+[`templates/static-nginx.dockerignore`](../templates/static-nginx.dockerignore) so
+repository metadata and deployment files do not enter the public web root.
 
 **Package Manager Detection**:
 - `bun.lockb` → Bun
@@ -122,6 +139,10 @@ If `analysis.dependencies.external_services` is not empty:
 1. Generate `docker-compose.yml` with required services
 2. Document required environment variables
 3. Add health checks for dependent services
+
+Record generated files and their ownership in the packaging result. Optional
+Compose, entrypoint, environment documentation, and deploy-side evidence remain
+owned outputs only when analysis identifies them as required.
 
 ### Rule 5: Framework-Specific Handling
 
@@ -966,7 +987,7 @@ After writing all Docker configuration files to disk, write two additional artif
     { "path": "Dockerfile", "size_bytes": 3240, "description": "Multi-stage production Dockerfile" },
     { "path": ".dockerignore", "size_bytes": 892, "description": "Build context exclusions" },
     { "path": "docker-compose.yml", "size_bytes": 2100, "description": "Compose file with postgres, redis" },
-    { "path": ".env.docker.local", "size_bytes": 580, "description": "Auto-generated test secrets" },
+    { "path": ".env.docker.local", "size_bytes": 580, "description": "Optional placeholder keys; no secret values" },
     { "path": "docker-entrypoint.sh", "size_bytes": 620, "description": "Startup script with migration handling" },
     { "path": "docker-build/deploy.md", "size_bytes": 1800, "description": "Deployment guide with env vars and run commands" }
   ],

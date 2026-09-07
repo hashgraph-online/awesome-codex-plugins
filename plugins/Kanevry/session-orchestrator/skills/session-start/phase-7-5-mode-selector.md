@@ -22,12 +22,24 @@ import { buildLiveSignals } from '$PLUGIN_ROOT/scripts/lib/build-live-signals.mj
 
 // Pass the surfaced top-N learnings (already computed in Phase 6.6) to avoid
 // re-reading learnings.jsonl. Other paths default to canonical locations
-// (.claude/STATE.md, .orchestrator/metrics/sessions.jsonl, .orchestrator/bootstrap.lock).
+// RELATIVE TO repoRoot (.claude/STATE.md, .orchestrator/metrics/sessions.jsonl,
+// .orchestrator/bootstrap.lock).
+//
+// `repoRoot` is passed explicitly (#1071). It defaults to process.cwd(), but
+// naming it here is the point: session-start may run from a worktree or a
+// subdirectory, and an implicit default silently binds STATE.md, sessions.jsonl,
+// bootstrap.lock and the backlog scan to whatever directory the process happens
+// to sit in — not to the repo the recommendation is about.
 const signals = await buildLiveSignals({
+  repoRoot: process.cwd(),           // absolute project root — bind it, never infer it
   learnings: surfacedTopLearnings,   // array, may be empty
-  backlogLimit: 50,
 });
 ```
+
+Do **not** hand-write a `backlogLimit` here. The window default lives once, in
+`backlog-scan.mjs` (`DEFAULT_BACKLOG_LIMIT`); the `50` that used to stand in this
+example read 50 of 89 open issues and reported `critical: 0` / `stale: 0` from the
+truncated window (fixed in `c20d4d2`).
 
 `buildLiveSignals` is the single SSOT for the Signals shape consumed by `selectMode` and by the autopilot driver protocol (see `skills/autopilot/SKILL.md § Production Wiring`). Phase 7.5 here and the autopilot in-process driver MUST go through this helper — do not inline the recipe in either call site.
 
@@ -43,7 +55,7 @@ const signals = await buildLiveSignals({
 | `recentSessions` | tail-10 of `.orchestrator/metrics/sessions.jsonl` | Phase 6.6 |
 | `bootstrapLock` | `.orchestrator/bootstrap.lock` via `parseBootstrapLock` | Phase 4 |
 | `learnings` | surfaced top-N learnings (confidence > 0.3) | Phase 6.6 |
-| `backlog` | `scanBacklog({limit: 50})` from `backlog-scan.mjs` (live VCS scan) | Phase 7.5 Step 1 |
+| `backlog` | `scanBacklog({limit: DEFAULT_BACKLOG_LIMIT, repoRoot})` from `backlog-scan.mjs` (live VCS scan) | Phase 7.5 Step 1 |
 
 ## Step 2: Invoke selectMode
 

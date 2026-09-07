@@ -66,6 +66,8 @@ write is well-formed.
 
 ```dot
 digraph patch_authoring_judgment {
+  // Pending-shutdown saves block lifecycle operations; see Dirty-state and
+  // relaunch control below. A restart is not a durability mechanism.
   rankdir=TB;
   node [shape=box];
 
@@ -99,8 +101,18 @@ digraph patch_authoring_judgment {
   reversible -> fix_shape [label="no"];
   reversible -> verify [label="yes"];
   fix_shape -> verify -> pass;
+  // Contract 0.23 pending saves use xedit_flush; restart alone is not proof.
+  verify [label="Save + inspect pending state; xedit_flush if needed; fresh readback"];
 }
 ```
+
+> **Deferred-save correction:** The diagram's historical `Save + restart +
+> readback` node is superseded. If `session.save` reports a nonzero
+> `savePendingShutdownCount`, inspect `xedit_dirty`, then use `xedit_flush` on a
+> contract-0.23 daemon. The tool validates the drain response and confirms the
+> daemon's promised self-exit. A `partial` or unknown `lastFlush` is not durability
+> proof. Normal stop/restart remains refused while a live pending queue exists;
+> `force:true` abandons state and is never evidence of durability.
 
 ### Authoring checks
 
@@ -279,15 +291,17 @@ records.create({
 
 For `coords`, native xEdit creates the needed Block/Sub-Block groups. Validate
 with `records.get` or `elements.children({ includeParents: true })` after the
-preview/commit flow, and remember that durability still requires save + daemon
-restart + readback. Deep reference: `xedit.records-create-parent-spec.v1`.
+preview/commit flow, then inspect `xedit_dirty` for `pendingShutdownSave` after
+the save. A pending-shutdown result blocks normal lifecycle operations; do not
+use a restart as a durability shortcut. Deep reference:
+`xedit.records-create-parent-spec.v1`.
 
 ## Anti-patterns (hard bans)
 
 Never do any of the following. Each ban is encoded as an MCP rule or daemon-side refusal, but the skill states them so the agent does not even attempt:
 
 1. **Do not write Python (or any other language) to parse `.esp/.esm/.esl` files directly.** The daemon is the only correct path. If you find yourself reaching for a binary plugin parser, stop and use `xedit_call` instead.
-2. **Do not trust an `ok: true` response as durability.** A save with `pendingShutdown > 0` is deferred; durability requires a daemon restart and readback (see §10 of the design spec).
+2. **Do not treat restart as a durability mechanism.** `session.save` reports `savedFilesPendingShutdown` and `savePendingShutdownCount` when xEdit queued a shutdown-time write. Contract 0.23 adds authoritative pending readback and `session.flush`; use the lifecycle-owned `xedit_flush`, not `xedit_call`, then perform fresh-daemon readback. `force:true` on stop/restart is explicit abandonment, not persistence proof.
 3. **Do not call mutating ops in mcp-mode without going through the MCP.** Direct pipe writes will be refused by the daemon with `mcp_mode_required`.
 4. **Do not page `system.capabilities` every session.** The digest in `xedit_list_capabilities` already carries the curated map; only call live capabilities once to check drift.
 5. **Do not delete or mark-deleted a record that is referenced by other plugins** without first calling `xedit_call records.referenced_by` and accepting the consequences. Snapshot does not cleanly recover deletions.
@@ -430,18 +444,45 @@ Side effects when RedPill is on:
 
 ## Dirty-state and relaunch control (NEW)
 
-The daemon already exposes `session.get_dirty_state`, and the MCP now
-surfaces three helper tools so the agent does not need to remember the raw
-daemon verb:
+The daemon exposes `session.get_dirty_state`. Contract 0.23 includes
+`pendingShutdownFiles` and `pendingShutdownCount`; the MCP treats a complete
+readback as authoritative and retains local `session.save` observations as a
+fail-closed fallback for older daemons or failed probes. Neither source is
+cleared by `dirty:false`: xEdit marks queued saves clean before their physical
+write is durable. The MCP exposes these lifecycle helpers:
 
-- `xedit_dirty({})` — returns `{ dirty, dirtyFiles, unsavedChangeCount }` when
-  ready. This is the safe thing to call before any stop/restart.
-- `xedit_stop({ force?: true })` — if the session is dirty and `force` is not
-  set, refuses with `code: "dirty_state"` and the list of unsaved files.
+- `xedit_dirty({})` — returns `{ dirty, dirtyFiles, unsavedChangeCount,
+  pendingShutdownSave }` when ready. File-summary objects are normalized to
+  plugin names. This is the safe thing to call before any lifecycle action.
+- `xedit_flush({ force?: true })` — contract-0.23 pending-rename drain. It is
+  consent-gated, refuses unsaved dirty files unless `force:true`, validates
+  `flushedFiles` / `pendingRemaining`, waits for the managed PID to exit, and
+  reports `completed`, `partial`, or an unknown result. `session.flush` is
+  lifecycle-owned and deliberately refused through `xedit_call`. A failed
+  in-band rename remains queued for one final normal exit-time retry. Start a
+  fresh daemon and read the plugin back before deciding whether a partial result
+  became durable.
+- `xedit_stop({ force?: true })` — if the session is dirty or the MCP has a
+  pending-shutdown save and `force` is not set, refuses with `code:
+  "dirty_state"` or `"pending_save"` respectively. `force:true` remains an
+  explicit abandonment and returns an auditable risk record. If the dirty-state
+  probe itself fails, normal lifecycle action refuses with
+  `dirty_state_unavailable`; retry `xedit_dirty` instead of guessing.
 - `xedit_restart({ launcherPath?, gameMode?, dataPath?, pluginsFile?, moProfile?, force?: true })`
-  — same dirty-state safety as stop, then relaunches asynchronously with new
-  overrides.
+  — same pending-save and dirty-state safety as stop, then relaunches
+  asynchronously with new overrides only when the lifecycle boundary is safe.
 
-Use `xedit_restart` whenever you need to reboot xEdit with a different custom
-`pluginsFile` or `dataPath`. Do NOT tell the user to reconnect `/mcp` manually
-just to clear a zombie or change launch args.
+Use `xedit_restart` only when you need to reboot xEdit with a different custom
+`pluginsFile` or `dataPath` and `pendingShutdownSave.count` is zero. For a
+deferred save, call `xedit_flush`, require `completed` with zero remaining, then
+launch a fresh daemon and read the plugin back. If `lastFlush` is `partial` or
+has `outcome: unknown`, surface the residue rather than claiming durability.
+Once a fresh daemon is ready, that old summary appears as
+`previousSessionFlush` with the originating PID and timestamp; use fresh plugin
+readback to close it.
+
+If `xedit_flush` reports that the drain response arrived but daemon exit was not
+confirmed, do not force-stop immediately. The daemon may still be running its
+normal close path and final rename retry. Wait briefly and call `xedit_health`;
+the health tool rechecks the managed PID and clears the retained failed state
+only after delayed exit is confirmed.

@@ -1,6 +1,6 @@
 ---
 name: send-report
-description: "Deliver performance reports. Use when: sending KPI summaries via Slack, email, or Google Sheets with analysis."
+description: "Generate a performance report from connected analytics MCPs (Google Analytics, Google/Meta/LinkedIn Ads, email platforms) and deliver it via Slack, email, or Google Sheets — weekly pulse, monthly review, QBR, or custom, with KPIs scored against targets, trend and anomaly analysis, event annotations, and 3-5 prioritized recommendations. Delivery waits at a mandatory approval gate: you review the full report preview and recipient list (risk tiered low for internal, medium for client-facing) before anything is sent. Triggers on \"/digital-marketing-pro:send-report\", \"send the weekly report to Slack\", \"email the monthly performance review to the client\", \"push our KPIs into the tracking sheet\", \"prep the QBR and deliver it\". Reads the brand profile's targets and archives each report snapshot for period-over-period comparison."
 disable-model-invocation: false
 argument-hint: "[destination]"
 ---

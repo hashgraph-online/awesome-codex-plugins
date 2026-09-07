@@ -1,4 +1,4 @@
 interface:
-  display_name: "Thermal-Fluid Research"
-  short_description: "Add thermal-fluid rigor to AI-assisted research, CFD, experiments, writing, code, and proposals."
-  default_prompt: "Review this thermal-fluid research task for physical assumptions, regime validity, correlations, CFD or experiment credibility, uncertainty, source quality, and decision-ready next steps."
+  display_name: "Mechanical Engineering Research"
+  short_description: "Evidence-first thermal-fluid research and writing"
+  default_prompt: "Use $mechanical-engineering-research to solve this mechanical-engineering research task with verified evidence, explicit assumptions and units, physical validation, reproducibility, and truthful completion reporting."

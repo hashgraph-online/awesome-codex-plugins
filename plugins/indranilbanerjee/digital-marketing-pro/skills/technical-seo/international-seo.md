@@ -134,7 +134,6 @@ Link: <https://example.com/page>; rel="alternate"; hreflang="en-us",
 
 ### Hreflang Validation
 
-- **Google Search Console > International Targeting report**: Shows hreflang errors detected by Google
 - **Screaming Frog**: Crawls all hreflang annotations and flags missing return links, invalid codes, and conflicts with canonicals
 - **Aleyda Solis' Hreflang Tags Generator**: Generates correct hreflang markup from a URL matrix
 - **Merkle Hreflang Tag Testing Tool**: Validates hreflang implementation on live pages
@@ -143,15 +142,16 @@ Link: <https://example.com/page>; rel="alternate"; hreflang="en-us",
 
 ## Geotargeting
 
-### Google Search Console International Targeting
+### How Google Determines Geographic Targeting
 
-For subdirectories and subdomains (not ccTLDs — ccTLDs are automatically geo-targeted):
+The Google Search Console International Targeting tool has been removed — there is no longer a manual country-targeting setting for subdirectories or subdomains. Google now infers geographic relevance from on-site and infrastructure signals:
 
-1. Go to Google Search Console > Legacy tools > International Targeting
-2. Select the property (e.g., `example.com/de/`)
-3. Set the target country (e.g., Germany)
+1. **ccTLD**: A country-code top-level domain (e.g., `example.de`) is the strongest signal and is automatically geo-targeted
+2. **Hreflang annotations**: `hreflang` region codes (e.g., `en-gb`, `de-de`) tell Google which country/language each version serves
+3. **Server location and CDN locale**: Hosting location and CDN edge configuration provide a weak supporting signal
+4. **Local content signals**: Local currency, addresses, phone numbers, language, and links from in-country sites
 
-**Note**: This feature targets a **country**, not a language. A subdirectory can target Germany but not "German speakers worldwide." For language targeting without country restriction, use hreflang without GSC geotargeting.
+**Note**: Hreflang region codes target a **country**, not just a language. For language targeting without country restriction, use language-only hreflang codes (e.g., `de` for German speakers worldwide).
 
 ### IP-Based Redirection: Do Not Do This
 

@@ -107,7 +107,8 @@
         "python",
         "php",
         "ruby",
-        "dotnet"
+        "dotnet",
+        "html"
       ]
     },
     "all_languages": {
@@ -124,7 +125,8 @@
           "python",
           "php",
           "ruby",
-          "dotnet"
+          "dotnet",
+          "html"
         ]
       }
     },
@@ -133,20 +135,25 @@
       "minLength": 1
     },
     "package_manager": {
-      "type": "string",
-      "enum": [
-        "npm",
-        "yarn",
-        "pnpm",
-        "bun",
-        "pip",
-        "pipenv",
-        "go",
-        "cargo",
-        "maven",
-        "gradle",
-        "composer",
-        "bundler"
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "npm",
+            "yarn",
+            "pnpm",
+            "bun",
+            "pip",
+            "pipenv",
+            "go",
+            "cargo",
+            "maven",
+            "gradle",
+            "composer",
+            "bundler"
+          ]
+        },
+        { "type": "null" }
       ]
     },
     "port": {

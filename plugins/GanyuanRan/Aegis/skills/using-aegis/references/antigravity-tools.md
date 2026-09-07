@@ -66,8 +66,8 @@ cross-host Aegis contract.
 
 Use terminal-first commands and slash-command configuration when available. CLI
 support for subagents means Aegis subagent-heavy skills can map more directly
-than they did in transitional Gemini CLI, but verification still requires fresh
-evidence from commands, tests, or explicit host output.
+than they did through the retired Gemini CLI adapter, but verification still
+requires fresh evidence from commands, tests, or explicit host output.
 
 ### Antigravity IDE
 
@@ -82,9 +82,10 @@ Use app / project artifacts as host-facing projections of Aegis drafts. Do not
 relabel Aegis method-pack artifacts as authoritative Antigravity or Aegis
 runtime decisions.
 
-## Gemini CLI Transition Boundary
+## Retired Gemini CLI Boundary
 
-Gemini CLI remains a transitional compatibility reference for historical install
-lineage, current Gemini CLI users, and enterprise / paid API key users. New
-Google-host work should target Antigravity CLI, Antigravity IDE, or Antigravity
-App, while Gemini CLI remains available as a transition path.
+Aegis no longer ships or verifies a Gemini CLI adapter. Historical Gemini
+migration facts may still explain `agy plugin import gemini`, but they are not
+a current Aegis support path. New Google-host work should target Antigravity
+CLI, Antigravity IDE, or Antigravity App without treating this retirement as
+fresh Antigravity closeout evidence.

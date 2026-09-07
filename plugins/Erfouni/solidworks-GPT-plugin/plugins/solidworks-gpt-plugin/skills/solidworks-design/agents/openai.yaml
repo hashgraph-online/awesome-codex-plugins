@@ -1,0 +1,4 @@
+interface:
+  display_name: "SolidWorks Design"
+  short_description: "Plan, build, validate, and export SolidWorks CAD"
+  default_prompt: "Use $solidworks-design to build and validate a parametric SolidWorks part."

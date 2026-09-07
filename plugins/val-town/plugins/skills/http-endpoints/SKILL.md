@@ -6,7 +6,9 @@ triggers: [http, endpoint, webhook, api, request, response, hono, web, route, fe
 
 # HTTP Endpoints
 
-HTTP vals (`fileType: "http"`) export a request handler and run on every incoming HTTP request. Each HTTP file is assigned a public live URL — never construct it yourself; read `links.endpoint` from `list_files` or `create_file` responses, or call `fetch_val_endpoint`.
+HTTP vals (`fileType: "http"`) export a request handler and run on every incoming HTTP request. Each HTTP file is assigned a live URL — never construct it yourself; read `links.endpoint` from `list_files` or `create_file` responses, or call `fetch_val_endpoint`.
+
+That URL is open to anyone unless the val's app access (`httpPrivacy`) is `restricted`, in which case unauthenticated callers get a `302` to a login page instead of your response — see the `restricted-access` skill.
 
 ## Basic handler
 
@@ -25,14 +27,15 @@ When using Hono, export `app.fetch` (not `app`):
 
 ```ts
 import { Hono } from "npm:hono";
-import { parseVal, serveFile } from "https://esm.town/v/std/utils/index.ts";
+import { parseVal, serveImmutableFile } from "https://esm.town/v/std/utils/index.ts";
 
 const app = new Hono();
 
 app.get("/", (c) => c.text("hello"));
 
-// Serve all frontend files, transpiled, with correct content types
-app.get("/frontend/**/*", (c) => serveFile(c.req.path));
+// Immutable asset caching (see the client-side-js skill): serves the
+// current-version URLs your HTML shell stamps with immutableFileUrl()
+app.get("/__immutable/*", (c) => serveImmutableFile(c.req.path));
 
 // View source redirect
 app.get("/source", (c) => c.redirect(parseVal().links.self.val));

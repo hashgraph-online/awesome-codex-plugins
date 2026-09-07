@@ -3,7 +3,7 @@
   "version": "1.0.1",
   "description": "Debug, build, manage, and govern Power Automate cloud flows via FlowStudio MCP. Five skills for diagnostics, deployment, tenant-wide monitoring, and compliance metadata.",
   "author": {
-    "name": "Flow Studio",
+    "name": "FlowStudio",
     "url": "https://flowstudio.app"
   },
   "homepage": "https://mcp.flowstudio.app",
@@ -22,10 +22,10 @@
   ],
   "skills": "./skills/",
   "interface": {
-    "displayName": "Flow Studio Power Automate",
+    "displayName": "FlowStudio Power Automate",
     "shortDescription": "Debug, build, manage, and govern Power Automate flows with AI agents",
-    "longDescription": "Give your AI agent the same visibility you have in the Power Automate portal — plus tenant-wide governance and monitoring. The Graph API only returns top-level run status. Flow Studio MCP exposes action-level inputs, outputs, loop iterations, and nested child flow failures. Five bundled skills: power-automate-mcp (operations), power-automate-debug (diagnostics), power-automate-build (deployment), power-automate-monitoring (Pro+ tenant health), power-automate-governance (Pro+ compliance metadata).",
-    "developerName": "Flow Studio",
+    "longDescription": "Give your AI agent the same visibility you have in the Power Automate portal — plus tenant-wide governance and monitoring. The Graph API only returns top-level run status. FlowStudio MCP exposes action-level inputs, outputs, loop iterations, and nested child flow failures. Five bundled skills: power-automate-mcp (operations), power-automate-debug (diagnostics), power-automate-build (deployment), power-automate-monitoring (Pro+ tenant health), power-automate-governance (Pro+ compliance metadata).",
+    "developerName": "FlowStudio",
     "category": "cloud-services",
     "capabilities": [
       "Power Automate flow operations and debugging",

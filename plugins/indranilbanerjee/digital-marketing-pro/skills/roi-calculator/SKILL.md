@@ -1,6 +1,6 @@
 ---
 name: roi-calculator
-description: "Calculate marketing ROI. Use when: measuring campaign ROAS, CAC, CPL, LTV, or multi-channel attribution returns."
+description: "Compute campaign ROI from spend, conversion, and revenue inputs — channel-level ROI/ROAS/CPA/CPL, blended totals, five-model attribution comparison (last-touch, first-touch, linear, time-decay, position-based), LTV payback periods, industry benchmark ratings, and 2-3 modeled budget-reallocation scenarios, packaged as an executive-ready report. Triggers on \"/digital-marketing-pro:roi-calculator\", \"what's the ROI on this campaign\", \"compare ROAS across channels\", \"is our CAC sustainable against LTV\", \"where should we shift budget\". Runs roi-calculator.py, reads industry benchmarks for the brand's vertical, and logs results to the campaign tracker for period-over-period trend comparison."
 argument-hint: "[campaign-name]"
 ---
 

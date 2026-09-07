@@ -1,6 +1,6 @@
 ---
 name: localize-campaign
-description: "Localize campaigns for multiple markets. Use when: translating assets, adapting references, adjusting compliance."
+description: "Localize an entire campaign — emails, ads, social posts, landing pages, video scripts — for multiple markets, producing a deployment-ready per-market package: translations, transcreation options for emotional copy, Hofstede-based cultural adaptation notes, market-specific compliance additions, localized SEO and hreflang specs, RTL and locale formatting, quality scores, and a cross-market consistency report. Triggers on \"/digital-marketing-pro:localize-campaign\", \"localize this campaign for Germany and Japan\", \"adapt these assets for new markets\", \"take the Q3 campaign multilingual\", \"prepare our launch for hi-IN and ar-SA\". Prepares and scores assets but publishes nothing — each package ships with a deployment checklist. Reads the brand profile's language config and do-not-translate terms; for a single piece use /digital-marketing-pro:translate-content."
 argument-hint: "[target-markets]"
 ---
 
@@ -38,7 +38,7 @@ The user must provide (or will be prompted for):
    Report the full inventory to the user: total asset count, breakdown by type, breakdown by content classification, and estimated processing scope per market.
 3. **For each target market**, execute the following localization pipeline:
    a. **Route translation service**: Run `python "${CLAUDE_PLUGIN_ROOT}/scripts/language-router.py" --action route --source "{source_lang}" --target "{market_lang}"` to select the optimal translation service for this language pair. Log the selected service.
-   b. **Translate factual content**: Process all factual/informational assets through the routed translation service via the appropriate MCP server (deepl, sarvam-ai, google-cloud-translation, or lara-translate). Pass do-not-translate terms, glossary entries, formality settings, and formatting preservation flags. Score each translation via `python "${CLAUDE_PLUGIN_ROOT}/scripts/language-router.py" --action score`.
+   b. **Translate factual content**: Process all factual/informational assets through whatever the route action resolved — the brand's preferred server, a connected translation MCP, or (when `basis: unresolved`) the harness's own multilingual capability per translate-content's execution rules. Pass or enforce do-not-translate terms, glossary entries, formality settings, and formatting preservation flags. Score each translation via `python "${CLAUDE_PLUGIN_ROOT}/scripts/language-router.py" --action score`.
    c. **Transcreate emotional content**: For all emotional/creative assets, apply the transcreation methodology from `skills/context-engine/transcreation-framework.md`. Produce 2-3 creative adaptation options per piece, each with:
       - The adapted content in the target language
       - Back-translation for review
@@ -54,7 +54,7 @@ The user must provide (or will be prompted for):
       - **Humor and tone**: Adjust or remove humor that does not translate culturally; adapt tone to match market expectations for formality
    e. **Localize compliance**: For each market, add or modify:
       - Market-specific disclaimers and legal notices
-      - Data consent and privacy language per regional regulation (GDPR for EU, DPDPA for India, PIPA for Japan, LGPD for Brazil, etc.)
+      - Data consent and privacy language per regional regulation (GDPR for EU, DPDPA for India, APPI for Japan, PIPA for South Korea, LGPD for Brazil, etc.)
       - Industry-specific regulatory statements
       - Required disclosures (pricing, advertising standards, influencer disclosure)
       - User-provided market-specific compliance requirements

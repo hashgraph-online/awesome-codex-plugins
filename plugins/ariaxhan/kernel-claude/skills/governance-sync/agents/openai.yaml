@@ -1,0 +1,6 @@
+interface:
+  display_name: "KERNEL Governance Sync"
+  short_description: "Safely align Claude and Codex repo instructions"
+  default_prompt: "Audit repository governance and show conflicts before any write."
+policy:
+  allow_implicit_invocation: false

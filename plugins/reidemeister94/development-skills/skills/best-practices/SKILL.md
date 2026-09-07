@@ -8,9 +8,9 @@ allowed-tools: WebSearch, WebFetch, Read, Glob, Grep, Skill
 
 # Best Practices
 
-Match the research effort to the decision: use a quick lookup for a narrow fact; use deep, multi-source research for costly, risky, disputed, or fast-changing choices.
+Match research depth to the decision: quick lookup for a narrow fact; multiple primary sources for costly, risky, disputed, or fast-changing choices.
 
-On Claude, use `/deep-research` when available. On Codex, perform the equivalent iterative web research. Otherwise use the platform's best search and browsing tools.
+Use `/deep-research` on Claude when available; on Codex, browse iteratively.
 
 Prefer primary sources, cite material claims inline, and separate evidence from inference. Explain consensus, disagreement, uncertainty, and where each recommendation applies. Recommend for the user's goals and constraints, not for an imaginary average user.
 

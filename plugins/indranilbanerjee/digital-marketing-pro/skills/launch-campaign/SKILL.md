@@ -1,6 +1,6 @@
 ---
 name: launch-campaign
-description: "Orchestrate the full multi-channel launch of an approved campaign plan — pre-launch checklist, asset readiness gate, channel-by-channel activation, CRM campaign record creation, kickoff comms, day-1 monitor setup. Broader than /launch-ad-campaign (which is paid-ads only)."
+description: "Orchestrate the full multi-channel launch of an approved campaign plan — pre-launch BLOCKER gates (approved plan, assets present, connectors probed, conversion tracking verified, C2PA-signed AI assets for EU markets), then dependency-ordered activation across CRM, landing page, email, paid ads, organic social, influencer, and PR, with a checkpoint after every step and a dual-copy launch record. Nothing executes until the dry-run preview is shown and the user types an explicit yes. Triggers on \"/digital-marketing-pro:launch-campaign\", \"go live with the campaign\", \"kick off the launch\", \"activate every channel for this campaign\", \"flip the switch on the launch\". Consumes the plan from /digital-marketing-pro:campaign-plan, delegates paid ads to /digital-marketing-pro:launch-ad-campaign, and resumes interrupted launches via /digital-marketing-pro:resume."
 user-invocable: true
 triggers:
   - launch this campaign
@@ -44,7 +44,7 @@ This skill REFUSES to proceed unless ALL of these pass. Print the failing items,
 4. Every asset referenced in the plan exists at the path the plan claims it does (creative files, landing-page URLs respond 200, email templates exist in the email platform).
 5. Every connector required by the channels in scope is reachable — re-run a fast probe: `python "${CLAUDE_PLUGIN_ROOT}/scripts/connector-status.py" --brand {slug} --action status --probe-only --connectors {comma-separated channel connectors}`.
 6. Conversion tracking is verified for every channel in scope — GA4 events configured AND test-fired in the last 7 days: `python "${CLAUDE_PLUGIN_ROOT}/scripts/performance-monitor.py" --brand {slug} --action diagnostic --channel ga4_health`.
-7. If any AI-generated visual / video / audio is in the asset list AND the campaign targets EU markets, every such asset has been signed via C2PA (`/digital-marketing-pro:c2pa-metadata` workflow, or the SocialForge / ContentForge `--c2pa-sign` flag). Article 50 compliance is non-negotiable for EU launches as of 2 Aug 2026.
+7. If any AI-generated visual / video / audio is in the asset list AND the campaign targets EU markets, every such asset has been signed via C2PA (`/digital-marketing-pro:c2pa-metadata` workflow — `embed-c2pa.py --ai-disclosure` under the hood). Article 50 compliance is non-negotiable for EU launches as of 2 Aug 2026.
 
 If any of these fail, print the punch list with the literal next command for each item, and exit.
 
@@ -91,7 +91,7 @@ Before touching any live system, print a dry-run preview of every action that's 
 
 ### Step 3 — Execute in dependency order
 
-Run the actions sequentially. **After every action, write a state checkpoint** to `~/.claude-marketing/brands/{slug}/campaigns/{campaign_id}/launch-state.json` so an interruption can be resumed. (Reuses the same pattern as ContentForge's `checkpoint-manager.py` — see `/contentforge:resume` (requires the ContentForge plugin) for the analogous flow.)
+Run the actions sequentially. **After every action, write a state checkpoint** to `~/.claude-marketing/brands/{slug}/campaigns/{campaign_id}/launch-state.json` so an interruption can be resumed via `/digital-marketing-pro:resume`.
 
 Key dependency rules:
 
@@ -161,7 +161,7 @@ After every action succeeds, write the final launch record to two locations:
 ~/Documents/DigitalMarketingPro/{brand}/campaigns/{YYYY-MM-DD}-{campaign_name_slug}-launch.json
 ```
 
-(Or `$DIGITAL_MARKETING_PRO_PUBLISH_DIR/{slug}/campaigns/{...}` if set, mirroring the ContentForge dual-copy publish-dir pattern.)
+(Or `$DIGITAL_MARKETING_PRO_PUBLISH_DIR/{slug}/campaigns/{...}` if set — the dual-copy publish-dir pattern.)
 
 The record contains: launched_at timestamp, every action with its return value, channel-by-channel activation status, CRM Campaign object ID, the URL of the internal kickoff Slack/email, the watchdog ID for day-1 monitoring, and the absolute path to the campaign plan that produced this launch.
 
@@ -192,7 +192,7 @@ Print the launch summary in the conversation:
 3. **Dependency order is fixed.** CRM → landing-page verify → email → paid → organic → influencer → PR → internal → tracking → monitoring → record. Don't reorder. If a channel needs to be skipped, the plan should say so before this skill runs.
 4. **Checkpoint after every action.** Treat the launch as a 14-phase pipeline. Any failure leaves a resumable state in `launch-state.json` — never "lost" work.
 5. **No auto-retry on failure.** A failed launch step requires human eyes — retrying blindly creates duplicate campaigns, doubled emails, and untraceable CRM records.
-6. **Dual-copy the launch record.** Internal + user-visible, same pattern as the ContentForge dual-copy fix. Agencies want to send the launch record to clients without explaining where dotfolders are.
+6. **Dual-copy the launch record.** Internal + user-visible. Agencies want to send the launch record to clients without explaining where dotfolders are.
 
 ## Arguments
 
@@ -213,7 +213,7 @@ Print the launch summary in the conversation:
 - [`validate-profile`](../validate-profile/SKILL.md) — prerequisite BLOCKER check
 - [`campaign-audit`](../campaign-audit/SKILL.md) — produces the current-state baseline this launch differentiates from
 - [`campaign-plan`](../campaign-plan/SKILL.md) — produces the plan this skill consumes
-- [`launch-ad-campaign`](../launch-ad-campaign/SKILL.md) — the paid-ads-only subset that this skill delegates to for Step 5
+- [`launch-ad-campaign`](../launch-ad-campaign/SKILL.md) — the paid-ads-only subset this skill delegates to during Step 3 (paid-ads activation)
 - [`performance-check`](../performance-check/SKILL.md) — day-1 check-in skill mentioned in the success message
 - `performance-monitor.py` (`${CLAUDE_PLUGIN_ROOT}/scripts/performance-monitor.py`) — arms the day-1 watchdog
 - [`crm-sync`](../crm-sync/SKILL.md) — creates the CRM Campaign object

@@ -190,6 +190,13 @@ When workers, protocol gateways, or background services depend on database migra
 - `defaults`: Used to store **automatically generated** values (such as random strings, random ports, etc.)
 - `inputs`: Used to store values that **require user input** (such as email, API Key, custom configurations, etc.)
 
+**Scalar type contract:**
+- Every `spec.defaults.<name>.value` must deserialize as a YAML string.
+- Every present `spec.inputs.<name>.default` must deserialize as a YAML string, regardless of the input's declared `type`.
+- Quote numeric-, boolean-, and null-like values. For example, use `default: "587"` and `default: "false"`, not `default: 587` or `default: false`.
+- Omitting `default` remains valid for required inputs such as administrator credentials.
+- This contract is limited to Template defaults and input defaults. Keep infrastructure fields such as `replicas`, `containerPort`, and Service ports as YAML numbers.
+
 ### Defaults Configuration
 
 Values in `defaults` are automatically generated when the template is parsed and do not require user interaction:
@@ -204,13 +211,14 @@ defaults:
     value: typesense-${{ random(8) }}  # ✅ Application name
   api_key:
     type: string
-    value: ${{ random(32) }}           # ✅ Randomly generated secret key
+    value: ${{ random(32) }}           # ✅ Opaque secret with no format constraint
 ```
 
 **Notes:**
 1. `app_host` must include an application name prefix (e.g., `typesense-${{ random(8) }}`)
 2. `app_name` must include `${{ random(8) }}` to ensure uniqueness
-3. Randomly generated configurations (secret keys, passwords, etc.) should be placed in `defaults`, not in `inputs`
+3. Randomly generated opaque configurations (secret keys, passwords, etc.) should be placed in `defaults`, not in `inputs`
+4. `${{ random(n) }}` does not directly satisfy hex, base64, UUID, or other format-specific runtime contracts. Use a valid literal or a required input with no generated default, or use a quoted opaque instance seed when the official runtime wrapper deterministically derives and validates the final credential before `exec`.
 
 ### Inputs Configuration
 
@@ -241,20 +249,23 @@ inputs:
 
 ### Startup-Critical Input Defaults
 
-Some applications validate bootstrap values before the HTTP server becomes ready. Admin passwords, API keys, salts, install tokens, and feature toggles used by entrypoints must have defaults that pass the application's own startup checks.
+Some applications validate bootstrap values before the HTTP server becomes ready. Classify the selected release's account mode before adding administrator inputs; use [bootstrap-account-modes.md](bootstrap-account-modes.md) for the complete decision contract.
 
-When an app documents password complexity, generate defaults with deterministic required character classes around the random segment:
+Template inputs may express `type`, `description`, `default`, `required`, `options`, and `if`. Enforce regular expressions, length ranges, character classes, equality, and cross-field rules during Phase 5.5 pre-deploy validation.
 
-```yaml
-inputs:
-  admin_password:
-    description: Admin password. Leave the generated default or use at least 8 characters with uppercase, lowercase, number, and special character.
-    type: string
-    default: "Example@${{ random(16) }}!1"
-    required: true
-```
+- For functional first-user signup, omit optional administrator/root inputs and their bootstrap env/config injection. Complete registration after readiness and prove an authenticated action.
+- For deployer-supplied mandatory bootstrap, use required administrator inputs with no default, include the exact upstream constraints in the English descriptions, validate the supplied values before deployment, and keep those values unchanged for live login.
+- For runtime-generated mandatory bootstrap, omit administrator inputs, deterministically construct and validate the exact documented format before startup, retain the resolved credential in a Secret or documented live runtime source, and retrieve it without printing for live login.
+- For startup-critical generated values such as API keys, salts, and install tokens, construct deterministic defaults that satisfy the documented format. Bare `${{ random(n) }}` is suitable only for an unconstrained opaque value.
+- Diagnose startup configuration-validation exits before resource tuning.
 
-Avoid empty strings, weak examples, and bare `${{ random(n) }}` for startup-critical passwords, because the random function may not emit all required classes. During live validation, check first boot logs and the login/setup path using the generated default.
+### Runtime-Specific Environment Contracts
+
+Official runtime profiles take precedence over generic secret generation:
+
+- Format- or length-constrained values must be valid concrete values or required inputs without generated defaults.
+- A selected external provider must have a non-empty required credential; `required: false` with `default: ''` is invalid for a startup-critical provider key.
+- If a workload requires a database extension or compatibility object, an initContainer must wait for database readiness and verify the required final state before the business container starts.
 
 ## Internationalization (i18n) Configuration
 
@@ -516,6 +527,8 @@ spec:
 5. Application Service must include `metadata.labels.app` and `metadata.labels.cloud.sealos.io/app-deploy-manager`, and `metadata.name`, both labels, and `spec.selector.app` must be exactly the same
 6. Runtime component-level ConfigMap must include `metadata.labels.app` and `metadata.labels.cloud.sealos.io/app-deploy-manager`, and both must be consistent with `metadata.name`; ConfigMaps used only by init containers to copy initial config into persistent storage must not include either label
 7. Root-path Ingress rules (`pathType: Prefix`, `path: /`) must keep `metadata.name` consistent with `metadata.labels.cloud.sealos.io/app-deploy-manager` and backend `service.name`; non-root or non-Prefix Ingress rules may use a distinct Ingress name and backend service
+8. Put the root-path Prefix route first in each HTTP `paths` list, use `service.port.number`, and match that number to a declared `spec.ports[].port` on the referenced application Service so Launchpad can discover the public address
+9. For a single-component StatefulSet without a documented headless or stable per-Pod DNS requirement, set `spec.serviceName` to the public application Service and keep the workload, Service, root Ingress, and manager identity aligned. Preserve documented HA/headless governing Services and route public traffic through a separate application Service
 
 ### Container Naming Rules
 
@@ -703,6 +716,7 @@ spec:
 3. `ssl-redirect` defaults to `'true'`
 4. Includes a configuration-snippet for static resource caching
 5. Backend service name must be `${{ defaults.app_name }}`
+6. Backend service port must use numeric `number: <port-number>` and match the referenced Service `spec.ports[].port`; keep the Service port `name` for Kubernetes multi-port compatibility
 
 ### WebSocket Format
 
@@ -913,7 +927,7 @@ All application Deployments or StatefulSets must include the following configura
 
 1. **automountServiceAccountToken**: Must be set to `false` to avoid unnecessary permission exposure. Set it to `true` only when the application explicitly needs the Kubernetes API/service account token, evidenced by Kubernetes integration settings, `serviceAccountName`, or `sealos.io/service-account-token-reason` in workload annotations.
 2. **revisionHistoryLimit**: Must be set to `1` to reduce resources consumed by historical revisions
-3. **imagePullSecrets**: Omit for public images. For private-registry images, reference only the app-scoped pull Secret `${{ defaults.app_name }}`
+3. **imagePullSecrets**: Omit for known public images. When registry authentication is established by existing build/detection state, reference only the app-scoped pull Secret `${{ defaults.app_name }}`
 4. **metadata.annotations**: Must include the following annotations:
    - `originImageName`: Original image name
    - `deploy.cloud.sealos.io/minReplicas`: Minimum replica count, typically set to `'1'`
@@ -921,8 +935,8 @@ All application Deployments or StatefulSets must include the following configura
 
 Recommended registry pull Secret model:
 
-- Public-image managed workloads omit `imagePullSecrets`
-- For private GHCR images, `sealos-deploy` creates or refreshes `${{ defaults.app_name }}` from local `gh` CLI credentials and the workload may reference it through `imagePullSecrets`
+- Known public-image managed workloads omit `imagePullSecrets`; a GHCR hostname alone does not prove that a repository is private
+- For authenticated private GHCR images, `sealos-deploy` creates or refreshes `${{ defaults.app_name }}` from local `gh` CLI credentials and the workload may reference it through `imagePullSecrets`
 - If a private-registry template is deployed outside `sealos-deploy`, the operator must create the Secret manually before applying the workload
 
 ```yaml
@@ -1101,8 +1115,21 @@ resources:
 
 1. Move only between allowed `limits` ladder values.
 2. Recompute `requests` from the selected `limits`; do not preserve old requests.
-3. If a StatefulSet fails readiness at a lower resource tier, recreate or cleanly roll the Pod before testing the next tier so a stale non-ready Pod is not mistaken for the next tier's result.
-4. Choose the lowest tier that becomes Ready and passes application-level probes.
+3. Treat `cpu=200m` and `memory=256Mi` as initial candidates when source evidence provides no explicit hard minimum. Static generation does not establish the final tier.
+4. Tune each application main container, sidecar, initContainer, and Job independently. Change CPU and memory one dimension and one ladder step at a time so failures remain attributable.
+5. Use an explicit source hard minimum as the lower bound. For each candidate, recreate or cleanly roll the Pod or rerun the one-shot workload from a cold state.
+6. Accept a long-running candidate after it completes cold start, becomes Ready, completes registration or login when applicable, completes at least two representative low-load actions, and remains stable for 60 seconds with zero `OOMKilled` terminations, restarts, readiness flaps, or resource-related timeouts.
+7. Accept a one-shot initContainer or Job after it completes successfully from a cold run and every dependent workload becomes Ready.
+8. Record observed CPU and memory peaks and utilization ratios as diagnostic evidence. Use acceptance failures as the tier-promotion signal.
+9. When a lower candidate fails, select the next passing tier and repeat the full acceptance flow from a fresh rollout before updating the template.
+10. Apply the browser and remote-desktop scenario only when the container itself runs Chrome, Chromium, VNC, WebRTC desktop, Xvfb, Selkies, noVNC, Kasm, or a similar stack. A web application that users access from their own browser follows the general personal low-load flow.
+
+**Personal low-load examples:**
+
+- Langflow at `limits.memory=2048Mi` with an observed peak of `1851Mi` keeps `2048Mi` after cold start, login or registration, two representative actions, and the 60-second stability window all pass without failure signals.
+- A candidate that OOMs, restarts, loses readiness, or times out moves to the next memory or CPU ladder tier. The selected tier receives one final cold validation.
+- A high utilization ratio remains eligible when the complete acceptance flow passes. The ratio stays in the runtime evidence for future tuning.
+- For Chrome + Xvfb + Selkies with a 4K maximum display, begin at `limits(cpu=200m,memory=1024Mi)` and derived `requests(cpu=20m,memory=102Mi)`, then test adjacent ladder tiers with the browser-specific interaction flow.
 
 ## Image Configuration Specification
 

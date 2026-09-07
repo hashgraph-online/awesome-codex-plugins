@@ -2,7 +2,7 @@
 
 A copy-paste PreToolUse hook pair that nudges an agent to **load the
 coordination skill before hand-rolling the `am` / `atm` / `ntm` /
-`tmux send-keys` CLI surfaces**. AgentOps 3.0 is hookless by design — nothing
+`tmux send-keys` CLI surfaces**. AgentOps is hookless by design — nothing
 here auto-installs. This is documentation plus a recipe you opt into per host.
 
 ## Why it exists

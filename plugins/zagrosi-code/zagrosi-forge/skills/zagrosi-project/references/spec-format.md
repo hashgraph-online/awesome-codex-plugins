@@ -1,18 +1,19 @@
-# Split Spec Format
+# Split spec format
 
-Each split directory gets a `spec.md` file.
+Each `NN-name/spec.md` names its source and owned `REQ-*` IDs, then gives:
 
-Write each spec as if it will be read in a fresh session. Include:
+- outcome and measurable acceptance
+- scope and non-goals
+- dependencies and owned system/data/interface boundary
+- test expectations
+- material risks, assumptions, rollback, and stop conditions
 
-- title and purpose
-- user-visible outcomes
-- in scope and out of scope
-- relevant context from the original requirements and interview
-- dependencies on earlier splits
-- files, systems, or packages likely involved
-- risks and open questions
-- acceptance criteria
-- testing expectations
+Near the top, copy its manifest declarations exactly:
 
-Do not merely point back to the original requirements. Copy the needed context
-into the spec.
+```text
+Dependencies: <split IDs or none>
+Boundary: <exact Owns/boundary cell>
+```
+
+Carry only planning facts. Do not copy background, other specs, interview prose,
+or a full implementation design.

@@ -69,9 +69,9 @@ When an agent isn't doing what you want, the first reach is to improve the syste
 Two different knobs that get confused.
 
 - **`maxToolCalls`**: how many tool calls the agent can make in one execution. Default is 10. Raise it deliberately when the task requires several lookups, writes, or sub-agent calls in one turn.
-- **`agentLoop`**: how many _full reflection turns_ the agent gets — re-running with the previous results as context, getting another shot. Advanced. Risks: looping with the same goal does the same task each iteration unless you explicitly tell it to reflect or vary approach. The most expensive, easiest-to-mess-up architecture.
+- **`agentLoop`** (`loopConfig.maxTurns`): a cap on how many _full turns_ the agent may take, each re-running with the previous results as context. The loop ends as soon as the model finishes its turn; it takes another turn only when the turn was cut off by the `maxToolCalls` budget, or when a skill load / tool search expanded the tool surface (newly granted tools activate on the next turn, so skill-using agents need `maxTurns` of at least 2). It is a safety cap, not a target — a higher cap costs nothing on turns the agent never takes. The risk lives inside the loop, not in the ceiling: looping on the same goal repeats the same work unless you explicitly tell the agent to reflect or vary approach.
 
-Tune `maxToolCalls` before reaching for `agentLoop`. Use `agentLoop` only when you've verified the agent needs reflection and a clearer prompt or a different approach won't do it.
+Tune `maxToolCalls` before reaching for `agentLoop`. Raise `maxTurns` when the agent genuinely needs another pass: reflection, more tool calls than one turn's budget allows, or skill capabilities that only activate on a following turn.
 
 Often, **sub-agents** (agents that the orchestrator calls as tools) are better than agent loops. They get clean context, can use different models tuned for sub-tasks, and avoid the same-task-repeated trap.
 
@@ -296,7 +296,7 @@ Reference syntax — same everywhere (tool configs, FPO templates, runtime): `{{
 Two adjacent syntaxes that look similar but are different:
 
 - `{{secrets:KEY}}` — **plural with colon is invalid**. The resolver rejects it.
-- `{{secrets.key}}` — plural with **dot** is a different system entirely: per-request dispatch-scoped values (passed in at dispatch time), not managed secrets.
+- `{{secrets.key}}` — plural with **dot** is a legacy agent/external-tool dispatch namespace, not a managed secret. Hosted FLOW execution ignores it.
 
 **Always redacted in logs at every level.** If a value matches a known secret, it's stripped from log output across the platform.
 

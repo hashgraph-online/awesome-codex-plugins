@@ -1,6 +1,7 @@
 ---
 name: octopus-architecture
 description: "System architecture and API design with multi-AI consensus — use for design reviews and new subsystems"
+disable-model-invocation: true
 ---
 
 > **Host: Codex CLI** — This skill was designed for Claude Code and adapted for Codex.
@@ -28,7 +29,7 @@ provider_status() {
   fi
 }
 codex_status="$(provider_status codex)"
-gemini_status="$(provider_status gemini)"
+agy_status="$(provider_status agy)"
 agy_status="$(provider_status agy)"
 ```
 
@@ -40,7 +41,7 @@ agy_status="$(provider_status agy)"
 
 Provider Availability:
 🔴 Codex CLI: ${codex_status} - Backend architecture patterns
-🟡 Gemini CLI: ${gemini_status} - Alternative approaches
+🟡 Antigravity CLI: ${agy_status} - Alternative approaches
 🧭 Antigravity CLI: ${agy_status} - Additional external-model challenge
 🔵 Claude: Available ✓ - Synthesis and recommendations
 

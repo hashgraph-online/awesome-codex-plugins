@@ -1,6 +1,6 @@
 ---
 name: seo-audit
-description: "Run comprehensive SEO audit. Use when: checking technical health, on-page, content quality, E-E-A-T, or link profile."
+description: "Run a comprehensive SEO audit across technical health, on-page, content quality, E-E-A-T, link profile, and local SEO — producing dated numbered outputs (crawl inventory through prioritised actions) plus a single-page PLAN.md with an impact-by-effort action plan and a four-gate quality scorecard. Triggers on \"/digital-marketing-pro:seo-audit\", \"audit my site's SEO\", \"why did our rankings drop\", \"check our technical SEO health\", \"how strong is our E-E-A-T\". Reads the brand profile; PLAN.md feeds /digital-marketing-pro:seo-implement, /digital-marketing-pro:seo-plan, and /digital-marketing-pro:seo-drift, with link prospecting handed to /digital-marketing-pro:backlink-gap."
 argument-hint: "[URL]"
 ---
 

@@ -1,6 +1,6 @@
 {
   "name": "graymatter",
-  "version": "0.3.0",
+  "version": "0.3.3+codex.20260806225400",
   "description": "Persistent, secure memory and shared context for AI agents.",
   "author": {
     "name": "Valkyr Labs Inc.",

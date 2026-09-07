@@ -44,15 +44,19 @@ Superloopy keeps the command layer small. Skills carry the specialist workflow: 
 
 | Skill | Use it when | What it produces |
 | --- | --- | --- |
-| `superloopy-loop` | You type `loopy <task>` or `loopy team <task>` for a full loop; use `loopywork`, `lpy`, or `$lpy` for guidance-only context. | Full loops produce a lightweight plan, guided next actions, command-backed proof, a quality gate, and a final evidence report. Guidance aliases do not mutate state. |
+| `superloopy-loop` | You type `loopy <task>` or `loopy team <task>` for a full loop; use `loopywork`, `lpy`, or `$lpy` for guidance-only context. | Full loops produce direct, concise, complete progress and final responses alongside a lightweight plan, proof, quality gate, and final evidence report. Exact English/Korean controls affect only the current incomplete loop; new loops reset enabled. Guidance aliases do not mutate state. |
 | `superloopy-doctor` | You diagnose install, wrapper, plugin cache, hook/bootstrap, agent, Codex/Claude Code host wiring, or stale-version problems. | A read-only health report with wrapper/cache/version evidence, failing checks, and the exact repair command to run only if approved. |
-| `superloopy-research` | You ask for `loopy research`, deep research, exhaustive investigation, or a cited report. | Research axes, expansion waves, a claim ledger, verification notes, and a cited synthesis artifact. |
+| `superloopy-research` | You explicitly invoke Codex `$superloopy:superloopy-research` or Claude Code `/superloopy:superloopy-research`, or start the research task with a leading `loopy`/`루피` (such as `loopy research`). Plain research, investigate, or summarize requests do not activate it. | Research axes, expansion waves, a verdict on every retrieval, graded and dated sources, a priced claim ledger, verification notes, and a cited synthesis artifact. |
 | `superloopy-clone` | You ask for `loopy clone`, authorized website cloning, rebuilding, migration, or pixel-focused page recovery. | Browser captures, page topology, design tokens, asset inventory, implementation notes, build output, and visual QA evidence. |
-| `superloopy-frontend` | You explicitly invoke Codex `$superloopy:superloopy-frontend` or Claude Code `/superloopy:superloopy-frontend` for a web frontend or Qt desktop GUI task, or start one with a leading `loopy`/`루피`. Non-web/non-Qt visual work and plain UI mentions do not activate it. | A DESIGN.md token contract; for web, the anti-slop pre-flight and browser evidence; for Qt, the Qt pre-flight and native rendered-application evidence. |
-| `humanize-korean` | Use when Korean users ask to remove AI tone, fix 번역투, or make Korean text sound human without changing facts. | Writes `final.md`, `summary.md`, and `audit.json`; in Superloopy loops it records evidence under `.superloopy/evidence/humanize-korean/`. |
+| `superloopy-frontend` | You explicitly invoke Codex `$superloopy:superloopy-frontend` or Claude Code `/superloopy:superloopy-frontend` for supported screen-based application UI across browser-hosted Web (public, authenticated, private/internal, installed PWA, or extension), interactive deployed content-led Web (campaign, publication, or landing experiences with a user journey), desktop, mobile/tablet, embedded/hybrid clients, custom-rendered UI, Qt, or mixed targets, or start that work with a leading `loopy`/`루피`. Plain UI, platform, or framework terms do not activate it; TV, wearable, XR, automotive, game UI, TUI, static media/document artifacts, and non-UI work stay excluded. | One shared UX contract plus platform/composition routes. Evidence is proportional to changed claims and independently covers each browser, native target/shell, renderer, and mixed target. Standalone runs retain run-scoped receipts; active loops bind them to the goal and criterion. |
+| `humanize-korean` | Use when Korean users ask to remove AI tone, fix 번역투, or make Korean text sound human without changing facts. | Owns Korean naturalness, including semantic review of misplaced modifiers. It writes `final.md`, `summary.md`, and `audit.json`; in Superloopy loops it records evidence under `.superloopy/evidence/humanize-korean/`. |
+| `i-have-adhd` | You explicitly invoke Codex `$superloopy:i-have-adhd` or Claude Code `/superloopy:i-have-adhd`, or a leading `loopy`/`루피` brief directly asks for ADHD-friendly, action-first, one-step, or easy-to-scan output. Writing style alone never activates it. | Shapes progress updates so the next action stays visible. It does not create a Superloopy evidence artifact or weaken planning, safety, validation, or completion gates. |
+| `say-it-straight` | Explicit Codex `$superloopy:say-it-straight` or Claude `/superloopy:say-it-straight` for direct, concise, natural prose and supplied task artifacts; never activates from writing style alone. Full Loopy progress/final output is direct by default, with exact English/Korean controls limited to the current incomplete loop. | Explicit artifact editing preserves facts, register, protected text, and required detail; file-backed edits use the audit. ADHD owns structure and Korean rewriting remains with `humanize-korean`. |
 | `superloopy-slides` | You ask for slides, a presentation, a deck, or a PPT/PPTX-to-web conversion. | A zero-dependency single-file HTML deck on a fixed 16:9 stage, three style previews to pick from, and a rendered-screenshot visual-QA artifact under `.superloopy/evidence/slides/`. |
 
-The loop skill is the default guardrail. A complete leading `loopy` token starts or resumes the evidence loop; `loopy team` escalates to crew mode. Leading `loopywork`, `lpy`, and `$lpy` tokens only inject starter guidance. Structured `SUPERLOOPY_STEER` directives can adjust an active loop. The prompt hook does not infer frontend or Korean-writing modes from ordinary text; invoke specialist skills explicitly or let an already-active loop route a real specialist subtask.
+**Automatic reassurance-copy gate.** Every full Loopy start or resume carries this conditional gate. It activates only when an affected artifact creates or changes user-visible Korean product-behavior copy, then adds RC-1 through RC-4 and `humanize-korean` naturalness review to the plan criterion. Internal logs and diagnostics, developer documentation and comments, test narration, quotations, general or marketing prose, and non-Korean copy are excluded. The gate uses supplied behavior and records a blocker or question when facts are missing instead of inventing an outcome; it has no standalone skill or invocation name.
+
+The loop skill is the default guardrail. A complete leading `loopy` token starts or resumes the evidence loop; `loopy team` escalates to crew mode. Leading `loopywork`, `lpy`, and `$lpy` tokens only inject starter guidance. Structured `SUPERLOOPY_STEER` directives can adjust an active loop. Full-loop direct output never silently rewrites supplied prose or task artifacts: direct editing remains explicit-only. The prompt hook does not infer frontend or Korean-writing modes from ordinary text; invoke specialist skills explicitly or let an already-active loop route a real specialist subtask.
 
 ## Clone Demo
 
@@ -66,9 +70,15 @@ The loop skill is the default guardrail. A complete leading `loopy` token starts
 
 `superloopy-slides` generated this **[live multilingual deck →](https://fileloom-slides.pages.dev)** — a zero-dependency single-file HTML presentation on a fixed 16:9 stage in English · 한국어 · 中文 · 日本語 · Español. It passed real-browser visual-QA (standalone, phone letterbox, and iframe embed) recorded under `.superloopy/evidence/slides/`.
 
+## Writing Comparison Demo
+
+[![Writing comparison app showing an original document next to its Say It Straight rewrite](.github/assets/writing-comparison-demo.png)](https://writing-comparison.pages.dev/)
+
+The **[live writing-comparison viewer →](https://writing-comparison.pages.dev/)** puts one source document next to its `humanize-korean` (A), `i-have-adhd` (B), and `say-it-straight` (C) rewrites across thirteen Korean and English samples. Every Say It Straight edit carries a rationale note, and any comparison is shareable by URL.
+
 ## Qt Kanban Demo
 
-The [Northstar Qt Kanban demo](examples/qt-kanban/) is a runnable Qt Quick acceptance fixture built through the `superloopy-frontend` Qt route. With Qt 6.11.1, CMake, and Ninja available, configure, build, and launch it from the repository root:
+The [Northstar Qt Kanban demo](examples/qt-kanban/) is a runnable Qt Quick prototype acceptance fixture built through the `superloopy-frontend` Qt route, not production-editor proof. Board, search, filters, cards, drawers, and task creation are exercised; Timeline and Inbox are visibly passive demo-only context, Settings and Help are absent, and persistence and Undo remain out of scope. With Qt 6.11.1, CMake, and Ninja available, configure, build, and launch it from the repository root:
 
 ```bash
 qt-cmake -S examples/qt-kanban -B build/qt-kanban -G Ninja -DCMAKE_BUILD_TYPE=Release
@@ -89,6 +99,8 @@ Codex calls the stable `model/list` method only when resolution state is missing
 Upgrades from pre-managed Superloopy releases are hash-bound: a complete exact legacy fleet is adopted and upgraded without `--force`, while one edit, symlink, missing file, or unknown hash keeps the whole fleet in conflict. Changed agent definitions require a Codex restart; an unchanged fresh manifest does not. `superloopy doctor --refresh-models` can report preferred availability before managed state exists, detects a wrapper/plugin split-brain, and never rewrites resolution state or agent files.
 
 Resolution finishes before launch, with no post-launch retry or model switch. The TOML pins configure routing, but a host that does not expose `agent_type` plus resolved-model attestation remains `model_unverified`; Superloopy never presents that as a proven GPT-5.6 runtime gate. The policy details are in `docs/superloopy-model-policy.md` (Codex) and `docs/superloopy-model-policy-claude.md` (Claude Code).
+
+**Installed-plugin truth.** `installedPluginTruth` runs the read-only `codex plugin list --json` authority probe. A confirmed `superloopy@beefiker` version mismatch is informational in source scope, but fails installed scope. Missing Codex, no registered plugin, and invalid authority output stay informational and do not fail doctor. Never infer the installed version from cache directory names or repair without approval.
 
 <table>
   <tr>
@@ -133,7 +145,7 @@ For agent-driven installs such as `install https://github.com/beefiker/superloop
 
 ### Codex
 
-Needs Node.js ≥ 20 and Codex CLI ≥ 0.131.0 for `codex plugin add`. Superloopy is dependency-free — zero runtime dependencies, just Node.
+Needs Node.js ≥ 22 and Codex CLI ≥ 0.131.0 for `codex plugin add`. Superloopy is dependency-free — zero runtime dependencies, just Node.
 
 ```
 codex plugin marketplace add https://github.com/beefiker/superloopy
@@ -146,7 +158,7 @@ Installing from a checkout instead? Run `node src/cli.js install --json`.
 
 ### Claude Code
 
-Needs Node.js ≥ 20. From the same repo:
+Needs Node.js ≥ 22. From the same repo:
 
 ```
 /plugin marketplace add beefiker/superloopy
@@ -169,11 +181,13 @@ Superloopy checks for updates on `SessionStart`. Marketplace installs are Codex-
 
 Restart Codex after the upgrade. If hooks show up as Modified, approve them; the following approved `SessionStart` automatically reconciles the generated wrapper, all six agents, and model-routing state from the new plugin version. No Superloopy migration command is required. If definitions changed, follow only the Codex restart notice so the host reloads them.
 
-If the plugin still looks stale or degraded after that, do a repair reinstall from the refreshed marketplace:
+If a confirmed `installedPluginTruth` version mismatch still looks stale or degraded after that, approve a repair reinstall from the refreshed marketplace:
 
 ```
-codex plugin add superloopy@beefiker
+codex plugin add superloopy@beefiker --json
 ```
+
+Then start a new Codex session.
 
 If you installed from a checkout, update the checkout and rerun the installer:
 
@@ -187,15 +201,15 @@ Checkout installs are not `npx`-managed. `npx` self-update is reserved for a fut
 
 ### Claude Code
 
-Refresh the marketplace, reinstall to resolve the new version, then reload — no restart needed:
+Refresh the marketplace, update the installed plugin, then reload — no restart needed:
 
 ```
 /plugin marketplace update beefiker
-/plugin install superloopy@beefiker
+/plugin update superloopy@beefiker
 /reload-plugins
 ```
 
-There is no separate `/plugin update` command: reinstalling from the refreshed marketplace resolves the new version, and `/reload-plugins` applies it in the current session (no Claude Code restart, and hooks do not need re-approval). Verify with `node "${CLAUDE_PLUGIN_ROOT}/src/cli.js" doctor --json`. If you loaded a checkout with `--plugin-dir`, just `git pull --ff-only` and run `/reload-plugins`.
+`/plugin update` resolves the new version from the refreshed marketplace, and `/reload-plugins` applies it in the current session (no Claude Code restart, and hooks do not need re-approval). Verify with `node "${CLAUDE_PLUGIN_ROOT}/src/cli.js" doctor --json`. If you loaded a checkout with `--plugin-dir`, just `git pull --ff-only` and run `/reload-plugins`.
 
 ## Troubleshooting
 
@@ -223,10 +237,14 @@ codex plugin marketplace remove beefiker
 
 Restart Codex after uninstalling. Optional local bootstrap cleanup: plugin removal handles Codex's plugin config and cache, but the `superloopy` wrapper and copied personal agents can remain. Review before deleting them, especially if you customized any agent file.
 
-```
+```sh
 rm -f ~/.local/bin/superloopy
-Remove-Item "$env:APPDATA\npm\superloopy.cmd" -ErrorAction SilentlyContinue
 rm -f ~/.codex/agents/franky.toml ~/.codex/agents/zoro.toml ~/.codex/agents/usopp.toml ~/.codex/agents/jinbe.toml ~/.codex/agents/robin.toml ~/.codex/agents/nami.toml
+```
+
+```powershell
+Remove-Item "$env:APPDATA\npm\superloopy.cmd" -ErrorAction SilentlyContinue
+Remove-Item "$env:USERPROFILE\.codex\agents\franky.toml", "$env:USERPROFILE\.codex\agents\zoro.toml", "$env:USERPROFILE\.codex\agents\usopp.toml", "$env:USERPROFILE\.codex\agents\jinbe.toml", "$env:USERPROFILE\.codex\agents\robin.toml", "$env:USERPROFILE\.codex\agents\nami.toml" -ErrorAction SilentlyContinue
 ```
 
 If you installed with `CODEX_HOME`, `SUPERLOOPY_BIN_DIR`, or `CODEX_LOCAL_BIN_DIR`, clean up those configured paths instead.

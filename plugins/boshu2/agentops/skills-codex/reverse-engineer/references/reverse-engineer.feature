@@ -23,3 +23,27 @@ Feature: Reverse-engineer reconstructs specs from an existing system
   Scenario: Output is a reusable spec set
     When reconstruction completes
     Then it emits a feature catalog, code map, and specs as durable artifacts
+
+  Scenario: A steal-map is a separate checked decision
+    Given a validated mechanical teardown
+    When the caller compares its registry with the live destination repository
+    Then the caller authors steal-map.md with evidence-backed verdict rows
+    And the complete-output validator rejects a missing or malformed steal-map
+
+  Scenario: An explicit analysis root cannot drift
+    Given --local-clone-dir selects a particular tree
+    When the selected tree is non-Git
+    Then that exact tree is analyzed instead of the caller's current checkout
+    When --upstream-ref also selects a Git commit
+    Then a mismatched existing checkout is refused before outputs are trusted
+
+  Scenario: Managed output paths do not follow links
+    Given an output parent or managed artifact is a symbolic link
+    When reverse engineering starts
+    Then it refuses before writing through that link
+
+  Scenario: An earlier-default output directory remains explicit and usable
+    Given an existing teardown under .agents/research
+    When that exact directory is supplied with --output-dir
+    Then the teardown writes and validates in that directory
+    And it does not move existing artifacts into the current scratch default

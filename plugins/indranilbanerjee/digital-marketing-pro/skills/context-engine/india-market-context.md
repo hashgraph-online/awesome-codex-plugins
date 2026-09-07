@@ -15,11 +15,11 @@ Key implications for marketing:
 - **Consent must be specific, informed, and free.** Pre-ticked boxes, bundled consents, and ambiguous purpose statements are not compliant.
 - **Withdrawal of consent must be as easy as giving it.** Unsubscribe must be one-click; consent withdrawal flows must be visible.
 - **Data Principal rights:** access, correction, erasure, grievance redressal. Brands must provide mechanisms.
-- **Data fiduciary obligations:** notify Data Principals within 72 hours of breach.
+- **Data fiduciary obligations:** notify affected Data Principals without delay on breach; detailed report to the Data Protection Board within 72 hours.
 - **Cross-border transfer:** restrictions on transfers to certain jurisdictions; check current MeitY notifications.
 - **Children's data:** verifiable parental consent required for under-18 users; behavioural monitoring of children prohibited.
 
-The plugin's `compliance-rules.md` includes DPDP Act details. Compliance gates in PreToolUse hooks check DPDP applicability when the engagement targets India.
+The plugin's `compliance-rules.md` includes DPDP Act details. Skills auto-apply the DPDP rules from `compliance-rules.md` whenever the brand's target markets include India (the plugin ships zero hooks by design — enforcement is written into the compliance steps of each skill).
 
 ### Industry-specific Indian regulations
 
@@ -61,7 +61,7 @@ Channel and creative strategy must differentiate by tier. A campaign that works 
 - **Hinglish** (Hindi + English code-mix) is widely used, especially in urban tier-1 / tier-2.
 - **Vernacular video and audio convert significantly better in tier-2 / tier-3** than English equivalents.
 - **Indic script support** in ad platforms varies — test rendering before scaling.
-- Translation services for India: **Sarvam AI** (best for Indic languages), **Google Cloud Translation**, **Lara Translate**, **DeepL** (limited Indic support).
+- Translation for India: use an Indic-specialist capability — judge candidates on native model coverage of the specific target language, script-aware output, and code-mixed content handling (`language-router.py --action route` resolves from the brand preference or connected servers). General-purpose engines with limited Indic support need sample-testing before campaign use.
 - The plugin includes a multilingual layer; see [multilingual-execution-guide.md](multilingual-execution-guide.md).
 
 ### Seasonality patterns
@@ -79,7 +79,7 @@ Channel and creative strategy must differentiate by tier. A campaign that works 
 
 - **UPI** (Unified Payments Interface) is the dominant digital payment rail. Conversion-friendly checkout requires UPI as a primary option.
 - **Cash on Delivery (COD)** still substantial in tier-2 / tier-3 e-commerce. Refusing COD often costs 30%+ of orders.
-- **Buy Now Pay Later** (Simpl, Lazypay, ZestMoney) influences AOV decisions for D2C.
+- **Buy Now Pay Later** (Simpl, LazyPay) influences AOV decisions for D2C.
 - **EMI as a marketing message** is potent for high-AOV categories.
 
 ### Communication and channel preferences
@@ -105,7 +105,7 @@ Channel and creative strategy must differentiate by tier. A campaign that works 
 
 ### Content and media consumption
 
-- **OTT:** JioCinema, Netflix, Prime Video, Disney+ Hotstar, Sony LIV, Zee5. JioCinema's free IPL streaming changed the OTT competitive landscape in 2023+.
+- **OTT:** JioHotstar (the Feb 2025 merger of JioCinema and Disney+ Hotstar), Netflix, Prime Video, Sony LIV, Zee5. Free IPL streaming (JioCinema 2023, now JioHotstar) changed the OTT competitive landscape.
 - **News:** vernacular news apps (Dainik Bhaskar, Dailyhunt) have larger audiences than English news for most regions.
 - **Podcasts:** Spotify, JioSaavn, Gaana, Audible. Podcast adoption growing but smaller than US.
 - **Search:** Google dominates (>95%); Bing has minimal share.

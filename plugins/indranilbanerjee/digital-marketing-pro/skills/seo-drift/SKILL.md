@@ -1,6 +1,6 @@
 ---
 name: seo-drift
-description: "Compare two SEO snapshots (GSC, GSC AI Performance, rank tracker, AEO probe) and surface biggest movers per metric — impressions, clicks, position, AI citations. Use when: monthly performance reviews, post-Core-Update triage, AI Mode citation tracking, or before/after content-refresh evaluation."
+description: "Compare two SEO snapshots from the same source — GSC, the GSC AI Performance report, a rank-tracker export, or aeo-audit probes — into a drift report: top gainers and losers per metric, growth/decline/reshuffle/stable/new/lost classification, and a four-gate quality scorecard. Triggers on \"/digital-marketing-pro:seo-drift\", \"compare this month's GSC export to last month's\", \"what moved after the core update\", \"did the content refresh work\", \"which queries lost AI Mode impressions\". Runs scripts/seo_drift.py on two CSVs, reads the brand profile for noise thresholds, and branches findings to /digital-marketing-pro:seo-audit, /digital-marketing-pro:aeo-geo, or /digital-marketing-pro:content-engine."
 argument-hint: "[brand-name]"
 user-invocable: true
 ---

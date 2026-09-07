@@ -8,7 +8,7 @@ Tool discipline (shared):
 - If a signature or contract changes, use `find_callers` to locate all call
   sites and verify with `read_file` / `get_changed_file_diff` that they stay consistent.
 
-## PR-session tools (inside `/reviewer_review-pr`)
+## PR-session tools (inside `rag-reviewer:review-pr`)
 
 - `search_code` — usages of a symbol/string;
 - `get_related_symbols` — graph neighbours (calls / implementations / tests);
@@ -27,3 +27,9 @@ Tool discipline (shared):
 - `related_symbols(repo, node_id, branch?)` — graph neighbours;
 - `callers(repo, node_id, branch?)` — direct callers (impact);
 - `definition(repo, symbol, branch?)` — where a symbol is defined.
+- `implementations(repo, node_id, branch?)` — directed subclasses/overrides (incoming IMPLEMENTS).
+- `family(repo, node_id, branch?)` — "who else is like this": subclasses/siblings by inheritance
+  plus structural contract coverage (finds `typing.Protocol` implementers, which have no
+  inheritance edges); a non-empty answer always names which signals fired.
+- `get_file_skeletons(repo, paths, branch?)` — AST skeletons of indexed files, a batch of paths
+  per call; built from indexed chunks, so it matches what a summary's freshness hash sees.

@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skills.sh/sealos-deploy/schemas/deploy-handoff.schema.json",
+  "title": "Sealos Deploy Handoff Envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "source",
+    "owner",
+    "preconditions",
+    "inputArtifact",
+    "allowedAction",
+    "failureReturn",
+    "responseOwner",
+    "evidence",
+    "redaction",
+    "terminalState",
+    "artifactPaths",
+    "nextAction"
+  ],
+  "properties": {
+    "version": { "const": "1.0" },
+    "source": { "type": "string", "minLength": 1, "pattern": "^[a-z0-9][a-z0-9._/-]*$" },
+    "owner": { "type": "string", "minLength": 1, "pattern": "^[a-z0-9][a-z0-9._/-]*$" },
+    "preconditions": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "inputArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "kind", "status"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1, "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$)).+$" },
+        "kind": { "type": "string", "minLength": 1 },
+        "status": { "type": "string", "enum": ["present", "absent", "validated", "mismatch"] }
+      }
+    },
+    "allowedAction": {
+      "type": "string",
+      "enum": ["read", "assess", "detect", "build", "reuse", "render", "deploy", "update", "rollback", "handoff-read-only", "stop", "error"]
+    },
+    "failureReturn": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "reasonCode", "owner", "nextAction"],
+      "properties": {
+        "state": { "type": "string", "enum": ["stopped", "error"] },
+        "reasonCode": { "type": "string", "minLength": 1, "pattern": "^[A-Z0-9][A-Z0-9_.-]*$" },
+        "owner": { "type": "string", "minLength": 1 },
+        "nextAction": { "type": "string", "minLength": 1 }
+      }
+    },
+    "responseOwner": { "type": "string", "minLength": 1 },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "status", "detail"],
+        "properties": {
+          "kind": { "type": "string", "minLength": 1 },
+          "status": { "type": "string", "enum": ["pass", "observe", "fail", "pending"] },
+          "detail": { "type": "string", "minLength": 1 },
+          "artifactPath": { "type": "string", "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$)).+$" }
+        }
+      }
+    },
+    "redaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "sanitizedFields"],
+      "properties": {
+        "status": { "type": "string", "enum": ["complete", "not_applicable"] },
+        "sanitizedFields": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "terminalState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "reasonCode", "evidenceRefs"],
+      "properties": {
+        "state": { "type": "string", "enum": ["success", "stopped", "error"] },
+        "reasonCode": { "type": "string", "minLength": 1, "pattern": "^[a-z0-9][a-z0-9_.-]*$" },
+        "evidenceRefs": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "artifactPaths": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$)).+$" }
+    },
+    "nextAction": { "type": "string", "minLength": 1 }
+  }
+}

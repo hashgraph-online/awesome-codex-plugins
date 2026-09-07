@@ -22,6 +22,8 @@ Use this skill when the user asks for Superloopy, loopywork, lpy, a loop harness
 - Keep the workflow lightweight unless the task genuinely needs heavier review.
 - A leading `loopy` keyword wakes the loop engineer: take the rest of the prompt as the brief, run the loop yourself, and report progress instead of asking the user to type Superloopy commands.
 - `loopywork`, `$lpy`, and `lpy` are lighter prompt triggers; they inject guidance but never mutate `.superloopy/` state by themselves.
+- Full Loopy runs default to direct, concise, complete user-facing progress and final responses. Exact `say-it-straight off` / `직설 모드 끄기` and `say-it-straight on` / `직설 모드 켜기` controls apply only to the current incomplete loop; new loops reset this default to enabled.
+- This output overlay changes wording only. It never silently rewrites supplied prose, task artifacts, code, documentation, comments, evidence, quotations, or user source text; direct artifact editing remains explicit-only. `i-have-adhd` still owns structure, and `humanize-korean` still owns Korean artifact rewriting.
 
 ## Loop engineer (`loopy` keyword)
 
@@ -32,14 +34,23 @@ When the user opens a message with `loopy <task>`, act as the loop engineer:
 - The user types only `loopy <task>`. You run every Superloopy command and report progress as criteria proven and the next step.
 - `loopy` with no task asks what to build; `loopy` mid-loop resumes from existing state. The Stop hook is packaged with the plugin but stays inert until `SUPERLOOPY_STOP_HOOK=on`; when enabled, it blocks completion until evidence exists.
 
+### Reassurance-copy gate (conditional)
+
+- Decide from the affected artifact: if it creates or changes user-visible Korean product copy about behavior, add a plan criterion for RC-1 through RC-4 and Korean naturalness.
+- State supplied outcomes, fallback, recovery, or next action; preserve verified privacy/legal commitments; never invent behavior.
+- Apply `humanize-korean` semantic review for misplaced modifiers.
+- Ignore internal logs, developer docs, quotations, general/marketing prose, and non-Korean copy.
+
+Read the detailed [reassurance-copy reference](references/reassurance-copy.md) when this condition applies. Artifact ownership decides the condition; prompt wording does not.
+
 ### Two tiers: solo and crew (`loopy team`)
 
 The loop engineer directive is injected for every `loopy` prompt, and it scales to the work:
 
-- **Solo (default).** A plain `loopy <task>` drives one agent through the loop. The directive still permits light delegation: if the work splits into 2+ genuinely independent slices, you may fan them out in parallel with the host's native `multi_agent_v1.spawn_agent` (self-contained `message`, `fork_context: false`); for a single cohesive change, stay solo.
-- **Crew (`loopy team <task>` / `loopy crew <task>`, the connected one-word `loopycrew <task>`, or the standalone `ultrawork <task>`).** The same engineer escalates into full fan-out: dispatch the crew across independent lanes, collect them with `multi_agent_v1.wait_agent`, and record only artifact-backed proof. The escalation keyword is stripped from the brief that seeds the loop. This is the active counterpart to "Optional Subagent-Driven Mode" below — same dispatch contract, receipt gate, and mandatory `handoff`/`fleet` tracking.
+- **Solo (default).** A plain `loopy <task>` drives one agent through the loop. The directive still permits light delegation: if the work splits into 2+ genuinely independent slices, you may fan them out with the native subagent controls exposed by the current host; keep each assignment self-contained. For a single cohesive change, stay solo.
+- **Crew (`loopy team <task>` / `loopy crew <task>`, the connected one-word `loopycrew <task>`, or the standalone `ultrawork <task>`).** The same engineer escalates into full fan-out: dispatch the crew across independent lanes, collect them with the host's native lifecycle controls, and record only artifact-backed proof. The escalation keyword is stripped from the brief that seeds the loop. This is the active counterpart to "Optional Subagent-Driven Mode" below — same dispatch contract, receipt gate, and mandatory `handoff`/`fleet` tracking.
 
-Each crew dispatch sets `agent_type` to the role so the host can load that role's TOML instructions and advisory model policy: `agent_type: "franky"` to build, `"zoro"` to review, `"usopp"` to test, `"jinbe"` to gate, `"robin"` to audit, `"nami"` to navigate. Because role routing and model defaults are best-effort across hosts, the `message` also stays self-contained (`TASK: act as <role> ...`) so the worker behaves correctly even if the host ignores `agent_type`.
+Each crew dispatch uses the configured name when the host exposes named selection: `franky` to build, `zoro` to review, `usopp` to test, `jinbe` to gate, `robin` to audit, and `nami` to navigate. The assignment also stays self-contained (`TASK: act as <role> ...`). The host-owned stop callback observes the actual role identity; if the host cannot attest that identity or model, report `role_unverified` or `model_unverified`.
 
 Both tiers are steering, not enforcement: the directive instructs the main agent, and actual spawning depends on the host's native multi-agent tool being available. Superloopy never spawns; it gates the evidence workers deliver. See "Optional Subagent-Driven Mode" for the full dispatch contract and crew roles.
 

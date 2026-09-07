@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "token-harbor": {
+      "command": "node",
+      "args": ["${PLUGIN_ROOT}/scripts/harbor-mcp.mjs"],
+      "env": {
+        "TOKEN_HARBOR_PLUGIN_ROOT": "${PLUGIN_ROOT}",
+        "TOKEN_HARBOR_DATA_DIR": "${PLUGIN_DATA}"
+      }
+    }
+  }
+}

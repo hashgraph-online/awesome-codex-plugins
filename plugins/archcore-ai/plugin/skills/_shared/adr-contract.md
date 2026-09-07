@@ -1,7 +1,8 @@
 # ADR Content Contract
 
-Plugin runtime asset. Loaded by skills creating ADRs: `decide` (Step 3),
-`capture` (Step 3, ADR path). Companion to `skills/_shared/precision-rules.md`.
+Plugin runtime asset. Loaded by skills creating ADRs: `document` (the decision
+track, `skills/_shared/tracks/decision.md`) and any skill that routes a settled
+choice through it. Companion to `skills/_shared/precision-rules.md`.
 
 ## Mandatory sections
 
@@ -49,6 +50,19 @@ The body MUST NOT contain a section enumerating other `.archcore/` documents
 managed by `mcp__archcore__add_relation`. The body MAY cite source code
 (`@path/to/file`), commits, dashboards, and external authorities. See
 `skills/_shared/precision-rules.md` Rule 5.
+
+## Enforcement
+
+The Archcore CLI reports the mechanical part of this contract in the post-tool-use
+hook: the four mandatory sections, a bullet list inside Context, a single
+alternative where the contract asks for two, an alternative carrying no rejection
+verb, and a BCP 14 modal inside a numbered clause — an `adr` records a claim, so
+an obligation it states belongs in a linked `rule` or `spec`.
+
+Three obligations stay with review at every version: whether Context names a
+*concrete* problem rather than a generic one, whether a consequence is genuinely
+falsifiable, and whether a "Superseded when" trigger is measurable. A program
+finds the section; it does not weigh what the section says.
 
 ## Rationale
 

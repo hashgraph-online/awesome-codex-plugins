@@ -48,12 +48,12 @@ Run a single AUQ to let the user characterize the problem in their own words:
 ```
 AskUserQuestion({
   questions: [{
-    question: "Describe the feature or problem you want to brainstorm. What's the core pain point it addresses, and what's still ambiguous to you?",
-    header: "Feature Frame",
+    question: "What do you want to brainstorm, and what is still unclear about it?",
+    header: "Frame",
     options: [
-      { label: "UX / user-facing surface is unclear", description: "You know what you want to build but not how it should work for the user." },
-      { label: "Scope / boundaries are unclear", description: "You're not sure how much to build, or where one feature ends and another begins." },
-      { label: "Multiple approaches exist — need to pick one", description: "You see 2-3 ways to solve this and aren't sure which is best." },
+      { label: "The user-facing surface", description: "You know what to build but not how it should work for the user." },
+      { label: "Scope / boundaries", description: "You're not sure how much to build, or where one feature ends and another begins." },
+      { label: "Several approaches — pick one", description: "You see 2-3 ways to solve this and aren't sure which is best." },
       { label: "Other / describe below", description: "Free-form: describe the ambiguity in the next prompt." }
     ],
     multiSelect: false
@@ -98,9 +98,9 @@ Example round (adapt to the actual feature):
 AskUserQuestion({
   questions: [{
     question: "Who is the primary user of this feature, and how do they trigger it?",
-    header: "User Surface — Round 2",
+    header: "User surface",
     options: [
-      { label: "Authenticated user via UI action (Recommended)", description: "Pro: fits existing session model. Con: requires UI component work." },
+      { label: "Signed-in user, UI action (Recommended)", description: "Pro: fits existing session model. Con: requires UI component work." },
       { label: "Automated trigger (webhook, cron, event)", description: "Pro: no manual user step. Con: harder to debug and test." },
       { label: "Admin-only operation", description: "Pro: simpler access control. Con: limits who can self-serve." },
       { label: "Other / describe below", description: "Describe the trigger mechanism." }
@@ -128,12 +128,12 @@ Once the dialogue has enough signal, synthesize 2-3 concrete implementation appr
 ```
 AskUserQuestion({
   questions: [{
-    question: "Based on your answers, here are the viable approaches. Which fits best?",
-    header: "Design Approach",
+    question: "Which of these approaches fits best?",
+    header: "Approach",
     options: [
-      { label: "Approach A — [1-sentence summary] (Recommended)", description: "Trade-offs: [key pro]. [key con]. Complexity: low/medium/high." },
-      { label: "Approach B — [1-sentence summary]", description: "Trade-offs: [key pro]. [key con]. Complexity: low/medium/high." },
-      { label: "Approach C — [1-sentence summary]", description: "Trade-offs: [key pro]. [key con]. Complexity: low/medium/high." }
+      { label: "A — [short summary] (Recommended)", description: "Best balance of value, reversibility and scope, because [key pro]. Cost: [key con]. Complexity: low/medium/high." },
+      { label: "B — [short summary]", description: "Trade-offs: [key pro]. Cost: [key con]. Complexity: low/medium/high." },
+      { label: "C — [short summary]", description: "Trade-offs: [key pro]. Cost: [key con]. Complexity: low/medium/high." }
     ],
     multiSelect: false
   }]
@@ -231,13 +231,13 @@ Present the spec path and summary to the user. Then ask via AUQ:
 ```
 AskUserQuestion({
   questions: [{
-    question: "The design spec has been written to docs/specs/YYYY-MM-DD-<slug>-design.md. How do you want to proceed?",
-    header: "Design Hand-off",
+    question: "The spec is at docs/specs/YYYY-MM-DD-<slug>-design.md. How do you want to proceed?",
+    header: "Hand-off",
     options: [
-      { label: "Proceed to /plan feature (Recommended)", description: "Formalize this spec into a PRD with acceptance criteria and issue creation." },
-      { label: "Proceed to /write-executable-plan", description: "Skip the formal PRD and go straight to an executable plan (issue #39, once shipped)." },
-      { label: "Revise the spec", description: "I have feedback — describe what to change and I'll update the spec." },
-      { label: "Done for now", description: "Keep the spec as a reference; no immediate next step." }
+      { label: "Proceed to /plan feature (Recommended)", description: "Turns the spec into a PRD with acceptance criteria, then files the issues. Cost: one more question round." },
+      { label: "Proceed to /write-executable-plan", description: "Skips the formal PRD and writes a step-by-step executable plan instead — tracked in #39 (a numbered ticket, not yet released)." },
+      { label: "Revise the spec", description: "Describe what to change; the spec is updated and comes back here." },
+      { label: "Done for now", description: "The spec stays on disk as a reference. Nothing else runs." }
     ],
     multiSelect: false
   }]

@@ -1,5 +1,7 @@
 # LinkedIn Ads — B2B Advertising Reference
 
+> **Benchmark provenance (as of 2026-08):** Dollar figures in this document are planning priors, not quotes — market and auction rates drift continuously. Before any figure enters a media plan, budget, or client deliverable, refresh it live (platform dashboards and current published reports beat memory) and record it with `python scripts/benchmark_book.py --action record ... --source <url>`; quote from the book thereafter (`--action quote`). Never present an unstamped figure as current market fact.
+
 ## Campaign Types Overview
 
 | Campaign Type | Objective Fit | Format | Avg CPC | Best For |
@@ -167,7 +169,7 @@ Tier 3: ICP Characteristics (1:Many)
 | Campaign Goal | Monthly Minimum | Recommended Monthly | Notes |
 |---|---|---|---|
 | Awareness / Thought Leadership | $3,000 | $5,000–$10,000 | Need reach; LinkedIn CPMs are high ($30–$60) |
-| Lead Generation | $5,000 | $10,000–$25,000 | Expect $30–$150 CPL depending on offer |
+| Lead Generation | $5,000 | $10,000–$25,000 | Expect $50–$200 CPL depending on offer |
 | ABM (Tier 1) | $5,000 | $10,000–$20,000 | Small audiences require sustained impressions |
 | Full-Funnel B2B | $10,000 | $25,000–$50,000+ | Supports awareness + retargeting + lead gen |
 

@@ -25,6 +25,7 @@ Use this reference when a research task involves the recurring tools around manu
    - Use stable figure filenames that match manuscript references.
    - Record commit hashes, release tags, dataset versions, and environment files for results used in the manuscript.
    - Keep large raw data outside git unless the repository intentionally uses a data-management system.
+   - Maintain a reproducibility manifest that maps each released figure, table, and headline value to its input version, generating command, code commit, and environment.
 
 4. Version before major changes.
    - Commit before risky refactors, major manuscript restructuring, new analysis pipelines, or camera-ready submission changes.
@@ -42,6 +43,8 @@ When helping with Overleaf manuscripts:
 - Coordinate citations through `.bib` entries and consistent citation keys.
 - For revisions, maintain a response-letter mapping between reviewer comment, manuscript change, and location.
 - For final packaging, check figures, captions, references, supplementary files, and source files expected by the venue.
+- Keep one documented compile entry point and remove or clearly label stale alternate TeX sources.
+- Extract and compile the final upload package independently before reporting it ready.
 
 ## VS Code Guidance
 
@@ -69,6 +72,7 @@ When helping update a research repository:
   - license and citation metadata
   - tagged release and changelog/release notes
   - DOI/archive link when available
+- Apply a stranger test in a clean supported environment when claiming that a new user can reproduce the workflow.
 - Avoid committing secrets, private data, unpublished confidential IP details, or large binary outputs unless explicitly intended.
 
 ## Git Guidance
@@ -101,3 +105,5 @@ For toolchain requests, provide one of:
 - Do not expose confidential invention details, unpublished sponsor data, or private datasets in public repositories.
 - Do not overwrite user edits or force-push shared branches unless explicitly requested and clearly safe.
 - Always distinguish local edits from pushed GitHub changes when reporting status.
+- Distinguish an installed skill or package from a Git working tree, branch, commit, pushed branch, tagged release, and published plugin.
+- When the installed copy and source repository may differ, compare normalized content or record the installed version/commit before claiming synchronization.

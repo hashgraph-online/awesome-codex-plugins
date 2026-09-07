@@ -31,6 +31,18 @@
       "category": "Productivity"
     },
     {
+      "name": "golang",
+      "source": {
+        "source": "local",
+        "path": "./plugins/golang"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Coding"
+    },
+    {
       "name": "game-design",
       "source": {
         "source": "local",

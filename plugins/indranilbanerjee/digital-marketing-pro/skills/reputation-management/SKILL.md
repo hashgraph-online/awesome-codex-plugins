@@ -1,6 +1,6 @@
 ---
 name: reputation-management
-description: "Manage brand reputation. Use when: handling reviews, crisis comms, negative press, sentiment, or recovery plans."
+description: "Full reputation playbook: FTC-compliant review generation, negative-review response frameworks, 3-tier crisis communication with a 72-hour severe-crisis timeline, 4-layer brand safety assessment, sentiment monitoring design, and 30/60/90-day recovery plans — delivered as ready-to-use plans, drafted responses, and audits. Triggers on \"/digital-marketing-pro:reputation-management\", \"we're getting hit with negative reviews\", \"prepare a crisis communication plan\", \"how do we get more Google reviews\", \"someone is spreading misinformation about us\". Reads the brand profile, guidelines, and compliance rules; it plans and drafts — it does not post responses or monitor platforms itself. For a single review reply, /digital-marketing-pro:review-response is the focused sibling."
 ---
 
 # Reputation Management
@@ -32,7 +32,7 @@ Before producing any marketing output from this module:
 4. **Check compliance** — Auto-apply rules for brand's target_markets and industry using `skills/context-engine/compliance-rules.md`
 5. **Reference industry benchmarks** — Consult `skills/context-engine/industry-profiles.md` for the brand's industry
 6. **Use platform specs** — Reference `skills/context-engine/platform-specs.md` for character limits and format requirements
-7. **Check campaign history** — Run `python campaign-tracker.py --brand {slug} --action list-campaigns` before planning new work
+7. **Check campaign history** — Run `python "${CLAUDE_PLUGIN_ROOT}/scripts/campaign-tracker.py" --brand {slug} --action list-campaigns` before planning new work
 8. **If no brand exists**, say: "No brand profile found. Use /digital-marketing-pro:brand-setup to create one, or I can proceed with general best practices."
 9. **Check brand guidelines** — If `~/.claude-marketing/brands/{slug}/guidelines/_manifest.json` exists, load and enforce: `restrictions.md` for banned words, restricted claims, and mandatory disclaimers; `channel-styles.md` for channel-specific tone overrides (may differ from base voice); `messaging.md` for approved key messages, taglines, and positioning language; `voice-and-tone.md` for detailed voice rules beyond the 4 numeric scores. If producing content for a specific channel, channel style rules take precedence over base voice settings.
 
@@ -74,13 +74,13 @@ Before executing, gather the following from the user (ask if not provided):
 
 **Tier 1 -- Minor Crisis** (isolated complaint, single negative article, localized social media issue)
 - **Severity indicators**: Limited reach, no media pickup, contained to one platform or conversation
-- **Response timeline**: Respond within 2-4 hours with prepared acknowledgment
+- **Response timeline**: Respond within 24 hours with prepared acknowledgment
 - **Actions**: Direct customer response, monitor for spread, prepare holding statement if needed
 - **Stakeholders**: Customer service lead, social media manager
 
 **Tier 2 -- Moderate Crisis** (trending complaint, multiple media outlets, influencer amplification, regional issue)
 - **Severity indicators**: Growing reach, media inquiries, multiple customer complaints on the same issue, hashtag trending
-- **Response timeline**: Public statement within 4-8 hours. Internal alignment within 2 hours
+- **Response timeline**: Public statement within 4 hours. Internal alignment within 2 hours
 - **Actions**: Activate crisis team, issue holding statement, prepare full response, monitor real-time, brief executives
 - **Stakeholders**: VP/Director of Marketing, PR team, legal counsel, customer service leadership
 - **Stakeholder messaging matrix**: Different messages for customers (empathy + action), employees (facts + guidance), media (official statement), investors (impact assessment + response plan), partners (reassurance + timeline)
@@ -88,9 +88,9 @@ Before executing, gather the following from the user (ask if not provided):
 
 **Tier 3 -- Severe Crisis** (data breach, product safety issue, executive misconduct, viral outrage, regulatory action)
 - **Severity indicators**: National/international media coverage, regulatory involvement, potential legal liability, significant customer impact
-- **Response timeline**: Initial acknowledgment within 1-2 hours. Detailed response within 24 hours. Ongoing updates every 24-48 hours
+- **Response timeline**: Initial acknowledgment within 1 hour. Full response within 4 hours. Ongoing updates every 24-48 hours
 - **Actions**: CEO-level response, legal coordination, regulatory notification (if required), customer notification, operational remediation, third-party investigation (if needed)
-- **72-hour timeline**: Hour 0-2 (acknowledge, assemble team), Hour 2-8 (fact-finding, holding statement), Hour 8-24 (detailed response, customer outreach, media statement), Hour 24-48 (operational updates, stakeholder briefings), Hour 48-72 (recovery plan announcement, ongoing communication cadence)
+- **72-hour timeline**: Hour 0-1 (acknowledge, assemble team), Hour 1-4 (fact-finding, holding statement), Hour 4-24 (detailed response, customer outreach, media statement), Hour 24-48 (operational updates, stakeholder briefings), Hour 48-72 (recovery plan announcement, ongoing communication cadence)
 - **Stakeholders**: CEO/C-suite, general counsel, board of directors (if public company), PR agency, regulatory contacts
 
 ### Brand Safety (4-Layer Framework)
@@ -98,7 +98,7 @@ Before executing, gather the following from the user (ask if not provided):
 **Layer 1 -- Ad Placement Safety**
 - Ensuring ads do not appear alongside harmful, offensive, or brand-inappropriate content
 - Platform-specific brand safety settings (Google content exclusions, Meta inventory filters, YouTube placement exclusions)
-- Third-party verification tools (IAS, DoubleVerify, MOAT) for programmatic environments
+- Third-party verification tools (IAS, DoubleVerify) for programmatic environments
 - Keyword exclusion lists and site exclusion lists
 
 **Layer 2 -- Association Safety**
@@ -177,6 +177,7 @@ Before executing, gather the following from the user (ask if not provided):
 - `brand-safety.md` -- 4-layer brand safety framework, platform-specific settings, vendor evaluation criteria, and brand safety audit checklists
 - `sentiment-monitoring.md` -- Monitoring tool recommendations, alert configuration guides, reporting templates, and competitive benchmarking methods
 - `recovery-playbooks.md` -- 30/60/90-day recovery plans, SEO-for-reputation tactics, advocacy program designs, and reputation audit frameworks
+- `review-management-platforms.md` -- Review platform landscape, tool comparison, platform-specific policies, and FTC compliance guidance for review management
 
 ## Output Formats
 

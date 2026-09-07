@@ -1,0 +1,44 @@
+{
+  "name": "@f0d010c/stark",
+  "version": "0.7.2",
+  "private": true,
+  "description": "UI/UX design plugin for AI coding agents.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/f0d010c/stark.git"
+  },
+  "homepage": "https://github.com/f0d010c/stark",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "python -m unittest discover -s tests",
+    "lint": "agent-skillforge lint . --format text --strict --profile marketplace",
+    "smoke": "agent-skillforge smoke .",
+    "validate": "python scripts/validate_repository.py",
+    "pack:plugin": "python scripts/build_package.py --output dist/stark.zip",
+    "check": "npm run test && npm run lint && npm run smoke && npm run validate"
+  },
+  "files": [
+    ".claude-plugin/",
+    ".codex-plugin/",
+    "agents/",
+    "assets/",
+    "commands/",
+    "references/",
+    "skills/",
+    "scripts/detect_platform.py",
+    "scripts/token_export.py",
+    "docs/review-contract.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "NOTICE",
+    "README.md",
+    "SECURITY.md",
+    "SKILL.md"
+  ],
+  "devDependencies": {
+    "agent-skillforge": "0.4.0"
+  }
+}

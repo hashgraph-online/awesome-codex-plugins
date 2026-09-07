@@ -1,162 +1,110 @@
-<p align="center">
-  <img src="https://raw.githubusercontent.com/PapiScholz/roadmapsmith/main/assets/roadmapsmith-logo.png" alt="RoadmapSmith logo" width="180">
-</p>
+# roadmapsmith
 
-<h1 align="center">RoadmapSmith</h1>
+[![skills.sh](https://skills.sh/b/PapiScholz/roadmapsmith)](https://skills.sh/PapiScholz/roadmapsmith)
 
-Evidence-backed roadmap workflows for AI coding agents — two commands: `init` and `update`.
+Un skill para agentes de IA (Claude Code, Codex, y cualquier host que lea `SKILL.md`) que mantiene tu `ROADMAP.md` coherente con lo que hay en el código. Dos slashcommands: uno para crearlo, otro para actualizarlo — el agente escanea el repo, pide evidence real antes de marcar `[x]`, y te pasa un diff antes de escribir.
 
-## See it in action
+## El problema
 
-RoadmapSmith does not make an AI agent smarter. It makes the agent's output **auditable** — a validated trail of what got done, why, and with what evidence.
+- Los `ROADMAP.md` se pudren: alguien marca `[x]` una task que no está terminada, o deja `[ ]` algo que ya se shippeó, y a los dos meses el archivo miente.
+- Chequear a mano cada task contra el código no escala: el agente puede leer todo el repo en segundos y proponerte el diff.
+- Marcar completado sin evidence verificable es autoengaño — este skill nunca flipea `[ ] → [x]` sin encontrar el archivo/símbolo que respalda la task.
 
-<p align="center">
-  <img src="assets/demo.gif" alt="A/B demo: claude-code session with ROADMAP.md vs without" width="800">
-</p>
+## Cómo funciona (dos slashcommands)
 
-A scripted A/B demo runs two identical `claude-code` sessions against this repo — one that can read `ROADMAP.md`, one that can't — and diffs the results:
-
-```bash
-bash scripts/demo/run.sh
+```
+/roadmap-init      # una vez, al arrancar un repo
+/roadmap-update    # cuando querés reflejar tu progreso
 ```
 
-Full walkthrough and honest caveats: [`scripts/demo/README.md`](scripts/demo/README.md).
+- **`/roadmap-init`** — Te hace 3 preguntas mínimas (nombre, problema, usuario), escanea el repo, y genera `ROADMAP.md` con tasks agrupadas por fase (P0/P1/P2) y área del código. Nunca sobreescribe un `ROADMAP.md` existente.
+- **`/roadmap-update`** — Releva el código en busca de evidence, te propone un diff (tareas a marcar, warnings de checked-sin-evidence, tareas nuevas detectadas), y espera tu `ok` antes de escribir. Modo `full-scan` (determinístico) o `short-circuit` (usa el contexto de la sesión si alcanza).
+
+Full spec de cada uno:
+[`skills/roadmap-init/SKILL.md`](skills/roadmap-init/SKILL.md) · [`skills/roadmap-update/SKILL.md`](skills/roadmap-update/SKILL.md)
+
+## Cómo se ve
+
+Antes:
+
+```markdown
+## Phase 0 — Baseline
+### auth
+- [ ] [P0] Add login endpoint
+- [ ] [P0] Hash passwords with bcrypt
+- [ ] [P0] Session cookies
+```
+
+Después de `/roadmap-update` (ya implementaste dos):
+
+```markdown
+## Phase 0 — Baseline
+### auth
+- [x] [P0] Add login endpoint <!-- evidence: src/auth/login.ts:14 -->
+- [x] [P0] Hash passwords with bcrypt <!-- evidence: src/auth/hash.ts:8 -->
+- [ ] [P0] Session cookies
+```
+
+El diff se te muestra en el chat antes de escribir. Si el agente marcó algo sin evidence real, aparece como `⚠️ checked pero sin evidence` en la propuesta.
 
 ## Install
 
-### CLI
+Un comando:
 
 ```bash
-npm install -g roadmapsmith
+npx skills add PapiScholz/roadmapsmith
 ```
 
-### Claude Code bundle
+Detecta el agente (Claude Code, Codex, 70+ más) e instala los dos skills en el lugar correcto. Nada más.
+
+<details>
+<summary>Otras vías de instalación</summary>
 
 ```bash
-npx skills add PapiScholz/roadmapsmith --skill '*' -a claude-code
+# Ver qué skills declara el repo antes de instalar
+npx skills add PapiScholz/roadmapsmith --list
+
+# Buscar por keyword (una vez que skills.sh indexa el repo, ~1h después del primer add)
+npx skills find roadmap
 ```
 
-This installs the native Claude GUI slash commands (`/roadmap-init`, `/roadmap-update`). It does not install the CLI.
+- **Web:** [`https://skills.sh/PapiScholz/roadmapsmith`](https://skills.sh/PapiScholz/roadmapsmith)
+- **Shim legacy** (equivalente, delega al `skills add` de arriba): `npx github:PapiScholz/roadmapsmith`
+- **Codex plugin nativo:** el manifest `.codex-plugin/plugin.json` en la raíz declara los mismos skills — instalación vía Codex plugin marketplace funciona sin pasos extra.
 
-## Quick Start
+</details>
 
-New repository:
+## Update
 
 ```bash
-roadmapsmith init --product-name "MyApp" --primary-user "solo dev" --project-root .
+npx skills update
 ```
 
-Existing repository (import tasks from an existing file):
+Actualiza todos los skills instalados. Para actualizar solo uno: `npx skills update roadmap-init` o `npx skills update roadmap-update` (nombres de los skills, no del repo).
+
+> **Warning esperado** — vas a ver `the following skills appear to have been deleted upstream` listando ~19 nombres viejos (`roadmap-sync`, `audit`, `zero`, `road`, etc.) y una cascada de `No matching skills found`. Es ruido cosmético del catálogo público de skills.sh, que todavía cachea entries de pre-v1.3.0. Ya está reportado upstream — respondé `Yes` para limpiar, los `No matching skills found` que siguen son no-ops porque nunca los tuviste instalados.
+
+### ¿Ya tenías el CLI viejo instalado global?
+
+Pre-v1.0.0 el paquete era un CLI y se instalaba con `npm i -g roadmapsmith`. Si `roadmapsmith --version` te devuelve `0.14.x`, tenés ese binario colgado — la instalación de skills es una ruta paralela y no lo pisa. Podés dejarlo (no molesta) o limpiarlo:
 
 ```bash
-roadmapsmith init --import TODO.md --project-root .
+npm uninstall -g roadmapsmith
 ```
 
-Set up host integration files only (no ROADMAP.md creation):
+Post-v1.0.0 la única "instalación" que necesitás es la de skills; ya no hay CLI global que actualizar.
 
-```bash
-roadmapsmith init --setup-only --hosts codex,claude --project-root .
-```
+## Estado
 
-Preview without writing:
+Herramienta personal, sin roadmap comercial. Feedback y bug reports bienvenidos vía [issues](https://github.com/PapiScholz/roadmapsmith/issues). MIT.
 
-```bash
-roadmapsmith init --dry-run --project-root .
-```
+Mantenimiento y flujo de release: [`docs/RELEASING.md`](docs/RELEASING.md).
 
-## Daily Flow
+<details>
+<summary>Legacy — CLI v0.15 (deprecated)</summary>
 
-Refresh the roadmap with evidence-backed validation:
+La versión previa (v0.10 a v0.15) era un CLI en Node con validator, audit engine, drift detection y 312 tests. Todo eso vive en [`legacy/`](legacy/) sin desarrollo activo — ver [`legacy/README.md`](legacy/README.md).
 
-```bash
-roadmapsmith update --project-root .
-```
+El pivote a v1.0.0 tiró la ceremonia (validator, tests, marketing) y dejó solo lo que el user original quería: un skill, dos slashcommands, `ROADMAP.md` al día.
 
-Add a task:
-
-```bash
-roadmapsmith update --add-task "Fix login redirect bug" --project-root .
-```
-
-Record evidence for a task:
-
-```bash
-roadmapsmith update --task <stable-id> --evidence "src/auth.js passes all tests" --project-root .
-```
-
-Check northStar alignment vs. repo state:
-
-```bash
-roadmapsmith update --check-drift --project-root .
-```
-
-Run validation audit after refresh:
-
-```bash
-roadmapsmith update --audit --project-root .
-```
-
-Preview any update without writing:
-
-```bash
-roadmapsmith update --dry-run --project-root .
-```
-
-## Command Surfaces
-
-Two commands:
-
-- `init` — creates ROADMAP.md, AGENTS.md, and host integration files
-- `update` — refreshes ROADMAP.md with evidence-backed validation, adds tasks, records evidence, or checks drift
-
-### init flags
-
-| Flag | Description |
-|------|-------------|
-| `--product-name <name>` | Product/project name |
-| `--primary-user <user>` | Primary user persona |
-| `--problem-statement <text>` | Problem being solved |
-| `--import <file>` | Import tasks from file (repeatable) |
-| `--hosts <codex,claude>` | Host integrations to set up (default: `codex,claude`) |
-| `--editor <name>` | Editor for host setup (default: `vscode`) |
-| `--setup-only` | Only write host files, skip ROADMAP creation |
-| `--dry-run` | Preview without writing |
-| `--project-root <path>` | Project root (default: cwd) |
-
-### update flags
-
-| Flag | Description |
-|------|-------------|
-| `--add-task <text>` | Add a new task to the managed block |
-| `--task <id>` | Task ID to target (use with `--evidence`) |
-| `--evidence <text>` | Evidence to add to `--task` |
-| `--audit` | Show validation audit after refresh |
-| `--check-drift` | Check northStar alignment vs. repo state |
-| `--strict` | Strict validation mode |
-| `--dry-run` | Preview without writing |
-| `--json` | Output in JSON format |
-| `--project-root <path>` | Project root (default: cwd) |
-
-## Verification Model
-
-Unchecked tasks are only marked complete when evidence backs them up:
-
-- explicit `Evidence:` lines on the task
-- code, test, or artifact files that match the task text
-
-For an evidence audit:
-
-```bash
-roadmapsmith update --audit
-```
-
-For strict mode (fails on any unverified checked task):
-
-```bash
-roadmapsmith update --strict --audit
-```
-
-## Docs
-
-- [roadmap-skill/README.md](roadmap-skill/README.md): CLI and package contract
-- [docs/release-readiness.md](docs/release-readiness.md): maintainer and release workflow
+</details>

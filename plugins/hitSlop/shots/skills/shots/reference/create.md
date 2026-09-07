@@ -41,6 +41,9 @@ visual artifact, or make the current screenshot closer to an existing reference.
   in the prompt are not enough. Use `--kind app_screenshot` for real product UI,
   `--kind reference` for product/brand assets, and `--kind inspo` for mood-only
   references.
+- If the user says a reference is stale, record the exact outdated elements and
+  required replacements or removals in the approved panel's `Critical user
+  overrides`; those instructions outrank every reference image.
 - Before planning new English screenshots, check `screenshots.listing` for
   selected/promoted `en-US` store screenshots. Use relevant selected/promoted
   screenshots as default continuity/product references. Do not use recent
@@ -124,6 +127,12 @@ For each approved row:
   gallery's layer stack, text slots, crop, object treatment, lighting, or card
   overlap; use product references for real UI labels, controls, screenshots,
   brand colors, and screen density.
+- Treat product UI as closed-world. Keep referenced screen structure, rows,
+  controls, labels, values, and state unless the approved user direction
+  explicitly changes them. Never invent plausible UI or adjacent details.
+- Preserve critical user overrides verbatim in the generation prompt and state
+  that they override stale reference content. Never restore an explicitly
+  removed element.
 - Include `galleryInspirationScreenshotId` only when that row uses public
   gallery inspiration approved by the user. Gallery inspiration controls the
   approved ad mechanism and composition; uploaded product references control

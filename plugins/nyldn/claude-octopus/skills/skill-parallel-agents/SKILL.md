@@ -1,6 +1,7 @@
 ---
 name: skill-parallel-agents
 description: "Decompose large tasks across parallel agents — use for migrations, multi-file refactors, or batch work"
+disable-model-invocation: true
 ---
 
 > **Host: Codex CLI** — This skill was designed for Claude Code and adapted for Codex.
@@ -102,14 +103,14 @@ Claude Octopus uses **visual indicators** so you always know which AI is respond
 |-----------|---------|------|
 | 🐙 | **Parallel Mode** | Multiple CLIs orchestrated via orchestrate.sh |
 | 🔴 | **Codex CLI** | OpenAI Codex (your OPENAI_API_KEY) |
-| 🟡 | **Gemini CLI** | Google Gemini (your GEMINI_API_KEY) |
+| 🧭 | **Antigravity CLI** | Google Antigravity (your authenticated seat) |
 | 🔵 | **Claude Subagent** | Claude Code host subagent tool (built-in) |
 
 ### What Triggers External CLIs vs Subagents
 
 **External CLIs execute when:**
 - Using `/parallel-agents` command explicitly
-- Using `/debate` command (AI Debate Hub)
+- Using `/octo:debate` command (AI Debate Hub)
 - Running orchestrate.sh workflows (probe, grasp, tangle, ink, embrace, grapple, squeeze)
 - Knowledge mode deliberation (when Knowledge Mode is ON)
 - Natural language that triggers this skill (research, build, review tasks)
@@ -123,7 +124,7 @@ Claude Octopus uses **visual indicators** so you always know which AI is respond
 
 **Why this matters:** External CLIs use your OpenAI/Google API quotas and incur costs. Claude subagents are included with Claude Code at no additional charge.
 
-When you see 🐙 **CLAUDE OCTOPUS ACTIVATED**, external CLI providers such as Codex, Gemini, Antigravity, and others will be invoked for multi-perspective analysis.
+When you see 🐙 **CLAUDE OCTOPUS ACTIVATED**, external CLI providers such as Codex, Antigravity, and others will be invoked for multi-perspective analysis.
 
 
 ## Force Multi-Provider Mode
@@ -175,7 +176,7 @@ Forcing parallel mode uses external CLIs for every task, which incurs API costs:
 | Provider | Cost per Query | What It Uses |
 |----------|----------------|--------------|
 | 🔴 Codex CLI | ~$0.01-0.05 | Your OPENAI_API_KEY |
-| 🟡 Gemini CLI | ~$0.01-0.03 | Your GEMINI_API_KEY |
+| 🧭 Antigravity CLI | Included with access/subscription | Antigravity CLI auth |
 | 🔵 Claude | Included | Claude Code subscription |
 
 **Total cost per forced query: ~$0.02-0.08**
@@ -192,184 +193,50 @@ Force parallel execution
 
 Providers:
 🔴 Codex CLI - [Role in this task]
-🟡 Gemini CLI - [Role in this task]
+🧭 Antigravity CLI - [Role in this task]
 🔵 Claude - [Role in this task]
 ```
 
 Followed by results from each provider marked with their indicators (for example 🔴 🟡 🧭 🔵).
 
 
-## Prerequisites Check (Automatic - Fast Detection)
+## Prerequisites check
 
-**IMPORTANT:** Once you've determined this skill should activate (user asked to research, build, review, etc.), immediately run the provider detection below. DO NOT ask the user for permission - just check providers and proceed or show welcome message.
-
-### Step 1: Automatic Provider Detection
-
-Silently run this fast detection script (completes in <1 second):
+Once this skill activates, run the local provider check:
 
 ```bash
-${HOME}/.claude-octopus/plugin/scripts/orchestrate.sh detect-providers
+OCTO_ROOT="${CLAUDE_PLUGIN_ROOT:-${HOME}/.claude-octopus/plugin}"
+"$OCTO_ROOT/scripts/orchestrate.sh" detect-providers
 ```
 
-**IMPORTANT - First Time Setup Detection:**
-If the detect-providers command shows BOTH providers are missing (CODEX_STATUS=missing AND GEMINI_STATUS=missing), this is likely a first-time user. Before showing error messages, provide a friendly welcome message:
+This check reads local commands, credentials, and the one-hour cache. It does not call provider APIs. Current output includes the Claude Code version contract and one status per provider:
 
-> "👋 Welcome to Claude Octopus! I see this is your first time using the plugin.
->
-> To get started, you need to install **one** AI provider (you don't need both):
->
-> **Option 1: OpenAI Codex** (best for code generation)
-> ```
-> npm install -g @openai/codex
-> codex login  # OAuth recommended
-> ```
-> Or set API key: `export OPENAI_API_KEY="sk-..."`
-> Get key from: https://platform.openai.com/api-keys
->
-> **Option 2: Google Gemini** (best for analysis)
-> ```
-> npm install -g @google/gemini-cli
-> gemini  # OAuth recommended
-> ```
-> Or set API key: `export GEMINI_API_KEY="AIza..."`
-> Get key from: https://aistudio.google.com/app/apikey
->
-> Once you've installed one provider, you can start using Claude Octopus by just talking naturally:
-> - 'Research OAuth authentication patterns'
-> - 'Build a user authentication system'
-> - 'Review this code for security issues'
->
-> Need guided setup? Run `/octo:setup`"
-
-After showing this welcome message, STOP and wait for the user to set up a provider. Do not proceed with the original task until at least one provider is configured.
-
-Expected output format:
-```
+```text
 Detecting Claude Code version...
 
-CLAUDE_CODE_VERSION=2.1.9
+CLAUDE_CODE_VERSION=2.1.219
 CLAUDE_CODE_STATUS=ok
-CLAUDE_CODE_MINIMUM=2.1.9
-
-✓ Claude Code version: 2.1.9 (meets minimum 2.1.9)
-
-Detecting providers...
+CLAUDE_CODE_MINIMUM=2.1.14
 
 CODEX_STATUS=ok
-CODEX_AUTH=oauth
-
-GEMINI_STATUS=ok
-GEMINI_AUTH=none
-
-Summary:
-  ✓ Codex: Installed and authenticated (oauth)
-  ⚠ Gemini: Installed but not authenticated
+AGY_STATUS=unauthenticated
 ```
 
-### Step 2: Route Based on Detection Results
+Provider values are `ok`, `unauthenticated`, `quota`, `not-installed`, or a specific reason such as `model-invalid`.
 
-Parse the output and route accordingly:
+### Route based on the result
 
-**Scenario 0: Claude Code version is outdated (CRITICAL - Check First)**
-```
-CLAUDE_CODE_VERSION=2.1.8
+If Claude Code is outdated, stop and show the version and update instructions reported by the command:
+
+```text
+CLAUDE_CODE_VERSION=2.1.13
 CLAUDE_CODE_STATUS=outdated
-CLAUDE_CODE_MINIMUM=2.1.9
+CLAUDE_CODE_MINIMUM=2.1.14
 ```
 
-**Action:** STOP immediately and show this prominent warning:
+If one non-Claude provider reports `ok`, use it. Parallel execution needs at least one ready non-Claude provider, but ordinary Claude-only commands still work without one. If none reports `ok`, stop the parallel workflow, direct the user to `/octo:setup`, and do not simulate provider agreement by running one provider repeatedly. One ready provider can supply an additional perspective, but it is not multi-provider consensus.
 
-> "⚠️ **Claude Code Update Required**
->
-> Your current Claude Code version (2.1.8) is outdated. Claude Octopus requires version 2.1.9 or higher for full functionality.
->
-> **How to update:**
->
-> If installed via npm:
-> ```
-> npm update -g @anthropic/claude-code
-> ```
->
-> If installed via Homebrew:
-> ```
-> brew upgrade claude-code
-> ```
->
-> If installed via download:
-> Visit https://github.com/anthropics/claude-code/releases
->
-> **After updating, please restart Claude Code** and then we can proceed with your task."
-
-Do NOT proceed with the task until the user has updated and restarted. The detect-providers output will show this warning prominently.
-
-**Scenario A: Both providers missing**
-```
-CODEX_STATUS=missing
-CODEX_AUTH=none
-GEMINI_STATUS=missing
-GEMINI_AUTH=none
-```
-
-**Action:** STOP and tell the user:
-
-> "Claude Octopus needs at least one AI provider (Codex or Gemini) to work.
->
-> You have two options:
->
-> **Option 1: Install Codex CLI**
-> ```
-> npm install -g @openai/codex
-> export OPENAI_API_KEY=\"sk-...\"
-> ```
-> Get API key from: https://platform.openai.com/api-keys
->
-> **Option 2: Install Gemini CLI**
-> ```
-> npm install -g @google/gemini-cli
-> gemini  # Run OAuth setup
-> ```
->
-> After installing one, run `/octo:setup` to verify everything works."
-
-**Scenario B: One provider working, one missing/partial**
-```
-CODEX_STATUS=ok
-CODEX_AUTH=oauth (or api-key)
-GEMINI_STATUS=missing (or ok with AUTH=none)
-```
-
-**Action:** IMMEDIATELY proceed with the user's task using the available provider. No need to announce setup status - just execute the task. The user doesn't care about which provider you're using, they just want their task done.
-
-**Scenario C: Both providers working**
-```
-CODEX_STATUS=ok
-CODEX_AUTH=oauth
-GEMINI_STATUS=ok
-GEMINI_AUTH=oauth
-```
-
-**Action:** IMMEDIATELY proceed with the user's task using both providers for comprehensive results. No need to announce setup status - just execute the task.
-
-### Step 3: Graceful Degradation
-
-If only ONE provider is available:
-- Automatically use that provider
-- Tasks that require multiple providers will adapt to use the single provider multiple times
-- Quality results are still achievable with one provider
-
-You do NOT need both providers to proceed. One is sufficient for most tasks.
-
-### Step 4: Cache Results (Optional Optimization)
-
-The detect-providers command writes results to `~/.claude-octopus/.provider-cache` with a timestamp. This cache is valid for 1 hour.
-
-If the cache exists and is fresh (<1 hour old), you can skip re-detection.
-
-### Step 5: Execute Task
-
-Only proceed when at least ONE provider is available and authenticated. Multi-provider tasks will automatically adapt to available providers.
-
-**IMPORTANT:** This detection is fast (~1 second) and non-blocking. Always verify provider availability before running octopus commands, but don't require BOTH providers - one is enough!
+The command writes `~/.claude-octopus/.provider-cache`. Reuse it for up to one hour; after that, run detection again.
 
 ## Double Diamond Workflow
 
@@ -441,7 +308,7 @@ Available providers each propose solutions, then critique each other's work. A s
 
 ```
 ┌─────────────┐     ┌─────────────┐
-│   Codex     │     │   Gemini    │
+│   Codex     │     │ Antigravity │
 │ (Proposer)  │     │ (Proposer)  │
 └──────┬──────┘     └──────┬──────┘
        │                   │
@@ -452,7 +319,7 @@ Available providers each propose solutions, then critique each other's work. A s
        │                   │
        ▼                   ▼
 ┌─────────────┐     ┌─────────────┐
-│  Gemini     │     │   Codex     │
+│ Antigravity │     │   Codex     │
 │ (Critic)    │     │  (Critic)   │
 └──────┬──────┘     └──────┬──────┘
        │                   │
@@ -479,7 +346,7 @@ ${HOME}/.claude-octopus/plugin/scripts/orchestrate.sh grapple --principles perfo
 
 *Octopus squeezes prey to test for weaknesses*
 
-Blue Team (Codex) implements secure code. Red Team (Gemini) attacks to find vulnerabilities. Then remediation and validation.
+Blue Team (Codex) implements secure code. Red Team (Antigravity) attacks to find vulnerabilities. Then remediation and validation.
 
 ```
 Phase 1: Blue Team implements secure solution
@@ -522,7 +389,7 @@ The `auto` command detects intent keywords and routes to the appropriate workflo
 | security audit, red team, pentest | `squeeze` | Red Team |
 | adversarial, cross-model, debate | `grapple` | Debate |
 | (other coding keywords) | `codex` agent | Single agent |
-| (other design keywords) | `gemini` agent | Single agent |
+| (other design keywords) | `agy` agent | Single agent |
 
 **Examples:**
 ```bash
@@ -561,7 +428,7 @@ The `tangle` phase enforces quality gates:
 
 | Command | Description |
 |---------|-------------|
-| `grapple <prompt>` | Codex vs Gemini debate until consensus |
+| `grapple <prompt>` | Codex vs Antigravity debate until consensus |
 | `grapple --principles TYPE <prompt>` | Debate with domain principles (security, performance, maintainability) |
 | `squeeze <prompt>` | Red Team security review (Blue Team vs Red Team) |
 
@@ -594,14 +461,14 @@ The `tangle` phase enforces quality gates:
 
 | Agent | Model | Best For |
 |-------|-------|----------|
-| `codex` | gpt-5.3-codex | Complex code, deep refactoring (premium default) |
-| `codex-standard` | gpt-5.2-codex | Standard tier implementation |
-| `codex-mini` | gpt-5.4-mini | Quick fixes, simple tasks |
-| `gemini` | gemini-3-pro-preview | Deep analysis, 1M context |
-| `gemini-fast` | gemini-3-flash-preview | Speed-critical tasks |
-| `gemini-image` | gemini-3-pro-image-preview | Image generation |
-| `codex-review` | gpt-5.2-codex | Code review mode |
+| `codex` | gpt-5.6-sol | Frontier implementation and independent review |
+| `codex-standard` | gpt-5.6-terra | Balanced implementation and review |
+| `codex-mini` | gpt-5.6-luna | Quick fixes, simple tasks |
+| `agy` | service-selected default | Deep analysis and external review |
+| `agy-research` | service-selected default | Research-focused Antigravity seat |
+| `codex-review` | gpt-5.6-sol | Code review mode |
 | `openrouter` | Various | Universal fallback (400+ models) |
+| `orcarouter` | Various | Universal fallback via OrcaRouter gateway |
 
 ## Provider-Aware Routing (v4.8)
 
@@ -612,9 +479,10 @@ Claude Octopus now intelligently routes tasks based on your subscription tiers a
 | Provider | Tiers | Monthly Cost | Capabilities |
 |----------|-------|--------------|--------------|
 | **Codex/OpenAI** | Free, Plus, Pro, API | $0-200 | code, chat, review |
-| **Gemini** | Free, Google One, Workspace, API | $0-20 or bundled | code, chat, vision, long-context (2M) |
+| **Antigravity** | Google access/subscription | Included with access | code, analysis, external review |
 | **Claude** | Pro, Max 5x, Max 20x, API | $20-200 | code, chat, analysis, long-context |
 | **OpenRouter** | Pay-per-use | Variable | 400+ models, routing variants |
+| **OrcaRouter** | Pay-per-use | Variable | Single gateway, namespaced model IDs |
 
 ### Cost Optimization Strategies
 
@@ -624,13 +492,13 @@ Claude Octopus now intelligently routes tasks based on your subscription tiers a
 | `cost-first` | Prefer cheapest capable provider |
 | `quality-first` | Prefer highest-tier provider |
 
-**Example:** If you have Google Workspace (bundled Gemini Pro), the system prefers Gemini for heavy analysis tasks since it's "free" with your work account.
+**Example:** If your Google seat includes Antigravity access, the system can prefer AGY for analysis without invoking the retired Gemini CLI.
 
 ### Routing CLI Flags
 
 ```bash
 # Force a specific provider
-${HOME}/.claude-octopus/plugin/scripts/orchestrate.sh --provider gemini auto "analyze code structure"
+${HOME}/.claude-octopus/plugin/scripts/orchestrate.sh --provider agy auto "analyze code structure"
 
 # Prefer cheapest option
 ${HOME}/.claude-octopus/plugin/scripts/orchestrate.sh --cost-first auto "research best practices"
@@ -666,15 +534,18 @@ providers:
     subscription_tier: "plus"    # free|plus|pro|api-only
     cost_tier: "low"             # free|low|medium|high|bundled|pay-per-use
 
-  gemini:
+  agy:
     installed: true
     auth_method: "oauth"
-    subscription_tier: "workspace"  # free|google-one|workspace|api-only
+    subscription_tier: "google"     # service-managed Google access
     cost_tier: "bundled"
 
   openrouter:
     enabled: false
     routing_preference: "default"   # default|nitro|floor
+
+  orcarouter:
+    enabled: false
 
 cost_optimization:
   strategy: "balanced"  # cost-first|quality-first|balanced
@@ -687,6 +558,18 @@ OpenRouter provides 400+ models as a universal fallback when direct external CLI
 ```bash
 # Set up OpenRouter API key
 export OPENROUTER_API_KEY="sk-or-..."
+
+# Re-run setup to configure
+${HOME}/.claude-octopus/plugin/scripts/orchestrate.sh setup
+```
+
+### OrcaRouter Fallback
+
+OrcaRouter provides a single gateway to many models as a universal fallback when direct external CLIs are unavailable:
+
+```bash
+# Set up OrcaRouter API key
+export ORCAROUTER_API_KEY="sk-orca-..."
 
 # Re-run setup to configure
 ${HOME}/.claude-octopus/plugin/scripts/orchestrate.sh setup
@@ -750,7 +633,7 @@ ${HOME}/.claude-octopus/plugin/scripts/orchestrate.sh embrace "Create a user not
 ### Pre-flight check fails
 ```bash
 ${HOME}/.claude-octopus/plugin/scripts/orchestrate.sh preflight
-# Verify: codex CLI, gemini CLI, OPENAI_API_KEY, GOOGLE_API_KEY
+# Verify: codex CLI, agy CLI, and task-relevant provider credentials
 ```
 
 ### Quality gate failures

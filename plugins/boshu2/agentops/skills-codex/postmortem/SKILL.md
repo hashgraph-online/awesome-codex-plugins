@@ -1,6 +1,6 @@
 ---
 name: postmortem
-description: Test an explicit retrospective causal
+description: 'Optionally test a retrospective causal Triggers: "postmortem", "causal retrospective", "test a retrospective hypothesis".'
 ---
 # Postmortem
 
@@ -10,7 +10,7 @@ description: Test an explicit retrospective causal
 ## Critical Constraints
 
 - Because proof and causal inference are different judgments, Postmortem is retrospective causal analysis, not the general learning umbrella and not a completion gate.
-- It consumes an immutable Validate verdict plus Learn receipt and does not re-run acceptance validation by default because Validate already owns that proof.
+- It consumes immutable Validate verdict evidence and does not re-run acceptance validation because Validate already owns that proof.
 - Treat causal statements as hypotheses because causal confidence must survive
   alternatives. Separate observed sequence, contributing conditions,
   counterfactuals, and unknowns.
@@ -24,7 +24,7 @@ description: Test an explicit retrospective causal
 
 ## Workflow
 
-1. Pin the verdict, Learn receipt, delivered artifact, and explicit causal
+1. Pin the verdict, subject evidence, and explicit causal
    question.
 2. Reconstruct the evidence-backed timeline without importing hidden author
    reasoning as fact.
@@ -36,14 +36,36 @@ description: Test an explicit retrospective causal
 6. Emit a report containing supported claims, rejected claims, unknowns,
    evidence references, and suggested experiments. Stop.
 
+## Correlation-to-cause discrimination
+
+A fix is proven when the mechanism is demonstrated, not when symptoms stop.
+Promoting a claim from correlation to cause requires all three:
+
+- a stated mechanism — the specific path by which the condition produced the
+  outcome, in terms a reader could check against the subject;
+- discriminating evidence — an observation that the mechanism predicts and at
+  least one plausible alternative does not;
+- a counterfactual test — what should have differed if the claim were false,
+  with the cited evidence showing it did differ.
+
+Symptom disappearance after a change satisfies none of these on its own: the
+change and the recovery may share an unobserved cause, or the symptom may be
+intermittent. The named failure mode is post-hoc fix attribution — "we
+changed X and the failure stopped, therefore X was the cause." Claims backed
+only by symptom cessation stay in the report as correlations with the
+untested alternatives listed, and the suggested experiment is the
+discrimination that would settle them. Stop condition: every supported causal
+claim in the report carries all three elements with citations; anything less
+is filed under correlations or unknowns, never silently promoted.
+
 ## Output Specification
 
-- **Artifact directory:** `.agents/council/`.
+- **Artifact directory:** `.agents/scratch/postmortem/`.
 - **Filename convention:** `YYYY-MM-DD-postmortem-<topic>.md`.
 - **Serialization/schema format:** Markdown with causal question, pinned inputs,
   timeline, hypotheses, evidence, counterfactuals, unknowns, and experiments.
 - **Validator command:** `bash skills/postmortem/scripts/validate.sh`.
-- **Downstream handoff:** Learn or the orchestrator may consume the analysis; they own
+- **Downstream handoff:** Learn or the caller may consume the analysis; they own
   any bookkeeping, promotion, planning, or delivery decision.
 
 ## Quality Checklist

@@ -1,6 +1,6 @@
 ---
 name: continuous-improvement-loop
-description: "Run Part 12 — the continuous improvement loop. Aggregates market + operating signals into product/offering recommendations. Runs alongside live operations, not as a one-time activity."
+description: "Run Part 12 of the engagement methodology — the continuous improvement loop that aggregates quarterly-review, customer-feedback, competitive, and operating signals into a Quarterly Product & Offering Improvement Brief for business leadership, plus fast 1-3 page ad-hoc briefs when a significant signal lands mid-quarter. Triggers on \"/digital-marketing-pro:continuous-improvement-loop\", \"run part 12\", \"produce the quarterly improvement brief\", \"aggregate this quarter's signals\", \"we need a fast read on this competitor move\". Flags v2.x update-back triggers but never auto-executes them. Reads monthly reports, signals.jsonl, /digital-marketing-pro:competitor-monitor outputs, and the Living Project Instruction File."
 user-invocable: true
 triggers:
   - run the continuous improvement loop
@@ -275,10 +275,10 @@ Skill response:
 5. Distribute per approval chain
 ```
 
-## Related skills
+## Related skills & agents
 
 - `engagement-workflow` — engagement orchestration
-- Existing skills: `competitor-monitor`, `performance-monitor-agent`, `intelligence-curator`, `quality-assurance`
+- Existing skills & agents: `competitor-monitor`, `performance-monitor-agent`, `intelligence-curator`, `quality-assurance`
 
 ## Related references
 

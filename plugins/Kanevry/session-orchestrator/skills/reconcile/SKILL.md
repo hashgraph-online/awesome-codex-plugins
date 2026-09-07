@@ -35,6 +35,16 @@ any file is written. Advisory-only — rules are NEVER auto-applied.
 - **Engine never writes `.claude/rules/`.** `runReconcile` computes proposals and records
   them in the idempotency sidecar only. The only module that writes `.claude/rules/` is
   `writer.mjs`, and only AFTER the operator approves proposals via AUQ.
+- **The candidate store belongs to `mergeCandidates` — nothing else writes it.**
+  `.orchestrator/runtime/reconcile-candidates.jsonl` is a mutable work-queue whose only
+  sanctioned writer is `mergeCandidates` (`scripts/lib/reconcile/idempotency.mjs`); it is
+  not a scratch pad, and no report, analysis run, or agent may append to it by hand. A
+  hand-written record there corrupts downstream readers — the session-start reconcile nudge
+  banner derives "last run" from `created_at`, so a foreign-shaped record makes a non-empty
+  store report *no reconcile run on record*. Candidate analyses and dry-run reports write
+  their findings to `docs/reconcile/<date>-<topic>.md`, never into the store. (Since
+  2026-07-31 a read-side shape guard drops records lacking `learning_key`/`created_at` and
+  `mergeCandidates` reports the count as `skipped` — that guard is a backstop, not a licence.)
 - **Same pipeline as session-end Phase 3.6.8.** This skill uses the identical engine and
   writer seams as the automatic session-end reconciliation phase — operator experience is
   consistent, and any fixes to the engine benefit both paths.
@@ -76,6 +86,7 @@ CONFIDENCE_FLOOR=$(echo "$CONFIG" | jq -r '.reconcile["confidence-floor"] // 0.5
 RECONCILE_MODE=$(echo "$CONFIG"   | jq -r '.reconcile.mode // "warn"')
 MIN_RULE_DAYS=$(echo "$CONFIG"    | jq -r '.reconcile["min-rule-days"] // 7')
 MIN_INSIGHT_CHARS=$(echo "$CONFIG" | jq -r '.reconcile["min-insight-chars"] // 24')
+MAX_PROPOSALS_PER_RUN=$(echo "$CONFIG" | jq -r '.reconcile["max-proposals-per-run"] // 10')
 ```
 
 When `RULE_EXPIRY_DAYS` is empty, pass `ruleExpiryDays: undefined` to `runReconcile` so the engine uses its per-type TTL. Defaults when the `reconcile` block is absent or a field is missing:
@@ -86,6 +97,8 @@ When `RULE_EXPIRY_DAYS` is empty, pass `ruleExpiryDays: undefined` to `runReconc
   near-dead or already-elapsed natural expiry never produces a born-dead rule (issue #741.1).
 - `min-insight-chars`: 24 — opt-in minimum insight length gating the eligibility
   placeholder-insight check (issue #741.2).
+- `max-proposals-per-run`: 10 — volume brake (issue #900 D); the engine sorts eligible
+  learnings by confidence DESC and proposes at most this many per run.
 
 Note: `reconcile.enabled` is intentionally NOT checked — this on-demand command always runs.
 
@@ -109,7 +122,38 @@ fi
 Resolve `$PLUGIN_ROOT` per `skills/_shared/config-reading.md` (the standard resolution chain:
 `$CLAUDE_PLUGIN_ROOT` → `$CODEX_PLUGIN_ROOT` → `$CURSOR_RULES_DIR` → common install locations).
 
-### 2.2 Invoke `runReconcile`
+### 2.2 Resolve the Effective Write-Targets
+
+`reconcile.targets` says WHERE approved rules land. Resolve it BEFORE surfacing
+the approval AUQ — the operator must never be asked to approve a write to a
+destination that cannot exist:
+
+```javascript
+import { resolveEffectiveTargets } from '$PLUGIN_ROOT/scripts/lib/reconcile/engine.mjs';
+
+const { targets, baselineRoot, dropped, reason } = resolveEffectiveTargets({
+  targets: CONFIG.reconcile?.targets,        // ['repo-local'] | ['baseline'] | both
+  baselineRoot: CONFIG['plan-baseline-path'], // already 3-tier-resolved by config.mjs
+});
+```
+
+| Target | Writes to | Root |
+|---|---|---|
+| `repo-local` (default) | `<repoRoot>/.claude/rules/<slug>.md` | `repoRoot` |
+| `baseline` (#1099) | `<baselineRoot>/proposals/<slug>.md` | `plan-baseline-path`, resolved `SO_BASELINE_PATH` env > `owner.yaml` `paths.baseline-path` > committed |
+
+`baseline` is DROPPED (with one stderr WARN, and `dropped: ['baseline']` in the
+return) when the root is unresolvable on all three tiers, is still the committed
+`OVERRIDE-IN-…` placeholder, or is not absolute. A dropped target means: do not
+surface its proposals in the AUQ at all. If `targets` comes back EMPTY, stop
+here and report the `reason` — there is nowhere to write.
+
+Writing to `baseline` is still advisory and AUQ-gated exactly like `repo-local`:
+files land under `proposals/` in the baseline checkout, nothing is committed
+there, and no branch is touched. The operator reviews and commits in that repo
+himself.
+
+### 2.3 Invoke `runReconcile`
 
 ```javascript
 import { runReconcile } from '$PLUGIN_ROOT/scripts/lib/reconcile/engine.mjs';
@@ -119,6 +163,7 @@ const { proposals, rejected, summary, error } = await runReconcile({
   ruleExpiryDays: RULE_EXPIRY_DAYS,   // empty → undefined → engine per-type TTL
   minRuleDays: MIN_RULE_DAYS,         // default 7 — floors a near-dead expires-at
   minInsightChars: MIN_INSIGHT_CHARS, // default 24 — opt-in placeholder-insight length gate
+  maxProposalsPerRun: MAX_PROPOSALS_PER_RUN, // default 10 — volume brake (issue #900 D)
   now: new Date(),
   dryRun: DRY_RUN,     // true → engine touches no disk (no idempotency sidecar write)
 });
@@ -163,7 +208,10 @@ List `rejected[].reason` and exit.
 
 **Only when `DRY_RUN=true`.**
 
-Print the proposals in a readable table. Do NOT write the sidecar, do NOT render an AUQ.
+Print the proposals in a readable table. Do NOT write the sidecar, do NOT render an AUQ, and
+do NOT write candidates into `.orchestrator/runtime/reconcile-candidates.jsonl` — that store
+is `mergeCandidates`' alone (see Posture Contract). A dry-run write-up belongs in
+`docs/reconcile/`.
 
 ```
 ## Reconcile — Dry Run  (N proposals, M rejected)
@@ -226,12 +274,12 @@ For each batch (proposals sliced into groups of 4):
 ```
 AskUserQuestion({
   questions: [{
-    question: "Which rule proposals should be written to .claude/rules/?  (batch K of N)",
-    header: "Reconcile — Approve Rule Proposals",
+    question: "Batch K of N — which rule proposals should be written into .claude/rules/?",
+    header: "Regeln",
     options: [
       {
         label: "<slug>.md (confidence: 0.72)",
-        description: "Learning: <learningKey> | Path: .claude/rules/<slug>.md | <first 100 chars of rendered content>"
+        description: "From learning <learningKey>. Becomes a file under .claude/rules/ — where this repo keeps its rules. Text: <first 100 chars of rendered content>"
       },
       ...up to 4 options per batch...
       {
@@ -265,11 +313,20 @@ const { written, archived, errors } = await writeApprovedRules({
   approved: approved,             // proposals the operator approved
   rejected: rejected_by_operator, // proposals the operator declined
   repoRoot,
+  baselineRoot,                   // from Phase 2.2; omit/undefined ⇒ baseline is a no-op
+  targets,                        // from Phase 2.2; omitted ⇒ ['repo-local']
   sessionId: currentSessionId,    // informational; from STATE.md or 'manual'
 });
 ```
 
 `writeApprovedRules` NEVER throws — per-item failures are collected in `errors[]`.
+
+`written` is a FILE count, not a proposal count: one proposal approved with both
+targets in effect writes two files and counts 2, while stamping the idempotency
+sidecar exactly once. A baseline root that does not exist on disk (the
+fresh-clone / CI case) skips that target with an `errors[]` entry — it is NEVER
+created, because a typo'd path that silently mints a directory tree looks
+exactly like a successful write.
 
 ### 6.2 Handle Errors
 
@@ -307,9 +364,9 @@ If `written === 0` and `approved.length === 0`:
   silently swallow failures.
 - **ALWAYS** present proposals in batches of ≤4 via AUQ multiSelect — mirrors session-end
   3.6.3 / 3.6.8 and keeps the operator prompt readable.
-- **ALWAYS** honour `confidence-floor`, `rule-expiry-days`, `min-rule-days`, and
-  `min-insight-chars` from Session Config `reconcile` block — the engine reads these, but
-  the skill must pass them explicitly.
+- **ALWAYS** honour `confidence-floor`, `rule-expiry-days`, `min-rule-days`,
+  `min-insight-chars`, and `max-proposals-per-run` from Session Config `reconcile` block —
+  the engine reads these, but the skill must pass them explicitly.
 
 ## Anti-Patterns
 

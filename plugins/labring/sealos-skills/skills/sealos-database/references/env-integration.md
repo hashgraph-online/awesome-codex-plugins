@@ -11,13 +11,13 @@ Prefer the project's existing convention:
 3. Framework-specific files such as `.dev.vars`, `.env.development`, or `apps/*/.env.local` when the code already reads them.
 4. `.env.example` only for placeholder documentation. Never write real secrets into example files.
 
-Before writing secrets, verify the file is ignored:
+Before writing connection data, verify the file is ignored:
 
 ```bash
 git check-ignore .env .env.local .env.development
 ```
 
-If the target file is tracked or not ignored, stop and choose an ignored local env file instead.
+If the target file is tracked or not ignored, stop and choose an ignored local env file instead. Record the selected file and key names; keep the old value out of reports.
 
 ## Env Key Mapping
 
@@ -54,7 +54,8 @@ For PostgreSQL, default the database path to `postgres` unless the project expli
 2. Replace only the selected key.
 3. If the key exists and has a non-empty value, preserve the old value in chat as "replaced existing local value" without printing it.
 4. Quote values only if the project's env files already use quotes or the value contains characters that the loader requires quoted.
-5. Never print the full resulting connection string in the final answer.
+5. Never print the full resulting connection string in the final answer or in a handoff artifact.
+6. Report only the env path, key name, replacement status, and verification category. Redact passwords, hosts when they identify private infrastructure, and complete connection strings.
 
 ## Verification
 
@@ -66,4 +67,4 @@ Use the project's own path:
 - Django: `python manage.py migrate --check` or `python manage.py migrate`.
 - Generic Node: run the app's smallest server/test script that opens a DB connection.
 
-If the app runs from the user's laptop and private Sealos endpoints are unreachable, ask before enabling public access with `sealos-cli database enable-public <name> -o json`.
+If the app runs from the user's laptop and private Sealos endpoints are unreachable, return `stopped` with the private endpoint failure and ask before enabling public access with `sealos-cli database enable-public <name> -o json`. Disable public access after the test when it is no longer needed.

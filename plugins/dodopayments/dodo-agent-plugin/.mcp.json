@@ -6,7 +6,7 @@
             "args": [
                 "-y",
                 "mcp-remote@latest",
-                "https://mcp.dodopayments.com/sse"
+                "https://mcp.dodopayments.com/mcp"
             ],
             "enabled": true
         },

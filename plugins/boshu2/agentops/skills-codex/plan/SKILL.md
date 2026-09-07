@@ -1,250 +1,90 @@
 ---
 name: plan
-description: 'Decompose intent into slices. Triggers: "$plan", "plan work", "decompose intent".'
+description: 'Shape or refine the existing bead or caller Triggers: "plan", "discover and plan", "shape this goal".'
 ---
+# Plan
 
-# $plan - Issue-Ready Decomposition
-
-> Quick ref: turn a goal or research artifact into `.agents/plans/*.md`,
-optional br issues, dependency waves, file ownership, and validation checks.
-
-**Execute this workflow. Do not only describe it.** Keep planning separate from
-implementation. A finished plan should let `$crank`, `$implement`, or a future
-Codex session execute without chat-only context.
-
-## Critical Constraints
-
-- **Why: avoid stale scope.** Verify inherited bead citations and goal-design packets before decomposition.
-- **Why: preserve behavior.** Each slice delivers one Given/When/Then behavior; separate refactors.
-- **Why: prevent collisions.** Same-wave writers need disjoint ownership, including generated companions.
-- **Why: keep acceptance executable.** Put Gherkin above fenced YAML criteria with runnable checks.
-- **Why: prevent rediscovery.** Cite and verify real paths, symbols, tests, counts, and reuse points.
-- **Why: preserve intent.** Keep WHAT and HOW separated; planning does not implement.
-- **Why: keep WIP pullable.** Goal and epic parents are aggregate demand, never writer WIP; keep one active leaf per writer and release it only after its terminal report.
-- **Why: make propagation finite.** A migration, rename, deletion, or ownership
-  transfer requires a command-bound [authority/consumer manifest](references/authority-consumer-manifest.md)
-  covering executable authorities, symbols, consumers, tests, generated
-  companions, runtime projections, evidence, and rollback before a slice is
-  admitted. The checker consumes independently captured inventory output as
-  data; it never executes a command string from the manifest.
-
-## Inputs And Flags
-
-Given `$plan <goal> [--auto]`:
-
-| Flag | Purpose |
-|------|---------|
-| `--auto` | Skip the human approval gate for `$rpi` and other autonomous chains |
-| `--fast-path` | Force the minimal 1-2 issue plan shape |
-| `--deep` | Force symbol-level/deep plan detail |
-| `--skip-symbol-check` | Skip symbol verification for greenfield plans |
-| `--skip-audit-gate` | Skip baseline audit gate for docs-only plans |
-
-If br is unavailable, still write the markdown plan in `.agents/plans/`.
-
-## Discovery Boundary
-
-Use the [Skill Ports and Adapters](../../docs/contracts/skill-ports-and-adapters.md)
-vocabulary for the boundary from Discovery into Plan:
-
-| Boundary piece | Plan contract |
-|---|---|
-| Inbound port | `plan_slices` from BDD intent, bead, research artifact, or execution packet |
-| Outbound ports | `persist_issue`, `verify_symbols`, `retrieve_context`, `seed_execution_packet` |
-| Driving adapter | `$plan` skill invocation |
-| Driven adapters | br, bv, `rg`, `.agents/findings`, `.agents/plans`, execution-packet writer |
-| Context packet | slice plan, file dependency matrix, acceptance criteria, test levels |
-| Guard adapter | stale-scope verification, symbol verification, wave-validity check |
-
-## Goal-Design Packet Input
-
-When the input is `.agents/goal-design/<slug>` or any directory containing
-`intent.md` and `driver.md`, run `scripts/check-goal-design-packet.sh <packet-dir>`
-before decomposition. Checker failure blocks planning.
-
-For a checker-clean packet:
-
-- Treat `driver.candidate_beads[]` as slice seeds.
-- Preserve each candidate `behavior` string and scenario ids exactly in the bead
-  `## Scenarios` block.
-- Map `first_failing_proof`, `write_scope`, and `close_signal` into the issue
-  acceptance criteria.
-- Carry `intent.boundaries.non_goals`, `rollback_or_containment`, and
-  `hard_rules` into the plan boundary section.
-- Do not create beads from a stale or unchecked packet.
+Turn the caller's intent into one bounded, testable behavior in the place that
+already owns the work. Prefer the caller's tracker, if any. When no durable
+tracker or issue reference is available, use the caller's conversation or
+supplied text; the runtime snapshots those resolved intent bytes so later
+contexts can read and hash the same source. Do not make the model restate those
+facts in a packet.
 
 ## Workflow
 
-1. **Pre-flight stale bead scope.** If the input is a bead ID and the work is
-   full-complexity, older than 7 days, or inherited from another session, run
-   `ao beads verify <bead-id>` before decomposition. Do not plan against stale
-   citations without revalidation.
-2. **Set up artifacts.** Create `.agents/plans/` and locate prior research,
-   handoffs, findings, planning rules, and relevant `.agents/` history.
-3. **Load prevention context.** Prefer `.agents/planning-rules/*.md`; fall back
-   to `.agents/findings/registry.jsonl`. Treat active findings as hard
-   planning context. Record applied finding IDs in the plan with an
-   `Applied findings:` line, even when the value is `none`.
-4. **Recommend a strategic challenge when warranted.** If the plan spans more than
-   one execution session and has at least one contested operator-default
-   decision, recommend `$dueling-idea-genies` and consume its
-   `idea-challenge.v1` packet as advisory Plan input. It never decides
-   readiness. Skip it for single-session or non-contested plans.
-   Evidence from the 2026-05-17 Mt Olympus run: roughly 22 min wall-clock,
-   3/5 operator defaults flipped, and one already-shipped adapter bug surfaced.
-5. **Explore only as needed.** If prior research does not provide enough file
-   and symbol detail, inspect the codebase or dispatch a bounded explorer.
-   Demand file inventory, symbol names, reuse points with `file:line`, test
-   locations, and package/import relationships.
-6. **Baseline audit.** Mechanically count the current state before making
-   quantitative claims: files, sections, LOC, tests, fixtures, schemas, and
-   any SKILL.md files near size limits. Record commands and results.
-   For a migration-shaped objective, write and check the authority/consumer
-   manifest now; an incomplete inventory fails closed.
-   Inventory facts are symbols too (2026-07-02, showcase kernel R10): any
-   count, file list, or "X is empty/absent" claim gets the same verification,
-   and consumers re-verify at the moment of use (`ls`/`jq`/`grep` cost
-   seconds) — three of nine independent review findings were plan facts stale
-   within the hour they were written. Search the skill/CLI corpus for each
-   major capability before scoping it as new: `ms search "<capability>"` (fast
-   path when available — `command -v ms`, or the `mcp__ms__search` tool is
-   attached; else grep `skills/**/SKILL.md` + `docs/SKILLS.md`); existing-skill
-   or `ao` command hits become **reuse** notes, not new beads.
-7. **Choose detail level.** Minimal for 1-2 simple issues, Standard for 3-6
-   issues, Deep for 7+ issues, broad refactors, or `--deep`.
-8. **Decompose into issues.** **Decompose by behavior, not by file or feature-
-   bundle (PR-010):** each slice delivers exactly one Given/When/Then behavior (a
-   small batch), and every refactor is its OWN slice — never folded into a feature
-   slice. Small batches + refactor-after-green are the load-bearing quality moves;
-   test-first *ordering* is not (Finster 2026, `skills/standards/references/agentic-workflow-evidence.md`).
-   Each issue needs title, file ownership,
-   dependencies, acceptance criteria, test levels (**throttled to stakes, PR-011:**
-   small/low-risk slices get L2 + L1 only; reserve full mutation/BF corpus for
-   critical/security/high-blast-radius slices — the over-testing tax), and at
-   least one mechanical
-   conformance check (`files_exist`, `content_check`, `command`, `tests`, or
-   `lint`). **Every bead MUST also carry an embedded `## Scenarios` Gherkin
-   block (Given/When/Then) — by default, without being asked.** Free-text-only
-   acceptance is invalid (AGENTS.md); promote any free text to scenarios before
-   creating the bead. The `## Scenarios` block is the behavior layer and sits
-   above the `acceptance_criteria` YAML (the machine-checkable layer); they are
-   complementary, never substitutes. Scenario granularity (one per distinct
-   Given/When/Then behavior) and the intent → Gherkin → executed-red → bead-DAG
-   contract are owned by `$behavior-first-planning`; this step states only the
-   plan-specific mechanics, not a restatement of the discipline.
-   Non-trivial plans and bead bodies should include the `hexagon:`
-   boundary block: inbound port, bounded context, adapters, context packet, and
-   done state.
-9. **Compute waves.** Group independent issues by dependency. Pull only one
-   vertical leaf into each writer's WIP slot. For migrations, use the checked
-   manifest result: only `disjoint` may be proposed as parallel, while `shared`
-   or `incomplete` is serialized. Include generated artifacts, docs, schemas,
-   fixtures, Codex companions, manifests, and hash markers in ownership.
-   Generated Artifact Companion Scope is mandatory: list every touched file,
-   including tests, docs, schemas, fixtures, runtime copies, parity manifests, hash markers,
-   and generated Codex artifacts. If skill behavior or runtime UX
-   changes, include `bash scripts/refresh-codex-artifacts.sh --scope worktree`
-   in verification.
-10. **Write the plan.** Use `.agents/plans/YYYY-MM-DD-<goal-slug>.md` and the
-   template in [references/plan-document-template.md](references/plan-document-template.md).
-11. **Create tracking tasks.** Prefer br issues with validation blocks and
-    dependency edges. If br is missing, leave the markdown plan as the durable
-    handoff.
-12. **Freeze and report.** Skip the human prompt only with `--auto`; otherwise
-    ask whether to proceed, revise, or return to research. Record the exact plan
-    path and SHA-256 for Premortem.
+1. Resolve the intent source and choose one active behavior. When that source
+   is not already durable, have the runtime pass its exact bytes to the
+   validate skill's `scripts/validate.py snapshot-intent --source -`, resolved
+   relative to wherever that skill package is installed (a repo checkout:
+   `skills/validate/scripts/validate.py`; an installed skill package:
+   `.agents/skills/validate/scripts/validate.py`), and use the returned
+   `intent_ref` for later phases.
+2. Route the work by type (see **Ground-truth routing**) and name its ground
+   truth first. Then inspect only enough real context to make paths, interfaces,
+   and evidence concrete: hydrate only the context sources this decision needs
+   and carry their citations forward. Existing research and specialist skills
+   are advisory inputs, never a merged context store.
+3. Ensure the source contains acceptance examples, important non-goals, and the
+   allowed write scope. Use lightweight prose or Given/When/Then only where it
+   removes ambiguity; do not require both normal and edge ceremony for every
+   change.
+4. Name the first useful acceptance check.
+5. If authorized and the source is writable, update that bead or issue in
+   place. Otherwise return a concise proposed amendment to the caller.
 
-## Required Plan Sections
+Planning produces no AgentOps packet. A durable caller-owned source stays in
+place; the runtime carries its reference and the digest of its exact resolved
+bytes to detect later acceptance drift. Only when no durable source exists does
+the runtime store those bytes under their digest as a content-addressed
+snapshot. That fallback is derived automatically and is not another
+model-authored planning artifact.
 
-Every non-trivial plan must include:
+Bound the work around the caller-visible outcome, not individual files, gates,
+or reviewer comments. Decomposition is useful only when it reduces reasoning
+cost; it must not multiply invocations or proof artifacts.
 
-- context and applied findings
-- files to modify
-- boundaries and non-goals
-- baseline audit evidence
-- issue list with acceptance criteria and validation
-- execution order/waves
-- file dependency matrix
-- file-conflict matrix
-- cross-wave shared file registry when applicable
-- planning rules compliance
-- verification commands
-- next steps
+## Scope admission
 
-Read [references/plan-document-template.md](references/plan-document-template.md)
-for the canonical shape.
+In a repository with generated projections, write scope names generator-owned
+outputs as a class — the hand-edited sources plus all outputs of the owning
+regen commands — never as a hand-enumerated path list. Hand enumeration is
+falsified the first time a regen command rewrites a companion the author did
+not list: the 2026-07-15 heal-skill fold burned two implement lanes and three
+intent revisions (`.agents/ao/intents/sha256/d1db59d4...2b81` superseded by
+`f5fd7c3c...af75` superseded by `26a4f2be...eb48`) before scope was restated
+as a class.
 
-## Codex Execution Profile
+Before freezing acceptance, run a complexity admission: enumerate the
+generated companions, parity twins (for example a `skills-codex/` mirror), and
+test files that assert on the paths being changed. Anything this pass finds
+that the scope does not admit will surface later as an out-of-scope diff or a
+broken gate.
 
-- Produce beads-ready issues, dependencies, and acceptance criteria.
-- Persist enough file-backed detail that future Codex sessions can pick them up without chat-only context.
-- Keep WHAT and HOW separated throughout the handoff.
+## Ground-truth routing
 
-## Guardrails
+Every plan needs a ground truth outside the planner's own reasoning. Before
+freezing acceptance, classify the work and name its ground truth, its control
+experiment, and its deviation ledger from the row below.
 
-- Keep WHAT and HOW distinct; do not implement while planning.
-- Prefer concrete file paths, symbol names, and validation commands over long
-  narrative.
-- Treat Codex companion files as part of the same issue when skill behavior or
-  runtime UX changes.
-- If a plan changes a schema with `additionalProperties: false`, put schema work
-  before consumers in an earlier wave.
-- If an acceptance criterion cannot be checked mechanically, mark it
-  underspecified before handing it to execution.
+| Work type | Ground truth | Control experiment | Deviation ledger |
+|---|---|---|---|
+| Integrate an external substrate, runtime, tracker, or service | the vendor's own docs plus stock behavior | run their vanilla quickstart on pinned versions with zero local code, before designing | each deviation from the documented flow, each justified; and every component you write that has a native counterpart in the substrate |
+| Extend this project | the repo's existing patterns and behavior spec | the simplest version that satisfies acceptance, and why it is insufficient | each novelty introduced — new abstraction, dependency, or pattern |
+| Greenfield | reference experience and domain prior art | a walking skeleton | each deviation from the boring default, ~one novelty per change |
 
-## Output Specification
+The Extend row is already the repo's default discipline: behavior-first
+acceptance, RED -> GREEN, the smallest real change. The Integrate row is the one
+that is cheap to skip and expensive to have skipped — run the stock control
+experiment *before* you design, or you will re-plumb what the substrate already
+documents and inherit bugs you built yourself.
 
-- **Path:** `.agents/plans/YYYY-MM-DD-<goal-slug>.md`; optional issues use the resolved br ledger.
-- **Filename:** the filename convention is ISO date plus stable goal slug.
-- **Format:** Markdown with Gherkin, fenced YAML criteria, issue IDs, dependencies, and file matrices.
-- **Validation command:** run `bash skills/plan/scripts/validate.sh` plus admission and symbol checks.
-- **Downstream handoff:** the exact plan path and SHA-256 go first to
-  `$premortem`; after its binary PASS, `$crank`, `$implement`, and future Codex
-  sessions may consume it.
+Trigger: the Integrate-row mechanics — the stock-quickstart control run and the
+deviation ledger from the documented flow — apply only to integration-class work
+(adopting or wiring in an external substrate, runtime, tracker, or service).
+Routine feature work on this project uses the Extend row and does not incur them.
 
-## Quality Rubric
-
-- Self-contained for a fresh implementer.
-- Behavior-sized and mapped to observable scenarios.
-- Grounded in verified paths, symbols, counts, and reuse points.
-- Conflict-safe with explicit ownership and wave dependencies.
-- Executable through named checks and evidence surfaces.
-- Honest about stale scope, missing research, and incomplete justifications.
-
-## Examples
-
-**User says:** `$plan "add rate limiting"`
-Produce a plan with file inventory, issues, validation, and wave order.
-
-**User says:** `$plan --auto ".agents/research/auth.md"`
-Use the research as input, write the plan, create tracking tasks when possible,
-and skip the approval gate.
-
-Read [references/examples.md](references/examples.md) for full examples.
-
-## Troubleshooting
-
-| Problem | Response |
-|---------|----------|
-| br is missing | Write the markdown plan and note that issue creation was skipped |
-| Prior research is thin | Explore enough to produce file and symbol evidence |
-| Same file appears in parallel issues | Serialize or merge those issues before handoff |
-| Baseline audit is missing | Mark the plan incomplete unless `--skip-audit-gate` is justified |
-
-## Reference Documents
-
-- [references/complexity-estimation.md](references/complexity-estimation.md)
-- [references/decomposition.md](references/decomposition.md)
-- [references/detail-templates.md](references/detail-templates.md)
-- [references/examples.md](references/examples.md)
-- [references/implementation-detail.md](references/implementation-detail.md)
-- [references/plan-document-template.md](references/plan-document-template.md)
-- [references/plan-mutations.md](references/plan-mutations.md)
-- [references/plan-to-beads-workflow.md](references/plan-to-beads-workflow.md)
-- [references/authority-consumer-manifest.md](references/authority-consumer-manifest.md)
-- [references/planning-rules.md](references/planning-rules.md)
-- [references/pre-decomposition.md](references/pre-decomposition.md)
-- [references/sdd-patterns.md](references/sdd-patterns.md)
-- [references/task-creation.md](references/task-creation.md)
-- [references/templates.md](references/templates.md)
-- [references/wave-matrices.md](references/wave-matrices.md)
+A plan is done only when it passes the fresh-context test: a cold context,
+given the intent source alone, could execute it without the author's
+conversation. If execution needs facts that live only in the planning
+conversation, move them into the source before freezing.

@@ -1,3 +1,0 @@
-interface:
-  display_name: "Claw"
-  short_description: "OpenClaw instance administration — manage hosts across macOS, Ubuntu/Debian, Docker, OCI, and Proxmox"

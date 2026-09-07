@@ -106,7 +106,7 @@ reason = "CI cleanup requires hard reset"
 expires = "2025-12-31"  # Optional expiration
 
 [[rules]]
-id = "core.filesystem:rm-rf-dangerous"
+id = "core.filesystem:rm-rf-general"
 path = "./build"  # Scope to specific path
 reason = "Build directory cleanup"
 ```
@@ -195,7 +195,7 @@ dcg-scan:
 
 DCG integrates with Claude Code via the PreToolUse hook:
 
-### Registration (~/.config/claude-code/settings.json)
+### Registration (~/.claude/settings.json)
 
 ```json
 {

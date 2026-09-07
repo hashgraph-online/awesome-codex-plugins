@@ -1,27 +1,47 @@
-# Image-First Discipline
+# Visual Reference Discipline
 
-Models build mediocre UI from a text prompt because prose underspecifies a layout — the gaps get filled with trained averages (centered dark hero, purple gradient, three equal cards). Fix it by committing to a concrete **visual target before coding**, so implementation becomes *translation* (high-fidelity, low-freedom) instead of *invention* (low-fidelity, infinite defaults).
+Use this reference for an approved new/redesigned direction or another materially changed visual claim when a generated, captured, sketched, or supplied visual reference will influence implementation. Do not use this reference to expand a narrow nonvisual change into visual work.
 
-## Order (mandatory for visually-important work)
+Inspect the project's current design source and representative surface first; they remain authoritative. A generated image, captured inspiration, or layout sketch is a scoped reference, never permission to replace existing brand, component, token, content, platform, accessibility, or behavior contracts. Ask the minimum necessary questions only when material unknowns would change the result, and batch independent unknowns. This reference does not make anti-slop or SEO applicable; SEO remains limited to the current crawlable public Web target or a distinct deployed public Web target in scope.
 
-1. **Secure a visual target.** In priority order:
-   - Generate the design image(s) with an image-generation tool if one is available in this runtime.
-   - Else capture a real reference site at a fixed viewport with the browser (reuse `superloopy-clone`'s computed-style + screenshot tooling).
-   - Else use a user-provided mock/Figma, or — last resort — an authored layout sketch.
-2. **Deep-analyze the target into a written spec.** Extract, enumerated: exact text/headlines/CTA wording, type scale + weight relationships, spacing/gutter rhythm, radius logic, button shapes/hierarchy, full color palette, grid logic, repeated motifs. This spec is the de-facto DESIGN.md (or its deltas) — write it to the evidence root.
-3. **Implement to match the spec**, not "inspired by" it.
-4. **Visual-QA compares the built UI back to the target** (Phase 3 of the skill).
+## Authority modes
 
-## Decomposition (when generating images)
+Classify the reference before using it:
 
-One image **per section**, never one compressed multi-section board — resolution budget per section is what keeps type, spacing, and component detail legible enough to extract faithfully. If a section is unclear, generate a fresh, closer image rather than cropping (cropping destroys spacing/scale relationships). Force a non-default composition: pick a deliberate hero architecture and section system; do not default to the left-text/right-image hero.
+- **Current-surface delta:** the existing product, implemented surface, and authoritative design source resolve the direction. Use the current state plus the changed visual claim as the target; do not generate replacement concepts merely to restyle a narrow delta.
+- **Exploratory direction:** concepts may explore hierarchy, density, atmosphere, and composition, but remain explicitly non-authoritative and cannot direct production implementation or count as quality evidence.
+- **Approved implementation reference:** a user, design owner, or established product source has approved the reference for a named target, state, and visual claim. Fidelity is an acceptance claim, subject to documented platform, content, accessibility, adaptive-layout, interaction, and performance changes.
 
-## Anti-drift implementation rules
+When a material visual-direction unknown cannot be resolved from existing evidence, exploration may precede implementation approval. Do not mistake producing an image for approving it.
 
-- Be visually faithful to the target, translated into real frontend — not a generic reinterpretation.
-- Do not simplify distinctive sections into default templates, collapse generous spacing, or swap a signature component for a plain row.
-- Every token still traces to DESIGN.md; the target sets the values, the contract enforces them.
+## Promotion to implementation authority
 
-## Degrade path (no imagegen available)
+Before an exploratory or external reference becomes an approved implementation reference, reconcile and record the task, audience, authoritative content and states, semantic order, spatial owners and constraints, target platform and inputs, accessibility boundaries, and the project's existing design authority. If layout is material, also apply `references/layout.md` before committing production visual implementation.
 
-If this runtime has no image-generation tool, do **not** skip the discipline — secure a reference site capture or a provided mock instead, and still produce the **written target spec** before coding. The value is the explicit, inspectable target; the generation method is interchangeable. Record the target (image, screenshot, or spec) as an artifact under `.superloopy/evidence/frontend/` so visual-QA has something to compare against.
+Write a scoped implement-versus-ignore handoff:
+
+- implement: approved hierarchy, composition, spacing relationships, media treatment, component emphasis, and state-specific visual intent;
+- adapt explicitly: platform conventions, real content, localization, text scaling, accessibility, interaction, performance, and supported target behavior; and
+- ignore: invented controls or data, unsupported claims, fake metrics, decorative artifacts, and details outside the approved visual claim.
+
+Use `DESIGN.md` only when already established as the source or as a synchronized scoped mapping/receipt linked to the real owner; never create a competing source.
+
+## Reference composition
+
+Choose the artifact shape that makes the claim inspectable. A full-surface reference can preserve overall relationships; section or component references can add detail; a labelled state or responsive board can compare several individually legible panels. Do not crop away spatial context required by the claim, and request a clearer source when text, state, or geometry cannot be read reliably.
+
+Generated-image text is not content or copy authority. Use approved product strings, localization keys, legal text, and content-owner decisions; otherwise label generated wording provisional and exclude it from fidelity scoring.
+
+For an external capture, record the actual representative target-derived viewport or window, environment, state, content, date, source, and permission. For native or embedded work, a browser reference never becomes native-behavior proof.
+
+## Implementation and evidence
+
+Implement against the approved handoff rather than an undefined impression. Record every intentional deviation and its owner. Compare the production result with the applicable target across the target-derived matrix, then separately prove behavior, accessibility, content, and performance claims.
+
+A generated image or screenshot is not proof of usability, accessibility, brand correctness, semantic order, or implementation correctness. Pixel similarity may locate differences but cannot decide whether task behavior, platform integration, reflow, localization, focus, or state truth is correct.
+
+A pixel-exact claim is meaningful only after recording the approved reference, named target and build, rendering environment, state and content, fonts and assets, comparison method, and project-specific tolerance. Without those criteria, treat the artifact as visual direction, not exactness acceptance. Do not invent one universal tolerance; accessibility, platform, content, and adaptive deviations remain separately owned even when the scoped fidelity comparison passes.
+
+## Degrade path
+
+No image-generation tool is required. Use the approved current surface, user-provided mock, authorized capture, authored sketch, or a low-fidelity prototype suited to the uncertainty. Store a visual artifact under the active evidence root only when the changed visual claim and proportional visual-QA gate require it.

@@ -13,13 +13,12 @@ wrapper - then bootstrap the lifecycle that keeps it current.
 **Announce at start:** "Using create-agent-onboarding to generate this repo's onboarding files."
 
 ## Runtime awareness
-The generation phases below are tool-agnostic and work when this skill runs under
-Claude Code, Codex, Copilot CLI, or any SKILL.md-compatible agent. Only Phase 6's
-hook/settings installation is Claude Code-specific: when there is no Claude Code
-hook runtime (no `.claude/` conventions in play and you are not Claude Code), skip
-the hook and settings steps, still install `AGENTS.md`, `CLAUDE.md`, `state.json`,
-and `config.json`, and tell the user drift triage is manual (run
-`update-agent-onboarding` after meaningful commits).
+The generation phases below are tool-agnostic and work under Claude Code, Codex,
+Copilot CLI, or any SKILL.md-compatible agent. Phase 6 installs repo-local hooks
+only for Claude Code. The Codex plugin supplies optional native hooks after `/hooks`
+trust review; copied standalone skills never install Codex settings. When hooks are
+disabled, unavailable, or untrusted, run `update-agent-onboarding` manually after
+meaningful commits.
 
 ## Phase 0: Pre-flight routing
 Inspect the repo root before generating anything:
@@ -61,6 +60,7 @@ into context at launch, so duplication doubles token cost for zero benefit.
   "claude_wrapper": "CLAUDE.md",
   "generated": "YYYY-MM-DD",
   "last_synced_commit": "<git rev-parse HEAD>",
+  "last_drift_classification": {},
   "receipts": [
   ]
 }
@@ -109,8 +109,8 @@ notes belong in the `CLAUDE.md` wrapper block.
 
 ## Phase 5: Token compression
 Compress the draft by following the `compress-onboarding` skill: level from
-`config.json` (`compression_level`, default `full`), Agent Guardrails and Escalation
-capped at `lite`, byte-preservation verified with
+`config.json` (`compression_level`, default `full`), high-consequence preservation
+and any per-region opt-in handled only by that skill, byte-preservation verified with
 `.aiboarding/tools/check-preservation`, receipt appended to `state.json`. Present the
 compressed document to the user for approval before writing it to the repo root.
 
@@ -125,16 +125,21 @@ running create twice must not duplicate hooks, settings entries, or fenced block
 2. **Write `CLAUDE.md`**: line one `@AGENTS.md`, then the Claude-notes block via
    `inject-fenced <repo>/CLAUDE.md claude-notes <notes-file>`. If `CLAUDE.md` exists,
    only add the import line (if absent) and the fenced block.
-3. **Write state and config**: `<repo>/.aiboarding/state.json` per the contract above
-   with `last_synced_commit` = current `git rev-parse HEAD`; copy
-   `templates/state/config.json` to `<repo>/.aiboarding/config.json` (keep an existing
-   config); copy `templates/state/dot-gitignore` to `<repo>/.aiboarding/.gitignore`.
+3. **Write config**: copy `templates/state/config.json` to
+   `<repo>/.aiboarding/config.json` (keep an existing config) and
+   `templates/state/dot-gitignore` to `<repo>/.aiboarding/.gitignore`. Defer the
+   initial `state.json` pointer until the Phase 7 validation record is persisted.
 4. **Copy hook scripts** *(Claude Code runtimes only)*: create
    `<repo>/.aiboarding/hooks/` and copy these six files from
    `<plugin-root>/templates/hooks/` verbatim: `run-hook.cmd`, `_lib`, `session-start`,
    `subagent-start`, `drift-check`, `instructions-loaded`.
 5. **Copy tools**: create `<repo>/.aiboarding/tools/` and copy `inject-fenced`,
-   `check-size-budget`, `check-preservation` from `<plugin-root>/templates/tools/`.
+   `check-size-budget`, `check-preservation`, `classify-drift`, and
+   `lifecycle-decision`, `audit-onboarding-evidence`, `verify-onboarding-mutations`, and `write-evidence`. Installed tools must
+   byte-match their `templates/tools/` sources.
+   Evidence is created lazily; inspect it directly at
+   `.aiboarding/evidence/v1/` by matching a record's `repository.head`, `type`, and
+   `outcome`—never add it to `state.json` or onboarding files.
 6. **Merge settings** *(Claude Code runtimes only)*: merge the `hooks` block of
    `<plugin-root>/templates/settings/hooks.json` into `<repo>/.claude/settings.json`,
    per top-level event. Before adding an entry, check for an existing aiboarding entry
@@ -147,14 +152,22 @@ running create twice must not duplicate hooks, settings entries, or fenced block
 Do not report success until every check passes; fix and re-check instead of skipping:
 1. `AGENTS.md` and `CLAUDE.md` exist; `CLAUDE.md` contains a line `@AGENTS.md`.
 2. No content duplication: the Claude-notes block must not restate `AGENTS.md` sections.
-3. `.aiboarding/tools/check-size-budget AGENTS.md` passes (no FAIL; resolve WARNs or
-   get the user's explicit OK).
+3. `.aiboarding/tools/check-size-budget AGENTS.md` passes as a local sensor (no FAIL;
+   resolve WARNs or get the user's explicit OK), and
+   `.aiboarding/tools/audit-onboarding-evidence <repo-root>` reports no Codex
+   project-chain failure.
 4. Every command quoted in `Build, Test, Run` and `Verification Before Completion`
    resolves against the repo (package scripts, Makefile targets, CI workflows, or a
    binary on PATH).
 5. `state.json:last_synced_commit` equals `git rev-parse HEAD`.
 6. On Claude Code: the settings merge contains exactly one aiboarding entry per event
    and no `pre-task`/`post-commit` references.
+
+After every required validator passes, write one compact `onboarding-validation`
+record with validator identities and repository-relative subjects using
+`.aiboarding/tools/write-evidence`; do not retain raw output. Recheck `HEAD`, then
+write the initial `state.json` with that exact `last_synced_commit`. If validation,
+evidence writing, or the head recheck fails, do not create or advance canonical state.
 
 Then report which files were created or updated and which hook entries were installed.
 On Windows without Git Bash, tell the user once: hooks will not fire (`run-hook.cmd`

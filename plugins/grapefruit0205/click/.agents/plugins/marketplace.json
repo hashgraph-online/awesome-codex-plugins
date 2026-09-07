@@ -1,0 +1,21 @@
+{
+  "name": "click",
+  "interface": {
+    "displayName": "Click"
+  },
+  "plugins": [
+    {
+      "name": "click",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/grapefruit0205/click.git",
+        "ref": "v0.50.0"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

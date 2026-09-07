@@ -1,6 +1,6 @@
 {
   "name": "brooks-lint",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "type": "module",
   "scripts": {
     "bump": "node scripts/bump-version.mjs",
@@ -12,6 +12,6 @@
     "history": "node scripts/history.mjs"
   },
   "devDependencies": {
-    "@anthropic-ai/sdk": "^0.52.0"
+    "@anthropic-ai/sdk": "0.52.0"
   }
 }

@@ -1,37 +1,45 @@
 # Claude Code Plugin for OpenAI Codex
 
-This is the portable Windows distribution of a Claude Code plugin for OpenAI Codex. It lets Codex
-check a local Anthropic Claude Code CLI, open the official Claude login page, and run safe,
-workspace-scoped Claude Code prompts.
-
-The plugin never includes Claude account credentials, API keys, tokens, or personal account data.
-Each recipient signs in through their own local Claude Code CLI.
+A lightweight local bridge from Codex to the user's authenticated Claude Code CLI. The plugin has
+no runtime dependencies and never stores Claude credentials, tokens, API keys, or account data.
 
 ## Install
 
-1. Extract the folder to a local directory.
-2. In PowerShell, run:
+From the repository root, run on Windows, macOS, or Linux:
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\install.ps1
+```bash
+node plugins/claude-code/scripts/install.mjs install
 ```
 
-Use `-Force` only when intentionally replacing an existing `claude-code` plugin installation. The
-optional `-DestinationRoot <path>` argument is useful for an isolated or test installation.
+Windows users can alternatively run:
 
-The installer requires Node.js, copies the plugin to `~/plugins/claude-code`, writes local MCP paths
-for that machine, and adds the plugin to the recipient's Personal marketplace.
+```powershell
+powershell -ExecutionPolicy Bypass -File .\plugins\claude-code\install.ps1
+```
+
+Use `update` or `uninstall` with the Node installer to perform those actions. The optional
+`--destination-root <path>` flag supports isolated test installations; `--force` explicitly
+replaces an existing installation.
+
+The installer copies the plugin to `~/plugins/claude-code`, writes machine-specific MCP paths, and
+adds the plugin to the Personal marketplace. Start a new Codex task after installation.
 
 ## Use
 
-Start a new Codex task, enable the plugin from the Personal marketplace if necessary, then use
-`claude_code_login` to authenticate the recipient's own Claude account.
+| Tool | Purpose |
+| --- | --- |
+| `claude_code_status` | Check local Claude Code installation and account readiness |
+| `claude_code_login` | Open the official Claude Code browser sign-in flow |
+| `claude_code_prompt` | Run workspace-scoped prompts in safe mode with `manual` or `plan` permissions |
 
-Available tools:
+Useful prompts:
 
-- `claude_code_status`: check Claude Code CLI installation, version, doctor output, and account readiness.
-- `claude_code_login`: open the official Claude Code sign-in flow.
-- `claude_code_prompt`: run Claude Code with safe mode in the current Codex workspace.
+```text
+Check my Claude Code account status.
+Open Claude Code login.
+Run Claude Code in plan mode and review this repository.
+Ask Claude Code for a second opinion about this implementation.
+```
 
-Search terms: Claude Code Codex plugin, Anthropic Claude CLI, Claude Code MCP server, Codex Personal
-marketplace plugin, OpenAI Codex developer tools.
+Claude Code owns its authentication state. This plugin only starts the local CLI and receives its
+normal command output.

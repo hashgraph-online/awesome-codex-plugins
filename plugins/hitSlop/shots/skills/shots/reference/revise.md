@@ -23,6 +23,9 @@ Ask only for missing details that affect the edit:
 ## Prompt Guidance
 
 Keep the approved campaign stable unless the user is explicitly changing it.
+Treat the user's revision feedback as critical and authoritative: preserve its
+exact wording in the edit request, let it override the source screenshot and
+all references, and never restore an element the user explicitly removes.
 Use the revision block in [prompting.md](prompting.md):
 
 - `Change`

@@ -52,6 +52,8 @@ These are passed via the conversation context (not a file). Parse the preceding 
 
 > Check this **before Step 0**. If the express path is active, this skill emits a minimal 1-wave plan and exits — no role decomposition, no wave splitting, no agent count computation.
 
+> Phase 8.5 of session-start hands off here NORMALLY when the express path activates — it does not skip session-plan (#1146). The banner below is printed by `node scripts/express-path.mjs`, and the 1-wave plan this section emits is the artifact `/go` detects.
+
 **Detect express-path activation:** Search the conversation context for the banner line:
 
 ```
@@ -136,11 +138,14 @@ Before assigning tasks to waves, discover available agents for this session:
    - Role keys: `impl`, `test`, `db`, `ui`, `security`, `compliance`, `docs`, `perf`
    - Example: `agent-mapping: { impl: code-editor, test: test-specialist, db: database-architect }`
    - If present, these explicit mappings take priority over auto-matching
+   - A value MAY carry a channel prefix: `session-orchestrator:<plugin-agent>` or `cursor:<model>` (foreign model, #1150). An unknown prefix is rejected fail-loud by `scripts/lib/config.mjs` at parse time — see `docs/session-config-reference.md` § `agent-mapping` values.
 
    **Validation:** If `agent-mapping` specifies an agent name, verify the agent exists:
    - For project agents: check `<state-dir>/agents/<name>.md` exists
    - For plugin agents: check the agent is registered (contains `:` separator)
-   - If the agent doesn't exist: warn the user and fall back to auto-discovery for that role
+   - For `cursor:<model>` (foreign channel): the existence check is on the CHANNEL, not the model — `cursor-agent` on `PATH` and logged in (`cursor-agent status`). The model string is free-form and is validated only at dispatch time, because the model catalogue lives outside this repo.
+   - If the agent doesn't exist — or the cursor channel is unavailable (binary missing / not logged in) — warn the user and fall back to auto-discovery for that role (same fallback shape in both cases; never hard-fail the plan)
+   - **Two constraints the plan must carry into the wave, both owned by `skills/wave-executor/wave-loop.md` § Third branch: foreign-model dispatch** (one place owns the contract — do not restate it here): a `cursor:<model>` mapping is INERT for any `never_foreign` role (impl-core, security-review, migration, release, secrets, incident, refactor-crosscut — the adapter refuses it), and every foreign run requires a MANDATORY Claude semantic diff-review before merge-back. Plan the review as work, not as a formality.
 
 3. **Build Agent Registry** (resolution priority):
    - **Priority 1**: Project agents (from `<state-dir>/agents/` — see Platform Note) — matched by name
@@ -180,7 +185,7 @@ For each task from Step 1, assign exactly one role. Use these signal-to-role map
 **Disambiguation rules:**
 - If a task involves BOTH exploration AND implementation → split it: Discovery agent reads/validates, Impl-Core agent implements. Create two separate task entries.
 - If a task is "fix something from a previous session" (not from this session's Impl-Core) → classify as **Impl-Core** (it is new work for this session).
-- If a task is "write tests for new feature code being built this session" → classify as **Quality** (not Impl-Core). Tests run after implementation.
+- A "write tests for new feature code being built this session" task is created ONLY when Discovery or a qa-strategist run reported a **named gap** — a concrete bug or regression the current suite would let through, stated as such. When that gap exists, classify the task as **Quality** (not Impl-Core); tests run after implementation. "Feature X was built" is NOT by itself evidence of test demand: with no named gap, no Quality task is created — do not synthesize one to give the role something to do. A dispatched `test-writer` may correspondingly report `no-tests-needed` as a SUCCESS status, not a failure.
 - If unsure between Impl-Core and Impl-Polish → if the task is on the critical path (other tasks depend on it), it is **Impl-Core**. If independent polish, it is **Impl-Polish**.
 - **Docs role** is only active when `docs-orchestrator.enabled: true` in Session Config. When disabled (default), documentation-update tasks fall into **Impl-Polish** (inline doc changes alongside code) or **Finalization** (standalone doc/SSOT updates) as today.
 
@@ -275,7 +280,7 @@ mission-status:
 - `status`: always `brainstormed` at plan emission. Terminal values are updated at gate transitions by wave-executor: `brainstormed` → `validated` (user confirms via `/go`) → `in-dev` (agent dispatched) → `testing` (Quality wave) → `completed` (Quality gate green). session-end Phase 1.9 reads the current value to classify the item.
 
 **Transition gates (summary):**
-At plan time, all items start at `brainstormed`. When the user runs `/go` to approve the plan, wave-executor updates each item to `validated`. When an agent for a wave-plan item is dispatched, wave-executor updates that item to `in-dev`. When the Quality wave begins, items from prior waves move to `testing`. When the Quality gate passes, items finalize at `completed`. Rollback to `brainstormed` is permitted from any state. All transitions are validated against the schema in `scripts/lib/mission-status-schema.mjs`.
+At plan time, all items start at `brainstormed`. When the user runs `/go` to approve the plan, wave-executor updates each item to `validated`. When an agent for a wave-plan item is dispatched, wave-executor updates that item to `in-dev`. When the Quality wave begins, items from prior waves move to `testing`. When the Quality gate passes, items finalize at `completed`. Rollback to `brainstormed` is permitted from any state. This ordering is **coordinator convention, not a mechanical gate** — nothing validates a transition before it is written (see "Default and transitions" below).
 
 **Omission rule:** When the plan has 0 wave-plan items (e.g., pure express-path coord-direct with no sub-agent tasks), do NOT emit the `### Wave-Plan Mission Status (machine-readable)` block.
 
@@ -298,7 +303,7 @@ Every wave-plan item carries a `status` field drawn from a 5-value enum. The fie
 - **Default at plan creation:** `brainstormed` — all items start here.
 - **Transitions are coordinator-level orchestration** (not inside individual agent prompts). See `skills/wave-executor/SKILL.md` "Mission-Status Updates (#340)" for when each transition fires.
 - **Rollback:** any item may return to `brainstormed` from any state (e.g. if work is discarded or re-planned).
-- **Schema validation:** transitions are validated against `scripts/lib/mission-status-schema.mjs` before being written to STATE.md.
+- **No mechanical validation — by design.** The `status` values come from the 5-value enum in the table above, but nothing checks a transition before it is written. `setMissionStatus` (`scripts/lib/state-md/mission-status.mjs`) mirrors whatever string it is handed onto BOTH the body section and the frontmatter array, deliberately without an enum gate: gating it would reintroduce the exact body-says-X/frontmatter-says-Y divergence that sync exists to remove. An out-of-enum value therefore lands visibly on both surfaces instead of being silently rejected on one. Keeping the enum honest is the coordinator's job.
 
 #### Status field in wave-plan items
 
@@ -359,7 +364,7 @@ When `docs-orchestrator.enabled: true`, apply the following concrete dispatch ru
 - Output: Validated understanding, updated task scope if discoveries warrant it
 - Tools: Read, Grep, Glob, Bash (read-only commands only) — do NOT use Edit or Write
 - Scope enforcement: set `allowedPaths` to `[]` (empty) for Discovery waves. Include in agent prompts: "You are READ-ONLY. Do NOT use Edit or Write tools."
-- Distributional claims MUST follow `.claude/rules/parallel-sessions.md` § PSA-006 — quote the executed grep pattern + file scope + count. Coordinators REJECT Discovery outputs that assert "N of M" or "100% of X" without a quoted grep transcript (deep-1647 W1-D3 incident class).
+- Distributional claims AND bare repo-state numbers MUST follow `.claude/rules/parallel-sessions.md` § PSA-006 — quote the executed command + file scope + count + WHEN it was measured. Coordinators REJECT Discovery outputs that assert "N of M" / "100% of X" (deep-1647 W1-D3 incident class) or a bare count like "14 commits" / "92 learnings" (#908) without that evidence. Discovery facts age: re-verify a count before re-briefing it into a later wave.
 
 **Impl-Core**
 - Full implementation agents with Write/Edit/Bash access
@@ -421,6 +426,10 @@ Score the session scope to determine optimal agent counts per wave. Skip for hou
 | housekeeping | (fixed) | — | 2 | 1 | 1 | 1 |
 
 > Housekeeping sessions skip Discovery (tasks are predefined) and use fixed agent counts regardless of complexity.
+
+> **The Quality column is a CAP, not a target.** Every other column sizes to briefed work; the Quality column historically sized to the tier alone, so capacity went looking for work (tests written because a slot existed, not because a gap was measured). Quality capacity must be EARNED by measured demand. Compute the effective count as `min(<tier cap>, ceil((HIGH + MED gaps from the most recent qa-strategist run) / 3))`.
+> - **0 HIGH and 0 MED gaps → the Quality role has 0 test-writing tasks**, and its wave is skipped by the Step 2 empty-role rule. This does NOT touch the read-only review panel (security-reviewer / qa-strategist / architect-reviewer) — that panel reviews, it does not write tests, and it keeps running as configured.
+> - **No qa-strategist signal at all** (no prior measurement this session): allocate a conservative 1-2 test-writers. Never spend the full tier cap blind — an unmeasured tier cap is a guess, and the guess has historically been too high.
 
 The `agents-per-wave` Session Config value caps the maximum regardless of tier.
 

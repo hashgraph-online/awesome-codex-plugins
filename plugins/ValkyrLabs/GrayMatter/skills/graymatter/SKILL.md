@@ -188,6 +188,8 @@ Readiness and auth:
 - `scripts/gm-status`
 
 Memory and graph helpers:
+- `scripts/gm-profile`
+- `scripts/gm-profile-lib`
 - `scripts/gm-invariant-preflight`
 - `scripts/gm-write`
 - `scripts/gm-client`
@@ -201,15 +203,17 @@ Memory and graph helpers:
 - `scripts/gm-replay-deferred`
 
 Local/server packaging:
+- `./vaix` generates, builds, tests, and runs GrayMatter Lite from source and installs missing private JDK/Maven/Node toolchains
 - `scripts/gm-light-bootstrap`
 - `scripts/gm-light-up`
 - `scripts/gm-light-env`
 - `scripts/gm-light-json-smoke`
+- `scripts/gm-knowledge-pack-import` verifies and imports a signed `.gmkp` archive into the downloadable H2-backed GrayMatter Light Local Server
 - `scripts/package-graymatter`
 - `scripts/package-local-server`
 
 MCP server:
-- `mcp-server/` exposes `memory_write`, `memory_read`, `memory_query`, `memory_retrieve_with_receipt`, `retrieval_receipt_get`, `retrieval_receipt_query`, `graph_get`, GrayMatter status/semantic/retrieval/activation/MCP-bundle tools, `graymatter_invariant_preflight`, `entity_list`, `entity_get`, `entity_create`, and `schema_summary`
+- `mcp-server/` exposes `memory_write`, `memory_read`, `memory_query`, `memory_retrieve_with_receipt`, high-level `omega_remember`, `omega_plan`, `omega_resolve_domains`, `omega_recall`, `omega_forget`, `omega_trajectory_get`, `omega_evaluate`, `omega_outcome`, and `omega_index_job`, `retrieval_receipt_get`, `retrieval_receipt_query`, `graph_get`, GrayMatter status/semantic/retrieval/activation/MCP-bundle tools, `graymatter_invariant_preflight`, `entity_list`, `entity_get`, `entity_create`, and `schema_summary`
 - set `VALKYR_API_BASE` to hosted api-0 for Cloud mode or to the running GrayMatter Light base URL for local ThorAPI mode
 
 Design boundary:
@@ -276,14 +280,19 @@ After that, GrayMatter is ready to use as primary durable memory and schema cont
 
 ## Startup and self-healing
 
+The MCP entrypoint is `scripts/gm-mcp-launcher`. It performs a bounded signed-release check, auth/connectivity check, conditional OpenAPI refresh, and authenticated tenant-context replay check before it execs Node. Startup failures are surfaced on stderr; the MCP protocol stream remains clean, and a valid stale schema is discovery-only.
+
 Every Codex/OpenClaw/agent process using GrayMatter should:
 
-1. run `scripts/gm-self-update maybe` on startup
-2. run `scripts/gm-activate` on first install, auth failure, suspicious transport behavior, or after a weekly refresh is due
+1. use `scripts/gm-mcp-launcher` for MCP startup
+2. run `scripts/gm-activate` on first install, auth failure, suspicious transport behavior, or after a refresh is due
 3. rely on `scripts/gm-login` to store reusable auth in the OS keychain when available
 4. let `scripts/graymatter_api.sh` and the MCP server refresh expired process-scoped auth automatically
-5. run `scripts/gm-doctor --quick` after startup, plugin updates, or suspicious auth/transport behavior
-6. run `scripts/gm-replay-deferred` after auth, credits, or connectivity are restored
+5. use `scripts/gm-openapi-sync` for online-first ETag validation; scoped metadata must report freshness, revision, API base, tenant/principal fingerprints, and document SHA-256
+6. run `scripts/gm-doctor --quick` after startup, plugin updates, or suspicious auth/transport behavior
+7. rely on bounded automatic replay after authenticated connectivity and
+   authorized tenant context are restored; use `scripts/gm-replay-deferred`
+   only for an explicit operator retry or verification
 
 User-facing progress should stay simple:
 
@@ -378,6 +387,17 @@ scripts/gm-entity Note POST '{"title":"Launch note","content":"GrayMatter launch
 ```
 
 ## Auth
+
+Named profiles use `scripts/gm-profile` without adding a server-side profile
+model. GrayMatter Lite has one local backend principal; the client can register
+that local Basic-auth endpoint beside hosted tenant accounts. `use` selects one
+identity for reads and writes. `blend` performs independent provenance-labeled
+reads across at least two profiles and blocks all writes until one profile is
+selected. MCP supports the same blended memory query/read/health subset and
+returns read-only recovery for mutating or unsupported tools.
+
+Local passwords remain in mode-0600 profile secret files; hosted tokens remain
+in Keychain. Neither secret is stored in `profiles.json`.
 
 `graymatter_api.sh` uses:
 - `VALKYR_API_BASE`, defaulting to `https://api-0.valkyrlabs.com/v1`

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Set Up Feishu/Lark"
+  short_description: "Install lark-cli and connect a Feishu account"
+  default_prompt: "Use $lark-setup to install lark-cli and connect my Feishu/Lark account."

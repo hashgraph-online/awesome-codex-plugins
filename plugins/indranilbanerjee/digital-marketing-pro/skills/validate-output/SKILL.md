@@ -1,6 +1,6 @@
 ---
 name: validate-output
-description: "Validate content structure. Use when: checking schema compliance, required sections, word count, or placeholders."
+description: "Validate marketing content against a structural schema — required sections, word counts, markdown formatting, placeholder text (TBD, lorem ipsum, unfilled variables), CTA-topic consistency, and SEO structure — returning a pass/fail checklist with fix instructions. Eight built-in schemas plus custom JSON schemas; auto-detects the schema when none is named. Triggers on \"/digital-marketing-pro:validate-output\", \"check this post against the blog schema\", \"is this email structurally ready to ship\", \"scan for leftover placeholders\", \"why does this draft feel incomplete\". Runs output-validator.py and reads brand templates and custom schemas; complements /digital-marketing-pro:eval-content, which judges quality rather than structure."
 ---
 
 # /digital-marketing-pro:validate-output
@@ -22,7 +22,7 @@ The user must provide (or will be prompted for):
 
 1. **Load brand context**: Read `~/.claude-marketing/brands/_active-brand.json` for the active slug, then load `~/.claude-marketing/brands/{slug}/profile.json`. Apply brand formatting standards and content requirements. Also check for guidelines at `~/.claude-marketing/brands/{slug}/guidelines/_manifest.json` — if present, load template definitions from `templates/` that may define brand-specific required sections, word count ranges, and formatting rules. Check for custom schemas at `~/.claude-marketing/brands/{slug}/schemas/`. Check for agency SOPs at `~/.claude-marketing/sops/`. If no brand exists, ask: "Set up a brand first (/digital-marketing-pro:brand-setup)?" — or proceed with defaults.
 2. **Determine schema**: If a schema name or file was provided, use it directly. If not, execute `scripts/output-validator.py --action list-schemas` to get all available schemas, then select the most appropriate one based on content characteristics (length, structure, formatting patterns). Report which schema was selected and why, so the user can override if the selection was wrong.
-3. **Run structural validation**: Execute `scripts/output-validator.py --action validate --text "{content}" --schema {schema_name_or_path}`. The validator checks:
+3. **Run structural validation**: Execute `scripts/output-validator.py --action validate --text "{content}" --schema {builtin_schema_name}` for one of the eight built-in schemas, or `--custom-schema {path/to/schema.json}` for a custom schema file (the two flags are distinct — `--schema` takes a built-in name only, `--custom-schema` takes a file path). The validator checks:
    - **Required sections**: All sections defined in the schema are present with appropriate headings. For each missing section, identify what is expected and where it should appear in the content structure
    - **Word count**: Total word count and per-section word counts fall within the schema-defined ranges. Flag both under-count (too thin, lacking depth) and over-count (too long, needs trimming)
    - **Formatting compliance**: Markdown heading hierarchy is correct (no skipped levels), lists are properly formatted, links are valid syntax, images have alt text, code blocks are closed, and tables render correctly

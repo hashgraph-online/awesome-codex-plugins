@@ -1,8 +1,4 @@
-# Executable spec for the /scaffold skill — project/component/CI scaffolding (BC3 Loop).
-# /scaffold generates new-project structure, components, and CI pipelines from a single
-# entry point, and backs domain-slice scaffolding with `/scaffold domain <name>`
-# (there is no `ao scaffold` subcommand). Hexagon: supporting; consumes: a scaffold
-# target (language/component/CI/domain); produces: project files + directory structure. (soc-qk4b)
+# Executable spec for bounded project/component/CI scaffolding.
 
 Feature: Scaffold generates project, component, and CI structure
   As a developer starting new work
@@ -24,6 +20,7 @@ Feature: Scaffold generates project, component, and CI structure
     When "/scaffold ci <platform>" runs
     Then it sets up the CI pipeline for that platform
 
-  Scenario: Domain-slice scaffolding routes through the skill
-    When domain scaffolding is requested
-    Then it writes the domain-slice manifest rather than calling a non-existent "ao scaffold" command
+  Scenario: Existing paths are preserved
+    Given the requested target contains an existing file
+    When scaffolding runs without explicit overwrite authorization
+    Then the existing file is not replaced

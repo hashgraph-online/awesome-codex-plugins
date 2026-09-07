@@ -1,6 +1,6 @@
 # learn
 
-Consume an immutable Validate verdict and emit evidence-bound bookkeeping. Triggers: "learn", "consume a validation verdict", "record observations".
+Optionally analyze collections of durable verdicts for recurring evidence after the critical path. Triggers: "learn from verdicts", "mine validation history".
 
 ## Instructions
 

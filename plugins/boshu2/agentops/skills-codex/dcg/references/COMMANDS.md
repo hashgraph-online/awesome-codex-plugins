@@ -26,11 +26,11 @@ DCG Doctor
 ══════════════════════════════════════════════════
 
 Binary:
-  ✓ dcg version 0.8.2 (built 2025-01-15)
+  ✓ dcg version 0.5.6
   ✓ Located at /usr/local/bin/dcg
 
 Hook Registration:
-  ✓ Claude Code hook registered in ~/.config/claude-code/settings.json
+  ✓ Claude Code hook registered in ~/.claude/settings.json
   ✓ Hook path: /usr/local/bin/dcg hook
 
 Configuration:
@@ -100,13 +100,19 @@ Dry-run evaluation without executing.
 $ dcg test "rm -rf /home/user/project"
 WOULD BE BLOCKED
 
-Rule: core.filesystem:rm-rf-dangerous
-Reason: Recursive deletion of non-temporary path
+Rule: core.filesystem:rm-rf-root-home
+Reason: Recursive deletion of an absolute non-temporary path
 
 $ dcg test "rm -rf ./build"
+WOULD BE BLOCKED
+
+Rule: core.filesystem:rm-rf-general
+Reason: Recursive deletion of a relative non-temporary path
+
+$ dcg test "rm -rf /tmp/build"
 WOULD BE ALLOWED
 
-Context: Relative path in current directory considered safe
+Context: paths under /tmp, /private/tmp, and $TMPDIR are in the temp carve-out
 ```
 
 **Use when:** Checking before running something you're unsure about.
@@ -147,7 +153,7 @@ Manage permanent exceptions.
 $ dcg allowlist add core.git:reset-hard -r "CI cleanup requires this"
 
 # Add with scope
-$ dcg allowlist add core.filesystem:rm-rf-dangerous \
+$ dcg allowlist add core.filesystem:rm-rf-root-home \
     --path "/home/user/project/build" \
     -r "Build directory cleanup"
 
@@ -157,7 +163,7 @@ $ dcg allowlist list
 │ Rule ID                          │ Scope                      │ Reason                  │
 ├──────────────────────────────────┼────────────────────────────┼─────────────────────────┤
 │ core.git:reset-hard              │ global                     │ CI cleanup requires     │
-│ core.filesystem:rm-rf-dangerous  │ /home/user/project/build   │ Build directory cleanup │
+│ core.filesystem:rm-rf-root-home  │ /home/user/project/build   │ Build directory cleanup │
 └──────────────────────────────────┴────────────────────────────┴─────────────────────────┘
 
 # Remove entry
@@ -253,14 +259,14 @@ Self-update to latest version.
 
 ```bash
 $ dcg update
-Current version: 0.8.1
-Latest version: 0.8.2
+Current version: <installed>
+Latest version: <latest>
 
 Downloading...
 Verifying signature...
 Installing...
 
-Updated to 0.8.2
+Updated to <latest>
 ```
 
 ---

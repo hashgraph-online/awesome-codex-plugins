@@ -129,7 +129,7 @@ Regions are organized in a three-tier hierarchy: **Region** → **Market** → *
 - Quiet hours for SMS/push: 9 PM - 8 AM local time (never send during quiet hours)
 - South Korea nighttime marketing restriction: 9 PM - 8 AM local (legal requirement under PIPA)
 - Cross-region campaigns: schedule per-region deliveries at each region's optimal time
-- Use `send-time-optimizer.py --brand {slug} --region {region}` for timezone-adjusted recommendations
+- Use `send-time-optimizer.py --industry {industry} --audience-type {type} --timezone {offset}` for timezone-adjusted recommendations (add `--history {file}` when the region's send log exists — first-party beats baseline)
 
 ---
 

@@ -194,7 +194,7 @@ Status: Implemented in modules/generate.md
 ```yaml
 Implementation: modules/generate.md - Output Files
 Auto-Generate:
- - .env.docker.local with test secrets (32+ char random)
+ - .env.docker.local with placeholder keys only; keep secret values outside generated artifacts
  - docker-entrypoint.sh with migration logic
  - DOCKER.md with deployment guide
  - All supporting documentation

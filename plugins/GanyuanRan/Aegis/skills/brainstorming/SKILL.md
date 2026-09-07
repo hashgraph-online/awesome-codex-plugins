@@ -1,7 +1,16 @@
 ---
 name: brainstorming
-description: "Use when defining new features, product behavior, UI/component design, architecture choices, contract changes, or ambiguous medium/high-complexity work before implementation, or when the user asks to grill or pressure-test a plan or design."
+description: "Use when defining ambiguous or high-complexity new features, product behavior, UI/component design, architecture choices, contract changes, or when grilling/pressure-testing a plan or design. Routine small requests stay on the fast path."
 ---
+
+<EXPLICIT-MODE-GATE>
+If activation mode is explicit (`~/.config/aegis/config.toml` has
+`activation_mode = "explicit"`, or `AEGIS_ACTIVATION_MODE=explicit` is visible
+in the environment) and the current user request did not explicitly invoke
+Aegis or this skill by name, exit back to the fast path: answer concisely
+without this workflow's checklist, ceremony, or document requirements. If the
+user explicitly named Aegis or this skill, proceed normally.
+</EXPLICIT-MODE-GATE>
 
 # Execute
 
@@ -13,6 +22,22 @@ description: "Use when defining new features, product behavior, UI/component des
   4. Present design sections → get user approval after each
   5. Write spec → self-review → user review → transition to writing-plans
 → HARD GATE: For tasks that match this skill, do NOT write code, scaffold projects, or invoke implementation skills until design/spec approval is satisfied.
+
+## Route Fixtures
+
+These rows are calibration expectations for method behavior, not a runtime
+regex router. The Agent selects the route from evidence; route selection is
+not a user question.
+
+| Scenario | Route |
+| --- | --- |
+| 想法还没想清楚，先梳理功能设计 | normal brainstorming, compact output first |
+| 讨论公共 API 契约和兼容边界 | normal brainstorming, design sections before implementation |
+| 盘问/拷问/审问这个方案，不要顺着我 | `Grilling Mode` |
+| 修复登录按钮的空指针 | `systematic-debugging` |
+| review 当前 PR / diff / 当前代码 | `requesting-code-review` |
+| 给我一个有目标的方案 | `goal-framing` when goal intent is explicit; otherwise normal brainstorming |
+| 把按钮文案从保存改成提交 | fast-path; no design ceremony |
 
 # Brainstorming Ideas Into Designs
 
@@ -58,29 +83,100 @@ Pace: deep (default) | fast (user-requested)
 1. Explore the codebase and current authority docs for facts before asking. Do not ask the user for facts that can be found locally.
 2. The user owns the decision. Do not treat a recommendation, a tentative answer, or a shared-understanding checkpoint as final approval.
 3. Aside from the one-time opening card, keep the turn to the observation, recommendation, and the selected pace's questions. Do not emit a full design ceremony, write docs, create a plan, or implement while the interview is active.
-4. End when the user says to stop, defer, or that the questions are sufficient. Summarize confirmed decisions, assumptions, unresolved questions, and the next optional step. That summary does not grant completion authority.
+4. End when the user says to stop, defer, or that the questions are sufficient. Reconfirm in a structured `Challenge Result`. That summary does not grant completion authority.
+
+```text
+Challenge Result
+- Survived assumptions
+- Rejected assumptions
+- New evidence needed
+- Design changes required
+- Residual risks
+- Return state: interview | design | approaches | writing-plans
+```
 5. If the user asks to proceed after the interview, return to the normal brainstorming design gate. A design/spec still needs the required approval before planning or implementation.
 
-## Route Away When It Is Small
+## Route Away / Doc Necessity Gate
 
-Do not force this workflow onto low-complexity work. A tiny wording edit,
-single-owner bug fix, simple config/status question, or local utility change
-can proceed through concise intent, baseline check, TDD/debugging, and
-verification. If uncertainty or impact grows, escalate back here and write the
-smallest stabilizing spec.
+Do not force this workflow onto low-complexity work. A tiny
+wording edit, single-owner bug fix, simple config/status question, local
+utility change, or mechanical multi-file change can proceed through concise
+intent, baseline check, TDD/debugging, and verification without any new
+document. Run the Doc Necessity Gate before writing any spec, plan, ADR, or
+baseline artifact:
+
+1. Does an existing spec/plan/ADR/baseline already cover this change surface?
+   -> Update that owner document in place; never create a sibling document.
+2. Is the surface durable/irreversible (schema, public API, owner, dependency
+   direction, migration, compat-path retirement), cross-session/cross-person
+   handoff, approval-gated, or authority-required?
+   -> Yes: write the smallest artifact for that surface (see Documentation).
+   -> No: write no document; keep compact drafts in-session.
+3. Re-check at edit time and at closeout; escalate to the smallest stabilizing
+   spec if uncertainty or impact grows.
+
+### Route Precedence
+
+1. Route-away cases leave this workflow first (`systematic-debugging`,
+   `requesting-code-review`, `goal-framing` when goal intent is explicit,
+   fast-path micro-tasks).
+2. `Grilling Mode` requires explicit challenge intent. Ordinary discussion,
+   evaluation, or the need to clarify understanding is not grilling.
+3. Otherwise run the normal brainstorming flow and escalate depth on evidence:
+   contracts, owners, persistence, migration, security, consumer count, or
+   blast radius. Escalate after evidence, not merely because the first
+   request sounds ambitious.
+4. File count alone is not a design signal: a mechanical multi-file change
+   can still be fast-path, and a one-file contract change can still be full
+   design.
+
+## Role And Authority Contract
+
+### Agent-owned decisions
+
+Resolve these directly without asking the user:
+
+- repository investigation strategy and evidence gathering order
+- file and function organization inside an accepted owner
+- testing commands and proportional verification mechanics
+- inline versus subagent execution when policy already allows it
+- reversible implementation structure that does not change product behavior,
+  contract, authority, or durable boundaries
+
+### User-owned decisions
+
+Ask the user only for:
+
+- product behavior or preference
+- irreversible, destructive, external, public, production, or sensitive impact
+- explicit product/contract commitments only the user can make
+- necessary information unavailable from repository, tools, and authority docs
+
+Every user question must pass this test:
+
+> If the user chooses another answer, which design boundary, behavior, owner,
+> acceptance criterion, or risk decision changes?
+
+If none changes, do not ask. When a question passes this test,
+attach a recommended option and the reason for it, so the user decides
+between framed choices instead of researching. This classification clarifies which decisions
+are user-owned; it does not remove the approval points this workflow already
+defines.
 
 ## Checklist
 
 You MUST create a task for each of these items and complete them in order:
 
-1. **Explore project context** — check files, docs, recent commits, authority docs, CONTEXT.md
+1. **Explore project context** — check files, docs, recent commits, authority
+   docs, and passively consume relevant active `CONTEXT.md` language without
+   loading active modeling
 2. **Choose the path and scope** — real design? diagnosis? route accordingly or decompose first
 3. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
 4. **Draft working artifacts** — `TaskIntentDraft`, `BaselineReadSetHint`, `BaselineUsageDraft`, `ImpactStatementDraft`
 5. **Run existence check when adding new surfaces** — only if an approach adds a new owner, skill, artifact, adapter, fallback, workflow step, or benchmark metric
 6. **Propose 2-3 approaches** — with trade-offs and your recommendation
 7. **Present design** — in sections scaled to complexity, get user approval where required
-8. **Write spec artifact** — save a Spec Brief or Design Spec under `docs/aegis/specs/` when persistent requirements are needed
+8. **Write spec artifact** — only after the Doc Necessity Gate passes and no existing owner spec/plan covers the surface; if covered, update that document instead of creating a sibling
 9. **Spec self-review** — check for placeholders, contradictions, ambiguity, scope, boundary
 10. **User reviews written spec** — ask user to review before proceeding
 11. **Transition to implementation** — invoke writing-plans skill (terminal state)
@@ -92,6 +188,9 @@ You MUST create a task for each of these items and complete them in order:
 **Understanding the idea:**
 - Check current project state first (files, docs, recent commits)
 - Read relevant authority docs before asking deep questions
+- Use existing canonical terms in questions, options, scenarios, and the spec.
+  If terminology crystallizes or conflicts, compose
+  `establishing-project-context`; do not leave the resolution only in the spec.
 - If the request is diagnosis/root-cause/follow-up to an approved plan → route to correct workflow
 - If the request spans multiple independent subsystems → flag and decompose first
 - Ask clarifying questions one at a time, prefer multiple choice
@@ -108,8 +207,8 @@ non-goals). Refresh when scope changes.
 **Compact output contract:** `Aegis Visibility`, `TaskIntentDraft`, `BaselineReadSetHint`,
 `BaselineUsageDraft`, `Requirement Ready Check`, `ImpactStatementDraft`,
 `Existence Check`, `Product Risk Lens`, `Architecture Integrity Lens`,
-`Baseline Role Alignment`, `Plan-Time Complexity Check`, `Options`, and
-`Decision Needed`. Use this compact shape before expanding into a full design
+`Prior-Art & Reuse Lens`, `Baseline Role Alignment`, `Plan-Time Complexity
+Check`, `Options`, and `Decision Needed`. Use this compact shape before expanding into a full design
 structure.
 
 `Aegis Visibility` for this workflow names why design/spec clarification comes
@@ -236,6 +335,31 @@ answer invariant, canonical owner / contract, responsibility overlap,
 higher-level simplification, retirement / falsifier, and verdict before the
 approach is recommended.
 
+**Prior-Art & Reuse Lens:** When a candidate approach would introduce a new
+mechanism, protocol, artifact shape, or nontrivial interaction pattern, check
+proven external practice before inventing one. This lens is behavior-triggered:
+research precedents when the direction is novel for the project, plausible
+approaches remain after internal reuse checks, or the domain sits outside
+current repository evidence. Do not run research ceremony for routine work that
+already maps to well-known framework patterns, and do not let an unavailable
+web/search tool stall approach selection.
+
+```text
+Prior-Art & Reuse Lens:
+- Searched precedents: <bounded sources; index-first summary; cite anchor per claim>
+- Adopt verbatim: <proven pattern + source>
+- Adapt with reason: <tailored part -> project constraint / non-negotiable it maps to>
+- Reject with reason: <project fact that makes the pattern inapplicable>
+- Degraded: <no web/search tooling -> external basis unknown; internal-only evidence stated>
+```
+
+Search results are evidence candidates, not prompt payload: summarize
+index-first and cite anchors instead of pasting raw pages. An "industry
+standard" claim without a citable anchor stays `unknown`. Every adapt/reject
+decision binds to a named project constraint or fact, not taste. The lens feeds
+only the approach recommendation; it stays advisory and grants no completion
+authority.
+
 **Baseline Role Alignment:** When a question may involve both "what should be
 built" and "where it should live", keep requirement truth separate from
 architecture truth:
@@ -269,6 +393,77 @@ create accepted architecture memory from unexecuted ideas.
 
 **Existing codebases:** Follow existing patterns. Include targeted improvements only when they serve the current goal. If the design touches contracts, compat, fallbacks, or duplicated owners → call it out directly.
 
+## Design Probe
+
+A probe is allowed only when it can change the design direction and existing
+repository evidence is insufficient:
+
+```text
+Design Probe
+- Question
+- Expected decision impact
+- Target and effect boundary
+- Why existing evidence is insufficient
+- Stop condition
+- Evidence produced
+- Cleanup
+```
+
+Prefer read-only execution. A disposable probe must not create a maintained
+owner, public contract, compatibility promise, or hidden persistence path. It
+is design evidence, not delivered implementation.
+
+## Software Scenario Profiles
+
+Apply only the relevant profile instead of loading every lens for every task:
+
+- `greenfield-feature`: value, smallest deliverable behavior, minimum owner,
+  acceptance, explicit future non-goals;
+- `existing-system-change`: current state, target state, the delta between
+  them, preserved invariants, callers, migration, and retirement;
+- `refactor`: preserved observable behavior, owner/coupling defect, dependency
+  direction, old-path retirement, behavior-preservation evidence;
+- `public-contract`: consumers, versioning, precedence, errors, compatibility,
+  migration, negative cases;
+- `persistence-migration`: data owner, schema evolution, partial migration,
+  crash recovery, backup/rollback, read/write cutover;
+- `ui-workflow`: user journey and loading/empty/error/partial/success/cancel/
+  retry states, accessibility, irreversible actions, recovery;
+- `security-permission`: trust boundary, attacker capability, authority owner,
+  sensitive data, downgrade/revocation, safe failure, auditability;
+- `operational-release`: deployment boundary, observability, partial rollout,
+  rollback, compatibility window, operator recovery.
+
+## Design Ready And Design Complete
+
+Approach selection is ready when:
+
+- the desired outcome and primary scenario are known;
+- scope and non-goals are explicit;
+- current behavior and the target delta are grounded;
+- key invariants and the likely canonical owner are identified;
+- at least one observable acceptance criterion exists;
+- no open unknown can still change the approach category.
+
+Not every unknown must be eliminated; only decision-changing unknowns block
+convergence.
+
+The design can hand off when all applicable conditions hold:
+
+- the selected approach and canonical owner are explicit;
+- fixed behavior/contract and implementation-owned choices are separated;
+- alternatives were materially compared or excluded by evidence;
+- critical assumptions have evidence or explicit acceptance;
+- failure/recovery and consumer impact are covered where applicable;
+- acceptance criteria are observable and usable by verification;
+- new owners, fallbacks, adapters, compatibility, or persistence have creation
+  proof and retirement/rollback treatment;
+- every user-owned decision has real user approval.
+
+Design Complete is method readiness, not completion authority. Transition to
+writing-plans only after these conditions hold; do not carry unresolved
+decision-changing unknowns into the plan.
+
 ## After the Design
 
 **Documentation:**
@@ -294,7 +489,9 @@ create accepted architecture memory from unexecuted ideas.
    - Design Spec: `docs/aegis/specs/YYYY-MM-DD-<topic>-design.md` for high
      complexity, architecture, contract, migration, cross-module, or ambiguous
      behavior requiring user review.
-   Specs always go to `specs/` — never to `work/`.
+   Specs always go to `specs/` — never to `work/`. `docs/aegis/work/`
+   holds session-level drafts, not project documents; only promote a draft to
+   `specs/` or `plans/` when the Doc Necessity Gate passes.
 
 3. **Update INDEX.md:**
    Prefer configured Aegis workspace support: `python <aegis-workspace-helper> append-index --root
@@ -304,6 +501,9 @@ create accepted architecture memory from unexecuted ideas.
    After the append, run `python <aegis-workspace-helper> check --root
    <target-project-root>` when configured workspace support is available. This validates
    structure and index coverage only; it does not grant completion authority.
+   INDEX bookkeeping: creating a document registers it; updating an existing
+   document does not change the index; superseding or deleting a document
+   updates the index.
 
 4. Commit the design document to git.
 
@@ -312,6 +512,9 @@ create accepted architecture memory from unexecuted ideas.
    when they materially shaped the design.
 
 6. Record explicit non-goals and compatibility boundaries so the later implementation plan does not drift.
+7. Cross-repo changes: decide per change surface per repo; a durable
+   cross-repo contract is recorded as an ADR in the owning repo, with the other
+   side carrying only its local impact (mirror relationship, no duplication).
 
 **Spec Self-Review:**
 After writing the spec document, look at it with fresh eyes:

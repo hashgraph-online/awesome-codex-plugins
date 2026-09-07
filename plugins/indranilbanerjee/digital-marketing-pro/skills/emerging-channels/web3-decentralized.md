@@ -23,7 +23,7 @@
 - ~15-20% of internet users hold any cryptocurrency
 - NFT market has stabilized after 2021-2022 bubble — utility NFTs outperform speculative
 - Decentralized social (Farcaster, Lens, Bluesky-adjacent protocols) growing but niche
-- Tokenized loyalty programs gaining enterprise traction (Starbucks Odyssey model)
+- Tokenized loyalty remains experimental at enterprise scale — Starbucks Odyssey, the highest-profile pilot, was discontinued in March 2024
 
 ---
 

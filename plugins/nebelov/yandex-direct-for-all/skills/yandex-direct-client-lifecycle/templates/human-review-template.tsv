@@ -1,2 +1,2 @@
-item_id	artifact	section	decision_needed	status	priority	source_path	notes
-review-001	proposal-pack.md	first-wave scope	approve-or-revise	open	high	./proposal-pack.md	
+item_id	source	evidence	scope	source_row_sha256	candidate_status	reviewer	reviewed_at	expires_at	decision	reversal_ref	notes
+template-review					pending_review						Пустая строка ручного решения; автоматическое утверждение запрещено.

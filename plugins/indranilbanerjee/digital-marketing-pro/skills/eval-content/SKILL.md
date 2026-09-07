@@ -1,6 +1,6 @@
 ---
 name: eval-content
-description: "Evaluate content quality. Use when: scoring drafts, checking hallucinations, or assessing brand voice compliance."
+description: "Score marketing content across six dimensions — content quality, brand voice, hallucination risk, claim verification, structure, readability — into a composite score with letter grade, a severity-classified issue list with fix suggestions, and a pass/fail/review recommendation. Every run is logged for trend tracking. Triggers on \"/digital-marketing-pro:eval-content\", \"score this draft before it ships\", \"check this post for hallucinations\", \"does this match our brand voice\", \"is this landing page copy publication-ready\". Reads the brand profile, guidelines, and compliance rules, and applies custom thresholds set via /digital-marketing-pro:eval-config."
 argument-hint: "[content-path]"
 ---
 
@@ -38,7 +38,7 @@ The user must provide (or will be prompted for):
    - **Minor** (recommended improvements): Style suggestions, optional section additions, readability fine-tuning, formatting polish
 5. **Generate fix recommendations**: For each flagged issue, provide the specific text or section affected, the exact location in the content, the severity level, a concrete fix suggestion with example replacement text, and the expected score improvement if fixed. Reference `skills/context-engine/eval-rubrics.md` for dimension-specific fix guidance.
 6. **Compare to baseline**: Execute `scripts/quality-tracker.py --brand {slug} --action get-trends --days 30` to pull the brand's recent quality history. If historical data exists, show how this content's composite score and individual dimension scores compare to the 30-day rolling average — above average, at average, or below average, with the delta. Flag if this content would lower the brand's average.
-7. **Log evaluation**: Execute `scripts/quality-tracker.py --brand {slug} --action log-eval --content-type {type} --data '{"composite": {score}, "dimensions": {dimension_scores_json}}'` to persist the evaluation for trend tracking and regression detection. This step is mandatory — every evaluation must be logged.
+7. **Log evaluation**: Execute `scripts/quality-tracker.py --brand {slug} --action log-eval --data '{"content_type":"{type}","scores":{"composite":{score},...per-dimension scores...},"grade":"{grade}"}'` to persist the evaluation for trend tracking and regression detection (`scores.composite` is required; `--content-type` is a filter flag for read actions only, not for log-eval). This step is mandatory — every evaluation must be logged.
 8. **Present results with recommendation**: Synthesize all findings into a clear pass/fail/review recommendation:
    - **Pass**: Composite score meets threshold, no critical issues, all dimensions above minimums — content is ready for publication
    - **Review**: Composite score is borderline or moderate issues exist — content needs targeted fixes before publication

@@ -1,6 +1,6 @@
 ---
 name: budget-tracker
-description: "Track budget pacing in real time. Use when: cross-platform spend tracking, overspend alerts, reallocation recommendations."
+description: "Track advertising spend pacing in real time across connected ad platforms (Google Ads, Meta, LinkedIn, TikTok) — produces a budget dashboard with daily burn rates, end-of-period projections, overspend/underspend alerts, and dollar-specific reallocation recommendations backed by CPA/ROAS context. Monitors and recommends only; it never edits platform budgets. Triggers on \"/digital-marketing-pro:budget-tracker\", \"are we overspending this month\", \"how is our ad budget pacing\", \"track spend across platforms\", \"will we blow through the budget cap\". Reads budget targets from the brand profile, runs scripts/ad-budget-pacer.py, and saves snapshots for trend history; pairs with /digital-marketing-pro:budget-optimizer."
 ---
 
 # /digital-marketing-pro:budget-tracker

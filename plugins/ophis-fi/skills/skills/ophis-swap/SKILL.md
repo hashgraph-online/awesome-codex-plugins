@@ -7,6 +7,8 @@ description: Use when the user wants to swap, trade, buy, sell, or convert token
 
 Ophis is an intent-based DEX, a deployment of CoW Protocol. Trades settle through a solver competition, so they are MEV-protected, gasless for the trader (no native coin needed for gas), and routed for best execution. This plugin already wires up the Ophis MCP server at `mcp.ophis.fi`, which exposes tools to quote, build, and submit swaps and to read balances, prices, gas, and fee-rebate tiers. No API key is required.
 
+Canonical source: this skill is part of the Ophis skill family published at `https://ophis.fi/.well-known/agent-skills/ophis/` (index: `https://ophis.fi/.well-known/agent-skills/index.json`). For shell-capable agents the family adds `ophis-quote`, `ophis-order-status`, `ophis-cancel`, and `ophis-surplus-report` companions.
+
 ## Read this first: Ophis is non-custodial
 
 Ophis never holds your private key or your funds. A swap is three steps:
@@ -35,13 +37,13 @@ The server enforces real guarantees, so the worst outcomes are not reachable thr
 1. Understand the request. If it is plain English ("swap 100 USDC for ETH on Base"), call `parse_intent` to extract sell token, buy token, amount, and chain. Note that `parse_intent` returns token symbols, not addresses.
 2. Confirm the chain. Call `list_chains` and use a chainId from `tradeable`. If the chain is in `paused`, tell the user it is not live yet.
 3. Resolve token addresses (hard rule 1). For each token symbol, call `resolve_token(chainId, symbol)`. Use `canonical.address` and `canonical.decimals` when `found` is true and `ambiguous` is false; confirm an `ambiguous` result with the user; for a `found: false` symbol, fall back to the on-chain readback plus user confirmation. Apply hard rule 4 for native coins.
-4. Show the edge (recommended). Call `expected_surplus` for `beatBps`, the difference versus one public aggregator (KyberSwap). It is advisory, not a guarantee; a positive value means Ophis quoted more output than that single reference.
+4. Show the edge (recommended). Call `expected_surplus` for `beatBps`, the difference versus a public reference aggregator. It is advisory, not a guarantee; a positive value means Ophis quoted more output than that single reference.
 5. Quote. Call `get_quote` with `kind` ("sell" or "buy"), the amount in atoms, the two addresses, and the trader address `from`.
 6. Build the order. Call `build_order` with the owner, the tokens, `kind`, the slippage-adjusted `sellAmount` and `buyAmount` (scaled with each token's true decimals, hard rule 2), an explicit `slippageBips` (hard rule 3), and, if you are an Ophis integrator, your `referrerCode`. The result includes `order`, `signing` (EIP-712 domain, types, primaryType), `fullAppData`, `appDataHash`, and `partnerFee`.
 7. Sanity-check the bound. Format `order.buyAmount` (your minimum received) with the buy token's true decimals and confirm it is in the ballpark the user expects. If it looks far too low, stop and recheck decimals and the buy token address.
 8. Confirm, then sign (hard rule 5). Show the user the full picture, including the buy token ADDRESS. On explicit approval, sign the `signing` payload with the owner wallet. If not approved, stop.
 9. Submit. Call `submit_order` with the exact `order` object, the `signature`, `from` (the owner), and the exact `fullAppData` string from step 6. It returns the order UID.
-10. Report. Give the user the order UID. The order is now a live commitment that a solver can fill at the signed limit any time until `validTo`. The MCP has no cancel tool, so a submitted order stands until it fills or expires.
+10. Report. Give the user the order UID. The order is now a live commitment that a solver can fill at the signed limit any time until `validTo`. The MCP has no cancel tool; an open order can still be cancelled gasless with a signed EIP-712 cancellation, see the `ophis-cancel` skill at `https://ophis.fi/.well-known/agent-skills/ophis/skills/ophis-cancel.md`. Otherwise it stands until it fills or expires.
 
 ## Worked example
 
@@ -95,7 +97,7 @@ Ophis applies a small volume fee, shown as `partnerFee` (currently 5 bps), and s
 Trading is live on Ethereum (1), Optimism (10), BNB Chain (56), Gnosis (100), Unichain (130), Polygon (137), Base (8453), Arbitrum (42161), Avalanche (43114), Plasma (9745), Ink (57073), and Linea (59144). Some chains have settlement deployed but no live orderbook yet. Always treat `list_chains` as the authoritative live set, since it splits `tradeable` from `paused` at runtime. The read tools (`get_balances`, `get_portfolio`, `get_gas`, `get_token_chart`) cover the subset of chains that have a keyless public RPC.
 
 ## Order lifetime
-Orders are signed with a validity window (`validForSeconds`, default 1200 seconds, that is 20 minutes; minimum 60). A submitted order is a live, fillable commitment at the signed limit price for that whole window, so keep the window short for a market-style intent. Orders default to fill-or-kill (`partiallyFillable` is false), which is the safer default. There is no cancel tool, so a submitted order stands until it fills or expires.
+Orders are signed with a validity window (`validForSeconds`, default 1200 seconds, that is 20 minutes; minimum 60). A submitted order is a live, fillable commitment at the signed limit price for that whole window, so keep the window short for a market-style intent. Orders default to fill-or-kill (`partiallyFillable` is false), which is the safer default. The MCP has no cancel tool; to cancel an open order gasless, follow the `ophis-cancel` skill from the Ophis skill family (`https://ophis.fi/.well-known/agent-skills/ophis/`). A submitted order that is not cancelled stands until it fills or expires.
 
 ## When the MCP server is unavailable
 Intent parsing and the beat-the-market comparison are also reachable over plain HTTP at `https://swap.ophis.fi/api/intent` and `https://swap.ophis.fi/api/beat-market` (no key, allow-listed origins). The full build-and-submit flow is available only through the MCP tools.

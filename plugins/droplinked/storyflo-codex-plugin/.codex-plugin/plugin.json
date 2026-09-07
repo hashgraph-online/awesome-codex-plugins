@@ -1,0 +1,50 @@
+{
+  "name": "storyflo-codex-plugin",
+  "version": "0.1.0",
+  "description": "Codex plugin wrapping storyflo's hosted MCP server — an agentic newsroom for narrated briefings, the news-versus-prediction-market Divergence Index, the declassified archive, and vertical intelligence.",
+  "author": {
+    "name": "Storyflo",
+    "email": "story@storyflo.com",
+    "url": "https://www.storyflo.com"
+  },
+  "homepage": "https://github.com/droplinked/storyflo-codex-plugin",
+  "repository": "https://github.com/droplinked/storyflo-codex-plugin",
+  "license": "MIT",
+  "keywords": [
+    "openai-codex",
+    "codex-plugin",
+    "model-context-protocol",
+    "mcp-server",
+    "news",
+    "prediction-markets",
+    "briefings",
+    "ai-agents",
+    "storyflo"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Storyflo",
+    "shortDescription": "Agentic newsroom MCP: narrated briefings, news-vs-market Divergence Index, and a declassified archive.",
+    "longDescription": "storyflo is an agentic newsroom exposed to Codex over a hosted MCP server. Use it to pull narrated daily and vertical briefings, read the Divergence Index (a qualitative signal of where the news narrative is diverging from prediction-market sentiment), search the declassified archive of released intelligence cases, and surface market-linked stories, trending topics, and podcasts. Every response is source-grounded editorial context, not raw market odds.",
+    "developerName": "Storyflo",
+    "category": "Research",
+    "capabilities": [
+      "Interactive"
+    ],
+    "websiteURL": "https://www.storyflo.com",
+    "privacyPolicyURL": "https://www.storyflo.com/privacy",
+    "termsOfServiceURL": "https://www.storyflo.com/terms",
+    "brandColor": "#0A0A0A",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/logo.svg",
+    "screenshots": [
+      "./assets/screenshot-storyflo.png"
+    ],
+    "defaultPrompt": [
+      "Pull today's storyflo daily briefing and summarize the top stories as a narrated digest.",
+      "Read the storyflo Divergence Index and tell me where the news narrative is diverging from prediction-market sentiment right now.",
+      "Search the storyflo declassified archive for recently released intelligence cases on this topic and open the most relevant one."
+    ]
+  }
+}

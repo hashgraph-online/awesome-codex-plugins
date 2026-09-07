@@ -1,6 +1,7 @@
 ---
 name: octopus-research
 description: "Thorough research across multiple sources — use for complex topics needing broad synthesis"
+disable-model-invocation: true
 ---
 
 > **Host: Codex CLI** — This skill was designed for Claude Code and adapted for Codex.
@@ -81,7 +82,6 @@ AskUserQuestion({
 ```bash
 provider_status="$(bash "${HOME}/.claude-octopus/plugin/scripts/helpers/check-providers.sh")"
 [[ $'\n'"$provider_status"$'\n' == *$'\ncodex:available\n'* ]] && codex_status="Available ✓" || codex_status="Not installed ✗"
-[[ $'\n'"$provider_status"$'\n' == *$'\ngemini:available\n'* ]] && gemini_status="Available ✓" || gemini_status="Not installed ✗"
 [[ $'\n'"$provider_status"$'\n' == *$'\nagy:available\n'* ]] && agy_status="Available ✓" || agy_status="Not installed ✗"
 ```
 
@@ -93,7 +93,7 @@ provider_status="$(bash "${HOME}/.claude-octopus/plugin/scripts/helpers/check-pr
 
 Provider Availability:
 🔴 Codex CLI: ${codex_status}
-🟡 Gemini CLI: ${gemini_status}
+🟡 Antigravity CLI: ${agy_status}
 🧭 Antigravity CLI: ${agy_status}
 🔵 Claude: Available ✓ (Strategic synthesis)
 

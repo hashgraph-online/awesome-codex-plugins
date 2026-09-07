@@ -1,6 +1,6 @@
 ---
 name: funnel-architect
-description: "Design marketing funnels. Use when: mapping customer journeys, attribution modeling, or conversion paths."
+description: "Design or restructure a marketing funnel matched to the business model — stage architecture with entry/exit criteria and KPIs, a customer journey map with emotions and friction points, gap analysis, an attribution model recommendation, and a 30/60/90 optimization roadmap. Plans and diagnoses; does not execute campaigns. Triggers on \"/digital-marketing-pro:funnel-architect\", \"map our customer journey\", \"which attribution model should we use\", \"where are we losing customers\", \"design a funnel for our SaaS\". Reads the brand profile, industry benchmarks, and campaign history; pairs with /digital-marketing-pro:funnel-audit for data-driven diagnosis."
 ---
 
 # Funnel Architect
@@ -54,10 +54,10 @@ If the user cannot provide all context, use the business model to apply sensible
 
 ## Capabilities
 
-- **Business-Model-Adaptive Funnel Design**: Custom funnel architectures for 9 distinct business models (SaaS, e-commerce, lead gen, marketplace, subscription box, professional services, media/publishing, mobile app, B2B enterprise)
+- **Business-Model-Adaptive Funnel Design**: Custom funnel architectures for 7 distinct business models (B2B SaaS, eCommerce/DTC, B2B services/consulting, local business, marketplace, creator/personal brand, non-profit)
 - **Journey Mapping with Emotion & Friction Points**: Visual journey maps that capture not just touchpoints but emotional states, friction moments, and decision triggers at each stage
 - **Attribution Model Selection & Design**: Guidance on choosing the right attribution model (last-click, first-click, linear, time-decay, position-based, data-driven, custom) based on business context
-- **Funnel Templates**: Pre-built, customizable funnel frameworks for 9 business models with default stages, KPIs, and conversion benchmarks
+- **Funnel Templates**: Pre-built, customizable funnel frameworks for 7 business models with default stages, KPIs, and conversion benchmarks
 - **Gap Analysis**: Systematic identification of missing stages, content, touchpoints, or automation in an existing funnel
 - **Micro-Conversion Definition**: Identifying and sequencing the small commitment actions that build toward macro conversion
 - **Stage-by-Stage KPI Framework**: Defining the right metrics for every funnel stage so performance is measurable
@@ -150,8 +150,9 @@ If the user cannot provide all context, use the business model to apply sensible
 
 - `journey-mapping.md` — Customer journey mapping methodology, emotion mapping framework, touchpoint cataloging, and journey visualization templates
 - `attribution-models.md` — Detailed comparison of attribution models, selection criteria decision tree, implementation guides per platform, and custom model design
-- `funnel-templates.md` — Pre-built funnel architectures for 9 business models with default stages, benchmarks, and customization guides
+- `funnel-templates.md` — Pre-built funnel architectures for 7 business models with default stages, benchmarks, and customization guides
 - `gap-analysis.md` — Gap analysis framework, diagnostic questions, common gap patterns by business model, and prioritization scoring
+- `sales-marketing-alignment.md` — Sales-marketing alignment frameworks, lead handoff definitions (MQL/SQL), SLA design, and funnel-stage ownership mapping
 
 ## Output Formats
 

@@ -1,6 +1,6 @@
 ---
 name: exec-summary
-description: "Generate C-suite executive summaries. Use when: preparing board reports, portfolio ROI, or strategic reviews."
+description: "Generate a C-suite-ready executive summary of marketing performance — ROI, CAC, LTV, top-3 wins and risks, strategic recommendations, and budget utilization — for a single brand or the whole portfolio, adapted to CEO, CMO, CFO, or board audiences. Triggers on \"/digital-marketing-pro:exec-summary\", \"prepare the board report\", \"summarize this quarter for the CEO\", \"portfolio ROI summary\", \"what do I tell leadership\". Computes KPIs via the CLV, ROI, forecaster, and budget-optimizer scripts, pulls data from connected analytics and CRM MCPs, reads the brand profile, and pairs with /digital-marketing-pro:competitor-analysis for competitive context."
 ---
 
 # /digital-marketing-pro:exec-summary
@@ -30,7 +30,7 @@ The user must provide (or will be prompted for):
 2. **Gather performance data**: For single brand — pull metrics from all connected MCPs (Google Analytics, Google Ads, Meta Ads, HubSpot, Salesforce, etc.), load campaign history from execution logs, load prior performance snapshots for trend comparison. For portfolio — iterate all brands in `~/.claude-marketing/brands/`, aggregate metrics per brand, then roll up to portfolio totals with currency normalization if brands operate in different regions.
 3. **Calculate executive KPIs**: Compute the five core executive metrics — Total Marketing ROI (revenue attributed to marketing / total marketing spend), Customer Acquisition Cost (total spend / new customers acquired), Customer Lifetime Value (average revenue per customer x average retention period), estimated market share trend (if competitive data available), and Brand Health Score (composite of awareness, sentiment, engagement, and loyalty indicators). Use the scripts for standardized computation (all have required args):
    ```bash
-   python "${CLAUDE_PLUGIN_ROOT}/scripts/clv-calculator.py" --model simple --avg-purchase-value {value} --purchase-frequency {per-year} --customer-lifespan {years} --margin 0.30
+   python "${CLAUDE_PLUGIN_ROOT}/scripts/clv-calculator.py" --model simple --avg-purchase-value {value} --purchase-frequency {per-year} --customer-lifespan {years} --margin 30
    python "${CLAUDE_PLUGIN_ROOT}/scripts/roi-calculator.py" --channels '[{"name":"google_ads","spend":10000,"revenue":42000}]' --attribution last_touch --period "{YYYY-MM}"
    ```
 4. **Analyze trends and comparisons**: Compare each KPI against the prior period (MoM or QoQ depending on time range), the same period last year (YoY), and targets or plan if set. Calculate percentage change and flag significant movements — improvement above 10% as a win, decline above 10% as a risk. Project end-of-period trajectory from the current run rate: `python "${CLAUDE_PLUGIN_ROOT}/scripts/revenue-forecaster.py" --historical '[{"period":"2026-05","revenue":120000}]' --forecast-months 3 --growth-assumption 0.05` (SYNTHETIC EXAMPLE — fabricated for illustration; never reuse these numbers).

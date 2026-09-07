@@ -4,6 +4,19 @@
 
 Execute docker buildx build (targeting linux/amd64), capture errors, and automatically fix Dockerfile issues through iterative refinement.
 
+## Acceptance Contract
+
+Treat the build loop and runtime validation as one acceptance boundary. A build
+result may be saved for diagnosis, while `success` requires the applicable
+migration/database proof, accepted HTTP/health response, and clean runtime-log
+analysis. Record each check in `docker-build/build-result.json` and
+`docker-build/validation-result.json`, with repository-relative paths and
+`redaction.ok`.
+
+Build-only output is `error` when runtime evidence is required and unavailable.
+An unresolved runtime precondition is `stopped` with the missing evidence and a
+safe next action. Never pass an unaccepted build to `sealos-deploy`.
+
 ## Execution Flow
 
 ```
@@ -353,7 +366,7 @@ Application health check passed
 - Dockerfile
 - .dockerignore
 - docker-compose.yml
-- .env.docker.local (auto-generated with test secrets)
+- .env.docker.local (optional placeholder keys only; never secret values)
 - docker-entrypoint.sh
 - DOCKER.md (deployment guide)
 
@@ -411,6 +424,19 @@ The best version of Dockerfile is saved. It may work with additional configurati
 After completing all build iterations AND all runtime validation steps (Phase 3 + Phase 4),
 write two artifact files to the `docker-build/` directory.
 
+The final handoff carries:
+
+```yaml
+target: sealos-deploy
+inputArtifact: validated Dockerfile and build/runtime result with source provenance
+allowedAction: build or reuse an image within the selected deployment scope
+failureReturn: failing packaging, migration, HTTP, health, or runtime-log phase
+responseOwner: dockerfile-skill
+```
+
+Emit this handoff only when the acceptance contract passes. Keep image tags,
+connection values, and diagnostics sanitized.
+
 ### Phase 3: Build Result
 
 **File**: `docker-build/build-result.json`
@@ -422,8 +448,9 @@ write two artifact files to the `docker-build/` directory.
 4. `iterations`: one entry per docker build execution, with `status`, `error_category`,
    `error_excerpt` (first 200 chars of error), `fix_applied`, `duration_seconds`
 5. `fixes_applied`: only include iterations where a fix was applied
-6. `errors_not_matched`: include the raw error text for any error where no pattern from
-   `knowledge/error-patterns.md` matched — these are candidates for new patterns
+6. `errors_not_matched`: include a short redacted diagnostic category and sanitized
+   excerpt for any error where no pattern from `knowledge/error-patterns.md` matched;
+   never persist raw error text, credentials, connection strings, or environment values
 7. `build.image_size_mb`: capture from `docker images` output after successful build
 
 **Schema**:

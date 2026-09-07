@@ -1,149 +1,194 @@
-<div align="center">
-
 # AgentOps
 
-[![GitHub stars](https://img.shields.io/github/stars/boshu2/agentops?style=social)](https://github.com/boshu2/agentops/stargazers)
+AgentOps is the operations layer for agentic engineering. It is a set of
+portable skills and evidence contracts that make one coding-agent change
+independently judgeable: the context that wrote the code does not get to
+declare it done. Your tracker keeps the work, Git keeps the history, and your
+coding agents keep running the execution; AgentOps joins them as a
+federated integration graph and adds the judgment step. A fresh context reads
+the exact change and returns `PASS`, `FAIL`, or `NOT_PROVEN`. The standard
+path is one RPI traversal:
 
-### Operating loop for coding agents — intent → validated code
+```text
+RPI -> Plan -> Implement -> fresh Validate -> report and stop
+```
 
-Coding agents declare "done" on code that is still wrong. AgentOps is the **operating loop** that turns declared intent into validated code with proof: shape behavior (Gherkin), implement against a failing acceptance test, then bind an independent membrane verdict (a check by a model or test that did not write the code) to **that** contract. **No verdict = not done.** Skills are the front door; it sits on the agent you already use (Claude Code, Codex, Cursor, OpenCode).
+## Quickstart
 
-</div>
+```bash
+npx skills@latest add boshu2/agentops --all -g
+```
 
----
+One command installs the skill bundle into every coding agent you use. The
+skills run **inside your coding agent** (Claude Code, Codex, Cursor, …): type
+`/rpi` in that agent's chat, or ask for `plan`, `implement`, `validate`, and
+`learn` by name. No other runtime is required.
 
-## Install
+Ran it? Tell us what it judged. Open an issue, and paste the `verdict.v2` if
+you asked `validate` to persist one:
+<https://github.com/boshu2/agentops/issues>.
 
-Pick your runtime and install:
+## Plugins (Claude Code / Codex)
+
+Prefer a managed bundle that updates with the release:
 
 ```bash
 # Claude Code
 claude plugin marketplace add boshu2/agentops
 claude plugin install agentops@agentops-marketplace
 
-# Codex CLI (macOS/Linux/WSL) — OpenCode: install-opencode.sh
-curl -fsSL https://raw.githubusercontent.com/boshu2/agentops/main/scripts/install-codex.sh | bash
-# Codex CLI (Windows):
-irm https://raw.githubusercontent.com/boshu2/agentops/main/scripts/install-codex.ps1 | iex
-
-# Gemini / Antigravity
-curl -fsSL https://raw.githubusercontent.com/boshu2/agentops/main/scripts/install-agy.sh | bash
-
-# Other skills-compatible agents (Cursor, etc.)
-npx skills@latest add boshu2/agentops --cursor -g
+# Codex
+codex plugin marketplace add boshu2/agentops
+codex plugin add agentops@agentops-marketplace
 ```
 
-The `ao` CLI is optional but recommended (bookkeeping, retrieval, the release gate):
+Three install paths:
 
-```bash
-brew tap boshu2/agentops https://github.com/boshu2/homebrew-agentops && brew install agentops   # macOS
-# Windows: irm https://raw.githubusercontent.com/boshu2/agentops/main/scripts/install-ao.ps1 | iex
-# Or release binaries / build from source (cli/README.md).
-```
+- **npx / [skills.sh](https://skills.sh)**: universal; copies skills you can edit.
+- **Plugins**: a read-only bundle that stays current with the repo.
+- **Checkout + `ao skills link`**: source-tracked symlinks for contributors
+  (see [Install and day-2 operations](docs/install-day2-ops.md)).
 
-**Live skills from a clone (optional).** Already have the repo checked out? `ao skills link` *symlinks* its skills into the live tier of **every agent runtime you have installed** — `~/.claude/skills`, `~/.codex/skills`, `~/.gemini/skills` (AGY), `~/.cursor/skills`, `~/.pi/skills` — so, unlike the copy-based installers above (which snapshot the skills at install time), your local edits and every `git pull` take effect next session with **no re-copy**:
+## Admission-control hooks (on by default)
 
-```bash
-git clone https://github.com/boshu2/agentops && cd agentops
-ao skills link              # symlink repo skills into every installed runtime (idempotent, non-destructive)
-git pull && ao skills link  # after a pull: mint links for any newly-added skills
-```
+AgentOps ships a PreToolUse **policy dispatcher**: deterministic guards that
+block a small set of known-destructive commands (staging the private bead
+ledger, hand-editing the hash-chained provenance ledger, overwriting installed
+skill copies) and route you to the correct tool instead. Silent on every clean
+call; every block is one line.
 
-Opt-in — the live/edit-in-place tier for people working from a clone; the installers above stay the copy-based path for everyone else. Never copies or clobbers: existing non-AgentOps skills (e.g. other marketplaces) are reported as conflicts and left untouched. `--dest <dir>` targets one specific dir instead.
+- **Claude Code plugin installs:** active automatically; nothing to run.
+- **npx / skills.sh copies:** run `~/.claude/skills/cc-hooks/scripts/install-hooks.sh` once.
+- **git clone / brew:** run `scripts/install-policy-dispatch.sh` once.
 
-Installs hookless. The only hard requirement is an agent runtime and `git`; everything else degrades gracefully. Dependencies: [docs/dependencies.md](docs/dependencies.md) · Day-2 ops (update, backup, recovery): [docs/install-day2-ops.md](docs/install-day2-ops.md).
+Disable anytime (`/plugin disable agentops`, or remove the two PreToolUse
+matchers from settings). Policy list and design:
+`skills/cc-hooks/SKILL.md`.
 
-Verify it worked: open your agent and type `/plan` — it should resolve as a skill (restart Codex first).
+Remove with your runtime's plugin uninstall, or delete the linked skill
+directories.
 
----
+## Intent lives in a bead
 
-## What you get
+[Beads](https://github.com/steveyegge/beads) is the preferred tracker
+(optional; `brew install beads`). Plan
+writes [BDD](https://cucumber.io/docs/bdd/) acceptance and DDD [ubiquitous
+language](https://martinfowler.com/bliki/UbiquitousLanguage.html) into the bead;
+Implement builds against it; Validate judges a hashed snapshot under
+`.agents/ao/intents/sha256/`. No beads? Plan shapes the caller's issue or chat
+text and the runtime snapshots those bytes the same way.
 
-<!-- agentops:claim:AOP-CLAIM-README-FACTORY-CONTEXT -->
-<!-- agentops:claim:AOP-CLAIM-README-COMPETITIVE-MEMORY -->
+`validate` must run in a fresh context (not the author session). It can use
+the same model as the author or a different one.
 
-- **An operating loop.** Four umbrellas carry work from intent to evidence: Discovery shapes behavior, Crank executes small slices, Validate independently judges each completed slice, and Learn routes what changes the next experiment. Full map: [Intent → Validated Code](docs/architecture/intent-to-validated-code.md) · [Skills Matrix](docs/skills-matrix.md).
-- **A validation membrane.** `/validate` uses fresh context to prove or refute work against the slice's acceptance behavior; `/council` is an optional higher-rigor judging strategy. No verdict = not done. Without a behavior contract, there is nothing honest to accept.
-- **A bookkeeper that outlives the session.** Beads track work; verdicts bind into a hash-chained provenance ledger — tamper-evident, portable across sessions and models.
-- **An evidence trail that's yours.** Runs, decisions, and verdicts land in `.agents/` in your repo. No hosted control plane; Apache-2.0.
-- **It runs on the agent you already use.** Claude Code, Codex, Cursor, OpenCode. Same skills, same corpus.
+## Multi-agent systems
 
-```text
-> /plan "rate-limit /login"     # freeze Given/When/Then + acceptance
-> /premortem                    # stress-test the plan before execution
-> /implement <bead>             # RED acceptance → green → refactor
-> /validate                     # fresh-context membrane vs those scenarios
-> /learn                        # route catches into the next experiment
+The default is one agent, one writer. When you need a fleet,
+[`swarm`](skills/swarm/SKILL.md), [`agent-native`](skills/agent-native/SKILL.md),
+[`ntm`](skills/ntm/SKILL.md), and [`using-gc`](skills/using-gc/SKILL.md)
+orchestrate multi-agent work. They dispatch; they do not own the verdict.
 
-[membrane] acceptance mapped → scenarios S1, S2
-[judge] REFUTE  S2 burst refill lacks jitter — claimed covered, isn't
-Verdict: HOLD — not done. Fix S2, then re-validate.
-```
+### Choose a software factory
 
-Validation completion and Git delivery are separate. After the verdict, use
-your repository's own direct-push, PR, merge, and CI policy.
+AgentOps supplies skills and evidence contracts, not another software-factory
+runtime or a competing Gas City pack. Install the skills in the agent runtime
+used by the factory you choose; its Mayor, coordinator, and workers can then use
+`plan`, `implement`, `test`, `validate`, and the rest of the catalog.
 
-<!-- agentops:claim:AOP-CLAIM-README-FIRST-VALIDATED -->
-Already installed? First value is one loop tick via **skills**: `/plan` a small behavior (Gherkin), `/implement` it against a failing acceptance test, `/validate` so the verdict cites that scenario. Or run `/rpi "a small goal"` for the same tick in one flow. Step-by-step: [first-value path](docs/first-value-path.md).
+Two factory stacks are supported:
 
----
+- [Gas City](https://github.com/gastownhall/gascity) is the preferred choice
+  for durable, supervised workflows. Use the upstream
+  [`gascity` build pack](https://github.com/gastownhall/gascity-packs/tree/main/gascity),
+  the workflow family used by Maintainer City. It owns formulas, roles,
+  worktrees, dispatch, draining, and run state. The
+  [`using-gc`](skills/using-gc/SKILL.md) skill covers installation, launch,
+  observation, and recovery.
+- Jeffrey Emanuel's
+  [Agentic Coding Flywheel](https://agent-flywheel.com) is a supported
+  alternative built from Beads, Agent Mail, NTM, and the wider Flywheel tool
+  stack. Use its native workflow and let its agents consume the same AgentOps
+  skills. The [`using-flywheel`](skills/using-flywheel/SKILL.md) skill covers
+  provisioning, skill visibility, and the evidence boundary.
 
-The rest is below the fold for anyone who wants the detail.
+AgentOps does not wrap either factory or translate factory completion into
+semantic PASS. When proof is required, a fresh `validate` context judges the
+exact candidate and evidence.
 
-## Skills
+## Optional: `ao` CLI
 
-Skills are the front door. Every skill is one move (or a wrapper) in the operating loop; flows compose them.
+Deterministic checks, inspection, and skill linking. Skip it if you only need
+the skills. Install steps (Homebrew or `go install`), and `ao skills link` for
+tracking skills from a local checkout:
+[Install and day-2 operations](docs/install-day2-ops.md#maintainer--contributor-the-ao-binary).
 
-**Maps:** [Intent → Validated Code](docs/architecture/intent-to-validated-code.md) · [Skills Matrix](docs/skills-matrix.md) · [Router](docs/SKILLS.md) · [SKILL-ROUTER](docs/SKILL-ROUTER.md) · [Root documentation authority](docs/contracts/agents-documentation-authority.yaml)
+## Why AgentOps exists
 
-| Skill | Loop role |
+### 1. The agent said it was done
+
+Same session that wrote the code also declared victory. AgentOps separates
+authorship from judgment: `implement` produces a candidate; `validate` must
+run in a fresh context and may use a different model. It issues `PASS`,
+`FAIL`, or `NOT_PROVEN`.
+
+### 2. One perspective rubber-stamped another
+
+A single context can share blind spots with the author. Opt into
+[`idea-genie`](skills/idea-genie/SKILL.md) or [`council`](skills/council/SKILL.md)
+for sealed or multi-judge review. They return a report; an author-distinct
+[`validate`](skills/validate/SKILL.md) context issues the binding result.
+
+### 3. Acceptance drifted mid-flight
+
+Without a fixed behavior and write scope, "done" is whatever the agent
+improvised. `plan` locks acceptance in the bead before anyone builds. Later
+phases bind to that digest.
+
+### 4. Nobody can replay what was judged
+
+Chat scrolls away. When replay or automation needs durable evidence, `validate`
+writes a content-addressed `verdict.v2` under
+`.agents/ao/verdicts/sha256/` with checked scope, omissions, and evidence refs.
+Plain JSON. No hosted service required. Interactive validation does not create
+one unless requested.
+
+## Core skills
+
+| Skill | Job |
 |---|---|
-| `/plan` | Shape intent as BDD; slice + acceptance-gated beads |
-| `/implement` | One bead: RED acceptance → green → refactor |
-| `/validate` | Membrane — prove acceptance; no verdict = not done |
-| `/rpi` | One full tick (Discovery → Crank → Validate → Learn) |
-| `/premortem` | Stress-test the plan before build |
-| `/council` | Multi-judge consensus when stakes are high |
-| `/learn` | Convert validated outcomes into plan impact and future checks |
-| `/postmortem` | Optional retrospective causal analysis after Validate and Learn |
+| [`rpi`](skills/rpi/SKILL.md) | run Plan, Implement, and fresh Validate at most once |
+| [`plan`](skills/plan/SKILL.md) | create the bead (BDD + DDD ubiquitous language) |
+| [`implement`](skills/implement/SKILL.md) | TDD against the bead: RED → GREEN → refactor |
+| [`validate`](skills/validate/SKILL.md) | fresh context (optionally different model); optionally persist `verdict.v2` |
 
-## The `ao` CLI
+Optional later: [`learn`](skills/learn/SKILL.md). Strategies:
+[`council`](skills/council/SKILL.md), [`idea-genie`](skills/idea-genie/SKILL.md),
+[`premortem`](skills/premortem/SKILL.md), [`postmortem`](skills/postmortem/SKILL.md).
 
-Supporting control plane behind the skills (bookkeeping, retrieval, release gate) — not the front door. Full reference: [CLI commands](cli/docs/COMMANDS.md).
+## One skill, many shapes
 
-<!-- agentops:claim:AOP-CLAIM-README-EVOLVE-AUTONOMOUS -->
+AgentOps prefers a smaller skill set you can steer over dozens of near-duplicate
+skills. Modes and flags change behavior inside one contract.
 
-```bash
-ao quick-start            # set up AgentOps in a repo
-ao doctor                 # check skills, reviewers, ledger health
-ao gate check --fast      # optional deterministic release check before you push
-ao verify my-first-change # deterministic support check; skills own completion
-ao provenance show <sha>  # recorded verdict trail
-ao skills graph           # inspect the generated skill dependency graph
+| Skill | Steer with | Examples |
+|---|---|---|
+| [`doc`](skills/doc/SKILL.md) | `--mode` | `readme`, `oss`, default API/docs; README mode runs a docs-prose (de-slop) pass |
+| [`codebase-recon`](skills/codebase-recon/SKILL.md) | mode · view · lens · depth | `baseline`/`delta`; emphasize audit or mental model; one domain lens per pass |
+| [`idea-genie`](skills/idea-genie/SKILL.md) | elicit \| duel | portfolio vs sealed multi-perspective challenge |
+| [`rpi`](skills/rpi/SKILL.md) | bead / intent ref | one full traversal against a frozen bead |
 
-# Experimental (still measuring whether these pay off; see the honest version below):
-ao search "query"         # search history and local knowledge
-ao lookup --query "topic" # retrieve curated learnings
-ao compile                # rebuild the corpus
-```
+Read the skill's mode table before inventing a sibling skill. Full inventory:
+[Skill Router](docs/SKILL-ROUTER.md).
 
-<!-- agentops:claim:AOP-CLAIM-README-AUTONOMOUS-FLYWHEEL -->
-The whole loop runs in a plain session via skills. No daemon, no scheduler, no cloud. For always-on work, a substrate can dispatch whole `/rpi` ticks. Details: [docs/3.0.md](docs/3.0.md) · [operating loop](docs/architecture/operating-loop.md) · [Intent → Validated Code](docs/architecture/intent-to-validated-code.md).
+## Evidence contract
 
-## The honest version
+A `PASS` binds unchanged acceptance, a deterministic subject manifest, complete
+changed-path coverage inside write scope, distinct author and validator context
+IDs, a freshness attestation, and criterion-level evidence.
 
-**Proven:** independent verification that records a verdict, and a durable, tamper-evident record of it. A change isn't done until something that didn't write it checks it against the declared acceptance behavior, and that verdict is bound into the provenance ledger. No verdict, not done.
+Missing identity, mutation, or incomplete coverage → `NOT_PROVEN`. Proven
+out-of-scope change or failed criterion → `FAIL`.
 
-The receipts are public: [membrane receipts](docs/evidence/membrane-receipts.md) — every number derived straight from the verdict ledger, none hand-written.
+[RPI traversal](docs/architecture/rpi-traversal.md) · [CLI](cli/docs/COMMANDS.md) · [Docs](docs/documentation-index.md)
 
-**Still measuring:** whether the accumulated corpus makes the next session measurably better. We won't claim it until the numbers say so ([ADR-0004](docs/adr/ADR-0004-corpus-moat-unproven-position-on-the-system.md), [ADR-0011](docs/adr/ADR-0011-escape-corpus-compounding-unproven-structural-starvation.md)).
-
-AgentOps proves the work. It doesn't write the code; your agent still does that, and the cross-checks cost tokens. The `.agents/` folder is plain markdown your agents keep up as they go.
-
-When the labs ship their own version of this, your `.agents/` folder comes with you. It's in your repo, in plain markdown, Apache-2.0.
-
----
-
-[What 3.0 is](docs/3.0.md) · [Intent → Validated Code](docs/architecture/intent-to-validated-code.md) · [Skills Matrix](docs/skills-matrix.md) · [vs hosted code review](docs/comparisons/vs-hosted-code-review.md) · [docs index](docs/documentation-index.md) · [newcomer guide](docs/newcomer-guide.md) · [architecture](docs/ARCHITECTURE.md) · [FAQ](docs/FAQ.md) · [upgrading / removed commands](docs/MIGRATION.md) · built on the [12-factor doctrine](https://12factoragentops.com).
-
-Contributing: [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) (agents: read [AGENTS.md](AGENTS.md), track work with `br`). License: Apache-2.0.
+Contributing: [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md). License: Apache-2.0.

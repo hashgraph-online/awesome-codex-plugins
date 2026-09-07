@@ -1,0 +1,42 @@
+{
+  "name": "computer-usage-summary-skill",
+  "version": "0.2.3",
+  "description": "Privacy-first local ActivityWatch reports with daily timelines, app usage, and foreground browser pages.",
+  "author": {
+    "name": "liuyewang",
+    "url": "https://github.com/liuyewang"
+  },
+  "homepage": "https://github.com/liuyewang/computer-usage-summary-skill",
+  "repository": "https://github.com/liuyewang/computer-usage-summary-skill",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "activitywatch",
+    "productivity",
+    "privacy",
+    "time-tracking"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Computer Usage Summary",
+    "shortDescription": "Private, table-first ActivityWatch reports",
+    "longDescription": "Summarize local application activity, foreground sessions, AFK time, daily timelines, and foreground browser pages without uploading usage data.",
+    "developerName": "liuyewang",
+    "category": "Productivity",
+    "composerIcon": "./assets/icon.svg",
+    "capabilities": [
+      "Local analysis",
+      "Browser page summaries",
+      "Spreadsheet export"
+    ],
+    "websiteURL": "https://github.com/liuyewang/computer-usage-summary-skill",
+    "privacyPolicyURL": "https://github.com/liuyewang/computer-usage-summary-skill/blob/main/PRIVACY.md",
+    "termsOfServiceURL": "https://github.com/liuyewang/computer-usage-summary-skill/blob/main/LICENSE",
+    "defaultPrompt": [
+      "Summarize what I did on my Mac today in copyable tables.",
+      "Create a paste-ready table of my app and browser-page usage this week.",
+      "Show a private local-time timeline of my Mac activity."
+    ],
+    "brandColor": "#0F766E"
+  }
+}

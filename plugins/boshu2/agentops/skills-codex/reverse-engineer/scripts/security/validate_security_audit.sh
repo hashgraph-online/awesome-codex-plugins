@@ -51,6 +51,21 @@ if ! rg -n -S '(?i)^(Fix|Remediation):' "$SEC/findings.md" >/dev/null 2>&1; then
   echo "FAIL: findings.md missing Fix:/Remediation: lines" >&2
   exit 1
 fi
+# Reject unfilled placeholders across the WHOLE required audit bundle: the
+# shipped templates supply Evidence/Fix/threat/dataflow content as literal _TBD
+# markers, and the presence-only greps above certify them as real. Any _TBD in
+# any required narrative file is an unfilled scaffold and must not certify green
+# (scanning only findings.md would let a _TBD threat-model or dataflow through).
+for f in "${req[@]}"; do
+  case "$f" in
+    *.md) ;;
+    *) continue ;;
+  esac
+  if grep -Fq '_TBD' "$f"; then
+    echo "FAIL: $(basename "$f") still contains _TBD placeholders — fill the audit before certifying" >&2
+    exit 1
+  fi
+done
 
 # Secret scan gate over outputs.
 SCANDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

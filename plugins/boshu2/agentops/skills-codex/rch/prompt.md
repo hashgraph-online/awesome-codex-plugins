@@ -1,6 +1,6 @@
 # rch
 
-Use when offloading slow builds to remote workers or recovering RCH worker, hook, SSH, sync, or disk issues. Triggers: "rch", "use when offloading slow builds", "rch skill".
+Use RCH once to offload a build or collect remote-compilation diagnostics. Triggers: "use RCH", "offload this build".
 
 ## Instructions
 

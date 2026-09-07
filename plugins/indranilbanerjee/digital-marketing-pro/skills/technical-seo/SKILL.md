@@ -1,15 +1,11 @@
 ---
 name: technical-seo
-description: "Deep technical SEO analysis. Use when: optimizing crawlability, Core Web Vitals, rendering, redirects, or sitemaps."
+description: "Deep technical SEO knowledge module covering Core Web Vitals, crawlability, indexation, site architecture, JavaScript SEO, redirects, structured data, hreflang, and migrations — producing audit reports, redirect maps, robots.txt and JSON-LD specs, and migration checklists. Triggers on \"/digital-marketing-pro:technical-seo\", \"my LCP is failing\", \"plan a site migration\", \"fix redirect chains\", \"write schema markup for my pages\", \"crawl budget problems\". Reads the brand profile plus its own reference files (core-web-vitals, crawlability, site-architecture, indexation, international-seo) and backs the /digital-marketing-pro:tech-seo-audit command."
 ---
 
 # Technical SEO
 
 ## When to Use This Skill
-
-## Context efficiency
-
-Heavy skill. **Grep before Read** any referenced file, then `Read` only matched ranges with `offset` + `limit`. List `${CLAUDE_PLUGIN_DATA}/<brand>/` before opening files. On re-invocation mid-session, skip files already in context.
 
 Activate this module when the user's request involves any of the following:
 
@@ -29,6 +25,10 @@ Activate this module when the user's request involves any of the following:
 - **Site Migrations**: Domain changes, platform migrations, HTTPS transitions, URL restructuring, or merger/acquisition site consolidation
 
 **Trigger phrases**: "technical seo," "core web vitals," "page speed," "crawl budget," "robots.txt," "sitemap," "redirect," "canonical," "indexation," "noindex," "hreflang," "javascript seo," "mobile-first indexing," "log file analysis," "site architecture," "internal linking," "crawl errors," "HTTP status," "schema markup," "structured data," "site migration," "TTFB," "LCP," "INP," "CLS," "render blocking," "crawlability," "index bloat," "redirect chain," "mixed content," "HTTPS"
+
+## Context efficiency
+
+Heavy skill. **Grep before Read** any referenced file, then `Read` only matched ranges with `offset` + `limit`. List `${CLAUDE_PLUGIN_DATA}/<brand>/` before opening files. On re-invocation mid-session, skip files already in context.
 
 ## Brand Context (Auto-Applied)
 

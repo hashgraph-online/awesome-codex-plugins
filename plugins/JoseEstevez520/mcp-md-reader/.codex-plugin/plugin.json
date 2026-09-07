@@ -1,0 +1,34 @@
+{
+  "name": "mcp-md-reader",
+  "version": "1.4.1",
+  "description": "Navigate Markdown structure and retrieve only the relevant section through MCP.",
+  "author": {
+    "name": "Jose Estévez",
+    "email": "joseestevezdaw@gmail.com",
+    "url": "https://www.linkedin.com/in/jose-est%C3%A9vez-b9b761388"
+  },
+  "homepage": "https://github.com/JoseEstevez520/mcp-md-reader",
+  "repository": "https://github.com/JoseEstevez520/mcp-md-reader",
+  "license": "Apache-2.0",
+  "keywords": [
+    "markdown",
+    "mcp",
+    "context",
+    "retrieval"
+  ],
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Markdown Reader",
+    "shortDescription": "Read only the relevant Markdown section.",
+    "longDescription": "Navigate headings, metadata, and vault links before retrieving a precise Markdown section.",
+    "developerName": "Jose Estévez",
+    "category": "Development & Workflow",
+    "capabilities": [
+      "Read"
+    ],
+    "websiteURL": "https://github.com/JoseEstevez520/mcp-md-reader",
+    "defaultPrompt": "Find the relevant section in my Markdown vault and read only that section.",
+    "brandColor": "#07121F",
+    "composerIcon": "./assets/icon.svg"
+  }
+}

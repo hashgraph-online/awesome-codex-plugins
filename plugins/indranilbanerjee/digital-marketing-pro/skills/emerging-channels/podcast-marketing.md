@@ -31,12 +31,12 @@
 - [ ] Record 3-5 episodes before launch (bank content for consistent release)
 - [ ] Create cover art (3000x3000px, bold, readable at small sizes)
 - [ ] Write a compelling show description with relevant keywords
-- [ ] Choose a hosting platform (Buzzsprout, Libsyn, Transistor, Podbean, Spotify for Podcasters)
-- [ ] Submit to directories: Apple Podcasts, Spotify, Google Podcasts, Amazon Music, Stitcher
+- [ ] Choose a hosting platform (Buzzsprout, Libsyn, Transistor, Podbean, Spotify for Creators)
+- [ ] Submit to directories: Apple Podcasts, Spotify, YouTube Music, Amazon Music, iHeartRadio
 - [ ] Set up a dedicated landing page on your website
 - [ ] Create social media assets (audiograms, quote cards, video clips)
 - [ ] Prepare launch promotion plan (email list, social, cross-promotion, PR)
-- [ ] Set up analytics tracking (hosting platform + Chartable or Podtrac)
+- [ ] Set up analytics tracking (hosting platform + Podtrac or Podscribe)
 
 ---
 
@@ -77,11 +77,11 @@
 | Step | Action | Details |
 |------|--------|---------|
 | 1 | Define target audience | Demo, interests, job titles, listening habits |
-| 2 | Identify candidate shows | Use Chartable, Podchaser, Listen Notes, or work with a podcast network |
+| 2 | Identify candidate shows | Use Podchaser, Listen Notes, Podscribe, or work with a podcast network |
 | 3 | Request media kit | Audience size, demographics, engagement metrics, pricing |
 | 4 | Negotiate terms | CPM vs. flat rate, minimum commitment, exclusivity, tracking |
 | 5 | Provide ad copy/talking points | For host-read: bullet points and key messages (not a rigid script) |
-| 6 | Set up tracking | Vanity URL, promo code, pixel-based attribution (Podsights, Chartable) |
+| 6 | Set up tracking | Vanity URL, promo code, pixel-based attribution (Spotify Ad Analytics, Podscribe) |
 | 7 | Launch and monitor | Track downloads, conversions, promo code redemptions |
 | 8 | Optimize | Scale winning shows, pause underperformers, test new shows |
 
@@ -200,7 +200,7 @@
 |--------|-----------|----------------|--------|
 | **Downloads per episode** | Total downloads within 30 days of release | >500 (niche B2B), >5,000 (general) | Hosting platform |
 | **Unique listeners** | Deduplicated listener count | Growing month over month | Hosting platform (Spotify, Apple) |
-| **Completion rate** | % of episode listened to (average) | >60% | Spotify for Podcasters, Apple Analytics |
+| **Completion rate** | % of episode listened to (average) | >60% | Spotify for Creators, Apple Analytics |
 | **Subscriber growth** | Net new subscribers per month | Positive trend | Platform analytics |
 | **Reviews & ratings** | Number and average star rating | 4.5+ stars, growing count | Apple Podcasts |
 | **Episode-over-episode growth** | % increase in downloads per episode | >5% month over month | Hosting platform |
@@ -212,7 +212,7 @@
 | **Vanity URL visits** | Traffic to podcast-specific URL (e.g., example.com/podcast) | Google Analytics |
 | **Promo code redemptions** | Purchases using podcast-specific code | E-commerce platform |
 | **Post-listen survey** | "How did you hear about us?" responses | CRM / checkout survey |
-| **Pixel-based attribution** | Household-level matching of listeners to converters | Podsights, Chartable, Podscribe |
+| **Pixel-based attribution** | Household-level matching of listeners to converters | Spotify Ad Analytics, Podscribe |
 | **Branded search lift** | Increase in branded search queries after episode release | Google Search Console / Trends |
 | **Pipeline influence** | Deals where podcast was a touchpoint | CRM attribution (Salesforce, HubSpot) |
 

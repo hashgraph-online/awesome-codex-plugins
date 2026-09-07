@@ -44,7 +44,7 @@ Every harness creates friction. The goal is not minimum friction — it is usefu
 - Silent partial completion (STATUS line requirement forces explicit reporting)
 - Untracked carryover work (session-end plan verification catches unresolved tasks)
 
-The harness does not hope agents self-correct. It detects stagnation patterns — pagination-spiral, turn-key-repetition, error-echo — classifies them into the Error-Class Taxonomy defined in `circuit-breaker.md`, and re-scopes mechanically. Review logic lives in `wave-loop.md` § "Review Agent Outputs".
+The harness does not hope agents self-correct. It detects stagnation patterns — pagination-spiral, turn-key-repetition, error-echo (read by the coordinator during post-wave review), plus psa007-git-write and status-partial (detected live by the transcript tailer, recorded with `source: "tail"`) — classifies error-echo into the Error-Class Taxonomy defined in `circuit-breaker.md`, and re-scopes mechanically. Review logic lives in `wave-loop.md` § "Review Agent Outputs"; the tailer's start and its silence-is-not-success caveat live in the same file, step 2.0-bis.
 
 ## Platform Note
 
@@ -192,6 +192,8 @@ Read and follow `wave-loop.md` in this skill directory for the complete wave exe
 
 The coordinator (you) is responsible for updating per-task mission status in STATE.md as tasks progress through the wave. Use `setMissionStatus(stateContent, taskId, status)` from `scripts/lib/state-md.mjs` and write the result back to STATE.md immediately.
 
+**`taskId` grammar (enforced).** `setMissionStatus` refuses any `taskId` outside `[a-z][a-z0-9]*(?:-[a-z0-9]+)*-\d+` — lowercase segments joined by single hyphens, ending in a bare digit run. Accepted: `m-1`, `docs-2`, `w2-1`, `w2-a-10`. Refused (`refused: 'id-grammar'`): `w2-a10` (digits fused onto a letter segment), `w3-p2` (no trailing bare-digit segment), `W3-I1` (uppercase), `Docs_2` (underscore). A refused write returns `{ written: false, reason: 'id-grammar' }` from `setMissionStatusOnDisk` and logs a stderr WARN naming the rejected id — nothing is written to STATE.md on refusal, so mint ids matching this grammar from the start rather than relying on the refusal to catch a typo.
+
 **Per-task transition rules (coordinator fires these, NOT wave-loop.md):**
 
 | Transition | When to fire |
@@ -245,8 +247,8 @@ Each agent prompt MUST include:
 1. **Clear scope boundary**: "You are working on [X]. Do NOT modify files outside [paths]."
 2. **Full context**: file paths, current code structure, issue description. If a bite-sized executable plan exists at `docs/plans/<feature>.md` for the wave's tasks (see `skills/write-executable-plan/SKILL.md`), include the path in each agent's prompt and instruct the agent to follow the plan's 5-step structure verbatim.
 3. **Acceptance criteria**: measurable definition of done
-4. **Rule references**: the wave's applicable rules are injected automatically as the `<APPLICABLE-RULES>` block produced by `scripts/print-applicable-rules.mjs` (see `wave-loop.md` § "Pre-Dispatch: Glob-Scoped Rule Injection (#336/#694)"). The block is computed once per wave from the wave's `allowedPaths` and prepended to every agent prompt — do not hand-copy rule paths into the prompt.
-5. **Testing expectation**: "Write tests for your changes" or "Run existing tests"
+4. **Rule references**: the wave's applicable rules are injected automatically as the `<APPLICABLE-RULES>` block produced by `scripts/print-applicable-rules.mjs` (see `wave-loop.md` § "Pre-Dispatch: Glob-Scoped Rule Injection (#336/#694)"). The block is computed once per wave from the wave's `allowedPaths` and prepended to every agent prompt — do not hand-copy rule paths into the prompt. Past **learnings** arrive separately as the `<LEARNINGS-INDEX>` block from `scripts/print-learnings-index.mjs` (see `wave-loop.md` § "Pre-Dispatch: Learnings-Index Injection (#1014)"), computed **per agent** from its own file scope rather than once per wave.
+5. **Testing expectation** (need-gated): "Before writing any test, name the concrete bug a NEW test would catch that the existing suite does not. No nameable bug → write NO test and report `no-tests-needed: <reason>` — that is a SUCCESS outcome, not a gap. With a nameable bug: exactly one test for it. Running existing tests is always mandatory."
 6. **Commit instruction**: "Do NOT commit. The coordinator handles commits."
 7. **Turn limit**: Include the maxTurns instruction from `circuit-breaker.md`
 8. **Verification before completion**: Before claiming any task done, run the verification command and quote the evidence inline. See `.claude/rules/verification-before-completion.md`.
@@ -272,9 +274,12 @@ During this wave, you may propose a learning to the session's memory via the CLI
       --subject "one-line title (max 100 chars, no newlines)" \
       --insight "your discovery paragraph (max 2000 chars)" \
       --evidence "concrete proof: code citation / log excerpt / commit ref (max 5000 chars)" \
-      --confidence <0.5 to 1.0>
+      --confidence <0.5 to 1.0> \
+      --file-paths "scripts/lib/a.mjs,scripts/lib/b.mjs"
 
 MUST prefix with `SO_WAVE_AGENT=1` — without it the CLI returns exit 3 `rejected-wrong-context`. The env-var is the per-process guard that distinguishes wave-executor agents from coordinator-context invocations.
+
+`--file-paths` is optional but strongly encouraged: repo-relative path(s) this learning applies to (repeatable and/or comma-separated, deduped; rejects absolute paths, `..` segments, embedded newlines, entries over 256 chars, and more than 20 entries). Without `--file-paths` this learning can never become `/reconcile`-eligible — the reconciliation engine can only convert a learning into a conditional `.claude/rules/*.md` rule when it carries a non-empty scope (issue #900).
 
 Exit code 0 = queued (the coordinator will present at session-end via AskUserQuestion); 1 = quota-exceeded; 2 = rejected-low-confidence (below floor 0.5); 3 = rejected-wrong-context (STATE.md not active OR SO_WAVE_AGENT != "1"); 4 = error (arg validation or internal).
 
@@ -435,10 +440,6 @@ const result = await runQualityGateWithRetry({
   Gherkin negative path).
 - `verification-auto-fix.max-retries: 0` → equivalent to disabled.
 
-### /goal Continuation Anchor (opt-in — #636)
-
-When `goal-integration.enabled: true` with seam `inter-wave-fixloop` in Session Config, the coordinator may surface ONE advisory `/goal` command at the inter-wave fix-loop seam to anchor continuation across the auto-fix retries — see `wave-loop.md` § "##### /goal Continuation Anchor" for the gate conditions, suggested command, and the LM-008 cross-reference. The advisory never alters gate semantics: `runQualityGateWithRetry()`'s exit-code result remains the judgment, and the hard-abort + diagnostics-bundle path after `max-retries` is unchanged. Default off → zero behaviour change.
-
 ### Anti-pattern (BE-012 awareness)
 
 The fixer-agent prompt MUST include a reminder of `.claude/rules/testing.md` § "Test Quality — False-Positive Prevention"
@@ -480,7 +481,7 @@ An opt-in bounded-concurrency cursor-based pull loop that replaces the default P
 
 ## Anti-Patterns
 
-- **NEVER** run `run_in_background: true` during waves — you lose coordination ability
+- **NEVER** count launch acks as completions — verify the started set against `agent-<id>.meta.json` sidecars and completions against task-notifications (`wave-loop.md § Started-Set Verification`). `run_in_background: true` is ALLOWED and RECOMMENDED for wave dispatch: measured 2026-08-22 (v2.1.239), under blocking dispatch the coordinator was 143 s incapable of acting between an agent's mid-run escalation and its own next turn — escalation latency equals the batch's remaining runtime. Background dispatch returns turns to the coordinator between agent completions; a running agent received a queued message mid-run and answered ~9 min before its final report.
 - **NEVER** skip inter-wave review — quality degrades exponentially
 - **NEVER** let agents commit independently — coordinator commits at session end
 - **NEVER** continue to next wave if previous wave has unresolved failures

@@ -1,6 +1,6 @@
 # reality-check
 
-Mid-epic drift audit: code is ground truth; README/PRODUCT/plan are the measuring stick. Triggers: when a wave boundary lands and bead counts look healthy but value feels absent.
+Compare a claimed state with observable repository evidence and report concrete gaps. Requires a claim or expected state to test. Triggers: "reality check", "is this claim actually done", "compare claim to repo".
 
 ## Instructions
 

@@ -1,10 +1,10 @@
 ---
 name: reverse-engineer
-description: Reverse-engineer an authorized repo, binary
+description: 'Reverse-engineer an authorized repo, binary Triggers: "reverse-engineer X", "tear down Y", "what should we steal from Z", "evaluate competitor/upstream", "should we fork/adopt/build-native".'
 ---
-# $reverse-engineer
+# Reverse Engineer
 
-Reverse-engineer an external system into two things: a **mechanically-verifiable teardown** (feature inventory + registry + specs, optionally a security audit) and a **steal-map** — what to adopt into our surfaces, what to leave behind. The teardown is the evidence; the steal-map is the decision. The original failure mode this skill exists to prevent: reading a competitor's README and "deciding" from vibes.
+Reverse-engineer an external system into two things: a **mechanically-verifiable teardown** (feature inventory + registry + specs, optionally a security audit) and a **steal-map** — what to adopt into our surfaces, what to leave behind. The teardown is the evidence; the steal-map is the decision. Separating them works because a decision row that must cite a registry entry can be re-checked by anyone, while a decision made from impressions cannot be re-checked by its own author. The original failure mode this skill exists to prevent: reading a competitor's README and "deciding" from vibes.
 
 **Triggers:** "reverse-engineer X", "tear down Y", "what should we steal from Z", "evaluate competitor/upstream", "should we fork/adopt/build-native".
 
@@ -23,14 +23,21 @@ Produce evidence, not vibes. The script clones (pinned), scans CLI/config/artifa
 ```bash
 python3 skills/reverse-engineer/scripts/reverse_engineer.py <product> --mode=repo \
   --upstream-repo="https://github.com/org/repo.git" --upstream-ref=v1.0.0 \
-  --output-dir=".agents/research/<product>/"
+  --output-dir=".agents/scratch/reverse-engineer/<product>/"
 ```
 
 Binary mode requires `--authorized` (see Invocation Contract + Self-Test). Use the bundled demo fixture if you lack authorization for a real binary.
 
 ## Phase 2 — The steal-map (the decision)
 
-Map each capability the teardown found onto **our** surfaces. This is the part that turns research into a decision. Emit `.agents/research/<product>/steal-map.md` with a table; every row cites the teardown evidence **and** the matching surface in our repo.
+Map each capability the teardown found onto **our** surfaces. This is the part that turns research into a decision. Emit `.agents/scratch/reverse-engineer/<product>/steal-map.md` with a table; every row cites the teardown evidence **and** the matching surface in our repo.
+
+The mechanical script intentionally stops after validating Phase 1. It cannot
+truthfully decide whether our live tree has, lacks, or should adopt a capability.
+The caller authors `steal-map.md` from the generated registry plus a fresh read
+of our repository, then runs the complete-output validator below. A missing or
+malformed map is therefore an incomplete skill result, not a script success
+silently relabelled as a decision.
 
 | Their capability | Our surface today | Verdict |
 |---|---|---|
@@ -56,72 +63,59 @@ Discipline that makes the map trustworthy:
 ## Route one-way-door adoptions into planning
 
 If adopting a steal is a **one-way door** (an architecture fork, a new bounded
-context, or a migration), do not decide it here. Hand the steal-map to
-`$discovery` and `$plan`. Dueling Idea Genies may challenge the choice as
-advisory evidence. Premortem alone decides whether the exact final plan is
-ready.
+context, or a migration), do not decide it here. Hand the steal-map to Plan.
+Dueling Idea Genies or Premortem may challenge the choice as advisory
+evidence. Plan alone shapes the selected option in the existing intent source;
+neither strategy grants readiness or continuation authority.
 
 ## Invocation Contract
 
-Required: `product_name`. Common flags: `--mode=repo|binary|both`, `--upstream-repo`, `--upstream-ref` (pins the clone, records the resolved SHA in `clone-metadata.json`), `--output-dir` (default `.agents/research/<product>/`), `--security-audit`, `--authorized` (mandatory for binary mode — refuses without it). Full list: `python3 skills/reverse-engineer/scripts/reverse_engineer.py --help`.
+Required: `product_name`. Common flags: `--mode=repo|binary|both`, `--upstream-repo`, `--upstream-ref` (requires the selected checkout to be at that exact commit and records its resolved SHA in `clone-metadata.json`), `--local-clone-dir` (selects that exact tree, including a non-Git tree; it never falls back to the caller's checkout), `--output-dir` (default `.agents/scratch/reverse-engineer/<product>/`), `--security-audit`, `--materialize-archives` (authorized-only opt-in; embedded-archive extraction is off/index-only by default), `--authorized` (mandatory for binary mode — refuses without it). Full list: `python3 skills/reverse-engineer/scripts/reverse_engineer.py --help`.
 
 ## Output Specification
 
-Phase-1 teardown under `output_dir/`: `feature-inventory.md`, `feature-registry.yaml`, `feature-catalog.md`, `spec-architecture.md`, `spec-code-map.md`, `spec-clone-vs-use.md`, `spec-clone-mvp.md`, plus `spec-cli-surface.md` only when a CLI is detected and `clone-metadata.json` only when `--upstream-ref` is supplied. Security mode adds `output_dir/security/`: `threat-model.md`, `attack-surface.md`, `dataflow.md`, `crypto-review.md`, `authn-authz.md`, `findings.md`, `reproducibility.md`, `validate-security-audit.sh`. Phase-2: `steal-map.md`.
+Phase-1 teardown under `output_dir/`: `feature-inventory.md`, `feature-registry.yaml`, `feature-catalog.md`, `spec-architecture.md`, `spec-code-map.md`, `spec-clone-vs-use.md`, `spec-clone-mvp.md`, plus `spec-cli-surface.md` only when a CLI is detected. `clone-metadata.json` is written whenever an upstream repo/ref is selected and binds the exact analyzed commit, including an already-present checkout. Security mode adds `output_dir/security/`: `threat-model.md`, `attack-surface.md`, `dataflow.md`, `crypto-review.md`, `authn-authz.md`, `findings.md`, `reproducibility.md`, `validate-security-audit.sh`. Phase-2 adds the caller-authored `steal-map.md`.
 
 - **Artifact directory:** the exact `--output-dir`, defaulting to
-  `$REPO/.agents/research/<product>/`.
+  `$REPO/.agents/scratch/reverse-engineer/<product>/`.
 - **Filename convention:** the fixed phase-1 and phase-2 names above; security
   files live only in the `security/` child directory.
 - **Serialization/schema format:** registry is YAML, clone metadata is one JSON
   object, and inventories/specs/steal-map are nonempty Markdown files.
-- **Validator command:** with `$output_dir`, `$security_audit`, `$sbom`, and
-  `$upstream_ref_set` (each flag `0|1`) set:
+- **Validator command:** Phase 1 runs this automatically with
+  `--phase teardown`. After authoring `steal-map.md`, validate the complete
+  skill output with `$output_dir`, `$security_audit`, `$sbom`, and
+  `$upstream_ref_set` (each numeric flag `0|1`):
 
   ```bash
-  set -euo pipefail
-  required=(feature-inventory.md feature-registry.yaml feature-catalog.md spec-architecture.md spec-code-map.md spec-clone-vs-use.md spec-clone-mvp.md analysis-root-path.txt validate-feature-registry.py steal-map.md)
-  for name in "${required[@]}"; do
-    test -f "$output_dir/$name"
-    test ! -L "$output_dir/$name"
-    test -s "$output_dir/$name"
-  done
-  test -f "$output_dir/docs-features.txt"
-  test ! -L "$output_dir/docs-features.txt"
-  test ! -L "$output_dir/spec-cli-surface.md"
-  if [[ -e "$output_dir/spec-cli-surface.md" ]]; then
-    test -f "$output_dir/spec-cli-surface.md"
-    test -s "$output_dir/spec-cli-surface.md"
-  fi
-  python3 "$output_dir/validate-feature-registry.py"
-  if [[ "$upstream_ref_set" == 1 ]]; then
-    test -f "$output_dir/clone-metadata.json"
-    test ! -L "$output_dir/clone-metadata.json"
-    jq -e 'type == "object"' "$output_dir/clone-metadata.json" >/dev/null
-  else
-    [[ "$upstream_ref_set" == 0 ]]
-  fi
-  grep -Fqx '| Their capability | Our surface today | Verdict |' "$output_dir/steal-map.md"
-  if [[ "$security_audit" == 1 ]]; then
-    test -x "$output_dir/security/validate-security-audit.sh"
-    if [[ "$sbom" == 1 ]]; then
-      "$output_dir/security/validate-security-audit.sh" "$output_dir" --sbom
-    else
-      [[ "$sbom" == 0 ]]
-      "$output_dir/security/validate-security-audit.sh" "$output_dir" --no-sbom
-    fi
-  else
-    [[ "$security_audit" == 0 ]]
-    [[ "$sbom" == 0 ]]
-  fi
+  bash skills/reverse-engineer/scripts/validate-output.sh \
+    --output-dir "$output_dir" --phase complete \
+    --security-audit "$security_audit" --sbom "$sbom" \
+    --upstream-ref-set "$upstream_ref_set"
   ```
-- **Downstream handoff:** give the validated `steal-map.md` to `$discovery` for
+- **Downstream handoff:** give the validated `steal-map.md` to Plan for
   one-way-door candidates; ordinary `have`, `park`, and
   `reject` decisions remain evidence-backed terminal rows.
 
+### Earlier default compatibility
+
+Existing teardowns under `.agents/research/<product>/` remain in place and
+usable. The script accepts that directory when it is passed explicitly with
+`--output-dir`; that flag is caller authorization to write the teardown at the
+exact selected path. It does not relocate or duplicate existing artifacts. An
+invocation that omits the flag writes only to the current scratch default and
+never creates output under the earlier root.
+Consumers must retain the exact selected `output_dir` with their evidence
+references instead of rediscovering outputs by globbing one root. This owning
+skill contract is the compatibility authority; no separate migration receipt
+is required.
+
 ## Reproducibility + fixtures
 
-`--upstream-ref` pins the clone (fetch `FETCH_HEAD`, record SHA) so contracts can be committed as golden fixtures and diffed across runs. Regression test: `bash skills/reverse-engineer/scripts/repo_fixture_test.sh`. To update a fixture when contracts legitimately change, re-run with the new pinned ref, copy the contract files into `fixtures/<product>/`, and commit.
+`--upstream-ref` binds the selected checkout to one full commit: a new clone is
+checked out detached at the fetched ref, while an existing checkout must already
+match or the run refuses before analysis. `clone-metadata.json` records that
+resolved commit. Regression test: `bash skills/reverse-engineer/scripts/repo_fixture_test.sh`. To update a fixture when contracts legitimately change, re-run with the new pinned ref, copy the contract files into `fixtures/<product>/`, and commit.
 
 ## Self-Test (acceptance)
 
@@ -129,17 +123,21 @@ Phase-1 teardown under `output_dir/`: `feature-inventory.md`, `feature-registry.
 bash skills/reverse-engineer/scripts/self_test.sh
 ```
 
-Must show: feature inventory generated, registry generated, registry validator exits 0; in security mode `validate-security-audit.sh` exits 0 and the secret scan passes.
+Must show: feature inventory and registry generated; the exact Phase-1 validator
+passes; the complete validator rejects a missing and malformed steal-map and
+accepts a valid caller-authored fixture; existing-checkout ref mismatch and
+output symlinks fail closed; in security mode `validate-security-audit.sh`
+exits 0 only after the scaffold is completed and the secret scan passes.
 
 ## Examples
 
 ### Reverse-engineer an OSS CLI (repo mode) → steal-map
 
-`$reverse-engineer cc-sdd --mode=repo --upstream-repo="https://github.com/gotalab/cc-sdd.git" --upstream-ref=v1.0.0` → clones pinned, scans surface, writes inventory/registry/specs, then you map each feature onto our surfaces (have/gap/steal/park/reject) in `steal-map.md` and route one-way-door steals to `$discovery`.
+Run Phase 1 for `cc-sdd` with `--mode=repo --upstream-repo="https://github.com/gotalab/cc-sdd.git" --upstream-ref=v1.0.0`. It clones the pinned source, scans the surface, writes inventory/registry/specs, and validates the teardown. Then inspect our live surfaces, author each `have`/`gap`/`steal`/`park`/`reject` row in `steal-map.md`, and run the complete-output validator. Supply selected steals to Plan.
 
 ### Binary analysis with security audit
 
-`$reverse-engineer ao --authorized --mode=binary --binary-path="$(command -v ao)" --security-audit` → static analysis (metadata, linked libs, embedded-archive signatures, index only) plus the security suite under `output_dir/security/`; the secret-scan gate passes.
+Run the skill for `ao` with `--authorized --mode=binary --binary-path="$(command -v ao)" --security-audit`. It performs authorized static analysis plus the security suite under `output_dir/security/`; the secret-scan check must pass.
 
 ## Troubleshooting
 
@@ -148,6 +146,7 @@ Must show: feature inventory generated, registry generated, registry validator e
 | Refuses binary analysis | Missing `--authorized` | Add `--authorized` (explicit written authorization required). |
 | No `clone-metadata.json` | `--upstream-repo` not passed | Pass `--upstream-repo` (and optionally `--upstream-ref`). |
 | Fixture diff fails | Upstream changed / stale golden | Re-run pinned, refresh `fixtures/`, commit. |
+| Existing teardown is under `.agents/research/` | It used the earlier default | Pass that exact directory with `--output-dir`; new runs otherwise use the scratch default. |
 | `spec-cli-surface.md` missing | No Node/Python/Go CLI detected | Surface is documented in `spec-code-map.md` instead. |
 | Steal-map is all "steal" | Skipped the park/reject rules | Substrate we delegate is **park**; doctrine conflicts are **reject** — not everything novel is worth adopting. |
 
@@ -156,14 +155,14 @@ Must show: feature inventory generated, registry generated, registry validator e
 - [ ] Every steal-map row cites teardown evidence **and** our matching surface (or "none").
 - [ ] Verdicts use the full set — `have`/`gap`/`steal`/`park`/`reject` — not everything marked "steal".
 - [ ] Facts on *how* they implement come from code and a fresh independent check — not a README.
-- [ ] One-way-door adoptions are routed to Discovery and Plan, not decided here.
+- [ ] One-way-door adoptions are supplied to Plan, not decided here.
 - [ ] Secret-scan gate passed over all outputs; no proprietary source/prompts reproduced.
 
 ## See Also
 
-- [discovery](../discovery/SKILL.md) — shape one-way-door steals into exact plans
-- [dueling-idea-genies](../dueling-idea-genies/SKILL.md) — optional advisory challenge
-- [premortem](../premortem/SKILL.md) — binary readiness verdict on the exact plan
+- [plan](../plan/SKILL.md) — shape selected steals in the existing intent source
+- [idea-genie](../idea-genie/SKILL.md) — optional advisory challenge (duel mode)
+- [premortem](../premortem/SKILL.md) — optional advisory challenge of the exact plan
 - [research](../research/SKILL.md) — general exploration; this is its external-system specialization
 
 ## Reference Documents

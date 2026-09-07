@@ -257,8 +257,8 @@ Additional guideline files that don't fit the standard categories. Examples:
 
 ## How Guidelines Are Applied
 
-### At Session Start (via hooks)
-1. `guidelines-manager.py --brand {slug} --action summary` runs alongside `setup.py --summary`
+### At Session Start (skill-driven — the plugin ships zero hooks by design)
+1. Skills that load brand context run `guidelines-manager.py --brand {slug} --action summary` alongside `setup.py --summary`
 2. If guidelines exist, summary output includes: category count, total rules, restriction count, template count
 3. This primes the session with awareness that guidelines exist
 
@@ -277,8 +277,8 @@ Every command loads guidelines alongside the brand profile:
 3. Check `templates/_manifest.json` — if a custom template exists for this command, use it
 4. Check `sops/_manifest.json` — if an SOP applies to this workflow, follow it
 
-### In PreToolUse Hook (Content Check)
-When writing marketing content:
+### Before Writing Content (agent-enforced check)
+When writing marketing content, the drafting skill must:
 1. Check restrictions — scan for banned words and restricted claims
 2. Verify mandatory disclaimers are included when required
 3. Log violations to campaign-tracker

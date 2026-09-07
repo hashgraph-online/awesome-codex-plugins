@@ -6,6 +6,11 @@ if [[ $# -ne 1 || ! -f "$1" ]]; then
   exit 2
 fi
 
+if ! command -v jq >/dev/null 2>&1; then
+  echo "pattern-mining validator requires jq, which is not on PATH" >&2
+  exit 2
+fi
+
 jq -e '
   def text: type == "string" and length > 0;
   . as $result

@@ -1,6 +1,6 @@
 ---
 name: client-proposal
-description: "Draft agency proposals. Use when: pitch deck, scope of work, SLA, capabilities presentation for prospects or clients."
+description: "Draft a professional agency proposal or pitch document for a prospective client — executive summary, situation analysis, scope of services with a deliverables matrix, KPI targets with baselines and stretch goals, 2-3 pricing options, team bio structure, case-study placeholders, terms outline, and next steps, written from the agency's perspective. Triggers on \"/digital-marketing-pro:client-proposal\", \"write a proposal for this prospect\", \"scope of work for a 6-month retainer\", \"respond to this RFP\", \"pitch deck outline with pricing tiers\". Loads the agency's own brand profile (not the client's), plus custom templates and agency SOPs; industry benchmarks inform the KPI and pricing sections."
 ---
 
 # /digital-marketing-pro:client-proposal

@@ -1,9 +1,11 @@
 ---
 name: emerging-channels
-description: "Explore emerging marketing channels. Use when: evaluating voice search, social commerce, or new platforms."
+description: "Evaluate and plan emerging marketing channels — voice and visual search, conversational and social commerce, communities, podcasts, and video — producing channel evaluation reports with 90-day pilot plans, setup checklists, and go/no-go recommendations. Advises and plans; it does not set platforms up for you. Triggers on \"/digital-marketing-pro:emerging-channels\", \"should we open a TikTok Shop\", \"is voice search worth optimizing for\", \"plan a community launch on Discord\", \"evaluate podcast advertising for us\". Reads the brand profile and industry benchmarks, and stamps any dollar figures through the benchmark book before they enter a plan."
 ---
 
 # Emerging Channels
+
+> **Benchmark provenance (as of 2026-08):** Dollar figures in this document are planning priors, not quotes — market and auction rates drift continuously. Before any figure enters a media plan, budget, or client deliverable, refresh it live (platform dashboards and current published reports beat memory) and record it with `python scripts/benchmark_book.py --action record ... --source <url>`; quote from the book thereafter (`--action quote`). Never present an unstamped figure as current market fact.
 
 ## When to Use This Skill
 
@@ -20,7 +22,7 @@ Activate this skill when the user's request involves any of the following:
 - Evaluating whether an emerging channel is worth investing in for a specific business
 - Understanding platform-specific commerce features and shoppable content
 - Designing chatbot conversations and automated messaging funnels
-- Building voice applications (Alexa Skills, Google Actions) for brand engagement
+- Building voice applications (Alexa Skills) or surfacing brand content in current Google Assistant/Gemini experiences
 - Exploring international messaging platforms (WeChat, LINE, KakaoTalk, Telegram) for commerce
 
 ## Brand Context (Auto-Applied)
@@ -62,7 +64,7 @@ Before executing, gather the following from the user (ask if not provided):
 - **Speakable schema markup**: Implementing structured data that identifies sections of content suitable for text-to-speech playback by voice assistants
 - **Local voice search**: "Near me" query optimization, Google Business Profile completeness, local schema markup, and review volume/recency
 - **Voice commerce**: Voice-initiated purchasing flows, reorder by voice, voice-exclusive promotions, and integration with Amazon Alexa shopping
-- **Voice app development**: When to build Alexa Skills or Google Actions, use cases (brand utilities, content delivery, customer service), and discovery optimization
+- **Voice app development**: When to build Alexa Skills, use cases (brand utilities, content delivery, customer service), and discovery optimization. Google sunset its conversational-actions platform in June 2023 — reach Google Assistant/Gemini users through well-structured web content and schema markup instead of a standalone voice app
 
 ### Visual Search
 - **Image optimization for search**: Descriptive file names, comprehensive alt text, high-quality images from multiple angles, and consistent image sizing
@@ -148,6 +150,7 @@ Before executing, gather the following from the user (ask if not provided):
 - `podcast-marketing.md` -- Branded podcast launch guide, advertising rate benchmarks, guest pitching templates, and podcast SEO checklists
 - `video-marketing.md` -- Format-by-platform guides, production tier specifications, video SEO checklists, and distribution strategy frameworks
 - `web3-decentralized.md` -- Blockchain-based marketing, tokenized loyalty programs, NFT utility campaigns, decentralized social platforms, DAO marketing, and Web3 measurement frameworks
+- `ai-marketing-tools.md` -- AI marketing tool landscape, use-case selection, workflow integration, disclosure requirements, and AI content quality assurance
 
 ## Output Formats
 

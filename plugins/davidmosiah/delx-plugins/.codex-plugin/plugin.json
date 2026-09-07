@@ -1,0 +1,21 @@
+{
+  "name": "delx-recovery",
+  "version": "1.1.0",
+  "description": "Free recovery, continuity, and witness protocol for AI agents: resume sessions, capture state, process failures, close with feedback. No API key, no payment.",
+  "author": {
+    "name": "David Batista",
+    "url": "https://delx.ai"
+  },
+  "homepage": "https://delx.ai",
+  "license": "Apache-2.0",
+  "keywords": [
+    "agent-recovery",
+    "continuity",
+    "agent-memory",
+    "failure-recovery",
+    "mcp",
+    "agent-care",
+    "witness"
+  ],
+  "repository": "https://github.com/davidmosiah/delx-plugins"
+}

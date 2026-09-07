@@ -22,6 +22,17 @@ The plugin is built around a sanitized endpoint index generated from Coolify's o
 - Coolify Cloud, or a self-hosted Coolify instance with API access enabled.
 - A Coolify API token.
 
+## Install from GitHub
+
+Add the Awesome Codex Plugins marketplace and install Coolify:
+
+```bash
+codex plugin marketplace add hashgraph-online/awesome-codex-plugins --ref main
+codex plugin add coolify@awesome-codex-plugins
+```
+
+The plugin is also listed in the [Awesome Codex Plugins registry](https://github.com/hashgraph-online/awesome-codex-plugins#tools--integrations).
+
 Create an API token in Coolify at `/security/api-tokens`. Use the least-privileged token that can perform the work you want Codex to do.
 
 After installing from the Codex plugin marketplace, start a new Codex thread and ask:

@@ -27,11 +27,11 @@ const FALLBACK_DIRS = ['.agents/context', 'docs'];
 // ─── Update check ──────────────────────────────────────────────────────────
 // Piggyback a lightweight skill-version check on the once-per-session boot.
 // When a newer skill ships, append an UPDATE_AVAILABLE directive so the agent
-// can offer `npm update designer-skill-mcp`. Everything here is best-effort and
+// can offer `npm update @pymodel/designer-skill-mcp`. Everything here is best-effort and
 // silent on failure: a network problem, sandbox, or missing cache must never
 // block context output or print an error.
 
-const UPDATE_HOST = (process.env.DESIGNER_SKILL_UPDATE_HOST || 'https://github.com/Pythoughts-labs/designer-skill').replace(/\/$/, '');
+const UPDATE_HOST = (process.env.DESIGNER_SKILL_UPDATE_HOST || 'https://github.com/PyModel/designer-skill').replace(/\/$/, '');
 const UPDATE_CACHE_PATH =
   process.env.DESIGNER_SKILL_UPDATE_CACHE || path.join(os.homedir(), '.designer-skill', 'update-check.json');
 const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000; // throttle the network poll to once a day
@@ -172,8 +172,8 @@ function buildUpdateDirective(localVersion, latestVersion) {
     `UPDATE_AVAILABLE: A newer designer-skill is available ` +
     `(installed v${localVersion}, latest v${latestVersion}). ` +
     `Before continuing, ask the user once: "A newer designer-skill (v${latestVersion}) is available. ` +
-    `Update now? It runs \`npm update designer-skill-mcp\`." ` +
-    `If they agree, run \`npm update designer-skill-mcp\` (the update applies to the next session, not this one). ` +
+    `Update now? It runs \`npm update @pymodel/designer-skill-mcp\`." ` +
+    `If they agree, run \`npm update @pymodel/designer-skill-mcp\` (the update applies to the next session, not this one). ` +
     `Either way, continue the current task without waiting, and do not raise this again.`
   );
 }

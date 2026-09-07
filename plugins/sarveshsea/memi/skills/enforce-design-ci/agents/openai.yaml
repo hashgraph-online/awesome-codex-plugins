@@ -1,0 +1,4 @@
+interface:
+  display_name: "Enforce Design CI"
+  short_description: "Add deterministic design checks to pull requests"
+  default_prompt: "Set up Memi Design CI and verify the repository gate."

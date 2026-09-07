@@ -75,17 +75,19 @@ Determine required sample size **before** launching the test. Never start a test
 
 | Baseline CVR | MDE: 5% relative | MDE: 10% relative | MDE: 15% relative | MDE: 20% relative | MDE: 25% relative |
 |---|---|---|---|---|---|
-| 1% | 3,067,000 | 779,000 | 350,000 | 199,000 | 128,000 |
-| 2% | 1,504,000 | 383,000 | 172,000 | 98,000 | 63,000 |
-| 3% | 984,000 | 252,000 | 113,000 | 64,000 | 42,000 |
-| 5% | 570,000 | 147,000 | 66,000 | 38,000 | 25,000 |
-| 8% | 338,000 | 87,000 | 40,000 | 23,000 | 15,000 |
-| 10% | 263,000 | 68,000 | 31,000 | 18,000 | 12,000 |
-| 15% | 165,000 | 43,000 | 20,000 | 12,000 | 8,000 |
-| 20% | 116,000 | 30,000 | 14,000 | 8,200 | 5,400 |
-| 30% | 68,000 | 18,000 | 8,400 | 4,900 | 3,200 |
+| 1% | 637,000 | 163,000 | 74,000 | 43,000 | 28,000 |
+| 2% | 315,000 | 81,000 | 37,000 | 21,000 | 14,000 |
+| 3% | 208,000 | 53,000 | 24,000 | 14,000 | 9,100 |
+| 5% | 122,000 | 31,000 | 14,000 | 8,200 | 5,300 |
+| 8% | 74,000 | 19,000 | 8,600 | 4,900 | 3,200 |
+| 10% | 58,000 | 15,000 | 6,700 | 3,800 | 2,500 |
+| 15% | 36,000 | 9,300 | 4,200 | 2,400 | 1,600 |
+| 20% | 26,000 | 6,500 | 2,900 | 1,700 | 1,100 |
+| 30% | 15,000 | 3,800 | 1,700 | 960 | 620 |
 
-*Key insight: Low-conversion pages need massive traffic to detect small effects. If your page converts at 2% and you want to detect a 10% relative lift (2.0% to 2.2%), you need ~383,000 visitors per variation.*
+*Values computed with `scripts/sample-size-calculator.py` (`--mde-type relative`, two-proportion Z-test).*
+
+*Key insight: Low-conversion pages need massive traffic to detect small effects. If your page converts at 2% and you want to detect a 10% relative lift (2.0% to 2.2%), you need ~81,000 visitors per variation.*
 
 ---
 
@@ -271,4 +273,4 @@ LEARNINGS:
 | Growth-stage | 4–8 | Section-level tests across key pages |
 | Mature / High-traffic | 10–20+ | Element-level tests with rigorous methodology |
 
-**The compounding effect:** A team running 8 tests/month with a 30% win rate and an average 5% lift per winning test achieves ~14% cumulative conversion improvement per quarter. Over a year, that compounds to 60%+ total lift — far exceeding what any single redesign delivers.
+**The compounding effect:** A team running 8 tests per quarter with a 30% win rate and an average 5% lift per winning test achieves ~14% cumulative conversion improvement per quarter. Over a year, that compounds to 60%+ total lift — far exceeding what any single redesign delivers.

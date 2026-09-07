@@ -1,0 +1,4 @@
+interface:
+  display_name: "Go Idiomatic API Design"
+  short_description: "Design stable, idiomatic Go package APIs"
+  default_prompt: "Use $go-idiomatic-api-design to review this Go package API for caller clarity and compatibility."

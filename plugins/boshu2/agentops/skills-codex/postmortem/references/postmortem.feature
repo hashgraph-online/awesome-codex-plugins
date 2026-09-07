@@ -4,7 +4,7 @@ Feature: Postmortem tests retrospective causal claims
   So that retrospective stories do not become unsupported doctrine
 
   Scenario: An explicit causal question receives bounded analysis
-    Given an immutable Validate verdict and Learn receipt
+    Given an immutable Validate verdict
     And an explicit retrospective causal question
     When Postmortem reconstructs the evidence-backed timeline
     Then it distinguishes supported claims, rejected claims, and unknowns
@@ -13,5 +13,5 @@ Feature: Postmortem tests retrospective causal claims
   Scenario: Postmortem does not repeat validation
     Given the acceptance verdict is already immutable
     When Postmortem begins
-    Then it does not re-run the full acceptance suite by default
+    Then it does not re-run acceptance validation
     And it does not change proof, bookkeeping, planning, tracker, or delivery state

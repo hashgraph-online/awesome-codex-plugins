@@ -16,7 +16,7 @@ Reviewable HTML Workbench solves this by putting the review conversation **insid
 
 1. **Generate** — The agent produces an HTML bundle with structured sections, diagrams, and images.
 2. **Review** — You open the preview, select any text or image, and leave a comment right where the issue is.
-3. **Ingest** — The agent reads your comments, classifies each one, and writes replies explaining what it will change.
+3. **Ingest** — The agent reads every thread that is waiting on it and writes replies explaining what it will change.
 4. **Improve** — The agent updates the document, re-renders, and you see the changes in context.
 5. **Repeat** — Keep commenting and refining until the document is ready.
 
@@ -30,7 +30,7 @@ The plugin includes three skills. `visual-html-renderer` creates reviewable visu
 - **Automatic Agent Replies**: when you add a comment in the browser, the agent can read the selected text and surrounding document context, then write its reply back into the same thread.
 - **Resolution-Gated Updates**: clarification threads stay in the document until you resolve them. Once the thread is resolved, the agent can apply the agreed document changes and notify the browser.
 - **Plan Preview URLs**: when a plan needs visual review, the agent can include a temporary Reviewable HTML Workbench preview URL directly in the plan text.
-- **Review Ingestion**: comments are classified as actionable, clarification, already addressed, and related states so the review conversation stays structured across iterations.
+- **Review Ingestion**: every thread carries a status (`needs_agent_review` / `needs_user_reply` / `resolved`) that says whose turn it is, so a reply you post after the agent's answer always brings the thread back to the agent.
 - **Publish & Download**: switch to a clean reading view with no review UI, then download a single self-contained HTML file with all CSS and images embedded. The exported file auto-detects OS light/dark theme.
 - **Document Model**: schema-driven document input for predictable HTML generation.
 - **HTML Rendering**: produces `index.html`, copied assets, and `renderer-manifest.json`.
@@ -62,6 +62,25 @@ For local development, run Claude Code with this plugin directory:
 ```bash
 claude --plugin-dir /path/to/reviewable-html-workbench
 ```
+
+#### Turning off the built-in Artifact tool
+
+Claude Code ships an `Artifact` tool that publishes a page to `claude.ai`. When you ask for
+HTML output, Claude may reach for that tool instead of this plugin's skills, which sends your
+content to an external host. If you want HTML to stay local, disable the tool in
+`~/.claude/settings.json`:
+
+```json
+{
+  "disableArtifact": true
+}
+```
+
+Claude Code checks this key together with the `CLAUDE_CODE_DISABLE_ARTIFACT` environment
+variable, so either one works. Unlike `permissions.deny`, this removes the tool from the
+session entirely rather than rejecting calls to it. The `/config` screen has an equivalent
+`Artifacts` toggle, but that writes to `~/.claude.json` instead, which is outside version
+control — prefer `settings.json` when you want the choice recorded in your dotfiles.
 
 ### Codex CLI
 
@@ -115,7 +134,7 @@ Open the preview URL. Select text or images, add comments where the issue appear
 
 ### 3. Let the agent answer comments
 
-When comments are added, the agent can read them, classify what needs action or clarification, and then write substantive replies into the same browser threads with `add-reply`. You can read the agent reply beside the original selected text.
+When comments are added, the agent can read every thread that is waiting on it and write substantive replies into the same browser threads with `add-reply`. You can read the agent reply beside the original selected text.
 
 ### 4. Resolve threads to trigger updates
 
@@ -162,7 +181,7 @@ python3 -m scripts.html_review_workbench.cli <command>
 | `preview` | Start or describe a session-scoped preview runtime. |
 | `plan-preview` | Create an ephemeral HTML preview for a proposed plan. |
 | `plan-preview-stop` | Stop and clean up an ephemeral plan preview. |
-| `ingest-review` | Read review comments, classify them, and save review-cycle state. |
+| `ingest-review` | Read review comments and save review-cycle state (status counts and thread ids). |
 | `validate` | Validate a generated HTML bundle. |
 | `add-reply` | Add an agent reply to a comment thread in `comments.json`. |
 | `check-gates` | Check whether unresolved clarification threads block document updates. |
@@ -342,6 +361,18 @@ codex plugin add reviewable-html-workbench@reviewable-html-workbench-local
 ```
 
 Codex CLI で marketplace 名を確認したい場合は `codex plugin marketplace list` の左列を見ます。
+
+#### Claude Code 内蔵の Artifact tool を止める
+
+Claude Code には、生成したページを `claude.ai` 上に公開する `Artifact` tool が組み込まれています。「HTML で出して」と依頼したときに、この plugin の skill ではなく Artifact tool が発火することがあり、その場合は内容が外部へ送られます。HTML を手元に留めたい場合は `~/.claude/settings.json` の top-level に次を追加します。
+
+```json
+{
+  "disableArtifact": true
+}
+```
+
+環境変数 `CLAUDE_CODE_DISABLE_ARTIFACT` でも同じ判定になるため、どちらか一方で足ります。`permissions.deny` と違い、呼び出しを拒否するのではなく tool 自体がセッションに現れなくなります。`/config` 画面の `Artifacts` トグルでも切り替えられますが、そちらは `~/.claude.json` へ書かれて version 管理の外に出るため、設定を dotfiles に残したい場合は `settings.json` を使ってください。
 
 Codex CLI は plugin 全体を導入する形で、現行の公開操作では言語だけを選んでインストールする方式ではありません。この plugin は同じ runtime に英語・日本語の skill 文書を同梱します。
 

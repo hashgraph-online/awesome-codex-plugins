@@ -83,5 +83,5 @@ origin: nexu-io/open-design (reference-only controlled integration)
 
 - 需求到原型：`/team-intake -> frontend-ui-ux-system -> open-design -> /team-plan`
 - UI 实施：`/team-execute -> open-design artifact evidence -> frontend-engineering -> /handoff`
-- 视觉评审：`/team-review -> open-design artifact review -> browser-smoke-testing`
+- 视觉评审：`/team-review -> open-design artifact review -> browser-qa`
 - Deck / 汇报材料：`frontend-slides -> open-design deck mode -> /team-release`

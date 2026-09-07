@@ -29,6 +29,34 @@ For each wave, resolve its assigned role(s) from the session plan's role-to-wave
 3. Proceed to next wave immediately
 4. Do NOT write wave-scope.json for skipped waves
 
+### 0a. Scope Baseline Freeze (S2 — #896)
+
+Run this ONCE, immediately after the Self-Report above and before Wave 1 dispatches — never per-wave, same "before the first wave" anchor as the empty-waves rule above. Freezes the session's scope baseline into STATE.md frontmatter so the drift tripwire in step 7a below has a denominator to compare the rest of the session against.
+
+```js
+import { writeBaseline } from '$PLUGIN_ROOT/scripts/lib/scope-baseline.mjs';
+
+const result = await writeBaseline({
+  repoRoot: process.cwd(),
+  intent: '<one-line session intent, from the agreed session plan>',
+  ownerBoundary: '<the plan\'s file-scope boundary, e.g. the union of declared agent file scopes>',
+  plannedFiles: <the RAW array of declared agent file-scope paths, unfiltered
+    — the UNION of every wave's per-agent "Files:" specs. Pass the array as-is;
+    `writeBaseline()` filters it internally via `DRIFT_EXCLUDE_PATTERNS`
+    (the same `filterExcluded()` helper the S2 drift tripwire's numerator
+    uses in step 7 below), so both sides of the ratio are produced by ONE
+    code path (#894 review finding F1 — the coordinator no longer has to
+    remember to pre-filter in prose). MUST be an array — issue #903 removed
+    the previously-accepted plain pre-counted-number call shape (it was an
+    unverified re-entry vector for the same F1 filter-bypass bug); anything
+    else is rejected up front with `reason: 'invalid-planned-files'`.>,
+});
+```
+
+Best-effort — never blocks Wave 1 from dispatching. `result.written === false` with `reason: 'already-frozen'` is expected and silent (a prior wave-executor pass in this same session already froze the baseline — do not re-freeze, do not log). Log any OTHER `reason` (`invalid-planned-files`, `no-state-md`, `unreadable-state-md`, `lock-timeout`, `lock-fs-error`, `unexpected-error`, `size-ceiling`, `frontmatter-unsafe`) as an informational note in the wave progress update — none of these block dispatch.
+
+Skip entirely when `persistence: false` in Session Config (no STATE.md exists in that mode).
+
 ### 0.5. Pre-Dispatch Resource Gate (#193)
 
 Before dispatching agents, the coordinator runs a resource gate to decide whether the wave should proceed as planned, reduce its agent count, or escalate to coordinator-direct. Gated on `$CONFIG["resource-awareness"]` (default: true).
@@ -69,9 +97,13 @@ Skip the deviation entry on `proceed`, even when `concurrentSessions` warns — 
 
 When `worker-pool.enabled: true` in Session Config, dispatch via `runWavePool()` from `scripts/lib/wave-executor/pool.mjs` with `maxParallel = worker-pool.max-parallel || agents-per-wave` — the bounded cursor is the opt-in alternative that supersedes manual batching. Else fall back to the small-batch Agent() dispatch described below (3–4 calls per message, cumulative up to the wave's `agents-per-wave` cap).
 
+**Worker-pool and background dispatch compose — neither replaces the other.** The pool is the opt-in for bounded-concurrency *pull* (how many agents may be in flight at once); background dispatch is the default *transport* (whether the coordinator's turn returns before an agent finishes). Pool workers may themselves background-dispatch. Adopting either removes no mechanism from the other, and neither adds a second mechanism to maintain.
+
 **Worker-pool timing note:** when `worker-pool.enabled: true`, per-agent start and end times are recorded individually in subagents.jsonl as workers pull from the cursor at different moments. Wave-level timings (for progress updates and metrics) are computed as first-worker-start to last-worker-finish, not as a uniform fan-out timestamp.
 
-Use the **Agent tool** to dispatch this wave's agents in **SMALL BATCHES of 3–4 Agent() calls per message** (cumulative up to the wave's `agents-per-wave` cap). Large single-message fan-outs (>4 Agent() calls in one message) are **FORBIDDEN** — fleet evidence (conf 1.0, 5 sessions) shows they drop Agent() calls SILENTLY (the coordinator receives fewer tool-results than it dispatched, with no error), whereas serial / small-batch dispatch held 13/13 and 8/8. Dispatch the first batch, wait for its tool-results, then dispatch the next batch, until the wave's planned agents are all started. See `docs/specs/2026-07-02-fleet-mining-followup-grill.md` (C4) for the policy rationale. The `worker-pool.enabled: true` path (above) is the mechanised opt-in alternative to manual batching.
+Use the **Agent tool** to dispatch this wave's agents. **`run_in_background: true` is ALLOWED and RECOMMENDED for wave dispatch** — measured 2026-08-22 (v2.1.239): under blocking dispatch the coordinator was 143 s incapable of acting between an agent's mid-run escalation and its own next turn — escalation latency equals the batch's remaining runtime. Background dispatch returns turns to the coordinator between agent completions; a running agent received a queued message mid-run and answered ~9 min before its final report.
+
+Dispatch in **SMALL BATCHES of 3–4 Agent() calls per message** (cumulative up to the wave's `agents-per-wave` cap). Large single-message fan-outs (>4 Agent() calls in one message) remain **FORBIDDEN** — fleet evidence (conf 1.0, 5 sessions) shows they drop Agent() calls SILENTLY (the coordinator receives fewer results than it dispatched, with no error), whereas serial / small-batch dispatch held 13/13 and 8/8. That evidence PREDATES backgrounding and is untouched by it; what backgrounding changes is the *cost* of batching, which is now near zero — a background batch returns its launch acks immediately, so batches no longer serialize the wave. Dispatch a batch, let its acks return, then dispatch the next, until every planned agent is started; then run **Started-Set Verification** below. See `docs/specs/2026-07-02-fleet-mining-followup-grill.md` (C4) for the batching-policy rationale. The `worker-pool.enabled: true` path (above) is the mechanised opt-in alternative to manual batching.
 
 Read each wave's dispatch metadata from the session plan header (e.g., `(4 agents, parallel, isolation: worktree)`). When the plan specifies `isolation`, use it verbatim. When the plan does not specify, resolve the effective value via `resolveIsolation({ agentCount, sessionType, collisionRisk, configIsolation })` from `scripts/lib/wave-sizing.mjs` — the graduated default (#194) replaces the previous session-type-only switch. Pass the resolved value to each Agent() tool call per `circuit-breaker.md` (omit the parameter when resolved to `none`).
 
@@ -81,15 +113,26 @@ Before dispatching, verify the wave's agent count does not exceed `$CONFIG.agent
 
 #### Contract-Lock Serialization (Pattern A, #730/H1)
 
-When the session plan marks a wave task `contract-lock: true` (session-plan Step 3.5 step 6), dispatch that single agent ALONE as the first batch and WAIT for its tool-result before dispatching the disjoint fan-out batches. The lock agent freezes the shared contract (interfaces/schemas/shared types/constants) so the N follow-on agents build against a fixed surface instead of racing to invent it. Never place the contract-lock agent in the same batch as the impl agents — its output is an input to theirs. The contract file MUST NOT appear in any follow-on agent's allowedPaths (read-only reference). If the lock agent reports STATUS: partial/failed, PAUSE the fan-out and surface the choice via AskUserQuestion (proceed with partial contract / re-dispatch lock / abort wave).
+When the session plan marks a wave task `contract-lock: true` (session-plan Step 3.5 step 6), dispatch that single agent ALONE as the first batch and WAIT for its **task-notification** (`<status>completed</status>`) before dispatching the disjoint fan-out batches — NOT for its tool-result, which under background dispatch is the immediate launch ack and would release the fan-out against an unfrozen contract (§ Started-Set Verification). The lock agent freezes the shared contract (interfaces/schemas/shared types/constants) so the N follow-on agents build against a fixed surface instead of racing to invent it. Never place the contract-lock agent in the same batch as the impl agents — its output is an input to theirs. The contract file MUST NOT appear in any follow-on agent's allowedPaths (read-only reference). If the lock agent reports STATUS: partial/failed, PAUSE the fan-out and surface the choice via AskUserQuestion (proceed with partial contract / re-dispatch lock / abort wave).
 
-#### Dispatch Verification (fail-loud — #724)
+#### Started-Set Verification (fail-loud — #724, #1115)
 
-After each batch's Agent() tool-results return, and once all batches for the wave have been dispatched, **count the Agent tool-results received for this wave against the planned agent list** (the agents named in the session plan for this wave). This closes the silent-drop failure class that motivated the small-batch default above (a large fan-out drops calls with no error).
+Once all batches for the wave have been dispatched, verify the **started set** against the planned agent list (the agents named in the session plan for this wave). This closes the silent-drop failure class that motivated the small-batch default above (a large fan-out drops calls with no error).
 
-- If every planned agent produced a tool-result → proceed to `### 2. Review Agent Outputs`.
-- If any planned agent produced **NO** tool-result (silent drop) → **re-dispatch ONLY the missing agents in a fresh batch** (3–4 per message) before proceeding to Review. Do NOT re-dispatch agents that already returned — that would duplicate their file writes. **Before dispatching any re-dispatch (or fix-pass) batch, re-run the Pre-Dispatch Scope-Union Assertion (§ Scope Manifest #3, #796) for each re-dispatched agent** — `allowedPaths` MUST NOT shrink while sibling agents of this wave are still running, or the re-dispatched agent's legitimate writes will be denied by Gate 7.
-- Record `agent_count_planned` (from the plan) and `agent_count_started` (distinct agents that produced a tool-result, after any re-dispatch) in the wave metrics (see § Capture wave metrics). A persistent gap after re-dispatch is a deviation — log it to STATE.md `## Deviations`.
+**Never count launch acks.** Under background dispatch every Agent() call returns an immediate `Async agent launched successfully` ack. Counting acks against the plan would report full success with zero work done — a fail-silent hole inside the fail-loud check. Two distinct signals, each with its own source:
+
+- **STARTED** — the agent's `agent-<id>.meta.json` sidecar exists under `~/.claude/projects/<encoded-repo-path>/<session-uuid>/subagents/`. The harness writes it at spawn, carrying `toolUseId` + `description` (measured 2026-08-25). Same substrate the tailer reads — see the header of `scripts/lib/wave-transcript-tail.mjs`. The `subagents/` directory does not exist until the first spawn of the session.
+- **COMPLETED** — the agent's task-notification carrying its `<tool-use-id>` and `<status>completed</status>`. NEVER the launch ack. `hooks/pre-task-scope-disjoint.mjs` (`ASYNC_LAUNCH_ACK` constant + `buildTranscriptIndex()`) already implements exactly this ack-vs-completion distinction across both the sync and async record shapes — **cite it as the reference implementation; do not restate its logic here and do not fork a second one.**
+
+Three distinguishable states, each with its own action:
+
+| State | Signal | Action |
+|---|---|---|
+| **never-started** | no `meta.json` sidecar after the batch's acks returned | Silent drop. **Re-dispatch ONLY the missing agents in a fresh batch** (3–4 per message) before proceeding to Review. Do NOT re-dispatch agents that already started — that would duplicate their file writes. **Before dispatching any re-dispatch (or fix-pass) batch, re-run the Pre-Dispatch Scope-Union Assertion (§ Scope Manifest #3, #796) for each re-dispatched agent** — `allowedPaths` MUST NOT shrink while sibling agents of this wave are still running, or the re-dispatched agent's legitimate writes will be denied by Gate 7. |
+| **started-but-never-returned** | sidecar present, no task-notification | The tailer's territory (step 2.0-bis). Do NOT re-dispatch blindly — the agent may be inside one long tool call (transcripts flush per turn, so it is invisible meanwhile), and a second copy would race it on the same file scope. Inspect its `agent-<id>.jsonl` transcript, then decide. |
+| **completed** | task-notification with `<status>completed</status>` | Proceed to `### 2. Review Agent Outputs`. |
+
+- Record `agent_count_planned` (from the plan), `agent_count_started` (distinct agents with a `meta.json` sidecar, after any re-dispatch) and `agent_count_completed` (distinct agents whose task-notification arrived) in the wave metrics (see § Capture wave metrics). A persistent `planned > started` gap after re-dispatch is a silent drop; a `started > completed` gap at wave end is an agent that never returned. Both are deviations — log them to STATE.md `## Deviations`.
 
 #### Pre-Dispatch New-Directory Detection (#243)
 
@@ -165,7 +208,7 @@ After running this detection block, call `resolveIsolation({ agentCount, session
 
 #### Pre-Dispatch: Path-Cousin-Guard Injection (#730.3)
 
-Before dispatching each agent whose fileScope contains a NEW (non-existent) file target, check for existing "cousin" files with a similar basename elsewhere in the repo — prevents the framing-wrong class where an agent creates `scripts/lib/foo/bar.mjs` while `scripts/lib/bar.mjs` already exists and serves the same purpose.
+Before dispatching each agent whose fileScope contains a NEW (non-existent) file target, check for existing "cousin" files with a similar basename elsewhere in the repo — prevents the framing-wrong class where an agent creates `scripts/lib/foo/bar.mjs` while `scripts/lib/bar.mjs` already exists and serves the same purpose. <!-- path-check: example -->
 
 **Detection (mechanical, reuses the new-file scan from #243 above):** for each not-yet-existing file target `<newPath>` in an agent's fileScope, take `basename(<newPath>)` minus extension; skip generic basenames (`index`, `utils`, `main`, `config`, or length ≤ 3 chars — false-positive control). Then:
 
@@ -178,6 +221,49 @@ Before dispatching each agent whose fileScope contains a NEW (non-existent) file
     </PATH-COUSIN-GUARD>
 
 **If 0 candidates:** dispatch unchanged — same silent-no-op convention as Grounding Injection / Frontmatter-Guard above. Never blocks dispatch.
+
+#### Pre-Dispatch: Fact-Staleness Annotation (#908)
+
+Facts an earlier wave measured get quoted into this wave's prompts as briefing truth — and they decay. In the #908 incident the impl agents found 14 commits where the brief said 9, a clean tree where it said 5 dirty, 92 learnings where it said 40, a file that no longer existed, and a closed epic briefed as critical-open; the worst class was line numbers, which drifted three times and forced 225 citations onto symbol+grep form. Annotating a fact costs one prompt line. Re-briefing a wave on wrong numbers costs the wave.
+
+**What is a fact here:** any repo-state value carried from an earlier wave's report into this prompt — counts (commits, files, tests, issues, learnings), line numbers, file existence, "session X is running", issue/epic open-closed state. NOT design decisions, task assignments, or judgements: those do not decay.
+
+**Trigger — annotate when ANY of these holds (no judgement call):**
+
+1. `now − measured_at ≥ 5 min`
+2. `measured_at` is absent
+3. the peer probe below reported `live: true` for the repo the fact is about
+
+Threshold derived from `.orchestrator/metrics/subagents.jsonl` (n=340 wave boundaries, agent runtime median 3.5 min): a fact's age at its FIRST cross-wave citation brackets [median 2.5 min, median 9.9 min] depending on where in the producing agent's run it was measured. 5 min sits at the conservative end of that bracket; the cost asymmetry breaks the tie downward. **Corollary: a fact from an earlier wave almost always trips rule 1 — when in doubt, annotate.** `measured_at` comes from the producing agent's report, which `hooks/post-subagent-discovery-validator.mjs` already asks for (PSA-006 point 4).
+
+**Peer signal — once per wave, plus once per distinct foreign repo cited:**
+
+```bash
+node "$PLUGIN_ROOT/scripts/lib/peer-discovery.mjs" --check-live "<repoRoot>" --json
+# → {"live":false,"reason":"no-lock","probe":"lock-only","peerCount":0,"peer":null}
+```
+
+Read `live` from the payload; the exit code reports whether the probe RAN (`0` verdict produced, `1` usage error, `2` internal failure), never the verdict itself. Probe selection is automatic and needs no flag: the coordinator's own working copy takes the `full` probe (worktrees + registry + STATE.md), any other repo takes `lock-only` (two sync calls, no git). Own-vs-foreign is decided by repo IDENTITY, not path nesting — a parent directory that is itself a repo (`~/Projects/<workspace>`) is foreign, not "mine".
+
+Call it for the coordinator's own repo even when every cited fact is about that repo — the own-repo probe self-excludes this session and answers "is another operator session writing into my working copy right now", which is exactly the #908 "14 vs 9 commits" class. `live: true` sets the threshold to **0** for that repo: every state fact about it is asserted, never established, however fresh. The probe is fail-safe (unmeasurable ⇒ `live: true`, including `probe: "full-degraded"` when the peer surfaces returned demonstrably incomplete data), so a probe failure annotates more, never less — and so does a non-zero exit: treat exit `1`/`2` as `live: true`.
+
+**Annotation format** — in the agent prompt, replace the bare value with:
+
+    ASSERTED (age <N> min, source W<k>/<agent>): <value>. Verify command: <cmd>. Run it before relying on this.
+
+**When no measurement command can be named** (rule 2, and the case the validator is meant to catch upstream), do not restate the value at all — a number nobody can re-derive is not a fact:
+
+    UNVERIFIED (no measurement command, source W<k>/<agent>): <claim>. Establish it yourself before relying on this.
+
+**Worked examples:**
+
+| Fact | Decision |
+|---|---|
+| "13 broken paths", W1-D2, `measured_at` 10:35, cited at 11:20 | Rule 1 (45 min ≥ 5) → `ASSERTED (age 45 min, source W1/D2): 13 broken paths. Verify command: <the grep D2 ran>. Run it before relying on this.` |
+| "the coordinator mis-measured 4 numbers" — no measurement command | Rule 2 → `UNVERIFIED` form; the value is dropped, the claim becomes the agent's own task |
+| Any count about a foreign repo whose peer probe reports `live: true` | Rule 3 → annotate regardless of age; age may still be printed but is not the reason |
+
+**Never blocks dispatch** — same silent-no-op convention as the injectors above. When facts cannot be annotated for any reason, dispatch proceeds; annotating more is always the safe direction.
 
 #### Agent-Type Resolution
 
@@ -192,15 +278,35 @@ For each agent in this wave:
       - Which files to read/modify (exact paths)
       - Acceptance criteria (how to verify done)
       - Relevant patterns — injected automatically as the <APPLICABLE-RULES> block (see Pre-Dispatch: Glob-Scoped Rule Injection below)
+      - Relevant past learnings — injected automatically as the <LEARNINGS-INDEX> block, computed PER AGENT from its file scope (see Pre-Dispatch: Learnings-Index Injection below)
+      - Any repo-state fact carried from an earlier wave: in the ASSERTED/UNVERIFIED form, never as a bare value (see Pre-Dispatch: Fact-Staleness Annotation above)
       - VCS issue reference if applicable
       - What NOT to touch (other agents' files)
       >",
     subagent_type: "<from session plan>",   // resolved agent type
-    run_in_background: false   // CRITICAL: always false — wait for completion
+    run_in_background: true   // RECOMMENDED — verify the started set via meta.json sidecars, never via the launch ack (§ Started-Set Verification)
   })
       - Turn budget and status reporting: "You have a maximum of [maxTurns] turns for this task. If you cannot complete within this budget, report STATUS: partial with what was accomplished and what remains. At the end of your work, report STATUS: done (all acceptance criteria met) or STATUS: partial (some criteria unmet — list which ones)."
       - Optional open-questions reporting (Close Handover-Alignment-Gate, PRD 2026-07-07): "If you encountered a genuinely unresolved, user-facing question you could not answer within your task scope, report it as an additional line: OPEN-QUESTIONS: <question> | context: <one-line why this is unresolved> | candidates: <opt A / opt B>. This line is optional — omit it entirely when you have no such question. Do not use it for questions you could resolve yourself by reading more code."
 ```
+
+##### Third branch: foreign-model dispatch (`cursor:<model>` — #1150)
+
+The colon heuristic (§ "How to detect project agents") has **three** readings, not two: no colon = project agent, `session-orchestrator:<agent>` = plugin agent, and `cursor:<model>` = **foreign channel**. When the session plan or `agent-mapping` resolves an agent to `cursor:<model>` (e.g. `impl: cursor:composer-2.5`), do NOT call the Agent tool. Dispatch **coordinator-direct** via `dispatchForeign({ model, prompt, repoRoot, role, runId, timeoutSec })` from `scripts/lib/wave-executor/foreign-dispatch.mjs`. Contract, in the order it binds:
+
+1. **`never_foreign` gate first.** `isNeverForeignRole(role)` returns `{ok:false, reason:'never-foreign-role'}` before any worktree or spawn. `NEVER_FOREIGN_ROLES` (impl-core, security-review, migration, release, secrets, incident, refactor-crosscut) is hand-copied from the account-switch routing SSOT; `dispatch-cursor.sh` enforces none of it, so **this adapter is the only gate** — never route around it with a shell call.
+2. **Detached worktree**, `<tmpdir>/so-foreign/<runId>` by default, `git worktree add --detach`. Never under `.claude/worktrees/` — eight readdir scanners in this repo read that path. The stream log is KEPT beside it (`<runId>.log.jsonl`), not trap-deleted.
+3. **Verdict measured at the filesystem, never from the model's prose.** `ok` is true only on exit 0 + no timeout + a non-empty changed set (`git diff --name-only` ∪ `ls-files --others`, since a diff alone is blind to new files). **An empty diff is a failure regardless of what the report says.**
+4. **MANDATORY Claude diff-review gate.** Read `result.diff` and judge it SEMANTICALLY before any merge-back — test-green is not the bar (measured counterexample: the foreign #1149 solution was test-green and semantically wrong). The **coordinator** applies (`git apply`) and commits; the foreign model never touches this repo's index or worktree (PSA-007). On review failure, discard the diff. **`result.hookTampering === true` invalidates the run regardless of `ok`**: the child repointed or rewrote the shared `.git` hooks path (a linked worktree isolates the tree, not `core.hooksPath`), and that write is invisible in `result.diff` — discard and do not merge. `null` means the fingerprint could not be read (not measured), never "clean".
+5. **`removeForeignWorktree({ repoRoot, worktreePath })` after the review** — never before, because a failed run must stay inspectable. It **refuses a `worktreePath` outside `<tmpdir>/so-foreign*`** (returns `{ok:false, reason:'unsafe-...'}` and makes no git call), so it cannot `--force`-remove a sibling session's worktree.
+
+**Trust boundary.** A foreign run bypasses the ENTIRE hook chain — no `PreToolUse:Agent`, no scope enforcement, no `SubagentStop` telemetry (verified against `hooks/hooks.json`, W1/D4). Everything inside the detached worktree is **untrusted** until a Claude coordinator has read the diff and applied it. The replacement ledger record is the `orchestrator.foreign_dispatch.completed` event the adapter emits (payload in `docs/events-schema.md`), which fires on refusals too — a blocked dispatch is a record, not a silence.
+
+**Composition.** A foreign run is a background Bash task, so it composes with background `Agent()` dispatch in the same wave. It is **NOT** part of § Started-Set Verification: no `meta.json` sidecar exists for it and no task-notification arrives. Its lifecycle is the adapter's return value — do not count it as planned/started/completed, and do not read its absence from the started set as a drop.
+
+**Model selection** is not decided here: the account-switch routing SSOT (ADR-002 / `tools/routing/routing.yaml`) owns it. Working defaults: `composer-2.5` for foreign impl; `cursor-grok-4.6-high` for review / test-writing / judgment roles, at `timeoutSec ≥ 900`. Dogfood evidence (2026-08-25): `composer-2.5` on issue #1105 — 165 s, 2 files, +93 lines, mandatory review passed, merged only after independent test verification.
+
+**Timeout.** `maxTurns` does not exist on this channel — see the § Platform-Specific Dispatch timeout note. The wall-clock SIGTERM (`DEFAULT_TIMEOUT_SEC = 900`, a floor) is the only circuit breaker.
 
 #### Pre-Dispatch Grounding Injection (#85)
 
@@ -322,6 +428,8 @@ Behaviour change: agents writing vault notes now receive the canonical schema en
 
 After `wave-scope.json` is written for this wave and before assembling the `Agent()` prompt, inject the wave's applicable rule set into each dispatched agent's prompt. This wires the `loadApplicableRules()` loader (`scripts/lib/rule-loader.mjs`) — dormant since #336 — into the live per-wave prompt assembly via the thin CLI `scripts/print-applicable-rules.mjs`.
 
+> **⚠ Measure before you inject — on Claude Code this step is usually a NET LOSS (#931b).** `docs/instruction-delivery.md` measured the delivery path on 2026-07-30: every `.claude/rules/*.md` already reaches a dispatched agent through Claude Code's **native project-instruction loading**, so a `$RULES_BLOCK` prepended on top arrives a *second* time. Measured on a real wave: the scoped block was 122,875 B against a 169,961 B corpus — glob scoping saved **4.0%**, of which 85.5% came from the tier axis alone, while injecting alongside undiminished native delivery cost **+72%** (292,836 B). The coordinator SHOULD therefore check the block's size before prepending it, and MAY skip the injection with a logged Deviation when the harness already delivers the corpus natively — that is not a shortcut, it is the measured decision. Inject unconditionally only on a harness that does NOT auto-load `.claude/rules/` (Codex CLI, Pi, Cursor), where this block is the sole delivery path and the saving is real. See `docs/instruction-delivery.md` §1.2 and §5.
+
 **Gate:** runs when `.claude/rules/` exists. When it does not, the CLI prints nothing and exits 0 — zero behaviour change. This step never blocks dispatch: any non-zero exit or empty output means "inject nothing, continue" (same best-effort framing as Pre-Dispatch Grounding Injection above).
 
 **Per-wave scoping (not per-agent):** the rule set is computed ONCE per wave from the wave's `allowedPaths` union (the same `wave-scope.json` source used elsewhere), not per agent. The CLI resolves `scopePaths` from `allowedPaths`, `mode` from the `session-type:` frontmatter in `.claude/STATE.md`, and `hostClass` from `.orchestrator/host.json` — all overridable, all degrading to "no gating" when unreadable.
@@ -331,7 +439,7 @@ After `wave-scope.json` is written for this wave and before assembling the `Agen
     RULES_BLOCK="$(node "$PLUGIN_ROOT/scripts/print-applicable-rules.mjs" --context wave 2>/dev/null)"
 
 `--context wave` (issue #692) excludes `tier: coordinator-only` rules (owner-persona, lsp, mvp-scope, loop-and-monitor) from the wave-agent prompt — those are operator/coordinator-context rules a wave implementation agent does not need. `tier: always` and `tier: wave-only` rules are unaffected; omitting the flag (or passing `--context coordinator`) disables wave-tier exclusion. Use `--wave-scope <path>` only if `wave-scope.json` is not at the default `.claude/wave-scope.json`. The CLI returns:
-- a Markdown block (header `## Applicable Rules (scoped to this wave)` + each matching rule's raw content, separated by `---`) when one or more rules apply, OR
+- a Markdown block (header `## Applicable Rules (scoped to this wave)`, a preamble naming the block's fence token, then each matching rule's raw content wrapped in `<rule-<token> index="i/N" src="<repo-relative path>">` … `</rule-<token>>`) when one or more rules apply, OR
 - empty output (exit 0) when no rules match — in which case prepend nothing.
 
 **Prompt assembly:** when `$RULES_BLOCK` is non-empty, prepend it to EACH agent's prompt in this wave under a clear separator:
@@ -345,6 +453,55 @@ After `wave-scope.json` is written for this wave and before assembling the `Agen
 When `$RULES_BLOCK` is empty (no `.claude/rules/`, no matching rules, or any CLI failure), dispatch the agent unchanged. Because the block is computed once per wave, the same `$RULES_BLOCK` is reused for every agent dispatched in this wave — narrow waves (e.g. only `scripts/**` or only `tests/**` files) receive a smaller rule set, which is the #336 token-reduction payoff.
 
 This replaces the older prose slot "Relevant patterns from `<state-dir>/rules/`" in the `Agent()` template above: the `<APPLICABLE-RULES>` block IS that injection, now mechanically scoped to the wave instead of left to the coordinator's judgement.
+
+#### Pre-Dispatch: Learnings-Index Injection (#1014)
+
+> **Read this first — it is computed PER AGENT, unlike the block directly above.** The rule injection you just read states "Per-wave scoping (not per-agent): the rule set is computed ONCE per wave". This step is the opposite: **run the CLI once for EACH agent**, because per-agent differentiation IS the acceptance criterion — an agent scoped to `scripts/lib/learnings/**` must receive different entries than its sibling scoped to `skills/**`. Model it on **Pre-Dispatch Grounding Injection (#85)** above, not on its immediate neighbour. Computing it once and reusing it across the wave silently reduces this feature to a worse version of the coordinator banner that already exists.
+
+89 learnings have accumulated across 233 sessions, and a dispatched wave agent receives **zero** of them: the only read paths are a coordinator banner, an autopilot call, and a nudge banner — none reaches an agent prompt. This step closes that loop by prepending a compact, relevance-ranked INDEX of learnings to each agent's prompt.
+
+**Why this does not repeat the #931b mistake.** `docs/instruction-delivery.md` measured that adding a SECOND delivery path alongside Claude Code's native project-instruction loading costs **+72%** (292,836 B vs 169,961 B) — which is why the rule block above carries a "measure before you inject" warning. That warning does **not** transfer here, and not as a matter of argument: learnings have no native delivery path to duplicate. `learnings.jsonl` lives under `.orchestrator/metrics/`, is not a project-instruction file, is not `@`-imported from CLAUDE.md, and reaches nothing agent-facing today. This is the FIRST path, and it rides the dispatch-prompt channel this repo already owns and writes itself — no new mechanism is introduced. It is also bounded by a code constant (`LEARNINGS_INDEX_MAX_CHARS = 2000`, ~1.1% of the measured 178,095 B per-agent prompt baseline) with no `0 = unlimited` sentinel, so it cannot grow into the corpus it indexes.
+
+**An INDEX, not a corpus.** One line per learning plus a retrieval pointer; an agent that needs a full entry greps it by subject. Measured: 12 entries in this form = 1,469 B.
+
+**Gate:** runs when `.orchestrator/metrics/learnings.jsonl` exists. When it does not — or when nothing clears the confidence floor, or the corpus is unreadable — the CLI prints nothing and exits 0. Same best-effort convention as every injector above (Grounding `:307`, Frontmatter-Guard `:386`, Path-Cousin-Guard `:208`): silent no-op on any failure, **never blocks dispatch**. Any non-zero exit means "inject nothing, continue".
+
+**Zero new coordinator obligations.** The per-agent file scope this needs is the SAME `$AGENT_FILESCOPE_JSON` — `<state-dir>/filescopes/wave-<N>/<agent-id>.json` — that `## Scope Manifest` § 3.1 already requires you to write for every agent, and that the Scope-Union Assertion (#796) then consumes. Reuse that file — do not write a second one, and never a temp copy.
+
+**Invocation:** once per agent, immediately after that agent's `$AGENT_FILESCOPE_JSON` is written, capture stdout as `$LEARNINGS_INDEX`:
+
+    LEARNINGS_INDEX="$(node "$PLUGIN_ROOT/scripts/print-learnings-index.mjs" \
+      --file-scope "$AGENT_FILESCOPE_JSON" \
+      --task-text "<the agent's task title / one-line description>" 2>/dev/null)"
+
+`--task-text` is optional and feeds the token axis of the affinity primitive; omitting it yields path-only ranking. **Resolution ladder** (mirrors Grounding Injection `:309`): the agent's own `--file-scope` → the wave-level `allowedPaths` from `.claude/wave-scope.json` (automatic fallback when the agent has no declared "Files:" scope) → empty scope, in which case only the general tier is selected. Caps are `--max-scoped` (default 8) and `--max-global` (default 4) — **split, never shared**, so the general tier can never crowd out the per-agent signal.
+
+**Prompt assembly:** when `$LEARNINGS_INDEX` is non-empty, prepend it to THAT agent's prompt:
+
+    <LEARNINGS-INDEX>
+    $LEARNINGS_INDEX
+    </LEARNINGS-INDEX>
+
+    <original prompt>
+
+When it is empty (no corpus, no qualifying entries, or any CLI failure), dispatch that agent unchanged — the prompt is then byte-identical to the legacy one.
+
+**Instrumentation (why this one is measurable and its neighbours are not).** The rule injection above is a SHOULD and emits no signal either way, so "did the coordinator actually inject?" has been unanswerable after the fact — a gap the #1014 discovery wave had to leave open. This CLI emits `orchestrator.learnings.index.injected` to `.orchestrator/metrics/events.jsonl` (via `scripts/emit-event.mjs`, the canonical `emitEvent()` path — the same route `scripts/compute-grounding-injection.sh` uses for `orchestrator.grounding.injected`), carrying `count`, `scope_matched`, `global_count`, `candidates`, `truncated`, `bytes`, and `scope_source`. The before/after measurement is therefore a fact in the event log, not a matter of prose compliance. Emission is best-effort and suppressible with `--no-event`; a failed emit never blocks dispatch.
+
+#### Pre-Dispatch: File-Scope Injection (#1020)
+
+> **Read this first — this block is PER AGENT, unlike `#### Pre-Dispatch: Glob-Scoped Rule Injection (#336/#694)` above, which states "Per-wave scoping (not per-agent): the rule set is computed ONCE per wave".** Model it on **Pre-Dispatch Grounding Injection (#85)** — same cadence, same per-agent source. This injector legitimately has BOTH cadences (per-agent for the brief, per-wave for the § Scope Manifest union), which is exactly what makes the collapse tempting: reuse ONE agent's block for the whole batch and every agent reads the territory of every OTHER agent as its own. Deconfliction would then be **lifted rather than enforced**, and the double assignment § 3.2 exists to catch becomes invisible in the one channel where an agent could still notice it.
+
+**Invocation:** for each agent, read `<state-dir>/filescopes/wave-<N>/<agent-id>.json` (= `$AGENT_FILESCOPE_JSON`) — the SAME file written in § Scope Manifest 3.1, not a re-derivation from the session plan and not a temp copy — and prepend its entries to that agent's prompt, one path per line:
+
+    FILE-SCOPE — exactly these:
+    ```
+    <one path or glob per line, verbatim from that agent's scope file>
+    ```
+
+Marker line plus fenced block, in that order: `hooks/pre-task-scope-disjoint.mjs` extracts the scope from the prompt by finding the marker and taking the FIRST fenced block after it, so this shape is what makes an agent's declared territory machine-readable at dispatch time. An unparseable or absent block resolves to ALLOW there, so a malformed injection degrades to today's behaviour rather than blocking dispatch. When the scope file is missing or empty (Discovery waves), inject nothing and dispatch unchanged.
+
+> **Registration note.** That hook was armed in `hooks/hooks.json` on 2026-08-14, after a green Full Gate. Its `PreToolUse` matcher is **`Agent`** — measured over 12 archived transcripts of this repo, `Agent` accounts for 147 of 147 dispatch `tool_use` blocks. A `Task` matcher would hit the unrelated todo family (`TaskCreate`/`TaskUpdate`/`TaskGet`/…) and never once fire on a dispatch: armed and inert, the failure mode that reads as done. It is deliberately absent from `hooks-codex.json` / `hooks-cursor.json` / `hooks-pi.json` — those platforms have no `Agent` dispatch tool, so the asymmetry is registered in `DOCUMENTED_ASYMMETRIES` rather than papered over with a matcher that can never fire.
 
 #### Structured Reasoning (STATE:/PLAN:) — opt-in via `reasoning-output: true` (#79)
 
@@ -378,9 +535,9 @@ Rules:
 
 4. **Finalization** → direct execution (no subagent needed)
 
-> **How to detect project agents:** The session plan's "Agent Registry" section lists all discovered agents. If an agent name does NOT contain a colon (`:`), it's a project-level agent. If it contains `session-orchestrator:`, it's a plugin agent.
+> **How to detect project agents:** The session plan's "Agent Registry" section lists all discovered agents. If an agent name does NOT contain a colon (`:`), it's a project-level agent. If it contains `session-orchestrator:`, it's a plugin agent. If it contains `cursor:` (e.g. `cursor:composer-2.5`), it is a **foreign-channel dispatch**, not an Agent-tool dispatch at all — see § Third branch: foreign-model dispatch. Any other prefix is rejected at parse time by `scripts/lib/config.mjs` (known channels: `cursor`, `session-orchestrator`), so an unroutable value never reaches this chain.
 
-**CRITICAL: `run_in_background: false`** — You MUST wait for ALL agents to complete before proceeding. NEVER use `run_in_background: true` during wave execution. Dispatch in small batches of 3–4 Agent() calls per message (never a large single-message fan-out — see § Dispatch Agents; large fan-outs drop calls silently, conf 1.0), waiting for each batch's tool-results before the next, then run Dispatch Verification.
+**`run_in_background: true` is ALLOWED and RECOMMENDED for wave dispatch.** Measured 2026-08-22 (v2.1.239): under blocking dispatch the coordinator was 143 s incapable of acting between an agent's mid-run escalation and its own next turn — escalation latency equals the batch's remaining runtime. Background dispatch returns turns to the coordinator between agent completions; a running agent received a queued message mid-run and answered ~9 min before its final report. Still dispatch in small batches of 3–4 Agent() calls per message (never a large single-message fan-out — see § Dispatch Agents; large fan-outs drop calls silently, conf 1.0), then run **Started-Set Verification** — an agent counts as started on its `meta.json` sidecar and as completed on its task-notification, never on the launch ack.
 
 #### Platform-Specific Dispatch
 
@@ -403,6 +560,8 @@ Dispatch via Codex's multi-agent system — describe the task and specify the ag
 The `agents-per-wave` config is ignored on Cursor — all work is sequential. Session-reviewer dispatch is deferred to session-end (Phase 1.8).
 
 > **Timeout note:** Agent timeout is controlled by `maxTurns` from `circuit-breaker.md`, not by a time-based timeout. Claude Code's built-in turn limit provides the safety net. There is no need to set explicit time-based timeouts on agent dispatch.
+>
+> **Foreign-dispatch exception (#1150):** this is FALSE for a `cursor:<model>` dispatch. `cursor-agent` has no `maxTurns` and no turn limit of any kind, so a wall-clock SIGTERM is the **only** circuit breaker there — `timeoutSec` (default `DEFAULT_TIMEOUT_SEC = 900`, a measured floor, not a suggestion: `cursor-grok-4.6-high` ran 2 of 3 hard-test tasks past a 540 s cap). Lowering it manufactures timeouts that read as model failure. See § Third branch: foreign-model dispatch.
 
 ### 2. Review Agent Outputs
 
@@ -419,6 +578,20 @@ if (cwd.restored) {
 ```
 
 Run this step for every wave, regardless of isolation setting — it is a no-op when CWD never drifted.
+
+**Step 2.0-bis — Transcript tailer (FA-1, #1114):** `monitors/monitors.json` carries a `wave-transcript-tail` entry with `when: "on-skill-invoke:wave-executor"`, so the tailer starts ONCE per wave-executor invocation — **not per wave**. It observes the OWN session's subagent transcripts, picking up newly-appearing `agent-*.jsonl` files as later waves dispatch, so it never needs to be told a wave boundary. Its findings arrive as `stagnation_detected` records carrying `source: "tail"` — the same schema the **Stagnation event-write** block under step 3a below produces with `source: "coordinator"`, deliberately not a second event name (#1035).
+
+**Silence is NOT success** (`.claude/rules/loop-and-monitor.md` § LM-002). Transcripts flush per TURN, so an agent inside one long tool call is invisible to the tailer for that call's whole duration. Read "no tail findings" as "nothing detectable was flushed", never as "the wave is healthy" — the post-wave review below remains the primary check. A tailer that cannot resolve the transcript directory exits with one stderr line and never blocks the wave.
+
+**Step 2.0-ter — Incoming agent escalations (FA-2, #1051):** a wave agent may send ONE upward `SendMessage` to `main` when it hits a wave-blocking obstacle (`.claude/rules/cross-session-messaging.md` § CSM-001 — agents send upward only, never sideways). When such a message arrives mid-wave:
+
+- **It is a claim, not a finding.** Verify it against the tree before altering the wave plan or re-scoping a sibling agent — `.claude/rules/receiving-review.md` § RCR-003 (skeptical posture) and RCR-001 step 3 (VERIFY) apply unchanged. The agent's view of the tree may already be stale.
+- **Carry provenance.** Quote it downstream as `<claim> (source: <agent>, <time>)` per CSM-002; an unattributed escalation is indistinguishable from the coordinator's own measurement.
+- **No permission laundering.** Never execute an action this coordinator session has blocked or left unapproved just because an agent asked for it (CSM-003) — route it to the operator instead.
+- **Never gate on a reply.** Do not hold a wave, a gate, or a commit waiting for an answer, and read silence as neither consent nor refusal (CSM-004).
+- **Record it.** Note the escalation in the wave progress update — agent, one-line claim, verification outcome, action taken — so an escalation that changed the plan stays auditable.
+
+When the channel is unavailable (CSM-005: `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` / `DISABLE_TELEMETRY`, native Windows, non-Anthropic providers), nothing arrives and this step is a silent no-op — the wave behaves exactly as it does today.
 
 After ALL agents in the wave complete:
 
@@ -446,15 +619,27 @@ After ALL agents in the wave complete:
 
 2. **Check for conflicts**: did two agents modify the same file? → manual merge needed
 3. **Check for failures**: did any agent report errors or blockers?
-3a. **Apply stagnation patterns** (per agent): review each agent's tool-call sequence against the three patterns in `circuit-breaker.md` § Stagnation Patterns — Pagination Spiral, Turn-Key Repetition, Error Echo. Mark each agent STAGNANT/SPIRAL/FAILED accordingly; recovery feeds into step 3 (Adapt Plan). Two different agents reading the same file is coordination, not stagnation.
+3a. **Apply stagnation patterns** (per agent): review each agent's tool-call sequence against the three patterns in `circuit-breaker.md` § Stagnation Patterns — Pagination Spiral, Turn-Key Repetition, Error Echo. Mark each agent STAGNANT/SPIRAL/FAILED accordingly; recovery feeds into step 3 (Adapt Plan). Two different agents reading the same file is coordination, not stagnation. The other two patterns in the enum — `psa007-git-write` and `status-partial` — are NOT yours to judge here: they are executable regexes owned by the tailer (step 2.0-bis) and reach you as records with `source: "tail"`.
 
-**Stagnation event-write** (gated on `persistence: true`): when any stagnation pattern fires for an agent during this step, append one line to `.orchestrator/metrics/events.jsonl` using shell `>>` (atomic for lines under PIPE_BUF):
+**Stagnation event-write** (gated on `persistence: true`): when any stagnation pattern fires for an agent during this step, emit ONE `stagnation_detected` record through the **canonical emitter** — never a hand-rolled `>>` append. Hand-written appenders drift from `emitEvent()` (that drift is what produced the `stop` vs `orchestrator.session.stopped` divergence, #609/#611), and since #1114 this event has a SECOND producer (the transcript tailer, step 2.0-bis above), whose records must be field-for-field comparable with the coordinator's. One write path for both:
+
+    node "$PLUGIN_ROOT/scripts/emit-event.mjs" --type stagnation_detected --payload '<the payload object below>'
+
+From a Node context, call `emitEvent('stagnation_detected', { ...payload, ...sessionAttribution(repoRoot) }, { repoRoot })` from `scripts/lib/events.mjs` instead — pass `repoRoot` **explicitly** so the record lands in THIS working copy's ledger and its attribution is read from the same root the line is pinned to (#941/#1147).
 
 ```json
-{"event":"stagnation_detected","timestamp":"<ISO 8601 UTC>","session":"<session_id>","wave":N,"agent":"<subagent_type>","pattern":"pagination-spiral|turn-key-repetition|error-echo","error_class":"<taxonomy value — omit field entirely if pattern is not error-echo>","file":"<relative path from project root, or null if not applicable>","occurrences":N}
+{"session":"<semantic session id>","wave":N,"agent":"<subagent_type>","pattern":"pagination-spiral|turn-key-repetition|error-echo","source":"coordinator","error_class":"<taxonomy value — omit field entirely unless pattern is error-echo>","file":"<relative path from project root, or null if not applicable>","occurrences":N}
 ```
 
-Assign `error_class` using the taxonomy defined in `circuit-breaker.md` § "3. Error Echo" → Error-Class Taxonomy. For non-error-echo patterns, omit the `error_class` field. Paths are relative to the project root. `occurrences` is the count of pattern repetitions detected (minimum 3 per the trigger threshold).
+The template lists only the THREE patterns you may write. The other two enum values — `psa007-git-write` and `status-partial` — are tail-only: they are emitted by `scripts/lib/wave-transcript-tail.mjs` with `source: "tail"`, never by the coordinator (see step 3a above).
+
+`timestamp` and `event` are written by `emitEvent()` itself — do NOT hand-compose either (a hand-typed ISO string is the #540 corruption class).
+
+**Field-name reconciliation (three session keys, none redundant):** `session` is the **SEMANTIC** session id — the one that matches `sessions.jsonl.session_id` (measured 2026-08-25: `"main-2026-08-24-session-1"`), which is the join key every consumer reads (`skills/session-end/metrics-collection.md` filters `.session == $sid` with `$sid = $SESSION_ID`, the semantic id). Writing a raw UUID here would produce a record that joins to nothing. `sessionAttribution(repoRoot)` additionally contributes the `session_id` / `semantic_session_id` pair, which is OMITTED rather than fabricated when no `session.lock` is readable — so `session` is the field a consumer may rely on, and the pair is additive provenance. Keep all three; do not collapse them into one.
+
+**`source` (additive, #1114)** names WHO detected the pattern: `"coordinator"` for a record written here from post-wave review, `"tail"` for one written by `scripts/lib/wave-transcript-tail.mjs`. A consumer that does not know the field behaves exactly as before.
+
+Assign `error_class` using the taxonomy defined in `circuit-breaker.md` § "3. Error Echo" → Error-Class Taxonomy. That assignment applies to **error-echo only** and is unchanged. Omit the field entirely for every other pattern — `pagination-spiral`, `turn-key-repetition`, and the two tail-detected patterns `psa007-git-write` / `status-partial` carry NO `error_class`, and an absent field means "no class applies", never `"other"`. Paths are relative to the project root. `occurrences` is the count of pattern repetitions detected — minimum 3 for the three threshold-based patterns; `psa007-git-write` and `status-partial` fire on the FIRST occurrence, so `occurrences: 1` is valid for those two.
 
 3b. **Worktree base-ref freshness check (#195)**: For each agent dispatched with `isolation: "worktree"` in this wave, verify that the coordinator has not advanced `main` past the worktree's base commit before the merge-back copies files. Call `checkWorktreeBaseRefFresh({ suffix, targetBranch: 'main', agentScope, cwd })` from `scripts/lib/worktree-freshness.mjs`:
 
@@ -485,7 +670,7 @@ Log every non-`pass` result as an event to `.orchestrator/metrics/events.jsonl` 
    Build the on-disk change set as the UNION of the two commands' outputs (untracked files appear as `??` lines in `git status --porcelain` — strip the two-column status prefix). **Every path in an agent's declared `files_changed` MUST appear in that union.** A declared file that is absent from both is an **edit-persistence violation**:
 
    - Treat that agent's result as **NOT verified** — do not count its claimed work as done, and do not feed its (phantom) changes into the next wave.
-   - **Recover** by either (a) re-dispatching that agent's task package in a fresh batch (per `#### Dispatch Verification`), or (b) applying the missing edit coordinator-direct when the fix is small and unambiguous.
+   - **Recover** by either (a) re-dispatching that agent's task package in a fresh batch (per `#### Started-Set Verification`), or (b) applying the missing edit coordinator-direct when the fix is small and unambiguous.
    - **Log the deviation** to `## Deviations` in `<state-dir>/STATE.md` via `appendDeviationOnDisk(repoRoot, isoTimestamp, message)` from `scripts/lib/state-md.mjs`:
      ```
      - [<ISO 8601 UTC>] Wave N edit-persistence violation: agent "<description>" reported <done|partial> but declared file(s) <paths> are absent from the on-disk change set. Result treated as unverified — <re-dispatched | coordinator-direct fix>.
@@ -552,7 +737,7 @@ Log every non-`pass` result as an event to `.orchestrator/metrics/events.jsonl` 
    - After **Impl-Polish**: Incremental quality checks + integration verification
    - **Simplification pass** (at the start of the Quality wave, before test/review agents):
      1. Identify all files changed in this session: `git diff --name-only $SESSION_START_REF..HEAD`
-     2. Filter to production files only (exclude `*.test.*`, `*.spec.*`, `__tests__/`). If no production files changed, skip the simplification pass entirely — proceed directly to test/review agents.
+     2. Partition the list into **production files** (exclude `*.test.*`, `*.spec.*`, `__tests__/`) and **test files** (exactly that excluded set). Both branches below are independent: skip a branch when its partition is empty; skip the pass entirely only when BOTH partitions are empty — then proceed directly to test/review agents.
      3. Dispatch 1-2 simplification agents with:
         - Changed file list (production files only — exclude `*.test.*`, `*.spec.*`, `__tests__/`)
         - Reference: `slop-patterns.md` from the discovery skill directory — include the actual patterns in the agent prompt
@@ -561,7 +746,16 @@ Log every non-`pass` result as an event to `.orchestrator/metrics/events.jsonl` 
         - Instruction: "Review each changed file for AI-generated code patterns. Apply targeted simplifications: remove unnecessary try-catch around non-throwing operations, delete over-documentation (params that repeat the name, returns that say 'the result'), replace re-implemented stdlib functions with standard alternatives, simplify redundant boolean logic (if/else returning true/false, double negation, explicit boolean comparisons). Do NOT change functionality. Do NOT touch files you weren't given. Do NOT commit."
         - Tools: Read, Edit, Grep, Glob
         - Model: sonnet
-     4. After simplification agents complete, proceed to Quality test/review agents
+     4. **Test-consolidation branch** — in the SAME dispatch round as step 3, dispatch exactly 1 test-consolidation agent with:
+        - File list: the test partition from step 2 (this session's changed test files) plus their immediate neighbours (sibling test files covering the same module — resolve via the production file's basename, e.g. `foo.mjs` → `tests/**/foo*.test.mjs`)
+        - Instruction: "Consolidate this test corpus. (a) Merge duplicated tests that differ only in input/expected values into ONE parameterized test (table-driven / `it.each`). (b) DELETE any test that fails the falsification check — ask for each test: *would this test go RED if a real bug were introduced in the code it claims to cover?* If no, it catches nothing; remove it. (c) DELETE getter/setter tests, framework-behaviour tests, and prose-presence tests (assertions that a doc/skill file merely CONTAINS a phrase) — see `.claude/rules/testing.md` § 'Test Quality — False-Positive Prevention' and § 'When NOT to Write Tests'. Do NOT touch production files. Do NOT commit."
+        - **Contract**: the set of bugs the suite catches may only stay the same or GROW. Never delete a test that is the sole falsifier of a real behaviour — when in doubt, keep and report it. Deletions are a SUCCESS outcome, not a regression: a net-negative test LOC with an unchanged bug-catch set is the intended result of this branch.
+        - **Report**: the agent MUST emit `test_delta: {added, removed, consolidated, net_loc}` in its report so the coordinator can record the pass's effect.
+        - Tools: Read, Edit, Grep, Glob
+        - Model: sonnet
+     5. After the simplification and test-consolidation agents complete, proceed to Quality test/review agents
+   - **Review panel = primary bug-catch mechanism (Quality wave)**: the Quality wave's central verification instrument is a multi-persona review panel — `security-reviewer`, `qa-strategist`, `architect-reviewer` — dispatched read-only (Read/Grep/Glob, no Edit/Write) and scoped to the FULL session diff `$SESSION_START_REF..HEAD`, not to a single wave's file scope. Test-writing in this wave is need-gated, not default (see `SKILL.md` § "Agent Prompt Best Practices" point 5): an agent writes a test only for a bug it can name.
+     Rationale — 2026-07 evidence: the HIGH/MED product bugs actually caught in this repo's sessions came from panel review (argument injection in a base-branch value, a fail-open config gate, a never-wired max-proposals cap, a glob-metacharacter bypass), not from growth of the test corpus. Panel breadth over the full diff also catches coordinator-written code, which per-wave agent scopes never cover.
    - After **Quality**: Full Gate quality checks per quality-gates (typecheck + test + lint, must all pass)
      (Full Gate is NEVER skipped regardless of cache state — this is the close-safety invariant. As of #724 this mandate is MECHANICAL, not prose-only: the Baseline cache check above passes `waveRole: 'Quality'`, so `shouldSkipIncremental` hard-returns `skip: false` before any cache/diff logic. A targeted/incremental pass is necessary but NOT sufficient — the Quality-wave completion requires the full typecheck + test + lint run.)
    - After **Finalization**: final git status check
@@ -583,29 +777,6 @@ Per attempt:
 
 See `SKILL.md` § "Inter-Wave Quality-Gate (with Auto-Fix Loop — #521)" for
 the full invocation pattern.
-
-##### /goal Continuation Anchor (opt-in — #636)
-
-> Advisory-only continuation anchor at the inter-wave fix-loop seam. Never auto-invokes `/goal`, never blocks forward progress. `/goal` is a user slash-command; the operator decides whether to use it.
-
-**Gate conditions** — ALL must be true for this nudge to surface:
-
-1. `goal-integration.enabled: true` in Session Config (default: `false`).
-2. `inter-wave-fixloop` is listed in `goal-integration.seams`.
-
-When any gate condition is false, skip this step entirely — proceed to `##### STATE.md Deviation — Auto-Fix Result`.
-
-**What it does** — when the gate fires and the inter-wave Quality-Gate is failing (auto-fix retries in flight or about to begin), surface ONE suggested `/goal` command as an advisory bullet in the wave progress update. Example:
-
-```
-/goal Keep fixing Wave <N> quality-gate failures until 'npm run lint', 'npm run typecheck' and 'npm test' each print 0 failures in this turn's output, or stop after <max-retries+1> attempts.
-```
-
-**Advisory-only contract:** the `/goal` is the continuation anchor that keeps the coordinator working across turns while it iterates on the fix. The exit-code result of `runQualityGateWithRetry()` stays the judgment — `/goal` continues the loop, it never decides correctness. The hard-abort + diagnostics-bundle path (`.orchestrator/metrics/verification-failures/<ts>.json` after `max-retries`) is UNCHANGED: an active `/goal` does not extend, replace, or bypass the bounded retry ceiling. This step is informational prose only — no AskUserQuestion, no STATE.md write, no sidecar.
-
-The `/goal` evaluator reads the transcript only and runs NO tools — it anchors CONTINUATION, never JUDGMENT. The suggested condition therefore references freshly-run gate output "in this turn's output" and embeds a bound ("or stop after N attempts"). Cross-reference `.claude/rules/loop-and-monitor.md § LM-008` for the full `/goal` continuation-vs-judgment contract rather than restating it here.
-
-**One goal per session:** only ONE `/goal` can be active at a time. This inter-wave fix-loop seam and the session-end backlog seam (`skills/session-end/SKILL.md` § 1.3a) cannot both hold an active goal simultaneously — the operator picks one.
 
 ##### STATE.md Deviation — Auto-Fix Result
 
@@ -659,7 +830,7 @@ If the commit itself fails (e.g., nothing to commit, pre-commit hook rejects), d
 
 **Mission-status transition:** after a successful auto-commit, transition the mission status for all tasks in this wave from `in-dev` → `testing` using `setMissionStatus(stateContent, taskId, 'testing')` from `scripts/lib/state-md.mjs`. This matches the coordinator-level rule in `SKILL.md § Mission-Status Updates`: "in-dev → testing: Quality wave begins and this item's implementation wave completed without failure." The auto-commit checkpoint fires at the same logical moment — after implementation completes and Quality-Lite passes.
 
-**Implementation deferred:** This subsection documents the contract. The procedural body (git add/commit sequence + error handling) will land in a future release as `scripts/lib/auto-commit.mjs` (tracked in GitLab #214; not yet implemented as of v3.10.0). Until then, this section is a no-op stub when `auto-commit-per-wave: true` is set; the coordinator MUST warn the user at session-start that auto-commits are not yet active (emit: "auto-commit-per-wave is set but the implementation (scripts/lib/auto-commit.mjs) is not yet available — commits will occur at session-end via /close as normal").
+**Implementation deferred:** This subsection documents the contract. The procedural body (git add/commit sequence + error handling) will land in a future release as `scripts/lib/auto-commit.mjs` (tracked in GitLab #214; not yet implemented as of v3.10.0). Until then, this section is a no-op stub when `auto-commit-per-wave: true` is set; the coordinator MUST warn the user at session-start that auto-commits are not yet active (emit: "auto-commit-per-wave is set but the implementation (scripts/lib/auto-commit.mjs) is not yet available — commits will occur at session-end via /close as normal"). <!-- path-check: planned #214 -->
 
 ---
 
@@ -673,9 +844,10 @@ If the commit itself fails (e.g., nothing to commit, pre-commit hook rejects), d
        description: "Persona review — <reviewer-name> — Wave N",
        prompt: "<include: wave scope, changed files list, relevant plan section>",
        subagent_type: "session-orchestrator:<reviewer-name>",
-       run_in_background: false
+       run_in_background: false   // deliberately blocking — see below
      })
      ```
+   - **`run_in_background: false` here is deliberate, not an oversight.** Reviewers are dispatched AFTER the quality gate and are NOT in the session plan's agent list, so § Started-Set Verification has no expected-set to check them against and the launch ack — the only thing a background dispatch returns — is explicitly not countable. There is also no consumer for early results: the next step needs ALL reviewer verdicts before it can act (`skills/persona-panel/SKILL.md` § "background dispatch would add turn-juggling with no consumer for early results"; `skills/session-start/SKILL.md` names persona-panel among the keep-false skills).
    - Each reviewer writes its findings to `.orchestrator/audits/wave-reviewer-<wave>-<reviewer-name>.md`. The coordinator does NOT need to create this file — the reviewer agent writes it directly.
    - **Findings are ADVISORY**: reviewer output never blocks the subsequent wave. After all dispatched reviewers complete:
      - If any reviewer reports **WARN**: surface the findings to the user in the wave progress summary. Feed actionable items into the next wave's agent assignments (step 3 — Adapt Plan). If a WARN/FAIL finding is surfaced but NOT converted into a fix task for the next wave, append ONE line to `## Deviations` via `appendDeviationOnDisk(repoRoot, isoTimestamp, message)` (#730/H5): `- [<ISO 8601 UTC>] Wave N reviewer finding overridden (not actioned): <one-line finding>.` — session-end Phase 2.6 (Broken-Window Budget) walks these entries at close.
@@ -692,9 +864,10 @@ If the commit itself fails (e.g., nothing to commit, pre-commit hook rejects), d
        description: "Review wave N output",
        prompt: "<include: session plan, wave results, changed files list, acceptance criteria>",
        subagent_type: "session-orchestrator:session-reviewer",
-       run_in_background: false
+       run_in_background: false   // deliberately blocking — same reason as step 5a
      })
      ```
+   - **`run_in_background: false` here is deliberate**, for the same reason as step 5a: the session-reviewer runs after the quality gate, is not in the session plan's agent list (so Started-Set Verification has no signal for it), and its verdict is needed whole before step 3 (Adapt Plan) can consume it.
    - The session-reviewer checks changed files against the plan and reports PASS/WARN/FAIL per category (implementation, tests, TypeScript, security, silent failures, test depth, type design, issues).
    - If the session-reviewer reports **WARN or FAIL** findings: add fix tasks to the next wave's agent assignments (feed into step 3 — Adapt Plan). If a WARN/FAIL finding is surfaced but NOT converted into a fix task for the next wave, append ONE line to `## Deviations` via `appendDeviationOnDisk(repoRoot, isoTimestamp, message)` (#730/H5): `- [<ISO 8601 UTC>] Wave N reviewer finding overridden (not actioned): <one-line finding>.` — session-end Phase 2.6 (Broken-Window Budget) walks these entries at close.
    - After the **Quality** wave: dispatch the session-reviewer with **full session scope** (all files changed since session start, not just the current wave). Use `git diff --name-only $SESSION_START_REF..HEAD` to provide the complete changed files list.
@@ -725,14 +898,44 @@ If the commit itself fails (e.g., nothing to commit, pre-commit hook rejects), d
 7. **Capture wave metrics**: If `persistence` is enabled in Session Config, record for this wave after all agents complete and quality checks run. If `persistence` is `false`, skip metrics capture entirely — do not accumulate in-memory metrics. Record:
    - `wave_number`, `role`, `started_at` (when agents were dispatched), `completed_at` (when all finished)
    - `agent_count`: number of agents dispatched
-   - `agent_count_planned`: agents named in the session plan for this wave (Dispatch Verification, #724)
-   - `agent_count_started`: distinct agents that produced a tool-result, after any silent-drop re-dispatch (Dispatch Verification, #724). A gap `agent_count_planned > agent_count_started` after re-dispatch signals a persistent silent drop.
+   - `agent_count_planned`: agents named in the session plan for this wave (Started-Set Verification, #724)
+   - `agent_count_started`: distinct agents whose `agent-<id>.meta.json` sidecar is present, after any silent-drop re-dispatch (Started-Set Verification, #724/#1115). NOT "produced a tool-result" — under background dispatch the launch ack is a result and would count an agent that never ran. A gap `agent_count_planned > agent_count_started` after re-dispatch signals a persistent silent drop.
+   - `agent_count_completed`: distinct agents whose task-notification (`<status>completed</status>`) arrived (#1115). A gap `agent_count_started > agent_count_completed` at wave end is an agent that started and never returned — the started-but-never-returned state, not a silent drop.
    - Per-agent results: `{description, status: done|partial|failed, files_changed_count}`
    - `files_changed`: total unique files changed this wave (from `git diff --stat --name-only`)
    - `planned_files_count`: size of this wave's Planned set (union of agent file scopes) as computed in step 3c File-level grounding above. Reuse that value — do not recompute.
    - `over_delivery_ratio`: files_changed / max(planned_files_count, 1), rounded to 2 decimals. > 1 = agents touched more files than briefed (under-sizing signal, #730/H4). Omit both fields when `grounding-check: false`.
    - `quality_check`: incremental check result (pass/fail/skipped)
+   - `suite_passed` / `suite_failed` (+ optional `suite_platform`): the full-suite counts feeding the § 3a Wave History header `— suite <passed>/<failed> on <platform>`. `quality_check` is a traffic light; these are the number the light was derived from, and unlike STATE.md (gitignored, demoted to `## Previous Session` and then overwritten) the metrics record survives the session.
+     **Copy the two counts off the gate's own event — do not re-read them from the terminal (#966 step 3).** `scripts/run-quality-gate.mjs`, the wrapper that fires between waves, emits `orchestrator.quality_gate.{passed,failed}` carrying a machine-measured `counts: {passed, failed, total}` (admitted by `admitSuiteCounts()`) plus the `wave_number` it resolved from `wave-scope.json`. Payload fields are flat at the record's top level:
+
+     ```bash
+     jq -c --argjson w <wave_number> --arg s "<semantic_session_id>" '
+       select(.event | startswith("orchestrator.quality_gate."))
+       | select(.semantic_session_id == $s and .wave_number == $w and .counts != null)
+       | .counts' .orchestrator/metrics/events.jsonl | tail -1
+     ```
+
+     The session filter is not optional — `events.jsonl` accumulates across sessions and every past session also had a wave with this number.
+     **OMIT all three when that selector returns nothing** — absent = "not measured", `suite_failed: 0` = "measured, zero failures". Never write `0` for a suite that did not run. The event enforces the same distinction at the producer: `counts` is omitted, never zero-filled, when the run fail-fast'd before the test gate or its output carried no parseable count.
+     > **What is NOT on the event, and stays hand-written:** `suite_platform` — the payload has no platform field, so keep writing it from the § 3a header as before. Likewise, the auto-fix-loop producer (`scripts/lib/quality-gate.mjs`, active only under `verification-auto-fix.enabled: true`) emits `counts` WITHOUT `wave_number`, so its retry records correctly never match the selector above; they are mid-wave attempts, not the wave's verdict. If the wave's gate ran outside `run-quality-gate.mjs` entirely, no event exists — fall back to the gate output you read, and say so in the progress update. The reader side (`skills/session-end/metrics-collection.md` § 1.7) reads the event first and this hand-written trio second, so keep writing the trio: it is the compatibility path for those two cases and for sessions already in flight.
    Append this wave record to the session metrics `waves` array.
+
+7a. **Scope drift tripwire (S2 — #896, warn-only)**: distinct from `over_delivery_ratio` above — that metric is per-wave and unfiltered; this one is session-cumulative (since `session-start-ref`) and filtered through `DRIFT_EXCLUDE_PATTERNS`, so the two numbers are NOT expected to agree. Call `computeDrift()` from the same `scripts/lib/scope-baseline.mjs` module as § 0a Scope Baseline Freeze above. Never blocks — exit code stays 0 and the next wave is dispatched regardless of the result.
+
+   ```js
+   import { computeDrift } from '$PLUGIN_ROOT/scripts/lib/scope-baseline.mjs';
+
+   const drift = computeDrift({ repoRoot: process.cwd(), threshold: 2.0 });
+   if (drift.skipped === false && drift.breached) {
+     console.warn(
+       `⚠ Scope drift: filesRatio ${drift.filesRatio} (${drift.actualFiles} actual / ${drift.plannedFiles} planned files) ` +
+       `>= threshold ${drift.threshold} — session has grown beyond its frozen scope baseline.`
+     );
+   }
+   ```
+
+   Include the WARN line verbatim in the wave progress update when `breached` is true — name `filesRatio`, `plannedFiles`, `actualFiles`, and the configured `threshold`, not merely the word "drift". `drift.skipped === true` (`no-state-md`, `unreadable-state-md`, `no-baseline`, `stale-baseline`, or `unresolvable-ref` — see `computeDrift()`'s JSDoc for the precedence order) is silent: no WARN, no progress-update line. `persistence: false` implies `no-state-md`, so this step degrades to a silent no-op in that mode without a separate gate check.
 
 ### 3. Adapt Plan (if needed)
 
@@ -771,11 +974,15 @@ After reviewing wave results, adjust the next wave's agent count based on perfor
 
 After each wave completes and before the progress update, update `<state-dir>/STATE.md`:
 
-1. **Frontmatter**: set `current-wave` to the just-completed wave number; set `status` to `active` (or `paused` if waiting on user input)
+1. **Frontmatter**: set `current-wave` to the just-completed wave number; set `status` to `active` (or `paused` if waiting on user input). Readers that need the RUNNING wave (e.g. `scripts/memory-propose.mjs`) read `<state-dir>/wave-scope.json` `wave` (only when the manifest is bound to this session via `semantic_session`; an unbound manifest is ignored — it may be a peer's, #1123) and fall back to `current-wave + 1` (#1166) — do not change this field's meaning.
 2. **`## Current Wave`**: replace contents with next wave info — wave number, role, agents to dispatch and count
 3. **`## Wave History`**: append an entry for the completed wave (the `(planned … → actual …, over-delivery …)` parenthetical is omitted when `grounding-check: false`, since the counts are unavailable):
+   > **Record the SUITE COUNT, not just "gates green" — and name the platform (#944).** The wave line MUST carry the full-suite pass/fail count from the gate that just ran (`<passed>/<failed>`), not merely that typecheck and lint were clean. A deep session on 2026-07-30 logged typecheck/lint/validate-plugin for every wave and no suite count; a test that had been vacuous for its entire life sat red on HEAD through three waves and was found only by the review panel — in a session whose own premise was turning CI from red to green.
+   >
+   > **A green gate on one platform is not evidence for another.** That same session's local gate reported 541/541 three times on a tree CI could not build: two tests encoded macOS assumptions (a `TMPDIR` that carries a trailing slash; an `ARG_MAX` that tolerates a 200 KB argv entry). Both passed locally and failed on the Linux runner. When the wave touched anything platform-sensitive — spawn/argv shapes, `os.tmpdir()`, path separators, file modes, `$PATH` lookups of external binaries — say so in the wave line, and treat CI, not the local run, as the verdict.
+
    ```
-   ### Wave N — <Role> (planned <P> files → actual <A>, over-delivery <R>)
+   ### Wave N — <Role> (planned <P> files → actual <A>, over-delivery <R>) — suite <passed>/<failed> on <platform>
    - Agent "<description>": <done|partial|failed> — <files changed> — <1-line note>
    - Agent "<description>": <done|partial|failed> — <files changed> — <1-line note>
    ```
@@ -921,53 +1128,6 @@ When the hook is skipped (gate condition false), omit the `persona_gate` field e
 
 **Motivating example:** a flagship product's W5 Buyer-Panel pattern (six buyer personas at `hard-gate-threshold` `6-of-6`, `mode: 'strict'`, `after: 'quality'`) — UI work is gate-checked against every persona before commit, abort on any dissent. See `docs/session-config-reference.md § Persona-Gate Wave (#458)` and `commands/persona-panel.md` for the standalone CLI equivalent.
 
-### 3c. Strategic Compact-Nudge (#620)
-
-> Advisory-only checkpoint. Never auto-compacts. `/compact` is a user slash-command; the coordinator/operator decides when to invoke it.
-
-**Gate conditions** — ALL must be true for the nudge to emit:
-
-1. `compact-nudge.enabled: true` in Session Config (default: `false`).
-2. The just-completed wave's role is listed in `compact-nudge.after` (default: `['discovery', 'impl']`). Compare the wave's canonical role string (lower-case) against the list.
-3. `compact-nudge.mode !== 'off'` (when `mode: 'off'` the nudge is a silent no-op even when `enabled: true`).
-
-When any gate condition is false, skip this step entirely — proceed to `### 4. Progress Update`.
-
-**Nudge format** — when the gate fires, append ONE advisory bullet to the wave progress update (step `### 4`):
-
-```
-- 💡 Compact checkpoint: Wave N (<Role>) complete — consider /compact before Wave N+1 (<NextRole>) to free context (advisory only; see decision table). Never auto-compacts.
-```
-
-**What survives `/compact` vs what is lost:**
-
-| Survives | Lost |
-|---|---|
-| CLAUDE.md, STATE.md (on disk), wave-scope.json, JSONL metrics (.orchestrator/), git history, all files on disk | Intermediate reasoning/thinking traces, previously-read file contents cached in context, tool-call history for prior waves |
-
-This frames the nudge: the persistent artefacts (plan, scope, STATE.md, git diff) are the distilled output of completed work; losing in-context file reads is the cost. Compact is worth it when the completed wave produced bulky research/audit output that is unlikely to be re-referenced verbatim.
-
-**Decision table:**
-
-| Wave boundary (completed → next) | Compact? | Why |
-|---|---|---|
-| Discovery → Impl-Core | Yes | Research/audit context is bulky; the plan + wave-scope.json is the distilled output. |
-| Impl-Core → Impl-Polish (long Core) | Maybe | Compact only if Polish targets different files; keep if Polish builds on Core's changes. |
-| Impl-Polish → Quality | No | Quality references the just-written code; losing it is costly. |
-| Quality → Finalization | No | Finalization needs the full session diff. |
-| Mid-implementation (within a wave) | No | Losing file paths + partial state is expensive. |
-| After a FAILED/aborted wave | Yes | Clear the dead-end reasoning before the adapted retry. |
-| Switching to an unrelated task block (deep session) | Yes | Debug/exploration traces pollute unrelated downstream work. |
-
-**Behaviour by mode:**
-
-| `mode` | Action |
-|--------|--------|
-| `off` | No nudge (gate condition above). |
-| `warn` | Emit the advisory bullet in the wave progress update. Coordinator/operator acts at their discretion. |
-
-The nudge is informational only — no AskUserQuestion, no state-md write, no sidecar. This step never blocks forward progress.
-
 ### 4. Progress Update
 
 After each wave, provide a brief status:
@@ -990,47 +1150,142 @@ Before each wave dispatch:
 1. **Write `<state-dir>/wave-scope.json`** with the wave's scope:
    > (Platform-specific: `.claude/wave-scope.json` on Claude Code, `.codex/wave-scope.json` on Codex CLI, `.cursor/wave-scope.json` on Cursor IDE)
 
-   **Deriving `blockedCommands` (policy-file-first, #155):** Before writing `wave-scope.json`, extract the blocked patterns from the consolidated policy file:
+   **Deriving `blockedCommands` (effective floor∪overlay policy, #155/#972):** Before writing `wave-scope.json`, derive the blocked patterns from the EFFECTIVE policy via the shared merge module — the plugin's floor policy united with the repo's overlay policy. (A bare `jq` over the repo-local policy file alone under-counts the merged result since #972.)
    ```bash
-   BLOCKED=$(jq -c '[.rules[] | select(.severity == "block") | .pattern]' .orchestrator/policy/blocked-commands.json)
+   BLOCKED=$(node --input-type=module -e "
+   import { loadEffectivePolicy } from '$PLUGIN_ROOT/scripts/lib/blocked-commands-policy.mjs';
+   const { rules } = await loadEffectivePolicy({ cwd: process.cwd(), projectDir: process.env.CLAUDE_PROJECT_DIR ?? null, pluginRoot: '$PLUGIN_ROOT' });
+   console.log(JSON.stringify((rules ?? []).filter(r => r.severity === 'block').map(r => r.pattern)));
+   ")
    ```
-   Use `$BLOCKED` as the `blockedCommands` value in `wave-scope.json`.
+   Use `$BLOCKED` as the `blockedCommands` value in `wave-scope.json`. Since #972 this is the effective floor∪overlay policy — identical to what the destructive-guard hook enforces.
 
-   **Fallback:** If `.orchestrator/policy/blocked-commands.json` is missing (pre-#155 repo), use the legacy hardcoded array and log a warning in the wave progress update:
+   **Fallback:** If the command fails or prints `[]` (neither the plugin's floor policy nor a repo policy resolvable — pre-#155 setup), use the legacy hardcoded array and log a warning in the wave progress update:
    ```bash
    BLOCKED='["rm -rf", "git push --force", "DROP TABLE", "git reset --hard", "git checkout -- ."]'
    # Warning: policy file .orchestrator/policy/blocked-commands.json not found — using legacy hardcoded blocklist
    ```
+
+   **Deriving the session binding (#1123):** `wave-scope.json` lives in the WORKING COPY, and `hooks/enforce-scope.mjs` applies whatever it finds there to every session running in that checkout. Without a binding, a Discovery wave's `allowedPaths: []` denied every write of an unrelated parallel session. Name the writer — both fields come from ONE `sessionAttribution()` call, which reads `.orchestrator/session.lock` once:
+   ```bash
+   SESSION_BINDING=$(node --input-type=module -e "
+   import { sessionAttribution } from '$PLUGIN_ROOT/scripts/lib/events.mjs';
+   const a = sessionAttribution(process.cwd());
+   const out = {};
+   if (a.session_id) out.session = a.session_id;
+   if (a.semantic_session_id) out.semantic_session = a.semantic_session_id;
+   console.log(JSON.stringify(out));
+   ")
+   ```
+   **Verify the binding names YOU before you write it (#1123 follow-up).** `sessionAttribution()` reads the repo-global `.orchestrator/session.lock`, which in a shared working copy can hold a PEER's id — a session that lost the acquire race (`bootstrapLock()` reason `active`) leaves the lock naming the session that won it. Compare both ids against your own session (STATE.md `session`): **if they do not match, OMIT the `session`/`semantic_session` keys entirely** and write an unbound manifest. Unbound = ENFORCE, which is the fail-closed direction; writing a foreign id instead publishes a manifest that classifies as somebody else's for every reader. The reader half is defensive against exactly this (Gate 3b resolves identity as the UNION of payload, env and lock, so a peer-owned-lock manifest still reads `own` to its writer), but the reader cannot repair a binding the writer knowingly got wrong — and a manifest naming a peer is unreadable as an audit record either way.
+
+   Merge `$SESSION_BINDING`'s keys into the manifest. **If a value is empty, OMIT the key — never write `"session": ""`.** An empty id is present-but-equal-to-nobody: the legacy warning stays silent while every reader compares it against its own id, finds no match, and treats the manifest as FOREIGN — the one disposition that skips enforcement entirely. `sessionAttribution()` already omits rather than fills (CI runs hold no lock), and `validate-wave-scope.mjs` rejects the empty string outright, so the honest path is also the only one that validates.
 
    ```json
    {
      "wave": N,
      "role": "<role>",
      "enforcement": "<from Session Config, default: warn>",
+     "session": "<raw session_id from sessionAttribution(); OMIT the key if unavailable>",
+     "semantic_session": "<semantic_session_id from the same call; OMIT if unavailable>",
      "allowedPaths": ["<from agent specs in session plan>"],
-     "blockedCommands": "<derived dynamically from .orchestrator/policy/blocked-commands.json (severity: block rules); falls back to legacy 5-element array if policy file absent>",
+     "blockedCommands": "<derived dynamically from the effective floor∪overlay policy via loadEffectivePolicy (severity: block rules, #972); falls back to legacy 5-element array if no policy resolves>",
      "gates": "<copy of enforcement-gates from Session Config, or omit if unset>"
    }
    ```
    The `gates` field (optional) mirrors `enforcement-gates` from Session Config (#77). When present, hooks check each gate individually via `gate_enabled()`. Missing gate entries default to enabled, preserving default behavior.
-2. Validate by piping through `node "$PLUGIN_ROOT/scripts/validate-wave-scope.mjs"` (where `$PLUGIN_ROOT` is `$CLAUDE_PLUGIN_ROOT`, `$CODEX_PLUGIN_ROOT`, or `$CURSOR_RULES_DIR` per platform — see `skills/_shared/config-reading.md`). If validation fails (exit 1), fix the JSON based on stderr errors and retry.
-3. `allowedPaths` is the UNION of all agent file scopes for this wave
-   To compute `allowedPaths`: read each agent's specification from the session plan. Each agent lists its "Files:" scope (e.g., `skills/session-end/SKILL.md`, `scripts/*.sh`). Collect all file paths and glob patterns from all agents in this wave into a single flat array. Deduplicate entries. If an agent's scope uses globs (e.g., `scripts/*.sh`), include the glob pattern as-is — the enforcement hook resolves globs at check time.
 
-   **Pre-Dispatch Scope-Union Assertion (#796):** `wave-scope.json` is GLOBAL per wave — `hooks/enforce-scope.mjs` Gate 7 checks EVERY agent against the same `allowedPaths` union, so a union that (re)written for only ONE agent silently denies its siblings' legitimate writes. Before each `Agent()` batch, mechanically assert — for EVERY agent in the batch — that its fileScope ⊆ `wave-scope.allowedPaths`. Write the agent's "Files:" scope as a JSON array of strings to a temp file (`$AGENT_FILESCOPE_JSON`) and run:
+   The `wave` field also doubles as the RUNNING-wave signal for readers outside this step's STATE.md `current-wave` (which records the just-completed wave, per step 1 of `3a. Post-Wave: Update STATE.md` above): `scripts/memory-propose.mjs` reads it directly for proposal attribution only when the manifest is bound to the calling session (`semantic_session` matches STATE.md `session`); an unbound or foreign manifest is ignored and the reader falls back to `current-wave + 1` (#1166, #1123).
+
+   **What the binding means to a reader.** Three states, and the disposition differs for each. **Absent** = legacy = ENFORCE: a manifest written before #1123 (or by a stale skill body) binds nobody, so it must keep constraining everyone exactly as it did before — this is the only state that preserves the pre-#1123 contract, and `validate-wave-scope.mjs` marks it with one advisory stderr line rather than an error, because § 3.3's pre-union skeleton is itself an unbound manifest. **Own session** = ENFORCE, unchanged. **Foreign session** — `session` present and not this session's id — = ALLOW: `hooks/enforce-scope.mjs` lets the write through and emits `orchestrator.scope.foreign_session_ignored` so the skip is counted rather than silent. A foreign manifest is somebody else's wave plan; it never had authority over this session's writes, and the event is what keeps that visible instead of leaving an allow nothing recorded. (The reader half lives in `hooks/enforce-scope.mjs` — the writer's only obligation is to name itself honestly here.)
+2. Validate by piping through `node "$PLUGIN_ROOT/scripts/validate-wave-scope.mjs"` (where `$PLUGIN_ROOT` is `$CLAUDE_PLUGIN_ROOT`, `$CODEX_PLUGIN_ROOT`, or `$CURSOR_RULES_DIR` per platform — see `skills/_shared/config-reading.md`). If validation fails (exit 1), fix the JSON based on stderr errors and retry.
+3. **`allowedPaths` is COMPUTED from one canonical declaration array — never hand-transcribed (#1020/#1083).** Transcribing either declaration shape or the union by hand produced scope divergences. Globs stay verbatim (`scripts/*.sh`) — the enforcement hook resolves them at check time.
+
+   **3.1 — materialize both declaration shapes once.** Build one JSON array from the session plan, one `{id, files}` record for every agent plus exactly one `coordinator` record for the coordinator's planned direct edits. `files` arrays, their entries and their order are the plan's verbatim declarations. Materialize it ONCE and capture the aggregate-sidecar path:
+
+   ```bash
+   WAVE_SCOPE_RECORDS='[{"id":"W3-I1","files":["scripts/example.mjs"]},{"id":"coordinator","files":["skills/wave-executor/wave-loop.md"]}]'
+   WAVE_SCOPES_SIDECAR="$(
+     printf '%s' "$WAVE_SCOPE_RECORDS" | node "$PLUGIN_ROOT/scripts/materialize-wave-scope.mjs" \
+       --state-dir "$STATE_DIR" --wave "$WAVE"
+   )"
+   [ -n "$WAVE_SCOPES_SIDECAR" ] || { echo "materialize-wave-scope produced no sidecar path" >&2; exit 1; }
+   ```
+
+   The non-empty check is not decoration. The materializer sends every diagnostic
+   to stderr, so a failure leaves `$WAVE_SCOPES_SIDECAR` empty, and an empty path
+   is what step 3.2 would then pass to `--assert-disjoint`. That combination used
+   to exit 0 with the collision gate never run — the same signal-free-ALLOW shape
+   #1083 exists to close. `validate-wave-scope.mjs` now refuses an empty flag
+   value as well, so this guard and that refusal are belt and braces.
+
+   `materialize-wave-scope.mjs` validates the COMPLETE input before writing; it writes `<state-dir>/filescopes/wave-<N>/<agent-id>.json` as each bare `files` array first, then writes `<state-dir>/filescopes/wave-<N>.scopes.json` as the unchanged aggregate record array last. Its human stdout is only that final sidecar path, so the command substitution above is the canonical `$WAVE_SCOPES_SIDECAR`. On error, do not continue with a partial declaration set; correct the plan and run the one command again.
+
+   The per-agent path IS `$AGENT_FILESCOPE_JSON` — the same file `--assert-subset` (#796 below), Grounding Injection (#85), the Learnings-Index (#1014) and File-Scope Injection (#1020) consume. Never write a `$TMPDIR` copy: it degrades to a signal-free allow when an injector cannot find the addressable wave-keyed file. The coordinator's record is materialized as `coordinator.json` and included in the aggregate, so its direct edits are covered by the two checks below.
+
+   > **`<state-dir>/filescopes/` is control state, like `wave-scope.json` itself — never a wave territory.** Step 3.1 necessarily runs before the union exists, so writing these files reports `bash-write-verify: N file(s) changed by a Bash call OUTSIDE the wave's allowedPaths` naming `filescopes/wave-<N>/*.json`. Expected once per wave rollover at this step; it is information, not a scope violation. Never widen `allowedPaths` to silence it — that would grant agents write access to the deconfliction record itself.
+
+   **3.2 — assert disjointness BEFORE computing the union.** The materialized aggregate is an ARRAY of `{id, files}` records (never an object map: a duplicated agent id must stay visible), including `coordinator.json`. Run:
 
    ```bash
    node "$PLUGIN_ROOT/scripts/validate-wave-scope.mjs" \
-     --assert-subset "$AGENT_FILESCOPE_JSON" < <state-dir>/wave-scope.json
+     --assert-disjoint "$WAVE_SCOPES_SIDECAR" < <state-dir>/wave-scope.json
    ```
+
+   Exit 1 (one stderr message per collision) means two agents were handed the same file: fix the session plan, re-materialize, re-assert. Never widen the union to make it pass. This runs **before** 3.3 because a union computed over colliding scopes launders the defect into the very artefact meant to prevent it — `allowedPaths` then grants the file and every later gate sees a legal write.
+
+   **3.3 — compute the union.** `--union` is a QUERY MODE that still requires a schema-valid manifest on stdin, so write the skeleton first with `"allowedPaths": []`, then:
+
+   ```bash
+   node "$PLUGIN_ROOT/scripts/validate-wave-scope.mjs" \
+     --union "$WAVE_SCOPES_SIDECAR" < <state-dir>/wave-scope.json
+   ```
+
+   It prints the computed `allowedPaths` array as JSON on stdout **instead of** the manifest echo — one JSON document per run, the flag decides which. Insert that array as `allowedPaths`, then write the final `wave-scope.json`. It already applies the Test-Sibling Expansion below (`expandTestSiblings(unionFileScopes(scopes), { role })`, role read from the manifest), so do not also run the helper by hand.
+
+   **Artifact production, disjointness and union computation are mechanized. Native prompt injection is a separate follow-up.** The materializer creates the durable declarations; the validator proves disjointness and computes the union. It does not install or prove the platform's prompt-injection transport, which remains independently responsible for reading `$AGENT_FILESCOPE_JSON` before dispatch.
+
+   **The `--assert-subset` assertion (#796, below) stays unchanged and keeps running.** It checks a DIFFERENT property — each agent's scope ⊆ the union — and a double assignment is structurally invisible to it: a file claimed twice is a subset twice over. `--assert-disjoint` is an addition, never a replacement.
+
+   **Test-Sibling Expansion (#970):** an `allowedPaths` entry that names a production file but NOT its test sibling makes the wave's own regression test unwritable — the scope guard then mechanically enforces exactly the inconsistency the quality gate exists to catch. Cross-repo evidence, three occurrences in ONE session: a migrations glob without the SQL-test directory (the regression test could not be written); a lone `.actions.ts` file (the wave's cross-tenant security test stayed red); a dead-export deletion whose importing test lay outside every scope (the suite ended red). Do NOT hand-derive the sibling paths — step 3.3's `--union` runs `expandTestSiblings(…, { role })` for you, so the hook, the validator and this prose state one rule.
+
+   The helper is pure (same input → same output, no filesystem writes) and is also surfaced by `scripts/validate-wave-scope.mjs`. **The role decides, inside the helper** — `scripts/lib/scope-gate.mjs` `TEST_SIBLING_EXPANSION_ROLES` is THE list (currently `Impl-Core`, `Impl-Polish` — exactly where the incident occurred), and #5/#6 below describe that gate rather than restating it. Pass the role string; do not pre-filter by role in prose, and do not hand-roll the equivalent `{ enabled: … }`. Matching is trimmed + case-insensitive, so `impl-core` behaves as `Impl-Core`.
+
+   > **Fail-closed:** an ABSENT or unrecognised `role` does **not** expand. Omitting it fails loudly (an agent's write to its own test is blocked, recoverable by one re-union); the opposite default would silently hand a Quality phase-1 simplification agent write access to the suite. `{ enabled: false }` is the unconditional opt-out and `{ enabled: true }` the explicit opt-in — both override the role.
+
+   **It emits a GLOB, never a computed concrete path.** Resolve via the production file's basename, e.g. `foo.mjs` → `tests/**/foo*.test.mjs` — the same form `§ 4. Test-consolidation branch` already uses, stated once. Measured over all **439** tracked production `.mjs` in THIS repo (production = `scripts/**` + `hooks/**` + `skills/**`; tests = a top-level `tests/**` mirror with the `scripts/` prefix dropped): a same-basename test exists somewhere under `tests/` for **375/439 (85.4%)**, whereas a naive 1:1 mirror path resolves for only **272/439 (62.0%)**. So the glob is right ~85% of the time and *harmless* when wrong — it grants write access to a path that may not exist; a computed concrete path would be wrong ~38% of the time **and still deny the real test**. The ~15% residual is real, mostly semantic naming (`scripts/lib/learnings/*.mjs` → `tests/unit/learnings.test.mjs`): when an agent's test sibling does not match the glob, add it by hand to that agent's "Files:" scope in the session plan. This is an 85% default, not a guarantee.
+
+   > Measured at `HEAD=730ee9d`, 2026-08-03, clean-tree, via `git ls-files | grep -E '^(scripts|hooks|skills)/.*\.mjs$'` for the denominator, matched against `git ls-files | grep -E '^tests/.*\.test\.mjs$'` by basename (85.4% figure) and by mirrored path (62.0% figure). Re-measure before citing these downstream — a count re-briefed later is a claim about the past (`.claude/rules/parallel-sessions.md` § PSA-006).
+
+   **The sibling rule is repo-configurable, not a hardcoded layout.** THIS repo has zero `__tests__/` directories and no co-located tests; consumer-repo shapes (`<file>.test.*` beside the source, `<dir>/__tests__/**`, `supabase/migrations/** → supabase/tests/**`) are configured per repo and do not apply here.
+
+   Three ordering constraints, all load-bearing:
+   - The deconfliction check (3.2) runs on the DECLARED per-agent scopes, **before** the union expands anything. Named ceiling: two agents whose production files share a basename receive the same emitted sibling glob, which a declared-scope check cannot see — revisit if a wave is ever scoped by basename family instead of by directory.
+   - Expand **before** `wave-scope.json` is written, in ONE pass. `hooks/post-bash-write-verify.mjs` fingerprints `allowedPaths` via `scopeSignature()` and fires a control notice on change, so a later mutation reads as tampering.
+   - Skip **absolute** entries entirely — expanding a Gate-5b out-of-repo grant would sprout a synthetic `tests/**` sibling outside the repo.
+
+   **Pre-Dispatch Scope-Union Assertion (#796):** `wave-scope.json` is GLOBAL per wave — `hooks/enforce-scope.mjs` Gate 7 checks EVERY agent against the same `allowedPaths` union, so a union that (re)written for only ONE agent silently denies its siblings' legitimate writes. Before each `Agent()` batch, mechanically assert — for EVERY agent in the batch — that its fileScope ⊆ `wave-scope.allowedPaths`. `$AGENT_FILESCOPE_JSON` is that agent's § 3.1 file — `<state-dir>/filescopes/wave-<N>/<agent-id>.json`, already written above and shared with every other consumer. Do not re-write it to a temp path here (§ 3.1 says why that degrades silently); just run:
+
+   ```bash
+   node "$PLUGIN_ROOT/scripts/validate-wave-scope.mjs" \
+     --assert-subset "$AGENT_FILESCOPE_JSON" --expand-test-siblings \
+     < <state-dir>/wave-scope.json
+   ```
+
+   `--expand-test-siblings` (#970) is the mechanical half of the Test-Sibling Expansion rule above: it re-derives each agent's siblings and requires the union to grant them, so "the coordinator ran the expansion" stops being a matter of prose compliance. Pass it on **every** batch — the flag is gated on the manifest's own `role` through the same `TEST_SIBLING_EXPANSION_ROLES` predicate the helper uses, so it is a self-announcing no-op (`WARN: … skipped for role "Quality"`) wherever expansion does not fire. Do not add a role condition in the shell; that would put the role list back in prose.
+
+   It only ever ADDS a requirement, so a manifest that passed the plain subset check can now fail — that is the point. On exit 1 (`allowedPaths does not grant the test sibling … missing: [...]`): the union was not produced by `expandTestSiblings`. Re-run the Scope Manifest step, rewrite `wave-scope.json`, re-assert. Do NOT hand-add the missing glob and move on — the next agent in the batch will hit the same gap. (If a legitimate test sibling does not match the emitted glob — the ~15% residual — it belongs in that agent's "Files:" scope in the session plan, which puts it in the union and satisfies the check honestly.)
 
    On exit 1 (`agent fileScope not ⊆ allowedPaths — missing: [...]`): re-union `allowedPaths` across ALL agents that will be in-flight — **including still-running siblings from this wave** — re-write `wave-scope.json`, then re-run the assertion before dispatching. `allowedPaths` MUST NEVER shrink while sibling agents of the same wave are still running. This applies to EVERY batch — including fix-pass and re-dispatch batches, the incident class that motivated #796 (a fix-pass batch rewrote the union for a single agent and denied a sibling's legitimate writes). The assertion runs uniformly, even for single-agent waves — cost is negligible and the invariant is the same.
 4. Read `enforcement` from Session Config (default: `warn`). The `enforcement` field is REQUIRED in `wave-scope.json` — always write it explicitly. The hooks default to `warn` if the field is missing, which would silently degrade strict enforcement. If jq was confirmed missing in Pre-Execution Check step 4, set `enforcement` to `off` and include a comment in the progress update noting that enforcement is disabled.
 5. For **Discovery** role waves, set `allowedPaths` to `[]` (empty array) — Discovery agents are read-only and must not modify files. Also add to each Discovery agent prompt: "You are READ-ONLY. Do NOT use Edit or Write tools."
    > **Defense in depth:** The empty `allowedPaths` enforcement hook is the PRIMARY barrier (blocks Write/Edit at the tool level). The prompt instruction is a SECONDARY safeguard. If jq is unavailable (enforcement set to `off`), the prompt instruction becomes the ONLY barrier — log a warning in this case.
+   > **Test-sibling expansion (#970) cannot reach here, twice over:** `Discovery` is not in `TEST_SIBLING_EXPANSION_ROLES`, and `expandTestSiblings([], …)` returns `[]` STRUCTURALLY — before any gate, so the empty case holds even for a caller that opts in explicitly. Discovery's deny-all is a contract with its own regression test (`tests/hooks/enforce-scope.test.mjs`, "enforces Discovery-wave deny-all semantics… (issue #256 NO-OP contract)") — nothing may re-populate it.
 6. For **Quality** role waves, use two-phase scope enforcement:
    - **Phase 1 (Simplification)**: Before dispatching simplification agents, set `allowedPaths` to the production files changed this session (`git diff --name-only $SESSION_START_REF..HEAD`, excluding test files). After simplification agents complete, **delete** `<state-dir>/wave-scope.json` before proceeding to Phase 2.
+     Test-sibling expansion (#970) does not fire here, because `Quality` is not in `TEST_SIBLING_EXPANSION_ROLES` — passing `{ role: 'Quality' }` is enough and no extra opt-out is needed. This phase's scope is production files with tests explicitly excluded, under a "do NOT change functionality" brief — expanding would hand simplification agents write access to the suite, which is the "agent deletes a dead export, then edits the test to match" failure mode. The pre-dispatch `--expand-test-siblings` assertion is gated on the same role and self-announces its skip, so it cannot block this phase either.
    - **Phase 2 (Test/Review)**: Before dispatching test and review agents, regenerate `<state-dir>/wave-scope.json` with `allowedPaths` restricted to test file patterns (`**/*.test.*`, `**/*.spec.*`, `**/__tests__/**`, plus test config files). Quality test/review agents must not modify production source code.
+     Test-sibling expansion (#970) is **inert** here — the scope is already test patterns. It must never add production paths; the inverse expansion (test → production sibling) does not exist and must not be introduced.
 
    **Phase transition sequence:**
    1. Compute production file list: `git diff --name-only $SESSION_START_REF..HEAD | grep -v -E '\.(test|spec)\.' | grep -v '__tests__/'`
@@ -1040,4 +1295,4 @@ Before each wave dispatch:
    5. Delete `<state-dir>/wave-scope.json`
    6. Write Phase 2 wave-scope.json with test file allowedPaths (`**/*.test.*`, `**/*.spec.*`, `**/__tests__/**`)
    7. Dispatch test/review agents
-7. After the final wave completes, delete `<state-dir>/wave-scope.json` (cleanup)
+7. After the final wave completes, delete `<state-dir>/wave-scope.json` (cleanup). Delete `<state-dir>/filescopes/` in the same step — the per-agent scope files (§ 3.1) are wave-local working state, and a stale `wave-<N>/` directory left behind is a scope claim nobody re-verified.

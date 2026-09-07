@@ -1,6 +1,6 @@
 ---
 name: keyword-cluster
-description: "Build a content cluster plan from seed keywords — pillar+spokes architecture with internal-link map, intent grouping, and quality scorecard. Use when: planning topical authority, designing a content hub, deduping cannibalising pages, or staging a programmatic content rollout."
+description: "Build a pillar+spokes content cluster plan from seed keywords — SERP-overlap clustering via keyword_cluster.py, intent grouping, a priority-scored build order, an internal-link map with anchor suggestions, and a four-gate quality scorecard (cannibalisation, orphan, coverage, anchor diversity), delivered as a numbered file set ending in PLAN.md. Triggers on \"/digital-marketing-pro:keyword-cluster\", \"cluster these keywords\", \"design our topical hub\", \"are these pages cannibalising each other\", \"plan the pillar pages\". Reads the brand profile and compliance rules to filter banned terms; consumes seeds from /digital-marketing-pro:keyword-research and hands PLAN.md to /digital-marketing-pro:content-brief."
 argument-hint: "[brand-name or path/to/seeds.csv]"
 user-invocable: true
 ---
@@ -111,7 +111,7 @@ This skill is a producer in the chain:
 1. `/digital-marketing-pro:keyword-research` — generate seeds
 2. **`/digital-marketing-pro:keyword-cluster`** — *this skill*
 3. `/digital-marketing-pro:content-brief` — consumes `PLAN.md` + `06-pillar-pages.md` to brief each pillar
-4. `/digital-marketing-pro:content-engine` (or `contentforge:create-content`) — drafts the content
+4. `/digital-marketing-pro:content-engine` — drafts the content
 5. `/digital-marketing-pro:seo-implement` — applies the internal-link map to the CMS
 
 ## Tips & caveats

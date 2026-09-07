@@ -1,0 +1,21 @@
+{
+  "name": "codetruss",
+  "interface": {
+    "displayName": "CodeTruss"
+  },
+  "plugins": [
+    {
+      "name": "codetruss",
+      "source": {
+        "source": "local",
+        "path": "./plugins/codetruss"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL",
+        "products": ["CODEX"]
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

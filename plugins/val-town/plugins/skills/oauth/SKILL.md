@@ -10,6 +10,8 @@ Val Town provides zero-config "Log in with Val Town" via `std/oauth`. No databas
 
 This is for **Val Town account login only**. For Google / GitHub / Slack / etc. OAuth, see the `third-party-integrations` skill — those flows are documented per-service.
 
+If the goal is to keep an app internal to a team rather than to give it its own logged-in users, restricting the val's app access is the simpler answer — the platform gates the endpoint before your code runs, and you write no auth code. See the `restricted-access` skill. Don't apply both to one val: a restricted val that also runs `oauthMiddleware` makes visitors authenticate twice.
+
 ## Imports
 
 ```ts

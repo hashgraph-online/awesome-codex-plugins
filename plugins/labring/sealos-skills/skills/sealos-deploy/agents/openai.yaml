@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sealos: Deploy"
+  short_description: "Deploy and verify projects on Sealos Cloud."
+  default_prompt: "Use $sealos-deploy to deploy this project to Sealos Cloud and verify the live application."

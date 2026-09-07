@@ -2,13 +2,14 @@
   "hooks": {
     "SessionStart": [
       {
-        "matcher": ".*",
+        "matcher": "startup|resume|clear|compact",
         "hooks": [
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" session-start",
             "commandWindows": "& \"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" session-start",
-            "async": false
+            "async": false,
+            "statusMessage": "Loading Praxis triage"
           }
         ]
       }

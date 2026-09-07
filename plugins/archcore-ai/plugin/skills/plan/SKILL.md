@@ -1,91 +1,123 @@
 ---
 name: plan
-argument-hint: "[feature or initiative] [--track product|feature|sources|iso]"
-description: "Plan a feature or initiative: default product flow (idea → PRD → plan), feature flow with formal spec + task-type, sources flow (MRD → BRD → URD), or ISO 29148 cascade (BRS → StRS → SyRS → SRS). Use for 'plan the X redesign', 'create a roadmap', 'plan a new feature'. Pick a flow with --track. Not for recording a decision — use /archcore:decide."
+argument-hint: "[topic] [sdd | sources | iso | research]"
+description: "Plan a feature or initiative through a computed route: the conductor derives the canon delta and assembles the document package — from a zero-document null route for small fixes to an umbrella PRD with one spec per capability for large initiatives. Expert paths: sdd (full package), sources mode (MRD → BRD → URD) for market research and discovery, iso mode (BRS → StRS → SyRS → SRS) for ISO 29148 and regulated work, research track (RND) for technical research. Use for 'plan the X redesign', 'create a roadmap', 'plan a new feature', 'I need market research before we plan', 'we're regulated — start the ISO requirements cascade', 'investigate X before we plan', 'compare the alternatives for Y'. Not for recording a decision or documenting existing code — use /archcore:document. Not for checking docs against code — use /archcore:review."
 ---
 
 # /archcore:plan
 
-Plan a feature or initiative. Default is the product flow (idea → PRD → plan); switch with `--track`:
-
-- `--track product` *(default)* — idea → PRD → plan (lightweight)
-- `--track feature` — PRD → spec → plan → task-type (formal feature lifecycle)
-- `--track sources` — MRD → BRD → URD (discovery research)
-- `--track iso` — BRS → StRS → SyRS → SRS (ISO 29148 cascade for regulated work)
+Plan a feature or initiative through a computed route. The conductor
+(`skills/_shared/delta-routing.md`) derives the canon delta Δ, the gap profile
+Π, the zone maturity M, and the risk flags R, then assembles the document
+package; instruments produce the documents. Vision types are the primary
+output. Reads cover all three categories: vision supplies intent and
+resumption targets, knowledge supplies constraints, experience supplies
+precedent.
 
 ## When to use
 
-- "Plan the auth redesign" → default product flow
-- "Create a feature plan for the API migration" → default
-- "I need market research before we plan" → `--track sources`
-- "We need a formal feature spec with a repeatable task-type" → `--track feature`
-- "We're regulated — start the ISO requirements cascade" → `--track iso`
-- "Just a plan, skip the idea/PRD" → see Step 3 (single-plan shortcut)
+- "Plan the auth redesign" → computed route — typically `capability`: one spec plus one plan
+- "Create a roadmap for the API migration" → computed route
+- "Plan a new feature for CSV export" → computed route
+- "Plan the notifications platform" → computed route — typically `umbrella`: prd, one spec per capability, one plan
+- "I need market research before we plan" → acquisition instrument (`sources` expert path)
+- "We're regulated — start the ISO requirements cascade" → iso links (`iso` expert path)
+- "Investigate X before we plan" / "Compare the alternatives for Y" → research instrument
 
 **Not plan:**
-- Recording a decision → `/archcore:decide`
-- Documenting existing code → `/archcore:capture`
-- Codifying a team standard → `/archcore:decide` (offers rule + guide continuation)
-- Reading applicable rules/ADRs/specs before coding → `/archcore:context`
-- Picking up where work left off → `/archcore:context`
 
-## Routing table
+- Recording a decision → `/archcore:document`
+- Documenting existing code → `/archcore:document`
+- Codifying a team standard → `/archcore:document`
+- Checking documents against code → `/archcore:review`
 
-| Signal | Route | Documents |
-|---|---|---|
-| Default — feature or initiative | → product flow | idea → prd → plan |
-| `--track product` | → product flow | idea → prd → plan |
-| `--track feature` | → feature flow | prd → spec → plan → task-type |
-| `--track sources` | → sources flow | mrd → brd → urd |
-| `--track iso` | → ISO 29148 flow | brs → strs → syrs → srs |
-| User says "just a plan" or "only the plan document" | → single plan | plan only |
-| Ambiguous arguments | → ask one question | "Full feature plan (idea + PRD + plan) or just a plan document?" |
+## Route computation
 
-For `--track sources` and `--track iso`, the chain may continue into a product or feature flow afterwards — the reference for each track documents the natural follow-ups.
+Apply in this order:
+
+| Signal | Route |
+|---|---|
+| The user names an expert path — an alias (`sdd`, `sources`, `iso`, `research`), a route name, or a registry document type | The named path per the expert invocation map in `skills/_shared/delta-routing.md`, with no computation |
+| Any other request | Compute Δ, Π, M, and R per the Derivation section of `skills/_shared/delta-routing.md`; its route table decides the package |
+| A decision surfaces at a gate | Record the `adr` through the decision instrument (`skills/_shared/tracks/decision.md`), then return to the open gate |
+
+Technical-research boundary: market and business discovery belongs to the
+acquisition instrument; a request that already proposes a specific target for
+team acceptance ("should we switch to Y", "let's adopt Y") belongs to
+`/archcore:document`'s decision instrument — research is pre-decision evidence
+gathering with no proposed verdict.
 
 ## Execution
 
-Content voice: default to architectural prose — decisions, rationale, intent.
-See `skills/_shared/precision-rules.md` Rule 6. Code blocks only where the
-document type requires it (`rule`, `guide`, `cpat`) or the user asks.
+### 1. Ground
 
-**Global sources (only when a flow's check-existing surfaces one).** If a
-`list_documents` / `search_documents` result has `global: true` /
-`read_only: true` / `source_kind: "global"`, load `skills/_shared/globals.md`.
-Create local documents and wire relations to local documents only — never
-reference a global as a relation endpoint. No global match → proceed unchanged.
+Complete this step before asking the user any question.
 
-### Step 1: Resolve track
+1. Search `.archcore/` with `mcp__archcore__search_documents` and `mcp__archcore__list_documents` across all three categories. Pass a planning-moment type filter — for example `types=["idea", "prd", "plan", "spec", "rnd", "rfc", "adr", "rule", "task-type", "cpat"]` — instead of relying on the global type ranking. Do not exclude a category from reads.
+2. WHEN a found document carries `implements` or `related` relations, pull the linked documents one hop via `mcp__archcore__list_relations` and `mcp__archcore__get_document`.
+3. WHEN a found draft on the topic carries an `archcore:track` state block, resume it per the resume rules in `skills/_shared/gate-contract.md` and `skills/_shared/delta-routing.md` instead of opening a new track.
+4. Read git state — current branch, recent commits, working tree — and the code areas the topic names. Record the concrete files and modules for Step 5, and note zone documents whose referenced paths changed after them — the staleness input to Derivation.
+5. IF `.archcore/` exists but contains no documents, THEN proceed on outer-context grounding (git state and the codebase) and report that zero documents were found.
+6. IF `.archcore/` does not exist, THEN announce initialization in one line and call `mcp__archcore__init_project` without asking a question.
 
-Parse `$ARGUMENTS`:
+**Global sources.** If a `list_documents` / `search_documents` result has
+`global: true` / `read_only: true` / `source_kind: "global"`, load
+`skills/_shared/globals.md`. Also load it when a `search_documents` response's
+`coverage` names a source other than `"local"` — even when `results` is empty:
+the empty page is exactly where that file's retry ladder applies. Never modify
+a global document and never target one with `add_relation`. Absent any global
+match, proceed as usual.
 
-1. If `--track <name>` is present and valid (`product|feature|sources|iso`), record the chosen track.
-2. Otherwise, default to `product`.
-3. Drop `--track <name>` from `$ARGUMENTS` so the remainder is treated as the topic.
+### 2. Route
 
-### Step 2: Read the matching flow reference
+Compute the route per the Derivation section of
+`skills/_shared/delta-routing.md` and report the route announcement. WHEN the
+user names an expert path, execute it with no computation — this is the expert
+invocation. Never ask the user to choose a route or a size label.
 
-Open exactly one reference file based on track:
+### 3. Budget
 
-- `product` → `skills/plan/references/product-flow.md`
-- `feature` → `skills/plan/references/feature-flow.md`
-- `sources` → `skills/plan/references/sources-flow.md`
-- `iso` → `skills/plan/references/iso-flow.md`
+Interview mechanics, question form, and ceilings:
+`skills/_shared/elicitation-contract.md`. Auto mode draws every question from
+the shared per-invocation ceiling; an expert invocation raises per-gate
+budgets to the maxima the track file declares.
 
-Follow the steps in that reference verbatim — they own check-existing, scope determination, per-document elicitation, content composition, and relation wiring.
+### 4. Execute the package
 
-### Step 3: Single-plan shortcut
+Invoke each instrument the route names, in conductor order, per the instrument
+registry and sequencing rules in `skills/_shared/delta-routing.md`. Run each
+instrument's gates per `skills/_shared/gate-contract.md`: evaluate `skip_when`
+first at every gate, keep track state only in the `archcore:track` block
+inside the draft artifact (with the `route:` and `delta:` fields this command
+adds), persist each gate close in one `mcp__archcore__update_document` call,
+and follow the resume rules on re-entry. Gate bodies, per-gate questions, and
+relation wiring live in the track files — do not restate them.
 
-If the user explicitly said "just a plan" or "only the plan document":
+### 5. Map tasks to files
 
-- Skip the reference. Ask: "What is the goal? What are the key phases and dependencies?"
-- Compose content covering **Goal**, **Tasks** (phased), **Acceptance Criteria**, **Dependencies**.
-- `mcp__archcore__create_document(type="plan")`.
+WHEN the package produced a `plan` document:
 
-### Step 4: Cross-link
+1. Annotate each task in the plan's Tasks section with the concrete files or modules that grounding surfaced for it, using `@path/to/file` notation, in one `mcp__archcore__update_document` call.
+2. WHEN grounding surfaced no file or module for a task, state that no target was found for that task. Do not guess a path.
+3. Confirm the plan carries its `## Declared Delta` section per sequencing rule 9 of `skills/_shared/delta-routing.md`.
 
-After the chosen flow completes, suggest `mcp__archcore__add_relation` calls to link the chain into existing ADRs, specs, or related plans.
+WHEN the package produced no `plan` document (the `null`, `decision`, and
+`amendment` routes, the acquisition and research paths), skip to Result — the
+exit gate or the announcement names the follow-ups.
+
+### 6. Implement fork
+
+Offer exactly two exits and let the user choose:
+
+- **Implement now** — start on the mapped task list, first phase first, against the files mapped in Step 5.
+- **Stop here** — the draft documents and relations stay in `.archcore/`; a later `/archcore:plan` invocation resumes any draft that still carries a state block.
 
 ## Result
 
-The matching chain of documents per the chosen track. Single-plan: one plan document. Report: paths, relations, recommended next actions (e.g., *"consider creating a spec for the technical contract — run `/archcore:decide` with 'and formalize the contract' for an ADR-spec-plan cascade"*).
+Report:
+
+- The route announcement — route, size label, and the Δ, Π, M, R values that produced them.
+- Produced documents grouped by category — vision, knowledge, experience — with each document's path and status.
+- Relations created, plus candidate `mcp__archcore__add_relation` targets among existing documents, or a statement that none match.
+- `retires` entries reported for closeout discharge, when any exist.
+- Next actions, naming only v2 commands: `/archcore:plan` to continue a package, `/archcore:document` to record a decision or document code touched during implementation, `/archcore:review` to check the implementation against the recorded plan and reconcile the declared Δ.

@@ -143,7 +143,7 @@ Contaminated manager/verifier:
 - Track contaminated evidence references in `evidence-ledger.json`.
 - Provide Agent 1.5 only a neutral sanitizer brief with domain purpose, target profile, unit intent, public compatibility allowlist, and blocked categories.
 - Compare clean artifacts and terminal implementation, QC, and polish reports against source behavior, discovered source tests, equal-output requirements, and public API/schema compatibility.
-- For exact-public-contract or behavior-compatible units, split broad public surfaces into smaller units or maintain `public_surface_coverage` entries for every required `public_surface:<spec_id>:<kind>:<name>` obligation before marking coverage complete.
+- For exact-public-contract or behavior-compatible units, split broad public surfaces into smaller units or maintain `public_surface_coverage` entries for every required `public_surface:<spec_id>:<kind>:<name>` obligation before marking coverage complete. Check this join deterministically with `clean-room-skill artifact check-coverage --task-manifest <path> --coverage-ledger coverage-ledger.json` rather than inspecting refs by hand; it is the same logic the enforced runner uses for this gate.
 - Keep high-priority `discovery_leads` unresolved only while coverage is partial, blocked, or waiting for a follow-up unit. Do not mark a unit covered or send it to handoff with unresolved high-priority discovery leads.
 - Do not treat the foundation unit as permission to copy package manifests or dependency lists. Dependencies are preserved only when required by public compatibility, destination evidence, or explicit preflight policy.
 - Return only abstract delta tickets into a fresh clean artifact cycle, such as "retry behavior after transient network failure is missing."
@@ -284,7 +284,8 @@ Clean polish reviewer:
    - Start from a fresh role session brief when context management is enabled.
    - Agent 2 starts from the clean artifact workspace and builds or merges the clean schema base from `clean-run-context.json`, approved handoff artifacts, the selected target profile, target constraints, and clean implementation foundation.
    - Update `skeleton-manifest.json` as the clean destination architecture map before writing work items.
-   - Produce `CLEAN_ROOM_CLEAN_ROOTS/implementation-plan.json` with relative destination paths, architecture area refs, work items, tests, code hygiene policy, constraints, risks, planned refactors, and argv-array verification commands.
+   - Produce `CLEAN_ROOM_CLEAN_ROOTS/implementation-plan.json` with relative destination paths, architecture area refs, work items, tests, code hygiene policy, constraints, risks, planned refactors, and argv-array verification commands. Build every `public_contract_refs` entry from the approved spec's own `spec_id` field, never its source unit id.
+   - Before implementation starts, run `clean-room-skill artifact check-coverage --spec <approved-spec-path>... --plan implementation-plan.json` for the specs in scope. A spec_id/unit_id ref mismatch fails here in one cheap step instead of surviving all the way to coverage verification after code and tests are already written.
    - Keep `skeleton-manifest.json` valid and current for code-development runs.
    - Avoid implementation code, private algorithm choices, source-derived layout, and source-shaped pseudocode.
 11. Implement and verify:
@@ -304,7 +305,7 @@ Clean polish reviewer:
    - Commit only through `agent4-polish-runner.py`, with `git.include_paths` covering terminal Agent 3 changed paths plus Agent 4 polish paths, and with no push, tag, reset, clean, branch deletion, or arbitrary git commands.
 13. Verify coverage:
    - Contaminated manager checks gaps against source behavior, discovered source tests, equal-output requirements, public contract compatibility, terminal implementation reports, and terminal polish reports when configured.
-   - Reject completion when any required public-surface obligation is missing from behavior spec test coverage, implementation-plan `public_contract_refs`, terminal implementation completion, or coverage-ledger `public_surface_coverage`.
+   - Reject completion when any required public-surface obligation is missing from behavior spec test coverage, implementation-plan `public_contract_refs`, terminal implementation completion, or coverage-ledger `public_surface_coverage`. After drafting `coverage-ledger.json`, run `clean-room-skill artifact check-coverage --task-manifest <path> --coverage-ledger coverage-ledger.json` and downgrade any unit it flags to `gap` or `blocked`; do not mark completion from manual ref inspection alone.
    - Do not mark exact-public-contract or behavior-compatible work complete while approved behavior specs have open questions or untested compatibility-critical invariants.
    - Return only abstract deltas through updated durable artifacts for a fresh clean cycle.
    - In unattended mode, reload durable artifacts and process at most one pending or gap unit per iteration inside the approved spec slice.

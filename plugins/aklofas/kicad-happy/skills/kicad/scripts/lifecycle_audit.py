@@ -107,6 +107,22 @@ def _normalize_status(raw: str | None) -> str:
 # Temperature parsing
 # ---------------------------------------------------------------------------
 
+def _temp_evidence_source(source: str | None) -> str:
+    """Map a temperature-range source tag to a finding evidence_source.
+
+    "extraction_cache" is a per-MPN datasheet extraction and is genuinely
+    datasheet-backed; "api:<distributor>" is a catalogue lookup. Anything else
+    (or nothing) is not evidence of either.
+    """
+    if not source:
+        return 'heuristic_rule'
+    if source == 'extraction_cache':
+        return 'datasheet'
+    if source.startswith('api:'):
+        return 'api_lookup'
+    return 'heuristic_rule'
+
+
 def _parse_temp_range(text: str) -> tuple[float, float] | None:
     """Parse temperature range from distributor attribute string.
 
@@ -454,9 +470,11 @@ def audit_component(mpn: str, sources: list[str], project_dir: str | None = None
         "mouser": query_lifecycle_mouser,
     }
 
+    attempted = []
     for source_name, fn in api_fns.items():
         if sources and source_name not in sources:
             continue
+        attempted.append(source_name)
         try:
             time.sleep(delay)
             data = fn(mpn)
@@ -489,6 +507,7 @@ def audit_component(mpn: str, sources: list[str], project_dir: str | None = None
     has_non_active = any(s in _non_active for s in per_source_status.values())
     result["consensus_split"] = has_active and has_non_active
     result["per_source_status"] = per_source_status
+    result["attempted"] = sorted(attempted)
     if temp_data:
         result["temperature"] = temp_data
     return result
@@ -638,6 +657,12 @@ def audit_bom(analysis_json: dict, project_dir: str | None = None,
             continue
         mpn_map.setdefault(mpn, []).extend(entry.get("references", []))
 
+    # KH-348: LCSC/jlcsearch exposes no lifecycle/obsolescence data — an
+    # LCSC-only audit can only ever return 'unknown'. Flag the capability
+    # gap up front and skip the per-part LC-004 noise (rows are kept for
+    # any temperature data).
+    lcsc_only = bool(sources) and set(sources) == {"lcsc"}
+
     lifecycle_findings = []
     temperature_findings = []
     status_counts = {"active": 0, "nrnd": 0, "last_time_buy": 0,
@@ -685,7 +710,7 @@ def audit_bom(analysis_json: dict, project_dir: str | None = None,
                     finding["alternatives"] = alts
 
         rule_info = _LIFECYCLE_STATUS_RULES.get(status)
-        if rule_info:
+        if rule_info and not (lcsc_only and status == "unknown"):
             rule_id, severity = rule_info
             consensus_split = data.get('consensus_split', False)
             per_source = data.get('per_source_status', {})
@@ -727,7 +752,19 @@ def audit_bom(analysis_json: dict, project_dir: str | None = None,
             finding['rule_id'] = 'LC-ACT'
             finding['category'] = 'lifecycle'
             finding['severity'] = 'info'
-            finding['summary'] = f"{mpn}: active ({len(refs)} ref(s))"
+            finding['confidence'] = 'deterministic'
+            finding['evidence_source'] = 'api_lookup'
+            if lcsc_only and status == 'unknown':
+                # LCSC (jlcsearch) carries no lifecycle status field at all —
+                # say so plainly instead of reusing the "active" wording.
+                finding['summary'] = (f"{mpn}: unknown ({len(refs)} ref(s)) — "
+                                      f"LCSC returns no lifecycle status")
+                finding['description'] = (
+                    f"Lifecycle status for {mpn} could not be determined: "
+                    f"LCSC returns no lifecycle status. Use DigiKey, Mouser, "
+                    f"or element14 credentials for a real lifecycle audit.")
+            else:
+                finding['summary'] = f"{mpn}: active ({len(refs)} ref(s))"
             finding['components'] = sorted(refs)
             finding['nets'] = []
             finding['pins'] = []
@@ -735,27 +772,48 @@ def audit_bom(analysis_json: dict, project_dir: str | None = None,
 
         lifecycle_findings.append(finding)
 
-        # LC-005: Single-source detection
+        # LC-005: Single-source detection (KH-372). Denominator is sources
+        # actually ATTEMPTED, not just the ones that responded — an errored
+        # or timed-out source didn't confirm anything, it isn't absent from
+        # the count. A response with status=None doesn't count as an active
+        # confirmation either. LCSC carries no lifecycle status field at
+        # all, so it's excluded from the lifecycle source counts entirely
+        # (it's a stock/price source, not a lifecycle source) — its
+        # presence is still called out in the description when relevant.
         if status == 'active':
-            active_sources = [src_name for src_name, src_data in finding.get('sources', {}).items()
-                              if src_data.get('status') in ('active', 'Active', None)
-                              and src_data.get('found', True)]
-            total_queried = len(finding.get('sources', {}))
-            if total_queried >= 2 and len(active_sources) == 1:
+            attempted = [s for s in data.get('attempted', []) if s != 'lcsc']
+            all_responded = finding.get('sources', {})
+            responded = [s for s in all_responded if s != 'lcsc']
+            per_source = data.get('per_source_status', {})
+            active_confirmed = sorted(s for s in responded if per_source.get(s) == 'active')
+
+            total_attempted = len(attempted)
+            n_responded = len(responded)
+            if len(active_confirmed) == 1 and n_responded >= 2:
+                stock_note = ''
+                if 'lcsc' in all_responded:
+                    stock_note = (' LCSC also responded but is excluded as a '
+                                  'stock-only source with no lifecycle status.')
                 lifecycle_findings.append({
                     'mpn': mpn,
                     'references': sorted(refs),
                     'status': 'active',
                     'single_source': True,
-                    'source_name': active_sources[0],
+                    'source_name': active_confirmed[0],
+                    'total_attempted': total_attempted,
+                    'responded': n_responded,
+                    'active_confirmed': len(active_confirmed),
                     'detector': 'audit_bom',
                     'rule_id': 'LC-005',
                     'category': 'lifecycle',
                     'severity': 'info',
                     'confidence': 'deterministic',
-                    'evidence_source': 'datasheet',
-                    'summary': f'{mpn}: single source ({active_sources[0]})',
-                    'description': f'Component {mpn} ({len(refs)} ref(s)) is only available from {active_sources[0]} out of {total_queried} sources checked.',
+                    'evidence_source': 'api_lookup',
+                    'summary': f'{mpn}: single source ({active_confirmed[0]})',
+                    'description': (
+                        f'Component {mpn} ({len(refs)} ref(s)) is confirmed active by only '
+                        f'{active_confirmed[0]} ({total_attempted} attempted, '
+                        f'{n_responded} responded lifecycle source(s)).{stock_note}'),
                     'components': sorted(refs),
                     'nets': [],
                     'pins': [],
@@ -794,7 +852,7 @@ def audit_bom(analysis_json: dict, project_dir: str | None = None,
                 'category': 'lifecycle',
                 'severity': severity,
                 'confidence': 'deterministic',
-                'evidence_source': 'datasheet',
+                'evidence_source': 'api_lookup',
                 'summary': f'{mpn}: {max_lead_weeks} week lead time',
                 'description': f'Component {mpn} has {max_lead_weeks} week lead time (from {lead_source}).',
                 'components': sorted(refs),
@@ -839,7 +897,9 @@ def audit_bom(analysis_json: dict, project_dir: str | None = None,
                     "rule_id": "LT-001",
                     "category": "temperature",
                     "confidence": "deterministic",
-                    "evidence_source": "api_lookup" if temp.get("source") else "heuristic_rule",
+                    # "extraction_cache" is a real per-MPN datasheet extraction and must
+                    # not be downgraded to api_lookup; "api:<distributor>" is a lookup.
+                    "evidence_source": _temp_evidence_source(temp.get("source")),
                     "summary": f"{mpn}: rated {comp_grade} ({comp_min}C to {comp_max}C), design needs {design_min}C to {design_max}C",
                     "components": sorted(refs),
                     "nets": [],
@@ -865,8 +925,17 @@ def audit_bom(analysis_json: dict, project_dir: str | None = None,
         "findings": lifecycle_findings,
         "lifecycle_summary": status_counts,
     }
+    if lcsc_only:
+        result["capability_note"] = (
+            "LCSC (jlcsearch) exposes no lifecycle/obsolescence status — "
+            "every part reads 'unknown' by construction. Use DigiKey, "
+            "Mouser, or element14 credentials for a real lifecycle audit.")
 
     observations = []
+    if lcsc_only:
+        observations.append(
+            "LCSC-only audit: lifecycle status unavailable from this source "
+            "(all statuses 'unknown' by construction)")
     for status_key in ("nrnd", "last_time_buy", "obsolete", "discontinued"):
         count = status_counts.get(status_key, 0)
         if count:

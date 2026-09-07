@@ -1,11 +1,12 @@
 ---
 name: agentpack-learn
-description: Learn one thing from current local AgentPack session context.
+description: Choose and learn the next evidence-backed technical topic from AgentPack memory.
+license: AGPL-3.0-only
 ---
 
 # AgentPack Learn
 
-Use when the user invokes `@agentpack-learn <statement>` in Codex or `/agentpack-learn <statement>` in Claude Code.
+Use when the user invokes `$agentpack-learn <statement>` in Codex or `/agentpack-learn <statement>` in Claude Code. The statement is optional; without one, recommend the next three topics.
 
 Use current local agent session context to teach what the user asks to learn.
 
@@ -44,15 +45,36 @@ if [ -f .agentpack/session-events.jsonl ]; then tail -n 40 .agentpack/session-ev
 Use `.agentpack/context.md` only when compact context lacks needed detail.
 Do not invent repo facts not present in local context or checked files.
 
-## On-Demand Task Coach Payload
+## Next Topic Payload
 
-Before teaching, try to generate a bounded local learning payload for the exact user request:
+Use AgentPack MCP first. Use global scope only when the user explicitly asks for all projects.
+
+```text
+learning_recommendations(request="<user learning statement>", scope="local")
+```
+
+If the MCP learning tools are unavailable, use the CLI fallback:
 
 ```bash
+agentpack learn --json
 agentpack learn "<user learning statement>" --json
+agentpack learn --global --json
 ```
 
 If this fails, continue from the local files above and say the generated payload was unavailable. Do not run providers or dashboard rendering unless the user explicitly asks.
+
+Present the returned topics in their existing order with lane, competency, proof requirement, project, `why_now`, exercise, and evidence. Do not invent a fourth topic when history is insufficient. An `unassessed` breadth gap is missing proof, not a demonstrated weakness. Skill confidence is observed exposure, not mastery.
+
+## Coaching Loop
+
+1. Let the developer choose one topic, then call `learning_start(topic_id, project_id, mode)`. Use the returned `start_command --json` only as a fallback.
+2. Ask one returned question at a time. The host agent is the evaluator; AgentPack does not call a hosted model.
+3. Evaluate every `expected_point` as `missing`, `partial`, or `met`, with concise evidence. Do not accept a caller-supplied score.
+4. Keep explanations grounded in returned evidence. Reveal the answer only after at least two tries in Real Error Simulator mode.
+5. For artifact proof, collect at least one existing project-relative artifact path and verification evidence for commands that all exited successfully.
+6. Ask for self-assessment, then call `learning_complete(session_id, proof)`. If MCP is unavailable, write the same proof JSON and run `agentpack learn --complete <session_id> --proof-file <path|-> --json`.
+
+One successful proof is developing evidence, never mastery. Mastery is derived only after two passing proofs from distinct project/task pairs, including one verified artifact proof.
 
 ## Teaching Modes
 

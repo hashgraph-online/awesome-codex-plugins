@@ -113,11 +113,11 @@ Export Status: exported/public | internal
 1. List open feature/enhancement issues via the VCS CLI (syntax reference: `skills/gitlab-ops/SKILL.md` § "Common CLI Commands" — do not duplicate CLI flags here beyond what's needed to name the call):
 ```bash
 # GitLab
-glab issue list --label "feature" --per-page 100
-glab issue list --label "enhancement" --per-page 100
+glab issue list -R <OWNER>/<REPO> --label "feature" --per-page 100
+glab issue list -R <OWNER>/<REPO> --label "enhancement" --per-page 100
 # GitHub
-gh issue list --label "feature" --limit 100
-gh issue list --label "enhancement" --limit 100
+gh issue list -R <OWNER>/<REPO> --label "feature" --limit 100
+gh issue list -R <OWNER>/<REPO> --label "enhancement" --limit 100
 ```
 
 2. Extract theme keywords from each issue's title (and first paragraph of body where available): lowercase, strip stop-words, tokenize on non-alphanumeric boundaries. Group issues that share two or more significant keywords (e.g. "export", "csv", "invoice") into a candidate cluster.
@@ -125,10 +125,10 @@ gh issue list --label "enhancement" --limit 100
 3. For each candidate cluster with 3 or more issues, check whether ANY member issue is already linked to an epic (`epic` label, a GitLab Epic relationship, or an in-body reference such as `part of #<epic-iid>` / `Epic: #<epic-iid>`):
 ```bash
 # GitLab -- inspect labels + description for epic linkage
-glab issue view <IID>
+glab issue view -R <OWNER>/<REPO> <IID>
   Grep pattern: (^Labels:.*\bepic\b|part of #|Epic:\s*#)
 # GitHub -- same check against issue body/labels
-gh issue view <NUMBER>
+gh issue view -R <OWNER>/<REPO> <NUMBER>
   Grep pattern: (^labels:.*\bepic\b|part of #|Epic:\s*#)
 ```
 
@@ -147,4 +147,4 @@ verification_method: vcs-issue
 
 ---
 
-**Labels for auto-created issues:** `type:discovery`, `area:skills`, `priority:high` (High/Critical severity) or `priority:medium` (Medium severity), `status:ready`.
+**Labels for auto-created issues:** `type:discovery`, `area:skills`, `priority::high` (High/Critical severity) or `priority::medium` (Medium severity), `status:ready`.

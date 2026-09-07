@@ -9,7 +9,7 @@ Translate older Claude tool names without duplicating platform branches in every
 | Follow-up or status | `followup_task`, `send_message`, `wait_agent`, `list_agents`, or `interrupt_agent` |
 | `Skill` | Automatic description match, `/skills`, or `$skillname` |
 | `TaskCreate`, `TaskUpdate`, `TaskList` | `update_plan` |
-| `AskUserQuestion` | The available input tool; otherwise ask one concise question |
+| `AskUserQuestion` | Ask one concise question in chat; do not require `request_user_input` |
 
 Claude named agents are Markdown; Codex named agents are TOML. When no named Codex reviewer exists, pass the body of `agents/staff-reviewer.md`, the scope, and the evidence to a general worker as task instructions, not as a persona.
 

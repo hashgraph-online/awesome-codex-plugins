@@ -1,6 +1,6 @@
 ---
 name: context-engine
-description: "Load brand context for marketing tasks. Use when: setting up brands, switching context, or needing industry benchmarks."
+description: "Load and manage the shared marketing context other skills build on — the active brand profile (voice, audiences, competitors, goals), industry benchmark profiles, geographic and industry compliance rules, platform specs, and scoring rubrics — plus brand switching and campaign-data persistence under ~/.claude-marketing/. Triggers on \"/digital-marketing-pro:context-engine\", \"switch to brand X\", \"what are the benchmarks for my industry\", \"which compliance rules apply to us\", \"load my brand context\". Pairs with /digital-marketing-pro:brand-setup to create profiles and /digital-marketing-pro:switch-brand to change them; its reference files are read by nearly every sibling skill."
 argument-hint: "[brand-slug]"
 ---
 
@@ -165,8 +165,76 @@ All MCP servers connect to the USER'S OWN accounts via their API keys.
 
 ## Reference Files
 
+### Core context & specs
+
 - **industry-profiles.md** — 20+ industry profiles with benchmarks, channels, compliance, content types
-- **compliance-rules.md** — Geographic privacy laws (16 jurisdictions) + industry regulations (10+ sectors)
 - **platform-specs.md** — Social media, email, and ad platform specifications
+- **platform-publishing-specs.md** — API-level publishing requirements and content formats per platform (payloads, field mapping, validation)
+- **google-seo-reference.md** — Concise Google SEO quick reference (crawling/indexing/serving, surfaces, schema status, algorithm dates)
+- **schema-templates.json** — Ready-to-use JSON-LD schema templates with Google support/deprecation status
+- **india-market-context.md** — India regional market context: regulation (DPDP), platforms, and market dynamics
+
+### Methodology frameworks
+
+- **engagement-flow-methodology.md** — The 12-Part sequential engagement methodology every command, skill, and agent reads back to
+- **four-core-documents-spec.md** — Full spec of the four Part 3 Core Documents (61 steps) that form the strategic spine
+- **decision-matrix-rerun.md** — Which Part 3/4 documents to re-run as v2 after Part 5 client validation
+- **two-views-model.md** — Keeping v1 (unbiased research) and v2 (client-validated) views authoritative for different questions
+- **update-back-rule.md** — Corrections land in the source document, not just the deliverable that caught the error
+- **stone-vs-opinion.md** — Confidence tagging of intake facts: verifiable Stone vs client Opinion
+- **living-instruction-file-spec.md** — Spec for the per-engagement Living Project Instruction File (single source of truth)
+- **30-60-90-framework.md** — Default first-quarter phasing: Foundation / Optimization / Scale milestones
+- **actionable-persona-format.md** — Six-question persona format that replaces biographical narratives
+- **b2b-decision-making-unit.md** — B2B buying-committee roles overlay for every B2B persona
+- **five-digital-markets.md** — Strategic taxonomy of the five digital market types; market type determines channel
+- **channel-families.md** — Operational grouping of the 17 Part 9 channels into seven families
+- **in-market-out-market.md** — Budget split logic between in-market (3–5%) and out-market (95–97%) audiences
+- **fixed-vs-variable-budget.md** — Separating committed monthly spend from data-backed variable spend
+- **unit-economics-framework.md** — CAC/LTV foundation every channel and budget decision checks back to
+- **three-scenario-forecasting.md** — Every projection presented as conservative/expected/optimistic scenarios
+- **decision-framework.md** — Multi-dimensional decision framework: name, weight, and score every dimension
+- **competitor-3-question-output.md** — The three questions every competitor analysis must answer per competitor
+
+### Execution guides
+
+- **execution-workflows.md** — Standard operating procedures for publishing, sending, and launching marketing actions
+- **seo-execution-guide.md** — SEO execution via CMS APIs, search console ops, schema deployment, rank monitoring
+- **geo-execution-guide.md** — Generative Engine Optimization: AI visibility monitoring, entities, citations
+- **multilingual-execution-guide.md** — End-to-end multilingual campaign pipeline: translation services, RTL/Indic/CJK, SEO
+- **transcreation-framework.md** — Transcreation vs translation vs localization, with process and QA scoring
+- **crm-integration-guide.md** — CRM connection patterns, object mapping, and data sync (Salesforce, HubSpot, etc.)
+- **custom-mcp-guide.md** — Adding or building MCP servers beyond the opt-in connector catalog
+- **self-healing-ops-guide.md** — Automated campaign monitoring and correction within safety guardrails
+- **approval-framework.md** — Risk classification determining auto-execute vs explicit-approval flows
+- **agency-operations-guide.md** — Multi-client SOPs: onboarding, portfolio health, credential isolation, white-labeling
+- **team-roles-framework.md** — Team roles, permissions, approval chains, and capacity planning
+- **guidelines-framework.md** — How brand guidelines, restrictions, and style rules are structured and enforced
+
+### Compliance & EU
+
+- **compliance-rules.md** — Geographic privacy laws (16 jurisdictions) + industry regulations (10+ sectors)
+- **eu-code-of-practice.md** — EU Code of Practice on AI-generated content + AI Act Article 50 obligations for marketers
+
+### Templates & rubrics
+
 - **scoring-rubrics.md** — Content quality, ad creative, email, and landing page scoring criteria
+- **eval-rubrics.md** — Detailed scoring rubrics for the six eval dimensions used by eval-runner.py
+- **eval-framework-guide.md** — Architecture and usage of the automated six-dimension content QA pipeline
+- **growth-plan-template.md** — Flagship Part 8 client-facing Growth Plan deliverable template
+- **yearly-planner-template.md** — Part 8 twelve-month operating calendar template
+- **monthly-report-template.md** — Decision-driving monthly client report structure
+- **reporting-cadence.md** — Matching metric review frequency (daily→quarterly) to decision velocity
+- **advanced-reporting-guide.md** — PDF report generation, dashboards, attribution, cohort and variance reporting
+
+### Intelligence & memory
+
 - **intelligence-layer.md** — How the adaptive intelligence system works (scoring, learning, persistence)
+- **memory-architecture.md** — The 5-layer persistent brand knowledge system
+- **compound-intelligence-guide.md** — Intelligence graph that makes each decision better than the last
+- **creative-intelligence-guide.md** — Creative fatigue prediction, content decay, and refresh prioritization
+- **market-intelligence-guide.md** — Macro signal detection: economic indicators, market timing, regulatory tracking
+- **competitive-monitoring-guide.md** — Ongoing competitor change detection, social listening, share of voice
+- **narrative-warfare-guide.md** — Narrative territory mapping, counter-narratives, and category creation
+- **journey-growth-guide.md** — Journey state machines, growth loops, dark funnel analysis, journey simulation
+- **marketing-science-guide.md** — Causal inference, Bayesian MMM, incrementality, and experimentation rigor
+- **synthetic-audience-guide.md** — AI-simulated audience research, focus groups, and message testing with calibration

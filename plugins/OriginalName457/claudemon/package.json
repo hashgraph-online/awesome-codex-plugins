@@ -1,0 +1,34 @@
+{
+  "name": "claudemon",
+  "version": "0.1.0",
+  "description": "Tamagotchi x Digimon pixel pet that lives in Claude Code — a cute companion layer over real multi-agent work (local tank + remote nodes).",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=24"
+  },
+  "bin": {
+    "claudemon": "src/standalone.js",
+    "claudemon-worker": "src/worker.js"
+  },
+  "scripts": {
+    "start": "node src/standalone.js",
+    "serve": "node src/standalone.js",
+    "app": "node scripts/launch.js",
+    "launch": "node scripts/launch.js",
+    "shortcut": "node scripts/shortcut.js",
+    "worker": "node src/worker.js",
+    "setup": "node scripts/setup.js",
+    "doctor": "node scripts/setup.js --check",
+    "postinstall": "node scripts/setup.js --check --quiet",
+    "mcp": "node src/server.js",
+    "tank": "node scripts/open-tank.js",
+    "status": "node scripts/status.js",
+    "companion": "node scripts/companion.js",
+    "reset": "node -e \"require('fs').rmSync(require('path').join(__dirname,'state','pet.json'),{force:true});console.log('pet reset')\""
+  },
+  "optionalDependencies": {
+    "@anthropic-ai/claude-code": "latest"
+  },
+  "license": "MIT",
+  "private": true
+}

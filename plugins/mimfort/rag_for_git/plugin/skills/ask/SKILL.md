@@ -1,5 +1,5 @@
 ---
-name: reviewer_ask
+name: ask
 description: Answer grounded questions about the codebase (onboarding / Q&A) using the reviewer RAG + code graph. Use when the user asks how the code works, where something lives, or to explain a subsystem ("where is auth", "how does X work", "explain the indexing flow", "как устроено…", "где у нас…", "объясни код"). Requires a built base index + graph (reviewer MCP server). Not for reviewing PRs.
 ---
 
@@ -38,7 +38,7 @@ Plus the harness file tools (`Read`, `Grep`, `Glob`) to read source from the loc
    already checked index freshness earlier in this session, skip this — run
    `uvx --from rag-reviewer reviewer status <path> --branch <branch> --json` and read `drift`. If
    `drift > 0`, emit exactly **one banner line**, in Russian:
-   «⚠ индекс отстаёт на N коммитов, ответ может не учитывать свежие изменения → `/reviewer_sync-codebase`».
+   «⚠ индекс отстаёт на N коммитов, ответ может не учитывать свежие изменения → `rag-reviewer:sync-codebase`».
    Do NOT block, reindex, ask for confirmation, or call `sync_board` — this is warn-only. Cost ≈ 0
    Voyage (reads `index_meta` + local git). **Fail-open:** any error → skip the banner silently
    (Q&A is latency-sensitive).

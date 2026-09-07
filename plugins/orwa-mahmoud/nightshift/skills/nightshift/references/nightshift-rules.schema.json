@@ -1,0 +1,124 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/orwa-mahmoud/nightshift/main/plugins/nightshift/skills/nightshift/references/nightshift-rules.schema.json",
+  "title": "Nightshift rules",
+  "description": "Owner knobs for an unattended shift. Extra top-level keys are rejected; missing optional keys keep runtime defaults. toolDeny and both host-native ask-tool entries are required so question behavior is never hidden. An empty string lifts a string rule. Schema validation never changes hook behaviour.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "toolDeny"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Optional pointer for editors. Ignored by Nightshift runtime."
+    },
+    "toolDeny": {
+      "type": "object",
+      "description": "Exact host tool_name to denial message. A non-empty value denies that tool with this message; an empty value lifts this map entry; an unlisted optional tool is allowed by this map. Other hardhat guards still apply independently. AskUserQuestion is Claude Code's native question tool and request_user_input is Codex's. Codex file edits report apply_patch (Edit and Write are matcher aliases only). Other built-in and MCP names may be added when that host exposes them to PreToolUse. Examples and host coverage: https://github.com/orwa-mahmoud/nightshift/blob/main/docs/knobs.md#tool-rules",
+      "required": [
+        "AskUserQuestion",
+        "request_user_input"
+      ],
+      "properties": {
+        "AskUserQuestion": {
+          "type": "string",
+          "description": "Claude Code question policy. Non-empty parks with this denial; empty allows Claude Code to ask and wait."
+        },
+        "request_user_input": {
+          "type": "string",
+          "description": "Codex question policy. Non-empty parks with this denial; empty allows Codex to ask and wait."
+        }
+      },
+      "additionalProperties": {
+        "type": "string"
+      },
+      "examples": [
+        {
+          "AskUserQuestion": "",
+          "request_user_input": "Park the question with a default and continue.",
+          "Bash": "Shell commands are disabled for this shift.",
+          "mcp__github__delete_file": "Repository deletion is disabled for this shift."
+        }
+      ]
+    },
+    "forbiddenCommands": {
+      "type": "string",
+      "description": "grep -E pattern matched against Bash command text during a shift. Empty disables the guard."
+    },
+    "neverCommitPatterns": {
+      "type": "string",
+      "description": "grep -E pattern matched against a commit diff during a shift. Empty disables the guard."
+    },
+    "expectedEmail": {
+      "type": "string",
+      "description": "During a shift, deny commits authored under any other identity. Empty disables the guard."
+    },
+    "protectedDirs": {
+      "type": "string",
+      "description": "Space- or pipe-separated directory names never to git add/commit/tag/remote during a shift. Empty disables the guard."
+    },
+    "stallMax": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "0 holds a stuck run (default). N clocks the shift out after N stuck stop attempts."
+    },
+    "stallWarnEvery": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Warn in the shift log every N stuck stop attempts while holding. 0 disables the cadence warning."
+    },
+    "watchMinutes": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Minutes between watchman wakes. 0 disarms the watchman."
+    },
+    "watchRetrySeconds": {
+      "type": "string",
+      "pattern": "^([0-9]+( [0-9]+)*)?$",
+      "description": "Space-separated seconds between revival attempts in one wake, e.g. \"30 120\"."
+    },
+    "watchAgent": {
+      "type": "string",
+      "description": "Optional owner revival command. Empty keeps the host default resume ladder. A non-empty value is used verbatim on every revival attempt (no resume/--continue/fresh ladder)."
+    },
+    "receiptsAutoCommit": {
+      "type": "boolean",
+      "description": "When true, clock-out and Archive commit the local receipts repo ($NS/.git) with the headless nightshift identity. Default false: even if Setup created that repo, the owner commits it. Missing or unreadable is treated as false."
+    },
+    "notifyCommand": {
+      "type": "string",
+      "description": "Unrestricted owner-provided shell run at shift-end or unrecoverable outage. Empty is silent."
+    },
+    "revivalPrompt": {
+      "type": "string",
+      "description": "Order a resumed conversation receives after a crash or outage."
+    },
+    "freshRevivalPrompt": {
+      "type": "string",
+      "description": "Order a fresh-session fallback receives when the recorded conversation cannot be resumed."
+    },
+    "clockOutMessage": {
+      "type": "string",
+      "description": "Text the Stop hook re-injects when open punch-list items remain."
+    },
+    "retention": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Optional history retention. 0 keeps forever. Only Nightshift Archive may prune, and only after a printed preview and explicit confirmation.",
+      "properties": {
+        "runtimeLogDays": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Delete Nightshift-generated runtime logs older than N days. 0 keeps forever."
+        },
+        "archiveDays": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Delete dated .nightshift/archive/YYYY-MM-DD directories older than N days. 0 keeps forever."
+        }
+      }
+    }
+  }
+}

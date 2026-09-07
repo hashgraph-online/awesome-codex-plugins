@@ -2,6 +2,8 @@
 
 Use this reference when generating presentations. Match animations to the intended feeling.
 
+Every pattern here follows the frontend skill's shared motion floor (`../superloopy-frontend/references/motion-core.md`): animate transform, opacity, and filter only — never layout properties — and respect `prefers-reduced-motion`. This file adds the slide-stage-specific pattern vocabulary on top of that floor.
+
 ## Effect-to-Feeling Guide
 
 | Feeling | Animations | Visual Cues |

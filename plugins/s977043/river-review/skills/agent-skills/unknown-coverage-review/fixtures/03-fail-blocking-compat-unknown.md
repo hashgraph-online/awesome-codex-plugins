@@ -11,7 +11,7 @@ diff --git a/src/config/parser.mjs b/src/config/parser.mjs
 index 6666666..7777777 100644
 --- a/src/config/parser.mjs
 +++ b/src/config/parser.mjs
-@@ -1,10 +1,6 @@
+@@ -1,5 +1,4 @@
 -// 旧 YAML 形式と新 TOML 形式の両方を受け付ける
 -export function parseConfig(text, format) {
 -  if (format === 'yaml') return parseYaml(text);

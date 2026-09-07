@@ -54,13 +54,14 @@ Before code, read:
 - `../../references/ui-patterns/surface-taxonomy.md`
 - `../../references/ui-patterns/ui-decision-brief.md`
 - `../../references/ui-patterns/desktop-app-archetypes.md`
+- `../../references/ui-patterns/native-desktop-app-quality-contract.md`
 - `../../references/ui-patterns/originality-engine.md`
 - `../../references/ui-patterns/design-recipes.md`
 - `../../references/ui-patterns/anti-default-contrasts.md`
 - `../../references/ui-patterns/visual-hierarchy.md`
 - `../../references/ui-patterns/motion-budget.md`
 
-Write the UI decision brief and, for macOS/iPad desktop-class work, the desktop archetype brief and compact layout sketch. For original/non-generic Apple work, also write the originality brief: subject, product world, main object, composition archetype, repeated motif, one weird move, and restraints. Pick the app shape before picking controls: command center, library/collection, workbench, monitoring cockpit, menu-bar utility, media/consumer, document/knowledge, or setup/preferences. If the sketch becomes generic sidebar + detail, use anti-default contrasts and rewrite it around the main object. iPhone task flows need thumb reach and progressive disclosure; iPad/Mac productivity surfaces need NavigationSplitView, inspector, keyboard flow, command surfaces, and stable density; media/consumer apps may use branded content surfaces while preserving HIG controls, SF typography, SF Symbols, Dynamic Type, and safe areas. Do not make every Mac app a generic sidebar plus detail view unless the archetype truly calls for it.
+Write the UI decision brief and, for macOS/iPad desktop-class work, the desktop archetype brief, native desktop quality brief, and compact layout sketch. For original/non-generic Apple work, also write the originality brief: subject, product world, main object, composition archetype, repeated motif, one weird move, and restraints. Pick the app shape before picking controls: command center, library/collection, workbench, monitoring cockpit, menu-bar utility, media/consumer, document/knowledge, or setup/preferences. Define window model, command model, resize behavior, native controls, keyboard/focus paths, state coverage, and platform evidence. If the sketch becomes generic sidebar + detail, use anti-default contrasts and rewrite it around the main object. iPhone task flows need thumb reach and progressive disclosure; iPad/Mac productivity surfaces need NavigationSplitView, inspector, keyboard flow, command surfaces, and stable density; media/consumer apps may use branded content surfaces while preserving HIG controls, SF typography, SF Symbols, Dynamic Type, and safe areas. Do not make every Mac app a generic sidebar plus detail view unless the archetype truly calls for it.
 
 ## Step 1 — Liquid Glass first (only if track 1 or 2)
 

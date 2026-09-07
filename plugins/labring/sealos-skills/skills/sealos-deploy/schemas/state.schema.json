@@ -73,6 +73,82 @@
         }
       }
     },
+    "runtime_truth": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "captured_at",
+        "identity",
+        "evidence_paths",
+        "redaction_status",
+        "stability_window_seconds"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["verified", "pending", "failed"]
+        },
+        "captured_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "identity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["app_name", "namespace", "image", "url"],
+          "properties": {
+            "app_name": { "type": "string", "minLength": 1 },
+            "namespace": { "type": "string", "minLength": 1 },
+            "image": { "type": "string", "minLength": 1 },
+            "url": { "type": "string", "pattern": "^https://" }
+          }
+        },
+        "evidence_paths": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+          }
+        },
+        "redaction_status": {
+          "type": "string",
+          "enum": ["complete", "not_applicable"]
+        },
+        "stability_window_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "checks": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "owner", "artifact_paths", "redaction_status"],
+      "properties": {
+        "source": { "type": "string", "minLength": 1 },
+        "owner": { "type": "string", "minLength": 1 },
+        "artifact_paths": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+          }
+        },
+        "redaction_status": {
+          "type": "string",
+          "enum": ["complete", "not_applicable"]
+        }
+      }
+    },
     "history": {
       "type": "array",
       "minItems": 1,

@@ -56,7 +56,7 @@ function redact(value) {
 }
 
 function compactString(key, value) {
-  const sensitivePattern = /(token|secret|password|credential|apikey|api_key|authorization|session|cookie)/i;
+  const sensitivePattern = /(token|secret|password|credential|apikey|api_key|authorization|session|cookie|jwt)/i;
   const bulkyPattern = /(base64|image|captcha|validateCodeBase64)/i;
   if (sensitivePattern.test(key)) {
     return redact(value);
@@ -206,40 +206,103 @@ function detectJsonSuccess(step) {
   if (typeof json.ok === "boolean") {
     return json.ok;
   }
-  if (typeof json.code === "number") {
-    return json.code >= 200 && json.code < 400;
+  if (typeof json.code === "number" || (typeof json.code === "string" && /^\d+$/.test(json.code))) {
+    const code = Number(json.code);
+    return code === 0 || (code >= 200 && code < 400);
   }
   return null;
 }
 
-function extractToken(loginStep) {
-  const data = loginStep?.rawJson?.data;
-  if (data?.token && typeof data.token === "string") {
-    return data.token;
+const DEFAULT_TOKEN_PATHS = ["data.access_token", "access_token", "data.token", "token"];
+
+function valuesFromArg(value) {
+  if (!value) {
+    return [];
   }
-  if (loginStep?.rawJson?.token && typeof loginStep.rawJson.token === "string") {
-    return loginStep.rawJson.token;
+  const values = Array.isArray(value) ? value : [value];
+  return values.flatMap((entry) => String(entry).split(",").map((item) => item.trim()).filter(Boolean));
+}
+
+function valueAtPath(value, path) {
+  const normalized = String(path || "")
+    .trim()
+    .replace(/^\$\.?/, "")
+    .replace(/\[(['"]?)([^'"\]]+)\1\]/g, ".$2");
+  if (!normalized) {
+    return undefined;
+  }
+  return normalized.split(/[./]/).filter(Boolean).reduce((current, key) => {
+    if (current === null || current === undefined || typeof current !== "object") {
+      return undefined;
+    }
+    return current[key];
+  }, value);
+}
+
+function tokenPathsFromArgs(args) {
+  const configured = valuesFromArg(args.tokenPath || args.tokenPaths);
+  return configured.length > 0 ? configured : DEFAULT_TOKEN_PATHS;
+}
+
+function extractToken(loginStep, args) {
+  const payload = loginStep?.rawJson;
+  for (const path of tokenPathsFromArgs(args)) {
+    const candidate = valueAtPath(payload, path);
+    if (typeof candidate === "string" && candidate.length > 0) {
+      return { value: candidate, path };
+    }
   }
   return null;
 }
 
 function authPathsFromArgs(args) {
-  const authPath = args.authPath || args.authPaths;
-  if (!authPath) {
-    return [];
+  return valuesFromArg(args.authPath || args.authPaths);
+}
+
+function missingPathsFromArgs(args, key) {
+  return valuesFromArg(args[key]);
+}
+
+function authHeaders(args, session, token) {
+  const cookieAuthHeaders = args.loginMethod === "cookie-json" ? csrfHeadersFromCookies(session.cookies, args) : {};
+  return { ...(token ? { authorization: `Bearer ${token}` } : {}), ...cookieAuthHeaders };
+}
+
+function expectedProbeStep(step, expectation, probeType) {
+  const ok = expectation(step);
+  return {
+    ...step,
+    ok,
+    probeType,
+    expected: expectation.expected || null,
+    probeFailure: ok ? null : "unexpected_status",
+  };
+}
+
+function acceptsMissingPage(step) {
+  if (step.failureSignals.length > 0 || step.status === 0) {
+    return false;
   }
-  return Array.isArray(authPath) ? authPath : String(authPath).split(",").filter(Boolean);
+  if (step.status === 404) {
+    return true;
+  }
+  return step.status >= 200 && step.status < 400 && step.contentType.toLowerCase().includes("text/html");
 }
 
 const args = parseArgs(process.argv);
 const baseUrl = args.url;
 
 if (!baseUrl) {
-  fail("usage: node sealos-live-smoke.mjs --url <url> [--captcha-path <path>] [--login-path <path>] [--login-method json-token|cookie-json] [--username <user>] [--password <pass>] [--auth-path <path>]");
+  fail("usage: node sealos-live-smoke.mjs --url <url> [--captcha-path <path>] [--login-path <path>] [--login-method json-token|cookie-json] [--username <user>] [--password <pass>] [--token-path <path>] [--auth-path <path>] [--missing-api-path <path>] [--missing-page-path <path>]");
 }
 
 const steps = [];
 const session = { cookies: {} };
+const authPaths = authPathsFromArgs(args);
+const missingApiPaths = missingPathsFromArgs(args, "missingApiPath");
+const missingPagePaths = missingPathsFromArgs(args, "missingPagePath");
+let tokenInfo = null;
+let tokenError = null;
 try {
   steps.push(await requestStep("root", joinUrl(baseUrl, args.rootPath), {}, session));
 
@@ -265,14 +328,30 @@ try {
   }
 
   const loginStep = steps.find((step) => step.name === "login");
-  const token = extractToken(loginStep);
-  for (const path of authPathsFromArgs(args)) {
-    const cookieAuthHeaders = args.loginMethod === "cookie-json" ? csrfHeadersFromCookies(session.cookies, args) : {};
+  tokenInfo = extractToken(loginStep, args);
+  const tokenRequired = Boolean(loginStep) && (args.loginMethod || "json-token") === "json-token";
+  if (tokenRequired && !tokenInfo) {
+    tokenError = "token_not_found";
+  }
+  const token = tokenInfo?.value || null;
+  for (const path of authPaths) {
     steps.push(
       await requestStep(`auth:${path}`, joinUrl(baseUrl, path), {
-        headers: { ...(token ? { authorization: `Bearer ${token}` } : {}), ...cookieAuthHeaders },
+        headers: authHeaders(args, session, token),
       }, session),
     );
+  }
+  for (const path of missingApiPaths) {
+    const step = await requestStep(`missing-api:${path}`, joinUrl(baseUrl, path), {
+      headers: authHeaders(args, session, token),
+    }, session);
+    steps.push(expectedProbeStep(step, Object.assign((candidate) => candidate.status === 404 && candidate.failureSignals.length === 0, { expected: 404 }), "api"));
+  }
+  for (const path of missingPagePaths) {
+    const step = await requestStep(`missing-page:${path}`, joinUrl(baseUrl, path), {
+      headers: authHeaders(args, session, token),
+    }, session);
+    steps.push(expectedProbeStep(step, Object.assign(acceptsMissingPage, { expected: "404-or-html-2xx-3xx" }), "page"));
   }
 } catch (error) {
   fail(error.message, { steps: steps.map(({ rawJson, ...step }) => step) });
@@ -282,24 +361,40 @@ const loginStep = steps.find((step) => step.name === "login");
 const captchaStep = steps.find((step) => step.name === "captcha");
 const rootStep = steps.find((step) => step.name === "root");
 const authSteps = steps.filter((step) => step.name.startsWith("auth:"));
+const missingApiSteps = steps.filter((step) => step.name.startsWith("missing-api:"));
+const missingPageSteps = steps.filter((step) => step.name.startsWith("missing-page:"));
 const loginJsonSuccess = loginStep ? detectJsonSuccess(loginStep) : null;
 const captchaJsonSuccess = captchaStep ? detectJsonSuccess(captchaStep) : null;
 const authSuccess = authSteps.every((step) => step.ok && detectJsonSuccess(step) !== false);
+const missingApiSuccess = missingApiSteps.every((step) => step.ok);
+const missingPageSuccess = missingPageSteps.every((step) => step.ok);
+const findings = [];
+if (tokenError) {
+  findings.push({ code: tokenError, message: "Authenticated JSON flow did not expose a token at any configured path" });
+}
+for (const step of [...missingApiSteps, ...missingPageSteps]) {
+  if (!step.ok) {
+    findings.push({ code: step.probeFailure, probe: step.name, expected: step.expected, status: step.status });
+  }
+}
 
-console.log(
-  JSON.stringify(
-    {
-      ok:
-        Boolean(rootStep?.ok) &&
-        (captchaStep ? captchaStep.ok && captchaJsonSuccess !== false : true) &&
-        (loginStep ? loginStep.ok && loginJsonSuccess !== false : true) &&
-        authSuccess,
-      url: baseUrl,
-      loginMethod: args.loginMethod || (loginStep ? "json-token" : null),
-      credentials: args.username ? { username: args.username, password: redact(args.password) } : null,
-      steps: steps.map(({ rawJson, ...step }) => step),
-    },
-    null,
-    2,
-  ),
-);
+const report = {
+  ok:
+    Boolean(rootStep?.ok) &&
+    (captchaStep ? captchaStep.ok && captchaJsonSuccess !== false : true) &&
+    (loginStep ? loginStep.ok && loginJsonSuccess !== false : true) &&
+    authSuccess &&
+    missingApiSuccess &&
+    missingPageSuccess &&
+    !tokenError,
+  url: baseUrl,
+  loginMethod: args.loginMethod || (loginStep ? "json-token" : null),
+  tokenPath: tokenInfo?.path || null,
+  error: tokenError,
+  findings,
+  credentials: args.username ? { username: args.username, password: redact(args.password) } : null,
+  steps: steps.map(({ rawJson, ...step }) => step),
+};
+
+console.log(JSON.stringify(report, null, 2));
+process.exitCode = report.ok ? 0 : 1;

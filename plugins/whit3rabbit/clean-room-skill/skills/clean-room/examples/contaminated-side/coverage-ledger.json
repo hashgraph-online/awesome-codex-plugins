@@ -9,6 +9,19 @@
       "evidence_refs": [
         "evidence-ledger:item-001"
       ],
+      "public_surface_coverage": [
+        {
+          "ref": "public_surface:spec-example-flow:command-line-option:--example-flag",
+          "status": "covered",
+          "evidence_refs": [
+            "evidence-ledger:item-001"
+          ],
+          "work_item_refs": [
+            "work-example-flow"
+          ],
+          "verification_refs": []
+        }
+      ],
       "notes": "Example coverage entry."
     }
   ],

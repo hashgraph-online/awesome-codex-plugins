@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "droplinked": {
+      "type": "http",
+      "url": "https://mcp.droplinked.com/mcp",
+      "headers": {
+        "X-MCP-API-Key": "${DROPLINKED_MCP_API_KEY}"
+      }
+    }
+  }
+}

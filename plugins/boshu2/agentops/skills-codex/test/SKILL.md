@@ -1,6 +1,6 @@
 ---
 name: test
-description: 'Generate tests and coverage plans. Triggers: "$test", "coverage gaps", "TDD cycle".'
+description: 'Generate tests and coverage plans. Triggers: "test", "generate tests and coverage plans.", "test skill".'
 ---
 # Test Skill
 
@@ -34,18 +34,60 @@ Do not stop at a plan unless the requested mode is `strategy`.
 Default to `generate`. Flags: `--mode`, `--scope`, `--min-coverage`, and
 `--dry-run` narrow the workflow but never weaken its evidence requirements.
 
+## Oracle-strength hierarchy
+
+Every test asserts through an oracle, and oracles are not equal. Rank them:
+
+```text
+exact value > property/invariant > differential (two implementations agree) > smoke (it ran)
+```
+
+Choose the strongest oracle the behavior admits and name the oracle-strength
+tier when a test uses anything below exact. A smoke assertion where an exact one was available
+is the **oracle downgrade** failure mode: the test runs the code but proves
+almost nothing about it. Stop condition: no acceptance scenario may be covered
+only by smoke-tier tests when a stronger oracle is practical; if only smoke is
+practical (e.g. nondeterministic external output), record why in
+`.agents/scratch/tests/summary.md` so the gap is a visible decision, not an accident.
+
+## Mutation-kill proof
+
+A new test earns trust by failing when the behavior it guards is broken. In
+`tdd` mode the recorded RED run is that proof. In other mutating modes, prove
+at least one kill per new behavioral test: mutate the covered logic (flip the
+branch, break the boundary value, or use the project's mutation tool), confirm
+the test fails, then restore. A test that stays green through its own mutation
+is the **immortal test** failure mode — delete or strengthen it before handoff;
+never count it as coverage.
+
+## Harness health floors
+
+Green is only evidence when the harness can go red. Before trusting or
+reporting a green suite, confirm these floors:
+
+- The suite runs to completion — a crashed or truncated run is not a pass.
+- Zero-assertion test count did not grow with this change.
+- Skipped or excluded tests did not silently increase; new skips are named in
+  the summary with a reason.
+- At least one deliberate failure (the mutation-kill or RED run above) failed
+  through the same runner and reporting path you are about to trust.
+
+A suite that cannot demonstrate a failure is the **dead harness** failure mode:
+its green is decoration. Report a dead harness as a finding; do not build
+coverage claims on top of it.
+
 ## Workflow
 
 ### 1. Bind tests to behavior
 
-When a bead or `.feature` file has scenarios, work forward from each
-Given/When/Then. Read bead scenarios with `ao beads exec show <bead-id>`, name
-one covering test after the behavior, and add
-`@covered-by:<test-path>[::<TestName>]` above the scenario. Prove the mapping:
+When the caller supplies a `.feature` file with scenarios, work forward from
+each Given/When/Then. Name one covering test after the behavior, and add
+`@covered-by:<test-path>[::<TestName>]` above the scenario. Prove the mapping by
+running the coverage checker against that caller-supplied feature (not this
+skill's own spec):
 
 ```bash
-bash scripts/check-bead-scenario-coverage.sh --bead <bead-id> --run
-bash scripts/check-bead-scenario-coverage.sh skills/<skill>/references/<name>.feature --run
+bash scripts/check-scenario-coverage.sh <path-to-caller-feature> --run
 ```
 
 Without scenarios, inventory public behavior, error paths, branches, and edge
@@ -53,7 +95,7 @@ cases. Rank gaps by risk: high complexity plus low coverage first.
 
 ### 2. Detect the language and baseline
 
-Stop at the first applicable project marker and load `$standards` for it:
+Stop at the first applicable project marker and consult the Standards skill for it:
 
 | Marker | Framework | Baseline command |
 |---|---|---|
@@ -62,8 +104,8 @@ Stop at the first applicable project marker and load `$standards` for it:
 | `package.json` | Jest/Vitest | `npx jest --coverage` or `npx vitest run --coverage` |
 | `Cargo.toml` | cargo test | `cargo tarpaulin --out Lcov` |
 
-Write raw coverage to `.agents/test/coverage-raw.txt`, a ranked gap inventory
-to `.agents/test/gaps.md`, and language-native machine output where available.
+Write raw coverage to `.agents/scratch/tests/coverage-raw.txt`, a ranked gap inventory
+to `.agents/scratch/tests/gaps.md`, and language-native machine output where available.
 
 ### 3. Write the smallest valuable tests
 
@@ -90,7 +132,7 @@ In `tdd` mode:
 2. Implement only enough to pass that test.
 3. Refactor under green without changing the test contract.
 4. Run the focused test and the relevant suite after each cycle.
-5. Append the exact commands and outcomes to `.agents/test/tdd-log.md`.
+5. Append the exact commands and outcomes to `.agents/scratch/tests/tdd-log.md`.
 
 In other mutating modes, run each new test immediately, then the owning package
 or module, then the relevant project suite. A failure caused by a wrong test is
@@ -103,8 +145,8 @@ relevant suite are green and the recorded RED evidence names the intended behavi
 
 Re-run the baseline coverage command. Summarize before/after coverage, tests
 added, remaining high-risk gaps, bugs found, and exact validation commands in
-`.agents/test/summary.md`. Run `$validate` when the test change accompanies a
-product slice or is ready for acceptance.
+`.agents/scratch/tests/summary.md`. Supply that evidence to Validate when the test
+change accompanies a product slice or is ready for acceptance.
 
 ## Language Rules
 
@@ -119,21 +161,20 @@ product slice or is ready for acceptance.
 ## Strategy Mode
 
 Inventory test files, functions, assertion density, unit/integration/e2e split,
-fixtures, and CI wiring. Write `.agents/test/strategy.md` with prioritized
+fixtures, and CI wiring. Write `.agents/scratch/tests/strategy.md` with prioritized
 structural gaps and a test architecture; do not generate code in this mode.
 
 ## Output Specification
 
-- **Artifact directory:** `.agents/test/` plus test files in the target's
+- **Artifact directory:** `.agents/scratch/tests/` plus test files in the target's
   language-native locations.
 - **Filename convention:** `coverage-raw.txt`, `coverage-func.txt` or
   `coverage.json`, `gaps.md`, `summary.md`, `tdd-log.md`, and `strategy.md`.
 - **Serialization/schema format:** Markdown evidence reports, native coverage
   text/profile formats, and JSON where the coverage tool supports it.
 - **Validator command:** run the focused test, relevant suite, coverage command,
-  and `bash scripts/check-bead-scenario-coverage.sh ... --run` when scenarios exist.
-- **Downstream handoff:** consumed by `$implement`, `$validate`, `/review`, the
-  bead-acceptance pawl, and `$post-mortem` evidence harvesting.
+  and `bash scripts/check-scenario-coverage.sh ... --run` when scenarios exist.
+- **Downstream use:** factual evidence that a caller may supply to Validate.
 
 ## Quality Rubric
 

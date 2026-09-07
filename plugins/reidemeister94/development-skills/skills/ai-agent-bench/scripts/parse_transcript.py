@@ -31,8 +31,9 @@ import re
 import shlex
 import sys
 from collections import Counter
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 # ---------------------------------------------------------------------------
 # Generic helpers
@@ -149,7 +150,7 @@ def parse_claude_session(path: Path, harness_basenames: set[str] | None = None) 
         return {"agent": "claude", "error": f"no events in {path}", "raw_event_count": 0}
 
     # Cumulative token tallies. Claude Opus 4.6+ splits cache_creation into 5m/1h TTL buckets
-    # (different per-token prices: 5m = 1.25× input, 1h = 2.0× input).
+    # (different per-token prices: 5m = 1.25x input, 1h = 2.0x input).
     input_tokens = 0
     output_tokens = 0
     cache_read_tokens = 0
@@ -490,7 +491,7 @@ def parse_codex_session(path: Path, harness_basenames: set[str] | None = None) -
             n_agent_messages += 1
         elif ptype == "agent_reasoning":
             n_reasoning += 1
-            reasoning_chars += len((payload.get("text") or payload.get("reasoning") or ""))
+            reasoning_chars += len(payload.get("text") or payload.get("reasoning") or "")
         elif ptype == "user_message":
             n_user_messages += 1
         elif ptype in ("exec_command_begin", "tool_call", "function_call", "shell_call"):
@@ -717,7 +718,7 @@ def load_pricing(path: Path | None = None) -> dict:
     try:
         data = json.loads(path.read_text())
         return data.get("models", {}) or {}
-    except (json.JSONDecodeError, OSError):
+    except json.JSONDecodeError, OSError:
         return {}
 
 
@@ -951,7 +952,7 @@ def aggregate_run_dir(agent: str, run_dir: Path, pricing: dict) -> dict:
         try:
             cfg = json.loads(cfg_path.read_text())
             out["config"] = cfg
-        except (json.JSONDecodeError, OSError):
+        except json.JSONDecodeError, OSError:
             pass
     harness_basenames = _extract_command_basenames(cfg.get("outer_check"))
     if harness_basenames:
@@ -1244,7 +1245,7 @@ def render_comparison(comparison: dict) -> str:
             dups = t.get("harness_duplications") or []
             matched = sorted({d.get("matched") for d in dups if d.get("matched")})
             matched_str = ", ".join(f"`{m}`" for m in matched) if matched else "-"
-            marker = "✓" if n == 0 else f"✗ × {n}"
+            marker = "✓" if n == 0 else f"✗ x {n}"
             lines.append(f"| {t.get('agent')} | {marker} | {matched_str} |")
 
     lines.append("\n## Per-trial details\n")

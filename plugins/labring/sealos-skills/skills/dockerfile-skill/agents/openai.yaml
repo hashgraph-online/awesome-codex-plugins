@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sealos: Dockerfile"
+  short_description: "Generate or repair a production-ready Dockerfile."
+  default_prompt: "Use $dockerfile-skill to generate or repair a production-ready Dockerfile for this project."

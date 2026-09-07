@@ -1,0 +1,4 @@
+interface:
+  display_name: "Tail Process Job"
+  short_description: "Read bounded process job output"
+  default_prompt: "Use $tail to show the latest output from this process job."

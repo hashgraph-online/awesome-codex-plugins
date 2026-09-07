@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">CodexQuotaTitle</title>
+  <desc id="desc">A blue clockwise reset arrow around a white percent symbol.</desc>
+  <rect width="512" height="512" rx="96" fill="#061536"/>
+  <path d="M426 262A170 170 0 1 1 351 115" fill="none" stroke="#168BFF" stroke-linecap="round" stroke-width="36"/>
+  <path d="M361 100L385 78Q389 75 391 83L425 166Q429 175 418 173L333 158Q326 157 331 150L343 128Z" fill="#168BFF"/>
+  <g fill="#FFFFFF">
+    <circle cx="208" cy="215" r="46"/>
+    <circle cx="308" cy="311" r="46"/>
+    <path d="M174 346H209L338 182H304Z"/>
+  </g>
+  <g fill="#061536">
+    <circle cx="208" cy="215" r="20"/>
+    <circle cx="308" cy="311" r="20"/>
+  </g>
+</svg>

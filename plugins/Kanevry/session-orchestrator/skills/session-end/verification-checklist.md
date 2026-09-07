@@ -16,5 +16,5 @@ Run ALL checks — do NOT skip any:
 
 If any check fails:
 - Fix it if quick (<2 min)
-- Otherwise create a `priority:high` issue for immediate follow-up
+- Otherwise create a `priority::high` issue for immediate follow-up
 - Do NOT commit broken code

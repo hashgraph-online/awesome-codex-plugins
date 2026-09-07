@@ -68,10 +68,10 @@ Emit only rows whose artifact is in the seed. Order: facts (stack, run guide),
 structure (entry points, domains), data (data-model, integrations, config), then
 hotspots, then cross-cutting rules, then imports.
 
-**Row-collapse (keeps Part 1+2+3 ≤ 150 lines on any repo size).** Large-mode's
-per-domain-scaled spec cap (`detect-hotspots.md` "Top-N by mode") and its
+**Row-collapse (keeps Part 1+2+3 ≤ 150 lines on any repo size).** The pool-scaled spec
+budget (`detect-hotspots.md` "Spec budget by coverage rate") and large mode's
 every-schema-domain data-model breadth (`detect-data-model.md`) can each produce
-dozens of rows on a big repo — the old flat caps could not. For ANY artifact category
+dozens of rows on a big repo — the superseded flat caps could not. For ANY artifact category
 that would emit **more than 10 rows** in one confirmed seed (hotspot specs at large
 `standard`/`deep`, per-domain data-models when many domains carry a schema, or a
 large batch of imported modular-rule docs): list the first 10 by rank/name
@@ -83,15 +83,15 @@ discipline Part 3 already applies to its register, extended to Part 2 so a 24-do
 
 ## Part 3 — hotspot register (ranked but not specced)
 
-The hotspot ranking (`detect-hotspots.md`) surfaces more load-bearing modules than
-the per-mode spec cap synthesizes. List the remainder here — a compact register so
+The hotspot ranking (`detect-hotspots.md`) surfaces more load-bearing modules than the
+depth's spec budget synthesizes. List the remainder here — a compact register so
 the full map of where logic concentrates is visible on day one at ~0 token cost, and
-the user knows exactly what to `/archcore:capture` next.
+the user knows exactly what to `/archcore:document` next.
 
-- One line per ranked hotspot **beyond** the spec cap, **capped at 12 rows**
+- One line per ranked hotspot **beyond** the spec budget, **capped at 12 rows**
   (highest-ranked first): source module (area + short name) + its qualifying signal +
-  `→ /archcore:capture <path>`. If the remainder exceeds 12, list the top 12 and close
-  with one summary line — `+<N> more ranked candidates — /archcore:capture on demand or
+  `→ /archcore:document <path>`. If the remainder exceeds 12, list the top 12 and close
+  with one summary line — `+<N> more ranked candidates — /archcore:document on demand or
   re-run at a higher --depth.` Never enumerate an unbounded remainder: Part 1 + 2 + 3
   combined MUST stay inside the ≤ 150-line OUTPUT cap regardless of repo size.
 - Names **source** modules and paths, not `.archcore/` documents — pointing at code
@@ -106,7 +106,7 @@ the user knows exactly what to `/archcore:capture` next.
 - The index therefore names **areas/types/topics**, not paths; `Covers` is a
   topic phrase, not a link.
 - Part 3's hotspot register points at **source** modules/paths and
-  `/archcore:capture` targets — it lists code to act on, not `.archcore/` docs, so
+  `/archcore:document` targets — it lists code to act on, not `.archcore/` docs, so
   it stays within Rule 5.
 
 ## Output
@@ -136,8 +136,8 @@ the user knows exactly what to `/archcore:capture` next.
 | Hotspot: <module> | spec | <module> contract |
 | <concern> | rule | cross-cutting convention |
 
-Ranked hotspots not yet specced (run /archcore:capture to document):
-- <area>: <module> — <signal> → /archcore:capture <path>
+Ranked hotspots not yet specced (run /archcore:document to document):
+- <area>: <module> — <signal> → /archcore:document <path>
 ```
 
 ## Relation wiring

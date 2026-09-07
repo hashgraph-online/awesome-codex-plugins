@@ -2,30 +2,47 @@
 
 ## Resolving the Plugin Root
 
-`$CLAUDE_PLUGIN_ROOT` (Claude Code), `$CODEX_PLUGIN_ROOT` (Codex CLI), `$CURSOR_RULES_DIR` (Cursor IDE), or `$PI_PLUGIN_ROOT` (Pi) may not be set (depends on how hooks/skills are loaded). Resolve the script path with this fallback chain:
+Harnesses expose different root variables. Codex hook manifests provide native `${PLUGIN_ROOT}`; their validated wrapper also exports `CODEX_PLUGIN_ROOT="${PLUGIN_ROOT}"` for shared compatibility code and sets `SO_PLATFORM=codex`. Claude Code uses `CLAUDE_PLUGIN_ROOT`, Cursor IDE uses `CURSOR_RULES_DIR`, and Pi uses `PI_PLUGIN_ROOT`.
 
-1. If `$CLAUDE_PLUGIN_ROOT`, `$CODEX_PLUGIN_ROOT`, `$CURSOR_RULES_DIR`, or `$PI_PLUGIN_ROOT` is set and non-empty, use it.
-2. Otherwise, search for the plugin install location (includes Claude Code, Codex, Cursor, and Pi paths):
-   ```bash
-   PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-${CURSOR_RULES_DIR:-${PI_PLUGIN_ROOT:-}}}}"
-   if [[ -z "$PLUGIN_ROOT" ]]; then
-     # Check common install locations (Claude Code + Codex CLI + Cursor IDE + Pi)
-     for candidate in \
-       "$HOME/Projects/session-orchestrator" \
-       "$HOME/.claude/plugins/session-orchestrator" \
-       "$HOME/.codex/plugins/session-orchestrator" \
-       "$HOME/.pi/agent/packages/session-orchestrator" \
-       "$HOME/plugins/session-orchestrator" \
-       "$HOME/.cursor/plugins/session-orchestrator" \
-       "$(dirname "$(dirname "$(realpath "${BASH_SOURCE[0]}" 2>/dev/null || echo "")")")" \
-     ; do
-       if [[ -n "$candidate" && -f "$candidate/scripts/parse-config.mjs" ]]; then
-         PLUGIN_ROOT="$candidate"
-         break
-       fi
-     done
-   fi
-   ```
+Resolve shell paths in this order:
+
+1. Keep a non-empty native `$PLUGIN_ROOT` supplied by the harness.
+2. If `SO_PLATFORM` names a supported harness, prefer its matching compatibility variable. In particular, `SO_PLATFORM=codex` makes `$CODEX_PLUGIN_ROOT` win over an ambient Claude variable.
+3. Otherwise preserve the compatibility order Claude → Codex → Cursor → Pi.
+4. If no variable resolves, search only known clone/install locations and the current script ancestry. Codex public plugin installs should normally resolve through native `${PLUGIN_ROOT}`; do not depend on or write a private Codex cache path.
+
+```bash
+if [[ -z "${PLUGIN_ROOT:-}" ]]; then
+  case "${SO_PLATFORM:-}" in
+    claude) PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-}" ;;
+    codex)  PLUGIN_ROOT="${CODEX_PLUGIN_ROOT:-}" ;;
+    cursor) PLUGIN_ROOT="${CURSOR_RULES_DIR:-}" ;;
+    pi)     PLUGIN_ROOT="${PI_PLUGIN_ROOT:-}" ;;
+  esac
+fi
+
+if [[ -z "${PLUGIN_ROOT:-}" ]]; then
+  PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-${CURSOR_RULES_DIR:-${PI_PLUGIN_ROOT:-}}}}"
+fi
+
+if [[ -z "$PLUGIN_ROOT" ]]; then
+  # Common clone/install locations for Claude Code, Cursor IDE, and Pi,
+  # plus a source-relative fallback shared by every harness.
+  for candidate in \
+    "$HOME/Projects/session-orchestrator" \
+    "$HOME/.claude/plugins/session-orchestrator" \
+    "$HOME/.pi/agent/packages/session-orchestrator" \
+    "$HOME/plugins/session-orchestrator" \
+    "$HOME/.cursor/plugins/session-orchestrator" \
+    "$(dirname "$(dirname "$(realpath "${BASH_SOURCE[0]}" 2>/dev/null || echo "")")")" \
+  ; do
+    if [[ -n "$candidate" && -f "$candidate/scripts/parse-config.mjs" ]]; then
+      PLUGIN_ROOT="$candidate"
+      break
+    fi
+  done
+fi
+```
 
 ## Parsing Config
 
@@ -85,8 +102,17 @@ The values exposed on `$CONFIG` for these keys already reflect the resolved (hos
 ### Precedence chain (highest first)
 
 1. **Environment variable** — `SO_VAULT_DIR` (for `vault-dir`) / `SO_BASELINE_PATH` (for `plan-baseline-path`).
-2. **`owner.yaml` `paths:` section** — `~/.config/session-orchestrator/owner.yaml` → `paths.vault-dir` / `paths.baseline-path` (see `.claude/rules/owner-persona.md`).
-3. **Committed Session Config default** — the value in the `## Session Config` block of `CLAUDE.md` / `AGENTS.md`.
+2. **`owner.yaml` `baselines:` per-context match** (`plan-baseline-path` only, #819) — first-match-wins directory-prefix match of cwd against each entry's `match.path-prefix`; resolver: `scripts/lib/named-baseline-resolver.mjs`. Example entry:
+   ```yaml
+   baselines:
+     - name: world-a-baseline
+       path: ~/Projects/world-a/projects-baseline
+       match: { path-prefix: ~/Projects/world-a }
+   ```
+3. **`owner.yaml` `paths:` section** — `~/.config/session-orchestrator/owner.yaml` → `paths.vault-dir` / `paths.baseline-path` (see `.claude/rules/owner-persona.md`).
+4. **Committed Session Config default** — the value in the `## Session Config` block of `CLAUDE.md` / `AGENTS.md`.
+
+`vault-dir` only ever uses tiers 1, 3, 4 (no per-context match tier); a host without a `baselines:` array resolves `plan-baseline-path` identically to the pre-#819 3-tier chain.
 
 ### Empty-tier-falls-through
 
@@ -169,7 +195,7 @@ Flow-style arrays are also accepted: `globs: ["src/**", "tests/**"]`.
 In the live path the coordinator does NOT call the loader directly — it runs the CLI `scripts/print-applicable-rules.mjs` (which calls the loader) once per wave and captures stdout as the `<APPLICABLE-RULES>` block:
 
 ```sh
-RULES_BLOCK="$(node "$PLUGIN_ROOT/scripts/print-applicable-rules.mjs" 2>/dev/null)"
+RULES_BLOCK="$(node "$PLUGIN_ROOT/scripts/print-applicable-rules.mjs" --context wave 2>/dev/null)"
 # Empty stdout (no .claude/rules/, no matches, or any failure) → inject nothing.
 ```
 
@@ -193,7 +219,7 @@ const rules = loadApplicableRules({
 ### Backward compatibility
 
 - Rule files without any frontmatter continue to load as always-on. No migration required.
-- Files already using the old `paths:` frontmatter key do not match `globs:` — they are treated as always-on until updated.
+- `paths:` is a full alias for `globs:` (issue #795) — files using the old `paths:` frontmatter key load correctly SCOPED, not always-on. When BOTH `globs:` and `paths:` are present on the same rule, `globs:` wins silently (no merge, no warning) and `paths:` is discarded.
 
 ### Failure mode
 

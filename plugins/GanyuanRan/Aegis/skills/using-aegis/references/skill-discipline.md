@@ -9,7 +9,7 @@ a host.
 Aegis skills override default system prompt behavior, but **user instructions
 always take precedence**:
 
-1. **User's explicit instructions** (`CLAUDE.md`, `GEMINI.md`, `AGENTS.md`,
+1. **User's explicit instructions** (`CLAUDE.md`, `AGENTS.md`,
    direct requests) - highest priority
 2. **Aegis skills** - override default system behavior where they conflict
 3. **Default system prompt** - lowest priority
@@ -31,11 +31,6 @@ current Antigravity surface's Skills / plugin contract has been verified. When
 Antigravity exposes a native skill or slash-command surface, use that host
 mechanism and map Aegis tool names through `references/antigravity-tools.md`.
 
-**In Gemini CLI:** Gemini CLI is a transitional compatibility surface while
-Antigravity support matures. Skills activate via the `activate_skill` tool.
-Gemini loads skill metadata at session start and activates the full content on
-demand.
-
 **In other environments:** Check the platform's documentation for how skills
 are loaded.
 
@@ -46,7 +41,6 @@ Skills use Claude Code tool names. Non-CC platforms: see:
 - `references/copilot-tools.md`
 - `references/codex-tools.md`
 - `references/antigravity-tools.md`
-- `references/gemini-tools.md`
 
 ## The Rule
 
@@ -157,6 +151,22 @@ TDD is the implementation discipline for approved atomic tasks, not the first
 entrypoint for medium- or high-complexity work. TDD Mode controls test-first
 discipline, not completion evidence, and its default is off.
 
+The workflow that first authorizes production-source edits owns the route for
+that slice. `using-aegis` may select for a direct low-complexity slice;
+`writing-plans` selects before planned task decomposition;
+`systematic-debugging` selects after Change Necessity and before repair edits.
+Execution, TDD, and subagent workflows validate and consume the record instead
+of reclassifying it.
+
+In `auto`, strict-risk signals use OR semantics. Behavior, bugfix, shared/core,
+contract, persistence, permission, migration, producer/consumer, or meaningful
+regression risk each independently require `strict`. `light` uses AND semantics:
+tiny, low-risk, single-owner, no behavior change or strict signal,
+and an obvious focused check must all hold. Absence of an explicit user TDD
+request is never evidence for `light`. Unknown risk returns to the owning
+workflow; a TDD-fit exception records `skipped` plus compensating verification,
+not `light`.
+
 ## Project Baseline Bootstrap
 
 In an active project, a project-related question or "what should I do next?"
@@ -225,7 +235,7 @@ docs/aegis/
 
 Task Work Record:
 ```
-docs/aegis/work/<slug>/
+docs/aegis/work/YYYY-MM-DD-<slug>/
     ├── 10-intent.md
     ├── 20-checkpoint.md
     ├── 90-evidence.md

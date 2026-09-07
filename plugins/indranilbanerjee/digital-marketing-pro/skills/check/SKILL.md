@@ -1,6 +1,6 @@
 ---
 name: check
-description: "Run the unified pre-publish quality gate on marketing content — hallucination detection, claim verification, brand voice scoring, structure validation. Use before publishing any marketing copy."
+description: "Run the unified pre-publish quality gate on marketing content — wraps scripts/eval-runner.py to score hallucination risk, claim substantiation (with --evidence), brand-voice fit (with --brand), structure (with --schema), content quality, and readability, plus a C2PA provenance check for AI assets in EU-targeted campaigns; returns a composite score with a PASS / WARN / BLOCKED decision and per-issue fix suggestions. Reports only — it never edits the content. Triggers on \"/digital-marketing-pro:check\", \"is this safe to publish\", \"run a hallucination check on this draft\", \"validate this copy against the brand voice\", \"pre-publish quality gate\". Resolves the active brand profile automatically; pairs with /digital-marketing-pro:c2pa-metadata to fix missing manifests."
 user-invocable: true
 triggers:
   - check this content before publishing
@@ -143,6 +143,20 @@ Decision: PASS — safe to publish but address WARNINGs first
 ```
 
 If any CRITICAL issue is found, decision = **BLOCKED** and the user is asked to fix before publishing.
+
+## AI-tell scans (advisory section, never scored)
+
+Alongside the eval-runner scorers, run both tell scans and report them as a single ADVISORY section of the check output:
+
+```bash
+python "${CLAUDE_PLUGIN_ROOT}/scripts/ai-tell-scan.py"          --file <input>   # Tier 1: surface
+python "${CLAUDE_PLUGIN_ROOT}/scripts/structural-tell-scan.py"  --file <input>   # Tier 2: structure
+```
+
+- **Tier 1 (surface)** — LLM-favored vocabulary, significance markers, soft-adverb clusters, connective and participial openers, em-dash density, ungrounded one-liners. Report the overall LOW/MODERATE/HIGH rating and the flagged sentences with their suggested fix. Significance markers are reported with `"fix": "Delete this sentence; do not reword it."` — pass that through verbatim, because rewording is the wrong remedy.
+- **Tier 2 (structure)** — the overall OK/NOTE/ATTENTION band plus each NOTE/ATTENTION finding with its spans (moralizing, section symmetry, parallel headings, specificity, stance, paragraph evenness, entity development). For `entity_development`, always carry through that the fix is to develop an existing specific, never to delete specifics.
+
+**This whole section NEVER affects the PASS/WARN/BLOCKED decision.** Both scripts keep their thresholds inside themselves, deliberately outside the eval config, because these are editorial judgment calls for a human editor, not publish gates — and because a detector proxy has a real false-positive rate on genuinely human writing. (The one place a tell scan does gate is the content-engine's `humanize_passed`, and only on the two tells precise enough to gate on: `significance_marker` and `soft_adverb_cluster`. `llm_favored_word` was dropped from that set on 2026-08-15 after it was measured firing **only** on prose published before ChatGPT existed and never on model prose. That gate is a density floor — measured, it fails no published human writing and catches no unedited model prose — so never report a pass as evidence that a piece reads human.) Both scans measure visible text only; neither can see, and neither has any relationship to, any statistical watermark.
 
 ## EU AI Act Article 50 — C2PA provenance gate
 
@@ -290,4 +304,4 @@ Skill:
 - `scripts/eval-runner.py` — the master orchestrator this skill wraps
 - `skills/context-engine/eval-framework-guide.md` — full eval framework documentation
 - `skills/context-engine/eval-rubrics.md` — per-dimension scoring rubrics
-- `docs/architecture.md` Section 11 — eval framework architecture
+- `docs/architecture.md` Section 16 (Evaluation Layer) — eval framework architecture

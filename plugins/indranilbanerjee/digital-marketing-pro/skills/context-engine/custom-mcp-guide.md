@@ -4,7 +4,7 @@
 
 Model Context Protocol (MCP) servers connect Claude to external services. Each MCP provides **tools** (functions Claude can call), **resources** (data Claude can read), and **prompts** (pre-defined interaction templates). MCP servers run as separate processes that communicate with Claude via JSON-RPC over stdin/stdout.
 
-In this plugin, MCPs are the execution bridge between the agent layer (Claude reasoning about marketing strategy) and external platforms (publishing a blog post, sending an email campaign, querying a CRM). The 67 MCP servers configured in `.mcp.json` cover social publishing, email, CRM, analytics, memory, knowledge, CMS, communication, project management, testing, and databases.
+In this plugin, MCPs are the execution bridge between the agent layer (Claude reasoning about marketing strategy) and external platforms (publishing a blog post, sending an email campaign, querying a CRM). **`.mcp.json` ships empty by design** (`{"mcpServers":{}}` — nothing auto-connects, which keeps Cowork and team installs safe). The opt-in catalog of 60+ connector configurations covering social publishing, email, CRM, analytics, memory, knowledge, CMS, communication, project management, testing, and databases lives in `.mcp.json.connectors-reference` and `.mcp.json.example` — copy the entries you need into your own `.mcp.json`, and this guide shows how to add or build servers beyond the catalog.
 
 ---
 
@@ -12,7 +12,7 @@ In this plugin, MCPs are the execution bridge between the agent layer (Claude re
 
 ### Configuration
 
-The `.mcp.json` file in the plugin root defines all MCP server configurations. Claude discovers available MCPs at session start and can call their tools during a session.
+Your `.mcp.json` (project or user scope) defines the MCP server configurations you have opted into. Claude discovers available MCPs at session start and can call their tools during a session. (The plugin's own `.mcp.json` ships empty — start from `.mcp.json.example`.)
 
 **`.mcp.json` schema:**
 ```json
@@ -42,7 +42,7 @@ The `.mcp.json` file in the plugin root defines all MCP server configurations. C
 1. **Session start:** Claude reads `.mcp.json` and starts configured MCP servers
 2. **Tool discovery:** Claude calls `tools/list` on each server to learn available tools
 3. **Tool invocation:** During conversation, Claude calls MCP tools by name with JSON parameters
-4. **Safety gate:** The `hooks.json` `PreToolUse` hook intercepts all `mcp_.*` tool calls and checks whether the operation is a write (requires user approval) or read (auto-approved)
+4. **Safety gate:** Claude Code's own permission system prompts before tool calls per your settings. This plugin ships **zero hooks** (`hooks/hooks.json` is `{"hooks":{}}` by design — plugin hooks fire globally); follow the read/write tool-naming convention below so write operations are recognizable, and rely on the built-in permission prompts for approval
 5. **Response:** MCP server executes the operation and returns results to Claude
 
 ---
@@ -53,11 +53,7 @@ The `.mcp.json` file in the plugin root defines all MCP server configurations. C
 
 1. **Identify the service** you want to connect (e.g., Mailchimp, HubSpot, Airtable)
 
-2. **Search for existing MCP packages:**
-   ```bash
-   npx -y @anthropic-ai/mcp search <service-name>
-   ```
-   Also check: https://github.com/modelcontextprotocol/servers and npm for `mcp-server-*` or `@*/mcp` packages
+2. **Search for existing MCP packages:** check https://github.com/modelcontextprotocol/servers (the official server directory), search npm for `mcp-server-*` or `@*/mcp` packages, and check whether the vendor offers a hosted HTTP MCP endpoint (see `.mcp.json.connectors-reference` for verified ones)
 
 3. **Test the package locally:**
    ```bash
@@ -227,14 +223,14 @@ await server.connect(transport);
 
 ### Tool Naming for Read vs Write Classification
 
-The `hooks.json` safety gate classifies tools as read or write based on their name prefix:
+Name tools so their side effects are obvious from the prefix — Claude Code's permission prompts (and any user-scope hooks you add yourself) can then treat reads and writes differently:
 
-| Prefix | Classification | Approval Required |
+| Prefix | Classification | Recommended handling |
 |---|---|---|
-| `list_`, `get_`, `query_`, `search_`, `fetch_`, `count_` | **Read** | No (auto-approved) |
-| `create_`, `update_`, `delete_`, `send_`, `publish_`, `schedule_`, `import_`, `sync_` | **Write** | Yes (user must approve) |
+| `list_`, `get_`, `query_`, `search_`, `fetch_`, `count_` | **Read** | Safe to allow |
+| `create_`, `update_`, `delete_`, `send_`, `publish_`, `schedule_`, `import_`, `sync_` | **Write** | Require explicit approval |
 
-**Always name your tools using these prefixes** so the safety gate works correctly. If a tool has side effects, use a write prefix even if it also reads data.
+**Always name your tools using these prefixes** so read/write intent is machine-recognizable. If a tool has side effects, use a write prefix even if it also reads data. (This plugin ships zero hooks by design — approval gating comes from Claude Code's own permission system.)
 
 ---
 
@@ -360,10 +356,10 @@ Stored at `~/.claude-marketing/credentials/{profile-name}.json`:
 
 ### Access Control
 
-- The `hooks.json` `PreToolUse` hook for `mcp_.*` is the primary safety gate
-- Read tools (list, get, query, search, fetch) are auto-approved
-- Write tools (create, update, delete, send, publish, schedule) require explicit user approval
-- Custom MCPs **must** follow the naming convention so the hook classifies them correctly
+- Claude Code's permission system is the primary safety gate — configure allow/deny rules for MCP tools in your settings (this plugin ships zero hooks by design; add user-scope hooks yourself if you want automated gating)
+- Treat read tools (list, get, query, search, fetch) as safe to allow
+- Require explicit user approval for write tools (create, update, delete, send, publish, schedule)
+- Custom MCPs **must** follow the naming convention so read/write intent is recognizable
 - If a tool performs both read and write operations, classify it as write (use a write prefix)
 
 ### Supply Chain
@@ -412,19 +408,21 @@ Stored at `~/.claude-marketing/credentials/{profile-name}.json`:
 }
 ```
 
-### Zapier Webhooks
+### Zapier MCP (hosted)
+
+Zapier's current agent integration is **Zapier MCP** (the successor to the retired Natural Language Actions product). Generate your personal MCP endpoint URL at https://mcp.zapier.com and add it as an HTTP server:
 
 ```json
 {
   "zapier": {
-    "command": "npx",
-    "args": ["-y", "mcp-server-zapier"],
-    "env": {
-      "ZAPIER_NLA_API_KEY": "${ZAPIER_NLA_API_KEY}"
+    "type": "http",
+    "url": "https://mcp.zapier.com/api/mcp/mcp",
+    "headers": {
+      "Authorization": "Bearer ${ZAPIER_MCP_TOKEN}"
     },
-    "description": "Zapier Natural Language Actions — trigger Zaps, connect 5000+ apps"
+    "description": "Zapier MCP — trigger Zaps and AI Actions, connect 5000+ apps"
   }
 }
 ```
 
-> **Key principle:** Every MCP integration should be tested with both valid and invalid credentials, should handle errors gracefully with structured responses, and should follow the read/write naming convention so the safety gate works automatically. When in doubt, classify a tool as write — it is always safer to require approval than to allow unintended side effects.
+> **Key principle:** Every MCP integration should be tested with both valid and invalid credentials, should handle errors gracefully with structured responses, and should follow the read/write naming convention so permission gating stays reliable. When in doubt, classify a tool as write — it is always safer to require approval than to allow unintended side effects.

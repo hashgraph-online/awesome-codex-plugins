@@ -1,7 +1,4 @@
 {
-  "ACME Search Core": 123456789,
-  "ACME Search Brand": 123456790,
-  "ACME Search Roles": 123456791,
-  "ACME Search Ecom": 123456792
+  "Поиск / основное направление": "<campaign-id-from-own-account>",
+  "РСЯ / основное направление": "<campaign-id-from-own-account>"
 }
-

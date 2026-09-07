@@ -19,25 +19,21 @@
 
 1. Ensure `.orchestrator/metrics/` directory exists: `mkdir -p .orchestrator/metrics`
 
-1-pre. **`memory_cleanup_at` always-stamp (#699)** — Before emitting the record, if `/memory-cleanup` ran THIS session in any mode (dry-run, apply-pending, OR healthy no-op), stamp `memory_cleanup_at = completed_at` on the record using `stampMemoryCleanup()` from `scripts/lib/memory-cleanup-stamp.mjs`:
+1-pre. **`memory_cleanup_at` is DERIVED, not remembered (#699 + 2026-08-17 follow-up)** — there is **no coordinator step here any more**. Do not set a `ranMemoryCleanupThisSession` boolean and do not call `stampMemoryCleanup()` by hand at session-end.
 
-   ```js
-   import { stampMemoryCleanup } from '../../scripts/lib/memory-cleanup-stamp.mjs';
+   `scripts/emit-session.mjs` derives the field itself: it calls `deriveMemoryCleanupSignal()` (`scripts/lib/memory-cleanup-stamp.mjs`), which reads the sibling `events.jsonl` for `orchestrator.memory.cleanup_completed` records whose `timestamp` falls inside this session's own `[started_at, completed_at]` window (and whose `semantic_session_id`, when present, matches). The emitting side is the LAST step of every `/memory-cleanup` run — see `skills/memory-cleanup/SKILL.md` § "Session-End Signal".
 
-   // ranCleanup: true when /memory-cleanup ran this session (ANY outcome)
-   metricsEntry = stampMemoryCleanup(metricsEntry, {
-     ranCleanup: ranMemoryCleanupThisSession, // boolean
-     completedAt: metricsEntry.completed_at,
-   });
-   ```
+   **Contract:** a no-op run (MEMORY.md already healthy, no files mutated) is still a cleanup, so it still emits and therefore still stamps. When `/memory-cleanup` did not run, no event exists, nothing is derived, and the field is simply absent — never `null`. An EXPLICIT `memory_cleanup_at` already present on the record WINS over derivation and is never overwritten; that path is for backfills and tests, not for normal operation.
 
-   **Contract:** A no-op run (MEMORY.md already healthy, no files mutated) is still a cleanup — `memory_cleanup_at` MUST be stamped. This advances `readDreamSignals` → `lastCleanupAt` in `auto-dream.mjs` so `shouldDispatchAutoDream` does not fire a false nudge. When `/memory-cleanup` did not run, omit the field entirely (do NOT set null). The helper is no-throw and pure — it returns the record unchanged on bad inputs.
+   **Why this stopped being a coordinator instruction.** It was one until 2026-08-17, and it measurably failed: a `/memory-cleanup` ran on 2026-08-14 with a documented yield, the prose step above was not executed, and all three session records of that day carried `memory_cleanup_at: null` — so the session-start banner reported "last cleanup 29 days ago" against the operator's own "3 days". `stampMemoryCleanup()` had **zero production callers** at that point; every reference to it was an instruction asking an LLM to remember. Same failure class as the STATE.md write-race Epic #583 replaced with a lock: Disziplin statt Mechanik.
 
    > **#701.2 DOC NOTE — `completed_at >= started_at` guard:** This invariant is enforced mechanically by `scripts/emit-session.mjs`. The writer applies `clampTimestampsMonotonic()` (from `scripts/lib/session-schema/timestamps.mjs`) before `validateSession()`, clamping any inversion of `completed_at < started_at` to `started_at` and recording forensics in `_clamped: true` / `_original_completed_at`. Previously-inverted entries (e.g. `main-2026-06-21-session-4`) are already corrected. **No per-session coordinator action is needed** — the writer enforces the invariant at write time. Do not add defensive clamping logic here; the canonical guard lives in `emit-session.mjs`.
 
 1a. **Token Rollup (#644)** — before emitting the JSONL record, aggregate token usage from `subagents.jsonl` and merge the three token fields onto the in-memory `$METRICS_ENTRY` JSON object. The join key is the session's UUID (`session_id` / `parent_session_id` on subagents.jsonl — the UUID form, not the semantic slug).
 
    **Semantics:** `null` totals mean "no token data was captured for this session" — this is NOT the same as zero cost. Do NOT coerce null to 0 when displaying or summing across sessions.
+
+   **Provenance (#949):** the rollup sums ONLY records carrying `subagent_transcript_found: true` — the flag the producer sets when it read the subagent's own transcript. Pre-#949 records carry the PARENT transcript's running totals and are excluded, so a session made up entirely of them now reports `null` rather than a fabricated sum (73 historical sessions, 96,148,781 phantom tokens, measured 2026-08-11). Two consequences for readers: totals already written into `sessions.jsonl` before 2026-08-11 were produced by the unfiltered recipe and are a series break, not a trend; and `matched_records` counts start records and phantom stops alike, so it is NOT the denominator for a coverage ratio — use `subagents_with_tokens` against the session's real agent count.
 
    Example (coordinator pseudo-code — adapt to your shell/JS context):
 

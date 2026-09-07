@@ -1,68 +1,65 @@
 ---
 name: handoff
-description: Use when the user asks to hand off the current session to a new chat, transfer context, or runs /handoff. Creates a self-contained handoff document in the OS temp directory (not the repo) and prints its absolute path.
+description: Create a self-contained temporary handoff document when the user asks to transfer the session to a new chat or runs /handoff.
 argument-hint: "[focus of the next session]"
 ---
 
 # Handoff
 
-The doc must stand alone even when a plan/chronicle exists.
+Create a standalone document that lets a person or agent continue the work in a new conversation. Follow the [writing contract](../../shared/writing.md). Preserve the user’s request, useful discoveries, exact decisions, current state, relevant files, and the next action. Do not copy the conversation or raw logs.
 
 ## Compute the path
 
-Lives in the OS temp dir, NOT the repo (handoffs are short-lived):
+Use the OS temp directory, never the repo:
 
 ```
-${TMPDIR:-/tmp}/claude-handoff-YYYY-MM-DD-HHMMSS-{slug}.md
+${TMPDIR:-/tmp}/handoff-YYYY-MM-DD-HHMMSS-{slug}.md
 ```
 
 - `{slug}` = kebab-case topic, from `$ARGUMENTS` if passed, else inferred from the work.
-- Resolve `${TMPDIR:-/tmp}` via `Bash` (`echo "${TMPDIR:-/tmp}"`) — macOS uses `/var/folders/.../T/`, not `/tmp`.
+- Resolve `${TMPDIR:-/tmp}` with Bash; macOS may not use `/tmp`.
 
 ## Write
 
-`Write` to the full absolute path. Fill every section. Empty section → write *"None"*, do NOT delete the header (the new agent's contract depends on the section being present).
+Write the absolute path. Keep the first three sections. Include the later sections only when they carry useful information.
 
 ```markdown
-# Handoff — YYYY-MM-DD HH:MM — {topic}
+# Handoff: {topic}
 
-### Goal (in the user's own words)
-[Intent, quoted.]
+## What the user wants
+[Explain the requested result and why it matters. Preserve exact wording only for decisions that the next conversation must not reinterpret.]
 
-### Focus of the next session
-[`$ARGUMENTS` as a directive, or "continue from current state".]
+## Where things stand
+[Explain what works, what is incomplete or broken, and the evidence. Give exact files, line numbers, and errors where they matter.]
 
-### Current State
-[File-anchored: working · broken · next step. Files, line numbers, exact errors.]
+## Next step
+[`$ARGUMENTS` as a clear directive, or the next concrete action inferred from the current state.]
 
-### Key Decisions
-- **[Decision]** — because [reason]. Alternative [name] rejected because [reason].
+## Decisions that must survive
+- [Decision and reason. Add a rejected alternative only when it helps prevent the same debate.]
 
-### Important Context (gotchas · invariants · constraints)
-- [Hidden invariants, traps, environment quirks]
+## What the next agent needs to know
+- [Constraint, project rule, hidden dependency, environment detail, or known trap.]
 
-### Relevant Files
-- `path/to/file.ext` — [what · why · scope]
+## Files and existing work
+- `path/to/file.ext` — [what it contains and why it matters]
+- Plan: `docs/plans/NNNN__...md` — [what it settles]
+- Chronicle: `docs/chronicles/NNNN__...md` — [what it records]
+- Other: [PRD, ADR, issue, pull request, commit, or URL]
 
-### Open Questions / Unknowns
-- [Unresolved · what the user must decide] (or "None")
+## Questions still open
+- [Question, why it matters, and who can answer it.]
 
-### Existing Artifacts (reference by path, do NOT duplicate)
-- Plan: `docs/plans/NNNN__...md` — *(one-line summary, or "None")*
-- Chronicle: `docs/chronicles/NNNN__...md` — *(or "None")*
-- Other: PRDs · ADRs · GitHub issues · open PRs · key commits — *(path/URL each, or "None")*
-
-### Suggested Skills for the New Agent
-- `development-skills:<name>` — [why]
-
-### Prompt for New Chat
-```
-Read the handoff at: {full absolute path written above}
-
-Then continue from the "Current State" section.
-```
+## Useful skills
+- `development-skills:<name>` — [when and why to use it]
 ```
 
 ## Announce
 
-Print `HANDOFF WRITTEN: {full absolute path}` followed by the doc's "Prompt for New Chat" block (with the path filled in) for the user to paste.
+Print `HANDOFF WRITTEN: {full absolute path}` followed by:
+
+```
+Read the handoff at: {full absolute path written above}
+
+Then continue from the "Next step" section.
+```

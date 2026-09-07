@@ -1,6 +1,7 @@
 ---
 name: skill-staged-review
-description: "Review code in two passes: spec compliance then quality — use for thorough PR or feature reviews"
+description: "Use when a PR or feature needs both specification and code-quality review"
+disable-model-invocation: true
 ---
 
 > **Host: Codex CLI** — This skill was designed for Claude Code and adapted for Codex.
@@ -166,7 +167,7 @@ echo "Stub detection complete: $STUB_ISSUES issues found"
 
 ### Step 2: Multi-LLM Quality Review (RECOMMENDED)
 
-**After stub detection, dispatch code to multiple providers for parallel quality review.** A Claude-only review pipeline misses what external models catch — Codex excels at logic errors and correctness, Gemini excels at security and edge case analysis. Using both produces higher-confidence findings.
+**After stub detection, dispatch code to multiple providers for parallel quality review.** A Claude-only review pipeline misses what external models catch — Codex excels at logic errors and correctness, while Antigravity provides an independent security and edge-case analysis. Using both produces higher-confidence findings.
 
 **Check provider availability and dispatch in parallel:**
 
@@ -180,7 +181,6 @@ DIFF_CONTENT=$(git diff --cached 2>/dev/null || git diff HEAD~1..HEAD 2>/dev/nul
 providers=()
 command -v codex >/dev/null 2>&1 && providers+=(codex)
 command -v agy >/dev/null 2>&1 && providers+=(agy)
-command -v gemini >/dev/null 2>&1 && providers+=(gemini)
 
 for provider in "${providers[@]}"; do
   safe_provider=$(printf '%s' "$provider" | tr -c '[:alnum:]_-' '_')
@@ -309,12 +309,19 @@ if [[ -n "$CURRENT_BRANCH" && "$CURRENT_BRANCH" != "main" && "$CURRENT_BRANCH" !
 fi
 
 if [[ -n "$PR_NUM" ]]; then
-    # Post combined report as PR comment
-    gh pr comment "$PR_NUM" --body "## Staged Review — Claude Octopus
+    # Post combined report through the outbound credential gate.
+    REPO_SLUG=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
+    COMMENT_BODY="## Staged Review — Claude Octopus
 
 ${COMBINED_REPORT}
 
 *Staged review by Claude Octopus (/octo:staged-review)*"
+    if ! "${CLAUDE_PLUGIN_ROOT:-${HOME}/.claude-octopus/plugin}/scripts/safe-gh-comment.sh" \
+            --repo "$REPO_SLUG" pr-comment "$PR_NUM" - <<< "$COMMENT_BODY"; then
+        echo "GitHub write state is unknown; check for the staged review comment before retrying:" >&2
+        gh pr view "$PR_NUM" --repo "$REPO_SLUG" --comments || true
+        return 1 2>/dev/null || exit 1
+    fi
 
     echo "Staged review posted to PR #${PR_NUM}"
 fi

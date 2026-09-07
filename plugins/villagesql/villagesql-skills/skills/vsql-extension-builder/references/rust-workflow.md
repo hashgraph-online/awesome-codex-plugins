@@ -50,6 +50,7 @@ These define what the Rust SDK can express today.
 - Null handling: `InValue::Null` variant and `VdfReturn::null()`
 - Error and warning returns: `VdfReturn::Error(String)` and
   `VdfReturn::Warning(String)`
+- Aggregate functions (`agg_func!`) and variadic-argument functions (`varargs_func!`)
 
 **Known behaviors that constrain design** (see
 `references/capabilities.md` → "STRING return size and charset"):
@@ -58,9 +59,17 @@ These define what the Rust SDK can express today.
 - STRING results carry the `binary` charset; callers consuming results
   via MySQL JSON functions need `CONVERT(... USING utf8mb4)`.
 
-**Not yet available in the Rust SDK:**
-- Aggregate functions
-- Preview APIs (background threads, SQL sessions, sys vars)
+**Preview capabilities:** the crate has a `preview` module
+(`villagesql/src/preview/`), and each ported capability ships a working
+example under `examples/`. Do not rely on a remembered list — read those
+two directories in the SDK source you verified above to see what is
+ported today. Extensions using any preview capability require the server
+to run with `vsql_allow_preview_extensions=ON`.
+
+**Not yet available in the Rust SDK** (confirm against the crate source
+before treating as current):
+- SQL sessions from background threads (`sql_query` — `thread_worker.rs`
+  reserves a handle for it)
 - Variable-length column storage (Column Storage ABI)
 
 If the user's request requires any unavailable capability, present the
@@ -71,7 +80,17 @@ silently drops the capability — the user must confirm the reduced scope.
 
 ### Scaffold (replaces Phase 2 step 1)
 
-No template repo exists for Rust extensions. Scaffold manually:
+A cargo-generate template exists:
+[vsql-extension-template-rust](https://github.com/villagesql/vsql-extension-template-rust).
+Prefer it — it generates `Cargo.toml`, `manifest.json`, a working
+passthrough function, and an MTR test skeleton from prompts:
+
+```bash
+cargo install cargo-generate   # needs 0.18+
+cargo generate gh:villagesql/vsql-extension-template-rust --name vsql_<name>
+```
+
+If cargo-generate is unavailable, scaffold manually:
 
 ```bash
 cargo new --lib vsql-<name>

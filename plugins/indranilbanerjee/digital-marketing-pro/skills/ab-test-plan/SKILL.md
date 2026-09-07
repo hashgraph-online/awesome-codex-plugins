@@ -1,6 +1,6 @@
 ---
 name: ab-test-plan
-description: "Design A/B and multivariate tests. Use when: sample size calculation, testing hypothesis, CRO experimentation."
+description: "Design a statistically rigorous A/B or multivariate test plan — If/Then/Because hypothesis, control and variant specs, required sample size per variant (absolute vs relative MDE via sample-size-calculator.py), test duration, guardrail metrics, stopping rules, and go/no-go decision criteria. Triggers on \"/digital-marketing-pro:ab-test-plan\", \"set up an A/B test\", \"how long should my test run\", \"calculate sample size for an experiment\", \"is this test result significant\". Reads the brand profile and past campaign-tracker results to avoid re-testing validated hypotheses; finished tests are evaluated with significance-tester.py by the cro-specialist agent."
 argument-hint: "[element-to-test]"
 ---
 
@@ -16,7 +16,7 @@ The user must provide (or will be prompted for):
 
 - **Element to test**: The specific page, component, or experience being tested (landing page headline, CTA button, pricing page layout, email subject line, checkout flow, form design, etc.)
 - **Current conversion rate**: Baseline conversion rate for the metric being tested (or best estimate)
-- **Desired minimum detectable effect (MDE)**: The smallest improvement worth detecting. **MDE is ABSOLUTE by default** — expressed in the same units as the baseline (baseline 5.0% and you want to catch a +1.0 percentage-point lift, i.e. 5.0% → 6.0% ⇒ `--mde 0.01 --mde-type absolute`). To express it as a **relative** lift instead (a 10% relative improvement on a 5% baseline = 5.5% ⇒ `--mde 0.10 --mde-type relative`), pass `--mde-type relative`. This distinction is the single most common sample-size error: the same "10%" read as absolute vs. relative changes the required sample size by roughly 40× at a 5% baseline. Always confirm which the user means.
+- **Desired minimum detectable effect (MDE)**: The smallest improvement worth detecting. **MDE is ABSOLUTE by default** — expressed in the same units as the baseline (baseline 5.0% and you want to catch a +1.0 percentage-point lift, i.e. 5.0% → 6.0% ⇒ `--mde 0.01 --mde-type absolute`). To express it as a **relative** lift instead (a 10% relative improvement on a 5% baseline = 5.5% ⇒ `--mde 0.10 --mde-type relative`), pass `--mde-type relative`. This distinction is the single most common sample-size error: the same "10%" read as absolute vs. relative changes the required sample size by roughly two orders of magnitude (~200×) at a 5% baseline. Always confirm which the user means.
 - **Daily traffic or impressions**: Average daily visitors or impressions to the test page or element
 - **Significance level**: Desired confidence level, default 95% (alpha = 0.05)
 - **Statistical power**: Desired power, default 80% (beta = 0.20)
@@ -27,7 +27,7 @@ The user must provide (or will be prompted for):
 
 1. **Load brand context**: Read `~/.claude-marketing/brands/_active-brand.json` for the active slug, then load `~/.claude-marketing/brands/{slug}/profile.json`. Apply voice, compliance, industry context. Check `guidelines/_manifest.json` for restrictions, messaging, channel styles, voice-and-tone rules, and templates. If a template matching this command exists in `~/.claude-marketing/brands/{slug}/templates/`, apply its format. If no brand exists, prompt for `/digital-marketing-pro:brand-setup` or proceed with defaults.
 2. **Check campaign history**: Run `python "${CLAUDE_PLUGIN_ROOT}/scripts/campaign-tracker.py" --brand {slug} --action list-campaigns` to review past test results and avoid re-testing already-validated hypotheses.
-3. **Run sample size calculator**: Execute the calculator with the baseline rate, MDE, MDE type, significance, and power. The `--mde-type` flag defaults to `absolute` — always confirm with the user which interpretation they mean before computing (the two differ by ~40× at a 5% baseline):
+3. **Run sample size calculator**: Execute the calculator with the baseline rate, MDE, MDE type, significance, and power. The `--mde-type` flag defaults to `absolute` — always confirm with the user which interpretation they mean before computing (the two differ by roughly two orders of magnitude, ~200×, at a 5% baseline):
    ```bash
    # Absolute MDE — detect a 1.0 percentage-point lift on a 5% baseline (5.0% → 6.0%)
    python "${CLAUDE_PLUGIN_ROOT}/scripts/sample-size-calculator.py" --baseline-rate 0.05 --mde 0.01 --mde-type absolute --significance 0.95 --power 0.80

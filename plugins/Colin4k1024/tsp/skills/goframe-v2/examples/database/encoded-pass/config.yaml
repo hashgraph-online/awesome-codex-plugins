@@ -1,3 +1,0 @@
-database:
-  default:
-    link: "mysql:root:fGO4qbwsdMrGny9iUsH2Qw==@tcp(127.0.0.1:3306)/test?loc=Local&parseTime=true"

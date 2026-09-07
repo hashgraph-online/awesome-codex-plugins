@@ -1,6 +1,6 @@
 # refactor
 
-Execute safe refactors. Triggers: "refactor", "execute safe refactors.", "refactor skill".
+Execute one behavior-preserving structural transformation and report evidence. Triggers: "refactor this", "simplify without changing behavior".
 
 ## Instructions
 

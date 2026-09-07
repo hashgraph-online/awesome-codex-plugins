@@ -17,6 +17,8 @@ check "SKILL.md declares quality checklist" "grep -q '^## Quality Checklist' '$S
 check "OSS scaffold is missing-only by default" "grep -Eqi 'OSS scaffold.*missing.*only by default' '$SKILL_DIR/SKILL.md'"
 check "OSS existing-doc writes require explicit user confirmation" "grep -Eqi 'OSS.*existing doc.*explicit user confirmation' '$SKILL_DIR/SKILL.md'"
 check "OSS output avoids broad create-or-update claim" "! grep -Eqi 'OSS mode (creates?|writes?) or updates?' '$SKILL_DIR/SKILL.md'"
+check "OSS reference preserves explicit confirmation boundary" "grep -Eqi 'refresh.*explicit user confirmation' '$SKILL_DIR/references/oss-pack.md'"
+check "OSS executable spec covers confirmed refresh" "grep -Eqi 'explicit user confirmation before updating or overwriting' '$SKILL_DIR/references/oss-docs.feature'"
 
 echo ""; echo "Results: $PASS passed, $FAIL failed"
 [ $FAIL -eq 0 ] && exit 0 || exit 1

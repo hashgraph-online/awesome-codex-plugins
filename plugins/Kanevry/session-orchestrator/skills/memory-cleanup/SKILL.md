@@ -246,8 +246,8 @@ const peerWarning = wt.activePeer
 
 AskUserQuestion({
   questions: [{
-    question: `Stale auto-promoted worktree found: ${path.basename(wt.wtPath)} (age ${ageDays}d, branch=${wt.branch}).${peerWarning} Remove?`,
-    header: "Stale-Worktree",
+    question: `Auto-promoted worktree ${path.basename(wt.wtPath)} is ${ageDays}d old (branch ${wt.branch}).${peerWarning} Remove?`,
+    header: "Worktree",
     multiSelect: false,
     options: [
       {
@@ -296,11 +296,24 @@ After completing all four phases, report:
 
 This advances the auto-dream cadence marker (`readDreamSignals` → `lastCleanupAt` in `scripts/lib/auto-dream.mjs`) so `shouldDispatchAutoDream` does not fire a false nudge on the next session.
 
-**Signalling contract (coordinator responsibility at session-end Phase 3.7):**
-- Set `ranMemoryCleanupThisSession = true` when `/memory-cleanup` ran this session in ANY mode or with ANY outcome.
-- Pass this flag to `stampMemoryCleanup()` from `scripts/lib/memory-cleanup-stamp.mjs` before emitting the session record (see `skills/session-end/session-metrics-write.md` § 1-pre).
-- Do NOT distinguish between "applied changes" and "healthy no-op" — both count.
-- Do NOT set `memory_cleanup_at` to `null`; simply omit the field when cleanup did not run.
+**Signalling contract — emit the event, do not rely on remembering.**
+
+As the LAST step of every completed run — dry-run, apply-pending, or healthy no-op alike — emit the completion event. This is mandatory and it is the whole mechanism; there is no second, prose-only path that also works:
+
+```bash
+node scripts/emit-event.mjs \
+  --type orchestrator.memory.cleanup_completed \
+  --payload "{\"semantic_session_id\":\"<the session: value from STATE.md frontmatter>\",\"mode\":\"<dry-run|apply-pending|no-op>\"}"
+```
+
+`scripts/emit-session.mjs` then DERIVES `memory_cleanup_at` from that event at session-close time via `deriveMemoryCleanupSignal()` (`scripts/lib/memory-cleanup-stamp.mjs`), matching events whose `timestamp` falls inside the session's own `[started_at, completed_at]` window. Nothing downstream depends on the coordinator recalling that a cleanup happened.
+
+- **Do NOT distinguish "applied changes" from "healthy no-op"** — both count as a run, so both emit. Put the distinction in `mode`, never in whether you emit.
+- **Do NOT hand-append to `events.jsonl`.** Route through `emit-event.mjs` → `emitEvent()`; hand-rolled appenders drift from the canonical record shape (the `stop` vs `orchestrator.session.stopped` divergence, #609).
+- **`semantic_session_id` is the semantic id** (`main-2026-08-17-session-1`), not the UUID — `sessions.jsonl` `session_id` lives in that same space, and the matcher compares against it. Omitting the field is tolerated (the event is then claimed on the time window alone), but supplying it is what makes attribution exact when two sessions overlap.
+- **An explicit `memory_cleanup_at` already on the record WINS** over derivation and is never overwritten. That path exists for backfills and tests, not for normal operation.
+
+**Why this is mechanical and not a prose instruction:** it used to be one. On 2026-08-14 a `/memory-cleanup` ran and produced a documented yield, the coordinator did not execute the prose step, and all three session records of that day carried `memory_cleanup_at: null` — so the session-start banner reported "last cleanup 29 days ago" while the operator's own notes said 3. `stampMemoryCleanup()` had zero production callers at the time; every reference to it was an instruction asking an LLM to remember. Same failure class as the STATE.md write-race that Epic #583 replaced with a lock: Disziplin statt Mechanik.
 
 ## Anti-Patterns
 

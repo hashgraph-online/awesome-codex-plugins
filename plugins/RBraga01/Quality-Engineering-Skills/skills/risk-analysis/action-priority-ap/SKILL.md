@@ -37,7 +37,8 @@ Assign and audit Action Priority (AP) ratings correctly using the AIAG-VDA 2019 
 ☐ Confirm O is based on the Failure Cause with current prevention controls in place
 ☐ Confirm D is based on current detection controls for this Failure Mode
 ☐ All S, O, and D ratings are supported by data, field history, capability data, or documented engineering judgement — not guesses
-☐ Assign AP using the full AIAG-VDA AP table (see assets/ap-table.md) — not only the summary patterns in this skill
+☐ Assign AP using the full AP determination rules (see [ap-table.md](../pfmea-process/assets/ap-table.md)) — not only the summary patterns in this skill
+☐ For formal PPAP submissions, customer-facing FMEAs, or any disputed rating, confirm against your licensed AIAG-VDA FMEA Handbook — the rating criteria that make an S, O or D value defensible are in the handbook, not in this skill
 ☐ For every H-AP item: define a corrective action with owner and target date, or document a formal escalation rationale
 ☐ Reassess AP only after the corrective action is implemented and verified — not when only planned
 ☐ Verify Special Characteristics are rated S = 9 or 10
@@ -101,7 +102,7 @@ M-AP does not mean "no action needed." It means action is not mandatory, but the
 
 ## AP Assessment Workflow
 
-> This skill explains AP logic and decision patterns. Use the full AP table (assets/ap-table.md) for final rating assignment. Do not rely solely on the summary patterns below for disputed cases or formal PPAP submissions.
+> This skill explains AP logic and decision patterns. Use the full AP determination rules ([ap-table.md](../pfmea-process/assets/ap-table.md)) for final rating assignment. Do not rely solely on the summary patterns below for disputed cases or formal PPAP submissions — those require the rating criteria in your licensed AIAG-VDA FMEA Handbook.
 
 **Before assigning AP:** Do not assign AP unless S, O, and D are already justified based on the linked failure effect, failure cause, and current controls. AP is only as good as the ratings it is built on.
 
@@ -115,7 +116,7 @@ For each FC (Failure Cause) row in the PFMEA/DFMEA:
 
 3. Assign O (for this Failure Cause with current prevention controls)
 4. Assign D (for this Failure Mode with current detection controls)
-5. Look up AP in the full table (see assets/ap-table.md)
+5. Look up AP in the full table (see ../pfmea-process/assets/ap-table.md)
 ```
 
 **All S, O, and D ratings must be supported by test data, field history, capability data, or documented engineering judgement.**

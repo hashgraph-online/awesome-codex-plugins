@@ -1,6 +1,6 @@
 ---
 name: seo-plan
-description: "Build SEO strategy and roadmap. Use when: planning site architecture, content strategy, or phased implementation."
+description: "Build a 12-month SEO strategy and phased roadmap with industry templates (SaaS, ecommerce, local, publisher, agency). With fresh specialist outputs it runs as a dispatcher: scores four pillars — technical, content, topical, AI search — and makes the weakest pillar the plan's lead theme; missing specialists re-run only after explicit confirmation. Plans and prioritises only — makes no live changes. Triggers on \"/digital-marketing-pro:seo-plan\", \"build an SEO strategy\", \"what should our SEO roadmap be\", \"plan SEO for a new site\", \"which SEO pillar is weakest\". Reads specialist PLAN.md outputs (tech-seo-audit, content-decay-scan, aeo-audit, backlink-gap, keyword-cluster, seo-drift); feeds /digital-marketing-pro:content-engine and /digital-marketing-pro:campaign-plan."
 argument-hint: "[business-type]"
 user-invocable: true
 ---
@@ -277,7 +277,7 @@ This skill is both a consumer (of specialists) and a producer (of the master pla
 
 ## Context efficiency
 
-This skill's reference docs (`skills/<this-skill>/*.md`) sum to ~30-50KB. Don't load them eagerly — pick targeted sections:
+This skill's primary inputs are the specialist `PLAN.md` outputs under `${CLAUDE_PLUGIN_DATA}/{brand}/seo/` (see the input table above) — these can sum to ~30-50KB. Don't load them eagerly — pick targeted sections:
 
 - **Grep before Read.** Find the keyword or section heading first, then Read with `offset` + `limit` to pull just that range.
 - **Walk `${CLAUDE_SKILL_DIR}` once.** Use a single directory listing to see what's there, then Read only the files that match your current step.

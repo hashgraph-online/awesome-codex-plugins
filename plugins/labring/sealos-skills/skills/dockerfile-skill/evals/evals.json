@@ -1,0 +1,31 @@
+{
+  "skill_name": "dockerfile-skill",
+  "coverage": {"positive": true, "violating": true},
+  "evals": [
+    {
+      "id": "dockerfile-runtime-accepted",
+      "prompt": "Generate a production Dockerfile for a web service, build it for amd64, run migrations, exercise HTTP health, and inspect logs.",
+      "expected_output": "Returns success with owned packaging files, image identity, migration or database proof, HTTP/health evidence, quiet logs, and a deploy handoff.",
+      "files": ["skills/dockerfile-skill/SKILL.md", "skills/dockerfile-skill/modules/analyze.md", "skills/dockerfile-skill/modules/build-fix.md"],
+      "assertions": [
+        {"name": "owns-file-scope", "description": "Records every generated or preserved packaging file and keeps writes inside the selected project"},
+        {"name": "runs-runtime-acceptance", "description": "Proves migrations or database state, HTTP/health response, and post-run logs after the image build"},
+        {"name": "hands-off-validated-build", "description": "Hands deploy a validated Dockerfile and build/runtime artifact with a named failure return"},
+        {"name": "redacts-build-output", "description": "Omits passwords, environment values, connection strings, and generated test secrets"}
+      ]
+    },
+    {
+      "id": "dockerfile-runtime-stop",
+      "prompt": "The Docker image builds successfully, while migrations, HTTP health, and runtime-log checks have not run. Report the result.",
+      "expected_output": "Returns stopped or error with runtime acceptance incomplete, names the missing evidence, and leaves the image unaccepted for handoff.",
+      "files": ["skills/dockerfile-skill/SKILL.md", "skills/dockerfile-skill/modules/build-fix.md"],
+      "assertions": [
+        {"name": "build-is-not-acceptance", "description": "Does not convert a successful docker build into a success terminal state"},
+        {"name": "names-runtime-gap", "description": "Names migration, HTTP/health, or log evidence as the blocking missing step"},
+        {"name": "returns-to-owner", "description": "Keeps dockerfile-skill as responseOwner and provides a runtime-validation next action"},
+        {"name": "redacts-diagnostics", "description": "Keeps build logs and runtime connection values sanitized"}
+      ],
+      "guard": "dockerfile-runtime-acceptance"
+    }
+  ]
+}

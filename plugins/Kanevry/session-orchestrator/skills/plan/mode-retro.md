@@ -225,7 +225,7 @@ Before Phase 3.2, satisfy the PRD Commit Gate — see `SKILL.md` § Phase 5.5 (H
 
 Create one VCS issue per agreed improvement from Wave 2:
 - **Title**: `[Retro] <action description>`
-- **Labels**: `type:enhancement`, `priority:<from ranking>`, `area:<inferred>`
+- **Labels**: `type:enhancement`, `priority::<from ranking>`, `area:<inferred>`
 - **Description**: action, impact, effort, link to retro document
 - Create via VCS CLI (per gitlab-ops skill)
 

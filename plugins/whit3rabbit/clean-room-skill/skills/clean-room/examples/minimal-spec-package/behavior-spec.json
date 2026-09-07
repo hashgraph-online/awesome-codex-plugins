@@ -14,7 +14,14 @@
   "leakage_risk": "low",
   "summary": "The example component accepts a valid request and returns a successful result.",
   "observable_surface": [],
-  "public_surface": [],
+  "public_surface": [
+    {
+      "name": "--example-flag",
+      "kind": "command-line-option",
+      "visibility": "public",
+      "compatibility_reason": "Callers depend on this exact flag spelling to select example behavior."
+    }
+  ],
   "compatibility_level": "behavior-compatible",
   "observable_behaviors": [
     {
@@ -47,7 +54,8 @@
       "scenario": "Submit a valid request.",
       "expected_result": "A successful result is returned.",
       "coverage": [
-        "claim-001"
+        "claim-001",
+        "public_surface:spec-example-flow:command-line-option:--example-flag"
       ]
     }
   ],

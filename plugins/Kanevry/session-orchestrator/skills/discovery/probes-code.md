@@ -58,9 +58,9 @@ Grep pattern: (TODO|FIXME|HACK|XXX|TEMP|WORKAROUND)[\s:()\-]
 For each match, check whether a corresponding VCS issue exists:
 ```bash
 # Search for issue referencing the annotation text
-gh issue list --search "<annotation text>" --limit 5
+gh issue list -R <OWNER>/<REPO> --search "<annotation text>" --limit 5
 # or
-glab issue list --search "<annotation text>" --per-page 5
+glab issue list -R <OWNER>/<REPO> --search "<annotation text>" --per-page 5
 ```
 
 Flag annotations with no corresponding issue.

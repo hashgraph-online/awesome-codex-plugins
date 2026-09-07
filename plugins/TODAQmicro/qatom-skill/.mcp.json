@@ -1,0 +1,12 @@
+{
+  "mcp_servers": {
+    "qatom": {
+      "type": "http",
+      "url": "https://mcp.m.todaq.net/mcp",
+      "oauth": {
+        "clientId": "mcp.m.todaq.net",
+        "scopes": ["openid", "profile", "email", "twin"]
+      }
+    }
+  }
+}

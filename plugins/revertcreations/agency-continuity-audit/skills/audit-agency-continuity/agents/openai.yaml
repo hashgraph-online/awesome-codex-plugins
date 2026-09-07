@@ -1,0 +1,4 @@
+interface:
+  display_name: "Audit Agency Continuity"
+  short_description: "Verify persistent agent goals, memory, evidence, and recovery."
+  default_prompt: "Audit this agent workspace for continuity and evidence gaps."

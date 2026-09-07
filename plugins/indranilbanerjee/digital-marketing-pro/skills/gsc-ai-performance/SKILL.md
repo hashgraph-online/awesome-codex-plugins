@@ -1,6 +1,6 @@
 ---
 name: gsc-ai-performance
-description: "Query and interpret the new Google Search Console AI Performance Report (AI Overviews + AI Mode impressions/pages/countries/devices/dates). Use when: baselining AI search visibility, reading the new GSC AI report, or configuring the in-Search-Console AI opt-out toggle."
+description: "Baseline and interpret Google Search Console's AI Performance Report — combined AI Overviews + AI Mode impressions, cited pages, country and device mix (no click data; attribution stays in GA4) — from a user-supplied CSV export, with an in-SC AI opt-out recommendation and a gated quality scorecard. Triggers on \"/digital-marketing-pro:gsc-ai-performance\", \"read the new GSC AI report\", \"baseline our AI search visibility\", \"how many AI Overviews impressions do we get\", \"should we opt out of AI results\". Parses and archives exports via gsc-ai-performance.py, reconciles actuals against /digital-marketing-pro:aeo-audit probes, and feeds /digital-marketing-pro:seo-drift."
 argument-hint: "[brand-name or site URL]"
 ---
 
@@ -21,7 +21,9 @@ Google rolled out a new **GSC AI Performance Report** on **3 June 2026** ([Searc
 | Date range filtering | NEW |
 | **Click data** | **NOT INCLUDED** (Google explicitly excluded — important caveat for attribution) |
 | Opt-out toggle in Search Console | NEW (replaces having to ship robots.txt / meta tags for AI-specific exclusion) |
-| API surface | **NOT YET PUBLISHED** — UI only at launch |
+| API surface | **NOT YET PUBLISHED** — UI only (still true as of July 2026) |
+| **Discover generative surfaces** | **NEW (June–July 2026)** — the report family now also covers generative AI features in Discover ([Google announcement](https://developers.google.com/search/blog/2026/06/gen-ai-performance-reports)) |
+| Data availability | Backfilled from **18 May 2026**; access expanded broadly in July 2026, with a companion deep-dive help doc on AI controls |
 | Geographic rollout | UK first, then global ([source](https://searchengineland.com/google-search-console-ai-performance-reports-and-controls-to-block-your-content-in-ai-responses-479298)) |
 
 **Critical interpretation guidance:** The report shows when your pages were SHOWN in AI Overviews / AI Mode, not when users clicked through to them. Because click data is absent, all downstream attribution to AI traffic must come from your analytics (GA4's new `AI Assistant` channel — added 13 May 2026 — is the matching analytics-side surface; see `/digital-marketing-pro:analytics-insights`).
@@ -113,7 +115,7 @@ A structured GSC AI performance brief containing:
 
 1. **No click data.** Google explicitly chose not to include click metrics. AI-to-website attribution must come from GA4 (the new `AI Assistant` channel group, added 13 May 2026, captures `Medium=ai-assistant` referrals from ChatGPT/Gemini/Claude). Note: GA4's channel may or may not specifically attribute Google's own AI Mode traffic the same way — verify in your property.
 2. **UI only at launch.** No public API. Wait for Google to publish the AI report under the Search Console Search Analytics API (`searchanalytics.query`) before automating against it. Current automation must rely on CSV export + manual upload.
-3. **UK first.** If your brand's primary market is outside the UK, the report may not show data yet. Mark the date you first see data so subsequent month-over-month comparisons start from a real baseline.
+3. **Rollout completed broadly July 2026.** The report started UK-first but access expanded broadly in July 2026, so most properties should now see it. Mark the date you first see data so subsequent month-over-month comparisons start from a real baseline.
 4. **Tab placement may move during rollout.** Google often refines the UI in the first 30–60 days. If the exact tab path differs from step 2 above, look anywhere in the Performance > Search results area for "AI", "Generative", "AI Mode", or "AI Overviews" labels.
 5. **Don't compare AI Overviews impressions to classic SERP impressions one-for-one.** AI Overviews surface differently — an "impression" there means your page was used as a grounding source, which is a stricter bar than appearing in a 10-blue-link result.
 

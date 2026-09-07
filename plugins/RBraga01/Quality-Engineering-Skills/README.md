@@ -4,12 +4,12 @@
 
 # Quality-Engineering-Skills
 
-**22 structured quality engineering skills and 8 agents for AI — ISO 9001, IATF 16949, AIAG-VDA FMEA, VDA 6.3, PPAP, APQP, SPC, MSA.**
+**23 structured quality engineering skills and 8 agents for AI — ISO 9001, IATF 16949, AIAG-VDA FMEA, VDA 6.3, PPAP, APQP, SPC, MSA.**
 Works with Claude Code, Codex CLI, Cursor, Gemini CLI, and any agentskills.io-compatible AI tool.
 
 **[→ rbraga01.github.io/Quality-Engineering-Skills](https://rbraga01.github.io/Quality-Engineering-Skills/)**
 
-[![Skills](https://img.shields.io/badge/skills-22-orange)](skills/)
+[![Skills](https://img.shields.io/badge/skills-23-orange)](skills/)
 [![Agents](https://img.shields.io/badge/agents-8-purple)](skills/agents/)
 [![agentskills.io](https://img.shields.io/badge/format-agentskills.io-0ea5e9)](https://agentskills.io)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -46,7 +46,7 @@ Every skill maps to specific standard clauses. Every agent validates methodology
 
 | Domain | Skills | Standards |
 |--------|--------|-----------|
-| Problem Solving | 8D (D0–D8), 5-Why, Fishbone, Is/Is-Not, PDCA, DMAIC | ISO 9001 §10.2, IATF 16949 §10.2.3 |
+| Problem Solving | 8D (D0–D8), 5-Why, Fishbone, Is/Is-Not, PDCA, DMAIC, Zeroing (双归零) | ISO 9001 §10.2, IATF 16949 §10.2.3, GB/T 29076—2021 |
 | Risk Analysis | PFMEA, DFMEA, Action Priority (AP) | AIAG-VDA FMEA 2019, IATF 16949 §8.3 |
 | Planning | PPAP (5 levels, 18 elements), APQP (5 phases), Control Plan, DVP&R | AIAG PPAP 4th Ed, IATF 16949 §8.3.4 |
 | Measurement | MSA / Gauge R&R, SPC / Control Charts | AIAG MSA 4th Ed, AIAG SPC 2nd Ed |
@@ -100,7 +100,7 @@ Automated audit and scoring of SKILL.md and REFERENCE files against framework st
 ## Skill index
 
 <details>
-<summary><strong>Problem Solving</strong> (ISO 9001 §10.2)</summary>
+<summary><strong>Problem Solving</strong> (ISO 9001 §10.2 · GB/T 29076—2021)</summary>
 
 | Skill | Description |
 |-------|-------------|
@@ -110,6 +110,7 @@ Automated audit and scoring of SKILL.md and REFERENCE files against framework st
 | [is-is-not-scoping](skills/problem-solving/is-is-not-scoping/) | Ford D2 problem scoping tool — defines problem boundary and eliminates hypotheses |
 | [pdca-improvement](skills/problem-solving/pdca-improvement/) | Plan-Do-Check-Act cycle structure with gate criteria for continuous improvement |
 | [dmaic](skills/problem-solving/dmaic/) | Six Sigma DMAIC — five-phase structured improvement for chronic, data-driven problems |
+| [quality-problem-zeroing](skills/problem-solving/quality-problem-zeroing/) | 双归零 double-five zeroing under GB/T 29076—2021 — technical and management zeroing with evidence gates and formal closure |
 
 </details>
 
@@ -211,7 +212,7 @@ metadata:
 
 ## Roadmap
 
-**v2 (current):** Problem solving · Risk analysis · PPAP · APQP · Control Plan · DVP&R · MSA · SPC · VDA 6.3 · DMAIC · Supplier SCAR — 22 skills, 8 agents
+**v2 (current):** Problem solving · Risk analysis · PPAP · APQP · Control Plan · DVP&R · MSA · SPC · VDA 6.3 · DMAIC · Supplier SCAR · Quality problem zeroing — 23 skills, 8 agents
 
 **v3:** AS9100 Rev D (aerospace) · ISO 13485 (medical devices) · HACCP / ISO 22000 (food safety)
 
@@ -240,3 +241,26 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the skill format and submission proce
 **[@RBraga01](https://github.com/RBraga01)** — 15+ years in quality engineering. Claim manager for ~30 electronic component suppliers — receives OEM customer complaints and manages the full escalation to the respective suppliers. Created Quality Engineering Skills to bring structured methodology to AI agents in the quality domain.
 
 **[@migmcc](https://github.com/migmcc)** — 25+ years in quality engineering. Claim manager handling OEM customer complaints and escalations across electromechanical and mechanical suppliers. 8D and problem-solving expert. Responsible for the skill content that makes the methodology accurate and practitioner-grade.
+
+---
+
+## Standards and trademarks
+
+These skills describe how quality methodologies work and cite the clause or step
+each one corresponds to. They **do not reproduce** the standards themselves —
+no rating criteria tables, question catalogues, forms or worksheets are copied
+from any manual. Where a value is defined only by the authoritative document, the
+skill tells the agent to consult your licensed copy rather than guess.
+
+The MIT licence covers this repository's original content only. It does not
+extend to any ISO, IATF, AIAG or VDA publication, and owning the rights to use a
+standard remains your responsibility.
+
+ISO, IATF, AIAG, VDA and the OEM names used here are trademarks of their
+respective owners. **This project is not affiliated with, endorsed by, or
+certified by any of them.** Using these skills does not make anything compliant
+with a standard and does not substitute for audit or certification by an
+accredited body.
+
+See [THIRD_PARTY_CONTENT.md](THIRD_PARTY_CONTENT.md) for the per-standard
+breakdown of what this project contains and on what basis.

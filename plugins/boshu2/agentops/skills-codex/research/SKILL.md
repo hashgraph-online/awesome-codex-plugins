@@ -1,127 +1,97 @@
 ---
 name: research
-description: 'Investigate current facts and prior art. Triggers: "$research", "research this", "investigate the codebase".'
+description: 'Answer a bounded question with current cited Triggers: "research", "investigate this question", "find evidence". (Investigating a repository routes to codebase-recon.)'
 ---
-# $research — Evidence-Bound Investigation
+# Research
 
-In Codex hookless mode, run `ao codex ensure-start` before research; the CLI records startup once per thread and skips duplicates automatically.
+Answer one bounded question with current evidence. Research informs a caller;
+it does not select work, approve a plan, mutate lifecycle state, or decide what
+happens next.
 
-Answer a bounded question with current evidence and a durable artifact. Execute
-the investigation; do not return an uncited search diary.
+## Contract
 
-## Critical Constraints
+1. State the question, decision it informs, scope, non-goals, and evidence
+   required for a useful answer.
+2. Search the smallest relevant local sources. For changing external facts,
+   use current primary sources.
+3. Verify structural or semantic-search leads against authoritative content.
+4. Separate observation, inference, contradiction, and unknown.
+5. Lead with the answer and cite every load-bearing claim.
+6. Report unchecked scope and stop.
 
-- **Why: avoid aimless search.** Frame the decision, scope, non-goals, freshness,
-  and evidence-for-done first.
-- **Why: prevent rediscovery.** Run `ao lookup` and search existing `.agents/`
-  knowledge, then verify retrieved claims against current source.
-- **Why: keep facts trustworthy.** Cite `file:line`, commits, or direct primary
-  sources; label inference separately from observation.
-- **Why: control context.** Scope searches, follow discovered symbols, and stop
-  after three retrieval cycles unless new evidence changes the answer.
-- **Why: honor operator control.** Stay inline unless the user or active workflow
-  explicitly authorizes parallel research with non-overlapping lanes.
-- **Why: preserve uncertainty.** Report gaps, contradictions, failed searches,
-  freshness, and confidence instead of inventing completeness.
+Use the current agent inline by default. Parallel readers or alternate runtimes
+are optional execution choices only when the caller authorizes them. Prior
+research, CASS, MS, codebase recon, and pattern mining are advisory context
+sources, not required phases. Hydrate only the sources the current decision
+needs and return cited evidence with source identity and freshness; never
+build or maintain a merged context store.
 
-## Inputs
+## Commit-level citation for code claims
 
-`$research <question> [--auto] [--from-pr <url>] [quick|medium|very-thorough]`
+A claim about what code does cites the commit it was observed at, plus
+file:line — code moves, and a citation without a revision decays silently into
+a claim about a repository that no longer exists. For the working tree, record
+the current HEAD and whether the cited file carries uncommitted changes. The
+named failure mode is the floating citation: a path and line that resolved
+when written, drifted after a refactor, and now lends false authority to a
+stale answer. A reader must be able to run `git show <commit>:<path>` and see
+the cited lines; a code claim that cannot survive that replay is reported as
+unverified, not asserted.
 
-`--auto` skips the post-research approval prompt only; it does not authorize
-external mutations or sub-agent fan-out. `--from-pr` narrows inspection to the
-PR's changed paths and their dependencies.
+## Done means observable capability
 
-## Workflow
+Research is done when its capability flags are answerable, not when effort
+feels sufficient. At the start, derive from the bounded question a short list
+of capability statements — "can name the module that owns X, with citation",
+"can state whether Y is reachable from Z, or that this is unknown". The stop
+condition: every flag is either satisfied with evidence or explicitly reported
+unknown with what was searched. Hours spent and files read are not flags. The
+named failure mode is effort-shaped doneness — stopping because the search was
+long, and shipping an answer whose load-bearing claim was never actually
+established. If a flag stays unsatisfiable inside scope, say so and stop;
+widening the question mid-search is a new question, and the caller owns it.
 
-1. **Frame.** State the primary question, subquestions, target decision, scope,
-   non-goals, freshness horizon, and completion test.
-2. **Retrieve.** Use `ao lookup --query "<topic>" --limit 5` when available and
-   search `.agents/{research,learnings,knowledge,patterns,retros,plans,
-   brainstorm}/` by content. Record which prior items apply and revalidate them.
-3. **Choose lanes.** Use code maps and archaeology for repository questions,
-   refreshed graphify for structure, scoped git history for rationale, and
-   primary external sources for changing upstream facts.
-4. **Iterate.** Score discoveries 0-1, extract symbols/config keys from relevant
-   hits, refine scoped searches, and read authoritative files. Stop after three
-   cycles or saturation.
-5. **Execute with the legal backend.** Prefer `spawn_agent` / `send_input` / `wait` for parallel exploration.
-   Apply that preference only when parallelism is explicitly authorized; give
-   each Explore agent a distinct read-only question. Otherwise work inline.
-6. **Validate quality.** Assess coverage, depth 0-4, gaps, contradictions, and
-   assumptions. In `--auto`, critical depth below 2 emits WARN and writes
-   `.agents/research/quality-warning.md`.
-7. **Synthesize.** Write `.agents/research/YYYY-MM-DD-<topic-slug>.md` with the
-   answer, key files/sources, cited findings, unresolved questions, confidence,
-   recommendations, and backend.
-8. **Persist selectively.** Reusable findings go to
-   `.agents/findings/registry.jsonl` with provenance, `dedup_key`, controlled
-   applicability, confidence, lifecycle, and the temp-file-plus-rename atomic
-   write rule. Refresh with `bash hooks/finding-compiler.sh --quiet` when present.
-9. **Gate and report.** Unless `--auto`, ask whether to proceed to `$plan`,
-   revise, or abandon. Report answer, artifact, gaps/confidence, and approval.
+### Multiple caller-supplied reports
 
-## Codex Execution Profile
+When the caller supplies several reports for one bounded question, synthesize
+them as evidence inside this same Research invocation:
 
-- Write findings to `.agents/research/` with file-level references and concrete evidence.
-- Keep backend fallback logic explicit: codex sub-agents, then background-task-fallback, then inline.
-- Keep each authorized sub-agent lane bounded, read-only, and independently useful.
-- Merge evidence by claim and source, not by concatenating agent transcripts.
+1. Build a source ledger before comparing claims. Preserve each report's path or
+   supplied identifier, title, author/runtime when known, and revision or date
+   when supplied. Assign a short local label without replacing that identity.
+2. Extract each load-bearing claim with its source label and original evidence
+   reference. Normalize wording only for comparison; never merge citations or
+   make agreement erase provenance.
+3. Group comparable claims into **agreement**, **contradiction**, and **unknown**.
+   Agreement means independent reports support the same claim. Contradiction
+   preserves the conflicting claims and evidence. Unknown means the reports do
+   not establish the fact or the underlying source was not checked. Reports that
+   repeat one upstream source are agreement in wording, not independent
+   corroboration; preserve that shared provenance.
+4. Verify load-bearing claims against authoritative content when the bounded
+   question requires it. A report's conclusion is advisory, not authority.
+5. Produce one cited synthesis that states what the reports jointly support,
+   where they disagree, and what remains unknown. Report checked and unchecked
+   sources, then stop.
 
-## Guardrails
+Do not recursively launch another Research pass, invent a synthesis umbrella,
+or start a new runtime merely because multiple reports exist. Additional readers
+remain caller-authorized execution choices, not part of this procedure.
 
-- Do not spawn agents merely because the runtime exposes the capability.
-- Do not use unscoped repository grep/glob for broad topics.
-- Do not treat graph structure, semantic search, or prior research as proof until
-  verified in current authoritative source.
-- Do not browse secondary summaries when current primary documentation exists.
-- Do not promote transient observations into the findings registry.
+## Output
 
-## Output Specification
+For a quick question, return the cited answer directly. When the caller asks
+for a durable artifact, write one report containing:
 
-- **Artifact directory:** `.agents/research/`; optional quality warning and
-  reusable findings use their canonical `.agents/` paths.
-- **Filename convention:** `YYYY-MM-DD-<topic-slug>.md`.
-- **Serialization/schema format:** document-template Markdown plus `result.json`
-  conforming to `skills-codex/research/schemas/findings.json` when required.
-- **Validator command:** run `bash skills-codex/research/scripts/validate.sh`,
-  verify every citation, and confirm coverage/depth/gap reporting.
-- **Downstream handoff:** consumed by `$plan`, `$product`, `$pre-mortem`, or the
-  requesting decision; reusable findings feed compiled prevention context.
+- question and scope;
+- answer;
+- evidence references;
+- contradictions and unknowns;
+- checked and unchecked areas.
 
-## Quality Rubric
+For a durable synthesis of multiple reports, also include `source_ledger` and
+`comparison` (`agreements`, `contradictions`, and `unknowns`) as defined by the
+output schema. Single-report outputs may omit those optional fields.
 
-- Directly answers a decision-sized question.
-- Uses current authoritative evidence with reproducible citations.
-- Bounds search breadth and records the selected backend.
-- Separates observed fact, inference, contradiction, and unknown.
-- Reports coverage, depth, gaps, confidence, and freshness honestly.
-- Leaves a durable artifact usable without chat-only context.
-
-## Examples
-
-**User says:** `$research "authentication request flow"`
-
-Trace one path through current code, cite transitions, and write the artifact.
-
-**User says:** `$research --from-pr <url> "does this preserve retries?"`
-
-Inspect the changed paths plus callers/tests and state residual uncertainty.
-
-## Troubleshooting
-
-| Problem | Response |
-|---|---|
-| Question is too broad | Split it into decision-sized subquestions |
-| Prior artifact conflicts | Prefer current source and record drift |
-| Graph result lacks logic | Open defining and calling files |
-| No fan-out is authorized | Work inline without lowering evidence standards |
-
-## References
-
-- [document-template.md](references/document-template.md) · [iterative-retrieval.md](references/iterative-retrieval.md) · [context-discovery.md](references/context-discovery.md)
-- [source-discovery-and-pattern-extraction.md](references/source-discovery-and-pattern-extraction.md) · [failure-patterns.md](references/failure-patterns.md)
-- [codebase-archaeology.md](references/codebase-archaeology.md) · [data-flow-from-entry-points.md](references/data-flow-from-entry-points.md) · [onboarding-methodology.md](references/onboarding-methodology.md)
-- [structural-graph-navigation.md](references/structural-graph-navigation.md) · [software-research.md](references/software-research.md) · [deep-research-mcp.md](references/deep-research-mcp.md)
-- [backend-codex-subagents.md](references/backend-codex-subagents.md) · [backend-background-tasks.md](references/backend-background-tasks.md) · [backend-inline.md](references/backend-inline.md)
-- [ralph-loop-contract.md](references/ralph-loop-contract.md) · [vibe-methodology.md](references/vibe-methodology.md)
+Do not emit approval, confidence gates, retry instructions, owner, next action,
+or delivery state.

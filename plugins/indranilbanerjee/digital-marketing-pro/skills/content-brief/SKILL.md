@@ -1,6 +1,6 @@
 ---
 name: content-brief
-description: "Create detailed content briefs. Use when: keyword targets, outline, structure, voice guidelines, SEO requirements."
+description: "Create a production-ready content brief a writer can execute without extra context — keyword map (primary, secondary, related questions), H2/H3 outline with key points and word-count targets, brand voice guidance, on-page SEO checklist, visual/media spec with AI-generation and C2PA provenance notes, and success metrics. Triggers on \"/digital-marketing-pro:content-brief\", \"write a brief for this topic\", \"brief a blog post on X\", \"what should this article cover\", \"outline and SEO requirements for a pillar page\". Preferred upstream of /digital-marketing-pro:content-engine. Reads the brand profile, guidelines, and compliance rules."
 argument-hint: "[topic]"
 ---
 
@@ -51,7 +51,7 @@ If the piece includes AI-generated images, infographics, or short video, the bri
 
 - **Model**: `Nano Banana Pro` for high-fidelity stills with on-image text (best text rendering in any image model as of May 2026), `Gemini Omni` for connected hero-image + cutdown-video + audio packages, or alternatives (Midjourney, Firefly, gpt-image-1) for concept work.
 - **Provenance marking**: All AI assets shipped to EU readers must carry C2PA Content Credentials. Default to "sign all AI visuals" — the cost of running `/digital-marketing-pro:c2pa-metadata` post-production is trivial vs the Article 50 penalty exposure.
-- **Deepfake / synthetic-human flag**: If the visual includes a photoreal human (real or synthetic), call this out — synthetic humans typically need a visible disclosure under EU Article 50 draft guidelines (May 2026).
+- **Deepfake / synthetic-human flag**: If the visual includes a photoreal human (real or synthetic), call this out — synthetic humans typically need a visible disclosure under the final EU Article 50 Guidelines (applicable 2 Aug 2026).
 - **Editorial-responsibility owner**: For long-form on health, finance, elections, or public-safety topics, name the human editor who will sign off. AI-written copy on these topics requires the editorial-responsibility carve-out to skip an "AI-assisted" byline disclosure — see `skills/context-engine/compliance-rules.md` §1.1b.i.
 
 ## Agents Used

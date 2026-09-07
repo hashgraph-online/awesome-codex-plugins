@@ -24,7 +24,7 @@ But this ignores the 95–97%. If no investment goes into building awareness, tr
 | Bucket | Channels | Mode |
 |---|---|---|
 | **In-market** | Google Search ads, Bing Search, retargeting, brand-search, comparison-keyword campaigns, BOFU email, abandoned-cart, sales outreach | Demand capture |
-| **Out-market** | Display advertising, programmatic, YouTube TrueView, Meta Reach campaigns, LinkedIn brand campaigns, content marketing, organic social, PR, podcast advertising, sponsorships, influencer partnerships | Demand generation |
+| **Out-market** | Display advertising, programmatic, YouTube in-stream / Demand Gen, Meta Reach campaigns, LinkedIn brand campaigns, content marketing, organic social, PR, podcast advertising, sponsorships, influencer partnerships | Demand generation |
 
 ## Recommended starting allocations
 

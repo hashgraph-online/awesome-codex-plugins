@@ -1,0 +1,49 @@
+{
+  "library": "HeroUI React v3",
+  "primaryDoc": "AGENTS.md",
+  "generated": {
+    "at": "2026-07-06T07:04:20.004Z",
+    "command": "npx heroui-cli@latest agents-md --react --output AGENTS.md",
+    "analyticsDisabled": true,
+    "pluginRoot": "C:/Users/ROOT/plugins/hero-ui-craft",
+    "docsRoot": ".heroui-docs/react"
+  },
+  "documents": {
+    "agents": {
+      "relativePath": "AGENTS.md",
+      "source": "https://www.heroui.com/docs/react/getting-started/agents-md",
+      "generatedBy": "npx heroui-cli@latest agents-md --react --output AGENTS.md",
+      "path": "AGENTS.md",
+      "bytes": 41120,
+      "sha256": "b6e72f94ceb4e9ad2db5449bf4c1e9a19ed436cb1575447cc1cac355cddae071"
+    },
+    "llms": {
+      "relativePath": "llms.txt",
+      "source": "https://heroui.com/react/llms.txt",
+      "path": "llms.txt",
+      "bytes": 51735,
+      "sha256": "43dc186b592c7498f43e40d8c0334d507c3087711b1b1a7652512351ca4c728c"
+    },
+    "components": {
+      "relativePath": "llms-components.txt",
+      "source": "https://heroui.com/react/llms-components.txt",
+      "path": "llms-components.txt",
+      "bytes": 2993546,
+      "sha256": "e775c28f67060aaa2b9d163fb35a320a58445905aea6426fd8644a5deab7e307"
+    },
+    "patterns": {
+      "relativePath": "llms-patterns.txt",
+      "source": "https://heroui.com/react/llms-patterns.txt",
+      "path": "llms-patterns.txt",
+      "bytes": 248391,
+      "sha256": "db747f711b93649dddd5b89e5286f0e21c3601edc64d264711c115e86eb1488f"
+    },
+    "full": {
+      "relativePath": "llms-full.txt",
+      "source": "https://heroui.com/react/llms-full.txt",
+      "path": "llms-full.txt",
+      "bytes": 5376975,
+      "sha256": "a89a87ab3ff7eddbdf61acdc70e9d13dd876c5c25f02175711ef2c59d49b923f"
+    }
+  }
+}

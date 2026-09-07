@@ -46,6 +46,7 @@ from kicad_utils import (
     format_frequency as _format_frequency,
     load_lib_tables,
     is_ground_name as _is_ground_name,
+    is_usb_data_net_name,
     is_power_net_name as _is_power_net_name,
     load_kicad_pro,
     parse_value,
@@ -53,6 +54,7 @@ from kicad_utils import (
     snap_to_mil_grid as _snap_mil,
 )
 from kicad_types import AnalysisContext
+from bus_resolver import BusGraph, expand_bus_name, match_ports
 from signal_detectors import (
     audit_power_pin_dc_paths,
     audit_rail_sources,
@@ -162,6 +164,8 @@ def _resolve_lookup_paths(sch_path: str | Path,
     return cache_dir, dc
 
 ANALYZER_SOURCE = "sch"
+
+MAX_TESTED_FORMAT_VERSION = 20260306  # bump when a newer corpus era is adopted
 
 # ---------------------------------------------------------------------------
 # Case-insensitive distributor / MPN property helpers
@@ -625,7 +629,7 @@ def extract_components(root: list, lib_symbols: dict, instance_uuid: str = "",
         sym_def = (lib_symbols.get(lib_name) if lib_name else None) or lib_symbols.get(lib_id, {})
         is_power_sym = sym_def.get("is_power", False)
         comp["type"] = classify_component(ref, lib_id, value, is_power_sym, footprint, in_bom=in_bom,
-                                          description=description)
+                                          description=description, pins=sym_def.get("pins"))
         # Store ki_keywords for downstream analysis (e.g., P-channel detection)
         comp["keywords"] = sym_def.get("keywords", "")
         # Track power scope (global vs local) for connectivity
@@ -1253,11 +1257,9 @@ def extract_bus_elements(root: list) -> dict:
         pts = find_first(bus, "pts")
         if pts:
             xys = find_all(pts, "xy")
-            if len(xys) >= 2:
-                buses.append({
-                    "x1": float(xys[0][1]), "y1": float(xys[0][2]),
-                    "x2": float(xys[1][1]), "y2": float(xys[1][2]),
-                })
+            coords = [(float(p[1]), float(p[2])) for p in xys if len(p) > 2]
+            for (x1, y1), (x2, y2) in zip(coords, coords[1:]):
+                buses.append({"x1": x1, "y1": y1, "x2": x2, "y2": y2})
 
     bus_entries = []
     for entry in find_all(root, "bus_entry"):
@@ -1320,11 +1322,20 @@ def extract_title_block(root: list) -> dict:
 
 def build_net_map(components: list[dict], wires: list[dict], labels: list[dict],
                   power_symbols: list[dict], junctions: list[dict],
-                  no_connects: list[dict] | None = None) -> dict:
+                  no_connects: list[dict] | None = None,
+                  sheet_names: list[str] | None = None,
+                  bus_elements: dict | None = None) -> dict:
     """Build a connectivity map using union-find on coordinates.
 
     Groups all electrically connected points into nets, then names them
     from labels and power symbols.
+
+    When ``bus_elements`` carries bus wires (GH #25), a per-sheet bus pass
+    resolves hierarchical bus connectivity: bus-name labels are consumed out
+    of the ordinary label handling, and their members are joined by name,
+    by bus entry, and — across sheet pins — positionally to the child sheet's
+    hier-label bus. On ``bus_elements=None`` or a board with no bus wires the
+    pass is inert and the output is byte-identical to the pre-#25 map.
     """
     EPSILON = COORD_EPSILON
 
@@ -1356,19 +1367,25 @@ def build_net_map(components: list[dict], wires: list[dict], labels: list[dict],
         point_info.setdefault(k, []).append(info)
         return k
 
-    # Add component pins (skip PWR_FLAG — it's an ERC marker, not a real connection)
+    # Add component pins. PWR_FLAG is an ERC marker, not a real connection —
+    # still register its position so the net gets a has_pwr_flag annotation.
     for comp in components:
-        if comp.get("value") == "PWR_FLAG" or comp.get("type") == "power_flag":
-            continue
+        is_pwr_flag = comp.get("value") == "PWR_FLAG" or comp.get("type") == "power_flag"
         sheet = comp.get("_sheet", 0)
         for pin in comp.get("pins", []):
-            add_point(pin["x"], pin["y"], {
-                "source": "pin",
-                "component": comp["reference"],
-                "pin_number": pin["number"],
-                "pin_name": pin["name"],
-                "pin_type": pin["type"],
-            }, sheet)
+            if is_pwr_flag:
+                add_point(pin["x"], pin["y"], {
+                    "source": "pwr_flag",
+                    "component": comp["reference"],
+                }, sheet)
+            else:
+                add_point(pin["x"], pin["y"], {
+                    "source": "pin",
+                    "component": comp["reference"],
+                    "pin_number": pin["number"],
+                    "pin_name": pin["name"],
+                    "pin_type": pin["type"],
+                }, sheet)
 
     # Add wire endpoints and union them.
     # Also build a list of wire segments so we can detect points that land
@@ -1417,7 +1434,7 @@ def build_net_map(components: list[dict], wires: list[dict], labels: list[dict],
         return True
 
     def union_with_overlapping_wires(k, px, py, sheet=0):
-        """Union point k with any wire segment it lies on (same sheet only)."""
+        """Union point k with every wire segment it lies on (same sheet only)."""
         gx = int(px // _WIRE_GRID_SIZE)
         gy = int(py // _WIRE_GRID_SIZE)
         candidates = wire_grid.get((sheet, gx, gy), ())
@@ -1425,12 +1442,63 @@ def build_net_map(components: list[dict], wires: list[dict], labels: list[dict],
             wk1, wk2, wx1, wy1, wx2, wy2, ws = wire_segments[idx]
             if point_on_segment(px, py, wx1, wy1, wx2, wy2):
                 union(k, wk1)
-                return  # one match is enough since wire endpoints are already unioned
+                # KH-360: no early return — a junction/label at a crossing
+                # must join every wire under it, matching KiCad's
+                # connection_graph (all coincident lines are inserted).
+
+    # Bus pass classification (GH #25). Group bus wires/entries per sheet,
+    # build a BusGraph for every sheet that carries bus wire, and attach each
+    # bus-name label to its cluster. Consumed bus-name labels are removed from
+    # ordinary label handling (they create no coordinate point, no label_keys
+    # entry, no net_labels) — this drops the 0-pin bus-name phantoms and the
+    # bare-name parent↔child union, both of which the bus pass replaces.
+    bus_active = bool(bus_elements and bus_elements.get("bus_wires"))
+    bus_graphs: dict[int, BusGraph] = {}
+    bus_aliases: dict = {}
+    bus_label_idx: set[int] = set()
+    bus_named_labels: list[tuple] = []  # (sheet, bare, x, y) for local/hier labels
+    if bus_active:
+        bus_aliases = {a["name"]: a["members"]
+                       for a in bus_elements.get("bus_aliases", [])}
+        wires_by_sheet: dict[int, list] = {}
+        entries_by_sheet: dict[int, list] = {}
+        for bw in bus_elements.get("bus_wires", []):
+            wires_by_sheet.setdefault(bw.get("_sheet", 0), []).append(bw)
+        for be_ in bus_elements.get("bus_entries", []):
+            entries_by_sheet.setdefault(be_.get("_sheet", 0), []).append(be_)
+        for s in wires_by_sheet:
+            bus_graphs[s] = BusGraph(s, wires_by_sheet[s],
+                                     entries_by_sheet.get(s, []), bus_aliases)
+        for idx, lbl in enumerate(labels):
+            s = lbl.get("_sheet", 0)
+            g = bus_graphs.get(s)
+            if g is None:
+                continue
+            raw_name = lbl["name"]
+            if isinstance(raw_name, list):
+                raw_name = str(raw_name[0]) if raw_name else ""
+            bare = lbl.get("_bare_name", raw_name)
+            if expand_bus_name(bare, bus_aliases) is None:
+                continue
+            role = ("pin" if lbl.get("_is_sheet_pin")
+                    else ("hier" if lbl["type"] == "hierarchical_label"
+                          else "local"))
+            if g.add_bus_label(bare, lbl["x"], lbl["y"],
+                               ns=lbl.get("_hier_ns", ""), role=role):
+                bus_label_idx.add(idx)
+                if role in ("local", "hier"):
+                    bus_named_labels.append((s, bare, lbl["x"], lbl["y"]))
+            else:
+                g.note_unresolved("label_not_on_bus_wire", bare)
+        for g in bus_graphs.values():
+            g.finalize()
 
     # Add labels — in KiCad, labels can be placed anywhere on a wire,
     # not just at endpoints, so we must check for mid-wire placement.
     label_keys: dict[str, list] = {}  # label_name -> list of coordinate keys
-    for lbl in labels:
+    for idx, lbl in enumerate(labels):
+        if idx in bus_label_idx:
+            continue
         sheet = lbl.get("_sheet", 0)
         # KH-078: Defensive coercion — malformed labels can have list names
         lbl_name = lbl["name"]
@@ -1443,8 +1511,21 @@ def build_net_map(components: list[dict], wires: list[dict], labels: list[dict],
         }, sheet)
         # Only global labels and power symbols connect across sheets.
         # Local labels only connect within the same sheet (handled by wire union).
-        if lbl["type"] in ("global_label", "hierarchical_label"):
+        if lbl["type"] == "global_label":
             label_keys.setdefault(lbl_name, []).append(k)
+        elif lbl["type"] == "hierarchical_label":
+            # Cross-sheet by (namespaced) name — the pre-existing hier union.
+            label_keys.setdefault(lbl_name, []).append(k)
+            # AND same-name LOCAL labels on this sheet: KiCad joins a real
+            # hierarchical label to same-name local labels within its own sheet
+            # (openmd's root V_{ANA}, where a hier V_{ANA} and a local V_{ANA}
+            # name one net). Sheet PINS are excluded: a sheet pin's bare name is
+            # the child's, and several pins for different child instances share
+            # one bare name on one parent sheet — they must stay per-instance
+            # (mapped through the hierarchy), never merged by same-sheet name.
+            if not lbl.get("_is_sheet_pin"):
+                bare = lbl.get("_bare_name", lbl_name)
+                label_keys.setdefault((bare, sheet), []).append(k)
         else:
             # Local labels: union same-name labels within this sheet only
             local_key = (lbl_name, sheet)
@@ -1461,6 +1542,7 @@ def build_net_map(components: list[dict], wires: list[dict], labels: list[dict],
         k = add_point(ps["x"], ps["y"], {
             "source": "power_symbol",
             "net_name": ps["net_name"],
+            "power_scope": ps.get("_power_scope", "global"),
         }, sheet)
         # Global power symbols connect across all sheets; local power symbols
         # only connect within the same sheet (isolated power domains).
@@ -1503,8 +1585,158 @@ def build_net_map(components: list[dict], wires: list[dict], labels: list[dict],
     if no_connects:
         for nc in no_connects:
             sheet = nc.get("_sheet", 0)
-            k = add_point(nc["x"], nc["y"], {"source": "no_connect"}, sheet)
-            union_with_overlapping_wires(k, nc["x"], nc["y"], sheet)
+            # A no-connect marker is an ERC annotation, never a connection.
+            # add_point() already shares the coordinate key with a pin or wire
+            # endpoint on the same point, which is all the absorption and NC
+            # tagging described above needs. Unioning the marker with every
+            # *overlapping* wire also caught wires passing mid-span beneath it,
+            # which KiCad does not connect, dragging the NC'd pin into that
+            # wire's net — a false-positive connection.
+            add_point(nc["x"], nc["y"], {"source": "no_connect"}, sheet)
+
+    # Bus pass unions (GH #25). A bus member is joined into the coordinate
+    # union-find through a synthetic slot key ("bus", sheet, cluster, member).
+    # Three mechanisms feed the same slot:
+    #   (A) by name — a wire labelled with a member name (Increment0) IS that
+    #       member, bus entry or not (KiCad names bus members after labels);
+    #   (B) by bus entry — an entry-tapped wire, resolved by intersecting the
+    #       tapped net's local labels with the cluster member set (covers
+    #       unlabelled tapped wires that (A) can't reach);
+    #   (C) across a sheet pin — the parent's pin-port members map positionally
+    #       onto the matching child hier-port members.
+    if bus_active and bus_graphs:
+        def bus_slot(sheet, cid, member):
+            sk = ("bus", sheet, cid, member)
+            if sk not in parent:
+                parent[sk] = sk
+            return sk
+
+        # (A) Name-based member joining for local/hier bus labels. Sheet-pin
+        # ("pin") labels are excluded: their members name the child's nets,
+        # not the parent's local nets, so they map only positionally in (C).
+        # Only the same-sheet LOCAL key `(member, s)` is accepted — a
+        # local/hier bus member is local-scoped, so it must not fuse with a
+        # coincidentally same-named GLOBAL label (keyed bare) elsewhere; KiCad
+        # keeps local/hier bus scope separate from the global net space.
+        #
+        # Same-sheet bus-name joining (member_rep): a local or hierarchical
+        # bus label has sheet scope — KiCad connects same-name local/hier
+        # labels within a sheet. Two physically-separate bus clusters on one
+        # sheet that carry labels sharing a member name are therefore one net
+        # for that member (the member-level analogue of the ordinary same-name
+        # local-label union that the bus pass suppressed for bus labels). This
+        # is what chains a pass-through sheet's parent-side cluster to its
+        # child-side sheet-pin clusters (e.g. m68k's Memory routing D[0..31]
+        # down to Cache/SIMM/CDC). Sheet pins are excluded (not in
+        # bus_named_labels), so a pin without a co-located local label does not
+        # name-join — it connects only by wire and the positional match (C).
+        member_rep: dict[tuple, tuple] = {}  # (sheet, member) -> a member slot
+        for s, bare, lx, ly in bus_named_labels:
+            g = bus_graphs[s]
+            cid = g.cluster_at(lx, ly)
+            expansion = expand_bus_name(bare, bus_aliases)
+            if not expansion:
+                continue
+            for member in expansion:
+                slot = bus_slot(s, cid, member)
+                lk = label_keys.get((member, s))
+                if lk:
+                    union(slot, lk[0])
+                rep = member_rep.get((s, member))
+                if rep is None:
+                    member_rep[(s, member)] = slot
+                else:
+                    union(rep, slot)
+
+        # (B1) Register every bus-entry tap point and union it with the wires
+        # it lands on. This must precede the root_names sweep so a tapped
+        # wire's labels are visible on the tap's net.
+        tap_points = []  # (sheet, tap_key, tap)
+        for s in sorted(bus_graphs):
+            g = bus_graphs[s]
+            for tap in g.taps:
+                tk = add_point(tap["x"], tap["y"], {"source": "bus_tap"}, s)
+                union_with_overlapping_wires(tk, tap["x"], tap["y"], s)
+                tap_points.append((s, tk, tap))
+
+        # Local label names present on each union group, for tap member ID.
+        root_names: dict = {}
+        for pk, infos in point_info.items():
+            for i in infos:
+                if (i["source"] == "label"
+                        and (i.get("label_type") or "label")
+                        in ("label", "directive_label") and i.get("name")):
+                    root_names.setdefault(find(pk), set()).add(i["name"])
+
+        # (B2) Resolve each tap to its member slot(s) (after the root_names
+        # sweep). Normally the tapped wire carries exactly one member label.
+        # When several member wires of one bus are shorted together (e.g. all
+        # tied to GND), the tapped net carries every one of those labels — KiCad
+        # collapses those members to a single net, so we union the tap with each
+        # matched member slot (sorted for determinism). A tap whose net carries
+        # no label at all is genuinely unlabeled; a tap whose net DOES carry a
+        # label that just isn't one of this bus's member names is a distinct
+        # failure (the label misnamed/mistargeted, not absent) — kept separate
+        # so the reason says what was actually unresolved.
+        for s, tk, tap in tap_points:
+            g = bus_graphs[s]
+            names = root_names.get(find(tk), set())
+            mset = g.cluster_member_set(tap["cluster"])
+            cand = (names & mset) if mset is not None else set(names)
+            if cand:
+                for member in sorted(cand):
+                    union(tk, bus_slot(s, tap["cluster"], member))
+            elif names:
+                g.note_unresolved("entry_tap_name_not_in_bus", sorted(names)[0])
+            else:
+                g.note_unresolved("unlabeled_entry_tap", None)
+
+        # (C) Positional sheet-pin port matching.
+        pin_ports, hier_ports = [], []
+        for s in sorted(bus_graphs):
+            g = bus_graphs[s]
+            for p in g.ports:
+                p = dict(p, sheet=s)
+                if p["role"] == "pin":
+                    p["parent_ordered"] = g.cluster_ordered(
+                        p["cluster"], len(p["members"]))
+                    pin_ports.append(p)
+                else:
+                    hier_ports.append(p)
+
+        # (C0) Co-clustered sheet pins are one physical bus. When a bus is
+        # routed straight from one sub-sheet symbol's pin to another's on a
+        # single cluster (no relabeling local label to canonicalize it), the
+        # two differently-named pins are the same wire, so bit i of each is one
+        # net. Join their member slots positionally, using the SAME effective
+        # ordering (C) uses — the cluster's local-label ordering if present,
+        # else the pin's own members — so this stays consistent with the
+        # pin↔hier mapping below. With a local label all pins already share
+        # that ordering, so this is a no-op there; it only bridges the
+        # no-local-label case (e.g. m68k's Bus sheet routing PEP_AD↔AD,
+        # ISA_D↔D, ATA_D↔D straight through to the peripheral sub-sheets).
+        pins_by_cluster: dict[tuple, list] = {}
+        for p in pin_ports:
+            pins_by_cluster.setdefault((p["sheet"], p["cluster"]), []).append(p)
+        for grp in pins_by_cluster.values():
+            if len(grp) < 2:
+                continue
+            ref = grp[0]["parent_ordered"] or grp[0]["members"]
+            for other in grp[1:]:
+                eff = other["parent_ordered"] or other["members"]
+                if len(eff) != len(ref):
+                    continue
+                for i in range(len(ref)):
+                    union(bus_slot(grp[0]["sheet"], grp[0]["cluster"], ref[i]),
+                          bus_slot(other["sheet"], other["cluster"], eff[i]))
+
+        all_unresolved: list = []
+        for (ps, pc, pm), (cs, cc, cm) in match_ports(
+                pin_ports, hier_ports, all_unresolved):
+            union(bus_slot(ps, pc, pm), bus_slot(cs, cc, cm))
+
+        bus_elements["_unresolved"] = all_unresolved + [
+            u for s in sorted(bus_graphs) for u in bus_graphs[s].unresolved]
 
     # Build net groups
     net_groups: dict[tuple, list[tuple]] = {}
@@ -1513,7 +1745,7 @@ def build_net_map(components: list[dict], wires: list[dict], labels: list[dict],
         net_groups.setdefault(root_k, []).append(k)
 
     # Name the nets
-    nets = {}
+    staged = []
     net_id = 0
     for root_k, members in net_groups.items():
         # Collect all info for this net
@@ -1530,33 +1762,46 @@ def build_net_map(components: list[dict], wires: list[dict], labels: list[dict],
             "label": 3,
             "directive_label": 4,
         }
-        best_name = None
-        best_priority = 999
 
         # Accumulate every global / hierarchical / local label attached to
         # this net (LB-001 reads this; also useful for report annotations).
         # Dedup by (name, label_type).
+        # best = (priority, tiebreak_sheet, seq, name, is_local, sheet)
+        # tiebreak_sheet is -1 for global-scope sources so, at equal priority,
+        # a global name beats a local one and a lower (parent) sheet beats a
+        # higher one — KiCad names a resolved net after the parent member
+        # label. seq preserves first-seen order at full ties.
+        best = None
+        seq = 0
         net_labels_seen: set[tuple[str, str]] = set()
         net_labels: list[dict] = []
-
-        for info in all_info:
-            if info["source"] == "power_symbol":
-                p = _NET_NAME_PRIORITY["power_symbol"]
-                if p < best_priority:
-                    best_name = info["net_name"]
-                    best_priority = p
-            elif info["source"] == "label":
-                lbl_name = info.get("name") or ""
-                lbl_type = info.get("label_type") or "label"
-                p = _NET_NAME_PRIORITY.get(lbl_type, 3)
-                if p < best_priority:
-                    best_name = lbl_name
-                    best_priority = p
-                key_tuple = (lbl_name, lbl_type)
-                if lbl_name and key_tuple not in net_labels_seen:
-                    net_labels_seen.add(key_tuple)
-                    net_labels.append({"name": lbl_name, "type": lbl_type})
-        net_name = best_name
+        for m in members:
+            m_sheet = m[0]
+            for info in point_info.get(m, []):
+                src = info["source"]
+                if src == "power_symbol":
+                    p = _NET_NAME_PRIORITY["power_symbol"]
+                    cand_name = info["net_name"]
+                    is_local = info.get("power_scope") == "local"
+                elif src == "label":
+                    lbl_name = info.get("name") or ""
+                    lbl_type = info.get("label_type") or "label"
+                    p = _NET_NAME_PRIORITY.get(lbl_type, 3)
+                    cand_name = lbl_name
+                    is_local = lbl_type in ("label", "directive_label")
+                    key_tuple = (lbl_name, lbl_type)
+                    if lbl_name and key_tuple not in net_labels_seen:
+                        net_labels_seen.add(key_tuple)
+                        net_labels.append({"name": lbl_name, "type": lbl_type})
+                else:
+                    continue
+                if cand_name:
+                    cand = (p, m_sheet if is_local else -1, seq,
+                            cand_name, is_local, m_sheet)
+                    if best is None or cand[:3] < best[:3]:
+                        best = cand
+                seq += 1
+        net_name = best[3] if best else None
 
         # Check if any member of this group is a no-connect marker OR a
         # library-defined NC pin (pin type "no_connect" in the symbol def).
@@ -1565,6 +1810,8 @@ def build_net_map(components: list[dict], wires: list[dict], labels: list[dict],
             or any(i.get("pin_type") in ("no_connect", "unconnected")
                    for i in all_info if i["source"] == "pin")
         )
+
+        has_pwr_flag = any(i["source"] == "pwr_flag" for i in all_info)
 
         if net_name is None:
             # Only create unnamed nets if they have component pins
@@ -1588,31 +1835,69 @@ def build_net_map(components: list[dict], wires: list[dict], labels: list[dict],
         # Keep nets that have pin connections, OR named nets (from labels/power symbols)
         # even without pins — this supports legacy files where pin positions aren't available
         if pin_connections or not net_name.startswith("__unnamed_"):
-            if net_name in nets:
-                # Merge into existing net (can happen when a local label shares a
-                # name with a power symbol or global label on a disconnected wire
-                # network — e.g., a "GND" label on a connector that isn't wired
-                # to the main GND power symbol network).
-                nets[net_name]["pins"].extend(pin_connections)
-                nets[net_name]["point_count"] += len(members)
-                if has_nc_marker:
-                    nets[net_name]["no_connect"] = True
-                existing_labels = nets[net_name].setdefault("labels", [])
-                existing_seen = {(lbl["name"], lbl["type"]) for lbl in existing_labels}
-                for nl in net_labels:
-                    if (nl["name"], nl["type"]) not in existing_seen:
-                        existing_labels.append(nl)
-                        existing_seen.add((nl["name"], nl["type"]))
-            else:
-                nets[net_name] = {
-                    "name": net_name,
-                    "pins": pin_connections,
-                    "point_count": len(members),
-                    "no_connect": has_nc_marker,
-                    "labels": net_labels,
-                }
+            staged.append({
+                "bare": net_name,
+                "is_local": bool(best) and best[4],
+                "sheet": best[5] if best else 0,
+                "pins": pin_connections,
+                "point_count": len([m for m in members if m[0] != "bus"]),
+                "no_connect": has_nc_marker,
+                "has_pwr_flag": has_pwr_flag,
+                "labels": net_labels,
+            })
 
+    # KH-359: one entry per union-find group. On bare-name collisions the
+    # global-scope group keeps the bare key; local groups get KiCad-style
+    # /<sheet>/<name> keys (sheet file stem, #N for repeated instance stems).
+    n_sheets = 1 + max((e["sheet"] for e in staged), default=0)
+    sheet_labels, _stem_counts = [], {}
+    for i in range(n_sheets):
+        stem = (sheet_names[i] if sheet_names and i < len(sheet_names)
+                else f"sheet{i}")
+        _stem_counts[stem] = _stem_counts.get(stem, 0) + 1
+        n = _stem_counts[stem]
+        sheet_labels.append(stem if n == 1 else f"{stem}#{n}")
+
+    by_bare: dict[str, list[dict]] = {}
+    for e in staged:
+        by_bare.setdefault(e["bare"], []).append(e)
+
+    nets = {}
+    for bare, entries in by_bare.items():
+        for e in entries:
+            if len(entries) == 1 or not e["is_local"]:
+                k = bare
+            else:
+                k = f"/{sheet_labels[e['sheet']]}/{bare}"
+            n = 2
+            while k in nets:
+                k = f"/{sheet_labels[e['sheet']]}/{bare}#{n}"
+                n += 1
+            entry = {
+                "name": k,
+                "pins": e["pins"],
+                "point_count": e["point_count"],
+                "no_connect": e["no_connect"],
+                "has_pwr_flag": e["has_pwr_flag"],
+                "labels": e["labels"],
+            }
+            if k != bare:
+                entry["display_name"] = bare
+            nets[k] = entry
     return nets
+
+
+# Internal-only fields the bus pass (GH #25) reads off namespaced hierarchical
+# labels. They must never reach the user-facing `labels` output. `_sheet` is
+# NOT one of these — it has leaked on every label since before this branch, so
+# stripping it would itself change baseline output.
+_INTERNAL_LABEL_KEYS = ("_bare_name", "_hier_ns", "_is_sheet_pin")
+
+
+def _labels_for_output(labels: list[dict]) -> list[dict]:
+    """Return a copy of `labels` with the bus-pass internal keys removed."""
+    return [{k: v for k, v in lbl.items() if k not in _INTERNAL_LABEL_KEYS}
+            for lbl in labels]
 
 
 def generate_bom(components: list[dict]) -> list[dict]:
@@ -2018,14 +2303,22 @@ def analyze_ic_pinouts(ctx: AnalysisContext,
             net_name, net_info = pin_net.get(pin_key, (None, None))
 
             # Check if pin has a no-connect marker (by position, net flag, or
-            # library-defined NC pin type)
+            # library-defined NC pin type).
             pin_pos = (ic.get("_sheet", 0),
                        round(pin["x"] / EPSILON) * EPSILON,
                        round(pin["y"] / EPSILON) * EPSILON)
+            # The net-level no_connect flag is set when *any* point in a net's
+            # union-find group is an NC marker (extract_nets line ~1490). On a
+            # genuinely-connected multi-pin net it must NOT mark every pin as
+            # NO_CONNECT — e.g. a stray NC marker absorbed into VBUS/GND would
+            # otherwise flip all of that rail's IC pins to NO_CONNECT. Only honor
+            # the net flag for single-pin nets, which covers the real case where
+            # the marker sits on a short wire stub rather than exactly on the pin.
+            net_pin_count = len(net_info.get("pins", [])) if net_info else 0
             has_no_connect = (
                 pin_pos in nc_positions
-                or bool(net_info and net_info.get("no_connect"))
                 or pin.get("type") in ("no_connect", "unconnected")
+                or bool(net_info and net_info.get("no_connect") and net_pin_count <= 1)
             )
 
             # Get components sharing this net
@@ -3148,7 +3441,8 @@ def parse_legacy_schematic(path: str, analysis_dir: str | Path | None = None) ->
 
     # Build nets from wires + labels + power symbols + component pins
     nets = build_net_map(all_components, all_wires, all_labels, power_symbols, all_junctions,
-                         all_no_connects)
+                         all_no_connects,
+                         sheet_names=[Path(p).stem for p in sheets_parsed])
 
     stats = compute_statistics(all_components, nets, bom, all_wires, all_no_connects)
 
@@ -3267,7 +3561,7 @@ def parse_legacy_schematic(path: str, analysis_dir: str | Path | None = None) ->
         "findings": findings,
         "assessments": [],
         "design_analysis": design_analysis,
-        "labels": all_labels,
+        "labels": _labels_for_output(all_labels),
         "no_connects": all_no_connects,
         "power_symbols": power_symbols,
         "annotation_issues": annotation_issues,
@@ -4526,18 +4820,30 @@ def _detect_differential_pairs(ctx: AnalysisContext) -> list:
         ("_TDP", "_TDN"), ("_RDP", "_RDN"),
     ]
 
-    # Net-name-based detection: find matching suffix pairs
-    net_names_upper = {n.upper(): n for n in nets}
+    # Net-name-based detection: find matching suffix pairs. Key by
+    # (sheet_prefix, display_name.upper()) so a KH-359 sheet-qualified net
+    # (e.g. /s1/USB_P, display_name "USB_P") still pairs by name, but two
+    # same-named nets on *different* sheets never cross-pair. Plain
+    # assignment (not setdefault) preserves the pre-KH-359 comprehension's
+    # last-wins semantics on a case-insensitive collision: unqualified
+    # boards must resolve a collision identically to the old
+    # `{n.upper(): n for n in nets}` one-liner.
+    net_names_upper: dict[tuple[str, str], str] = {}
+    for k, v in nets.items():
+        disp = v.get("display_name", k)
+        prefix = k[: -len(disp)] if k.endswith(disp) else ""
+        net_names_upper[(prefix, disp.upper())] = k
     found_pairs: set[tuple[str, str]] = set()  # track to avoid duplicates
 
     for pos_sfx, neg_sfx in _diff_suffix_pairs:
-        for nu, real_name in net_names_upper.items():
+        for (prefix, nu), real_name in net_names_upper.items():
             if nu.endswith(pos_sfx.upper()):
                 base = nu[:-len(pos_sfx)]
                 neg_candidate = base + neg_sfx.upper()
-                if neg_candidate in net_names_upper:
+                neg_key = (prefix, neg_candidate)
+                if neg_key in net_names_upper:
                     pos_real = real_name
-                    neg_real = net_names_upper[neg_candidate]
+                    neg_real = net_names_upper[neg_key]
                     pair_key = (min(pos_real, neg_real), max(pos_real, neg_real))
                     if pair_key in found_pairs:
                         continue
@@ -4716,7 +5022,10 @@ def _estimate_rail_voltage(net_name: str) -> float | None:
     if v is not None:
         return v
     # Hardcoded fallbacks for common names without voltage numbers
-    if "VBUS" in nu or "USB" in nu:
+    if "VBUS" in nu:
+        return 5.0
+    # KH-343: only non-data USB nets (VBUS-ish) default to 5V
+    if "USB" in nu and not is_usb_data_net_name(nu):
         return 5.0
     return None
 
@@ -4830,26 +5139,16 @@ def audit_pwr_flags(components: list[dict], nets: dict, known_power_rails: set) 
     """
     warnings = []
 
-    # Find nets with PWR_FLAG
-    flagged_nets = set()
-    for c in components:
-        if c["type"] == "power_flag" or (c["type"] == "flag" and "PWR_FLAG" in c.get("lib_id", "")):
-            # PWR_FLAG connects to whatever net its pin is on
-            for pin in c.get("pins", []):
-                px, py = pin["x"], pin["y"]
-                # Find which net this pin is on
-                for net_name, net_info in nets.items():
-                    for p in net_info["pins"]:
-                        if p["component"] == c["reference"]:
-                            flagged_nets.add(net_name)
-
-    # Check each power rail
-    for net_name in known_power_rails:
-        if net_name in flagged_nets:
-            continue
+    # Check each power rail (sorted: set order is hash-randomized per
+    # process and pwr_flag_warnings must be byte-stable across runs)
+    for net_name in sorted(known_power_rails):
         if net_name not in nets:
             continue
         net_info = nets[net_name]
+        # KH-354: PWR_FLAG pins never appear in pins[] (build_net_map
+        # registers them as source points) — credit the net-level flag.
+        if net_info.get("has_pwr_flag"):
+            continue
         pin_types = set(p["pin_type"] for p in net_info["pins"])
 
         # If the net has only power_in pins (no power_out), it needs PWR_FLAG
@@ -4937,6 +5236,22 @@ def validate_footprint_filters(components: list[dict], lib_symbols: dict) -> lis
     return warnings
 
 
+def _bom_real_components(components: list[dict]) -> list[dict]:
+    """Filter to components that count as real BOM parts.
+
+    Excludes power symbols/flags, test points, mounting holes, fiducials,
+    graphics, DNP parts, and anything not marked in_bom. Shared by
+    audit_datasheet_coverage (DS-001/002/003) and audit_sourcing_gate
+    (SS-001/002/003) — both need the same "real BOM part" definition
+    (KH-390).
+    """
+    return [c for c in components
+            if c.get("type") not in ("power_symbol", "power_flag", "flag",
+                                     "test_point", "mounting_hole",
+                                     "fiducial", "graphic")
+            and c.get("in_bom") and not c.get("dnp")]
+
+
 def audit_datasheet_coverage(components: list[dict],
                              project_dir: str) -> list[dict]:
     """Emit a banner-level finding when datasheet evidence is absent.
@@ -4953,11 +5268,7 @@ def audit_datasheet_coverage(components: list[dict],
     MPNs are set — offer to sync).
     """
     findings: list[dict] = []
-    real = [c for c in components
-            if c.get("type") not in ("power_symbol", "power_flag", "flag",
-                                     "test_point", "mounting_hole",
-                                     "fiducial", "graphic")
-            and c.get("in_bom") and not c.get("dnp")]
+    real = _bom_real_components(components)
     # Deduplicate by reference (multi-unit symbols)
     seen = set()
     unique = []
@@ -5010,13 +5321,29 @@ def audit_datasheet_coverage(components: list[dict],
             pass
 
     # Build finding.
-    refs_without_mpn = sorted(c.get("reference", "")
-                              for c in unique if not c.get("mpn"))[:20]
-
     if ds_dir_found and ds_file_count > 0:
         # Datasheets present — no banner needed. Emit info-only if coverage
-        # is partial so the reviewer knows which refs are ungrounded.
-        if mpn_pct < 90 and refs_without_mpn:
+        # is partial so the reviewer knows which lines are ungrounded.
+        # DS-003 counts by unique BOM line (value + footprint), the same
+        # basis SS-002 uses — a line has coverage if ANY instance carries
+        # an MPN (KH-390: the two denominators used to disagree).
+        line_groups: dict[tuple, dict] = {}
+        for c in real:
+            key = (c.get("value", ""), c.get("footprint", ""))
+            line = line_groups.setdefault(key, {"refs": [], "has_mpn": False})
+            r = c.get("reference", "")
+            if r:
+                line["refs"].append(r)
+            if c.get("mpn"):
+                line["has_mpn"] = True
+        line_total = len(line_groups)
+        missing_lines = [line for line in line_groups.values()
+                         if not line["has_mpn"]]
+        line_pct = ((line_total - len(missing_lines)) / line_total * 100
+                    if line_total else 0.0)
+        refs_without_mpn = sorted(
+            {r for line in missing_lines for r in line["refs"]})[:20]
+        if line_pct < 90 and refs_without_mpn:
             findings.append({
                 "detector": "audit_datasheet_coverage",
                 "rule_id": "DS-003",
@@ -5025,15 +5352,16 @@ def audit_datasheet_coverage(components: list[dict],
                 "evidence_source": "bom",
                 "category": "verification",
                 "summary": (f"Datasheets present ({ds_file_count} files) but "
-                            f"{total - mpn_count}/{total} BOM parts lack an "
-                            "MPN — those parts can't be cross-referenced."),
+                            f"{len(missing_lines)} of {line_total} unique "
+                            "BOM lines lack an MPN — those lines can't be "
+                            "cross-referenced."),
                 "components": refs_without_mpn,
                 "nets": [],
                 "pins": [],
                 "datasheets_dir": ds_dir_found,
                 "datasheet_file_count": ds_file_count,
-                "bom_size": total,
-                "mpn_coverage_percent": round(mpn_pct, 1),
+                "bom_size": line_total,
+                "mpn_coverage_percent": round(line_pct, 1),
                 "recommendation": ("Set the MPN field on the listed parts "
                                    "and re-sync datasheets so every BOM "
                                    "entry has manufacturer evidence."),
@@ -5176,11 +5504,7 @@ def audit_sourcing_gate(components: list[dict]) -> list[dict]:
     mpn_percent == 100 emits nothing.
     """
     findings: list[dict] = []
-    real = [c for c in components
-            if c.get("type") not in ("power_symbol", "power_flag", "flag",
-                                     "test_point", "mounting_hole",
-                                     "fiducial", "graphic")
-            and c.get("in_bom") and not c.get("dnp")]
+    real = _bom_real_components(components)
     if not real:
         return findings
 
@@ -5216,7 +5540,7 @@ def audit_sourcing_gate(components: list[dict]) -> list[dict]:
                     f"({covered}/{total} unique parts). Board is not pre-fab ready.")
     elif pct < 80.0:
         rid, sev = "SS-002", "warning"
-        headline = (f"Sourcing gap: {covered}/{total} unique BOM parts have an MPN "
+        headline = (f"Sourcing gap: {covered}/{total} unique BOM lines have an MPN "
                     f"({pct:.0f}%). Populate before fab.")
     else:
         rid, sev = "SS-003", "info"
@@ -5569,18 +5893,33 @@ def analyze_bus_topology(bus_elements: dict, labels: list[dict], nets: dict) -> 
     result = {
         "bus_wire_count": len(bus_elements.get("bus_wires", [])),
         "bus_entry_count": len(bus_elements.get("bus_entries", [])),
+        # GH #25 honesty invariant (spec §4): bus constructs the resolver
+        # could not confidently resolve are surfaced, never silently dropped.
+        "unresolved": sorted(
+            ({"reason": u.get("reason", ""), "name": u.get("name")}
+             for u in bus_elements.get("_unresolved", [])),
+            key=lambda u: (u["reason"], u["name"] is None, u["name"] or ""),
+        ),
     }
 
     aliases = bus_elements.get("bus_aliases", [])
     if aliases:
         alias_info = []
         all_label_names = set(l["name"] for l in labels)
+        # KH-359: net keys may be sheet-qualified (/<sheet>/<name>) with the
+        # bare name on display_name. Bus alias members are always bare
+        # label names, so match against keys ∪ display_names.
+        display_index = set(nets)
+        for _v in nets.values():
+            dn = _v.get("display_name")
+            if dn:
+                display_index.add(dn)
         for alias in aliases:
             members = alias["members"]
             present = [m for m in members if m in all_label_names]
             missing = [m for m in members if m not in all_label_names]
             # Check which member names resolve to actual nets
-            resolved = [m for m in members if m in nets]
+            resolved = [m for m in members if m in display_index]
             entry = {
                 "name": alias["name"],
                 "member_count": len(members),
@@ -5589,7 +5928,7 @@ def analyze_bus_topology(bus_elements: dict, labels: list[dict], nets: dict) -> 
             }
             if missing:
                 entry["missing_labels"] = missing
-            unresolved = [m for m in members if m not in nets]
+            unresolved = [m for m in members if m not in display_index]
             if unresolved:
                 entry["unresolved_members"] = unresolved
             alias_info.append(entry)
@@ -5970,7 +6309,8 @@ def check_instance_consistency(components: list[dict]) -> list[dict]:
     return warnings
 
 
-def validate_hierarchical_labels(labels: list[dict], nets: dict) -> dict:
+def validate_hierarchical_labels(labels: list[dict], nets: dict,
+                                 bus_elements: dict | None = None) -> dict:
     """Validate hierarchical label usage for cross-sheet connectivity.
 
     Checks for orphaned hierarchical labels (no matching sheet pin), hierarchical
@@ -5984,12 +6324,25 @@ def validate_hierarchical_labels(labels: list[dict], nets: dict) -> dict:
         "global_label_count": len(global_labels),
     }
 
-    # Check for hierarchical labels that don't appear in any net
+    # Bus-name hierarchical labels are consumed by the bus pass (expanded to
+    # members), so they legitimately never appear as a net under their own bus
+    # name — In[0..7], {PHASES}, etc. Excluding them keeps this validation from
+    # false-flagging every hierarchical bus as unconnected (GH #25).
+    aliases = {a["name"]: a["members"]
+               for a in (bus_elements or {}).get("bus_aliases", [])}
+
+    def _is_bus_label(l: dict) -> bool:
+        bare = l.get("_bare_name", l["name"])
+        return expand_bus_name(bare, aliases) is not None
+
+    # Check for hierarchical labels that don't appear in any net (bus labels
+    # excluded — they resolve to member nets, not a net under their bus name).
+    scalar_hier_names = set(l["name"] for l in hier_labels if not _is_bus_label(l))
     hier_names = set(l["name"] for l in hier_labels)
     global_names = set(l["name"] for l in global_labels)
     net_names = set(nets.keys())
 
-    unconnected_hier = sorted(hier_names - net_names)
+    unconnected_hier = sorted(scalar_hier_names - net_names)
     if unconnected_hier:
         result["unconnected_hierarchical"] = unconnected_hier
 
@@ -6303,14 +6656,73 @@ def analyze_sleep_current(ctx: AnalysisContext,
 
         # Pull-up resistor: one side to power rail, other side to a signal net
         if is_power_net(n1) and not is_ground(n1) and not is_power_net(n2):
-            pwr_net = n1
+            pwr_net, sig_net = n1, n2
         elif is_power_net(n2) and not is_ground(n2) and not is_power_net(n1):
-            pwr_net = n2
+            pwr_net, sig_net = n2, n1
         else:
             continue
 
         v_rail = _estimate_rail_voltage(pwr_net)
-        if v_rail and v_rail > 0:
+        if not v_rail or v_rail <= 0:
+            continue
+
+        # KH-342: classify the signal side before assuming worst-case V/R.
+        # A second resistor to ground makes this a divider (DC = V/(R1+R2));
+        # a shunt cap with no other DC sink makes it an RC filter (DC ~ 0).
+        divider_r2_ref = None
+        divider_r2_ohm = None
+        has_shunt_cap = False
+        has_other_dc_sink = False
+        if sig_net in nets:
+            for p in nets[sig_net]["pins"]:
+                if p["component"] == ref:
+                    continue
+                oc = comp_lookup.get(p["component"])
+                if not oc:
+                    continue
+                o_type = oc.get("type")
+                if o_type == "resistor":
+                    o1, o2 = _get_two_pin_nets(oc["reference"])
+                    o_other = o2 if o1 == sig_net else o1
+                    o_val = parse_value(oc.get("value", ""))
+                    if o_other and is_ground(o_other) and o_val and o_val > 0:
+                        if divider_r2_ref is None:
+                            divider_r2_ref = oc["reference"]
+                            divider_r2_ohm = o_val
+                    else:
+                        has_other_dc_sink = True
+                elif o_type == "capacitor":
+                    o1, o2 = _get_two_pin_nets(oc["reference"])
+                    o_other = o2 if o1 == sig_net else o1
+                    if o_other and is_ground(o_other):
+                        has_shunt_cap = True
+                elif o_type in ("switch", "led", "diode", "transistor"):
+                    has_other_dc_sink = True
+
+        if divider_r2_ref:
+            current_a = v_rail / (r_val + divider_r2_ohm)
+            rail_currents.setdefault(pwr_net, []).append({
+                "ref": ref,
+                "value": comp["value"],
+                "type": "divider",
+                "resistance_ohm": r_val,
+                "divider_partner": divider_r2_ref,
+                "total_resistance_ohm": round(r_val + divider_r2_ohm, 1),
+                "rail_voltage": v_rail,
+                "current_uA": round(current_a * 1e6, 2),
+                "note": f"divider with {divider_r2_ref}: I = V/(R1+R2)",
+            })
+        elif has_shunt_cap and not has_other_dc_sink:
+            rail_currents.setdefault(pwr_net, []).append({
+                "ref": ref,
+                "value": comp["value"],
+                "type": "rc_filter",
+                "resistance_ohm": r_val,
+                "rail_voltage": v_rail,
+                "current_uA": 0.0,
+                "note": "series-R + shunt-C, no DC load — steady-state ~ 0",
+            })
+        else:
             # Pull-up: worst case current is V/R (pin driven low)
             current_a = v_rail / r_val
             rail_currents.setdefault(pwr_net, []).append({
@@ -6497,6 +6909,16 @@ def analyze_sleep_current(ctx: AnalysisContext,
                 else:
                     e["likely_state"] = "always conducting"
                     e["realistic_uA"] = e["current_uA"]
+            elif etype == "divider":
+                if rail in _disableable_rails:
+                    e["likely_state"] = "rail disabled during sleep"
+                    e["realistic_uA"] = 0.0
+                else:
+                    e["likely_state"] = "always conducting"
+                    e["realistic_uA"] = e["current_uA"]
+            elif etype == "rc_filter":
+                e["likely_state"] = "no DC path (shunt cap only)"
+                e["realistic_uA"] = 0.0
 
     # Summarize per rail — split always-on vs conditional (pull-ups)
     result_rails = {}
@@ -7160,7 +7582,7 @@ def analyze_protocol_compliance(components: list[dict], nets: dict,
 
     if not findings:
         return {}
-    return {"protocols_checked": list({f["protocol"] for f in findings}), "findings": findings,
+    return {"protocols_checked": sorted({f["protocol"] for f in findings}), "findings": findings,
             "total_issues": sum(len(f.get("issues", []) or []) for f in findings)}
 
 
@@ -7931,6 +8353,7 @@ def analyze_usb_compliance(ctx: AnalysisContext,
         return {}
 
     checklist = []
+    usb_findings: list[dict] = []
 
     for conn in usb_connectors:
         ref = conn["ref"]
@@ -8134,6 +8557,11 @@ def analyze_usb_compliance(ctx: AnalysisContext,
                 vbus_net = net_name
                 break
 
+        # Shared ESD-part keyword list: vbus_esd_protection credit (KH-338)
+        # + the usb_esd_ic check below.
+        esd_keywords = ("usblc", "prtr5v", "ip4", "sp0", "tpd", "esd", "pesd",
+                        "rclamp", "nup", "lesd")
+
         if vbus_net and vbus_net in nets:
             # ESD/TVS on VBUS
             has_esd = False
@@ -8148,6 +8576,14 @@ def analyze_usb_compliance(ctx: AnalysisContext,
                     lib_lower = pc.get("lib_id", "").lower()
                     if any(k in val_lower or k in lib_lower
                            for k in ("tvs", "esd", "smaj", "smbj", "p6ke")):
+                        has_esd = True
+                elif pc["type"] == "ic":
+                    # KH-338: ESD arrays (USBLC6 etc.) protect VBUS through
+                    # their own VBUS pin — credit them even when the net is
+                    # unnamed (resolution is by connector pin, not net name).
+                    _combined = (pc.get("value", "") + " "
+                                 + pc.get("lib_id", "")).lower()
+                    if any(k in _combined for k in esd_keywords):
                         has_esd = True
                 if pc["type"] == "capacitor":
                     has_decoupling = True
@@ -8184,8 +8620,6 @@ def analyze_usb_compliance(ctx: AnalysisContext,
 
         # --- USB ESD protection ICs ---
         esd_ic_found = False
-        esd_keywords = ("usblc", "prtr5v", "ip4", "sp0", "tpd", "esd", "pesd",
-                        "rclamp", "nup", "lesd")
         for comp_c in components:
             if comp_c["type"] not in ("ic", "diode"):
                 continue
@@ -8200,6 +8634,84 @@ def analyze_usb_compliance(ctx: AnalysisContext,
                     break
 
         conn_checks["checks"]["usb_esd_ic"] = "pass" if esd_ic_found else "info"
+
+        # KH-338: promote failed checks to rich findings so they reach
+        # findings[] / summaries instead of living only in this aux section.
+        _uc_specs = {
+            "vbus_decoupling": (
+                "UC-001",
+                f"No decoupling capacitor on VBUS at {ref}",
+                f"USB connector {ref}: no capacitor found on the VBUS net. "
+                f"USB 2.0 recommends >=1uF bulk + 100nF local decoupling on VBUS.",
+                f"Add bulk (>=1uF) + 100nF decoupling on VBUS near {ref}.",
+                [vbus_net] if vbus_net else [],
+            ),
+            "vbus_esd_protection": (
+                "UC-002",
+                f"No ESD/TVS protection on VBUS at {ref}",
+                f"USB connector {ref}: no TVS diode or ESD array found on the "
+                f"VBUS net. VBUS is exposed to external ESD/surge events.",
+                f"Add a TVS diode or ESD array on VBUS at {ref}.",
+                [vbus_net] if vbus_net else [],
+            ),
+            "cc1_pulldown_5k1": (
+                "UC-003",
+                f"CC1 missing 5.1k pull-down at {ref}",
+                f"USB-C sink {ref}: CC1 has no 5.1k pull-down to GND and no "
+                f"PD controller was found. A source will not present VBUS.",
+                f"Add a 5.1k pull-down on CC1 (or a PD controller) at {ref}.",
+                [],
+            ),
+            "cc2_pulldown_5k1": (
+                "UC-003",
+                f"CC2 missing 5.1k pull-down at {ref}",
+                f"USB-C sink {ref}: CC2 has no 5.1k pull-down to GND and no "
+                f"PD controller was found. A source will not present VBUS.",
+                f"Add a 5.1k pull-down on CC2 (or a PD controller) at {ref}.",
+                [],
+            ),
+        }
+        for _check_name, _spec in _uc_specs.items():
+            if conn_checks["checks"].get(_check_name) != "fail":
+                continue
+            _rid, _summary, _desc, _rec, _nets_f = _spec
+            usb_findings.append(make_finding(
+                detector="analyze_usb_compliance",
+                rule_id=_rid,
+                category="usb_compliance",
+                summary=_summary,
+                description=_desc,
+                severity="warning",
+                confidence="deterministic",
+                evidence_source="topology",
+                components=[ref],
+                nets=[n for n in _nets_f if n],
+                recommendation=_rec,
+                report_section="USB Compliance",
+                impact="USB functionality / robustness",
+                check=_check_name,
+            ))
+        if conn_checks["checks"].get("vbus_capacitance") == "warning":
+            _detail = conn_checks.get("vbus_capacitance_detail", {})
+            usb_findings.append(make_finding(
+                detector="analyze_usb_compliance",
+                rule_id="UC-004",
+                category="usb_compliance",
+                summary=(f"VBUS decoupling may be undersized at {ref} "
+                         f"({_detail.get('total_uf')}uF total)"),
+                description=_detail.get(
+                    "detail", "VBUS capacitance below recommended minimum."),
+                severity="warning",
+                confidence="deterministic",
+                evidence_source="topology",
+                components=[ref],
+                nets=[vbus_net] if vbus_net else [],
+                recommendation=(f"Increase VBUS bulk capacitance at {ref} "
+                                f"to >=1uF (USB 2.0)."),
+                report_section="USB Compliance",
+                impact="VBUS droop on connect",
+                check="vbus_capacitance",
+            ))
 
         checklist.append(conn_checks)
 
@@ -8221,6 +8733,8 @@ def analyze_usb_compliance(ctx: AnalysisContext,
         "connectors": checklist,
         "summary": all_checks,
     }
+    if usb_findings:
+        result["findings"] = usb_findings
     if observations:
         result["observations"] = observations
     return result
@@ -8456,21 +8970,28 @@ def parse_all_sheets(root_path: str, root_tree: list | None = None,
             j["_sheet"] = sheet_idx
         for nc in no_connects:
             nc["_sheet"] = sheet_idx
+        for be in bus_elements.get("bus_wires", []):
+            be["_sheet"] = sheet_idx
+        for be in bus_elements.get("bus_entries", []):
+            be["_sheet"] = sheet_idx
 
-        if inst_path:
-            for lbl in labels:
-                if lbl["type"] == "hierarchical_label":
-                    suuid = lbl.pop("_sheet_uuid", None)
-                    if suuid:
-                        lbl["name"] = inst_path + "/" + suuid + "/" + lbl["name"]
-                    else:
+        # Namespace hierarchical labels, but retain the bare identity and
+        # namespace on internal fields so the bus pass (GH #25) can pair
+        # parent sheet-pin ports with child hier-label ports positionally.
+        # Name-mangling must reproduce the pre-#25 values exactly.
+        for lbl in labels:
+            if lbl["type"] == "hierarchical_label":
+                suuid = lbl.pop("_sheet_uuid", None)
+                lbl["_bare_name"] = lbl["name"]
+                if suuid:
+                    lbl["_is_sheet_pin"] = True
+                    lbl["_hier_ns"] = ((inst_path + "/" + suuid)
+                                       if inst_path else ("/" + suuid))
+                    lbl["name"] = lbl["_hier_ns"] + "/" + lbl["name"]
+                else:
+                    lbl["_hier_ns"] = inst_path
+                    if inst_path:
                         lbl["name"] = inst_path + "/" + lbl["name"]
-        else:
-            for lbl in labels:
-                if lbl["type"] == "hierarchical_label":
-                    suuid = lbl.pop("_sheet_uuid", None)
-                    if suuid:
-                        lbl["name"] = "/" + suuid + "/" + lbl["name"]
 
         all_components.extend(components)
         all_wires.extend(wires)
@@ -8554,7 +9075,9 @@ def build_hierarchy_context(target_path: str, root_path: str) -> tuple:
     # Build unified net map for the full project
     nets = build_net_map(
         all_components, parsed["wires"], all_labels,
-        power_symbols, parsed["junctions"], parsed["no_connects"])
+        power_symbols, parsed["junctions"], parsed["no_connects"],
+        sheet_names=[Path(p).stem for p in sheets_parsed],
+        bus_elements=parsed["bus_elements"])
 
     # Identify which sheet index corresponds to the target file
     target_sheet_idx = None
@@ -8599,10 +9122,12 @@ def build_hierarchy_context(target_path: str, root_path: str) -> tuple:
     cross_sheet_nets = {}
 
     for label_name in sorted(target_hier_label_names):
-        # Find which net this label ended up in
+        # Find which net this label ended up in. KH-359: on a bare-name
+        # collision the net may carry a sheet-qualified key with the bare
+        # label name on display_name instead.
         matching_net = None
-        for net_name in nets:
-            if net_name == label_name:
+        for net_name, net_info in nets.items():
+            if net_name == label_name or net_info.get("display_name") == label_name:
                 matching_net = net_name
                 break
         if matching_net is None:
@@ -8963,9 +9488,21 @@ def analyze_schematic(path: str, project_root: str | None = None,
     generator_version = parsed["generator_version"]
     file_version = parsed["file_version"]
 
+    try:
+        _v = int(file_version)
+    except (TypeError, ValueError):
+        _v = None
+    format_newer_note = None
+    if _v is not None and _v > MAX_TESTED_FORMAT_VERSION:
+        format_newer_note = (
+            f"file format version {_v} is newer than the max tested "
+            f"({MAX_TESTED_FORMAT_VERSION}); analysis is best-effort")
+
     # Build net map across all sheets
     nets = build_net_map(all_components, all_wires, all_labels, power_symbols, all_junctions,
-                         all_no_connects)
+                         all_no_connects,
+                         sheet_names=[Path(p).stem for p in sheets_parsed],
+                         bus_elements=merged_bus)
 
     # Generate BOM
     bom = generate_bom(all_components)
@@ -9035,7 +9572,7 @@ def analyze_schematic(path: str, project_root: str | None = None,
     placement = spatial_clustering(all_components)
     pin_coverage = verify_pin_coverage(all_components, all_lib_symbols)
     instance_issues = check_instance_consistency(all_components)
-    hier_label_analysis = validate_hierarchical_labels(all_labels, nets)
+    hier_label_analysis = validate_hierarchical_labels(all_labels, nets, merged_bus)
     generic_sym_warnings = check_generic_transistor_symbols(all_components, str(path))
 
     # ---- Tier 3: High-level design analyses ----
@@ -9137,14 +9674,41 @@ def analyze_schematic(path: str, project_root: str | None = None,
         _comp.pop("_unit_pins", None)
 
     # Flatten signal_analysis: all list values become findings, dict values promote to top level
+    # KH-388: detect_voltage_dividers' feedback-network path deliberately
+    # appends the SAME finding dict to both the `voltage_dividers` and
+    # `feedback_networks` signal_analysis lists — see the 8c36212 cascade
+    # warning in signal_detectors.py:324-346; that double-emission must
+    # stay, it feeds detect_rc_filters' exclusion set. Dedup here instead
+    # so the shared object doesn't also duplicate in the flattened
+    # findings[] output. id()-based dedup is safe for ANY detector (a
+    # dict appearing twice in the SAME analysis output is always the same
+    # aliasing quirk noted in finding_schema.py's assign_finding_ids). The
+    # (detector, components) key belt is scoped to detect_voltage_dividers
+    # only — other detectors (e.g. VM-001) legitimately emit multiple
+    # distinct findings for the same component pair on different nets, so
+    # a components-only key would wrongly collapse those. Order-preserving
+    # (first occurrence wins).
     findings = []
+    _flatten_seen_ids = set()
+    _flatten_seen_vd_keys = set()
     for _sa_key, _sa_value in signal_analysis.items():
         if isinstance(_sa_value, list):
             _det_name = f"detect_{_sa_key}"
             for _item in _sa_value:
                 if isinstance(_item, dict) and "detector" not in _item:
                     _item["detector"] = _det_name
-            findings.extend(_sa_value)
+            for _item in _sa_value:
+                if isinstance(_item, dict):
+                    _iid = id(_item)
+                    if _iid in _flatten_seen_ids:
+                        continue
+                    _flatten_seen_ids.add(_iid)
+                    if _item.get("detector") == "detect_voltage_dividers":
+                        _vkey = (_item.get("detector"), tuple(_item.get("components") or []))
+                        if _vkey in _flatten_seen_vd_keys:
+                            continue
+                        _flatten_seen_vd_keys.add(_vkey)
+                findings.append(_item)
 
     # Datasheet-coverage audit findings (DS-001 / DS-002 / DS-003) surface
     # up front so reviewers can't miss the "this is a consistency-only
@@ -9166,6 +9730,20 @@ def analyze_schematic(path: str, project_root: str | None = None,
     # VD-001..004 — component voltage/power derating (rich findings since v1.4)
     if voltage_derating:
         findings.extend(voltage_derating)
+
+    # UC-001..004 — USB compliance check failures (KH-338)
+    if usb_compliance:
+        findings.extend(usb_compliance.pop("findings", []))
+
+    if format_newer_note:
+        findings.append(make_finding(
+            detector="format_version_gate", rule_id="FV-001",
+            category="file_format",
+            summary=format_newer_note,
+            description=format_newer_note,
+            severity="info", confidence="deterministic",
+            evidence_source="topology",
+        ))
 
     # Build severity summary
     sev_counts = {"error": 0, "warning": 0, "info": 0}
@@ -9205,7 +9783,7 @@ def analyze_schematic(path: str, project_root: str | None = None,
         "transistor_pin_analysis": transistor_analysis,
         "design_analysis": design_analysis,
         "connectivity_issues": connectivity_issues,
-        "labels": all_labels,
+        "labels": _labels_for_output(all_labels),
         "no_connects": all_no_connects,
         "power_symbols": power_symbols,
         "annotation_issues": annotation_issues,

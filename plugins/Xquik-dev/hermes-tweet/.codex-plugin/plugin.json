@@ -1,13 +1,15 @@
 {
   "name": "hermes-tweet",
-  "version": "0.1.8",
-  "description": "Native Hermes Agent X/Twitter plugin for Xquik automation with read-first workflows and approval-gated actions. Not affiliated with X Corp.",
+  "version": "0.1.13",
+  "description": "Hermes Agent plugin for Twitter search, monitoring, follower exports & approved X actions. Not affiliated with X Corp.",
   "author": {
     "name": "Xquik",
     "url": "https://github.com/Xquik-dev"
   },
   "homepage": "https://github.com/Xquik-dev/hermes-tweet#readme",
   "repository": "https://github.com/Xquik-dev/hermes-tweet",
+  "commit": "c6ebdd7060965dd16a89e8cc12675ff834b5cc94",
+  "verified": true,
   "license": "MIT",
   "keywords": [
     "hermes-agent",
@@ -22,8 +24,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Hermes Tweet",
-    "shortDescription": "Use Hermes Agent for X/Twitter research and gated actions.",
-    "longDescription": "Hermes Tweet gives Codex a source-native install surface for the Hermes Agent X/Twitter plugin. Use it to discover tweet and user read tools, summarize public X context, and keep account-changing actions behind explicit Hermes Tweet approval gates.",
+    "shortDescription": "Search and monitor X/Twitter with approved actions.",
+    "longDescription": "Hermes Tweet adds Twitter search, tweet replies, monitoring, and approved X actions to Hermes Agent. It keeps account changes behind explicit approval.",
     "developerName": "Xquik",
     "category": "Productivity",
     "capabilities": [
@@ -40,6 +42,10 @@
       "Use Hermes Tweet to prepare an approval-gated X/Twitter action."
     ],
     "brandColor": "#111827",
-    "composerIcon": "./assets/icon.svg"
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg",
+    "screenshots": [
+      "./assets/screenshot.svg"
+    ]
   }
 }

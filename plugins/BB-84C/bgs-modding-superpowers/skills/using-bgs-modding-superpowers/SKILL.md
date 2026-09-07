@@ -49,27 +49,28 @@ declared via the OpenCode plugin's `config.mcp.xedit` hook) is fully
 is tracked in the server's in-memory state machine, and domain tools fast-fail
 with `code: "not_ready"` if you call them before the daemon is ready.
 
-### Lifecycle / health tools (3) — always non-blocking
+### Lifecycle / health tools
 
 | Tool | Use |
 |---|---|
 | `xedit_status` | Pure read. Returns `{ status: "not_started" \| "starting" \| "ready" \| "failed", ... }`. Never modifies state. Use this to POLL while waiting for a launch. |
 | `xedit_start` | Kicks off an asynchronous daemon launch if not already starting/ready. Returns immediately. Accepts optional overrides: `{ launcherPath?, gameMode?, dataPath?, pluginsFile?, moProfile? }`. Use `dataPath` (MO2 `gamePath + "\\Data"`) to override xEdit's registry-discovered platform path; use `pluginsFile` to point at a custom load order (see `writing-bgs-load-order`). The launch itself takes 60-240s; that work happens in the background. |
-| `xedit_health` | When ready: sends `system.ping` through the named pipe to catch zombies. Returns `responsive: true \| false`. Otherwise: returns the same shape as `xedit_status`. |
-| `xedit_dirty` | Returns xEdit's dirty state immediately. When ready: wraps `session.get_dirty_state` and returns `{ dirty, dirtyFiles, unsavedChangeCount }`. Otherwise: returns the same shape as `xedit_status`. |
-| `xedit_stop` | Stops the daemon and clears MCP runtime state. If there are unsaved edits, it refuses unless `force: true` is passed. |
-| `xedit_restart` | Stops the daemon (same dirty-state safety as `xedit_stop`) and immediately kicks off a fresh async launch. Use this to relaunch with a new `pluginsFile` or `dataPath` instead of reconnecting `/mcp` manually. |
+| `xedit_health` | When ready: sends `system.ping` through the named pipe to catch zombies. After a flush exit timeout, rechecks the retained managed PID so a delayed normal exit can clear lifecycle state without force. |
+| `xedit_dirty` | Returns xEdit dirty state plus authoritative contract-0.23 pending-rename readback when available, with a local fail-closed fallback for older daemons. Pending saves remain visible even when daemon dirty state is false. |
+| `xedit_flush` | Contract-0.23 durability boundary. Requires consent, drains pending renames, validates the response, waits for the managed daemon's promised self-exit, and reports complete, partial, or unknown outcome. Failed in-band renames get one final exit-time retry; fresh-daemon readback decides durability. |
+| `xedit_stop` | Stops the daemon and clears MCP runtime state. It refuses unsaved edits or pending-shutdown saves unless `force: true` is explicitly chosen; forced abandonment is reported and audited. |
+| `xedit_restart` | Stops the daemon with the same dirty/pending-save safety, then kicks off a fresh async launch. Use only when no pending save is tracked; `force: true` is explicit abandonment, not a flush. |
 
 ### Domain tools (6) — require ready, fast-fail otherwise
 
 | Tool | Use |
 |---|---|
 | `xedit_session` | If ready: returns the full session envelope (gameMode, loadOrderSize, daemonPid). If not_started: auto-initiates the launch. Otherwise: returns the current status. Always non-blocking. |
-| `xedit_list_capabilities` | Curated 49-command digest + live drift report. |
+| `xedit_list_capabilities` | Curated 50-command contract-0.23 digest + live drift report. |
 | `xedit_find_record` | Locate by `{file, formId}` or `{editorId}`. |
 | `xedit_read_record` | Fields + base record + winning override. |
 | `xedit_inspect_conflicts` | W2 verdict tool: `no_conflict / itpo / itm / minor / breaking`. |
-| `xedit_call(command, args)` | Atomic passthrough for any of the 49 native daemon commands; in-harness. |
+| `xedit_call(command, args)` | Atomic passthrough for native daemon commands; in-harness. Lifecycle-owned `session.flush` is refused here and must use `xedit_flush`. |
 
 ### Canonical lifecycle pattern (do this every session that touches xEdit)
 
@@ -78,9 +79,10 @@ with `code: "not_ready"` if you call them before the daemon is ready.
 2. xedit_status({})                 -> poll until status="ready"   (sleep 5-15s between calls)
 3. xedit_health({})                 -> confirm responsive=true
 4. xedit_session({}) / xedit_*      -> normal domain work
-5. xedit_dirty({})                  -> check unsaved changes before any stop/restart
-6. xedit_stop({ force?: true })     -> stop + clear runtime state
-7. xedit_restart({ ..., force? })   -> relaunch with new overrides
+5. xedit_dirty({})                  -> check dirty state and pendingShutdownSave
+6. xedit_flush({})                  -> when pending > 0, drain + confirm daemon self-exit
+7. xedit_start({ ... })             -> fresh daemon for persistence readback after flush
+8. xedit_stop({}) / restart({ ... }) -> only when no dirty or pending state exists
 ```
 
 NEVER call a domain tool in a tight loop expecting it to "wait." If
@@ -120,10 +122,16 @@ actual plugin, load-order, and record readback.
 3. **Mutating operations require explicit user consent and a daemon launched
    with `-IKnowWhatImDoing`.** Read the `xedit-automation` skill BEFORE any
    destructive work. The anti-pattern list there is binding.
-4. **A `session.save` response is not durability.** A save with
-   `savedFilesPendingShutdown > 0` is deferred. Durability proof =
-   save + daemon restart (new PID) + readback. Always restart before declaring
-   a mutating workflow complete.
+4. **A `session.save` response is not durability.** A nonzero
+   `savedFilesPendingShutdown` / `savePendingShutdownCount` is deferred. On
+   contract 0.23, `xedit_dirty` reconciles that fallback with the daemon's
+   authoritative pending queue and `xedit_flush` is the only supported in-band
+   drain. It validates the response and confirms daemon self-exit before clearing
+   the blocking guard. A partial or unknown outcome remains visible as
+   `lastFlush`; after relaunch it is labelled `previousSessionFlush` with the old
+   PID and timestamp. Failed in-band renames receive one normal exit-time retry,
+   so fresh-daemon readback, not the partial envelope alone, decides durability.
+   `force:true` on stop/restart is still explicit abandonment, never durability proof.
 5. **Large scope (many records, broad conflict survey) → delegate to a
    read-only investigator subagent FIRST.** The subagent burns its own context
    and returns a distilled summary. Do not loop hundreds of records through

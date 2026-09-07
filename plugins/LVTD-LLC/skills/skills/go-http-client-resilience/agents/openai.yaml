@@ -1,0 +1,4 @@
+interface:
+  display_name: "Go HTTP Client Resilience"
+  short_description: "Build resilient Go HTTP client boundaries"
+  default_prompt: "Use $go-http-client-resilience to design a timeout-aware, retry-safe, testable Go HTTP client."

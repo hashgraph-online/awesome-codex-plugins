@@ -110,7 +110,7 @@ Photos are an underinvested ranking and conversion signal. Listings with more th
 
 ## Google Posts
 
-Google Posts appear directly on your GBP listing in search results and Google Maps. They expire after 7 days (except Events, which expire after the event date), making consistent posting essential.
+Google Posts appear directly on your GBP listing in search results and Google Maps. Recent posts are surfaced most prominently while older posts get archived on the listing (Events remain tied to the event date), so consistent posting is still essential for visibility.
 
 ### Post Types
 

@@ -1,6 +1,6 @@
 # idea-genie
 
-Generate an evidence-grounded opportunity portfolio for an open-ended product or engineering question. Triggers: "generate ideas from repository evidence", "what should we build next", "find supported opportunities".
+Generate evidenced opportunities or challenge an idea with sealed perspectives. Triggers: "idea genie", "what should we build", "challenge this idea", "compare proposals".
 
 ## Instructions
 

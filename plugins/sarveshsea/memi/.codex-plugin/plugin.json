@@ -1,7 +1,7 @@
 {
   "name": "memoire",
-  "version": "2.4.1",
-  "description": "memi design memory and UI quality tools for Codex: MCP tools, design-system context, Figma workflows, shadcn/ui, Tailwind, and Atomic Design.",
+  "version": "2.7.9",
+  "description": "Memi is the design layer for agentic AI.",
   "author": {
     "name": "Sarvesh Chidambaram",
     "url": "https://github.com/sarveshsea"
@@ -9,8 +9,6 @@
   "homepage": "https://www.memoire.cv/codex-plugin",
   "repository": "https://github.com/sarveshsea/memi",
   "license": "MIT",
-  "privacyPolicyURL": "https://www.memoire.cv/privacy",
-  "termsOfServiceURL": "https://www.memoire.cv/terms",
   "keywords": [
     "codex",
     "memoire",
@@ -20,14 +18,16 @@
     "shadcn",
     "tailwind",
     "atomic-design",
-    "ui-quality"
+    "ui-quality",
+    "swiftui",
+    "ios"
   ],
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "memi",
-    "shortDescription": "Design memory and UI quality tools for Codex.",
-    "longDescription": "memi gives Codex design-system memory, MCP tools, Figma context, Tailwind and shadcn/ui diagnostics, Atomic Design guidance, and research-backed UI audit workflows before frontend edits.",
+    "shortDescription": "Agent design CI, file scaffolds, and UI quality tools for Codex.",
+    "longDescription": "memi gives Codex design-system memory, MCP tools, spec-first web and SwiftUI file scaffolds, compact agent briefs, Figma context, Tailwind and shadcn/ui diagnostics, Apple-platform guidance, and research-backed UI audits before interface edits.",
     "developerName": "Sarvesh Chidambaram",
     "category": "Productivity",
     "capabilities": [
@@ -41,7 +41,8 @@
     "defaultPrompt": [
       "Audit this UI with memi before editing.",
       "Extract tokens and shadcn registry context.",
-      "Create an Atomic Design implementation plan."
+      "Create an Atomic Design implementation plan.",
+      "Scaffold and verify a SwiftUI feature."
     ],
     "brandColor": "#000000"
   }

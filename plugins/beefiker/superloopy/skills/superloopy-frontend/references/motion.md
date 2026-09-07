@@ -1,8 +1,18 @@
-# Motion Implementation Guide
+# Web Motion Implementation Guide
 
-Motion must communicate hierarchy, storytelling, feedback, or state change. Give each non-trivial animation a one-sentence reason; “it looks cool” is not enough. If the repository cannot support a working and verified effect within scope, lower `MOTION_INTENSITY` and ship a clear static surface.
+This is the Web implementation specialization for [`references/motion-core.md`](motion-core.md). Load the cross-platform temporal contract first, then use this file only when browser-owned nodes and Web motion mechanisms implement the changed claim. Native, Qt, and other routes do not inherit these React, browser, or animation-library examples.
+
+Motion must communicate hierarchy, storytelling, feedback, or state change. Give each non-trivial animation a one-sentence reason; “it looks cool” is not enough. If the repository cannot support a working and verified effect within scope, reduce the animation quantity and complexity and ship a clear static surface.
 
 The React examples below apply only when the project already uses the named libraries, or the user approves adding them. They are **starting templates**, not proof. Adapt them to the project and collect real-browser interaction evidence before calling the motion complete.
+
+## Applicability and inherited authority
+
+Use this reference only when a motion or animated-interaction claim changes. It does not expand a narrow nonvisual change into a motion redesign, anti-slop pass, or visual artifact. The project's existing motion primitives and authoritative design source remain authoritative; use `DESIGN.md` only when it is already that source or as a scoped mapping/receipt synchronized with it. A repository without a formal design-system document is not blocked.
+
+Resolve timing, interaction, supported input, and breakpoint behavior from the current product and target contract. Ask the minimum necessary questions only when material unknowns would change the implementation, and batch independent unknowns. This reference does not make SEO applicable: assess SEO only for the current crawlable public Web target or a distinct deployed public Web target in scope, never because animation code runs in a browser.
+
+The `1024px` media conditions in the templates below are illustrative. Replace them with the actual target-derived breakpoint that has enough space for the effect, and keep the static layout outside that condition; never add or claim a breakpoint merely because it appears in an example.
 
 ## Ownership and performance rules
 
@@ -201,11 +211,11 @@ export function RevealStagger({ items }: { items: string[] }) {
 
 ## Evidence checklist
 
-- Exercise the interaction, not only its resting screenshot, at 390 / 768 / 1280 px.
-- Resize while pin/scrub motion is active and verify the endpoint remains aligned.
+- Exercise the interaction, not only its resting screenshot, across the target-derived browser/OS/input and breakpoint matrix. Treat 390 / 768 / 1280 px only as optional baseline samples when selected by the product's supported range; they are never universal proof.
+- Exercise each target-supported viewport, resize, orientation, or container transition while pin/scrub motion is active and verify the endpoint remains aligned.
 - Toggle reduced motion and confirm every item stays visible in static document flow.
 - Navigate away and back; verify no duplicate triggers, listeners, or transforms remain.
-- Check keyboard and touch interaction around the animated section.
-- Record the observed states and any project-specific adaptation in `VISUAL_QA.md`.
+- Check each supported input around the animated section, including keyboard, touch, or pointer only where the target contract includes it.
+- When the changed motion has a visible-state or layout consequence, record the observed states and project-specific adaptation in `VISUAL_QA.md`; retain real interaction, accessibility, cleanup, and regression evidence rather than treating a resting screenshot as proof.
 
 Selected motion mechanisms were adapted under MIT from Taste Skill; see `references/upstream-notice.md`.

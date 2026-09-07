@@ -1,11 +1,12 @@
 ---
 name: agentpack-pack
 description: Generate a local AgentPack context pack for Codex before editing.
+license: AGPL-3.0-only
 ---
 
 # AgentPack Pack
 
-Use when the user invokes `@agentpack-pack <task>` or asks Codex to prepare full AgentPack context.
+Use when the user invokes `$agentpack-pack <task>` or asks Codex to prepare full AgentPack context.
 
 AgentPack prepares context. It does not prove correctness and does not replace code review or tests.
 

@@ -34,15 +34,18 @@ Use project scope from the repository root for state-changing commands:
 maestro frontier catalog
 maestro frontier catalog --json
 maestro frontier compose --models <model>,<model> --dry-run --scope codex-project
-maestro frontier compose --models <model>,<model> --judge <model> --synth <model> --scope codex-project
+maestro frontier compose --models <model>,<model> --judge <model> --synth <model> --effort <level> --scope codex-project
 maestro frontier compose --models <model>,<model> --save <name> --scope codex-project
+maestro frontier effort <auto|low|medium|high|xhigh|max|ultra> --scope codex-project
 ```
 
 `frontier catalog` is the source of truth for models, presets, aliases,
 readiness, and required configuration. `compose` accepts one to eight
 comma-separated models. Judge and synth default to the first panel model.
 `--dry-run` changes nothing; a non-dry run saves and arms the resolved custom
-fusion panel.
+fusion panel. `--effort` persists one validated level across panel, judge, and
+synth stages for selected effort-aware Claude and Codex models. `effort auto`
+returns the armed panel to provider defaults.
 
 ## Modes, inspection, and saved presets
 
@@ -61,21 +64,24 @@ maestro frontier preset delete <name> --scope codex-project
 Use `catalog` before selecting any model or preset. `roster` reports only
 readiness and configuration names, never secret or configured model values.
 
-## Configuration and release gate
+## Current models, overrides, and release gate
 
-Configure optional Codex aliases only through
+`opus` pins Claude Opus 5. Sol, Terra, Luna, GPT-5.5, GPT-5.4, GPT-5.4
+Mini, GPT-5.3 Codex Spark, and Codex Auto Review are built-in Codex selectors.
+Use `frontier catalog` for exact aliases and supported effort levels.
 `MAESTRO_FRONTIER_MODEL_TERRA`, `MAESTRO_FRONTIER_MODEL_LUNA`, and
-`MAESTRO_FRONTIER_MODEL_SOL`. Codex Desktop / IDE sessions read those settings
-from `~/.codex/.env`; restart the app and open a new thread after changing it.
+`MAESTRO_FRONTIER_MODEL_SOL` remain optional model-ID overrides. Codex Desktop
+/ IDE sessions read those overrides from `~/.codex/.env`; restart the app and
+open a new thread after changing it.
 
-Before releasing configured optional Codex aliases, run:
+Before releasing Codex catalog changes, probe every first-party Codex selector:
 
 ```bash
 node frontier/smoke.cjs
 ```
 
-This explicit release gate invokes only configured optional aliases through the
-normal read-only dispatch path.
+This explicit release gate invokes those selectors through the normal
+read-only dispatch path.
 
 ## Normal and debug use
 

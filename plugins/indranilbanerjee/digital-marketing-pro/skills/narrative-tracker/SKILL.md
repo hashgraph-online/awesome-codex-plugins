@@ -1,6 +1,6 @@
 ---
 name: narrative-tracker
-description: "Track AI engine brand narratives. Use when: detecting narrative drift, misrepresentation, or competitor narrative gains over time."
+description: "Track what AI engines (ChatGPT, Perplexity, Gemini, AI Overviews, Copilot) say about the brand, score responses against desired positioning, and flag misrepresentations, drift, and competitor narrative gains. Produces an alignment report, a narrative territory map, and a content strategy to correct AI perception, with snapshots persisted via geo-tracker.py for trend comparison. Triggers on \"/digital-marketing-pro:narrative-tracker\", \"what is ChatGPT saying about us\", \"track our AI narrative\", \"is AI misrepresenting our brand\", \"are competitors gaining narrative ground\". Reads the brand profile for reference positioning; recommends corrective content but does not publish it. Pairs with /digital-marketing-pro:narrative-landscape for competitor messaging territory."
 ---
 
 # /digital-marketing-pro:narrative-tracker
@@ -45,4 +45,4 @@ A comprehensive narrative tracking report containing:
 ## Agents Used
 
 - **seo-specialist** — Narrative analysis across AI engine responses, positioning alignment assessment against brand profile, attribute presence and distortion detection, citation strategy for influencing AI perception, content optimization recommendations for narrative correction, structured data and entity update guidance to reinforce accurate brand positioning in knowledge sources
-- **competitor-intelligence** — Competitive narrative tracking across AI platforms, narrative territory mapping between the brand and competitors, territory shift detection where competitors gain or lose narrative themes, competitive positioning comparison with attribute-level analysis, and strategic recommendations for defending and expanding narrative territory in AI responses
+- **competitive-intel** — Competitive narrative tracking across AI platforms, narrative territory mapping between the brand and competitors, territory shift detection where competitors gain or lose narrative themes, competitive positioning comparison with attribute-level analysis, and strategic recommendations for defending and expanding narrative territory in AI responses

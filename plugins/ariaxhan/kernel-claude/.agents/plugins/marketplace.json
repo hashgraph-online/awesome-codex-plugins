@@ -1,0 +1,19 @@
+{
+  "name": "kernel-marketplace",
+  "interface": {
+    "displayName": "KERNEL"
+  },
+  "plugins": [
+    {
+      "name": "kernel",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE"
+      },
+      "category": "Engineering"
+    }
+  ]
+}

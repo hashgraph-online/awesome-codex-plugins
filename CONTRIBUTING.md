@@ -59,17 +59,17 @@ Wait for the CI to pass on your repo's main branch, then copy the workflow run U
 The release metadata below is synced automatically from the latest published HOL scanner release.
 
 ```bash
-pipx install --force "plugin-scanner==2.0.1015"
+pipx install --force "plugin-scanner==3.0.113"
 plugin-scanner scan . --format text
 ```
 
-Expected reviewed wheel SHA256: `c1302897304e9b7fd74cb92d6057a1785e6430fb64bd70e8f90b14267deb0e0b`
+Expected reviewed wheel SHA256: `1a06246a24651169bfabde7c2dcb1325bba142c2e5b94546fe37281e71ed618b`
 
 If you want to verify the exact wheel before install:
 
 ```bash
 rm -rf .hol-plugin-scanner-dist
-python3 -m pip download --only-binary=:all: --no-deps --dest .hol-plugin-scanner-dist "plugin-scanner==2.0.1015"
+python3 -m pip download --only-binary=:all: --no-deps --dest .hol-plugin-scanner-dist "plugin-scanner==3.0.113"
 python3 -m pip hash .hol-plugin-scanner-dist/*.whl
 ```
 
@@ -127,7 +127,7 @@ The commands below stay pinned to the same reviewed scanner release used in the 
 
 ```bash
 # Install the current reviewed release
-pipx install --force "plugin-scanner==2.0.1015"
+pipx install --force "plugin-scanner==3.0.113"
 
 # Scan your plugin
 plugin-scanner scan . --format text
@@ -139,7 +139,7 @@ plugin-scanner lint . --format text
 plugin-scanner verify . --format text
 ```
 
-Expected reviewed wheel SHA256: `c1302897304e9b7fd74cb92d6057a1785e6430fb64bd70e8f90b14267deb0e0b`
+Expected reviewed wheel SHA256: `1a06246a24651169bfabde7c2dcb1325bba142c2e5b94546fe37281e71ed618b`
 
 ### Required in Your Plugin Repo
 
@@ -354,12 +354,23 @@ Before submitting, verify:
 
 ## CI Checks
 
-All PRs to this repo are automatically validated. The CI will check:
+All PRs to this repo are automatically validated. The contribution gate runs
+on the PR target event, so fork PRs do not wait for first-time workflow
+approval. It checks the source repository and publishes one status check on
+the PR head. When a requirement is missing, the gate updates one idempotent
+comment, tags the PR author, and includes the exact scanner workflow and
+remediation steps. The check is re-run on every push, reopen, and daily sweep.
+
+The CI will check:
 
 1. **Alphabetical order** - README entries must be sorted within each section
 2. **Plugin manifest** - For new README entries, the generator fetches your source repo and validates `plugin.json`, required fields, and icon presence
-3. **Scanner verification** - PR description must include scanner score or CI link
+3. **Scanner verification** - The source repo must invoke `hashgraph-online/ai-plugin-scanner-action` on `push` or `pull_request`, and the gate runs the scanner at the documented score/severity thresholds
 4. **Markdown links** - All URLs in README must be reachable
+
+If the gate comments on your PR, fix the linked source repository first, push
+the change there, then update the README PR if needed. The status check and
+comment will refresh automatically; do not post duplicate remediation comments.
 
 ## Getting Help
 

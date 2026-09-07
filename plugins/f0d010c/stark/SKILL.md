@@ -1,84 +1,216 @@
 ---
 name: stark
-description: Use when the user mentions Stark, UI/UX, product flow, user journey, onboarding, checkout, forms, dashboards, information architecture, state design, usability, frontend design quality, design audits, design translation, asset planning, image generation for UI, visual references, animation, motion, scrolling, interaction techniques, design tokens, or non-generic app/website design. Routes the agent to UX, web, Windows, Apple, Android, cross-platform, design-token, asset, reference, originality, desktop-archetype, motion, and anti-slop guidance before implementation.
+description: Use for UI/UX design, product flows, frontend or native interface design, design audits, design translation, asset planning, motion direction, design tokens, or distinctive non-generic apps and websites. Covers web and React, Windows and WinUI/Mica, Apple and SwiftUI, Android and Jetpack Compose/Material, cross-platform UI, and token export. Route to the focused skill, then load only the references required for the selected surface and failure mode.
 ---
 
-# stark
+# Stark
 
-Use this skill when the user asks for UI/UX design help, product-flow help, polished frontend/app UI, design audits, translating one platform's design language to another, or avoiding generic AI-looking interfaces.
+Stark is a design router for AI coding agents. Use it to make product, platform, visual, interaction, and quality decisions before implementation.
 
-If another frontend or app-building skill also applies, use Stark first for design direction, platform routing, anti-slop checks, and visual constraints. Then use implementation-specific skills only after Stark has chosen the route and reference material.
+## Operating rule
 
-## What Stark Can Do
+Keep context proportional to the task:
 
-- UX and product flow: user journeys, IA, onboarding, checkout, forms, dashboards, states, recovery paths, activation, retention, and repeated-use ergonomics.
-- Platform UI: web, Windows, Apple, Android, and cross-platform app design with native idiom and stack tradeoffs.
-- Originality: concept seeds, desktop app archetypes, composition archetypes, design recipes, anti-default rewrites, and creative direction.
-- Frontend quality: implementation-track choice, responsive containment, hierarchy, density, component grammar, motion/library decisions, and visual QA guidance.
-- Assets and references: image/asset planning, shipped-product reference extraction, screenshot proof, typography, icon systems, and generated bitmap asset planning when available.
-- Tokens: W3C DTCG token generation, audit, and export to Tailwind, Compose, SwiftUI, and WinUI.
+1. Select no more than two routed skills.
+2. Load two core references for the selected surface.
+3. Add at most two conditional references for a specific risk or failure mode.
+4. Load post-render gates only after rendered evidence exists.
 
-## Routing
+Do not read the entire reference library. Use `references/ui-patterns/README.md`, `references/ux-patterns/README.md`, and `references/web-patterns/README.md` as catalogs when the tables below do not cover the request.
 
-Before producing code, decide the route:
+## Route the request
 
-- Web UI, landing pages, dashboards, React/Vite/Next/Tailwind: read `skills/web-design/SKILL.md`.
-- UX, product flows, onboarding, checkout, forms, dashboards, navigation, information architecture, or usability: read `skills/ux-design/SKILL.md`.
-- Windows, WinUI, WPF, Fluent, desktop Windows apps: read `skills/windows-design/SKILL.md`.
-- Apple, iOS, macOS, SwiftUI, UIKit, AppKit: read `skills/apple-design/SKILL.md`.
-- Android, Material, Jetpack Compose: read `skills/android-design/SKILL.md`.
-- Electron, Tauri, React Native, Flutter, Kotlin Multiplatform, shared UI systems: read `skills/cross-platform-design/SKILL.md`.
-- Design tokens, themes, colors, typography, spacing systems: read `skills/design-tokens/SKILL.md`.
-- Ambiguous design requests: read `skills/design-router/SKILL.md` first.
+| Request | Routed skill |
+|---|---|
+| Web UI, landing page, dashboard, React, Next, Astro, Tailwind | `skills/web-design/SKILL.md` |
+| Product flow, onboarding, checkout, IA, usability, forms | `skills/ux-design/SKILL.md` |
+| Windows, WinUI, WPF, Fluent | `skills/windows-design/SKILL.md` |
+| Apple, iOS, iPadOS, macOS, SwiftUI | `skills/apple-design/SKILL.md` |
+| Android, Material, Jetpack Compose | `skills/android-design/SKILL.md` |
+| Tauri, Electron, React Native, Flutter, CMP, shared UI | `skills/cross-platform-design/SKILL.md` |
+| Design tokens, themes, token export | `skills/design-tokens/SKILL.md` |
+| Platform is genuinely unclear | `skills/design-router/SKILL.md` |
 
-For design audits, also check `commands/stark-audit.md`.
-For design translation requests, also check `commands/stark-translate.md`.
-For asset planning, also check `commands/stark-assets.md`.
-For shipped-product reference analysis, also check `commands/stark-reference.md`.
-For platform detection helpers, use `scripts/detect_platform.py`.
-For design-token export helpers, use `scripts/token_export.py`.
+Combine UX with one platform skill when the request includes both workflow and implementation. Preserve the UX brief when platform guidance is applied.
 
-## UI decision layer
+Use `scripts/detect_platform.py` only as a deterministic fallback. Treat `ambiguous` as a request for one short clarification, not permission to default to web.
 
-After UX routing and before implementation, read:
+## Select a reference bundle
 
-- `references/ui-patterns/surface-taxonomy.md`
-- `references/ui-patterns/ui-decision-brief.md`
-- `references/ui-patterns/desktop-app-archetypes.md`
-- `references/ui-patterns/originality-engine.md`
-- `references/ui-patterns/design-recipes.md`
-- `references/ui-patterns/anti-default-contrasts.md`
+Choose one primary bundle. Read its two core references. Add conditional references only when their trigger is present.
+
+### Product application
+
+Core:
+
+- `references/ux-patterns/task-ergonomics.md`
+- `references/ui-patterns/interaction-state-matrix.md`
+
+Conditional:
+
+- Responsive or multi-viewport: `references/ui-patterns/responsive-adaptation-gate.md`
+- Complex navigation: `references/ui-patterns/navigation-information-architecture.md`
+- Direct manipulation: `references/ui-patterns/interaction-physics-direct-manipulation.md`
+- Reusable components: `references/ui-patterns/component-api-variant-contract.md`
+
+### Landing page or product proof
+
+Core:
+
 - `references/ui-patterns/creative-direction.md`
-- `references/ui-patterns/product-quality-bar.md`
-- `references/ui-patterns/visual-hierarchy.md`
-- `references/ui-patterns/responsive-containment.md`
-- `references/ui-patterns/asset-selection.md`
-- `references/ui-patterns/reference-analysis.md`
-- `references/ui-patterns/motion-budget.md`
-- `references/ui-patterns/interaction-techniques.md`
-- `references/ui-patterns/cinematic-landing-system.md`
-- `references/ui-patterns/web-implementation-tracks.md`
+- `references/ui-patterns/page-proof-architecture.md`
 
-Produce a compact UI decision brief when building or redesigning a screen, app, website, dashboard, editor, checkout, or agent run UI. Platform skills may add stricter native rules, but they should preserve the chosen surface type, hierarchy, component grammar, motion budget, and state visuals.
+Conditional:
 
-## Behavior
+- Conversion or pricing: `references/ui-patterns/conversion-proof-system.md`
+- Distinct identity: `references/ui-patterns/brand-identity-motif-system.md`
+- Product media: `references/ui-patterns/asset-realism-matrix.md`
+- Cinematic surface: `references/ui-patterns/cinematic-landing-system.md`
 
-- Ask a short clarifying question when the platform, product job, visual direction, or native vs cross-platform target is unclear.
-- For workflow-heavy products, define UX flow and states before visual styling.
-- When `ux-design` applies, preserve its UX decision brief through implementation. Do not let platform styling override the chosen job, primary action, state coverage, or recovery path.
-- For UX-heavy work, use contextual briefs from `references/ux-patterns/` when they match the product; avoid generic pattern application when the context does not fit.
-- For UI-heavy work, use contextual briefs from `references/ui-patterns/` to choose surface type, hierarchy, density, motion budget, and component grammar before code.
-- For desktop app work, use `references/ui-patterns/desktop-app-archetypes.md` before platform components. Choose command center, library, workbench, monitoring cockpit, tray/menu-bar utility, media/consumer, document/knowledge, or setup/preferences so the app does not collapse into the same sidebar-plus-cards shell.
-- For original, distinctive, memorable, non-generic, creative, polished, high-craft, campaign, or "actually designed" requests, use `references/ui-patterns/originality-engine.md` before visual styling. Require a subject-specific concept seed, composition archetype, one weird move, restraints, specific defaults banned for the brief, and a three-direction fork when useful.
-- For higher-quality generation, use `references/ui-patterns/design-recipes.md` and produce a compact layout sketch before code. If the design drifts toward a familiar generated skeleton, use `references/ui-patterns/anti-default-contrasts.md` and choose a stronger replacement pattern.
-- For polished, memorable, high-craft, campaign, or "best-looking" design requests, use `references/ui-patterns/creative-direction.md` before visual styling. Require a concrete world, metaphor, material language, repeated motif, forbidden defaults, and one tasteful risk.
-- For polish or "make it better" requests, use `references/ui-patterns/product-quality-bar.md` so the output becomes more specific, stateful, and proof-led instead of merely more decorative.
-- For animation, scrolling, transitions, command palettes, split panes, or rich interaction, use `references/ui-patterns/interaction-techniques.md` to choose CSS, Motion, GSAP, native scroll CSS, Lenis, or no animation by product surface.
-- For cinematic, campaign, editorial, launch, or high-craft landing pages, use `references/ui-patterns/cinematic-landing-system.md` to separate key art from page design, define typography and section rhythm, and choose motion after the visual system is clear.
-- For web implementation, use `references/ui-patterns/web-implementation-tracks.md` before choosing static HTML, Vite React, Next, Astro, or another stack. React is first-class for stateful and advanced interactive work, but it is not the default for simple static pages.
-- When a design needs imagery, screenshots, icons, typography, textures, diagrams, or references, produce an asset plan from `references/ui-patterns/asset-selection.md` before implementation. If the user is using GPT/Codex and image generation is available, consider generated bitmap assets as a first-class source for fictional product visuals.
-- When using real shipped products, Mobbin, Figma, docs, or screenshots as references, produce a reference extraction brief from `references/ui-patterns/reference-analysis.md`. Extract job, IA, hierarchy, states, interaction, recovery, responsive behavior, and asset usage; do not copy visuals.
-- Prefer concrete UI decisions over generic "modern clean" styling.
-- Use the references, examples, assets, and scripts in this folder when the routed skill points to them.
-- Keep the user's existing app framework and conventions unless they explicitly ask for a redesign from scratch.
-- Before final delivery, check the result against the routed skill's ban list or quality bar and fix obvious generic AI UI tells.
+### Animation-led surface
+
+Core:
+
+- `references/ui-patterns/animation-creation.md`
+- `references/ui-patterns/choreography-state-machine.md`
+
+Conditional:
+
+- Library selection: `references/ui-patterns/motion-library-playbooks.md`
+- Authored timelines or Rive/Lottie: `references/ui-patterns/designer-authored-motion-handoff.md`
+- Heavy runtime: `references/ui-patterns/performance-budget-contract.md`
+- Acceptance frames: `references/ui-patterns/motion-frame-qa-contract.md`
+
+### Dashboard or analytics
+
+Core:
+
+- `references/ui-patterns/dashboard-insight-hierarchy.md`
+- `references/ui-patterns/data-visualization-library-selection.md`
+
+Conditional:
+
+- Realistic fixtures: `references/ui-patterns/product-data-content-system.md`
+- Dense repeated work: `references/ux-patterns/task-ergonomics.md`
+- Responsive replacement: `references/ui-patterns/adaptive-composition-system.md`
+- Data states: `references/ui-patterns/interaction-state-matrix.md`
+
+### Design system or reusable library
+
+Core:
+
+- `references/ui-patterns/design-system-production-loop.md`
+- `references/ui-patterns/token-implementation-contract.md`
+
+Conditional:
+
+- Public component API: `references/ui-patterns/component-api-variant-contract.md`
+- State coverage: `references/ui-patterns/component-state-gallery.md`
+- Theme and density: `references/ui-patterns/theme-mode-density-system.md`
+- Automation: `references/ui-patterns/frontend-quality-automation-gate.md`
+
+### Audit or repair
+
+Core:
+
+- `references/ui-patterns/ui-audit-rubric.md`
+- `references/ui-patterns/visual-repair-playbook.md`
+
+Conditional:
+
+- Usability concern: `references/ux-patterns/usability-heuristic-evaluation.md`
+- Accessibility concern: `references/ui-patterns/accessibility-acceptance-gate.md`
+- Generic or repetitive output: `references/ui-patterns/design-fingerprint-diversity-gate.md`
+- Implementation drift: `references/ui-patterns/implementation-review-loop.md`
+
+### Research or reference-led work
+
+Core:
+
+- `references/ui-patterns/reference-board-workflow.md`
+- `references/ui-patterns/research-synthesis-contract.md`
+
+Conditional:
+
+- Compare against a stronger example: `references/ui-patterns/benchmark-repair-loop.md`
+- Avoid copying identity: `references/ui-patterns/reference-analysis.md`
+
+### First-run or risky flow
+
+Core:
+
+- `references/ux-patterns/first-run-empty-state-system.md`
+- `references/ux-patterns/task-flow-acceptance-harness.md`
+
+Conditional:
+
+- Forms and validation: `references/ui-patterns/form-state-validation-system.md`
+- Checkout or trust: `references/ui-patterns/conversion-proof-system.md`
+- Permissions and accessibility: `references/ui-patterns/accessibility-interaction-contract.md`
+
+## Produce a compact decision brief
+
+Before code, state:
+
+- product job and primary user;
+- target platform and implementation track;
+- primary object and action;
+- selected structural pattern;
+- visual direction and one product-specific motif;
+- required states and recovery path;
+- responsive or native adaptation;
+- motion level and library owner, if any;
+- selected references and why they apply;
+- acceptance evidence.
+
+Keep this brief actionable. Do not turn it into a design essay.
+
+## Implement and validate in stages
+
+1. Define the product object, primary action, states, and recovery.
+2. Choose platform idiom and structural pattern.
+3. Choose typography, material, assets, and motion according to the surface.
+4. Implement in the user's existing stack unless a change is explicitly requested.
+5. Inspect the rendered result.
+6. Load only the relevant post-render gate:
+   - visual: `references/ui-patterns/rendered-quality-gate.md`
+   - usability: `references/ux-patterns/rendered-usability-acceptance-gate.md`
+   - typography: `references/ui-patterns/rendered-typography-quality-gate.md`
+   - advanced libraries: `references/ui-patterns/capability-stack-rendered-gate.md`
+7. Apply the highest-impact repair and re-check the failed evidence.
+
+## Commands
+
+Use command briefs when the user explicitly asks for one of these modes:
+
+| Mode | Command |
+|---|---|
+| General design | `commands/stark.md` |
+| Audit | `commands/stark-audit.md` |
+| Full design direction | `commands/stark-director.md` |
+| Quality scoring | `commands/stark-quality.md` |
+| Browser/runtime QA | `commands/stark-qa.md` |
+| Release-quality gate | `commands/stark-quality-gate.md` |
+| Usability | `commands/stark-usability.md` |
+| Animation | `commands/stark-animation.md` |
+| Assets | `commands/stark-assets.md` |
+| Reference research | `commands/stark-reference-board.md` |
+| Second attempt | `commands/stark-regenerate.md` |
+| Design translation | `commands/stark-translate.md` |
+| Dogfood evaluation | `commands/stark-dogfood.md` |
+
+## Helper scripts
+
+- Use `scripts/detect_platform.py` only when semantic platform routing remains ambiguous.
+- Use `scripts/token_export.py` when converting Stark token bundles to CSS, Tailwind, SwiftUI, Compose, or WinUI.
+- Maintainers use `scripts/validate_repository.py` and `scripts/build_package.py`; they are not part of normal design execution.
+
+## Guardrails
+
+- Prefer product-specific structure over generic cards, gradients, and slogans.
+- Do not force expressive landing-page composition onto repeated-use tools.
+- Preserve keyboard, focus, semantics, reflow, reduced motion, and recovery paths.
+- Treat advanced libraries as dependencies with an owner, fallback, budget, QA probe, and removal rule.
+- Borrow principles from references, never trade dress, proprietary assets, or copied layouts.
+- Do not claim rendered quality without rendered evidence.
+- Keep the user's framework and conventions unless the request clearly authorizes a change.

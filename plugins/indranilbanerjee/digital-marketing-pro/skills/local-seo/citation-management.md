@@ -94,7 +94,6 @@ Before building any citations, establish the canonical NAP — the single, exact
 | Vitals | Doctor reviews and ratings |
 | RateMDs | Doctor reviews |
 | Wellness.com | Alternative and general health |
-| CareDash | Doctor reviews with transparency focus |
 
 **Legal**
 

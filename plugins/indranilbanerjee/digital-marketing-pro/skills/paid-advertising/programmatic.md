@@ -1,5 +1,7 @@
 # Programmatic Advertising — DSP, CTV & DOOH
 
+> **Benchmark provenance (as of 2026-08):** Dollar figures in this document are planning priors, not quotes — market and auction rates drift continuously. Before any figure enters a media plan, budget, or client deliverable, refresh it live (platform dashboards and current published reports beat memory) and record it with `python scripts/benchmark_book.py --action record ... --source <url>`; quote from the book thereafter (`--action quote`). Never present an unstamped figure as current market fact.
+
 ## Programmatic Ecosystem Overview
 
 ### How Programmatic Works
@@ -16,7 +18,7 @@ Advertiser → DSP → Ad Exchange → SSP → Publisher
 | **DSP** (Demand-Side Platform) | Buys ad inventory on behalf of advertisers | DV360, The Trade Desk, Amazon DSP, Xandr |
 | **SSP** (Supply-Side Platform) | Sells ad inventory on behalf of publishers | Google Ad Manager, Magnite, PubMatic, Index Exchange |
 | **Ad Exchange** | Marketplace connecting DSPs and SSPs | Google AdX, OpenX, Xandr Marketplace |
-| **DMP** (Data Management Platform) | Aggregates and segments audience data | Oracle BlueKai, Lotame, LiveRamp |
+| **DMP** (Data Management Platform) | Aggregates and segments audience data | Lotame, LiveRamp, Adobe Real-Time CDP |
 | **CDP** (Customer Data Platform) | Unifies first-party customer data | Segment, mParticle, Tealium |
 | **Ad Server** | Serves ads and tracks delivery/performance | Campaign Manager 360 (CM360), Innovid, Flashtalking |
 | **Verification** | Brand safety, viewability, fraud detection | IAS, DoubleVerify, MOAT, Pixalate |
@@ -84,9 +86,9 @@ START: What is your primary goal?
 | Peacock (NBC) | Yes | TTD, DV360, Xandr |
 | Max (HBO) | Yes (with ads tier) | TTD, DV360 |
 | Paramount+ | Yes | TTD, DV360 |
-| Netflix | Yes (with ads tier) | Microsoft/Xandr |
+| Netflix | Yes (with ads tier) | Netflix Ads Suite (first-party) + The Trade Desk, DV360, Magnite |
 | Disney+ | Yes (with ads tier) | Disney DSP, TTD |
-| Amazon Freevee / Prime Video | Yes | Amazon DSP |
+| Amazon Prime Video (ad tier) | Yes | Amazon DSP |
 | YouTube CTV | Yes | DV360 |
 | Roku | Yes | TTD, DV360, Roku OneView |
 | Samsung TV+ | Yes | TTD, DV360 |
@@ -163,7 +165,7 @@ START: What is your primary goal?
 |---|---|---|---|
 | **First-Party Data** | Your own CRM, website, app data | CDP, CRM | Highest (consent-based) |
 | **Contextual Targeting** | Target based on page content, not user | Real-time content analysis | Cookie-free, fully compliant |
-| **Behavioral / Interest** | User browsing and purchase signals | DMP, DSP data marketplace | Requires consent; declining with cookie deprecation |
+| **Behavioral / Interest** | User browsing and purchase signals | DMP, DSP data marketplace | Requires consent; addressability reduced by Safari/Firefox blocking, iOS ATT, and consent regimes (Chrome retains third-party cookies — deprecation cancelled) |
 | **Lookalike / Modeled** | Expand from seed audience using ML | DSP modeling, LiveRamp | Moderate; depends on seed data |
 | **Geofencing / Location** | Target users in/near physical locations | Mobile location data (Foursquare, etc.) | Requires opt-in location services |
 | **Seller-Defined Audiences** | Publisher-created audience segments | Publisher first-party data | High (publisher consent flow) |

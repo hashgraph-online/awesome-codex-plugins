@@ -1,6 +1,6 @@
 # postmortem
 
-Test an explicit retrospective causal question against evidence and counterfactuals after Validate and Learn. Triggers: "postmortem", "causal retrospective", "test a retrospective hypothesis".
+Optionally test a retrospective causal question against durable verdict evidence. Triggers: "postmortem", "causal retrospective", "test a retrospective hypothesis".
 
 ## Instructions
 

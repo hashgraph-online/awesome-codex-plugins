@@ -58,15 +58,15 @@ AskUserQuestion({
     options: [
       {
         label: "Dev (Recommended)",   // add "(Recommended)" to each detected audience
-        description: "Architektur-, Modul- oder Refactoring-Änderungen — aktualisiert CLAUDE.md (oder AGENTS.md auf Codex CLI), docs/dev/**, docs/adr/**."
+        description: "Architektur-, Modul-, Refactoring-Änderungen. Dann ändern sich CLAUDE.md bzw. AGENTS.md und `docs/dev/**, docs/adr/**` (Handbuch und Entscheidungen)."
       },
       {
         label: "User",
-        description: "Öffentlich sichtbare Änderungen — aktualisiert README.md, docs/user/**, examples/**."
+        description: "Öffentlich sichtbare Änderungen. Dann werden README.md und `docs/user/**, examples/**` (was Nutzer davon lesen) nachgezogen."
       },
       {
         label: "Vault",
-        description: "Strategische oder Status-Änderungen — aktualisiert <vault>/01-projects/<slug>/context.md, decisions.md, people.md."
+        description: "Strategische oder Status-Änderungen. Dann wird `<vault>/01-projects/<slug>/context.md, decisions.md, people.md` (die Projektakte dazu) nachgezogen."
       }
     ]
   }]
@@ -76,13 +76,13 @@ AskUserQuestion({
 **Codex CLI / Cursor IDE fallback (numbered Markdown list):**
 
 ```markdown
-Welche Audiences berührt dieser Scope? (Mehrfachauswahl möglich)
-
 Auto-detected: [dev]  ← list detected audiences here, or "none" if empty intersection
 
-1. **Dev (Recommended)** — Architektur-, Modul- oder Refactoring-Änderungen. Targets: CLAUDE.md (oder AGENTS.md auf Codex CLI), docs/dev/**, docs/adr/**.
-2. **User** — Öffentlich sichtbare Änderungen. Targets: README.md, docs/user/**, examples/**.
-3. **Vault** — Strategische oder Status-Änderungen. Targets: <vault>/01-projects/<slug>/context.md, decisions.md, people.md.
+Welche Audiences berührt dieser Scope? Mehrfachauswahl möglich.
+
+1. **Dev (Recommended)** — Architektur-, Modul-, Refactoring-Änderungen. Dann ändern sich CLAUDE.md bzw. AGENTS.md und `docs/dev/**, docs/adr/**` (Handbuch und Entscheidungen).
+2. **User** — öffentlich sichtbare Änderungen. Dann werden README.md und `docs/user/**, examples/**` (was Nutzer davon lesen) nachgezogen.
+3. **Vault** — strategische oder Status-Änderungen. Dann wird `<vault>/01-projects/<slug>/context.md, decisions.md, people.md` (die Projektakte dazu) nachgezogen.
 
 Enter one or more numbers (comma-separated), or press Enter to accept the recommended default.
 ```

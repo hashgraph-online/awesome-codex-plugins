@@ -1,6 +1,6 @@
 ---
 name: page-seo-analysis
-description: "Analyze SEO for a single page. Use when: auditing on-page signals, schema, content quality, E-E-A-T, or AI search readiness."
+description: "Run a deep SEO audit of one URL across title/meta, headings, content depth, E-E-A-T, schema (with deprecation flags for HowTo, FAQ, SpecialAnnouncement), images, internal links, technical signals, and AI search readiness. Produces a scored /80 report with exact replacement title tags and meta descriptions, ready-to-paste JSON-LD, and optional competitor comparison. Triggers on \"/digital-marketing-pro:page-seo-analysis\", \"analyze the SEO of this page\", \"why isn't this page ranking\", \"audit this URL before publish\", \"compare my page against competitor pages\". Reads the brand profile and guidelines; analysis and recommendations only — nothing is changed on the site. For a site-wide view, pair with /digital-marketing-pro:seo-audit."
 argument-hint: "[URL]"
 user-invocable: true
 ---
@@ -43,7 +43,7 @@ Always check and flag:
 
 ## Output
 
-### Page SEO Score: XX/100
+### Page SEO Score: XX/80
 
 | Dimension | Score | Priority Issues |
 |-----------|-------|-----------------|

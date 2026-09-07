@@ -7,6 +7,25 @@ Evaluate a project against 6 cloud-native dimensions to produce a readiness scor
 **Data source**: Patterns derived from 164 production-deployed Sealos Cloud templates.
 See [knowledge/sealos-patterns.md](../knowledge/sealos-patterns.md) for the full dataset.
 
+## Step 0: Deployment Eligibility Gate
+
+Read and apply
+[deployment-eligibility.md](../knowledge/deployment-eligibility.md) before scoring.
+
+- `eligible` → continue with the readiness assessment.
+- `ineligible` → report workload type and evidence, then STOP.
+- `needs_review` → inspect entry points and runtime evidence, but STOP unless the
+  requested root can be explicitly resolved as `eligible`.
+
+Do not inspect Docker artifacts, calculate a score, or invoke `dockerfile-skill`
+before eligibility passes. Keep the decision in memory; do not create a project
+artifact for it.
+
+Record the eligibility result as the first field of the request-scoped report:
+`workload.type`, `workload.eligibility`, `reason_codes`, `observed_evidence`,
+`safe_next_action`, and `redaction.ok`. A stopped or error result carries these
+fields without a score or downstream artifact claim.
+
 ## Pre-Assessment: Fast-Track Rules
 
 Before running the full 6-dimension assessment, check these fast-track rules derived
@@ -30,15 +49,11 @@ Apply if ANY of these match:
 
 ### Needs Full Assessment
 - Projects with SQLite as primary database
-- Desktop/Electron apps that also have a web component
 - Projects with heavy local file processing or GPU requirements
-- CLI tools that may or may not expose HTTP
-
-### Likely Fail (Preliminary Score 0-3)
-- Pure CLI tools with no HTTP server
-- Desktop-only GUI applications (Electron without web API)
-- Embedded systems or hardware-specific code
 - Projects requiring persistent local state with no external DB
+
+Desktop/mobile apps, CLI tools, libraries, browser extensions, and embedded systems
+are handled by the eligibility gate and are not assigned a readiness score.
 
 ## Execution Steps
 
@@ -80,6 +95,11 @@ project:
       path: "apps/cms"
       type: "Web application"
 ```
+
+When the gate passes, merge the project description into the readiness report
+without copying source paths, environment values, or credential-shaped values.
+The report keeps the six dimension scores, concerns, and recommendation for the
+downstream route.
 
 ### Step 2: Assess Statelessness (0-2 points)
 
@@ -329,6 +349,11 @@ Sum all dimension scores (0-12) and determine rating:
 
 ```yaml
 assessment:
+  eligibility:
+    status: "eligible"
+    workload_type: "web_service | static_web | worker | scheduled_job | remote_desktop"
+    reason_codes: ["STABLE_REASON_CODE"]
+    evidence: ["repository-relative evidence"]
   project_name: "{name}"
   project_type: "monorepo | single-app"
   overall_score: {0-12}

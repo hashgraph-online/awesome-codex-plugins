@@ -1,6 +1,6 @@
 ---
 name: receiving-code-review
-description: Use when receiving code review feedback before implementing suggestions, especially when feedback is unclear, risky, disputed, or technically questionable.
+description: "Use when receiving code review feedback before implementing suggestions, especially when feedback is unclear, risky, disputed, or technically questionable."
 ---
 
 # Code Review Reception

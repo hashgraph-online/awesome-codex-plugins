@@ -7,6 +7,7 @@ import json
 import os
 import re
 import shlex
+import shutil
 import signal
 import subprocess
 import sys
@@ -102,7 +103,10 @@ def _extract_strings(binary: Path, *, timeout: int = 90) -> tuple[list[str], str
 
 
 def shutil_which(cmd: str) -> str | None:
-    return subprocess.run(["/usr/bin/env", "bash", "-lc", f"command -v {shlex.quote(cmd)}"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True).stdout.strip() or None
+    # Resolve against PATH directly. The previous implementation shelled out to
+    # `bash -lc`, which sources the user's login profile inside a security tool —
+    # arbitrary profile code on every lookup. shutil.which has no such surface.
+    return shutil.which(cmd)
 
 
 def _detect_runtimes(strings_blob: str, linked_blob: str, file_blob: str) -> list[str]:

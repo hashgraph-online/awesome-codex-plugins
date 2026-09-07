@@ -1,37 +1,20 @@
 {
-  "name": "codex-usage-tracker-dashboard-smoke",
+  "name": "codex-usage-tracker-kernel-integration",
+  "version": "0.28.0",
   "private": true,
   "type": "module",
-  "workspaces": [
-    "frontend/dashboard"
-  ],
+  "description": "Kernel Evidence Console build and verification tooling.",
   "scripts": {
-    "dashboard:dev": "npm --workspace frontend/dashboard run dev",
-    "dashboard:build": "npm --workspace frontend/dashboard run build",
-    "dashboard:typecheck": "npm --workspace frontend/dashboard run typecheck",
-    "dashboard:test": "npm --workspace frontend/dashboard run test",
-    "dashboard:lint": "npm --workspace frontend/dashboard run lint",
-    "dashboard:boundaries": "cd frontend/dashboard && depcruise --config ../../dependency-cruiser.config.cjs src",
-    "dashboard:dead-code": "knip --config knip.json --workspace frontend/dashboard",
-    "dashboard:stylelint": "stylelint \"frontend/dashboard/src/**/*.css\"",
-    "dashboard:source-budget": "python3 scripts/check_dashboard_source_budgets.py",
-    "dashboard:governance": "npm run dashboard:boundaries && npm run dashboard:dead-code && npm run dashboard:stylelint && npm run dashboard:source-budget",
-    "dashboard:bundle-report": "npm run dashboard:build && node scripts/check-dashboard-bundles.mjs && npm run dashboard:visualization-bundle",
-    "dashboard:visualization-bundle": "node scripts/check-visualization-renderer-bundle.mjs",
-    "dashboard:verify": "npm run dashboard:lint && npm run dashboard:typecheck && npm run dashboard:test && npm run dashboard:governance && npm run dashboard:bundle-report",
-    "dashboard:smoke": "REACT_DASHBOARD_WEB_SERVER=1 DASHBOARD_BASE_URL=http://127.0.0.1:5173 playwright test tests/playwright/dashboard-react.spec.mjs",
-    "dashboard:visualization-smoke": "REACT_DASHBOARD_WEB_SERVER=1 DASHBOARD_BASE_URL=http://127.0.0.1:5173/codex-usage-tracker-assets/react/ playwright test tests/playwright/dashboard-visualization.spec.mjs --project=chromium-desktop",
-    "dashboard:screenshots": "node scripts/capture_dashboard_screenshots.mjs",
-    "smoke:dashboard:diagnostics": "playwright test tests/playwright/dashboard-diagnostics.spec.mjs"
+    "console:build": "node scripts/build_kernel_console.mjs",
+    "console:build:check": "node scripts/build_kernel_console.mjs --check",
+    "console:lint": "node --check frontend/kernel-console/app.js && node --check frontend/kernel-console/model.js && node scripts/check_kernel_console.mjs",
+    "console:typecheck": "tsc -p frontend/kernel-console/tsconfig.json",
+    "console:test": "node --test tests/frontend/kernel_console.test.mjs",
+    "console:verify": "npm run console:build:check && npm run console:lint && npm run console:typecheck && npm run console:test",
+    "console:e2e": "playwright test"
   },
   "devDependencies": {
-    "@axe-core/playwright": "4.12.1",
-    "@playwright/test": "1.61.0",
-    "dependency-cruiser": "18.0.0",
-    "esbuild": "^0.28.1",
-    "knip": "6.26.0",
-    "markdownlint-cli2": "0.23.0",
-    "pngjs": "^7.0.0",
-    "stylelint": "17.14.0"
+    "@playwright/test": "1.62.0",
+    "typescript": "7.0.2"
   }
 }

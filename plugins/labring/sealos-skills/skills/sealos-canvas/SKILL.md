@@ -5,6 +5,44 @@ description: Run a local read-only HTML topology UI for a project already deploy
 
 # Sealos Canvas
 
+## Identity and Discovery
+
+- **Owner:** `sealos-canvas` (`/sealos-canvas` and deployed-resource view, inspect, visualize, topology, or localhost canvas requests).
+- **Class:** `read-only-observation` with no downstream mutation handoff.
+- **Canaries:** `CANVAS-DEPLOYED`, `CANVAS-READONLY`, `CANVAS-REDACT`, and `CANVAS-SERVER-LIFETIME`.
+
+## Scope and Boundaries
+
+Require `.sealos/state.json` with `last_deploy`, `~/.sealos/kubeconfig`, and live read access. Use only read commands such as `kubectl get` and `kubectl config view`; never deploy, update, restart, patch, delete, or apply. Render sanitized resource metadata into `.sealos/canvas/index.html` and return the exact local URL/cache and server-lifetime contract.
+
+## Risk and Confirmation
+
+Keep the read-only boundary, Sealos kubeconfig scope, and Secret/ConfigMap sanitization visible before generator detail. Omit `Secret.data` and `ConfigMap.data` from every result. A missing state or kubeconfig stops the request without fallback generation. Never expose Secret data, complete ConfigMap contents, kubeconfig contents, or credentials.
+
+## Lifecycle Workflow
+
+For each request, resolve the project, check deployed state and kubeconfig, run the single generator, open the loopback UI, and report sanitized counts. The temporary `127.0.0.1` server runs only for the current process and stops when the process ends or on `SIGINT`/`SIGTERM`; stop the server before closing the request.
+
+## Progressive Disclosure
+
+Load `scripts/generate-canvas.mjs` and its owned template/reference paths only after the deployed-state and read-only canaries pass. Do not load or invoke deployment mutation helpers from this entry.
+
+## Output, Stop, and Error States
+
+- `success`: `local_url`, `html_path`, app URL, node count, edge count, sanitized HTML/model, and server-lifetime evidence.
+- `stopped`: `not_deployed`, `kubeconfig_missing`, `kubectl_missing`, or unavailable read access with the exact safe next action, `server_lifetime.status: not_started`, and no HTML/server fallback.
+- `error`: generation or server-start path, sanitized diagnostic category, `server_lifetime`, and recovery action with secrets and kubeconfig redacted.
+
+Success with `--no-serve` returns `local_url: null` and `server_lifetime.status: not_started`; normal success returns `local_url` and `server_lifetime.status: running` with shutdown `process exit or SIGINT/SIGTERM`.
+
+## Handoffs
+
+Canvas consumes the typed direct-result tuple with `target: none`, `inputArtifact: .sealos/state.json last_deploy plus sanitized live summaries`, `allowedAction: serve a temporary read-only loopback view`, `failureReturn: sanitized read-only generation/server diagnostic`, and `responseOwner: sealos-canvas`. A deploy response may include the returned link without granting Canvas mutation authority.
+
+## Verification
+
+Use `generate-canvas.mjs --no-serve`, the Canvas contract tests, the canvas evals, and baseline cases `canvas-positive-read-only-local-url` and `canvas-violating-missing-state-or-mutation`. Verify `127.0.0.1`, `local_url`, `html_path`, `server_lifetime`, read-only commands, sanitized output, and explicit "Stop the server" behavior.
+
 ## Overview
 
 Render the current repository's deployed Sealos resources as a locally hosted HTML canvas. This skill is view-only: it reads `.sealos/state.json` and Kubernetes resources, starts a temporary `127.0.0.1` UI server, and returns the local URL to the user.

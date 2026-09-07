@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Batch-capture raw Yandex search result pages via Playwright."""
+"""Сохранить необязательные диагностические снимки браузерной выдачи."""
 
 from __future__ import annotations
 
@@ -145,6 +145,7 @@ def main() -> int:
             png_path = png_dir / f"{stub}.png"
             meta_path = meta_dir / f"{stub}.json"
             error = ""
+            captcha_signal = False
             try:
                 page.goto(target_url, wait_until="domcontentloaded")
                 page.wait_for_timeout(args.wait_ms)
@@ -163,8 +164,10 @@ def main() -> int:
                     "final_url": page.url,
                     "title": page.title(),
                     "captcha_signal": "captcha" in page.url.lower() or "робот" in page.content().lower(),
+                    "diagnostic_only": True,
                     "notes": job.notes,
                 }
+                captcha_signal = bool(meta["captcha_signal"])
             except PlaywrightTimeoutError as exc:
                 error = f"timeout: {exc}"
                 meta = {
@@ -172,6 +175,8 @@ def main() -> int:
                     "requested_url": target_url,
                     "final_url": page.url,
                     "error": error,
+                    "captcha_signal": False,
+                    "diagnostic_only": True,
                     "notes": job.notes,
                 }
                 html_path.write_text(page.content(), encoding="utf-8")
@@ -183,6 +188,8 @@ def main() -> int:
                     "requested_url": target_url,
                     "final_url": page.url,
                     "error": error,
+                    "captcha_signal": False,
+                    "diagnostic_only": True,
                     "notes": job.notes,
                 }
                 html_path.write_text(page.content(), encoding="utf-8")
@@ -199,6 +206,9 @@ def main() -> int:
                     "png_path": str(png_path),
                     "meta_path": str(meta_path),
                     "error": error,
+                    "captcha_signal": captcha_signal,
+                    "status": "incomplete" if error or captcha_signal else "captured",
+                    "diagnostic_only": True,
                 }
             )
             print(f"{job.job_id}\t{target_url}\t{png_path}")
@@ -208,8 +218,17 @@ def main() -> int:
         context.close()
         browser.close()
 
+    summary = {
+        "diagnostic_only": True,
+        "source_of_truth": False,
+        "jobs_total": len(manifest),
+        "captured": sum(1 for item in manifest if item["status"] == "captured"),
+        "incomplete": sum(1 for item in manifest if item["status"] != "captured"),
+        "captcha_signals": sum(1 for item in manifest if item["captcha_signal"]),
+        "rows": manifest,
+    }
     (output_dir / "_manifest.json").write_text(
-        json.dumps(manifest, ensure_ascii=False, indent=2),
+        json.dumps(summary, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
     return 0

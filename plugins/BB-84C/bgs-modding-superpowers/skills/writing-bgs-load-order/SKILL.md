@@ -5,6 +5,8 @@ description: "Use when reading, editing, or generating a Bethesda Game Studio lo
 
 # Writing a BGS load order (plugins.txt)
 
+> **Harness status (2026-07-29):** The local prototype harness was destroyed by an unattributed operation and will not be rebuilt. The historical `.artifacts/mo2` example below is **DEFUNCT**. Testing now uses externally-configured Starfield or Fallout 4 MO2 instances; machine-specific details and the forensic record are private.
+
 > Sources for every claim in this skill: `Ortham/libloadorder` (the library
 > behind LOOT), `ModOrganizer2/modorganizer/src/profile.cpp`,
 > `ModOrganizer2/modorganizer-basic_games/.../game_plugins.py`, and xEdit's

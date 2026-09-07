@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://shared.co.actor/img/linkedin-skills-hero.jpg" alt="10 Claude Code and Codex skills for LinkedIn marketing — open source, MIT licensed" width="900" />
+  <img src="assets/linkedin-skills-hero.png" alt="11 Claude Code and Codex skills for LinkedIn marketing — open source, MIT licensed" width="900" />
 </p>
 
 # LinkedIn Marketing Skills for Claude Code and Codex
@@ -14,7 +14,9 @@
   <img src="https://img.shields.io/badge/PRs-welcome-F59E0B.svg" alt="PRs Welcome">
 </p>
 
-11 skills that help Claude Code and Codex write LinkedIn posts, comments, and replies in your voice. They draft content, strip AI tells, and wait for your approval before anything gets published. No coding required.
+**Claude skills for LinkedIn.** 11 Claude Code and Codex skills that write LinkedIn posts, comments, and replies in your voice. They draft content, strip AI tells, and wait for your approval before anything gets published. No coding required.
+
+> **On another platform too?** The same team ships matching marketing skill bundles for [X (Twitter)](https://github.com/sergebulaev/x-skills) · [Instagram](https://github.com/sergebulaev/instagram-skills) · [YouTube](https://github.com/sergebulaev/youtube-skills) · [TikTok](https://github.com/sergebulaev/tiktok-skills) · [Threads](https://github.com/sergebulaev/threads-skills) · [Facebook](https://github.com/sergebulaev/facebook-skills). Same voice engine, same approve-before-publish flow.
 
 ## Install
 
@@ -102,6 +104,8 @@ One command that works across Claude Code, Codex, Cursor, and any other agent th
 npx skills add sergebulaev/linkedin-skills
 ```
 
+> **Found this useful? [Star the repo](https://github.com/sergebulaev/linkedin-skills).** Curated Claude Code and Codex directories rank and gate by star count, so a star is what makes these skills findable for the next person. It is the only thing we ask. No signup, no email.
+
 ## What you can do
 
 Once installed, just ask Claude Code or Codex for help with LinkedIn. The right skill activates automatically.
@@ -133,7 +137,7 @@ Every skill shows you a draft first and waits for your OK before doing anything.
 
 | Skill | What it does |
 |---|---|
-| **Post Writer** | Drafts viral-ready posts using 16 proven 2026 hook formulas (anaphora, R.I.P. obituary, year-over-year pivot, curiosity gap, emotional cold-open, named-gratitude, and 10 more), picked by engagement goal |
+| **Post Writer** | Drafts viral-ready posts using 20 proven 2026 hook formulas (anaphora, R.I.P. obituary, year-over-year pivot, curiosity gap, emotional cold-open, controlled A/B, false-binary, and 13 more) plus a founders-edition angle library, picked by engagement goal |
 | **Comment Drafter** | Drafts a comment on any LinkedIn post from its URL |
 | **Reply Handler** | Drafts a reply to any comment, correctly handling LinkedIn's 2-level thread flattening |
 | **Post Audit** | Checks your draft against 2026 algorithm rules and AI-detection patterns before you publish |
@@ -144,6 +148,16 @@ Every skill shows you a draft first and waits for your OK before doing anything.
 | **Profile Optimizer** | Rewrites your headline, About section, Featured section, and Experience for 2026 conversion patterns |
 | **Employee Advocacy** | Plans a team LinkedIn program: 14-day launch, posting cadence, brand governance, ROI tracking |
 | **Repurposer** | Turns content from another platform (tweet, thread, YouTube video, blog, newsletter) into a native LinkedIn post: re-hooks for the fold, expands to the 900-1300 char sweet spot, moves links to the first comment, runs the humanizer |
+
+## Built for founders
+
+If you are a founder, the bundle ships a dedicated founder layer. Your real constraint is rarely reach. It is a small number of high-stakes readers: the next investor, the next hire, the design partner who becomes a case study. The founder layer optimizes for trust with that narrow audience instead of impressions.
+
+- **10 founder angles** (`references/founder-topics.md`) as fill-in templates: reprice the category, content-to-pipeline, audience of one, the scarce-shots math, the unglamorous bet, the limit of delegation, designed serendipity, the evasive-sentence test, the delegation line, the learning gate. Each maps to an engagement goal and a hook formula.
+- **4 structural hook formulas (F17-F20)** that shape a post's logic: controlled A/B anecdote, false-binary dissolve, anecdote-meets-evidence bridge, diverging-curves close.
+- **A founders-edition content plan** (Conviction / Building in public / The math / Proof) in the Content Planner.
+
+Just tell the Post Writer you are a founder, or ask the Content Planner for a "founder plan," and the skills reach for these first.
 
 ## Optional: read LinkedIn data with Apify
 
@@ -206,6 +220,14 @@ pip install requests python-dotenv
 > "Schedule a test LinkedIn post via Publora 24 hours from now: 'testing the API connection — will cancel in dashboard'."
 
 If Publora returns a scheduled-post ID, you're set. Cancel the post in the Publora dashboard before the scheduled time. If you get HTTP 401, your API key is wrong. If you get HTTP 400 about a missing platformId, your `LINKEDIN_PLATFORM_ID` isn't set. See [Troubleshooting](#troubleshooting).
+
+## Optional: generate illustrations with Pixfaro
+
+Posts with a visual get more dwell time. The Post Writer can generate an illustration for a draft (a feed image, a carousel slide, or a quote-card of your hook) and attach it automatically when publishing. Without a key it drafts the image prompt and asks you to generate it yourself, so nothing breaks.
+
+[Pixfaro](https://pixfaro.com) is a single image API over multiple models (from `flux-schnell` at $0.004 to `gpt-5-image`). It composites your handle, brand color, or logo onto the image as a **pixel-exact overlay**, so a cheap base model still renders crisp text on a quote-card or thumbnail. Pull those brand fields from your [Voice & Brand Profile](references/voice-profile.md) (section 6) and every asset stays on-brand.
+
+Setup: drop `PIXFARO_TOKEN=pf_live_...` into your `.env`. The thin client at `lib/pixfaro_client.py` and the wrappers `lib.illustrate(prompt, kind=...)` / `lib.refine(image_id, instruction)` return a hosted URL that flows straight into `lib.publish(..., media_urls=[url])`. `refine` edits a prior image by its id (cheaper than regenerating); results carry `cost`, `balance_after`, and a `premium` flag so the skills never quietly spend on a pricey model.
 
 ## Voice rules
 
@@ -290,6 +312,11 @@ engagers = apify.fetch_post_engagers(post_url="https://www.linkedin.com/posts/..
 # Write side (Publora)
 client = PubloraClient()  # reads PUBLORA_API_KEY from env
 client.create_comment(post_urn=parsed["post_urn"], message="draft", platform_id="linkedin-xxx")
+
+# Image side (Pixfaro) — optional, reads PIXFARO_TOKEN from env
+from lib import illustrate
+img = illustrate("Minimal flat-vector lighthouse, calm blue palette", kind="wide")
+# img["url"] -> pass to publish(..., media_urls=[img["url"]])
 ```
 
 ## URL handling
@@ -322,6 +349,16 @@ python lib/url_parser.py "https://www.linkedin.com/posts/<author-handle>_activit
 - [Apify console](https://console.apify.com) — manage actors, tokens, and usage for the read layer
 - [360Brew paper](https://arxiv.org/abs/2501.16450) — LinkedIn's ranking foundation model
 - [AuthoredUp 2026 reach data](https://authoredup.com/) — format-level reach benchmarks
+
+## Who builds this
+
+These skills come out of [Creative Content Crafts](https://cccrafts.ai), an engineering company. We build the machinery underneath a company's public voice: ICP parsing, engagement systems, content guardrails, and posting infrastructure. We do not sell the words themselves.
+
+We call that layer **content engineering**. Writing collapsed to the price of a chat subscription. What stayed valuable is everything below it: pulling every post your market wrote this week, keeping a live list of the people who matter, engaging on it daily with judgment in the loop, and catching the risky drafts before the platform does.
+
+On LinkedIn specifically, that is the whole job. We are engineers of LinkedIn growth, not a ghostwriting agency.
+
+This repo is the thin top layer of that stack, open-sourced. The engine underneath is what we build for clients.
 
 ## License
 

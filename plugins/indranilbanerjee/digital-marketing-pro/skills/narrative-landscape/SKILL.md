@@ -1,6 +1,6 @@
 ---
 name: narrative-landscape
-description: "Map the competitive narrative landscape. Use when: analyzing positioning territories, gaps, competitor claims, differentiation."
+description: "Map competitor positioning across 3-5 narrative dimensions to find crowded clusters and unclaimed gaps, then score each gap by customer desirability times brand credibility. Produces a landscape map, ranked gap analysis, a recommended positioning territory, and a 30/60/90-day messaging plan to claim it. Triggers on \"/digital-marketing-pro:narrative-landscape\", \"map the competitive narrative landscape\", \"what positioning gaps can we own\", \"where do competitors cluster\", \"find us a differentiated position\". Reads the brand profile for current positioning and voice; analysis and strategy only — no messaging is published. Pairs with /digital-marketing-pro:narrative-tracker for what AI engines say about the brand."
 ---
 
 # /digital-marketing-pro:narrative-landscape
@@ -41,5 +41,5 @@ A comprehensive narrative landscape analysis containing:
 
 ## Agents Used
 
-- **competitor-intelligence** — Competitive messaging extraction and analysis across websites, advertising, social media, and press coverage, positioning signal scoring on each narrative dimension, cluster and gap identification through landscape pattern analysis, and competitive response prediction for recommended positioning moves
+- **competitive-intel** — Competitive messaging extraction and analysis across websites, advertising, social media, and press coverage, positioning signal scoring on each narrative dimension, cluster and gap identification through landscape pattern analysis, and competitive response prediction for recommended positioning moves
 - **marketing-strategist** — Positioning strategy development from gap analysis to actionable territory selection, customer desirability and brand credibility scoring for each gap, messaging framework creation with key messages, proof points, and content themes, and territory-claiming content plan with 30/60/90-day milestones across channels

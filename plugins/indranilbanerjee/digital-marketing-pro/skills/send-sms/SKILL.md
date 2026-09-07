@@ -1,6 +1,6 @@
 ---
 name: send-sms
-description: "Send SMS or WhatsApp messages. Use when: deploying marketing messages via Twilio or Brevo with compliance checks."
+description: "Send an SMS or WhatsApp marketing message through a connected Twilio or Brevo MCP, with consent verification (TCPA/GDPR/CASL), quiet-hours enforcement, opt-out and message-length checks, cost estimates, and delivery tracking. Nothing sends without an Execution Summary and explicit typed approval — the gate cannot be skipped. Triggers on \"/digital-marketing-pro:send-sms\", \"send an SMS blast\", \"send this WhatsApp message to the list\", \"text our customers about the sale\", \"schedule an SMS for tomorrow morning\". Reads the brand profile and compliance rules, scores the message with the brand-voice scorer, and logs every send to the execution audit trail."
 disable-model-invocation: false
 argument-hint: "[message-type]"
 ---
@@ -24,7 +24,7 @@ The user must provide (or will be prompted for):
 
 - **Message content**: The SMS or WhatsApp message body — must include a clear opt-out mechanism (e.g., "Reply STOP to unsubscribe") for regulatory compliance. WhatsApp messages may include rich media (image, document, video, or location) and must use pre-approved message templates for business-initiated conversations per Meta's policy
 - **Recipient(s)**: Phone number(s) in E.164 format (+1XXXXXXXXXX), a named contact list from the brand's audience data, or a segment reference. For bulk sends, provide a CSV file path or list identifier. Each recipient must have documented consent on file
-- **Channel**: `sms` or `whatsapp` — determines message length limits (160 chars SMS, 1,024 chars WhatsApp), media support (text-only SMS vs. rich media WhatsApp), template requirements, and platform-specific compliance rules
+- **Channel**: `sms` or `whatsapp` — determines message length limits (160 chars SMS; WhatsApp: 1,024 chars for template bodies, 4,096 for free-form session messages), media support (text-only SMS vs. rich media WhatsApp), template requirements, and platform-specific compliance rules
 - **Sender ID (optional)**: The sender phone number, short code, or alphanumeric sender ID to use — must be registered and verified on the platform. If omitted, uses the brand's default sender configured in the messaging MCP. Alphanumeric sender IDs are not supported in all countries
 - **Send time**: `immediate` for instant delivery or a scheduled date and time with timezone (ISO 8601 format). Scheduling must respect quiet hours — no sends between 9pm and 8am in the recipient's local time zone
 - **Campaign name (optional)**: For tracking and attribution — links this send to a campaign in the brand's analytics and performance reporting. If omitted, auto-generated from message content and date

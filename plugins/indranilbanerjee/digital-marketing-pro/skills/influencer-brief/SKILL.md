@@ -1,6 +1,6 @@
 ---
 name: influencer-brief
-description: "Create influencer campaign briefs. Use when: setting creator criteria, FTC compliance, or measurement plans."
+description: "Create a complete influencer campaign brief — creator discovery criteria, a shareable creator brief document, compensation framework, content approval workflow, FTC/ASA compliance checklist, usage rights, and a measurement framework, including AI-tool clauses and the EU deepfake disclosure clause for EU placements. Triggers on \"/digital-marketing-pro:influencer-brief\", \"write a brief for our influencer campaign\", \"what should our creator brief include\", \"set criteria for choosing creators\", \"draft the disclosure requirements for influencers\". Reads the brand profile, guidelines, and agency SOPs; references the /digital-marketing-pro:c2pa-metadata workflow for AI assets shipped for paid amplification."
 argument-hint: "[campaign-objective]"
 ---
 
@@ -54,7 +54,7 @@ Creators increasingly use AI image/video tools (Nano Banana Pro, Gemini Omni, Ve
 
 1. **Permitted AI use**: Allowed for B-roll, mood, and stylised visuals. **Not permitted for** synthetic depictions of real people (including the creator themselves in altered form), synthetic product imagery that misrepresents the brand's actual product, or AI-generated voiceover impersonating a real person without explicit release.
 2. **Required disclosures**: Any AI-generated visual or audio in the sponsored content must (a) be flagged in the creator's platform-native AI disclosure (TikTok AI label, Meta AI Content label, YouTube "altered or synthetic content" toggle) AND (b) carry C2PA Content Credentials if the creator ships the file to the brand for paid amplification — provide `/digital-marketing-pro:c2pa-metadata` workflow link in the brief.
-3. **EU deepfake clause** (mandatory for EU-distributed campaigns): Synthetic-human content (face swaps, AI voices resembling real people, AI-cloned likeness) must carry a visible deepfake disclosure perceivable at normal viewing distance. See `skills/context-engine/compliance-rules.md` §1.1b.i (Article 50 draft guidelines, May 2026). Creators who refuse this clause should not be cleared for EU placements.
+3. **EU deepfake clause** (mandatory for EU-distributed campaigns): Synthetic-human content (face swaps, AI voices resembling real people, AI-cloned likeness) must carry a visible deepfake disclosure perceivable at normal viewing distance. See `skills/context-engine/compliance-rules.md` §1.1b.i (Article 50 implementing guidelines — FINAL 2026; Article 50 applies 2 Aug 2026). Creators who refuse this clause should not be cleared for EU placements.
 
 ## Agents Used
 

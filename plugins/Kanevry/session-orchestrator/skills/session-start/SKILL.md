@@ -21,6 +21,8 @@ description: >
 
 Before anything else, read and internalize `soul.md` in this skill directory. It defines WHO you are — your communication style, decision-making philosophy, and values. Every interaction in this session should reflect this identity. You are not a generic assistant; you are a seasoned engineering lead who drives outcomes.
 
+**Then set the output level.** Read `~/.config/session-orchestrator/owner.yaml` and take `efficiency.output-level` (`lite` | `full` | `ultra`), `efficiency.preamble`, and `tone.style`. If the file is missing, unreadable, or a key is absent, use the defaults `full` / `minimal` / `neutral`. Apply the matching `### output-level: <value>` block from `soul.md` § Output Levels for the whole session — its line budgets are binding, not advisory, and § "Never traded for brevity" names what they may never cut.
+
 ## Phase 0: Bootstrap Gate
 
 Read `skills/_shared/bootstrap-gate.md` and execute the gate check. If the gate is CLOSED, invoke `skills/bootstrap/SKILL.md` and wait for completion before proceeding. If the gate is OPEN, continue to Phase 1.
@@ -39,8 +41,9 @@ This runs BEFORE the local session-lock acquire in Phase 1.2 — the preamble's 
 
 **Outcome handling:**
 - `PASS_THROUGH` → continue to Phase 1
+- `PASS_THROUGH` with a non-empty `advisory` array (GH#67) → a `discovered` peer with `lockSuperseded: true` never fires the Promotion AUQ (it stays visible, per the #1085 advisory-lock contract — it is not filtered). Print ONE advisory line per entry: `parallel-aware: registry entry <sessionId> (last heartbeat <N> min ago) is superseded by this root's live lock <lockOwnerId> — likely a finished task on a platform without SessionEnd (GH#67); still counted for PSA-001 awareness`, then continue to Phase 1. It remains PSA-002-relevant if the same id also shows up in STATE.md (`source: 'state-md'` is handled by Phase 1.2.1 unchanged).
 - `EXCLUSIVE_BLOCKED` → exit Phase 0 cleanly per the AUQ outcome (`Warten` / `Andere Session beenden` / `Abbrechen` — all three return without initializing STATE.md)
-- `PROMOTION_OFFER` with user picking "Worktree anlegen + starten" → call `enterWorktree({ basePath, sessionId, branch, repoRoot })` from `scripts/lib/autopilot/worktree-pipeline.mjs`. Compute params: `basePath = path.dirname(repoRoot)`, `sessionId` from resolveSemanticSessionId(), `branch` from current HEAD, `repoRoot = process.cwd()`. On success, exit Phase 0 immediately — the new worktree's own session-start runs from scratch (Phase 1 onwards), Phase 1.2 session-lock-acquire is the new worktree's responsibility. On enterWorktree failure (`WorktreeBoundaryError` or `git worktree add` non-zero exit), emit stderr WARN `parallel-aware: enterWorktree failed: <err>; falling back to Manuell` and proceed via the Manuell path.
+- `PROMOTION_OFFER` with user picking "Worktree anlegen + starten" → call `enterWorktree({ basePath, sessionId, branch, repoRoot, rawSessionId, reason: 'worktree-promotion' })` from `scripts/lib/autopilot/worktree-pipeline.mjs` — since #1170 this ONE call does both jobs: it creates the destination worktree AND, because `rawSessionId` is supplied, releases the source root internally (see below), so no separate `leaveSourceRoot` call is made at this site. Compute params: `basePath = path.dirname(repoRoot)`, `sessionId` from resolveSemanticSessionId() **for the worktree-name attribution label only**, `branch` from current HEAD, `repoRoot = process.cwd()`, `rawSessionId` from `readLock({ repoRoot }).session_id`. `sessionId` (the semantic label) is not a lock/registry ownership key; the new worktree's Phase 1.2 obtains its own physical raw `session_id`. Because `branch` is the current HEAD it is normally checked out by `repoRoot` already, so `enterWorktree` treats it as a start point only and lands the promoted worktree on a fresh `so/<sessionId>` branch, returning `{ branch: 'so/<sessionId>', promotedFrom: '<branch>' }` (#1067) — the new worktree's STATE.md `branch` MUST record `so/<sessionId>` and note `promoted from <branch>@<repoRoot>`, never the source branch alone. **`rawSessionId` is the RAW physical `session_id` read from this root's `.orchestrator/session.lock` via `readLock({ repoRoot })` — never the semantic label, and never the id in `current-session.json`, which may describe a peer session (#863); a wrong id aborts the internal `leaveSourceRoot()` teardown with `left.ok: false, reason: 'lock-session-mismatch:<owner>'` and removes nothing.** The promotion is a PROCESS BOUNDARY, not a live migration (#1069): the old root is deregistered and its `session.lock` released BEFORE the new worktree's own Phase 1.2 acquires, so the two roots never both own a live claim at once. `enterWorktree()`'s return value carries the outcome as `left: { ok, steps, reason? }`; `leaveSourceRoot()` never throws, so on `left.ok !== true` `enterWorktree` itself emits the stderr WARN `enterWorktree: leaveSourceRoot: <reason>` and the promotion continues regardless — the destination worktree already exists by the time this runs, so aborting here would leave exactly the two-live-roots state the call prevents. Then exit Phase 0 immediately — the new worktree's own session-start runs from scratch (Phase 1 onwards), Phase 1.2 session-lock-acquire is the new worktree's responsibility. On enterWorktree failure (`WorktreeBoundaryError` or `git worktree add` non-zero exit), emit stderr WARN `parallel-aware: enterWorktree failed: <err>; falling back to Manuell` and proceed via the Manuell path.
 - `PROMOTION_OFFER` with user picking "Manuell — in-place daneben" → append Deviation, continue to Phase 1
 - `PROMOTION_OFFER` with user picking "Abbrechen" → exit cleanly
 
@@ -110,14 +113,14 @@ if (content && !isDispatcherAutonomyBlockPresent(content)) {
 
 Acquire a distributed session-lock to detect parallel sessions in the same repo before initializing STATE.md. This prevents two concurrent Claude/Codex sessions from stomping each other's wave state and metrics writes.
 
-**Mechanical wiring (Epic #583, 2026-05-27):** The SessionStart hook (`hooks/on-session-start.mjs` → `hooks/_lib/lock-bootstrap.mjs`) now writes `.orchestrator/session.lock` mechanically BEFORE this skill's prose runs. The prose Phase 1.2 becomes confirmatory — it verifies the lock exists with the expected shape via `readLock({ repoRoot: process.cwd() })`. Re-call `acquire()` only if `readLock()` returns `null` (mechanical hook failed) OR the existing lock's `session_id` does not match the current session's id (a rare divergence — surface via AUQ before overwriting). The decision flow below still applies to all three outcomes (active / stale / fs-error) when the prose path needs to acquire.
+**Mechanical wiring (Epic #583, 2026-05-27):** The SessionStart hook (`hooks/on-session-start.mjs` → `hooks/_lib/lock-bootstrap.mjs`) now writes `.orchestrator/session.lock` mechanically BEFORE this skill's prose runs. The prose Phase 1.2 becomes confirmatory — it verifies the lock exists with the expected shape via `readLock({ repoRoot: process.cwd() })`. Re-call `acquire()` only if `readLock()` returns `null` (mechanical hook failed) OR the existing lock's raw `session_id` does not exactly match the current session's raw id (a rare divergence — surface via AUQ before overwriting). A matching `semantic_session_id`, STATE.md `session`, or owner proof cannot repair that mismatch. The decision flow below still applies to all three outcomes (active / stale / fs-error) when the prose path needs to acquire.
 
 ```javascript
 import { acquire, forceAcquire } from 'scripts/lib/session-lock.mjs';
 const result = acquire({ sessionId, mode: sessionType, ttlHours: 4, repoRoot: process.cwd() });
 ```
 
-Where `sessionId` is the session identifier derived from the session type and timestamp (e.g. `main-2026-05-08-deep-1`), and `sessionType` is the session mode (`housekeeping`, `feature`, or `deep`).
+Where `sessionId` is the physical raw identity for this invocation: the native harness-provided raw id, or a generated UUID when no trustworthy raw id exists. It is the only value passed to `acquire()` and the only live lock/registry ownership key. `semanticSessionId` may be recorded separately as an attribution/history label and may populate STATE.md `session`; neither label is a substitute for `sessionId`. `sessionType` is the session mode (`housekeeping`, `feature`, or `deep`).
 
 ### Decision flow
 
@@ -129,48 +132,57 @@ Where `sessionId` is the session identifier derived from the session type and ti
      ```js
      AskUserQuestion({
        questions: [{
-         question: `Another session lock is active in this repo (started ${ageHours}h ago, mode=${existingLock.mode}, host=${existingLock.host}, pid=${existingLock.pid}). How should I proceed?`,
-         header: "Session Lock Conflict",
+         question: `Another session holds the lock here — started ${ageHours}h ago, mode=${existingLock.mode}, host=${existingLock.host}, pid=${existingLock.pid}. Wait, or take the lock?`,
+         header: "Session lock",
          multiSelect: false,
          options: [
-           { label: "Abort (Recommended)", description: "Let the other session finish. Safe default — prevents metrics and wave-state corruption." },
-           { label: "Force-take the lock", description: "Overwrites the active lock. ONLY use if you are certain the other session is no longer running." },
+           { label: "Abort (Recommended)", description: "Stop here and let the other session finish, then start again. Nothing is written until it releases the lock, and two sessions sharing one wave state overwrite each other's metrics." },
+           { label: "Force-take the lock", description: "Overwrites the active lock and starts anyway. Only when that session is certainly gone — otherwise both keep writing the same wave state and one of them loses everything." },
          ],
        }],
      });
      ```
    - **Codex CLI / Cursor IDE fallback (numbered Markdown list):**
      ```
-     Session lock conflict — active lock detected (started <ageHours>h ago, mode=<mode>, host=<host>, pid=<pid>).
-     1. Abort (Recommended) — let the other session finish.
-     2. Force-take the lock — ONLY if the other session is known dead.
+     Another session holds the lock here — started <ageHours>h ago, mode=<mode>, host=<host>, pid=<pid>. Wait, or take the lock?
+     1. Abort (Recommended) — stop here and let the other session finish, then start again; nothing is written until it releases the lock.
+     2. Force-take the lock — overwrites the active lock. Only when that session is certainly gone, otherwise both keep writing the same wave state and one loses everything.
      Reply with the number of your choice.
      ```
    - On **Abort**: exit session-start cleanly with a brief stderr note (`session-lock: aborted — active lock held by session_id=<id>`). Do NOT initialize STATE.md.
    - On **Force-take**: call `forceAcquire({ sessionId, mode: sessionType, ttlHours: 4, repoRoot: process.cwd() })`. After Phase 1.5 initializes STATE.md, append a deviation via `appendDeviation()`:
      `Force-took session lock from session_id=<existingLock.session_id>, age=<ageHours>h, mode=<existingLock.mode>, pid=<existingLock.pid>`. Continue.
 
-3. **`result.ok === false`** with `reason === 'stale-pid-dead'` or `'stale-pid-alive'**:
-   - A stale lock was found (TTL expired). Likely left behind by a session that crashed or was force-killed.
+3. **`result.ok === false`** with `reason === 'stale-heartbeat'`:
+   - A stale lock was found (its last heartbeat is older than its ttl). Likely left behind by a session that crashed or was force-killed. The lock's recorded `pid` is NOT consulted — it belongs to the ephemeral hook subprocess that wrote the lock, never to the session; measured 2026-08-23: 7 of 7 recorded pids were dead, including the live heartbeating session's own (#1137).
    - Present a choice via `AskUserQuestion`:
      ```js
+     // `heartbeatAgeMinutes` and `ageHours` come straight off the acquire() result (#1137);
+     // `sameHost` is not on the result — compute it first. Use hostnamesMatch, NEVER a raw
+     // `===` against os.hostname(): the hostname flips spelling on a single machine
+     // (measured 2026-08-24: `Mac.home` and `Ferdinands-MacBook-Pro.local` ten minutes apart),
+     // so a raw comparison labels this machine's OWN lock "another machine" (#1072).
+     // `||`, not `??` — an EMPTY-STRING host_id must fall back to `host`, or
+     // hostnamesMatch('', …) is false and this machine reads its own lock as
+     // cross-host. Production uses `lockHostCandidate()` from host-identity.mjs.
+     const sameHost = hostnamesMatch(existingLock.host_id || existingLock.host, os.hostname());
      AskUserQuestion({
        questions: [{
-         question: `Stale session lock found (started ${ageHours}h ago, ttl=${existingLock.ttl_hours}h). Process pid=${existingLock.pid} on host=${existingLock.host} is ${reason === 'stale-pid-dead' ? 'confirmed dead' : 'still running or status unknown'}. Reclaim the lock?`,
-         header: "Stale Session Lock",
+         question: `A stale session lock is in the way — started ${ageHours}h ago on host=${existingLock.host}${sameHost ? '' : ' (another machine)'}, its ttl=${existingLock.ttl_hours}h has expired, and its last heartbeat was ${Math.round(heartbeatAgeMinutes)} minutes ago. Reclaim it?`,
+         header: "Stale lock",
          multiSelect: false,
          options: [
-           { label: "Reclaim (Recommended)", description: "Overwrite the stale lock and continue. Safe when the previous session is no longer active." },
-           { label: "Abort — investigate manually", description: "Stop here. Inspect .orchestrator/session.lock before proceeding." },
+           { label: "Reclaim (Recommended)", description: "Overwrites the stale lock and continues, because its time-to-live has run out. When that process is really dead, nothing of the old session is lost." },
+           { label: "Abort — investigate manually", description: "Stops here and writes nothing. The lock file `.orchestrator/session.lock` (it names the process that wrote it) tells you whether that session is still alive." },
          ],
        }],
      });
      ```
    - **Codex CLI / Cursor IDE fallback (numbered Markdown list):**
      ```
-     Stale session lock found (started <ageHours>h ago, ttl=<ttlHours>h, pid=<pid> on <host>).
-     1. Reclaim (Recommended) — overwrite stale lock and continue.
-     2. Abort — investigate .orchestrator/session.lock manually.
+     A stale session lock is in the way — started <ageHours>h ago on <host>, ttl=<ttlHours>h expired, last heartbeat <heartbeatAgeMinutes> minutes ago. Reclaim it?
+     1. Reclaim (Recommended) — overwrites the stale lock and continues, because its time-to-live has run out and that process is no longer holding anything.
+     2. Abort — stops here and writes nothing. The lock file `.orchestrator/session.lock` (it names the process that wrote it) tells you whether that session is still alive.
      Reply with the number of your choice.
      ```
    - On **Reclaim**: call `forceAcquire({ sessionId, mode: sessionType, ttlHours: 4, repoRoot: process.cwd() })`. After Phase 1.5 initializes STATE.md, append a deviation:
@@ -184,21 +196,24 @@ Where `sessionId` is the session identifier derived from the session type and ti
 
 ### Cross-host behaviour
 
-When `existingLock.host !== os.hostname()`, PID liveness cannot be checked (`pidAlive: null`). In this case:
+When `hostnamesMatch(existingLock.host_id || existingLock.host, os.hostname())` is **false** — never a raw `existingLock.host !== os.hostname()`, which labels this machine's own lock "another machine" the moment the hostname flips spelling (#1072; mirror the Phase-1.2 snippet above) — the lock was written on another machine and nothing local can corroborate its heartbeat. `checkStale()` carries no `pidAlive` field at all (REMOVED in #1151; #1137 had left it as an always-`null` stub) — `heartbeatAgeMinutes` is the magnitude to reason from, and `isLive` the verdict. In this case:
 - For `reason === 'active'`: the recommendation is **Abort** — cross-host locks cannot be verified as dead.
 - For stale reasons: the recommendation is still **Reclaim** only if TTL is clearly expired (>2× ttl_hours). Otherwise default to **Abort**.
 - **Never auto-reclaim cross-host locks** under any circumstance — always present the AUQ and let the user decide.
-- The AUQ question text for cross-host cases should note: `"(cross-host — PID liveness cannot be verified)"`.
+- The AUQ question text for cross-host cases should note: `"(cross-host — the heartbeat cannot be corroborated locally)"`. Do NOT phrase it as PID liveness: the pid on a lock belongs to the ephemeral writer subprocess, not the session, and is never probed (#1137/#1151).
 
 ## Phase 1.2.1: Peer-Guard (Epic #583 defense-in-depth)
 
 > Skip this phase if `persistence` config is `false`.
 
-After Phase 1.2 acquires (or confirms) the lock, call `checkPeerStateMd(repoRoot, sessionId)` from `scripts/lib/state-md-peer-guard.mjs`. This catches the rare case where lock-based detection missed an active peer (e.g., the peer's `session.lock` was force-deleted by an out-of-band sweep but STATE.md is still `status: active`, OR the peer's registry write succeeded but the lock-bootstrap hook crashed before the lock landed).
+After Phase 1.2 acquires (or confirms) the lock, use `findPeers(repoRoot, { mySessionId: callerSessionHint })` for the STATE.md peer guard. `callerSessionHint` is the original semantic attribution label when one exists, otherwise the raw `sessionId`: `findPeers` may translate the semantic hint for the discovered lock/registry surface only after the exact raw binding check in `parallel-aware-preamble.md`, while keeping the original hint for STATE.md. This catches the rare case where lock-based detection missed an active peer (e.g., the peer's `session.lock` was force-deleted by an out-of-band sweep but STATE.md is still `status: active`, OR the peer's registry write succeeded but the lock-bootstrap hook crashed before the lock landed).
 
 ```javascript
 import { findPeers } from '$PLUGIN_ROOT/scripts/lib/peer-discovery.mjs';
-const { peers } = await findPeers(process.cwd(), { mySessionId: sessionId });
+// Keep the STATE.md comparison in its original attribution-label space.
+// findPeers performs the guarded semantic→raw translation only for discovered peers.
+const callerSessionHint = semanticSessionId ?? sessionId;
+const { peers } = await findPeers(process.cwd(), { mySessionId: callerSessionHint });
 const peer = peers.find((p) => p.source === 'state-md') ?? null;
 // Phase 1.2.1 consumes only the 'state-md' subset (STATE.md surface only).
 if (peer) {
@@ -208,11 +223,13 @@ if (peer) {
 }
 ```
 
+GH#67 note: the `lockSuperseded` advisory-downgrade described in Phase 0.5's outcome handling applies only to the `discovered` peer subset — this phase's `peer` is always `source: 'state-md'`, so a `discovered`-side `lockSuperseded: true` never suppresses this guard; the Worktree-Promotion AUQ still fires exactly as below whenever a live STATE.md peer is found.
+
 ### Decision flow
 
 1. **`peer === null`** → no active peer owns STATE.md. Continue to Phase 1.5.
 2. **`peer !== null`** → STATE.md is owned by a live peer session. **Do NOT proceed with the default Phase 1.5/1b STATE.md overwrite.** Fire the Worktree-Promotion AUQ from `skills/_shared/parallel-aware-auq.md` (same options the Phase 0.5 preamble would emit on `PROMOTION_OFFER`).
-   - User picks "Worktree anlegen + starten" → call `enterWorktree(...)` and exit Phase 1 immediately (the new worktree's own session-start runs from scratch).
+   - User picks "Worktree anlegen + starten" → call `enterWorktree({ ..., rawSessionId, reason: 'worktree-promotion' })` from `scripts/lib/autopilot/worktree-pipeline.mjs` — since #1170 this ONE call also releases the source root: it calls `leaveSourceRoot({ repoRoot, sessionId: rawSessionId, semanticSessionId, reason })` from `scripts/lib/session-transition.mjs` internally, on BOTH success exits, so no separate `leaveSourceRoot` call is made at this site. `rawSessionId` is the RAW physical `session_id` read from this root's `.orchestrator/session.lock` via `readLock({ repoRoot })`, never the semantic label and never `current-session.json` (which may describe a peer, #863) — (#1069 process boundary: this site runs AFTER Phase 1.2 already acquired the lock, so the old root MUST be deregistered and its lock released here, or the new worktree's own Phase 1.2 finds a phantom owner). The return value's `left` field carries `leaveSourceRoot()`'s result; it never throws, so on `left.ok !== true` `enterWorktree` itself emits the stderr WARN `enterWorktree: leaveSourceRoot: <reason>` and the promotion continues regardless — the destination worktree already exists, so aborting here would leave exactly the two-live-roots state the call prevents. Then exit Phase 1 immediately (the new worktree's own session-start runs from scratch).
    - User picks "Manuell — in-place daneben" → append a Deviation describing the missed peer detection, continue to Phase 1.5. STATE.md WILL be overwritten — the user has explicitly accepted that risk.
    - User picks "Abbrechen" → exit cleanly.
 
@@ -339,6 +356,7 @@ Reset rules — applies ONLY on the `completed` branch. Do NOT perform this rese
    ```
 
    Omit individual bullets for null-valued fields. If all 5 are null (i.e., `parseRecommendations` returned non-null but every field is null after type-coercion), skip the archival block entirely.
+7. **Scope-baseline key deletion (Epic #894 S5, #898):** If ANY of the 5 `scope-baseline-*` frontmatter keys (`scope-baseline-intent`, `scope-baseline-owner-boundary`, `scope-baseline-planned-files`, `scope-baseline-session`, `scope-baseline-frozen-at`) is present, remove them via the same `updateFrontmatterFields(contents, {field: null, ...})` mechanism as rule 6 (null value deletes the key). Rule 5 leaves unknown frontmatter fields intact and no other rule removes these five — without this step they survive into session N+1 and silently corrupt the next session's drift-baseline denominator. This is a hygiene layer only: the primary defense is mechanical — `scripts/lib/scope-baseline.mjs` compares `scope-baseline-session` against the canonical `session` field, so a stale baseline self-invalidates (`readBaseline()` returns `{stale: true, …}`) even if this rule were skipped. Delete exactly these five keys; do not remove any other unknown key.
 
 Rationale: `/close` intentionally keeps STATE.md as a record so the next session-start can read it. This reset completes that contract by demoting the record before new session state is written, so a fresh session never appears "already completed". The Recommendation archival (rule 6) preserves the session-to-session handoff in a human-readable form after the Recommendations Banner has rendered — Phase B's Mode-Selector will read the LIVE frontmatter of the current session and does not need the archived copy, so this is purely informational for humans browsing STATE.md history.
 
@@ -364,29 +382,60 @@ If `snaps.length >= 1` → present the following choice:
 
 **Claude Code (AskUserQuestion):**
 
+Before asking, read what "Recover" would actually put back — the operator decides on that diff, not on the word:
+
+```js
+import { execFileSync } from 'node:child_process';
+
+// Read-only: `git stash show` prints a diffstat and never touches the working tree.
+// Capped at 12 lines so the preview box stays shorter than the option list beside it.
+const stat = execFileSync('git', ['stash', 'show', '--stat', snaps[0].sha], { encoding: 'utf8' })
+  .split('\n').slice(0, 12).join('\n');
+const refs = snaps.map((s) => s.ref).join('\n');
+```
+
 ```js
 AskUserQuestion({
   questions: [{
-    question: `Found ${snaps.length} coordinator snapshot(s) from the resumed session (latest from ${humanAgeOf(snaps[0].createdAt)}). Recover, keep as backup, or discard?`,
+    question: `${snaps.length} snapshot(s) from the resumed session, newest ${humanAgeOf(snaps[0].createdAt)}. Recover, keep, discard?`,
     header: "Snapshot",
     multiSelect: false,
     options: [
-      { label: "Recover (diff vs current tree) (Recommended)", description: "Apply the latest snapshot back onto the working tree. You will see a diff and can unstage unwanted changes before committing." },
-      { label: "Keep as backup", description: "Leave refs/so-snapshots/* in place untouched. You can recover manually later via `git stash apply $(git rev-parse <ref>)`." },
-      { label: "Discard all", description: "Delete all refs/so-snapshots/<sessionId>/* immediately via deleteSnapshot." },
+      {
+        label: "Recover (Recommended)",
+        description: "Puts the newest saved state back into your working tree and commits nothing. You can drop any of those changes afterwards.",
+        preview: `These files come back:\n\n\`\`\`\n${stat}\n\`\`\``,
+      },
+      {
+        label: "Keep as backup",
+        description: "Nothing happens now: `refs/so-snapshots/*` (the saved states) stay, and `git stash apply $(git rev-parse <ref>)` (this puts one back) works later.",
+      },
+      {
+        label: "Discard all",
+        description: "Deletes every saved state of this session for good: `refs/so-snapshots/<sessionId>/*` (all of them) is gone, and there is no second copy.",
+        preview: `Deleted for good:\n\n\`\`\`\n${refs}\n\`\`\``,
+      },
     ],
   }],
 });
 ```
 
+`preview` renders beside the option list and only works with `multiSelect: false`. It is used here because the answer decides which literal text lands in the working tree — "Recover" is a diff, "Discard all" is a list of refs that stop existing. "Keep as backup" carries none: keeping is exactly the state the operator already sees.
+
 **Codex CLI / Cursor IDE fallback (numbered Markdown list):**
 
-```markdown
-Snapshot recovery options:
+These harnesses have no preview box, so the same diffstat is printed inline — it is the only place the operator ever sees it:
 
-1. **Recover (Recommended)** — Apply the latest snapshot back onto the working tree. You will see a diff and can unstage unwanted changes before committing.
-2. **Keep as backup** — Leave the refs in place untouched. You can recover manually later.
-3. **Discard all** — Delete all refs/so-snapshots/<sessionId>/* immediately.
+```markdown
+"Recover" would put these files back:
+
+    <git stash show --stat <snaps[0].sha>, capped at 12 lines>
+
+<N> snapshot(s) from the resumed session, newest <age>. Recover, keep, discard?
+
+1. **Recover (Recommended)** — puts the newest saved state back into your working tree and commits nothing. You can drop any of those changes afterwards.
+2. **Keep as backup** — nothing happens now: `refs/so-snapshots/*` (the saved states) stay, and `git stash apply $(git rev-parse <ref>)` (this puts one back) works later.
+3. **Discard all** — deletes every saved state of this session for good: `refs/so-snapshots/<sessionId>/*` (all of them) is gone, and there is no second copy.
 
 Reply with the number of your choice.
 ```
@@ -468,7 +517,7 @@ await sweepBoard({
 
 This single call does three things:
 
-1. **Sets THIS repo's board row to `in-progress`** with the current semantic-session-id, branch, mode, and heartbeat (read off this repo's `session.lock` v2 lease + the host-wide registry — both already written by Phase 1.2's `acquire()`).
+1. **Sets THIS repo's board row to `in-progress`** with the current semantic-session-id **attribution label** (never a lock/registry ownership key), branch, mode, and heartbeat (read off this repo's `session.lock` v2 lease + the host-wide registry — both already written by Phase 1.2's `acquire()`).
 2. **Re-derives THIS repo's status from its live lease**, so a stale lease left by a prior crashed session in this same repo renders as `force-closed` (heartbeat older than the v2 ttl, default 4h — `DEFAULT_TTL_HOURS` in `scripts/lib/session-lock.mjs`, evaluated via `isLockLive`) and is **never silently dropped** — its fields are read straight off the dead lock.
 3. **Re-derives every OTHER busy repo's status host-wide** via `enumerateCandidates` — a dead lease in repo B renders `force-closed` on the board the next time ANY repo's session-start runs `sweepBoard`, closing the #676→#716 gap. `frei` (lock-less) repos are excluded from re-derivation to avoid board noise; their prior rows, and the prior rows of any repo `enumerateCandidates` did not surface, are preserved unchanged via the idempotent merge — never dropped.
 
@@ -489,22 +538,36 @@ This is **best-effort**, exactly like the Phase 4 banners: a board-write failure
 Run these checks as ONE parallel Bash block — background the independent git ops with `&` and `wait`:
 
 ```bash
+# Refresh remote-tracking refs BEFORE reading them. Without this, `origin/main`
+# is a snapshot from the last fetch or clone, and every ahead/behind derivation
+# below silently compares against stale data — a repo can read "in sync" while
+# the real remote is many commits ahead. Best-effort and non-blocking: connect
+# timeouts are bounded (no `timeout(1)` — it is absent on macOS by default) and
+# any failure (offline, no remote, auth prompt) falls through to `|| true`,
+# leaving the previous behaviour of reading whatever refs are on disk.
+GIT_SSH_COMMAND='ssh -o ConnectTimeout=5 -o BatchMode=yes' \
+  git -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=5 \
+  fetch --quiet --prune 2>/dev/null || true
+
 # Independent ops — launch in parallel, collect output via tmpfiles
 git branch -a > /tmp/so-branches.$$ &
 git log --oneline -N > /tmp/so-commits.$$ &        # N from Session Config `recent-commits` (default 20)
 git status --short > /tmp/so-status.$$ &
-git log origin/main..HEAD --oneline > /tmp/so-ahead.$$ &
+# `--left-right --count A...B` emits "<behind>\t<ahead>": commits reachable only
+# from origin/main, then only from HEAD. The older `git log origin/main..HEAD`
+# form could express ahead ONLY, so "behind" was structurally unreportable.
+git rev-list --left-right --count origin/main...HEAD > /tmp/so-divergence.$$ 2>/dev/null &
 wait
 # Then read the 4 tmpfiles in a single step and derive: branch state, recent commits,
 # unpushed/uncommitted, open branches. Clean up tmpfiles once derivations are done:
-rm -f /tmp/so-branches.$$ /tmp/so-commits.$$ /tmp/so-status.$$ /tmp/so-ahead.$$
+rm -f /tmp/so-branches.$$ /tmp/so-commits.$$ /tmp/so-status.$$ /tmp/so-divergence.$$
 ```
 
 Checks to run (derived from the collected output):
 
-1. **Branch state**: current branch (from `branch -a`), ahead/behind origin (from `ahead` tmpfile)
+1. **Branch state**: current branch (from `branch -a`), ahead/behind origin (from the `divergence` tmpfile — field 1 is behind, field 2 is ahead). Report BOTH directions. A non-zero behind count means the local branch is missing remote work: surface it, because agents reading repo instructions from a stale checkout will follow superseded guidance. An empty `divergence` tmpfile means no `origin/main` ref resolved (no remote, or a differently-named default branch) — report that as unknown, never as zero.
 2. **Recent commits**: parse `commits` tmpfile — identify last session's work by commit patterns
-3. **Unpushed/uncommitted**: `status` tmpfile + `ahead` tmpfile combined
+3. **Unpushed/uncommitted**: `status` tmpfile + the ahead field of the `divergence` tmpfile combined
 4. **Open branches**: parse `branch -a` tmpfile, identify which are mergeable to develop/main
 5. **Stale branches**: run AFTER the parallel block — requires iterating over branches (depends on `branch -a` output). Use `git log -1 --format=%ct <branch>` per branch; flag those with no commits in more than `stale-branch-days` (default: 7) days.
 
@@ -635,7 +698,7 @@ Using the detected VCS CLI, query (reading `issue-limit` from Session Config, de
 5. **Pipeline/CI status** — is CI green?
 
 Group issues by:
-- `priority:critical` / `priority:high` — must-address
+- `priority::critical` / `priority::high` — must-address
 - `status:ready` — ready to work on
 - Session-type relevance (housekeeping tasks vs feature tasks vs deep-work tasks)
 
@@ -650,21 +713,26 @@ Group issues by:
 3. **Pencil design status**: if `pencil` is configured, verify the `.pen` file exists at the configured path. Report: "Pencil design configured at [path] — design-code alignment reviews will run after Impl-Core and Impl-Polish waves." If file not found, warn: "Pencil path configured but file not found at [path]."
 4. **Plugin freshness**: Determine the session-orchestrator plugin directory (navigate up from this skill's base directory to the plugin root). Run `git -C <plugin-dir> log -1 --format="%ci"` to get the last commit date. If older than `plugin-freshness-days` (default: 30) days, flag a warning in the Session Overview: `"⚠ Session Orchestrator plugin last updated [N] days ago — consider pulling the latest version."` Non-blocking — present in overview, don't halt.
 
-   Additionally, if `.orchestrator/bootstrap.lock` exists in the current repo, invoke the bootstrap-lock-freshness probe (`scripts/lib/bootstrap-lock-freshness.mjs`) to check lock age and plugin-version drift. Pass `currentPluginVersion` read from `$PLUGIN_ROOT/package.json` so version comparison is live. When severity is `warn` or `alert`, render an additional banner alongside the plugin-freshness warning:
-   - **warn** (age 30–89d or non-parseable version mismatch): `"⚠ bootstrap.lock: age=<N>d, plugin-version=<lock-ver> (current=<plugin-ver>) — consider re-running /bootstrap --retroactive to refresh."`
-   - **alert** (age ≥90d, unparseable, missing, or major plugin-version mismatch): `"⚠ bootstrap.lock: <message> — re-run /bootstrap --retroactive is strongly recommended."`
+   Additionally, if `.orchestrator/bootstrap.lock` exists in the current repo, invoke the bootstrap-lock-freshness probe (`scripts/lib/bootstrap-lock-freshness.mjs`) to check lock age and plugin-version drift. Pass `currentPluginVersion` read from `$PLUGIN_ROOT/package.json` so version comparison is live. When severity is `warn` or `alert`, render an additional banner alongside the plugin-freshness warning. The remediation is **reason-aware** (`result.details.reason`, #57) — a present-but-stale lock is never told to re-run `--retroactive` (idempotent no-op once `version`/`tier` already parse; see the Retroactive Flow's idempotency guard in `skills/bootstrap/SKILL.md`):
+   - **warn, `reason` = `stale-age` or `unparseable-timestamp`** (age 30–89d, or timestamp missing/unparseable but not yet ≥90d): `"⚠ bootstrap.lock: age=<N>d, plugin-version=<lock-ver> (current=<plugin-ver>) — run /bootstrap --refresh-lock to acknowledge and reset the freshness clock."`
+   - **warn, `reason` = `version-mismatch-unparseable`** (non-parseable version string): `"⚠ bootstrap.lock: age=<N>d, plugin-version=<lock-ver> (current=<plugin-ver>) — check for a plugin update first (git pull / marketplace update), then /bootstrap --refresh-lock to acknowledge the current version."`
+   - **alert, `reason` = `stale-age` or `unparseable-timestamp`** (age ≥90d, or timestamp missing/unparseable): `"⚠ bootstrap.lock: <message> — run /bootstrap --refresh-lock to acknowledge and reset the freshness clock."`
+   - **alert, `reason` = `version-mismatch-major`** (major plugin-version mismatch): `"⚠ bootstrap.lock: <message> — check for a plugin update first (git pull / marketplace update), then /bootstrap --refresh-lock to acknowledge the current version."`
+   - **alert, `reason` = `missing`** (lock file absent): `"⚠ bootstrap.lock: <message> — re-run /bootstrap --retroactive is strongly recommended."` (`--retroactive` remains correct here — there is no lock to refresh)
    - **info-only version mismatch** (patch or minor version only): `"ℹ bootstrap.lock: plugin-version=<lock-ver> (current=<plugin-ver>) — minor drift only, no action required."`
-   - **legacy lock without plugin-version** (soft signal only): `"ℹ bootstrap.lock: lock predates plugin-version field; consider /bootstrap --retroactive to refresh."`
+   - **legacy lock without plugin-version** (soft signal only): `"ℹ bootstrap.lock: lock predates plugin-version field; consider /bootstrap --refresh-lock to stamp a current plugin-version reference."`
 
-   Additionally, if `.orchestrator/metrics/vault-staleness.jsonl` exists in the current repo (vault-integration enabled), read the most recent line via `scripts/lib/vault-staleness-banner.mjs` (`checkVaultStaleness({repoRoot})`). When `stale_count > 0`, render a banner alongside the bootstrap-lock warning:
+   Additionally, if `.orchestrator/metrics/vault-staleness.jsonl` exists in the current repo (vault-integration enabled), read the most recent line via `scripts/lib/vault-staleness-banner.mjs` (`checkVaultStaleness({repoRoot})`). The helper returns THREE shapes, not two: `null` (silent no-op) when the JSONL is absent, malformed, or `stale_count === 0`; a fresh finding when `stale_count > 0` and the record itself is recent; or `{severity: 'warn', kind: 'probe-stale', message, ageDays, timestamp}` when `stale_count > 0` but the record's own `timestamp` is older than `MAX_RECORD_AGE_DAYS` (7 days, #1159) — the probe has stopped running, so its recorded findings are NOT a current finding about the repo. `severity` is `'warn'` in this case too (not a distinct `'info'` value) so a caller reading only `severity` still renders it; `kind` is what a caller uses to tell "probe went stale" apart from "projects are actually stale" (single-vocabulary fix, #1158/#1159 review N3). Render a banner alongside the bootstrap-lock warning for every non-null result:
    - **warn** (`stale_count > 0`, max `delta_hours <= 48`): `"⚠ vault-staleness: <N> projects stale (max delta: <X>h) — last run <timestamp>."`
    - **alert** (`stale_count > 0`, max `delta_hours > 48`): `"⚠ vault-staleness: <N> projects stale (max delta: <X>h) — Clank-Vault-Sync cron likely broken, see agents/vault#70 fix pattern."`
+   - **probe-stale** (`kind: 'probe-stale'`): `"⚠ vault-staleness: last probe record is <N> days old (<timestamp>) — the probe has not run since; the recorded <N> stale projects are NOT a current finding."`
 
-   The helper returns `null` (silent no-op) when the JSONL is absent, malformed, or `stale_count === 0`. Skip silently in those cases — do not block the session.
+   Skip silently on `null`; do not block the session in any case. This passage does not restate a severity-mapping table for the probe-stale shape — the `vault-staleness` entry in the probe registry (`scripts/lib/session-start-probes.mjs`, `PROBES`) is the single declaration site for how a probe's result maps onto the rendered banner severity, and (post-N3) needs no custom mapping for this probe at all.
 
-   Additionally, if the current repo has a configured `origin` remote and `glab` (GitLab) or `gh` (GitHub) is available, invoke the CI-status probe (`scripts/lib/ci-status-banner.mjs`) via `checkCiStatus({ repoRoot: process.cwd() })`. The helper returns `null` (silent no-op) when no VCS remote, no CLI tool, parse failure, or CLI timeout (8s default). When `result.status === 'red'`, render a banner alongside the bootstrap-lock and vault-staleness warnings:
+   Additionally, if the current repo has a configured `origin` remote and `glab` (GitLab) or `gh` (GitHub) is available, invoke the CI-status probe (`scripts/lib/ci-status-banner.mjs`) via `await checkCiStatus({ repoRoot: process.cwd() })` — it is `export async function` (`ci-status-banner.mjs:555`), so a caller following this line without `await` gets a Promise and renders nothing. The helper returns `null` (silent no-op) when no VCS remote, no CLI tool, parse failure, or CLI timeout (8s default). When `result.status === 'red'`, render a banner alongside the bootstrap-lock and vault-staleness warnings:
    - **Red** (`status === 'red'`): `"🚨 CI RED on HEAD (pipeline #<currentPipelineId>) — last green: #<lastGreen.pipelineId> (commit <SHA-7>, <redCount> pipelines ago). Failing job: <failingJobName>"`
-   - **Green** or **unknown**: silent (no banner) — informational only.
+   - **Green with soft failures** (`status === 'green'` AND `result.allowFailureJobs` is present): `"⚠ CI green on HEAD, but <N> allow_failure job(s) FAILED: <names>. A pipeline reports success regardless of these — a job red on every run stays invisible at the pipeline level."` Render this even though the pipeline passed: the whole point is that pipeline status cannot express it.
+   - **Green** (no `allowFailureJobs`) or **unknown**: silent (no banner) — informational only.
 
    The banner is non-blocking — display in the Session Overview, do not halt the session. If `ci-status-banner.mjs` is absent (pre-#369 plugin install), skip silently.
 
@@ -704,7 +772,81 @@ Group issues by:
 
    Non-blocking. Cross-reference: `scripts/lib/session-lock.mjs` (`readLock`, `DEFAULT_TTL_HOURS` — the current session's lock `started_at` is the self-exclusion cutoff), `scripts/backfill-abandoned-sessions.mjs` (the backfill CLI the message recommends) and issue #724.
 
-   All banners are non-blocking — display in the Session Overview, do not halt the session. If `bootstrap-lock-freshness.mjs` is absent (pre-#186 plugin install) or `peer-cards/staleness-banner.mjs` is absent (pre-#503 plugin install) or `loop-readiness-banner.mjs` is absent (pre-#633 plugin install) or `instruction-budget-guard.mjs` is absent (pre-#687 plugin install) or `reconcile-nudge-banner.mjs` is absent (pre-#723 plugin install) or `sessions-staleness-banner.mjs` is absent (pre-#724 plugin install), skip silently.
+   **The backfill is mechanical since #926 — the banner's CLI hint is a fallback, not the primary path.** `hooks/on-session-start.mjs` calls `backfillOnSessionStart()` from `scripts/backfill-abandoned-sessions.mjs` on every SessionStart, which **applies** (writes) the reconstructed stubs rather than only previewing them. This decouples recovery from `/close`: `hooks/on-session-end.mjs` also backfills, but SessionEnd fires only on a REGULAR close, so a session killed by Ctrl-C, a timeout, or a crash left no ledger record until the NEXT clean close — which may never come (observed: this repo's ledger 18.9h behind events.jsonl across 8 commits). Running at start means the *next* session recovers the previous one, whatever killed it.
+
+   Four properties make that safe to run unattended on every start:
+   - **Idempotent.** Dedupe against sessions.jsonl plus an atomic `wx` marker file; repeated starts write nothing new. Synthetic ids are derived from the session's own `started_at` + a sha256 of its UUID, so they are stable across runs.
+   - **Self-excluding.** It runs BEFORE this session emits `orchestrator.session.started`, so the starting session is not a candidate at all. On a clear/compact/resume re-fire (where an earlier started-event *is* present) the core's `skipped-own-live-lock` guard catches it against the lock bootstrapped moments earlier.
+   - **Foreign-safe.** Lock ownership is evaluated against the CANDIDATE, not the running process: a candidate holding a live lock returns `skipped-own-live-lock` before the `relaxDeadByAge` (#731) relaxation is consulted. A running foreign session is therefore never recorded as `abandoned`. Residual, accepted: a live session that does NOT hold the lock (it lost the acquire race) AND has emitted no event for longer than `DEFAULT_TTL_HOURS` (4h) can still be relaxed past — a candidate the system's own liveness model already treats as dead.
+   - **Bounded + non-blocking.** Capped at `SESSION_START_LIMIT` (25) core calls, walked newest-first so the budget reaches the recent abandoned sessions rather than being spent on ancient already-recorded ones; **measured median 845ms** (5 steady-state runs: 713/835/845/921/984) on a 1.7MB events.jsonl / 187-candidate store, coordinator-verified 2026-07-30. Treat that as the cost this adds to every session start — it is roughly a second, not a rounding error, and it scales with the events ledger rather than the candidate count. Every failure is swallowed — a backfill error can never block a session start. Operator escape hatch: `SO_DISABLE_STARTUP_BACKFILL=1`.
+
+   When the run reports `truncated: true` (more candidates than the per-start budget), the remainder is picked up by subsequent starts; `node scripts/backfill-abandoned-sessions.mjs --dry-run` remains the way to inspect the full backlog, and `--apply` the way to drain it in one pass.
+
+   Additionally, invoke the sessions-integrity probe (`scripts/lib/sessions-integrity-banner.mjs`) via `checkSessionsIntegrity({ repoRoot })` (synchronous — no await). Where sessions-staleness above detects records that were never written, this detects records that WERE written but are schema-invalid — appended by a path that bypassed `scripts/emit-session.mjs` (which validates and would have refused). The loss is otherwise silent: `scripts/vault-mirror.mjs` reports such a record as `{"action":"skipped-invalid"}` on stdout and still exits 0, so the affected sessions simply have no vault note and nobody is told. Deliberately un-gated by Session Config (like `project-hygiene`) — a check nobody enables finds nothing. It returns `null` (silent no-op) when `.orchestrator/metrics/sessions.jsonl` is absent, empty, unreadable, or holds no parseable JSON line, and when every parseable record satisfies both validators; unparseable lines are skipped rather than reported (this probe judges schema integrity, not file corruption). The probe reports TWO populations, because measurement showed neither validator's failure set contains the other (this repo, 2026-07-31, 203 records: 3 vs 12, overlapping in only 2) — `validateSession()` treats `effectiveness` as optional while vault-mirror requires it, so reporting one alone would hide the other. The vault-mirror population is measured by invoking the real render path in a try/catch, never by re-deriving its field list. When a non-null result is returned (`{ severity, message, total, schemaInvalid, mirrorSkipped }`), render `result.message` alongside the other banners:
+   - **warn** (records fail `validateSession()` but all still mirror — corruption without loss): `"⚠ sessions-integrity: <N> of <M> records fail validateSession (<ids>) — records were appended without passing scripts/emit-session.mjs …"`
+   - **alert** (at least one record is dropped by vault-mirror — those sessions have no vault note right now): same message with a `🚨` prefix and an appended `"; <N> are dropped by vault-mirror as skipped-invalid — those sessions have NO vault note (<ids>)"` clause.
+   - **Fully valid ledger**: silent (no banner).
+
+   Non-blocking. Note the remedy is a re-emit of the affected records through `scripts/emit-session.mjs`, not an edit of the ledger by hand. Cross-reference: `scripts/lib/session-schema/validator.mjs` (`validateSession` — the canonical write-path schema), `scripts/lib/vault-mirror/render-sessions.mjs` (the render path whose throw becomes `skipped-invalid`), `skills/session-end/session-metrics-write.md` (the prose prohibition this banner backstops), `hooks/pre-bash-sessions-ledger-guard.mjs` (the write-guard half) and GitLab issue #958.
+
+   Additionally, invoke the owner-config probe (`scripts/lib/owner-config-banner.mjs`) via `checkOwnerConfig()` (synchronous — no await, no `repoRoot` argument: the probe reads the host-wide `owner.yaml`, not a per-repo file). The helper returns `null` (silent no-op) on a clean load, when `owner.yaml` is simply absent, or on any internal read/parse error. When a non-null result is returned (`{ severity: 'warn', message, droppedSections?, sectionWarnings?, discarded? }`), render `result.message` alongside the other banners:
+   - **Optional section(s) dropped to defaults** (`droppedSections` present): an OPTIONAL object section (`paths`, `dispatcher`) was malformed and replaced by its default value.
+   - **Whole file discarded** (`discarded: true`): a REQUIRED section (`owner`, `tone`, `efficiency`, `hardware-sharing`) was invalid, so the entire file was discarded and defaults are in effect.
+   - **Lenient-consumer warnings** (`sectionWarnings` present, nothing dropped): an OPTIONAL list section (`vaults`, `baselines`) has invalid entries that lenient consumers will drop at point-of-use.
+
+   Non-blocking. Cross-reference: `.claude/rules/owner-persona.md` (host-wide `owner.yaml` schema + privacy contract) and issue #820.
+
+   Additionally, invoke the MOC-staleness probe (`scripts/lib/moc-staleness-banner.mjs`) via `checkMocStaleness({ repoRoot, config: $CONFIG })` (synchronous — no await). The helper returns `null` (silent no-op) when `repoRoot` is missing/non-string, when `moc-staleness.enabled` is `false` or `moc-staleness.mode` is `off` (checked BEFORE any filesystem I/O), when no vault dir resolves (neither an explicit `vaultDir` test seam nor `config['vault-integration']['vault-dir']`), when `<vaultDir>/08-topics/` is absent, when no `*-moc.md` exists there, or when every present MOC's `updated:` frontmatter is missing/unparseable. When a non-null result is returned (`{ severity: 'warn', message, stale }`), render `result.message` alongside the other banners:
+   - **Stale MOC(s)** (`updated:` older than the threshold, default 90 days): `"⚠ moc-staleness: <N> MOCs stale (>90 days) — <file> (<N>d), … — review and refresh the \`updated:\` frontmatter."`
+   - **Healthy / disabled / no MOCs / all excluded**: silent (no banner). A MOC whose `updated:` is missing or unparseable is deliberately EXCLUDED rather than reported — the corrective action there is "fix the frontmatter", not the banner's hint (same rule as `peer-cards/staleness-banner.mjs`).
+
+   Non-blocking. Cross-reference: `scripts/lib/config/moc-staleness.mjs` (`_parseMocStaleness`) and issue #831.
+
+   Additionally, invoke the context-coverage probe (`scripts/lib/context-coverage-banner.mjs`) via `checkContextCoverage({ repoRoot, config: $CONFIG })` (synchronous — no await). The helper returns `null` (silent no-op) when `repoRoot` is missing/non-string, when `context-coverage.enabled` is `false` or `context-coverage.mode` is `off` (checked BEFORE any filesystem I/O), when no vault dir resolves, when `<vaultDir>/01-projects/` is absent or empty, when zero registered projects exist, or when every registered project already carries a `context.md` or `_passive.md`. When a non-null result is returned (`{ severity: 'warn', message, gaps, registered, covered }`), render `result.message` alongside the other banners:
+   - **Gaps found**: `"⚠ context-coverage: <N> of <M> registered projects lack context.md and _passive.md — <slug>, … — add a context.md or mark the project passive with _passive.md."` A project counts as **registered** iff its `01-projects/<slug>/` directory contains `_overview.md` — the same convention `discoverVaultRepos()` uses. Directories lacking `_overview.md` are never counted and never listed as gaps.
+   - **Fully covered / no vault configured / disabled**: silent (no banner).
+
+   Non-blocking. Cross-reference: `scripts/lib/gitlab-portfolio/vcs-detect.mjs` (`discoverVaultRepos` — the canonical "registered" definition), `scripts/lib/config/context-coverage.mjs` (`_parseContextCoverage`), and issue #831.
+
+   Additionally, invoke the CLAUDE.md budget-lint probe (`scripts/lib/claude-md-budget-lint.mjs`) via `checkClaudeMdBudgetLint({ repoRoot })` (synchronous — no await). This is a **warn-only** probe — its result is rendered, never gated; the underlying `lintClaudeMd()`/CLI exit-code contract (0/1/2, `--mode hard` by default) belongs to the standalone bootstrap-time lint (`skills/bootstrap/SKILL.md` § Step 2c) and is NEVER invoked here. The helper returns `null` (silent no-op) when no CLAUDE.md/AGENTS.md resolves under `repoRoot`, when the resolved file has zero violations, or on any read/parse failure. When a non-null result is returned (`{ severity: 'warn', message }`), render `result.message` alongside the other banners:
+   - **Violations found**: `"⚠ CLAUDE.md budget lint: <N> violation(s) (<rule names>) in <file> — run \`node scripts/lib/claude-md-budget-lint.mjs --mode warn\` for details."` — `<rule names>` is the de-duplicated set of violated rule ids (`max-lines`, `max-line-chars`, `provenance-header`) present in the file.
+   - **Clean file / no instruction file**: silent (no banner).
+
+   Non-blocking. Cross-reference: `scripts/lib/instruction-budget-guard.mjs` (sibling directive-COUNT probe over `.claude/rules/*.md` — this probe measures raw-file PROPERTIES of CLAUDE.md/AGENTS.md itself, a distinct dimension) and issue #878 (FA2b).
+
+   Additionally, invoke the tests:src-ratio probe (`scripts/lib/tests-src-ratio.mjs`) via `checkTestsSrcRatio({ repoRoot })` (synchronous — no await). It returns `null` (silent no-op) when the ratio is inside the TV-003 corridor, when `repoRoot` is missing, or on any measurement failure. When a non-null result is returned (`{ severity: 'warn', message, ratio, ceiling }`), render `result.message` alongside the other banners.
+
+   **Why this is a banner and not a gate.** `.claude/rules/test-value.md` § TV-003 names the ceiling as the trigger for a CONSOLIDATION wave — the rule's operative instrument. Before this wiring the trigger fired into a void: the only references were two rule files asking a human to run the command, so the condition could be true for months with nothing saying so (it was true, at 1.70, on the commit that introduced the script). The rule's refusal of a bidirectional ratchet stands unchanged — this surfaces the trigger, it does not block on it. `--check` remains deliberately unwired from CI.
+
+   Non-blocking. Cross-reference: `.claude/rules/test-value.md` § TV-003 (the corridor rule and why a ratchet was rejected), `.claude/rules/testing.md` § Coverage Enforcement (the 70% floor that binds independently), and issue #930.
+
+   Additionally, invoke the project-hygiene probe family (`scripts/lib/project-hygiene.mjs`) via `checkProjectHygiene({ repoRoot })` (synchronous — no await). **This is the only probe in Phase 4 besides `ci-status` that inspects the PROJECT rather than the orchestrator's own substrate** — every other probe above measures vault, peer-cards, loop readiness, instruction budget, or this tool's own ledger. It is deliberately NOT config-gated: a hygiene check nobody enables finds nothing, which is how the equivalent coverage was lost before (see `skills/session-end/discovery-scan.md` — the discovery scan defaults OFF for exactly the `housekeeping` session type that most needs it).
+
+   The helper returns `null` (silent no-op) when `repoRoot` is missing/non-string, when the path is not a git repository, or when every check passes. When a non-null result is returned (`{ severity: 'warn', message, findings, mechanical }`), render `result.message` alongside the other banners:
+   - **Findings present**: render the message verbatim. It already leads with the count and the mechanically-fixable subset, then names the top 3 and summarises the remainder — this shape was chosen because a flat list stops being read past roughly 25 findings.
+   - **Healthy repo**: silent (no banner).
+
+   Use `result.mechanical` when proposing session scope: findings with `fixable: true` (aged artifacts, ignored ballast, a missing CI audit step) are safe batch work, while the rest (release cadence, absent CI, undocumented configuration) need an operator decision and belong in the Q&A, not in an auto-fix batch.
+
+   The checks are: release-tag/CHANGELOG distance from HEAD, ignored working-tree ballast plus files that are neither tracked nor ignored, aged `.orchestrator/` artifacts, CI pipeline presence and dependency-audit coverage, and `.env.example` presence. Two high-yield checks are intentionally NOT here: **docs-drift** is already covered by `claude-md-drift-check` (it only runs at session-END, so the gap is scheduling, not implementation), and **env completeness** is omitted because diffing `process.env` reads against `.env.example` produced a 100% false-positive rate against code that reads configuration through a central schema module.
+
+   Non-blocking. Cross-reference: `scripts/lib/ci-status-banner.mjs` (the sibling project-facing probe) and `.claude/rules/test-value.md` § TV-005 (why structural gates beat unit-test volume).
+
+   Additionally, invoke the mirror-issues probe (`scripts/lib/mirror-issues-banner.mjs`) via `await checkMirrorIssues({ repoRoot })`. This is the only probe that deliberately queries the platform the session did NOT auto-detect. `skills/gitlab-ops/SKILL.md` § VCS Auto-Detection selects exactly one platform via if/else, so in a repo whose `origin` is GitLab and whose `github` remote is a public mirror, no code path ever reads the mirror's issue tracker — issues filed there by external reporters are structurally invisible to every session. The VCS family is therefore hard-pinned to `'github'` inside the module rather than auto-detected. It takes no Session Config key: `resolveRepoSpec({ repoRoot, vcs: 'github' })` derives the `gh -R` spec from `git remote`, which makes the probe self-disabling — a repo with no GitHub mirror resolves to `undefined`, returns `null`, and spawns no subprocess.
+
+   The return contract has THREE states, not the usual two, and the third is the point: `null` means either "no mirror remote" or "queried successfully, zero open issues"; `{ severity, message, count, repoSpec, issues }` means N > 0; and `{ severity, message, repoSpec, degraded }` means the query did NOT succeed, where `degraded` is one of `cli-missing | timeout | parse-error | auth-error | query-failed`. Render `result.message` verbatim in either non-null case. A `degraded` result must be read as *"the mirror's state is unknown"* — never as clean. `scripts/lib/ci-status-banner.mjs` collapses all three of missing-CLI, unparseable output and absent-remote onto `null`, which in the banner contract reads as "all clear"; that collapse is why this gap survived unseen. Do not reproduce it.
+
+   Additionally, invoke the git-config-drift probe (`scripts/lib/git-config-drift.mjs`) via `checkGitConfigDrift({ repoRoot })` (synchronous — no await; `env` defaults to `process.env`). It reads `git config --local --list` with a FILTERED environment, so an ambient `GIT_DIR` cannot redirect the probe itself at a foreign repository and let it call this one clean. **Three states, not two:** `null` = read and clean; `{ severity: 'warn', message, findings }` = at least one unexpected entry (a local identity override, a local `commit.gpgsign`, a remote on a reserved fixture host, a `core.hooksPath` not pointing at `.husky/_` AND not DECLARED by the repo, or `GIT_DIR`/`GIT_WORK_TREE` set in the environment); `{ …, degraded }` = the config could NOT be read — **never render that as clean.** Render `result.message` alongside the other banners.
+
+   The `core.hooksPath` trigger is narrower than "points somewhere other than `.husky/_`" — a hooksPath the repo DECLARES is accepted without any config key. Declared means `git ls-files -- <hooksPath>` finds at least one TRACKED file DIRECTLY under it (not nested deeper) whose BASENAME is a real git hook name (`pre-commit`, `pre-push`, `commit-msg`, …) — a tracked directory of ordinary source, or an untracked file merely named like a hook, does not count. This document does not restate the hook-name list — `GIT_HOOK_NAMES` in `scripts/lib/git-config-drift.mjs` (sourced from `git help hooks`) is the single declaration site (#1158 review N1 — the first cut of this rule accepted any tracked file under the path at all, which a fixture-planted `scripts/pre-commit` left untracked, sitting beside ordinary tracked source, would have bypassed silently).
+
+   This is the only probe that inspects `.git/config`, and that is the whole point: `git status` cannot see that file. On 2026-08-19 a coordinator diagnostic exported `GIT_DIR` at this repository while the suite ran; test fixtures wrote a foreign remote and their own `user.email`/`user.name` into the local config, and the identity then authored two commits that reached both remotes. A recovery pass checked HEAD, the index and all 1614 tracked files, found everything clean, and missed it — because none of those surfaces show `.git/config`. It surfaced two hours later, from an agent measuring something else.
+
+   The complementary halves live elsewhere and are not duplicates of this probe: `tests/setup/scrub-git-env.mjs` (wired via `setupFiles` in `vitest.config.mjs`) removes the redirecting variables before any test runs, and `scripts/lib/validate/check-test-git-config-target.mjs` censuses untargeted state-mutating git calls in `tests/**`. The census is WARN-only by measurement — its first cut was 11 hits, all false positives — and it explicitly reports `gitDirInheritable`, the population it cannot close, because the incident's own call sites passed a correct `cwd` and were redirected anyway.
+
+   Non-blocking. Cross-reference: `scripts/lib/vcs-repo-spec.mjs` (`isQueryFailure` — the same absence-vs-query-failure split this probe's `degraded` state implements).
+
+   All banners are non-blocking — display in the Session Overview, do not halt the session. If `bootstrap-lock-freshness.mjs` is absent (pre-#186 plugin install) or `peer-cards/staleness-banner.mjs` is absent (pre-#503 plugin install) or `loop-readiness-banner.mjs` is absent (pre-#633 plugin install) or `instruction-budget-guard.mjs` is absent (pre-#687 plugin install) or `reconcile-nudge-banner.mjs` is absent (pre-#723 plugin install) or `sessions-staleness-banner.mjs` is absent (pre-#724 plugin install) or `sessions-integrity-banner.mjs` is absent (pre-#958 plugin install) or `owner-config-banner.mjs` is absent (pre-#820 plugin install) or `moc-staleness-banner.mjs` / `context-coverage-banner.mjs` are absent (pre-#831 plugin install) or `claude-md-budget-lint.mjs` is absent (pre-#878 plugin install) or `mirror-issues-banner.mjs` is absent (pre-#1022 plugin install), skip silently.
 
 ## Phase 4.5: Resource Health (v3.1.0)
 
@@ -930,6 +1072,71 @@ if (bannerText) {
 
 Cross-reference: PRD F2.3 acceptance criteria (#505); `scripts/lib/memory-banner.mjs` API (`renderMemoryBanner`, `readBannerInputs`; test-only exports `_formatBanner`, `_extractCardExcerpt` carry the `_`-prefix per #542 convention).
 
+## Phase 6.8: Telemetry Consent (one-time, #845)
+
+> Skip this phase silently when `persistence: false` in Session Config. Also skip silently when non-interactive (headless / CI — no TTY to prompt on), and when the consent decision has already been made (stored `granted`/`denied`, an env override, or the fleet flag). In all of these `resolveConsent().prompt` is `false` and the phase is a no-op — it must NEVER print anything or slow session-start in the common (already-decided / headless) case.
+
+> **The trigger is MECHANICAL since #1138.** `hooks/on-session-start.mjs` calls `resolveConsent()` itself and, when `prompt === true` and the run is not CI, injects a one-line instruction into the session via `hookSpecificOutput.additionalContext`. This phase is the WORDING and the fallback — the AUQ text below is the single source of truth for what gets asked — but it is no longer what decides *whether* to ask. Two consequences: (a) the coordinator may receive that instruction before it ever reaches this line, and should act on it then; (b) the hook gates on `isCiEnv()`, **not** `!isHeadless()` as the snippet below does — measured 2026-08-23, `isHeadless()` returns `true` in ANY non-TTY subprocess (`isHeadless()=true isCiEnv()=false stdout.isTTY=undefined`), which includes both a hook process and the `node -e` a coordinator would run this snippet in. Executed verbatim in a Bash tool call, the snippet below therefore resolves `prompt: false` every time; keep it as the semantic reference, and trust the hook for the firing decision.
+
+Anonymous usage telemetry is **strictly opt-in** and, on a host that has never decided, is offered exactly once via a single interactive AskUserQuestion. The consent machine lives in `scripts/lib/telemetry/consent.mjs`; this phase only decides *whether* to prompt and then records the operator's answer. The `resolveConsent()` precedence machine is fail-closed — `prompt` is `true` only for a fresh, interactive, not-yet-decided, not-fleet, not-env-overridden host.
+
+```javascript
+import { readTelemetryState, resolveConsent, isHeadless, grantConsent, denyConsent } from '${PLUGIN_ROOT}/scripts/lib/telemetry/consent.mjs';
+import { loadOwnerConfig } from '${PLUGIN_ROOT}/scripts/lib/owner-yaml.mjs';
+
+const c = resolveConsent({
+  env: process.env,
+  ownerConfig: loadOwnerConfig().config,       // fleet flag lives at .telemetry.enabled (host-local owner.yaml, never committed)
+  state: readTelemetryState().record,          // persisted per-user decision (~/.config/session-orchestrator/telemetry.json)
+  interactive: !isHeadless(),                  // fail-closed toward headless — anything but a confirmed TTY counts as headless
+});
+if (!c.prompt) {
+  // silent no-op — already decided, env-override, fleet-enabled, or headless. Do NOT print, do NOT prompt.
+}
+```
+
+**When `c.prompt === true`**, the coordinator renders EXACTLY ONE `AskUserQuestion` (per `.claude/rules/ask-via-tool.md` AUQ-003 — the tool, never inline prose):
+
+```js
+AskUserQuestion({
+  questions: [{
+    question: "Anonyme Usage-Telemetrie aktivieren? Strikt opt-in, jederzeit abschaltbar; was genau gesendet wird: docs/telemetry.md",
+    header: "Telemetrie",
+    multiSelect: false,
+    options: [
+      { label: "Ja, aktivieren", description: "Sendet anonyme Zähl- und Strukturdaten (welche Phase lief, Erfolg oder Abbruch), whitelist-projiziert: keine Pfade, keine Prompts, keine Repo-Namen." },
+      { label: "Nein", description: "Sendet nichts; die Frage kommt hier nicht wieder. Einschalten geht später mit `node scripts/telemetry.mjs` (das ist der Befehl dafür)." },
+    ],
+  }],
+});
+```
+
+> **Consent-Neutralität (deliberate AUQ-003 deviation):** this is the ONE AskUserQuestion in the session flow that carries **no `(Recommended)` label on either option** — neither "Ja" nor "Nein" is tagged. AUQ-003's "option 1 is always the recommendation" convention is intentionally NOT applied here, so the operator's consent is unbiased. Do not add a recommendation to either option.
+
+- **Codex CLI / Cursor IDE fallback (numbered Markdown list — AUQ-004 exception 1):**
+  ```
+  Anonyme Usage-Telemetrie aktivieren? Strikt opt-in, jederzeit abschaltbar; was genau gesendet wird: docs/telemetry.md
+  1. Ja, aktivieren — sendet anonyme Zähl- und Strukturdaten (welche Phase lief, Erfolg oder Abbruch), whitelist-projiziert: keine Pfade, keine Prompts, keine Repo-Namen.
+  2. Nein — sendet nichts; die Frage kommt hier nicht wieder. Einschalten geht später mit `node scripts/telemetry.mjs` (das ist der Befehl dafür).
+  Reply with the number of your choice. (No option is pre-recommended — the choice is yours.)
+  ```
+
+On the operator's answer:
+- **"Ja, aktivieren"** → call `grantConsent()`. Then add a single confirmation line to the Session Overview: `Telemetry: enabled — ändern via node scripts/telemetry.mjs`.
+- **"Nein"** → call `denyConsent()`. Then add: `Telemetry: disabled — ändern via node scripts/telemetry.mjs`.
+
+Both helpers atomically persist the decision (read-modify-write, `anon_id` fields preserved) to `~/.config/session-orchestrator/telemetry.json`.
+
+### Fleet mode (host-local, no prompt)
+
+Setting `telemetry:\n  enabled: true` in the host-local `~/.config/session-orchestrator/owner.yaml` (never committed — same host-local-data contract as `.claude/rules/owner-persona.md`) enables telemetry across every repo on the host WITHOUT ever prompting: `resolveConsent()` then returns `prompt: false` with state `enabled-fleet`, so this phase is a silent no-op. The per-shell escape hatches `SO_TELEMETRY_DISABLED=1` and `DO_NOT_TRACK` outrank the fleet flag for a single shell. See `docs/telemetry.md` for the full precedence table (PRD FA5).
+
+### One-time guarantee
+
+The decision persists host-locally in `~/.config/session-orchestrator/telemetry.json`; once `consent` is non-`null` (granted or denied), `resolveConsent().prompt` stays `false` and this phase never fires again on that host — no repeat prompting across repos or sessions.
+
+Cross-reference: GitLab #845 (Epic #841); `docs/prd/2026-07-20-anonymous-usage-telemetry.md` §3 FA1/FA5; `docs/telemetry.md`; consent API in `scripts/lib/telemetry/consent.mjs` (`resolveConsent`, `grantConsent`, `denyConsent`, `isHeadless`, `readTelemetryState`).
+
 ## Phase 7: Research (session type dependent)
 
 > **Note:** Implementation-specific research (library APIs, best practices for specific code changes) is deferred to session-plan, which knows the exact scope. Session-start focuses on state analysis.
@@ -943,6 +1150,15 @@ Cross-reference: PRD F2.3 acceptance criteria (#505); `scripts/lib/memory-banner
 - Focus on git cleanup, documentation currency, CI health
 - Skip deep research — prioritize operational tasks
 - Run token efficiency check: `bash "${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-$PLUGIN_ROOT}}/scripts/token-audit.sh"` and include findings in Session Overview. Flag any HIGH/WARN items as recommended housekeeping tasks.
+- **Run the drift check as a work-list, not as a gate:**
+  ```bash
+  node "${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-$PLUGIN_ROOT}}/skills/claude-md-drift-check/checker.mjs" --mode warn
+  ```
+  `--mode warn` always exits 0 and returns findings as JSON — it must never block session-start. Summarise `errors[]` and `warnings[]` by check name in the Session Overview and offer them as candidate scope in the Phase 8 Q&A.
+
+  **Why here and not only at close.** The same checker already runs at session-end (`skills/session-end/SKILL.md` Phase 2), where it verifies the work just done. That is the wrong moment to *discover* drift: doc-vs-reality drift was the single most frequently confirmed finding in the six-repo diagnostic run (6 of 6 repos), and a housekeeping session that only learns about it at close cannot act on it. Running it at the start turns it into the session's work-list. It is deliberately scoped to `housekeeping` — for `feature`/`deep` sessions this list is a distraction from the agreed scope, and the close-time run still covers them.
+
+  **Read the output critically.** In a consumer repo the checker reported 69 errors of which zero concerned that repo — all were dangling `## See Also` citations inside vendored, never-curated baseline rule copies. Before proposing any of it as scope, check whether a finding points at repo-owned content or at vendored files; report the split rather than the raw count.
 
 ## Phase 7.1: Issue Premise Verification (#730/H3)
 
@@ -981,13 +1197,13 @@ Present your findings following that structure. Key rules:
 
 ### Phase 8.5: Express Path Evaluation (#214)
 
-After the user confirms session type and scope, evaluate whether the Express Path applies. Activation requires ALL three: `express-path.enabled: true` in Session Config (default: `true` — when `express-path.enabled: false`, this evaluation is skipped entirely and the normal 5-wave session-plan flow runs), session type `housekeeping`, and scope ≤ 3 sequential issues. The 13 prior coordinator-direct sessions in `CLAUDE.md` (or `AGENTS.md` on Codex CLI; 2026-04 series) were all running this pattern implicitly — this phase codifies what was already proven to work.
+After the user confirms session type and scope, evaluate whether the Express Path applies. **Do not judge the conditions by hand — run `node scripts/express-path.mjs --repo-root "$PWD" --session-type <type> --task-count <N> --parallel-agents <true|false>`.** That CLI is the canonical caller (#1146): it makes the decision AND records it as `orchestrator.express_path.evaluated`, on refusal as well as activation. stdout is one JSON line `{"activated":<bool>,"reasons":[…]}`; exit 0 means the evaluation completed, so branch on `activated`, never on the exit code. Activation requires ALL three: `express-path.enabled: true` in Session Config (default: `true`; an explicit `false` still runs the evaluation and records `disabled-by-config`, then the normal 5-wave session-plan flow proceeds), session type `housekeeping`, and scope ≤ 3 sequential issues. The 13 prior coordinator-direct sessions in `CLAUDE.md` (or `AGENTS.md` on Codex CLI; 2026-04 series) were all running this pattern implicitly — this phase codifies what was already proven to work.
 
-When all conditions are met, emits the banner:
+When all conditions are met, the CLI emits the banner on stderr:
 ```
 Express path activated — <N> tasks, coordinator-direct, no inter-wave checks.
 ```
-Then executes tasks coordinator-direct (bypassing session-plan and wave-executor) and logs a Deviations entry in STATE.md. Silent no-op when any condition fails — proceeds normally to Phase 9.
+Carry that banner into Phase 9 and hand off to session-plan as usual — session-plan short-circuits to a 1-wave `coordinator-direct` plan, which is the artifact `/go` detects. Tasks are then executed coordinator-direct (bypassing wave-executor, subagent dispatch and inter-wave checkpoints) and a Deviations entry is logged in STATE.md. Silent no-op when any condition fails — proceeds normally to Phase 9.
 
 **See `phase-8-5-express-path.md` for full details.**
 
@@ -1008,7 +1224,7 @@ After user alignment:
 
 - **NEVER make assumptions** about code state based on memory or docs — always verify in actual files
 - **NEVER skip the Q&A phase** — the user MUST confirm direction before wave planning
-- **ALWAYS use `run_in_background: false`** for parallel subagent work — wait for completion
+- **ALWAYS verify parallel subagent work against the started set**, never against the launch ack — `run_in_background: true` is allowed and recommended for wave dispatch (`skills/wave-executor/wave-loop.md § Started-Set Verification`); skills that need every result before their next phase (persona-panel, discovery, test-runner, session-end) keep `false` and say why
 - **ALWAYS check `.env` or `.env.local`** for VCS host, API keys, and service URLs
 - **ALWAYS present options with pros/cons and a clear recommendation** — never just list facts
 - **ALWAYS update VCS issue status** when claiming work — use the issue update command per the "Common CLI Commands" section of the gitlab-ops skill
@@ -1028,6 +1244,7 @@ After user alignment:
 | (inline) Phase 2.7 | GitLab Portfolio Snapshot — dry-run aggregation banner; gated on `gitlab-portfolio.enabled: true` + `vault-integration.enabled: true`; dispatches `scripts/lib/gitlab-portfolio/cli.mjs --dry-run`; 8s timeout; never blocks session-start |
 | `phase-4-5-resource-health.md` | Phase 4.5 full procedural body — resource probe, adaptive thresholds table, AUQ presentation, session-plan cap handoff |
 | (inline) Phase 6.7 | Memory Banner — `renderMemoryBanner` from `scripts/lib/memory-banner.mjs` (#505); silent no-op when `memory.banner.enabled: false` or `persistence: false` |
+| (inline) Phase 6.8 | Telemetry Consent (one-time, #845) — `resolveConsent()` from `scripts/lib/telemetry/consent.mjs` decides `prompt`; when true, ONE consent-neutral `AskUserQuestion` (no `(Recommended)` on either option) → `grantConsent()`/`denyConsent()`; silent no-op when `persistence: false`, headless/CI, already-decided, fleet-enabled (`owner.yaml telemetry.enabled`), or env-overridden (`SO_TELEMETRY_DISABLED=1`/`DO_NOT_TRACK`); host-local one-time guarantee via `~/.config/session-orchestrator/telemetry.json` |
 | `phase-7-1-premise-check.md` | Phase 7.1 full procedural body — claim extraction, one-grep-per-claim verification, verdict table, emission block format |
 | `phase-7-5-mode-selector.md` | Phase 7.5 full procedural body — buildLiveSignals, selectMode invocation, banner rendering, AUQ ordering protocol, graceful no-op rules, accuracy learning write |
 | `phase-8-5-express-path.md` | Phase 8.5 full procedural body — activation conditions, banner, coordinator-direct execution, STATE.md logging, condition examples table |

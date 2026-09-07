@@ -1,183 +1,84 @@
 ---
 name: standards
-description: Provide repo coding standards.
+description: 'Load only the standards relevant to a Triggers: "check standards", "which standards apply".'
 ---
-# Standards Skill
+# Standards — focused engineering guidance
 
-Language-specific coding standards loaded on-demand by other skills.
+Load the smallest set of standards justified by the caller's files, language,
+and risks. Do not preload the entire reference corpus.
 
-Skill conformance resolves the authoritative `repo-runtime` profile at
-`skills/skill-builder/references/skill-conformance-profiles.yaml`; this library
-does not redefine its rule IDs, severities, limits, or clean-room policy.
+## Procedure
 
-## Critical Constraints
+1. Record the supplied paths, language, change type, and risk cues.
+2. Load `common-standards.md` plus only the matching language or checklist
+   references.
+3. Compare the supplied artifact to those sources.
+4. Return cited findings with path and line when possible, plus checked and
+   not-checked scope.
+5. Stop.
 
-- Resolve the authoritative profile before applying a standard, and never restate profile rule IDs, severities, limits, or clean-room policy here. **Why:** duplicated policy drifts while the executable profile remains the source of truth.
-- Load only the language and risk references triggered by the changed surface; do not flood an implementation with the entire standards corpus. **Why:** just-in-time context keeps the relevant constraints visible and testable.
-- Prefer executable formatters, compilers, linters, and repository gates over prose interpretation when they disagree. **Why:** deterministic behavior outranks a narrative example.
-- Treat checklists as review criteria, not authorization to widen scope, rewrite unrelated code, or change an accepted baseline. **Why:** standards constrain work; they do not expand the objective.
-- Use the current agent and local shell to resolve and validate standards; do not start another runtime or orchestration substrate unless explicitly requested. **Why:** loading reference material is not permission to fan out.
-- `WARN|FAIL|REFUTED -> AUTO-REDO`: consult the pawl, repair the standard selection, cited violation, or implementation, then rerun the same check. **Why:** ordinary conformance failures are loop evidence, not a human andon.
-- `BREAKER -> HOLD -> ONE-HELPER`; `HELPER-UNSTUCK -> AUTO-REDO`. Hold the affected change and use one bounded local-shell helper to resolve a contradictory or unavailable authoritative standard. **Why:** one recovery pass distinguishes stale prose from a genuine standards conflict.
-- `HELPER-ESCALATE -> HUMAN`; `REFUSAL-LANE|EXPLICIT-JUDGMENT|EXHAUSTED-BUDGET -> HUMAN`. **Why:** changing policy, accepting a violation, resolving refusal, or exhausting recovery requires accountable judgment.
+This skill provides context and findings. It does not edit, validate, retry,
+approve, commit, release, deliver, or decide continuation.
 
-## Purpose
+## Load-bearing conventions for produced code (MEASURED)
 
-This is a **library skill** - it doesn't run standalone but provides standards
-references that other skills load based on file types being processed.
+When the caller is about to WRITE code (not only review it), surface the
+matching language rules INLINE in the working context — a behind-the-link
+reference does not change behavior; an inline imperative does. The Go core:
 
-## Standards Available
+- Wrap every propagated error with context: `fmt.Errorf("doing X: %w", err)`
+  — never return a bare inner error.
+- Multi-case functions get TABLE-DRIVEN tests (`[]struct` cases + `t.Run` per
+  case), asserting exact expected values including the error cases.
 
-| Standard | Reference | Loaded By |
-|----------|-----------|-----------|
-| Skill Structure | `references/skill-structure.md` | validate (skill audits), doc (skill creation) |
-| Python | `references/python.md` | validate, implement, complexity |
-| Go | `references/go.md` | validate, implement, complexity |
-| Rust | `references/rust.md` | validate, implement, complexity |
-| TypeScript | `references/typescript.md` | validate, implement |
-| JavaScript | `references/javascript.md` | validate, implement |
-| Shell | `references/shell.md` | validate, implement |
-| YAML | `references/yaml.md` | validate |
-| JSON | `references/json.md` | validate |
-| Markdown | `references/markdown.md` | validate, doc |
-| SQL Safety | `references/sql-safety-checklist.md` | validate, premortem (when DB code detected) |
-| LLM Trust Boundaries | `references/llm-trust-boundary-checklist.md` | validate, premortem (when LLM code detected) |
-| Race Conditions | `references/race-condition-checklist.md` | validate, premortem (when concurrent code detected) |
-| Codex Skills | `references/codex-skill.md` | validate (when `skills-codex/` or converter files detected) |
-| Behavioral Discipline | `references/behavioral-discipline.md` | implement, review, validate, premortem |
-| Test Pyramid | `references/test-pyramid.md` | plan, premortem, implement, crank, validation, postmortem |
-| SKILL.md Tier-Caps | `references/skill-tier-caps.md` | validate (skill line-cap audits), doc, plan |
-| External-Source Attribution | `references/external-source-attribution.md` | doc (when absorbing external corpora), heal-skill |
-| Migration-Owner Discipline | `references/migration-owner.md` | implement, plan, review, premortem (when writing a breaking migration / retirement / `--fix`) |
-| Agentic-Workflow Evidence | [references/agentic-workflow-evidence.md](references/agentic-workflow-evidence.md) | plan, implement, review, premortem (empirical basis — Finster 2026 — for the workflow discipline) |
+For other languages, pull the matching reference below and inline its top
+rules the same way.
 
-## How It Works
+> Measured 2026-08-04, probe `standards-go-conventions` (gpt-5.6-luna, N=2,
+> directional): control produced the `%w`-wrapped + table-driven shape in 1/2
+> runs; with these rules inline, 2/2. Inline-imperative beats reference-link —
+> the graphify probe measured a linked doc instruction obeyed 0/2. Ledger:
+> `evals/skill-probes/LEDGER.md`.
 
-Skills declare `standards` as a dependency:
+## Mutation-safety standards
 
-```yaml
-skills:
-  - standards
-```
+When the supplied change rewrites existing files in bulk — formatters,
+codemods, migration scripts, generators pointed at hand-written sources —
+check it against three standards and report each as a finding when absent:
 
-Then load the appropriate reference based on file type:
+- **Single audited mutation chokepoint.** All rewrites flow through one named
+  command or script whose inputs, outputs, and dry-run mode can be inspected.
+  Edits scattered across ad-hoc one-liners and manual touch-ups are the
+  **diffuse mutation** failure mode: no single point can be audited, re-run,
+  or blamed. Finding: name every mutation path outside the chokepoint.
+- **Hash-witnessed backups before rewrite.** Before the chokepoint runs, the
+  originals are preserved with content hashes recorded (a committed baseline
+  counts), so "the rewrite changed only what it claims" is checkable
+  byte-for-byte, not asserted. Finding: a bulk rewrite with no verifiable
+  before-state.
+- **Self-administered ambition gate.** The change states what it deliberately
+  does not touch, and the diff respects it. A formatter run that also renames,
+  a codemod that also refactors, is the **scope-creep rewrite** failure mode.
+  Finding: any file class in the diff outside the change's own stated scope.
 
-```python
-# Pseudo-code for standard loading
-if file.endswith('.py'):
-    load('standards/references/python.md')
-elif file.endswith('.go'):
-    load('standards/references/go.md')
-elif file.endswith('.rs'):
-    load('standards/references/rust.md')
-# etc.
-```
+Stop condition for this check: all three standards have an explicit pass or
+finding; a bulk-rewrite review that reports style nits but skips these is
+incomplete.
 
-## Domain-Specific Checklists
+## References
 
-Specialized checklists for high-risk code patterns. Loaded automatically by `$validate` and `$premortem` when matching code patterns are detected:
-
-| Checklist | Trigger Pattern | Risk Area |
-|-----------|----------------|-----------|
-| `sql-safety-checklist.md` | SQL queries, ORM calls, migration files, `database/sql`, `sqlalchemy`, `prisma` | Injection, migration safety, N+1, transactions |
-| `llm-trust-boundary-checklist.md` | `anthropic`, `openai` imports, prompt templates, `*llm*`/`*prompt*` files | Prompt injection, output validation, cost control |
-| `race-condition-checklist.md` | Goroutines, threads, `asyncio`, `sync.Mutex`, shared file I/O | Shared state, file races, database races |
-| `codex-skill.md` | Files under `skills-codex/`, `convert.sh`, `skills-codex-overrides/` | Codex API conformance, prohibited primitives, tool mapping |
-| `behavioral-discipline.md` | Execution, review, or plan-validation tasks with ambiguity or broad blast radius | Hidden assumptions, overbuilding, drive-by edits, weak verification |
-
-Skills detect triggers via file content patterns and import statements. Each checklist's "When to Apply" section defines exact detection rules.
-
-## Integration
-
-Skills that use standards:
-- `$validate` - Loads based on changed file types
-- `$implement` - Loads for files being modified
-- `/review` - Loads for change-quality and blast-radius checks
-- `$doc` - Loads markdown standards
-- `$postmortem` - Loads for root cause analysis
-- `$refactor` - Loads for refactoring recommendations
-
-## Output Specification
-
-**Artifact directory:** no runtime artifact is created by `standards`; canonical library content lives under `skills/standards/`, with bounded standards under `skills/standards/references/`.
-
-**Filename convention:** language rules use `references/<language>.md`; cross-language or risk checklists use a descriptive kebab-case filename such as `race-condition-checklist.md`.
-
-**Serialization/schema format:** Markdown reference contracts linked from this skill and indexed by `references/standards-index.md`; the executable skill-conformance profile remains YAML at `skills/skill-builder/references/skill-conformance-profiles.yaml`.
-
-**Validator command:** run `bash skills/standards/scripts/validate.sh`, then `bash scripts/audit-codex-parity.sh --skill standards` after source or Codex projection changes.
-
-**Downstream handoff:** pass the exact standard paths loaded, trigger evidence, concrete findings with file/line, deterministic commands and exit codes, unresolved conflicts, and the next action to the consuming skill.
-
-## Quality Checklist
-
-- [ ] The selected references match the changed languages and detected high-risk patterns.
-- [ ] Every finding cites a concrete standard and file/line evidence rather than generic preference.
-- [ ] Executable tools and the authoritative profile were consulted before narrative guidance.
-- [ ] No standard was used to widen scope or modify an unrelated baseline.
-- [ ] Missing or conflicting standards are reported explicitly with owner and next action.
-- [ ] Source and Codex projections pass the standards validator and parity audit.
-- [ ] WARN/FAIL/REFUTED consulted the pawl before any human andon.
-
-## Examples
-
-### Validate Loads Python Standards
-
-**User says:** `$validate` (detects changed Python files)
-
-**What happens:**
-1. Validate skill checks git diff for file types
-2. Validate finds `auth.py` in changeset
-3. Validate loads `standards/references/python.md` automatically
-4. Validate verifies against Python standards (type hints, docstrings, error handling)
-5. Validate reports findings with standard references
-
-**Result:** Python code validated against language-specific standards without manual reference loading.
-
-### Implement Loads Go Standards
-
-**User says:** `$implement ag-xyz-123` (issue modifies Go files)
-
-**What happens:**
-1. Implement skill reads issue metadata to identify file targets
-2. Implement finds `server.go` in implementation scope
-3. Implement loads `standards/references/go.md` for context
-4. Implement writes code following Go standards (error handling, naming, package structure)
-5. Implement validates output against loaded standards before committing
-
-**Result:** Go code generated conforming to standards, reducing post-implementation validate findings.
-
-## Troubleshooting
-
-| Problem | Cause | Solution |
-|---------|-------|----------|
-| Standards not loaded | File type not detected or standards skill missing | Check file extension matches reference; verify standards in dependencies |
-| Wrong standard loaded | File type misidentified (e.g., .sh as .bash) | Manually specify standard; update file type detection logic |
-| Standard conflicts | Multiple languages in same changeset | Load all relevant standards; prioritize by primary language |
-
-## Reference Documents
-
-- [references/architecture-terms.md](references/architecture-terms.md)
-- [references/common-standards.md](references/common-standards.md)
-- [references/behavioral-discipline.md](references/behavioral-discipline.md)
-- [references/examples-troubleshooting-template.md](references/examples-troubleshooting-template.md)
-- [references/cli-wireup-template.md](references/cli-wireup-template.md) — Reproducible cobra subcommand template (noun + verb, injectable Options, ~10 min/cycle)
-- [references/go.md](references/go.md)
-- [references/json.md](references/json.md)
-- [references/markdown.md](references/markdown.md)
-- [references/python.md](references/python.md)
-- [references/rust.md](references/rust.md)
-- [references/shell.md](references/shell.md)
-- [references/skill-structure.md](references/skill-structure.md)
-- [references/standards-index.md](references/standards-index.md)
-- [references/typescript.md](references/typescript.md)
-- [references/javascript.md](references/javascript.md)
-- [references/sql-safety-checklist.md](references/sql-safety-checklist.md)
-- [references/llm-trust-boundary-checklist.md](references/llm-trust-boundary-checklist.md)
-- [references/race-condition-checklist.md](references/race-condition-checklist.md)
-- [references/codex-skill.md](references/codex-skill.md)
-- [references/test-pyramid.md](references/test-pyramid.md)
-- [references/yaml.md](references/yaml.md)
-- [references/skill-tier-caps.md](references/skill-tier-caps.md)
-- [references/external-source-attribution.md](references/external-source-attribution.md)
-- [references/migration-owner.md](references/migration-owner.md) — One fail-closed owner per breaking migration: warn→alias→hard-error staging, atomic format-preserving `--fix`, refuse ambiguous both-forms-present, marker-last ledger writes
+- [Common standards](references/common-standards.md)
+- [Go](references/go.md)
+- [Python](references/python.md)
+- [Rust](references/rust.md)
+- [TypeScript](references/typescript.md)
+- [JavaScript](references/javascript.md)
+- [Shell](references/shell.md)
+- [JSON](references/json.md)
+- [YAML](references/yaml.md)
+- [Markdown](references/markdown.md)
+- [SQL safety](references/sql-safety-checklist.md)
+- [Race conditions](references/race-condition-checklist.md)
+- [LLM trust boundaries](references/llm-trust-boundary-checklist.md)
+- [Skill structure](references/skill-structure.md)
+- [Test strategy](references/test-pyramid.md)

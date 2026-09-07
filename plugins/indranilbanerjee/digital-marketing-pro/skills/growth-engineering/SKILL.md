@@ -1,6 +1,6 @@
 ---
 name: growth-engineering
-description: "Engineer growth loops. Use when: building referral programs, viral loops, or product-led growth strategy."
+description: "Structured guidance for engineering growth systems — product-led growth motions, referral program design, viral loop mechanics, launch playbooks, retention loops, and affiliate programs — producing strategy documents, program specs, and spreadsheet-ready growth models. Recommends and designs; does not build product features or launch anything. Triggers on \"/digital-marketing-pro:growth-engineering\", \"design a referral program\", \"how do we get a viral loop\", \"plan our Product Hunt launch\", \"reduce churn with re-engagement\". Reads the brand profile, industry benchmarks, and campaign history; pairs with /digital-marketing-pro:cro for activation and onboarding optimization."
 ---
 
 # Growth Engineering
@@ -133,6 +133,7 @@ Before executing, gather the following from the user (ask if not provided):
 - `launch-strategy.md` -- Tier 1/2/3 launch playbooks, Product Hunt guide, waitlist mechanics, beta program design
 - `retention-loops.md` -- Engagement frameworks, churn prediction models, winback sequences, cohort analysis methods
 - `affiliate-marketing.md` -- Program setup guides, network comparisons, commission optimization, fraud detection systems
+- `experimentation-frameworks.md` -- Experiment prioritization (ICE/RICE), hypothesis formats, statistical foundations, AARRR experiment categories, and experimentation velocity benchmarks
 
 ## Output Formats
 

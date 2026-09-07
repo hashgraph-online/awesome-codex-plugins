@@ -4,7 +4,7 @@ Give your agent the ability to swap tokens onchain through [Ophis](https://ophis
 
 Installing this plugin does two things:
 
-1. Wires up the Ophis MCP server (`https://mcp.ophis.fi/mcp`) so the agent gets 12 tools to quote, build, and submit swaps and to read balances, prices, gas, and fee-rebate tiers.
+1. Wires up the Ophis MCP server (`https://mcp.ophis.fi/mcp`) so the agent gets 14 tools to quote, build, validate, and submit swaps and to read balances, prices, gas, and fee-rebate tiers.
 2. Adds the `ophis-swap` skill, which teaches the agent the correct, safe order of operations for a trade.
 
 ## Why an agent would use Ophis
@@ -13,7 +13,7 @@ Installing this plugin does two things:
 - Non-custodial. The server never holds your key or your funds. It builds an unsigned order, your wallet signs it, and the server relays the signed order. The receiver is always the signer and cannot be redirected.
 - MEV-protected and gasless. Orders settle through a solver competition, so the trader pays no gas and is shielded from sandwich attacks.
 - Safe token resolution. The `resolve_token` tool maps a symbol to its canonical address from the trusted Ophis/CoW token list and fails closed, so an agent never swaps into a token that merely spoofs a well-known symbol.
-- See the edge. The `expected_surplus` tool compares an Ophis quote against a public aggregator (KyberSwap) and returns the difference in basis points.
+- See the edge. The `expected_surplus` tool compares an Ophis quote against a public reference aggregator and returns the difference in basis points.
 - Rebate-eligible. Ophis applies a small volume fee and shares a rebate through its referrer program.
 
 ## Install

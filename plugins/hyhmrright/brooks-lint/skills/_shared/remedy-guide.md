@@ -1,5 +1,11 @@
 # Remedy Guide — Actionable Fix Mode
 
+**Applies to the diagnostic modes only** (PR Review, Architecture Audit, Tech Debt,
+Test Quality, Health Dashboard). They never write to the codebase — `--fix` there
+means "make the Remedy specific enough to act on", not "apply it". Full Sweep
+(`/brooks-sweep`) is the one mode that edits files; it follows
+`brooks-sweep/sweep-guide.md`, which owns its own fix-classification and revert rules.
+
 When `--fix` is active, enhance every finding's Remedy field to be directly actionable:
 
 ## Remedy Enhancement Rules
@@ -32,6 +38,6 @@ After the standard report, add a **Fix Summary** section:
 | R5 — Circular dep | manual | src/models/ ↔ src/services/ | Introduce interface boundary |
 
 ## What NOT to do
-- Do NOT modify any files. Phase 1 is diagnosis + actionable plan only.
+- Do NOT modify any files. Diagnosis + actionable plan is the whole deliverable.
 - Do NOT generate diffs or code blocks. The Remedy text IS the deliverable.
 - Do NOT re-score. The Health Score reflects current state, not projected state.

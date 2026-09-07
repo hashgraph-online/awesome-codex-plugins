@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$(git rev-parse --show-toplevel)/scripts/bootstrap.mjs\" router",
+            "command": "node \"$(git rev-parse --show-toplevel)/plugins/armorcodex/scripts/bootstrap.mjs\" router",
             "statusMessage": "Starting ArmorCodex"
           }
         ]
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$(git rev-parse --show-toplevel)/scripts/bootstrap.mjs\" router",
+            "command": "node \"$(git rev-parse --show-toplevel)/plugins/armorcodex/scripts/bootstrap.mjs\" router",
             "statusMessage": "Loading ArmorCodex intent policy"
           }
         ]
@@ -29,7 +29,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$(git rev-parse --show-toplevel)/scripts/bootstrap.mjs\" router",
+            "command": "node \"$(git rev-parse --show-toplevel)/plugins/armorcodex/scripts/bootstrap.mjs\" router",
             "statusMessage": "Checking ArmorCodex policy"
           }
         ]
@@ -41,7 +41,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$(git rev-parse --show-toplevel)/scripts/bootstrap.mjs\" router",
+            "command": "node \"$(git rev-parse --show-toplevel)/plugins/armorcodex/scripts/bootstrap.mjs\" router",
             "statusMessage": "Checking ArmorCodex approval policy"
           }
         ]
@@ -53,7 +53,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$(git rev-parse --show-toplevel)/scripts/bootstrap.mjs\" router",
+            "command": "node \"$(git rev-parse --show-toplevel)/plugins/armorcodex/scripts/bootstrap.mjs\" router",
             "statusMessage": "Auditing ArmorCodex command"
           }
         ]
@@ -64,7 +64,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$(git rev-parse --show-toplevel)/scripts/bootstrap.mjs\" router",
+            "command": "node \"$(git rev-parse --show-toplevel)/plugins/armorcodex/scripts/bootstrap.mjs\" router",
             "timeout": 30
           }
         ]

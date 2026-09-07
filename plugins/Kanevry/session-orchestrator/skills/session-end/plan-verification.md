@@ -43,13 +43,16 @@ Compare the files the plan said would be touched against the files actually chan
    - Test files (`*.test.*`, `*.spec.*`, `**/__tests__/**`) corresponding to a touched production file are reclassified as expected (not scope creep)
    - Generated/lock files (`pnpm-lock.yaml`, `*.lock`, `dist/**`, `node_modules/**`) are excluded from both planned and actual sets
    - The `.claude/`, `.codex/`, and `.cursor/` state directories are excluded — they are session artifacts, not code
-5. **Report** in the verification output:
+
+   > **Scope-drift cross-reference:** the S2 warn-only drift tripwire (below) uses its own separately-maintained filter list — `DRIFT_EXCLUDE_PATTERNS` in `scripts/lib/scope-baseline.mjs` — and is NOT derived from the filters above. That list is the shared filter source for both sides of its ratio IN CODE: `writeBaseline()`'s denominator (`countPlannedFiles()`) and `computeDrift()`'s numerator both call the same internal `filterExcluded()` helper (#894 review finding F1 — previously only the numerator was code-filtered; the denominator relied on a coordinator prose instruction to pre-filter before calling `writeBaseline()`, which is why three earlier PRD revisions shipped a tripwire that read a wrong ratio).
+5. **Report** in the verification output. Also call `computeDrift({ repoRoot, threshold: 2.0 })` (`scripts/lib/scope-baseline.mjs`) and append its result — warn-only, informational, never blocks close:
    ```
    File-level grounding:
    - Planned: N files
    - Touched: N files (X% coverage)
    - Unplanned (scope creep): N files [list first 5]
    - Untouched (planned but not edited): N files [list first 5]
+   - Scope drift: filesRatio X.X (Y actual / Z planned, threshold 2.0) — [breached | ok | skipped: <reason>]
    ```
 6. **Append to session metrics** (`grounding` field in the Phase 1.7 JSONL entry):
    ```json
@@ -66,18 +69,14 @@ Compare the files the plan said would be touched against the files actually chan
 - Document what was completed and what remains
 - Create a VCS issue for the remaining work with:
   - Title: `[Carryover] <original task description>`
-  - Labels: `priority:<original>`, `status:ready`
-  - Description: what's done, what's left, context for next session
+  - Labels: `priority::<original>`, `status:ready`
+  - Description: what's done, what's left, context for next session, Revisit-Trigger (mandatory — a concrete reopen condition; a deferral with no named trigger is not a deferral; see `skills/gitlab-ops/SKILL.md § Carryover Template`)
 - Link to original issue if applicable
 
 ### 1.3 Not Started Items
 - Document WHY (blocked? de-scoped? out of time?)
 - If still relevant: ensure original issue remains `status:ready`
 - If no longer relevant: close with comment explaining why
-
-### 1.3a Optional /goal Backlog-Drain (opt-in — #636)
-
-When `goal-integration.enabled: true` with seam `session-end-backlog`, the close may surface ONE advisory `/goal` command to drain still-relevant §1.2/§1.3 items in-session instead of carrying them over. See `SKILL.md § 1.3a Optional /goal Backlog-Drain` for the full gate conditions, advisory-only contract, and the LM-008 cross-reference — the two files mirror each other; the prose lives in SKILL.md.
 
 ### 1.4 Emergent Work
 - Tasks that were NOT in the plan but were done (fixes, discoveries)

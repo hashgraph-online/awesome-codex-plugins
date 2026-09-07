@@ -1,8 +1,8 @@
 # Spec Content Contract
 
-Plugin runtime asset. Loaded by skills creating specs: `capture` (Step 3, spec path),
-`decide` (architecture cascade in `skills/decide/references/continuations.md`), and
-`plan` (feature flow in `skills/plan/references/feature-flow.md`). Companion to
+Plugin runtime asset. Loaded by skills creating specs: `document` (the describe
+track and the decision track's architecture cascade), `plan` (the contract
+instrument at `sdd.design`), and `init` (Phase E hotspot specs). Companion to
 `skills/_shared/precision-rules.md`.
 
 ## What a spec is
@@ -64,24 +64,72 @@ uppercase only) as the modal:
 - State-driven: `WHILE <state>, the <subject> MUST <response>.`
 - Unwanted behavior: `IF <undesired condition>, THEN the <subject> MUST <response>.`
 
+Four rules keep each numbered line strict-EARS conformant:
+
+1. **Active voice, obligated subject.** The grammatical subject is the component
+   that bears the obligation — never a subjectless passive. "Tokens MUST be
+   rotated" names no obligated component; write `the <component> MUST rotate the
+   token`. A plain `The <subject> MUST <response>` line is valid only when
+   `<subject>` is that component, not a passive object.
+2. **One line, one requirement, one modal.** Each numbered line carries exactly
+   one modal keyword (MUST NOT counts as one). Split `MUST X and MUST NOT Y`
+   into two numbered lines.
+3. **Explicit trigger for event responses.** When behavior answers a command,
+   request, or state change, open with `WHEN <trigger>,` (or `WHILE <state>,`) —
+   the event is the trigger, never the grammatical subject. Do not bury the
+   trigger inside the subject ("The /remember command invalidates the cache" →
+   `WHEN the user invokes /remember, the <component> MUST invalidate the cache`).
+4. **One clause, 25 words or fewer.** Past that a clause has usually taken on a
+   second obligation, or buried the actor behind subordinate clauses. Split it,
+   or move the qualifier into Constraints & Invariants.
+
 Grade with intent: MUST only where required for interoperation or to prevent harm
 (RFC 2119 §6 — sparingly); SHOULD where deviation needs a weighed reason; MAY for
-true options. Existing plain `X MUST Y` lines are valid ubiquitous-pattern sentences —
-no migration needed; add trigger/state clauses when writing or editing a line whose
-behavior is conditional.
+true options. Existing conformant plain `X MUST Y` lines need no migration; add
+trigger/state clauses when writing or editing a line whose behavior is conditional.
 
 ## Body cap
 
-- **Default: ≤ 80 lines.** Six sections, each a handful of numbered/bulleted points —
-  the "reference, don't reproduce" rule (Forbidden section below) is what keeps a spec
-  this short even for a complex subject.
-- **Flagship (size/churn-gated, `/archcore:init` hotspot synthesis only): ≤ 120
-  lines.** A hotspot module clearing `LOC > 3000` OR top-quartile churn
-  (`skills/init/lib/detect-hotspots.md` "Flagship specs") MAY compose at this raised
-  cap instead of splitting — see that catalog for the decomposition alternative (≤ 3
-  sub-specs by separable sub-surface, each back at the default ≤ 80-line cap). The
-  extra room goes to Normative Behavior / Constraints & Invariants, never to
-  reproducing source.
+**≤ 120 lines, one number for every path.** Six sections, each a handful of
+numbered/bulleted points — the "reference, don't reproduce" rule (Forbidden section
+below) is what keeps a spec inside the cap even for a complex subject.
+
+The cap counts the whole body, headings and blank lines included; on the six-section
+form those alone take about 19 lines, so the room for requirements is nearer 100. The
+extra room over the former 80 goes to Normative Behavior / Constraints & Invariants,
+never to reproducing source.
+
+The separate flagship cap that `/archcore:init` hotspot synthesis carried is folded
+into this default — a synthesized spec and an authored one are now measured alike, and
+`skills/_shared/grounding/detect-hotspots.md` "Flagship specs" keeps only the
+decomposition treatment it always governed. The Archcore CLI enforces the same 120 in
+`@templates/precision.go` (`MaxSpecBodyLines`), so the contract and the hook agree.
+
+### Over the cap — decompose, never compress
+
+A subject that does not fit the cap is a routing signal, not a formatting problem.
+WHEN a draft exceeds its body cap, the composing skill MUST apply the first remedy
+below that the evidence supports.
+
+1. The skill MUST replace pasted source, schemas, and inventories with
+   `@path/to/file` citations (Forbidden section below).
+2. The skill MUST route foreign content to its owning type — rationale to an `adr`,
+   stories and metrics to a `prd`, reference material to a `doc`, steps to a `guide`.
+3. WHEN the subject exposes two or more independently consumable sub-surfaces, the
+   skill MUST compose one spec per sub-surface, each inside the default cap
+   (`filename=<subject-slug>-<sub-surface-slug>`).
+4. The skill MUST link sub-specs to each other with `related` via
+   `mcp__archcore__add_relation`.
+5. IF no sub-surface boundary is unambiguous, THEN the skill MUST keep the subject as
+   one spec — a cohesive contract is not split to satisfy a line count.
+6. WHEN a spec stays over the cap under rule 5, the skill MUST name the excess and its
+   reason in the closing report.
+7. The skill MUST NOT delete normative content to fit the cap.
+
+Rule 7 is the point of the whole section: truncation loses the contract, decomposition
+preserves it. Sizing a delta's capability list follows the same boundary — see
+`skills/_shared/capability-granularity.md`, which routes an over-cap capability to a
+split by the same sub-surface test.
 
 ## Status (init-synthesized specs)
 
@@ -90,8 +138,12 @@ A hotspot `spec` synthesized by `/archcore:init` (Tier-2) is created with
 not authored or reviewed, so the user confirms it before it becomes canon. Same
 rationale, and same default, as a heuristic-derived cross-cutting `rule`
 (`skills/_shared/rule-contract.md`). This status default is specific to init's
-synthesis path; a spec authored via `/archcore:capture` or `/archcore:decide`
-follows that skill's own status convention.
+synthesis path; a spec authored via `/archcore:document`
+follows that skill's own status convention. A spec authored **ahead of the
+code** (`sdd.design`) also stays `status: draft` until the implementation is
+verified — the closeout track's accept gate performs the draft → accepted
+transition, so the status field is what distinguishes an intended contract
+from a verified one.
 
 ## Forbidden in the body
 
@@ -105,20 +157,34 @@ follows that skill's own status convention.
   (`@path/to/file`), schemas, and external authorities. See
   `skills/_shared/precision-rules.md` Rule 5.
 
+## Enforcement
+
+The Archcore CLI reports the mechanical part of this contract in the post-tool-use
+hook: the mandatory sections, `SHALL` in place of a BCP 14 modal, two modals in
+one numbered line, a subjectless passive, a condition placed after the obligation
+it controls, and a clause past 25 words.
+
+The hook applies the same 120-line cap this contract states, so a spec composed at
+the cap no longer reports a finding it was never meant to trip. That agreement
+replaced an earlier split — an 80-line hook against a 120-line flagship allowance —
+in which one finding per flagship spec was expected and the composing skill was left
+to decide the finding did not apply.
+
+One limit remains, and no version removes it: whether the spec covers **one** subject,
+and whether Surface references the source instead of reproducing it, is not decidable
+in the hook. Both are judgments the composing skill owns. The hook can say how long a
+body is and where its mass sits; it cannot say whether that mass is one contract.
+
 ## Rationale
 
-One form, not profiles: no surveyed spec-driven tool maintains two shapes of one
-artifact — one template, varying content. What Kiro and GitHub Spec Kit call a "spec"
-is a pre-code, per-feature requirements bundle (Spec Kit's own maintainer calls it a
-PRD); Archcore keeps that material in `prd`/`srs` and reserves `spec` for the durable
-behavior contract no surveyed tool names — the gap this type fills. The notation is a
-deliberate hybrid: EARS clause templates carry peer-reviewed defect reduction and force
-the trigger/state to be stated explicitly — exactly where LLM agents otherwise guess —
-while BCP 14 keywords add the MUST/SHOULD/MAY grading that plain-`shall` EARS cannot
-express; protocol RFCs informally combine the two the same way ("When X, the server
-MUST Y"). The "reference, don't reproduce" rule keeps the spec from becoming a second,
-drifting copy of the code it describes — the spec states the contract, the code remains
-the implementation.
+One form, not profiles — one template, varying content: pre-code requirement
+bundles stay in `prd`/`srs`, and `spec` holds the durable behavior contract.
+The notation is a deliberate hybrid: EARS clause templates force the trigger or
+state to be stated explicitly — exactly where LLM agents otherwise guess —
+while BCP 14 keywords add the MUST/SHOULD/MAY grading that plain-`shall` EARS
+cannot express. The "reference, don't reproduce" rule keeps the spec from
+becoming a second, drifting copy of the code it describes — the spec states the
+contract, the code remains the implementation.
 
 ## Examples
 
@@ -175,9 +241,9 @@ Normative for the card renderer (@ui/card/*). Out of scope: the catalog data sou
 
 ## Normative Behavior
 1. WHEN `episodes[]` is non-empty, the card MUST render the progress block.
-2. WHILE `status` is `completed`, the card MUST show the badge and MUST NOT show
-   the subscribe action.
-3. The card MUST reach `ready` only when header and media fields are both present.
+2. WHILE `status` is `completed`, the card MUST show the completed badge.
+3. WHILE `status` is `completed`, the card MUST NOT show the subscribe action.
+4. The card MUST reach `ready` only when header and media fields are both present.
 
 ## Constraints & Invariants
 - Invariant: exactly one primary action is visible in the `ready` state.
@@ -189,7 +255,7 @@ Normative for the card renderer (@ui/card/*). Out of scope: the catalog data sou
    affordance; no blocks render.
 
 ## Conformance
-An implementation is conformant when it satisfies behaviors 1–3, holds the
+An implementation is conformant when it satisfies behaviors 1–4, holds the
 single-primary-action invariant, and degrades per the failure rules.
 ```
 

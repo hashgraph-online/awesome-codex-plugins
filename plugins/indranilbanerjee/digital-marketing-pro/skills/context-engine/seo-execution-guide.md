@@ -133,8 +133,8 @@ Update via `PATCH /collections/{collection_id}/items/{item_id}` with `fields` ob
 1. **Generate JSON-LD** — Build schema markup based on content type:
    - `BlogPosting`: title, author, datePublished, dateModified, image, publisher, description
    - `Product`: name, description, image, offers (price, priceCurrency, availability), aggregateRating, review
-   - `FAQ`: mainEntity array with Question/Answer pairs
-   - `HowTo`: name, step array with name/text/image, totalTime, estimatedCost
+   - `FAQ`: mainEntity array with Question/Answer pairs — **note:** FAQ rich results restricted (Aug 2023) to authoritative government and health sites only; markup still valid for structure, but expect no rich result on most sites
+   - `HowTo`: name, step array with name/text/image, totalTime, estimatedCost — **note:** HowTo rich results deprecated (Sept 2023); markup still valid for structure, but prefer Article format with step-by-step structure
    - `LocalBusiness`: name, address, geo, telephone, openingHours, priceRange
    - `Organization`: name, url, logo, sameAs (social profiles), contactPoint
 
@@ -147,7 +147,7 @@ Update via `PATCH /collections/{collection_id}/items/{item_id}` with `fields` ob
 
 4. **Verify with Rich Results Test** — `https://search.google.com/test/rich-results` — confirm all schema types detected and eligible for rich results. Screenshot result for documentation.
 
-5. **Monitor in GSC** — Check Enhancements reports: `Unparsable structured data`, `Product`, `FAQ`, `How-to`, `Breadcrumb`. Alert on any new errors within 7 days of deployment.
+5. **Monitor in GSC** — Check Enhancements reports: `Unparsable structured data`, `Product`, `Breadcrumb` (the `FAQ` and `How-to` reports were removed by Google along with those rich results). Alert on any new errors within 7 days of deployment.
 
 ---
 

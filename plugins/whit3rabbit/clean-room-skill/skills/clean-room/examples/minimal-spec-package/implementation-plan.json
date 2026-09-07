@@ -42,7 +42,9 @@
       "architecture_area_refs": [
         "area-example-flow"
       ],
-      "public_contract_refs": [],
+      "public_contract_refs": [
+        "public_surface:spec-example-flow:command-line-option:--example-flag"
+      ],
       "implementation_root_ref": "CLEAN_ROOM_IMPLEMENTATION_ROOTS[0]",
       "target_paths": [
         "src/example-flow.js"

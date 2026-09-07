@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sealos: Cloud Native Readiness"
+  short_description: "Assess whether a project is ready for Sealos Cloud."
+  default_prompt: "Use $cloud-native-readiness to assess whether this project is ready for Sealos Cloud deployment."

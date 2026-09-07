@@ -1,6 +1,6 @@
 ---
 name: intelligence-report
-description: "Generate marketing intelligence briefings from compound intelligence across agents — surfaces learnings, cross-agent patterns, confidence distribution, and playbooks. Use when reviewing accumulated marketing learnings, preparing for quarterly planning, onboarding team members, or identifying knowledge gaps."
+description: "Generate an intelligence briefing from the brand's compound intelligence base — total learnings with confidence distribution, cross-agent patterns by channel, audience, and objective, actionable playbooks synthesized from proven strategies, stale learnings flagged for revalidation, and a 0-100 compound intelligence maturity score. Triggers on \"/digital-marketing-pro:intelligence-report\", \"what have we learned across campaigns\", \"summarize our marketing intelligence\", \"generate a playbook for the product launch\", \"where are our knowledge gaps\". Reads the brand profile and pulls stats, patterns, and playbooks from intelligence-graph.py; suited to quarterly planning, strategy reviews, and onboarding."
 user-invocable: true
 triggers:
   - generate marketing intelligence report

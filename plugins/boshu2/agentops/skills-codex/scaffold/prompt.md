@@ -1,6 +1,6 @@
 # scaffold
 
-Stamp project/component/CI scaffolds — but reach for it mainly for the repo-specific domain-slice binding (generic trees a frontier model needs no skill for). Triggers: "scaffold", "create project component or boilerplate".
+Stamp a bounded project, component, or CI scaffold and verify the generated result once. Triggers: "scaffold", "create project component or boilerplate".
 
 ## Instructions
 

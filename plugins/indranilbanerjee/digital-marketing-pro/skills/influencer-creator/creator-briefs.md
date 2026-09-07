@@ -193,12 +193,12 @@ When requesting revisions, use this structure:
 
 | Platform | Format | Aspect Ratio | Max Length | File Size | Caption Limit |
 |----------|--------|-------------|------------|-----------|---------------|
-| Instagram Feed | JPEG/MP4 | 1:1 or 4:5 | 90s (Reel), 60s (feed video) | 100MB | 2,200 chars |
-| Instagram Story | JPEG/MP4 | 9:16 | 15s per frame | 30MB | N/A |
-| Instagram Reel | MP4 | 9:16 | 90 seconds | 100MB | 2,200 chars |
+| Instagram Feed | JPEG/MP4 | 1:1 or 4:5 | 60s (feed video); Reels up to 3 min | 100MB | 2,200 chars |
+| Instagram Story | JPEG/MP4 | 9:16 | 60s per frame | 30MB | N/A |
+| Instagram Reel | MP4 | 9:16 | Up to 3 minutes | 100MB | 2,200 chars |
 | TikTok | MP4 | 9:16 | 10 minutes | 287MB | 4,000 chars |
 | YouTube | MP4 | 16:9 | No limit | 256GB | 5,000 chars |
-| YouTube Shorts | MP4 | 9:16 | 60 seconds | 256GB | 100 chars title |
+| YouTube Shorts | MP4 | 9:16 | Up to 3 minutes | 256GB | 100 chars title |
 | LinkedIn | JPEG/MP4 | 1:1 or 16:9 | 10 minutes | 5GB | 3,000 chars |
 | Facebook | JPEG/MP4 | 1:1 or 16:9 | 240 minutes | 10GB | 63,206 chars |
 

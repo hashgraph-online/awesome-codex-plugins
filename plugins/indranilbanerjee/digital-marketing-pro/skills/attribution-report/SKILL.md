@@ -1,6 +1,6 @@
 ---
 name: attribution-report
-description: "Run multi-touch attribution analysis. Use when: first/last-touch, linear, time-decay, position-based revenue allocation."
+description: "Run multi-touch attribution analysis on real conversion-path data — applies two or more models side-by-side (first-touch, last-touch, linear, time-decay, position-based, data-driven), computes per-channel attributed revenue and ROAS, assisted-conversion ratios, path-length and time-to-conversion distributions, and budget reallocation recommendations. Triggers on \"/digital-marketing-pro:attribution-report\", \"which channels actually drive revenue\", \"compare first-touch vs last-touch\", \"run an attribution analysis\", \"is paid social undervalued\". Pulls journeys from Google Analytics, Google Ads, Meta, and CRM MCPs and includes GA4's AI Assistant channel; model definitions come from skills/funnel-architect/attribution-models.md, strategy design from /digital-marketing-pro:attribution-model."
 ---
 
 # /digital-marketing-pro:attribution-report

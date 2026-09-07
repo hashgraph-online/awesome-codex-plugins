@@ -1,219 +1,258 @@
 ---
-name: reviewer_configure-review
-description: Configure or update a repo's .review.yml context layer (subsystem cluster depth, per-prefix depth overrides, summary top-k threshold, ignore for noisy *tracked* paths, context_limits retrieval breadth per repo profile) and its task board selection (which board this repo uses — yougile/youtrack — key_pattern, url_template; never credentials) from a draft the skill generates and the user edits. Use when the user asks to set up or tune review config ("настроить .review.yml", "configure review config", "настрой контекст-слой", "tune cluster depth", "что игнорировать в ревью", "выбрать доску для репо", "set up reviewer for this repo"). Standalone baseline — needs only git, no reviewer MCP / DB required; optionally uses the reviewer MCP tool count_tasks to size context_limits.search_tasks.
+name: configure-review
+description: Use when configuring or changing a repository's tracked branches, layered review policy, ignored tracked paths, retrieval limits, summary depth, or non-secret task-board metadata.
 ---
 
-# Configure review (.review.yml context layer)
+# Configure Review
 
-Scan the repo's **tracked** tree (plus churn), generate a recommended `.review.yml` context layer
-(cluster depth, per-prefix depth overrides, summary top-k threshold, ignore for noisy tracked
-paths), show it as a draft + diff, let the user adjust, then write it — preserving every other key.
-Standalone baseline: uses `git` and file editing — works on a fresh repo before the first index.
-Two optional exceptions use the reviewer MCP when connected: sizing `context_limits.search_tasks`
-via `count_tasks(project)`, and the finish-task done-target pick-list via
-`get_board_targets(board_type, project)`; if the reviewer MCP is absent (fresh repo / older deploy)
-or a tool errors, the skill **falls back to asking** the user. Everything else needs
-**no reviewer MCP / Postgres / Neo4j**.
-
-**Always answer the user in Russian** (the project language), regardless of this file's language.
-Commands, code identifiers and `path:line` stay verbatim.
+Always answer the user in Russian. Update only the requested policy values; **Never clobber** foreign
+keys such as `categories`. This skill is standalone: no reviewer MCP, database, or board connection
+is required for the baseline.
 
 ## Scope
 
-Edit **only** these keys of `.review.yml`:
-- `summary_cluster_depth` — global subsystem cluster depth.
-- `summary_cluster_depth_overrides` — per-prefix depth (longest-prefix-match by directory segments).
-- `summary_topk_threshold` — summary-prior scale threshold.
-- `paths.ignore` — only for **tracked** noisy paths (eval, fixtures, generated, vendored, migrations, data).
-- `context_limits` — per-repo retrieval breadth (search_codebase / search_tasks / graph limits,
-  PRI-202), recommended from a **repo profile**. Written as a full documented block.
-- `task_board` — which board THIS repo uses (`type: yougile|youtrack`), plus `key_pattern`, (yougile only)
-  `url_template`, `project`, and the **finish-task done target**: `done_column` (yougile) or
-  `status_field` + `done_state` (youtrack). **NEVER** write credentials here — board API keys live only in
-  the reviewer deploy env (`YOUGILE_API_KEY` / `YOUTRACK_TOKEN` + `YOUTRACK_BASE_URL`). An empty
-  `task_board:` disables the board for the repo.
+Manage `summary_cluster_depth`, `summary_cluster_depth_overrides`, `summary_topk_threshold`,
+`summary_paths.ignore`, `paths.ignore`, `context_limits`, and the optional `task_board` block,
+including its generic `sync_filter`. An empty `task_board:` disables the board for this repository. Never read, request,
+display, or write credential values in either policy target.
 
-Do NOT touch any other key (`categories`, `severity_threshold`, `max_comments`, `min_confidence`, …). Do NOT run a
-reindex/resummarize. Do NOT walk the filesystem or try to detect untracked junk: `.venv`,
-`node_modules`, `__pycache__`, `dist`, `build` are gitignored, so they never reach the git-tracked
-index / graph / summaries — there is nothing to add to ignore for them.
+Tracked branches are separate from review policy. Manage `repository.primary_branch` and
+`repository.index_branches` only in the home per-repo target. The committed `.review.yml` cannot
+own `repository`, because branch selection must be available before a committed ref can be read.
 
-## Inputs
+Untracked `.venv`, `node_modules`, `__pycache__`, `dist`, and `build` are gitignored and never
+enter the index. Do not use a filesystem walk to find them.
 
-Parse from $ARGUMENTS (all optional):
-- `--path <path>`: repo clone path. Default: current working directory.
-- `--branch <branch>`: branch whose tree to scan and whose `.review.yml` to edit. Default: the
-  current git branch.
+## Safe YAML preflight
+
+Inspect each selected policy or home YAML file with a local boolean-only process.
+Run this preflight before any tool call that can return file contents.
+Return only safe/blocked, never matching lines, values, or exception text. Do not use Read or Grep
+to perform this preflight. The process must reject non-regular or symlinked files, malformed or
+non-mapping YAML, and credential-like keys at any depth. Also reject duplicate mapping keys,
+including duplicate `repository` keys and duplicate branch fields. Reject anchors, aliases, and merge keys.
+Reject these cases before reading or mutating the file in model context.
+Only after a safe result may a content-returning tool read the file for a line-oriented edit.
+
+For a home target, derive the canonical home config root lexically even when it does not exist.
+Check every existing parent path component through the destination without following symlinks;
+reject symlinks and non-directories. Missing destinations, including a missing home config root,
+are allowed only when the nearest existing parent is a real directory and the normalized
+destination remains inside the canonical home config root. After creating any missing directories,
+run the path preflight again. Also re-check immediately before writing so a changed path never
+inherits an earlier safe result.
 
 ## Pipeline
 
-1. **Preflight.** Resolve `--path` (default cwd) and `--branch`
-   (`git -C <path> branch --show-current`; if empty/detached, use the current HEAD ref). Verify a git
-   repo: `git -C <path> rev-parse --git-dir`. Not a repo → tell the user (in Russian) and stop. No
-   database or reviewer MCP is required.
-
-1.5. **Check .env completeness (offer `reviewer init` if needed).**
-   Resolve the canonical .env path:
-   ```bash
-   echo "${REVIEWER_ENV_FILE:-${XDG_CONFIG_HOME:-$HOME/.config}/rag-reviewer/.env}"
-   ```
-   (fallback: `~/.config/rag-reviewer/.env`, then `./.env` for dev). Read and parse `KEY=VALUE` lines
-   (skip comments and blank lines). If the file doesn't exist — tell the user (Russian):
-   > .env не найден по пути `<path>`. Запустить `reviewer init` для первоначальной настройки?
-
-   If the file exists, check critical groups:
-   - **GitLab VCS:** `GITLAB_TOKEN` — if empty, warn.
-   - **Доска задач:** `YOUGILE_API_KEY` and `YOUTRACK_TOKEN` — if both empty, warn.
-   If any are missing → tell the user (Russian):
-   > В .env не хватает полей: `<list>`. Запустить `reviewer init` чтобы дополнить?
-
-   User can decline — skill continues normal pipeline. This check is **read-only** (parse
-   `KEY=VALUE` lines); no reviewer MCP / Postgres / Neo4j needed. **Do NOT run** `reviewer init`
-   automatically — only offer.
-
-2. **Scan the tracked tree.**
+1. Resolve the canonical lowercase repository id and the target branch. Present these targets in
+   this order and ask the user to select one:
+   - **Recommended/default:** `home:repos/<owner>/<name>.yml`, stored at
+     `$XDG_CONFIG_HOME/rag-reviewer/repos/<owner>/<name>.yml` (or
+     `~/.config/rag-reviewer/...` when `XDG_CONFIG_HOME` is unset). It needs no commit and is not
+     visible to the team.
+   - **Team-visible:** committed `.review.yml` at the selected target ref. It is committed and
+     visible to the team; read it from that ref, never from an uncommitted worktree file.
+   For a nested id such as `group/service`, use `home:repos/group/service.yml`. A home policy is
+   owned by the OS account running reviewer: on a shared service account it can affect that
+   account's workloads, so use committed policy for team-owned settings.
+2. After the target is selected, verify the repository with `git rev-parse --git-dir`, run the Safe
+   YAML preflight, and only then read the selected file, preserving unrelated keys and comments.
+   Do not inspect or copy credentials.
+3. Scan only tracked Python files:
    ```bash
    git -C <path> ls-tree -r --name-only <branch> | grep '\.py$'
    ```
-   From the file list, count `.py` files under each directory prefix at depths 1, 2 and 3. This is
-   the only file source — exactly the tracked set that gets indexed; no filesystem walk.
+   Count directory prefixes at depths 1–3. This is not a filesystem walk.
+4. Measure churn with `git log --since="6 months ago" --name-only --pretty=format: -- '*.py'`.
+   If history is too short or unavailable, say so and recommend from structure alone.
+5. Propose depth and ignore changes. Ask the user about every candidate for `paths.ignore` and
+    **never write it silently**. Assemble a draft that preserves the selected file's unrelated
+    keys/comments, then request final confirmation before writing it. Follow the exact rebuild map
+   below; suggest but **do NOT run** a follow-up skill. When branch and policy changes share a run,
+   assemble both drafts first, show both paths and diffs, and request one final confirmation before
+   either write.
 
-3. **Measure churn (fail-open).**
-   ```bash
-   git -C <path> log --since="6 months ago" --name-only --pretty=format: -- '*.py'
-   ```
-   Aggregate how many commits touched each subtree; activity = commits-touching ÷ file-count
-   (size-normalized). Classify each subtree "active" vs "stable" against the median. Young repo / few
-   commits → fall back to the last ~200 commits (`git -C <path> log -n 200 --name-only --pretty=format: -- '*.py'`).
-   Empty or failing `git log` → skip churn, recommend from structure only, and say so to the user.
+## Repository branches
 
-4. **Read the existing `.review.yml`** (working-tree file, or `git -C <path> show <branch>:.review.yml`).
-   Parse it; KEEP every key outside the context layer (`task_board`, `categories`, …) and all
-   existing comments verbatim. Keep existing `paths.ignore` entries. No file → you will create one,
-   with explanatory comments in the style of this repo's `.review.yml`.
+Handle branches before policy analysis whenever the user asks to inspect or change tracked
+branches.
 
-5. **Generate the recommended draft (heuristics).**
-   - **`summary_cluster_depth`** (global): pick `d ∈ {1,2,3}` so clusters are a sensible size — aim
-     ~3–15 files per cluster; avoid one giant cluster (too coarse) and one-file clusters (too fine).
-     Default 2; tiny repos 1. From step 2's per-depth aggregates, choose `d` minimizing the share of
-     too-coarse (> ~20 files) and too-fine (1 file) clusters, preferring 2 on ties.
-   - **`summary_cluster_depth_overrides`**: for a subtree that is **large AND active** (size > ~20
-     files and activity above median) → override `depth = d+1` (finer clusters → pointed invalidation,
-     richer prior). Large-but-stable → leave at global `d`. Keys = the shortest distinguishing
-     directory prefix (longest-prefix-match). Cap depth at 3.
-   - **`summary_topk_threshold`**: estimate the cluster count at the chosen `d` + overrides (≈ number
-     of distinct cluster keys). Above the default 20 → keep 20 (ANN top-k engages); otherwise keep
-     the default. Mostly informational — show the estimated cluster count to the user.
-   - **`paths.ignore`**: propose **candidates** among tracked paths that look like non-product noise
-     (`eval`/`evals`, `fixtures`/`testdata`, `examples`/`samples`, `vendor`/`third_party`,
-     `generated`/`gen`/`*_pb2.py`, `migrations`, large `data` modules). This is a judgment call, so
-     **ask the user per candidate — never write it silently.**
+1. Resolve the local repository without network calls:
+   - `git rev-parse --show-toplevel` gives the git root;
+   - `git remote get-url origin` gives the canonical SSH/HTTPS remote candidate;
+   - normalize it to lowercase `<owner/name>` with the same SSH/HTTPS forms accepted by reviewer;
+   - if origin is absent or unrecognized, ask for `<owner/name>` explicitly.
+   Network git commands are forbidden.
+2. Run `reviewer config show --repo <owner/name> --json` and show the effective primary branch,
+   ordered index branches, and source. A policy/VCS diagnostic error does not erase the returned
+   branch section; a malformed home config is a blocking error and must not fall back silently.
+3. Ask for `repository.primary_branch`, then ask for the complete ordered unique
+   `repository.index_branches`. The primary must be present in the index list. Reject empty names,
+   duplicates, and a primary outside the list.
+4. The destination is always
+   `$XDG_CONFIG_HOME/rag-reviewer/repos/<owner>/<name>.yml` (or the equivalent
+   `~/.config/rag-reviewer/...` path when XDG is unset).
+   Never write `repository` to committed `.review.yml`, even when committed policy is selected for
+   other keys. If policy and branches
+   change together, treat them as two targets in one preview.
+5. Run the Safe YAML preflight on the destination before reading it. Stop on every blocked result.
+   Build a line-oriented patch: if `repository` is absent, append the canonical block; if it exists,
+   replace only `primary_branch` and `index_branches`. Preserve all top-level keys and unknown repository subkeys.
+   Preserve comments, line endings, and surrounding YAML style.
+   Never serialize the complete file with `yaml.safe_dump`.
+6. Show the destination, source, old and new branch values, and the exact patch. Request one
+   final confirmation before any branch or policy write. A rejection leaves every target unchanged.
+7. After writing, run `reviewer config show --repo <owner/name> --json` again and require the
+   exact primary/index/source expected from the home per-repo layer. Report a mismatch as an error.
 
-5b. **Task board selection (ask before writing).** Read the existing `task_board` block (keep it
-   verbatim if present). Ask the user which board this repo uses:
-   - `yougile` → write `{type: yougile, mcp: yougile, key_pattern: '[A-Z]+-\d+', url_template: <ask>}`.
-   - `youtrack` → write `{type: youtrack, key_pattern: '[A-Z]+-\d+'}` (NO `url_template` — youtrack derives
-     the link from its base URL; NO `mcp` — youtrack is read server-side via sync, not board-MCP).
-   - off / none → write an empty `task_board:` (disables the board for this repo).
-   - leave unchanged → skip.
+If newly added index branches are not indexed, suggest `rag-reviewer:sync-codebase` once per new
+branch, but do not run it. A primary change to an already indexed branch needs no rebuild. Removing
+a branch stops reviewer from selecting it but does not delete its old base index automatically.
+Branch changes never trigger subsystem-summary work.
 
-   **Then ask which PROJECT this repo uses** (e.g. PRI-170) and write it to `task_board.project` — the task
-   **code prefix** (e.g. `PRI`, `TES`), the part before the dash in task codes. Warn the user (in Russian):
-   если `project` пуст — и синк, и выдача/граф затянут **все проекты** аккаунта/инстанса вперемешку
-   (напр. чужой `TES-1` всплывёт в связях задачи `PRI`); один аккаунт с несколькими проектами без
-   `project` смешивает их. Пустой `task_board.project` = текущее глобальное поведение.
+## Rebuild guidance
 
-   **Then ask the finish-task done target** (closing a task after its PR — skill `/reviewer_finish-task`
-   moves the finished task into the board's "done" cell). First **discover candidates server-side**: call
-   the reviewer MCP tool `get_board_targets(board_type=<type>, project=<project>)` (read-only; creds live in
-   the reviewer env — nothing to configure on the client, and **no yougile/youtrack board-MCP is needed**).
-   Show the result as a **pick-list**; if the tool is absent (older deploy), returns an empty list, or
-   errors, **fall back to asking** the user for the value. Write only the key(s) matching the board type;
-   comment out the other board's keys with a one-line note (mirror the root `.review.yml`). All are optional
-   and fail-soft — a wrong/absent column or value only warns, the PR link is still written:
-   - **yougile** → `done_column`: the exact column **title** finish-task moves the finished task into (plus
-     `completed:true`). `get_board_targets` returns `columns: [{title, board_title, …}]` — present them as a
-     pick-list and disambiguate same-named columns by `board_title`; the user picks the done column by title.
-     Empty / tool absent → ask for the title. Not set → finish-task only flips `completed:true` without
-     moving the card.
-   - **youtrack** → `status_field` (name of the custom field the board is built on — default `State`; it
-     **also** governs status reading on sync, so set it when the board runs on a custom field like `Stage`)
-     and `done_state` (target value of that field — default `Fixed`). `get_board_targets` returns
-     `status_fields: [{field, values: […]}]` — let the user pick the field, then a value from that field's
-     `values` as `done_state`. Empty / tool absent → ask for both. YouTrack-only; a yougile board ignores them.
+- Changed `paths.ignore` → suggest `rag-reviewer:sync-codebase`.
+- Changed `summary_cluster_depth` → suggest `rag-reviewer:summarize-subsystems`.
+- Changed `summary_cluster_depth_overrides` → suggest `rag-reviewer:summarize-subsystems`.
+- Changed `summary_paths.ignore` → this key is part of the summary `layout_token`; suggest
+  `rag-reviewer:summarize-subsystems` and warn it forces a **full rebuild of every subsystem
+  summary** (same `layout_token` invalidation as `summary_cluster_depth`/
+  `summary_cluster_depth_overrides`).
+- Changed `summary_topk_threshold` → no rebuild needed.
+- Changed `context_limits` → no rebuild needed.
+- Changed `task_board.sync_filter` → suggest `rag-reviewer:sync-tasks` for a full unlimited run
+  (`limit=null`); do **NOT run** it automatically.
 
-   **Never write credentials.** Remind the user (in Russian): ключи доски (`YOUTRACK_TOKEN`/
-   `YOUTRACK_BASE_URL` для youtrack, `YOUGILE_API_KEY` для yougile) задаются в env деплоя reviewer-mcp,
-   не в `.review.yml`. Грабли youtrack: `YOUTRACK_BASE_URL` обязан оканчиваться на `/api`. Changing the
-   board has no effect until those env keys are set and the board is synced (`/reviewer_sync-tasks`).
+## Generic board metadata
 
-5c. **`context_limits` — retrieval breadth via a repo profile (PRI-202).** Classify the repo into
-   one **profile** from the step-2 structure scan and map it to a full, documented `context_limits`
-   block. Write **all** knobs (even when equal to code defaults) — the block is self-documenting,
-   matching this repo's own `.review.yml`.
+Ask whether to keep, disable, or configure `task_board`. A configured block uses only this shape:
 
-   **Profile from git signals** (no churn — churn drives cluster depth, not retrieval breadth):
-   - `N` = number of tracked `.py` files (from step 2).
-   - `pkgs` = number of large top-level packages (large ≈ > 50 `.py`; a monorepo signal — several
-     independent roots like `services/*`, `packages/*`).
+```yaml
+task_board:
+  type: <registered board_type>
+  project: <optional project prefix>
+  key_pattern: '<optional task-key pattern>'
+  create_target: <selected target id or null>
+  done_target: <selected target id or null>
+  options: {}
+  sync_filter:
+    max_age_days: <integer >= 1, or omit for no age limit>
+    include_archived: <boolean, default true>
+```
 
-   | Profile | Condition | Meaning |
-   |---|---|---|
-   | tiny-util | `N < 80` and one package | narrow context, save Voyage |
-   | standard (default) | `80 ≤ N ≤ 800` | == code default constants |
-   | large / monorepo | `N > 800` OR `pkgs ≥ 3` large | wider rail so broad tasks aren't clipped |
+`project` scopes board sync and task retrieval. Explain that an empty `task_board.project` can mix
+all projects, then ask for the intended project prefix.
 
-   **Preset bundles** (search_codebase + graph):
-   ```
-                       floor ceiling ratio abs_floor pool  ann   | hops callers_topk
-   tiny-util             3     8     0.60   0.35     20   0.65   |  1        20
-   standard (=default)   4    15     0.50   0.30     30   0.65   |  1        25
-   large / monorepo      4    25     0.45   0.30     40   0.60   |  1        30
-   ```
-   Strong signal (scale-driven): `ceiling`, `candidate_pool`, `callers_topk`. Weak signal
-   (score-shape): `ratio` / `abs_floor` / `ann_distance_max` — near default, nudged directionally;
-   annotate them in the yml «directional, weak — tune after watching the cliff notes».
-   `graph.hops` stays 1 in every profile (2 explodes cost).
+`sync_filter` is a generic sibling of provider `options`. The `sync_filter` block is optional.
+Never put `sync_filter` under `options`. Ask two separate questions:
 
-   **`search_tasks.{floor,ceiling}` from board size** (orthogonal to the repo profile):
-   | Board | Condition | floor / ceiling |
-   |---|---|---|
-   | small | < 150 tasks | 3 / 8 |
-   | medium | 150–800 | 3 / 10 |
-   | large | 800+ | 4 / 14 |
+- `max_age_days`: choose an integer greater than or equal to 1, or no age limit.
+- `include_archived`: choose whether archived tasks are included; the default is `true`.
 
-   Get the count **best-effort**: call `count_tasks(project)` (reviewer MCP; `project` from step 5b).
-   Success and `count > 0` → bucket silently. reviewer MCP absent / tool missing (older deploy) /
-   `count == 0` (corpus never synced) → **fall back** to asking the user (small / medium / large).
-   Never block on it.
+Age uses task last-modified time and an inclusive cutoff: a task modified exactly at the cutoff is
+eligible. Archive is distinct from terminal/done; `include_archived: false` excludes only tasks
+known to be archived. Age filtering runs first. Only while `include_archived: false`, unknown
+archive metadata does not itself exclude the row; an archive warning is emitted only then and only
+when age filtering did not already exclude the row.
 
-   Emit the full block with explanatory comments (mirror the root `.review.yml`). Merge like every
-   other key (step 7) — never clobber.
+### Editing `sync_filter` safely
 
-6. **Present draft + diff.** Show the proposed context layer and a unified diff against the current
-   `.review.yml` (or "new file"). Briefly justify each recommendation in Russian (why this depth; why
-   an override on this subtree — cite its size/churn; why each ignore candidate). Take the user's
-   edits in free dialogue and revise the draft.
+When changing only `sync_filter`, use this deterministic materialization procedure:
 
-7. **Write `.review.yml`.** Write the result by **merging** — preserve every other key and the
-   explanatory comments. **Never clobber** keys outside the context layer. Idempotent: re-running on
-   an already-configured repo yields a minimal diff.
+1. Read policy layers in precedence order: non-secret ENV/deploy `task_board` defaults,
+   `home:review.yml`, committed `.review.yml`, then `home:repos/<owner>/<name>.yml`; stop at the
+   selected target. Never inspect or copy credential env values. For a committed target, do not
+   read the higher repo-home layer. For the recommended home per-repo target, include all layers.
+2. If the selected layer has a non-empty `task_board` mapping, use that mapping alone as the edit
+   base. Preserve every sibling and field-attached comment already present, but do not copy or
+   overlay omitted fields from lower layers: the selected mapping already shadows the complete
+   lower block.
+3. If the selected layer has no `task_board` key, resolve only the lower layers with normal
+   whole-block replacement, then materialize the complete lower effective non-secret `task_board`
+   into the selected-layer draft. Copy `type`, `project`, `key_pattern`, `url_template`,
+   `create_target`, `done_target`, `options`, every other non-secret sibling, and field-attached
+   comments. If no lower board exists, ask for a fully configured board; never write a new partial
+   `task_board` containing only the filter.
+4. If the selected layer explicitly contains null or an empty mapping, preserve that disable and do
+   not add `sync_filter`. Only proceed when the user explicitly chooses to replace it with a fully
+   configured board assembled from confirmed values; never resurrect lower fields silently.
+5. For cases 2 or 3, patch only `sync_filter` in the chosen or materialized block. The selected layer
+   remains a self-contained whole-block replacement.
 
-8. **Suggest rebuild commands (do NOT run them).**
-   - `paths.ignore` changed → suggest `/reviewer_sync-codebase --path <path> --ref <branch>`
-     (re-index vectors + graph).
-   - `summary_cluster_depth` / `*_overrides` / `summary_topk_threshold` changed → suggest
-     `/reviewer_summarize-subsystems` (changing depth changes every `cluster_key` → a full summary
-     rebuild; old-depth summaries orphan and are pruned on a full pass).
-   - `context_limits` changed → **no rebuild needed.** It is read live server-side
-     (`_resolve_context_limits`) at review / solve-task time; the effect applies on the next run from
-     the branch the `.review.yml` is committed to. Do NOT suggest a reindex/resummarize for it.
-   - Remind the user (in Russian): changes take effect only after a rebuild, and only from the branch
-     the `.review.yml` is committed to (policy is read from the target/index branch).
+Because policy layers replace the whole `task_board` block, preserve every sibling field and
+comment when changing `sync_filter`. Repositories using the same project share one task corpus, so
+different retention views require different project scopes. Keep home per-repo as the recommended
+target for repository-specific policy. A filter change is evaluated on the next successful full
+sync and backfills newly eligible tasks; purge remains explicit and is never enabled by a filter
+change.
 
-## Notes
+When a board type is selected, call the read-only discovery tool:
 
-- **Never clobber** keys outside the context layer — edit by merge.
-- **Tracked files only** — `git ls-tree`, the exact set that gets indexed. No filesystem walk.
-- **Fail-open on churn** — no history / `git log` failure → structure-only recommendations, noted.
-- **No index side effects** — the skill only edits the file and suggests commands.
+```
+get_board_targets(board_type=<type>, project=<project>, provider_options=<task_board.options or {}>)
+```
+
+Its normalized response is `{board_type, project, targets, options, warnings}`. Present a
+**pick-list** of `targets` by `label`; use `purposes` to select `create_target` and `done_target`.
+For every option whose `required_for` contains `sync`, `create`, or `finish`, present its `choices`
+by label and write the selected `id` into `task_board.options`. If discovery is unavailable, empty,
+or returns an error, **fall back to asking** the user for each required generic value. Do not guess
+targets or options.
+
+The resulting values are non-secret metadata. Board access is configured outside this file; do not
+request, display, or write credentials.
+
+## Retrieval profile
+
+Choose one profile from tracked-file structure and write all real `context_limits` fields:
+
+| Profile | Condition | search_codebase: floor / ceiling / ratio / abs_floor / candidate_pool / ann_distance_max | graph: hops / callers_topk |
+|---|---|---|---|
+| tiny-util | fewer than 80 tracked Python files and one package | 3 / 8 / 0.60 / 0.35 / 20 / 0.65 | 1 / 20 |
+| standard | 80–800 files | 4 / 15 / 0.50 / 0.30 / 30 / 0.65 | 1 / 25 |
+| large / monorepo | over 800 files or at least three large packages | 4 / 25 / 0.45 / 0.30 / 40 / 0.60 | 1 / 30 |
+
+Map `count_tasks(project)` to `search_tasks` deterministically: `< 150` → `3 / 8`;
+`150–800` → `3 / 10`; `800+` → `4 / 14`. A missing tool, zero count, or unavailable corpus
+**falls back to asking** the user for small/medium/large, then uses the same mapping.
+
+`context_limits.code_section` is the file budget for the task-context `code` section
+(`prepare_task_context`): `max_files: 20`, `max_chunks_per_file: 1`, `chars_per_file: 975`,
+`max_augmented_files: 3`. These four defaults are the same across all three profiles above —
+there is no measurement backing a per-profile split, so do not invent one. The budget unit here
+is the FILE, not the chunk; there is no separate character-cap key, the effective character
+ceiling is derived from `max_files`/`max_chunks_per_file`/`chars_per_file`. `max_augmented_files`
+(PRI-257) is a RESERVE of file slots inside `max_files` for diff paths mixed in from similar
+tasks (`similar-diffs`, the section's only augmentation source) — not a cap applied to whatever
+the hybrid search leaves over. Write it alongside the other real `context_limits` fields:
+
+```yaml
+context_limits:
+  search_codebase:
+    floor: <profile value>
+    ceiling: <profile value>
+    ratio: <profile value>
+    abs_floor: <profile value>
+    candidate_pool: <profile value>
+    ann_distance_max: <profile value>
+  search_tasks:
+    floor: <board-size value>
+    ceiling: <board-size value>
+  graph:
+    hops: <profile value>
+    callers_topk: <profile value>
+  code_section:
+    max_files: 20
+    max_chunks_per_file: 1
+    chars_per_file: 975
+    max_augmented_files: 3
+```
+
+Preserve every other configuration key and ask for confirmation before writing the assembled draft.
+
+## Completion
+
+Report old/new branches, the selected branch source, changed policy keys, selected generic
+targets/options, and any recommended follow-up. This skill makes configuration-only recommendations
+and has no index side effects.

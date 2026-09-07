@@ -1,17 +1,19 @@
 # Dodo Payments Agent Plugin
 
 [![License](https://img.shields.io/github/license/dodopayments/dodo-agent-plugin.svg?style=flat-square)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-0.2.0-blue.svg?style=flat-square)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fdodopayments%2Fdodo-agent-plugin%2Fmain%2Fplugin.json&query=%24.version&label=version&color=blue&style=flat-square)](./CHANGELOG.md)
 [![npm](https://img.shields.io/npm/v/@dodopayments/opencode-plugin.svg?style=flat-square)](https://www.npmjs.com/package/@dodopayments/opencode-plugin)
 [![Discord](https://img.shields.io/discord/1305511580854779984?label=discord&style=flat-square)](https://discord.gg/bYqAp4ayYh)
 
-The official Dodo Payments plugin for AI coding agents. Installs eight integration skills and two MCP servers across **Claude Code**, **Codex CLI**, **Cursor**, and **OpenCode** from a single source of truth.
+The official Dodo Payments plugin for AI coding agents. Installs seventeen integration skills and two MCP servers across **Claude Code**, **Codex CLI**, **Cursor**, **VS Code / GitHub Copilot**, and **OpenCode** from a single source of truth.
+
+This plugin conforms to the [Agent Plugins 1.0.0](https://agent-plugins.org/specification) specification: a root [`plugin.json`](./plugin.json), skills as immediate children of [`skills/`](./skills), and MCP servers in [`mcp.json`](./mcp.json). Clients with native Agent Plugins support load it directly; the provider-specific manifests in this repo are generated compatibility shims for clients that do not.
 
 ## What you get
 
 - **Dodo Payments API MCP server** - Live API access (payments, subscriptions, customers, products, refunds, licenses, usage). Authenticates via browser OAuth, no local credentials required.
 - **Dodo Knowledge MCP server** - No credentials. Semantic search over the current Dodo Payments documentation.
-- **Eight agent skills** - Written as `SKILL.md` files with YAML frontmatter. Your agent loads the relevant skill on its own when a task calls for it.
+- **Seventeen agent skills** - Written as `SKILL.md` files with YAML frontmatter. Your agent loads the relevant skill on its own when a task calls for it.
 
 ## Install
 
@@ -26,29 +28,28 @@ The API MCP server uses browser OAuth by default, so no keys are required at ins
 
 ### Codex CLI
 
-Codex installs plugins in two steps: register the marketplace from your shell, then install the plugin from inside the Codex TUI.
+Register the marketplace, then install the plugin:
 
-1. Register the marketplace:
+```bash
+codex plugin marketplace add dodopayments/dodo-agent-plugin
+codex plugin add dodopayments@dodopayments
+```
 
-    ```bash
-    codex plugin marketplace add dodopayments/dodo-agent-plugin
-    ```
+Verify:
 
-2. Open Codex and run the `/plugins` slash command:
+```bash
+codex plugin list     # dodopayments  installed, enabled
+codex mcp list        # dodo-knowledge, dodopayments-api
+codex mcp login dodopayments-api    # browser OAuth, only needed for the API server
+```
 
-    ```bash
-    codex
-    ```
+You can also install from inside the TUI: run `codex`, type `/plugins`, select the **Dodo Payments** marketplace and the **dodopayments** plugin, then choose **Install plugin**.
 
-    Then type `/plugins`, switch to the **Dodo Payments** marketplace, select the **dodopayments** plugin, and choose **Install plugin**.
-
-If you previously added the marketplace before this fix landed and the plugin doesn't appear under `/plugins`, refresh it:
+If you added the marketplace previously and the plugin doesn't appear, refresh it:
 
 ```bash
 codex plugin marketplace upgrade dodopayments
 ```
-
-> Codex CLI does not have a `codex plugin install` subcommand. Plugin installation always happens through the in-TUI `/plugins` flow ([official docs](https://developers.openai.com/codex/plugins)).
 
 ### Cursor
 
@@ -58,7 +59,42 @@ Manual install:
 git clone https://github.com/dodopayments/dodo-agent-plugin.git ~/.cursor/plugins/local/dodo-agent-plugin
 ```
 
-Restart Cursor. The plugin loads skills from `.claude/skills/` (via Cursor's Claude Code compat) and MCP servers from `.mcp.json`.
+Restart Cursor. The plugin loads skills from `skills/` and MCP servers from `.mcp.json`, as declared in `.cursor-plugin/plugin.json`.
+
+> Cursor 3.14.27 also recognises Agent Plugins 1.0.0 directly: its agent host carries both spec schema URLs and the spec's own `name` regex, and accepts either `.cursor-plugin/marketplace.json` or `.claude-plugin/marketplace.json` as a marketplace source. The generated `.cursor-plugin/plugin.json` is kept as belt-and-braces for older builds.
+
+> Prior to v0.5.0 this clone produced a plugin with **no working skills**: `skills/` contained symlinks into a git submodule that a plain `git clone` does not fetch. Skills are now vendored as real files, so the command above works as documented. If you installed an earlier version, re-clone.
+
+### Kiro
+
+Kiro reads the Agent Plugins manifest natively and loads this as a Power:
+
+```bash
+git clone https://github.com/dodopayments/dodo-agent-plugin.git
+```
+
+Point Kiro at the cloned folder. Skills load from `skills/`, MCP servers from `mcp.json`, and Kiro-specific presentation comes from the `dev.kiro` extension namespace in `plugin.json`.
+
+### Gemini CLI (MCP only)
+
+Gemini CLI has no agent-skill primitive, so **only the two MCP servers are available** - the seventeen skills are not. `dodo-knowledge` still covers a good share of what the skills provide, and it stays current automatically.
+
+```bash
+git clone https://github.com/dodopayments/dodo-agent-plugin.git \
+  ~/.gemini/extensions/dodopayments
+```
+
+Restart Gemini CLI. `gemini-extension.json` at the repo root is the manifest.
+
+### VS Code / GitHub Copilot
+
+```bash
+git clone https://github.com/dodopayments/dodo-agent-plugin.git
+```
+
+Then open the Chat view, go to **Plugins**, and add the cloned folder. Skills load from `skills/`, and both MCP servers load from `.mcp.json`.
+
+> VS Code 1.125.1 does not key off the Agent Plugins `$schema` - the string appears nowhere in its bundle. Its loader picks a manifest by probing, in order, `.plugin/plugin.json`, then `.claude-plugin/plugin.json`, then a root `plugin.json`, and defaults MCP to `.mcp.json` rather than `mcp.json`. Because this repo ships a generated `.claude-plugin/plugin.json`, VS Code loads it through that branch. Everything works - seventeen skills and two MCP servers - but via the compatibility manifests rather than the spec ones, so VS Code gets the `mcp-remote` bridge rather than the native transports in `mcp.json`.
 
 ### OpenCode
 
@@ -71,7 +107,29 @@ OpenCode distributes via npm. Add the plugin to your `opencode.json`:
 }
 ```
 
-Restart OpenCode. Both MCP servers (`dodopayments-api`, `dodo-knowledge`) are registered automatically via the plugin's `config` hook, and the eight skills are auto-discovered from the installed package. No manual `mcp` block required.
+Restart OpenCode. Both MCP servers (`dodopayments-api`, `dodo-knowledge`) are registered automatically via the plugin's `config` hook. No manual `mcp` block required.
+
+**Skills need the package installed locally plus one extra line.** OpenCode does not scan installed packages for skills, so point it at the package's `skills/` directory yourself. `skills.paths` entries resolve against the project directory, so the package must be present in the project's `node_modules` - OpenCode's own plugin cache is not the same location:
+
+```bash
+npm install --save-dev @dodopayments/opencode-plugin
+```
+
+```jsonc
+{
+    "$schema": "https://opencode.ai/config.json",
+    "plugin": ["@dodopayments/opencode-plugin"],
+    "skills": {
+        "paths": ["node_modules/@dodopayments/opencode-plugin/skills"]
+    }
+}
+```
+
+An absolute path works too, and avoids the local-install requirement.
+
+Verify with `opencode run "List every skill available to you by name."` - you should see all seventeen. A skills path that does not exist is ignored silently, so check rather than assume.
+
+> Versions before 0.5.0 documented these skills as auto-discovered. They were not: nothing in OpenCode scans an installed package, so OpenCode users had MCP servers but no skills. Setting `config.skills` from the plugin's `config` hook does not fix this either - the skill index is built before `config` hooks run, so it never registers anything.
 
 If you prefer the local stdio API server with your own API key instead of the default remote OAuth server, declare `dodopayments-api` yourself in `opencode.json` - your entry wins over the plugin default:
 
@@ -95,18 +153,54 @@ If you prefer the local stdio API server with your own API key instead of the de
 
 ## Included Skills
 
+**Getting started**
+
 | Skill | Description |
 |-------|-------------|
-| `best-practices` | Comprehensive guide to integrating Dodo Payments with best practices |
-| `checkout-integration` | Creating checkout sessions and payment flows |
-| `subscription-integration` | Implementing subscription billing flows |
-| `webhook-integration` | Setting up and handling webhooks for payment events |
-| `usage-based-billing` | Implementing metered billing with events and meters |
-| `credit-based-billing` | Credit entitlements, balances, and metered credit deduction |
-| `license-keys` | Managing license keys for digital products |
-| `billing-sdk` | Using BillingSDK React components |
+| `dodo-best-practices` | SDK setup, environments, API keys, and the canonical checkout-to-webhook architecture |
+| `framework-adapters` | Official `@dodopayments/*` handlers for Next.js, Express, Hono, Astro, Remix, SvelteKit, Nuxt, Fastify, TanStack, Bun, Convex |
+| `testing-and-go-live` | Test mode, test payment methods, webhook testing, production launch checklist |
 
-Skills source: [`dodopayments/skills`](https://github.com/dodopayments/skills) (bundled as a git submodule in `skills-src/`).
+**Accepting payments**
+
+| Skill | Description |
+|-------|-------------|
+| `checkout-integration` | Checkout Sessions, payment links, and overlay checkout |
+| `subscription-integration` | Subscription lifecycle, trials, plan changes, proration, on-demand charges |
+| `mobile-checkout` | In-app checkout for React Native, Flutter, iOS, and Android |
+| `webhook-integration` | Receiving and verifying webhooks via the Standard Webhooks spec |
+
+**Billing models**
+
+| Skill | Description |
+|-------|-------------|
+| `credit-based-billing` | Credit entitlements, balances, ledger, rollover, overage, meter-based deduction |
+| `usage-based-billing` | Meters, event ingestion, aggregation, and per-unit pricing |
+| `license-keys` | License key activation, validation, and instance management |
+
+**Catalog and pricing**
+
+| Skill | Description |
+|-------|-------------|
+| `product-catalog-management` | Products, pricing, add-ons, collections, images, digital delivery |
+| `discounts-and-promotions` | Discount codes, eligibility, stacking, subscription-cycle limits |
+| `localized-pricing` | Localized pricing, adaptive currency, and purchasing power parity |
+
+**Customers and operations**
+
+| Skill | Description |
+|-------|-------------|
+| `customer-management` | Customers, self-service portal, payment methods, wallets |
+| `refunds-and-disputes` | Refunds, disputes and chargebacks, access reconciliation |
+
+**UI and integrations**
+
+| Skill | Description |
+|-------|-------------|
+| `billing-sdk` | BillingSDK React components for pricing tables and billing UI |
+| `better-auth-integration` | The `@dodopayments/better-auth` plugin for customer sync, checkout, portal |
+
+Skills source: [`dodopayments/skills`](https://github.com/dodopayments/skills), vendored into `skills/` as real files. Provenance (upstream commit and applied transforms) is recorded in [`.skills-source.json`](./.skills-source.json).
 
 ## Included MCP Servers
 
@@ -115,11 +209,11 @@ Skills source: [`dodopayments/skills`](https://github.com/dodopayments/skills) (
 | `dodopayments-api` | Live API access (payments, subscriptions, customers, products, refunds, licenses, usage) | OAuth (browser) |
 | `dodo-knowledge` | Semantic search over the Dodo Payments documentation | None |
 
-Both servers are wired through `mcp-remote` so they run in any MCP-compatible client.
+Both servers speak Streamable HTTP. The canonical `mcp.json` declares them natively (`type: "streamable-http"`), which is what spec-native clients such as Codex CLI and Cursor use. The generated compatibility manifests — `.mcp.json`, read by Claude Code, VS Code and Cursor's legacy path — wire the same two endpoints through `mcp-remote` instead, so they run in clients that cannot yet dial Streamable HTTP directly.
 
 ## Configure (optional, Claude Code)
 
-If you prefer to run the API MCP locally with an API key instead of the remote SSE server, open `/plugins` in Claude Code, select **Dodo Payments**, and choose **Configure options**. Fill in:
+If you prefer to run the API MCP locally with an API key instead of the remote server, open `/plugins` in Claude Code, select **Dodo Payments**, and choose **Configure options**. Fill in:
 
 - `dodo_api_key` - your `dodo_test_...` or `dodo_live_...` key
 - `dodo_webhook_key` - your webhook signing secret
@@ -177,7 +271,7 @@ These clients load MCPs from the static `.mcp.json` shipped with the plugin. To 
         "dodopayments-api": {
             "type": "stdio",
             "command": "npx",
-            "args": ["-y", "mcp-remote@latest", "https://mcp.dodopayments.com/sse"],
+            "args": ["-y", "mcp-remote@latest", "https://mcp.dodopayments.com/mcp"],
             "enabled": false
         }
     }
@@ -202,12 +296,12 @@ Your agent will load the `webhook-integration` skill, use the `dodo-knowledge` M
 
 ## Local development
 
-Clone with the skills submodule:
-
 ```bash
-git clone --recurse-submodules https://github.com/dodopayments/dodo-agent-plugin.git
+git clone https://github.com/dodopayments/dodo-agent-plugin.git
 cd dodo-agent-plugin
 ```
+
+No submodules, no build step - `skills/` is vendored as real files.
 
 Validate the Claude Code plugin and marketplace:
 
@@ -221,11 +315,26 @@ Load the plugin directly for a dev session:
 claude --plugin-dir ./dodo-agent-plugin
 ```
 
-Refresh the bundled skills to the latest upstream version:
+Verify everything before pushing:
 
 ```bash
-git submodule update --remote skills-src
+npm run verify     # generated artifacts in sync + Agent Plugins conformance
 ```
+
+### Repository layout
+
+| Path | Role |
+|---|---|
+| `plugin.json` | **Canonical.** Agent Plugins v1.0.0 manifest and the version source of truth |
+| `mcp.json` | **Canonical.** Agent Plugins v1.0.0 MCP config |
+| `skills/` | **Canonical.** Seventeen skills, vendored as real files |
+| `overlays/*.json` | Hand-authored provider extras the closed spec schema cannot express |
+| `.claude-plugin/`, `.cursor-plugin/`, `.agents/`, `.mcp.json`, `plugins/dodopayments/` | **Generated.** Do not hand-edit - run `npm run build` |
+| `scripts/build.mjs` | The single generator (`--check` for drift) |
+| `scripts/conformance.mjs` | Agent Plugins conformance validator |
+| `.skills-source.json` | Upstream provenance for the vendored skills |
+
+Skills are authored in [`dodopayments/skills`](https://github.com/dodopayments/skills) and vendored here. A weekly workflow re-syncs them and opens a PR; run it on demand with the **Sync skills from upstream** workflow dispatch.
 
 ## For maintainers
 
@@ -238,18 +347,19 @@ The repo is configured to publish the OpenCode npm package on every GitHub Relea
 
 **Release workflow:**
 
-1. Bump the version in `.claude-plugin/plugin.json`.
-2. Run `node scripts/sync-manifests.mjs` to propagate the version to Cursor, Codex, npm, and marketplace manifests.
-3. Commit and tag.
-4. Create a GitHub Release - the `Publish @dodopayments/opencode-plugin` workflow runs automatically and publishes to npm with provenance.
+1. Bump `version` in `plugin.json` (the single source of truth).
+2. Run `npm run build` to propagate it to every generated manifest.
+3. Run `npm run verify`, then commit and tag.
+4. Create a GitHub Release - the `Publish @dodopayments/opencode-plugin` workflow publishes to npm with provenance.
 
 **Manual dry-run:**
 
 - Workflow dispatch with `dry_run: true` to validate the release pipeline without publishing.
 
-**CI check:**
+**CI checks:**
 
-- `node scripts/sync-manifests.mjs --check` is run by the workflow and fails the release if any manifest is out of sync.
+- `Verify` runs on every pull request and push to `main`: artifact drift, Agent Plugins conformance, live JSON Schema validation, a "seventeen skills, zero symlinks" assertion, and an npm payload check.
+- The release workflow re-runs the same gates before publishing.
 
 ## Resources
 

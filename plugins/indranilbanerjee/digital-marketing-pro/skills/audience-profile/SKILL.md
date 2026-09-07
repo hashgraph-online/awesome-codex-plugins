@@ -1,6 +1,6 @@
 ---
 name: audience-profile
-description: "Build detailed buyer personas. Use when: demographics, psychographics, behaviors, JTBD, content preferences."
+description: "Build a named, narrative buyer persona document — demographic snapshot, psychographic drivers, jobs-to-be-done, day-in-the-life scenario, buyer journey map, objections with counter-messaging, and content/channel preferences — for the 2-4 personas a brand actually needs. Triggers on \"/digital-marketing-pro:audience-profile\", \"create a buyer persona\", \"profile our target customer\", \"who is our ideal customer\", \"map the buyer journey for this segment\". Reads the brand profile, guidelines, and any customer data supplied (surveys, CRM exports, analytics demographics); run by the marketing-strategist agent. For the deeper research module — segmentation, anti-personas, buying committees — see /digital-marketing-pro:audience-intelligence."
 argument-hint: "[audience-segment]"
 ---
 

@@ -1,6 +1,6 @@
 # Ophis MCP tool reference
 
-The Ophis MCP server at `https://mcp.ophis.fi/mcp` exposes 12 tools. Every response is JSON in a single text block. All amounts are in atoms (the token's smallest unit). Read tools are safe to call freely; `submit_order` is the only state-changing tool.
+The Ophis MCP server at `https://mcp.ophis.fi/mcp` exposes 14 tools: the 12 documented below plus `validate_order` (offline preflight of an order built outside `build_order`, read-only) and `get_integrator_earnings` (an integrator's routed volume, fees, and referral rebate by appCode, read-only); get their full schemas from `tools/list`. Every response is JSON in a single text block. All amounts are in atoms (the token's smallest unit). Read tools are safe to call freely; `submit_order` is the only state-changing tool.
 
 ## parse_intent
 Parse a plain-English swap request into a structured intent.

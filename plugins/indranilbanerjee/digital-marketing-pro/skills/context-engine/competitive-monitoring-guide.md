@@ -255,7 +255,7 @@ alert_history (
 
 ### LinkedIn Ad Monitoring
 
-- **No public ad library** (unlike Google and Meta). Monitor via:
+- **Public Ad Library available** (linkedin.com/ad-library — searchable by advertiser and country; ad payloads visible, targeting/spend detail limited outside the EU). Also monitor via:
   - Following competitor company pages and checking "Ads" tab
   - LinkedIn feed observation (sponsored content appears in-feed)
   - Third-party tools that aggregate LinkedIn ad sightings

@@ -18,6 +18,21 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROMPT_MINER="$SCRIPT_DIR/prompt_miner.py"
 
+# Bound `cass index` so a hung or contended rebuild can't stall this overview
+# (SKILL.md doctrine: cass index can hang; always wall-clock cap it). Prefer GNU
+# timeout, fall back to gtimeout (macOS coreutils), else run uncapped with a
+# warning rather than failing outright.
+run_cass_index() {
+  if command -v timeout >/dev/null 2>&1; then
+    timeout 600 cass index --json
+  elif command -v gtimeout >/dev/null 2>&1; then
+    gtimeout 600 cass index --json
+  else
+    echo "warning: 'timeout' not found; running cass index uncapped" >&2
+    cass index --json
+  fi
+}
+
 WORKSPACE="${1:-}"
 
 if [ -z "$WORKSPACE" ]; then
@@ -60,7 +75,7 @@ echo ""
 
 # 2. Refresh index (quick, incremental)
 echo "--- Refreshing Index ---"
-cass index --json 2>/dev/null | jq '.indexed // "Index refreshed"' -r 2>/dev/null || echo "Index refresh attempted"
+run_cass_index 2>/dev/null | jq '.indexed // "Index refreshed"' -r 2>/dev/null || echo "Index refresh attempted"
 echo ""
 
 # 3. Agent breakdown

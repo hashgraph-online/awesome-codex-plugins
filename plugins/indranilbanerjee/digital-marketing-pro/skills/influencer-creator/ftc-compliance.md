@@ -55,13 +55,13 @@ The Federal Trade Commission requires that **material connections** between endo
 
 | Jurisdiction | Regulatory Body | Key Requirements | Penalties |
 |-------------|----------------|------------------|-----------|
-| **United States** | FTC (Federal Trade Commission) | Clear and conspicuous disclosure of material connections; endorsements must reflect honest opinions; both brand and influencer liable | Up to **$50,120 per violation** (adjusted annually); consent orders; injunctions |
+| **United States** | FTC (Federal Trade Commission) | Clear and conspicuous disclosure of material connections; endorsements must reflect honest opinions; both brand and influencer liable | Per-violation civil penalty **inflation-adjusted annually (~$53K+ as of 2026)**; consent orders; injunctions |
 | **United Kingdom** | ASA (Advertising Standards Authority) + CMA | All ads must be clearly identifiable; "#ad" required; CAP Code applies to social media | Referral to CMA for legal action; fines; platform-level enforcement; naming and shaming |
 | **European Union** | UCPD (Unfair Commercial Practices Directive) + national authorities | Prohibits misleading omissions; commercial intent must be disclosed; varies by member state | Varies by country — fines up to **4% of annual turnover** in some jurisdictions |
 | **Australia** | ACCC (Australian Competition & Consumer Commission) | Australian Consumer Law prohibits misleading or deceptive conduct; disclosure required for paid endorsements | Fines up to **AUD $10 million** per contravention for corporations |
 | **Canada** | Competition Bureau + Ad Standards | Competition Act prohibits deceptive marketing; Ad Standards guidelines require disclosure | Fines up to **CAD $10 million** (first offense); **$15 million** (subsequent) |
-| **France** | ARPP + DGCCRF | "Publicité" or "Partenariat" labels required; influencer law (2023) mandates registration for large creators | Fines up to **EUR $300,000** and up to **2 years imprisonment** for severe cases |
-| **Germany** | Landesmedienanstalten | Interstate Media Treaty requires clear ad labeling; "Werbung" or "Anzeige" required | Fines vary by state; up to **EUR $500,000** |
+| **France** | ARPP + DGCCRF | "Publicité" or "Partenariat" labels required; influencer law (2023) mandates registration for large creators | Fines up to **€300,000** and up to **2 years imprisonment** for severe cases |
+| **Germany** | Landesmedienanstalten | Interstate Media Treaty requires clear ad labeling; "Werbung" or "Anzeige" required | Fines vary by state; up to **€500,000** |
 | **Brazil** | CONAR + CDC | Consumer Defense Code requires transparency; CONAR guidelines for advertising identification | Fines, content removal orders, public warnings |
 
 ### Multi-Market Campaign Compliance Checklist
@@ -90,7 +90,7 @@ The Federal Trade Commission requires that **material connections** between endo
 
 | Violation | Description | Risk Level | Typical Consequence |
 |-----------|-------------|------------|-------------------|
-| **No disclosure** | Sponsored content posted with zero disclosure | Critical | FTC warning letter; $50,120/violation fine |
+| **No disclosure** | Sponsored content posted with zero disclosure | Critical | FTC warning letter; per-violation fine (inflation-adjusted annually, ~$53K+ as of 2026) |
 | **Buried disclosure** | #ad hidden in hashtag block or below the fold | High | FTC enforcement action; platform penalties |
 | **Ambiguous disclosure** | Using #partner, #collab, or #ambassador alone | Medium | Warning letter; required corrective disclosure |
 | **Wrong medium** | Text-only disclosure for video content | Medium | Required re-posting with proper disclosure |

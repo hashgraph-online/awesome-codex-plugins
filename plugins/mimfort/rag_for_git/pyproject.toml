@@ -1,6 +1,6 @@
 [project]
 name = "rag-reviewer"
-version = "0.3.2"
+version = "0.7.0"
 description = "AI pull-request reviewer: hybrid RAG + a code graph + Claude Code. Whole-repo context, inline GitHub comments grounded on exact code."
 readme = "README.md"
 license = { text = "MIT" }
@@ -34,6 +34,7 @@ classifiers = [
 requires-python = ">=3.11,<3.14"
 dependencies = [
     "pydantic-settings>=2.3",
+    "python-dotenv>=1.0",
     "tree-sitter>=0.25,<0.26",
     "tree-sitter-python>=0.25,<0.26",
     "voyageai>=0.4,<0.5",
@@ -45,8 +46,10 @@ dependencies = [
     "python-docx>=1.1",
     "pypdf>=4.0",
     "langchain-core>=1.4,<2",
+    "packaging>=24,<27",
     "pyyaml>=6.0",
     "click>=8.1",
+    "prompt_toolkit>=3.0,<4",
     "protobuf>=5.27",
     "mcp>=1.9,<2",
 ]
@@ -55,6 +58,7 @@ dependencies = [
 dev = [
     "pytest>=8.2",
     "pytest-asyncio>=0.23",
+    "pytest-socket>=0.8,<0.9",
     "ruff>=0.5",
     "grpcio-tools>=1.64",
 ]
@@ -70,13 +74,13 @@ Issues = "https://github.com/mimfort/rag_for_git/issues"
 PyPI = "https://pypi.org/project/rag-reviewer/"
 
 [project.scripts]
-reviewer = "reviewer.entrypoints.cli:cli"
+reviewer = "reviewer.entrypoints.launcher:main"
 reviewer-mcp = "reviewer.entrypoints.mcp_server:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-markers = ["integration: требует поднятых Postgres/Neo4j (docker-compose up)"]
-addopts = "-m 'not integration'"
+markers = ["integration: использует изолированные тестовые Postgres/Neo4j"]
+addopts = "--disable-socket -m 'not integration'"
 
 [tool.ruff]
 line-length = 100
@@ -93,3 +97,4 @@ include = ["reviewer*", "eval*"]
 "reviewer.web" = ["*.sql"]
 "reviewer.index" = ["*.sql"]
 "reviewer.mcp" = ["*.sql"]
+"reviewer.tasks" = ["*.sql"]

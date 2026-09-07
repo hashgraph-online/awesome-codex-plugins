@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sealos: App Builder"
+  short_description: "Build or adapt apps for Sealos Desktop."
+  default_prompt: "Use $sealos-app-builder to adapt this web project into a Sealos Desktop app."

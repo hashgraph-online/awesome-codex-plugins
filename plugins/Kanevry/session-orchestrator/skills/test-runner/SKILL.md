@@ -121,6 +121,8 @@ Log: `playwright-driver exited [code] — [N] test files captured under ${RUN_DI
 RUN_DIR="${RUN_DIR}" TARGET="${TARGET}" PROFILE="${PROFILE}" bash skills/peekaboo-driver/SKILL.md
 ```
 
+Any bash-driver shim or report helper you write for this dispatch is subject to `.claude/rules/bash-harness-pitfalls.md` (`grep -c` double-print, stdout-capture pollution, file-based aggregate verdicts, `perl -pi` script-surgery corruption).
+
 **Outputs the orchestrator must parse:**
 
 | Artifact | Description |
@@ -199,8 +201,8 @@ If the glab query fails, log the error and proceed with an empty fingerprint set
 
 | Severity | Action |
 |----------|--------|
-| `critical` | Auto-create issue — no AUQ. Label: `from:test-runner,priority:critical` |
-| `high` | Auto-create issue — no AUQ. Label: `from:test-runner,priority:high` |
+| `critical` | Auto-create issue — no AUQ. Label: `from:test-runner,priority::critical` |
+| `high` | Auto-create issue — no AUQ. Label: `from:test-runner,priority::high` |
 | `medium` | Batched AUQ triage (see below) |
 | `low` | Batched AUQ triage (see below) |
 
@@ -214,11 +216,11 @@ Group `medium` and `low` findings and present via a single `AskUserQuestion` cal
 AskUserQuestion({
   questions: [{
     question: `<N> medium/low findings to triage. How to handle?`,
-    header: "Test-runner triage",
+    header: "Triage",
     options: [
       {
         label: "Create all (Recommended)",
-        description: "File <N> new issues, all with label from:test-runner"
+        description: "Files <N> new issues at once, all with label from:test-runner — fastest, and you can still close any of them afterwards."
       },
       {
         label: "Review each",

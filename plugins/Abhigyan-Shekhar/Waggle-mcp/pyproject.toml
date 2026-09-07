@@ -1,6 +1,6 @@
 [project]
 name = "waggle-mcp"
-version = "0.0.1"
+version = "0.1.25"
 description = "MCP server that gives LLMs persistent graph-structured memory"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -19,11 +19,13 @@ classifiers = [
 dependencies = [
   "anthropic>=0.75.0",
   "anyio>=4.4.0",
-  "cryptography>=45.0.0",
+  # cryptography 46 requires OpenSSL symbols unavailable in the hosted macOS 15 Python 3.11 runtime.
+  "cryptography>=45.0.0,<46.0.0",
   "google-api-python-client>=2.170.0",
   "google-auth>=2.40.0",
   "google-genai>=1.56.0",
-  "mcp>=1.0.0",
+  "jsonschema>=4.23.0",
+  "mcp>=2.0.0,<3.0.0",
   "networkx>=3.2.1",
   "numpy>=1.26.0",
   "openai>=2.14.0",
@@ -52,7 +54,11 @@ dev = [
   "mypy>=1.10.0",
   "pytest>=8.2.0",
   "pytest-asyncio>=0.23.7",
+  "pyyaml>=6.0",
   "ruff>=0.4.0",
+]
+vec = [
+  "sqlite-vec>=0.1.9",
 ]
 neo4j = [
   "neo4j>=5.20.0",
@@ -152,3 +158,8 @@ ignore_missing_imports = true
 warn_unused_ignores = true
 warn_return_any = false
 disallow_untyped_defs = false
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]

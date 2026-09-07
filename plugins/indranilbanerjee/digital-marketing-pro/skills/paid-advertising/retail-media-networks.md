@@ -1,9 +1,11 @@
 # Retail Media Networks — Amazon, Walmart & More
 
+> **Benchmark provenance (as of 2026-08):** Dollar figures in this document are planning priors, not quotes — market and auction rates drift continuously. Before any figure enters a media plan, budget, or client deliverable, refresh it live (platform dashboards and current published reports beat memory) and record it with `python scripts/benchmark_book.py --action record ... --source <url>`; quote from the book thereafter (`--action quote`). Never present an unstamped figure as current market fact.
+
 ## Retail Media Landscape Overview
 
 ### What Are Retail Media Networks (RMNs)?
-Retail media networks are advertising platforms built on top of retailer ecosystems. They leverage first-party shopper data (purchase history, search behavior, browsing patterns) to deliver ads at or near the point of purchase. This is the fastest-growing segment of digital advertising, projected to exceed $150B globally by 2026.
+Retail media networks are advertising platforms built on top of retailer ecosystems. They leverage first-party shopper data (purchase history, search behavior, browsing patterns) to deliver ads at or near the point of purchase. This is the fastest-growing segment of digital advertising, now exceeding ~$150B globally.
 
 ### Why Retail Media Matters
 - **First-party data**: Based on actual purchase behavior, not inferred interests
@@ -36,7 +38,7 @@ Retail media networks are advertising platforms built on top of retailer ecosyst
 | **Sponsored Products** | Search results, product pages | Keywords, product/category | CPC | $0.50–$2.00 | Direct sales, keyword conquest |
 | **Sponsored Brands** | Top of search, video | Keywords, categories | CPC | $0.75–$3.00 | Brand awareness at point of search |
 | **Sponsored Display** | Product pages, off-Amazon | Audience, product targeting | CPC/vCPM | $0.30–$1.50 | Retargeting, competitor targeting |
-| **Amazon DSP** | Amazon + open web | Audience segments, AMC | CPM | $3–$10 (CPM) | Full-funnel, awareness, off-site |
+| **Amazon DSP** | Amazon + open web | Audience segments, AMC | CPM | $3–$15 (CPM) | Full-funnel, awareness, off-site |
 
 ### Sponsored Products Strategy
 

@@ -102,21 +102,21 @@ A `exec_command` is blocked mid-session because a production pattern matched. Th
 
 ---
 
-## Try AxonFlow on a real plugin rollout
+## Take a governed plugin rollout into production
 
-We're opening limited **Plugin Design Partner** slots.
+Solo developers and self-serve teams can use the free 90-day [Plugin Evaluation License](https://getaxonflow.com/plugins/evaluation-license?utm_source=readme_plugin_codex_eval) to validate hook behavior, policy packs, and override workflows.
 
-30-minute hook lifecycle review, policy pack scoping, override workflow design, and IDE/CLI rollout pattern walkthrough — for solo developers and small teams putting governance on Codex.
+Organizations with a dated production requirement, written controls, an executive sponsor, and a technical owner can use AxonFlow's paid [Production Program](https://getaxonflow.com/design-partner?utm_source=readme_plugin_codex). It takes one scoped workflow into production over 60 or 75 days with Enterprise access, founder-led rollout support, upfront conversion pricing, and a fixed decision date.
 
-[Apply here](https://getaxonflow.com/plugins/design-partner?utm_source=readme_plugin_codex) or email [design-partners@getaxonflow.com](mailto:design-partners@getaxonflow.com). Personal email is fine — solo developers welcome.
+Public Design Partner pricing starts at $2,000; the Confidential Paid Pilot starts at $4,000. Prices are subject to eligibility and a signed agreement.
 
 ### See AxonFlow in Action
 
-Three short videos covering different angles of the platform:
+Videos covering different angles of the platform:
 
-- **[Community Quickstart Demo (Code + Terminal, 2.5 min)](https://youtu.be/BSqU1z0xxCo)** — governed calls, PII block, Gateway Mode with LangChain/CrewAI, and MAP from YAML
-- **[Runtime Control Demo (Portal + Workflow, 3 min)](https://youtu.be/6UatGpn7KwE)** — approvals, retry safety, execution state, and the audit viewer
-- **[Architecture Deep Dive (12 min)](https://youtu.be/Q2CZ1qnquhg)** — how the control plane works, policy enforcement flow, and multi-agent planning
+- **[Product demos: Platform + Fraud & Risk](https://getaxonflow.com/demo/?utm_source=github&utm_medium=readme&utm_campaign=product_demo&utm_content=axonflow-codex-plugin)** - runtime enforcement, HITL approvals, audit evidence, cost visibility, and agentic payment controls
+- **[Community Quickstart walkthrough (2 min)](https://youtu.be/BSqU1z0xxCo)** - governed calls, PII blocking, Gateway Mode with LangChain/CrewAI, and MAP from YAML
+- **[Architecture deep dive (12 min)](https://youtu.be/Q2CZ1qnquhg)** - how the control plane works, policy enforcement flow, and multi-agent planning
 
 ### Plugin Evaluation Tier (Free 90-day License)
 
@@ -295,17 +295,80 @@ If the canary says `mode=community-saas` after you ran Step 1, the plugin is sti
 
 ## Configure
 
-[Step 3](#step-3-point-the-plugin-at-the-platform) above covers `AXONFLOW_ENDPOINT` and `AXONFLOW_AUTH`. One more environment variable worth knowing about:
+[Step 3](#step-3-point-the-plugin-at-the-platform) above covers `AXONFLOW_ENDPOINT` and `AXONFLOW_AUTH`. Two more environment variables worth knowing about:
 
 ```bash
 # Optional: longer request timeout for remote / VPN deployments
 export AXONFLOW_TIMEOUT_SECONDS=12
+
+# Optional (Enterprise): admin-minted per-user token for a VERIFIED
+# {identity, role} — role-scoped access + per-developer audit attribution
+# instead of the shared tenant identity. See "Per-user authorization
+# token" below.
+export AXONFLOW_USER_TOKEN=<token minted by your org admin>
 ```
 
 **Fail behavior:**
 - AxonFlow unreachable (network) → fail-open, tool execution continues
 - AxonFlow auth/config error → fail-closed (exit 2), tool call blocked until config is fixed
+- Per-user token rejected by the platform (HTTP 401) → fail-closed (exit 2) while the token is configured — see below
 - PostToolUse failures → never block (audit and PII scan are best-effort)
+
+### Per-user authorization token (`AXONFLOW_USER_TOKEN`)
+
+The shared `AXONFLOW_AUTH` credential authenticates the *tenant*; the
+**per-user token** identifies the *developer* behind the session. On an
+Enterprise platform that validates per-user tokens (enterprise#2929, first
+platform release after v9.9.0), an org admin mints a token per developer
+(`POST /api/v1/admin/organizations/{org_id}/user-tokens`, or OIDC tokens
+from your IdP), and the plugin sends it as the `X-User-Token` header on
+every governed request — both hooks and the MCP session. The platform
+validates it (signature, expiry, revocation, org binding) and resolves a
+**non-forgeable `{identity, role}`** for the developer: audit rows attribute
+to the verified identity, and role-scoped features (e.g. who can read the
+whole tenant's audit trail vs. only their own rows) key on the validated
+role instead of treating every fleet developer identically.
+
+Resolution precedence on the hook surfaces:
+
+1. **`AXONFLOW_USER_TOKEN`** — set per developer via managed settings / MDM
+   (fleet) or the shell profile (individual). Wins outright.
+2. **`~/.config/axonflow/user-token.json`** — `{"token": "<minted token>"}`.
+   This is the **cross-plugin provisioning path** (the claude plugin reads
+   the same file), so fleet tooling writes ONE file per developer machine.
+   The file **must be `0600`** (owner read/write only); the plugin refuses a
+   group/world-readable token file with a stderr warning rather than loading
+   it silently:
+
+   ```bash
+   umask 077
+   printf '{"token":"%s"}' "<minted token>" > ~/.config/axonflow/user-token.json
+   chmod 600 ~/.config/axonflow/user-token.json
+   ```
+
+3. **Unset** — no `X-User-Token` header is sent (never an empty header) and
+   requests are exactly what a pre-1.6 plugin sends; the platform keeps its
+   least-privilege attribution path (shared tenant identity, own-rows access).
+
+**MCP plane is env-only.** Codex resolves the MCP session's headers itself
+via the `env_http_headers` mapping in `~/.codex/config.toml`, so on that
+plane the token must come from the `AXONFLOW_USER_TOKEN` env var (managed
+settings / MDM); the `user-token.json` fallback covers the hook surfaces
+only. After upgrading the plugin, **re-run
+`bash scripts/install-mcp-with-headers.sh`** so your `config.toml` picks up
+the new `X-User-Token` mapping (Codex omits the header entirely while the
+env var is unset, so the mapping is inert until a token is provisioned).
+
+The token is a **credential**: the plugin never logs or echoes its value,
+and on the hook surfaces a malformed candidate (whitespace/control/quote
+bytes — a mis-paste) is dropped locally with a diagnostic instead of being
+sent. Codex sends the MCP-plane env value **raw**, and the platform **fails
+closed** on a presented-but-invalid token (malformed, expired, revoked,
+minted for a different org): governed calls are then denied — the hooks
+block (exit 2) with a message naming the per-user token as the likely cause
+— until the token is rotated or removed. Rotation/revocation is admin-driven
+on the platform; re-provisioning the new token to the developer's env/file
+is all the plugin needs.
 
 ---
 
@@ -356,7 +419,7 @@ Per-call hooks (terminal command governance) carry your Pro-tier token automatic
 bash scripts/install-mcp-with-headers.sh
 ```
 
-This registers AxonFlow as a codex MCP server AND patches your `~/.codex/config.toml` to inject `X-Axonflow-Client: codex-plugin/<version>` (static) plus `X-License-Token` and `Authorization` resolved from `AXONFLOW_LICENSE_TOKEN` and `AXONFLOW_AUTH` env vars at MCP-session time. The script is idempotent — safe to re-run after a plugin upgrade or token rotation.
+This registers AxonFlow as a codex MCP server AND patches your `~/.codex/config.toml` to inject `X-Axonflow-Client: codex-plugin/<version>` (static) plus `X-License-Token`, `Authorization`, and `X-User-Token` resolved from the `AXONFLOW_LICENSE_TOKEN`, `AXONFLOW_AUTH`, and `AXONFLOW_USER_TOKEN` env vars at MCP-session time (Codex omits any header whose env var is unset). The script is idempotent — safe to re-run after a plugin upgrade or token rotation.
 
 Verify with:
 
@@ -522,7 +585,7 @@ axonflow-codex-plugin/
 │   ├── post-tool-audit.sh   # Audit + PII scan (PostToolUse)
 │   ├── mcp-auth-headers.sh  # Basic-auth + X-License-Token headers for MCP
 │   ├── recover.sh           # request|verify|apply-token|status user surface
-│   ├── telemetry-ping.sh    # Anonymous telemetry (fires once per install)
+│   ├── telemetry-ping.sh    # Anonymous heartbeat (at most once per 7 days)
 │   ├── uninstall.sh         # Clean removal of hooks, config, and marketplace entry
 │   └── lib/
 │       └── license-token.sh # Pro-tier token resolver + TOML config writer
@@ -572,7 +635,9 @@ More troubleshooting in the [integration guide](https://docs.getaxonflow.com/doc
 
 ## Telemetry
 
-Anonymous heartbeat at most once every 7 days per machine: plugin version, OS, architecture, bash version, AxonFlow platform version, deployment mode (community-saas / self-hosted production / self-hosted development). **Never** tool arguments, message contents, or policy data. The stamp file mtime advances only after the HTTP POST returns 2xx, so a transient network failure does not silence telemetry until the next window.
+Anonymous heartbeat at most once every 7 days per machine: plugin version, OS, architecture, bash version, AxonFlow platform version, the licence tier that platform reports about itself, deployment mode (`community_saas` / `self_hosted` / `unknown`), and endpoint type (`localhost` / `private_network` / `remote` / `unknown`). **Never** tool arguments, message contents, or policy data. The stamp file mtime advances only after the HTTP POST returns 2xx, so a transient network failure does not silence telemetry until the next window.
+
+The licence tier sent is whatever the platform reported about itself, relayed verbatim. The plugin does not normalise, map, or restrict the value, so a transient state such as `starting`, or a tier name introduced after this plugin shipped, reaches the wire unchanged rather than being flattened into a fixed list. What is never read or sent: **no licence key, no expiry date, no seat count, and no customer or organisation name**. It is read from the `tier` field of the `/health` response the heartbeat already fetches to detect the platform version, so it costs no additional request, and it is omitted entirely whenever that probe does not answer with one.
 
 Opt out: set `AXONFLOW_TELEMETRY=off` in the environment Codex runs in.
 

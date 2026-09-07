@@ -26,11 +26,20 @@ ad hoc な prompt 修正で済ませず、**fixture / suppression / reference / 
 
 各 entry には以下の任意フィールドを付与できる（省略時は entry に書かれず、旧フォーマットと完全互換）。
 
-| field        | 意味                                                                                                                                               |
-| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `reviewer`   | 指摘者の識別子（`gemini` / `codex` / `copilot` / `river-review` / `human` 等）。モデル別 precision 計測に使う                                      |
-| `model`      | レビューに使ったモデル識別子（任意）                                                                                                               |
-| `reversedBy` | 判断を撤回・上書きする際、この entry が反転させる旧 entry の参照（fingerprint または id）。追記型 JSONL を壊さず、新 entry 側に linkage を持たせる |
+| field           | 意味                                                                                                                                                                                   |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `reviewer`      | 指摘者の識別子（`gemini` / `codex` / `copilot` / `river-review` / `human` 等）。モデル別 precision 計測に使う                                                                          |
+| `model`         | レビューに使ったモデル識別子（任意）                                                                                                                                                   |
+| `reversedBy`    | 判断を撤回・上書きする際、この entry が反転させる旧 entry の参照（fingerprint または id）。追記型 JSONL を壊さず、新 entry 側に linkage を持たせる                                     |
+| `review_run_id` | この feedback が対象とするレビュー実行の識別子。`river feedback add --run-id <id>` で付与し、`river evolve aggregate` が saved run と突合する（契約2）。キー名だけ snake_case を用いる |
+
+`review_run_id` の運用ルール:
+
+- 渡す値は `river run --save` が stderr へ出力する `Run saved: <runId>` の `<runId>` である
+- 指定形式はスペース区切り（`--run-id <id>`）とイコール形式（`--run-id=<id>`）の両方を受け付ける
+- 空文字と空白のみの値は拒否される。黙って `review_run_id` 無しの entry が書かれる事故を防ぐためである
+- 省略時に「直近の run」へ暗黙解決する動作は持たない。無関係な run へ誤って紐づいた場合、その誤りが証拠に混ざるためである
+- 反復判定の occurrence キー `(review_run_id, pr)` に参加する。同一 PR への再 run に feedback を付けた場合、反復 1 回分として数えられる
 
 ## Mapping rules / 振り分けルール
 

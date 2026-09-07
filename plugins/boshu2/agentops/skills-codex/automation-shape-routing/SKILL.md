@@ -1,11 +1,22 @@
 ---
 name: automation-shape-routing
-description: 'Front door for agent automation: choose'
+description: 'Front door for agent automation: choose Triggers: "build automation", "which orchestration shape", "should this use NTM".'
 ---
 # Automation Shape Routing
 
 Choose the smallest execution shape that preserves the required evidence and
 control. This skill routes; it does not build or start a substrate.
+
+Ordered routing works because each rung is strictly cheaper to operate than the
+next: if the smallest shape truly preserves the evidence and control the task
+needs, every larger shape can only add coordination cost, never correctness.
+
+Named failure mode — **substrate romance**: routing to persistent workers
+because the topology is interesting, not because any deciding axis demands it.
+
+Anti-pattern: starting the chosen substrate as part of routing "to save a
+step". Corrective: return the one-line verdict and let the owner start under
+its own authority.
 
 ## Critical Constraints
 
@@ -26,9 +37,9 @@ control. This skill routes; it does not build or start a substrate.
 3. **Must-never-regress constraint?** Route through `operationalize` to a gate.
 4. **Fixed typed DAG, headless, no attach/steer?** Use `workflow-builder` only
    where that runtime is explicitly selected and available.
-5. **Persistent, attachable roles over AgentOps beads?** Use `agent-native`.
-   NTM is the pane adapter; workers execute whole loop skills, while Agent Mail
-   coordinates only multiple live actors.
+5. **Persistent, attachable roles over caller-supplied packets?** Use
+   `agent-native`. NTM is the pane adapter; Agent Mail coordinates only
+   explicitly selected live actors.
 6. **Durable city of quests with GC-native supervision/store?** Route to
    `using-gc` only when the operator explicitly selects Gas City. GC is not an
    automatic fallback or an `ao` runtime enum.
@@ -41,7 +52,7 @@ control. This skill routes; it does not build or start a substrate.
 | topology | one writer or bounded fanout | durable role graph |
 | control | no mid-run steering | observe/nudge/replace |
 | output | one artifact | reusable skill/workflow/gate |
-| store | repo bead chain | operator-selected GC quest store |
+| store | caller-owned packet set | operator-selected GC quest store |
 | contention | one writer | partition, then Agent Mail reservation |
 
 Parallelism buys independence, not guaranteed speed. Refuse persistent
@@ -59,8 +70,8 @@ Return exactly one of:
 - `using-gc` with explicit operator choice
 - `operationalize:gate`
 
-Name the deciding axis and invoke the owner. Do not copy the delegated workflow
-into this router.
+Name the deciding axis and owner, then stop. The caller may invoke that owner
+separately; do not copy or start the delegated workflow from this router.
 
 ## Output Specification
 
@@ -88,8 +99,9 @@ into this router.
     END { exit !(NR == 1 && !extra && valid) }
   '
   ```
-- **Downstream handoff:** invoke the named owner only after returning the verdict;
-  `inline` remains in the current agent and `bounded-fanout` remains in-session.
+- **Downstream handoff:** return the named owner to the caller without invoking
+  it; `inline` and `bounded-fanout` describe the recommended execution shape but
+  do not authorize this routing skill to begin execution.
 
 ## Quality Rubric
 

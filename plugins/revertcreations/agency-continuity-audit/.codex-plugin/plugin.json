@@ -1,0 +1,38 @@
+{
+  "name": "agency-continuity-audit",
+  "version": "0.1.2",
+  "description": "Read-only audits for persistent agent goals, evidence, memory corrections, authority, and restart recovery.",
+  "author": {
+    "name": "Revert Creations",
+    "email": "support@revertcreations.com",
+    "url": "https://revertcreations.com"
+  },
+  "homepage": "https://github.com/revertcreations/agency-continuity-audit",
+  "repository": "https://github.com/revertcreations/agency-continuity-audit",
+  "license": "MIT",
+  "keywords": [
+    "agents",
+    "continuity",
+    "memory",
+    "audit",
+    "evidence"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Agency Continuity Audit",
+    "shortDescription": "Find silent goal, memory, evidence, and restart failures.",
+    "longDescription": "Audit an agent workspace without modifying it. Distinguish durable goals from prose, verify structured state and correction paths, inspect authority and finance evidence, and report what remains unproven.",
+    "developerName": "Revert Creations",
+    "category": "Productivity",
+    "composerIcon": "./assets/icon.svg",
+    "capabilities": [
+      "Read-only",
+      "Structured report"
+    ],
+    "defaultPrompt": [
+      "Audit this workspace's agent continuity.",
+      "What would silently fail after a restart?",
+      "Which agency claims lack durable evidence?"
+    ]
+  }
+}

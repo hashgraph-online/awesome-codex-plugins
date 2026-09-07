@@ -1,6 +1,6 @@
 ---
 name: market-weather
-description: "Assess current market conditions. Use when: checking economic indicators, cultural moments, or competitive activity."
+description: "Generate a one-page Marketing Weather Report scoring current conditions green/yellow/red across five dimensions — economic climate, cultural moments, industry and competitive activity, platform changes, and regulatory updates — with an overall go/no-go signal, recommendations matched to a this-week/this-month/this-quarter horizon, and an upcoming-events calendar. Triggers on \"/digital-marketing-pro:market-weather\", \"is now a good time to launch\", \"what are market conditions like this month\", \"any platform or regulatory changes I should know about\", \"marketing weather report\". Scores signals recorded in the last 30 days via the macro-signal-tracker script — it reports on tracked signals, not a live web scan — applies the brand profile's industry and channel mix, and shows trend direction versus the previous report when one exists."
 ---
 
 # /digital-marketing-pro:market-weather

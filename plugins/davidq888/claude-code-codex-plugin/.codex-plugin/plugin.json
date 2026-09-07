@@ -1,6 +1,6 @@
 {
   "name": "claude-code",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Security-focused Claude Code CLI integration for OpenAI Codex.",
   "homepage": "https://github.com/davidq888/claude-code-codex-plugin",
   "repository": "https://github.com/davidq888/claude-code-codex-plugin",

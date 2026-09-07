@@ -13,6 +13,10 @@ Use this skill when the product has to be understandable and usable, not just at
 - Define information architecture, navigation, labels, content groups, and page/screen inventory.
 - Design onboarding, activation, checkout, signup, forms, settings, dashboards, command palettes, and internal workflows.
 - Specify empty, loading, error, permission, success, stale, retry, resume, and audit states.
+- Define task ergonomics: frequency, risk, cognitive load, control model, speed paths, error prevention, recovery, and evidence tasks.
+- Choose usable workflow patterns: guided setup, wizard with review, command surface, priority queue, master/detail, monitoring board, workbench, settings, permission matrix, transparent checkout, task-led docs, agent progress, collaboration thread, and mobile priority stack.
+- Evaluate polished UI with heuristic review, cognitive walkthrough prompts, severity ranking, evidence, first repair, and re-check.
+- Validate usability with scenario tests for first-run, returning-user, error/recovery, keyboard-only, and mobile/touch paths.
 - Audit an existing UI for usability, hierarchy, conversion, repeated-use friction, accessibility risks, and missing states.
 - Hand a compact UX decision brief to platform skills so visual design does not erase the product job.
 
@@ -62,6 +66,35 @@ UX decision brief
 
 This brief is the contract. The platform skill may change visual treatment, but it must not erase the chosen job, action hierarchy, state coverage, or recovery path.
 
+## Step 2.6 - Produce the task ergonomics contract
+
+For serious product UI, repeated-use workflows, risky actions, forms, checkout, dashboards, editors, agent runs, admin tools, settings, or any request that says "usable", "ergonomic", "not only good looking", or "real product", read `../../references/ux-patterns/task-ergonomics.md`.
+
+Write the compact contract before visual design:
+
+```md
+Task ergonomics contract
+- Core task:
+- User mode:
+- Frequency/risk:
+- Success metric:
+- Cognitive load:
+- Control model:
+- Speed path:
+- Error prevention:
+- Recovery:
+- State matrix:
+- Evidence plan:
+```
+
+This is stricter than the UX decision brief. It protects the tenth use, the error path, and the risky action path.
+
+For forms, settings, checkout, onboarding, signup, admin configuration, filters, generation prompts, or any user input that can fail, also read `../../references/ui-patterns/form-state-validation-system.md` before visual design or implementation. Add the form job, risk, pattern, field anatomy, validation timing, state model, preservation/recovery, review/confirmation, schema/library ownership, accessibility, responsive behavior, and QA checks to the UX handoff.
+
+For onboarding, activation, empty dashboards, no-results screens, setup/import flows, permission gates, trial starts, workspace creation, or first project creation, read `../../references/ux-patterns/first-run-empty-state-system.md` before visual design. Define user promise, first value action, minimum/deferrable setup, sample/demo content, empty-state type, CTAs, permission timing, progress/resume model, recovery states, contextual teaching, success handoff, and QA evidence.
+
+For navigation, information architecture, app shells, docs platforms, dashboards, admin/settings, workspaces, command palettes, breadcrumbs, tabs, or multi-route products, also read `../../references/ui-patterns/navigation-information-architecture.md` before visual design or implementation. Add the primary objects, route map, navigation model, current-location model, search/command model, breadcrumb/tab behavior, deep-link/state model, route states, mobile replacement, focus/scroll restoration, and QA checks to the UX handoff.
+
 ## Step 3 - Design the states
 
 Every production UI needs these states:
@@ -77,6 +110,61 @@ Every production UI needs these states:
 Do not ship only the happy path.
 
 For public demos and generated proof projects, include at least one non-happy state in the visible UI: an empty state, blocked permission, failed sync, queued job, retry panel, stale data banner, or partial result. This makes the output feel like a real product instead of a polished poster.
+
+## Step 3.5 - Choose the usability pattern
+
+For serious product UI or any request that says "usable", "not only good looking", "real product", "ergonomic", "dashboard", "editor", "checkout", "agent run", "settings", "permissions", "docs", or "mobile task", read `../../references/ux-patterns/usability-pattern-matrix.md` after `task-ergonomics.md`.
+
+Write the compact pattern brief before visual design:
+
+```md
+Usability pattern brief
+- Product job:
+- User mode:
+- Frequency/risk:
+- Pattern chosen:
+- Why this pattern fits:
+- Primary action:
+- Secondary actions:
+- Speed path:
+- Error prevention:
+- Recovery path:
+- Required states:
+- Keyboard/touch model:
+- Rejected patterns:
+- Evidence tasks:
+```
+
+The selected pattern should reduce the riskiest failure mode. Reject patterns that optimize the wrong use, such as a marketing hero for repeated operations, a wizard for high-volume triage, a grid of cards for comparison, or a dashboard for a single linear task.
+
+## Step 3.6 - Define usability scenario tests
+
+For serious product UI, "not only good looking" work, UX audits, risky/repeated workflows, attractive-but-confusing UI, or final QA, read `../../references/ux-patterns/usability-heuristic-evaluation.md` after the usability pattern matrix and before scenario testing. Rank findings with severity, name evidence, choose the first repair, and re-check the same task step.
+
+Then read `../../references/ux-patterns/usability-scenario-testing.md` after the heuristic evaluation.
+
+Write the compact scenario test before final visual polish or delivery:
+
+```md
+Usability scenario test
+- Surface:
+- User persona/mode:
+- Core task:
+- First-run scenario:
+- Returning-user scenario:
+- Error/recovery scenario:
+- Keyboard-only scenario:
+- Mobile/touch scenario:
+- Success criteria:
+- Friction budget:
+- Evidence captured:
+- Usability failures:
+- Fix applied:
+- Re-check:
+- Remaining risk:
+```
+
+The scenario test is the proof layer. A screen is not "usable" just because the task ergonomics contract sounds good; the main task, recovery path, keyboard path, and mobile path need evidence or clearly named remaining risk.
 
 ## Step 4 - Reduce cognitive load
 
@@ -114,9 +202,15 @@ If the product type clearly matches one of these contexts, read the matching bri
 
 | Context | Read |
 |---|---|
+| Any serious product surface, repeated workflow, risky action, form, checkout, dashboard, editor, agent run, or usability audit | `../../references/ux-patterns/task-ergonomics.md` |
+| Workflow structure, usability pattern choice, repeated/risky/stateful product work, or "not only good looking" | `../../references/ux-patterns/usability-pattern-matrix.md` |
+| Onboarding, activation, empty dashboards, no-results, setup/import, permission gates, trials, workspace/project creation | `../../references/ux-patterns/first-run-empty-state-system.md` |
+| Heuristic review, cognitive walkthrough, severity triage, attractive-but-confusing UI, or polished surfaces that may still fail the task | `../../references/ux-patterns/usability-heuristic-evaluation.md` |
+| Scenario validation, final usability QA, keyboard/mobile/error path proof, or "is this actually usable?" | `../../references/ux-patterns/usability-scenario-testing.md` |
+| Navigation, information architecture, app shell, docs, dashboards, settings, workspaces, command/search, breadcrumbs, or tabs | `../../references/ui-patterns/navigation-information-architecture.md` |
 | Agent/tool run, background automation, long-running export/import | `../../references/ux-patterns/ai-agent-run.md` |
 | SaaS dashboard, CRM, admin panel, internal tool, support queue | `../../references/ux-patterns/operational-dashboard.md` |
-| First-run setup, trial activation, import/setup flow | `../../references/ux-patterns/activation-onboarding.md` |
+| First-run setup, trial activation, import/setup flow | `../../references/ux-patterns/activation-onboarding.md` + `../../references/ux-patterns/first-run-empty-state-system.md` |
 | Checkout, paywall, pricing, upgrade, plan comparison | `../../references/ux-patterns/checkout-upgrade.md` |
 | Editor, builder, canvas, creative tool, IDE-like surface | `../../references/ux-patterns/editor-canvas.md` |
 
@@ -128,6 +222,11 @@ The brief should influence the UX decision brief, especially:
 - Primary and secondary actions
 - Required states
 - Recovery path
+- Frequency/risk treatment
+- Speed path
+- Error prevention
+- Evidence tasks
+- Scenario tests
 - Handoff constraints
 
 Do not copy a referenced app or blindly apply a pattern because it is common. A shipped screen is evidence that a real product team used a decision, not proof that it is best for every product.
@@ -179,5 +278,9 @@ Before final delivery, check:
 8. Does the layout support scanning, not just looking good in a screenshot?
 9. Does navigation match the user's mental model?
 10. Is the next step clear after every action?
+11. Does the repeated path get faster after first use?
+12. Are focus, touch targets, and keyboard paths usable for the selected surface?
+13. Are validation and recovery close to the user's input/action and is user input preserved?
+14. Is friction applied only where risk justifies it?
 
 If any answer is no, fix the flow before polishing visuals.

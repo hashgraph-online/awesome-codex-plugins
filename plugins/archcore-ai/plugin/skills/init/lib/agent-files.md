@@ -4,13 +4,14 @@ Reference data for `/archcore:init` agent-instruction import — Detect Step A.4
 
 ## Probe paths
 
-Check each in order. Paths can be exact filenames or globs. A file counts if it exists and is non-empty.
+Check each in order. Paths can be exact filenames or globs. A file is an import candidate only if, **after stripping every archcore managed block span** (`<!-- archcore:start -->` … `<!-- archcore:end -->` inclusive, written by `archcore init` host wiring), non-blank content remains outside those spans — the presence of a managed block never disqualifies a file by itself, and a raw byte size never qualifies one. A `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` whose content is ONLY the managed block is **not an import candidate at all** — do not list it in the preview, do not create a link stub for it. When estimating extract yield for a file that does have authored content, exclude the managed block's headings from the count (`extract-routing.md` strips the span before splitting).
 
 | Path / glob | Class | Tool / convention |
 |-------------|-------|-------------------|
 | `CLAUDE.md` | `aggregate` | Claude Code (project-level memory) |
 | `CLAUDE.local.md` | `aggregate` | Claude Code (user-local overrides, usually gitignored) |
 | `AGENTS.md` | `aggregate` | Cross-tool convention (Claude Code reads it via import; OpenAI-adjacent tools use it too) |
+| `GEMINI.md` | `aggregate` | Gemini CLI (project-level memory) |
 | `.cursorrules` | `aggregate` | Cursor (legacy single-file format) |
 | `.cursor/rules/*.mdc` | `modular-rule` | Cursor 2.x (rule files with frontmatter-configurable scope) |
 | `.cursor/rules/*.md` | `modular-rule` | Cursor 2.x (plain markdown rule files) |
@@ -100,7 +101,7 @@ For `modular-rule` files, extract is the default. One file yields **one document
 
 ## Extract-mode body shape
 
-Pointer line, then a blank line, then the extracted content. See `lib/extract-routing.md` for how content is selected per document type.
+Pointer line, then a blank line, then the extracted content. See `_shared/grounding/extract-routing.md` for how content is selected per document type.
 
 ## Umbrella document for extract mode
 

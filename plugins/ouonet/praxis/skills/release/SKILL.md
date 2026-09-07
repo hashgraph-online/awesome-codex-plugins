@@ -6,6 +6,8 @@ description: Use when the user asks to release, version, tag, or publish.
 
 Use only when the user asks to release.
 
+If `topology=multi-module` (triage announcement or coordinator spec/plan declaration), read `../references/multi-module.md`. Release only the exact coordinator revision set that passed integration. Determine version and dependency order per repository, and keep the existing approval gates for each repository's commit, tag, push, or publish. A completed change set does not itself authorize a release.
+
 1. Confirm version/bump.
 2. Start from green tests and clean tree.
 3. Update version files.

@@ -1,68 +1,104 @@
 ---
 name: idea-genie
-description: Generate an evidence-grounded opportunity
+description: 'Generate evidenced opportunities or Triggers: "idea genie", "what should we build", "challenge this idea", "compare proposals".'
 ---
 # Idea Genie
 
-Turn an open-ended question into a small, evidenced opportunity portfolio. This
-skill explores; it does not select work, create beads, or write Discovery's BDD
-intent packet.
+One canonical root for idea work: elicit an evidence-grounded opportunity
+portfolio, or challenge a consequential idea with sealed independent
+perspectives. Both modes explore and advise; neither selects, schedules,
+tracks, implements, or validates work.
 
-## Constraints
+## Modes
 
-- Keep this lane exploratory because `discovery` owns selection, BDD shaping,
-  and tracker persistence.
-- Cite repository or executable evidence for observations to prevent assumptions
-  from masquerading as facts.
-- Stop on novelty saturation because fixed idea quotas manufacture unsupported
-  work.
+| Trigger phrases | Mode | Output contract |
+|---|---|---|
+| "idea genie", "what should we build", "supported opportunities" | elicit (single genie) | `idea-portfolio.v1` via `scripts/validate-output.sh` |
+| "challenge this idea", "compare independent proposals", "stress-test a one-way door" | duel (adversarial challenge) | `idea-challenge.v1` via `scripts/validate-challenge.sh` |
 
-## Workflow
+Elicitation is the entry mode. Dueling is an optional escalation for a
+consequential choice, typically consuming an `idea-portfolio.v1` or a framed
+question.
 
-1. State the question, constraints, non-goals, and evidence sources. Use
-   `research` when the repository facts are not already available.
-2. Record observations as claims with repository or executable evidence. Put
-   unverified beliefs in `assumptions`; never blend them into observations.
-3. Propose candidate mechanisms. Give every candidate its own evidence,
-   overlap result against live skills, CLI capabilities, and tracked work, plus
-   one Given/When/Then scenario.
-4. Run another novelty pass. Merge equivalents and discard unsupported ideas.
-   Stop when the pass yields zero materially new candidates, not when an
-   arbitrary count is reached.
-5. Write `idea-portfolio.v1`, run `scripts/validate-output.sh`, and hand the
-   artifact to `discovery`. Discovery alone shapes and persists executable BDD
-   intent.
+## Elicit mode
 
-If every candidate overlaps existing work or lacks support, emit
-`status: no-new-work`, an empty candidate list, and observations showing why.
-An honest empty portfolio is a successful result.
+Generate a small portfolio of evidenced options.
 
-## Output Specification
+1. State the question, constraints, non-goals, and sources. Hydrate only the sources this question needs and cite them; no merged context store.
+2. Separate cited observations from assumptions.
+3. Give each candidate its supporting evidence, overlap with existing
+   capabilities, and one normal or edge scenario.
+4. Run a novelty pass, merge equivalents, and discard unsupported ideas.
+5. Stop when no materially new evidenced candidate appears.
+6. Write and validate `idea-portfolio.v1`, then return it to the caller or Plan.
 
-- **Artifact directory:** `.agents/ideas/<run-id>/`
-- **Filename convention:** `idea-portfolio.json`
-- **Format:** `idea-portfolio.v1` JSON with the schema fields below.
-- **Validation command:** `skills/idea-genie/scripts/validate-output.sh <portfolio.json>`
-- **Downstream handoff:** pass the validated artifact path to `discovery`; only discovery
-  shapes and persists executable BDD intent.
+An empty `no-new-work` portfolio is valid. Plan alone may incorporate a selected
+option into the existing bead or caller intent.
 
-Required fields are `schema_version`, `status`, `observations`, `assumptions`,
-`candidates`, and `termination`. Candidate portfolios require cited evidence,
-an explicit `overlaps` array, and a complete scenario. Termination records the
-reason and `novel_candidates_last_pass: 0`.
+## Duel mode
 
-The validator is the machine boundary:
+Produce independent challenges for a consequential choice. The result is
+advisory evidence for Plan. It never decides whether a plan is ready and never
+turns a later optional Premortem challenge into an approval gate.
 
-```bash
-skills/idea-genie/scripts/validate-output.sh <portfolio.json>
-```
+### Constraints
 
-Executable behavior: [references/idea-genie.feature](references/idea-genie.feature).
+- Keep generation sealed until every perspective is complete to prevent later
+  proposals from anchoring on earlier ones.
+- Preserve dissent and concrete refutation attempts because Plan must see alternatives
+  that synthesis might otherwise erase.
+- Keep reversible choices lightweight because they do not warrant a pane manager,
+  messaging service, council, or model-family rule.
+- Emit no readiness, approval, quorum, retry, budget, helper, delivery, or
+  tracker state because this strategy supplies evidence rather than lifecycle
+  authority.
 
-## Quality
+### Workflow
 
-- Every observation has a nonempty evidence pointer and assumptions remain
-  explicitly separate.
-- Every candidate carries overlap results and a complete Given/When/Then
-  scenario, or the artifact honestly reports `no-new-work`.
-- The named validator passes before the artifact path is handed to `discovery`.
+1. Freeze the question, constraints, evidence paths, and comparison rubric.
+2. For a one-way door, create at least two fresh contexts with distinct context
+   identifiers. Each produces its perspective before any is revealed. When the
+   caller pins perspectives to model profiles, record each perspective's
+   `model_identity` (see the `agent-native` model-dispatch recipe); a
+   duel may use two distinct models on request. Sealed generation is unchanged:
+   no perspective may see another before reveal. Unavailable profiles → disclose
+   and continue single-model.
+3. Reveal the sealed perspectives and cross-review by evidence, reversibility,
+   system fit, failure modes, and cost.
+4. Attempt concrete refutations. Preserve disagreements, failed refutations,
+   and minority reasoning.
+5. Write `idea-challenge.v1`, validate it, and pass the artifact to Plan as one
+   optional input alongside research and operator intent.
+
+For a cheap two-way door, emit the lightweight packet directly after one fresh
+challenge. Do not manufacture panel ceremony.
+
+### Output Specification
+
+- **Artifact directory:** `.agents/scratch/ideas/<run-id>/`
+- **Filename:** `idea-challenge.json`
+- **Format:** `idea-challenge.v1` JSON with route-specific fields enforced by
+  the validator
+- **Validation command:**
+  `skills/idea-genie/scripts/validate-challenge.sh <idea-challenge.json>`
+- **Downstream handoff:** `handoff.owner` is exactly `plan`; Plan may accept,
+  reject, or combine the advisory evidence
+
+### Quality
+
+- One-way packets prove distinct context IDs and cross-review another
+  perspective by named dimensions.
+- Dissent and refutation attempts remain explicit.
+- The packet contains no semantic readiness field or decision.
+- The validator passes before handoff to Plan.
+
+### Do not
+
+- Let perspectives see one another before sealed generation completes.
+- Convert consensus, transport availability, or a self-score into readiness.
+- Require orchestration infrastructure for a reversible choice.
+
+## References
+
+- [Idea Genie behavior](references/idea-genie.feature)
+- [Idea challenge behavior](references/idea-challenge.feature)

@@ -40,6 +40,13 @@ Found via find_callers: 5 places call `connect(host, port)` without timeout.
 Verdict: is_real=true — all 5 call sites will raise TypeError on deploy.
 
 Read the candidate findings via `get_candidate_findings(repo, pr)` (each has a stable
-`id`). For each, submit your decision via `submit_verdicts(repo, pr, verdicts=[{"id": "<id>", "is_real": true|false}])`.
+`id`). For each, submit your decision via `submit_verdicts(repo, pr, verdicts=[{"id": "<id>", "is_real": true|false, "reason": "<one line>"}])`.
+
+When you set `is_real=false` (you kill/reject a finding), you MUST include a short
+one-line `reason` naming which rule fired — e.g. "quoted line not in new version",
+"pre-existing, outside the diff", "already handled in shown context", "pure style, no
+behaviour change". The `reason` is persisted for observability (why the finding was
+rejected); keep it terse and factual. For `is_real=true` the `reason` is optional.
+
 Submit a verdict only for findings you decide to kill or explicitly keep; a finding
 with no verdict is kept (recall-safe). Do NOT return verdicts as text.

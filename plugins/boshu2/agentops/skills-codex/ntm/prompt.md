@@ -1,6 +1,6 @@
 # ntm
 
-Orchestrate NTM tmux agent swarms and robot APIs — spawn/send panes, read robot state, triage, locks/mail, safety, pipelines. Single owner of swarm-tending doctrine. Triggers: "ntm", "orchestrates ntm tmux agent swarms", "ntm skill".
+Use NTM as an optional pane adapter for caller-supplied roles and commands. Triggers: "ntm", "tmux panes", "ntm robot state".
 
 ## Instructions
 

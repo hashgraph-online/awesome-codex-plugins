@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "lacuna": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "lacuna-mcp@0.3.3"
+      ],
+      "env_vars": [
+        "LACUNA_API_KEY"
+      ]
+    }
+  }
+}

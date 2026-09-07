@@ -42,12 +42,11 @@ dcg doctor
 **Diagnose:**
 ```bash
 $ dcg explain "rm -rf ./node_modules"
-BLOCKED by core.filesystem:rm-rf-dangerous
+BLOCKED by core.filesystem:rm-rf-general
 
 Evaluation trace:
   ...
-  Step 6. Normalization: rm -rf /home/user/project/node_modules
-  Step 7. Pack evaluation: MATCH (non-temp path)
+  Step 7. Pack evaluation: MATCH (relative non-temp path)
 ```
 
 **Fix options:**
@@ -67,7 +66,7 @@ dcg allow-once ab12
 
 3. **Permanent allowlist:**
 ```bash
-dcg allowlist add core.filesystem:rm-rf-dangerous \
+dcg allowlist add core.filesystem:rm-rf-general \
     --path "$PWD/node_modules" \
     -r "Package cleanup"
 ```
@@ -245,7 +244,7 @@ block_patterns = ["the-bypass-pattern"]
 
 **Check hook is registered:**
 ```bash
-cat ~/.config/claude-code/settings.json | jq '.hooks'
+jq '.hooks' ~/.claude/settings.json
 ```
 
 **Expected:**

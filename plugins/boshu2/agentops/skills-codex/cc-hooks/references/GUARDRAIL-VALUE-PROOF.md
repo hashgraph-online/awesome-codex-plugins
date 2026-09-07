@@ -28,7 +28,7 @@ telemetry it consumes *is* that evidence pipeline.
 
 The keystone guard (`skills/cc-hooks/hooks/installed-skill-edit-guard.sh`) emits
 **exactly one JSONL line per FIRE** to
-`${AGENTOPS_HOME:-~/.agentops}/guardrail-telemetry.jsonl`
+`${AGENTOPS_HOME:-~/.agents/ao}/guardrail-telemetry.jsonl`
 (override with `AGENTOPS_GUARDRAIL_TELEMETRY`):
 
 ```json
@@ -45,9 +45,10 @@ The hash is one-way; it lets us count *distinct* edited targets and detect
 repeats without ever logging what the agent was editing. Asserted in
 `tests/scripts/installed-skill-edit-telemetry.bats`.
 
-**Inert by default:** the emission code only runs when the guard fires, and the
-guard ships INERT (AgentOps 3.0 hookless default; opt-in installer only). On a
-machine where the guard is not installed, zero lines are ever written. On a
+**Inert by default:** the emission code only runs when the guard fires, and this
+standalone guard ships INERT (opt-in installer only) even though the PreToolUse
+policy dispatcher ships by default. On a machine where the guard is not
+installed, zero lines are ever written. On a
 machine where it IS installed, the happy path (any non-installed-skill edit)
 writes nothing.
 
@@ -74,7 +75,7 @@ stop happening, which the hook cannot do by counting.
 ### Why NOT the hand-roll / "did they comply" rate (the Goodhart trap)
 
 The original design measured the hand-roll rate with the guard on vs off. That
-was **rejected** (pre-mortem finding #3) as circular / Goodhart:
+was **rejected** (premortem finding #3) as circular / Goodhart:
 
 - The gate's redirect lowers the post-redirect hand-roll rate *by construction* —
   the guard exists to do exactly that, so "the rate went down" proves nothing.
@@ -131,12 +132,12 @@ Fixed **before** any data is collected:
 ```bash
 # Fires per session, oldest→newest:
 jq -r 'select(.token_class=="installed-skill-edit") | .session' \
-  "${AGENTOPS_GUARDRAIL_TELEMETRY:-$HOME/.agentops/guardrail-telemetry.jsonl}" \
+  "${AGENTOPS_GUARDRAIL_TELEMETRY:-$HOME/.agents/ao/guardrail-telemetry.jsonl}" \
   | sort | uniq -c
 
 # Distinct targets touched (hashes), to spot repeated footguns:
 jq -r 'select(.token_class=="installed-skill-edit") | .path_sha256' \
-  "${AGENTOPS_GUARDRAIL_TELEMETRY:-$HOME/.agentops/guardrail-telemetry.jsonl}" \
+  "${AGENTOPS_GUARDRAIL_TELEMETRY:-$HOME/.agents/ao/guardrail-telemetry.jsonl}" \
   | sort | uniq -c | sort -rn
 ```
 

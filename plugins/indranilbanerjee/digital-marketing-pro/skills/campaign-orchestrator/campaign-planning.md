@@ -68,7 +68,7 @@
 |-----------|-----------|------------------|
 | **Specific** | Exactly what will be achieved | "Generate marketing qualified leads" |
 | **Measurable** | Quantified target | "500 MQLs" |
-| **Achievable** | Realistic given resources | "Based on $50 CPL benchmark" |
+| **Achievable** | Realistic given resources | "Based on $50 CPL benchmark" (from brand history or a recorded benchmark-book entry — never from memory) |
 | **Relevant** | Aligned to business goal | "Supports Q2 pipeline target" |
 | **Time-bound** | Clear deadline | "By June 30" |
 
@@ -98,9 +98,9 @@
 ```
 
 Examples:
-- `2025-Q2-launch-midmarket-product-v2`
-- `2025-Q3-seasonal-all-back-to-school`
-- `2025-Q1-abm-enterprise-target-accounts`
+- `2026-Q2-launch-midmarket-product-v2`
+- `2026-Q3-seasonal-all-back-to-school`
+- `2026-Q1-abm-enterprise-target-accounts`
 
 ---
 

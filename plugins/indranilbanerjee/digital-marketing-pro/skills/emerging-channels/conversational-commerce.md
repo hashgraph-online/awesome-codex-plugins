@@ -1,5 +1,7 @@
 # Conversational Commerce — Chat, SMS & Messaging
 
+> **Benchmark provenance (as of 2026-08):** Dollar figures in this document are planning priors, not quotes — market and auction rates drift continuously. Before any figure enters a media plan, budget, or client deliverable, refresh it live (platform dashboards and current published reports beat memory) and record it with `python scripts/benchmark_book.py --action record ... --source <url>`; quote from the book thereafter (`--action quote`). Never present an unstamped figure as current market fact.
+
 > Conversational commerce is the intersection of messaging and buying. Customers increasingly expect to discover, evaluate, and purchase products within chat interfaces. This guide covers every major messaging channel, compliance requirements, and measurement frameworks.
 
 ---

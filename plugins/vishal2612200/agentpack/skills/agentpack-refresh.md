@@ -1,11 +1,12 @@
 ---
 name: agentpack-refresh
 description: Refresh AgentPack context when task, git state, or repo files changed.
+license: AGPL-3.0-only
 ---
 
 # AgentPack Refresh
 
-Use when the user invokes `@agentpack-refresh`, context looks stale, or task/git state changed.
+Use when the user invokes `$agentpack-refresh`, context looks stale, or task/git state changed.
 
 ## Steps
 

@@ -1,7 +1,7 @@
 {
   "name": "development-skills",
-  "version": "0.9.3",
-  "description": "Development workflow: three-tier triage (PASS_THROUGH / LIGHT / FULL 4-phase Research+Plan → Chronicle → Implement+Verify → Review+Finalize) with language auto-detection (Python, Java, TypeScript, Swift, frontend) and a staff-reviewer subagent.",
+  "version": "0.10.0",
+  "description": "Development workflow for AI coding agents: a direct/full loop that keeps the plan and chronicle on disk, plus a named staff-reviewer subagent. Language-agnostic.",
   "repository": "https://github.com/reidemeister94/development-skills",
   "homepage": "https://github.com/reidemeister94/development-skills",
   "license": "MIT",
@@ -18,7 +18,7 @@
   "interface": {
     "displayName": "Development Skills",
     "shortDescription": "Disciplined development workflows for AI coding agents",
-    "longDescription": "Use Development Skills for coding, debugging, refactoring, test design, code review, documentation alignment, and cross-agent workflow discipline. Three-tier triage (PASS_THROUGH for trivial · LIGHT for mechanical changes · FULL 4-phase workflow) with language/framework auto-detection (Python, Java, TypeScript, Swift, frontend including React/Next.js/Raycast/Vite) and a named staff-reviewer subagent.",
+    "longDescription": "Use Development Skills for coding, debugging, refactoring, test design, code review, documentation alignment, and cross-agent workflow discipline. A two-path development loop (direct for clear, reversible changes; full for everything else) that keeps the plan and chronicle on disk, with a named staff-reviewer subagent. Language-agnostic.",
     "developerName": "reidemeister",
     "category": "Coding",
     "capabilities": [

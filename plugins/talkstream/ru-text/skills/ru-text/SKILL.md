@@ -1,13 +1,13 @@
 ---
 name: ru-text
 description: >
-  Use when writing, editing, or reviewing Russian-language text, or when user
-  mentions ru-text. Covers typography, info-style, editorial, UX writing, business
-  correspondence, AI-text cleanup. Auto-activates on Russian text output.
+  Russian text quality. Triggers: вычитай, проверь текст, поправь, отредактируй,
+  причеши, ru-text. Typography silently on any Russian output; deeper editing on
+  request. Info-style, editorial, UX writing, business correspondence, AI-text cleanup.
 metadata:
   openclaw:
     always: true
-    emoji: "\U0001F4DD"
+    emoji: "📝"
     homepage: "https://ru-text.org"
 ---
 
@@ -21,30 +21,32 @@ Credits and recommended reading: `references/sources.md`
 
 **Reviewing vs. rewriting**: when *checking* or proofreading existing text or a file, return the corrected version plus a list of changes — do not silently overwrite the source file. Rewrite a file in place only when the user explicitly asks.
 
+**Someone else's words stay theirs**: quoted material, code blocks and third-party text inside the user's document are reproduced as-is. Report an issue you see in them if it matters; never rewrite them.
+
 ## Always-On: Typography
 
-Apply these rules to ALL Russian text output without exception.
+Apply to ALL Russian text output — silently: fix, don't announce.
 
 | Rule | Wrong | Correct |
 |---|---|---|
 | Primary quotes: guillemets | "текст" | «текст» |
 | Nested quotes: lapki | «"вложенные"» | «„вложенные“» |
-| Em dash with spaces | слово - слово | слово — слово |
+| Em dash, NBSP before it | слово - слово | слово — слово |
 | En dash for ranges, no spaces | 10-15 дней | 10–15 дней |
-| NBSP after single-letter prepositions | в начале (breakable) | в\u00A0начале |
+| NBSP after single-letter words | в начале (breakable) | в\u00A0начале |
 | Ellipsis: single character | ... | … |
-| Digit groups with thin spaces | 1000000 | 1 000 000 |
+| Digit groups with thin spaces | 1000000 | 1 000 000 |
 | Decimal comma (not dot) | 3.14 | 3,14 |
 | Ordinal with hyphen | 1ый, 2ой | 1-й, 2-й |
 | Numero sign | No. 5, #5 | № 5 |
 | Abbreviations with NBSP | т.д., т.е. | т. д., т. е. |
-| Ruble symbol after number | 1500 руб | 1 500 ₽ |
+| Ruble sign after number, NBSP | 1500₽ | 1 500 ₽ |
 
 Full typography reference: `references/typography.md`
 
 `/ru-text:ru-score` — text quality score (0–10, 5 dimensions).
 
-## Top Stop-Words (remove or replace)
+## Top Stop-Words (when writing or editing on request)
 
 | Stop-word | Replace with |
 |---|---|
@@ -59,7 +61,7 @@ Full typography reference: `references/typography.md`
 | на сегодняшний день | сегодня |
 | в целях | чтобы |
 
-Full stop-word catalog (97 entries): `references/info-style.md`
+Full stop-word catalog (92 entries): `references/info-style.md`
 
 ## When to Load Reference Files
 
@@ -83,8 +85,8 @@ If the path is not resolved, search: `Glob("**/ru-text/references/scoring.md")` 
 Before delivering Russian text:
 
 - [ ] Quotes: «» primary, „“ nested
-- [ ] Dashes: — in text, – in ranges, - only in compounds; max 1–2 per paragraph
-- [ ] NBSP after в, к, с, о, у, и, а
+- [ ] Dashes: — in text (NBSP before it), – in ranges, - only in compounds; max 1–2 per paragraph (a parallel row counts as one, dialogue dashes as none); trim to the limit, not to zero; edit a row whole or not at all
+- [ ] NBSP after в, к, с, о, у, и, а, я
 - [ ] Ellipsis: … (single char)
 - [ ] Abbreviations: т. д., т. п. (with NBSP)
 - [ ] No double spaces, no space before punctuation

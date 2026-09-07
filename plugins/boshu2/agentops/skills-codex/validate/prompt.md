@@ -1,6 +1,6 @@
 # validate
 
-Independently remeasure a bounded artifact and emit one immutable, evidence-bound verdict. Triggers: "validate", "independently validate", "vibe".
+Freshly judge whether a finished change is actually proven against bead or caller acceptance — the independent verdict before merge; optionally persist verdict.v2 for a declared consumer, and stop. Triggers: "validate", "independently validate", "is this proven", "vibe".
 
 ## Instructions
 

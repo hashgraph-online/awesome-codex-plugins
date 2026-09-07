@@ -41,9 +41,13 @@ Task tool (general-purpose):
     1. Implement exactly what the task specifies
     2. Write tests (following TDD if task says to)
     3. Verify implementation works
-    4. Commit your work
-    5. Self-review (see below)
-    6. Report back
+    4. Self-review (see below)
+    5. Report back to the coordinator
+
+    The coordinator is the Git mutation owner. Do not stage, commit, amend,
+    create/switch/delete branches, or create/remove worktrees. Leave the
+    task-owned delta available for spec and quality review before the
+    coordinator creates one verified task commit.
 
     Work from: [directory]
 
@@ -113,10 +117,14 @@ Task tool (general-purpose):
     - What you implemented (or what you attempted, if blocked)
     - What you tested and test results
     - Files changed
+    - Task-owned untracked files, if any
     - Self-review findings (if any)
     - Any issues or concerns
 
     Use DONE_WITH_CONCERNS if you completed the work but have doubts about correctness.
     Use BLOCKED if you cannot complete the task. Use NEEDS_CONTEXT if you need
     information that wasn't provided. Never silently produce work you're unsure about.
+    On BLOCKED or NEEDS_CONTEXT hand back three things together:
+    the specific question or blocker, the evidence already gathered, and
+    candidate options you considered with their trade-offs.
 ```

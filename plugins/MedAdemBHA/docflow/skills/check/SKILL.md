@@ -22,7 +22,7 @@ If running from an installed plugin where scripts are not in the target repo, us
 | `Ready` | DocFlow is installed and validation is clean | Start normal docs work |
 | `Needs setup` | No meaningful docs or config detected | `/docflow:init` |
 | `Needs adoption` | Existing docs need docflow infrastructure | `/docflow:adopt` |
-| `Needs repair` | Generated helpers/guidance are missing | `/docflow:repair` |
+| `Needs repair` | Generated helpers/guidance are missing or managed helpers are outdated | `/docflow:repair` |
 | `Blocked` | Validation found hard errors | `/docflow:validate` |
 
 ## Rules

@@ -1,7 +1,7 @@
 {
   "name": "docflow",
   "version": "0.3.0",
-  "description": "Lightweight documentation memory with readiness checks for AI coding agents.",
+  "description": "Adoption-aware documentation memory and validation for AI coding agents.",
   "author": {
     "name": "Mohamed Adem Bel Hadj Amor",
     "url": "https://github.com/MedAdemBHA"
@@ -18,11 +18,10 @@
     "onboarding"
   ],
   "skills": "./skills",
-  "scripts": "./scripts",
   "interface": {
     "displayName": "Docflow",
-    "shortDescription": "Check and scaffold lean living docs",
-    "longDescription": "A low-token docs system for AI coding agents: readiness checks, a 7-category docs tree, validation gates, and monthly changelog memory.",
+    "shortDescription": "Adopt, validate, and navigate living docs",
+    "longDescription": "Create or adopt a low-token docs system with strict and compatibility-aware validation, upgrade-safe helpers, readiness checks, product specs, technical specs, decisions, plans, reviews, and bounded monthly changelog memory for AI coding agents.",
     "developerName": "Mohamed Adem Bel Hadj Amor",
     "category": "Productivity",
     "capabilities": [

@@ -109,7 +109,7 @@ Commands:
 4. Check changed files for debug artifacts: `console.log`, `debugger`, `TODO: remove`.
 
 Behavior: BLOCKING. Do not commit if any check fails. Fix quick issues (<2 min) inline.
-For anything longer, create a `priority:high` issue and proceed without committing the
+For anything longer, create a `priority::high` issue and proceed without committing the
 affected files.
 
 > **Broken-Window cross-reference (#730/H5):** a Full-Gate PASS that ships with a documented exception (echo-stub, WARN-lint, overridden finding) feeds session-end Phase 2.6 — see `skills/session-end/SKILL.md § Phase 2.6`.

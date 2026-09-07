@@ -2,12 +2,14 @@
 
 ## Supported Versions
 
-We provide security updates for the latest version of the plugin.
+Security updates target the latest published release only. Upgrade before
+reporting an issue against an older build.
 
-| Version | Supported          |
-| ------- | ------------------ |
-| Latest  | ✅ Active support |
-| < 1.0   | ❌ No longer supported |
+| Version | Supported |
+| ------- | --------- |
+| Latest release on the current major line | ✅ Active support |
+| Any earlier release | ❌ Upgrade to the latest release |
+| `oc-chatgpt-multi-auth` (former package name) | ❌ Renamed; migrate to `oc-codex-multi-auth` |
 
 ## Security Considerations
 
@@ -24,7 +26,7 @@ This plugin handles sensitive OAuth tokens. To protect your security:
 
 ### Credential Storage Backends
 
-Two backends are supported. The default has not changed in this release.
+Two backends are supported. JSON is the default; the keychain backend is opt-in.
 
 | Backend | Enabled by | Where tokens live | Threat model |
 |---------|-----------|-------------------|--------------|
@@ -88,14 +90,22 @@ The following are **not** security vulnerabilities:
 
 ### Third-Party Dependencies
 
-This plugin keeps its runtime dependency surface small and reviews it regularly:
+This plugin keeps its runtime dependency surface small and reviews it regularly.
+The full runtime set (`dependencies` in `package.json`) is:
 
-- `@openauthjs/openauth` for OAuth handling
-- `@opencode-ai/plugin` for the OpenCode plugin interface
-- `hono` for lightweight HTTP routing in auth/server flows
-- `zod` for schema validation
+| Dependency | Role |
+|------------|------|
+| `@openauthjs/openauth` | OAuth / PKCE handling |
+| `@opencode-ai/plugin` | OpenCode plugin interface |
+| `@napi-rs/keyring` | Native OS keychain access for the opt-in credential backend |
+| `hono` | Lightweight HTTP routing for the local OAuth callback server |
+| `zod` | Schema validation at every process boundary |
+| `proper-lockfile` | Advisory locking for concurrent config/account writes |
+| `@opentui/core`, `@opentui/solid`, `solid-js` | Terminal UI rendering for the account dashboard |
+| `web-tree-sitter` | Syntax-aware handling in tool output |
 
-There are no telemetry or analytics dependencies.
+`npm run audit:ci` gates production dependencies plus a reviewed dev-advisory
+allowlist. There are no telemetry or analytics dependencies.
 
 ## Questions?
 

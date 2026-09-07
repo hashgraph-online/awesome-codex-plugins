@@ -32,13 +32,13 @@ codex plugin marketplace add reidemeister94/development-skills
 
 Then run `codex`, open `/plugins`, search `development-skills`, and install.
 
-It activates on any coding task — no further configuration. Hooks (auto-format, context injection) run natively on Claude Code and Codex 0.131+. On Codex 0.128–0.130, enable them with `[features] plugin_hooks = true` in `~/.codex/config.toml`; otherwise run formatters manually (see [`AGENTS.md`](AGENTS.md)).
+It activates on any coding task — no further configuration. The hooks (auto-format on edit, router injection at session start) run natively on Claude Code and Codex 0.131+. On Codex 0.128–0.130, enable them with `[features] plugin_hooks = true` in `~/.codex/config.toml`; otherwise run formatters manually (the commands live in [`hooks/auto-format`](hooks/auto-format)).
 
 ## Why
 
 LLMs are great at writing code and terrible at remembering why they wrote it. Two sessions in, the requirements are gone, the rejected alternatives are gone, and the agent rebuilds context from the diff alone.
 
-This plugin pushes that context to disk — into files that outlive the context window:
+This plugin is language-agnostic: it ships a methodology, not language conventions. It pushes the reasoning to disk — into files that outlive the context window:
 
 ```
 Code + Git    →  WHAT changed
@@ -46,48 +46,59 @@ Plan files    →  HOW it was built
 Chronicles    →  WHY it happened
 ```
 
-- **Plan files** (`docs/plans/`) — the single source of truth for a task: state, clarifications, HOW-level locks, checklist, implementation log, verification, review. Clear the context and the agent reads this file to pick up where it left off.
-- **Chronicles** (`docs/chronicles/`) — the WHY: requirements verbatim, business context, rejected alternatives, discoveries made along the way.
+- **Plan files** (`docs/plans/`) — the single source of truth for a task: the situation, the agreed result, decisions and their reasons, a checklist, and a working record of standards, verification, and review. Clear the context and the agent reads this file to resume where it left off.
+- **Chronicles** (`docs/chronicles/`) — the WHY: the request in the user's own words, business context, decisions, rejected alternatives, and discoveries made along the way.
 
-Both are numbered like SQL migrations.
+Both are numbered like SQL migrations (`0001`, `0002`, …). Colliding numbers after a merge are renumbered by `resolve-merge`.
 
 ## How it works
 
-Every task is triaged at session start, then routed to the lightest workflow that fits:
+Every task takes one of two paths, defined in [`shared/development-loop.md`](shared/development-loop.md). The agent states the chosen path and why before the first change.
 
-- **`PASS_THROUGH`** — trivial, reversible, single-file (rename, typo, format). Runs directly.
-- **`LIGHT`** — mechanical, no design choice. A 6-step inline flow, no plan file.
-- **`FULL`** (default) — four gated phases, each a hard checkpoint:
+**Direct path** — only when the result, the solution, and the proof are all clear, the change reverses easily, and no business or design choice remains. Inspect, change, verify, report.
 
-| Phase | What happens |
+**Full path** — everything else; any uncertainty about the path means full.
+
+| Step | What happens |
 |---|---|
-| **1 · Research + Plan** | Gather context, write a plan with a 6-dimension *HOW-level locks* table (edge cases · data shapes · error semantics · contract boundaries · test scope · rollback). **The user approves before any code is written.** |
-| **2 · Chronicle** | Capture the WHY, or mark it `NOT NEEDED` with a reason. |
-| **3 · Implement + Verify** | Main-thread TDD (RED → GREEN → REFACTOR). No positive claim without fresh evidence: `IDENTIFY → RUN → READ → VERIFY → CLAIM`. |
-| **4 · Review + Finalize** | The `staff-reviewer` subagent runs a two-stage review (spec compliance → code quality) until `APPROVED`. You decide whether to commit. |
+| **1 · Decide** | Inspect first. State the problem, who it affects, the solved state, constraints, unknowns, and what would prove the answer wrong. `brainstorming` resolves a real choice between approaches. |
+| **2 · Define the proof** | Agree on what could expose failure. `create-test` designs the regression proof for non-trivial behavior, KPIs, integrations, or probabilistic output. |
+| **3 · Express** | Write the plan (`docs/plans/`) and start the chronicle (`docs/chronicles/`), then present result, checks, scope, approach, files, and risks. **The user approves before any code is written** — the original request alone does not authorize it. |
+| **4 · Implement** | Small slices, running the nearest useful check after each. When a test can prove behavior, watch it fail before the fix and pass after. |
+| **5 · Verify** | Fresh outcome checks and repository gates that could fail if the claim were false. Fix root causes; never weaken or skip a check. Report what was not checked. |
+| **6 · Explain diff** | When the change teaches a business, architecture, lifecycle, trade-off, or failure-mode concept, `explain-diff` transfers the mental model. Skippable when nothing qualifies. |
+| **7 · Review** | The `staff-reviewer` subagent reviews specification compliance, then code quality. Fix every blocking finding (CRITICAL/HIGH/MEDIUM), then finalize the plan and chronicle with `align-docs`. Commit only when asked. |
 
-The principles enforced across every phase live in [`shared/iron-rules.md`](shared/iron-rules.md) — 13 rules plus one meta-rule (spirit beats letter), referenced everywhere instead of duplicated.
+The session-start router ([`skills/using-development-skills/SKILL.md`](skills/using-development-skills/SKILL.md)) enforces the gates that keep this honest: read and apply the writing contract before the first text, discover and record the standards before the first change, state the path before mutating, hand off cleanly from native Plan mode, and invoke `explain-diff` through the real skill rather than imitating it.
 
 ## What's included
 
-**24 skills**, activated automatically by task or invoked with `/name`:
+**16 skills**, auto-triggered by task or invoked with `/name`:
 
-- **Workflow** — `core-dev`, `brainstorming`, `debugging`, `create-test`
-- **Languages** — `python-dev`, `typescript-dev`, `java-dev`, `swift-dev`, `frontend-dev`
-- **Review & quality** — `staff-review`, `roast-my-code`, `eval-regression`, `ai-agent-bench`
-- **Utilities** — `commit`, `changelog`, `distill`, `align-docs`, `resolve-merge`, `best-practices`, and more
+| Group | Skills |
+|---|---|
+| **Workflow** | `using-development-skills`, `brainstorming`, `create-test` |
+| **Review & quality** | `staff-review`, `roast-my-code`, `simplify-stuff` |
+| **Docs & release** | `align-docs`, `changelog`, `commit`, `handoff`, `resolve-merge` |
+| **Research & evals** | `best-practices`, `explain-diff`, `eval-regression`, `ai-agent-bench`, `plugin-feedback` |
 
-**One subagent** — `staff-reviewer`. Implementation and verification stay in the main thread ([why](shared/phases/phase-3-implement-verify.md)): fewer handoffs, less state to reconstruct.
+**One subagent** — [`staff-reviewer`](agents/staff-reviewer.md). Implementation and verification stay in the main thread: fewer handoffs, less state to reconstruct.
 
-**Auto-format on edit** (Claude Code) — ruff, biome/prettier, google-java-format, ktfmt, swift-format. On Codex, run formatters manually (commands in [`AGENTS.md`](AGENTS.md)).
+**Hooks** ([`hooks/`](hooks/)):
+
+| Hook | When | What it does |
+|---|---|---|
+| `session-start` | session start, `/clear`, `/compact` | Injects the `using-development-skills` router. |
+| `auto-format` | after an edit | Best-effort formatting for the edited file — ruff, biome/prettier, google-java-format, ktfmt, swift-format, and more. A convenience, not a language-convention claim. |
+| `plan-approved` | leaving Plan mode | Marks the handoff back into the full path. |
 
 ## Acknowledgments
 
-Inspired by [superpowers](https://github.com/obra/superpowers) by Jesse Vincent — spec-first brainstorming, subagent review, and bite-sized TDD plans. This plugin diverges with language-specific patterns, persistent chronicles for decision rationale, and a single canonical Iron Rules file referenced by every component.
+Inspired by [superpowers](https://github.com/obra/superpowers) by Jesse Vincent — spec-first brainstorming, subagent review, and bite-sized TDD plans. This plugin diverges with a two-path loop, persistent chronicles for decision rationale, a single review subagent, and a deliberately language-agnostic core.
 
 ## Contributing
 
-Contributions welcome — especially new language skills (Rust, Go, Kotlin, Ruby, C#). Open an issue first, then see [CONTRIBUTING.md](CONTRIBUTING.md).
+Contributions welcome — new skills, sharper workflow steps, clearer docs, and bug reports with reproduction steps. Open an issue first, then see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 

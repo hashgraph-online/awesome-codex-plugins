@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "full-stack-development": {
+      "cwd": ".",
+      "command": "node",
+      "args": [
+        "./mcp-server/src/index.js"
+      ]
+    },
+    "heroui-react": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@heroui/react-mcp@latest"
+      ]
+    }
+  }
+}

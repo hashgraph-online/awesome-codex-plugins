@@ -27,6 +27,21 @@ Subagent (general-purpose):
     label permits concurrent dispatch only when the controller confirms the
     platform supports it; never change the saved wave strategy yourself.
 
+    ## Repair Assignment (only when this is a repair)
+
+    The controller supplies the CLI repair round, previous review report, prior
+    review head, and the scoped repair range. Treat those as evidence and fix
+    only the documented finding in that scoped diff. Do not edit receipt or
+    repair-state files, choose a new wave, or dispatch dependent work.
+
+    ## Retry Assignment (only when retrying an unresolved implementer task)
+
+    The controller supplies the failed-attempt count, prior failure reason, one
+    objective, and only the necessary file paths. Do not repeat an approach
+    unless it names new evidence, new context, or a specific strategy change.
+    After three unresolved failures, return BLOCKED for human adjudication
+    without editing.
+
     ## Before You Begin
 
     If you have questions about:
@@ -105,6 +120,12 @@ Subagent (general-purpose):
     - Did I follow existing patterns in the codebase?
 
     **Testing:**
+    - Read `skills/build-executor/writing-good-tests.md` before judging test evidence.
+    - Does each behavior test state an observable behavior, use an independent expectation,
+      and name a plausible production change that would make it fail?
+    - Have I labeled documentation-contract checks as such instead of presenting text-presence
+      assertions as runtime behavior tests? For documentation-only work, did I use the applicable
+      format, link, lint, or build evidence without inventing unit tests?
     - Do tests actually verify behavior (not just mock behavior)?
     - Did I follow TDD if required?
     - Are tests comprehensive?

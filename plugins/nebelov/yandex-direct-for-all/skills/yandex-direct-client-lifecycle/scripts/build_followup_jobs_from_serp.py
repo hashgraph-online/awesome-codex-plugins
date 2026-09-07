@@ -1,119 +1,49 @@
 #!/usr/bin/env python3
-"""Build page-capture and sitemap batch jobs from raw organic SERP rows."""
+"""Создать выключенные задания продолжения с одной строкой на каждый источник."""
 
 from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
+import json
 import re
 from collections import defaultdict
 from pathlib import Path
 from urllib.parse import urlparse
 
 
-PAGE_CAPTURE_HEADER = [
-    "capture_id",
-    "source_url",
-    "brand",
-    "keyword",
-    "layer",
-    "enabled",
-    "notes",
-]
-
-SITEMAP_HEADER = [
-    "site_id",
-    "base_url",
-    "include_keywords",
-    "enabled",
-    "notes",
-]
-
-
 def clean(value: str | None) -> str:
-    if not value:
-        return ""
-    return re.sub(r"\s+", " ", value).strip()
+    return re.sub(r"\s+", " ", value or "").strip()
 
 
-def slugify(value: str) -> str:
-    value = re.sub(r"[^0-9A-Za-zА-Яа-яЁё._-]+", "-", value.strip().lower())
-    value = re.sub(r"-{2,}", "-", value).strip("-")
-    return value[:80] or "item"
+def slug(value: str) -> str:
+    return re.sub(r"-+", "-", re.sub(r"[^0-9A-Za-zА-Яа-яЁё._-]+", "-", value.lower())).strip("-")[:80] or "item"
 
 
-def normalize_domain(domain: str) -> str:
-    domain = clean(domain).lower()
+def domain_of(row: dict[str, str]) -> str:
+    domain = clean(row.get("result_domain")).lower()
     if domain.startswith("www."):
         domain = domain[4:]
     return domain
 
 
-def read_exclude_domains(path: Path) -> list[str]:
-    domains: list[str] = []
-    for line in path.read_text(encoding="utf-8").splitlines():
-        value = clean(line)
-        if not value or value.startswith("#"):
-            continue
-        domains.append(normalize_domain(value))
-    return domains
+def read_list(path: str | None) -> list[str]:
+    if not path:
+        return []
+    return [clean(line).lower() for line in Path(path).read_text(encoding="utf-8").splitlines() if clean(line) and not clean(line).startswith("#")]
 
 
-def read_patterns(path: Path) -> list[str]:
-    patterns: list[str] = []
-    for line in path.read_text(encoding="utf-8").splitlines():
-        value = clean(line)
-        if not value or value.startswith("#"):
-            continue
-        patterns.append(value)
-    return patterns
+def blocked(domain: str, values: list[str]) -> bool:
+    return any(domain == item or domain.endswith("." + item) for item in values)
 
 
-def is_excluded(domain: str, excluded: list[str]) -> bool:
-    normalized = normalize_domain(domain)
-    for blocked in excluded:
-        if normalized == blocked or normalized.endswith("." + blocked):
-            return True
-    return False
-
-
-def url_matches_patterns(url: str, patterns: list[str]) -> bool:
-    text = clean(url).lower()
-    return any(pattern.lower() in text for pattern in patterns)
-
-
-def read_rows(path: Path) -> list[dict[str, str]]:
-    with path.open("r", encoding="utf-8", newline="") as handle:
-        reader = csv.DictReader(handle, delimiter="\t")
-        required = {"search_query", "search_region", "result_rank", "result_domain", "source_url"}
-        missing = required - set(reader.fieldnames or [])
-        if missing:
-            raise ValueError(f"serp results missing columns: {sorted(missing)}")
-        return list(reader)
-
-
-def write_tsv(path: Path, header: list[str], rows: list[dict[str, str]]) -> None:
+def write(path: Path, fields: list[str], rows: list[dict[str, str]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=header, delimiter="\t")
+        writer = csv.DictWriter(handle, fieldnames=fields, delimiter="\t")
         writer.writeheader()
         writer.writerows(rows)
-
-
-def path_tokens(url: str) -> list[str]:
-    parsed = urlparse(url)
-    raw = re.split(r"[/_.?=&%-]+", parsed.path.lower())
-    tokens: list[str] = []
-    for item in raw:
-        token = clean(item)
-        if not token or len(token) < 4:
-            continue
-        if token.isdigit():
-            continue
-        if token in {"html", "php", "catalog", "articles", "article", "blog", "shop", "support", "upload", "news"}:
-            continue
-        tokens.append(token)
-    return tokens
 
 
 def main() -> int:
@@ -128,129 +58,74 @@ def main() -> int:
     parser.add_argument("--exclude-url-patterns-file")
     parser.add_argument("--top-results-per-query-geo", type=int, default=10)
     parser.add_argument("--max-urls-per-domain", type=int, default=2)
-    parser.add_argument("--max-domains", type=int, default=None)
+    parser.add_argument("--max-domains", type=int)
     args = parser.parse_args()
-
-    rows = read_rows(Path(args.serp_results).expanduser().resolve())
-    excluded = [normalize_domain(item) for item in args.exclude_domain]
-    if args.exclude_domains_file:
-        excluded.extend(read_exclude_domains(Path(args.exclude_domains_file).expanduser().resolve()))
-    allowed: set[str] | None = None
-    if args.allow_domains_file:
-        allowed = set(read_exclude_domains(Path(args.allow_domains_file).expanduser().resolve()))
-    exclude_url_patterns = list(args.exclude_url_pattern)
-    if args.exclude_url_patterns_file:
-        exclude_url_patterns.extend(read_patterns(Path(args.exclude_url_patterns_file).expanduser().resolve()))
-
-    query_geo_seen: dict[tuple[str, str], int] = defaultdict(int)
-    domain_payload: dict[str, dict[str, object]] = {}
-
-    for row in sorted(rows, key=lambda item: (item["search_query"], item["search_region"], int(item["result_rank"] or "999999"))):
+    with Path(args.serp_results).open(encoding="utf-8-sig", newline="") as handle:
+        reader = csv.DictReader(handle, delimiter="\t")
+        rows = list(reader)
+    excluded = [value.lower() for value in args.exclude_domain + read_list(args.exclude_domains_file)]
+    allowed = set(read_list(args.allow_domains_file)) if args.allow_domains_file else None
+    patterns = [value.lower() for value in args.exclude_url_pattern + read_list(args.exclude_url_patterns_file)]
+    query_geo_count: defaultdict[tuple[str, str], int] = defaultdict(int)
+    domain_count: defaultdict[str, int] = defaultdict(int)
+    domains_seen: list[str] = []
+    pages: list[dict[str, str]] = []
+    sitemaps: list[dict[str, str]] = []
+    for index, row in enumerate(rows, 1):
         query = clean(row.get("search_query"))
-        geo = clean(row.get("search_region"))
-        key = (query, geo)
-        query_geo_seen[key] += 1
-        if query_geo_seen[key] > args.top_results_per_query_geo:
-            continue
-
-        domain = normalize_domain(row.get("result_domain", ""))
-        source_url = clean(row.get("source_url"))
-        if not domain or not source_url or is_excluded(domain, excluded):
-            continue
+        region = clean(row.get("search_region"))
+        page_url = clean(row.get("source_url"))
+        domain = domain_of(row)
+        raw = json.dumps(row, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        digest = hashlib.sha256(raw.encode("utf-8")).hexdigest()
+        reasons: list[str] = []
+        query_geo_count[(query, region)] += 1
+        domain_count[domain] += 1
+        if domain and domain not in domains_seen:
+            domains_seen.append(domain)
+        if not domain or not page_url:
+            reasons.append("missing_domain_or_page")
+        if blocked(domain, excluded):
+            reasons.append("excluded_domain_rule")
         if allowed is not None and domain not in allowed:
-            continue
-        if url_matches_patterns(source_url, exclude_url_patterns):
-            continue
-
-        payload = domain_payload.setdefault(
-            domain,
-            {
-                "first_url": source_url,
-                "scheme": urlparse(source_url).scheme or "https",
-                "keywords": [],
-                "keyword_seen": set(),
-                "regions": [],
-                "region_seen": set(),
-                "urls": [],
-                "url_seen": set(),
-                "path_tokens": [],
-                "path_token_seen": set(),
-            },
-        )
-
-        if source_url not in payload["url_seen"] and len(payload["urls"]) < args.max_urls_per_domain:
-            payload["url_seen"].add(source_url)
-            payload["urls"].append(source_url)
-
-        for token in path_tokens(source_url):
-            if token not in payload["path_token_seen"]:
-                payload["path_token_seen"].add(token)
-                payload["path_tokens"].append(token)
-
-        if query and query not in payload["keyword_seen"]:
-            payload["keyword_seen"].add(query)
-            payload["keywords"].append(query)
-
-        if geo and geo not in payload["region_seen"]:
-            payload["region_seen"].add(geo)
-            payload["regions"].append(geo)
-
-    page_rows: list[dict[str, str]] = []
-    sitemap_rows: list[dict[str, str]] = []
-    capture_index = 1
-
-    domains = sorted(
-        domain_payload,
-        key=lambda domain: (
-            -len(domain_payload[domain]["keywords"]),
-            -len(domain_payload[domain]["regions"]),
-            domain,
-        ),
-    )
-    if args.max_domains is not None:
-        domains = domains[: max(args.max_domains, 0)]
-
-    for domain in domains:
-        payload = domain_payload[domain]
-        keywords = payload["keywords"]
-        regions = payload["regions"]
-        urls = payload["urls"]
-        keyword_tokens = payload["path_tokens"]
-        base_url = f"{payload['scheme']}://{domain}"
-        notes = clean(
-            f"domain={domain}; keywords={', '.join(keywords[:8])}; path_tokens={', '.join(keyword_tokens[:12])}; geos={', '.join(regions[:8])}; source=validated-organic-serp"
-        )
-
-        sitemap_rows.append(
-            {
-                "site_id": slugify(domain),
-                "base_url": base_url,
-                "include_keywords": ",".join(keyword_tokens[:16]),
-                "enabled": "1",
-                "notes": notes,
-            }
-        )
-
-        for url in urls:
-            page_rows.append(
-                {
-                    "capture_id": f"kw-{capture_index:03d}",
-                    "source_url": url,
-                    "brand": domain,
-                    "keyword": keywords[0] if keywords else "",
-                    "layer": "organic_serp",
-                    "enabled": "1",
-                    "notes": notes,
-                }
-            )
-            capture_index += 1
-
-    write_tsv(Path(args.page_capture_out).expanduser().resolve(), PAGE_CAPTURE_HEADER, page_rows)
-    write_tsv(Path(args.sitemap_out).expanduser().resolve(), SITEMAP_HEADER, sitemap_rows)
-    print(
-        f"domains={len(sitemap_rows)} page_capture_jobs={len(page_rows)} "
-        f"top_results_per_query_geo={args.top_results_per_query_geo} max_urls_per_domain={args.max_urls_per_domain}"
-    )
+            reasons.append("outside_allowed_domains")
+        if any(pattern in page_url.lower() for pattern in patterns):
+            reasons.append("excluded_page_rule")
+        if query_geo_count[(query, region)] > args.top_results_per_query_geo:
+            reasons.append("outside_query_region_window")
+        if domain_count[domain] > args.max_urls_per_domain:
+            reasons.append("outside_domain_url_window")
+        if args.max_domains is not None and domain in domains_seen[max(args.max_domains, 0):]:
+            reasons.append("outside_domain_window")
+        status = "candidate" if not reasons else "skipped"
+        base_url = f"{urlparse(page_url).scheme or 'https'}://{domain}" if domain else ""
+        common = {
+            "source_row_sha256": digest,
+            "search_query": query,
+            "search_region": region,
+            "serp_page_url": page_url,
+            "domain": domain,
+            "enabled": "0",
+            "status": status,
+            "skip_reason": "|".join(reasons),
+            "notes": "Требуется ручное включение",
+        }
+        pages.append({
+            "capture_id": f"candidate-{index:04d}", "source_url": page_url, "brand": domain,
+            "keyword": query, **common, "site_page_url": page_url, "layer": "organic_serp",
+        })
+        sitemaps.append({
+            "site_id": f"candidate-{index:04d}-{slug(domain)}", "domain": domain, "base_url": base_url,
+            "include_keywords": "", "source_row_sha256": digest, "enabled": "0", "status": status,
+            "skip_reason": "|".join(reasons), "notes": "Требуется ручное включение",
+        })
+    page_fields = ["capture_id", "source_url", "brand", "keyword", "source_row_sha256", "search_query", "search_region", "serp_page_url", "domain", "site_page_url", "layer", "enabled", "status", "skip_reason", "notes"]
+    sitemap_fields = ["site_id", "domain", "base_url", "include_keywords", "source_row_sha256", "enabled", "status", "skip_reason", "notes"]
+    write(Path(args.page_capture_out), page_fields, pages)
+    write(Path(args.sitemap_out), sitemap_fields, sitemaps)
+    if len(pages) != len(rows) or len(sitemaps) != len(rows):
+        raise SystemExit("Число строк продолжения не совпало с источником")
+    print(f"source_rows={len(rows)} page_rows={len(pages)} sitemap_rows={len(sitemaps)} enabled=0")
     return 0
 
 

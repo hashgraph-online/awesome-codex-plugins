@@ -1,12 +1,44 @@
 # Session Orchestrator
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-3.14.0-blue.svg)](CHANGELOG.md)
-[![Tests](https://img.shields.io/badge/tests-10%2C000%2B-brightgreen.svg)](docs/telemetry/telemetry-claims.md)
+[![Version](https://img.shields.io/badge/version-3.23.0-blue.svg)](CHANGELOG.md)
+[![npm](https://img.shields.io/npm/v/session-orchestrator.svg)](https://www.npmjs.com/package/session-orchestrator)
+[![Tests](https://img.shields.io/badge/tests-12%2C000%2B-brightgreen.svg)](docs/telemetry/telemetry-claims.md)
 
-Turn ad-hoc agent sessions into a repeatable loop with verification gates — loop engineering for software work. You design the loop (`research → plan → execute in waves → close`); Session Orchestrator runs it on top of your existing agent, with the guards, telemetry, and cross-session memory that keep a long agent run honest. Inter-wave reviews catch regressions before they ship; carryover issues mean loose ends get tracked, not lost.
+Loop engineering for AI coding agents — turn ad-hoc sessions into a repeatable research → plan → wave-execute → close loop with verification gates. Runs on **Claude Code, Codex CLI, Cursor, and [Pi](docs/pi-setup.md)**.
 
-Works with **Claude Code, Codex CLI, Cursor IDE, and [Pi](docs/pi-setup.md)** — the same skills and commands across all four, with platform-adapted hooks and enforcement (see [Platform support](#platform-support)). Community plugin (MIT, community-maintained) for solo devs and small teams.
+The same skills and commands run across all four, with platform-adapted hooks and enforcement (see [Platform support](#platform-support)). Community plugin (MIT, community-maintained) for solo devs and small teams.
+
+## Install
+
+> **Prerequisite:** Node.js 24 or later (`node --version`). v3.x runs as ES modules and needs a real Node runtime. [Install Node.js](https://nodejs.org/).
+
+| Platform | Install |
+|---|---|
+| **Claude Code** | `/plugin marketplace add Kanevry/session-orchestrator` then `/plugin install session-orchestrator@kanevry` (run both inside Claude Code). Also listed on the official community catalog: `/plugin install session-orchestrator@claude-community` (that catalog can lag HEAD). |
+| **Codex CLI** | `git clone https://github.com/Kanevry/session-orchestrator.git ~/Projects/session-orchestrator && cd ~/Projects/session-orchestrator && npm install && node scripts/codex-install.mjs` |
+| **Cursor IDE** | `git clone https://github.com/Kanevry/session-orchestrator.git ~/Projects/session-orchestrator && cd ~/Projects/session-orchestrator && npm install && node scripts/cursor-install.mjs /path/to/your/project` |
+| **Pi** | `pi install npm:session-orchestrator` — or dev-fallback: `git clone https://github.com/Kanevry/session-orchestrator.git ~/Projects/session-orchestrator && cd ~/Projects/session-orchestrator && npm install && node scripts/pi-install.mjs /path/to/your/project --settings-only` |
+
+For Claude Code, also install Node dependencies **once** (hooks import `zx`) and restart Claude Code:
+
+```bash
+# Claude Code has no `plugin dir` subcommand, so resolve the install path from the cache.
+SO_DIR="$(dirname "$(find ~/.claude/plugins/cache -path '*session-orchestrator*' -name package.json 2>/dev/null | head -1)")"
+cd "$SO_DIR" && npm install
+```
+
+If `SO_DIR` comes back empty, the plugin is not installed from a marketplace — check
+`/plugin list` inside Claude Code first.
+
+Setup guides: [Codex](docs/codex-setup.md) · [Cursor IDE](docs/cursor-setup.md) · [Pi](docs/pi-setup.md). Per-IDE notes on `CLAUDE.md` vs `AGENTS.md`: [instruction-file-resolution](skills/_shared/instruction-file-resolution.md).
+
+## What makes it different
+
+- **Verification gates** — every wave ends at a typecheck/lint/test gate; a confidence-filtered session-reviewer catches regressions between waves, not only at the end.
+- **Wave orchestration** — five typed roles (Discovery → Impl-Core → Impl-Polish → Quality → Finalization), parallel subagents inside each wave, not one big batch.
+- **Persistent memory & learnings** — `STATE.md` survives crashes and resumes the next session; `/evolve` extracts confidence-scored patterns across sessions, nothing hidden.
+- **Multi-harness** — the same skills and commands run on Claude Code, Codex CLI, Cursor IDE, and Pi, with platform-adapted hooks and enforcement.
 
 ## A session in three commands
 
@@ -18,41 +50,9 @@ Works with **Claude Code, Codex CLI, Cursor IDE, and [Pi](docs/pi-setup.md)** �
 
 That is the whole loop. `/plan` and `/evolve` extend it (see [Lifecycle](#lifecycle-at-a-glance)), but you can start with just these three.
 
-## Install
-
-> **Prerequisite:** Node.js 24 or later (`node --version`). v3.x runs as ES modules and needs a real Node runtime. [Install Node.js](https://nodejs.org/).
-
-The two paths below differ only by **install mechanism**, not capability or tier: Claude Code pulls from the plugin marketplace; every other platform clones the repo. The same skills and commands ship to all four.
-
-### Claude Code (plugin marketplace)
-
-Run these two slash commands **inside** Claude Code (not in a shell):
-
-```text
-/plugin marketplace add Kanevry/session-orchestrator
-/plugin install session-orchestrator@kanevry
-```
-
-Then install Node dependencies **once** (hooks import `zx`) and restart Claude Code:
-
-```bash
-cd "$(claude plugin dir session-orchestrator 2>/dev/null || echo ~/.claude/plugins/session-orchestrator)"
-npm install
-```
-
-### Codex CLI, Cursor IDE & Pi (git clone)
-
-```bash
-git clone https://github.com/Kanevry/session-orchestrator.git ~/Projects/session-orchestrator
-cd ~/Projects/session-orchestrator && npm install
-node scripts/codex-install.mjs                          # Codex CLI
-node scripts/cursor-install.mjs /path/to/your/project   # Cursor IDE
-node scripts/pi-install.mjs    /path/to/your/project --settings-only   # Pi
-```
-
-Setup guides: [Codex](docs/codex-setup.md) · [Cursor IDE](docs/cursor-setup.md) · [Pi](docs/pi-setup.md). Per-IDE notes on `CLAUDE.md` vs `AGENTS.md`: [instruction-file-resolution](skills/_shared/instruction-file-resolution.md).
-
 ## Quick Start
+
+Run `/bootstrap` in your project repo first — it writes `.orchestrator/bootstrap.lock`, which session-start requires before `/session` will run.
 
 Add a `## Session Config` section to your project's `CLAUDE.md` (Claude Code and Cursor IDE) or `AGENTS.md` (Codex CLI and Pi) — see [instruction-file-resolution](skills/_shared/instruction-file-resolution.md) for which file each platform reads. The smallest valid config is seven fields:
 
@@ -72,9 +72,9 @@ Everything else is opt-in. See [`docs/session-config-template.md`](docs/session-
 
 ## What you get
 
-- **43 skills** for the session lifecycle (start, plan, execute, close, evolve), discovery, vault sync, MCP authoring, debugging, brainstorming, plan grilling, persona panels, cross-repo dispatch, learning→rule reconciliation, audits, and more
-- **23 slash commands** (`/session`, `/go`, `/close`, `/discovery`, `/plan`, `/grill`, `/evolve`, `/autopilot`, `/dispatcher`, `/reconcile`, `/test`, `/debug`, …)
-- **14 typed subagents** (code-implementer, test-writer, security-reviewer, session-reviewer, qa-strategist, architect-reviewer, …)
+- **48 skills** for the session lifecycle (start, plan, execute, close, evolve), discovery, vault sync, MCP authoring, debugging, brainstorming, plan grilling, persona panels, cross-repo dispatch, learning→rule reconciliation, session-process eval, audits, and more
+- **28 slash commands** (`/session`, `/go`, `/close`, `/discovery`, `/plan`, `/grill`, `/evolve`, `/autopilot`, `/dispatcher`, `/reconcile`, `/eval`, `/test`, `/debug`, …)
+- **15 typed subagents** (code-implementer, test-writer, security-reviewer, session-reviewer, qa-strategist, architect-reviewer, …)
 - **10 hook event types** enforcing scope, blocking destructive commands, gating templates-first, capturing telemetry — full on Claude Code; experimental, post-hoc, or bridged on the other platforms ([Platform support](#platform-support))
 - **10,000+ vitest tests** run on every commit ([telemetry methodology](docs/telemetry/telemetry-claims.md))
 
@@ -129,22 +129,23 @@ The system is markdown-driven config plus a thin Node runtime — skills, comman
 - **Five typed waves, not one big batch.** Discovery first, so implementers start with shared context. Impl-Core before Impl-Polish, so architecture lands before integrations. Quality runs a *simplification pass* on AI-generated code **before** tests are written — otherwise tests pin the AI patterns into place.
 - **Inter-wave reviews, not just end-of-session.** Catching regressions between waves — not only at the end — stops a bad pattern from propagating into later work; the confidence floor filters speculative criticism so only high-signal findings reach you.
 - **State persists across crashes.** `STATE.md` records wave progress and deviations; the next `/session` offers to resume from the last completed wave.
-- **Hooks enforce, not just warn.** A pre-Bash guard blocks destructive shell commands, and pre-Edit scope enforcement blocks writes outside an agent's allowed paths — in main sessions and subagent waves alike (specifics in [Safety](#safety)). This hard enforcement is full on Claude Code; it degrades to experimental / post-hoc / bridged on Codex CLI, Cursor IDE, and Pi (see [Platform support](#platform-support)).
+- **Hooks enforce, not just warn.** A pre-Bash guard blocks destructive shell commands, and pre-Edit scope enforcement blocks writes outside an agent's allowed paths — in main sessions and subagent waves alike (specifics in [Safety](#safety)). This hard enforcement is full on Claude Code; Cursor and Pi reach it through payload bridges; Codex is still pending a real `apply_patch` adapter (see [Platform support](#platform-support)).
 - **Cross-session learning is opt-in and inspectable.** Every session writes a record; after 5+ sessions `/evolve analyze` extracts confidence-scored patterns you can read and prune. Nothing is hidden.
 - **VCS dual support, no lock-in.** Auto-detects GitLab or GitHub from your remote and drives the full lifecycle for both.
 
-## Recent highlights (v3.14.0)
+## Recent highlights (v3.23.0)
 
-Every release is additive and backward-compatible. Highlights of the v3.14.0 line:
+Every release is additive and backward-compatible. Highlights of the v3.23.0 line: the first shaped by three external bug reports on the public mirror (Kanevry#64, #65, #66), all three reproduced, fixed and live-verified:
 
-- **STATE.md write safety, closed-loop** — the yaml-parser is now a true parse/serialize inverse (no more silent type flips on round-trip), which made it safe to activate the frontmatter-safe write guard inside `writeStateMd`: future serializer/parser drift is refused at the write choke-point instead of ballooning the file.
-- **Scope-union subset assertion** — before a wave fans out, every agent's declared file-scope is asserted to be a subset of the wave's scope-union (`validate-wave-scope --assert-subset`); scope-manifest gaps fail loud pre-dispatch instead of surfacing as blocked edits mid-wave.
-- **Peer-discovery self-exclusion** — a session no longer reports its own registry entry as a parallel peer, removing a false-positive from the parallel-session machinery.
-- **`paths:` rule-frontmatter alias** — path-scoped rules written with `paths:` instead of `globs:` now scope correctly (and stop inflating the always-on instruction budget).
-- **Memory-proposals write guard** — argument-shape typos throw instead of silently writing nothing, and the proposals queue is archived before it is cleared, so approved learnings can no longer vanish.
-- **`/loop` cadence re-derivation** — wakeup-cadence guidance now reflects the 1-hour prompt-cache TTL on subscription main conversations: no cache cliff in the [60s, 3600s] range; pick cadence by observation-rate.
+- **Codex CLI mints UUIDv7 session ids; every reader accepted only v4 (#66 / #1091)** — each SessionStart minted a fresh v4, so a resumed or compacted thread read its own lock as a foreign session. `parseSessionId` now accepts RFC 9562 versions 1–8 and the stop/end hooks apply the writer's rule, so one id owns the lock from start through release. The `UUID_V4_RE` alias is gone: zero importers, and a name that said v4 while matching v1–8.
+- **Every `/close` wrote 0 of 5 recommendation fields (#65 / #1036)** — the documented Phase 3.7a call passed `undefined` where a repo root is required, and the fail-open catch hid it on every run. The snippet binds the root; the catch now names the cause. A second defect found while verifying the fix: backticks in a comment inside a `node -e "…"` string made bash execute `undefined` on each close.
+- **Codex copies a marketplace plugin and starts the MCP child with no plugin-root variable (#64)** — measured: the copy lives under `~/.codex/plugins/cache/<marketplace>/session-orchestrator/<version>/`, and from a non-git cwd the launcher resolved to `/scripts/mcp-server.sh`. `.mcp.json` and `plugin-root.mjs` gained a cache-scan tier with a name-matched `package.json`, and `.mcp.json` now mirrors the module's tier order under two drift tests. Existing installs need a reinstall — Codex snapshots `.mcp.json` at install time.
+- **Worktree-Auto-Promotion is a process boundary, not a live migration (#1069, ADR-0013)** — the source session deregisters and releases its lock before the new worktree's session acquires (`leaveSourceRoot()`, called from inside `enterWorktree()` since #1170), which removes the phantom peer that stayed visible for up to 60 minutes. Because the new session's id never equals the worktree suffix, Phase 4a cleanup keys on a promotion marker written at creation time; the review panel found that key dead before any user did.
+- **The host registry contributed nothing to session numbering (#1066)** — the census projected only raw UUIDs, which the n-increment discards. It now counts `semantic_session_id`, so two sessions on one host cannot mint the same label. The semantic id stays a best-effort label; ownership remains the raw id plus owner proof.
+- **The mode selector scored a field no record carries (#1071)** — `completion_rate` sits under `effectiveness` in all 281 ledger records; the flat read was always `undefined`, so the high-completion bonus was unreachable and the fixtures pinned a shape production never writes. Fixed with a nested-first read and a divisor test for the 99 records that carry no rate at all.
+- **Semgrep regained two rules a path filter had dropped (#1129)** — re-aimed at this repo's real trust boundary (hook stdin, child-process stdout), taint-mode; the first true positives were three unguarded `JSON.parse` calls on `glab`/`gh` output in the CI banner. A proposed spread-sink was refused with a measurement: object spread cannot pollute a prototype.
 
-Previous line (v3.13.0): issue premise verification, broken-window budget, confidential-names guard, PM toolkit complete, rules library activated.
+Previous line (v3.22.0): instruments that confidently measured the wrong quantity — the 99%-firing resource warning, the AUQ audit, and the lock-release identity split.
 
 Full version history: [CHANGELOG.md](CHANGELOG.md).
 
@@ -167,16 +168,18 @@ The design goal is engineering quality: every wave exits verified, every unfinis
 
 | Feature | Claude Code | Codex CLI | Cursor IDE | Pi |
 |---|---|---|---|---|
-| All 23 commands | Native slash commands | Native plugin commands | Rules-based (.mdc) | Prompt templates |
+| All 28 commands | Native slash commands | Native plugin commands | Native `.cursor/commands` slash commands | Prompt templates |
 | Parallel agents | Agent tool | Multi-agent roles | Sequential only | Sequential (parallel planned) |
 | Session persistence | `.claude/STATE.md` | `.codex/STATE.md` | `.cursor/STATE.md` | `.pi/STATE.md` |
-| Scope enforcement | PreToolUse hooks | Hooks (experimental) | `afterFileEdit` (post-hoc) | `tool_call` bridge |
+| Scope enforcement | PreToolUse hooks | Unavailable — pending a real `apply_patch` adapter | `preToolUse` + `beforeShellExecution` via cursor-hook-bridge; `afterFileEdit` post-hoc | `tool_call` bridge |
 | AskUserQuestion | Native tool | Numbered-list fallback | Numbered-list fallback | Numbered-list fallback |
 | Quality gates | Full | Full | Full | Full |
 
-All platforms share the same skills, commands, hooks, and scripts; platform-specific adaptation lives in `scripts/lib/platform.mjs`. **OS:** macOS and Linux are first-class and run in CI (`ubuntu-latest`, `macos-latest`). Windows runs natively (all paths via `path.join`, tmp via `os.tmpdir()`) but is **not** covered by CI — treat it as best-effort and run smoke tests locally when changing OS-sensitive code. Cursor and Pi have known event-coverage caveats — see [`docs/cursor-setup.md`](docs/cursor-setup.md) and [`docs/pi-setup.md`](docs/pi-setup.md).
+All platforms share the same skills, commands, and scripts; hooks use platform-specific adapters and event subsets. Codex intentionally wires only its six supported project event slots and omits Claude-only events plus Edit/Write payload handlers until a real Codex `apply_patch` adapter exists, so scope enforcement is currently unavailable there. Platform detection and adaptation live in `scripts/lib/platform.mjs`. **OS:** macOS and Linux are first-class and run in CI (`ubuntu-latest`, `macos-latest`). Windows runs natively (all paths via `path.join`, tmp via `os.tmpdir()`) but is **not** covered by CI — treat it as best-effort and run smoke tests locally when changing OS-sensitive code. Cursor and Pi have known event-coverage caveats — see [`docs/cursor-setup.md`](docs/cursor-setup.md) and [`docs/pi-setup.md`](docs/pi-setup.md).
 
 ## Troubleshooting
+
+**Codex plugin or hooks not loading.** Start with `codex plugin list --available --json`. Confirm `session-orchestrator@kanevry` is installed, enabled, unique, and at the tracked manifest version; then start a fresh task and review `/hooks`. Remove only the two allowlisted legacy IDs through `codex plugin remove`, and resolve marketplace conflicts through the public marketplace remove/add lifecycle before reinstalling. Any other pre-public plugin/config/cache/hook-state residue is unsupported: do not modify private Codex files; file an issue with `codex --version` plus the public plugin and marketplace list output. The full decision tree is in [`docs/codex-setup.md`](docs/codex-setup.md#troubleshooting).
 
 **"'node' not found on the hook PATH — plugin hooks are skipped."** The harness executes hook commands via `/bin/sh -c` with its own PATH — that shell does not source `~/.zshrc`/`~/.bashrc`, so Node installed via Homebrew (`/opt/homebrew/bin`), nvm, volta, or asdf can be invisible to hooks even though `node` works fine in your terminal. All hook commands route through [`hooks/run-node.sh`](hooks/run-node.sh), which resolves Node via `$SO_NODE_BIN` → PATH → well-known install dirs → nvm and degrades gracefully when nothing is found: hooks are skipped with **one** warning per 6 hours instead of a shell error on every tool call. Fixes, in order of preference: launch the harness from a shell where `node` resolves; export `SO_NODE_BIN=/abs/path/to/node`; or install Node 24+ to a standard location.
 
@@ -202,6 +205,8 @@ npm run typecheck # node --check on every .mjs file
 
 `.npmrc` ships with `ignore-scripts=true` (supply-chain defence), so Husky git hooks don't auto-wire on install — run `npx husky` once after cloning. `git commit` then runs gitleaks → owner-privacy scan → lint-staged → commitlint. CI re-runs everything, plus more.
 
+Two directories share the name *rules* and play opposite roles: [`rules/`](rules/README.md) is the **deliverable rule library** shipped *out* to consumer repos via `/bootstrap --sync-rules`, while [`.claude/rules/`](.claude/rules/) is this repo's own always-on rule set.
+
 Contributor docs: [Plugin Architecture (v3)](docs/plugin-architecture-v3.md) · [CONTRIBUTING.md](CONTRIBUTING.md) · [agent authoring spec](agents/AGENTS.md).
 
 ## Support & scope
@@ -215,7 +220,7 @@ What it is **not**:
 
 - **Not an official product of any agent vendor.** An independent, community-maintained project — not affiliated with, endorsed by, or sponsored by Anthropic, OpenAI, Cursor, or any agent it integrates with. (It is distributed through the Claude Code plugin marketplace, but is not an Anthropic product.)
 - **Not a replacement** for Claude Code / Codex CLI / Cursor / Pi. It is a workflow layer that runs *on top of* your existing agent — you still need one of those installed.
-- **Not a hosted service.** Runs locally — no server, account, or cloud component.
+- **Local by default.** Runs locally — no account required. Optional, strictly opt-in anonymous usage telemetry (off until you consent; see [docs/telemetry.md](docs/telemetry.md)).
 - **No guarantee that telemetry numbers transfer to your repo.** Reported test counts and metrics describe *this* repository under its own conditions ([details](docs/telemetry/telemetry-claims.md)). Your results will vary by stack, project size, and configuration.
 
 ## Documentation
@@ -225,6 +230,7 @@ What it is **not**:
 - [Components & Reference](docs/components.md) — full skill/command/agent/hook inventory, repository anatomy, comparisons
 - [Plugin Architecture (v3)](docs/plugin-architecture-v3.md) — contributor guide, layering, hook anatomy, testing
 - [Migration to v3](docs/migration-v3.md) — upgrade path from v2.x, known issues, rollback
+- [Telemetry](docs/telemetry.md) — what the optional opt-in usage telemetry collects, and how to turn it off
 - [Telemetry claims](docs/telemetry/telemetry-claims.md) — how reported metrics are measured, and why they may not transfer
 - [Example Configs](docs/examples/) — Session Config examples for Next.js, Express, Swift
 - [CHANGELOG.md](CHANGELOG.md) — version history
@@ -242,7 +248,7 @@ The plugin is free and MIT. The courses are for going deeper, not a requirement 
 
 ## Links
 
-- [Homepage](https://gotzendorfer.at/en/session-orchestrator) · [Privacy Policy](https://gotzendorfer.at/en/session-orchestrator/privacy)
+- [Homepage](https://session-orchestrator.com) · [Privacy Policy](https://gotzendorfer.at/en/session-orchestrator/privacy)
 
 ## License
 

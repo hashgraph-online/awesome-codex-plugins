@@ -14,19 +14,21 @@
 - Ставки: KeywordBids
 
 Запуск:
-  python3 campaign_autotest.py --token TOKEN --login LOGIN --campaign-ids 123,456
+  python3 campaign_autotest.py --access-file ~/.config/yandex-direct-for-all/direct-access.json --campaign-ids 123,456
 
 Или из Codex:
   python3 <plugin-root>/skills/yandex-performance-ops/scripts/campaign_autotest.py \
-    --token "y0__xxx" --login "e-12345" --campaign-ids "707558165,707558664"
+    --access-file ~/.config/yandex-direct-for-all/direct-access.json --campaign-ids "10000001,10000002"
 """
 
 import argparse
 import json
+import os
 import sys
-import urllib.request
-import urllib.error
 from datetime import datetime
+from pathlib import Path
+
+from check_access_paths import PageManifestStore, fetch_direct_pages, load_direct_access
 
 # === КОНФИГ ===
 API_V5 = "https://api.direct.yandex.com/json/v5"
@@ -40,30 +42,10 @@ CYAN = "\033[96m"
 BOLD = "\033[1m"
 RESET = "\033[0m"
 
-def api_call(endpoint, method_name, params, token, login, version="v5"):
-    """Вызов API Директа"""
-    base = API_V501 if version == "v501" else API_V5
-    url = f"{base}/{endpoint}"
-    body = json.dumps({"method": method_name, "params": params}).encode("utf-8")
-    req = urllib.request.Request(url, data=body, headers={
-        "Authorization": f"Bearer {token}",
-        "Client-Login": login,
-        "Content-Type": "application/json",
-        "Accept-Language": "ru"
-    })
-    try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            return json.loads(resp.read().decode("utf-8"))
-    except urllib.error.HTTPError as e:
-        return {"error": json.loads(e.read().decode("utf-8")) if e.readable() else str(e)}
-    except Exception as e:
-        return {"error": str(e)}
-
-
 class CampaignAutotest:
-    def __init__(self, token, login, campaign_ids, pre_moderation=False):
-        self.token = token
-        self.login = login
+    def __init__(self, access, campaign_ids, pre_moderation=False, collection_manifest=None):
+        self.access = access
+        self.login = access.client_login
         self.campaign_ids = campaign_ids
         self.pre_moderation = pre_moderation
         self.results = []  # (level, status, check_name, detail)
@@ -72,6 +54,9 @@ class CampaignAutotest:
         self.passes = 0
         self.shopping_campaign_ids = set()  # кампании с ShoppingAd
         self.campaign_tracking_modes = {}
+        manifest_path = Path(collection_manifest or "campaign_autotest.collection-manifest.json")
+        self.page_manifests = PageManifestStore(manifest_path)
+        self.page_call_number = 0
 
     def ok(self, check, detail=""):
         self.results.append(("PASS", check, detail))
@@ -92,7 +77,24 @@ class CampaignAutotest:
         self.results.append(("SECTION", title, ""))
 
     def call(self, endpoint, method, params, version="v5"):
-        return api_call(endpoint, method, params, self.token, self.login, version)
+        keys = {
+            "campaigns": "Campaigns",
+            "adgroups": "AdGroups",
+            "ads": "Ads",
+            "keywords": "Keywords",
+            "negativekeywordsharedsets": "NegativeKeywordSharedSets",
+            "sitelinks": "SitelinksSets",
+        }
+        if method != "get" or endpoint not in keys:
+            return {"error": "Неподдерживаемый маршрут чтения"}
+        self.page_call_number += 1
+        result = self.page_manifests.add(
+            f"{self.page_call_number:03d}-{endpoint}",
+            fetch_direct_pages(self.access, endpoint, params, keys[endpoint], version=version),
+        )
+        if not result.manifest.complete:
+            return {"error": result.manifest.error}
+        return {"result": {keys[endpoint]: result.rows}}
 
     @staticmethod
     def tracking_mode(value):
@@ -806,17 +808,28 @@ def today_str():
 
 
 def main():
+    os.umask(0o077)
     parser = argparse.ArgumentParser(description="Автотест кампаний Яндекс.Директ")
-    parser.add_argument("--token", required=True, help="OAuth-токен Яндекс.Директ")
-    parser.add_argument("--login", required=True, help="Логин клиента (Client-Login)")
+    parser.add_argument("--access-file", help="Защищённый файл доступа Директа")
     parser.add_argument("--campaign-ids", required=True, help="ID кампаний через запятую")
     parser.add_argument("--pre-moderation", action="store_true",
                         help="Режим проверки перед отправкой на модерацию (DRAFT/ELIGIBLE допустимы)")
+    parser.add_argument(
+        "--collection-manifest",
+        default="campaign_autotest.collection-manifest.json",
+        help="Файл доказательств полноты всех постраничных выгрузок",
+    )
     args = parser.parse_args()
+    access = load_direct_access(args.access_file)
 
     campaign_ids = [int(x.strip()) for x in args.campaign_ids.split(",")]
 
-    tester = CampaignAutotest(args.token, args.login, campaign_ids, pre_moderation=args.pre_moderation)
+    tester = CampaignAutotest(
+        access,
+        campaign_ids,
+        pre_moderation=args.pre_moderation,
+        collection_manifest=args.collection_manifest,
+    )
     tester.run()
 
 

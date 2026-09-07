@@ -1,6 +1,6 @@
 # product
 
-Create or refine PRODUCT.md. Triggers: "product", "create or refine product.md.", "product skill".
+Create or refine PRODUCT.md while separating evidence, aspiration, users, value, and non-goals. Triggers: "product", "create PRODUCT.md", "product boundary".
 
 ## Instructions
 

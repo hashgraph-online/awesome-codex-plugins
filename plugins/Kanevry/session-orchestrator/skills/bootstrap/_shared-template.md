@@ -11,25 +11,34 @@
 
 ---
 
-## #parallel-sessions-rule — Step 3a: Install Parallel-Sessions Rule
+## #parallel-sessions-rule — Step 3a: Install Canonical Rules
 
-Write the vendored rule from `$PLUGIN_ROOT/templates/_shared/rules/parallel-sessions.md` to `$REPO_ROOT/.claude/rules/parallel-sessions.md`.
+Vendor the canonical always-on rules from the plugin's `rules/` library into `$REPO_ROOT/.claude/rules/`. `rules/` is the single source of truth for every distributable rule — never `cp` a rule file from anywhere else (see "Why one writer" below).
 
-Idempotency:
+Idempotency is handled by the writer itself:
 - Missing → create
-- Exists and byte-identical → skip silently
-- Exists and differs → overwrite (vendored is canonical)
+- Exists, plugin-owned (first line is the `<!-- source: session-orchestrator plugin ... -->` header) and byte-identical → skip silently
+- Exists, plugin-owned and stale → overwrite (the plugin copy is canonical)
+- Exists WITHOUT that header → preserved untouched (a repo-private rule the operator authored)
 
 Shell:
 ```bash
-mkdir -p "$REPO_ROOT/.claude/rules"
-cp "$PLUGIN_ROOT/templates/_shared/rules/parallel-sessions.md" "$REPO_ROOT/.claude/rules/parallel-sessions.md"
+mkdir -p "$REPO_ROOT/.claude"
+node "$PLUGIN_ROOT/scripts/lib/rules-sync.mjs" --repo-root "$REPO_ROOT"
 cp "$PLUGIN_ROOT/templates/_shared/loop.md" "$REPO_ROOT/.claude/loop.md"
 ```
 
-Why: PSA-003 destructive-command safeguards require every consumer repo to carry the rule. See issue #155. The `loop.md` vendor gives bare `/loop` a repo-aware maintenance prompt (issue #633 Hebel 3).
+The command prints a JSON report (`written` / `skipped` / `preserved` / `errors` / `warnings` / `sanitizer`) and exits non-zero on any error. Surface `errors[]` to the operator; a non-empty `preserved[]` is normal and means a repo-private rule was left alone.
 
-Note: This step runs before the baseline-fetch step (S99/D99). If that step executes and fetches a newer version of `parallel-sessions.md` from the baseline, the baseline version wins (S99 overwrites by design — acceptable).
+Also surface `sanitizer[]` (issue #1098) — `{file, line, kind, text}` records for citations that read fine inside the plugin repo and dangle once vendored (`repo-local-path`, `unresolvable-see-also`). The CLI additionally prints each one to stderr as `rules-sync: sanitizer <kind> <file>:<line> — <text>`. **Report it to the operator; do not act on it automatically** — the sanitizer never rewrites content and never changes the exit code, because silently stripping a citation would change a rule's meaning at vendoring time. A human decides whether the citation is a leak.
+
+Archetype-scoped entries in `rules/_index.md` resolve from `.orchestrator/bootstrap.lock`, which does not exist yet at this step — they report `archetype-unknown` and are skipped. The always-on rules (including `parallel-sessions.md`) are universal and vendor regardless. Re-run `/bootstrap --sync-rules` after the lock is written to pick up the archetype-scoped ones.
+
+Why: PSA-003 destructive-command safeguards require every consumer repo to carry the parallel-sessions rule. See issue #155. The `loop.md` vendor gives bare `/loop` a repo-aware maintenance prompt (issue #633 Hebel 3).
+
+Why one writer (issue #1060): a literal `cp` from a second source directory bypasses the pre-write validator AND lands a file carrying no provenance header. On the next `--sync-rules` a headerless file is classified as a repo-private override and preserved forever — so the plugin can never update it again, and whichever rival copy is smaller silently wins. `rules/` is the only source with a manifest, archetype scoping, a basename-collision guard and a pre-write validator, so it is the only sanctioned writer to `.claude/rules/`.
+
+Note: This step runs before the baseline-fetch step (S99/D99), and S99 must NOT overwrite a rule that `rules/` owns. The baseline's copy carries no provenance header, so letting it win would permanently mark the target as a repo-private override — the exact failure described above. `.claude/rules/parallel-sessions.md` has therefore been removed from the S99 manifest. Any other basename present in BOTH `rules/_index.md` and the S99 manifest has the same defect and needs the same treatment.
 
 ---
 
@@ -133,7 +142,6 @@ if [[ -n "$BASELINE_REF" && -n "${GITLAB_TOKEN:-}" && -n "${GITLAB_HOST:-}" && -
 .claude/rules/swift.md
 .claude/rules/mvp-scope.md
 .claude/rules/cli-design.md
-.claude/rules/parallel-sessions.md
 .claude/rules/ai-agent.md
 .claude/rules/claude-code-usage.md
 MANIFEST

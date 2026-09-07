@@ -1,6 +1,6 @@
 ---
 name: dcg
-description: Handle blocked destructive commands and
+description: 'Handle blocked destructive commands and Triggers: "dcg", "handle a DCG block", "configure agent safety guardrails".'
 ---
 <!-- TOC: Core Insight | THE EXACT WORKFLOW | Quick Reference | Safe Alternatives | What Gets Blocked | Anti-Patterns | Configuration | References -->
 
@@ -39,6 +39,23 @@ When blocked, follow this sequence every time:
 ```
 
 **Never:** Ask for override first. Never retry silently. Never circumvent.
+
+### Risk-tiered approval counts
+
+When no safe alternative exists and the human must decide, the number of
+distinct human approvals scales with what the command can destroy:
+
+| Tier | Blast radius | Approvals required |
+|------|--------------|--------------------|
+| Recoverable | undoable via reflog/stash/trash/backup | 1 allow-once for this exact command |
+| Destructive-local | permanently deletes local, uncommitted, or unbacked state | 1 allow-once, granted only after you name the exact state lost and confirm no backup exists |
+| Destructive-shared | shared history, remote branches, databases, namespaces others use | 1 approval per individual command occurrence — never batched, never pattern-widened |
+
+Stop conditions: never present a tier-2 or tier-3 command as tier-1; never
+convert several pending blocks into one blanket approval. A single "yes" that
+gets spent across multiple destructive commands is the **approval laundering**
+failure mode — each allow-once code is bound to one command in one directory,
+and the workflow must keep it that way.
 
 **Example block output:**
 ```
@@ -90,7 +107,12 @@ dcg scan --staged       # Pre-commit: scan for issues
 | Database | `DROP`, `TRUNCATE`, `DELETE` w/o WHERE | Add WHERE clause |
 | K8s | `delete namespace`, `delete --all` | `-l` label selector |
 
-**Context-aware:** `rm -rf ./build` allowed, `rm -rf /` blocked.
+**Context-aware (measured on dcg 0.5.6):** the temp carve-out allows `rm -rf`
+under `/tmp`, `/private/tmp`, `/var/tmp`, and the literal `$TMPDIR` form.
+Everything else — `rm -rf ./build` and other relative paths
+(`core.filesystem:rm-rf-general`), absolute paths like `/home/...` and `/`
+(`core.filesystem:rm-rf-root-home`), and even `/private/var/tmp` — is blocked.
+Unresolved variables other than `$TMPDIR` are not treated as temp.
 
 **`dcg explain` example (7-step pipeline):**
 ```bash
@@ -142,6 +164,7 @@ allow_patterns = ["rm -rf ./node_modules"]  # Project-specific safe
 - **Sub-millisecond latency** — won't slow your workflow
 - **Fail-open on timeout** — if DCG hangs, command runs (with warning)
 - **Heredoc scanning** — inline scripts (`bash -c`, `python -c`) are analyzed
+- **Inline-fragment false positives** — because scanning matches a destructive token anywhere in the command string, a pattern that appears only as *data* (a commit message body, a here-doc payload, a probe argument) can trip a block even though nothing destructive would run. Safe pattern: keep the payload off the command line — pass it via a file or stdin (e.g. `git commit -F <file>`), or run the intended tool directly instead of inlining the text. Never reconstruct a blocked command by splitting or escaping its tokens to slip past the guard — that defeats the safety layer.
 - **Allow-once codes** — 4 hex chars, 24h expiry, bound to exact command+directory
 
 ## The Incident That Started It All

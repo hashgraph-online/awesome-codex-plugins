@@ -79,12 +79,14 @@ The following are not treated as vulnerabilities in this repository:
 
 Security override rationale (`package.json` -> `overrides`):
 
-- `hono`: pinned to `4.12.21` to keep builds out of the vulnerable `<4.12.21` range reported in `GHSA-3hrh-pfw6-9m5x`, `GHSA-2gcr-mfcq-wcc3`, `GHSA-xrhx-7g5j-rcj5`, and `GHSA-f577-qrjj-4474` (Set-Cookie injection, `app.mount()` path-decoding, IPv6 IP-restriction bypass, and JWT scheme-acceptance advisories).
+- `hono`: pinned to `4.12.33` to keep builds out of the vulnerable `<4.12.33` range. This covers the earlier `GHSA-3hrh-pfw6-9m5x`, `GHSA-2gcr-mfcq-wcc3`, `GHSA-xrhx-7g5j-rcj5`, and `GHSA-f577-qrjj-4474` advisories (Set-Cookie injection, `app.mount()` path-decoding, IPv6 IP-restriction bypass, and JWT scheme-acceptance) plus `GHSA-hvrm-45r6-mjfj` and `GHSA-w62v-xxxg-mg59` (JSX per-request context disclosure and XSS via the `cx()` escaping bypass), both of which reach `<=4.12.26`.
 - `rollup`: pinned to `^4.59.0` to keep the Vite and Vitest transitive graph above the vulnerable `<4.59.0` range surfaced by `npm audit`.
+- `brace-expansion`: pinned to `5.0.9` to lift the dev graph above the ReDoS ranges `>=2.0.0 <2.1.3` and `>=4.0.0 <5.0.8`. Transitive dev-only, so the pin is the practical fix rather than waiting on each consumer to bump.
+- `postcss`: pinned to `8.5.25` to clear the `<=8.5.17` advisory reaching the dev graph through the Vite toolchain.
 
 Runtime dependency pin rationale (`package.json` -> `dependencies`):
 
-- `undici`: pinned exactly to `6.25.0`. It is the only runtime HTTP dependency (proxy `ProxyAgent` dispatch and the fetch fallback in the local bridge), it drives the published `engines.node >=18.17.0` floor, and its dispatcher behavior is part of the rotation proxy's tested surface — so version movement is taken deliberately via an explicit bump, never silently through a range. Moving to the undici `7.x` line is deferred until Node 18 support is dropped, since `7.x` raises the runtime floor to Node 20.
+- `undici`: pinned exactly to `6.28.0`. It is the only runtime HTTP dependency (proxy `ProxyAgent` dispatch and the fetch fallback in the local bridge), it drives the published `engines.node >=18.17.0` floor, and its dispatcher behavior is part of the rotation proxy's tested surface — so version movement is taken deliberately via an explicit bump, never silently through a range. `6.28.0` is the first `6.x` release clear of `GHSA-p88m-4jfj-68fv`, `GHSA-vxpw-j846-p89q`, `GHSA-35p6-xmwp-9g52`, and `GHSA-g8m3-5g58-fq7m` (Set-Cookie header injection, WebSocket fragment DoS, keep-alive response-queue poisoning, and SameSite downgrade), all of which reach `<=6.26.0`. Moving to the undici `7.x` line is deferred until Node 18 support is dropped, since `7.x` raises the runtime floor to Node 20.
 
 Before release and after dependency changes:
 

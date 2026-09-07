@@ -264,6 +264,8 @@ Protocol parity checklist for exact-public-contract and behavior-compatible port
 
 Use only the existing schema fields: put checklist items into `invariants`, `timing_or_ordering`, `error_conditions`, `compatibility_notes`, and `test_scenarios`. If any checklist item is relevant but unresolved, keep it in `open_questions`; approved specs with non-empty `open_questions` must produce abstract delta tickets or block completion.
 
+Each `test_scenarios[].coverage` entry is a free-text list of the claims a scenario validates. For every `public_surface` item the scenario exercises, `coverage` must also include that obligation's canonical ref, `public_surface:<spec_id>:<kind>:<name>` (see Coverage and Evidence Ledgers below for the exact construction). A public-surface item with no scenario whose `coverage` lists its ref is an unmapped obligation and blocks completion for exact-public-contract or behavior-compatible units.
+
 For new handoff candidates, set `leakage_review.reviewer_role` to `contaminated-handoff-sanitizer`. Agent 1 may flag concerns in draft notes, but it does not pass its own artifacts for handoff.
 
 ## Coverage and Evidence Ledgers
@@ -276,7 +278,7 @@ Capture:
 - behavior spec refs
 - evidence refs
 - coverage gaps
-- public-surface coverage entries using refs shaped as `public_surface:<spec_id>:<kind>:<name>` with status, evidence refs, optional work item refs, and optional verification refs
+- public-surface coverage entries using refs shaped as `public_surface:<spec_id>:<kind>:<name>` with status, evidence refs, optional work item refs, and optional verification refs. `<spec_id>` is the approved behavior spec's own `spec_id` field, never the source `unit_id` the spec was written for; a spec's `spec_id` and its owning unit's `unit_id` are different strings even when one is derived from the other. Example: a `public_surface` item `{"name": "--model", "kind": "command-line-option"}` inside spec `spec_id: "spec-unit-parse-invocation-contract"` has the ref `public_surface:spec-unit-parse-invocation-contract:command-line-option:--model`, not `public_surface:unit-parse-invocation:command-line-option:--model`. Every role that builds or joins these refs (Agent 1.5 writing `test_scenarios[].coverage`, Agent 2 writing `implementation-plan.json` `public_contract_refs`, Agent 0 and Agent 3 verifying coverage) must use the spec's `spec_id`, and the refs must match byte-for-byte across all of them or the join fails and the unit cannot be marked covered.
 - contaminated-only discovery leads for authorized related surfaces that were detected but not analyzed, with priority and resolution status
 - abstract delta tickets
 - contaminated evidence descriptions that do not include source text in clean handoffs

@@ -6,7 +6,9 @@ AMQ's core transport is still the **message**. These adapters are intentionally 
 
 ## Root Resolution
 
-For orchestrator-spawned agents, make the queue discoverable even when the process starts outside the repo root:
+For orchestrator-spawned agents, make the queue discoverable even when the
+process starts outside an AMQ-enabled repo. Global settings are fallbacks and
+do not shadow a project-local config:
 
 ```bash
 export AMQ_GLOBAL_ROOT="$HOME/.agent-mail"
@@ -21,10 +23,20 @@ Or create `~/.amqrc`:
 Root precedence:
 
 ```text
-flags > AM_ROOT > project .amqrc > AMQ_GLOBAL_ROOT > ~/.amqrc > auto-detect
+explicit --root > AM_ROOT > project-local .amqrc > AMQ_GLOBAL_ROOT > conditional implicit fallbacks
 ```
 
-`auto-detect` covers the default `.agent-mail` layout in the current tree, including `.agent-mail/<session>` session roots without `.amqrc`. Custom root names still need `.amqrc`, explicit flags, or env vars.
+Inside a Git worktree or bare repository, the only implicit fallback is the
+repository-local detected `.agent-mail`; an implicit `~/.amqrc` is ineligible.
+Outside Git, `~/.amqrc` precedes eligible local `.agent-mail` detection.
+Auto-detection covers `.agent-mail/<session>` session roots without `.amqrc`.
+Custom root names still need `.amqrc`, explicit flags, or environment variables.
+
+If an orchestrator leaves the terminal pinned to another root while cwd has an
+initialized local queue, implicit participating commands refuse rather than
+silently using the pin. Repin to the cwd-local queue, route deliberately with
+`--session`/`--project`, or pass an explicit `--root` to confirm the active
+queue; ordinary pin checks still apply.
 
 ## Symphony
 
@@ -68,12 +80,20 @@ Defaults:
 ```bash
 amq doctor --ops
 amq doctor --ops --json
+amq doctor --root <exact-root> --ops
 ```
 
 `doctor --ops` adds queue depth, sibling-session backlog hints, oldest unread
 age, DLQ state, presence freshness, and integration hints on top of the base
 `doctor` checks. A `sibling_backlog` hint includes an exact non-destructive
 `amq list --session <name> --me <handle> --new` inspection command.
+
+An explicit doctor root selects the inspected tree without changing the
+terminal pin. Inspection continues with a mismatch warning. Mutating doctor
+operations (`--fix-mailboxes` or `--ops --fix-wake-locks`) require the target
+to match the pin unless the command uses an explicit non-empty `--root`
+together with `--ignore-session-pin`. `--base-root` supplies config authority
+for the target or one direct child and never waives the pin.
 
 ## Message Shape
 

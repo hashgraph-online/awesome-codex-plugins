@@ -1,6 +1,6 @@
 ---
 name: backlink-gap
-description: "Find referring domains that link to your competitors but not to you, ranked by an opinionated outreach-priority score with DR / link-overlap / traffic / topical relevance. Use when: planning link-building campaigns, qualifying digital-PR prospects, or running quarterly backlink-gap audits."
+description: "Find referring domains that link to your competitors but not to you, ranked by an outreach-priority score (0.40 DR + 0.25 link-overlap + 0.20 traffic + 0.15 topical relevance) — outputs a four-gate quality scorecard, a 30-prospect outreach shortlist, broken-link candidates, and pre-filled outreach templates. Triggers on \"/digital-marketing-pro:backlink-gap\", \"where are competitors getting links we aren't\", \"plan a link-building campaign\", \"quarterly backlink audit\", \"first 50 link targets for a new client\". Consumes backlink CSV exports from the brand's connected backlink MCP, runs scripts/backlink_gap.py, reads the brand profile for DR thresholds and voice, and hands off to /digital-marketing-pro:digital-pr and /digital-marketing-pro:pr-pitch."
 argument-hint: "[brand-name]"
 user-invocable: true
 ---

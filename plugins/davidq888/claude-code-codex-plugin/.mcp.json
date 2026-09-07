@@ -2,7 +2,7 @@
   "mcpServers": {
     "claude-code-local": {
       "type": "stdio",
-      "command": "__CONFIGURED_BY_INSTALL_PS1__",
+      "command": "__CONFIGURED_BY_INSTALLER__",
       "args": []
     }
   }

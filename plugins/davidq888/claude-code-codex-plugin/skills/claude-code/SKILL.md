@@ -52,6 +52,23 @@ through this plugin. Do not use bypass-permissions modes from this plugin.
 
 To switch accounts or refresh auth, call `claude_code_login`, or run `claude` and use `/login` or `/logout` in the Claude Code session.
 
+## Common Workflows
+
+### Review or second opinion
+
+Use `claude_code_prompt` with `permissionMode: "plan"`. Include the review target, relevant files,
+constraints, and expected verification. Ask Claude Code to report findings before suggestions.
+
+### Planned implementation
+
+Use `plan` when the user wants analysis without edits. Use `manual` only when the user explicitly
+wants an interactive implementation where every action still requires approval.
+
+### Setup and repair
+
+Run `claude_code_status`, use `claude_code_login` only when authentication needs attention, then
+run status again. Keep installation problems separate from project-specific failures.
+
 ## Handoff Prompt Template
 
 ```text

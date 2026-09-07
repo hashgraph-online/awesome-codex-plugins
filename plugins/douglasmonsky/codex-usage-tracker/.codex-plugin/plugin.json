@@ -1,45 +1,25 @@
 {
-  "name": "codex-usage-tracker",
-  "version": "0.17.2",
-  "description": "Unofficial local Codex usage dashboard and MCP diagnostics from local session logs.",
   "author": {
     "name": "Douglas Monsky"
   },
+  "bundle": {
+    "digest": "sha256:de41ec1d4346879913560bab92ad81ccc1a2bf260f356a19b3c4651bff2eba3b",
+    "publishable": true,
+    "runtime_version": "0.28.0",
+    "schema": "codex-usage-tracker.kernel-plugin-bundle.v1"
+  },
+  "description": "Fast, exact, local-first Codex usage facts and evidence.",
   "homepage": "https://github.com/douglasmonsky/codex-usage-tracker",
-  "repository": "https://github.com/douglasmonsky/codex-usage-tracker",
-  "license": "MIT",
   "keywords": [
     "codex",
     "tokens",
     "usage",
-    "mcp",
-    "dashboard"
+    "mcp"
   ],
-  "skills": "./skills/",
+  "license": "MIT",
   "mcpServers": "./.mcp.json",
-  "interface": {
-    "displayName": "Codex Usage Tracker",
-    "shortDescription": "Local Codex usage dashboard, MCP diagnostics, and token-waste investigations",
-    "longDescription": "Unofficial independent project, not made by, affiliated with, endorsed by, sponsored by, or supported by OpenAI. Reads local Codex session logs to power a local dashboard, MCP tools, allowance diagnostics, token-waste investigations, and shareable aggregate reports without uploading logs.",
-    "developerName": "Douglas Monsky",
-    "category": "Productivity",
-    "capabilities": [
-      "Interactive",
-      "Read",
-      "Write"
-    ],
-    "websiteURL": "https://github.com/douglasmonsky/codex-usage-tracker",
-    "privacyPolicyURL": "https://github.com/douglasmonsky/codex-usage-tracker",
-    "termsOfServiceURL": "https://github.com/douglasmonsky/codex-usage-tracker",
-    "defaultPrompt": [
-      "Open dashboard",
-      "Look through my usage for token waste",
-      "Suggest usage investigations",
-      "Check whether my weekly allowance changed"
-    ],
-    "brandColor": "#2563EB",
-    "composerIcon": "./assets/icon.svg",
-    "logo": "./assets/icon.svg",
-    "screenshots": []
-  }
+  "name": "codex-usage-tracker",
+  "repository": "https://github.com/douglasmonsky/codex-usage-tracker",
+  "skills": "./skills/",
+  "version": "0.28.0"
 }

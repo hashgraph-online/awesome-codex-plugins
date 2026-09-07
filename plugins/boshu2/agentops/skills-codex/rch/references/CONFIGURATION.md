@@ -10,6 +10,13 @@
 - [Validation and Diagnostics](#validation-and-diagnostics)
 - [Runtime Data Paths](#runtime-data-paths)
 
+> **Authority:** reading config is autonomous (`rch config get|show|validate|
+> doctor|diff`, `rch hook status`). Writing it is not — editing
+> `~/.config/rch/config.toml` or `workers.toml`, `rch config set|edit|init`, and
+> `rch hook install|uninstall` (which write `~/.claude/settings.json`) are host
+> mutations requiring explicit caller authorization first (see `FAIL_OPEN.md`
+> §"Autonomous Remediation Envelope").
+
 ## Precedence and File Locations
 
 RCH resolves settings in this order (highest to lowest):
@@ -152,9 +159,9 @@ Location: `~/.claude/settings.json`
 Recommended management commands:
 
 ```bash
-rch hook install
-rch hook status
-rch hook uninstall
+rch hook status       # autonomous
+rch hook install      # (authorize first) — writes ~/.claude/settings.json
+rch hook uninstall    # (authorize first) — edits ~/.claude/settings.json
 ```
 
 ---

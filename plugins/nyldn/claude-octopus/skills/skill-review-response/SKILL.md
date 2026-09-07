@@ -1,6 +1,7 @@
 ---
 name: skill-review-response
-description: "How to handle code review feedback — verify before implementing, push back when wrong, never agree blindly"
+description: "Use when a reviewer, CI bot, or another AI leaves feedback to address"
+disable-model-invocation: true
 ---
 
 > **Host: Codex CLI** — This skill was designed for Claude Code and adapted for Codex.
@@ -77,7 +78,7 @@ Provide:
 In Claude Octopus workflows, review feedback comes from multiple sources:
 
 - **Codex review** — tends toward enterprise patterns, may over-engineer
-- **Gemini review** — tends toward ecosystem conformity, may suggest unnecessary deps
+- **Antigravity review** — tends toward ecosystem conformity, may suggest unnecessary dependencies
 - **Claude review** — tends toward elegance, may under-engineer error handling
 - **Sonnet review** — tends toward thoroughness, may flag low-priority issues
 

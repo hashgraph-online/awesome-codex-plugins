@@ -1,6 +1,6 @@
 {
   "name": "staff-engineer-mode",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Applies engineering best practices to reliability, security, delivery, data, and architecture work.",
   "author": {
     "name": "sirmarkz",

@@ -308,7 +308,8 @@
         "coverage": {
           "type": "array",
           "items": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^(public_surface:[^:]+:[^:]+:[^:]+|[^:]+)$"
           }
         }
       }

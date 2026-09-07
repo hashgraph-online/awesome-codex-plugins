@@ -10,6 +10,15 @@
 - [Worker Selection Notes](#worker-selection-notes)
 - [SSH Verification Shortcuts](#ssh-verification-shortcuts)
 
+> **Authority:** this is a command catalog, not a licence to run it. Only the
+> read-only probes here (`rch workers list`, `rch workers probe`, `rch fleet
+> status`, `rch fleet verify`) are autonomous. Everything that adds, sets up,
+> drains, disables, enables, syncs a toolchain to, or deploys a binary to a
+> worker — and every `rch fleet deploy|rollback` — is a host mutation requiring
+> explicit caller authorization first (see `FAIL_OPEN.md` §"Autonomous
+> Remediation Envelope"). The `--dry-run` variants shown are the read-only way to
+> preview before you ask.
+
 ## Worker Lifecycle
 
 ### 1) Discover and add workers

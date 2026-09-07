@@ -1,6 +1,6 @@
 ---
 name: content-decay-scan
-description: "Scan content library for decay signals: declining traffic, falling rankings, outdated stats, dropped AI citations. Prioritizes refresh opportunities by business impact. Use when identifying content that needs refreshing, recovering lost traffic, or auditing for stale and underperforming content."
+description: "Scan the content library for decay — declining traffic, falling keyword positions, stale content, broken links, lost AI citations — scoring each URL 0-100 via creative-fatigue-predictor.py and ranking refreshes by recoverable revenue, with actionable refresh briefs and traffic-recovery estimates for top-priority tiers. Triggers on \"/digital-marketing-pro:content-decay-scan\", \"which content is losing traffic\", \"find stale content to refresh\", \"our blog traffic keeps dropping\", \"prioritize content refreshes\". Pulls performance data from Google Analytics/Search Console MCPs or exported CSVs; cross-reference causes with /digital-marketing-pro:seo-drift. Reads the brand profile for content strategy context."
 user-invocable: true
 triggers:
   - scan for content decay
@@ -37,7 +37,7 @@ The user must provide (or will be prompted for):
    ```bash
    python "${CLAUDE_PLUGIN_ROOT}/scripts/creative-fatigue-predictor.py" \
        --action decay-scan \
-       --data '[{"url":"/blog/post-a","traffic_now":1200,"traffic_3mo":1600,"traffic_6mo":2100,"position_now":8,"position_peak":3,"last_updated":"2024-11-01"}, ...]'
+       --data '[{"content_id":"blog_01","url":"/blog/post-a","monthly_traffic_current":1200,"monthly_traffic_previous":1600,"monthly_traffic_6mo_ago":2100,"keyword_positions_current":{"seo tips":12},"keyword_positions_previous":{"seo tips":7},"last_updated":"2024-11-01"}, ...]'
    ```
    (`creative-fatigue-predictor.py` actions: `score-health`, `predict-fatigue`, `generate-refresh-brief`, `decay-scan`, `priority-refresh`, `batch-health`. `--data` is a JSON object or array; there is no `--brand` flag on this script.) The decay scoring model evaluates multiple signals per content piece — traffic trend (3-month and 6-month decline rates, weighted by the user's priority metrics), keyword position changes (drops on primary keyword, movement direction and velocity), content freshness (months since last substantive update, presence of dated statistics or references), broken links (internal and external link health), and conversion rate trend (declining conversion even with stable traffic indicates content quality decay). Each piece receives a decay score from 0-100 where 0 is healthy and 100 is severely decayed.
 4. **Calculate business impact score**: For each content piece, compute the revenue impact of its decay — current monthly traffic multiplied by conversion rate multiplied by estimated revenue per conversion. Then calculate the recoverable revenue — the difference between peak performance (from the last 12 months) and current performance, multiplied by the probability of recovery based on decay type and refresh feasibility. Content with high recoverable revenue is prioritized regardless of its raw decay score.

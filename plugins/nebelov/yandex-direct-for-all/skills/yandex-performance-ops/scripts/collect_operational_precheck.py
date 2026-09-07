@@ -18,6 +18,11 @@ import time
 import urllib.error
 import urllib.request
 
+from dataclasses import asdict
+from pathlib import Path
+
+from check_access_paths import DirectAccess, fetch_direct_pages, fetch_direct_report, load_direct_access
+
 API_V5 = "https://api.direct.yandex.com/json/v5"
 API_V501 = "https://api.direct.yandex.com/json/v501"
 
@@ -36,31 +41,32 @@ def ensure_dir(path):
     os.makedirs(path, exist_ok=True)
 
 
-def api_call(endpoint, method, params, token, login, version="v501", retries=3):
-    base = API_V501 if version == "v501" else API_V5
+def api_call(endpoint, method, params, token, login, version="v501", environment="production"):
+    host = "api-sandbox.direct.yandex.com" if environment == "sandbox" else "api.direct.yandex.com"
+    base = f"https://{host}/json/{version}"
     url = f"{base}/{endpoint}"
     body = json.dumps({"method": method, "params": params}).encode("utf-8")
     headers = {
         "Authorization": f"Bearer {token}",
-        "Client-Login": login,
         "Content-Type": "application/json",
         "Accept-Language": "ru",
     }
-    for attempt in range(retries):
+    if login:
+        headers["Client-Login"] = login
+    attempt = 0
+    while True:
         req = urllib.request.Request(url, data=body, headers=headers)
         try:
-            with urllib.request.urlopen(req, timeout=120) as resp:
+            with urllib.request.urlopen(req) as resp:
                 return json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as exc:
             payload = exc.read().decode("utf-8", errors="ignore")
             print(f"API ERROR {exc.code}: {payload[:400]}", file=sys.stderr)
             return {"error": payload}
         except Exception as exc:
-            if attempt == retries - 1:
-                raise
-            print(f"API RETRY {attempt + 1}/{retries}: {type(exc).__name__}: {exc}", file=sys.stderr)
+            attempt += 1
+            print(f"API RETRY {attempt}: {type(exc).__name__}", file=sys.stderr)
             time.sleep(5)
-    raise RuntimeError("Unreachable")
 
 
 def report_call(
@@ -72,9 +78,11 @@ def report_call(
     token,
     login,
     report_name,
+    output_dir,
     extra_filters=None,
     goals=None,
     attribution_models=None,
+    environment="production",
 ):
     params = {
         "SelectionCriteria": {
@@ -98,45 +106,11 @@ def report_call(
         params["Goals"] = goals
     if attribution_models:
         params["AttributionModels"] = attribution_models
-    body = json.dumps({"params": params}).encode("utf-8")
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Client-Login": login,
-        "Content-Type": "application/json",
-        "processingMode": "auto",
-        "returnMoneyInMicros": "false",
-        "skipReportHeader": "true",
-        "skipColumnHeader": "false",
-        "skipReportSummary": "true",
-    }
-
-    for attempt in range(20):
-        req = urllib.request.Request(f"{API_V5}/reports", data=body, headers=headers)
-        try:
-            with urllib.request.urlopen(req, timeout=120) as resp:
-                status = resp.status
-                payload = resp.read().decode("utf-8")
-                if status in (201, 202) or (status == 200 and not payload.strip()):
-                    retry_in = int(resp.headers.get("retryIn", "15"))
-                    time.sleep(max(retry_in, 5))
-                    continue
-                return payload
-        except urllib.error.HTTPError as exc:
-            if exc.code in (201, 202):
-                retry_in = int(exc.headers.get("retryIn", "15"))
-                time.sleep(max(retry_in, 5))
-                continue
-            payload = exc.read().decode("utf-8", errors="ignore")
-            raise RuntimeError(f"Report {report_type} cid={campaign_id} HTTP {exc.code}: {payload[:400]}")
-        except Exception as exc:
-            if attempt == 19:
-                raise
-            print(
-                f"REPORT RETRY {attempt + 1}/20 {report_type} cid={campaign_id}: {type(exc).__name__}: {exc}",
-                file=sys.stderr,
-            )
-            time.sleep(10)
-    raise RuntimeError(f"Report timeout: {report_type} cid={campaign_id}")
+    access = DirectAccess(token=token, client_login=login, environment=environment)
+    state = fetch_direct_report(access, params, Path(output_dir))
+    if state.get("status") != "ready":
+        raise RuntimeError(f"Report {report_type} cid={campaign_id} не готов: {state.get('status')}")
+    return Path(state["artifact_path"]).read_text(encoding="utf-8")
 
 
 def save_json(data, path):
@@ -177,12 +151,12 @@ def merge_tsv_files(paths, output_path):
         save_text("\n".join(merged) + "\n", output_path)
 
 
-def collect_campaign_meta(campaign_ids, token, login, outdir):
+def collect_campaign_meta(campaign_ids, access, outdir):
     if not campaign_ids:
         return None
-    result = api_call(
+    page = fetch_direct_pages(
+        access,
         "campaigns",
-        "get",
         {
             "SelectionCriteria": {"Ids": campaign_ids},
             "FieldNames": [
@@ -213,10 +187,10 @@ def collect_campaign_meta(campaign_ids, token, login, outdir):
                 "SearchOrganizationList",
             ],
         },
-        token,
-        login,
         version="v501",
+        result_key="Campaigns",
     )
+    result = {"result": {"Campaigns": page.rows}, "manifest": asdict(page.manifest)}
     path = os.path.join(outdir, "campaigns_meta.json")
     save_json(result, path)
     return path
@@ -235,6 +209,7 @@ def collect_report_group(
     extra_filters=None,
     goals=None,
     attribution_models=None,
+    environment="production",
 ):
     files = []
     for campaign_id in campaign_ids:
@@ -248,9 +223,11 @@ def collect_report_group(
             token,
             login,
             report_name,
+            outdir,
             extra_filters=extra_filters,
             goals=goals,
             attribution_models=attribution_models,
+            environment=environment,
         )
         prefixed = prepend_column(tsv, "CampaignId", campaign_id)
         path = os.path.join(outdir, f"{stem}_{campaign_id}.tsv")
@@ -262,13 +239,13 @@ def collect_report_group(
     return files
 
 
-def collect_live_ads(campaign_ids, token, login, outdir):
+def collect_live_ads(campaign_ids, access, outdir):
     files = []
     all_ads = []
     for campaign_id in campaign_ids:
-        result = api_call(
+        page = fetch_direct_pages(
+            access,
             "ads",
-            "get",
             {
                 "SelectionCriteria": {"CampaignIds": [campaign_id]},
                 "FieldNames": ["Id", "CampaignId", "AdGroupId", "Status", "State", "Type"],
@@ -284,11 +261,12 @@ def collect_live_ads(campaign_ids, token, login, outdir):
                     "Mobile",
                 ],
             },
-            token,
-            login,
             version="v501",
+            result_key="Ads",
         )
-        ads = result.get("result", {}).get("Ads", [])
+        if not page.manifest.complete:
+            raise RuntimeError(page.manifest.error)
+        ads = page.rows
         all_ads.extend(ads)
         path = os.path.join(outdir, f"source_ads_{campaign_id}.json")
         save_json(ads, path)
@@ -299,7 +277,7 @@ def collect_live_ads(campaign_ids, token, login, outdir):
     return files, all_ads
 
 
-def collect_ad_images(all_ads, token, login, outdir):
+def collect_ad_images(all_ads, token, login, outdir, environment="production"):
     hashes = []
     seen = set()
     for ad in all_ads:
@@ -324,6 +302,7 @@ def collect_ad_images(all_ads, token, login, outdir):
             token,
             login,
             version="v5",
+            environment=environment,
         )
         rows.extend(result.get("result", {}).get("AdImages", []))
         time.sleep(1)
@@ -361,9 +340,9 @@ def build_summary(meta_path, placements_dir, ads_dir, ad_texts_dir, output_path)
 
 
 def main():
+    os.umask(0o077)
     parser = argparse.ArgumentParser(description="Collect short-window operational Direct raw bundle")
-    parser.add_argument("--token", required=True, help="Direct OAuth token")
-    parser.add_argument("--login", required=True, help="Direct client login")
+    parser.add_argument("--access-file", help="Защищённый файл доступа Директа")
     parser.add_argument("--date-from", required=True, help="DateFrom YYYY-MM-DD")
     parser.add_argument("--date-to", required=True, help="DateTo YYYY-MM-DD")
     parser.add_argument("--search-campaigns", default="", help="Comma-separated search campaign ids")
@@ -377,6 +356,8 @@ def main():
         help="Which raw blocks to collect",
     )
     args = parser.parse_args()
+    access = load_direct_access(args.access_file)
+    token, login = access.token, access.client_login
 
     search_campaigns = parse_ids(args.search_campaigns)
     rsy_campaigns = parse_ids(args.rsy_campaigns)
@@ -395,7 +376,7 @@ def main():
     meta_path = None
     if args.mode in ("all", "meta", "placements") and all_campaigns:
         print(f"Collecting campaign meta for {len(all_campaigns)} campaigns...")
-        meta_path = collect_campaign_meta(all_campaigns, args.token, args.login, args.output_dir)
+        meta_path = collect_campaign_meta(all_campaigns, access, args.output_dir)
 
     if args.mode in ("all", "placements") and rsy_campaigns:
         print(f"Collecting PLACEMENT_PERFORMANCE_REPORT for {len(rsy_campaigns)} RSYA campaigns...")
@@ -413,12 +394,13 @@ def main():
             "placements",
             args.date_from,
             args.date_to,
-            args.token,
-            args.login,
+            token,
+            login,
             placements_dir,
             extra_filters=[{"Field": "AdNetworkType", "Operator": "EQUALS", "Values": ["AD_NETWORK"]}],
             goals=placement_goals,
             attribution_models=placement_attr_models,
+            environment=access.environment,
         )
 
     if args.mode in ("all", "ads") and all_campaigns:
@@ -437,16 +419,15 @@ def main():
             "ads",
             args.date_from,
             args.date_to,
-            args.token,
-            args.login,
+            token,
+            login,
             ads_dir,
             goals=ad_goals,
             attribution_models=ad_attr_models,
+            environment=access.environment,
         )
         print(f"Collecting live ads payload for {len(all_campaigns)} campaigns...")
-        _, all_ads = collect_live_ads(all_campaigns, args.token, args.login, ad_texts_dir)
-        print("Collecting ad image URLs...")
-        collect_ad_images(all_ads, args.token, args.login, ad_texts_dir)
+        collect_live_ads(all_campaigns, access, ad_texts_dir)
 
     build_summary(
         meta_path,

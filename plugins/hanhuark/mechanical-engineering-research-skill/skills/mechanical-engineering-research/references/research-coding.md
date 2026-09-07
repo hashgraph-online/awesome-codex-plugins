@@ -70,6 +70,7 @@ Make each processing step explicit.
 - Load raw data without silently changing it.
 - Validate column names, units, shapes, time bases, and missing values.
 - Convert units near the data-loading boundary and document the conversion.
+- Validate parameter ordering, coordinate frames, sign conventions, and schema versions at every file, API, and model boundary.
 - Keep filtering, smoothing, thresholding, interpolation, and fitting choices visible.
 - Save processed data with metadata describing the processing settings.
 - Do not overwrite raw data.
@@ -157,6 +158,8 @@ Do not mix setup generation, solver execution, post-processing, and plotting int
 
 For surrogate modeling or design exploration, store the design matrix, parameter bounds, and train/test split.
 
+Store mesh, case, geometry, and configuration identities or hashes when drift between setup and post-processing could invalidate the result.
+
 ## Machine Learning Code
 
 Make ML code reproducible and physically interpretable.
@@ -169,6 +172,8 @@ Make ML code reproducible and physically interpretable.
 - Report metrics by regime or condition when aggregate metrics hide important behavior.
 
 Connect model performance back to the thermal-fluid question. Accuracy alone is not the scientific contribution.
+
+Use [model-verification-and-ml-credibility.md](model-verification-and-ml-credibility.md) for grouped splits, leakage, extrapolation, calibration, ROM/surrogate checks, and claim strength.
 
 ## Configuration And Metadata
 
@@ -184,6 +189,8 @@ Use configuration files or clearly named parameters for:
 
 Save metadata with outputs so figures and tables can be traced back to the code and data that produced them.
 
+Preserve deterministic ordering of cases, features, labels, and parameters. Do not rely on filesystem enumeration, unordered mappings, or implicit column order for scientific meaning.
+
 ## Testing And Validation
 
 Use lightweight tests for critical functions:
@@ -194,8 +201,14 @@ Use lightweight tests for critical functions:
 - uncertainty propagation
 - data parsers
 - event detection logic
+- parameter/schema ordering at interfaces
+- legitimate zero or signed values when the physics allows them
 
 For research code, a small set of sanity tests is often more valuable than no tests. Include regression checks for baseline outputs when the analysis will be reused.
+
+When a revision changes a headline result, use [result-change-and-construct-audit.md](result-change-and-construct-audit.md) and add a regression check that binds the manuscript value to a generated output when feasible.
+
+Before a public release, run one end-to-end example in a clean supported environment and record the command, environment, input version, output, test result, and limitations. Use [data-provenance-and-release.md](data-provenance-and-release.md) for the release contract.
 
 ## Code Review Checklist
 

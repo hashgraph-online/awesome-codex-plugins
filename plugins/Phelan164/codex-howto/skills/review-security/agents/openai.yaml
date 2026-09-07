@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review Security"
+  short_description: "Review application changes for security risks"
+  default_prompt: "Use $review-security to inspect this change for exploitable risks and recommend verifiable fixes."

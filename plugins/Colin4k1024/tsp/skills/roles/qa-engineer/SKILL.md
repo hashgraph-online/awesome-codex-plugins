@@ -70,7 +70,7 @@ description: >
 - `karpathy-guidelines`
 - `java-unit-test`
 - `maven-qa`
-- `browser-smoke-testing`
+- `browser-qa`
 - `pairwise-test-design`
 - `systematic-debugging`
 - `testcontainers-integration-testing`

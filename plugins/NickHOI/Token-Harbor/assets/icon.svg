@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Token Harbor">
+  <rect width="64" height="64" rx="12" fill="#083C46"/>
+  <path d="M9 42c7-5 13-5 20 0 7 5 13 5 26-2v9c-13 7-19 7-26 2-7-5-13-5-20 0z" fill="#4DC7C8"/>
+  <path d="M18 33h28l-5 11H23z" fill="#F3C451"/>
+  <path d="M29 14h6v20h-6z" fill="#F7F4E8"/>
+  <path d="M35 17l13 7-13 7z" fill="#E65F4F"/>
+</svg>

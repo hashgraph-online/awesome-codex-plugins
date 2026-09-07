@@ -5,10 +5,10 @@
 | Platform | Aspect Ratio | Max Length | Optimal Length | Autoplay | Caption Support |
 |----------|-------------|-----------|----------------|----------|-----------------|
 | YouTube (long-form) | 16:9 | 12 hours | 8-15 minutes | No (click to play) | SRT, VTT, auto-generated |
-| YouTube Shorts | 9:16 | 60 seconds | 30-45 seconds | Yes (in feed) | Auto-generated, burned-in recommended |
+| YouTube Shorts | 9:16 | 3 minutes | 30-45 seconds | Yes (in feed) | Auto-generated, burned-in recommended |
 | TikTok | 9:16 | 10 minutes | 15-60 seconds | Yes (sound on) | Auto-generated, SRT, burned-in |
-| Instagram Reels | 9:16 | 90 seconds | 15-30 seconds | Yes (sound off in feed) | Auto-generated, burned-in recommended |
-| Instagram Stories | 9:16 | 60 seconds (15s segments) | 15 seconds | Yes (sound off) | Burned-in only |
+| Instagram Reels | 9:16 | 3 minutes | 15-30 seconds | Yes (sound off in feed) | Auto-generated, burned-in recommended |
+| Instagram Stories | 9:16 | 60 seconds | 15 seconds | Yes (sound off) | Burned-in only |
 | LinkedIn Video | 1:1 or 16:9 | 10 minutes | 30-90 seconds | Yes (sound off) | SRT upload, burned-in recommended |
 | Facebook In-Feed | 16:9, 1:1, or 4:5 | 240 minutes | 15-60 seconds | Yes (sound off) | SRT, auto-generated |
 | Facebook Stories | 9:16 | 20 seconds | 15 seconds | Yes (sound off) | Burned-in only |
@@ -282,10 +282,10 @@ Accessible video is not optional — it expands audience reach, improves engagem
 | Platform | Aspect Ratio | Min Resolution | Max Resolution | Max File Size | Max Length | Caption Format | Thumbnail |
 |----------|-------------|---------------|---------------|--------------|-----------|----------------|-----------|
 | YouTube | 16:9 | 426x240 | 3840x2160 (4K) | 256 GB | 12 hours | SRT, VTT, SBV | 1280x720 JPG/PNG, <2MB |
-| YouTube Shorts | 9:16 | 1080x1920 | 1080x1920 | 256 GB | 60 seconds | Auto-generated | Auto-selected from video |
+| YouTube Shorts | 9:16 | 1080x1920 | 1080x1920 | 256 GB | 3 minutes | Auto-generated | Auto-selected from video |
 | TikTok | 9:16 | 720x1280 | 1080x1920 | 287 MB (web), 72 MB (app) | 10 minutes | SRT, auto-generated | Auto-selected, can edit |
-| Instagram Reels | 9:16 | 720x1280 | 1080x1920 | 4 GB | 90 seconds | Auto-generated, burned-in | 1080x1920 from video |
-| Instagram Stories | 9:16 | 720x1280 | 1080x1920 | 4 GB | 60 seconds (15s segments) | Burned-in only | N/A |
+| Instagram Reels | 9:16 | 720x1280 | 1080x1920 | 4 GB | 3 minutes | Auto-generated, burned-in | 1080x1920 from video |
+| Instagram Stories | 9:16 | 720x1280 | 1080x1920 | 4 GB | 60 seconds | Burned-in only | N/A |
 | LinkedIn | 1:1, 16:9, 9:16 | 256x144 | 4096x2304 | 5 GB | 10 minutes | SRT upload | Auto-selected |
 | Facebook In-Feed | 16:9, 1:1, 4:5 | 720p | 4K | 10 GB | 240 minutes | SRT, auto-generated | 1200x675 or 1080x1080 |
 | Facebook Stories | 9:16 | 720x1280 | 1080x1920 | 4 GB | 20 seconds | Burned-in only | N/A |

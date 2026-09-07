@@ -2,14 +2,18 @@
 
 Use this reference only when the work has an **actual platform contract**: the repository already depends on a system, the UI runs inside a host that requires one, the user explicitly requests adoption, or an organization or public-service policy names it. Visual resemblance is not a contract. “Microsoft-like,” “GitHub-like,” or “Material-inspired” without one of those signals stays on the brand/mood route.
 
+This map does not replace the project's authoritative design source or make a migration, redesign, anti-slop pass, SEO audit, or visual artifact automatically applicable. A narrow nonvisual change may retain the current system and use behavioral, accessibility, and regression proof. SEO remains limited to the current crawlable public Web target or a distinct deployed public Web target in scope.
+
 ## Decision sequence
 
-1. Inspect `package.json`, lockfiles, imports, component directories, and DESIGN.md. Preserve the existing stack and its working accessibility behavior.
-2. Identify the contract owner: existing dependency, embedded host, explicit user choice, or documented policy. Record that evidence in DESIGN.md.
+1. Inspect `package.json`, lockfiles, imports, component directories, the current rendered surface, and the repository's authoritative design source (`DESIGN.md` only when the repository establishes it). Preserve the existing stack and its working accessibility behavior.
+2. Identify the contract owner: existing dependency, embedded host, explicit user choice, or documented policy. Record that evidence in the authoritative source or existing project receipt. If a separate `DESIGN.md` is useful, it must be a scoped mapping that links back to and stays synchronized with that owner, never a competing source.
 3. Verify the current official documentation, maintenance status, framework/version support, license, and migration guidance. Package recommendations drift.
-4. If the required package is missing, explain the impact and get **explicit approval before installing** it. Never run an install command merely because a brief resembles a brand.
+4. If the required package is missing, explain the impact and get **explicit approval before installing** it. Never run an install command merely because a brief resembles a brand. After approval, re-check the package's current official setup and the repository's package manager: when implementation was requested, execute the one verified package-manager command; when the user requested advice only, present that one command without running it.
 5. Keep **one primary appearance owner per surface**. Migration shells and low-level utilities may coexist behind explicit boundaries, but two competing component systems must not style the same subtree.
-6. Validate labels, semantics, keyboard behavior, focus, contrast, and application states locally. An official system provides primitives; it does not make the application accessible automatically.
+6. After any approved install or migration step, verify lockfile/package resolution, imports/build integration, and the affected labels, semantics, keyboard behavior, focus, contrast, and application states in the target-derived browser/OS/input and breakpoint matrix, expanding only for changed claims or risk. An official system provides primitives; it does not make the application accessible automatically.
+
+When an unknown owner, policy, migration boundary, or package choice would materially change the result, ask the minimum necessary questions and batch independent unknowns. Otherwise disclose the uncertainty and constrain the claim.
 
 ## Contract map
 
@@ -44,9 +48,9 @@ Glassmorphism, bento grids, brutalism, editorial layouts, dark-tech terminals, a
 
 Apple Liquid Glass is an Apple-platform material. A web build using `backdrop-filter`, layered borders, and highlights is a labeled approximation. Start with a readable solid fill, enhance only when transparency support is available, and honor `prefers-reduced-transparency` where the browser implements it; that experimental query cannot be the only fallback.
 
-## Commands are proposals, not authorization
+## Approved implementation versus advice-only commands
 
-After approval, output only the command that matches the verified route and package manager. Re-check official setup instructions first; examples include:
+The examples below are candidates, not authorization. Re-check current official setup instructions and the repository package manager first. After explicit approval, an implementation request executes exactly the verified matching command and then performs the integration checks from step 6; an advice-only request presents exactly that command and does not execute it. Do not dump alternatives after the route is known.
 
 ```bash
 npm install @fluentui/react-components

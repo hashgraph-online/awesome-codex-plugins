@@ -7,7 +7,7 @@
 
 AI-powered design review for KiCad. Analyzes schematics, PCB layouts, and Gerbers. Catches real bugs before you order boards.
 
-Works with **[Claude Code](https://docs.anthropic.com/en/docs/claude-code)**, **[OpenAI Codex](https://github.com/openai/codex)**, **[GitHub Copilot CLI](https://docs.github.com/en/copilot)**, **[Gemini CLI](https://github.com/google-gemini/gemini-cli)**, and **[opencode](https://github.com/sst/opencode)**, as a **GitHub Action** for automated PR reviews, or as standalone Python scripts you can run anywhere.
+Works with **[Claude Code](https://docs.anthropic.com/en/docs/claude-code)**, **[OpenAI Codex](https://github.com/openai/codex)**, **[GitHub Copilot CLI](https://docs.github.com/en/copilot)**, **[Google Antigravity](https://antigravity.google)**, and **[opencode](https://github.com/sst/opencode)**, as a **GitHub Action** for automated PR reviews, or as standalone Python scripts you can run anywhere.
 
 These skills turn your AI coding agent into a full-fledged electronics design assistant that understands your KiCad projects at a deep level: parses schematics and PCB layouts into structured data, cross-references component values against datasheets, detects common design errors, and walks you through the full prototype-to-production workflow.
 
@@ -117,24 +117,30 @@ Use Codex's built-in skill installer first:
 
 If you prefer a manual install, install the skills into `~/.codex/skills/`.
 
-**Google Gemini CLI:**
+**Google Antigravity CLI (`agy`) / Gemini:**
 
-`gemini skills install <url>` does not recurse into this monorepo's `skills/` directory. Clone and link all 11 at once:
+Install directly from GitHub as an Antigravity plugin:
+
+```bash
+agy plugin install https://github.com/aklofas/kicad-happy.git
+```
+
+Or from a local checkout:
 
 ```bash
 git clone https://github.com/aklofas/kicad-happy.git
-gemini skills link ./kicad-happy/skills
+agy plugin install kicad-happy
 ```
 
-Or install all 11 skills directly from the URL using `--path` (requires Gemini CLI ≥ Jan 13 2026):
+Toggle when needed:
 
 ```bash
-for skill in kicad spice emc datasheets bom digikey mouser lcsc element14 jlcpcb pcbway; do
-  gemini skills install https://github.com/aklofas/kicad-happy.git --path skills/$skill
-done
+agy plugin disable kicad-happy   # Disable when not doing electronics review
+agy plugin enable kicad-happy    # Enable when working on KiCad projects
 ```
 
-See [install-guidance.md](install-guidance.md#google-gemini-cli) for workspace-scope installs and upgrade notes.
+See [install-guidance.md](install-guidance.md#google-antigravity-cli-agy--gemini) for workspace-scope installs, slash commands, and upgrade notes.
+
 
 **opencode:**
 
@@ -190,7 +196,7 @@ The analysis scripts are **pure Python 3.10+** with zero required dependencies. 
 
 ### Release candidates
 
-The stable install commands above always resolve to the latest stable release on `main` (currently v2.0.0). When a release candidate is active, opt in by appending `#<tag>` to the marketplace ref:
+The stable install commands above always resolve to the latest stable release on `main` (currently v2.1.0). When a release candidate is active, opt in by appending `#<tag>` to the marketplace ref:
 
 **Claude Code:**
 
@@ -433,7 +439,7 @@ Or set up the [GitHub Action](github-action.md) and get automated analysis on ev
 
 ## 🎯 Release notes
 
-**Current release: v2.0.0 — Deep Review.** A per-IC usage-vs-datasheet review pass whose findings must survive an evidence gate (verbatim datasheet quotes verified against the PDF, design anchors verified against the analyzer output), plus a mirrored+rotated symbol transform fix that corrected pin-to-net maps in 18% of the 5,857-repo validation corpus. Upgrading from v1.3.x: expect finding churn on designs with mirrored+rotated symbols — the old findings were computed from wrong pin-net maps — and note the kidoc skill is removed.
+**Current release: v2.2.1 — maintenance batch.** Twenty-five verified fixes: the GP-001 via-antipad and power-rail-classification false positives from the field are gone, no-connect markers no longer absorb pins into wires passing beneath them (community-contributed, `kicad-cli`-verified), internal-oscillator IC descriptions stop triggering false clock findings, and a whole class of output nondeterminism was eliminated with a CI guard to keep it that way. Skipped or degraded analysis is now visible (`checks_run` manifest, connectivity-error notes, conditional-rule skip counts). Upgrading: GitHub Action users with multi-project repos must set the `schematic`/`pcb` inputs explicitly (auto-detect now fails loudly instead of guessing), and `analyze_pcb.py --schematic analysis/schematic.json` now classifies your declared power rails correctly.
 
 Per-release stories are in [release-notes.md](release-notes.md); line-level detail in the [CHANGELOG](CHANGELOG.md).
 

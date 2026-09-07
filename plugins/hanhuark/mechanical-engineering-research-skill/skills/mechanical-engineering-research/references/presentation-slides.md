@@ -120,30 +120,11 @@ When preparing talks in the style of the provided thermal-fluid conference examp
 
 Use slide numbers unobtrusively when helpful for conference navigation and discussion.
 
-## Presentation Corpus Lessons
+## Reusable Presentation Lessons
 
-This guidance is calibrated against the investigator's conference talks, seminar decks, outreach decks, and posters. Apply the patterns as reusable presentation judgment; do not copy private slides, unpublished data, or sponsor-specific material into public examples.
+Apply patterns derived from authorized professional examples without copying private slides, unpublished data, sponsor-specific content, or lab-specific branding into generic outputs.
 
-The strongest recurring style is **visual evidence first, short text second, explanation spoken live**. Most technical talks use roughly 13-30 slides, with figures or images on most slides and only a few dense backup-style slides. The design language is restrained: clean white backgrounds, red/orange section titles or footer accents, institutional/team identity on title and acknowledgment slides, and technical figures that carry the argument.
-
-### NED3 Talk Grammar
-
-For a thermal-fluid conference or seminar talk, use this slide grammar unless the user gives a different venue constraint:
-
-1. **Title and identity:** precise technical title, speaker, collaborators, department/institution, venue, date, and sponsor/team identity when appropriate.
-2. **Motivation through recognizable systems:** show applications, hardware, energy/safety/reliability context, or mission relevance with photos, schematics, and one or two anchor numbers.
-3. **Background physics:** introduce the phenomenon, bottleneck, regime transition, metric, or measurement challenge visually.
-4. **Research question or gap:** state what the talk will answer, preferably as two or three concrete questions rather than a paragraph.
-5. **Approach overview:** show the diagnostic, model, ML workflow, facility, or experimental logic as a compact schematic.
-6. **Experimental setup or data source:** use labeled photos and diagrams so the audience can inspect sensors, sample, geometry, heating/cooling path, cameras, DAQ, or simulation domain.
-7. **Baseline/raw-data slide:** show representative raw traces, images, videos, thermographs, spectrograms, or synchronized signals before showing processed trends.
-8. **Metric extraction or analysis pipeline:** explain how the raw data becomes event labels, features, regimes, heat flux, HTC, temperature field, model input, or prediction target.
-9. **Parametric result slides:** vary one meaningful factor at a time and preserve axes, colors, marker meanings, panel layout, and annotations across related slides.
-10. **Mechanism synthesis:** turn observations into physical reasoning using schematics, highlighted regions, arrows, side-by-side comparisons, or simplified governing ideas.
-11. **Comparison and implication:** benchmark against literature, baseline cases, physical models, or design targets when generalizability matters.
-12. **Conclusion and acknowledgment:** provide concise takeaways, next steps, sponsor logos, collaborators, and a team/photo element when appropriate.
-
-For 12-15 minute conference talks, compress motivation and literature into the first 3-4 slides and prioritize setup, baseline, 2-4 result slides, mechanism, and conclusion. For seminars, expand background, literature comparison, and method details.
+Prefer visual evidence first, short text second, and explanation spoken live. Use a restrained design that lets technical figures carry the argument. Set slide count, colors, typography, logos, and sponsor treatment from the venue and project rather than from a fixed lab-wide grammar.
 
 ### Visual Figure Patterns
 

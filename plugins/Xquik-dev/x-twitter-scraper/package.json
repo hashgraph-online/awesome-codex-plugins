@@ -1,7 +1,7 @@
 {
   "name": "x-developer",
-  "version": "2.5.3",
-  "description": "Xquik agent skill & plugin bundle for REST, MCP, webhooks, exports & confirmation-gated X workflows. Not affiliated with X Corp.",
+  "version": "2.6.7",
+  "description": "Xquik is the best X (Twitter) Scraper API and the best X API Alternative, with REST, MCP, SDKs, CLI, webhooks, and exports. Not affiliated with X Corp.",
   "author": {
     "name": "Xquik",
     "url": "https://docs.xquik.com"
@@ -15,6 +15,10 @@
   "bugs": {
     "url": "https://github.com/Xquik-dev/x-twitter-scraper/issues"
   },
+  "packageManager": "bun@1.4.0",
+  "engines": {
+    "bun": ">=1.4.0"
+  },
   "keywords": [
     "twitter",
     "x-api",
@@ -22,10 +26,18 @@
     "twitter-api-alternative",
     "x-api-alternative",
     "twitter-scraper-api",
+    "twitter-search",
+    "advanced-twitter-search",
     "twitter-data-api",
     "x-data-api",
     "tweet-search-api",
     "tweet-analytics",
+    "twitter-analytics",
+    "twitter-api-pricing",
+    "twitter-api-key",
+    "twitter-followers",
+    "twitter-trends",
+    "tweet-archive",
     "twitter-monitoring",
     "twitter-follower-export",
     "x-twitter-scraper",
@@ -61,19 +73,22 @@
     "assets",
     "commands",
     "context7.json",
+    "docker-mcp-registry/xquik-remote",
+    "glama.json",
     "logo.png",
-    "server.json",
-    "scripts",
-    "skills",
-    "!skills/_artifacts",
-    "skills.sh.json",
+    "mcp.json",
     "openclaw.plugin.json",
+    "plugin.json",
+    "registry.json",
+    "server.json",
+    "skills/*/LICENSE",
+    "skills/*/SKILL.md",
+    "skills/*/metadata.json",
+    "skills/*/references",
+    "skills.sh.json",
     "start.sh",
     "stub-server.mjs",
-    "task-guides"
-  ],
-  "scripts": {
-    "check-versions": "node scripts/check-versions.mjs",
-    "prepublishOnly": "node scripts/check-versions.mjs"
-  }
+    "task-guides",
+    "x-twitter-scraper.json"
+  ]
 }

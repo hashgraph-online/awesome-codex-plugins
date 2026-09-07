@@ -1,0 +1,4 @@
+interface:
+  display_name: "SolidWorks KB Lookup"
+  short_description: "Find proven SolidWorks instructions, macros, and fixes"
+  default_prompt: "Use $sw-kb-api to find existing knowledge for this SolidWorks part."

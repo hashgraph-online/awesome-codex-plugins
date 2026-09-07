@@ -1,5 +1,7 @@
 # AI Marketing Tools — Landscape & Implementation Reference
 
+> **Benchmark provenance (as of 2026-08):** Dollar figures in this document are planning priors, not quotes — market and auction rates drift continuously. Before any figure enters a media plan, budget, or client deliverable, refresh it live (platform dashboards and current published reports beat memory) and record it with `python scripts/benchmark_book.py --action record ... --source <url>`; quote from the book thereafter (`--action quote`). Never present an unstamped figure as current market fact.
+
 A practitioner's guide to AI-powered marketing tools across every discipline. Covers tool selection, prompt engineering for marketers, quality assurance workflows, governance frameworks, and honest cost-benefit analysis for when AI accelerates work versus when human expertise is essential.
 
 ---
@@ -11,7 +13,7 @@ A practitioner's guide to AI-powered marketing tools across every discipline. Co
 | Tool | Strength | Best Use Case | Pricing Model |
 |------|----------|---------------|---------------|
 | **Claude (Anthropic)** | Long-form reasoning, brand voice adherence, nuanced writing, safety | Strategy documents, long-form content, analysis, research synthesis | API usage-based + Pro/Team plans |
-| **GPT-4o / ChatGPT (OpenAI)** | Versatile, strong code generation, wide plugin ecosystem | Short-form copy, brainstorming, content repurposing | API usage-based + Plus/Team plans |
+| **ChatGPT (OpenAI, GPT-5.6 family)** | Versatile, strong code generation, wide plugin ecosystem | Short-form copy, brainstorming, content repurposing | API usage-based + Plus/Team plans |
 | **Gemini (Google)** | Multimodal (text + image + video), integrated with Google Workspace | Content that requires visual understanding, Workspace-native workflows | API usage-based + Advanced plan |
 | **Jasper** | Marketing-specific templates, campaign workflows, brand voice training | Marketing teams needing templated workflows and team collaboration | Per-seat SaaS ($49-$125/mo) |
 | **Writer** | Enterprise governance, style guide enforcement, terminology management | Large organizations with strict brand/compliance requirements | Enterprise SaaS |
@@ -21,7 +23,7 @@ A practitioner's guide to AI-powered marketing tools across every discipline. Co
 | Tool | Strength | Best For | Limitations |
 |------|----------|----------|-------------|
 | **Midjourney** | Artistic quality, aesthetics, consistent style | Brand imagery, social media visuals, concept art | No API; Discord-based workflow; limited text-in-image |
-| **DALL-E 3 (OpenAI)** | Prompt adherence, text rendering, ChatGPT integration | Quick visual concepts, social media, presentations | Less artistic range than Midjourney |
+| **GPT Image (OpenAI)** | Prompt adherence, text rendering, ChatGPT integration | Quick visual concepts, social media, presentations | Less artistic range than Midjourney |
 | **Adobe Firefly** | Commercially safe training data, Photoshop integration | Production-ready marketing assets, brand-safe imagery | Requires Creative Cloud; less creative range |
 | **Stable Diffusion** | Open-source, customizable, local deployment | Teams wanting full control and fine-tuning | Requires technical setup; quality varies by model |
 | **Ideogram** | Text rendering in images, typography | Assets requiring readable text overlay | Newer; smaller community |
@@ -32,7 +34,7 @@ A practitioner's guide to AI-powered marketing tools across every discipline. Co
 |------|----------|----------|-------------|
 | **Synthesia** | AI avatars, multilingual, enterprise-grade | Training videos, product explainers, personalized sales videos | $22-$67/mo |
 | **HeyGen** | Avatar quality, lip sync, voice cloning | Sales outreach, localized video at scale | $24-$120/mo |
-| **Runway** | Creative video generation and editing, Gen-3 Alpha | Social media content, creative campaigns | $12-$76/mo |
+| **Runway** | Creative video generation and editing | Social media content, creative campaigns | $12-$76/mo |
 | **Descript** | Video editing via text transcript, screen recording | Podcast editing, webinar repurposing, tutorial creation | Free-$33/mo |
 
 ### Audio Generation
@@ -92,7 +94,7 @@ A practitioner's guide to AI-powered marketing tools across every discipline. Co
 | **Target ROAS** | Google, Meta | eCommerce with conversion value tracking |
 | **Target CPA** | Google, Meta | Lead gen with consistent lead values |
 | **Maximize conversions** | Google | When volume matters more than efficiency |
-| **Advantage+ campaigns** | Meta | When creative testing at scale is the priority |
+| **Advantage+ (unified setup)** | Meta | When creative testing at scale is the priority (standalone ASC/AAC campaign types are retiring — v26 pauses them Sept 2026) |
 
 ### AI-Powered Audience Discovery
 
@@ -225,7 +227,7 @@ CONSTRAINTS: Focus on actionable insights, not obvious observations.
 
 | Context | Disclosure Needed? | Guidance |
 |---------|-------------------|----------|
-| Blog post drafted by AI, reviewed and edited by human | Depends on jurisdiction and brand policy | Recommended but not legally required in most jurisdictions (as of 2025) |
+| Blog post drafted by AI, reviewed and edited by human | Depends on jurisdiction and brand policy | EU: AI Act Article 50 disclosure obligations apply from 2 Aug 2026 (machine-readable + visible disclosure; standardized EU icons published in the final Code of Practice, 10 June 2026). Elsewhere: recommended but often not legally required |
 | AI-generated product images | Yes, in most contexts | Label as AI-generated, especially in advertising |
 | AI-generated customer reviews or testimonials | Absolutely yes | FTC requires disclosure; most platforms prohibit entirely |
 | AI chatbot interacting with customers | Yes | Users must know they are interacting with AI |
@@ -289,17 +291,15 @@ CONSTRAINTS: Focus on actionable insights, not obvious observations.
 
 ## Future Trends
 
-### Near-Term (2025-2026)
+### Near-Term (2026-2027)
 
 - **Autonomous marketing agents:** AI systems that can plan, execute, and optimize campaigns with minimal human oversight (still requires guardrails and approval workflows)
 - **Real-time content personalization at scale:** AI assembles unique content experiences per visitor in milliseconds
 - **Predictive customer journeys:** AI maps likely next actions and pre-positions content/offers along the predicted path
-- **Voice and multimodal search optimization:** Content optimized for AI assistants that synthesize answers from multiple sources
 
-### Medium-Term (2026-2028)
+### Medium-Term (2027-2029)
 
 - **AI-native analytics:** Dashboards replaced by conversational interfaces that proactively surface insights
-- **Generative video advertising:** Full video ad production from text brief (currently emerging; quality improving rapidly)
 - **Cross-channel AI orchestration:** Single AI system managing messaging consistency across email, social, web, ads, and CRM
 - **Synthetic audience testing:** AI-simulated audience panels for rapid concept testing before real market exposure
 

@@ -1,43 +1,43 @@
 # Security Policy
 
-## Supported Versions
+## Supported versions
 
-Security fixes target the latest release on `main`.
+Security fixes target the latest public release and current `main`.
 
-## Reporting A Vulnerability
+## Report a vulnerability
 
-Open a private GitHub security advisory when this repository is public and advisories are enabled. Until then, contact the maintainer directly.
+Use a private GitHub security advisory when advisories are available. Otherwise
+contact the maintainer directly. Do not paste real Codex logs, prompts,
+responses, reasoning, tool output, credentials, private repository names,
+branches, or full local paths into a public issue.
 
-Do not paste real Codex logs, prompts, assistant responses, tool output, secrets, customer names, student data, private repository names, private branch names, or full local paths into public issues. If a maintainer asks for diagnostics, use `codex-usage-tracker --privacy-mode strict support-bundle --json` and review the written bundle before sharing it.
+## Local-data boundary
 
-## Data Boundary
+Codex Usage Tracker processes user-owned local session metadata and keeps its
+database and services local. It does not add telemetry or intentionally
+transmit usage data to a hosted service.
 
-Codex Usage Tracker is designed to index aggregate token metadata from local Codex logs. Reports, CSV exports, dashboards, and the SQLite database must not contain raw prompts, assistant text, tool outputs, pasted secrets, or transcript snippets.
+Local does not mean harmless to share. Thread labels, projects, tool names,
+resource paths, timestamps, model usage, costs, and allowance observations can
+reveal private work context. Review and minimize any query result, screenshot,
+diagnostic, or export before sharing it.
 
-Project metadata is aggregate metadata, but it can still reveal private work context through cwd fragments, project names, branch names, tags, or source paths. Use `--privacy-mode redacted` or `--privacy-mode strict` before sharing dashboards, CSV exports, JSON query output, screenshots, or support bundles. Strict mode hides project-relative cwd, branch, and tags in addition to raw paths.
+The clean replacement:
 
-The optional localhost context endpoint reads one selected source JSONL record on demand, redacts common secret patterns, caps returned text size, and does not persist the loaded context.
+- stores structural facts needed by accepted question contracts;
+- does not copy raw prompt, response, reasoning, command, patch, or tool-output
+  bodies into SQLite;
+- does not promise sanitization, redaction, or secret filtering;
+- treats secrets already present in local source logs as the user's
+  responsibility;
+- uses synthetic fixtures for tests, benchmarks, docs, and screenshots.
 
-The MCP `usage_call_context` tool is disabled unless the MCP server process explicitly sets `CODEX_USAGE_TRACKER_ALLOW_RAW_CONTEXT=1`. This keeps aggregate MCP reporting available while requiring a separate opt-in for raw local context reads.
+The public 0.28 implementation has its own frozen behavior, recorded in
+`docs/archive/spike/KERNEL_STABLE_CONTRACT_0_28.md`. Those compatibility and
+privacy modes are not requirements for the replacement.
 
-## Localhost Dashboard Token
+## Contributor boundary
 
-`serve-dashboard` creates a random per-server API token and embeds it in the generated dashboard HTML for that local server session. The token is used for localhost `/api/usage` refreshes, `/api/context` requests, and runtime context-loading settings. Treat generated active dashboard files and URLs as local-only artifacts; do not publish them or send them to someone else.
-
-The dashboard server rejects non-loopback hosts and cross-origin requests. This is a local hardening measure, not a reason to expose the server on a network interface.
-
-## Support Bundles
-
-Support bundles are intended to be safe diagnostic summaries. They include package, Python, OS, doctor, schema, parser diagnostic, pricing, allowance, threshold, and project-config status. They do not include raw logs, prompts, assistant messages, tool output, or context text.
-
-Before sharing a bundle:
-
-1. Generate it with strict project metadata privacy:
-
-   ```bash
-   codex-usage-tracker --privacy-mode strict support-bundle --output ~/.codex-usage-tracker/support-bundle.json
-   ```
-
-2. Open the file locally and scan for private project names, branch names, local paths, or anything else you do not want to share.
-
-3. Share only the smallest diagnostic excerpt needed for the issue.
+Never commit real local usage data, databases, generated local reports, raw
+transcripts, credentials, or private identifiers. Security reproductions must
+use the smallest synthetic fixture that demonstrates the defect.

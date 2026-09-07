@@ -21,7 +21,9 @@ Each layer addresses a different attack surface. Robust brand safety requires al
 
 Content adjacency is the most common brand safety risk: your ad appearing next to objectionable content on publisher sites, YouTube videos, or social feeds.
 
-### GARM Brand Safety Categories (Industry Standard)
+### GARM-derived Brand Safety Categories (legacy industry framework)
+
+*Note: GARM (Global Alliance for Responsible Media) wound down in August 2024, but its brand safety/suitability taxonomy remains the de facto reference used by platforms and verification vendors.*
 
 | Category | Risk Level | Examples | Default Action |
 |----------|-----------|----------|----------------|
@@ -165,7 +167,6 @@ Maintain awareness of dates/events where brand messaging must be adjusted:
 |--------|-----------|----------|-------------|
 | **IAS (Integral Ad Science)** | Strong pre-bid, contextual targeting, industry benchmarks | Programmatic-heavy advertisers | DV360, TTD, Xandr, Meta, YouTube |
 | **DoubleVerify (DV)** | Comprehensive coverage, attention metrics, custom categories | Enterprise brands needing granular control | All major DSPs, social platforms |
-| **MOAT (Oracle)** | Viewability + brand safety combined, competitive analytics | Viewability-focused campaigns | Oracle ecosystem, major DSPs |
 | **Zefr** | YouTube-specific brand suitability, video-level targeting | YouTube-heavy advertisers | YouTube, connected TV |
 | **Channel Factory** | YouTube optimization, performance + safety balance | Performance marketers on YouTube | YouTube |
 

@@ -45,15 +45,16 @@ Use it when you need a local Codex CLI multi-account workflow with visible accou
 
 ## Current Architecture At A Glance
 
-`codex-multi-auth` now ships three distinct global binaries:
+`codex-multi-auth` ships four global binaries:
 
 | Binary | Purpose |
 | --- | --- |
 | `codex-multi-auth` | Primary account manager; accepts bare auth subcommands such as `login`, `status`, `switch`, `forecast`, and `rotation status` |
 | `codex-multi-auth-codex` | Optional wrapper that handles `auth ...` locally and forwards every other command to the official Codex CLI |
+| `mcodex` | Convenience launcher over `codex-multi-auth-codex` with optional `--monitor` and `--tmux` modes |
 | `codex-multi-auth-app-launcher` | Optional desktop launcher helper for supported user-level shortcuts and wrapper apps |
 
-The package does not publish a global `codex` binary. Keep `codex` owned by the official OpenAI install path and use `codex-multi-auth-codex ...` only when you intentionally want this package's forwarding wrapper.
+The package does not publish a global `codex` binary. Keep `codex` owned by the official OpenAI install path. Use `codex-multi-auth-codex ...` or `mcodex ...` only when you intentionally want this package's forwarding wrapper.
 
 ---
 
@@ -160,6 +161,19 @@ codex-multi-auth forecast --live
 
 If browser launch is blocked, use the alternate login paths in [docs/getting-started.md](docs/getting-started.md#alternate-login-paths).
 For remote or headless shells, prefer `codex-multi-auth login --device-auth`.
+To refresh one saved account without changing the active selection or manual
+pin, run:
+
+```bash
+codex-multi-auth login --account <index|email|account_id> --preserve-selection
+```
+
+Add `--device-auth` on a remote shell. The refreshed OAuth identity must match
+the requested saved account or nothing is written. Refreshing the account Codex
+is currently using still publishes its new tokens to the native CLI; refreshing
+any other account leaves the active selection and the manual pin untouched. A
+disabled account stays disabled. `--account` cannot be combined with `--org`,
+which would rebind the row to a different workspace.
 
 ---
 
@@ -170,15 +184,18 @@ For remote or headless shells, prefer `codex-multi-auth login --device-auth`.
 | Command | What it answers |
 | --- | --- |
 | `codex-multi-auth login` | How do I add or re-open the account menu? |
-| `codex-multi-auth status` | Is the wrapper active right now? |
-| `codex-multi-auth check` | Do my saved accounts look healthy? |
+| `codex-multi-auth status` | What does my account pool, pin, and runtime metrics look like? (`list` is the same output) |
+| `codex-multi-auth check` | Do live health probes against my saved accounts succeed? |
 
 ### Daily use
 
 | Command | What it answers |
 | --- | --- |
-| `codex-multi-auth list` | Which accounts are saved and which one is active? |
-| `codex-multi-auth switch <index>` | How do I move to a different saved account? |
+| `codex-multi-auth list` | Alias of `status` — full account/runtime dump |
+| `codex-multi-auth switch <index>` | How do I pin a different saved account for runtime routing? |
+| `codex-multi-auth unpin` | How do I clear a manual pin and resume hybrid rotation? |
+| `codex-multi-auth workspace <account> [workspace]` | How do I list or set an account's active workspace? |
+| `codex-multi-auth best --live` | How do I switch to the forecast-best account (clears any pin)? |
 | `codex-multi-auth-codex --account <index\|email\|id>` | How do I force one account for a single wrapper session without changing my default? |
 | `codex-multi-auth forecast --live` | Which account looks best for the next session? |
 
@@ -253,7 +270,8 @@ For remote or headless shells, prefer `codex-multi-auth login --device-auth`.
 | Routing profiles | `~/.codex/multi-auth/routing-profiles.json` |
 | Budget guards | `~/.codex/multi-auth/budget-guards.json` |
 | Local client tokens | `~/.codex/multi-auth/local-client-tokens.json` |
-| Runtime app helper status | `~/.codex/multi-auth/runtime-rotation-app-helper.json` |
+| Runtime app helper status | `~/.codex/multi-auth/runtime-rotation-app-helper.<pid>.json` |
+| Runtime app helper owner metadata | `~/.codex/multi-auth/runtime-rotation-app-helper-owner.<pid>.json` |
 | Persistent app bind state/logs | `~/.codex/multi-auth/app-bind/` |
 | Logs | `~/.codex/multi-auth/logs/codex-plugin/` |
 | Per-project accounts | `~/.codex/multi-auth/projects/<project-key>/openai-codex-accounts.json` |
@@ -273,8 +291,10 @@ Selected runtime/environment overrides:
 | Variable | Effect |
 | --- | --- |
 | `CODEX_MULTI_AUTH_DIR` | Override settings/accounts root |
-| `CODEX_MULTI_AUTH_CONFIG_PATH` | Alternate config file path |
+| `CODEX_MULTI_AUTH_CONFIG_PATH` | Prefer this config file when it exists (also the save target when set) |
 | `CODEX_MODE=0/1` | Disable/enable Codex mode |
+| `CODEX_MULTI_AUTH_FORCE_ACCOUNT=<index\|email\|id>` | Force one account for a single `codex-multi-auth-codex` run (ephemeral; requires rotation proxy) |
+| `CODEX_MULTI_AUTH_BYPASS=1` | Skip multi-auth intercept and forward straight to official Codex |
 | `CODEX_MULTI_AUTH_RUNTIME_ROTATION_PROXY=0/1` | Opt out/in of live Responses proxy rotation for forwarded Codex CLI/app sessions |
 | `CODEX_MULTI_AUTH_APP_ROTATION_IDLE_MS=<ms>` | Override automatic Codex app helper idle shutdown |
 | `CODEX_MULTI_AUTH_APP_BIND_INSTALL=0/1` | Opt out/in of packaged Codex app bind self-heal on first CLI run or rotation enable |
@@ -309,6 +329,7 @@ The Settings menu now includes an `Experimental` section for staged features:
 - preview-first sync into `oc-chatgpt-multi-auth`
 - named local pool backup export with filename prompt
 - refresh guard toggle and interval controls moved out of Backend Controls
+- context budget guard: pause a session before it hits the model's context window, with independently configurable soft/hard thresholds (default 65% / 69%) — ships disabled; see [Context Budget Guard](docs/features.md#context-budget-guard-experimental)
 
 These flows are intentionally non-destructive by default: sync previews before apply, destination-only accounts are preserved, and backup filename collisions fail safely.
 
@@ -385,7 +406,12 @@ codex-multi-auth doctor --json
 
 ## Release Notes
 
-- Current stable: [docs/releases/v2.6.1.md](docs/releases/v2.6.1.md) — install via `npm i -g codex-multi-auth`
+- Current stable: [docs/releases/v2.10.0.md](docs/releases/v2.10.0.md) — install via `npm i -g codex-multi-auth`
+- Previous stable: [docs/releases/v2.8.3.md](docs/releases/v2.8.3.md)
+- Previous stable: [docs/releases/v2.8.2.md](docs/releases/v2.8.2.md)
+- Previous stable: [docs/releases/v2.7.1.md](docs/releases/v2.7.1.md)
+- Previous stable: [docs/releases/v2.7.0.md](docs/releases/v2.7.0.md)
+- Previous stable: [docs/releases/v2.6.0.md](docs/releases/v2.6.0.md)
 - Previous stable: [docs/releases/v2.5.0.md](docs/releases/v2.5.0.md)
 - Previous stable: [docs/releases/v2.4.0.md](docs/releases/v2.4.0.md)
 - Previous stable: [docs/releases/v2.3.3.md](docs/releases/v2.3.3.md)

@@ -1,25 +1,26 @@
-# Digital Marketing Pro
+﻿# Digital Marketing Pro
 
 > **Your agency just signed a 50-brand client. The previous agency left no playbook. Three brands are bleeding budget, two have stale positioning, one is launching in a regulated jurisdiction next month. Where do you start?**
 
-Run `/digital-marketing-pro:engagement` against each brand. Same 12-Part Strategy Flow, same Four Core Documents, same 61-step structure — auditable across the entire portfolio in ~60 minutes per brand on Claude Opus 4.8. No more inconsistent depth between brands. No more "what did the last agency do?" mysteries. No more compliance gaps in regulated jurisdictions.
+Run `/digital-marketing-pro:engagement` against each brand. Same 12-Part Strategy Flow, same Four Core Documents, same 61-step structure — auditable across the entire portfolio in ~60 minutes per brand on Claude Opus-class models (measured on Opus 4.8; Opus 5 is the current equivalent at the same price). No more inconsistent depth between brands. No more "what did the last agency do?" mysteries. No more compliance gaps in regulated jurisdictions.
 
-Open-source AI marketing plugin — **158 skills, 24 specialist agents, EU AI Act Article 50 ready, Cowork team-persistent**. Built for marketing agencies, in-house teams running 50–200 brands, and consultancies. Installs on **Claude Code** (CLI + IDE), **Anthropic Cowork**, **OpenAI Codex**, **Cursor 2.5+**, **GitHub Copilot CLI**, **Google Antigravity 2.0**, **Hermes Agent**, and **OpenClaw** + 35+ Agent Skills platforms. Created by [Indranil Banerjee](https://indranil.in) · [LinkedIn](https://www.linkedin.com/in/askneelnow/) · [X](https://x.com/askneelnow).
+Open-source AI marketing plugin — **163 skills, 24 specialist agents, EU AI Act Article 50 ready, Cowork team-persistent**. Built for marketing agencies, in-house teams running 50–200 brands, and consultancies. Installs on **Claude Code** (CLI + IDE), **Anthropic Cowork**, **OpenAI Codex**, **Cursor 2.5+**, **GitHub Copilot CLI**, **Google Antigravity 2.0**, **Hermes Agent**, and **OpenClaw** + 35+ Agent Skills platforms. Created by [Indranil Banerjee](https://indranil.in) · [LinkedIn](https://www.linkedin.com/in/askneelnow/) · [X](https://x.com/askneelnow).
 
-[![Version](https://img.shields.io/badge/version-3.15.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-3.31.1-blue.svg)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/indranilbanerjee/digital-marketing-pro?style=flat&logo=github&color=yellow)](https://github.com/indranilbanerjee/digital-marketing-pro/stargazers)
 [![Forks](https://img.shields.io/github/forks/indranilbanerjee/digital-marketing-pro?style=flat&logo=github&color=blue)](https://github.com/indranilbanerjee/digital-marketing-pro/network/members)
 [![Issues](https://img.shields.io/github/issues/indranilbanerjee/digital-marketing-pro?logo=github)](https://github.com/indranilbanerjee/digital-marketing-pro/issues)
 [![Last commit](https://img.shields.io/github/last-commit/indranilbanerjee/digital-marketing-pro?logo=github)](https://github.com/indranilbanerjee/digital-marketing-pro/commits/main)
-[![Tests](https://img.shields.io/badge/tests-207%2F207%20passing-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/tests-402%2F402%20passing-brightgreen.svg)](tests/)
 [![Platforms](https://img.shields.io/badge/platforms-8%20native%20%2B%2035%20Agent%20Skills-success.svg)](#works-on-40-agent-harnesses-via-the-agent-skills-open-standard)
-[![Cowork](https://img.shields.io/badge/cowork-team%20persistent-purple.svg)](#supported-surfaces-v3150)
+[![Cowork](https://img.shields.io/badge/cowork-team%20persistent-purple.svg)](#supported-surfaces-v3311)
 [![EU AI Act](https://img.shields.io/badge/EU%20AI%20Act-Article%2050%20ready-darkred.svg)](skills/context-engine/compliance-rules.md)
+[![Sponsor](https://img.shields.io/badge/sponsor-%E2%9D%A4-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/indranilbanerjee)
 
-> 🆕 **Just shipped — v3.15.0 (July 7, 2026):** The **Reliability & Truth** release — a full-repo audit fixed ~200 findings in one pass. Connectors are honestly opt-in (the shipped `.mcp.json` is empty; fictional npm packages purged), all 18 execution skills carry a uniform typed-approval gate (`disable-model-invocation: false` — closes issue #6), the Tessl review workflow moved to the `tessl review` CLI (closes issue #8), agents consolidated 25 → 24, C2PA gained the Article 50 `--ai-disclosure` assertion, and a new doc-vs-argparse contract linter + state-layer tests grew the suite from 123 to 207 passing. [Read what's new →](#whats-new) · [Full changelog →](CHANGELOG.md)
+> 🆕 **Just shipped — v3.31.1 (August 17, 2026): all five open community issues verified and fixed.** Every open GitHub issue was reproduced against the current release before touching anything — **all five were real**, and each fix ships with the guard that makes its regression class impossible: **(#10)** `claim-verifier.py`'s percentage pattern ended in `%\b`, which — because `%` is a non-word character — only matched when a word character *followed* the percent sign: `98%x` was a claim while "98% of customers" extracted nothing; fixed with `%(?!\w)` and pinned by a new CLI-level test suite. **(#11)** `keyword_cluster.py` tokenized with `[a-z0-9]+`, splitting every non-ASCII letter ("bürohaftpflicht" → "rohaftpflicht") — and exact-token Jaccard scored related German compounds at 0.00, blinding the cannibalisation gate and the link map in compounding languages; fixed with a Unicode tokenizer plus compound-aware similarity (containment matching with a 6-char floor; English sets score exactly as before, SERP-URL overlap stays pure Jaccard), pinned by tests including an English-parity bound. **(#13)** `engagement-workflow`'s frontmatter `allowed-tools` omitted `Task` while its body mandates Task dispatch in five Parts — on runtimes that enforce the declaration, the 12-part flow degraded; `Task` added, and a new guard fails any skill whose body references Task dispatch without declaring it. **(#12)** `plugin.yaml` (the one manifest outside the description guards) said "158 skills" for five releases; now 163, and the Hermes description joined the derived-count guard. **(#9)** `hooks/hooks.json` carried a `_readme` field that Cowork's plugin validation rejects — the rationale moved to `hooks/README.md`, the manifest is schema-clean, and a guard pins it (fixed across all three suite plugins, since every sibling shipped the same defect). Thanks to **@jurazerr** and **@theepicsaxguy** for precise, reproducible reports. 163 skills, 402 tests. Previously — **v3.31.0 (August 17, 2026): Grok (xAI Build CLI) becomes the ninth native platform.** A first-class `.grok-plugin/` manifest pair — `plugin.json` with the `"skills"` pointer Grok's loader reads, plus a single-plugin `marketplace.json` — makes `grok plugin install indranilbanerjee/digital-marketing-pro` work directly ([Grok Build](https://docs.x.ai/build/features/skills-plugins-marketplaces) also reads the Claude Code manifests for compatibility; the native pair is what an official xAI marketplace listing points at). Both files are version-locked into the release-consistency suite. The same pass also caught and fixed four stale counts that had escaped the doc-count guard through new phrasings — "158 \`SKILL.md\` files" hidden by backticks, "158 marketing skills" and "158 DMP skill names" hidden by qualifier words, and an "All 209 tests" claim that was 170 stale — and taught the guard each phrasing, plant-checked, with "N tests" now a derived-truth noun. 163 skills, 381 tests. Previously — **v3.30.2 (August 16, 2026): the documentation truth pass.** A from-zero audit found the doc-count guard pattern-blind: the comparison table said "Skills count **158**" against 163 shipped, five documents quoted "86 Python scripts" against 93, and AGENTS.md — the file every non-Claude runtime auto-loads — pinned v3.17.0, thirteen releases stale. Every number is now re-derived from the filesystem and the guard grew the exact patterns that escaped it (script counts, SKILL.md-file counts, table rows, AGENTS.md currency), each plant-checked against the phrasing it previously missed. 163 skills, 379 tests. Previously — **v3.30.1 (August 16, 2026): richer Agent Plugins listing metadata + the directory submission bundle** (docs/distribution/). And — **v3.30.0: the content-engine run auditor — “status: ready” is now re-derived, never trusted.** New `scripts/run-audit.py` re-checks a finished run from its artifacts: every numbered artifact present, the humanize verdict **re-measured with a fresh `ai-tell-scan.py` run** instead of read off the scorecard, no scan JSON embedded in the file `authorship.py` measures (the corruption class that once flipped `may_claim_authored` and denied an author credit for work they did), the authorship record matching a fresh measurement, recorded voice distances actually inside the 0.15 gate, and publish-ready copy free of production placeholders. A scorecard declaring ready past its own recorded gate is a FAIL with the number quoted; a missing input is reported-N/A, never silent-pass. The content-engine contract now runs the audit before `status: ready` may be declared, and the verdict lands in `run-audit.json` beside the artifacts so the next reader sees the run was verified rather than believed. 163 skills, 376 tests. Previously — **Just shipped — v3.29.0 (August 16, 2026): Digital Marketing Pro travels in Agent Plugins 1.0.** OpenAI's vendor-neutral plugin standard (announced Aug 6; adopted by ChatGPT, Codex, Cursor, GitHub Copilot, VS Code, Kiro) reads a root `plugin.json` on a closed schema and defines `${PLUGIN_DATA}` as the persistent-data name — and a compliant non-Claude host previously resolved no data directory here at all, because every resolver read only the `CLAUDE_*` spellings. Shipped: the root manifest (version-synced with the Claude manifest and guarded by tests — closed-schema check, name rules, all 163 skills verified in the standard's layout), and `${PLUGIN_DATA}` accepted as the fallback wherever `CLAUDE_PLUGIN_DATA` was read. One listing in the shared ChatGPT + Codex directory is now a packaging step away rather than a port. 163 skills, 364 tests. Previously — **Just shipped — v3.28.0 (August 15, 2026): a `brand-setup` → `content-engine` run, following the instructions literally, found five defects no unit test could see.** **`brand_voice_match` was unfailable**: it asked for "≤ 1.5 point deviation" while the scorer emits `distance` bounded at 1.0 — a hollow gate that had been passing everything. Now stated in the scorer's own 0–1 unit at `distance` ≤ 0.15, the threshold the scorer already used internally, with a test that fails if the two diverge. **`seo_complete` held one impossible criterion and one vacuous one**: a pre-launch brand's first article cannot make 3 internal links, and "all images have alt text" passed at zero images — both now take an `N/A` that must name its reason, because a bare `N/A` is a FAIL. **`brand-setup` produced a profile its own `validate-profile` rejected** on BLOCKER items it never creates; the generator is the source of truth, so the validator was the outlier and now accepts its keys. **The voice remediation inverted its own diagnosis** — copy "too serious" was told the brand "calls for more serious tone", advice that moves the score further out of tolerance. And **creating a brand silently repointed every skill at it** with no history and no notice; it now announces the change, records the previous slug, and prints the way back. 163 skills, 358 tests. Previously — **Just shipped — v3.27.0 (August 15, 2026): the humanize gate got measured against writing that predates ChatGPT, and lost a signal that was pointing the wrong way.** A calibration corpus of **39 documents published before 2022-11-01** — before ChatGPT was public, so human authorship is guaranteed by publication date rather than assumed — across four registers, cut into **272 chunks of ~1000 words** so both classes are compared at equal length, against 18 documents of default model prose. Of the 45 words in the LLM-favored lexicon, **23 fired — every one only on the human class, none on the model class.** "robust", "facilitate" and "leverage" are ordinary technical English while current models have largely been trained off them, so as a **gating** signal it could only ever produce false positives; it is now advisory. And the gate now says what it actually proves: it fails **0 of 39** published human documents and catches **0 of 18** unedited model documents — a density floor, not evidence a piece was humanized. Also fixed: the content-engine told you to append scan output to `05-humanize.md` while `authorship.py` measured that same file — on a real run that moved `author_word_share` 0.253 → 0.206 and flipped `may_claim_authored` to false, denying an author credit for work they did. `violations` stayed clean throughout, which is why nothing caught it. 163 skills, 358 tests. Previously — **Just shipped — v3.26.2 (August 14, 2026): the humanize gate stops being a vibe, and the author stays in the piece.** The content-engine's `humanize_passed` gate asked for "AI-pattern density below the brand threshold (under 10% of paragraphs flagged)" while nothing in the repo defined what a flag was — no catalog, no agent, no script. A gate whose measurement is undefined does not fail; it passes on impression. **`scripts/ai-tell-scan.py`** is the missing definition: deterministic surface tells (LLM-favored vocabulary, **significance markers** like "here's the thing" / "that's the part that got me" — which are DELETED, never reworded — and soft-adverb clusters) with a real per-paragraph flag rate. Crucially it gates on only the tells precise enough to gate on: measured against hand-written copy, the short-declarative heuristic alone flagged half the paragraphs of a good piece, so connective openers, participial openers and ungrounded one-liners stay advisory — a gate that fails human writing is worse than the undefined one it replaced. **Bring your own words** (`--source-draft`): hand the pipeline your own rough draft and it builds the piece *around* your sentences — carried through verbatim, typos and all, exempt from every tell, with `scripts/authorship.py` verifying afterwards that nothing of yours was paraphrased or dropped. That check BLOCKS rather than advises, because a detector signal is a probabilistic opinion but "the author wrote this and it is gone" is a fact. When the record earns it (25% floor, zero violations) the disclosure becomes provenance-accurate — read off the record, never requested, so it can only ever understate human authorship. Plus **entity development** in the structural scan: specifics name-dropped once and abandoned, fixed by developing an existing verified fact — never by deleting specifics, never by inventing a mention. 163 skills, 358 tests. Previously — **v3.24.0 (August 12): the timing ladder.** Posting-time and send-time recommendations no longer come from static best-times tables. Both scripts now put the brand's OWN data first (`--history`: ranked windows with sample sizes and statistical floors — the only path to high confidence), keep the population tables only as dated, medium-capped test starting points that refuse when stale, and carry 2026 mechanics in every output (interest-ranked feeds reward early velocity but content strength dominates timing; per-recipient ESP send-time optimization beats any global window). Earlier today — **v3.23.0: capability-first translation.** The last hardcoded-vendor surface is gone: the language router no longer ships a "language family → product" table. It names what each family *requires* from a translation service (native script-aware models for Indic, formality registers for European, segmentation and variant control for CJK) and resolves a concrete service at run time — from the brand's recorded preference or the MCP servers you have actually connected — refusing with a resolution ladder rather than naming a product from memory. A vendor-neutrality guard keeps the instruction surface clean permanently. Also today — **v3.22.0: the Routing Layer.** All 163 skill descriptions rewritten to the trigger-dense house pattern — what the skill does and produces, the trigger phrases a user would actually type (slash alias first), and what it reads or pairs with — because the description is the only thing the model reads when routing a request across 163 skills. The rewrite doubled as an honesty audit: plan-only skills now say "it publishes nothing", every approval-gated execution skill names its gate, and overclaims in the old copy (a "launching, managing" orchestrator that only plans; a promised SLA document that is a terms outline) were corrected. A new density guard pins the pattern per skill plus a median floor so the surface cannot thin back out. Same day — **v3.21.x: the Flagship Contract.** Every market-priced figure in the repo now carries provenance: 28 benchmark docs live-verified and stamped, backed by a new `benchmark_book.py` (numbers enter only with a source URL + as-of date; stale quotes are refused, never reused) — the pass that caught WhatsApp's retired conversation-based billing and repriced tool tables. A machine-verified **depth contract** (`skills-index.json`) publishes what each of the 163 skills guarantees — 108 execute real scripts, 12 route through quality gates, 43 are structured guidance — with drift tests that fail if a skill's promises ever diverge from its machinery. Model resolution gains an execution ladder (`--for-execution`: provenance and registry age travel with every id; unknowns are refused, never guessed), `/digital-marketing-pro:help --intent` routes goals to skill *chains* instead of alphabetical lists, and a new end-to-end engagement smoke test proves the executable spine — intake → benchmarks → media math → campaign store — preserves provenance at every joint, on every release. Previously — **v3.18.0–v3.20.0 (August 12): the creator-craft wave.** Four strategy skills mined from creator-economy practice (`/goal-filter`, `/story-mine`, `/signal-mine`, `/lead-magnet-ideas`), `/video-packaging` with the title/thumbnail pairing principle, and video ad scripting wired into the house quality machinery (6s/15s/30s/UGC ad-format physics, campaign-context inheritance, every script through `/check`). [Read what's new →](#whats-new) · [Full changelog →](CHANGELOG.md)
 >
-> <sub>Previously — **v3.14.1 (June 28, 2026):** README sync patch — fixed 4 stale version refs that escaped v3.14.0 (Cowork badge anchor, `## Supported surfaces` heading, 2nd internal anchor, missing What's new entries) + extended `tests/test_release_consistency.py` so this drift class is caught in CI from now on. v3.14.0 (also today) brought the **June market-refresh sweep** — model registry rebuilt (47 entries verified against Anthropic/OpenAI/Google primary docs), Meta Graph API bumped v20 → v24, Google Ads v24.1 + v24.2 documented, EU AI Act Code of Practice second-draft refresh, resolver now auto-rewrites `retired` model IDs, EvoLink vendor added. 123 tests passing. [Read what's new →](#whats-new) · [Full changelog →](CHANGELOG.md)</sub>
+> <sub>Previously — **v3.15.0 (July 7, 2026):** The **Reliability & Truth** release — a full-repo audit fixed ~200 findings in one pass. Connectors are honestly opt-in (the shipped `.mcp.json` is empty; fictional npm packages purged), all 18 execution skills carry a uniform typed-approval gate (closes issue #6), the Tessl review workflow moved to the `tessl review` CLI (closes issue #8), agents consolidated 25 → 24, C2PA gained the Article 50 `--ai-disclosure` assertion, and a new doc-vs-argparse contract linter + state-layer tests grew the suite from 123 to 207 passing. [Read what's new →](#whats-new) · [Full changelog →](CHANGELOG.md)</sub>
 
 ```bash
 # Install — one line
@@ -48,7 +49,7 @@ Open-source AI marketing plugin — **158 skills, 24 specialist agents, EU AI Ac
 
 | | **Digital Marketing Pro** | Anthropic Marketing (official) | Composio Marketing | claude-seo (community) |
 |---|---|---|---|---|
-| Skills count | **158** | ~7 | ~12 | 25 SEO-only sub-skills |
+| Skills count | **163** | ~7 | ~12 | 25 SEO-only sub-skills |
 | Specialist agents | **24** | 0 | 0 | 18 SEO-only |
 | Has a methodology | **Yes — 12-Part Strategy Flow (61 explicit steps)** | No | No | No |
 | Multi-brand / agency support | **Yes — per-brand state, brand-switch, agency-dashboard** | No | No | No |
@@ -56,8 +57,8 @@ Open-source AI marketing plugin — **158 skills, 24 specialist agents, EU AI Ac
 | Cowork team persistence | **Yes — Drive MCP routing (v3.12.0)** | Cowork-native | Composio cloud | n/a |
 | Real API execution | **Yes — 8 connectors live, 25 manifest-ready** | OAuth via plugin | OAuth via Composio | Optional DataForSEO / Firecrawl |
 | 6-platform AEO/GEO audit | **Yes — incl. Google AI Mode (May 2026)** | No | No | Yes (AEO + GEO) |
-| Cross-platform install | **8 native — CC + Cowork + Codex + Cursor + Copilot CLI + Antigravity + Hermes + OpenClaw** | Cowork only | Cowork + Codex | CC + Codex |
-| Tests | **207 stdlib unittest** | unknown | unknown | 271 incl. SSRF/DNS coverage |
+| Cross-platform install | **9 native — CC + Cowork + Codex + Cursor + Copilot CLI + Antigravity + Hermes + OpenClaw + Grok** | Cowork only | Cowork + Codex | CC + Codex |
+| Tests | **209 stdlib unittest** | unknown | unknown | 271 incl. SSRF/DNS coverage |
 | License | **MIT — no telemetry, no seats** | Proprietary | Proprietary | MIT |
 | Maintainer responsiveness | Direct via [@askneelnow](https://linkedin.com/in/askneelnow) | Anthropic queue | Composio queue | Community |
 
@@ -85,7 +86,7 @@ That's it. You never touched a command line. Your team Drive will hold the outpu
 
 Most AI marketing tools generate isolated outputs — a campaign brief here, an email there. No canonical sequence, no shared state, no enforced structure. Result: inconsistent depth, missed dependencies, outputs that don't compound.
 
-**DM Pro runs every brand through the same 12 parts, producing the same files in the same order, with explicit dependency rules between them.** That's the whole product. Everything else — the 158 skills, 24 agents, May–June 2026 compliance updates, Cowork persistence — exists to make that 12-Part Flow ship cleanly for real agencies on real client work.
+**DM Pro runs every brand through the same 12 parts, producing the same files in the same order, with explicit dependency rules between them.** That's the whole product. Everything else — the 163 skills, 24 agents, May–June 2026 compliance updates, Cowork persistence — exists to make that 12-Part Flow ship cleanly across real marketing operations.
 
 | What this gives you that ad-hoc prompts don't | Why it matters |
 |---|---|
@@ -93,14 +94,14 @@ Most AI marketing tools generate isolated outputs — a campaign brief here, an 
 | **Two-Views Model** (v1 unbiased + v2 client-validated) | You never lose the original market view when the client pushes back |
 | **Decision Matrix** — maps validation responses to re-runs | Stops over-running (wasted hours) and under-running (broken strategy) |
 | **Living Project Instruction File** — single source of truth per engagement | All skills read it first; corrections propagate automatically |
-| **EU AI Act Article 50 readiness** built in | C2PA provenance signing, deepfake disclosure, draft-guidelines table in compliance |
+| **EU AI Act Article 50 readiness** built in | C2PA provenance signing, deepfake disclosure, final Article 50 Guidelines + Code of Practice (10 June 2026) in compliance |
 | **6-platform AEO/GEO audit** (incl. Google AI Mode) | The first marketing plugin to treat AI Mode as a distinct surface from AI Overviews |
 
 ---
 
 ## What you get in 60 minutes
 
-Run `/digital-marketing-pro:engagement` and the plugin produces a full brand-strategy engagement in roughly 60 minutes on Opus 4.8 — **~50–60 canonical files** organized by part:
+Run `/digital-marketing-pro:engagement` and the plugin produces a full brand-strategy engagement in roughly 60 minutes on Opus 4.8/Opus 5-class models — **~50–60 canonical files** organized by part:
 
 - **Part 1** — Stone-vs-Opinion intake (what the client knows for certain vs what they believe)
 - **Part 2** — External market research (unbiased, no client docs)
@@ -115,7 +116,7 @@ Run `/digital-marketing-pro:engagement` and the plugin produces a full brand-str
 - **Part 11** — AI creative briefs (with Nano Banana Pro / Veo 3.1 / Gemini Omni model guidance and C2PA + deepfake-disclosure clauses)
 - **Part 12** — Continuous improvement loop
 
-Cost: roughly **$15–40 in Claude API spend** for a full 12-part engagement using Opus 4.8. The plugin itself is MIT-licensed and free.
+Cost: roughly **$15–40 in Claude API spend** for a full 12-part engagement using Opus 4.8 or Opus 5 (same $5/$25 per-MTok pricing). The plugin itself is MIT-licensed and free.
 
 ---
 
@@ -198,7 +199,7 @@ See the [Multi-Brand & Agency Guide](docs/multi-brand-guide.md) for the multi-cl
 ```
 /digital-marketing-pro:brand-setup "ACME Corp"        # interactive: voice, audience, channels, jurisdiction
 /digital-marketing-pro:competitor-analysis            # multi-dimensional deep-dive on top 5 competitors
-/digital-marketing-pro:engagement                     # full 12-Part Strategy Flow (~60 min on Opus 4.8)
+/digital-marketing-pro:engagement                     # full 12-Part Strategy Flow (~60 min on Opus-class)
 /digital-marketing-pro:check  engagements/.../03-four-core/*.md   # pre-publish gate before client review
 ```
 Output: ~50–60 canonical files. Cost: $15–40 in API spend. Time saved: ~3 weeks of senior-strategist labor.
@@ -245,7 +246,7 @@ Output: real API calls fired against your stack with audit logging at `~/.claude
 
 ---
 
-## Supported surfaces (v3.15.0)
+## Supported surfaces (v3.31.1)
 
 | Platform | Install command | Manifest path | Status |
 |---|---|---|---|
@@ -255,10 +256,11 @@ Output: real API calls fired against your stack with audit logging at `~/.claude
 | **Cursor 2.5+** | In any Cursor Agent chat: `/add-plugin digital-marketing-pro@https://github.com/indranilbanerjee/digital-marketing-pro` | `.cursor-plugin/plugin.json` (published Cursor JSON Schema) | Full skills + agents + commands support |
 | **GitHub Copilot CLI** | `copilot plugin marketplace add indranilbanerjee/neels-plugins` then `copilot plugin install digital-marketing-pro@neels-plugins` | `.github/plugin/plugin.json` (Copilot CLI also recognizes `.claude-plugin/plugin.json` as fallback) | Full skills + MCP support; subagents need `.agent.md` extension (open issue); custom slash commands not yet supported in Copilot CLI |
 | **Google Antigravity 2.0** CLI + IDE | `agy plugin install https://github.com/indranilbanerjee/digital-marketing-pro` | `gemini-extension.json` (at repo root, per Google's reference pattern) | Full skills + hooks support; subagents need `/agent` CLI spawning; slash commands fold into skills via `agy plugin import gemini` |
-| **Hermes Agent** (Nous Research) — Desktop + CLI on macOS / Windows / Linux | `hermes plugins install indranilbanerjee/digital-marketing-pro` | `plugin.yaml` + `__init__.py` at repo root (Hermes native spec) | Native plugin — adapter walks `skills/` at register time and exposes all 158 skills via `ctx.register_skill()`. Targets Hermes Desktop v0.15.2+ (public preview June 2 2026). |
+| **Hermes Agent** (Nous Research) — Desktop + CLI on macOS / Windows / Linux | `hermes plugins install indranilbanerjee/digital-marketing-pro` | `plugin.yaml` + `__init__.py` at repo root (Hermes native spec) | Native plugin — adapter walks `skills/` at register time and exposes all 163 skills via `ctx.register_skill()`. Targets Hermes Desktop v0.15.2+ (public preview June 2 2026). |
 | **OpenClaw** (formerly Clawdbot / Moltbot) | `openclaw plugins install git:github.com/indranilbanerjee/digital-marketing-pro` | `openclaw.plugin.json` at repo root (also auto-detects `.claude-plugin/plugin.json` as Claude-compatible bundle) | Native plugin via `openclaw.plugin.json`; `skills` field points at `./skills`. Also installable via ClawHub marketplace (submission pending). |
+| **Grok** (xAI Build CLI) | `grok plugin install indranilbanerjee/digital-marketing-pro` — or `grok plugin marketplace add indranilbanerjee/neels-plugins` then `grok plugin install digital-marketing-pro` (append `--trust` to skip the install confirmation) | `.grok-plugin/plugin.json` + `.grok-plugin/marketplace.json` ([Grok Build](https://docs.x.ai/build/features/skills-plugins-marketplaces) also reads the Claude Code manifests for compatibility; the native pair is the first-class lane) | Full skills support |
 
-**Why this works:** Agent Skills became an open standard in December 2025 (donated to the Agentic AI Foundation; adopted by **41+ agent products** by June 2026 — see ["Works on 40+ agent harnesses"](#works-on-40-agent-harnesses-via-the-agent-skills-open-standard) below). All 158 SKILL.md files in DM Pro are platform-portable as written. The sibling manifests are thin platform-specific wrappers around the same `skills/` directory — no skill duplication, no maintenance fork. The pattern is borrowed from Google's reference repo [`gemini-cli-extensions/data-agent-kit-starter-pack`](https://github.com/gemini-cli-extensions/data-agent-kit-starter-pack).
+**Why this works:** Agent Skills became an open standard in December 2025 (donated to the Agentic AI Foundation; adopted by **41+ agent products** by June 2026 — see ["Works on 40+ agent harnesses"](#works-on-40-agent-harnesses-via-the-agent-skills-open-standard) below). All 163 SKILL.md files in DM Pro are platform-portable as written. The sibling manifests are thin platform-specific wrappers around the same `skills/` directory — no skill duplication, no maintenance fork. The pattern is borrowed from Google's reference repo [`gemini-cli-extensions/data-agent-kit-starter-pack`](https://github.com/gemini-cli-extensions/data-agent-kit-starter-pack).
 
 **Minimum Claude Code version: 2.1.157** (declared via `requiredMinimumVersion` in plugin.json — landed in Claude Code v2.1.163, June 4 2026). Older Claude Code builds will be told to upgrade rather than load DMP with missing features.
 
@@ -266,7 +268,7 @@ Output: real API calls fired against your stack with audit logging at `~/.claude
 
 ## Works on 40+ agent harnesses (via the Agent Skills open standard)
 
-Beyond the 8 surfaces above where we ship a native manifest, DMP's 158 `SKILL.md` files work out-of-the-box on any agent that adopted the [Agent Skills open standard](https://agentskills.io) (Anthropic-published Dec 2025, 41+ adopters as of June 2026). On each platform below, point it at our `skills/` folder and all 158 marketing skills are immediately discoverable. No platform-specific manifest needed.
+Beyond the 9 surfaces above where we ship a native manifest, DMP's 163 SKILL.md files work out-of-the-box on any agent that adopted the [Agent Skills open standard](https://agentskills.io) (Anthropic-published Dec 2025, 41+ adopters as of June 2026). On each platform below, point it at our `skills/` folder and all 163 marketing skills are immediately discoverable. No platform-specific manifest needed.
 
 **Tier 1 — verified-compatible platforms with explicit Agent Skills install paths:**
 
@@ -355,7 +357,92 @@ If you run into a platform-specific install snag, file a [GitHub issue](https://
 
 ## What's new
 
-DM Pro is updated against the **actual current marketing ecosystem state** — June 2026 platform refresh, Google I/O 2026, the active broad core algorithm update, EU AI Act draft implementing guidelines, Meta platform expansions, and the latest AI image/video model landscape. No "trained on 2024 data" surprises in your client outputs.
+### v3.31.1 — all five open community issues verified and fixed (August 17, 2026)
+
+Each open GitHub issue was reproduced against the current release; all five were real, and every fix shipped with its own guard. #10: the percent-claim regex only matched when a word character followed `%` — inverted behavior, now `%(?!\w)` with CLI-level tests. #11: the keyword tokenizer split non-ASCII letters and exact-token Jaccard scored German compounds at 0.00 — Unicode tokenizer + compound-aware similarity (English scoring provably unchanged). #13: `engagement-workflow` mandated Task dispatch its `allowed-tools` didn't declare — fixed plus a contract guard across all 163 skills. #12: `plugin.yaml` said "158 skills" — 163 now, with the Hermes description in the derived-count guard. #9: the `_readme` field in `hooks/hooks.json` failed Cowork validation — rationale moved to `hooks/README.md` in all three suite plugins, schema-clean manifests guarded. Credit: @jurazerr (4 reports), @theepicsaxguy (1 report).
+
+### v3.31.0 — Grok becomes the ninth native platform (August 17, 2026)
+
+A first-class `.grok-plugin/` manifest pair (`plugin.json` with the `"skills"` pointer Grok's loader reads + a single-plugin `marketplace.json`) makes `grok plugin install indranilbanerjee/digital-marketing-pro` work directly; Grok also reads the Claude Code manifests for compatibility, but the native pair is what an official xAI marketplace listing points at. Both files are version-locked into `tests/test_release_consistency.py`, and Grok joins every platform-name guard (README troubleshooting, AGENTS.md surfaces line, install-command coverage). The same pass caught four stale counts that had escaped the doc-count guard through new phrasings — backticked `SKILL.md`, qualifier words ("marketing skills", "skill names"), and an unguarded "N tests" noun 170 stale — fixed the prose and taught the guard each phrasing, plant-checked.
+
+### v3.30.2 — the documentation truth pass (August 16, 2026)
+
+Every count in every live document re-derived from the filesystem: the comparison table said "Skills count 158" against 163 shipped, five documents quoted "86 Python scripts" against 93, and AGENTS.md pinned v3.17.0 — thirteen releases stale on the file every non-Claude runtime auto-loads. The doc-count guard grew the exact patterns that escaped it (script counts, SKILL.md-file counts, table rows, AGENTS.md currency), each plant-checked against the phrasing it previously missed.
+
+### v3.30.1 — listing metadata + submission bundle (August 16, 2026)
+
+Root `plugin.json` gains the official schema's full optional set; `docs/distribution/submission-bundle.md` carries the listing copy, starter prompts, and 5+3 test cases both official directories require.
+
+
+### v3.30.0 — the content-engine run auditor (August 16, 2026)
+
+`scripts/run-audit.py` re-derives a run's gate claims from the artifacts on disk: artifacts present, humanize re-measured fresh, no scan JSON inside the measured file, authorship record vs fresh measurement, voice distances inside the gate, publish-ready copy free of placeholders. The contract requires it before `status: ready`; exit 1 means fix the finding, never the wording.
+
+
+### v3.29.0 — Agent Plugins 1.0 packaging (August 16, 2026)
+
+OpenAI's vendor-neutral Agent Plugins standard (announced August 6; adopted by ChatGPT, Codex, Cursor, GitHub Copilot, VS Code, Kiro) reads a root `plugin.json` on a closed schema and defines `${PLUGIN_DATA}` as the persistent-data name. DMP now ships that manifest — version-synced with the Claude manifest and test-guarded — and accepts `${PLUGIN_DATA}` wherever `CLAUDE_PLUGIN_DATA` was read, so a compliant non-Claude host resolves a data directory instead of nothing. One listing in the shared ChatGPT + Codex plugin directory is now a packaging step away.
+
+
+DM Pro is updated against the **actual current marketing ecosystem state** — the July 2026 market refresh (GPT-5.6 Sol/Terra/Luna, the Claude 5 family, the **final** EU AI Act Article 50 guidelines + Transparency Code of Practice), Google I/O 2026, the Google Ads v25 / Meta v25 API shifts, and the latest AI image/video model landscape. No "trained on 2024 data" surprises in your client outputs.
+
+**v3.28.0 — Following the Instructions Literally (August 15)**
+
+A brand-setup → content-engine run on a fresh brand, doing exactly what the skills said, surfaced five contract defects. `brand_voice_match` asked for "≤ 1.5 point deviation" against a scorer whose `distance` is bounded at 1.0 — unfailable, and quietly passing everything; it now uses the scorer's own 0–1 unit at 0.15, the threshold the script already flagged at. `seo_complete` demanded 3 internal links from a brand with no website and counted "all images have alt text" as passed at zero images; both now take an `N/A` that must name its reason, because a bare `N/A` becomes a way to skip any gate. `brand-setup` wrote a profile that `validate-profile` rejected on BLOCKERs it never creates — two other consumers read the generator's keys, so the validator was reconciled to reality. The voice scorer's remediation pointed the wrong way (content "too serious" told to be "more serious"). And creating a brand silently repointed the global active brand with no history; it now says so and prints the undo. Suite: 340 → 358.
+
+**v3.27.0 — The Gate, Measured (August 15)**
+
+A calibration corpus of 39 documents published before 2022-11-01 — before ChatGPT was public, so human authorship is guaranteed by publication date rather than assumed — across marketing blogs, personal and technical essays, journalism and institutional reports, and academic and standards prose. Cut into 272 chunks of ~1000 words so both classes are compared at equal length, against 18 documents of default model prose. Two findings. First, of the 45 words in the LLM-favored lexicon, 23 fired and **every one fired only on the human class** — "robust", "facilitate" and "leverage" are ordinary technical English while current models have largely been trained off them, so as a gating signal it could only ever produce false positives. It is now advisory. Second, the gate fails 0 of 39 published human documents and catches 0 of 18 unedited model documents: it is a density floor, not evidence a piece was humanized, and the docs now say so. Also fixed: the content-engine instructed appending scan output to `05-humanize.md` while `authorship.py` measured that same file — on a real run that moved `author_word_share` 0.253 → 0.206 and flipped `may_claim_authored` to false. `violations` stayed clean throughout, which is why nothing caught it. Suite: 335 → 340.
+
+**v3.26.2 — Load-Test Corrections (August 14)**
+
+A verification harness ran every script in the repo and an adversarial input battery against the text-processing surface. It found a real one: the authorship matcher was quadratic — 11.4s at 500 sentences, and its difflib prefilter pruned nothing in exactly the case that matters, because when the draft genuinely contains the author's sentences every pair looks promising. A long whitepaper would have hung the phase. Rewritten as two passes (hash index for verbatim survivors, fuzzy only over the remainder, with a mathematical length bound): 5000 sentences now match in 0.07s. Plus 28 adversarial inputs — empty, 50k words, RTL, CJK, null bytes, unclosed fences, HTML injection — all handled without a crash, pinned as regression tests. Suite: 331 → 335.
+
+**v3.26.1 — Field-Test Corrections (August 14)**
+
+Five probes run against the INSTALLED plugin. The gate held: DMP's own generated 1081-word article passes its own gate at 0% flagged paragraphs, a published human essay passes at 0%, and AI-shaped copy still fails at 66.7%. `entity_development` read OK on the real article (18 distinct entities, 1.67 mentions each) — the proxy behaves on genuine long-form content, not just synthetic fixtures. One real fix: the aphorism heuristic was flagging ordinary factual sentences ("The neighbouring region barely moved.") and rated both the human essay and DMP's own article HIGH. It now excludes context-dependent sentences (personal or anaphoric pronouns, coordinating-conjunction openers), and no longer contributes to `advisory_rating` at all — a signal too imprecise to gate on is too imprecise to headline a rating. Still counted and reported for the editor. Suite: 327 → 331.
+
+**v3.26.0 — The Humanize Gate Stops Being a Vibe (August 14)**
+
+The content-engine gated on "AI-pattern density below the brand threshold (under 10% of paragraphs flagged)" while nothing in the repo defined what a flag was — no catalog, no agent, no script. A gate whose measurement is undefined doesn't fail; it passes on impression. New `scripts/ai-tell-scan.py` is that missing measurement: deterministic surface tells (LLM-favored vocabulary, **significance markers** — sentences whose only job is to label what a neighbouring sentence means, like "here's the thing" or "that's the part that got me", which are **deleted, never reworded** — and soft-adverb clusters) with a real per-paragraph flag rate. It gates on only the three tells precise enough to gate on: measured against hand-written copy, the short-declarative heuristic alone flagged half the paragraphs of a good piece, so connective openers, participial openers and ungrounded one-liners stay advisory — a gate that fails human writing is worse than the undefined one it replaced. Absolute floors stop one legitimate "actually" in a short excerpt from normalizing into a tell. Plus **`--source-draft`**: bring your own rough draft and the pipeline builds around your sentences — carried verbatim, typos and all, exempt from every tell, with `scripts/authorship.py` blocking (not advising) if anything of yours was paraphrased or dropped, because "the author wrote this and it is gone" is a fact rather than a probability. The disclosure becomes provenance-accurate only when the record earns it (25% floor, zero violations), so it can only ever understate human authorship. And **entity development** joins the structural scan: specifics name-dropped once and abandoned, fixed by developing an existing verified fact — never by deleting specifics, never by inventing a mention. No watermark detection or removal — permanently. Suite: 294 → 327.
+
+**v3.25.0 — Honest Provenance + the Structural Tier (August 13)**
+
+Every brand profile gains an `ai_disclosure` block — author-optional, vendor-neutral default wording, three modes (`claude-surfaces` default with an uncertain-surface fail-safe that discloses rather than guesses / `always` / `off`) — applied by content-engine inside the publish-ready body so it survives publish-blog, recorded in handoff metadata either way, and classified by the new `detect_surface.py`. Plus the Tier-2 structural scan (`structural-tell-scan.py`, StoryScope-derived): moralizing closers, template symmetry, specificity density, stance absence, and uniform rhythm measured with spans; `/check` reports them as a pure advisory section, and the content-engine humanize step acts on them with fact-grounded structural edits. No watermark detection or removal — permanently. Suite: 281 → 294.
+
+**v3.24.0 — The Timing Ladder (August 12)**
+
+posting-time-analyzer and send-time-optimizer rebuilt from static best-times tables into the measurement ladder: the brand's own history first (`--history` — ranked day×hour windows with sample sizes and minimum-sample floors; the only path to high confidence), dated population baselines second (stamped, capped at medium `relative_strength`, warn >180d, refuse >540d), with 2026 platform mechanics in every output (early-velocity seeding, TikTok least time-sensitive; per-recipient ESP STO beats any global window, 5-15% current lift). Consumers updated; a phantom `--brand/--region` flag documented in team-roles-framework fixed to the real interface. Suite: 269 → 281.
+
+**v3.23.0 — Capability-First Translation (August 12)**
+
+The localization cluster's four-vendor routing table and closed service enum are gone. `language-router.py --action route` now returns a capability kind + selection criteria per language family and resolves a concrete service only from the brand's recorded preference or live-discovered connected MCP servers (`basis` on every payload); nothing connected → an explicit resolution ladder (the harness's own multilingual capability with mandatory quality scoring → already-connected tools → ask and record). Free-form preferences mean a server no shipped list knows still resolves. New guards: `test_language_router.py` + `test_vendor_neutrality.py` (no commercial translation vendor on the instruction surface, ever again). Suite: 253 → 269.
+
+**v3.22.0 — The Routing Layer (August 12)**
+
+All 163 skill descriptions rewritten to the trigger-dense pattern (what it does and produces → "Triggers on" with ≥4 real user phrases, namespaced slash alias first → what it reads/pairs with; median ~720 chars of routing signal), written against each full SKILL.md so nothing is claimed that the skill does not deliver — the pass caught and corrected real overclaims in the old one-liners. `tests/test_description_density.py` guards the floor per skill and the median across the surface. Suite: 248 → 253.
+
+**v3.21.0 / v3.21.1 — The Flagship Contract (August 12)**
+
+Benchmark provenance across the whole doc surface: 28 skill docs carrying market-priced figures (CPMs, CPCs, CPLs, creator rates, tool prices) were live-verified against 2026 sources and banner-stamped with an as-of date that *ages out in the test suite* — stamps older than 15 months fail the build. New `benchmark_book.py`: market benchmarks enter only via a recorded lookup with a source URL; fresh quotes cleanly, aging warns, stale refuses (exit 3). The verification pass caught real rot: WhatsApp's per-conversation billing (retired July 2025) rewritten to per-message reality, TikTok TopView CPM corrected $50–$80 → $11–$19, Heepsy/Modash repriced. New machine-verified depth contract: `skills-index.json` publishes every skill's tier (E executes scripts / M measured via gates / G guided — currently 108/12/43) with drift + broken-reference + tier-floor guards. `resolve_model.py --for-execution` attaches basis + registry age to every resolution and refuses unknowns. `/help --intent "<goal>"` routes to gated skill chains. A new engagement capstone smoke test runs a synthetic brand through intake → benchmark record/quote → ROI math → campaign persistence and asserts the benchmark's source URL survives every joint. Suite: 212 → 248 tests. (v3.21.1, same day: index byte counts newline-normalized so the drift check compares content, never checkout line-ending config — caught by the verify-from-installed-copy ship step.)
+
+**v3.18.0 – v3.20.0 — The creator-craft wave (August 12)**
+
+Three releases in one day, quarried from a 17-skill creator-economy reference library. v3.18.0: four new strategy skills — `/goal-filter` (one goal per brand, honest ON/PARTIAL/OFF verdicts), `/story-mine`, `/signal-mine` (authority beats relevance), `/lead-magnet-ideas` (power×effort grading). v3.19.0: `/video-packaging` (title = keywords for the algorithm, thumbnail = tension for the human, never echo — checked word by word), discovery-intent tags, the payoff rule (no scene ends on setup), retention notes, and the standalone test with shipped cut-lists in content-repurpose (163 skills). v3.20.0: video ad scripting wired into the house quality machinery — organic-vs-ad detection with campaign-context inheritance, ad-format physics (6s bumper, 15s skippable where the 5-second skip button is the real deadline, 30s front-loaded arc, UGC-style as style not disclosure exemption), and every script routed through `/check` before delivery.
+
+**v3.17.1 — Registry reconciliation + anonymity guard (July 30)**
+
+Balanced/fast model aliases re-pointed to the current generation (claude-sonnet-5, gpt-5.6-terra, gpt-5.6-luna); GPT-5.5/5.4 family marked `supported` with `replacement_id`s targeting GPT-5.6; `balanced-video` tier added. New `tests/test_source_anonymity.py` machine-enforces the never-name-the-source-organization rule (needles assembled at runtime; verified to fire on a planted probe). Suite: 210 tests.
+
+**v3.17.0 — The Line-by-Line Audit (July 29)**
+
+Full-repo audit: 16 parallel readers covered 100% of the repo's files line-by-line, cross-checked against primary-source July-2026 facts and against the code itself. Highlights: every doc↔script contract verified (payload shapes, flags, thresholds, storage paths); dead products removed from recommendations; EU Code/Article 50 language moved fully to final-Code, post-deadline state; scripts hardened (trustworthy exit codes, atomic writes, real quality gates, input sanitization); reference-file indexes completed so all 169 reference docs are discoverable; self-containment guard now covers the entire repo. Suite: 209 tests.
+
+**v3.16.0 — July Market Refresh (July 12)**
+Everything verified against primary sources on ship day. The **final EU Code of Practice on Transparency of AI-Generated Content** (10 June 2026) replaces all second-draft guidance in the compliance docs — standardized EU disclosure icons are live, the initial-signatory window closed **22 July 2026** (late signing remains possible), and the final Article 50 Guidelines are in (`compliance-rules.md`). The model registry adds the **Claude 5 family** (`claude-fable-5` with refusal/fallback semantics, `claude-opus-5` — the new `latest-text-anthropic`, `claude-sonnet-5`) and **GPT-5.6 Sol/Terra/Luna** (`latest-text-openai` → Sol), flags Opus 4.1's Aug 5 retirement, and is mirrored to the shared suite registry. Paid docs get the **Meta v25 truth pass** (standalone Advantage+ Shopping/App creation blocked via API — unified Advantage+ documented as the go-forward path; Page Viewer metric replaces legacy reach) plus Google Ads v25 breaking changes and LinkedIn 202607. `gsc-ai-performance` adds the Discover generative surfaces. README claims rotated to the current model lineup.
+
+**v3.15.1 — Self-containment patch (July 12)**
+Removed every cross-plugin capability reference from the skill surface: `ad-creative` and the engagement's Part 11 hand visual production to your own tooling (design team, AI generators, or connected design platforms) instead of naming a sibling plugin; `launch-campaign` C2PA signing and checkpoint-resume route through DMP's own `c2pa-metadata` and `/digital-marketing-pro:resume`; `validate-profile` checks DMP's own publish dir (`$DIGITAL_MARKETING_PRO_PUBLISH_DIR` / `~/Documents/DigitalMarketingPro/`); the EU compliance reference docs are DMP-centric. DMP is fully standalone — no other plugin is ever required for any documented capability. Cross-promo links in this README stay; capability delegation is gone.
 
 **v3.15.0 — Reliability & Truth (July 7)**
 A full-repo audit (orchestration, agents, skills, scripts, docs/manifests) surfaced ~200 findings, all fixed in one pass. One shared workspace-root/slugify/atomic-write helper (`_common.py`) ends the storage split-brain; connectors are honestly opt-in (the shipped `.mcp.json` is empty, fictional npm packages purged, memory backends demoted to "only if connected"); all 18 execution skills carry a uniform `## Execution gate` and flip to `disable-model-invocation: false` (**closes issue #6**); the Tessl workflow moves to the `tessl review` CLI + `.github/tessl-rubric.yml` (**closes issue #8**); `competitor-intelligence` merges into `competitive-intel` (**25 → 24 agents**); `embed-c2pa.py` gains the EU AI Act Article 50 `--ai-disclosure` assertion; and a new `check_skill_contracts.py` doc-vs-argparse linter + state-layer tests grow the suite **123 → 207 passing**. Every fabricated capability, stale count, and phantom flag is fixed or labeled.
@@ -392,7 +479,7 @@ Verified-real native manifests for two more agent harnesses, plus documented com
 - **Hermes Agent (Nous Research)** — native plugin via `plugin.yaml` + `__init__.py` at repo root. The Python adapter walks our `skills/` directory at register-time and exposes all 158 marketing skills to Hermes via `ctx.register_skill()`. Defensive coding throughout — no Hermes runtime dependencies; uses stdlib only; degrades gracefully if the Hermes API surface differs from spec. Tested against Hermes Desktop v0.15.2 (public preview June 2 2026). Install: `hermes plugins install indranilbanerjee/digital-marketing-pro`.
 - **OpenClaw (formerly Clawdbot / Moltbot)** — native manifest via `openclaw.plugin.json` at repo root. Points OpenClaw at `./skills` for direct discovery. OpenClaw also auto-detects our existing `.claude-plugin/plugin.json` as a Claude-compatible bundle, so the native manifest is for first-class discoverability + ClawHub marketplace eligibility. Install: `openclaw plugins install git:github.com/indranilbanerjee/digital-marketing-pro`.
 - **40+ Agent Skills platforms documented** — Goose (Block) · OpenHands · OpenCode · Junie (JetBrains) · Gemini CLI · Roo Code · Kiro · Amp · Letta · Mux (Coder) · Factory · Workshop · Tabnine · Mistral Vibe · Emdash · Superconductor · Ona · VT Code · Qodo · Piebald · Autohand Code CLI · pi · Command Code · TRAE (ByteDance) · Firebender · bub · fast-agent · nanobot (HKUDS) · Vita · Snowflake Cortex Code · Databricks Genie Code · Laravel Boost · Spring AI · Agentman · Google AI Edge Gallery. All read SKILL.md files from a directory tree — point any of them at our `skills/` folder and 158 marketing skills are immediately discoverable.
-- **70-test stdlib suite** (up from 49) — 21 new tests cover the Hermes adapter (plugin.yaml schema validation, `__init__.py` import smoke test, `register(ctx)` against mock context with all 158 skills, graceful degradation when ctx surface differs from spec) and the OpenClaw manifest (id + configSchema required, skills field points at `./skills`, no hooks, no unexpected fields). Run with `python tests/run_all.py`.
+- **70-test stdlib suite** (up from 49) — 21 new tests cover the Hermes adapter (plugin.yaml schema validation, `__init__.py` import smoke test, `register(ctx)` against mock context with all 163 skills, graceful degradation when ctx surface differs from spec) and the OpenClaw manifest (id + configSchema required, skills field points at `./skills`, no hooks, no unexpected fields). Run with `python tests/run_all.py`.
 - **Zero impact on existing platforms** — `plugin.yaml`, `__init__.py`, and `openclaw.plugin.json` are at the repo root but Claude Code only reads `.claude-plugin/plugin.json`, Cowork only reads the same path, Codex only reads `.codex-plugin/`, etc. Each platform reads its own manifest path and ignores the others — same pattern that's been working since v3.8.0 (May 2026). `__init__.py` is never executed by Claude Code (it doesn't auto-execute Python files). MCP auto-connects, hooks, skill descriptions — none change.
 
 Skill count: 158 unchanged. Test count: 49 → **70**. Native platforms: 6 → **8**. Documented Agent Skills coverage: 6 → **41+**.
@@ -400,7 +487,7 @@ Skill count: 158 unchanged. Test count: 49 → **70**. Native platforms: 6 → *
 **v3.12.0 — Cowork persistence, fallback models, model-freshness, tests (June 8)**
 Research-grounded hardening pass. Verified GitHub issue [#51398](https://github.com/anthropics/claude-code/issues/51398) — `${CLAUDE_PLUGIN_DATA}` is NOT persistent across Anthropic Cowork sessions, contrary to the docs. Solution shipped:
 
-- **New `/digital-marketing-pro:cowork-setup` skill + command.** Detects the Cowork sandbox, verifies a Drive MCP, creates the canonical Drive folder layout (`<root>/_brands/`, `_runs/`, `_plans/`), and persists the routing config so brand profiles survive across sessions. Mirrors the ContentForge `cf-cowork-setup` pattern that's been battle-tested with agency users. Includes multi-team isolation via per-team folder names.
+- **New `/digital-marketing-pro:cowork-setup` skill + command.** Detects the Cowork sandbox, verifies a Drive MCP, creates the canonical Drive folder layout (`<root>/_brands/`, `_runs/`, `_plans/`), and persists the routing config so brand profiles survive across sessions. Uses a Drive-routing pattern that's been battle-tested with agency users. Includes multi-team isolation via per-team folder names.
 - **`fallbackModel` ready out of the box.** `settings.json.example` ships with a 3-model resilience chain (Sonnet 4.7 → Sonnet 4.6 → Haiku 4.5) using the `fallbackModel` setting from Claude Code v2.1.152 (May 27 2026). When the primary model is overloaded or a non-retryable API error fires, Claude Code transparently swaps to the next model.
 - **`requiredMinimumVersion: 2.1.157` declared.** Users on older Claude Code builds get a clear upgrade message instead of silent feature gaps. Landed in Claude Code v2.1.163 (June 4 2026).
 - **Model-registry freshness check in `/digital-marketing-pro:doctor`.** Wires `resolve_model.registry_age_days()` into the doctor output. Severity bands: `ok` (<60 days), `warn` (60-119), `urgent` (>=120). When stale, the doctor prints the exact `refresh_models.py` invocation. Directly addresses "what if a new model drops between releases."
@@ -408,7 +495,7 @@ Research-grounded hardening pass. Verified GitHub issue [#51398](https://github.
 - **`disable-model-invocation: true` on 5 true side-effect commands** (`execute-action`, `cowork-setup`, `resume`, `check`, `output-folder`). Removes their descriptions from the model's listing — saves the per-session description budget and prevents Claude from auto-running them on a hunch.
 - **Fixed 3 "Read all" eager-load anti-patterns** in `growth-plan`, `client-validation-document`, `continuous-improvement-loop`. Replaced with grep-first + targeted-Read patterns that respect the per-skill 5K-token auto-compaction budget.
 - **Added Context efficiency callouts** to 3 more top-heaviest skills (`seo-plan`, `content-engine`, `analytics-insights`) — now 16 of the top-16 heaviest skills have explicit context-efficiency guidance.
-- **CI line-count guard** (`scripts/skill-line-check.py`) keeps every SKILL.md under the documented 500-line guideline. Current state: heaviest is `four-core-documents` at 368 lines, all 158 skills under threshold.
+- **CI line-count guard** (`scripts/skill-line-check.py`) keeps every SKILL.md under the documented 500-line guideline. Current state: heaviest is `four-core-documents` at 368 lines, all 163 skills under threshold.
 - **Test suite (stdlib unittest, 49 tests)** covering `resolve_model.py`, `drive-sync-state.py`, `plugin-metadata.py`, `skill-line-check.py`, `connector_resolver.py`. Drive-sync tests run against a tempdir HOME so they never touch the real `~/.claude-marketing/`. Run with `python tests/run_all.py`.
 
 Skill count: 157 → **158** (`cowork-setup` added). 192/192 skills still pass Codex `[a-z0-9-]+` regex.
@@ -509,7 +596,7 @@ Marketing Strategist · Brand Guardian · Content Creator · Email Specialist ·
 
 Each agent has scoped responsibilities, explicit input/output contracts, and reads the Living Project Instruction File before acting.
 
-### 158 skills
+### 163 skills
 Skills are invoked by description match through the Skill tool, addressable as `/digital-marketing-pro:<skill-name>` from chat. Coverage: brand setup, content production (blog / ad / email / social / landing / video / PR / case study), SEO / AEO / GEO audits (6 platforms incl. Google AI Mode), competitor monitoring, campaign planning, channel-specific strategies, attribution, churn risk, lifecycle journeys, intelligence reports, eval framework, knowledge management, multi-brand operations, regional configuration, C2PA content provenance, **Cowork+Drive team persistence**.
 
 ### 18 top-level commands
@@ -536,12 +623,12 @@ Skills are invoked by description match through the Skill tool, addressable as `
 
 Plus **140 additional skills** addressable via `/digital-marketing-pro:<skill-name>` — `:competitor-monitor`, `:churn-risk`, `:autopilot-status`, `:agency-dashboard`, `:aeo-audit`, `:geo-monitor`, `:c2pa-metadata`, `:client-onboarding`, `:journey-design` … see `/digital-marketing-pro:help` after install for the full list, or browse `skills/` in the repo.
 
-### 86 Python scripts (optional)
+### 93 Python scripts (optional)
 Plugin works fully without Python — all marketing knowledge, frameworks, agent capabilities, and skills work out of the box via the 169 reference knowledge files.
 
 | Mode | Size | Adds |
 |---|---|---|
-| **Knowledge-only** (default) | 0 MB | All 158 skills + 24 agents + 169 reference files |
+| **Knowledge-only** (default) | 0 MB | All 163 skills + 24 agents + 169 reference files |
 | **Lite** (`pip install nltk textstat`) | ~15 MB | Brand-voice scoring, content quality scoring, readability analysis |
 | **Full** (`pip install -r scripts/requirements.txt`) | ~50 MB | Competitor scraping, QR generation, AI visibility API checking, GEO tracking, C2PA signing |
 
@@ -573,7 +660,7 @@ Two user-team complaints from the v3.7.5 cycle drove this release: "dm pro is ta
 /digital-marketing-pro:output-folder <brand> <workflow>    # drill down
 ```
 
-**Implementation:** `scripts/checkpoint-manager.py` (per-step storage + atomic writes, stdlib only) + `scripts/output-publisher.py` (dual-copy publish + `where` + `open` subcommands), mirroring the ContentForge dual-copy pattern. The engagement/checkpoint state machine ships tests in `tests/test_engagement_state.py` + `tests/test_checkpoint_roundtrip.py`; a fuller 5-scenario end-to-end simulation (clean 12-part run / interrupt-resume / parallel workflows / quality-gate fail / all-workflows-accepted) was used during development but is a dev tool, not shipped in the repo.
+**Implementation:** `scripts/checkpoint-manager.py` (per-step storage + atomic writes, stdlib only) + `scripts/output-publisher.py` (dual-copy publish + `where` + `open` subcommands: internal tracking copy + user-visible published copy). The engagement/checkpoint state machine ships tests in `tests/test_engagement_state.py` + `tests/test_checkpoint_roundtrip.py`; a fuller 5-scenario end-to-end simulation (clean 12-part run / interrupt-resume / parallel workflows / quality-gate fail / all-workflows-accepted) was used during development but is a dev tool, not shipped in the repo.
 
 ---
 
@@ -636,7 +723,7 @@ Every script that calls a provider model now accepts `--model` (or `--openai-mod
 
 ```bash
 python scripts/resolve_model.py --alias latest-balanced-anthropic    # -> claude-sonnet-4-6
-python scripts/resolve_model.py --check gemini-2.0-flash              # -> deprecated (use gemini-3.5-flash)
+python scripts/resolve_model.py --check gemini-2.0-flash              # -> retired (auto-routes to gemini-3.5-flash)
 python scripts/resolve_model.py --list --vendor anthropic --status current
 python scripts/refresh_models.py                                      # drift report (needs API keys)
 ```
@@ -652,7 +739,7 @@ DM Pro carries jurisdiction-specific compliance rules that auto-apply when a bra
 **EU AI Act Article 50 readiness (applicable 2 August 2026):**
 - C2PA content-provenance signing via `/digital-marketing-pro:c2pa-metadata` (end-to-end tested against c2pa-python 0.32 — 75-byte test PNG → 42,818-byte signed PNG with `manifest_embedded_and_verified=true`)
 - Pre-publish gate (`/digital-marketing-pro:check`) treats missing C2PA on AI-flagged assets in EU campaigns as CRITICAL → BLOCKED
-- Draft implementing guidelines (8 May 2026) added as `compliance-rules.md` §1.1b.i with six-row clarification table + five-point action list
+- Final Article 50 Guidelines + final Code of Practice on Transparency of AI-Generated Content (10 June 2026) in `compliance-rules.md` §1.1b.i with six-row clarification table + five-point action list
 - Production cert guide at `docs/c2pa-production-cert-guide.md` covers the four CAI-recognised authorities (Adobe Content Credentials, Truepic, Numbers Protocol, Microsoft Azure Confidential Ledger)
 
 **Other May 2026 regulatory updates baked in:**
@@ -673,7 +760,7 @@ The search landscape pivoted hard in 2025–2026:
 
 DM Pro's AEO/GEO skills (`/digital-marketing-pro:aeo-audit`, `:geo-monitor`, `:entity-audit`) reflect this:
 - **6-platform audit standard** — ChatGPT, Perplexity, Google AI Mode, Google AI Overviews, Gemini, Microsoft Copilot (was 5 — AI Mode added May 2026)
-- Schema strategy refresh — Google's March 2026 core update demoted FAQ/Review/HowTo schema on non-primary pages. Skills emphasise entity-rich JSON-LD (Article + Organization + Person + Product) and produce an **LLMs.txt** companion file
+- Schema strategy refresh — Google's March 2026 core update demoted FAQ/Review/HowTo schema on non-primary pages. Skills emphasise entity-rich JSON-LD (Article + Organization + Person + Product) and offer an optional **LLMs.txt** companion (Google states it is not required for AI-features eligibility)
 - Citation tracking across all 6 surfaces, with Profound / Otterly / Conductor AgentStack integration paths in the connectors layer
 - **Share of AI Voice** as a first-class metric in `/digital-marketing-pro:performance-report`
 
@@ -727,7 +814,7 @@ Those are frameworks. DM Pro is a **packaged, opinionated methodology** with exp
 | Recommended for | Terminal workflows + scripting | Visual desktop workflows | Quick content | One-off questions |
 
 **Q: How much does a full engagement cost in API spend?**
-Roughly **$15–40** for a complete 12-part engagement using Opus 4.8 across ~50–60 documents. Track per-brand consumption via Claude Code v2.1.149+ `/usage` (now integrated into `/digital-marketing-pro:agency-dashboard`).
+Roughly **$15–40** for a complete 12-part engagement using Opus 4.8 or Opus 5 (same pricing) across ~50–60 documents. Track per-brand consumption via Claude Code v2.1.149+ `/usage` (now integrated into `/digital-marketing-pro:agency-dashboard`).
 
 **Q: Can I run multiple brands in parallel?**
 Yes. Each brand has its own `~/.claude-marketing/<brand-slug>/` directory and Python script state. Switch with `/digital-marketing-pro:switch-brand`.
@@ -736,7 +823,7 @@ Yes. Each brand has its own `~/.claude-marketing/<brand-slug>/` directory and Py
 Skip to `/digital-marketing-pro:campaign-plan`. Every individual surface (campaign / SEO / content / competitor / email / report) is independently runnable. The full engagement is the canonical path, not the only path.
 
 **Q: Will this work on Codex / Cursor / Copilot CLI / Antigravity?**
-Yes — verified-real native manifests ship for all 8 surfaces (CC, Cowork, Codex, Cursor, Copilot CLI, Antigravity, Hermes Agent, OpenClaw). See [Supported surfaces](#supported-surfaces-v3150) above for per-platform install commands.
+Yes — verified-real native manifests ship for all 9 surfaces (CC, Cowork, Codex, Cursor, Copilot CLI, Antigravity, Hermes Agent, OpenClaw, Grok). See [Supported surfaces](#supported-surfaces-v3311) above for per-platform install commands.
 
 **Q: I run my team on Anthropic Cowork. Does brand state persist between sessions?**
 Yes — but you need to run `/digital-marketing-pro:cowork-setup` once per team first (v3.12.0). Cowork's per-session filesystem is ephemeral, and `${CLAUDE_PLUGIN_DATA}` is too ([open issue #51398](https://github.com/anthropics/claude-code/issues/51398)). The setup wizard routes brand profiles + plans + reports through a Google Drive MCP so everything survives across sessions and is shared across the team. Multi-team isolation via per-team folder names.
@@ -754,7 +841,7 @@ No — independent open-source plugin built by [Indranil Banerjee](https://indra
 
 ## Troubleshooting
 
-Common install + first-run issues across all 8 supported platforms, with the fix.
+Common install + first-run issues across all 9 supported platforms, with the fix.
 
 ### Claude Code + Cowork
 
@@ -776,7 +863,7 @@ The model registry hasn't been refreshed for 60+ days — frontier models shift 
 These platforms read SKILL.md by description match — invoke via natural language (*"Run a competitor analysis on stripe.com"*) rather than typing a slash command. Slash commands (`/digital-marketing-pro:<name>`) are a Claude Code convention; on other surfaces the agent picks up the skill from intent.
 
 **"Codex says skill name failed regex check"**
-Codex enforces `[a-z0-9-]+` on skill names. All 158 DMP skill names pass this regex (verified in the test suite). If you see this error, it's likely a personal skill you added — rename it to lowercase + hyphens only.
+Codex enforces `[a-z0-9-]+` on skill names. All 163 DMP skill names pass this regex (verified in the test suite). If you see this error, it's likely a personal skill you added — rename it to lowercase + hyphens only.
 
 **"Cursor `/add-plugin` returns 'plugin not found'"**
 Use the full Git URL form: `/add-plugin digital-marketing-pro@https://github.com/indranilbanerjee/digital-marketing-pro`. Cursor's marketplace integration is fastest, but the Git URL form always works.
@@ -784,7 +871,7 @@ Use the full Git URL form: `/add-plugin digital-marketing-pro@https://github.com
 ### Hermes Agent
 
 **"`hermes plugins install ...` finishes but no skills appear"**
-The plugin needs to be enabled after install: `hermes plugins enable digital-marketing-pro`. Then verify with `hermes plugins list`. If the adapter's `register()` returned silently with no skills, run the audit: `cd ~/.hermes/plugins/digital-marketing-pro && python __init__.py` — it'll print the discovered skill count + first 5 skills, confirming the clone got the full `skills/` tree.
+The plugin needs to be enabled after install: `hermes plugins enable digital-marketing-pro`. Then verify with `hermes plugins list`. If the adapter's `register()` returned silently with no skills, run the audit: `cd ~/.hermes/plugins/digital-marketing-pro && python __init__.py` — it'll print the discovered skill count + the first five skills, confirming the clone got the full `skills/` tree.
 
 **"register_skill error in Hermes logs"**
 Check Hermes version: this plugin targets **v0.15.2+**. Run `hermes --version`. Older builds may have a different `ctx` API surface — the adapter degrades gracefully (logs an error, doesn't crash) but won't register skills. Upgrade Hermes to the latest public preview.
@@ -795,12 +882,17 @@ Check Hermes version: this plugin targets **v0.15.2+**. Run `hermes --version`. 
 Use the `git:` install scheme: `openclaw plugins install git:github.com/indranilbanerjee/digital-marketing-pro`. If you used another scheme and it failed, the fallback is: `cd ~/.openclaw/plugins && git clone https://github.com/indranilbanerjee/digital-marketing-pro && openclaw plugins enable digital-marketing-pro`.
 
 **"OpenClaw uses Claude bundle but loses some features"**
-OpenClaw auto-detects our `.claude-plugin/plugin.json` as a Claude-compatible bundle, but the native `openclaw.plugin.json` gives first-class discoverability. Both load the same 158 skills from `./skills`. Verify with `openclaw plugins inspect digital-marketing-pro --runtime --json`.
+OpenClaw auto-detects our `.claude-plugin/plugin.json` as a Claude-compatible bundle, but the native `openclaw.plugin.json` gives first-class discoverability. Both load the same 163 skills from `./skills`. Verify with `openclaw plugins inspect digital-marketing-pro --runtime --json`.
+
+### Grok (xAI Build CLI)
+
+**"`grok plugin install` can't find the plugin"**
+Use the direct repo form: `grok plugin install indranilbanerjee/digital-marketing-pro` — the native `.grok-plugin/` manifest pair ships in-repo, so no separate marketplace is needed. Alternatively add the marketplace first: `grok plugin marketplace add indranilbanerjee/neels-plugins` then `grok plugin install digital-marketing-pro`. Append `--trust` to skip the install confirmation. Grok also reads the Claude Code manifests for compatibility, so even a pre-3.31.0 clone loads — the native pair is what gives first-class discoverability.
 
 ### General (any platform)
 
 **"Tests in `tests/` fail when I `git clone` locally"**
-Run `python tests/run_all.py` from the repo root. All 207 tests are stdlib-only — no `pip install` needed. If they fail, the most likely cause is a Python version mismatch (DMP supports Python 3.8+) or a clone that omitted some `skills/` subdirectories. Try `git clone --depth=1` again.
+Run `python tests/run_all.py` from the repo root. All 402 tests are stdlib-only — no `pip install` needed. If they fail, the most likely cause is a Python version mismatch (DMP supports Python 3.8+) or a clone that omitted some `skills/` subdirectories. Try `git clone --depth=1` again.
 
 **"`/digital-marketing-pro:doctor` shows my action as stub_unconfigured"**
 That action needs an MCP connector configured. Run `python scripts/connector-status.py --action setup-guide --name <connector-name>` for the exact setup snippet. Add it to your `.mcp.json` under `mcpServers`, restart your agent, and the action becomes `manifest_ready`. See [Connector-aware action resolver](#connector-aware-action-resolver-v3710) for the full readiness model.
@@ -862,7 +954,13 @@ DM Pro is part of a three-plugin suite by [Indranil Banerjee](https://indranil.i
 
 ## Star history
 
-[![Star History Chart](https://api.star-history.com/svg?repos=indranilbanerjee/digital-marketing-pro&type=Date)](https://star-history.com/#indranilbanerjee/digital-marketing-pro&Date)
+<a href="https://www.star-history.com/?type=date&repos=indranilbanerjee%2Fdigital-marketing-pro">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=indranilbanerjee/digital-marketing-pro&type=date&theme=dark&legend=top-left&sealed_token=AqnW48iQwpZNQCx5Ncz_reoaRoDWKEEG-sZXQohHllcyAFnSDLdSJVqEoTci2Y8ognOBGCUrCY9eU3yUIW_YG7TwVhwub90B7qGh-9qlJgGjfFQQbp__puZDwereB6S-SQzbcK8B68Z-izIHjTt1DFPa5YxfuWlFF8MhrLdIEhFdU2x-cwHzmGWYYhBl" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=indranilbanerjee/digital-marketing-pro&type=date&legend=top-left&sealed_token=AqnW48iQwpZNQCx5Ncz_reoaRoDWKEEG-sZXQohHllcyAFnSDLdSJVqEoTci2Y8ognOBGCUrCY9eU3yUIW_YG7TwVhwub90B7qGh-9qlJgGjfFQQbp__puZDwereB6S-SQzbcK8B68Z-izIHjTt1DFPa5YxfuWlFF8MhrLdIEhFdU2x-cwHzmGWYYhBl" />
+    <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=indranilbanerjee/digital-marketing-pro&type=date&legend=top-left&sealed_token=AqnW48iQwpZNQCx5Ncz_reoaRoDWKEEG-sZXQohHllcyAFnSDLdSJVqEoTci2Y8ognOBGCUrCY9eU3yUIW_YG7TwVhwub90B7qGh-9qlJgGjfFQQbp__puZDwereB6S-SQzbcK8B68Z-izIHjTt1DFPa5YxfuWlFF8MhrLdIEhFdU2x-cwHzmGWYYhBl" />
+  </picture>
+</a>
 
 If DM Pro saves your team time, [⭐ star the repo](https://github.com/indranilbanerjee/digital-marketing-pro/stargazers) — it's the single most useful thing you can do to help other marketing teams discover it.
 
@@ -870,7 +968,7 @@ If DM Pro saves your team time, [⭐ star the repo](https://github.com/indranilb
 
 ## About the maintainer
 
-DM Pro is built and maintained by **[Indranil Banerjee](https://indranil.in)** — a digital marketing practitioner shipping engagement methodology as code. The 12-Part Strategy Flow comes from real client engagements across consumer DTC, B2B SaaS, regulated industries (health, finance), and agency multi-brand portfolios.
+DM Pro is built and maintained by **[Indranil “Neel” Banerjee](https://indranil.in)** — a builder and systems thinker with roots in information security and a second act across growth marketing, enterprise digital operations, and AI transformation. This repository is one public implementation of a broader focus on trustworthy AI execution: preserve context, make evidence inspectable, and keep people at consequential decision points.
 
 - 🌐 **Website:** [indranil.in](https://indranil.in)
 - 💼 **LinkedIn:** [linkedin.com/in/askneelnow](https://www.linkedin.com/in/askneelnow)
@@ -882,13 +980,27 @@ DM Pro is built and maintained by **[Indranil Banerjee](https://indranil.in)** �
 
 **Why this plugin exists:** Most AI marketing tools generate isolated outputs that don't compose. The 12-Part Strategy Flow encodes the canonical sequence a real engagement actually needs — Stone-vs-Opinion intake, Four Core Documents, Client Validation, Two-Views Model, Decision Matrix, Growth Plan + Yearly Planner, channel fan-out, execution artefacts, creative briefs, continuous improvement loop. Once it's a plugin, every engagement looks the same, handoffs work, and quality is auditable. That's the whole product.
 
-If DM Pro saves your team time, [⭐ star the repo](https://github.com/indranilbanerjee/digital-marketing-pro/stargazers) — it's the single most useful thing you can do to help other marketing teams discover it. Sharing on **LinkedIn** ([linkedin.com/in/askneelnow](https://www.linkedin.com/in/askneelnow)) or **X** ([@askneelnow](https://x.com/askneelnow)) helps too — tag me, I'll re-share.
+If DM Pro saves your team time, [⭐ star the repo](https://github.com/indranilbanerjee/digital-marketing-pro/stargazers) — it's the single most useful thing you can do to help other marketing teams discover it. Sharing it on **LinkedIn** or **X** helps people discover the work too.
 
 ---
 
 ## Contributing
 
 PRs welcome — especially on compliance rules (privacy and AI law change fast), industry profiles, and channel-specific updates. See [CONTRIBUTING.md](CONTRIBUTING.md) for the contribution workflow, [`.github/PULL_REQUEST_TEMPLATE.md`](.github/PULL_REQUEST_TEMPLATE.md) for the PR checklist, and [TESTING-GUIDE.md](TESTING-GUIDE.md) for per-phase test checklists. All contributors are expected to follow the [Code of Conduct](CODE_OF_CONDUCT.md). Security issues: please use [Private Security Advisories](https://github.com/indranilbanerjee/digital-marketing-pro/security/advisories/new) per [SECURITY.md](SECURITY.md) — do not file public issues for vulnerabilities.
+
+---
+
+## Sponsor this project
+
+This plugin is MIT-licensed, free to use commercially, and collects no telemetry. What
+sponsorship pays for is the unglamorous half of keeping it accurate: platform-API updates
+when a vendor ships a breaking version, model-registry refreshes when a model is retired,
+compliance passes when regulatory guidance moves, and issue triage.
+
+If it saves your team time, you can [sponsor the work](https://github.com/sponsors/indranilbanerjee).
+Sponsors from $25/mo are listed in [SPONSORS.md](SPONSORS.md).
+
+[![Sponsor](https://img.shields.io/badge/sponsor%20on%20GitHub-%E2%9D%A4-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/indranilbanerjee)
 
 ---
 

@@ -19,8 +19,8 @@ language:
   primary: en-US
   secondary: [de-DE, fr-FR, es-ES, ja-JP, hi-IN]
   translation_preferences:
-    default_service: auto          # let language-router decide
-    force_service: null             # override: deepl | sarvam-ai | google-cloud-translation | lara-translate
+    default_service: auto          # let language-router resolve from connected servers
+    force_service: null             # override: any connected translation MCP server name (free-form)
     formality: formal               # formal | informal | auto
     glossary_enabled: true
     do_not_translate: ["BrandName", "ProductX", "ProSuite"]
@@ -88,26 +88,37 @@ Deploy localized assets to target platforms. Monitor performance per language/ma
 
 ---
 
-## 2. Translation Service Comparison
+## 2. Translation Service Selection
 
-| Feature | DeepL | Sarvam AI | Google Cloud Translation | Lara Translate |
-|---|---|---|---|---|
-| **Languages** | 30+ | 22 Indic | 100+ | 100+ |
-| **Primary strength** | European language quality | Indic language specialist | Broadest language coverage | Marketing context preservation |
-| **Formality control** | Yes (formal/informal) | No | No | Yes (formal/informal) |
-| **Glossary support** | Yes | No | Adaptive NMT | Yes (Translation Memory) |
-| **Batch processing** | Yes | Yes | Yes | Yes |
-| **Best for** | DE, FR, ES, IT, PT, NL, PL, RU, JA, KO, ZH | HI, TA, TE, BN, MR, GU, KN, ML, PA | Rare languages, AR, TH, VI, ID, SW | Marketing copy, brand voice content |
-| **API rate limits** | 500K chars/month (free), unlimited (pro) | Per-request, batch preferred | 6M chars/month default | Project-based quotas |
-| **Context window** | Sentence + paragraph | Sentence-level | Sentence-level | Document-level TM |
-| **MCP server** | `deepl` | `sarvam-ai` | `google-cloud-translation` | `lara-translate` |
+The suite names translation CAPABILITIES, never products. Which services exist,
+which are best, and what they cost changes faster than any shipped document —
+so the doctrine is: know what each language family requires, then judge
+whatever services the user has actually connected against those requirements.
+`language-router.py --action route` automates this: it returns the capability
+kind, the selection criteria, the brand's recorded preference, and the
+connected candidates — and refuses to name a product from memory when nothing
+resolves.
 
-### When to use each service
+### Capability checklist — evaluate ANY candidate service against these
 
-- **DeepL**: Default for European languages. Superior quality for DE, FR, ES, IT, NL, PL. Also strong for JA, KO, ZH. Use when formality control matters.
-- **Sarvam AI**: Mandatory for Indic languages. Purpose-built models for Hindi, Tamil, Telugu, Bengali, Marathi, Gujarati, Kannada, Malayalam, Punjabi, and 13 other Indic languages. Handles script-specific nuances that general-purpose engines miss.
-- **Google Cloud Translation**: Fallback for languages not well-served by DeepL or Sarvam. Primary choice for Arabic, Thai, Vietnamese, Indonesian, Swahili, and other languages outside European/Indic families.
-- **Lara Translate**: Best for marketing content where brand voice preservation is critical. Translation Memory maintains consistency across campaigns. Use for high-visibility marketing copy when budget allows.
+| Question to ask of a candidate | Why it matters |
+|---|---|
+| Does it have NATIVE model coverage of the specific target language? | Transliteration or pivot-through-English quality is visibly worse; specialists trained on the target language win |
+| Does it support formality registers (Sie/du, vous/tu, usted/tú)? | Without register control, every B2B asset in a register language needs a manual pass |
+| Does it support glossaries / do-not-translate enforcement? | Brand and product names must survive verbatim; manual restoration is error-prone at volume |
+| Does it offer translation memory or document-level context? | TM makes repeated campaign content cheaper and more consistent over time |
+| Can it handle the target script correctly (conjuncts, ligatures, RTL, CJK mixing)? | Script bugs are invisible in a diff and glaring to a native reader |
+| What are its current rate limits and pricing? | Look these up live at selection time — never from this document |
+| Does it ship batch processing? | Campaign localization is batch work; per-request services bottleneck |
+
+### What each language family demands
+
+- **Indic targets**: a genuine Indic specialist — native models for the SPECIFIC target language (not just Hindi), script-aware output, code-mixed content handling. General-purpose engines miss script-specific nuances.
+- **European targets**: formality registers and glossary support are the deciding capabilities; idiomatic quality beyond word accuracy separates candidates.
+- **CJK targets**: context-aware segmentation, correct Japanese script mixing, Simplified/Traditional variant control. Quality varies sharply — sample-test before committing a campaign.
+- **Semitic targets**: RTL text integrity around numerals and Latin embeds; verify rendering in the actual templates, not just the text.
+- **Southeast Asian and long-tail targets**: coverage claims need verification — this is the thinnest-covered family industry-wide; sample-test first.
+- **High-visibility marketing copy in any language**: brand-voice preservation and TM consistency outrank raw coverage; when no candidate offers them, route through transcreation instead.
 
 ---
 
@@ -122,31 +133,27 @@ Input text + target language
 Detect source language (if not specified)
     |
     v
-Check brand profile for force_service override
-    |-- If override set --> Use specified service
+Check brand profile for a recorded preference (translation_preferences[target])
+    |-- If set --> Use that server (basis: brand-preference)
+    |             (warn if it is not currently in .mcp.json)
     |
     v
-Determine target language family
+Discover connected translation MCP servers (read live from .mcp.json)
     |
-    |-- Indic (HI, TA, TE, BN, MR, GU, KN, ML, PA, OR, AS, UR, SD, NE, SI, etc.)
-    |       --> Primary: Sarvam AI
-    |       --> Fallback: Google Cloud Translation
+    |-- Exactly one candidate --> Use it (basis: connected-servers)
     |
-    |-- European (DE, FR, ES, IT, PT, NL, PL, RU, CS, DA, FI, SV, EL, HU, RO, SK, BG, etc.)
-    |       --> Primary: DeepL
-    |       --> Fallback: Lara Translate --> Google Cloud Translation
+    |-- Multiple candidates --> Judge them against the target family's
+    |       service_criteria (native Indic coverage / formality registers /
+    |       CJK script handling / RTL integrity — from the route result);
+    |       pick the best fit and offer to record the choice via
+    |       /digital-marketing-pro:language-config set-translation-pref
     |
-    |-- CJK (JA, KO, ZH-CN, ZH-TW)
-    |       --> Primary: DeepL
-    |       --> Fallback: Google Cloud Translation
-    |
-    |-- Semitic (AR, HE)
-    |       --> Primary: Google Cloud Translation
-    |       --> Fallback: DeepL (limited support)
-    |
-    |-- Other (TH, VI, ID, MS, SW, TL, etc.)
-    |       --> Primary: Google Cloud Translation
-    |       --> Fallback: Lara Translate
+    |-- None connected --> basis: unresolved. Resolution ladder:
+    |       1. Translate with the harness's own multilingual capability,
+    |          then score (--action score); below 85 --> human review
+    |       2. Use any translation tool the user already has elsewhere
+    |       3. Ask the user; record the answer so next run resolves
+    |       NEVER instruct installing a commercial product.
     |
     v
 Check content type
@@ -169,13 +176,13 @@ Users can force a specific service in the brand profile:
 
 ```yaml
 translation_preferences:
-  force_service: deepl    # bypass routing, always use DeepL
+  force_service: my-translation-server    # bypass routing — any connected MCP server name
 ```
 
 Or per-request via the translate command:
 
 ```
-/digital-marketing-pro:translate-content --service=sarvam-ai --target=hi-IN
+/digital-marketing-pro:translate-content --service=<your-connected-server> --target=hi-IN
 ```
 
 ---
@@ -386,16 +393,18 @@ Guidelines:
 | Nov | Chhath Puja | Bihar, Jharkhand, UP | Family, tradition |
 | Jan | Pongal (Tamil) / Lohri (Punjabi) | Regional | Harvest, gratitude |
 
-### Sarvam AI Capabilities by Language
+### What an Indic-Specialist Service Provides
 
-Sarvam AI provides purpose-built models for Indic languages with:
-- Native text generation (not just translation from English)
+When evaluating a candidate service for Indian-market work, a genuine Indic
+specialist offers (verify each claim against the candidate's current docs —
+capability sets change):
+- Native text generation in the target language (not just translation from English)
 - Speech-to-text and text-to-speech for voice campaigns
 - Transliteration support
 - Cultural context awareness in translations
-- Support for all 22 scheduled languages of India
-
-Best results: Hindi, Tamil, Telugu, Bengali, Marathi. Good results: Gujarati, Kannada, Malayalam, Punjabi. Expanding: Odia, Assamese, Urdu.
+- Coverage across the 22 scheduled languages of India — and coverage is
+  uneven in every service: quality for the SPECIFIC target language (a
+  Hindi-strong service may be weak in Odia) must be sample-tested, not assumed.
 
 ### Social Media Platform Preferences
 
@@ -642,7 +651,7 @@ For every translated piece before publication:
 
 1. **Tier your content**: Not everything needs transcreation. Classify content by visibility and emotional weight, then assign the appropriate approach.
 2. **Invest in glossaries**: Upfront glossary creation saves money on every subsequent translation by reducing reviewer corrections.
-3. **Reuse Translation Memory**: Lara Translate's TM means repeated or similar content gets cheaper over time. Prioritize consistency to maximize TM leverage.
+3. **Reuse Translation Memory**: services with TM make repeated or similar content cheaper over time. If any connected candidate offers TM, weight it for recurring campaign content and prioritize consistency to maximize the leverage.
 4. **Batch translations**: Sending content in batches rather than one-off requests reduces per-unit cost across all services.
 5. **Source content quality**: Spend time making source content clear and translatable. Ambiguous source text causes expensive corrections downstream.
 6. **Automate quality scoring**: Use `/digital-marketing-pro:multilingual-score` to catch issues before human review, reducing reviewer time.

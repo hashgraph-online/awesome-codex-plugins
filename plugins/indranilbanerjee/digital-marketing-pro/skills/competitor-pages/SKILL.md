@@ -1,6 +1,6 @@
 ---
 name: competitor-pages
-description: "Create competitor comparison pages. Use when: \"X vs Y\" layouts, alternatives pages, feature matrices, roundup pages."
+description: "Build competitor comparison and alternatives pages — X-vs-Y head-to-heads, alternatives-to-X lists, category roundups, and feature-matrix pages — delivering a 1,500+ word page template, comparison table, JSON-LD schema via schema-generator.py, keyword and title-tag targeting, an internal-linking plan, and fairness/accuracy guardrails. Triggers on \"/digital-marketing-pro:competitor-pages\", \"create a vs page\", \"build an alternatives page\", \"comparison page for our product\", \"best tools roundup for our category\". Produces page content and markup, not a live publish. Reads the brand profile and guidelines, especially restrictions on competitor mentions."
 argument-hint: "[URL or generate] [competitor]"
 user-invocable: true
 ---

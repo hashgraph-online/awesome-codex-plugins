@@ -13,7 +13,8 @@ description: >-
   tracing, power budget, DFM, or wants to understand, debug, compare, or
   review any hardware design. Also for "check my board", "review before fab",
   "what's wrong with my schematic", "is this ready to order", "check my power
-  supply", "verify this circuit", or any electronics/PCB design question.
+  supply", "verify this circuit", OSHWA certification readiness, or any
+  electronics/PCB design question.
 ---
 
 # KiCad Project Analysis Skill
@@ -186,7 +187,7 @@ See `references/schematic-analysis.md` Step 2 for the full verification checklis
 ```bash
 python3 <skill-path>/scripts/analyze_pcb.py <file.kicad_pcb> --analysis-dir analysis/
 python3 <skill-path>/scripts/analyze_pcb.py <file.kicad_pcb> --analysis-dir analysis/ --proximity  # add crosstalk analysis
-python3 <skill-path>/scripts/analyze_pcb.py <file.kicad_pcb> --output pcb.json  # one-off, no cache
+python3 <skill-path>/scripts/analyze_pcb.py <file.kicad_pcb> --output pcb.json --schematic analysis/schematic.json  # one-off; cross-ref + power-rail auto-detect
 ```
 Outputs structured JSON (~50-300KB depending on board complexity) with:
 - **Core**: footprint inventory (pads, courtyards, net assignments, extended attrs, schematic cross-reference), track/via statistics, zone summaries, board outline/dimensions, routing completeness
@@ -630,7 +631,7 @@ python3 <skill-path>/scripts/lifecycle_audit.py analysis.json
 
 # With temperature range validation (preset or custom)
 python3 <skill-path>/scripts/lifecycle_audit.py analysis.json --temp-range industrial
-python3 <skill-path>/scripts/lifecycle_audit.py analysis.json --temp-range "-40,105"
+python3 <skill-path>/scripts/lifecycle_audit.py analysis.json --temp-range="-40,105"
 
 # Query specific distributors only
 python3 <skill-path>/scripts/lifecycle_audit.py analysis.json --only digikey,lcsc
@@ -739,6 +740,7 @@ Detailed methodology and format documentation lives in reference files. Read the
 | `manual-gerber-parsing.md` | 621 | Fallback when Gerber script fails |
 | `report-generation.md` | 614 | Report template (critical findings at top), analyzer output field reference (schematic/PCB/gerber), severity definitions, writing principles, domain-specific focus areas, known analyzer limitations |
 | `standards-compliance.md` | 638 | IPC/IEC standards tables: conductor spacing (IPC-2221A Table 6-1), current capacity (IPC-2221A/IPC-2152), annular rings, hole sizes, impedance, via protection (IPC-4761), creepage/clearance (ECMA-287/IEC 60664-1). Consider for all boards; auto-trigger for professional/industrial designs, high voltage, mains input, or safety isolation. |
+| `oshwa-certification.md` | — | OSHWA open-source hardware certification readiness: editable KiCad sources, public documentation, licensing, version registration, certification-mark use. Read when the user asks about OSHWA certification or an open-source hardware release — a documentation/licensing audit with explicit approval gates, not an electrical check |
 | `design-intent.md` | — | Design intent resolution, target market / certification / power constraints that gate findings by context |
 | `diff-analysis.md` | — | How `diff_analysis.py` compares two analyzer runs and emits severity-ranked change reports |
 | `what-if.md` | — | How `what_if.py` patches component values, recalculates derived fields, and suggests fixes for feedback dividers / crystal load caps / cap derating |
@@ -762,7 +764,7 @@ For script internals, data structures, signal analysis patterns, and batch test 
 | `.net` / `.xml` | S-expr/XML | Netlist export, BOM export |
 | `.gbr` / `.g*` / `.drl` | Gerber/Excellon | Manufacturing files (copper, mask, silk, outline, drill) |
 
-For version detection and detailed field-by-field format documentation, read `references/file-formats.md`. On Flatpak KiCad installs `kicad-cli` (native DRC/ERC reports, file exports) is not on PATH — invoke it as `flatpak run --command=kicad-cli org.kicad.KiCad <args>`.
+For version detection and detailed field-by-field format documentation, read `references/file-formats.md`. On Flatpak KiCad installs `kicad-cli` (native DRC/ERC reports, file exports) is not on PATH — invoke it as `flatpak run --command=kicad-cli org.kicad.KiCad <args>`; its sandbox can't read host `/tmp`, so write exports/netlists under the project directory (or elsewhere under `$HOME`) instead.
 
 ## Analysis Strategies
 

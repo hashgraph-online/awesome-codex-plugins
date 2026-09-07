@@ -13,5 +13,5 @@ Standalone: ask the user which diff to review if the scope is not clear:
 Do not pick a scope yourself unless the user already made it clear. If the
 resulting diff is empty, stop and say there is nothing to review.
 
-Inside `/reviewer_review-pr`: the orchestrator provides the diffs of all units (path + patch)
+Inside `rag-reviewer:review-pr`: the orchestrator provides the diffs of all units (path + patch)
 — review those.

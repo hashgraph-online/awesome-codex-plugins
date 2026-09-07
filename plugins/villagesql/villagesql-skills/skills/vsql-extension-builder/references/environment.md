@@ -63,6 +63,13 @@ error or unexpected behaviour.
 **`--echo` is a directive, not a comment prefix.** It prints its
 argument to the test output and appears in the `.result` file.
 
+**A failing VDF surfaces error 3200 (`ER_UDF_ERROR`).** Both forms work
+in a test file: `--error ER_UDF_ERROR` (preferred) or `--error 3200`.
+
+**MySQL reserved words cannot be bare column aliases.** `SELECT 1 AS
+generated` is a syntax error in a `.test` file just as in the client —
+backtick-quote the alias or pick a different word.
+
 ## Common mysqltest directives
 
 ```
@@ -77,12 +84,29 @@ Install at test top, uninstall at bottom (or use `suite.opt`).
 
 ## Outbound network calls in tests
 
-```
---exec python3 -m http.server 18888 --directory $MYSQLTEST_VARDIR &>/tmp/test.log &
---exec sleep 1
-SELECT vsql_webhook.webhook_call('http://127.0.0.1:18888/');
---exec kill $(lsof -ti:18888) 2>/dev/null || true
-```
+Tests that need a local HTTP endpoint must start it deterministically —
+hardcoded ports and `--exec ... &` plus a sleep are both flaky under
+parallel MTR runs and on slow CI machines:
+
+- **Never hardcode a port.** Bind port 0 (OS-assigned), have the helper
+  write the actual port to `$MYSQLTEST_VARDIR/tmp/<name>_port.inc` as a
+  `let $port = N;` statement, and `--source` that file in the test. Pass
+  the URL to SQL via a session variable set under `--disable_query_log`
+  so the port never appears in the `.result` file.
+- **Launch with a foreground `--exec` that blocks until ready.** The
+  launcher spawns a detached child and exits 0 only after the child has
+  bound its port and written the readiness `.inc`. MTR blocks on
+  foreground exec, so the helper is listening before the next line runs.
+  Do not use `--exec ... &` plus a sleep or poll.
+- **Never send the helper's output to `/dev/null`.** Log to a file under
+  `$MYSQLTEST_VARDIR/tmp/` so a startup failure is diagnosable, and have
+  the launcher print that log on failure.
+- **Give the detached child a self-exit watchdog** so it cannot outlive
+  an aborted test run.
+
+See `mysql-test/t/vsql_http_requests.test` in
+[vsql-http](https://github.com/villagesql/vsql-http) for a complete
+reference implementation of this pattern.
 
 ## Key paths
 
@@ -122,9 +146,16 @@ CREATE TABLE t (col vsql_tvector.tvector('dimension=128'));  -- key=value string
 
 Extension name must be the install name (e.g., `vsql_hstore`).
 
-`CAST(... AS <custom_type>)` is **not** supported — custom types aren't
-wired into MySQL's CAST grammar. To get a value of a custom type, insert
-into a column of that type or call the type's constructor VDF directly.
+CAST is unsupported in **both** directions — custom types aren't wired
+into MySQL's CAST grammar. `CAST(... AS <custom_type>)` fails, and so
+does `CAST(<custom_column> AS CHAR)` (`ERROR 1221: Incorrect usage of
+cast_as_char and <type>`). Other charset-aware string functions
+(`CONVERT`, `CHARSET`, `JSON_QUOTE`) fail the same way on custom-type
+values. To get a value of a custom type, insert into a column of that
+type or call the type's constructor VDF directly; to render one as
+text, `SELECT` the column or the constructor result directly — decode
+runs automatically. Write acceptance criteria and tests with plain
+`SELECT`, not `CAST(... AS CHAR)`.
 
 ## Useful commands
 

@@ -211,6 +211,34 @@ For each extracted pattern, check if a learning with same `type` + `subject` alr
 - **If exists:** propose confidence update (+0.15 if confirmed by new evidence, -0.2 if contradicted)
 - **If new:** propose as new learning with confidence 0.5
 
+This match is **exact string equality on `type` + `subject`** — it is blind to two records that say the same thing in different words, and it cannot detect a contradiction at all. The `-0.2 if contradicted` branch above has therefore had no producer since it was written. Step 3.3b is that producer.
+
+### Step 3.3b: Relation Judgment (#1016)
+
+> **Cadence: once per candidate.** Step 3.2b's zero-patterns check and Step 3.4's single AUQ are once-per-run; Step 3.5's write is once-per-run. This step is the only per-candidate one in Phase 3 — the pool build happens once, the judgment runs for each pattern that seeds a pool.
+
+> **Runs in `/evolve`, never in a wave.** The pool build is O(N²) over the candidate + corpus union (~13 ms at N=100 records; the viability boundary is ~N=2000). `/evolve` is operator-invoked and off the dispatch hot path — that is the whole reason this lives here and not in `skills/wave-executor/`. Do not invoke it from a wave prompt, an inter-wave checkpoint, or a hook.
+
+Skip this step entirely when `.orchestrator/metrics/learnings.jsonl` is absent or holds fewer than 2 entries — with no corpus there is no relation to judge.
+
+1. **Pool.** Call `buildCandidatePools(records, { now })` from `scripts/lib/learnings/candidates.mjs`, passing the union of this run's extracted candidates and the on-disk corpus. It returns `{pools, duplicates, stats}`: `duplicates` are the exact-`learning_key` groups (already certain — no judgment needed), and each `pools[]` entry is `{seed, candidates}` where `candidates[].record` is a bounded, per-seed, non-transitive neighbour set. No clustering, no transitive closure: a neighbour of a neighbour is not a neighbour.
+
+2. **Judge, per candidate that seeds a pool.** `buildJudgmentInput({candidate, neighbours})` then `judgeCandidate(input, { judge })`, both from `scripts/lib/learnings/judgment.mjs`. `buildJudgmentInput` returns `null` for a candidate with no usable `id` — skip that candidate, do not judge it. `judge` is the injected verdict provider: on Claude Code the coordinator reads the `input` envelope and returns the JSON object its `output_contract` field describes. There is no subagent type for this — do not dispatch one (#614: a read-only agent that must write its own sidecar never fires).
+
+3. **Apply, through the one choke point.** `applyVerdict(verdict, effects)` is the only place a judgment may become an effect. In `/evolve` every effect handler is a *proposal recorder*, never a writer: `refine` / `supersede` / `merge` record a proposed change, and `proposeContradiction` records a contradiction pair. `applyVerdict` resolves all four handlers before invoking any of them, so an unwired handler refuses the whole batch rather than applying the decisions that happened to come first.
+
+4. **Fail closed.** `verdict.ok === false` (any of the eight failure modes — unparseable, partial, phantom_id, self_reference, empty, timeout, enum_violation, duplicate_target) means **no relation was read**, not "no relation exists". The candidate keeps its Step 3.3 exact-match verdict and nothing about it is surfaced as a relation. Never fall back to a default decision, never repair-retry a malformed verdict, and never render an unreadable judgment to the operator — surfacing a relation IS the claim, so a voided judgment must not reach the AUQ at all.
+
+5. **Route into the existing gate.** Every surviving decision becomes an OPTION in Step 3.4's AskUserQuestion, never an action:
+   - `contradict` → a contradiction pair, presented as its own category beside "duplicate". If the operator selects it, it feeds the `-0.2 if contradicted` branch in Step 3.3 above, applied by Step 3.5(3) — which deliberately does NOT reset `expires_at`.
+   - `supersede` / `merge` → an omit-the-loser (or replace-both-with-one) proposal. If selected, the operator's next generation simply omits those ids and Step 3.5(5) archives them — never a hand-delete. The merged record must carry both sources' provenance in its own `evidence`.
+   - `refine` → an edit proposal against the existing record's `insight` / `evidence`.
+   - `skip` / `abstain` → nothing is surfaced.
+
+**The brandmauer holds here, unchanged (#693 FA2/FA3).** The judgment computes; it never writes. Every `.claude/rules/` write and every `learnings.jsonl` write stays behind the operator's Step 3.4 selection and Step 3.5's `--prune` invocation.
+
+**Named ceiling (revisit trigger).** A `supersede` or `merge` executed through Step 3.5(5) is tagged `_archive_reason: "superseded"` with a `_superseded_by` tombstone **only when the two records share `type` + non-empty `subject`** — that is `pruneLearnings()`'s own consolidation pass. A cross-wording pair (the exact case this step exists to find) does not share a subject, so its loser is archived `pruned` instead: still in the corpus, still resolvable by id, but the archive record does not name its replacement. Revisit when the CLI grows per-record drop routing, or when an archive audit needs to answer "what replaced this?" for cross-wording merges.
+
 ### Step 3.4: Present Findings via AskUserQuestion
 
 Present extracted patterns to the user for confirmation. Use AskUserQuestion with `multiSelect: true`:
@@ -220,8 +248,8 @@ Present extracted patterns to the user for confirmation. Use AskUserQuestion wit
 ```
 AskUserQuestion({
   questions: [{
-    question: "Which learnings should be saved?\n\nExtracted patterns from session history:",
-    header: "Evolve — Confirm Learnings",
+    question: "Which of the patterns extracted from this session's history should be saved?",
+    header: "Speichern?",
     options: [
       {
         label: "[type] subject",
@@ -244,7 +272,7 @@ If user selects "Skip all" or selects nothing, abort gracefully: "No learnings s
 
 For confirmed learnings, use atomic rewrite strategy:
 
-1. Read ALL existing lines from `.orchestrator/metrics/learnings.jsonl` (if exists) into memory. If not found, check `<state-dir>/metrics/learnings.jsonl` as a legacy fallback. If legacy data is found, it will be migrated to the v2 path on write (step 8).
+1. Read ALL existing lines from `.orchestrator/metrics/learnings.jsonl` (if exists) into memory. If not found, check `<state-dir>/metrics/learnings.jsonl` as a legacy fallback. If legacy data is found, it will be migrated to the v2 path on write (step 5).
 2. Apply confidence updates for confirmed existing learnings:
    - Increment confidence by +0.15
    - Cap at 1.0
@@ -261,14 +289,70 @@ For confirmed learnings, use atomic rewrite strategy:
    - `source_session`: **non-empty kebab-slug string** identifying the session from which the pattern was extracted (e.g. `main-2026-04-27-1942`). MUST be a string — never an object, array, number, or null. If multiple sessions contributed, use the earliest. If unknown, use `"unknown"` (the string). **Never** pass `String(<object>)` — that yields `"[object Object]"` and breaks the YAML mirror downstream (#307). Optional pre-write validation: `jq -e 'select(.source_session | type == "string" and length > 2)'`.
    - `created_at`: current ISO 8601 date
    - `expires_at`: preserve the candidate's derived expiry when supplied; otherwise derive from `LEARNING_TTL_DAYS[type]` via `deriveExpiresAt()` (falling back to the schema default) rather than hard-coding a 30-day horizon
-5. **Verify write**: Read back the first line of the written file to confirm valid JSON. If read-back fails or is not valid JSON, report error to user.
-6. **Prune:** remove entries where `expires_at` < current date OR `confidence` <= 0.0
-7. **Consolidate duplicates (NULL-SUBJECT SAFE):** if same `type` + `subject` appears more than once
-   AND `subject` is a non-empty string, keep the entry with highest confidence.
-   Entries with null/empty/missing `subject` are NEVER collapsed — each is keyed by its unique `id`
-   and always preserved. (Fix for issue #284: empty-subject dedupe collapse.)
-8. Write entire result back to `.orchestrator/metrics/learnings.jsonl` with `>` (atomic rewrite, NOT append `>>`)
-9. **Vault mirror (conditional):** Check `$CONFIG."vault-integration".enabled` via jq. If the field is missing or `false`, skip this step entirely — skill behavior is unchanged.
+   - `file_paths` (optional): repo-relative path(s) scoping the learning to specific files/directories. Required for a learning to ever become `/reconcile`-eligible (issue #900; see `docs/rule-authoring.md` § "Learning Type-Taxonomy, TTL & Provenance Standard"). For a `fragile-file` candidate, `file_paths: [subject]` is mechanically derivable — `subject` already IS the file path.
+5. **Write the next generation through the archive-safe pipeline — NEVER a `>` redirect (#1017).**
+
+   Steps 6–8 (prune, consolidate, rewrite) are **not prose you execute by hand**. They are
+   `pruneLearnings()` in `scripts/lib/learnings/expiry-sweep.mjs`, the same module (and the same
+   crash-safe ordering, KEEP-batch probe, and `.bak-<ISO>` snapshot) the expiry sweep uses. Until
+   #1017, this step said "write entire result back with `>`" — with no archive append at all, which
+   deleted 11 of 13 `learning-id` provenance targets referenced by rendered `.claude/rules/*.md`.
+   Do not hand-roll a `jq | ... > learnings.jsonl` pass; it bypasses every #721 safety net.
+
+   Write the full next-generation entry set (existing entries **with** the step-2/3 confidence
+   updates, **plus** the step-4 new learnings) as JSONL to a temp sidecar **via the Write tool**
+   (not a shell `>` redirect — the destructive-command guard blocks it), then invoke the
+   `--prune` subcommand of the sweep CLI:
+
+   ```bash
+   NEXT=".orchestrator/metrics/.learnings-next.jsonl"   # written by the step above
+   node scripts/sweep-expired-learnings.mjs --prune --apply --json --entries "$NEXT" && rm -f "$NEXT"
+   ```
+
+   `--file` / `--archive` default to the canonical store + archive paths — pass them only when
+   operating on a non-default pair. The command prints ONE JSON line; capture it as `$PRUNE` and
+   report its `{scanned, kept, archived, byReason}` in the final summary. Preview first with
+   `--prune --dry-run --json` (same counts, zero writes) whenever the next generation was
+   hand-assembled.
+
+   > **This step is `/evolve`'s only store-write path.** Until #1017 the invocation lived here as
+   > an inline `node --input-type=module -e` block, which is a mechanism hiding inside prose: no
+   > `--help`, no exit-code contract, no test. Do not re-inline it, and do not hand-roll a
+   > `jq | ... > learnings.jsonl` pass — that bypasses every #721 safety net.
+
+   **Exit codes are the no-op rule.** `0` = applied (or a clean no-op). `1` = input error: the
+   sidecar is absent, carries a malformed line, or holds no records — the store and the archive
+   were **not touched**;
+   re-write the sidecar and re-run. `2` = the prune itself failed inside the lib. On any non-zero
+   exit, surface the error and stop — never retry with a shell rewrite, and never delete `$NEXT`
+   (the `&&` above already withholds the `rm`, so the assembled generation survives for a retry).
+
+   `pruneLearnings()` — the function the subcommand calls — performs steps 6 + 7 + 8 mechanically
+   and archives **every** record that
+   leaves the store, tagged with `_archived_at` + an `_archive_reason` from the closed enum
+   `expired | pruned | superseded | merged`:
+
+   - **6. Prune** — `expires_at` < now → `expired`; `confidence <= 0.0` → `pruned`.
+   - **7. Consolidate duplicates (NULL-SUBJECT SAFE)** — same `type` + non-empty `subject`: the
+     highest-confidence entry wins; each loser is archived `superseded` with a
+     `_superseded_by: <winning id>` tombstone. Entries with null/empty/missing `subject` are NEVER
+     collapsed — each is keyed by its unique `id` and always preserved (issue #284).
+   - **8. Rewrite** — via `rewriteLearnings()`: full schema validation, a `.bak-<ISO>` snapshot
+     (keep-3 rotation), then an atomic tmp+rename. Any id you drop from the temp sidecar without
+     an explicit reason is archived `pruned` automatically — the store can no longer lose a record
+     silently, whatever the next generation omits.
+
+   No `graceDays` here, deliberately: `/evolve` re-stamps `expires_at` on every reinforced learning
+   in steps 2–3 of THIS run, strictly before the prune, so an entry still expired at prune time is
+   one the analyzer just declined to reinforce. (The sweep's 14-day grace exists to protect entries
+   from being archived *before* that reinforcement pass runs — a hazard that cannot occur here.)
+
+   Report the returned `{scanned, kept, archived, byReason}` alongside the counts in the final
+   summary line. On a non-zero exit, do NOT retry with a shell rewrite — surface the error. The
+   old "read back the first line to confirm valid JSON" check is redundant here: `rewriteLearnings()`
+   round-trip-validates EVERY line before any byte reaches disk (#662), and the `malformed` guard
+   above rejects an unparseable sidecar before the store is touched at all.
+6. **Vault mirror (conditional):** Check `$CONFIG."vault-integration".enabled` via jq. If the field is missing or `false`, skip this step entirely — skill behavior is unchanged.
 
    If `enabled` is `true`:
 
@@ -371,38 +455,43 @@ Use AskUserQuestion with options:
 AskUserQuestion({
   questions: [{
     question: "What would you like to do with your learnings?",
-    header: "Evolve — Review",
+    header: "Learnings",
     options: [
-      { label: "Boost confidence", description: "Select learnings to boost (+0.15)" },
-      { label: "Reduce confidence", description: "Select learnings to reduce (-0.2)" },
-      { label: "Delete specific learnings", description: "Select learnings to remove" },
-      { label: "Extend expiry", description: "Reset expires_at by learning-expiry-days from now" },
-      { label: "Done — no changes", description: "Exit without changes" }
+      { label: "Confidence ändern", description: "Pick the learnings, then the direction: +0.15 or -0.2. Cheapest fix when a learning is merely mis-weighted." },
+      { label: "Ablauf verlängern", description: "Keeps a still-useful learning alive: its expiry date moves to today plus the configured window. Confidence is untouched." },
+      { label: "Delete specific learnings", description: "Takes the selected learnings out of the store. They are archived rather than shredded, but they stop influencing anything." },
+      { label: "Done — no changes", description: "Leaves the store exactly as it is and ends the review. Nothing is written." }
     ]
   }]
 })
 ```
 
-If user selects "Boost confidence", "Reduce confidence", "Delete specific learnings", or "Extend expiry", present a follow-up AskUserQuestion with `multiSelect: true` listing all learnings by `# | type | subject` so the user can select which ones to modify.
+If user selects "Confidence ändern", "Ablauf verlängern", or "Delete specific learnings", present a follow-up AskUserQuestion with `multiSelect: true` listing all learnings by `# | type | subject` so the user can select which ones to modify. For "Confidence ändern" the same follow-up also asks for the direction — **Boost** (+0.15) or **Reduce** (-0.2). Both operations are unchanged; only the point at which the direction is chosen moved, because a single AskUserQuestion accepts at most 4 options and the previous list had 5.
 
 > On Codex CLI where AskUserQuestion is unavailable, present as a numbered Markdown list.
 
 ### Step 4.4: Apply Changes
 
-Use the same atomic rewrite strategy as Phase 3, Step 3.5:
+Use the same archive-safe pipeline as Phase 3, Step 3.5 — **never** a hand-rolled `>` rewrite (#1017):
 
 1. Read all lines from `learnings.jsonl`
 2. Apply the selected operation to selected learnings:
    - **Boost:** +0.15 confidence (cap 1.0), reset expires_at to +`learning-expiry-days`
    - **Reduce:** -0.2 confidence
-   - **Delete:** remove selected entries
+   - **Delete:** omit the selected entries from the next generation — do NOT delete them by hand.
+     `pruneLearnings()` detects every **record** that left the store — reconciled by `id`, or by a
+     content fingerprint when a record carries no usable `id` — and archives it with
+     `_archive_reason: "pruned"`, so a `learning-id` referenced by a rendered rule stays resolvable.
    - **Extend:** reset expires_at to current date + `learning-expiry-days`
-3. Prune entries where `expires_at` < current date OR `confidence` <= 0.0
-4. Consolidate duplicates (same `type` + non-empty `subject`): keep highest confidence.
-   Null-subject entries are preserved individually (keyed by `id`). See SKILL.md #284 fix note.
-5. Write entire result back with `>` (atomic rewrite)
+3. Steps 3–5 of the old prose (prune / consolidate / rewrite) are `pruneLearnings()` — run the
+   **exact** Step 3.5(5) invocation, writing the post-operation entry set to the `--entries`
+   sidecar. It prunes
+   (`expires_at` < now → `expired`; `confidence <= 0.0` → `pruned`), consolidates duplicates
+   (same `type` + non-empty `subject`, highest confidence wins, loser archived `superseded` with
+   `_superseded_by`; null-subject entries preserved individually per #284), and rewrites through
+   `rewriteLearnings()` with its `.bak-<ISO>` snapshot.
 
-Report: "Updated N learnings. Total active: K."
+Report: "Updated N learnings. Total active: K. Archived: A (<byReason>)."
 
 ---
 
@@ -533,13 +622,22 @@ Cross-reference: PRD #506 AC1-AC4 + EARS gates. Vault Integration: dialectic doe
 - **ALWAYS** use uuid-v4 for new learning IDs (generate via `uuidgen` or equivalent bash command)
 - **ALWAYS** preserve a candidate-supplied `expires_at`; otherwise derive it from `LEARNING_TTL_DAYS[type]` via `deriveExpiresAt()` rather than hard-coding `learning-expiry-days`
 - **ALWAYS** present findings to user before writing — no silent writes
-- **ALWAYS** use atomic rewrite (read all, modify, write all with `>`) — never append with `>>`
+- **ALWAYS** route store writes through `pruneLearnings()` / `rewriteLearnings()` — never a shell
+  `>` rewrite and never an append `>>`. Those helpers own the schema validation, the `.bak-<ISO>`
+  snapshot, and the atomic tmp+rename; a hand-rolled redirect owns none of them (#721, #1017)
+- **ALWAYS** let a removed entry land in `learnings-archive.jsonl` — a record may leave the STORE,
+  but it may never leave the CORPUS. Rendered `.claude/rules/*.md` cite `learning-id` as provenance;
+  a hard delete turns that citation into a dangling pointer (#1017 measured 11 of 13 dead)
 - **ALWAYS** cap confidence at 1.0 — never exceed
 
 ## Anti-Patterns
 
 - **DO NOT** write learnings without user confirmation — always present via AskUserQuestion first (on Codex CLI where AskUserQuestion is unavailable, present as a numbered Markdown list)
-- **DO NOT** append to `learnings.jsonl` — always use atomic rewrite (read all, modify, write all)
+- **DO NOT** append to `learnings.jsonl` with `>>`, and **DO NOT** rewrite it with `>` — call
+  `pruneLearnings()` (Step 3.5(5)); a shell redirect bypasses validation, backup, and the archive
+- **DO NOT** hard-delete a learning. Every record that leaves the store is archived with an
+  `_archive_reason` (`expired` | `pruned` | `superseded` | `merged`) and, for the last two, a
+  `_superseded_by` / `_merged_into` tombstone naming its replacement
 - **DO NOT** create duplicate learnings — always check type + subject match first
 - **DO NOT** set confidence above 1.0 or forget to cap it
 - **DO NOT** fabricate patterns — only extract from actual session data with verifiable evidence

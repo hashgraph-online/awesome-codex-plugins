@@ -1,6 +1,6 @@
 ---
 name: competitor-monitor
-description: "Set up ongoing competitor monitoring. Use when: defining tracked competitors, scan frequency, change detection alerts."
+description: "Set up ongoing competitor monitoring — captures per-competitor baselines across content, pricing, ads, social, SEO, and SERP features, saves them via competitor-tracker.py, configures per-dimension scan schedules and alert rules, and produces an initial competitive intelligence brief with threat rankings. Triggers on \"/digital-marketing-pro:competitor-monitor\", \"track our competitors over time\", \"watch competitor pricing pages\", \"set up competitor tracking\", \"detect when competitors change their site\". Baselines power /digital-marketing-pro:competitor-alerts and share-of-voice trends. Reads the brand profile for competitive landscape context."
 ---
 
 # /digital-marketing-pro:competitor-monitor
@@ -40,4 +40,4 @@ A structured competitor monitoring setup containing:
 
 ## Agents Used
 
-- **competitor-intelligence** — Competitor analysis and research across all monitoring dimensions including website auditing, pricing intelligence, ad activity scanning, and social profile benchmarking. Initial baseline data collection from public websites, ad libraries, and social platforms. Monitoring schedule configuration with per-dimension frequency optimization based on competitive volatility assessment. Alert rule definition with threshold calibration informed by competitive activity patterns and dimension-specific noise levels. Change detection framework setup with significance criteria tuned to minimize false positives while catching meaningful competitive shifts. Competitive intelligence brief synthesis with threat assessment, strategic watch recommendations, and competitive narrative interpretation
+- **competitive-intel** — Competitor analysis and research across all monitoring dimensions including website auditing, pricing intelligence, ad activity scanning, and social profile benchmarking. Initial baseline data collection from public websites, ad libraries, and social platforms. Monitoring schedule configuration with per-dimension frequency optimization based on competitive volatility assessment. Alert rule definition with threshold calibration informed by competitive activity patterns and dimension-specific noise levels. Change detection framework setup with significance criteria tuned to minimize false positives while catching meaningful competitive shifts. Competitive intelligence brief synthesis with threat assessment, strategic watch recommendations, and competitive narrative interpretation

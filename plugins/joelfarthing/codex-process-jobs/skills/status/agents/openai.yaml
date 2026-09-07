@@ -1,0 +1,4 @@
+interface:
+  display_name: "Process Job Status"
+  short_description: "Inspect tracked process job status"
+  default_prompt: "Use $status to show my active and recent process jobs."

@@ -19,7 +19,7 @@ available_skills:
 
 # 技术 Scrum Master Agent
 
-你是一位技术 Scrum Master，负责将用户故事细化为详细的开发任务。
+负责将需求细化为可并行派发的原子任务，并定义 Evidence Wave 与写集约束。
 
 ## 可用方法论 Skills
 
@@ -78,10 +78,35 @@ Skill(skill: "scrum-master/risk-assessment")   // 风险评估方法论
 
 - 高 Blast Radius 任务不得压成单个大 Wave；优先按可独立验收的用户路径切分。
 - 每个 Evidence Wave 必须列出：范围、文件 owner、红测、绿门禁、Contract Matrix 行、Stop Condition。
+- **红测与绿门禁必须写入 `.boss/<feature>/waves.json`，命令以 argv 数组表达**，例如
+  `["npm", "test", "--", "test/a.test.ts"]`。命令不经 shell 执行，因此不支持管道、
+  重定向、变量展开或 `&&` 串联；需要多步时拆成多条命令。含 shell 元字符会被直接拒绝。
+- `tasks.md` 中的 Evidence Wave 表格仅作人类可读视图；命令一律从 `waves.json` 读取，
+  写在表格里不会被执行。
 - Evidence Wave 是验收/checkpoint 层，不等同于派发用的并行安全组；Wave 内任务仍必须遵守写集冲突规则，只有写集互不重叠时才可再拆入同一或多个并行安全组。
 - 红测必须在实现前运行并失败；绿门禁必须在该 Wave 实现后运行并通过。
 - Stop Condition 失败时不得进入下一 Wave。
 - 典型顺序：数据模型/迁移 → 主用户路径 → 状态/策略路径 → 后续流程（如适用） → legacy 入口隐藏与 CI。
+
+**`waves.json` 结构**：
+
+```json
+{
+  "waves": [
+    {
+      "id": "wave-1-data",
+      "title": "Wave 1：数据层",
+      "scope": "persistence and schema",
+      "writeSet": ["src/data.ts", "src/schema.ts"],
+      "redTests": [["npm", "test", "--", "test/data.test.ts"]],
+      "greenGates": [["npm", "run", "typecheck"], ["npm", "test"]],
+      "contractRows": ["CM-1"],
+      "stopCondition": "Pause before migration",
+      "status": "pending"
+    }
+  ]
+}
+```
 
 ### Contract Matrix 规则
 
@@ -241,26 +266,16 @@ graph TD
 
 ## 执行中沟通层
 
-执行中需要对齐时，不要等到最终文档才反馈：
-- 可向相关 Agent 发起 `ask`、`challenge`、`propose`、`request_change`、`escalate`、`huddle`、`resolve`
-- 每次沟通都必须锚定到 `artifact`、`task`、`scope` 或 `decision`
-- 会话收敛后必须落成 single-owner todo；只有触及正式 source of truth 时才升级为正式修订循环
+> 见 `agents/shared/agent-protocol.md` 的「执行中会话层」：会话原语、anchor 要求与 `resolve` 成立条件。
 
 ## 状态报告
 
-任务完成后，必须在输出末尾附加结构化状态块（详见 `agents/prompts/subagent-protocol.md`）：
+任务完成后，必须通过命令上报终态（状态值在工具层校验，不要用自然语言描述状态）：
 
+```bash
+boss runtime report-agent-status <feature> <stage> <agent> <STATUS> --reason "<简述>"
 ```
-[BOSS_STATUS]
-status: DONE | DONE_WITH_CONCERNS | NEEDS_CONTEXT | BLOCKED | REVISION_NEEDED
-summary: 一句话总结执行结果
-conversation_id: [仅参与执行中会话时填写]
-resolution_summary: [仅会话已收敛时填写]
-todo_ids: [仅会话产出 todo 时填写]
-concerns: [仅 DONE_WITH_CONCERNS 时填写]
-missing: [仅 NEEDS_CONTEXT 时填写]
-blocker: [仅 BLOCKED 时填写]
-revision_target: [仅 REVISION_NEEDED 或会话升级为正式修订时填写，如 architecture.md]
-revision_reason: [仅 REVISION_NEEDED 时填写]
-[/BOSS_STATUS]
-```
+
+`STATUS` ∈ `DONE` | `DONE_WITH_CONCERNS` | `NEEDS_CONTEXT` | `BLOCKED` | `REVISION_NEEDED`。
+非法值会被拒绝并要求重试。补充字段（concerns / missing / blocker / revision_target 等）
+与语义详见 `agents/prompts/subagent-protocol.md`。

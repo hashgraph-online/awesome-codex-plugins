@@ -1,5 +1,5 @@
 ---
-name: reviewer_performance-review
+name: performance-review
 description: Review code changes only for performance and efficiency risks (N+1 queries, repeated work, bad asymptotics, missing batching/caching, blocking I/O, memory growth). Use when the user explicitly asks for a performance review of a diff/PR.
 ---
 
@@ -9,7 +9,7 @@ description: Review code changes only for performance and efficiency risks (N+1 
 
 <!-- include: _common/tool-usage.md -->
 <!-- include: _common/reviewer-grounding.md -->
-In `/reviewer_review-pr` use the PR-session tools above. Standalone (no PR session): use
+In `rag-reviewer:review-pr` use the PR-session tools above. Standalone (no PR session): use
 the session-less tools per the reviewer-grounding block when reviewer is connected and the
 index is fresh; otherwise fall back to grep/Read.
 
@@ -33,7 +33,7 @@ Prioritize findings such as:
 
 1. Read the diff first.
 2. Open only the nearby code needed to understand whether the changed path is
-   performance-sensitive. In `/reviewer_review-pr` use the reviewer MCP tools: `read_file`,
+   performance-sensitive. In `rag-reviewer:review-pr` use the reviewer MCP tools: `read_file`,
    `search_code`, `find_callers`.
 3. Prefer concrete findings over vague perf speculation.
 4. If a concern depends on an assumption, state that assumption explicitly.

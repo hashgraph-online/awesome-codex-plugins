@@ -6,7 +6,7 @@
 |-----------|----------|---------|---------|
 | `utm_source` | Yes | Where the traffic comes from | google, facebook, linkedin, newsletter |
 | `utm_medium` | Yes | How the traffic arrives | cpc, social, email, referral, organic |
-| `utm_campaign` | Yes | Which campaign | 2025-q2-product-launch |
+| `utm_campaign` | Yes | Which campaign | 2026-q2-product-launch |
 | `utm_term` | Optional | Paid keyword (search ads) | project-management-software |
 | `utm_content` | Optional | Which creative/variation | hero-image-v2, cta-blue |
 
@@ -18,7 +18,7 @@
 2. **Hyphens for spaces**: `product-launch` not `product_launch` or `product launch`
 3. **No special characters**: Only a-z, 0-9, and hyphens
 4. **Consistent terminology**: Use the standardized source/medium values below
-5. **Date format**: YYYY-QN or YYYY-MM (e.g., `2025-q2` or `2025-06`)
+5. **Date format**: YYYY-QN or YYYY-MM (e.g., `2026-q2` or `2026-06`)
 6. **Descriptive but concise**: Enough to identify, not a full sentence
 
 ---
@@ -77,10 +77,10 @@ utm_campaign = [year]-[quarter]-[type]-[audience]-[description]
 ```
 
 **Examples**:
-- `2025-q2-launch-enterprise-ai-features`
-- `2025-q3-promo-all-summer-sale`
-- `2025-q1-abm-target-accounts-nurture`
-- `2025-evergreen-retargeting-website-visitors`
+- `2026-q2-launch-enterprise-ai-features`
+- `2026-q3-promo-all-summer-sale`
+- `2026-q1-abm-target-accounts-nurture`
+- `2026-evergreen-retargeting-website-visitors`
 
 ---
 
@@ -93,7 +93,7 @@ Use `utm_content` to differentiate:
 | `[format]-[variant]` | `carousel-v2` | Ad format testing |
 | `[position]-[cta]` | `hero-signup` | Email link position |
 | `[audience]-[message]` | `cfo-roi-focus` | Audience-message testing |
-| `[creative-id]` | `creative-2025-0142` | Linking to creative asset tracking |
+| `[creative-id]` | `creative-2026-0142` | Linking to creative asset tracking |
 
 ---
 

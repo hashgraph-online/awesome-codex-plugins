@@ -1,6 +1,7 @@
 ---
 name: skill-status
 description: "Show where you are in the workflow and what to do next — use for progress checks and orientation"
+disable-model-invocation: true
 ---
 
 > **Host: Codex CLI** — This skill was designed for Claude Code and adapted for Codex.
@@ -353,7 +354,7 @@ Build a concise summary grouped by theme:
 - [theme 2]: brief summary of related commits
 
 ### Releases
-- v8.10.0 - Gemini CLI headless fix
+- v8.10.0 - Antigravity CLI headless fix
 - v8.9.0 - Contextual Codex model routing
 
 ### Active Branches

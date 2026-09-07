@@ -13,11 +13,12 @@ from __future__ import annotations
 
 import argparse
 import json
-import urllib.error
-import urllib.request
+import os
 from collections import Counter, defaultdict
 from datetime import datetime
 from pathlib import Path
+
+from check_access_paths import PageManifestStore, fetch_direct_pages, load_direct_access
 
 API_V501 = "https://api.direct.yandex.com/json/v501"
 
@@ -25,34 +26,6 @@ API_V501 = "https://api.direct.yandex.com/json/v501"
 def chunks(items, size):
     for i in range(0, len(items), size):
         yield items[i:i + size]
-
-
-def call_api(token: str, login: str, service: str, method: str, params: dict) -> dict:
-    req = urllib.request.Request(
-        f"{API_V501}/{service}",
-        data=json.dumps({"method": method, "params": params}, ensure_ascii=False).encode("utf-8"),
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Client-Login": login,
-            "Content-Type": "application/json; charset=utf-8",
-            "Accept-Language": "ru",
-        },
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=120) as resp:
-            return json.loads(resp.read().decode("utf-8"))
-    except urllib.error.HTTPError as exc:
-        payload = exc.read().decode("utf-8", errors="ignore")
-        try:
-            return {"error": json.loads(payload)}
-        except Exception:
-            return {"error": payload}
-
-
-def fatal_if_error(resp: dict, label: str) -> dict:
-    if "error" in resp:
-        raise RuntimeError(f"{label}: {json.dumps(resp['error'], ensure_ascii=False)}")
-    return resp
 
 
 def is_live_ad(ad: dict) -> bool:
@@ -87,59 +60,51 @@ def serialize_status_breakdown(ads: list[dict]) -> dict:
 
 
 def main() -> None:
+    os.umask(0o077)
     ap = argparse.ArgumentParser()
-    ap.add_argument("--token", required=True)
-    ap.add_argument("--login", required=True)
+    ap.add_argument("--access-file", help="Защищённый файл доступа Директа")
     ap.add_argument("--output-dir", required=True)
     ap.add_argument("--states", default="ON,SUSPENDED,OFF", help="campaign states, comma-separated")
     args = ap.parse_args()
+    access = load_direct_access(args.access_file)
+    token, login = access.token, access.client_login
 
     outdir = Path(args.output_dir)
     outdir.mkdir(parents=True, exist_ok=True)
+    manifests = PageManifestStore(outdir / "collection-manifest.json")
 
     states = [s.strip() for s in args.states.split(",") if s.strip()]
-    camps_resp = fatal_if_error(
-        call_api(
-            args.token,
-            args.login,
-            "campaigns",
-            "get",
-            {
-                "SelectionCriteria": {"States": states},
-                "FieldNames": ["Id", "Name", "State", "Status", "StatusClarification"],
-            },
-        ),
-        "campaigns.get",
-    )
-    campaigns = camps_resp["result"]["Campaigns"]
+    campaign_result = manifests.add("campaigns", fetch_direct_pages(
+        access,
+        "campaigns",
+        {"SelectionCriteria": {"States": states}, "FieldNames": ["Id", "Name", "State", "Status", "StatusClarification"]},
+        "Campaigns",
+        version="v501",
+    ))
+    if not campaign_result.manifest.complete:
+        raise RuntimeError(campaign_result.manifest.error)
+    campaigns = campaign_result.rows
     campaign_ids = [c["Id"] for c in campaigns]
 
     adgroups = []
-    for batch in chunks(campaign_ids, 10):
-        resp = fatal_if_error(
-            call_api(
-                args.token,
-                args.login,
-                "adgroups",
-                "get",
-                {
-                    "SelectionCriteria": {"CampaignIds": batch},
-                    "FieldNames": ["Id", "CampaignId", "Name", "Status", "ServingStatus", "RegionIds"],
-                },
-            ),
-            "adgroups.get",
-        )
-        adgroups.extend(resp["result"]["AdGroups"])
+    for batch_number, batch in enumerate(chunks(campaign_ids, 10), start=1):
+        result = manifests.add(f"adgroups-{batch_number}", fetch_direct_pages(
+            access,
+            "adgroups",
+            {"SelectionCriteria": {"CampaignIds": batch}, "FieldNames": ["Id", "CampaignId", "Name", "Status", "ServingStatus", "RegionIds"]},
+            "AdGroups",
+            version="v501",
+        ))
+        if not result.manifest.complete:
+            raise RuntimeError(result.manifest.error)
+        adgroups.extend(result.rows)
 
     ads = []
-    for batch in chunks(campaign_ids, 5):
-        resp = fatal_if_error(
-            call_api(
-                args.token,
-                args.login,
-                "ads",
-                "get",
-                {
+    for batch_number, batch in enumerate(chunks(campaign_ids, 5), start=1):
+        result = manifests.add(f"ads-{batch_number}", fetch_direct_pages(
+            access,
+            "ads",
+            {
                     "SelectionCriteria": {"CampaignIds": batch},
                     "FieldNames": ["Id", "CampaignId", "AdGroupId", "Status", "State", "StatusClarification", "Type"],
                     "TextAdFieldNames": [
@@ -156,11 +121,13 @@ def main() -> None:
                     ],
                     "TextImageAdFieldNames": ["Title", "Title2", "Text", "Href", "AdImageHash"],
                     "ShoppingAdFieldNames": ["FeedId", "DefaultTexts"],
-                },
-            ),
-            "ads.get",
-        )
-        ads.extend(resp["result"]["Ads"])
+            },
+            "Ads",
+            version="v501",
+        ))
+        if not result.manifest.complete:
+            raise RuntimeError(result.manifest.error)
+        ads.extend(result.rows)
 
     campaign_map = {c["Id"]: c for c in campaigns}
     groups_by_campaign = defaultdict(list)

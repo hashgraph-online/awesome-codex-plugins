@@ -2,7 +2,35 @@
 
 ## Purpose
 
-Based on the assessment score and artifact detection results, determine the next action.
+Based first on deployment eligibility, then on the assessment score and artifact
+detection results, determine the next action.
+
+## Route Input
+
+Consume the request-scoped readiness report from the preceding modules:
+
+```yaml
+source: selected local path or GitHub source
+workload:
+  type: supported workload type
+  eligibility: eligible | ineligible | needs_review
+assessment:
+  score: 0-12 or null
+  dimensions: six named scores or null
+  concerns: redacted findings
+artifacts:
+  status: complete | partial | none
+  inventory: repository-relative paths and quality signals
+verification:
+  redaction: pass | fail
+```
+
+The route must preserve the report and terminal vocabulary. It never writes a
+Dockerfile, template, deployment state, or other project artifact.
+
+If eligibility is `ineligible` or unresolved `needs_review`, report its evidence and
+STOP. Do not route to artifact detection or `dockerfile-skill`. The matrix below
+applies only to an `eligible` target.
 
 ## Decision Matrix
 
@@ -25,8 +53,14 @@ Based on the assessment score and artifact detection results, determine the next
 
 Read the assessment result and artifact inventory from previous modules.
 
+Confirm that the in-memory eligibility result is `eligible` before reading or using
+the readiness score. A score never overrides an eligibility stop. A missing or
+unresolved eligibility field returns `stopped` with a clarification and no
+artifact-detection or downstream action.
+
 ```yaml
 input:
+  eligibility_status: "eligible"
   assessment_score: {0-12}
   assessment_rating: "{Excellent | Good | Fair | Poor}"
   artifacts_status: "{complete | partial | none}"
@@ -69,7 +103,14 @@ When score ≥ 7 and no artifacts exist:
    Invoking dockerfile-skill to generate production-ready Docker setup...
    ```
 
-3. **Invoke dockerfile-skill** with context:
+3. **Invoke dockerfile-skill** with the typed handoff and context:
+   - `target: dockerfile-skill`
+   - `inputArtifact: readiness report with source, workload, score, dimensions, concerns, and artifact inventory`
+   - `allowedAction: generate Docker packaging within the receiving skill's owned file scope`
+   - `failureReturn: readiness findings and failed route condition`
+   - `responseOwner: cloud-native-readiness`
+
+   Include the following context:
    - Pass the detected language, framework, package manager
    - Pass external service dependencies
    - Pass any specific concerns from the assessment
@@ -145,3 +186,14 @@ Regardless of route taken, always end with a clear summary:
 - ⚠️ Some concerns noted. Would you like to proceed anyway or address them first?
 - 🚫 Not recommended for containerization yet. See remediation steps above.
 ```
+
+## Terminal Result Contract
+
+- `success` returns the complete readiness report and either an existing-artifact
+  recommendation or the typed Dockerfile handoff.
+- `stopped` returns workload type, eligibility/confirmation reason, observed
+  evidence, `redaction.ok`, and one safe next action. It claims no downstream
+  artifact.
+- `error` returns the failed route condition or helper, sanitized diagnostics,
+  `redaction.ok`, and the recovery action. It leaves the receiving owner
+  responsible for any downstream failure after handoff.

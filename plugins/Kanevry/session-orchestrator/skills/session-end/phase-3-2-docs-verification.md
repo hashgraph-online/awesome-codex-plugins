@@ -110,7 +110,7 @@ Read `docs-orchestrator.mode` from Session Config (default: `warn`).
 
     Gap tasks: <list task IDs and target-patterns>
     ```
-  - On "Warn + carryover and close": file a carryover issue (labels `carryover`, `priority:high`) titled `[Carryover] Documentation gaps (strict) — <gap-count> tasks` listing the gap task IDs + target-patterns for a follow-up session, log the deviation (below), then append the report and continue the close.
+  - On "Warn + carryover and close": file a carryover issue (labels `carryover`, `priority::high`) titled `[Carryover] Documentation gaps (strict) — <gap-count> tasks` listing the gap task IDs + target-patterns for a follow-up session, log the deviation (below), then append the report and continue the close.
   - On "Override": log a deviation in the `## Deviations` section of STATE.md:
     ```
     - [Phase 3.2] docs-orchestrator strict-mode gaps overridden by user. Tasks: <ids>. Timestamp: <ISO 8601>.

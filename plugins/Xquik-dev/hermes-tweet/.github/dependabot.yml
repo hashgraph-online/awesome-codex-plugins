@@ -1,7 +1,14 @@
+# SPDX-FileCopyrightText: 2026 Xquik Contributors
+# SPDX-License-Identifier: MIT
+
 version: 2
 updates:
   - package-ecosystem: "github-actions"
     directory: "/"
+    groups:
+      codeql:
+        patterns:
+          - "github/codeql-action/*"
     schedule:
       interval: "weekly"
     cooldown:

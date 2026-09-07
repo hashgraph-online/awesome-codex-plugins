@@ -16,7 +16,7 @@ State the recommendation or strongest evidence in 3-6 sentences.
 
 ## Assumptions And Scope
 
-List fluid, geometry, pressure, temperature, flow regime, heat load, target metric, and exclusions.
+List fluid, geometry, pressure, temperature, flow regime, heat load, system boundary, reference state, target metric, and exclusions.
 
 ## Evidence Summary
 
@@ -25,13 +25,14 @@ Use a table with columns:
 - Source
 - Source type
 - What it supports
+- Evidence class
 - Key data/correlation
 - Applicability limits
 - Confidence
 
 ## Engineering Model
 
-Define variables, units, equations, correlations, and property sources.
+Define variables, dimensions, units, signs, equations, correlations, property sources, and validity ranges.
 
 Include dimensionless groups where relevant:
 

@@ -1,6 +1,6 @@
 ---
 name: digital-pr
-description: "Plan digital PR campaigns. Use when: pitching journalists, journalist-request responses, thought leadership, or E-E-A-T building."
+description: "Plan and draft digital PR campaigns — tiered media lists, customized journalist pitches, press releases, journalist-request responses (Qwoted, Featured, Source of Sources), thought-leadership calendars, and E-E-A-T authority audits. Produces strategy documents, pitch templates, and press kits; sending the outreach stays with you. Triggers on \"/digital-marketing-pro:digital-pr\", \"pitch this story to journalists\", \"write a press release for our launch\", \"how do we build E-E-A-T authority\", \"respond to this journalist request\". Reads the brand profile, guidelines, and campaign history, and pairs with /digital-marketing-pro:content-engine for byline content."
 ---
 
 # Digital PR & Authority
@@ -146,6 +146,7 @@ For quick requests (e.g., "write a press release for our product launch"), proce
 - `thought-leadership.md` — Thought leadership content strategy, byline placement guide, speaking opportunity sourcing, podcast guesting playbook, and original research planning
 - `newsjacking.md` — News monitoring setup, relevance scoring framework, rapid-response templates, brand safety assessment, and timing guidelines
 - `eeat-authority.md` — E-E-A-T audit checklist, authority signal implementation guide, author optimization, trust signal taxonomy, and measurement framework
+- `link-building-tactics.md` — Link building methods ranked by effectiveness, outreach templates, link quality assessment, anchor text distribution, and practices to avoid
 
 ## Output Formats
 

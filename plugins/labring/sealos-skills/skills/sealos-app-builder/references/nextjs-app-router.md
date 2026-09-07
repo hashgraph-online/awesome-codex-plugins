@@ -63,3 +63,4 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 1. Do not call `createSealosApp()` directly from `app/layout.tsx` if it is a server component.
 2. Keep SDK initialization in a client component such as `providers.tsx` or the provider itself.
 3. Expose `session`, `language`, and `isInSealosDesktop` through context or a store so route segments stay simple.
+4. Treat a direct browser render as fallback evidence; publish readiness requires the real Desktop iframe, session, language, business-data, and release checks.

@@ -7,11 +7,11 @@
 - [Fail-Open Reasons (and What To Do)](#fail-open-reasons-and-what-to-do)
 - [Detection Snippets](#detection-snippets)
 - [Force the Issue](#force-the-issue)
-- ["Don't Ask the Human" Rules](#dont-ask-the-human-rules)
+- [Autonomous Remediation Envelope (and Where It Stops)](#autonomous-remediation-envelope-and-where-it-stops)
 
 RCH's most expensive failure mode for agents is **silent fall-back to local execution**. The build "succeeded" — but it ran on the local machine, slowly, while the worker fleet sat idle. If you don't notice, you bake hours of extra latency into every iteration.
 
-This file is the canonical guide for: (1) how to *see* a fail-open, (2) what each fail-open reason means, and (3) what to do about it before asking the human.
+This file is the canonical guide for: (1) how to *see* a fail-open, (2) what each fail-open reason means, and (3) how to remediate it within the autonomous envelope — and where that envelope stops and explicit caller authorization begins.
 
 ---
 
@@ -56,15 +56,15 @@ Every reason in the parens comes from one of two sources:
 
 | Reason text | Triggered when | Self-fix |
 |---|---|---|
-| `daemon unavailable` | Daemon socket can't be reached (and auto-start failed or is disabled) | `rch daemon start && rch --json daemon status`. If still failing, check `~/.cache/rch/rch.sock` and look for stale auto-start cooldown (see `SELF_HEALING.md`). |
-| `force_local` | `[general] force_local = true` is set | This is intentional. If you didn't expect it: `rch config get general.force_local --sources` shows where it came from. `rch config set general.force_local false` to revert. |
-| `invalid config: force_local+force_remote` | Both flags set simultaneously | `rch config edit` and unset one. Then `rch daemon reload`. |
-| `confidence below threshold` | Classifier flagged the command but only weakly (e.g., wrapped in shell pipelines). Threshold is `[compilation] confidence_threshold` (default 0.85). | If the command really should offload, lower the threshold or set `[general] force_remote = true` in `.rch/config.toml`. Better: run `rch diagnose "<the command>"` to see classifier confidence. |
-| `command '<base>' not in allowlist` | `[execution] allowlist` excludes this command base | `rch --json config get execution.allowlist` to inspect. Add the command base if you control the project's `.rch/config.toml`. |
-| `dependency preflight <RCH-Exxx>: <remediation>` | The closure planner refused to ship the workspace (cycle, missing manifest, off-canonical-root path dep). See `PATH_DEPENDENCIES.md`. | The remediation message is actionable; follow it. Then re-run `rch diagnose --dry-run "<command>"`. |
+| `daemon unavailable` | Daemon socket can't be reached (and auto-start failed or is disabled) | Wait out the auto-start cooldown and retry (autonomous). If still failing, confirm with `rch --json daemon status` and check `~/.cache/rch/rch.sock`; manually starting the daemon needs caller authorization. See `RECOVERY_PLAYBOOKS.md` Playbook B. |
+| `force_local` | `[general] force_local = true` is set | This is intentional. `rch config get general.force_local --sources` shows where it came from (autonomous). Reverting with `rch config set general.force_local false` edits config — **(authorize first)**. |
+| `invalid config: force_local+force_remote` | Both flags set simultaneously | `rch config edit` to unset one, then `rch daemon reload` — both mutate config/daemon, **(authorize first)**. |
+| `confidence below threshold` | Classifier flagged the command but only weakly (e.g., wrapped in shell pipelines). Threshold is `[compilation] confidence_threshold` (default 0.85). | Run `rch diagnose "<the command>"` to see classifier confidence (autonomous). Lowering the threshold or setting `[general] force_remote = true` in `.rch/config.toml` are config mutations — **(authorize first)**. |
+| `command '<base>' not in allowlist` | `[execution] allowlist` excludes this command base | `rch --json config get execution.allowlist` to inspect (autonomous). Adding the command base to `.rch/config.toml` is a config mutation — **(authorize first)**. |
+| `dependency preflight <RCH-Exxx>: <remediation>` | The closure planner refused to ship the workspace (cycle, missing manifest, off-canonical-root path dep). See the RCH-E013–E020 rows in `ERROR_CODES.md` and the path-dep section of `TROUBLESHOOTING.md`. | The remediation message is actionable; follow it. Then re-run `rch diagnose --dry-run "<command>"`. |
 | `<TransferSkipped reason>` | Transfer pipeline opted out (e.g., empty workspace, all paths excluded). | Run `RCH_LOG_LEVEL=debug rch exec -- <command>` and look for `Transfer skipped:` log lines. |
 | `remote execution failed` | Generic catch-all for transfer/exec errors | Re-run with `RCH_LOG_LEVEL=debug` to surface the real error, and check `rch daemon logs -n 200` for the daemon side. |
-| `toolchain missing on <worker>` | Remote `rustup`/`cargo` not present, or no default toolchain | `rch workers sync-toolchain --all` (or just for that worker). Then `rch workers capabilities --refresh`. |
+| `toolchain missing on <worker>` | Remote `rustup`/`cargo` not present, or no default toolchain | Diagnose the gap (autonomous). `rch workers sync-toolchain --all` (or one worker) mutates the worker — get caller authorization first; then `rch workers capabilities --refresh`. |
 
 ### Daemon-decision fail-opens (selection reasons)
 
@@ -72,14 +72,14 @@ These come from the daemon's `SelectionReason` enum. The `[RCH] local (...)` sum
 
 | Snake_case tag (JSON) | Human form in `local (...)` summary | Self-fix |
 |---|---|---|
-| `no_workers_configured` | `no workers configured` | `rch workers discover --add --yes && rch workers setup --all`. |
-| `all_workers_unreachable` | `all workers unreachable` | `rch workers probe --all`; fix SSH (key path, host, port). See `SSH_TUNING.md`. |
-| `all_circuits_open` | `all worker circuits open` | A worker hit repeated failures and tripped its circuit. Inspect with `rch --json status --workers \| jq '.data.daemon.workers[] \| {id, circuit_state, last_error, recovery_in_secs}'` and `rch daemon logs -n 200`. Use `rch workers enable <id>` after fixing the underlying cause; circuits also auto-close after the cooldown. |
-| `all_workers_busy` | `all workers at capacity` | Queueing is **on by default** (`RCH_QUEUE_WHEN_BUSY=1`); seeing this means the wait timed out. Bump `RCH_DAEMON_WAIT_RESPONSE_TIMEOUT_SECS=120` for the next invocation, or raise `total_slots`. Check `rch queue --watch` to see backlog. |
+| `no_workers_configured` | `no workers configured` | `rch workers discover --add --yes && rch workers setup --all` adds and provisions workers — a fleet mutation; get caller authorization first. |
+| `all_workers_unreachable` | `all workers unreachable` | `rch workers probe --all` and read the SSH errors (autonomous). Any fix beyond reading — repairing a local key's permissions included — is a host mutation → **(authorize first)**; changing anything on a worker is remote mutation → **(authorize first)**. See `RECOVERY_PLAYBOOKS.md` Playbook C and the Network rows of `ERROR_CODES.md`. |
+| `all_circuits_open` | `all worker circuits open` | A worker hit repeated failures and tripped its circuit. Inspect with `rch --json status --workers \| jq '.data.daemon.workers[] \| {id, circuit_state, last_error, recovery_in_secs}'` and `rch daemon logs -n 200` (autonomous). Circuits auto-close after the cooldown; forcing `rch workers enable <id>` mutates worker state — **(authorize first)**. |
+| `all_workers_busy` | `all workers at capacity` | Queueing is **on by default** (`RCH_QUEUE_WHEN_BUSY=1`); seeing this means the wait timed out. Bump `RCH_DAEMON_WAIT_RESPONSE_TIMEOUT_SECS=120` for the next invocation (autonomous). Raising `total_slots` edits worker config — **(authorize first)**. Check `rch queue --watch` to see backlog. |
 | `all_workers_failed_preflight` | `all workers failed preflight checks` | Path-topology check, repo presence, or toolchain probe failed on every candidate. Re-run with `rch diagnose --dry-run "<command>"` to see the preflight pipeline; hits `RCH-E013..024`, `RCH-E205`, `RCH-E305`. |
-| `all_workers_failed_convergence` | `all workers failed repo convergence checks` | The repo updater contract couldn't bring required repos to a target state on any worker. Check that the sibling repos exist on workers under the canonical root. See `PATH_DEPENDENCIES.md`. |
-| `no_matching_workers` | `no matching workers found` | The project requires tags (e.g., `tags = ["bun"]`) and no worker carries them. `rch workers list --json` to inspect tags; add the tag to a capable worker. |
-| `no_workers_with_runtime` (value = runtime name) | `no workers with bun installed` (or `node`, `rust`, …) | Install the runtime on a worker, then `rch workers capabilities --refresh`. |
+| `all_workers_failed_convergence` | `all workers failed repo convergence checks` | The repo updater contract couldn't bring required repos to a target state on any worker. Check that the sibling repos exist on workers under the canonical root. See the RCH-E013–E020 rows in `ERROR_CODES.md` and the path-dep section of `TROUBLESHOOTING.md`. |
+| `no_matching_workers` | `no matching workers found` | The project requires tags (e.g., `tags = ["bun"]`) and no worker carries them. `rch workers list --json` to inspect tags (autonomous); adding the tag edits worker config — **(authorize first)**. |
+| `no_workers_with_runtime` (value = runtime name) | `no workers with bun installed` (or `node`, `rust`, …) | Installing the runtime on a worker and `rch workers capabilities --refresh` both mutate worker state — **(authorize first)**. |
 | `selection_error` (value = error text) | `selection error: <msg>` | An internal error during selection. Check `rch daemon logs -n 200`. Likely a code-side bug; capture `rch doctor --json` and `rch --json daemon status` for escalation. |
 
 Two more variants — `affinity_pinned` and `affinity_fallback` — are *success* paths (a worker was assigned via affinity), not fail-opens, so they never appear in `[RCH] local (...)` output.
@@ -139,15 +139,67 @@ If that prints `[RCH] remote <worker> (...)`, the offload path is healthy and th
 
 ---
 
-## "Don't Ask the Human" Rules
+## Autonomous Remediation Envelope (and Where It Stops)
 
-The skill exists so agents resolve these things autonomously. Concrete cases where the answer is **always do, never ask**:
+The skill resolves diagnosis autonomously — but the SKILL.md authority boundary
+governs, and this file does not widen it. Two tiers:
 
-- **"daemon unavailable"** → `rch daemon start && rch --json daemon status`. If the auto-start cooldown is active, wait or remove `${XDG_RUNTIME_DIR:-/tmp}/rch/hook_autostart.cooldown` and try again.
-- **"all workers unreachable"** → `rch workers probe --all` and inspect SSH errors. Don't ask "should I fix this?" — fix what's fixable (key permissions, missing host entries, dead daemon).
-- **"all workers at capacity"** → queueing is already on by default; bump `RCH_DAEMON_WAIT_RESPONSE_TIMEOUT_SECS=120` to wait longer, or raise `total_slots` if the fleet is genuinely undersized.
-- **"toolchain missing on X"** → `rch workers sync-toolchain --all`. The skill is designed for you to do this without confirmation.
-- **Stale unix socket detected** (auto-start log message) → already handled by `try_auto_start_daemon`. Don't manually `rm` the socket; just retry.
-- **Permission denied on `/data/projects/<repo>` over rsync** → if the repo on the worker is owned by `root`: `ssh ubuntu@<host> 'sudo chown -R ubuntu:ubuntu /data/projects/<repo> && sudo chmod 775 /data/projects/<repo>'`. This is a known recovery; don't escalate.
+**Autonomous (no need to ask) — the blast-radius ceiling is read-only.** Only
+diagnosis and inspection that mutates no host, worker, daemon, config, or
+filesystem state:
 
-When in genuine doubt — escalate after collecting `rch doctor --json`, `rch --json daemon status`, `rch --json workers probe --all`, and the failing command's stderr. That packet lets the human resolve in one round trip.
+- reading summary lines, stderr, and `rch daemon logs`;
+- status/inspection commands: `rch check`, `rch status`, `rch --json daemon
+  status`, `rch diagnose`/`--dry-run`, `rch --json workers probe|list`, `rch
+  config get|show|validate|doctor|diff`, `rch hook status|test`, `rch fleet
+  status|verify`, `rch queue`, `rch self-test`;
+- tuning env vars for the *next* invocation (`RCH_VISIBILITY`, `RCH_LOG_LEVEL`,
+  `RCH_DAEMON_WAIT_RESPONSE_TIMEOUT_SECS=120`, `RCH_SSH_SERVER_ALIVE_INTERVAL_SECS`);
+- re-running the original command *only when that command is itself read-only*,
+  including waiting out an auto-start cooldown (the built-in
+  `try_auto_start_daemon` handles stale sockets — do not `rm` them). A
+  mutating original command re-runs only under the authorization that covered
+  it in the first place.
+
+**Requires explicit caller authorization first — even when a reason maps
+straight to one of these commands.** Every host, worker, daemon, config, or
+filesystem mutation crosses the ceiling. It does not matter that a table cell
+below lists the command — a listed command is not a pre-authorized one:
+
+- **local host mutation** — `rch hook install|uninstall` (writes
+  `~/.claude/settings.json`), `chmod` on a local key file, `rch config
+  set|edit|init`, and any edit to `~/.config/rch/*.toml`;
+- **remote host mutation** — any `ssh … sudo …`, remote `chown`/`chmod`/`rm`,
+  remote installs, restarting `sshd` or `rch-wkr` on a worker, changing a
+  worker's `authorized_keys` or its host-key entry;
+- **worker / fleet operations** — `rch workers
+  sync-toolchain|setup|deploy-binary|discover --add|drain|disable|enable|capabilities --refresh`,
+  `rch fleet deploy|rollback`;
+- **daemon lifecycle** — `rch daemon start|restart|reload|stop`;
+- **destructive cleanup** — removing sockets, cooldown/lock files, caches, or
+  moving the telemetry DB aside.
+
+For each reason, run the autonomous diagnosis, then, if the fix is above the
+ceiling, capture the evidence and get authorization before running it:
+
+- **"daemon unavailable"** → confirm with `rch --json daemon status`; wait out
+  the auto-start cooldown and retry (autonomous). Manually starting/restarting
+  the daemon, or removing the cooldown file, needs authorization.
+- **"all workers unreachable"** → `rch workers probe --all` and read the SSH
+  errors (autonomous). Every fix mutates state and needs authorization first:
+  `chmod` on a local key, and anything **on** a worker (host-key entry,
+  `authorized_keys`, restarting `sshd`).
+- **"all workers at capacity"** → queueing is on by default; bump
+  `RCH_DAEMON_WAIT_RESPONSE_TIMEOUT_SECS=120` for the next run (autonomous).
+  Raising `total_slots` edits worker config → authorization.
+- **"toolchain missing on X"** → diagnose the gap (autonomous); running `rch
+  workers sync-toolchain` mutates the worker → get authorization first.
+- **Permission denied on `/data/projects/<repo>` over rsync** → the fix is a
+  remote privileged command (`ssh … 'sudo chown -R …'`). Report it to the
+  caller with the failing `stat` and get explicit authorization before running
+  it — remote `sudo` is never autonomous.
+
+When a fix is above the ceiling or you are in genuine doubt, surface the packet —
+`rch doctor --json`, `rch --json daemon status`, `rch --json workers probe
+--all`, the failing command's stderr, and the exact command you propose — so the
+caller can authorize (or decline) in one round trip.

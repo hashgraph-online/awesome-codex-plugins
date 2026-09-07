@@ -1,6 +1,6 @@
 ---
 name: four-core-documents
-description: "Produce the Four Core Documents at strategic depth (61 total steps): Business & SBU Analysis, Segmentation Framework, Brand Positioning, DMFlow. Use when running Part 3 of the engagement methodology."
+description: "Produce Part 3 of the 12-Part engagement: the four strategic-spine documents across 61 steps — 3.1 Business & SBU Analysis, 3.2 Segmentation Framework, 3.3 Brand Positioning & Communications, 3.4 DMFlow — with --doc single-document runs, --view v2 re-runs, and a --combined executive stitch. Triggers on \"/digital-marketing-pro:four-core-documents\", \"produce the four core documents\", \"run part 3 of the engagement\", \"generate the strategic spine\", \"re-run positioning as v2\". Requires an initialised engagement with Part 1 complete; reads Stone facts, Part 2 research, and the brand profile, and feeds /digital-marketing-pro:growth-plan."
 user-invocable: true
 triggers:
   - produce the four core documents
@@ -354,7 +354,7 @@ Skill response:
 
 - `engagement-workflow` — orchestrates the 12-Part flow that contains Part 3
 - `client-validation-document` — Part 5 deliverable that triggers v2 re-runs
-- Existing skills consumed by this one: `audience-intelligence`, `competitive-intel`, `market-intelligence`, `brand-guardian`
+- Existing skills and agents consumed by this one: `audience-intelligence`, `competitive-intel`, `market-intelligence`, `brand-guardian`
 
 ## Related references
 

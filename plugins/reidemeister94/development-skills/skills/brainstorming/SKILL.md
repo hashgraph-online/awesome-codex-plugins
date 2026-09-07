@@ -1,20 +1,26 @@
 ---
 name: brainstorming
-description: "Clarify an ambiguous or consequential change before planning or implementation when more than one sound approach exists."
+description: "Use when the user wants to do brainstorming, choose an approach, design something or clarify an ambiguous or consequential change before planning or implementation."
 user-invocable: true
 allowed-tools: Glob, Grep, Read, Bash, Task, AskUserQuestion, Skill
 ---
 
 # Brainstorming
 
-If `$ARGUMENTS` is empty, ask what the user wants to explore and stop.
+Interview the user relentlessly about every aspect of this until we reach a shared understanding. Walk down each branch of the decision tree, resolving dependencies between decisions one-by-one. For each question, provide your recommended answer.
 
-Inspect the repository before asking technical questions. State the current problem hypothesis, the observed facts behind it, and the unknowns that could change the result or proof.
+Ask the questions one at a time with a recommendation and trade-off, waiting for feedback on each question before continuing. Asking multiple questions at once is bewildering.
 
-Interview until both sides agree on why the change matters, what is in scope, what solved looks like, and how failure would be exposed. Ask one decision at a time, wait for the answer, and include your recommended answer with its trade-off. Facts come from exploration; decisions belong to the user.
+If a *fact* can be found by exploring the environment (filesystem, tools, etc.), look it up rather than asking the user. The *decisions*, though, are mine — put each one to me and wait for my answer.
 
-Use `best-practices` when current external evidence can change the choice. Create a research file only when the result will remain useful after this task.
+Do not act on it until I confirm we have reached a shared understanding, an agree on purpose, scope, solved state, and what evidence would show the proposed answer is wrong.
 
-Offer alternatives only when they are genuinely different. Recommend the simplest one that meets the agreed result and company/project constraints.
+If `$ARGUMENTS` is empty, ask what to explore and stop.
 
-Do not plan or implement until the shared understanding is explicit. A detailed request or prior spec is a stronger trigger, not an exemption — it fixes the WHAT, not the HOW. For data models and system boundaries, resolve identity, cardinality, lifecycle, ownership, time, and derivation before choosing a schema. Then return it to the full [development loop](../../shared/development-loop.md), which gates implementation on explicit plan approval.
+Use `best-practices` when current evidence can change the choice. Persist research only when it remains useful after the task.
+
+Offer genuinely different alternatives and recommend the simplest that meets the result and constraints.
+
+When finished, return to the full [development loop](../../shared/development-loop.md) if you were already there.
+
+Use `AskUserQuestion` for decisions.

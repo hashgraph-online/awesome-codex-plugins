@@ -14,8 +14,8 @@ bkt pipeline <command> [flags]
 |---|---|---|
 | [list](#bkt-pipeline-list) | List recent pipeline runs *(Cloud)* | `--limit`, `--repo`, `--workspace` |
 | [logs](#bkt-pipeline-logs) | Fetch logs for a pipeline run *(Cloud)* | `--repo`, `--step`, `--workspace` |
-| [run](#bkt-pipeline-run) | Trigger a new pipeline run *(Cloud)* | `--ref`, `--repo`, `--var`, `--workspace` |
-| [view](#bkt-pipeline-view) | Show details for a pipeline run *(Cloud)* | `--repo`, `--workspace` |
+| [run](#bkt-pipeline-run) | Trigger a new pipeline run *(Cloud)* | `--interval`, `--max-interval`, `--ref`, `--repo` |
+| [view](#bkt-pipeline-view) | Show details for a pipeline run *(Cloud)* | `--interval`, `--max-interval`, `--repo`, `--timeout` |
 
 ## bkt pipeline list
 
@@ -123,6 +123,10 @@ The pipeline runs against the specified Git ref (branch, tag, or commit). You ca
 pass custom pipeline variables using the --var flag, which accepts KEY=VALUE pairs
 and can be repeated. This command is available for Bitbucket Cloud contexts only.
 
+Use --wait to poll the triggered pipeline until it completes, with exponential
+backoff and jitter. Exit codes in --wait mode: 0 = pipeline succeeded,
+1 = pipeline completed unsuccessfully, 8 = timed out while still running.
+
 ### Usage
 
 ```
@@ -133,9 +137,13 @@ bkt pipeline run [flags]
 
 | Flag | Short | Description |
 |---|---|---|
+| `--interval` |  | Initial polling interval when using --wait |
+| `--max-interval` |  | Maximum polling interval (backoff cap) |
 | `--ref` |  | Git ref to run the pipeline on |
 | `--repo` |  | Repository slug override |
+| `--timeout` |  | Maximum time to wait for the pipeline (0 for no timeout) |
 | `--var` |  | Pipeline variable in KEY=VALUE form (repeatable) |
+| `--wait` |  | Wait for the triggered pipeline to complete |
 | `--workspace` |  | Bitbucket Cloud workspace override |
 
 ### Inherited Flags
@@ -163,6 +171,9 @@ bkt pipeline run [flags]
 
   # Run against a specific repository
   bkt pipeline run --workspace myteam --repo backend-api --ref develop
+
+  # Trigger and wait for the result
+  bkt pipeline run --ref main --wait
 ```
 
 ## bkt pipeline view
@@ -172,6 +183,10 @@ Show details for a pipeline run on Bitbucket Cloud.
 Displays the pipeline state, result, and a breakdown of each step with its UUID,
 status, and name. The <id> argument accepts either a build number (e.g., 10) or a
 pipeline UUID. This command is available for Bitbucket Cloud contexts only.
+
+Use --wait to poll until the pipeline completes, with exponential backoff and
+jitter. Exit codes in --wait mode: 0 = pipeline succeeded, 1 = pipeline
+completed unsuccessfully, 8 = timed out while still running.
 
 ### Usage
 
@@ -183,7 +198,11 @@ bkt pipeline view <id> [flags]
 
 | Flag | Short | Description |
 |---|---|---|
+| `--interval` |  | Initial polling interval when using --wait |
+| `--max-interval` |  | Maximum polling interval (backoff cap) |
 | `--repo` |  | Repository slug override |
+| `--timeout` |  | Maximum time to wait for the pipeline (0 for no timeout) |
+| `--wait` |  | Wait for the pipeline to complete |
 | `--workspace` |  | Bitbucket Cloud workspace override |
 
 ### Inherited Flags
@@ -208,5 +227,8 @@ bkt pipeline view <id> [flags]
 
   # View a pipeline in a specific repository
   bkt pipeline view 10 --workspace myteam --repo backend-api
+
+  # Wait for a running pipeline to finish
+  bkt pipeline view 42 --wait
 ```
 

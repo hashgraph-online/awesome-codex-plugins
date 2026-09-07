@@ -1,6 +1,15 @@
 ---
 name: dispatcher
-description: Use when you want the orchestrator to pick the next repo to work on across your whole portfolio — it enumerates candidate repos below the confinement root, resolves free/busy from each repo's session.lock lease, ranks the FREE ones by backlog priority × staleness × readiness, recommends the single most worthwhile one via AskUserQuestion, atomically claims it, and routes you to the chosen entry command. Triggers: "what should I work on next", "dispatch me to a repo", "pick the next project", "run /dispatcher". <example>Context: operator finished a session and wants the next-best repo across the portfolio. user: "/dispatcher" assistant: "Ranked 18 free repos — top recommendation: Pencil-Designs (score 4.50, 90d stale). Confirm via the picker, I'll claim its lease atomically, then route you to /session deep."</example>
+description: >
+  Use when you want the orchestrator to pick the next repo to work on across your whole portfolio — it
+  enumerates candidate repos below the confinement root, resolves free/busy from each repo's session.lock
+  lease, ranks the FREE ones by backlog priority × staleness × readiness, recommends the single most
+  worthwhile one via AskUserQuestion, atomically claims it, and routes you to the chosen entry command.
+  Triggers: "what should I work on next", "dispatch me to a repo", "pick the next project", "run
+  /dispatcher". <example>Context: operator finished a session and wants the next-best repo across the
+  portfolio. user: "/dispatcher" assistant: "Ranked 18 free repos — top recommendation: Pencil-Designs
+  (score 4.50, 90d stale). Confirm via the picker, I'll claim its lease atomically, then route you to
+  /session deep."</example>
 model: sonnet
 ---
 
@@ -104,7 +113,7 @@ const res = claimRepo({ repoRoot: R, sessionId, mode, ttlHours, semanticSessionI
 Or reuse the primitive directly: `acquire({ sessionId, mode, ttlHours, repoRoot, semanticSessionId })` from `scripts/lib/session-lock.mjs`. The claim is a `linkSync` create-or-fail = **atomic**.
 
 - **`ok: true`** → the claim is held. Proceed to Phase 4.
-- **`ok: false`** (race lost / busy — reasons: `active`, `stale-pid-alive`, `stale-pid-dead`, `fs-error`, …) → **exclude R**, re-rank the remaining free candidates (drop R from `free`, re-run Phase 1's rank step), and re-present Phase 2. Loop until a claim succeeds or no free candidate remains (then Phase 5).
+- **`ok: false`** (race lost / busy — reasons: `active`, `stale-heartbeat`, `fs-error`, …) → **exclude R**, re-rank the remaining free candidates (drop R from `free`, re-run Phase 1's rank step), and re-present Phase 2. Loop until a claim succeeds or no free candidate remains (then Phase 5).
 
 Do NOT reinvent the claim — always go through `claimRepo`/`acquire`. The `ok:false` path is the load-bearing concurrency guard: two parallel dispatchers can both recommend R, but only one wins the `linkSync`; the loser must re-rank, never force.
 

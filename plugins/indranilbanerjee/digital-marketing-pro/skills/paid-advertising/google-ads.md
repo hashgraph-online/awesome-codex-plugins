@@ -1,10 +1,24 @@
 # Google Ads — Campaign Reference Guide
 
-## API version notes (June 2026)
+> **Benchmark provenance (as of 2026-08):** Dollar figures in this document are planning priors, not quotes — market and auction rates drift continuously. Before any figure enters a media plan, budget, or client deliverable, refresh it live (platform dashboards and current published reports beat memory) and record it with `python scripts/benchmark_book.py --action record ... --source <url>`; quote from the book thereafter (`--action quote`). Never present an unstamped figure as current market fact.
 
-If you're writing code or constructing API requests against the Google Ads API, target **v24.2** (released 24 June 2026 — current latest). v24.0 was the last release with breaking changes; v24.1 and v24.2 are non-breaking additive releases.
+## API version notes (July 2026)
 
-### v24.2 (24 June 2026 — current)
+If you're writing code or constructing API requests against the Google Ads API, target **v24.2** (released 24 June 2026) — DMP's deliberate stable target. v24.1 and v24.2 are non-breaking additive releases on the v24 line; **v25 (July 2026)** is the new major release and contains breaking changes — adopt it deliberately, not by default.
+
+### Google Ads API v25 (July 2026)
+
+Major release with breaking changes:
+
+| What | Change | Why it matters for ads ops |
+|---|---|---|
+| `CustomerLifecycleGoal` / `CampaignLifecycleGoal` | REMOVED — legacy lifecycle-goal resources are gone | Migrate to the unified `Goal` + `CampaignGoalConfig` schema before moving any integration to v25 |
+| Loyalty-retention optimization goal | New goal type | Retention-focused campaigns can optimize directly for loyalty outcomes |
+| Social-engagement metrics for Shorts ads | New reporting metrics | First-class engagement reporting for YouTube Shorts inventory |
+
+**v24.2 remains DMP's deliberate stable target** (v24 line supported into 2027) — move to v25 only with a migration plan for the lifecycle-goal removal.
+
+### v24.2 (24 June 2026 — stable target)
 
 Non-breaking additions:
 
@@ -23,7 +37,7 @@ Non-breaking additions:
 | 4 new experiment types: `ADOPT_AI_MAX`, `ADOPT_BROAD_MATCH_KEYWORDS`, `OPTIMIZE_ASSETS`, `PMAX_REPLACEMENT_SHOPPING` | `ExperimentType` enum | Official Google-recommended A/B framework for migrating to AI Max + broad match + Performance Max replacing standard Shopping. **Run `ADOPT_AI_MAX` before any AI Max rollout** — gives you statistically-clean lift numbers vs the baseline |
 | `mobile_device_platform` segment | Reporting segments | Split campaign-/ad-/keyword-level performance by iOS vs Android. First time the OS split has been first-class in the API |
 
-### v24 (22 April 2026) — last release with breaking changes
+### v24 (22 April 2026) — breaking changes
 
 | Object | Change | Effect |
 |---|---|---|
@@ -160,7 +174,7 @@ START: What is your primary objective?
 | H7–H9 | Social proof / trust signals | "Trusted by 10,000+ Teams Worldwide" |
 | H10–H12 | CTAs and offers | "Start Your Free 14-Day Trial" |
 | H13–H14 | Keyword insertion / location | "Best {KeyWord:PM Tool} for Teams" |
-| H15 | Seasonal or test variant | "New 2025 Features Now Available" |
+| H15 | Seasonal or test variant | "New 2026 Features Now Available" |
 
 ### Description Framework (4 Descriptions)
 1. **Primary value prop + CTA** — comprehensive benefit statement with action

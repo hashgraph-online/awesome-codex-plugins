@@ -1,190 +1,117 @@
 ---
 name: agent-mail
-description: Use when coordinating agents with Agent Mail
+description: 'Use Agent Mail as an optional messaging and Triggers: "coordinate writers", "reserve files".'
 ---
-<!-- TOC: Boundary | Disciplines | When to Use What | Bootstrap | Reservations | Beads | Troubleshooting | References -->
+# Agent Mail — optional coordination adapter
 
-# Using Agent Mail
+Agent Mail carries messages, acknowledgements, identities, and temporary file
+reservations. It is not a task tracker, queue, proof ledger, or lifecycle
+controller.
 
-> **Core Insight:** Agent Mail is the side channel for leases, notifications, acknowledgements, and handoffs. BR/beads is the durable coordination bus and source of truth for work state, evidence, and decisions.
+Reservations are **advisory**: they prevent collisions only because every
+cooperating writer checks them against the same absolute project path, and one
+writer registered against a different path resolution makes the whole ledger
+advisory fiction. Agent Mail enforces nothing on a writer that does not check.
 
-> **⚠️ TWO SURFACES — read this first.** Every operation has BOTH an MCP-tool form (`send_message`, `fetch_inbox`, …) AND a CLI form (`am mail send`, `am mail inbox`, …). The MCP tools are only present when the agent-mail MCP server is wired into your session's tool surface — **a plain CLI/shell agent (or a session where the MCP server didn't load) will NOT have them.** In that case use the `am` CLI, which works from any shell. **Discoverability trap (br cp-jgcl):** the send/reply verbs live under the `am mail` group, which `am --help` does NOT list, and the read commands have flat aliases (`am inbox`, `am status`) but **`am send` does not exist** — it is **`am mail send`**. When in doubt: `am mail --help`, `am macros --help`, `am file_reservations --help`.
+Named failure mode — **silence-as-status**: reading an unanswered thread as
+"work stalled" or "work done"; mail silence proves only that no mail arrived.
 
-**Don't re-learn the command surface from this skill.** The MCP server self-describes its tools and resources in your tool list; the CLI self-describes via `am --help` and the group helps above. This skill carries only the operating doctrine: when to use mail, the reservation discipline, and the coordination boundaries. Full tool/parameter catalog: [TOOLS.md](references/TOOLS.md).
+Anti-pattern: widening or renewing a reservation unprompted when a conflict
+appears. Corrective: report the conflict to the caller as-is; scope and TTL
+changes are the caller's call.
 
-> **When this applies (scope guard).** Agent Mail coordination — `start-session`, identity registration, file reservations, cross-lane ACKs — is **required when ≥2 lanes/panes share the repo** (a swarm, or you plus a concurrent peer session). With **only one active writer** (no second lane/pane), do **not** register or reserve against yourself — coordination is an escalation, not a session-start tax. If you are the sole writer, skip to the work. (Doctrine: [operating-loop principle 8](../../docs/architecture/operating-loop.md#governing-principles) — single-agent-first.)
->
-> **Asymmetry guardrail.** Agent Mail answers the contention axis; persistent NTM panes answer a separate durability axis. They are independently selectable adapters. Removing the single-writer startup tax does not relax collision safety: partition write scopes first, then require reservations for two live writers sharing a path.
+## Boundary
 
-## Critical Constraints
+- Skip Agent Mail for a single writer.
+- The caller supplies the absolute project path, agent identities, thread id,
+  participants, paths, exclusivity, reason, and TTL.
+- Reservations prevent accidental overlap among cooperating writers. They do not
+  create work ownership or affect Plan, Candidate, or verdict semantics.
+- Mail silence proves nothing about work status.
+- A message or acknowledgement is evidence that communication occurred, not
+  evidence that a change is correct or complete. The adapter cannot select
+  AgentOps semantics, issue a binding verdict, or turn factory completion into
+  delivery or validation proof.
+- Release a reservation, including any `force_release`, only on the caller's
+  explicit request for that exact reservation. Force-release has no autonomous
+  trigger; a conflict is reported, not force-cleared.
+- Agent Mail never selects work, changes tracker state, commits code, validates,
+  integrates, closes, releases, or delivers work.
 
-- **Use Agent Mail only for live multi-writer coordination. Why:** registering
-  and reserving in a one-writer session adds state without preventing a real
-  collision.
-- **Put durable work truth in BR/beads. Why:** leases and messages expire or can
-  be missed, while the tracker carries dependencies, evidence, and closure.
-- **Treat a conflicting reservation as a stop signal. Why:** writing through a
-  live exclusive lease defeats the collision boundary this adapter provides.
+## Modes and authority
 
-## Coordination Boundary
+Two disjoint surfaces; do not reach the second from the first:
 
-| Need | Source of truth |
-|------|-----------------|
-| Work queue, status, dependencies, priority, closure evidence | BR/beads (`br`/`bv`) |
-| File ownership, active edit leases, lane notifications, acks | Agent Mail |
-| Final proof that work is done | Bead notes/closure plus git/CI evidence |
-| "Who may write this hot path right now?" | Agent Mail file reservation |
+- **Coordination mode (default).** Register identity, reserve/release the
+  caller's paths, send/read/acknowledge the caller's threads. This is the whole
+  of routine use, and all of it writes durable Agent Mail records.
+- **Admin / disaster-recovery mode (explicitly caller-authorized only).**
+  Installing the git pre-commit guard, `doctor repair`, backup/restore, and the
+  irreversible `clear-and-reset-everything` are a separate mode. Each requires
+  the caller's explicit authorization for that specific operation; none is ever
+  performed as a side effect of coordination. `clear-and-reset-everything`
+  deletes the database and all storage and cannot be undone — never run it, even
+  with `--force`, without an explicit destructive-reset authorization from the
+  caller.
 
-Use Agent Mail to prevent collisions and notify active agents. Do not use it as the durable task queue, audit log, or final evidence store. If a mail thread and BR disagree, reconcile the bead first and link the mail thread from the bead note if the conversation matters.
+## Surfaces
 
-One-writer-per-hot-dir rule: reserve the path before editing it. If the reservation conflicts, do not write into that path; coordinate with the holder, narrow scope, or wait for the lease to clear.
+Choose exactly one mailbox owner and access mode for each storage root. When an
+HTTP/MCP daemon owns the root, use its MCP tools; do not point the direct `am`
+CLI at the same database. Use the CLI fallback only with a root not owned by a
+running Agent Mail runtime. A busy mailbox activity lock or a bounded read
+timeout is a degraded adapter result, not permission to restart the service,
+repair the database, or silently switch roots.
 
-## Coordination disciplines (2026-06-09, cards 1–5, cp-hhd7)
+Use the MCP tools when they are present. Otherwise use the self-describing `am`
+CLI. Pin the intended storage root explicitly, and discover current syntax with
+`am mail --help`, `am file_reservations --help`, and related group help; do not
+infer commands from remembered aliases. If a direct macOS read rejects a
+symlinked snapshot directory such as `/var`, use a caller-scoped, non-symlinked
+temporary directory for that isolated invocation or report the adapter
+degraded; never weaken the traversal check.
 
-### Durable lane identities (card 1, cp-9lrb)
+## One-shot use
 
-Register a **durable adjective+noun identity** at session start. Pane text and
-human relay are unauditable and load the operator. The ledger is the bus — both
-lanes must be registered to exchange auditable messages. Do not coordinate via
-informal pane text when `send_message` + `fetch_inbox` is available.
+1. Confirm that multiple explicitly coordinated writers share the repository.
+2. Freeze one storage root and either MCP/server mode or direct-CLI mode; never
+   mix both against the same live database.
+3. Register the caller-supplied identity against the same absolute project path.
+4. Reserve only the supplied paths, with a bounded TTL.
+5. Report conflicts without waiting, narrowing scope, or changing the plan.
+6. Send the supplied message once and record its id.
+7. Read or acknowledge only the requested thread.
+8. Before the caller advances a declared transition, verify every
+   acknowledgement-required message in that transition has the intended
+   recipient acknowledgement. Later traffic is not an implicit acknowledgement.
+9. Release only reservations the caller explicitly asks to release.
 
-### Content-push, not pointers (card 2, cp-9lrb)
+## Output
 
-When sending a lane a message, **push the content** — include the actual text,
-diff, or decision. A pointer to a message-id the recipient cannot discover by
-inbox is still a relay. If the recipient's inbox is broken and they cannot read
-by-id, a pointer is a dead end. Short content fits in the body; long content goes
-to a committed artifact with an absolute path, not an AM-internal id.
+Return the project, identity, thread/message ids, reservation ids and paths
+(with their TTLs), conflicts, and timestamps. The caller owns all subsequent
+decisions.
 
-### Intent on the graph first — dedup (card 3, cp-hhtu)
+Terminal outcomes are explicit, never silent:
 
-Before any actor acts on a bead (intake, admit, implement, validate, mutate),
-**update the bead status and set the actor on the graph first**, then check for an
-existing actor. Parallel pipelines are blind to each other at every tier — dedup
-via the ledger, not behavioral coordination. Five exhibits of same-bead parallel
-work hit the fleet in one day (impl/validate/admission/mutation/intake, cp-hhtu).
-The fix is structural: intent on the graph is the lock.
-
-### ACK-with-id on routed writes (card 5, cp-fmt8)
-
-When routing a write through a single writer (e.g. a beads-intake lane), require
-**ACK-with-id** back to the requester — the AM message id of the filed bead or the
-`ao beads exec show <id>` output confirming the record exists. An unacknowledged routed write
-is invisible work. "Are these filed?" must not be a question — the ACK closes it.
-
-## When to Use What
-
-| Situation | Action |
-|-----------|--------|
-| Starting any agent session | `macro_start_session` (CLI: `am macros start-session`) |
-| **Confirm a lane actually registered** | `am robot agents --project <abs> --active` — must list your name and each peer lane |
-| About to edit files | reserve paths → edit → release reservations |
-| Need to tell another agent something | `send_message` with `thread_id` (CLI: `am mail send`) |
-| Picking up someone else's work | `macro_prepare_thread` |
-| Need durable work state or evidence | Update BR/beads, then link the mail thread if useful |
-| Can't message an agent | `request_contact` → wait for approval |
-| Server seems broken | `health_check()` first; CLI-only: `doctor check --verbose` → `doctor repair --yes` |
-
-## Session Bootstrap
-
-**Call `macro_start_session` (or `am macros start-session --project <abs> --program <p> --model <m> --task "<desc>"`) at the start of every *multi-lane* agent session** (skip it when you are the sole writer — see the scope guard above). One call: ensures project exists → registers your identity → reserves files → fetches inbox. Returns `{project, agent, file_reservations, inbox}`.
-
-**Verify the lane registered.** A pane can *look* spawned and still have never registered — its start-session may not have landed. Confirm with:
-
-```bash
-am robot agents --project <abs> --active   # should list YOUR name and each peer lane
-```
-
-If your name (or a peer's) is missing, that lane's start-session did not land — **do not assume the coordination leg is live.** Re-run start-session for the missing lane before relying on mail/reservations between you. Skipping this check is how the coordination leg silently goes unverified.
-
-Identity notes:
-
-- Agents get adjective+noun names (GreenCastle, BlueLake). Omit `name`/`--name` to auto-generate a valid one.
-- `am macros start-session` auto-generates a fresh identity **per project**; you will have a different name in each project. Confirm yours via `am agent start`.
-- The other macros (`macro_prepare_thread`, `macro_file_reservation_cycle`, `macro_contact_handshake`) and the fast `resource://` reads are self-described by the server; catalog in [TOOLS.md](references/TOOLS.md) and [RESOURCES.md](references/RESOURCES.md).
-
-## File Reservations — Reserve Before Editing
-
-The discipline, not the syntax (syntax: `am file_reservations --help` or the `file_reservation_paths` tool):
-
-1. **Reserve before the first write.** Glob patterns are fine (`src/auth/**/*.ts`). Set a real `ttl_seconds` and put the bead id in `reason`.
-2. **Check `conflicts` in the response.** On conflict: wait for TTL expiry, message the holder, or share with `exclusive=false`. Never write into a conflicted path.
-3. **Release when done** (`release_file_reservations` / `am file_reservations release <abs> <me>`). Don't squat on leases across unrelated work.
-
-## Beads Integration
-
-Use bead IDs as your threading anchor. The bead tracker remains authoritative; mail carries the lease, notification, and discussion side channel.
-
-```
-1. Pick work:        ao beads exec ready --json → choose bd-123
-2. Reserve files:    file_reservation_paths(..., reason="bd-123")
-3. Announce:         send_message(..., thread_id="bd-123", subject="[bd-123] Starting...")
-4. Work:             Reply in thread with progress
-5. Record evidence:  ao beads exec update bd-123 --notes "Validation: tests, commit, CI, or handoff proof"
-6. Complete:         ao beads exec close bd-123, release_file_reservations(...), final message
-```
-
-**Bead ID (often bd-###) goes in:** thread_id, subject prefix, reservation reason, commit message
-
-**Do not infer durable state from mail silence.** A missing reply is not proof that a bead is abandoned, blocked, or complete. Check `ao beads exec show <id> --json`, `bv --robot-insights`, git state, and CI evidence before changing work state.
-
-## Output Specification
-
-- **Artifact directory:** no repository directory; Agent Mail persists identity,
-  reservation, and message records in its own project store and returns receipts
-  through MCP results or CLI stdout.
-- **Filename convention:** none. Refer to durable coordination records by
-  project, agent name, bead/thread id, and returned message or reservation id.
-- **Serialization/schema format:** use the MCP tool result objects or the CLI's
-  `--json` output when another agent must consume the receipt mechanically.
-- **Validator command:** confirm identities with
-  `am robot agents --project <abs> --active`, then inspect reservations/inbox
-  with the matching self-described `am file_reservations` or `am mail` command.
-- **Downstream handoff:** record the acknowledged message/reservation id in the
-  BR/bead note when it matters to the work, then release leases after landing.
-
-## Quality Rubric
-
-- [ ] Every active writer is registered under the same absolute project path.
-- [ ] Every hot-path write has a non-conflicting lease tied to its bead id.
-- [ ] Every routed write returns an ACK with a discoverable id or tracker proof.
-- [ ] Durable decisions and completion evidence are present in BR/beads, not mail alone.
-
-## Quick Troubleshooting
-
-| Error | Fix |
-|-------|-----|
-| "sender_name not registered" | Call `macro_start_session` first |
-| Pane looks spawned but coordination is silent | A pane can look spawned yet never have registered. Run `am robot agents --project <abs> --active` — if the lane is absent, its start-session didn't land; re-run it |
-| "FILE_RESERVATION_CONFLICT" | Wait, coordinate, or use `exclusive=false` |
-| "CONTACT_BLOCKED" | Use `request_contact`, wait for approval |
-| Server unreachable | `am robot health` (works CLI-only, direct SQLite) or `health_check()` (MCP). `curl …:8765/health` only resolves if the HTTP MCP server is running; CLI-only deploys have no `:8765` listener. Start the server with `am` |
-| Guard blocks commit | Set `AGENT_NAME` env var; emergency bypass: `AGENT_MAIL_BYPASS=1 git commit` |
-
-Deeper diagnostics (doctor check/repair), the pre-commit guard (`install_precommit_guard`), the human-overseer web UI, and FTS5 search syntax are all self-described by the server/CLI — see [RECOVERY.md](references/RECOVERY.md) and [ADVANCED.md](references/ADVANCED.md).
+- **Adapter unavailable** — neither the MCP tools nor the `am` CLI is present:
+  report that Agent Mail is unavailable and stop. Do not fall back to
+  hand-written coordination or treat the absence as "no conflicts".
+- **Reservation conflict** — report the conflicting reservation as-is; do not
+  narrow, widen, renew, or force-release it.
+- **Mailbox ownership conflict** — a daemon and direct CLI contend for one
+  storage root: report the lock owner/mode and stop; do not restart, repair, or
+  bypass the lock as a coordination side effect.
+- **Required acknowledgement pending** — report the exact message and intended
+  recipient and stop the dependent transition. Do not infer acknowledgement
+  from a later reply or repair it after validation.
+- **Timeout / degraded surface** — report the operation as timed out or degraded
+  with what was and was not observed; a timeout is evidence, not "done".
+- **Cleanup** — reservations released this session are listed by id; any left
+  in place (still holding a TTL) are named so the caller can see what remains.
 
 ## References
 
-| Topic | Reference |
-|-------|-----------|
-| All MCP tools | [TOOLS.md](references/TOOLS.md) |
-| Workflow patterns | [WORKFLOWS.md](references/WORKFLOWS.md) |
-| MCP resources | [RESOURCES.md](references/RESOURCES.md) |
-| Cross-project setup | [CROSS-PROJECT.md](references/CROSS-PROJECT.md) |
-| Doctor & recovery | [RECOVERY.md](references/RECOVERY.md) |
-| Installation | [INSTALL.md](references/INSTALL.md) |
-| Fix MCP config | [FIX-MCP-CONFIG.md](references/FIX-MCP-CONFIG.md) |
-| Product bus, build slots, internals | [ADVANCED.md](references/ADVANCED.md) |
-
-## Validation
-
-```bash
-am robot health                     # PRIMARY check — CLI/direct SQLite, works without the HTTP server
-am agent start --json               # cockpit; flags a missing :8765 listener under mcp_endpoint=fail
-curl http://127.0.0.1:8765/health   # ONLY if the HTTP MCP server is up (am serve-http); CLI-only deploys have no :8765 listener
-am                                  # start server if needed
-```
-
----
-
-**Fork maintenance.** `am` is Bo's fork (`boshu2/mcp_agent_mail_rust`). To pull upstream fixes, use the fork-sync factory in `~/dev/mcp_agent_mail_rust`: `make fork-status` → `make fork-preview` → `make fork-sync` (its `AGENTS.md` § "Upstream sync"; never rebase main by hand). Divergence facts are owned by **FORKS-MAP F-3**.
+- [CLI and MCP surface notes](references/TOOLS.md)
+- [Coordination patterns](references/WORKFLOWS.md)
+- [Troubleshooting](references/RECOVERY.md)

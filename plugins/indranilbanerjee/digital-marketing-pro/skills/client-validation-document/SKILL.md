@@ -1,6 +1,6 @@
 ---
 name: client-validation-document
-description: "Produce the Part 5 Client Validation Document — the one true stop where unbiased v1 findings meet the client. Each finding gets ACCEPT/REJECT/EDIT/DEFER decision."
+description: "Produce the Part 5 Client Validation Document — the one true stop of the 12-Part engagement where unbiased v1 findings from Parts 2-4 are compiled into 12-25 evidence-cited finding blocks, each awaiting an ACCEPT / REJECT / EDIT / DEFER client decision, plus a paired JSON response template. Recorded responses feed the Part 6 Decision Matrix (engagement-state.py) to determine v2 re-runs. Triggers on \"/digital-marketing-pro:client-validation-document\", \"prepare v1 findings for client review\", \"run part 5 client validation\", \"the one true stop\", \"record the client's validation responses\". Requires Parts 3-4 marked completed in _engagement.json; reads the eight v1 core documents; pairs with /digital-marketing-pro:engagement-workflow and /digital-marketing-pro:four-core-documents."
 user-invocable: true
 triggers:
   - produce client validation document
@@ -281,7 +281,7 @@ Skill response:
 
 - `engagement-workflow` — orchestrates the 12-Part flow
 - `four-core-documents` — produced the v1 docs being validated; will produce v2 re-runs after Part 5
-- Existing `competitor-analysis`, `audience-intelligence`, `market-intelligence` skills produced the Part 4 docs
+- Existing skills/agents `competitor-analysis`, `audience-intelligence`, `market-intelligence` produced the Part 4 docs
 
 ## Related references
 

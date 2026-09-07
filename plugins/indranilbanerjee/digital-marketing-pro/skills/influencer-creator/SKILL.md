@@ -1,6 +1,6 @@
 ---
 name: influencer-creator
-description: "Plan influencer and creator partnerships. Use when: discovering creators, UGC campaigns, or FTC compliance."
+description: "Plan influencer and creator marketing end to end — creator discovery and audience-authenticity vetting, campaign brief development, FTC and international disclosure compliance audits, contract and usage-rights frameworks, UGC strategy, and performance measurement (EMV, ROAS, brand lift). Advisory and planning only — it does not contact creators or publish anything. Triggers on \"/digital-marketing-pro:influencer-creator\", \"find influencers for our launch\", \"are these sponsored posts FTC compliant\", \"how should we structure an influencer contract\", \"plan a UGC campaign\". Reads the brand profile, guidelines, compliance rules, and campaign history via campaign-tracker.py before planning new work."
 ---
 
 # Influencer & Creator Marketing
@@ -140,6 +140,7 @@ Before executing, gather the following from the user (ask if not provided):
 - `performance-tracking.md` -- EMV calculation methods, attribution models, reporting templates, and benchmark data by industry and platform
 - `contract-frameworks.md` -- Full contract templates, clause-by-clause explanations, negotiation guides, and rate benchmarking by tier and platform
 - `ugc-strategy.md` -- UGC solicitation playbooks, rights management frameworks, UGC-to-ad pipelines, and curation best practices
+- `micro-influencer-strategy.md` -- Micro/nano tier definitions, discovery and vetting, compensation models, gifting and ambassador programs, and platform-specific micro-influencer tactics
 
 ## Output Formats
 

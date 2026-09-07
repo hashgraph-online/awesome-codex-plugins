@@ -1,2 +1,2 @@
-source_id	category	title	url	access_state	collected_at	artifact_path	confidence	notes
-src-001	website	Main domain	https://example.com	public	YYYY-MM-DD	confirmed	open	
+source_id	source_type	source_url	captured_at	status	evidence_path	reviewer	reviewed_at	expires_at	reversal_ref	artifact_sha256	notes
+template-source	unverified			unverified							Заполнить после фактического сбора; строка не подтверждает факт.

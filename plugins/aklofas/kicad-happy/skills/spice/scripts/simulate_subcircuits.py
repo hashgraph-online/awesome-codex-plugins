@@ -116,11 +116,31 @@ def simulate_subcircuits(analysis_json, workdir=None, timeout=5, types=None,
         "detect_decoupling": "decoupling_analysis",
         "detect_integrated_ldos": "power_regulators",
     }
+    # KH-388 belt: analysis JSON may still carry duplicate finding objects
+    # (e.g. output from a pre-fix analyzer, or cached analysis/ output) —
+    # don't collect the same subcircuit for simulation twice. id()-based
+    # dedup is safe for any detector (a dict appearing twice in the same
+    # analysis output is always an aliasing quirk, never intentional). The
+    # (detector, components) key belt is scoped to detect_voltage_dividers
+    # only, mirroring the flatten-site fix in analyze_schematic.py — other
+    # detectors legitimately emit multiple distinct findings that share a
+    # component pair (e.g. VM-001 on different nets), so a components-only
+    # key would wrongly collapse those.
     signal = {}
+    _seen_ids = set()
+    _seen_vd_keys = set()
     for f in analysis_json.get("findings", []):
         det = f.get("detector", "")
         if not det:
             continue
+        if id(f) in _seen_ids:
+            continue
+        _seen_ids.add(id(f))
+        if det == "detect_voltage_dividers":
+            vkey = (det, tuple(f.get("components") or []))
+            if vkey in _seen_vd_keys:
+                continue
+            _seen_vd_keys.add(vkey)
         key = _DET_KEY_OVERRIDES.get(det)
         if not key:
             key = det[len("detect_"):] if det.startswith("detect_") else det
@@ -458,6 +478,11 @@ def main():
         help="Omit file paths from output (for clean reports)",
     )
     parser.add_argument(
+        "--text",
+        action="store_true",
+        help="Human-readable text output instead of JSON",
+    )
+    parser.add_argument(
         "--parasitics",
         help="Path to parasitics JSON (from extract_parasitics.py) for "
              "PCB-aware simulation. When provided, testbenches include trace "
@@ -624,7 +649,25 @@ def main():
 
     # Output
     output_json = json.dumps(report, indent=2)
-    if args.output:
+    if args.text:
+        # KH-345: --text parity with the other analyzers. Early-exit
+        # reports (no simulatable data) omit total_elapsed_s — tolerate it.
+        s = report.get("summary", {})
+        _elapsed = report.get("total_elapsed_s")
+        _suffix = (f" ({_elapsed:.1f}s)"
+                   if isinstance(_elapsed, (int, float)) else "")
+        print(f"SPICE simulation: {s.get('total', 0)} subcircuits — "
+              f"{s.get('pass', 0)} pass, {s.get('warn', 0)} warn, "
+              f"{s.get('fail', 0)} fail, {s.get('skip', 0)} skip{_suffix}")
+        sys.path.insert(0, os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            '..', '..', 'kicad', 'scripts'))
+        from output_filters import format_text
+        print(format_text(report.get("findings", []), "designer"))
+        if args.output:
+            with open(args.output, "w") as f:
+                f.write(output_json)
+    elif args.output:
         with open(args.output, "w") as f:
             f.write(output_json)
         # Print summary to stderr

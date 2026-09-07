@@ -111,7 +111,7 @@
             "type": "array",
             "items": {
               "type": "string",
-              "minLength": 1
+              "pattern": "^public_surface:[^:]+:[^:]+:[^:]+$"
             }
           },
           "implementation_root_ref": {

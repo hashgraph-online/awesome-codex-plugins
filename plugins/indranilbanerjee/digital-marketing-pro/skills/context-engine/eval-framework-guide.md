@@ -332,9 +332,9 @@ The eval system is wired into the approval framework documented in `approval-fra
 - The eval grade is included in the approval record so human reviewers have quality context
 - If the composite score falls below the **auto-reject threshold** (default 40, configurable via eval-config-manager), execution is blocked automatically
 
-### Content Scoring Hooks
+### Content Scoring During Drafting
 
-The `hooks.json` PreToolUse hook for Write and Edit operations runs a lightweight hallucination check in real-time. This catches obvious fabrication indicators during content generation, not just at eval time.
+Run `hallucination-detector.py` on drafts as you write, not just at final eval time — a lightweight pass catches obvious fabrication indicators (placeholder URLs, invented statistics, unattributed superlatives) early. (This plugin ships zero hooks by design; skills instruct the agent to run this check before content moves forward, and you can wire a user-scope PreToolUse hook yourself if you want it automated.)
 
 ### Approval Record Integration
 

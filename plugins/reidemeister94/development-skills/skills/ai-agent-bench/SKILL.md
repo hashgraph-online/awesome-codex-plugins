@@ -7,7 +7,7 @@ allowed-tools: Glob, Grep, Read, Bash, Edit, Write
 
 # AI agent bench
 
-Benchmark agents only when the task, starting commit, and outcome check are identical. The harness keeps each result branch and removes its temporary worktree.
+Compare agents only with the same task, starting commit, and outcome check. The harness preserves result branches and removes temporary worktrees.
 
 Create `<repo>/.agent-bench.toml`:
 
@@ -19,18 +19,18 @@ outer_check = "./scripts/full_check.sh"
 inner_check = "pytest tests/integration/test_x.py -q"
 ```
 
-`outer_check` is both the before/after gate and wall-time measure; it must exercise the real outcome. `inner_check` is the fast command agents use while working.
+`outer_check` proves the real outcome before and after, and measures wall time. `inner_check` gives agents fast feedback.
 
-Require a clean repository, available CLIs, and a passing `outer_check` before trials. Confirm the agents and next run ID, then run each agent **sequentially** so concurrent load cannot corrupt timing:
+Require a clean repo, available CLIs, and a passing `outer_check`. Confirm agents and run ID, then run trials sequentially to avoid load-biased timing:
 
 ```bash
 python <skill>/scripts/run_trial.py --repo "$REPO" --config "$REPO/.agent-bench.toml" --agent "$AGENT" --run "$RUN_ID"
 ```
 
-Results live under `eval-results/<task>/<agent>/run-<id>-<timestamp>/`. Unexpected harness or agent behavior is appended to `ai-agent-bench-anomalies.md`; details are in [anomalies.md](references/anomalies.md).
+Results go to `eval-results/<task>/<agent>/run-<id>-<timestamp>/`. Record unexpected behavior in `ai-agent-bench-anomalies.md` per [anomalies](references/anomalies.md).
 
-Aggregate completed runs with `scripts/parse_transcript.py --aggregate <run-dirs> --output comparison.json --render-report comparison.md`. Report gate results, branches, time delta, tokens, and cost; never rank a failed trial as faster.
+Aggregate with `scripts/parse_transcript.py --aggregate <run-dirs> --output comparison.json --render-report comparison.md`. Report gates, branches, time delta, tokens, and cost. Never rank a failed trial.
 
-For plugin behavior rather than a real code task, use the Pydantic runner documented by `eval-regression` and `scripts/fresh_context_eval.py`.
+For plugin behavior rather than a real code task, use the bounded Pydantic runner documented by `eval-regression` and `scripts/run_evals.py`.
 
 Never commit on the user's branch. A repeated run creates a new timestamped result and preserves prior evidence.

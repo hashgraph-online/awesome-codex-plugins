@@ -321,18 +321,11 @@ This downloads the latest release zip, extracts into
 ongoing version pinning after first install, route to
 `maintaining-modding-environments`.
 
-### Step 8 - Deploy the xEdit hook bridge
+### Step 8 - Native xEdit automation
 
-`xEditHookBridge.dll` ships with THIS plugin (it is OWNED by
-`bgs-modding-superpowers`, NOT by the xEdit fork). Co-locate it with
-`xEdit.exe`:
-
-```powershell
-& "<plugin-root>/scripts/install-xedit-hook-bridge.ps1" -MO2Root "<MO2_Root>"
-```
-
-This copies `tools/xedit-hook-bridge/dist/xEditHookBridge.dll` into
-`<MO2_Root>/tools/xEdit/`. The xEdit daemon will find it there at runtime.
+The xEdit hook bridge is retired and must not be deployed. The installed
+`xEdit.exe` is launched through `xedit-client.ps1`, which uses native
+`-automation-serve` and a run-scoped `plugins.txt` when needed.
 
 ### Step 9 - Initialize dev-log and release-changelog
 
@@ -432,8 +425,8 @@ success otherwise:
 - MO2 is visibly running (process has `MainWindowHandle != 0`) and
   `<MO2_Root>/plugins/Mo2AgentControl/bootstrap/runtime/status.json` reports
   `state: "ok"` with a current `mo2Pid` (skipped only in no-MO2 mode).
-- If xEdit was chosen: `<MO2_Root>/tools/xEdit/xEdit.exe` AND
-  `<MO2_Root>/tools/xEdit/xEditHookBridge.dll` both exist.
+- If xEdit was chosen: `<MO2_Root>/tools/xEdit/xEdit.exe` exists. The retired
+  `xEditHookBridge.dll` is not required.
 - `<project_root>/docs/dev-log.md` and
   `<project_root>/docs/release-changelog.md` both exist (or user explicitly
   declined - record the decline in conversation context).
@@ -481,5 +474,5 @@ For ongoing care after first-run, see `maintaining-modding-environments`.
   succeeds.
 - `writing-modpack-devlog`, `writing-modpack-changelog` - runtime asset skills
   invoked from step 9.
-- The installer scripts under `scripts/`: `install-mo2-control-plane.ps1`,
-  `start-mo2.ps1`, `fetch-xedit-release.ps1`, `install-xedit-hook-bridge.ps1`.
+- The active installer scripts under `scripts/`: `install-mo2-control-plane.ps1`,
+  `start-mo2.ps1`, `fetch-xedit-release.ps1`.

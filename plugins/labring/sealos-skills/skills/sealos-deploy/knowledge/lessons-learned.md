@@ -2,41 +2,22 @@
 
 This document captures patterns and solutions from actual Sealos deployment experiences to prevent repeated mistakes.
 
----
+## Contents
 
-## Case Study: EverShop (Public URL + Image Detection)
-
-**Project**: EverShop - Node.js e-commerce platform using node-config
-**GitHub**: `evershopcommerce/evershop`
-**Issues Encountered**: 2 (public URL misconfiguration, image detection miss)
-
-### Issue 1: Hardcoded localhost Base URL
-
-- **Symptom**: App deployed successfully but all frontend API calls failed (404/CORS errors)
-- **Root Cause**: App uses node-config with `getConfig('shop.homeUrl', 'http://localhost:3000')` — when no config override exists, all generated URLs point to localhost
-- **Detection Signal**: `packages/evershop/src/lib/util/getBaseUrl.ts` contains fallback to `http://localhost:3000`
-- **Fix**: Created ConfigMap with `config/default.json` containing `{"shop":{"homeUrl":"https://<public-url>"}}`, mounted via `subPath` to avoid overwriting other config files
-- **Generalized Pattern**: **Public URL via file-based config** — many apps (especially Node.js with node-config, PHP with config files) read their public URL from config files rather than env vars. When `localhost` fallback is detected in source code, a ConfigMap override is required.
-- **Status**: Pattern added to `conversion-mappings.md` (Strategy B: ConfigMap)
-
-### Issue 2: Docker Hub Image Not Found
-
-- **Symptom**: `detect-image.mjs` returned `{ "found": false }`, triggering unnecessary Docker build
-- **Root Cause**: Script only checked `<github-owner>/<github-repo>` (i.e., `evershopcommerce/evershop`), but official Docker image is at `evershop/evershop`
-- **Detection Signal**: Docker Hub namespace differs from GitHub org — common when project name is shorter than org name
-- **Fix**: Added fallback check for `<repo-name>/<repo-name>` pattern in `detect-image.mjs`
-- **Other Known Examples**:
-  - GitHub `nextcloud/server` → Docker Hub `nextcloud/nextcloud`
-  - GitHub `gogs/gogs` → Docker Hub `gogs/gogs` (same, but org ≠ repo in other cases)
-- **Status**: Fallback added to `detect-image.mjs`
-
-### Generalized Lessons
-
-1. **Public URL Detection is Critical**: Always scan source code for `localhost` fallback patterns during Phase 5.2. Missing this causes subtle runtime failures (app loads but API calls fail).
-2. **Image Detection Needs Multiple Strategies**: Don't assume Docker Hub namespace matches GitHub org. Check `<repo>/<repo>` as fallback.
-3. **Config File Overrides via ConfigMap**: When an app uses file-based config (not env vars) for its public URL, use a ConfigMap with `subPath` mount to inject only the needed override without replacing the entire config directory.
-
----
+- [Consolidated Patterns](#consolidated-patterns)
+  - [KubeBlocks Redis Readiness Lag](#kubeblocks-redis-readiness-lag)
+  - [Root Entrypoint Handoff and Persistent Storage Permissions](#root-entrypoint-handoff-and-persistent-storage-permissions)
+  - [Startup-Fatal Bootstrap Credential Validation](#startup-fatal-bootstrap-credential-validation)
+  - [GHCR Push Succeeds but Cluster Pull Fails](#ghcr-push-succeeds-but-cluster-pull-fails-prevents-imagepullbackoff)
+  - [Public URL Misconfiguration](#public-url-misconfiguration-prevents-runtime-api-failures)
+  - [Docker Hub Namespace Mismatch](#docker-hub-namespace-mismatch-prevents-unnecessary-builds)
+  - [Launchpad Public Address Missing](#launchpad-public-address-missing-while-the-url-works)
+  - [BillionMail Safe Entry and DB Bootstrap](#billionmail-safe-entry-and-db-bootstrap-prevents-access-denied-and-init-loops)
+  - [ERPNext / Frappe Admin Username](#erpnext--frappe-admin-username-prevents-login-smoke-mismatch)
+  - [Multi-Component Runtime Bundle Drift](#multi-component-runtime-bundle-drift-prevents-post-login-route-mismatch)
+  - [Image-Bundled Dependency Path Hidden by PVC](#image-bundled-dependency-path-hidden-by-pvc-prevents-api-backed-features)
+  - [Ephemeral Storage Preservation](#ephemeral-storage-preservation-during-template-updates)
+- [Consolidated Runtime Truth Contract](#consolidated-runtime-truth-contract)
 
 ## Consolidated Patterns
 
@@ -66,13 +47,21 @@ fixes:
 
 verification:
   - "First boot logs are clear"
-  - "Login or setup works with deploy-time credentials"
+  - "Login or setup works with the selected account-flow credentials"
   - "At least one authenticated API/page works"
-  - "Random authenticated missing path returns 404"
+  - "Documented authenticated API negative route returns 404, or a unique missing static asset is used for SPA fallback"
   - "Footprint shows expected ready/desired counts and zero restarts"
 ```
 
 For Syncthing, the validated runtime used UID/GID `1000`, generated GUI config in an initContainer, authenticated with dynamic CSRF cookie/header flow, and stayed stable at `100m/128Mi` limits with `10m/12Mi` requests.
+
+### Startup-Fatal Bootstrap Credential Validation
+
+- **Symptom**: The main process exits before serving HTTP with password-policy, invalid root configuration, or account reconciliation validation; resource increases leave the signature unchanged.
+- **Root cause**: The template injects an optional root overlay into a release with functional first-user signup, or startup enforces credential rules beyond the Template input schema.
+- **Decision**: Classify the exact selected release. Signup mode omits optional administrator/root bootstrap injection. Mandatory deployer-supplied mode uses required inputs with exact English constraints and pre-deploy validation. Mandatory generated mode constructs the documented format deterministically, retains the resolved credential, and proves redacted login.
+- **Repair**: Patch the source Template and highest writable live declarative owner, roll out a fresh Pod, wait through reconciliation, and inspect historical key names with values redacted. Recommend credential rotation.
+- **Verification**: First-boot logs stay clear, the selected signup/login flow succeeds from a fresh session, and one authenticated page or API route works.
 
 ### GHCR Push Succeeds but Cluster Pull Fails (Prevents `ImagePullBackOff`)
 
@@ -87,20 +76,19 @@ detection:
 
 decision:
   if_local_gh_cli_is_available:
-    require: "create or refresh the namespace image pull Secret automatically before deploy/update"
+    require: "for a fresh deploy, deploy first and immediately create the namespace image pull Secret with the real returned instance name; for an update, refresh the known same-named Secret before changing the image"
   else:
     fallback: "package must be public, or the operator must provide registry pull credentials another way"
   skip_when:
     - "Phase 2 reused an existing public image"
 
 verification:
-  visibility_check: "gh api /user/packages/container/<repo> -q .visibility"
-  anonymous_pull_check: "GET ghcr token, then HEAD/GET manifest from ghcr.io/v2/.../manifests/<tag>"
+  local_build_rule: "treat a newly pushed GHCR image as private and require the pull Secret without probing visibility or anonymous access"
 
 fixes:
-  preferred: "create/update the app-scoped imagePullSecret from gh auth token during deploy"
-  fallback_1: "make the GHCR package public"
-  fallback_2: "push to Docker Hub instead"
+  required: "create/update the app-scoped imagePullSecret from gh auth token; after a fresh deploy, rely on kubelet pull retries instead of recreating the Pod"
+  forbidden: "do not attempt REST, GraphQL, package settings, or other visibility mutations to make the package public"
+  alternate_registry: "push to Docker Hub only when the user selected that public-image flow"
 ```
 
 ### Public URL Misconfiguration (Prevents Runtime API Failures)
@@ -140,6 +128,35 @@ detection:
 
   # Fallback 2: README scan for docker pull/run references
   fallback_readme: "scan README.md for image references"
+```
+
+### Launchpad Public Address Missing While The URL Works
+
+```yaml
+detection:
+  symptoms:
+    - "The public URL serves the application while Launchpad shows no public address"
+    - "The App shortcut points to a host that differs from the current public network"
+    - "Launchpad edit/save creates random network and Service names"
+
+root_causes:
+  - "The root Prefix Ingress uses backend.service.port.name instead of port.number"
+  - "The numeric Ingress backend port does not match Service.spec.ports[].port"
+  - "A split StatefulSet governing Service causes Launchpad to rewrite immutable serviceName during an edit"
+  - "The App URL retains a replaced Ingress host"
+
+fixes:
+  - "Use a numeric root Ingress backend port while keeping the Service port name"
+  - "For single-component StatefulSets without a headless requirement, align spec.serviceName with the public application Service"
+  - "Preserve documented HA/headless topology and expose it through a separate public application Service"
+  - "Repair the template-owned resources, then verify Launchpad API state before HTTP smoke"
+
+verification:
+  - "sealos-launchpad-network.mjs reports ok: true"
+  - "The Launchpad network port matches the public Service port"
+  - "The App URL host matches the Launchpad public or custom domain"
+  - "The manager-labeled Ingress backend resolves to a Service with ready endpoints"
+  - "sealos-footprint.mjs identifies any orphan network resources before cleanup"
 ```
 
 ### BillionMail Safe Entry and DB Bootstrap (Prevents `access denied` and Init Loops)
@@ -290,3 +307,33 @@ rule:
 verification:
   - "git diff -U0 -- template/<app>/index.yaml | rg ephemeral-storage returns no lines for unrelated changes"
 ```
+
+## Consolidated Runtime Truth Contract
+
+The following rules combine the reusable runtime, authentication, route, Job, log, footprint, Secret, and S3/database lessons. Apply them to every live deployment and keep app-specific examples below this contract aligned with them.
+
+### Runtime identity, root routes, and authentication
+
+- Read the actual Instance/App names and App URL host from the Template API response or live App resource. A requested `app_name` can produce a different Instance or ingress host.
+- Run the Launchpad public-network check before HTTP smoke. For an HTTP Ingress with several paths, the root Prefix path `/` appears first; its numeric backend port matches the public Service port and its host matches the App URL.
+- Exercise the configured entrance path and `/` from a fresh session. Pick the entry that reaches the real first-run or login screen without SSR/browser failure text.
+- Use the exact selected account-flow values for registration/login/setup. JSON-token flows and cookie-session flows are both valid; cookie-session flows derive the dynamic CSRF header from the CSRF cookie before posting credentials and reuse the session on authenticated routes.
+- Redact passwords, bearer tokens, cookies, CSRF values, captcha payloads, and derived credentials from command output, logs, and reports.
+
+### Jobs, logs, and database final state
+
+- Keep database bootstrap and compatibility repair in idempotent initContainers or Jobs while the main container stays close to the official entrypoint and ends wrappers with `exec`.
+- A completed or TTL-expired Job proves execution history. Acceptance requires the live database final state: required databases, tables/views, extensions, indexes, roles, grants, search paths, and migration markers.
+- PostgreSQL custom-database Jobs wait for database readiness and create the target database idempotently. Migration-dependent workers gate on required tables or app-specific markers, not only a database port.
+- Capture a no-baseline log report after readiness, then compare after the stability window. A `Succeeded` Pod with zero exit codes is completed workload evidence; failed or non-zero completion remains blocking. Completed init output may be retained as `historicalCompletedInit: true` when completion time and exit code predate `baseline.generatedAt`, Pod UID/restarts/completion markers stay unchanged, and output is unchanged; the scan uses the baseline timestamp as the log increment boundary. Active init/main failures, restart deltas, readiness flaps, advancing Warning Events, unresolved referenced Secrets, OOM/CrashLoop, and repeated tracebacks fail acceptance.
+
+### Footprint and object storage
+
+- Inventory `Instance`, App, workloads, CronJobs, Jobs, Services, Ingresses, PVCs, KubeBlocks Clusters, and `ObjectStorageBucket` resources before cleanup or handoff.
+- `sealos-footprint.mjs` must complete every requested listing successfully before `cleanupComplete: true` is accepted. Permission errors keep cleanup unresolved even when the visible resource list is empty.
+- Managed or private S3 acceptance requires authenticated upload, application read/download with matching content, proxy or time-bounded presigned delivery, restricted anonymous raw-object access, and smoke-object deletion when supported. Optional S3 requires independent local and managed-bucket branch evidence.
+
+### Runtime-derived secrets and S3/DB coupling
+
+- A template may carry a quoted opaque seed in `spec.defaults` only when the runtime library deterministically derives and validates the final credential before `exec`. The seed and derived value stay out of reports, and the application must fail before serving traffic when validation fails.
+- S3 and database readiness are separate contracts. Verify approved KubeBlocks Secret keys and required database objects alongside managed object-storage Secret wiring and the `ObjectStorageBucket`; a Ready Pod or successful Job alone does not prove either data plane.

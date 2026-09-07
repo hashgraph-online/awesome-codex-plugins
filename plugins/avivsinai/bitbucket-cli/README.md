@@ -5,12 +5,22 @@
 [![CI](https://github.com/avivsinai/bitbucket-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/avivsinai/bitbucket-cli/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/avivsinai/bitbucket-cli/graph/badge.svg)](https://codecov.io/gh/avivsinai/bitbucket-cli)
 [![Release](https://img.shields.io/github/v/release/avivsinai/bitbucket-cli?cache=none)](https://github.com/avivsinai/bitbucket-cli/releases)
-[![Go Report Card](https://goreportcard.com/badge/github.com/avivsinai/bitbucket-cli?cache=none)](https://goreportcard.com/report/github.com/avivsinai/bitbucket-cli)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/avivsinai/bitbucket-cli/badge)](https://scorecard.dev/viewer/?uri=github.com/avivsinai/bitbucket-cli)
 [![Go Reference](https://pkg.go.dev/badge/github.com/avivsinai/bitbucket-cli.svg)](https://pkg.go.dev/github.com/avivsinai/bitbucket-cli)
 [![License](https://img.shields.io/github/license/avivsinai/bitbucket-cli?cache=none)](LICENSE)
 
 `bkt` is a stand-alone Bitbucket command-line interface that targets Bitbucket Data Center **and** Bitbucket Cloud. It mirrors the ergonomics of `gh` and delivers a consistent JSON/YAML contract for automation.
+
+<p align="center">
+  <img src="docs/demo.gif" alt="Recorded terminal: brew install avivsinai/tap/bitbucket-cli, then bkt --help" width="860">
+</p>
+
+```bash
+brew install avivsinai/tap/bitbucket-cli
+bkt --help
+```
+
+Recorded from a real `bkt --help` run — no Bitbucket login or token required. Other installers: [WinGet](#winget-windows), [Scoop](#scoop-windows), [Nix](#nix-nixos--nix-darwin--linux--macos), [Go](#go-install), [binaries](#binary-downloads).
 
 **Built for AI & automation:** Drop `bkt` into Claude Code, Codex and other coding agents, or shell scripts and they inherit structured output, predictable flags, and safe defaults—no glue code required.
 
@@ -20,6 +30,12 @@
 
 ```bash
 brew install avivsinai/tap/bitbucket-cli
+```
+
+### WinGet (Windows)
+
+```powershell
+winget install AvivSinai.Bitbucket-CLI
 ```
 
 ### Scoop (Windows)
@@ -85,8 +101,8 @@ All `bkt` behaviour can be configured via environment variables, which is especi
 |---|---|
 | `BKT_TOKEN` | Authentication token. Bypasses keyring storage entirely. |
 | `BKT_HOST` | Bitbucket server base URL (e.g. `https://bitbucket.example.com`). Required alongside `BKT_TOKEN` for config-free use. `bitbucket.org` is auto-detected as Cloud. |
-| `BKT_USERNAME` | Username for basic authentication in headless mode. |
-| `BKT_AUTH_METHOD` | Authentication method: `basic` or `bearer`. DC defaults to `bearer` when `BKT_USERNAME` is absent; Cloud always uses `basic`. |
+| `BKT_USERNAME` | Username for basic authentication in headless mode. Required for Cloud basic auth; not required for bearer auth. |
+| `BKT_AUTH_METHOD` | Authentication method: `basic` or `bearer`. DC defaults to `bearer` when `BKT_USERNAME` is absent; Cloud defaults to `basic`. Use `bearer` for Cloud repository, project, or workspace access tokens. |
 | `BKT_PROJECT` | Default Data Center project key (headless mode). |
 | `BKT_WORKSPACE` | Default Bitbucket Cloud workspace (headless mode). |
 | `BKT_REPO` | Default repository slug (headless mode). |
@@ -109,6 +125,7 @@ bkt pr create --title "Automated PR" --source feature/my-branch
 **Minimal headless example (Bitbucket Cloud):**
 
 ```bash
+# User API token — basic auth
 export BKT_HOST=https://bitbucket.org
 export BKT_TOKEN=my-api-token
 export BKT_USERNAME=me@example.com
@@ -116,7 +133,18 @@ export BKT_WORKSPACE=my-workspace
 export BKT_REPO=my-repo
 
 bkt pr list
+
+# Repository, project, or workspace access token — bearer auth
+export BKT_TOKEN=my-resource-access-token
+export BKT_AUTH_METHOD=bearer
+unset BKT_USERNAME
+
+bkt pr list
 ```
+
+Resource access tokens are not associated with a user. Commands that require
+authenticated-user identity, such as cross-repository `bkt pr list --mine`,
+still require user API-token or OAuth credentials.
 
 ### From Source
 
@@ -168,7 +196,7 @@ npx skild install @avivsinai/bkt -t claude -y
 
 ```bash
 git clone https://github.com/avivsinai/bitbucket-cli.git
-cp -r bitbucket-cli/.claude/skills/bkt ~/.claude/skills/
+cp -r bitbucket-cli/skills/bkt ~/.claude/skills/
 ```
 
 </details>
@@ -396,9 +424,14 @@ make test       # Run unit tests
 make fmt        # Format code
 make lint       # Run linters
 make tidy       # Tidy go modules
+make check-skills # Verify generated skill mirrors
+make sync-skills  # Regenerate skill mirrors from skills/bkt
 ```
 
 `go test ./...` runs fast smoke coverage that wires the CLI against an in-memory Bitbucket mock (see `pkg/cmd/smoke/cli_smoke_test.go`).
+
+`skills/bkt/` is canonical. After editing it, run `make sync-skills` to refresh
+the committed `.claude/skills/bkt/` and `.agents/skills/bkt/` mirrors.
 
 ## Troubleshooting
 

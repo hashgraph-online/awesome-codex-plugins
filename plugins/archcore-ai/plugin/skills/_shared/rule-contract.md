@@ -1,7 +1,8 @@
 # Rule Content Contract
 
 Plugin runtime asset. Loaded before composing any `rule`:
-`decide` (standard cascade in `skills/decide/references/continuations.md`),
+`document` (the decision track's standard cascade,
+`skills/_shared/tracks/decision.md`) and
 `init` (Tier-2 cross-cutting rules, per `magic-first-day-init.adr`). Companion to
 `skills/_shared/precision-rules.md` — its forbidden lexicon (Rule 1), imperative-voice
 mandate (Rule 2), and no-cross-document-section rule (Rule 5) all bind here.
@@ -11,7 +12,7 @@ mandate (Rule 2), and no-cross-document-section rule (Rule 5) all bind here.
 A **team-wide normative constraint** on how code, docs, or process MUST behave, applying
 across many files or situations — not a one-off. A rule exists so that an agent editing a
 matching file is told the binding constraint *before* writing, and so push-mode injection
-(`check-code-alignment`) can surface it against the changed paths. One primary constraint
+(the CLI's code-alignment PreToolUse hook) can surface it against the changed paths. One primary constraint
 per rule document. Distinguished from:
 
 - a `spec` — the normative behavior of one subject others rely on (an interface/schema
@@ -41,7 +42,8 @@ Align with the `create_document` `rule` template (`Rule`, `Rationale`, `Examples
    or API). Each statement MUST make its **applies-to scope** explicit — the paths/globs
    (`src/**/*.tsx`) or named situation ("any function that opens a DB connection") it
    governs — so injection can target it. Narrative voice ("we should", "следует") is
-   forbidden in this section (precision Rule 2).
+   forbidden in this section (precision Rule 2). Keep a statement at or under 25 words
+   and put the trigger before the response (precision Rule 7).
 2. **Rationale** — WHY, 1–3 lines. Cite the incident, limit, or authority that justifies
    the constraint. No hand-waving; no restating the rule.
 3. **Examples** — a `Good` and a `Bad` block. Code blocks ARE allowed and expected here
@@ -61,11 +63,27 @@ Align with the `create_document` `rule` template (`Rule`, `Rationale`, `Examples
   `mcp__archcore__add_relation` (precision Rule 5). The body MAY cite `@path/to/file`,
   commits, runbooks, and the rule's own enforcement artifacts.
 
+## Enforcement
+
+The Archcore CLI reports the mechanical part of this contract in the post-tool-use
+hook: the mandatory sections, two modals in one numbered statement, a condition
+placed after the obligation, a statement past 25 words, an open-ended list, an
+Enforcement section naming no verifier, and a Rule section naming no path or glob
+anywhere.
+
+The scope check is deliberately document-level. This contract accepts a **named
+situation** as scope, which is prose that no pattern finds — asking each statement
+for a machine-readable anchor reported four rules in five, nearly all of which do
+state their scope, in a sentence. What the hook decides instead is narrower and
+true: a rule that names no file target anywhere cannot be matched to an edited
+path in push mode. Whether a *particular* statement carries its scope stays with
+review.
+
 ## Rationale
 
 RFC 2119 statements + Good/Bad examples + a named verifier make a rule *checkable*: a
 reviewer or hook can decide conformance without re-litigating intent. The explicit
-applies-to scope is what lets `check-code-alignment` match a rule to an edited file in
+applies-to scope is what lets the code-alignment hook match a rule to an edited file in
 push mode — a rule with no scope cannot be injected and silently never fires.
 
 ## Examples

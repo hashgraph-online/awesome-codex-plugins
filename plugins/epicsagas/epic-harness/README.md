@@ -1,6 +1,6 @@
 <h1 align="center">Epic Harness</h1>
 
-<blockquote><p align="center">A self-evolving AI coding agent harness — 3 commands, 26 skills, 1 autonomous pipeline, learns from your failures.</p></blockquote>
+<blockquote><p align="center">A self-evolving AI coding agent harness — 3 commands, 25 skills, 1 autonomous pipeline, learns from your failures.</p></blockquote>
 
 <p align="center"><b>Less to memorize. More intelligence per keystroke. Gets smarter every session.</b></p>
 
@@ -22,7 +22,7 @@
   <a href="https://buymeacoffee.com/epicsaga"><img alt="Buy Me a Coffee" src="https://img.shields.io/badge/buy_me_a_coffee-FFDD00?style=for-the-badge&labelColor=0d1117&logo=buymeacoffee&logoColor=black" /></a>
 </p>
 
-A Claude Code plugin that **consolidates 30+ commands into 3 commands + 26 auto-trigger skills**, and **evolves new skills** from your own failure patterns.
+A Claude Code plugin that **consolidates 30+ commands into 3 commands + 25 auto-trigger skills**, and **evolves new skills** from your own failure patterns.
 
 <p align="center">
   <img src="./assets/features.png" alt="epic harness features" width="100%" />
@@ -49,7 +49,7 @@ port = 7700       # set to 0 to disable auto-launch
 auto_open = true  # open browser on first session
 ```
 
-Screens: **Dashboard** · /orbit Pipeline · Commands (3) · Skills (26) · Live Agents · Eval & Evolve · Hooks (6) · Integrations (6) · harness-mem · Settings
+Screens: **Dashboard** · /orbit Pipeline · Commands (3) · Skills (25) · Live Agents · Eval & Evolve · Hooks (6) · Integrations (6) · harness-mem · Settings
 
 ---
 
@@ -114,7 +114,7 @@ agy plugin install https://github.com/epicsagas/epic-harness
 agy plugin enable epic
 ```
 
-Skills (27), hooks, and the `harness-mem` MCP server are auto-discovered from the plugin's `plugin.json` + `skills/` + `hooks.json` + `mcp_config.json`.
+Skills (25), hooks, and the `harness-mem` MCP server are auto-discovered from the plugin's `plugin.json` + `skills/` + `hooks.json` + `mcp_config.json`.
 
 ### Binary-only (no plugin host)
 
@@ -255,7 +255,7 @@ Skills trigger automatically based on context. You don't invoke them.
 | **reflect** | On-demand: are you using AI as a thought amplifier? Cold evidence-based self-assessment |
 | **commit** | Conventional Commits generation — auto-generates from git diff |
 
-> **Token budget note:** Claude Code loads skill descriptions into every session context. epic's 26 skills fit within the default `skillListingBudgetFraction: 0.01` (1%). If you install additional skills (e.g. episteme, alcove, obscura), the combined total may exceed the budget and trigger a "descriptions dropped" warning. Add this to `~/.claude/settings.json` to fix it:
+> **Token budget note:** Claude Code loads skill descriptions into every session context. epic's 25 skills fit within the default `skillListingBudgetFraction: 0.01` (1%). If you install additional skills (e.g. episteme, alcove, obscura), the combined total may exceed the budget and trigger a "descriptions dropped" warning. Add this to `~/.claude/settings.json` to fix it:
 >
 > ```json
 > "skillListingBudgetFraction": 0.02
@@ -299,8 +299,6 @@ Curate (Accept/Merge/Skip, feedback masked from solver)
     ↓ evolved/{skill}/SKILL.md + meta.json
 Gate (format check, dedup, cap 10, gated promotion ≥ 3 sessions)
     ↓ evolved_backup/ (best checkpoint)
-Instinct (high-success patterns → cross-project memory.db nodes)
-    ↓
 Reload (next session — resume loads evolved skills)
 ```
 
@@ -316,11 +314,7 @@ Three deep learning-inspired techniques adapted from [SkillOpt](https://arxiv.or
 |-----------|-------------|
 | **Negative Feedback Buffer** | Rejected proposals stored with TTL-based expiry; future proposals checked against buffer before generation |
 | **Minibatch Reflection** | Observations decomposed into fixed-size batches for structural pattern extraction; reusable when dominant error ≥60% + ≥2 distinct files |
-| **Slow/Meta Update** | Linear regression over last 5 sessions classifies epochs as Improving / Regressing / PersistentFailure / StableSuccess; auto-evicts underperforming skills |
-
-### Prompt Auto-Tuning
-
-Underperforming evolved skills receive targeted tuning guidance appended after `<!-- auto-tuned -->` delimiter. Original content is never modified. 3 consecutive declining sessions → auto-rollback tuning, history cleared.
+| **Slow/Meta Update** | Linear regression over last 5 sessions classifies epochs as Improving / Regressing / PersistentFailure / StableSuccess; attribution verdicts are reported in dashboards, never auto-enforced |
 
 ### Skill Effectiveness (Holdout A/B)
 
@@ -339,8 +333,9 @@ not a derived guess from pre-creation history.
 | evo-bash-discipline| 0.65 | 0.68    | 3         | -3%   |
 ```
 
-Positive delta = effective. Negative delta with ≥3 active and ≥2 holdout
-sessions → auto-evicted. Manual removal: `/evolve rollback`.
+Positive delta = effective. A skill trailing its holdout arm (≥3 active and
+≥2 holdout sessions) is flagged in dashboards — never auto-evicted. Manual
+removal: `/evolve rollback`.
 
 ### Cold-Start Presets
 
@@ -352,15 +347,6 @@ On first session, stack-appropriate preset skills auto-apply:
 | Go | `evo-go-care` |
 | Python | `evo-py-care` |
 | Rust | `evo-rs-care` |
-
-### Instinct Learning
-
-High-success patterns extracted and promoted across projects:
-
-```
-observe (100% confirmed) → extract_instincts() → instinct node (confidence ≥ 0.8)
-    → promote to global when observed in ≥ 2 projects
-```
 
 ```bash
 /evolve              # Run now
@@ -432,7 +418,7 @@ Run invisibly on every session. Single Rust binary (`epic-harness`) with subcomm
 | **polish** | After Edit | Auto-format (Biome/Prettier/ruff/gofmt) + typecheck |
 | **observe** | Every tool use | Log to `~/.harness/projects/{slug}/obs/` for evolution |
 | **snapshot** | Before compact | Save state to `~/.harness/projects/{slug}/sessions/` |
-| **reflect** | Session end | Analyze failures, seed evolved skills, gate, extract instincts |
+| **reflect** | Session end | Analyze failures, seed evolved skills, gate |
 
 Polish feeds back into observe: format failure → `lint_fail`, TypeScript error → `build_fail`. Edit→Error thrashing gets detected even when errors come from polish.
 
@@ -497,9 +483,9 @@ All tools share the same `~/.harness/projects/{slug}/` data directory.
 
 | Tool | Ring 0 Hooks | Commands | Skills | Agents |
 |------|-------------|----------|--------|--------|
-| **Claude Code** | ✓ Full | ✓ 3 commands (incl. /orbit) | ✓ 26 skills | Live |
-| **Codex CLI** | ✓ Full¹ | ✓ 3 prompts (incl. /orbit) | ✓ 26 | — |
-| **Antigravity** | ✓ Partial² | ✓ 3 commands (incl. /orbit) | ✓ 26 | — |
+| **Claude Code** | ✓ Full | ✓ 3 commands (incl. /orbit) | ✓ 25 skills | Live |
+| **Codex CLI** | ✓ Full¹ | ✓ 3 prompts (incl. /orbit) | ✓ 25 | — |
+| **Antigravity** | ✓ Partial² | ✓ 3 commands (incl. /orbit) | ✓ 25 | — |
 
 ¹ `plugin_hooks = true` in `~/.codex/config.toml` · ² PreInvocation/PostInvocation only — no PreToolUse (guard/polish unavailable)
 
@@ -594,7 +580,6 @@ epic mem export --out ./docs/memory                    # Export to Markdown
 | `resolution` | Manual / MCP | 0.8 |
 | `concept` | Manual / MCP | 0.7 |
 | `project` | Manual / MCP | 0.7 |
-| `instinct` | Auto (reflect) | 0.7 |
 | `pattern` | Auto (reflect) | 0.5 |
 | `error` | Auto (reflect) | 0.4 |
 | `session` | Auto (reflect) | 0.2 |
@@ -650,7 +635,7 @@ All tunable parameters in `~/.harness/config.toml`. Absent = hardcoded defaults.
 
 [hook]
 profile = "standard"         # "minimal" | "standard" | "strict"
-gateguard_hints = true
+gateguard_hints = false      # static post-edit hints; enable for extra nudges
 
 [scoring]
 weights = [0.5, 0.3, 0.2]   # [success, quality, cost]
@@ -666,13 +651,6 @@ gated_promotion_min = 3
 # debug_loop_min = 5
 # graduated_scope_skip = 0.90
 # graduated_scope_moderate = 0.70
-
-[instinct]
-# confidence_threshold = 0.8
-# promotion_min_projects = 2
-# max_instincts = 20
-# min_observations = 10
-# min_avg_score = 0.5
 ```
 
 </details>

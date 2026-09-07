@@ -34,11 +34,17 @@ These cannot be disabled—they catch the most common destructive patterns.
 | `rm -rf /home` | Yes | System paths |
 | `rm -rf /path` | Depends | Non-temp paths blocked |
 
-**Safe patterns (allowed):**
+**Safe patterns (allowed) — measured on dcg 0.5.6.** The temp carve-out allows
+`rm -rf` under exactly these roots:
 - `rm -rf /tmp/*` — Temp directory
+- `rm -rf /private/tmp/*` — Temp directory (macOS)
 - `rm -rf /var/tmp/*` — Temp directory
-- `rm -rf $TMPDIR/*` — User temp
-- `rm -rf ./build` — Relative paths in project
+- `rm -rf $TMPDIR/*` — User temp (literal `$TMPDIR` only)
+
+`rm -rf ./build` and other relative or absolute non-temp paths — and even
+`/private/var/tmp` — are **blocked** (`core.filesystem:rm-rf-general` /
+`rm-rf-root-home`); allowlist them explicitly if a project needs them (see
+[CONFIG.md](CONFIG.md)).
 
 ---
 

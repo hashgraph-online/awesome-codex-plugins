@@ -55,9 +55,9 @@ Grep pattern: <claimed_addition>
 git show <commit_hash> -- <relevant_files>
 
 # "Closes #N" -> verify acceptance criteria from issue #N are met
-gh issue view <N> --json body -q '.body'
+gh issue view -R <OWNER>/<REPO> <N> --json body -q '.body'
 # or
-glab issue view <N>
+glab issue view -R <OWNER>/<REPO> <N>
 
 # Step 3: Cross-reference claims against actual changes
 git diff <commit_hash>~1..<commit_hash>
@@ -83,15 +83,15 @@ Evidence: <what was found or not found>
 
 ```bash
 # GitLab: list open issues sorted by last update
-glab issue list --per-page 100 | head -50
+glab issue list -R <OWNER>/<REPO> --per-page 100 | head -50
 
 # GitHub: list open issues sorted by last update
-gh issue list --limit 100 --json number,title,labels,updatedAt,assignees --jq '.[] | select(.updatedAt < "<30_days_ago_iso>")'
+gh issue list -R <OWNER>/<REPO> --limit 100 --json number,title,labels,updatedAt,assignees --jq '.[] | select(.updatedAt < "<30_days_ago_iso>")'
 
 # Flag:
 # - Issues with no activity in stale-issue-days (default: 30 days)
 # - Issues assigned but with no associated branch
-# - Issues labeled priority:high or priority:critical that are stale
+# - Issues labeled priority::high or priority::critical that are stale
 
 # Check for associated branches:
 git branch -r | grep -i "<issue_number>"
@@ -109,7 +109,7 @@ Has Branch: true | false
 Priority: <priority label or NONE>
 ```
 
-**Default Severity:** Low. Medium if `priority:high` or `priority:critical` is stale.
+**Default Severity:** Low. Medium if `priority::high` or `priority::critical` is stale.
 
 ---
 
@@ -131,7 +131,7 @@ for issue in issues:
 "
 
 # GitHub: fetch issue bodies and parse cross-references
-gh issue list --limit 100 --json number,body --jq '.[] | {number, body}' | python3 -c "
+gh issue list -R <OWNER>/<REPO> --limit 100 --json number,body --jq '.[] | {number, body}' | python3 -c "
 import json, sys, re
 for line in sys.stdin:
     issue = json.loads(line)
@@ -231,13 +231,34 @@ Actual: <what was found or NOT found>
 
 5. Token efficiency — CLAUDE.md size:
 ```bash
-# Count lines in CLAUDE.md
-wc -l CLAUDE.md
+# Delegate the threshold — do NOT re-implement it here. This probe used to
+# carry its own numbers (`wc -l` > 150 warn / > 250 high); both the unit and
+# the value were wrong. The ceiling is `DEFAULT_MAX_LINES = 80` and it applies
+# to NON-EXEMPT effective lines: the runtime-critical `## Session Config` block
+# is machine-parsed configuration, not trimmable prose, so a raw `wc -l` gate
+# flags a compliant lean-root file (this plugin's own CLAUDE.md: 209 raw lines,
+# 61 non-exempt — a `wc -l` rule fires, the lint passes).
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+node "${PLUGIN_ROOT}/scripts/lib/claude-md-budget-lint.mjs" \
+  --repo-root "$REPO_ROOT" --mode warn --json
+# → {"status":"ok"|"invalid","file":…,"lineCount":…,"exemptLines":…,
+#    "effectiveLineCount":…,"maxLineCharsSeen":…,"hasProvenance":…,
+#    "violations":[{"rule":"max-lines"|"max-line-chars"|…,"message":…}]}
+# Flag ONLY on a violations[] entry — never on lineCount vs a local number.
+# `--mode warn` keeps the exit code 0, so read the JSON, not `$?`.
 
-# Flag if > 150 lines (warning) or > 250 lines (high)
+# Ceiling value, when a finding needs to quote it (e.g. a 2x high tier):
+node --input-type=module -e "
+import { DEFAULT_MAX_LINES } from '${PLUGIN_ROOT}/scripts/lib/claude-md-budget-lint.mjs';
+process.stdout.write(String(DEFAULT_MAX_LINES));
+"
+
+# Heuristics the lint does NOT measure — still eyeball these:
 # Identify sections > 30 lines that could move to <state-dir>/rules/ or <state-dir>/docs/
 # Check for inline code blocks > 10 lines (should be in separate files)
 ```
+
+**Dependencies (probe 5):** requires `${PLUGIN_ROOT}/scripts/lib/claude-md-budget-lint.mjs` (#722 Epic A). Degrades gracefully when the helper is absent (pre-#722 plugin install) — skip the size finding with a note, do not fall back to a hand-rolled `wc -l` threshold, which is the drift this delegation removes.
 
 6. Token efficiency — .claudeignore coverage:
 ```bash
@@ -425,14 +446,20 @@ Details:
   ageDays:              <integer or null>
   pluginVersion:        <version in lock or "unknown">
   currentPluginVersion: <running plugin version>
-  bootstrappedAt:       <ISO timestamp used for age calculation>
+  bootstrappedAt:       <ISO timestamp used for age calculation — ORIGINAL provenance, unchanged by a refresh>
+  refreshedAt:          <ISO timestamp of the last /bootstrap --refresh-lock, or null>
   versionMismatch:      true | false
-Remediation: Run `/bootstrap --upgrade` (if available) or re-run `/bootstrap --retroactive` to refresh the lock.
+  reason:               missing-repoRoot | missing | read-error | stale-age | unparseable-timestamp
+                         | version-mismatch-major | version-mismatch-unparseable | null (#57)
+Remediation: reason-aware (#57) — see below.
 ```
 
 **Default Severity:** info <30d, warn 30–89d or version-mismatch, alert ≥90d or unparseable.
 
-**Remediation:** Run `/bootstrap --upgrade` (if available) or re-run `/bootstrap --retroactive` to refresh the lock and stamp the current plugin version.
+**Remediation (reason-aware, #57):** `/bootstrap --retroactive` only helps when the lock is missing entirely (`reason: 'missing'`) — once a lock already has valid `version`/`tier` fields, re-running `--retroactive` is an idempotent no-op (see the Retroactive Flow's idempotency guard in `skills/bootstrap/SKILL.md`) and never actually refreshes anything. For a present-but-stale/drifted lock, branch on `result.details.reason`:
+- `stale-age` or `unparseable-timestamp` → `/bootstrap --refresh-lock` to acknowledge and reset the freshness clock.
+- `version-mismatch-major` or `version-mismatch-unparseable` → check for a plugin update first (git pull / marketplace update), then `/bootstrap --refresh-lock` to acknowledge the current version.
+- `missing` → `/bootstrap --retroactive` (or `/bootstrap` for a fresh scaffold) — this is the one case where no lock exists to refresh.
 
 **Dependencies:** Requires `${PLUGIN_ROOT}/scripts/lib/bootstrap-lock-freshness.mjs` (issue #186). Degrades gracefully when the helper is absent (pre-#186 plugin install) — skip with a note, do not fabricate findings.
 

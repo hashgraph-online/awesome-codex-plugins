@@ -24,13 +24,14 @@ Read:
 - `../../references/ui-patterns/surface-taxonomy.md`
 - `../../references/ui-patterns/ui-decision-brief.md`
 - `../../references/ui-patterns/desktop-app-archetypes.md`
+- `../../references/ui-patterns/native-desktop-app-quality-contract.md`
 - `../../references/ui-patterns/originality-engine.md`
 - `../../references/ui-patterns/design-recipes.md`
 - `../../references/ui-patterns/anti-default-contrasts.md`
 - `../../references/ui-patterns/visual-hierarchy.md`
 - `../../references/ui-patterns/motion-budget.md`
 
-The shared product should preserve job, state coverage, action hierarchy, visual hierarchy, desktop archetype, originality seed, and layout sketch. Navigation, controls, typography, icons, and motion must become platform-specific, but the chosen shape should remain legible: command center stays a command center, library stays a library, workbench stays a workbench, and monitoring cockpit stays a monitoring cockpit. A product-specific metaphor can translate across platforms; exact pixels and custom controls should not.
+The shared product should preserve job, state coverage, action hierarchy, visual hierarchy, desktop archetype, native desktop quality decisions, originality seed, and layout sketch. Navigation, controls, typography, icons, and motion must become platform-specific, but the chosen shape should remain legible: command center stays a command center, library stays a library, workbench stays a workbench, and monitoring cockpit stays a monitoring cockpit. Desktop targets still need per-platform window model, command model, native controls, resize behavior, keyboard/focus paths, and platform evidence. A product-specific metaphor can translate across platforms; exact pixels and custom controls should not.
 
 ## Step 1 — Pick the right framework for the design intent
 

@@ -22,6 +22,16 @@
             "timeout": 30
           }
         ]
+      },
+      {
+        "matcher": "ExitPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT}}/hooks/plan-approved\"",
+            "timeout": 5
+          }
+        ]
       }
     ]
   }

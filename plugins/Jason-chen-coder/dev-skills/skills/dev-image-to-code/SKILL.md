@@ -16,6 +16,17 @@ Turn a UI image into runnable code without guessing past the evidence. Treat the
 image as the visual truth, the design size as the coordinate system, and the
 browser screenshot as the acceptance gate.
 
+## Step 0: Load Baseline
+
+执行前先加载 `references/dev-baseline.md`。**不假设**、**最小代码**、**外科手术式改动**、**可验证成功标准** 全程生效。
+
+baseline 与本 skill 的关联:
+
+- **不假设** —— 图片、项目代码或用户确认无法证明的内容都是 `GUESS`,必须先问。
+- **最小代码** —— 只复刻目标图对应的屏幕和必要状态,不顺手扩完整业务系统。
+- **外科手术式改动** —— 在现有项目中优先复用本地组件和主题,改动范围限制在目标页面 / 组件。
+- **可验证成功标准** —— 能渲染的目标必须用真实截图、交互 smoke 和视觉对比作为完成证据。
+
 ## Iron Rule
 
 The UI image is the visual source of truth. The design size is the coordinate
@@ -234,6 +245,8 @@ Do not promise from one static image:
   diff report.
 - `scripts/interaction-smoke.mjs`: Run focus/click/select smoke checks for
   semantic controls and write a JSON report.
+- `references/dev-baseline.md`: Shared dev-skills baseline for assumptions,
+  scope, surgical changes, and verification.
 - `references/input-contract.md`: Intake and clarification protocol.
 - `references/image-analysis.md`: UI analysis schema and evidence grading.
 - `references/implementation-paths.md`: Framework and target decision tree.

@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import sys
 import zipfile
 from dataclasses import dataclass
 from io import BytesIO
@@ -88,6 +89,21 @@ def main() -> int:
     dest.mkdir(parents=True, exist_ok=True)
 
     with zipfile.ZipFile(BytesIO(data[best.offset:])) as zf:
+        # Bound decompression against zip bombs: this extracts an archive carved
+        # from attacker-controlled binary bytes. Refuse an oversized member or
+        # total uncompressed size before writing anything to disk.
+        max_member = 128 * 1024 * 1024
+        max_total = 512 * 1024 * 1024
+        total = 0
+        for info in zf.infolist():
+            total += info.file_size
+            if info.file_size > max_member or total > max_total:
+                print(
+                    f"refusing to extract embedded archive at offset {best.offset}: "
+                    "uncompressed size exceeds bounds (possible zip bomb)",
+                    file=sys.stderr,
+                )
+                return 1
         # Extract all files. This is an authorized-only operation; do not commit the result.
         zf.extractall(dest)
         names = zf.namelist()

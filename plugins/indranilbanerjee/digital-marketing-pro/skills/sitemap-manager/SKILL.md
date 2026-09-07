@@ -1,6 +1,6 @@
 ---
 name: sitemap-manager
-description: "Manage XML sitemaps. Use when: auditing sitemap health, generating sitemaps, or planning sitemap architecture."
+description: "Audit an existing XML sitemap — URL counts vs protocol limits, lastmod validity, sampled URL status codes, robots.txt and noindex conflicts, missing pages, compression — or generate a new sitemap (plan or valid XML with index splitting) from industry templates for SaaS, ecommerce, local, publisher, or agency sites. Triggers on \"/digital-marketing-pro:sitemap-manager\", \"audit our sitemap\", \"why are there 404s in the sitemap\", \"generate a sitemap for the new site\", \"is our sitemap declared in robots.txt\". Outputs a severity-ranked issue report or ready-to-submit XML with the robots.txt line and GSC submission instructions; uses tech-seo-auditor.py for URL health checks."
 argument-hint: "[URL or generate]"
 user-invocable: true
 ---
@@ -99,7 +99,7 @@ Generate a sitemap plan or actual XML:
 ### Protocol Limits
 - 50,000 URLs per sitemap file
 - 50MB uncompressed per sitemap file
-- Unlimited sitemap files in a sitemap index
+- Up to 50,000 sitemaps per sitemap index file (nest indexes if more are needed)
 - Must use absolute URLs
 - UTF-8 encoding required
 - Entity escaping for special characters (&amp; &apos; &quot; &gt; &lt;)

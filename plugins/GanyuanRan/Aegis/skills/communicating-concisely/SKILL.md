@@ -1,6 +1,6 @@
 ---
 name: communicating-concisely
-description: Use when the user asks for caveman mode, fewer tokens, brief responses, compressed communication, or otherwise explicitly requests a much shorter answer.
+description: "Use when the user asks for caveman mode, fewer tokens, brief responses, compressed communication, or otherwise explicitly requests a much shorter answer."
 ---
 
 # Communicating Concisely

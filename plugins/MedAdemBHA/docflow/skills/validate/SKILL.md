@@ -1,6 +1,6 @@
 ---
 name: validate
-description: 'Run the docflow readiness gate before reporting docs complete: checks links, INDEX freshness, metadata, placeholders, and changelog names. Use after writing or editing docs.'
+description: 'Run the profile-aware DocFlow documentation readiness gate. Always blocks broken links, stale maps, and missing headings; applies native naming and section rules strictly to new scaffolds while treating established adopted structures as cleanup guidance.'
 ---
 
 # validate
@@ -20,6 +20,7 @@ If running from an installed plugin where scripts are not in the target repo, us
 - `Errors` are blockers. Fix them before saying the docs are complete.
 - `Warnings` are legacy/adoption cleanup. Report them, but they do not block unless the user asked for a strict cleanup.
 - Fresh scaffold placeholders are warnings because new repos intentionally start from templates.
+- `strict` is the native scaffold profile; `adopted` preserves established naming and section vocabulary.
 
 ## Rules
 

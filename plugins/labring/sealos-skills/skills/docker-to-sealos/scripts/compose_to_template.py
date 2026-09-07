@@ -25,10 +25,16 @@ from path_converter import path_to_vn_name
 
 
 DB_TYPE_PATTERNS: Dict[str, Tuple[str, ...]] = {
-    "postgres": ("postgres", "postgresql"),
-    "mysql": ("mysql", "mariadb"),
-    "mongodb": ("mongo", "mongodb"),
-    "redis": ("redis",),
+    "postgres": ("postgres", "postgresql", "postgis", "timescaledb"),
+    "mysql": ("mysql", "mariadb", "apecloud-mysql"),
+    "mongodb": (
+        "mongo",
+        "mongodb",
+        "mongodb-community-server",
+        "mongodb-sharded",
+        "percona-server-mongodb",
+    ),
+    "redis": ("redis", "valkey"),
     "kafka": ("kafka",),
 }
 SPECIAL_DB_RESOURCE_TYPES = {"postgres", "mysql", "mongodb", "redis", "kafka"}
@@ -114,7 +120,6 @@ FLOATING_NUMERIC_TAG_RE = re.compile(r"^v?\d+(?:\.\d+)?$")
 FLOATING_ALIAS_TAGS = {"latest", "stable", "main", "master", "edge", "nightly", "dev"}
 COMPOSE_BRACED_VAR_RE = re.compile(r"\$\{([^}]+)\}")
 COMPOSE_SIMPLE_VAR_RE = re.compile(r"\$([A-Za-z_][A-Za-z0-9_]*)")
-PRIVATE_IMAGE_REGISTRY_PREFIXES = ("ghcr.io/",)
 SEALOS_CPU_REQUEST_BY_LIMIT = {
     "100m": "10m",
     "200m": "20m",
@@ -243,7 +248,35 @@ OFFICIAL_HEALTH_HTTP_PROFILES: Dict[str, Dict[str, Any]] = {
         "startupPeriodSeconds": 10,
         "startupTimeoutSeconds": 5,
         "startupFailureThreshold": 90,
-    }
+    },
+    "ghcr.io/danny-avila/librechat-rag-api-dev-lite": {
+        "liveness_path": "/health",
+        "readiness_path": "/health",
+        "startup_path": "/health",
+        "preferred_port": 8000,
+        "scheme": "HTTP",
+        "initialDelaySeconds": 10,
+        "periodSeconds": 10,
+        "timeoutSeconds": 5,
+        "failureThreshold": 6,
+        "startupPeriodSeconds": 10,
+        "startupTimeoutSeconds": 5,
+        "startupFailureThreshold": 30,
+    },
+    "ghcr.io/clickhouse/librechat-admin-panel": {
+        "liveness_path": "/health",
+        "readiness_path": "/health",
+        "startup_path": "/health",
+        "preferred_port": 3000,
+        "scheme": "HTTP",
+        "initialDelaySeconds": 10,
+        "periodSeconds": 10,
+        "timeoutSeconds": 5,
+        "failureThreshold": 6,
+        "startupPeriodSeconds": 10,
+        "startupTimeoutSeconds": 5,
+        "startupFailureThreshold": 30,
+    },
 }
 OFFICIAL_HEALTH_WORKER_PROFILES: Dict[str, Dict[str, Any]] = {
     "goauthentik/server": {
@@ -451,19 +484,6 @@ def has_pinned_image(image: str) -> bool:
     return ":" in last_segment
 
 
-def requires_image_pull_secret(image: str) -> bool:
-    return any(image.strip().startswith(prefix) for prefix in PRIVATE_IMAGE_REGISTRY_PREFIXES)
-
-
-def is_latest_image(image: str) -> bool:
-    without_digest = image.strip().split("@", 1)[0]
-    last_segment = without_digest.rsplit("/", 1)[-1]
-    if ":" not in last_segment:
-        return False
-    tag = last_segment.rsplit(":", 1)[-1].lower()
-    return tag == "latest"
-
-
 def split_image_reference(image: str) -> Tuple[str, Optional[str], Optional[str]]:
     text = image.strip()
     digest: Optional[str] = None
@@ -536,8 +556,6 @@ def resolve_image_reference(
         return image.strip()
     if not repository or not tag:
         return image.strip()
-    if is_latest_image(image):
-        return image.strip()
     if is_explicit_version_tag(tag):
         return image.strip()
     if not is_floating_tag(tag):
@@ -580,10 +598,23 @@ def resolve_image_reference(
     return f"{repository}@{source_digest}"
 
 
+def image_repository_basename(image: str) -> str:
+    reference = image.strip()
+    if "@" in reference:
+        reference = reference.split("@", 1)[0]
+
+    slash_index = reference.rfind("/")
+    colon_index = reference.rfind(":")
+    if colon_index > slash_index:
+        reference = reference[:colon_index]
+
+    return reference.rsplit("/", 1)[-1].lower()
+
+
 def detect_db_type(image: str) -> Optional[str]:
-    normalized = image.strip().lower()
+    repository_basename = image_repository_basename(image)
     for db_type, patterns in DB_TYPE_PATTERNS.items():
-        if any(pattern in normalized for pattern in patterns):
+        if repository_basename in patterns:
             return db_type
     return None
 
@@ -2280,10 +2311,24 @@ def build_env_entries(
     return entries
 
 
+def parse_service_replicas(service: Mapping[str, Any]) -> int:
+    deploy = service.get("deploy")
+    if deploy is None:
+        return 1
+    if not isinstance(deploy, dict):
+        raise ValueError("service deploy must be an object when provided")
+
+    replicas = deploy.get("replicas", 1)
+    if isinstance(replicas, bool) or not isinstance(replicas, int) or replicas < 1:
+        raise ValueError("service deploy.replicas must be a positive integer")
+    return replicas
+
+
 def build_workload(
     *,
     workload_name: str,
     image: str,
+    replicas: int,
     ports: Sequence[int],
     websocket_ports: Set[int],
     env_entries: Sequence[Dict[str, Any]],
@@ -2292,6 +2337,13 @@ def build_workload(
     config_mounts: Sequence[ConfigMount],
     probes: Mapping[str, Any],
 ) -> Dict[str, Any]:
+    db_type = detect_db_type(image)
+    if db_type in SPECIAL_DB_RESOURCE_TYPES:
+        raise ValueError(
+            f"refusing to generate an application workload for {db_type} database image {image!r}; "
+            "database services must use KubeBlocks Cluster resources"
+        )
+
     is_stateful = bool(mount_paths)
     kind = "StatefulSet" if is_stateful else "Deployment"
     template_spec: Dict[str, Any] = {
@@ -2308,8 +2360,6 @@ def build_workload(
             }
         ],
     }
-    if requires_image_pull_secret(image):
-        template_spec["imagePullSecrets"] = [{"name": "${{ defaults.app_name }}"}]
     container = template_spec["containers"][0]
     if ports:
         container["ports"] = [
@@ -2351,7 +2401,7 @@ def build_workload(
         container["volumeMounts"] = volume_mounts
 
     spec: Dict[str, Any] = {
-        "replicas": 1,
+        "replicas": replicas,
         "revisionHistoryLimit": 1,
         "selector": {"matchLabels": {"app": workload_name}},
         "template": {
@@ -2391,8 +2441,8 @@ def build_workload(
             "name": workload_name,
             "annotations": {
                 "originImageName": image,
-                "deploy.cloud.sealos.io/minReplicas": "1",
-                "deploy.cloud.sealos.io/maxReplicas": "1",
+                "deploy.cloud.sealos.io/minReplicas": str(replicas),
+                "deploy.cloud.sealos.io/maxReplicas": str(replicas),
             },
             "labels": {
                 "cloud.sealos.io/app-deploy-manager": workload_name,
@@ -2529,8 +2579,6 @@ def validate_images(compose_data: Mapping[str, Any]) -> Dict[str, str]:
             raise ValueError(f"service {service_name!r} must define image")
         normalized = normalize_image_reference(image, service_name)
         normalized_images[service_name] = normalized
-        if is_latest_image(normalized):
-            raise ValueError(f"service {service_name!r} uses forbidden ':latest' tag")
         if not has_pinned_image(normalized):
             raise ValueError(
                 f"service {service_name!r} uses unpinned image {normalized!r}; provide a fixed tag or digest"
@@ -2541,6 +2589,83 @@ def validate_images(compose_data: Mapping[str, Any]) -> Dict[str, str]:
 def render_index_yaml(documents: Sequence[Mapping[str, Any]]) -> str:
     parts = [yaml.safe_dump(doc, sort_keys=False, allow_unicode=True).rstrip() for doc in documents]
     return "\n---\n".join(parts) + "\n"
+
+
+def cluster_database_type(document: Mapping[str, Any]) -> Optional[str]:
+    if document.get("kind") != "Cluster":
+        return None
+    api_version = document.get("apiVersion")
+    if not isinstance(api_version, str) or not api_version.startswith("apps.kubeblocks.io/"):
+        return None
+
+    metadata = document.get("metadata")
+    labels = metadata.get("labels") if isinstance(metadata, dict) else None
+    candidates: List[str] = []
+    if isinstance(labels, dict):
+        for key in ("clusterdefinition.kubeblocks.io/name", "kb.io/database"):
+            value = labels.get(key)
+            if isinstance(value, str):
+                candidates.append(value.strip().lower())
+
+    spec = document.get("spec")
+    component_specs = spec.get("componentSpecs") if isinstance(spec, dict) else None
+    if isinstance(component_specs, list):
+        for component in component_specs:
+            if not isinstance(component, dict):
+                continue
+            for key in ("componentDef", "componentDefRef", "name"):
+                value = component.get(key)
+                if isinstance(value, str):
+                    candidates.append(value.strip().lower())
+
+    for db_type, patterns in DB_TYPE_PATTERNS.items():
+        for candidate in candidates:
+            if any(candidate == pattern or candidate.startswith(f"{pattern}-") for pattern in patterns):
+                return db_type
+    return None
+
+
+def validate_generated_database_contract(
+    documents: Sequence[Mapping[str, Any]],
+    db_services: Mapping[str, str],
+) -> None:
+    expected_types = set(db_services.values())
+    actual_types = {
+        db_type
+        for document in documents
+        if (db_type := cluster_database_type(document)) in SPECIAL_DB_RESOURCE_TYPES
+    }
+    missing_types = sorted(expected_types - actual_types)
+    if missing_types:
+        raise ValueError(
+            "database conversion did not emit the required KubeBlocks Cluster resources for: "
+            + ", ".join(missing_types)
+        )
+
+    for document in documents:
+        if document.get("kind") not in {"Deployment", "StatefulSet", "DaemonSet", "Job", "CronJob"}:
+            continue
+        spec = document.get("spec")
+        if not isinstance(spec, dict):
+            continue
+        if document.get("kind") == "CronJob":
+            job_template = spec.get("jobTemplate")
+            job_spec = job_template.get("spec") if isinstance(job_template, dict) else None
+            template = job_spec.get("template") if isinstance(job_spec, dict) else None
+        else:
+            template = spec.get("template")
+        template_spec = template.get("spec") if isinstance(template, dict) else None
+        containers = template_spec.get("containers") if isinstance(template_spec, dict) else None
+        if not isinstance(containers, list):
+            continue
+        for container in containers:
+            image = container.get("image") if isinstance(container, dict) else None
+            db_type = detect_db_type(image) if isinstance(image, str) else None
+            if db_type in SPECIAL_DB_RESOURCE_TYPES:
+                raise ValueError(
+                    f"generated {document.get('kind')} contains {db_type} database image {image!r}; "
+                    "database services must remain KubeBlocks Cluster resources"
+                )
 
 
 def build_documents(
@@ -2587,6 +2712,11 @@ def build_documents(
     if not app_services:
         if gateway_services:
             app_services = gateway_services[:1]
+        elif db_services:
+            raise ValueError(
+                "compose contains database services but no application service; "
+                "refusing to convert a database into an application workload"
+            )
         else:
             app_services = service_items[:1]
 
@@ -2645,6 +2775,7 @@ def build_documents(
         workload = build_workload(
             workload_name=workload_name,
             image=image,
+            replicas=parse_service_replicas(service),
             ports=ports,
             websocket_ports=websocket_ports,
             env_entries=env_entries,
@@ -2669,6 +2800,7 @@ def build_documents(
     if primary_port is not None:
         docs.append(build_ingress(primary_workload_name, primary_port, primary_ingress_protocol))
     docs.append(build_app_resource(meta))
+    validate_generated_database_contract(docs, db_services)
     return docs
 
 

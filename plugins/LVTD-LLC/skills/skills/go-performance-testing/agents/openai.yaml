@@ -1,0 +1,4 @@
+interface:
+  display_name: "Go Performance Testing"
+  short_description: "Benchmark and profile Go programs reliably"
+  default_prompt: "Use $go-performance-testing to benchmark and optimize this Go code with reproducible evidence."

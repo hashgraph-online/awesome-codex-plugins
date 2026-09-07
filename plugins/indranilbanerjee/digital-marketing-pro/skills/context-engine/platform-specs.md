@@ -709,8 +709,8 @@ Use schema.org structured data (JSON-LD format recommended) to enhance search ap
 | Schema Type | When to Use | Rich Result |
 |---|---|---|
 | `Article` | Blog posts, news articles, editorial content. Use `NewsArticle` for timely news, `BlogPosting` for blogs. | Article carousel, headline in Top Stories |
-| `FAQPage` | Pages with a list of questions and answers. Must show Q&A on the visible page (not just in markup). | Expandable FAQ dropdowns in SERP |
-| `HowTo` | Step-by-step instructional content (recipes, DIY, tutorials). Each step must be a distinct action. | Step-by-step rich result with images/video |
+| `FAQPage` | Pages with a list of questions and answers. Must show Q&A on the visible page (not just in markup). **Deprecation note:** FAQ rich results restricted (Aug 2023) to authoritative government and health sites only — markup remains valid for structure, but no rich result for most sites. | Expandable FAQ dropdowns in SERP (gov/health authority sites only) |
+| `HowTo` | Step-by-step instructional content (recipes, DIY, tutorials). Each step must be a distinct action. **Deprecation note:** HowTo rich results deprecated (Sept 2023) — markup remains valid for structure; use Article format with step-by-step structure instead. | None (rich results removed Sept 2023) |
 | `Product` | Product pages. Include `name`, `image`, `description`, `offers` (price, availability, currency). | Product snippet with price, availability, rating |
 | `LocalBusiness` | Businesses with a physical location. Include address, phone, hours, geo coordinates. Subtype to specific business type (e.g., `Restaurant`, `Dentist`). | Knowledge panel, Maps integration |
 | `Organization` | Company/brand homepage. Include name, logo, URL, social profiles, contact info. | Knowledge panel, logo in search |

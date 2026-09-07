@@ -1,6 +1,15 @@
 ---
 name: vault-sync
-description: Use when you need to validate the Meta-Vault's Markdown frontmatter and wiki-link integrity before closing a session or after vault edits. Runs as a hard gate at session-end Phase 1 — blocks close if any `.md` file fails the Zod frontmatter schema or has dangling `[[wiki-links]]`. Supports three modes: `hard` (blocks on errors), `warn` (reports without blocking), `off` (skip). Reads `vault-sync.*` from Session Config; respects per-vault exclude globs from `CLAUDE.md`. Triggers: "vault validation failed at session close", "fix vault frontmatter errors", "check vault wiki-links", "why is session-end blocked by vault-sync". <example>Context: session-end Phase 1 quality gate, vault-sync.enabled=true, vault-sync.mode="hard". user: "/close" assistant: "vault-sync found 2 frontmatter errors in vault/40-learnings/ml-notes.md — missing required `id` field. Fixing before close."</example>
+description: >
+  Use when you need to validate the Meta-Vault's Markdown frontmatter and wiki-link integrity before
+  closing a session or after vault edits. Runs as a hard gate at session-end Phase 1 — blocks close if any
+  `.md` file fails the Zod frontmatter schema or has dangling `[[wiki-links]]`. Supports three modes:
+  `hard` (blocks on errors), `warn` (reports without blocking), `off` (skip). Reads `vault-sync.*` from
+  Session Config; respects per-vault exclude globs from `CLAUDE.md`. Triggers: "vault validation failed at
+  session close", "fix vault frontmatter errors", "check vault wiki-links", "why is session-end blocked by
+  vault-sync". <example>Context: session-end Phase 1 quality gate, vault-sync.enabled=true,
+  vault-sync.mode="hard". user: "/close" assistant: "vault-sync found 2 frontmatter errors in
+  vault/40-learnings/ml-notes.md — missing required `id` field. Fixing before close."</example>
 model: haiku
 ---
 
@@ -18,7 +27,7 @@ Phase 1 ships a self-contained validator that reads every `.md` file under `VAUL
 
 ### Files
 
-- `validator.mjs` — Node.js ESM validator. Uses `zod` + `yaml` npm packages. Reads `VAULT_DIR` (env or default cwd), walks the tree, skipping `node_modules/`, `.git/`, `.obsidian/`, `90-archive/`. For each `.md`: parses frontmatter, validates against the inline Zod schema, extracts `[[wiki-links]]`, verifies each target resolves. Emits JSON report on stdout.
+- `validator.mjs` — Node.js ESM validator. Uses `zod` + `yaml` npm packages. Reads `VAULT_DIR` (env or default cwd), walks the tree, skipping `node_modules/`, `.git/`, `.obsidian/`. `90-archive/` is walked but never *checked* (#833): archived notes stay in the link-target register — so an inbound `[[wiki-link]]` to an archived note resolves instead of dangling — while their frontmatter is skipped and counted in `archived_skipped_count`. For each `.md`: parses frontmatter, validates against the inline Zod schema, extracts `[[wiki-links]]`, verifies each target resolves. Emits JSON report on stdout.
 - `validator.sh` — Thin POSIX wrapper. Resolves `VAULT_DIR` from arg 1 or env, self-bootstraps deps via `pnpm install --silent` on first run, execs the Node validator. Session-end and other callers use this entry point.
 - `package.json` — Declares `zod` (`^3.24.0`, matching projects-baseline) and `yaml` (`^2.5.0`) as deps. `pnpm-lock.yaml` is committed; `node_modules/` is gitignored.
 - `tests/validator.bats` — 16 BATS cases covering clean vaults, broken frontmatter, missing required fields, dangling links, no-vault skipping, README-style files, nested directories, and archive/obsidian exclusion.

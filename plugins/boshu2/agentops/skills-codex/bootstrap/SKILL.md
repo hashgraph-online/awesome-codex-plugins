@@ -1,218 +1,65 @@
 ---
 name: bootstrap
-description: Initialize AgentOps project files.
+description: 'Initialize explicitly requested, missing Triggers: "bootstrap AgentOps", "initialize AgentOps docs".'
 ---
-# $bootstrap
-
-> **Quick Ref:** Product/operations layer around the `ao quick-start` core seed. Progressive — bare repos get the golden path first, existing repos fill gaps only.
-
-**YOU MUST EXECUTE THIS WORKFLOW. Do not just describe it.**
-
-## Constraints
-
-- Preserve existing artifacts unless `--force` is explicit because bootstrap must be safe and idempotent in partially initialized repositories.
-- Never install `br`, author runtime hooks, or invent a PROGRAM.md fallback on the user's behalf because those are operator-owned choices.
-- Stop on a failed prerequisite and report the repair command; do not claim a downstream artifact was created when its producing step failed.
-
-## Quick Start
-
-```
-$bootstrap
-```
-
-That is it. One command. Every step below is idempotent — existing artifacts are never overwritten.
-
-## Absorbed triggers (routed here from retired skills)
-
-- **`session-bootstrap` / session-start context** — run `ao session bootstrap` for the
-  universal orientation report, then `ao lookup --query "<topic>"` for decay-ranked
-  prior context. (Previously routed via the retired `/inject`.)
-- **`using-agentops` / workflow tour** — read
-  [docs/architecture/operating-loop.md](../../docs/architecture/operating-loop.md)
-  (the primary navigation). There is no update skill — to refresh installed skills, re-run the install one-liner:
-  `bash <(curl -fsSL https://raw.githubusercontent.com/boshu2/agentops/main/scripts/install.sh)`.
-
-## External Tools
-
-- **ao** (optional) — AgentOps CLI. Required only for optional hook activation (Step 6). Bootstrap skips hooks gracefully when missing.
-- **br** (optional, recommended) — beads_rust CLI (local-first issue tracking). Bootstrap probes for `br` in Step 0.5 and, when missing, recommends installing it. Bootstrap never installs `br` on the user's behalf.
-
-## Flags
-
-| Flag | Effect |
-|------|--------|
-| `--dry-run` | Report what would be created without doing anything |
-| `--force` | Recreate artifacts even if they already exist |
-
-## Execution Steps
-
-**Checkpoint:** after repo-state detection, verify the planned create/skip set before invoking any mutating step; after Step 5, verify every reported status against the filesystem.
-
-### Step 0: Detect Repo State
-
-```bash
-git rev-parse --is-inside-work-tree >/dev/null 2>&1 || { echo "NOT_A_GIT_REPO"; exit 1; }
-HAS_GOALS=$([[ -f GOALS.md ]] && echo true || echo false)
-HAS_PRODUCT=$([[ -f PRODUCT.md ]] && echo true || echo false)
-HAS_README=$([[ -f README.md ]] && echo true || echo false)
-HAS_PROGRAM=$([[ -f PROGRAM.md || -f AUTODEV.md ]] && echo true || echo false)
-HAS_AGENTS=$([[ -d .agents ]] && echo true || echo false)
-HAS_HOOKS=$(grep -q "agentops" .codex/settings.json 2>/dev/null && echo true || echo false)
-HAS_AO=$(command -v ao >/dev/null && echo true || echo false)
-HAS_BR=$(command -v br >/dev/null && echo true || echo false)
-```
-
-Classify the repo:
-
-| State | Condition |
-|-------|-----------|
-| **bare** | No GOALS.md, no PRODUCT.md, no .agents/ |
-| **partial** | Some artifacts present, some missing |
-| **complete** | GOALS.md, PRODUCT.md, README.md, PROGRAM.md/AUTODEV.md, and .agents/ present |
-
-If `--dry-run` is set: report the state and what would be created, including whether `br` would be recommended (when `HAS_BR` is false), then stop. Do not proceed to Steps 1-6.
-
-If the repo is **complete** and `--force` is not set: report "Repo is fully bootstrapped. Nothing to do." and stop.
-
-### Step 0.5: Recommend br
-
-If `HAS_BR` is true: skip. Report "br: present."
-
-If `HAS_BR` is false: report **"br: not installed (recommended). Install beads_rust to get local-first issue tracking."** and continue. Bootstrap does NOT run the installer — `br` is optional, the user decides.
-
-### Step 1: GOALS.md
-
-If `HAS_GOALS` is false (or `--force` is set):
-
-Run the goals skill to initialize GOALS.md interactively:
-
-```
-$goals init
-```
-
-If `HAS_GOALS` is true and `--force` is not set: skip. Report "GOALS.md exists -- skipped."
-
-### Step 2: PRODUCT.md
-
-If `HAS_PRODUCT` is false (or `--force` is set):
-
-Run the product skill to generate PRODUCT.md interactively:
-
-```
-$product
-```
-
-If `HAS_PRODUCT` is true and `--force` is not set: skip. Report "PRODUCT.md exists -- skipped."
-
-### Step 3: README.md
-
-If `HAS_README` is false (or `--force` is set) AND PRODUCT.md now exists:
-
-Run the doc skill in README mode to generate README.md:
-
-```
-$doc --mode=readme
-```
-
-If `HAS_README` is true and `--force` is not set: skip. Report "README.md exists -- skipped."
-
-If PRODUCT.md does not exist (Step 2 was skipped or failed): skip. Report "README.md skipped -- PRODUCT.md required first."
-
-### Step 4: Core Seed and .agents/ Structure
-
-Apply the idempotent core-seed procedure in [references/core-seed.md](references/core-seed.md): prefer `ao quick-start --no-beads`, use the documented minimal fallback only when `ao` is unavailable, and truthfully report create/skip/repair status.
-
-### Step 5: PROGRAM.md / AUTODEV.md
-
-If `HAS_PROGRAM` is false (or `--force` is set):
-
-Use the existing autodev CLI path:
-
-```bash
-ao autodev init "your current objective"
-```
-
-If `ao` is unavailable: do not create a placeholder. Report "PROGRAM.md skipped -- install ao, then run: `ao autodev init \"your current objective\"`."
-
-If `HAS_PROGRAM` is true and `--force` is not set: skip. Report "PROGRAM.md/AUTODEV.md exists -- skipped."
-
-### Step 6: Optional Hook Activation
-
-Do not activate runtime agent hooks. AgentOps 3.0 is runtime-hookless:
-`ao quick-start`, execution packets, explicit validation, and knowledge
-compounding deliver first value without Claude/Codex runtime hooks. Routine
-release authority is the local cockpit gate (`ao gate check` plus the installed
-Git pre-push/pawl proof path); GitHub Actions are PR/tag/manual backstop
-telemetry. There is no `ao` command or flag that installs runtime hooks —
-hooks were removed from the CLI.
-
-If the user explicitly requests hooks, they are opt-in and author-it-yourself:
-point them at the `hooks-authoring` skill, which scaffolds project-local hooks
-into `.codex/settings.json`. Bootstrap itself never writes hooks.
-
-If hooks were not explicitly requested: skip. Report "Runtime hooks optional -- skipped. AgentOps 3.0 is runtime-hookless; routine release authority is the local cockpit gate. To author your own, use the `hooks-authoring` skill."
-
-If `HAS_HOOKS` is true: report "Hooks already present in .codex/settings.json -- left untouched."
-
-### Step 7: Report
-
-Output a summary table:
-
-```
-Bootstrap complete.
-
-| Artifact      | Status  |
-|---------------|---------|
-| GOALS.md      | created / skipped / failed |
-| PRODUCT.md    | created / skipped / failed |
-| README.md     | created / skipped / failed |
-| PROGRAM.md    | created / skipped / failed |
-| .agents/      | created / skipped / failed |
-| Hooks         | optional / activated / skipped / failed |
-| br            | present / recommended (not installed) |
-
-Repo is now AgentOps-ready. Next: run the operating loop — $rpi "your first goal"
-```
-
-## Output Specification
-
-- **Path:** repository-root `GOALS.md`, `PRODUCT.md`, `README.md`, `PROGRAM.md`/`AUTODEV.md`, and `.agents/`; existing paths remain untouched unless `--force` is explicit.
-- **Filename:** use those canonical filenames and `.agents/AGENTS.md`; do not create alternate or placeholder filenames.
-- **Format:** Markdown for root documents and `.agents/AGENTS.md`; Step 7 emits the documented status table on stdout.
-- **Exit code:** validate with filesystem existence checks plus `ao quick-start --dry-run`; any failed producer or validation command marks that row `failed` and prevents an AgentOps-ready claim.
-- **Downstream handoff:** consumed by the operating loop after every required row is `created` or `skipped` and any optional/recommended row is labeled truthfully.
-
-## Quality Checklist
-
-- Every Step 7 status matches the filesystem and the command result that produced it.
-- Existing artifacts were preserved unless the operator explicitly requested `--force`.
-- Missing optional tools yield recommendations or repair commands, never silent installation or fabricated artifacts.
-
-## Examples
-
-See [references/examples.md](references/examples.md) for bare, partial, and dry-run cases.
-
-## Troubleshooting
-
-| Problem | Cause | Solution |
-|---------|-------|---------|
-| "Not a git repo" | No .git directory | Run `git init` first |
-| Goals skill fails | No project context | Provide a one-line project description when prompted |
-| Product skill fails | No goals defined | Run `$goals init` manually first, then re-run `$bootstrap` |
-| Hooks not activating | ao CLI not installed | Install: `brew tap boshu2/agentops https://github.com/boshu2/homebrew-agentops && brew install agentops` |
-| br not installed | Recommended but optional | Install beads_rust (`br`) if you want issue tracking; otherwise ignore |
-| Want to start over | Existing artifacts blocking | Use `--force` to recreate all artifacts |
-
-## See Also
-
-- [goals](../goals/SKILL.md) -- Fitness specification and directive management
-- [product](../product/SKILL.md) -- Product definition generation
-- [doc](../doc/SKILL.md) -- README generation (`--mode=readme`) + repo docs
-- [status](../status/SKILL.md) -- New user onboarding (lighter than bootstrap)
-- [core seed procedure](references/core-seed.md) -- idempotent `.agents/` creation and fallback
-- [examples](references/examples.md) -- bare, partial, and dry-run behavior
-- [related operator runbooks](references/related-runbooks.md) -- host-hygiene runbooks (PATH rationalization, etc.)
-
-## Reference Documents
-
-- [references/bootstrap.feature](references/bootstrap.feature) — Executable spec: bare repo gets golden path, existing repo fills gaps only, idempotent never-overwrite (soc-qk4b)
+# Bootstrap — minimal project setup
+
+Bootstrap fills only explicitly requested, missing AgentOps entry documents and,
+when requested, the durable verdict directory. It does not initialize Git,
+install hooks, create tracker state, start runtimes, or impose a delivery
+workflow.
+
+Never-overwrite is what makes bootstrap safe to run on any repository: a setup
+step that can only add is idempotent by construction, while one that can
+replace must first prove it understands what it is replacing.
+
+Named failure mode — **scaffold sprawl**: creating files the caller never
+requested because a "complete" setup feels more helpful than a minimal one.
+
+Anti-pattern: inferring product intent from directory names and READMEs to
+avoid asking the caller. Corrective: ask for the missing content; a wrong
+PRODUCT.md written confidently is worse than a question.
+
+## Procedure
+
+1. Inspect the target directory and report which canonical files already exist.
+2. Ask the caller for missing product intent or goal content when it cannot be
+   inferred safely.
+3. Create only missing, explicitly requested files. Never overwrite an existing
+   document.
+4. Create `.agents/ao/verdicts/sha256/` when durable local verdict storage is
+   requested.
+5. Validate filesystem existence and report created, skipped, and failed paths.
+6. Stop.
+
+Typical documents are `PRODUCT.md`, `GOALS.md`, `AGENTS.md`, and a README section
+that explains the RPI traversal. Generated product copy starts from the
+operations-layer category and preserves the ownership boundary. Repositories
+remain free to use their own Git, CI, tracker, release, and deployment
+policies.
+
+**Naming.** Three surfaces share the word "bootstrap"; they are distinct. This
+skill authors missing entry documents. `ao init` is the CLI command that creates
+the local evidence and verdict directories (`.agents/ao/**`). `ao session
+bootstrap` is a read-only session command that reports which local orientation
+files are present. This skill invokes neither.
+
+## Non-goals
+
+- installing or invoking `ao`, `br`, `bd`, NTM, Agent Mail, or another runtime;
+- creating `.git`, worktrees, branches, commits, hooks, or CI workflows;
+- choosing work or claiming that repository setup is complete beyond the paths
+  actually inspected;
+- running RPI automatically.
+
+## Output
+
+Return target path, requested files, created files, existing files left intact,
+failed writes, and validation observations. Do not include a next action.
+
+## References
+
+- [Fitness](../fitness/SKILL.md)
+- [Product](../product/SKILL.md)
+- [Documentation](../doc/SKILL.md)
+- [Examples](references/examples.md)

@@ -2,10 +2,8 @@
 
 A PreToolUse `Edit|Write` guard that routes an edit of an **installed skill copy**
 (`*/.claude/skills/**`, `*/.codex/skills/**`, `*/.gemini/skills/**`) back to the
-repo source of truth (`skills/<name>/`). AgentOps 3.0 is hookless by design —
+repo source of truth (`skills/<name>/`). AgentOps is hookless by default —
 this guard ships **inert**; you activate it with the opt-in installer.
-
-Bead: `age-workflow-guardrail-hooks-j39.1` (keystone of `age-workflow-guardrail-hooks-j39`).
 
 ## Why it exists — a TRUE mistake-token
 

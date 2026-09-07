@@ -1,37 +1,21 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SKILL_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-REPO_ROOT="$(cd "$SKILL_DIR/../.." && pwd)"
-SKILL="$SKILL_DIR/SKILL.md"
-SCHEMA="$SKILL_DIR/schemas/plan-verdict.schema.json"
-VALIDATOR="$SKILL_DIR/scripts/validate-output.sh"
-PASS=0
-FAIL=0
+skill_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-check() {
-  if bash -c "$2"; then
-    echo "PASS: $1"
-    PASS=$((PASS + 1))
-  else
-    echo "FAIL: $1"
-    FAIL=$((FAIL + 1))
-  fi
-}
+grep -q '^name: premortem$' "$skill_dir/SKILL.md"
+grep -Fq 'optional plan-challenge strategy' "$skill_dir/SKILL.md"
+grep -Fq 'It is not part of the required RPI sequence' "$skill_dir/SKILL.md"
+grep -Fq 'advisory findings' "$skill_dir/SKILL.md"
+grep -q '^Feature: Premortem optionally challenges one frozen plan$' \
+  "$skill_dir/references/premortem.feature"
+test -f "$skill_dir/schemas/premortem-plan-review.v1.schema.json"
+test -x "$skill_dir/scripts/validate-output.sh"
 
-check "SKILL.md exists" "test -f '$SKILL'"
-check "frontmatter name" "grep -q '^name: premortem' '$SKILL'"
-check "exact-plan output contract" "grep -q '^output_contract: skills/premortem/schemas/plan-verdict.schema.json' '$SKILL' || grep -Fq '[plan-verdict.schema.json](schemas/plan-verdict.schema.json)' '$SKILL'"
-check "fresh author-distinct judge" "grep -Fq 'author_id != judge_id' '$SKILL'"
-check "binary complete verdict" "grep -Fq 'Emit exactly' '$SKILL' && grep -q 'complete nonempty blocker set' '$SKILL'"
-check "family is optional metadata" "grep -q 'Model and family' '$SKILL' && grep -q 'metadata are optional' '$SKILL' && grep -q 'no risk class requires different model families' '$SKILL'"
-check "no local controller ownership" "grep -q 'Do not own retries, attempt maps, budgets, helper state' '$SKILL'"
-check "schema and validator exist" "test -f '$SCHEMA' && test -x '$VALIDATOR'"
-check "schema is strict" "jq -e '.additionalProperties == false and (.properties.verdict.enum == [\"PASS\",\"FAIL\"]) and (.properties.blockers_complete.const == true)' '$SCHEMA' >/dev/null"
-check "plan-pawl authority removed" "! rg -q 'plan-pawl|ApprovalEdge|Fable|WARN.*Ready|PASS/WARN/FAIL|cross-family rule for one-way doors' '$SKILL' '$SKILL_DIR/references/mandatory-checks.md' '$SKILL_DIR/references/premortem.feature' '$SKILL_DIR/references/write-premortem-output.md'"
-check "kernel stays within 250 lines" "test \$(wc -l < '$SKILL') -le 250"
-check "focused direct-cut acceptance exists" "test -f '$REPO_ROOT/tests/scripts/premortem-plan-verdict-direct-cut.bats'"
+if grep -Eiq 'ao (pawl|land)|git (commit|push)|br (close|update)|auto-redo|next[_ -]action' \
+  "$skill_dir/SKILL.md"; then
+  echo 'premortem contract contains forbidden lifecycle authority' >&2
+  exit 1
+fi
 
-echo
-echo "Results: $PASS passed, $FAIL failed"
-test "$FAIL" -eq 0
+echo 'premortem skill contract: PASS'

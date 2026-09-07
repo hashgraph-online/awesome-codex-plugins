@@ -1,31 +1,44 @@
-# Design System (DESIGN.md) Schema
+# Design-system contract and `DESIGN.md` schema
 
-A DESIGN.md is the single source of truth for a UI: tokens live here, and every component traces back to them. This is what turns per-component improvisation (the root of inconsistent slop) into one coherent vocabulary. **No design system = no UI work.**
+Use this reference when a changed visual claim needs new or updated app-defined semantics, or when an approved new/redesigned direction needs a coherent token contract. It does not expand a narrow nonvisual change into design work: that path may record `Design impact: unchanged` and `Visual evidence: not applicable` with behavioral, accessibility, and regression evidence.
 
-## The 7 sections
+## Choose the authority before the format
 
-Author DESIGN.md with these sections. Every value is a token; no raw hex or magic numbers live in components.
+Inspect the repository's existing tokens, theme, style layer, component library, platform conventions, and representative UI before writing a design artifact. The project's current design source of truth remains authoritative.
+
+- If `DESIGN.md` is already the established source, update it directly.
+- If another source owns the system, update that source first. Use `DESIGN.md` only as a scoped mapping/receipt that links every changed app-defined semantic back to, and stays synchronized with, that owner.
+- If the repository has no equivalent and a visual claim genuinely needs app-defined semantics, a scoped `DESIGN.md` may establish those affected decisions without requiring a repository-wide redesign.
+- The absence of a formal design-system document is not a blocker and never means “no UI work.” Preserve working conventions and introduce only the minimum coherent contract required by the changed visual claim.
+
+When material unknowns would change the visual direction or source of truth, ask the minimum necessary questions and batch independent unknowns. Otherwise document the evidence, assumption, and confidence and continue within the existing authority.
+
+Loading this schema does not by itself select anti-slop, SEO, measured-quality, or a universal visual matrix. Anti-slop stays limited to its declared marketing/editorial or approved new-direction scope. SEO stays limited to the current crawlable public Web target or a distinct deployed public Web target in scope. Verify changed visual semantics across the target-derived browser/OS/input and breakpoint matrix, and create visual artifacts only for changed visual claims or interactions with a visible-state/layout consequence.
+
+## Seven-section schema for a new or redesigned direction
+
+Use the complete schema for an approved new or redesigned visual direction. For a visual delta inside an existing system, document only the affected sections and roles. Every new app-owned visual value traces to one authoritative token or an explicitly synchronized platform value; do not move runtime-owned native values into product tokens.
 
 1. **Atmosphere / signature** — one paragraph naming how it *feels* (the one recognizable idea), not what it does. e.g. "weight-300 elegance, shadows tinted toward twilight" or "dark-native, content emerges from black, one signature heading weight". The signature is the compression key that makes every later token cohere.
-2. **Color** — every color as `hex + CSS variable + semantic role`. Define the full set: background, foreground, primary, on-primary, secondary, accent, card, muted, border, destructive, ring. Pre-check contrast (text/background pairs ≥ 4.5:1, large/UI ≥ 3:1) and note any adjusted value.
-3. **Typography** — a full ramp per role: `size (px/rem) · weight · line-height · letter-spacing` (+ OpenType features if used). Name the font stack and its intent.
-4. **Spacing** — a base unit (4px) and a named scale (`--space-1 … --space-24`); every margin/padding/gap is a multiple. Note deliberate off-grid optical values if any.
-5. **Components** — per component: background, text, padding, radius, border, font, and every state (hover/active/focus/disabled). Spell out any signature component as a buildable recipe.
-6. **Motion** — the physics (duration ranges, easing/spring), GPU-composited only (transform/opacity/filter). Define reduced-motion behavior.
-7. **Depth** — commit to one strategy (tonal shift vs shadows vs borders) and a single elevation ladder. Do not mix.
+2. **Color** — record each project-native color token, its resolved value or dynamic-value rule, and semantic role. Preserve the authoritative representation: CSS custom properties and CSS color syntax on Web, Android resources or Compose tokens, Apple asset catalogs or Swift values, Qt palette/QColor roles, or the repository's equivalent. Define only the roles the product needs, including state and dynamic light/dark/high-contrast variants where applicable. Pre-check contrast for the target's applicable text and non-text criteria and note adjusted values.
+3. **Typography** — define a ramp per semantic role using the project's native units and APIs: CSS `rem`/`px`, Android `sp`, Apple points and text styles, Qt logical pixels or inherited platform fonts, or the repository equivalent. Record weight, line height, tracking, fallback, scaling behavior, and platform text-style ownership where applicable.
+4. **Spacing** — preserve or establish a project-native base and named scale in the authoritative unit system (`rem`, logical px, dp, points, toolkit metrics, or equivalent). Values should follow that scale unless a platform metric, content constraint, or documented optical correction owns the exception; 4 px is an example, not a universal base.
+5. **Components** — per component, define structure, semantic roles, content behavior, geometry, and every target-supported state and input path. Use the platform's native state and styling vocabulary rather than importing hover, radius, border, or CSS concepts where they do not apply.
+6. **Motion** — define duration or spring behavior, continuity, interruption, and reduced-motion behavior. Prefer compositor-friendly or platform-native mechanisms appropriate to the actual renderer; do not impose Web-only transform/opacity/filter rules on native toolkits.
+7. **Depth** — choose a coherent strategy supported by the platform and product, such as tonal hierarchy, material/elevation, borders, shadows, or native grouping. Do not mix unrelated systems without an explicit ownership reason.
 
 ## Authoring loopy-native token sets
 
 Write your own token references — do not copy third-party design files. Two ways in:
 
-- **From an existing UI**: extract ground-truth values with the browser (computed styles, as in `superloopy-clone`) rather than estimating, then encode them in the 7-section schema.
-- **From a direction**: pick a committed aesthetic from the Design Read, then define exact tokens. Encode each color as `hex + variable + role`, add a short Do/Don't list that names the wrong instinct (e.g. "Don't use weight 600-700 for display — 300 is the voice"), and a few copy-paste example component prompts at the right altitude (cite px and hex, not "dark gray").
+- **From an existing UI**: inspect ground-truth values with the appropriate rendered-surface and repository tools rather than estimating. Keep the existing source authoritative; when a receipt is needed, map only the affected values into the schema and link them back to that source.
+- **From a direction**: pick a committed aesthetic from the Design Read, then define exact tokens in the project's native representation. Record each color token, resolved value or dynamic rule, and role; add a short Do/Don't list that names the wrong instinct (for example, “Don't use a heavy display weight when the established voice is light”); and provide buildable examples using the target's real token names, units, and APIs rather than vague color or spacing language.
 
-Keep the system lean — a design system that grows every week is dying. Add a token only when a component needs it, and add it to DESIGN.md first.
+Keep the system lean. Add a token only when a component needs it, and add it to the authoritative design source first; synchronize any scoped `DESIGN.md` mapping in the same change.
 
-## Example token sets (loopy-native, illustrative)
+## Web-oriented example token sets (loopy-native, illustrative)
 
-Author your own per project; these show the shape and altitude.
+Author your own only when a new or redesigned direction requires it. These examples intentionally use Web syntax to show shape and altitude; they are never defaults and their CSS variables, hex colors, pixel values, and interaction states must not be copied into a native target. Translate semantic roles into that target's authoritative tokens, units, platform states, and APIs.
 
 ### Calm SaaS (light, trustworthy)
 - **Signature**: quiet confidence; generous whitespace, one restrained accent, content over chrome.

@@ -3,6 +3,7 @@
 # Usage: goals.sh --counter <ID> [--no-cache]
 
 set -e
+umask 077
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 . "$SCRIPT_DIR/common.sh"

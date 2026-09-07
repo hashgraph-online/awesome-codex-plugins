@@ -64,7 +64,13 @@ triggers:
 1. 给出推荐方案及推荐理由
 2. 将变体输出到 `.boss/<feature>/ui-design-variants.json`
 3. 设置状态为 `NEEDS_CONTEXT`，等待用户选择
-4. 用户选择后，将选中方案写入正式的 `ui-design.json` 和 `ui-spec.md`
+4. 用户选择后：
+   - 记录选择（供跨项目偏好聚合，走事件流、可重放）：
+     ```bash
+     boss runtime record-user-choice <feature> --choice-type design-variant \
+       --selected "<选中方案>" --options "<方案A,方案B,方案C>" --reason "<用户理由>"
+     ```
+   - 将选中方案写入正式的 `ui-design.json` 和 `ui-spec.md`
 
 ## 输出要求
 
@@ -113,12 +119,9 @@ triggers:
 
 ### 状态报告
 
-```
-[BOSS_STATUS]
-status: NEEDS_CONTEXT
-summary: 已产出 N 个设计变体，等待用户选择最终方案
-missing: 用户尚未选择设计方案（方案A/B/C）
-[/BOSS_STATUS]
+```bash
+boss runtime report-agent-status <feature> <stage> boss-ui-designer NEEDS_CONTEXT \
+  --reason "已产出 N 个设计变体，等待用户选择最终方案（方案A/B/C）"
 ```
 
 ### 用户选择后的行为

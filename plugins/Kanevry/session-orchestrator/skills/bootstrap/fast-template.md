@@ -90,7 +90,7 @@ node "$PLUGIN_ROOT/scripts/lib/claude-md-budget-lint.mjs" --repo-root "$REPO_ROO
 ```
 
 `--mode warn` is deliberate at Anlage-time — the lint informs, the operator decides; it never blocks the scaffold. Interpret the JSON `violations[]`:
-- `max-lines` — the instruction file is already over the lean-root ceiling (150 lines default). Recommend trimming to pointers per the lean-root convention (delegate detail to `README.md` / `.orchestrator/steering/` / `.claude/rules/*.md` — see this plugin's own `CLAUDE.md` for a worked example of the pointer pattern — note it predates the lint and currently exceeds the 150-line ceiling itself).
+- `max-lines` — the instruction file is already over the lean-root ceiling. The ceiling's SSOT is the exported constant `DEFAULT_MAX_LINES` in `scripts/lib/claude-md-budget-lint.mjs` (read it, do not memorise it; `= 80` as of 2026-08-03), overridable per run with `--max-lines`. The budget counts **non-exempt effective lines**, not the raw `wc -l`: the runtime-critical `## Session Config` block is excluded, because it is machine-parsed configuration rather than trimmable prose and applying a raw-line ceiling to it was structurally unreachable (#959 — the ceiling was re-derived in these units at the same time). Recommend trimming to pointers per the lean-root convention (delegate detail to `README.md` / `.orchestrator/steering/` / `.claude/rules/*.md` — see this plugin's own `CLAUDE.md` for a worked example of the pointer pattern; it **passes** this lint, 61 non-exempt of 209 raw lines against the ceiling of 80, measured 2026-08-03 at HEAD `730ee9d` — re-run the command above rather than trusting that number).
 - `max-line-chars` — a single line exceeds the char ceiling (400 default); surface the line number for a quick manual wrap.
 - `provenance-header` — line 1 lacks a `<!-- source: ...` attribution. On the `claude init` path (Public Fast Tier, Claude Code) this is a WARN only, never a hard failure — `claude init` output is not plugin-authored and has no reason to carry the plugin's provenance convention.
 
@@ -162,23 +162,30 @@ build/
 
 Note: `.orchestrator/` is NOT gitignored — `bootstrap.lock` must be committed. Only the platform state dirs (`.claude/`, `.codex/`, `.cursor/`) are excluded.
 
-## Step 3a: Install Parallel-Sessions Rule
+## Step 3a: Install Canonical Rules
 
-Write the vendored rule from `$PLUGIN_ROOT/templates/_shared/rules/parallel-sessions.md` to `$REPO_ROOT/.claude/rules/parallel-sessions.md`.
+Vendor the canonical always-on rules from the plugin's `rules/` library into `$REPO_ROOT/.claude/rules/`. `rules/` is the single source of truth for every distributable rule — never `cp` a rule file from anywhere else.
 
-Idempotency:
+Idempotency is handled by the writer itself:
 - Missing → create
-- Exists and byte-identical → skip silently
-- Exists and differs → overwrite (vendored is canonical)
+- Exists, plugin-owned (first line is the `<!-- source: session-orchestrator plugin ... -->` header) and byte-identical → skip silently
+- Exists, plugin-owned and stale → overwrite (the plugin copy is canonical)
+- Exists WITHOUT that header → preserved untouched (a repo-private rule the operator authored)
 
 Shell:
 ```bash
-mkdir -p "$REPO_ROOT/.claude/rules"
-cp "$PLUGIN_ROOT/templates/_shared/rules/parallel-sessions.md" "$REPO_ROOT/.claude/rules/parallel-sessions.md"
+mkdir -p "$REPO_ROOT/.claude"
+node "$PLUGIN_ROOT/scripts/lib/rules-sync.mjs" --repo-root "$REPO_ROOT"
 cp "$PLUGIN_ROOT/templates/_shared/loop.md" "$REPO_ROOT/.claude/loop.md"
 ```
 
-Why: PSA-003 destructive-command safeguards require every consumer repo to carry the rule. See issue #155. The `loop.md` vendor gives bare `/loop` a repo-aware maintenance prompt (issue #633 Hebel 3).
+The command prints a JSON report (`written` / `skipped` / `preserved` / `errors` / `warnings` / `sanitizer`) and exits non-zero on any error. At fast tier `.orchestrator/bootstrap.lock` does not exist yet (Step 5 writes it), so archetype-scoped entries report `archetype-unknown` and are skipped — the always-on rules vendor regardless.
+
+Surface `errors[]` and `sanitizer[]` to the operator. `sanitizer[]` (issue #1098) carries `{file, line, kind, text}` records for citations that read fine inside the plugin repo and dangle once vendored (`repo-local-path`, `unresolvable-see-also`); the CLI also prints each to stderr as `rules-sync: sanitizer <kind> <file>:<line> — <text>`. **Report it, do not act on it automatically** — it never rewrites content and never changes the exit code, so a human decides whether the citation is a leak.
+
+Why: PSA-003 destructive-command safeguards require every consumer repo to carry the parallel-sessions rule. See issue #155. The `loop.md` vendor gives bare `/loop` a repo-aware maintenance prompt (issue #633 Hebel 3).
+
+Why one writer (issue #1060): a literal `cp` from a second source directory bypasses the pre-write validator AND lands a file carrying no provenance header. On the next `--sync-rules` a headerless file is classified as a repo-private override and preserved forever, so the plugin can never update it again — and whichever rival copy is smaller silently wins.
 
 ## Step 4: Generate README.md
 

@@ -1,0 +1,10 @@
+# Lint/format configuration only — this repo is a plugin checkout, not a
+# distributable package, so there is no [project] table on purpose.
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+# CI installs this exact version, and ruff's default rule set changes between minor
+# releases: 0.16 reports 463 findings on a tree 0.15.22 calls clean. Without this,
+# `uvx ruff` (which resolves to latest) buries a real finding in phantom ones.
+# tests/test_mcp_packaging.py keeps this in step with the CI pin and the docs.
+required-version = ">=0.15.22,<0.16"

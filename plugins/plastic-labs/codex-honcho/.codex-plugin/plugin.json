@@ -1,6 +1,6 @@
 {
   "name": "codex-honcho",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Persistent, cross-session memory for OpenAI Codex, powered by Honcho from Plastic Labs. Lifecycle hooks capture each session and inject the relevant context back at session start, so Codex remembers your preferences, projects, and decisions across restarts and context resets.",
   "author": {
     "name": "Plastic Labs",

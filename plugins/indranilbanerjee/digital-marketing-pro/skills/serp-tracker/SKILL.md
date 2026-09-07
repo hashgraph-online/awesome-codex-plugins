@@ -1,6 +1,6 @@
 ---
 name: serp-tracker
-description: "Deprecated — merged into rank-monitor. Use /digital-marketing-pro:rank-monitor --features for SERP-feature tracking (AI Overviews, snippets, PAA, local pack)."
+description: "Deprecated pointer skill — SERP-feature tracking merged into rank-monitor, and this skill only explains the move and redirects you to run /digital-marketing-pro:rank-monitor --features (AI Overviews, Featured Snippets, People Also Ask, Knowledge Panels, Local Pack, and more, plus feature ownership vs competitors). Triggers on \"/digital-marketing-pro:serp-tracker\", \"track SERP features\", \"are we showing in AI Overviews\", \"who owns the featured snippet\", \"monitor the local pack\". Performs no tracking itself; pairs with /digital-marketing-pro:rank-monitor for positions plus features, /digital-marketing-pro:geo-monitor and /digital-marketing-pro:aeo-audit for scored AI visibility, and /digital-marketing-pro:gsc-ai-performance for real AI impressions."
 ---
 
 # /digital-marketing-pro:serp-tracker (deprecated → rank-monitor)

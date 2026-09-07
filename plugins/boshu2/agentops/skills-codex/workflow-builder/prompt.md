@@ -1,6 +1,6 @@
 # workflow-builder
 
-Scaffold a new Claude Workflow script — deterministic multi-agent orchestration. Triggers: "build a workflow", "create a workflow", "scaffold workflow", "author a workflow".
+Scaffold an explicit one-shot workflow adapter without lifecycle authority. Triggers: "build a workflow adapter", "scaffold a one-shot workflow".
 
 ## Instructions
 

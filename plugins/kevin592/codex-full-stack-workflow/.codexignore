@@ -1,0 +1,9 @@
+node_modules/
+mcp-server/node_modules/
+mcp-server/dist/
+coverage/
+.scanner-venv/
+.hol-plugin-scanner-dist/
+plugin-scan.json
+.env
+.env.*

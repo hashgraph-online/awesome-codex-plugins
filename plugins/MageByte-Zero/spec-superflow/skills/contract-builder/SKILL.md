@@ -5,9 +5,21 @@ description: Convert approved planning artifacts into an execution contract. Inv
 
 # Contract Builder
 
-Converts planning artifacts into a single execution handshake: `execution-contract.md`. Use `${CLAUDE_PLUGIN_ROOT}/templates/execution-contract.md` as the baseline structure.
+Converts planning artifacts into a single execution handshake: `execution-contract.md`. Load the baseline with `ssf runtime asset read templates/execution-contract.md`.
 
-Read before generating: `proposal.md`, `specs/`, `design.md`, `tasks.md`, `docs/artifact-contract.md`.
+Read before generating: `.spec-superflow.yaml` (especially `dp_0_decisions`),
+`proposal.md`, `specs/`, `design.md`, `tasks.md`, then load
+`docs/artifact-contract.md` with `ssf runtime asset read docs/artifact-contract.md`.
+
+## Artifact Language
+
+Read `artifact_language=<concrete-language>` from `dp_0_decisions`. Generate
+`execution-contract.md` in the same language as that resolved value and the
+approved planning artifacts. Preserve required schema keywords and code
+identifiers verbatim; language consistency applies to explanatory prose and
+headings. If the concrete artifact language is missing or still `auto`, route
+back to `workflow-start` before writing the contract instead of guessing or
+silently defaulting to English.
 
 ## Artifact Mapping
 
@@ -35,9 +47,16 @@ Must make obvious: approved behavior, out-of-scope, constraints, batches, test o
 
 After drafting: summarize handoff rules, identify ambiguity, flag unmapped requirements, ask user to approve explicitly. After approval:
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/spec-superflow.mjs" state set <change-dir> dp_3_result "approved: <summary>"
-node "${CLAUDE_PLUGIN_ROOT}/scripts/spec-superflow.mjs" state set <change-dir> dp_3_timestamp $(date -u +%Y-%m-%dT%H:%M:%SZ)
+ssf state set <change-dir> dp_3_result "approved: <summary>"
+ssf state set <change-dir> dp_3_timestamp $(date -u +%Y-%m-%dT%H:%M:%SZ)
 ```
+
+Advance the state after approval:
+```bash
+ssf state transition <change-dir> bridging
+ssf state transition <change-dir> approved-for-build
+```
+
 DP-3 is a hard gate — no implementation without this record.
 
 ## Stale Contract Detection
@@ -46,7 +65,7 @@ Refresh if: scope changed in proposal, requirements changed in specs, constraint
 
 ## Hotfix Mode
 
-Generate minimal contract: Intent Lock (one sentence), Task List (numbered), Approval Gate (DP-3). Skip Scope Fence, Build Rules, Review Gates, Test Evidence. Still requires DP-3 approval.
+Generate a minimal contract only for a legacy Hotfix: Intent Lock (one sentence), Task List (numbered), Approval Gate (DP-3). Skip Scope Fence, Build Rules, Review Gates, Test Evidence. Still requires DP-3 approval. Quick direct execution and direct incident Hotfix do not invoke this skill; they use the signed receipt and finish with `test_result: pass` instead.
 
 ## Guardrails
 
@@ -57,9 +76,9 @@ Generate minimal contract: Intent Lock (one sentence), Task List (numbered), App
 
 ## Post-Generation
 
-Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/spec-superflow.mjs" state init <change-dir>` to create `.spec-superflow.yaml` with hashes.
+Run `ssf state init <change-dir>` to create `.spec-superflow.yaml` with hashes.
 
-For hotfix, after writing the minimal contract, run `node "${CLAUDE_PLUGIN_ROOT}/scripts/spec-superflow.mjs" state init <change-dir>` or `node "${CLAUDE_PLUGIN_ROOT}/scripts/spec-superflow.mjs" state rebuild <change-dir>` so `contract_hash` is recorded. DP-3 remains mandatory before build.
+For a legacy Hotfix, after writing the minimal contract, run `ssf state init <change-dir>` or `ssf state rebuild <change-dir>` so `contract_hash` is recorded. DP-3 remains mandatory before build.
 
 ## Exception Handling
 
@@ -67,3 +86,36 @@ For hotfix, after writing the minimal contract, run `node "${CLAUDE_PLUGIN_ROOT}
 - **Missing files**: List every missing artifact. Route back to `spec-writer`.
 - **User interruption**: Re-read all artifacts on resume; check contract staleness via content comparison.
 - **Validation failure**: Flag unmapped requirements in Escalation Rules and approval summary.
+
+## Standard User-Facing Handoff
+
+End every user-facing phase report with this concise handoff. Only a successfully
+persisted `closing` state and `abandoned` are terminal.
+
+### Normal report
+
+- Current stage: `<detected workflow stage>`.
+- Completed / blocker: `<completed work>`.
+- Next stage: `<next workflow stage or skill>`.
+- Entry condition: `<what must be true to enter it>`.
+
+### Blocked report
+
+- Current stage: `<detected workflow stage>`.
+- Completed / blocker: `<blocking fact or missing evidence>`.
+- Next stage: `<stage that resumes after the blocker>`.
+- Entry condition: `<the approval, artifact, validation, or fix required>`.
+
+### Approval-wait report
+
+- Current stage: `<detected workflow stage>`.
+- Completed / blocker: `<work ready for the named decision>`.
+- Next stage: `<stage that follows approval>`.
+- Entry condition: `<explicit user approval or recorded decision>`.
+
+### Successful terminal report
+
+- Current stage: successfully persisted `closing` or `abandoned`.
+- Completed / blocker: `<persisted terminal outcome>`.
+- Next stage: `none`.
+- Entry condition: no further transition exists.

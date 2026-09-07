@@ -132,4 +132,4 @@ cass expand "$HIT" --line 1 --context 5    # see the original prompt
 
 ## What `cass resume` is NOT
 
-It is **not** a cross-CLI translator. Resuming a Codex conversation always uses the Codex CLI; Claude → Claude; etc. For genuine cross-CLI continuation, invoke the standalone `casr` skill (cross-skill reference — load via `casr` rather than following a path; the file at `../..casr/SKILL.md` is documentation only and not part of this skill's progressive-disclosure tree).
+It is **not** a cross-CLI translator. Resuming a Codex conversation always uses the Codex CLI; Claude → Claude; etc. Genuine cross-CLI continuation is the job of `casr` (Cross Agent Session Resumer) — a separate upstream tool, not an AgentOps skill under `skills/` — while `cass resume` only does same-harness resume.

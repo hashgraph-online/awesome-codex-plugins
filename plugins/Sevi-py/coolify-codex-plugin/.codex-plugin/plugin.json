@@ -40,7 +40,7 @@
     "composerIcon": "./assets/icon.png",
     "logo": "./assets/icon.png",
     "screenshots": [
-      "./assets/screenshot.svg"
+      "./assets/screenshot.png"
     ]
   }
 }

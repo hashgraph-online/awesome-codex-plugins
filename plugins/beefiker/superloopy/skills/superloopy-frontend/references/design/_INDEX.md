@@ -1,6 +1,6 @@
 # Brand Design Token Library — Index
 
-Loopy-native brand teardowns (92 brands). Match a named brand or a mood to ONE file, load it, and let its tokens drive DESIGN.md. Original prose; public brand facts only. For a brand not listed, extract it on-demand from a live reference (see `design-system.md`).
+Loopy-native brand teardowns (92 brands). Match a named brand or mood to ONE file and use it as scoped reference input, never as automatic token authority. The project's current design source remains authoritative; apply an approved direction there first, and use `DESIGN.md` only when it is already that source or as a synchronized scoped mapping/receipt. Original prose; public brand facts only. For a brand not listed, extract it on demand from an authorized live reference (see `design-system.md`).
 
 ## fintech/crypto
 - [`binance.md`](./binance.md) — gold ingot accent on monochrome, 50px pill CTAs, trading-floor urgency

@@ -1,6 +1,170 @@
-# GrayMatter&trade;
+# GrayMatter Lite
 
-## the AI Brain for Your Entire Business
+GrayMatter Lite is a real open-source memory product for one person or one
+workspace. It runs locally or on infrastructure you control and includes the
+same useful product loop from the first launch: sign in, create durable memory,
+retrieve it through MCP, import or export portable KnowledgePacks, and connect
+local or hosted agent profiles.
+
+It is not a time-limited trial and it is not a hollow demo. The Lite boundary is
+the committed ThorAPI `api.hbs.yaml`, `./vaix` builder, Spring/H2 backend,
+embedded dashboard, MCP server, starter KnowledgePack, Docker definition,
+tests, and public documentation in this repository.
+
+## Install in one command
+
+On macOS or Linux:
+
+```bash
+git clone https://github.com/ValkyrLabs/GrayMatter.git
+cd GrayMatter
+./vaix setup
+```
+
+`./vaix setup` uses Java 17+, Maven, and Node 20+ already on the machine when
+possible. Missing toolchains are downloaded privately under `.vaix/runtime`;
+nothing is installed system-wide. The command renders the ThorAPI application
+bundle, builds and tests the backend, creates the one local profile, and starts:
+
+- dashboard and sign-in: `http://localhost:8787`
+- HTTP MCP: `http://localhost:3333/mcp`
+- durable H2 data: `.graymatter-lite/data`
+
+Retrieve the generated local credentials only when you need them:
+
+```bash
+./vaix credentials
+./vaix doctor
+```
+
+Other source commands:
+
+```bash
+./vaix generate     # render from templates/graymatter-light-bootstrap/api.hbs.yaml
+./vaix build        # build the Spring/H2 backend
+./vaix test         # backend, bootstrap, docs, release parity, and MCP contracts
+./vaix run          # foreground backend
+./vaix up           # background backend + HTTP MCP
+./vaix stop
+```
+
+## Docker
+
+The Docker path builds from the committed source; it does not depend on a
+closed prebuilt GrayMatter backend image:
+
+```bash
+export GRAYMATTER_ADMIN_PASSWORD='choose-a-strong-local-password'
+docker compose -f deploy/docker-compose.lite.yml up --build
+```
+
+The same dashboard is available on port `8787` and MCP on `3333`. H2 data is
+kept in the `graymatter-lite-data` volume.
+
+## What is included
+
+- one local user/workspace with Basic-auth sign-in and a switchable local profile;
+- durable `MemoryEntry` creation, read, search, and H2 persistence;
+- the existing Valkyr dashboard, memory workbench, telemetry, and SWARM status;
+- the bundled stdio/HTTP MCP server for Codex, OpenClaw, Claude, local-model
+  hosts, and other MCP-compatible clients;
+- signed `.gmkp` KnowledgePack import plus whole-memory KnowledgePack export;
+- a vetted starter KnowledgePack with GrayMatter, Valkyr SWARM, ValkyrAI, and
+  ThorAPI setup/product/support knowledge, inserted idempotently into local H2;
+- local and hosted named profiles plus explicit read-only blended retrieval;
+- source builds through `./vaix` and container builds through Docker Compose;
+- AGPL-3.0 source, public docs, Issues/Discussions support, and a private
+  security-reporting path.
+
+The legacy environment and filesystem identifiers retain `LIGHT` for backward
+compatibility. The public product name is GrayMatter Lite.
+
+## Profiles and blended memory
+
+`./vaix setup` registers `graymatter-lite-local` without changing an already
+active hosted identity. Profiles store routing metadata in `profiles.json`;
+hosted tokens remain in Keychain and local Basic-auth passwords live in a
+mode-`0600` secret file outside the repository.
+
+```bash
+scripts/gm-profile add-local graymatter-lite-local \
+  --api-base http://localhost:8787/v1 --password-stdin
+scripts/gm-profile add cloud --from-current
+scripts/gm-profile use graymatter-lite-local
+scripts/gm-profile blend graymatter-lite-local cloud
+scripts/gm-query "release rules"
+```
+
+Blended reads execute independently under each profile and preserve profile
+and account-fingerprint provenance. Every write fails closed until a single
+profile is selected. MCP exposes the same read-only federation for memory
+query/read/health tools; mutating or unsupported tools return a read-only
+recovery result until one profile is selected. Restart the MCP process after
+changing the persistent profile selection.
+
+## Local models
+
+GrayMatter is model-neutral. Ollama, LM Studio, llama.cpp, and other local-model
+hosts connect through MCP while the model process remains separate from the H2
+memory and authorization boundary. See [Local models](docs/local-models.md) for
+stdio and HTTP examples. Local Workflow execution uses two MCP boundaries:
+Valkyr SWARM owns registration and signed Workflow coordination; GrayMatter
+owns memory, context, and durable evidence. Model-only LM Studio/Ollama nodes
+are `signed-workflow-only` inference workers, never general command runners.
+
+## Imports, exports, and starter knowledge
+
+Use the dashboard or API:
+
+```bash
+curl -u "admin:$GRAYMATTER_ADMIN_PASSWORD" \
+  -o graymatter-lite-memory.gmkp \
+  http://localhost:8787/v1/knowledge-packs/export
+
+scripts/gm-knowledge-pack-import ./graymatter-lite-memory.gmkp
+```
+
+The starter pack source is committed at
+`templates/graymatter-light-bootstrap/local-server/src/main/resources/knowledgepacks/graymatter-lite-starter.json`.
+Startup signs it with the same self-contained integrity contract used by normal
+KnowledgePacks, imports it through the production importer, and stores its
+records in the local H2 database. Repeated starts are idempotent.
+
+## Valkyr SWARM
+
+The starter KnowledgePack explains the supported SWARM path. Install the peer
+open-source product when this machine should register, heartbeat, receive
+exact-target control commands from an authenticated ValkyrAI mothership, and
+return durable receipts:
+
+```bash
+git clone https://github.com/ValkyrLabs/ValkyrSWARM.git
+codex plugin marketplace add "$PWD/ValkyrSWARM"
+codex plugin add valkyr-swarm@valkyr-swarm
+```
+
+SWARM preserves the canonical human approval gates for outbound sends,
+production deploys, merges, and supervised service restarts. GrayMatter Lite
+does not invent a second command bus or allow an agent to approve itself.
+
+## Documentation and community
+
+- [GrayMatter Lite guide](docs/graymatter-lite.md)
+- [Local model compatibility](docs/local-models.md)
+- [KnowledgePacks](docs/knowledge-packs.md)
+- [MCP server](mcp-server/README.md)
+- [Architecture](docs/architecture.md)
+- [Contributing](CONTRIBUTING.md)
+- [Community support](SUPPORT.md)
+- [Security policy](SECURITY.md)
+
+Use GitHub Issues for reproducible defects and GitHub Discussions for support,
+ideas, KnowledgePacks, and integrations. Report vulnerabilities privately as
+described in `SECURITY.md`.
+
+---
+
+## GrayMatter Platform: the AI brain for your entire business
 
 Valkyr GrayMatter&trade; turns your applications, documents, workflows, conversations, and institutional knowledge into a living, searchable intelligence layer.
 
@@ -117,7 +281,7 @@ export GRAYMATTER_PUBLIC_RESOURCE=https://api-0.valkyrlabs.com
 export GRAYMATTER_PUBLIC_MCP_PATH=/graymatter/mcp
 export GRAYMATTER_OAUTH_ISSUER=https://api-0.valkyrlabs.com
 export GRAYMATTER_OAUTH_JWKS_URI=https://api-0.valkyrlabs.com/oauth2/jwks
-export GRAYMATTER_ALLOWED_ORIGINS=https://chatgpt.com
+export GRAYMATTER_ALLOWED_ORIGINS=https://chatgpt.com,https://platform.openai.com
 export VALKYR_API_BASE=https://api-0.valkyrlabs.com/v1
 node mcp-server/index.js
 ```
@@ -217,7 +381,12 @@ Use local files only as:
 - temporary fallback when hosted `api-0` is unavailable or authentication is genuinely blocked
 - temporary replayable backup when a write path is blocked
 
-Local fallback is degraded-mode replay, not source-of-truth memory. Once auth or connectivity returns, agents must replay local records into `api-0`, confirm durable sync, and remove synchronized local copies.
+Local fallback is degraded-mode replay, not source-of-truth memory. The first
+successful authenticated request after connectivity and authorized tenant
+context recover automatically replays both API-deferred operations and
+`gm-write` fallback records into `api-0`. Local copies are removed only after
+the durable write succeeds; `scripts/gm-replay-deferred` remains available for
+an explicit operator retry.
 
 ### Durable memory targets
 
@@ -321,7 +490,9 @@ Rule:
 - `scripts/gm-login` — login helper
 - `scripts/gm-activate` — one-shot auth + install + agent registration + schema sync bootstrap
 - `scripts/gm-activation-fastlane` — first-run readiness, one-shot activation, non-secret telemetry, and reviewer-safe demo runner
-- `scripts/gm-self-update` — repo/plugin self-update check for startup, weekly refresh, and auth/connectivity recovery
+- `scripts/gm-mcp-launcher` — bounded signed-release check, auth, conditional schema refresh, replay gating, and clean MCP stdio handoff
+- `scripts/gm-schema-cache-lib` — scoped OpenAPI cache identity, metadata, freshness, and lock helpers
+- `scripts/gm-self-update` — signed stable-release staging, atomic version switching, keyed state/locks, and rollback
 - `scripts/gm-install-check` — dependency and auth readiness check
 - `scripts/gm-doctor` — full readiness report for self-update, auth, memory, schema, MCP, replay, and smoke status
 - `scripts/gm-smoke` — production smoke test for write/query validation
@@ -333,7 +504,7 @@ Rule:
 - `scripts/gm-fallback-append` — append failed writes to local replay queue at `memory/graymatter-fallback.json`
 - `scripts/gm-replay-deferred` — replay operations that were locally deferred during credit/connectivity/auth outages
 - `scripts/gm-graph` — inspect Swarm graph endpoints
-- `scripts/gm-openapi-sync` — fetch and cache the live OpenAPI spec locally
+- `scripts/gm-openapi-sync` — conditionally fetch, validate, and atomically cache the live OpenAPI spec locally
 - `scripts/gm-openapi-summary` — summarize live schema domains and endpoints
 - `scripts/gm-status` — quick health/status surface for auth source, fallback queue, and OpenAPI cache
 - `scripts/gm-agent-smoke-matrix` — install/read-search/write/MCP/schema/safe-response readiness matrix for OpenClaw and Codex-style agents
@@ -355,6 +526,7 @@ Rule:
 - `docs/privacy-policy.md` — GrayMatter-specific public privacy policy source
 - `docs/reviewer-test-credentials.md` — review demo-account setup and secure credential handoff runbook
 - `docs/prd-context-compaction-reset.md` — PRD for bounded chat compaction and reset flows
+- `docs/prd-graymatter-omegarag.md` — canonical implementation contract for the governed agentic memory, adaptive retrieval, temporal graph, SWARM, and SkillOptics product
 - `docs/thorapi-integration.md` — ThorAPI relationship and bundle direction
 - `docs/graymatter-light.md` — local/offline notes
 - `docs/server-capabilities.md` — live api-0 memory, retrieval, graph, schema, auth, credit, and MCP capability map
@@ -428,9 +600,9 @@ Supported env inputs:
 
 `scripts/gm-register-agent` is part of the expected startup handshake. When an OpenClaw server connects to api-0, it should create or refresh an Agent record for itself before proceeding with normal work.
 
-`scripts/gm-self-update` is the normal plugin/repo update path. Agents should run it on startup and when auth or transport looks suspicious. It updates clean git checkouts with a fast-forward pull and updates packaged installs from `https://github.com/ValkyrLabs/GrayMatter.git` when the weekly interval is due or `force` is requested; activation uses `force` unless overridden. Dirty git checkouts are never overwritten.
+`scripts/gm-mcp-launcher` is the normal MCP entrypoint. It runs a bounded `gm-self-update startup`, auth/connectivity check, conditional schema refresh, and replay preflight before handing stdout to Node. `scripts/gm-self-update` accepts only signed stable manifests with content-addressed, signature-verified artifacts; it stages into a versioned installation root, switches state atomically, preserves rollback, and never rewrites a running Codex plugin-cache directory. The Valkyr Labs release key is bundled at `release/graymatter-release-public.pem`; `GRAYMATTER_RELEASE_PUBLIC_KEY_FILE` or `GRAYMATTER_RELEASE_PUBLIC_KEY` may explicitly override it for controlled testing or key migration. Verification failures are recorded and surfaced.
 
-`scripts/graymatter_api.sh` and the MCP server perform autonomous auth refresh when the stored token expires or api-0 returns a refreshable auth failure. Replay-safe write operations blocked by credits or transport can be deferred and retried with `scripts/gm-replay-deferred`.
+`scripts/graymatter_api.sh` and the MCP server perform autonomous auth refresh when the stored token expires or api-0 returns a refreshable auth failure. A schema revision/route failure gets one bounded online schema resync and retry; cached schema is discovery-only during outage. Replay-safe writes blocked by credits, transport, or a temporarily unresolved tenant context are queued locally and replayed automatically, with a bounded limit and process lock, on the first successful authenticated request after authorized tenant context is restored. `scripts/gm-replay-deferred` remains the explicit retry surface.
 
 At that point the install should be immediately usable.
 

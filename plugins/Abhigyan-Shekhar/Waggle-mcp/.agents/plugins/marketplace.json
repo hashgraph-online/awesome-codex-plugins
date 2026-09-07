@@ -1,7 +1,7 @@
 {
-  "name": "local-repo",
+  "name": "waggle",
   "interface": {
-    "displayName": "Local Repo"
+    "displayName": "Waggle"
   },
   "plugins": [
     {
@@ -14,7 +14,7 @@
         "installation": "AVAILABLE",
         "authentication": "ON_INSTALL"
       },
-      "category": "Productivity"
+      "category": "Developer Tools"
     }
   ]
 }

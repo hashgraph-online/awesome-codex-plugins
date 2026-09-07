@@ -1,0 +1,4 @@
+interface:
+  display_name: "SolidWorks Pre-Start"
+  short_description: "Load CAD rules and validate inputs before modeling"
+  default_prompt: "Use $sw-pre-start to validate this SolidWorks design before modeling."

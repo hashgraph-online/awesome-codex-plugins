@@ -43,9 +43,7 @@
 | Feed Posts | Product Tags (up to 5 per image) | Lifestyle imagery with natural product integration |
 | Stories | Product Stickers | Show product in use, swipe-up to shop |
 | Reels | Product Tags | Trending audio + product showcase, 15-30 seconds |
-| LIVE | Live Shopping (pin products) | Demo products, answer questions, limited-time offers |
-| Guides | Product Guides | Curated collections ("Top 10 Summer Essentials") |
-| Shop Tab | Full storefront | Organize into collections, feature seasonal items |
+| Shop Tab | Full storefront + Collections | Organize into collections ("Top 10 Summer Essentials"), feature seasonal items |
 
 ### Product Listing Optimization (Instagram)
 
@@ -130,7 +128,7 @@
 | Tactic | Details |
 |--------|---------|
 | Catalog Pins | Auto-generated from product feed; keep feed fresh and accurate |
-| Idea Pins + Product Tags | Create styled content and tag featured products |
+| Pins with Product Tags | Create styled content and tag featured products |
 | Shopping Ads | Promote product Pins to appear in search and home feed |
 | Collections Ads | Showcase lifestyle hero image with tagged products below |
 | Trends tool | Use Pinterest Trends to align products with seasonal search demand |

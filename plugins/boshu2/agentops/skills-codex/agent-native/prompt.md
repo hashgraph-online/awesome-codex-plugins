@@ -1,6 +1,6 @@
 # agent-native
 
-Run persistent software-factory workers through a substrate-neutral lifecycle with observable readiness, engagement, evidence, bounded recovery, and handoff. Triggers: "agent-native factory", "role-shaped agent panes", "supervise persistent workers".
+Operate explicit orchestrator, implementer, validator, and scribe roles through a caller-selected agent runtime. Triggers: "agent-native factory", "role-shaped agent panes", "persistent workers".
 
 ## Instructions
 

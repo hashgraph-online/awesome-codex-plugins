@@ -10,7 +10,7 @@
 #   so quotes/specials in the query are safe
 
 set -uo pipefail
-shopt -s nullglob   # unmatched globs expand to empty so `jq -s "$TMPDIR"/*.json` is safe
+shopt -s nullglob   # unmatched globs expand to empty so `jq -s "$FANOUT_DIR"/*.json` is safe
 
 QUERY="${1:?usage: $0 \"QUERY\" [host1 host2 ...]}"
 shift
@@ -37,9 +37,14 @@ case "$QUERY" in
     ;;
 esac
 
-TMPDIR=$(mktemp -d -t cass-fanout-XXXXXX)
+# Do NOT name this TMPDIR — that shadows the standard temp-dir env var for cass,
+# jq, and ssh spawned below. Use a private name and ALWAYS remove it on exit
+# (the old cleanup only printed a path and leaked the dir every run). No
+# retention path: the skill's output contract states no artifact directory
+# persists, and per-host errors are already surfaced to stderr before this trap.
+FANOUT_DIR=$(mktemp -d -t cass-fanout-XXXXXX)
 cleanup() {
-  echo "cass fan-out diagnostics retained: $TMPDIR" >&2
+  rm -rf "$FANOUT_DIR"
 }
 trap cleanup EXIT
 
@@ -51,12 +56,12 @@ local_search() {
   local raw
   raw=$(timeout "$PER_HOST_TIMEOUT" cass search "$QUERY" --json --fields summary --limit 20 2>/dev/null) || raw=""
   if [ -z "$raw" ]; then
-    echo "[]" > "$TMPDIR/local.json"
+    echo "[]" > "$FANOUT_DIR/local.json"
     return
   fi
   printf '%s' "$raw" \
-    | jq '[(.hits // [])[] | . + {origin_host: "local"}]' > "$TMPDIR/local.json" \
-    || echo "[]" > "$TMPDIR/local.json"
+    | jq '[(.hits // [])[] | . + {origin_host: "local"}]' > "$FANOUT_DIR/local.json" \
+    || echo "[]" > "$FANOUT_DIR/local.json"
 }
 
 # Pass the query via stdin so it's never spliced into the command line.
@@ -67,14 +72,14 @@ remote_search() {
   # shellcheck disable=SC2016 # Remote shell expands $q after reading it from stdin.
   raw=$(timeout "$PER_HOST_TIMEOUT" ssh -o ConnectTimeout=5 -o BatchMode=yes "$h" \
         'IFS= read -r q && cass search "$q" --json --fields summary --limit 20 2>/dev/null' \
-        <<<"$QUERY" 2>"$TMPDIR/$h.err") || raw=""
+        <<<"$QUERY" 2>"$FANOUT_DIR/$h.err") || raw=""
   if [ -z "$raw" ]; then
-    echo "[]" > "$TMPDIR/$h.json"
+    echo "[]" > "$FANOUT_DIR/$h.json"
     return
   fi
   printf '%s' "$raw" \
-    | jq --arg h "$h" '[(.hits // [])[] | . + {origin_host: $h}]' > "$TMPDIR/$h.json" \
-    || echo "[]" > "$TMPDIR/$h.json"
+    | jq --arg h "$h" '[(.hits // [])[] | . + {origin_host: $h}]' > "$FANOUT_DIR/$h.json" \
+    || echo "[]" > "$FANOUT_DIR/$h.json"
 }
 
 echo "→ local" >&2
@@ -89,13 +94,13 @@ wait
 
 # Surface ssh errors (don't fail; just inform)
 for h in "${HOSTS[@]}"; do
-  if [ -s "$TMPDIR/$h.err" ]; then
-    echo "  ! $h: $(head -c 200 "$TMPDIR/$h.err" | tr '\n' ' ')" >&2
+  if [ -s "$FANOUT_DIR/$h.err" ]; then
+    echo "  ! $h: $(head -c 200 "$FANOUT_DIR/$h.err" | tr '\n' ' ')" >&2
   fi
 done
 
 # Merge + dedup by source_path:line, sort by score
-files=( "$TMPDIR"/*.json )
+files=( "$FANOUT_DIR"/*.json )
 if [ ${#files[@]} -eq 0 ]; then
   echo "[]"
   exit 0

@@ -221,7 +221,7 @@ A burn pixel is a tracking event placed on the conversion/thank-you page that tr
 | Change | Impact | Status |
 |--------|--------|--------|
 | iOS ATT (App Tracking Transparency) | ~75% of iOS users opt out, reducing Meta audience sizes 30-40% | Active since iOS 14.5 |
-| Third-party cookie deprecation | Chrome phasing out 3P cookies (delayed but inevitable) | In progress |
+| Third-party cookie deprecation | Cancelled — Chrome keeps 3P cookies (2024–2025 reversal); Safari/Firefox already block them | Closed |
 | Privacy Sandbox (Google) | Topics API and Attribution Reporting API replace 3P cookies | Rolling out |
 | GDPR/CCPA consent | Requires explicit consent for tracking in EU and California | Active |
 | Email privacy (Apple MPP) | Apple Mail open rates inflated, can't reliably segment by opens | Active since iOS 15 |

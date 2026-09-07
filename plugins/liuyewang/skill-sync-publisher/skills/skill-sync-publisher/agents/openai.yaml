@@ -1,0 +1,4 @@
+interface:
+  display_name: "Skill Sync Publisher"
+  short_description: "Publish skills safely across registries"
+  default_prompt: "Preflight and synchronize a local skill across its enabled registries."

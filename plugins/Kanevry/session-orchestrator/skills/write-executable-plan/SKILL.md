@@ -163,11 +163,11 @@ Any hit → surface to user via AUQ:
 ```
 AskUserQuestion({
   questions: [{
-    question: "The placeholder linter found forbidden strings in the draft plan:\n\n[list each hit with Task number, Step number, and matched text]\n\nHow do you want to proceed?",
-    header: "Placeholder Linter",
+    question: "The draft plan still contains forbidden placeholder strings. How do you want to proceed?",
+    header: "Platzhalter",
     options: [
-      { label: "Fix automatically (Recommended)", description: "I will resolve each hit by filling in the missing specifics before writing the plan." },
-      { label: "Show me each hit interactively", description: "Walk me through each one so I can provide the missing detail." }
+      { label: "Fix automatically (Recommended)", description: "I fill in the missing specifics myself, then write the plan — fastest, and you review the result at hand-off.", preview: "[each hit: Task number, Step number, matched text]" },
+      { label: "Show me each hit interactively", description: "Walk me through each one so I can provide the missing detail.", preview: "[the same hits, one at a time, starting with the first]" }
     ],
     multiSelect: false
   }]
@@ -202,8 +202,8 @@ Present the plan path and task count to the user via AUQ:
 ```
 AskUserQuestion({
   questions: [{
-    question: "Executable plan written to docs/plans/YYYY-MM-DD-<slug>.md ([N] tasks, ~[total] min estimated).\n\nHow do you want to execute it?",
-    header: "Plan Hand-off",
+    question: "Plan written to docs/plans/YYYY-MM-DD-<slug>.md — [N] tasks, ~[total] min. How to execute?",
+    header: "Plan fertig",
     options: [
       { label: "Dispatch via wave-executor (Recommended)", description: "Parallel agents execute all tasks simultaneously. Fastest for file-disjoint tasks." },
       { label: "Execute coordinator-direct", description: "One task at a time in this session. Safer for tasks with shared state." },

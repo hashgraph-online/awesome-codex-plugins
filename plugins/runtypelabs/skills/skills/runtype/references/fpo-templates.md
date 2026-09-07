@@ -83,7 +83,7 @@ This renders a password input — but the supplied value is substituted **litera
 
 ### Good: pending-secret pattern
 
-Declare the secret on the target tool's `auth.secrets` array in the wrapped `productObject`. Reference it inside tool config with `{{secret:KEY}}` — singular `secret`, colon, UPPER_CASE. Same syntax everywhere: tool config (runtime) and FPO templates use the same form. `{{secrets:KEY}}` (plural with colon) is invalid; `{{secrets.key}}` (plural with dot) is a different system for per-request dispatch-scoped values, not managed secrets.
+Declare the secret on the target tool's `auth.secrets` array in the wrapped `productObject`. Reference it inside tool config with `{{secret:KEY}}` — singular `secret`, colon, UPPER_CASE. Same syntax everywhere: tool config (runtime) and FPO templates use the same form. `{{secrets:KEY}}` (plural with colon) is invalid; `{{secrets.key}}` (plural with dot) is a legacy agent/external-tool dispatch namespace, not a managed secret, and hosted FLOW execution ignores it.
 
 ```json
 {

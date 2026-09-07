@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "atomlane": {
+      "title": "AtomLane",
+      "description": "Universal-safe, platform-native, workload-tailored parallel execution for macOS Stable and native Windows Preview.",
+      "command": "python3",
+      "args": [
+        "./scripts/mcp_server.py"
+      ],
+      "cwd": "."
+    }
+  }
+}

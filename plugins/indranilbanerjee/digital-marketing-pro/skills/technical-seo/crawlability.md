@@ -30,7 +30,7 @@ Sitemap: https://example.com/sitemap-index.xml
 - `User-agent`: Specifies which crawler the rules apply to. `*` means all crawlers
 - `Disallow`: Blocks crawling of the specified path. Empty value (`Disallow:`) means allow everything
 - `Allow`: Explicitly permits crawling of a path within a broader Disallow. Googlebot supports Allow; some crawlers do not
-- `Crawl-delay`: Requests a delay (in seconds) between requests. Google ignores this — use GSC crawl rate settings instead. Bing respects it
+- `Crawl-delay`: Requests a delay (in seconds) between requests. Google ignores this — the GSC crawl-rate limiter was removed in January 2024, and Google now auto-tunes crawl rate from server responses (sustained 500/503/429 responses slow it down). Bing respects Crawl-delay
 - `Sitemap`: Points to the XML sitemap. Can list multiple Sitemap directives
 
 **Pattern matching (Googlebot-specific):**
@@ -52,7 +52,7 @@ Sitemap: https://example.com/sitemap-index.xml
 
 ### Testing Robots.txt
 
-- **Google Search Console > Robots.txt Tester**: Validates syntax and tests specific URLs against rules
+- **Google Search Console > Settings > robots.txt report**: Shows which robots.txt files Google found, fetch status, and parsing errors (the old standalone Robots.txt Tester was retired). For testing specific URLs against rules, use a third-party robots.txt parser/tester
 - **Bing Webmaster Tools**: Similar testing functionality for Bingbot rules
 - Robots.txt must be served at the root of the domain: `https://example.com/robots.txt`
 - Must return HTTP 200. If it returns 5xx, Google treats it as a temporary allow-all. If 4xx, Google treats it as no restrictions

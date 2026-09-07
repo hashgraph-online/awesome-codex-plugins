@@ -1,5 +1,9 @@
 # Media Planning Framework
 
+> **Benchmark provenance (as of 2026-08):** Dollar figures in this document are planning priors, not quotes — market and auction rates drift continuously. Before any figure enters a media plan, budget, or client deliverable, refresh it live (platform dashboards and current published reports beat memory) and record it with `python scripts/benchmark_book.py --action record ... --source <url>`; quote from the book thereafter (`--action quote`). Never present an unstamped figure as current market fact.
+
+Before rate assumptions enter a plan, quote each metric x channel from the benchmark book (`python scripts/benchmark_book.py --action quote --metric cpm --channel <channel>`). A refusal (exit 3) means the figure must be researched live and recorded first — never carried forward from memory or from this document.
+
 ## Media Planning Fundamentals
 
 Media planning is the strategic process of selecting channels, timing, and budget allocation to deliver advertising messages to a target audience with maximum efficiency.
@@ -231,4 +235,4 @@ Extend the calendar for the full campaign duration. Add rows for each channel/au
 - Private Marketplace deals (PMPs) offer premium inventory with price floors; negotiate for guaranteed rates
 - Open exchange provides scale but lower quality; use brand safety tools and inclusion/exclusion lists
 - Minimum viable budget varies by DSP but plan $5,000-10,000/month for meaningful data
-- Contextual targeting is gaining importance as cookie deprecation continues
+- Contextual targeting is gaining importance as Safari/Firefox cookie blocking, ATT, and consent regimes reduce addressability

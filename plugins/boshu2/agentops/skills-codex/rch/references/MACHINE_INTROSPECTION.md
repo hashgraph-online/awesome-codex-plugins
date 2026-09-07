@@ -171,13 +171,14 @@ printf '%s\n' \
   | rch
 ```
 
-Three response shapes (full text in `references/HOOKS.md`):
+Three response shapes:
 
 - Empty stdout → allow unchanged
 - `{"hookSpecificOutput": {"permissionDecision": "allow", "updatedInput": {"command": "rch exec -- ..."}}}` → allow with rewrite
 - `{"hookSpecificOutput": {"permissionDecision": "deny", "permissionDecisionReason": "..."}}` → block
 
-Drive a deeper protocol probe with the skill's `scripts/protocol_test.sh`.
+The hand-crafted `printf ... | rch` request above is the protocol probe: empty
+stdout means the classifier rejected the command.
 
 ---
 

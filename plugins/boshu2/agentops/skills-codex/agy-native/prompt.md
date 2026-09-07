@@ -1,7 +1,6 @@
 # agy-native
 
-Drive AgentOps in AGY: loop, plugins, memory, evidence, --add-dir scoping.
-Triggers: agy, antigravity, agy plugin, AGY evidence.
+Use an explicitly selected AGY runtime for one provided packet or fresh validator context. Triggers: "agy", "antigravity", "AGY evidence".
 
 ## Instructions
 

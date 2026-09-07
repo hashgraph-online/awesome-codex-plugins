@@ -121,7 +121,7 @@ Display on the order confirmation page:
 |---|---|---|---|
 | United States | Credit/debit cards (Visa, Mastercard, Amex) | Apple Pay, Google Pay | Buy Now Pay Later (Affirm, Klarna, Afterpay) |
 | United Kingdom | Debit cards, credit cards | Apple Pay, Google Pay, PayPal | Klarna, Clearpay |
-| Germany | PayPal, Giropay, SOFORT | Bank transfer (Rechnung/Lastschrift) | Klarna |
+| Germany | PayPal, Klarna, SEPA Lastschrift/Rechnung | Credit/debit cards | Apple Pay, Google Pay |
 | Netherlands | iDEAL (60%+ of online payments) | Credit cards, PayPal | Bancontact |
 | France | Carte Bancaire, credit cards | PayPal | Alma (BNPL) |
 | Japan | Credit cards, convenience store payments (konbini) | PayPay, LINE Pay | Carrier billing |

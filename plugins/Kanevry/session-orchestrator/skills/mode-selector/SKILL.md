@@ -216,7 +216,7 @@ Missing signal fields contribute 0 to the score — no NaN propagation.
 ## Open Questions (for Phase B-1 follow-up)
 
 - Learnings freshness window — default 30d? Configurable per-type or a single global TTL?
-- Backlog priority weighting — rule-based (`priority:critical = +0.2` confidence bonus) vs.
+- Backlog priority weighting — rule-based (`priority::critical = +0.2` confidence bonus) vs.
   learned from historical completion rates?
 - Alternative-generation algorithm — top-N non-selected modes scored by partial signal match, or
   fixed set derived from v0 heuristic branches?

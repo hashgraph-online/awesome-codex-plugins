@@ -1,15 +1,15 @@
 # Generic scaffolding templates (project · component · CI)
 
 > **Provenance:** This content was **moved verbatim** out of `skills/scaffold/SKILL.md`
-> (bead `age-skills-audit-fable-l6ic.10`, generic-craft trim). A frontier model produces
+> (generic-craft trim). A frontier model produces
 > standard project trees, best-practice config, and GitHub-Actions / GitLab-CI YAML
 > correctly **with no template** — so this file is a fallback reference, not the skill's
-> durable value. The durable binding (the domain-slice manifest → operating-loop scope)
-> stays in `SKILL.md`. Reach for this file only when you want the canonical shapes the
-> skill historically stamped; otherwise ask the model directly.
+> durable value. Reach for this file only when the caller wants one of the
+> historical shapes the skill stamped; otherwise produce an idiomatic scaffold
+> directly.
 
 The three generic modes share a four-step spine: **gather requirements → generate
-structure → verify → initial commit**. Every generated file must have real, functional
+structure → verify → report**. Every generated file must have real, functional
 content — not placeholder comments.
 
 ## Step 1: Gather Requirements
@@ -186,17 +186,9 @@ Run these checks in order. Stop and fix if any fail.
 
 If a tool is not installed (e.g., `ruff`, `golangci-lint`), note it as a warning but do not fail the scaffold.
 
-## Step 5: Initial Commit
-
-After verification passes, create the initial commit:
-
-```
-bootstrap(<name>): scaffold <language> <type> project
-```
-
-Example: `bootstrap(my-cli): scaffold go cli project`
-
-Do NOT push. The user decides when to push.
+Report the generated files and the command results, then stop. Version control,
+revision, and delivery stay with the caller; this scaffold writes files only and
+takes no source-control or continuation action.
 
 ## Component Mode
 
@@ -336,7 +328,6 @@ Include caching directives and artifact definitions.
 | Directory already exists | Ask user: overwrite, merge, or abort |
 | Build tool not installed | Note missing tool, generate files anyway, warn user |
 | Test fails on generated code | Fix the generated code (this is a scaffold bug) |
-| Git init fails | Verify not inside existing repo, handle accordingly |
 
 ## Output Summary
 
@@ -348,9 +339,4 @@ Scaffold complete: <name> (<language> <type>)
   Build: PASS
   Tests: PASS (<count> tests)
   Lint:  PASS | WARN (tool not installed)
-  Commit: bootstrap(<name>): scaffold <language> <type> project
-
-Next steps:
-  cd <name>
-  <language-specific "run" command>
 ```

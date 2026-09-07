@@ -99,7 +99,7 @@ Each section is scored 1–5. The weighted total produces the Landing Page Score
 
 - [ ] 50. Largest Contentful Paint (LCP) under 2.5 seconds
 - [ ] 51. Cumulative Layout Shift (CLS) under 0.1
-- [ ] 52. First Input Delay (FID) or Interaction to Next Paint (INP) under 200ms
+- [ ] 52. Interaction to Next Paint (INP) under 200ms
 - [ ] 53. Images are compressed and served in modern formats (WebP/AVIF)
 - [ ] 54. Third-party scripts are deferred or loaded asynchronously
 - [ ] 55. Tracking is functional — analytics, heatmaps, and conversion pixels fire correctly

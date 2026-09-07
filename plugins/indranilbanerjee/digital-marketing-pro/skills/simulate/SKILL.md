@@ -1,6 +1,6 @@
 ---
 name: simulate
-description: "Simulate revenue impact via Monte Carlo. Use when: testing channel mix changes, budget shifts, or new channel launches."
+description: "Run Monte Carlo simulations (default 10,000 iterations via revenue-simulator.py) of marketing scenarios — channel-mix shifts, budget reallocations, new-channel launches — reporting expected/P10/P50/P90 revenue, probability of hitting a stated target, risk-adjusted scenario ranking, and tornado-chart sensitivity analysis. Models outcomes only — commits no budget and changes no campaigns. Triggers on \"/digital-marketing-pro:simulate\", \"what if we shift 30% of paid budget to TikTok\", \"simulate next quarter's revenue\", \"what's the probability we hit the target\", \"compare these budget scenarios\". Reads the brand's historical performance plus industry-profile and channel-family benchmarks to calibrate ROI distributions."
 ---
 
 # /digital-marketing-pro:simulate

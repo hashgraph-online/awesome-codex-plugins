@@ -1,0 +1,4 @@
+interface:
+  display_name: "SolidWorks Learner"
+  short_description: "Build structured feedback from a SolidWorks session"
+  default_prompt: "Use $sw-learner to compile this SolidWorks session into feedback."

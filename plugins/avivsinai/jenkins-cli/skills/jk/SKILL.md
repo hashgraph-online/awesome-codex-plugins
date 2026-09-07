@@ -1,6 +1,6 @@
 ---
 name: jk
-version: 0.0.35
+version: 0.0.36
 description: Jenkins CLI for controllers. Use when users need to manage jobs, pipelines, config.xml, runs, logs, artifacts, credentials, nodes, or queues in Jenkins. Triggers include "jenkins", "jk", "pipeline", "build", "job create", "job config", "config.xml", "run logs", "jenkins credentials", "jenkins node".
 metadata:
   short-description: Jenkins CLI for jobs, config, pipelines, runs
@@ -65,6 +65,7 @@ Options for `auth login`:
 - `--ca-file` — Custom CA bundle
 - `--set-active` — Set as active context (default: true)
 - `--allow-insecure-store` — Allow encrypted file fallback
+- `--no-verify` — Skip credential verification against the controller
 
 For Google OAuth, OpenID Connect, Okta, Azure AD, or other browser SSO security realms, first sign in to Jenkins in the browser and create a Jenkins API token from `/me/configure`. Use that Jenkins API token with `--token`; do not use a Google/OIDC access token. If the username/email is rejected, open `<jenkins-url>/whoAmI/api/json` in the signed-in browser and use the returned `name` value as `--username`.
 
@@ -141,7 +142,7 @@ jk job view team/app/pipeline
 jk job create auth-relay \
   --folder platform/services \
   --repo-owner playg \
-  --repository taboola-sales-skills \
+  --repository my-service-repo \
   --script-path services/auth-relay/Jenkinsfile \
   --credentials bitbucket-ro \
   --branch-strategy all
@@ -393,12 +394,15 @@ jk run start team/app --quiet
 - `--format json|yaml` — Output format
 - `--jq <expr>` — Filter JSON with jq expression
 - `-t, --template <tmpl>` — Format with Go template
-- `-q, --quiet` — Suppress non-essential output
+- `-q, --quiet` — Suppress non-essential output: hides HTTP client warnings for every command. On `run start`/`run rerun` in plain trigger mode (no `--json`/`--yaml`/`--format`, no `--wait`, no `--follow`) it prints only the build number; with `--follow` it drops the status lines while logs still stream
 
 ## Environment Variables
 
 - `JK_CONTEXT` — Override active context
 - `JK_QUIET` — Equivalent to `--quiet` (any value enables)
+- `JK_ALLOW_INSECURE_STORE=1` — Equivalent to `--allow-insecure-store` (encrypted file backend instead of the OS keyring)
+- `JK_KEYRING_PASSPHRASE` — Passphrase for the encrypted file backend, for noninteractive use (`KEYRING_FILE_PASSWORD`/`KEYRING_PASSWORD` also accepted)
+- `KEYRING_BACKEND` — Explicit keyring backend override (advanced)
 
 ## Exit Codes
 

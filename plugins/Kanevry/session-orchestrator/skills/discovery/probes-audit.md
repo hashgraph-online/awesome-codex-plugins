@@ -78,7 +78,7 @@ Category: <name>
 
 **Default Severity:** High if `score_0_10 < 5`; Medium if `5 <= score_0_10 < 7`.
 
-**Labels for auto-created issues:** `type:discovery`, `area:harness` (new label — add to VCS label set if absent), `priority:high` or `priority:medium` per severity, `status:ready`.
+**Labels for auto-created issues:** `type:discovery`, `area:harness` (new label — add to VCS label set if absent), `priority::high` or `priority::medium` per severity, `status:ready`.
 
 **Skip Conditions:**
 

@@ -59,10 +59,12 @@ Each segment must independently meet sample size requirements. A segment with 20
 
 | Baseline CVR | MDE 20% Relative | MDE 30% Relative | MDE 50% Relative |
 |---|---|---|---|
-| 2% | 98,000 per variation | 44,000 per variation | 16,000 per variation |
-| 5% | 38,000 | 17,000 | 6,200 |
-| 10% | 18,000 | 8,100 | 3,000 |
-| 20% | 8,200 | 3,700 | 1,400 |
+| 2% | 21,000 per variation | 9,800 per variation | 3,800 per variation |
+| 5% | 8,200 | 3,800 | 1,500 |
+| 10% | 3,800 | 1,800 | 680 |
+| 20% | 1,700 | 770 | 290 |
+
+*Values computed with `scripts/sample-size-calculator.py` (`--mde-type relative`, 95% significance, 80% power).*
 
 **Rule of thumb:** If a segment cannot reach sample size within 6 weeks, merge it with an adjacent segment or test with a larger MDE.
 

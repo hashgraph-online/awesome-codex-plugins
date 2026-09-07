@@ -1,6 +1,6 @@
 ---
 name: team-assign
-description: "Assign tasks to team members. Use when: distributing work by role, expertise, and capacity, or managing workloads."
+description: "Assign marketing tasks to team members by scoring role fit, channel expertise, current utilization, and region alignment; also lists active assignments and builds workload dashboards with capacity warnings and rebalancing suggestions. Triggers on \"/digital-marketing-pro:team-assign\", \"who should write the Q2 email sequence\", \"assign this task to someone on the team\", \"show current assignments\", \"is anyone on the team overloaded\". Reads the team roster and capacity via team-manager.py, notifies assignees through a connected Slack or email MCP when available, and logs every assignment for audit."
 ---
 
 # /digital-marketing-pro:team-assign
@@ -24,7 +24,7 @@ The user must provide (or will be prompted for):
 - **Brand** (optional, for assign): Which brand the task is for — defaults to active brand. Relevant for agencies managing multiple brands where team members may be assigned across accounts
 - **Specific team member** (optional, for assign): If the user has a preferred assignee — the system will verify capacity before confirming, or suggest alternatives if the member is overloaded
 - **Dependencies** (optional, for assign): Other task IDs that must be completed before this task can begin — used to sequence work and prevent premature assignment to available members
-- **Filter criteria** (for list-assignments): Filter by team member name, status (active, completed, overdue, blocked), channel, priority, brand, or date range
+- **Filter criteria** (for get-assignments): Filter by team member name, status (active, completed, overdue, blocked), channel, priority, brand, or date range
 - **Time range** (for check-workload): Period to evaluate — this week, next two weeks, this month, or custom date range
 - **Notes** (optional, for assign): Additional context for the assignee — links to briefs, reference materials, client preferences, or special instructions that should accompany the task notification
 

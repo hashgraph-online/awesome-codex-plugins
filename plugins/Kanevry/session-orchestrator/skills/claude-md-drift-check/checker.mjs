@@ -34,7 +34,10 @@ import { execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { resolveInstructionFile } from '../../scripts/lib/common.mjs';
 import { _parseVaultIntegration } from '../../scripts/lib/config/vault-integration.mjs';
+import { _parseDriftCheck } from '../../scripts/lib/config/drift-check.mjs';
+import { isSessionConfigHeading } from '../../scripts/lib/config/section-extractor.mjs';
 import { parseGlobsFrontmatter } from '../../scripts/lib/rule-loader.mjs';
+import { resolveRepoSpec } from '../../scripts/lib/vcs-repo-spec.mjs';
 
 const FORWARD_HEADING_RE =
   /(?:^|\b)(what'?s?\s+next|backlog|open\s+issues?|offene\s+(?:issues?|themen)|todo|next\s+steps?|roadmap)(?:$|\b)/i;
@@ -44,6 +47,10 @@ const BACKWARD_HEADING_RE =
 function parseArgs(argv) {
   const out = {
     mode: 'warn',
+    // #864: true only when --mode was actually passed on argv. Distinguishes
+    // "operator explicitly requested warn" from "the flag was never given" —
+    // the latter is where the target's own drift-check.mode default applies.
+    modeExplicit: false,
     includePaths: [],
     skipPathResolver: false,
     skipProjectCount: false,
@@ -62,7 +69,7 @@ function parseArgs(argv) {
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a === '--mode') out.mode = argv[++i];
+    if (a === '--mode') { out.mode = argv[++i]; out.modeExplicit = true; }
     else if (a === '--include-path') out.includePaths.push(argv[++i]);
     else if (a === '--repo') out.repo = argv[++i];
     else if (a === '--commands-dir') out.commandsDir = argv[++i];
@@ -79,7 +86,7 @@ function parseArgs(argv) {
     else if (a === '--skip-rule-scoping') out.skipRuleScoping = true;
     else if (a === '--skip-docs-parity') out.skipDocsParity = true;
     else if (a === '--help' || a === '-h') {
-      process.stdout.write('Usage: checker.mjs [--mode hard|warn|off] [--include-path GLOB]... [--repo OWNER/NAME] [--commands-dir PATH] [--config-template PATH] [--skip-surface-count] [--skip-command-count] [--skip-generated-rule-staleness] [--skip-rule-scoping] [--skip-docs-parity] [--skip-*]\n');
+      process.stdout.write('Usage: checker.mjs [--mode strict|warn|off] [--include-path GLOB]... [--repo OWNER/NAME] [--commands-dir PATH] [--config-template PATH] [--skip-surface-count] [--skip-command-count] [--skip-generated-rule-staleness] [--skip-rule-scoping] [--skip-docs-parity] [--skip-*]\n  --mode precedence (issue #864): explicit --mode > target CLAUDE.md/AGENTS.md drift-check.mode > \'warn\'\n');
       process.exit(0);
     } else {
       process.stderr.write(`{"status":"infra-error","reason":"unknown arg: ${a}"}\n`);
@@ -146,7 +153,14 @@ function extractSessionConfigBlock(content, { occurrence = 'first' } = {}) {
   const lines = content.split('\n');
   const headingIdxs = [];
   for (let i = 0; i < lines.length; i++) {
-    if (/^##\s+Session Config\b/.test(lines[i])) headingIdxs.push(i);
+    // SSOT predicate (#968). The previous local `/^##\s+Session Config\b/`
+    // was the loosest JS comparator in the repo: no end anchor and `\s+`
+    // instead of a single space, so it accepted `##  Session Config` (two
+    // spaces) and `## Session Config Convention` — both of which the runtime
+    // parser rejects. This checker's whole job is to report on the block the
+    // runtime reads, so matching a heading the runtime cannot see made it
+    // audit a section that does not exist.
+    if (isSessionConfigHeading(lines[i])) headingIdxs.push(i);
   }
   if (headingIdxs.length === 0) return null;
 
@@ -172,10 +186,23 @@ function extractSessionConfigBlock(content, { occurrence = 'first' } = {}) {
 /**
  * Extract top-level YAML keys from a YAML body. Only column-0 keys are
  * collected (indented keys are children and ignored).
+ *
+ * Accepts four equivalent forms consumer CLAUDE.md files write a Session
+ * Config key in: bare `key:`, Markdown bullet `- key:`, bold `**key:**`
+ * (closing bold before the colon), and the bold-bullet consumer shape
+ * `- **key:** value` (bold wraps the key AND colon together, closing bold
+ * AFTER the colon). Baseline issue #60: the original bare-only regex
+ * extracted zero keys from bullet-form local files, so session-config-parity
+ * (Check 6, below) either false-positived on every mandatory key (local side
+ * reads as empty) or, when the TEMPLATE side also used bullet form, passed
+ * vacuously (both sides empty, so the diff was always empty). Sibling
+ * precedent: `scripts/lib/config/block-header.mjs` recognizes only header
+ * lines, not individual key-value pairs — this function is the per-key
+ * counterpart.
  */
 function extractTopLevelKeys(body) {
   const keys = [];
-  const re = /^([A-Za-z][\w-]*):/gm;
+  const re = /^(?:-\s+)?(?:\*\*)?([A-Za-z][\w-]*)(?:\*\*)?:/gm;
   let m;
   while ((m = re.exec(body)) !== null) {
     keys.push(m[1]);
@@ -416,13 +443,20 @@ function buildSurfaceDescriptors(vaultDir, commandsDir) {
   ];
 }
 
-const REPO_SHAPE_RE = /^[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)+$/;
-
-function detectRepo(vaultDir) {
-  const url = execFileSync('git', ['remote', 'get-url', 'origin'], { cwd: vaultDir, encoding: 'utf8' }).trim();
-  const m = /[:/]([^:/\s]+\/[^/\s]+?)(?:\.git)?$/.exec(url);
-  const candidate = m ? m[1] : null;
-  return candidate && REPO_SHAPE_RE.test(candidate) ? candidate : null;
+/**
+ * Guard for a `--repo`/`-R` argv value before it is passed to `glab`
+ * (host-pinning, #872). Replaces the old `REPO_SHAPE_RE` "owner/repo" shape
+ * check — `resolveRepoSpec` for `vcs: 'gitlab'` returns the raw remote URL
+ * (which `glab -R`/`--repo` explicitly accepts), so the guard only needs to
+ * reject the same argv-corrupting characters checked elsewhere in this repo
+ * (see `ARG_BOUNDARY_DANGEROUS` in scripts/lib/test-runner/issue-reconcile.mjs):
+ * non-empty and free of whitespace/newlines.
+ *
+ * @param {unknown} spec
+ * @returns {boolean}
+ */
+function isSafeRepoSpec(spec) {
+  return typeof spec === 'string' && spec.length > 0 && !/\s/.test(spec);
 }
 
 function hasGlab() {
@@ -432,11 +466,18 @@ function hasGlab() {
   } catch { return false; }
 }
 
-function lookupIssueState(iid, repo, cache) {
+function lookupIssueState(iid, repo, cache, vaultDir) {
   if (cache.has(iid)) return cache.get(iid);
   let state = 'unknown';
   try {
+    // #872: cwd: vaultDir — without it, a bare `cwd`-less spawn resolves the
+    // ambient GITLAB_HOST relative to the PROCESS cwd (not vaultDir), which
+    // can silently target the wrong instance on a multi-instance host even
+    // though `--repo <repo>` is already present (host-pinning consistency
+    // with detectRepo's git-remote resolution above, which DOES use
+    // `cwd: vaultDir` via resolveRepoSpec).
     const out = execFileSync('glab', ['issue', 'view', iid, '--repo', repo], {
+      cwd: vaultDir,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
     });
@@ -450,8 +491,11 @@ function lookupIssueState(iid, repo, cache) {
 // ───────────────────────────────────────────────────────────────────────────
 // Rule-scoping family (Check 9) — validates .claude/rules/*.md frontmatter
 // against the scripts/lib/rule-loader.mjs contract:
-//   1. paths-presence   → errors[]:   a top-level `paths:` key (rule-loader.mjs
-//      only recognises `globs:`; `paths:` silently loads the rule ALWAYS-ON).
+//   1. paths-presence   → errors[]:   a top-level `paths:` key that
+//      rule-loader.mjs's parseGlobsFrontmatter (the `paths:` alias, issue
+//      #795) fails to recognise — a genuine parse mismatch. A well-formed
+//      `paths:`-only rule is NOT flagged: since #795, `paths:` is a full
+//      alias for `globs:` and loads correctly SCOPED (#840).
 //   2. cited-but-missing → errors[]:  (a) `.claude/rules/<name>.md` citations in
 //      CLAUDE.md/AGENTS.md that don't exist on disk; (b) bare `<name>.md`
 //      tokens in a rule's own `## See Also` footer that don't exist on disk
@@ -585,17 +629,69 @@ function main() {
   const args = parseArgs(process.argv.slice(2));
   const vaultDir = resolve(process.env.VAULT_DIR || process.cwd());
 
-  if (!['hard', 'warn', 'off'].includes(args.mode)) {
-    process.stderr.write(`{"status":"infra-error","reason":"invalid --mode: ${args.mode}"}\n`);
-    process.exit(2);
-  }
-
-  // Alias-aware instruction file resolution (issue #33).
+  // Alias-aware instruction file resolution (issue #33) — resolved BEFORE
+  // mode defaulting so an unspecified --mode can read the target's OWN
+  // drift-check.mode (issue #864).
   // CLAUDE.md (Claude Code / Cursor IDE) and AGENTS.md (Codex CLI) are
   // transparent aliases — see skills/_shared/instruction-file-resolution.md.
   const instr = resolveInstructionFile(vaultDir); // {path, kind} | null
   const resolvedPath = instr ? instr.path : null;
   const resolvedKind = instr ? instr.kind : null;
+
+  // #864: precedence is --mode flag > target's drift-check.mode > 'warn'.
+  // An invocation without an explicit --mode previously always ran in the
+  // hardcoded 'warn' default even when the target's own Session Config
+  // declared `drift-check.mode: strict` — silently softening the very
+  // contract the config was meant to enforce. Only substitute when --mode
+  // was never passed on argv; an explicit flag always wins. `_parseDriftCheck`
+  // is the SAME parser scripts/lib/config.mjs uses elsewhere, so this reuses
+  // rather than re-derives the drift-check block's mode-parsing/normalization
+  // (including its own hard→strict alias and its 'warn' fallback on absence
+  // or an invalid value).
+  //
+  // Blast-radius guard (QA follow-up on #864, reproduced empirically):
+  // the auto-read must not apply AT ALL when the feature it belongs to is
+  // disabled — `drift-check.enabled: false` means the operator switched the
+  // whole gate off, and a stale/dormant `mode: strict` sitting in that
+  // disabled block must not hard-block a bare invocation. Read `enabled` off
+  // the SAME `_parseDriftCheck()` call (it already parses the flag) rather
+  // than a second bespoke regex.
+  //
+  // Separately, a config-derived `mode: off` is never auto-applied even when
+  // `enabled: true`: 'off' is a legitimate silencing only when a human
+  // explicitly types `--mode off` on the CLI. Picking it up silently from
+  // config would turn what used to be a full warn-mode report into an
+  // undetectable no-op on every future bare invocation — the exact silent
+  // failure class `.claude/rules/verification-before-completion.md` § VBC-005
+  // exists to prevent. Concretely: config-derived mode is applied only when
+  // `enabled === true` AND `mode !== 'off'`; a config `mode: off` downgrades
+  // to the built-in 'warn' default instead of taking effect. This keeps
+  // `status: 'skipped-mode-off'` reachable ONLY via an explicit `--mode off`
+  // flag — a caller who never passed that flag can rely on a bare invocation
+  // always actually running its checks, even against a config that declares
+  // `mode: off`.
+  if (!args.modeExplicit && instr) {
+    try {
+      const targetDriftCheck = _parseDriftCheck(readFileSync(instr.path, 'utf8'));
+      if (targetDriftCheck.enabled && targetDriftCheck.mode !== 'off') {
+        args.mode = targetDriftCheck.mode;
+      }
+    } catch {
+      // target file unreadable (race, permissions) — keep the 'warn' CLI default
+    }
+  }
+
+  if (!['strict', 'hard', 'warn', 'off'].includes(args.mode)) {
+    process.stderr.write(`{"status":"infra-error","reason":"invalid --mode: ${args.mode}"}\n`);
+    process.exit(2);
+  }
+  // `hard` is a legacy alias for `strict` (#217 enum migration — parity with
+  // the vault-sync validator, which normalizes the reverse direction). Collapse
+  // to a single blocking value so exactly one internal value flows downstream.
+  // (`_parseDriftCheck` already normalizes 'hard'->'strict' on the config-default
+  // path above, so this is a no-op there — it remains load-bearing for an
+  // explicit `--mode hard` on the CLI.)
+  if (args.mode === 'hard') args.mode = 'strict';
 
   if (args.mode === 'off') {
     process.stdout.write(JSON.stringify({
@@ -657,13 +753,20 @@ function main() {
   const commandSurface = activeSurfaces.find((s) => s.id === 'command-count');
   const actualCommandCount = commandSurface ? commandSurface.actual : null;
 
+  // #872: CLI --repo always wins; otherwise auto-detect a --repo spec from
+  // the local git remotes (host-pinning — a bare glab spawn falls back to
+  // the ambient GITLAB_HOST, which can silently target the wrong instance
+  // on a multi-instance host).
   let repo = args.repo;
   const glabPresent = !args.skipIssueRefs && hasGlab();
   if (!args.skipIssueRefs && !glabPresent) {
     checksSkipped.push('issue-reference-freshness: glab not found in PATH');
   }
   if (!args.skipIssueRefs && glabPresent && !repo) {
-    try { repo = detectRepo(vaultDir); } catch { /* ignore */ }
+    try {
+      const resolved = resolveRepoSpec({ repoRoot: vaultDir, vcs: 'gitlab' });
+      repo = resolved && isSafeRepoSpec(resolved) ? resolved : null;
+    } catch { /* ignore */ }
     if (!repo) checksSkipped.push('issue-reference-freshness: could not detect origin repo (use --repo)');
   }
   const runIssueCheck = !args.skipIssueRefs && glabPresent && !!repo;
@@ -807,11 +910,18 @@ function main() {
   //   kebab(s) = s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
   //
   // WARN (never error) when:
-  //   - learnings.jsonl is present AND no entry's derived key matches the rule's
-  //     `learning-key` (absent learning), OR
+  //   - NEITHER a learnings.jsonl entry NOR a valid `evidence-digest` frontmatter
+  //     scalar is present (the rule's provenance is unresolvable), OR
   //   - the matching entry's `expires_at` < now (expired learning).
-  // When learnings.jsonl is absent, every key counts as absent — warn on each
-  // generated rule's key.
+  //
+  // #1101 — the digest branch. `.orchestrator/metrics/learnings.jsonl` is
+  // GITIGNORED, so in a fresh clone it does not exist and every generated rule
+  // used to warn (measured 2026-08-26: 23 of 23). A rule carrying a valid
+  // `evidence-digest: sha256-v1:<64 hex>` is SELF-CONTAINED — its `## Evidence`
+  // block plus its own `## Provenance` header fields re-derive the seal with no
+  // jsonl lookup — so its provenance is resolvable offline and it must not warn.
+  // The digest is EVIDENCE, not a second pointer; see
+  // `scripts/lib/reconcile/renderer.mjs` § computeEvidenceDigest.
   // The check is silently skipped (no id pushed) when .claude/rules/ is absent
   // or contains no .md files with auto-generated: true.
   if (!args.skipGeneratedRuleStaleness) {
@@ -823,15 +933,17 @@ function main() {
     // Reads the opening --- ... --- block from a markdown file.
     function extractFrontmatterFields(mdContent) {
       const m = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(stripLeadingRuleHeaderLines(mdContent));
-      if (!m) return { autoGenerated: false, learningKey: null, expiresAt: null };
+      if (!m) return { autoGenerated: false, learningKey: null, expiresAt: null, evidenceDigest: null };
       const block = m[1];
       const autoGenM = /^auto-generated:\s*(.+)$/m.exec(block);
       const learningKeyM = /^learning-key:\s*(.+)$/m.exec(block);
       const expiresAtM = /^expires-at:\s*(.+)$/m.exec(block);
+      const evidenceDigestM = /^evidence-digest:\s*(.+)$/m.exec(block);
       return {
         autoGenerated: autoGenM ? autoGenM[1].trim() === 'true' : false,
         learningKey: learningKeyM ? learningKeyM[1].trim() : null,
         expiresAt: expiresAtM ? expiresAtM[1].trim() : null,
+        evidenceDigest: evidenceDigestM ? evidenceDigestM[1].trim() : null,
       };
     }
 
@@ -852,11 +964,19 @@ function main() {
         relPath: relative(vaultDir, absPath),
         learningKey: fields.learningKey,
         expiresAt: fields.expiresAt,
+        evidenceDigest: fields.evidenceDigest,
       });
     }
 
     // No generated rules found → silently skip (don't push the check id).
     if (generatedRules.length === 0) return;
+
+    // #1101 — a LITERAL COPY of `EVIDENCE_DIGEST_RE` from
+    // `scripts/lib/reconcile/renderer.mjs`. Copied, not imported: this checker
+    // is a standalone skill script, and importing across the skill/script
+    // boundary would add real coupling for one 30-character literal. The two
+    // copies are pinned equal by `tests/lib/reconcile/renderer.test.mjs`.
+    const EVIDENCE_DIGEST_RE = /^sha256-v1:[0-9a-f]{64}$/;
 
     // Slugify function mirroring emitter.mjs `kebab()`.
     const kebab = (s) =>
@@ -898,26 +1018,37 @@ function main() {
     const nowMs = Date.now();
 
     for (const rule of generatedRules) {
-      const { relPath, learningKey, expiresAt } = rule;
+      const { relPath, learningKey, expiresAt, evidenceDigest } = rule;
 
       // If we cannot evaluate the key (no learning-key frontmatter), skip
       // silently — avoid false positives on malformed rules.
       if (!learningKey) continue;
 
-      if (!learningsPresent || !knownKeys.has(learningKey)) {
-        // Learning is absent from learnings.jsonl (or the file is missing entirely).
+      const hasJsonlEntry = learningsPresent && knownKeys.has(learningKey);
+      const hasValidDigest =
+        typeof evidenceDigest === 'string' && EVIDENCE_DIGEST_RE.test(evidenceDigest);
+
+      if (!hasJsonlEntry && !hasValidDigest) {
+        // NEITHER resolution path is available: the learning is absent from
+        // learnings.jsonl (or the file is missing entirely) AND the rule carries
+        // no self-contained evidence digest, so nothing can vouch for it.
         warnings.push({
           check: 'generated-rule-staleness',
           file: relPath,
           line: 1,
-          message: `Auto-generated rule references learning-key '${learningKey}' which is absent from .orchestrator/metrics/learnings.jsonl`,
+          message: `Auto-generated rule references learning-key '${learningKey}' which is absent from .orchestrator/metrics/learnings.jsonl, and the rule carries no valid evidence-digest to verify it offline`,
           extracted: learningKey,
         });
         continue;
       }
 
-      // Learning exists — check expiry.
-      const storedExpiresAt = knownKeys.get(learningKey);
+      // Provenance resolves — check expiry.
+      // `storedExpiresAt` is only meaningful when the jsonl entry actually
+      // exists. A digest-only rule (fresh clone, or a learning aged out of the
+      // store) is AUTHORITATIVE FOR ITS OWN EXPIRY via frontmatter; reading a
+      // stored value that is not there would make `expiryStr` null and silently
+      // skip the expiry gate for a rule that has a perfectly good `expires-at`.
+      const storedExpiresAt = hasJsonlEntry ? knownKeys.get(learningKey) : null;
       // Prefer the frontmatter expires-at on the rule file; fall back to the
       // stored expires_at from the learning entry (both should agree, but the
       // rule file is authoritative for its own expiry).
@@ -979,18 +1110,32 @@ function main() {
         }
 
         // --- Probe 1: paths-presence → errors[] ---
+        // Since ef7f4fc (2026-07-13, issue #795), rule-loader.mjs's
+        // parseGlobsFrontmatter() accepts `paths:` as a full alias for
+        // `globs:` (globs: wins silently only when BOTH keys are present on
+        // the same rule — see rule-loader.mjs module doc). A well-formed
+        // `paths:`-only rule therefore loads correctly SCOPED, not
+        // always-on — declaring `paths:` alone must NOT be flagged (#840).
+        // This probe reuses parseGlobsFrontmatter — the SAME parser
+        // rule-loader.mjs itself runs — rather than re-deriving the alias
+        // rule with a second hand-rolled regex; duplicating a loader's
+        // parsing logic is exactly the drift class that caused #840. It
+        // fires only when the textual `paths:` key is present yet
+        // parseGlobsFrontmatter failed to recognise it (globs === null) —
+        // a genuine parse mismatch between this probe's textual detection
+        // and the loader's actual behaviour, not routine `paths:` usage.
+        let parsed;
+        try { parsed = parseGlobsFrontmatter(content); } catch { parsed = { globs: null, meta: {} }; }
         const fmBody = extractFrontmatterBlockBody(content);
-        if (fmBody && /^paths:/m.test(fmBody)) {
+        if (fmBody && /^paths:/m.test(fmBody) && parsed.globs === null) {
           errors.push({
             check: 'rule-scoping', file: relPath, line: 1,
-            message: `Rule frontmatter declares 'paths:' which rule-loader.mjs does not recognise — the rule silently loads ALWAYS-ON regardless of file scope. Migrate to 'globs:'.`,
+            message: `Rule frontmatter declares 'paths:' but rule-loader.mjs's parseGlobsFrontmatter did not recognise it — the rule may silently load ALWAYS-ON. Verify the paths:/globs: frontmatter syntax.`,
             extracted: 'paths:',
           });
         }
 
         // --- Probes 3 & 4: zero-match-globs / foreign-glob → warnings[] ---
-        let parsed;
-        try { parsed = parseGlobsFrontmatter(content); } catch { parsed = { globs: null, meta: {} }; }
         const globs = parsed.globs;
         if (Array.isArray(globs) && globs.length > 0) {
           if (trackedFiles === null) trackedFiles = listTrackedFiles(vaultDir);
@@ -1212,7 +1357,7 @@ function main() {
       files_scanned: 0, checks_run: checksRun, checks_skipped: checksSkipped,
       errors, warnings, reason: 'no scope files matched',
     }) + '\n');
-    process.exit(errors.length > 0 && args.mode === 'hard' ? 1 : 0);
+    process.exit(errors.length > 0 && args.mode === 'strict' ? 1 : 0);
   }
 
   for (const abs of scopeFiles) {
@@ -1272,7 +1417,7 @@ function main() {
         let m;
         while ((m = issueRegex.exec(line)) !== null) {
           const iid = m[1];
-          const state = lookupIssueState(iid, repo, issueCache);
+          const state = lookupIssueState(iid, repo, issueCache, vaultDir);
           if (state === 'closed') {
             errors.push({
               check: 'issue-reference-freshness', file: rel, line: lineNum,
@@ -1374,7 +1519,7 @@ function main() {
   }
   process.stdout.write(JSON.stringify(result) + '\n');
 
-  process.exit(errors.length > 0 && args.mode === 'hard' ? 1 : 0);
+  process.exit(errors.length > 0 && args.mode === 'strict' ? 1 : 0);
 }
 
 main();

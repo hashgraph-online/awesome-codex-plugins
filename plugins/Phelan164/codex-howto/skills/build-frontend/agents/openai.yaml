@@ -1,0 +1,4 @@
+interface:
+  display_name: "Build Frontend"
+  short_description: "Build accessible, tested frontend features"
+  default_prompt: "Use $build-frontend to implement this UI feature with accessibility and focused tests."

@@ -36,7 +36,8 @@ Finalize session metrics by reading the wave data accumulated during execution:
    From the `stagnation` array, aggregate into `stagnation_events`:
    - `total`: count of entries in the array
    - `by_pattern`: count by `pattern` value (omit zero-valued keys)
-   - `by_error_class`: count by `error_class` value (omit zero-valued keys; omit entire sub-object if all entries lack `error_class`)
+   - `by_error_class`: count by `error_class` value (omit zero-valued keys; omit entire sub-object if all entries lack `error_class` — only `error-echo` records carry one)
+   - `by_source`: count by `source` value — `coordinator` (post-wave review) vs `tail` (the `wave-transcript-tail` monitor, #1114). Same rule: omit zero-valued keys; omit the entire sub-object when no entry carries `source` (pre-#1114 records do not).
    - `files`: unique list of non-null `file` values (deduplicated)
    - **Omit the entire `stagnation_events` field if `total == 0`** (keeps historical entries clean).
 
@@ -67,7 +68,7 @@ Finalize session metrics by reading the wave data accumulated during execution:
      total_agents: <N>,
      total_files_changed: <N>,
      agent_summary: {complete: <N>, partial: <N>, failed: <N>, spiral: <N>},
-     waves: [/* {wave, role, agent_count, files_changed, quality, planned_files_count?, over_delivery_ratio?} */],
+     waves: [/* {wave, role, agent_count, files_changed, quality, agent_count_planned?, agent_count_started?, agent_count_completed?, planned_files_count?, over_delivery_ratio?} */],
      // effectiveness is CONSTRUCTED EXPLICITLY (#773) — NOT left as an optional
      // field for the coordinator to remember. Leaving it optional is exactly how
      // the carryover=0 blind spot recurred (41/41 records read carryover:0).
@@ -110,7 +111,7 @@ Finalize session metrics by reading the wave data accumulated during execution:
      "total_files_changed": N,
      "agent_summary": {"complete": N, "partial": N, "failed": N, "spiral": N},
      "waves": [
-       {"wave": 1, "role": "Discovery", "agent_count": N, "files_changed": N, "quality": "pass|fail|skip", "planned_files_count": N, "over_delivery_ratio": 0.0},
+       {"wave": 1, "role": "Discovery", "agent_count": N, "files_changed": N, "quality": "pass|fail|skip", "agent_count_planned": N, "agent_count_started": N, "agent_count_completed": N, "planned_files_count": N, "over_delivery_ratio": 0.0},
        ...
      ],
      "discovery_stats": {
@@ -152,7 +153,8 @@ Finalize session metrics by reading the wave data accumulated during execution:
      },
      "stagnation_events": {
        "total": N,
-       "by_pattern": {"error-echo": N, "turn-key-repetition": N, "pagination-spiral": N},
+       "by_pattern": {"error-echo": N, "turn-key-repetition": N, "pagination-spiral": N, "psa007-git-write": N, "status-partial": N},
+       "by_source": {"coordinator": N, "tail": N},
        "by_error_class": {"edit-format-friction": N, "scope-denied": N, "command-blocked": N, "other": N},
        "files": ["<relative path>", "..."]
      }
@@ -168,8 +170,22 @@ Finalize session metrics by reading the wave data accumulated during execution:
 > - `review_stats`: populated ONLY when Phase 1.8 dispatched the session-reviewer agent AND it returned findings. Source: the session-reviewer's output summary.
 > - `effectiveness`: ALWAYS populated from Phase 1 plan verification results, and CONSTRUCTED EXPLICITLY in the METRICS_ENTRY snippet (#773) — never deferred to a "remember to add" optional step (that omission is how `carryover: 0` slipped past 41 records). `completion_rate` = `completed / planned_issues` (0.0-1.0, where 0.0 means nothing was completed). **`carryover` counting rule (#773):** `carryover` is the **length of the Phase 1.65 gate carry-list** — `autoCarry` ∪ the middle-band `ask` items the operator LEFT SELECTED ∪ the answered-question `impliesWork: true` candidates — NOT the raw Phase 1.2+1.3 candidate count. On the fail-open skip (gate disabled / headless / AUQ unavailable), EVERY candidate carries, so `carryover` = the full candidate-list length. Count the gate's OUTPUT (what reaches Phase 5 Step 3 filing), not its INPUT.
 > - `effectiveness.override_ratio` (#730/H5): OPTIONAL nested field = `overridden_findings / max(total_findings_surfaced, 1)` (float 0.0-1.0). Populate ONLY when Phase 2.6 (Broken-Window Budget) ran this session (`broken-window-budget.enabled: true`). OMIT (do NOT write null/0) otherwise — **absent = "not measured"**, `0.0` = "measured, nothing overridden". `overridden_findings` = the summed `count` of the `orchestrator.finding.overridden` events emitted this session; `total_findings_surfaced` = every MED/LOW+ finding surfaced across Phase 1.8 + wave reviewers.
+> - `waves[].agent_count_planned` / `waves[].agent_count_started` / `waves[].agent_count_completed` (#724/#1115): OPTIONAL per-wave fields, sourced from `wave-loop.md` § Capture wave metrics step 7 — mirror its definitions exactly, do not re-derive them here. `agent_count_planned` = agents named in the session plan for this wave. `agent_count_started` = distinct agents whose `agent-<id>.meta.json` sidecar is present, after any silent-drop re-dispatch — NOT "produced a tool-result" (under background dispatch the launch ack is a result and would count an agent that never ran). `agent_count_completed` = distinct agents whose task-notification (`<status>completed</status>`) arrived. Omit each field when the wave did not measure it — **absent = "not measured"**, never zero-fill; `0` would read as "measured, no agent started", which is the opposite of an unmeasured wave. The two gaps carry the diagnosis: `agent_count_planned > agent_count_started` after re-dispatch is a persistent silent drop, `agent_count_started > agent_count_completed` at wave end is an agent that started and never returned. Both are also logged to STATE.md `## Deviations` by wave-loop.md, so a record and a deviation entry should agree.
 > - `waves[].planned_files_count` / `waves[].over_delivery_ratio` (#730/H4): OPTIONAL per-wave fields, populated from STATE.md Wave History headers of the form `(planned <P> files → actual <A>, over-delivery <R>)` (written by wave-executor §3a since #730/H4); omit when absent (pre-#730 sessions / grounding-check: false).
+> - `waves[].suite_passed` / `waves[].suite_failed` / `waves[].suite_platform` (#944): OPTIONAL per-wave fields. Omit all three when absent — absent = "not measured", `suite_failed: 0` = "measured, zero failures".
+>   **`suite_passed` / `suite_failed`: read the event FIRST, the STATE.md header only as fallback (#966 step 3).** Since #954/#967 the between-waves gate wrapper `scripts/run-quality-gate.mjs` emits `orchestrator.quality_gate.{passed,failed}` with a machine-measured `counts: {passed, failed, total}` AND the `wave_number` it resolved from the `wave-scope.json` sidecar, so per-wave attribution needs no wall-clock window join. Payload fields are flat at the record's top level; for each wave `N` of this session:
+>
+>   ```bash
+>   jq -c --argjson w N --arg s "<semantic_session_id>" '
+>     select(.event | startswith("orchestrator.quality_gate."))
+>     | select(.semantic_session_id == $s and .wave_number == $w and .counts != null)
+>     | .counts' .orchestrator/metrics/events.jsonl | tail -1
+>   ```
+>
+>   Filtering by `semantic_session_id` is mandatory — `events.jsonl` accumulates across sessions and every past session also had a wave `N`. Take the LAST matching record (the wave's final gate run); `counts.passed` → `suite_passed`, `counts.failed` → `suite_failed`. No match = the field was not measured for that wave → omit, never zero-fill (the producer already omits `counts` rather than zero-filling when a run fail-fast'd before the test gate).
+>   **Fallback, still live:** when no event matches, fall back to the STATE.md Wave History header `— suite <passed>/<failed> on <platform>` (written by wave-executor §3a since #944). Three cases genuinely need it: pre-#954 sessions, a gate run outside the `run-quality-gate.mjs` wrapper, and the `verification-auto-fix` producer in `scripts/lib/quality-gate.mjs`, which emits `counts` but no `wave_number` (its records are mid-wave retries, so not matching the selector is correct).
+>   **`suite_platform` has no event source at all** and is read from the STATE.md header, unchanged. **Remaining work to retire the prose path fully:** (1) carry the platform on the gate event payload; (2) once a session has landed with the event path green and no fallback hits, drop the hand-written trio from `wave-loop.md` step 7. Until both hold, the trio stays written — deleting the writer before the reader is proven loses the numbers for sessions in flight.
 > - `open_questions_asked` / `open_questions_answered` / `open_questions_deferred` (#773): the three open-question counts from the Phase 1.65 gate's AUQ Call 2 (identical to the `questions_*` payload fields on the `orchestrator.handover.gated` event). Top-level, additive, non-negative integers. Populate ONLY when the gate ran an interactive triage ("Closen + Triage" path). OMIT all three (do NOT write `0`) when the gate was skipped (fail-open / headless / disabled) or took the fast-path — absent = "not measured", `0` = "measured, zero questions". Validator accepts absent/null/non-negative-integer.
 > - `stagnation_events`: populated ONLY when ≥1 stagnation event was logged to `events.jsonl` during this session. When `total == 0`, the field is omitted from the JSONL entry.
 > - `grounding_injections`: populated ONLY when ≥1 `orchestrator.grounding.injected` event was logged to `events.jsonl` during this session. When `count == 0`, the field is omitted from the JSONL entry.
-> - `memory_cleanup_at`: populated whenever `/memory-cleanup` ran **THIS session** in ANY mode — dry-run, apply-pending, OR healthy no-op (MEMORY.md already healthy, no files mutated). Set `memory_cleanup_at = completed_at` so the auto-dream cadence marker (`readDreamSignals` → `lastCleanupAt`) advances and `shouldDispatchAutoDream` does not fire a false nudge. **A no-op is still a cleanup; the cadence marker MUST advance.** Use `stampMemoryCleanup(record, { ranCleanup: true, completedAt: record.completed_at })` from `scripts/lib/memory-cleanup-stamp.mjs` — this is the testable, no-throw seam that applies the stamp. Omit the field (do NOT set it to null) when `/memory-cleanup` did not run this session. (#699)
+> - `memory_cleanup_at`: **derived by the writer, not supplied by the coordinator.** `scripts/emit-session.mjs` sets it to `completed_at` whenever an `orchestrator.memory.cleanup_completed` event for THIS session sits in `events.jsonl` — emitted by every `/memory-cleanup` run in ANY mode (dry-run, apply-pending, OR healthy no-op). **A no-op is still a cleanup; it still emits, so the cadence marker (`readDreamSignals` → `lastCleanupAt`) still advances and `shouldDispatchAutoDream` does not fire a false nudge.** No event → field absent (never `null`). An explicit value already on the record wins and is not overwritten. Do NOT hand-call `stampMemoryCleanup()` here — the coordinator-supplied-boolean form was removed on 2026-08-17 after it silently failed for a real cleanup on 2026-08-14. (#699)

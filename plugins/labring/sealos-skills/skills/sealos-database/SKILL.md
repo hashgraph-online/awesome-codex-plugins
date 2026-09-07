@@ -5,6 +5,67 @@ description: Provision, connect, and operate Sealos Cloud databases through seal
 
 # Sealos Database
 
+## Identity and Discovery
+
+- **Owner:** `sealos-database` (`/sealos-database` and database create, connect, backup, logs, or access requests).
+- **Class:** `cloud-local-mutation` through `sealos-cli`, with an optional redacted handoff to deployment.
+- **Canaries:** `DB-REUSE-ENV`, `DB-CONFIRM-PUBLIC`, and `DB-REDACT-CONNECT`.
+
+## Scope and Boundaries
+
+Accept a project path and database intent. Analyze first, list existing databases, create or reuse the selected type, and wire only the existing application env key. Preserve prior env values and local Compose rollback; private access is the default. Database deletion, public access, backup deletion, restore collisions, and disabling active access remain gated operations.
+
+## Risk and Confirmation
+
+Never print passwords, full connection strings, kubeconfig, auth files, or copied env values. Ask before public access or destructive operations and state the private alternative. Parse JSON CLI output and keep the selected workspace, namespace, database, and env mutation scoped to the request.
+
+## Lifecycle Workflow
+
+For each request, resolve the project, analyze its database need, confirm CLI/auth/region/workspace, list before create/reuse, fetch connection details, wire the existing env key, and verify connectivity or migrations. Emit request-scoped `success`, `stopped`, or `error`; the existing analyzer-first workflow remains the domain extension below. Workspace ambiguity, an unavailable credential response, or a tracked env target stops the request before mutation.
+
+## Request Contract
+
+```yaml
+input:
+  project: local path or repository source
+  intent: database type, purpose, and create-or-reuse preference
+  access: private by default; public only after confirmation
+preconditions:
+  - analyzer evidence names the database signal and env key
+  - sealos-cli/auth/region/workspace are resolved
+  - the selected env file is ignored and the key is known
+```
+
+The ordered action is `analyze -> resolve account/workspace -> list -> create or reuse -> wait -> fetch -> wire -> verify`. The selected workspace, namespace, database identity, and env mutation remain request-scoped.
+
+## Progressive Disclosure
+
+Load the analyzer, CLI, env-wiring, and connectivity procedures one level deep when their phase is reached. Keep credential-handling and public/destructive confirmation visible here even when detailed commands live in owned scripts or references.
+
+## Output, Stop, and Error States
+
+- `success`: database identity/status, region/workspace, env file and key names, redacted connectivity or migration evidence, confirmation state, and any follow-up access state.
+- `stopped`: ambiguous workspace, unavailable credential readiness, tracked env target, public/destructive confirmation boundary, or missing precondition with the safe next action; no gated mutation is claimed.
+- `error`: analyzer, CLI, connection, or env-write step, sanitized diagnostic category, affected artifact, and recovery action with passwords, URLs, auth values, and complete connection strings redacted.
+
+## Handoffs
+
+An optional deployment handoff uses the complete tuple below. The receiver re-checks deployment scope and runtime evidence.
+
+```yaml
+target: sealos-deploy
+inputArtifact: redacted database identity, private-access status, approved env-key contract, and connectivity/migration evidence
+allowedAction: consume approved Secret/env references within the selected deployment scope
+failureReturn: sanitized analyzer, CLI, env, or connectivity diagnostic with the failed phase
+responseOwner: sealos-database
+```
+
+Direct database requests use `target: none` and keep the same evidence fields.
+
+## Verification
+
+Use `analyze-project-database.mjs`, `sealos-cli` JSON output, app migration/connectivity evidence, and baseline cases `database-positive-reuse-redacted-connectivity` and `database-violating-unconfirmed-public-or-destructive`. Verify env preservation and redaction before accepting success.
+
 Use this skill to give a project a real Sealos Cloud database during development. The default outcome is: identify the app's database need, create or reuse a Sealos database with `sealos-cli`, fetch connection details, wire only the needed local env vars, and verify the app can connect.
 
 ## Safety Rules

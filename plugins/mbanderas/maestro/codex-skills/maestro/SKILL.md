@@ -48,7 +48,8 @@ use `--scope codex-project` unless the user explicitly names another scope.
 /maestro frontier single <model>
 /maestro frontier fusion <preset>
 /maestro frontier fusion custom --models <a,b,c> [--judge <model>] [--synth <model>]
-/maestro frontier compose --models <model>,<model> [--judge <model>] [--synth <model>] [--save <name>] [--dry-run]
+/maestro frontier compose --models <model>,<model> [--judge <model>] [--synth <model>] [--effort <level>] [--save <name>] [--dry-run]
+/maestro frontier effort <auto|low|medium|high|xhigh|max|ultra>
 /maestro frontier preset save <name> --models <a,b,c> [--judge <model>] [--synth <model>]
 /maestro frontier preset list
 /maestro frontier preset delete <name>
@@ -65,7 +66,8 @@ node bin/maestro.cjs frontier catalog
 node bin/maestro.cjs frontier mode single --model <model> --scope codex-project
 node bin/maestro.cjs frontier mode fusion --preset <preset> --scope codex-project
 node bin/maestro.cjs frontier mode fusion --preset custom --models <a,b,c> --scope codex-project
-node bin/maestro.cjs frontier compose --models <model>,<model> --judge <model> --synth <model> --save <name> --scope codex-project
+node bin/maestro.cjs frontier compose --models <model>,<model> --judge <model> --synth <model> --effort <level> --save <name> --scope codex-project
+node bin/maestro.cjs frontier effort <auto|low|medium|high|xhigh|max|ultra> --scope codex-project
 node bin/maestro.cjs frontier preset save <name> --models <a,b,c> --scope codex-project
 node bin/maestro.cjs frontier preset list --scope codex-project
 node bin/maestro.cjs frontier preset delete <name> --scope codex-project
@@ -76,14 +78,19 @@ Start composition with `frontier catalog`: it is the source of truth for
 selectable models, presets, aliases, readiness, and required configuration.
 Do not invent IDs. `compose` validates one to eight comma-separated models;
 without `--dry-run`, it saves and arms the resolved custom fusion panel.
+Effort persists across panel, judge, and synth stages for selected
+effort-aware Claude and Codex models; `effort auto` returns to provider
+defaults.
 
-Configure optional Codex aliases only with
+`opus` pins Claude Opus 5. Sol, Terra, Luna, GPT-5.5, GPT-5.4, GPT-5.4
+Mini, GPT-5.3 Codex Spark, and Codex Auto Review are built in. Existing
 `MAESTRO_FRONTIER_MODEL_TERRA`, `MAESTRO_FRONTIER_MODEL_LUNA`, and
-`MAESTRO_FRONTIER_MODEL_SOL`. Codex Desktop reads them from `~/.codex/.env`;
-restart and open a new thread after changing that file. All panel, judge, and
-synthesizer subprocesses are one-shot and read-only.
+`MAESTRO_FRONTIER_MODEL_SOL` values are optional model-ID overrides. Codex
+Desktop reads overrides from `~/.codex/.env`; restart and open a new thread
+after changing that file. All panel, judge, and synthesizer subprocesses are
+one-shot and read-only.
 
-Before releasing configured optional Codex aliases, run:
+Before releasing Codex catalog changes, probe every first-party Codex selector:
 
 ```bash
 node frontier/smoke.cjs

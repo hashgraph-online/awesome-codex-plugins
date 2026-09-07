@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sealos: Docker to Sealos"
+  short_description: "Convert Compose or install docs into a Sealos template."
+  default_prompt: "Use $docker-to-sealos to convert this Docker Compose setup into a validated Sealos template."

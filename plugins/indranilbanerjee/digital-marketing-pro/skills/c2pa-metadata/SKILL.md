@@ -1,6 +1,6 @@
 ---
 name: c2pa-metadata
-description: "Embed C2PA (Content Authenticity Initiative) provenance manifests in AI-generated marketing assets (image/video/audio/PDF). Use when: preparing AI-generated ad creative, social images, or video for EU markets to comply with EU AI Act Article 50 (applicable 2 Aug 2026); embedding visible AI-generation disclosure in assets; meeting brand-trust transparency requirements."
+description: "Embed a C2PA provenance manifest into an AI-generated marketing asset (PNG, JPG, WebP, GIF, TIFF, MP4, MOV, WebM, MP3, WAV, PDF) via scripts/embed-c2pa.py — produces a signed copy of the file carrying IPTC digital-source-type AI claims, an optional c2pa.ai-disclosure assertion for EU AI Act Article 50 (applicable 2 Aug 2026), and a JSON status report. Triggers on \"/digital-marketing-pro:c2pa-metadata\", \"sign this AI image for EU compliance\", \"add content credentials to this asset\", \"embed provenance metadata\", \"mark this video as AI-generated\". Uses a self-signed dev certificate unless --signing-cert/--signing-key are supplied; pairs with /digital-marketing-pro:check, which verifies manifests pre-publish."
 ---
 
 # /digital-marketing-pro:c2pa-metadata — Embed Content Authenticity Provenance
@@ -21,10 +21,10 @@ The resulting asset can be inspected by any C2PA-aware viewer (Adobe Photoshop, 
 ### C2PA spec versions to be aware of (June 2026)
 
 - **Content Credentials 2.3** (released 9 February 2026 — [launch post](https://c2pa.org/the-c2pa-launches-content-credentials-2-3-and-celebrates-5-years-of-impact-across-the-digital-ecosystem/)) added format support for: **live video** (broadcast/streaming), **plain text documents**, **OGG Vorbis audio**, **large AVI video files**, and **EXIF Original Preservation Images**. If a brand is signing live-stream video or text-based assets for the first time, 2.3 is the floor version to target.
-- **C2PA Spec 2.4** (April 2026 — [spec.c2pa.org/specifications/specifications/2.4](https://spec.c2pa.org/specifications/specifications/2.4/specs/C2PA_Specification.html)) introduces the **AI Disclosure Assertion (`c2pa.ai-disclosure`)** for machine-readable AI transparency info — this is the assertion the EU AI Act Article 50 deployer pathway will rely on. The Code of Practice WG1 (providers) and WG2 (deployers) draft guidance both reference C2PA-style assertions as the canonical machine-readable marking mechanism. See `skills/context-engine/eu-code-of-practice.md` for the full Article 50 context.
+- **C2PA Spec 2.4** (April 2026 — [spec.c2pa.org/specifications/specifications/2.4](https://spec.c2pa.org/specifications/specifications/2.4/specs/C2PA_Specification.html)) introduces the **AI Disclosure Assertion (`c2pa.ai-disclosure`)** for machine-readable AI transparency info — this is the assertion the EU AI Act Article 50 deployer pathway will rely on. The final Code of Practice on Transparency of AI-Generated Content (published 10 June 2026) references C2PA-style assertions as the canonical machine-readable marking mechanism for both providers and deployers. See `skills/context-engine/eu-code-of-practice.md` for the full Article 50 context.
 - The **C2PA Trust List** is now handled via the public C2PA Conformance Program (any CA meeting the Certificate Policy can join). Production signing certificates should come from a Conformance-Program-listed CA, not an ad-hoc cert.
 
-**For DMP outputs**: `embed-c2pa.py` now supports `--ai-disclosure`. Pass it to embed the C2PA 2.4 `c2pa.ai-disclosure` assertion alongside the existing IPTC digital-source-type claim. The combination gives you both human-readable (IPTC) and machine-readable (`c2pa.ai-disclosure`) EU AI Act **Article 50** signaling — this is the deployer-side machine-readable pathway the Code of Practice draft points to as the canonical marking mechanism. See `skills/context-engine/eu-code-of-practice.md` for the full Article 50 context.
+**For DMP outputs**: `embed-c2pa.py` now supports `--ai-disclosure`. Pass it to embed the C2PA 2.4 `c2pa.ai-disclosure` assertion alongside the existing IPTC digital-source-type claim. The combination gives you both human-readable (IPTC) and machine-readable (`c2pa.ai-disclosure`) EU AI Act **Article 50** signaling — this is the deployer-side machine-readable pathway the final Code of Practice (10 June 2026) points to as the canonical marking mechanism. See `skills/context-engine/eu-code-of-practice.md` for the full Article 50 context.
 
 ## When to invoke
 
@@ -138,7 +138,7 @@ The script prints a JSON status report to stdout:
 
 ## Integration with the engagement workflow
 
-In a full 12-part engagement, this skill plugs in at **Part 11 — AI Creative Instructions output**. After a creative brief is rendered as an actual asset (in SocialForge or a manual creative process), the resulting file passes through `c2pa-metadata` before being checked in to `engagements/<slug>/11-creative-briefs/signed/`.
+In a full 12-part engagement, this skill plugs in at **Part 11 — AI Creative Instructions output**. After a creative brief is rendered as an actual asset (by your creative tooling or a manual creative process), the resulting file passes through `c2pa-metadata` before being checked in to `engagements/<slug>/11-creative-briefs/signed/`.
 
 The `/digital-marketing-pro:check` pre-publish gate should also verify that all AI-generated assets in an EU-targeted campaign carry a C2PA manifest. v3.4 adds this verification to the EU jurisdiction rule pack in `skills/context-engine/compliance-rules.md`.
 
@@ -146,6 +146,6 @@ The `/digital-marketing-pro:check` pre-publish gate should also verify that all 
 
 - `/digital-marketing-pro:check` — pre-publish quality gate (now verifies C2PA manifest on AI assets for EU campaigns)
 - `skills/context-engine/compliance-rules.md` — EU AI Act Article 50 rule pack
-- `skills/influencer-creator/ftc-compliance.md` — FTC May 2026 endorsement guidance
+- `skills/influencer-creator/ftc-compliance.md` — FTC endorsement disclosure requirements
 - [C2PA Specification 2.4 (April 2026)](https://spec.c2pa.org/specifications/specifications/2.4/specs/C2PA_Specification.html) — defines the `c2pa.ai-disclosure` assertion (Article 50 machine-readable pathway); [Content Credentials 2.3 launch (Feb 2026)](https://c2pa.org/the-c2pa-launches-content-credentials-2-3-and-celebrates-5-years-of-impact-across-the-digital-ecosystem/)
 - [Content Authenticity Initiative](https://contentauthenticity.org/)

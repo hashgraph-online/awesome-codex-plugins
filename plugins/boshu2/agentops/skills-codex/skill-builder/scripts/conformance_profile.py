@@ -291,15 +291,20 @@ def evaluation(skill_md: Path, profile: dict[str, Any]) -> dict[str, Any]:
         text = skill_md.read_text(encoding="utf-8")
     except OSError as exc:
         raise ProfileError(f"skill read error: {skill_md}: {exc}") from exc
+    _, frontmatter = _frontmatter_mapping(text)
     forms = trigger_forms(text, profile)
     components = output_component_results(text, profile)
+    declared_output = frontmatter.get("output_contract")
+    has_declared_output = (
+        isinstance(declared_output, str) and bool(declared_output.strip())
+    ) or (isinstance(declared_output, (dict, list)) and bool(declared_output))
     return {
         "profile_id": profile["id"],
         "kernel_max_lines": profile["kernel_max_lines"],
         "line_count": len(text.splitlines()),
         "trigger_forms": forms,
         "output_components": components,
-        "output_complete": all(components.values()),
+        "output_complete": has_declared_output or all(components.values()),
     }
 
 

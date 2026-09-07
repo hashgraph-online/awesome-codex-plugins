@@ -1,6 +1,6 @@
 ---
 name: brand-setup
-description: "Set up or update a brand profile. Use when: new brand onboarding, client setup, brand switching, context update."
+description: "Create or update the brand profile every other skill reads — a quick 5-question or full 17-question interactive setup capturing identity, business model, industry and compliance markets, 4-dimension voice scales, channels, goals, and competitors, saved to ~/.claude-marketing/brands/{slug}/profile.json via scripts/setup.py. Triggers on \"/digital-marketing-pro:brand-setup\", \"set up a new brand\", \"onboard a new client\", \"switch to another brand\", \"update our brand voice\". Also handles brand switching (updates _active-brand.json) and field-level profile edits; run this first — all marketing skills auto-apply the resulting profile, voice samples, and compliance rules."
 argument-hint: "[brand-name or --full]"
 ---
 
@@ -100,7 +100,8 @@ After collecting all information:
 
 1. Run: `python "${CLAUDE_PLUGIN_ROOT}/scripts/setup.py" --create-brand "[brand name]"`
 2. Update the created profile.json with all collected data
-3. Confirm to user: "Brand profile created for [brand_name]. All marketing modules will now use this context. You can update it anytime by saying 'update my brand profile.'"
+3. Add the AI-assistance disclosure block (defaults unless the user chooses otherwise): `"ai_disclosure": {"mode": "claude-surfaces", "text": null, "author": null}`. Modes: `claude-surfaces` (default — the disclosure attaches when content runs on a Claude surface or the surface is uncertain; skipped only on an affirmatively-detected non-Claude harness), `always` (every surface — safest for brands with their own AI-transparency obligations), `off` (never; the brand owns that choice). `author` is OPTIONAL and may stay null — the default wording ("reviewed by our editorial team") needs no name. Custom `text` replaces the default verbatim; note the default is vendor-neutral and claims only the review the pipeline performs
+4. Confirm to user: "Brand profile created for [brand_name]. All marketing modules will now use this context. You can update it anytime by saying 'update my brand profile.'"
 
 ## Switching Brands
 

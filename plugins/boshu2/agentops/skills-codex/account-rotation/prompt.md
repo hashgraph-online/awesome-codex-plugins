@@ -1,6 +1,6 @@
 # account-rotation
 
-Switch coding-agent accounts on a usage/rate limit. Routes by host+agent: macOS+Claude to claude-acct; Codex/Gemini and Linux/WSL to caam. Triggers: "account-rotation", "account rotation", "switch coding-agent accounts on a".
+Switch a caller-selected coding-agent account and report the observed identity. Triggers: "switch account", "rotate coding-agent account".
 
 ## Instructions
 

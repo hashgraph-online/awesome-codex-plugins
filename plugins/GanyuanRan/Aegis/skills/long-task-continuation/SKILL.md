@@ -1,6 +1,6 @@
 ---
 name: long-task-continuation
-description: Use when a task is multi-step, may span context resets or sessions, uses subagents, or risks losing state before completion.
+description: "Use when a task is multi-step, may span context resets or sessions, uses subagents, or risks losing state before completion."
 ---
 
 # Long Task Continuation
@@ -37,6 +37,8 @@ Use this skill when any of these are true:
 - the task changes architecture, contracts, shared workflows, or verification gates
 
 For short direct answers or one-command checks, do not force this protocol.
+
+Multi-step, todo-driven, or subagent-using tasks do not force durable records by themselves; keep an inline checkpoint unless the task also crosses sessions, needs handoff, or requires resumable state.
 
 ## Required Artifacts
 
@@ -125,9 +127,15 @@ available, use it for the target project workspace and lifecycle records:
    ```bash
    python <aegis-workspace-helper> add-checkpoint --root <target-project-root> --work YYYY-MM-DD-<slug> ...
    python <aegis-workspace-helper> add-baseline-usage --root <target-project-root> --work YYYY-MM-DD-<slug> ...
-   python <aegis-workspace-helper> add-evidence --root <target-project-root> --work YYYY-MM-DD-<slug> ...
+   python <aegis-workspace-helper> add-attempt --root <target-project-root> --work YYYY-MM-DD-<slug> --slice-id <slice-id> --attempt-id <attempt-id> --attempt-status failed ...
+   python <aegis-workspace-helper> add-evidence --root <target-project-root> --work YYYY-MM-DD-<slug> --slice-id <slice-id> --evidence-status <terminal-status> ...
    python <aegis-workspace-helper> add-drift-check --root <target-project-root> --work YYYY-MM-DD-<slug> ...
    ```
+
+   Use `add-attempt` for a failed verification retry inside the current slice.
+   Use `add-evidence` only after the slice reaches `evidence-finalized`,
+   `blocked`, or `abandoned`. Do not let a failed attempt create another slice
+   or a formal evidence sidecar.
 
 4. Before pause, handoff, or completion candidate, assemble a structural proof
    bundle and check the workspace:
@@ -183,6 +191,20 @@ Before long-task execution:
    create/index the first `docs/aegis/work/` files and run `check --root
    <target-project-root>` before continuing.
 
+## Retry Convergence Protocol
+
+A failed verification is another attempt in the current slice, not a new slice.
+
+- Reuse the current `activeSlice` as the `--slice-id`.
+- Record each retry with `add-attempt`, not `add-evidence`.
+- Do not append failed attempts to `90-evidence.md`.
+- Do not create a normal commit for attempt telemetry.
+- A process-only diff under `docs/aegis/` does not restart completed business-code verification.
+- When `add-attempt` reports `process-artifact-pressure`, stop auto-retry and route to `systematic-debugging` or `verification-before-completion`.
+
+Only terminal evidence (`evidence-finalized`, `blocked`, or `abandoned`) is
+eligible for `bundle`.
+
 ## Per-Slice Protocol
 
 Before each work slice, restate:
@@ -208,6 +230,8 @@ After each work slice, update:
 7. helper-backed JSON sidecars through `aegis-workspace.py add-checkpoint`,
    `aegis-workspace.py add-baseline-usage`, `aegis-workspace.py add-evidence`, and `aegis-workspace.py add-drift-check`
    when available
+8. failed verification: `add-attempt` with the current `--slice-id`; do not add
+   terminal evidence or create a process-only commit
 
 When patch-shape/ripple triage, an H-class finding, or a bounded compatibility
 mitigation fired, a locally green result does not clear that direction. Reuse
@@ -225,14 +249,15 @@ When resuming:
 2. Read latest resume hint if present.
 3. Re-read original task intent.
 4. Re-read required baseline refs.
-5. Re-read the `Execution Readiness View` if present.
-6. Compare current worktree state with checkpoint claims.
-7. Compare the active slice against the view's intent lock, scope fence,
-   baseline lock, compatibility boundary, retirement boundary, test
-   obligations, and review gates.
-8. If checkpoint, baseline, view, and worktree disagree, pause and ask for
-   direction or return to planning.
-9. Before an unplanned repair, read retained invariant, owner seam, patch shape,
+5. Passively re-read relevant active `CONTEXT.md` language for non-trivial work.
+6. Re-read the `Execution Readiness View` if present.
+7. Compare current worktree state with checkpoint claims.
+8. Compare the slice with the view's intent, scope, baseline, compatibility,
+   retirement, test, and review locks.
+9. If any disagreement exists among the checkpoint, baseline, context, view, and
+   worktree, compose `establishing-project-context` for a semantic conflict; for
+   any other disagreement, pause or return to planning.
+10. Before an unplanned repair, read retained invariant, owner seam, patch shape,
    and causal topology and route comparison to `systematic-debugging`; a new
    carrier name alone does not prove a new direction.
 
@@ -298,6 +323,8 @@ Use this shape for long-task updates:
 - `Execution Readiness View`: present | absent | refreshed | stale, and the
   alignment signal when present
 - `Evidence`: commands, files, logs, or manual checks
+- `Process Artifact Pressure`: attempted slices, retry count, terminal state,
+  and whether convergence-stop is active
 - `DriftCheckDraft`: scope, compatibility, retirement, decision
 - `Risk / Unknown`: unresolved blockers or missing evidence
 - `Next`: the next smallest safe action

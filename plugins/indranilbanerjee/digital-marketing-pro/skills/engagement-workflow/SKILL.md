@@ -1,6 +1,6 @@
 ---
 name: engagement-workflow
-description: "Run a full marketing engagement using the 12-Part methodology. Use when starting a new engagement, advancing parts, applying the Decision Matrix, or showing engagement status."
+description: "Orchestrate a full marketing engagement through the 12-Part methodology — Stone vs Opinion intake, external research, Four Core Documents, client validation, Decision Matrix v2 re-runs, growth planning, channel fan-out, and the continuous-improvement loop — with checkpointed, resumable state at every part. Triggers on \"/digital-marketing-pro:engagement-workflow\", \"start a new engagement\", \"what part of the engagement are we on\", \"apply the decision matrix\", \"advance to the next part\". Reads and writes engagement state via engagement-state.py only, and dispatches to /digital-marketing-pro:four-core-documents, growth-plan, yearly-planner, and continuous-improvement-loop."
 user-invocable: true
 triggers:
   - start a new engagement
@@ -11,7 +11,7 @@ triggers:
   - re-run v2 documents
   - mark engagement part complete
   - what part of the engagement are we on
-allowed-tools: Read Write Edit Bash Glob Grep
+allowed-tools: Read Write Edit Bash Glob Grep Task
 engagement-part: orchestrator
 view-preference: both
 ---
@@ -283,7 +283,7 @@ Each part is produced by real, existing agents and skills. This orchestrator dis
 | 8 | skills `growth-plan` + `yearly-planner` |
 | 9 | per-channel skills — `paid-advertising`, `aeo-geo`, `social-strategy`, `seo-plan`, `email-sequence` (one per channel family) |
 | 10 | skill `content-engine` (execution / output mode) |
-| 11 | skills `content-engine` + `ad-creative` + `video-script` (creative briefs); actual asset generation via `/socialforge:compose-creative` + `/socialforge:generate-video` (requires the SocialForge plugin) |
+| 11 | skills `content-engine` + `ad-creative` + `video-script` (creative briefs); asset rendering happens in your own creative tooling (design team, AI image/video tools, or a connected design platform), then finished assets are signed via `c2pa-metadata` |
 | 12 | skill `continuous-improvement-loop` |
 
 ## Parallel Dispatch

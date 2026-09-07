@@ -13,7 +13,7 @@ jk auth <command> [flags]
 | Subcommand | Description | Key Flags |
 |---|---|---|
 | [login](#jk-auth-login) | Authenticate to Jenkins and persist a context | `--allow-insecure-store`, `--ca-file`, `--insecure`, `--name` |
-| [logout](#jk-auth-logout) | Remove credentials for a context | `--context` |
+| [logout](#jk-auth-logout) | Remove credentials for a context | — |
 | [status](#jk-auth-status) | Display authentication status | — |
 
 ## jk auth login
@@ -62,16 +62,11 @@ Remove credentials for a context
 jk auth logout [context] [flags]
 ```
 
-### Flags
-
-| Flag | Short | Description |
-|---|---|---|
-| `--context` |  | Context name to remove (defaults to active) |
-
 ### Inherited Flags
 
 | Flag | Short | Description |
 |---|---|---|
+| `--context` | `-c` | Active Jenkins context name (or set JK_CONTEXT env var) |
 | `--format` |  | Output format: json, yaml |
 | `--jq` |  | Filter JSON output using jq expression (requires --json or --format=json) |
 | `--json` |  | Output in JSON format when supported |
@@ -86,7 +81,7 @@ Display authentication status
 ### Usage
 
 ```
-jk auth status [flags]
+jk auth status [context] [flags]
 ```
 
 ### Inherited Flags

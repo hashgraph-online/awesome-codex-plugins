@@ -1,6 +1,6 @@
 ---
 name: audience-intelligence
-description: "Research target audiences. Use when: buyer personas, segmentation, Jobs-to-Be-Done, psychographic profiling, audience deep-dive."
+description: "Audience research module — builds six-dimension buyer personas (demographic, psychographic, behavioral, need-state, information, decision), Jobs-to-Be-Done maps, RFM/behavioral/lifecycle segmentation models, anti-personas with exclusion criteria, B2B buying-committee maps, and lookalike seed specs. Triggers on \"/digital-marketing-pro:audience-intelligence\", \"who are our customers\", \"build buyer personas\", \"segment our audience\", \"run a JTBD analysis\". Reads the brand profile, industry benchmarks, and campaign history, and works from CRM/survey/analytics data when supplied — or labels hypothesis personas explicitly when data is thin. For a single quick persona document, /digital-marketing-pro:audience-profile is the lighter sibling."
 ---
 
 # Audience Intelligence
@@ -134,6 +134,7 @@ If the user has minimal data, build hypothesis-driven personas based on business
 - `jtbd-framework.md` — Jobs-to-Be-Done analysis methodology, job mapping canvas, outcome-driven innovation scoring, and competing solutions analysis
 - `segmentation.md` — RFM scoring model, behavioral segmentation framework, lifecycle segmentation definitions, and segment-to-action mapping
 - `psychographic-profiling.md` — Values and attitudes framework, lifestyle analysis, motivation mapping, and psychographic data collection methods
+- `customer-research-methods.md` — Quantitative and qualitative research methods: survey design, interview techniques, voice-of-customer programs, and synthesis methods with budget guidance
 
 ## Output Formats
 

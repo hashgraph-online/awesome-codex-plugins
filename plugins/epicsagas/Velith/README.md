@@ -9,10 +9,11 @@
   <a href="https://github.com/epicsagas/Velith/commits/main"><img alt="Last commit" src="https://img.shields.io/github/last-commit/epicsagas/Velith?style=for-the-badge&labelColor=0d1117&color=58a6ff&logo=git&logoColor=white" /></a>
 </p>
 <p>
-  <a href=".claude-plugin/plugin.json"><img alt="Version" src="https://img.shields.io/badge/version-0.4.1-fc8d62?style=for-the-badge&labelColor=0d1117" /></a>
+  <a href=".claude-plugin/plugin.json"><img alt="Version" src="https://img.shields.io/badge/version-0.5.0-fc8d62?style=for-the-badge&labelColor=0d1117" /></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-3fb950?style=for-the-badge&labelColor=0d1117" /></a>
   <a href="https://claude.ai/code"><img alt="Claude Code" src="https://img.shields.io/badge/Claude_Code-plugin-bc8cff?style=for-the-badge&labelColor=0d1117" /></a>
   <a href="https://github.com/openai/codex"><img alt="Codex CLI" src="https://img.shields.io/badge/Codex_CLI-plugin-10a37f?style=for-the-badge&labelColor=0d1117" /></a>
+  <a href="https://x.ai/cli"><img alt="Grok Build" src="https://img.shields.io/badge/Grok_Build-plugin-ffffff?style=for-the-badge&labelColor=0d1117" /></a>
   <a href="https://buymeacoffee.com/epicsaga"><img alt="Buy Me a Coffee" src="https://img.shields.io/badge/buy_me_a_coffee-FFDD00?style=for-the-badge&labelColor=0d1117&logo=buymeacoffee&logoColor=black" /></a>
 </p>
 <p>
@@ -88,7 +89,7 @@ Velith ships as a book pipeline — but the same 6 phases apply to **any long-fo
 | Genre awareness | 8 genre systems + custom | Prompt-dependent | None | Fiction-focused | None |
 | Output format | EPUB, PDF, MOBI, TXT, Markdown | Copy-paste | Markdown / PDF | DOCX, limited | DOCX, PDF |
 | Quality gates | Every phase | None | None | None | None |
-| Requires | Claude Code, Codex CLI, Agy, Cursor, Cline, or Aider | Any LLM | Notion subscription | Subscription | License |
+| Requires | Claude Code, Codex CLI, Grok Build, Agy, Cursor, Cline, or Aider | Any LLM | Notion subscription | Subscription | License |
 | Full control | Prompt-level | Full | Black box | Black box | Full |
 
 ## Installation
@@ -130,6 +131,25 @@ Codex auto-discovers skills from `.agents/skills/` and subagents from `.codex/ag
 Updates with `codex plugin update velith@epicsagas`.
 
 **Prerequisites:** [Codex CLI](https://github.com/openai/codex) installed and configured with an OpenAI API key.
+
+### Grok Build (xAI)
+
+```bash
+grok plugin install epicsagas/Velith --trust
+```
+
+Grok reads skills from `skills/` and agents from `agents/` at the plugin root. No extra configuration needed. Agents spawn as `velith:<name>` (for example `velith:chapter-writer`).
+
+Alternatively, add this repository as a marketplace:
+
+```bash
+grok plugin marketplace add epicsagas/Velith
+grok plugin install velith --trust
+```
+
+Updates with `grok plugin update velith`.
+
+**Prerequisites:** [Grok Build](https://x.ai/cli) installed and authenticated.
 
 ### Agy (Antigravity)
 

@@ -5,6 +5,79 @@ description: Generate production-ready Dockerfile for any GitHub project. Suppor
 
 # Dockerfile Generator Skill
 
+## Identity and Discovery
+
+- **Owner:** `dockerfile-skill` (`/dockerfile` and Dockerfile, containerize, build-fix, or Docker build requests).
+- **Class:** `local-artifact-mutation` with a validated packaging handoff to `sealos-deploy`.
+- **Canaries:** `DFS-RUNTIME-ACCEPT`, `DFS-OWNED-FILES`, and `DFS-REDACT`.
+
+## Scope and Boundaries
+
+Accept a local path or GitHub URL, optionally with a readiness report from `cloud-native-readiness`. Analyze and write only the named packaging artifacts (`Dockerfile`, `.dockerignore`, optional compose/entrypoint/docs and deploy-side build evidence); preserve pre-existing files and project values by default. A replacement requires an explicit request decision recorded before mutation. Build, migration, HTTP, and log validation remain required before a result is accepted.
+
+## Risk and Confirmation
+
+Keep generated secrets, environment values, database URLs, and connection details out of reports. A required package or system-tool installation follows the current project confirmation boundary. Never treat a successful `docker build` as runtime acceptance; the `DFS-RUNTIME-ACCEPT` canary requires migration/table, HTTP, health, and log evidence.
+
+## Lifecycle Workflow
+
+For each request, analyze the project, generate owned packaging, run the closed-loop build/fix phase, and run runtime validation. Emit request-scoped `success`, `stopped`, or `error`; the existing four-phase Deep Analysis → Generate → Build & Fix → Runtime Validation workflow remains the domain extension below.
+
+## Progressive Disclosure
+
+Load `modules/analyze.md`, `modules/generate.md`, and `modules/build-fix.md` one level deep when their phase is reached. Load knowledge/templates only from those owned branches and retain the existing error-pattern routing.
+
+## Output, Stop, and Error States
+
+- `success`: source/provenance, named packaging files, successful image/build identity, migration/database proof, HTTP/health response, quiet runtime logs, verification evidence, and redaction result.
+- `stopped`: unresolved analysis, missing precondition, replacement or installation decision, or unavailable runtime input with observed evidence, redaction result, and safe next action; no partial acceptance claim.
+- `error`: failed build, migration, HTTP, health, or log step with its artifact, sanitized diagnostic, redaction result, and recovery action.
+
+## Handoffs
+
+Send the complete typed handoff below for direct packaging requests. Deploy must preserve its own eligibility and Runtime Truth gates.
+
+```yaml
+target: sealos-deploy
+inputArtifact: validated Dockerfile and build/runtime result with source provenance
+allowedAction: build or reuse an image within the selected deployment scope
+failureReturn: failing packaging, migration, HTTP, health, or runtime-log phase
+responseOwner: dockerfile-skill
+```
+
+## Verification
+
+Use the runtime validation commands in this entry, `node --check` for changed helpers, and baseline cases `dockerfile-positive-build-runtime` and `dockerfile-violating-build-only`. Verify actual container behavior, migrations, HTTP, logs, file scope, and redaction.
+
+## Packaging Result Contract
+
+Keep the result request-scoped and repository-relative. A build artifact does not
+become a successful handoff until the runtime result is accepted.
+
+```yaml
+source: local path or GitHub source, with readiness provenance when provided
+owned_files: named files planned, created, preserved, or changed
+build:
+  dockerfile_valid: true | false
+  image_identity: redacted tag or digest
+  result_artifact: docker-build/build-result.json
+runtime:
+  migration: applicable | not_applicable | failed
+  database_or_state_proof: observed evidence or null
+  http_health: accepted response and health evidence or null
+  log_analysis: error count and sanitized findings
+  result_artifact: docker-build/validation-result.json
+verification:
+  redaction: pass | fail
+  helper_checks: named commands and outcomes
+terminal_state: success | stopped | error
+safe_next_action: request-scoped recovery or handoff action
+```
+
+`success` requires the Dockerfile and build result plus the applicable migration,
+HTTP/health, and runtime-log checks. The result never contains passwords, tokens,
+environment values, database URLs, or complete connection strings.
+
 ## Overview
 
 This skill generates production-ready Dockerfiles through a 4-phase process:
@@ -70,7 +143,7 @@ Load and execute: [modules/generate.md](modules/generate.md)
 - `Dockerfile` (with migration handling, build optimization)
 - `.dockerignore` (workspace-aware)
 - `docker-compose.yml` (if external services needed)
-- `.env.docker.local` (auto-generated with test secrets)
+- `.env.docker.local` (optional placeholder keys only; never secret values)
 - `docker-entrypoint.sh` (with migration execution)
 - `DOCKER.md` (complete deployment guide)
 - Environment variable documentation

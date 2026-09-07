@@ -592,14 +592,18 @@ indent_size = 2
 
 Canonical implementation in [`_shared-template.md#parallel-sessions-rule`](_shared-template.md).
 
-Write the vendored rule from `$PLUGIN_ROOT/templates/_shared/rules/parallel-sessions.md` to
-`$REPO_ROOT/.claude/rules/parallel-sessions.md` (idempotent: missing→create, identical→skip,
-differs→overwrite). The shared partial also runs
+Run `node "$PLUGIN_ROOT/scripts/lib/rules-sync.mjs" --repo-root "$REPO_ROOT"` — it vendors every
+rule registered in `rules/_index.md` (idempotent: missing→create, identical→skip, differs→overwrite),
+and it is the only writer that applies the pre-write validator, the basename-collision guard and the
+copy-on-write branch that preserves repo-private rules. The shared partial also runs
 `cp "$PLUGIN_ROOT/templates/_shared/loop.md" "$REPO_ROOT/.claude/loop.md"` so bare `/loop` gets a
-repo-aware maintenance prompt. See shared partial for full shell command. Issues #155, #633.
+repo-aware maintenance prompt. See shared partial for full shell command. Issues #155, #633, #1060.
 
-Note: Runs before S99. If S99 fetches a newer `parallel-sessions.md` from the baseline, the
-baseline version wins (acceptable — S99 is canonical).
+Note: Runs before S99. S99 no longer fetches `parallel-sessions.md` from the baseline — that entry
+was removed from the S99 manifest in #1060. The baseline copy carries no provenance header, so
+letting it win would make the next `--sync-rules` classify the target as a repo-private override and
+preserve it permanently, i.e. the plugin could never update that rule again. `rules/` is the single
+source for it.
 
 ## Step 3b: Initialize .orchestrator/metrics/ (#185)
 

@@ -1,6 +1,6 @@
 ---
 name: performance-check
-description: "Pull live marketing metrics for a performance snapshot: KPIs vs targets, trend comparison, and cross-platform overview. Use when checking current marketing performance, monitoring KPI health, comparing to benchmarks, or getting a quick status update across analytics platforms."
+description: "Pull live metrics from every connected analytics MCP into one cross-channel snapshot: KPI scoreboard with RAG status vs profile targets, period-over-period trends, industry benchmarks, top wins and concerns, and 3-5 recommended actions — then persist the snapshot via performance-monitor.py for trend history. Triggers on \"/digital-marketing-pro:performance-check\", \"how are our marketing metrics\", \"pull current KPIs\", \"quick performance snapshot\", \"are we hitting our targets\". Reads the brand profile for KPI targets and industry benchmarks; reports data gaps for unconnected platforms. Pairs with /digital-marketing-pro:performance-report, which turns these snapshots into the stakeholder narrative."
 user-invocable: true
 triggers:
   - check marketing performance

@@ -8,7 +8,8 @@ echo "=== DCG Installation Validation ==="
 # Check if dcg is installed
 if ! command -v dcg &> /dev/null; then
     echo "ERROR: dcg not found in PATH"
-    echo "Install from: https://github.com/anthropics/destructive-command-guard"
+    echo "Install from: https://github.com/Dicklesworthstone/destructive_command_guard"
+    echo "  (cargo install destructive_command_guard)"
     exit 1
 fi
 

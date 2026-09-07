@@ -1,6 +1,6 @@
 ---
 name: langfuse
-version: 0.10.0
+version: 0.10.1
 description: Debug AI agents and LLM applications via Langfuse MCP. Use when investigating traces, exceptions, slow generations, sessions, prompt versions, datasets, or evaluation sets. Triggers on "langfuse", "traces", "debug AI", "find exceptions", "what went wrong", "why is it slow", "datasets", "evaluation sets".
 metadata:
   short-description: Langfuse observability via MCP

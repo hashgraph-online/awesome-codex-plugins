@@ -1,6 +1,7 @@
 ---
 name: skill-debate
 description: "Structured multi-provider AI debates between Claude and available advisors — use for critical decisions"
+disable-model-invocation: true
 ---
 
 > **Host: Codex CLI** — This skill was designed for Claude Code and adapted for Codex.
@@ -31,14 +32,14 @@ description: "Structured multi-provider AI debates between Claude and available 
 
 Participants:
 🔴 Codex CLI - Technical implementation perspective
-🟡 Gemini CLI - Ecosystem and strategic perspective
-🟠 Sonnet 4.6 - Pragmatic implementer perspective if host subagents are available
+🟡 Antigravity CLI - Ecosystem and strategic perspective
+🟠 Sonnet 5 - Pragmatic implementer perspective if host subagents are available
 🐙 current host model - Moderator and synthesis
 🟢 Copilot CLI - GitHub-native perspective (if available)
 🟤 Qwen CLI - Alternative model perspective (if available)
 ```
 
-**Core participants are selected from available providers.** Codex (🔴), Gemini (🟡), Antigravity (🧭), Sonnet (🟠), current host model (🐙), and other detected providers can participate based on routing and availability.
+**Core participants are selected from available providers.** Codex (🔴), Antigravity (🧭), Sonnet (🟠), current host model (🐙), and other detected providers can participate based on routing and availability.
 
 **This is NOT optional.** Users need to see which AI providers are active. External API calls (🔴 🟡) use provider API keys. Sonnet (🟠), Copilot (🟢), and Qwen (🟤) are included with existing subscriptions.
 
@@ -54,10 +55,10 @@ For debate rounds, dispatch every external advisor through Octopus routing:
 ```
 
 Do not call provider CLIs directly from the debate workflow. The router applies
-provider-specific flags for Codex, Gemini, Antigravity, and other advisors.
+provider-specific flags for Codex, Antigravity, and other advisors.
 
 - Provider-specific syntax lives in `scripts/lib/dispatch.sh` and helper scripts.
-- Do not copy direct Codex, Gemini, or Antigravity CLI invocations into debate steps.
+- Do not copy direct provider CLI invocations into debate steps.
 - Always pass the selected advisor name to `orchestrate.sh spawn`; the router chooses the correct command.
 
 **Flags that DO NOT EXIST (will cause errors):**
@@ -66,46 +67,45 @@ provider-specific flags for Codex, Gemini, Antigravity, and other advisors.
 - `codex -q` / `codex --quiet` — REMOVED in v0.101.0
 - `codex -y` / `codex --yes` — NEVER EXISTED
 - `codex "prompt"` without `exec` — launches interactive TUI, hangs
-- `gemini -y` — DEPRECATED, use `--approval-mode yolo`
 
 
-You are current host model, a **participant and moderator** in a multi-provider AI debate system. You consult external advisors (Gemini, Codex, Antigravity, and other available providers) via CLI, contribute your own analysis, and synthesize all perspectives for the user. If the host exposes subagents, include Sonnet as an independent analyst.
+You are current host model, a **participant and moderator** in a multi-provider AI debate system. You consult external advisors (Codex, Antigravity, and other available providers) via CLI, contribute your own analysis, and synthesize all perspectives for the user. If the host exposes subagents, include Sonnet as an independent analyst.
 
 **CRITICAL: You are NOT just an orchestrator. You are an active participant with your own voice and opinions.**
 
 
 ## How Users Invoke This Skill
 
-Users can invoke the debate skill in natural language. You parse the intent and run the debate.
+Users invoke this skill explicitly from the slash menu. Parse the supplied intent and run the debate.
 
 ### Basic Invocation
 ```
-/debate <question or task>
+/octo:debate <question or task>
 ```
 
 ### With Flags
 ```
-/debate -r 3 -d thorough <question>
-/debate --rounds 2 --debate-style adversarial <question>
-/debate --path debates/009-new-topic <question>
+/octo:debate -r 3 -d thorough <question>
+/octo:debate --rounds 2 --debate-style adversarial <question>
+/octo:debate --path debates/009-new-topic <question>
 ```
 
 ### With File References
 Users can mention files naturally - you resolve them to full paths:
 ```
-/debate Is our CLAUDE.md accurate?
+/octo:debate Is our CLAUDE.md accurate?
 -> You resolve to full absolute path
 
-/debate Review the auth flow in src/auth.ts
+/octo:debate Review the auth flow in src/auth.ts
 -> You find src/auth.ts relative to cwd and pass full path to advisors
 ```
 
 ### Examples Users Might Say
-- `/debate Should we use Redis or in-memory cache?`
-- `/debate -r 3 Review the whatsappbot codebase for issues`
-- `/debate on whether our error handling in api.ts is sufficient`
+- `/octo:debate Should we use Redis or in-memory cache?`
+- `/octo:debate -r 3 Review the whatsappbot codebase for issues`
+- `/octo:debate on whether our error handling in api.ts is sufficient`
 - `Run a debate about the database schema design`
-- `I want gemini and codex to review this PR`
+- `I want Antigravity and Codex to review this PR`
 
 
 ## Flags
@@ -156,7 +156,7 @@ This is a **provider debate** with selected advisor voices plus you as moderator
 +-------------------+
 |     ROUND 1       |
 +-------------------+
-| Gemini analyzes   |  🟡 External CLI
+| Antigravity analyzes | 🧭 External CLI
 | Codex analyzes    |  🔴 External CLI
 | Sonnet analyzes   |  🟠 Agent(model: sonnet)
 | YOU analyze       |  🐙 Your independent analysis (Opus)
@@ -166,7 +166,7 @@ This is a **provider debate** with selected advisor voices plus you as moderator
 +-------------------+
 |     ROUND 2+      |
 +-------------------+
-| Gemini responds   |  🟡 Sees prior round
+| Antigravity responds | 🧭 Sees prior round
 | Codex responds    |  🔴 Sees prior round
 | Sonnet responds   |  🟠 Sees prior round
 | YOU respond       |  🐙 Your independent response
@@ -183,7 +183,7 @@ This is a **provider debate** with selected advisor voices plus you as moderator
 
 **Key responsibilities:**
 1. **Set up the debate**: Create folder structure, write context.md
-2. **Consult external advisors**: Call Gemini/Codex via CLI for each round
+2. **Consult external advisors**: Dispatch Antigravity/Codex through Octopus routing for each round
 3. **Launch optional host subagent**: Dispatch Sonnet via host subagent tool (background execution) for each round
 4. **Contribute your analysis**: Write your own perspective to rounds/r00N_claude.md
 5. **Moderate**: Ensure advisors stay on topic, follow word limits
@@ -244,7 +244,7 @@ Export debates to professional formats via the document-delivery skill:
 
 ## Implementation Steps
 
-When the user invokes `/debate`:
+When the user invokes `/octo:debate`:
 
 ### Step 1: Check Provider Availability & Display Banner
 
@@ -264,10 +264,10 @@ Then display the banner with real provider status:
 
 Provider Availability:
 🔴 Codex CLI: [Available ✓ / Not installed ✗]
-🟡 Gemini CLI: [Available ✓ / Not installed ✗]
+🟡 Antigravity CLI: [Available ✓ / Not installed ✗]
 🧭 Antigravity CLI: [Available ✓ / Not installed ✗]
 🤖 Grok CLI (xAI): [Available ✓ / Not installed ✗]
-🟠 Sonnet 4.6: available only when this Codex session exposes a compatible host subagent tool
+🟠 Sonnet 5: available only when this Codex session exposes a compatible host subagent tool
 🐙 current host model: Available ✓ (Moderator and participant)
 ```
 
@@ -353,12 +353,11 @@ if [[ -z "$ADVISORS" ]]; then
   fallback_advisors=()
   command -v codex >/dev/null 2>&1 && fallback_advisors+=(codex)
   command -v agy >/dev/null 2>&1 && fallback_advisors+=(agy)
-  command -v gemini >/dev/null 2>&1 && fallback_advisors+=(gemini)
   ADVISORS=$(IFS=,; echo "${fallback_advisors[*]}")
 fi
 ```
 
-**The `build-fleet.sh debate` command** selects up to 3 debaters from different model families (e.g., codex/OpenAI, agy/Google Antigravity, gemini/Google, copilot/Microsoft) to maximize training bias diversity. Do not hardcode Gemini/Codex-only advisors; use the runtime `ADVISORS` list.
+**The `build-fleet.sh debate` command** selects up to 3 debaters from different model families (for example, codex/OpenAI, agy/Google Antigravity, and copilot/Microsoft) to maximize training-bias diversity. Do not hardcode provider pairs; use the runtime `ADVISORS` list.
 
 ### Step 4: Setup Debate Folder
 ```bash
@@ -522,7 +521,7 @@ cat > "${DEBATE_DIR}/synthesis.md" <<EOF
 ## Summary of Perspectives
 
 ### External Advisor Perspectives
-[Key points from each advisor selected in ADVISORS: Codex, Gemini, Antigravity, or other available providers]
+[Key points from each advisor selected in ADVISORS: Codex, Antigravity, or other available providers]
 
 ### 🟠 Sonnet's Perspective
 [Key points from Sonnet across all rounds — especially implementation feasibility and gotchas]
@@ -580,14 +579,14 @@ IMPORTANT: The deliverable is a PROPOSAL. Never auto-apply changes without user 
 
 ### Example 1: Quick Debate
 ```
-User: /debate Should we use Redis or in-memory cache?
+User: /octo:debate Should we use Redis or in-memory cache?
 
 Claude:
 1. Creates debate folder at ~/.claude-octopus/debates/${SESSION_ID}/042-redis-vs-memcached/
 2. Writes context.md with question
 3. Round 1:
    - Launches Sonnet via Agent(model: sonnet, background execution: true) — pragmatic implementer
-   - Calls orchestrate.sh spawn for each runtime advisor selected by build-fleet.sh, such as codex and agy when Gemini is not installed
+   - Calls orchestrate.sh spawn for each runtime advisor selected by build-fleet.sh, such as codex and agy
    - Waits for Sonnet completion
    - Writes own analysis (Opus) considering all advisor perspectives
 4. Writes synthesis.md with final recommendation from all participants
@@ -596,14 +595,14 @@ Claude:
 
 ### Example 2: Thorough Adversarial Debate
 ```
-User: /debate -r 3 -d adversarial Review our authentication implementation in src/auth.ts
+User: /octo:debate -r 3 -d adversarial Review our authentication implementation in src/auth.ts
 
 Claude:
 1. Reads src/auth.ts to understand context
 2. Creates debate folder
 3. Round 1 (Sonnet launched in background first, then selected external advisors in parallel):
    - 🟠 Sonnet: Implementation feasibility analysis of auth.ts
-   - External advisors selected by build-fleet.sh, such as 🔴 Codex, 🧭 Antigravity, or 🟡 Gemini depending on availability
+   - External advisors selected by build-fleet.sh, such as 🔴 Codex or 🧭 Antigravity depending on availability
    - 🐙 current host model: Your independent analysis considering all advisors
 4. Round 2:
    - 🟠 Sonnet: Responds to other participants' points
@@ -641,7 +640,7 @@ After debate completes:
 ### Knowledge Mode
 Debates can be used in knowledge mode workflows:
 ```
-Knowledge mode "deliberate" phase → Run /debate to get multiple perspectives
+Knowledge mode "deliberate" phase → Run /octo:debate to get multiple perspectives
 → Use synthesis for final decision
 ```
 
@@ -684,4 +683,4 @@ After debate completes, export results via document-delivery skill:
 - **Enhancements**: Claude-Octopus integration (session-aware storage, quality gates, cost tracking, document export, provider debate with Sonnet)
 
 
-**Ready to debate!** Users can invoke with `/debate <question>` or natural language.
+**Ready to debate!** Users can invoke with `/octo:debate <question>` or natural language.

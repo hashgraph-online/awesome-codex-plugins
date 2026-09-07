@@ -1,15 +1,32 @@
 # villagesql-skills
 
 Agent skills for working with [VillageSQL](https://villagesql.com). Skills run
-in Claude Code, Gemini CLI, agy, Codex, Cursor, Amp, Kiro, OpenCode, and OpenClaw.
+in Claude Code, agy, Codex, Cursor, Amp, Kiro, OpenCode, and OpenClaw.
 
 ## Skills
 
 | Skill | What it does |
 |---|---|
+| [`vsql-install-server`](skills/vsql-install-server/) | Gets a working VillageSQL server on your machine — install, start, connect, load an extension, verify. Start here if you do not have a server yet. |
 | [`vsql-extension-builder`](skills/vsql-extension-builder/) | Builds a VillageSQL extension end-to-end through a 7-phase persona-driven workflow. Discovers the current VEF API from live SDK headers — no hardcoded API names. |
 
 More skills will be added here over time.
+
+## Prerequisites
+
+The skills drive a live VillageSQL server on your machine. Install one as a
+prebuilt binary or a source build via the server installer:
+
+```bash
+curl -fsSL https://install.villagesql.com | bash
+```
+
+The `villagesql/server` Docker image carries the extension SDK, a C++
+toolchain, and a `vsql-build-extension.sh` helper, so you can build and
+install an extension inside a container. What it does not carry is
+`mysql-test-run.pl`, the MTR orchestrator, so `vsql-extension-builder` cannot
+complete its test phase there — that phase needs an installer or source build
+on the host. See each skill's README for its full requirements.
 
 ## Installing
 
@@ -20,7 +37,7 @@ curl -sSL https://villagesql.com/skills | bash
 ```
 
 Detects which agents are installed and configures each one. Supports Claude
-Code, Gemini CLI, agy, Codex, Cursor, Amp, Kiro, OpenCode, and OpenClaw.
+Code, agy, Codex, Cursor, Amp, Kiro, OpenCode, and OpenClaw.
 Re-running updates in place.
 
 Override locations with env vars:
@@ -43,16 +60,6 @@ ln -s ~/code/villagesql-skills/skills/vsql-extension-builder ~/.claude/skills/vs
 
 Verify the skill is loaded by typing `/` in Claude Code — the skill name
 should appear in the slash command list.
-
-#### Gemini CLI
-
-```bash
-git clone https://github.com/villagesql/villagesql-skills.git ~/code/villagesql-skills
-mkdir -p ~/.gemini/extensions
-ln -s ~/code/villagesql-skills ~/.gemini/extensions/villagesql
-```
-
-Gemini CLI reads `gemini-extension.json` and loads `GEMINI.md` as context.
 
 #### agy
 
@@ -136,9 +143,8 @@ ln -s ~/code/villagesql-skills/skills/vsql-extension-builder ~/.claude/skills/vs
 Branch switches are then live immediately. When you're done, re-running the
 quick installer restores the managed copy.
 
-If you add a new file to `references/`, also update the install script in
-`villagesql-website/src/skills` so it gets included for users of the quick
-installer.
+If you add a new file to `references/`, call it out in your PR description —
+a maintainer will update the quick-install script to include it.
 
 ## License
 

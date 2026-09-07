@@ -1,8 +1,8 @@
 {
   "mcpServers": {
     "graymatter": {
-      "command": "node",
-      "args": ["mcp-server/index.js", "--stdio"]
+      "command": "scripts/gm-mcp-launcher",
+      "args": ["--stdio"]
     }
   }
 }

@@ -1,6 +1,6 @@
 ---
 name: create-test
-description: "Define or implement regression proof for a project or business flow. Use for test strategy, black-box or deep-integration tests, business KPIs and thresholds, test audits, missing tests, or test implementation."
+description: "Define or implement regression proof: test strategy, black-box/integration tests, KPIs, thresholds, audits, or missing tests."
 argument-hint: "[file-or-directory-or-goal]"
 user-invocable: true
 allowed-tools: Glob, Grep, Read, Bash, Edit, Write, AskUserQuestion
@@ -8,34 +8,37 @@ allowed-tools: Glob, Grep, Read, Bash, Edit, Write, AskUserQuestion
 
 # Create Test
 
-Start with what must remain true for the user or business, not with files, coverage, or internal calls. Inspect the project for facts; ask only for business decisions that cannot be discovered.
+Start with the user need or business rule that must always hold, not files, coverage, or internal calls. Inspect for facts; ask only for business decisions that cannot be discovered.
 
 ## Define the regression contract
 
-For the whole project or the requested flow, establish:
+Establish:
 
 - actors, goals, and externally observable outcomes;
 - business rules and invariants that must never change;
-- critical paths plus rejection, timeout, retry, permission, concurrency, and partial-failure cases that matter;
+- critical paths and relevant rejection, timeout, retry, permission, concurrency, and partial-failure cases;
 - the current baseline and every intended behavior change;
-- KPIs or operational signals, with measurement window, data set, acceptable variance, and a justified pass/fail threshold;
+- KPIs with window, data set, acceptable variance, and justified pass/fail threshold;
 - systems crossed, production-like data needs, and evidence the available environment can actually provide.
 
-Do not invent a metric or threshold to fill a blank. Record it as an open decision or blind spot.
+Never invent a metric or threshold; record the gap.
 
 ## Choose the proof
 
-Prefer the highest boundary that gives reliable feedback:
+Prefer the highest reliable boundary:
 
 1. black-box tests through the public API, UI, job, event, or CLI;
 2. deep integration with the real database, queue, connector, or protocol;
 3. contract, replay, property, or characterization tests for narrower risks;
 4. unit tests for isolated rules where a wider test adds no confidence.
 
-Use mocks only beyond the boundary being verified. For database or migration work, read [integration patterns](references/integration-patterns.md).
+Mock only beyond the verified boundary. For database or migration work, read [integration patterns](references/integration-patterns.md).
+When proving a process manager, worker, container entrypoint, or deployed artifact, exercise the real container or OS image, not only a host process, and verify worker replacement, signal handling, and graceful shutdown where those boundaries apply.
 
-When asked only for strategy or an audit, return a concise contract, prioritized scenario map, proof method, and remaining blind spots. Judge existing tests by the outcomes and failures they would catch, not assertion counts or line coverage.
+For strategy or audit only, return the contract, prioritized scenarios, proof method, and blind spots. Judge tests by failures caught, not assertion or coverage counts.
 
 ## Implement when asked
 
-Follow the project's test layout and development loop. Add the smallest test that proves the next important scenario, observe RED, make only approved source changes, then observe GREEN. Assert business outcomes, persisted state, emitted events, metrics, and error contracts rather than implementation calls. Run the focused test and the relevant suite; report what is now proven and what remains outside the evidence boundary.
+Follow project layout and the development loop. Add the smallest important proof, observe it fail, make approved source changes, then observe it pass.
+
+Assert outcomes, state, events, metrics, and error contracts rather than calls. Run focused and relevant suites. Report what the evidence proves and what it does not cover.

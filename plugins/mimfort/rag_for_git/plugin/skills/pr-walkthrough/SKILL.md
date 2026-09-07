@@ -1,5 +1,5 @@
 ---
-name: reviewer_pr-walkthrough
+name: pr-walkthrough
 description: Build a human-facing reading guide for a GitHub pull request (where to start, what each file changes, what it impacts) using the reviewer PR session + code graph. Use when the user asks to walk a human reviewer through a PR ("PR walkthrough", "гид по PR", "как читать этот PR", "проведи по PR"). NOT a bug review (see review-pr). Requires the reviewer MCP server + base index.
 ---
 

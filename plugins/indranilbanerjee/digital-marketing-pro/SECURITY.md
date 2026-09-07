@@ -6,8 +6,8 @@ The latest minor release of Digital Marketing Pro receives security fixes. Older
 
 | Version | Supported |
 |---------|-----------|
-| 3.7.x   | ✅ |
-| 3.6.x   | ⚠️ Security fixes only when trivially backportable |
+| 3.17.x  | ✅ |
+| 3.16.x  | ⚠️ Security fixes only when trivially backportable |
 | < 3.6   | ❌ Please upgrade |
 
 ## Reporting a Vulnerability

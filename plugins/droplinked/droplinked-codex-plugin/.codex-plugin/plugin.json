@@ -1,0 +1,51 @@
+{
+  "name": "droplinked-codex-plugin",
+  "version": "0.1.0",
+  "description": "Codex plugin wrapping droplinked's hosted MCP server — verified-inventory agentic commerce plus an onchain trust fabric: merchant and product discovery, agent-initiated checkout, and EAS-backed brand, credit-risk, and repayment attestations.",
+  "author": {
+    "name": "droplinked",
+    "email": "support@droplinked.com",
+    "url": "https://droplinked.com"
+  },
+  "homepage": "https://github.com/droplinked/droplinked-codex-plugin",
+  "repository": "https://github.com/droplinked/droplinked-codex-plugin",
+  "license": "MIT",
+  "keywords": [
+    "openai-codex",
+    "codex-plugin",
+    "model-context-protocol",
+    "mcp-server",
+    "agentic-commerce",
+    "ecommerce",
+    "onchain",
+    "attestation",
+    "trust-fabric",
+    "droplinked"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "droplinked",
+    "shortDescription": "Verified-inventory agentic commerce MCP: merchant & product discovery, agent-initiated checkout, and onchain trust attestations.",
+    "longDescription": "droplinked is onchain agentic commerce exposed to Codex over a hosted MCP server. Use it to discover KYB-verified merchants and SKU-level inventory, open and drive an agent-initiated checkout (build a cart, apply a discount, quote-and-hold stock, finalize payment), and read droplinked's onchain trust fabric — EAS-backed brand, credit-risk, and repayment-history attestations plus a composed trust dossier. The plugin connects over streamable HTTP with two-tier auth: read-only discovery, catalog, and trust-read tools are public and need no key, so the plugin works out of the box; only write tools (checkout, payment, cart edits, and lending/attestation actions) require an X-MCP-API-Key supplied from your environment — never bundled in this repo.",
+    "developerName": "droplinked",
+    "category": "Commerce",
+    "capabilities": [
+      "Interactive"
+    ],
+    "websiteURL": "https://droplinked.com",
+    "privacyPolicyURL": "https://droplinked.com/privacy",
+    "termsOfServiceURL": "https://droplinked.com/terms",
+    "brandColor": "#2BCFA1",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/logo.svg",
+    "screenshots": [
+      "./assets/screenshot-droplinked.png"
+    ],
+    "defaultPrompt": [
+      "Find a verified droplinked merchant in this category and search their inventory for an in-stock item, preferring brand-verified results.",
+      "Start a droplinked checkout for this SKU: build the cart, quote and hold the stock, then hand me the hosted checkout URL.",
+      "Pull the droplinked trust dossier for this merchant — brand attestation, credit-risk tier, and repayment history — and summarize the trust state before I proceed."
+    ]
+  }
+}

@@ -54,6 +54,27 @@ class CrossAnalysisSummary:
 
 
 @dataclass
+class CheckRun:
+    """One entry in checks_run[] — whether a cross-analysis check executed (KH-381).
+
+    One entry per check function, in call order (the fixed sequence
+    run_all_checks() invokes them in — not dict-iteration order).
+    """
+    check: str = field(metadata={
+        "description": "Rule ID of the check (e.g. 'NR-001', 'CC-001', 'XV-001..003')."})
+    ran: bool = field(metadata={
+        "description": "True when the check executed its full analysis; "
+                       "False when it returned early for lack of required input."})
+    reason_skipped: Optional[str] = field(metadata={
+        "description": "Why the check did not run, when ran is False. Null when ran is True."})
+    items_examined: int = field(metadata={
+        "description": "Size of the primary input collection the check iterated "
+                       "over (0 when ran is False)."})
+    findings: int = field(metadata={
+        "description": "Count of findings this check contributed to findings[]."})
+
+
+@dataclass
 class CrossAnalysisEnvelope:
     """Top-level output of cross_analysis.py.
 
@@ -89,6 +110,10 @@ class CrossAnalysisEnvelope:
         "description": "All cross-domain findings."})
     assessments: list[Assessment] = field(metadata={
         "description": "Informational assessments (empty for cross-analysis at v1.4)."})
+    checks_run: list[CheckRun] = field(metadata={
+        "description": "Manifest of which cross-analysis checks executed this run, "
+                       "in call order (KH-381). Distinguishes 'ran and found nothing' "
+                       "from 'skipped for lack of required input' — see CheckRun."})
     trust_summary: TrustSummary = field(metadata={
         "description": "Trust posture rollup (confidence + evidence source)."})
 

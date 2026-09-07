@@ -1,11 +1,11 @@
 {
   "name": "waggle",
-  "version": "0.1.1",
-  "description": "Persistent graph-backed conversational memory for Codex.",
+  "version": "0.1.3",
+  "description": "Local graph memory that lets Codex recall project context across sessions.",
   "author": {
     "name": "Abhigyan Shekhar"
   },
-  "homepage": "https://github.com/Abhigyan-Shekhar/Waggle-mcp",
+  "homepage": "https://wagglemcp.vercel.app",
   "repository": "https://github.com/Abhigyan-Shekhar/Waggle-mcp",
   "license": "Apache-2.0",
   "keywords": [
@@ -14,22 +14,34 @@
     "knowledge-graph",
     "codex"
   ],
+  "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Waggle",
-    "shortDescription": "Persistent local memory for Codex",
-    "longDescription": "Waggle gives Codex a local graph memory MCP server for recalling project decisions, constraints, preferences, and meaningful outcomes across sessions.",
+    "shortDescription": "Project-scoped memory for Codex",
+    "longDescription": "Waggle gives Codex local graph memory for project decisions, constraints, preferences, and outcomes across sessions. It runs as a bundled MCP server with SQLite storage, so memory stays on your machine unless you explicitly export or sync it. Website: wagglemcp.vercel.app. Demo: youtu.be/6z5ALzqvtIY.",
     "developerName": "Abhigyan Shekhar",
-    "category": "Productivity",
+    "category": "Developer Tools",
     "capabilities": [
-      "Local graph memory",
-      "Cross-session recall",
-      "Conversation observation",
-      "Scoped context retrieval"
+      "Local SQLite memory",
+      "Project-scoped recall",
+      "Cross-session provenance",
+      "Portable .abhi archives",
+      "Demo: youtu.be/6z5ALzqvtIY",
+      "LongMemEval-tested retrieval"
     ],
-    "websiteURL": "https://github.com/Abhigyan-Shekhar/Waggle-mcp",
-    "defaultPrompt": "Use Waggle to remember durable project context and retrieve relevant memories before context-dependent work.",
-    "brandColor": "#2563EB",
-    "screenshots": []
+    "websiteURL": "https://wagglemcp.vercel.app",
+    "defaultPrompt": [
+      "Remember: Magic Ball chose SQLite so demos work offline.",
+      "Recall the Magic Ball privacy rule with provenance.",
+      "Show the .abhi archive summary for this project."
+    ],
+    "brandColor": "#F97316",
+    "composerIcon": "./assets/waggle-icon.png",
+    "logo": "./assets/waggle-logo.png",
+    "logoDark": "./assets/waggle-logo-dark.png",
+    "screenshots": [
+      "./assets/waggle-magic-ball-real-demo.png"
+    ]
   }
 }

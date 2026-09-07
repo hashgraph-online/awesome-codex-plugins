@@ -1,6 +1,6 @@
 ---
 name: repair
-description: 'Safe maintenance for an existing docflow setup: regenerate INDEX.md, install missing helpers, check links, report placeholders. Use after adding/renaming docs or when doctor recommends repair.'
+description: 'Safe maintenance for an existing docflow setup. Regenerates INDEX.md, installs or refreshes recognized DocFlow-managed helper scripts, runs link checks, and reports placeholder/validation issues. Use when docflow exists, after adding or renaming docs, or when doctor recommends repair.'
 ---
 
 # repair
@@ -17,6 +17,7 @@ bash scripts/docflow-repair.sh --target <REPO ROOT>
 
 - `<DOCS_ROOT>/INDEX.md`
 - missing helper scripts under `scripts/`
+- existing helper scripts whose headers identify them as DocFlow-managed
 
 ## It Must Not Change
 
@@ -26,5 +27,6 @@ bash scripts/docflow-repair.sh --target <REPO ROOT>
 - changelog months
 - roadmap/plans
 - existing project docs
+- customized helper scripts without a DocFlow-managed header
 
 Report broken links, placeholders, and validation warnings instead of fixing content unless the user asks.

@@ -1,19 +1,16 @@
 {
-  "by_adgroup": {
-    "Brand": {
-      "title": "ACME для бизнеса",
-      "title2": "Официальный сервис",
-      "text": "Решение для бизнеса. Запуск без лишней сложности."
+  "by_group_uid": {
+    "example-service-core": {
+      "group_name": "Основная услуга / пример",
+      "intent": "заказать основную услугу",
+      "title": "Основная услуга для бизнеса",
+      "title2": "Условия на сайте",
+      "text": "Описание услуги без неподтверждённых обещаний.",
+      "display_path": "основная-услуга",
+      "landing_url": "https://example.invalid/service",
+      "candidate_status": "pending_review",
+      "decision": ""
     }
   },
-  "by_regex": [
-    {
-      "pattern": "ecom|marketplace|карточ",
-      "copy": {
-        "title": "Контент для маркетплейсов",
-        "title2": "Карточки и баннеры",
-        "text": "Визуалы и креативы под ecom-задачи. Быстрый запуск."
-      }
-    }
-  ]
+  "by_regex": []
 }

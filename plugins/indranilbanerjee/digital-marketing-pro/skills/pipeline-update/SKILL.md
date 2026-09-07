@@ -1,6 +1,6 @@
 ---
 name: pipeline-update
-description: "Update CRM pipeline. Use when: changing deal stages, values, notes, tracking velocity, or managing deal progression."
+description: "Update CRM deals — move stages, change values and close dates, attach notes and activities, create follow-up tasks — with validation against pipeline rules, a before-and-after comparison, and calculated velocity, forecast, and pipeline-health impact. Writes to Salesforce, HubSpot, Zoho, or Pipedrive via the connected CRM MCP only after a mandatory execution gate: an Execution Summary preview plus explicit typed approval, logged through approval-manager.py. Triggers on \"/digital-marketing-pro:pipeline-update\", \"move this deal to negotiation\", \"update the deal value\", \"mark this deal closed-won\", \"which deals are stalled\". Reads the brand profile; pairs with /digital-marketing-pro:lead-import for creating deals and /digital-marketing-pro:executive-dashboard for bulk reporting."
 disable-model-invocation: false
 argument-hint: "[deal-name or stage]"
 ---

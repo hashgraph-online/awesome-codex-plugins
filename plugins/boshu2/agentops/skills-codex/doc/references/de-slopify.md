@@ -1,151 +1,145 @@
----
+# De-Slopify — Docs Prose Pass
 
-<!-- TOC: THE EXACT PROMPT | Patterns | Examples | References -->
+> Make documentation read like a careful human wrote it. This is a **docs
+> quality** method under [`doc`](../SKILL.md), not a general writing skill and
+> not a standalone AgentOps skill.
 
-# De-Slopify — Remove AI Writing Artifacts
+Use it from `doc` (required for `--mode=readme` generate/rewrite) so READMEs and
+other repo docs stay concrete, scannable, and free of LLM prefab.
 
-> **Core Insight:** You can't do this with regex or a script. It requires manual, systematic review of each line.
+Use this reference from `doc` (especially `--mode=readme`) before reporting
+completion.
 
-## THE EXACT PROMPT — Full De-Slopify
+> **Core insight #1:** You cannot do this with regex or a script. It requires a
+> manual, line-by-line read. A linter catches a fraction; the rest is judgment.
+>
+> **Core insight #2:** Slop is a thinking defect wearing a fluent surface.
+> Alignment trains models toward the *mode* of human preference, so prose goes
+> prefab. Lexical diversity can rise while conceptual diversity falls. Swapping
+> blacklist words is necessary and not sufficient. A real pass removes the
+> prefab *and* checks that something specific is still present (the additive
+> floor below).
 
-```
-I want you to read through the complete text carefully and look for any telltale
-signs of "AI slop" style writing; one big tell is the use of emdash. You should
-try to replace this with a semicolon, a comma, or just recast the sentence
-accordingly so it sounds good while avoiding emdash.
-
-Also, you want to avoid certain telltale writing tropes, like sentences of the
-form "It's not [just] XYZ, it's ABC" or "Here's why" or "Here's why it matters:".
-Basically, anything that sounds like the kind of thing an LLM would write
-disproportionately more commonly than a human writer and which sounds
-inauthentic/cringe.
-
-And you can't do this sort of thing using regex or a script, you MUST manually
-read each line of the text and revise it manually in a systematic, methodical,
-diligent way. Use ultrathink.
-```
-
----
-
-## THE EXACT PROMPT — Quick Version
+## THE PROMPT — full
 
 ```
-Review this text and remove any AI slop patterns: excessive emdashes, "Here's why"
-constructions, "It's not X, it's Y" formulas, and other LLM writing tells. Recast
-sentences to sound more naturally human. Use ultrathink.
+Read the complete text line by line and remove AI-slop tells. You MUST do this by
+reading and recasting each line manually — not with regex or find-replace.
+
+WORD-LEVEL TELLS (recast on sight):
+- Prefabricated phrases / dying metaphors: "move the needle," "navigate the
+  landscape," "at its core," "unlock," "delve," "tapestry," "testament to,"
+  "in today's fast-paced world." Cut or re-image with something concrete.
+- Verbal false limbs: "make contact with" → meet, "give rise to" → cause,
+  "has the ability to" → can.
+- Zombie nouns on light verbs: "make a decision" → decide, "the implementation
+  of X" → we built X. Judgment, not a ban.
+- Copula avoidance: "serves as / boasts / features" where plain "is/are" works.
+- Lead-ins: "Here's why," "Here's the thing," "It's worth noting," "Let's dive
+  in" — just say it.
+
+STRUCTURAL TELLS:
+- Explicit contrast "it's not X, it's Y" / "not only X but also Y." Worst on the
+  headline. Cap ≤1 per piece, at an earned mid-body pivot. Prefer two facts the
+  reader collides.
+- Reflexive rule of three ("fast, simple, and powerful"). Cap ~1 per 500 words.
+- Manufactured punchy fragment: short contentless beat ("It isn't new."
+  "Simple."). Fold or cut. A short sentence with a real claim stays.
+- Manufactured cadence: 3–4 same-shape sentences stacked. Break the symmetry.
+- Elegant variation: "notes → explains → observes." Force-repeat the plain word.
+- Inflated importance + trailing "-ing" tail: cut to the quiet specific claim.
+
+THE DEEP ONE:
+- Each paragraph needs one concrete particular (name, number, path, command) and
+  at least one non-obvious idea. Fluent generality is still slop.
+
+Then read the whole thing aloud. Fix every drone, stumble, and breath failure.
 ```
 
----
+## THE PROMPT — quick
 
-## Patterns to Eliminate
-
-| Pattern | Problem |
-|---------|---------|
-| **Emdash overuse** | LLMs love emdashes—they use them constantly—even when other punctuation works better |
-| **"It's not X, it's Y"** | Formulaic contrast structure |
-| **"Here's why"** | Clickbait-style lead-in |
-| **"Let's dive in"** | Forced enthusiasm |
-| **"At its core..."** | Pseudo-profound opener |
-| **"It's worth noting..."** | Unnecessary hedge |
-
----
-
-## Emdash Alternatives
-
-| Original | Alternative |
-|----------|-------------|
-| `X—Y—Z` | `X; Y; Z` or `X, Y, Z` |
-| `The tool—which is powerful—works` | `The tool, which is powerful, works` |
-| `We built this—and it works` | `We built this, and it works` |
-
-Sometimes the best fix is to split into two sentences.
-
----
-
-## Before/After Examples
-
-### Emdash Overuse
-
-**Before:**
 ```
-This tool—which we built from scratch—handles everything automatically—from parsing to output.
+Remove AI-slop: prefab phrases, verbal false limbs, zombie nouns, copula
+avoidance, "here's why"/"dive in" lead-ins, explicit "not X, it's Y" (≤1, never
+on the headline), reflexive rule-of-three, stacked same-shape sentences, elegant
+variation. Each paragraph needs one concrete particular. Read aloud. Recast
+manually — no regex.
 ```
 
-**After:**
-```
-This tool handles everything automatically, from parsing to output. We built it from scratch.
-```
+## Subtractive pass
 
-### "Here's why" Pattern
+1. Prefab phrases and dying metaphors → concrete subject-specific wording.
+2. Verbal false limbs → live verbs.
+3. Zombie nouns → verbs where it restores a live verb.
+4. Copula avoidance → plain is/are.
+5. Metadiscourse / signposting ("Moreover," "In this section," "In conclusion") → cut.
+6. Lead-ins and forced enthusiasm → delete; say the thing.
+7. Explicit contrast cap (never on the headline).
+8. Rule-of-three cap.
+9. Manufactured fragment and manufactured cadence.
+10. Elegant variation → repeat the plain word; vary ideas.
+11. Lower rhetorical temperature ("pivotal," "transformative," "groundbreaking").
+12. Vague attribution ("studies show") → name the source or cut.
+13. Mechanical formatting tells (gratuitous bold, optimistic "despite challenges" closers).
 
-**Before:**
-```
-We chose Rust for this component. Here's why: performance matters.
-```
+### Em-dash: use-pattern, not frequency
 
-**After:**
-```
-We chose Rust for this component because performance matters.
-```
+Do not count dashes and call frequency the signal (it flips by model generation).
+Flag the *mechanical append* — a clause fused with a dash where a comma, colon,
+period, or two sentences would do. Recast that pattern.
 
-### Contrast Formula
+### Dictation sources
 
-**Before:**
-```
-It's not just a linter—it's a complete code quality system.
-```
+Strip filler (um, like, you know), verbal runways, and false starts. Keep the
+resolved claim. Do not rebuild a self-repair as "not X, it's Y."
 
-**After:**
-```
-This complete code quality system goes beyond basic linting.
-```
+## Additive floor
 
-### Forced Enthusiasm
+After cuts, confirm:
 
-**Before:**
-```
-# Getting Started
+- One concrete particular per paragraph
+- Muddy sentences rewrite the thought (clutter is unfinished thinking)
+- One non-obvious idea per section
+- Sentence-length variance (build long, land short)
+- Read-aloud gate last
 
-Let's dive in! We're excited to help you get up and running.
-```
+Subtraction alone yields clean, bloodless prose that still reads generated.
 
-**After:**
-```
-# Getting Started
+## Before / after
 
-Install the tool and run your first command in under a minute.
-```
+**Prefab + inflation**
+Before: `Our platform serves as a comprehensive solution that unlocks transformative value.`
+After: `The platform turns raw logs into a weekly report.`
 
----
+**Contrast on the headline**
+Before: `It's not a linter — it's a complete code-quality system.`
+After: `This checks types, lint, complexity, and the build on every push.`
 
-## Why Manual Review is Required
+**Lead-in**
+Before: `We chose Rust for this component. Here's why: performance matters.`
+After: `We chose Rust because the hot path runs 40M times a day and GC pauses showed up in the p99.`
 
-1. **Context matters** — Sometimes an emdash is actually the right choice
-2. **Recasting sentences** — Often the fix isn't substitution but rewriting
-3. **Tone consistency** — Need to maintain voice throughout
-4. **Judgment calls** — Some patterns are fine in moderation
+## Density, not brevity
 
----
+"Omit needless words" means every word tells — not that every sentence is short.
+Do not chop a long sentence that earns its length into stubs.
 
-## When to De-Slopify
+## What not to "fix"
 
-- Before publishing a README
-- Before releasing documentation
-- After AI-assisted writing sessions
-- During documentation reviews
+- Technical accuracy
+- Necessary headers and lists
+- Thoroughness (being complete is not slop; padding is)
+- Code examples (focus on prose)
 
----
+## When to run
 
-## What NOT to Fix
+- Before publishing a README, doc, or release note
+- After any AI-assisted writing session
+- During `doc --mode=readme` generate/rewrite (required) and validate (flag findings)
 
-- **Technical accuracy** — Don't sacrifice correctness for style
-- **Necessary structure** — Headers, lists are fine
-- **Clear explanations** — Being thorough isn't slop
-- **Code examples** — Focus on prose, not code
+## Required from Doc readme mode
 
----
-
-## References
-
-| Topic | Reference |
-|-------|-----------|
+After writing or rewriting `README.md`, run the full prompt above on the exact
+file and apply fixes before Step 5 deterministic checks. On `--validate`, report
+residual slop tells as evidence; do not silently rewrite unless the caller asked
+for rewrite.

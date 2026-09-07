@@ -1,6 +1,7 @@
 ---
 name: skill-intent-contract
-description: "Lock in user goals upfront and validate outputs against them — use to prevent scope drift"
+description: "Use when starting a complex or ambiguous task that risks scope drift"
+disable-model-invocation: true
 ---
 
 > **Host: Codex CLI** — This skill was designed for Claude Code and adapted for Codex.
@@ -64,11 +65,22 @@ What this should NOT be:
 ## Clarifying Context
 [Any answers from the 3-question pattern]
 
+## Task Allocation
+**Risk**: [low | intermediate | high]
+**Initiative**: [human | AI | shared] — who starts and proposes
+**Control**: [human | AI | shared] — who oversees execution as it runs
+**Decision rights**: [human | AI] — who has final say on the outcome
+**AI role**: [none | executor | collaborator | challenger]
+**Execution disposition**: [AI-assisted | human-only | pending-user-decision]
+**Escalation decision**: [not-needed | pending | user's recorded resolution]
+**Resolved AUTONOMY_MODE**: [supervised | semi-autonomous | loop-until-approved | autonomous | not-applicable (contract-only sentinel)]
+
 ## Validation Checklist
 - [ ] Meets "good enough" criteria
 - [ ] Respects all boundaries
 - [ ] Works for all stakeholders
 - [ ] Builds on existing assets appropriately
+- [ ] Allocation still fits what the task turned out to be
 ```
 
 
@@ -85,6 +97,97 @@ Create an intent contract when:
 - Quick, single-action commands
 - Simple file reads or searches
 - Conversational questions
+
+### Step 0: Allocate the work before scoping it
+
+Run this before capturing intent. The question is not how to run the task across
+agents but whether it should be delegated at all, and if so, which parts of the
+authority go where. Framework: Afroogh, Varshney & D'Cruz (2025), *A Task-Driven
+Human-AI Collaboration* ([arXiv:2505.18422](https://arxiv.org/abs/2505.18422)).
+
+**Classify risk.** Complexity is already scored elsewhere — defer to
+`estimate_complexity` and `classify_cynefin` in `scripts/lib/routing.sh` rather
+than re-deriving it. Risk is a separate axis that nothing in the codebase
+measures, so judge it here on three questions:
+
+- **Irreversibility** — can the effect be undone, and at what cost?
+- **Consequence** — is anything material at stake: safety, money, data, users?
+- **Accountability** — is a specific person expected to answer for the outcome?
+
+| Risk | Reading |
+|------|---------|
+| **Low** | Reversible, no material consequence, no named accountability. |
+| **Intermediate** | Reversible only at real cost, or consequence is unclear. |
+| **High** | Irreversible, materially consequential, or someone must answer for it. |
+
+**Allocate the three dimensions separately.** They are independent, and treating
+them as one axis is the mistake this step exists to prevent. People readily hand
+AI the *initiative* on unfamiliar work while keeping control and decision rights
+— an allocation a single autonomy slider cannot express.
+
+- **Initiative** — who starts, proposes, drafts.
+- **Control** — who oversees execution while it runs.
+- **Decision rights** — who has final say on the result.
+
+Record every outcome explicitly:
+
+| Risk / complexity | Initiative | Control | Decision rights | AI role | Execution disposition | Escalation decision | Mode |
+|---|---|---|---|---|---|---|---|
+| Low / low | AI | AI | AI | executor | AI-assisted | not-needed | `autonomous` |
+| Low / high | shared | human | human | collaborator | AI-assisted | not-needed | `loop-until-approved` |
+| High / low | human | human | human | executor | AI-assisted | not-needed | `supervised` |
+| High / high | human | human | human | challenger | AI-assisted | not-needed | `supervised` |
+
+The High / high allocation is adversarial: the human leads while AI attacks the
+proposed decision as a deliberate counterweight to the human's own bias. In High /
+low work, AI may execute only the bounded actions the human directly approves.
+
+**The rule that inverts.** For **intermediate-risk** work where uncertainty is
+highest, the cited evidence says avoid AI entirely — "neither as a gatekeeper nor
+as a second opinion". This contradicts the smooth intuition that middling risk
+implies middling involvement, and it also sits in tension with the same paper's
+broader claim that complete human autonomy is rarely justified. That tension is
+real and unresolved; surface it to the user and let them decide rather than
+quietly picking a side.
+
+**Resolve to a setting.** The workflow engine reads one variable,
+`AUTONOMY_MODE`, with four values:
+
+| Allocation | `AUTONOMY_MODE` |
+|---|---|
+| Human holds control and decision rights, approving each phase | `supervised` |
+| AI runs; human is pulled in on failures and quality gates | `semi-autonomous` |
+| AI runs and iterates; human holds final decision rights | `loop-until-approved` |
+| AI holds all three | `autonomous` |
+
+Record the three dimensions *and* the resolved mode. The mapping is lossy: one
+axis cannot represent three independent allocations, so a contract that stores
+only the mode loses the reason it was chosen. That record is what a later
+reviewer needs when the allocation turns out to have been wrong.
+
+`not-applicable` is a persisted, contract-only sentinel for human-only work; it
+is not a fifth runtime value and must not be passed to the workflow engine.
+
+For intermediate risk, record `Execution disposition: pending-user-decision`.
+Record `Escalation decision: pending`, then stop before execution.
+Ask the user to choose human-only handling or a specific documented AI allocation.
+Record their answer, rewrite the Task Allocation fields to match it, and change
+`Escalation decision` to the user's resolution before continuing. For a human-only
+resolution, record `AI role: none` and `Resolved AUTONOMY_MODE: not-applicable`;
+human-only `not-applicable` must not be passed to the workflow engine. Resolve to the
+supported human-only behavior and do not execute AI work in that state.
+
+For a documented AI-assisted resolution, record every Task Allocation field:
+
+- `Initiative`, `Control`, `Decision rights`, and `AI role` from the chosen allocation
+- `Execution disposition: AI-assisted`
+- `Escalation decision: user's recorded resolution`
+- `Resolved AUTONOMY_MODE`: exactly one of `supervised`, `semi-autonomous`,
+  `loop-until-approved`, or `autonomous`, mapped using the table above
+
+Validate the selected runtime mode and only then execute. The runtime must reject
+`not-applicable` and every unknown or unsupported mode before workflow execution rather
+than defaulting to autonomous behavior.
 
 ### Step 1: Capture Intent
 

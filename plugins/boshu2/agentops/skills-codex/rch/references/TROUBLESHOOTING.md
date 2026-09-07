@@ -52,14 +52,20 @@ Compilation running locally instead of remotely?
 
 ## Common Errors
 
+> **Authority:** only read-only diagnosis is autonomous. Any recipe below that
+> starts/restarts/reloads the daemon, adds/provisions/drains a worker or its
+> toolchain, edits config, installs the hook, or mutates a remote host requires
+> explicit caller authorization first — see `FAIL_OPEN.md` §"Autonomous
+> Remediation Envelope". Such steps are called out per block.
+
 ### Daemon not running / `check` says not ready
 
 **Cause:** daemon process absent or startup failure.
 
 ```bash
-rch daemon start
-rch --json daemon status
-rch daemon logs -n 200
+rch --json daemon status          # autonomous
+rch daemon logs -n 200            # autonomous
+rch daemon start                  # (authorize first) — daemon lifecycle
 ```
 
 ### Socket mismatch between config and daemon
@@ -67,10 +73,10 @@ rch daemon logs -n 200
 **Cause:** `general.socket_path` differs from active daemon socket.
 
 ```bash
-rch --json config get general.socket_path
-rch --json daemon status
-# then align and restart:
-rch daemon restart -y
+rch --json config get general.socket_path   # autonomous
+rch --json daemon status                     # autonomous
+# then align and restart AFTER explicit caller authorization:
+rch daemon restart -y                        # (authorize first)
 ```
 
 ### "No workers available" / probe failures
@@ -78,18 +84,23 @@ rch daemon restart -y
 **Cause:** no workers configured, SSH/auth failures, or workers are disabled/drained.
 
 ```bash
-rch workers list
-rch workers probe --all
-rch workers discover --probe
-rch workers discover --add --yes
-rch workers setup --all
+rch workers list                  # autonomous
+rch workers probe --all           # autonomous
+rch workers discover --probe      # autonomous (probe only)
+# adding/provisioning workers mutates the fleet — authorize first:
+rch workers discover --add --yes  # (authorize first)
+rch workers setup --all           # (authorize first)
 ```
 
 ### "rustup: not found" / "cargo: not found" on worker
 
 **Cause:** missing toolchain on one or more workers.
 
+`rch workers sync-toolchain --all` mutates the workers — get explicit caller
+authorization first (`rch workers capabilities --refresh` after is read-only):
+
 ```bash
+# after explicit caller authorization only:
 rch workers sync-toolchain --all
 rch workers capabilities --refresh
 ```
@@ -101,10 +112,10 @@ If still failing, SSH to the specific worker and validate `rustup`, `cargo`, and
 **Cause:** hook missing, wrong binary path, or command classified as local.
 
 ```bash
-rch hook status
-rch hook install
-rch hook test
-rch diagnose "cargo build --release"
+rch hook status                        # autonomous
+rch hook test                          # autonomous
+rch diagnose "cargo build --release"   # autonomous
+rch hook install                       # (authorize first) — writes ~/.claude/settings.json
 ```
 
 ### Sync/transfer fails under active target churn
@@ -112,9 +123,10 @@ rch diagnose "cargo build --release"
 **Cause:** build artifacts changing during rsync.
 
 ```bash
-# Add target-like excludes in ~/.config/rch/config.toml [transfer].exclude_patterns
-rch daemon reload
-rch config show --sources
+# Editing ~/.config/rch/config.toml [transfer].exclude_patterns and reloading
+# both mutate config/daemon — (authorize first):
+rch daemon reload                 # (authorize first)
+rch config show --sources         # autonomous
 ```
 
 Also inspect the worker directly:
@@ -142,9 +154,12 @@ Check:
 ssh ubuntu@<host> "stat -c '%U:%G %a %n' /data/projects/<repo>"
 ```
 
-Fix:
+Fix (authorize first): this is a remote privileged command. Report the failing
+`stat` output and the exact command to the caller and get explicit authorization
+before running it — remote `sudo` is never autonomous.
 
 ```bash
+# after explicit caller authorization only:
 ssh ubuntu@<host> 'sudo chown -R ubuntu:ubuntu /data/projects/<repo> && sudo chmod 775 /data/projects/<repo>'
 ```
 
@@ -219,8 +234,12 @@ RCH_LOG_LEVEL=debug printf '%s\n' \
 
 ## Safe Reset Sequence
 
+The `rch daemon restart -y` that opens this sequence is a daemon-lifecycle
+mutation — get explicit caller authorization before running it; the remaining
+steps are read-only.
+
 ```bash
-rch daemon restart -y
+rch daemon restart -y          # authorize first
 rch config validate
 rch config doctor
 rch workers probe --all
@@ -255,25 +274,28 @@ If a circuit doesn't auto-clear after 60 seconds and the underlying probe is hea
 
 **Symptom:** New rch CLI features behave inconsistently; `rch --version` differs from the daemon's reported version.
 
-**Self-fix (this is safe — never ask first):**
+**Diagnosis is autonomous; the restart is a daemon-lifecycle mutation — authorize first.**
 
-The daemon's running version is reported by `rch --json status` at `.data.daemon.daemon.version` (the `rch --json daemon status` endpoint deliberately returns only running/socket/uptime — not version). Compare:
+The daemon's running version is reported by `rch --json status` at `.data.daemon.daemon.version` (the `rch --json daemon status` endpoint deliberately returns only running/socket/uptime — not version). Compare (read-only):
 
 ```bash
 rch --version | awk '{print $2}'
 rch --json status | jq -r '.data.daemon.daemon.version'
-# If they differ:
+# If they differ, restart AFTER explicit caller authorization:
 rch daemon restart -y                                    # drains in-flight builds gracefully
 rch --json status | jq -r '.data.daemon.daemon.version'  # confirm equal
 ```
 
-`rch daemon restart -y` is the **documented upgrade path**. It drains active builds before stopping. The `-y` skips the interactive prompt — but it does *not* skip the drain.
+`rch daemon restart -y` is the **documented upgrade path**. It drains active builds before stopping. The `-y` skips the interactive prompt — but it does *not* skip the drain, and it does *not* skip the caller-authorization requirement.
 
-If a worker shows mismatched binary version after a host upgrade:
+If a worker shows mismatched binary version after a host upgrade, diagnose with
+`status`/`verify` (read-only), then deploy only after explicit caller
+authorization — fleet deploy mutates every worker binary:
 
 ```bash
-rch fleet status              # human-readable per-worker status
-rch fleet verify              # compare installed vs expected
+rch fleet status              # human-readable per-worker status (read-only)
+rch fleet verify              # compare installed vs expected (read-only)
+# after explicit caller authorization only:
 rch fleet deploy --canary 25 --canary-wait 60 --verify
 rch fleet deploy --verify
 ```
@@ -284,7 +306,7 @@ rch fleet deploy --verify
 
 **Symptom:** Recurring `RCH-E507`, `Telemetry database integrity check failed`, empty `rch speedscore --history`, daemon log lines mentioning `database disk image is malformed`.
 
-**Self-fix:** See `references/TELEMETRY_RECOVERY.md`. Short version: stop daemon, move `~/.local/share/rch/telemetry/telemetry.db*` aside, restart. Telemetry is derived data; you lose history but nothing operational.
+**Fix (authorize first):** stopping the daemon, moving `~/.local/share/rch/telemetry/telemetry.db*` aside, and restarting is a daemon-lifecycle mutation plus local file removal — get explicit caller authorization first. Telemetry is derived data; you lose history but nothing operational.
 
 ---
 
@@ -295,12 +317,12 @@ rch fleet deploy --verify
 **Self-fix:**
 
 1. Force visibility: `RCH_VISIBILITY=verbose <your-command>`. If you now see `[RCH] local (...)`, follow `references/FAIL_OPEN.md` to map the reason to a fix.
-2. If still no `[RCH]` line, the hook never fired. Probe the protocol directly:
+2. If still no `[RCH]` line, the hook never fired. Probe the protocol directly with a hand-crafted request (see the Wire-Level Hook Protocol section of `references/MACHINE_INTROSPECTION.md`):
    ```bash
-   .claude/skills/rch/scripts/protocol_test.sh "<your-command>"
+   printf '%s\n' '{"tool_name":"Bash","tool_input":{"command":"<your-command>"}}' | rch
    ```
    If stdout is empty, the classifier is rejecting your command. Common causes: shell pipe (`cargo build | tee log`), backgrounded with `&`, env-prefixed in an unusual form. Restructure or use `rch exec -- <cmd>` directly.
-3. If the hook fires but the command still runs locally, the rewrite isn't being honored — check that `~/.claude/settings.json` has the right hook command path (`rch hook install` re-resolves it).
+3. If the hook fires but the command still runs locally, the rewrite isn't being honored — check that `~/.claude/settings.json` has the right hook command path (reading it is autonomous; `rch hook install` re-resolves it but writes that file — **(authorize first)**).
 
 See `references/FAIL_OPEN.md` for the full taxonomy.
 
@@ -310,17 +332,7 @@ See `references/FAIL_OPEN.md` for the full taxonomy.
 
 - `references/FAIL_OPEN.md` — the canonical guide for `[RCH] local (...)` reasons
 - `references/ERROR_CODES.md` — the full RCH-Exxx catalog
-- `references/PATH_DEPENDENCIES.md` — multi-repo workspace problems
-- `references/MULTI_AGENT_CONTENTION.md` — TOCTOU, fleet deploy races, autostart cooldown
-- `references/DISK_AND_PRESSURE.md` — RCH-E210..217 + sbh handoff
-- `references/SELF_HEALING.md` — autostart cooldown, daemon supervision
-- `references/SSH_KEY_RECOVERY.md` — host-doesn't-have-the-key recovery
-- `references/SSH_TUNING.md` — ControlMaster, keepalives, retry semantics
-- `references/TELEMETRY_RECOVERY.md` — corrupt telemetry.db recovery
-- `references/MACHINE_INTROSPECTION.md` — JSON/schema/capability surfaces
 - `references/RECOVERY_PLAYBOOKS.md` — symptom→fix in ≤90s
-- `scripts/auto_recover.sh` — heuristic, dry-run-by-default recovery
-- `scripts/worker_disk_triage.sh` — read-only disk report per worker
-- `scripts/protocol_test.sh` — probe the hook protocol directly
-- `scripts/multi_agent_safety.sh` — flock wrapper for fleet ops
-- `scripts/mine_rch_history.sh` — search prior incidents in agent session history
+- `references/MACHINE_INTROSPECTION.md` — JSON/schema/capability surfaces, wire-level hook protocol
+- `references/CONFIGURATION.md` — config keys and precedence
+- `references/WORKERS.md` — worker inventory and health

@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <strong>Achieve Frontier AI performance in your CLI</strong> — by fusing the model CLIs you already run. Fan one prompt across a panel of 1-8 of your local CLIs in parallel, have a judge model you pick read every answer into a structured analysis, then a synthesizer you pick write one grounded answer that does not majority-vote. On a 100-task benchmark, every fusion panel outscored its individual member models. It runs on Maestro's discipline layer: verified done-claims, surgical scope, and a research-backed multi-agent gate.
+  <strong>Achieve Frontier AI performance in your CLI</strong> — by fusing the model CLIs you already run. Fan one prompt across a panel of 1-8 local CLIs in parallel, have a judge model you pick compare every answer, then a synthesizer you pick write one grounded answer that does not majority-vote. On a 100-task benchmark, every fusion panel outscored its individual member models. Panel, judge, and synthesizer subprocesses are one-shot and read-only.
 </p>
 
 <p align="center">
@@ -22,15 +22,23 @@
 </p>
 
 <p align="center">
-  <sub>17 fixture tasks &middot; 147 valid A/B runs &middot; 11 voids excluded &amp; re-run &middot; 6 hooks, all tested &middot; ~10 KB always-on kernel &middot; plugin + portable installs</sub>
+  <sub>1-8 local model CLIs &middot; catalog-first composition &middot; configurable judge and synthesizer &middot; zero dependencies &middot; plugin + portable installs</sub>
 </p>
 
-> **UPDATED — catalog-first Frontier.** Run `maestro frontier catalog` to see
-> the locally selectable models, named presets (including legacy presets),
-> aliases, and readiness requirements. Compose a panel from ready models with
-> `maestro frontier compose --models ...`; the catalog never prints configured
-> model IDs or secret values. Full walkthrough in [The Frontier
-> Engine](#the-frontier-engine).
+> **UPDATED — Opus 5, current Codex models, and effort control.** Run
+> `maestro frontier catalog` to see Claude Opus 5 plus the current
+> OpenAI/Codex selectors (GPT-5.6 Sol, Terra, Luna, GPT-5.5, GPT-5.4,
+> GPT-5.4 Mini, GPT-5.3 Codex Spark, and Codex Auto Review), their supported
+> effort levels, named presets, aliases, and local readiness. Compose a panel
+> with `maestro frontier compose --models ... --effort <level>`; the catalog
+> never prints secret values or optional model overrides. Full walkthrough in
+> [The Frontier Engine](#the-frontier-engine).
+
+**One suite: fuse the answer, make the case, guard the spend.**
+
+- **[Maestro Frontier](https://github.com/mbanderas/maestro):** Fuses the model CLIs you already run into one judged, grounded answer.
+- **[Maestro Agora](https://github.com/mbanderas/maestro-agora):** Turns verified product truth into concise, argument-first copy without inventing the proof.
+- **[Maestro CostGuard](https://github.com/mbanderas/costguard):** Audits CI and cloud infrastructure for cost leaks and shows what to fix.
 
 ---
 
@@ -41,9 +49,9 @@
 > default. Global/user installs are optional when you intentionally want
 > cross-project behavior.
 
-**Claude Code (terminal)** — native plugin (enforcement hooks, `/maestro:*`
-commands, skills, status line, Frontier auto-run). Run these inside the `claude`
-CLI:
+**Claude Code (terminal)** — native plugin (`/maestro:*` commands, skills,
+status line, Frontier auto-run, and an optional policy-hook pack that is off by
+default). Run these inside the `claude` CLI:
 
 ```text
 /plugin marketplace add mbanderas/maestro
@@ -58,8 +66,8 @@ terminal (`claude` on the same machine), or register the marketplace in
 [Claude Code plugins docs](https://code.claude.com/docs/en/discover-plugins).
 
 **Codex CLI (terminal)** — native Codex plugin via the Maestro repo marketplace
-(skills, trusted hooks, and Frontier auto-run after you review and trust the
-hooks):
+(Frontier skills, auto-run support, and bundled optional hooks that stay off
+unless you enable the discipline setting):
 
 ```text
 codex plugin marketplace add mbanderas/maestro
@@ -90,15 +98,14 @@ native hook support.
 | Windsurf / Devin | `npx github:mbanderas/maestro install --target windsurf` |
 | Not sure / auto-detect | `npx github:mbanderas/maestro install --target auto` |
 
-Portable installs lay down `AGENTS.md` plus that tool's adapter or
-integration file, `docs/orchestration.md`, the zero-dependency Frontier
-engine, and the relevant command/skill files. Two profile flags split that
-in half: `--doctrine-only` splices just the `AGENTS.md` kernel (the discipline
-layer, no engine), and `--engine-only` installs the Frontier engine and its
-command/skill files without the discipline layer — `npx
-github:mbanderas/maestro install --engine-only --project .` for Frontier on
-its own. The two are mutually exclusive; omit both for the full install. Codex
-does not need that copy
+Portable installs lay down the zero-dependency Frontier engine and relevant
+command/skill files by default. `--with-discipline` explicitly adds the
+independent `AGENTS.md` policy pack, runtime adapter, and
+`docs/orchestration.md`; `--doctrine-only` splices only that policy pack;
+`--engine-only` is an explicit alias for the default. Use
+`--remove-discipline` to remove marker-owned policy blocks and known standalone
+Maestro doctrine files while preserving surrounding project instructions.
+These profile flags are mutually exclusive. Codex does not need that copy
 path for normal use: the repo is its marketplace
 (`.agents/plugins/marketplace.json`) and plugin
 (`.codex-plugin/plugin.json`), bundling the Codex skills, hooks, Frontier
@@ -162,8 +169,8 @@ blind spots; compare, not merge), then has a synthesizer you choose write
 a grounded answer that does not majority-vote. The payoff is measured: on
 a 100-task benchmark, fused panels beat the best of their individual
 members — fusing the CLIs you already run buys frontier-tier results. It
-is the project's new default identity; the doctrine, hooks, skills, and
-benchmarks are unchanged; the discipline layer is its foundation.
+  is the project's default identity. Frontier does not depend on the optional
+  discipline policy pack.
 
 <p align="center">
   <img src="assets/frontier-fusion-benchmark.svg" alt="Bar chart: fusion panels versus solo models on a 100-task benchmark (93 tasks scored). Every fusion panel outscores its individual member models; an Opus 4.8 self-fusion (double Opus) reaches ~65.5%, matching Claude Fable 5 solo, while the strongest fusion, Fable 5 + GPT-5.5, tops the field at ~69% and solo Gemini 3.1 Pro and Gemini 3 Flash trail near 43-45%." width="880">
@@ -189,7 +196,7 @@ session relays the synthesized answer. `off` is the disable path.
 
 | Mode | Behavior |
 |---|---|
-| `off` | Normal Maestro. Engine never invoked; zero behavior change. The default, and the way to disable auto-run. |
+| `off` | Normal CLI interaction. Engine never invoked; zero behavior change. The default, and the way to disable auto-run. |
 | `single <model>` | Auto-runs every prompt through one local CLI and relays its answer. No panel, no judge, no synth. |
 | `fusion <preset>` | Auto-runs every prompt through your panel -> a judge model's analysis -> a grounded synthesis, with graceful degradation and one-level recursion bounds. |
 
@@ -201,6 +208,8 @@ Claude Code examples:
 /maestro:frontier fusion opus-gpt              # arm panel auto-run (Opus + GPT-5.5)
 /maestro:frontier catalog                      # models, presets, aliases, readiness
 /maestro:frontier compose --models <model-a>,<model-b> --dry-run
+/maestro:frontier compose --models opus,sol --effort xhigh
+/maestro:frontier effort medium                # change the armed panel's effort
 /maestro:frontier run "your prompt here"       # manual one-off (armed modes also auto-run)
 /maestro:frontier off                          # disable auto-run; back to normal Maestro
 ```
@@ -213,6 +222,8 @@ Codex examples:
 /maestro frontier fusion opus-gpt
 /maestro frontier catalog
 /maestro frontier compose --models <model-a>,<model-b> --dry-run
+/maestro frontier compose --models opus,sol --effort xhigh
+/maestro frontier effort medium
 /maestro frontier run "your prompt here"
 /maestro frontier off
 ```
@@ -233,17 +244,37 @@ supported, and custom saved presets still arm and run as before. Use the
 composer when you want a ready, explicit panel:
 
 ```text
-maestro frontier compose --models <model-a>,<model-b> [--judge <model>] [--synth <model>] [--save <name>] [--dry-run] [--scope <name>]
+maestro frontier compose --models <model-a>,<model-b> [--judge <model>] [--synth <model>] [--effort <level>] [--save <name>] [--dry-run] [--scope <name>]
 ```
 
 `--dry-run` validates the composition without changing state or presets;
 `--save` both saves the named preset and arms the resolved custom panel. Without
 those flags, compose arms the resolved custom panel in the chosen scope.
-`terra`, `luna`, and `sol` are optional aliases, not canonical model IDs: they
-become selectable only when `MAESTRO_FRONTIER_MODEL_TERRA`,
-`MAESTRO_FRONTIER_MODEL_LUNA`, or `MAESTRO_FRONTIER_MODEL_SOL` is set in the
-environment or `~/.codex/.env`. The catalog reports the requirement but never
-the configured value.
+
+Current Opus and Codex selectors:
+
+| Selector | CLI model ID | Supported effort |
+|---|---|---|
+| `opus` | `claude-opus-5` | `low`, `medium`, `high`, `xhigh`, `max` |
+| `sol` | `gpt-5.6-sol` | `low`, `medium`, `high`, `xhigh`, `max`, `ultra` |
+| `terra` | `gpt-5.6-terra` | `low`, `medium`, `high`, `xhigh`, `max`, `ultra` |
+| `luna` | `gpt-5.6-luna` | `low`, `medium`, `high`, `xhigh`, `max` |
+| `auto-review` | `codex-auto-review` | `low`, `medium`, `high`, `xhigh`, `max`, `ultra` |
+| `gpt-5.5` | `gpt-5.5` | `low`, `medium`, `high`, `xhigh` |
+| `gpt-5.4` | `gpt-5.4` | `low`, `medium`, `high`, `xhigh` |
+| `gpt-5.4-mini` | `gpt-5.4-mini` | `low`, `medium`, `high`, `xhigh` |
+| `spark` | `gpt-5.3-codex-spark` | `low`, `medium`, `high`, `xhigh` |
+
+Frontier passes one persisted effort level to every selected Claude or Codex
+member that supports effort, including judge and synthesizer stages. It rejects
+an effort unsupported by any selected effort-aware model. Use
+`maestro frontier effort auto` to return the armed panel to provider defaults.
+Models without a declared effort interface keep their own defaults.
+
+Sol, Terra, and Luna work without model-ID configuration. Existing
+`MAESTRO_FRONTIER_MODEL_SOL`, `MAESTRO_FRONTIER_MODEL_TERRA`, and
+`MAESTRO_FRONTIER_MODEL_LUNA` settings remain optional overrides for compatible
+custom Codex backends; the catalog never prints their values.
 
 Every panel, judge, and synthesizer subprocess runs in the provider CLI's
 read-only/planning mode. Degradation is graceful: a partial
@@ -255,8 +286,9 @@ Honest scope, measured rather than implied: the **engine is built,
 unit-tested (degradation, recursion, budget, anti-majority all covered),
 and verified end-to-end on selected local configurations**. Other catalog
 entries are validated at their supported boundaries, but readiness and provider
-availability remain machine-specific; run `node frontier/smoke.cjs` as the
-release verification for the local catalog and read-only dispatch contracts.
+availability remain machine-specific; run `node frontier/smoke.cjs` to probe
+every first-party Codex selector through its read-only dispatch contract before
+a release.
 The quality *lift* of local fusion
 is **measured, not asserted**: on a 100-task suite (93 scored) every
 fusion panel outscored its own member models, with the strongest fusion
@@ -266,36 +298,32 @@ are never mixed across the two.
 Operational caveats: headless web access differs per CLI (Codex confirmed
 live; Claude and Gemini are gated `webTools:false` in this build), and
 each cold `claude -p` panel/judge/synth call is non-trivial in cost; use
-small prompts, and prefer `opus-gpt` to bound spend. The budget cap is
+small prompts, and prefer a two-model panel to bound spend. The budget cap is
 opt-in (`tokenBudget`, default disabled). The engine is zero-dependency
 CommonJS under [`frontier/`](frontier/); each CLI is resolved from your
 `PATH` (`claude`, `codex`, `gemini`). Binary overrides and the full
 operational reference are in
 [`commands/frontier.md`](commands/frontier.md#binary-overrides).
 
-<p align="center">
-  <img src="assets/frontier-stack.svg" alt="Maestro Frontier fusion engine sitting on the discipline layer foundation; an amber data-flow connects the two" width="820">
-</p>
-
 ## What You Get
 
-<p align="center">
-  <img src="assets/what-you-get.svg" width="860" alt="What Maestro gives you: five capabilities on a dark card">
-</p>
+1. **Catalog-first selection.** See canonical models, aliases, presets, readiness,
+   and provider requirements without printing configured model IDs or secrets.
+2. **Panels you choose.** Run one model or compose a 1-8 model panel from CLIs
+   already installed on your machine.
+3. **Structured comparison.** A judge model identifies consensus,
+   contradictions, unique insights, and blind spots instead of majority-voting.
+4. **Grounded synthesis.** A synthesizer model writes the final answer from the
+   full panel analysis.
+5. **Clean opt-in state.** Frontier is off by default, workspace-scoped when
+   requested, recursion-bounded, and removable without adding repo doctrine.
 
-Frontier is the headline; the discipline layer beneath it is what runs on
-every task. Drop two markdown files into your repo and your agent gains
-five things:
+## Optional Discipline Toolkit, Benchmarks, and Research
 
-1. **Done means done.** Completion reports carry a verification status (`VERIFIED` / `UNVERIFIED` / `FAIL`) backed by an actual type-check, lint, or test run, with an optional hook enforcing it structurally.
-2. **It stays in its lane.** Surgical-scope rules: every changed line traces back to what you asked for: no drive-by refactors, no formatting sweeps, no deleting code it couldn't verify was dead.
-3. **Long runs that land.** Overnight tasks and recurring loops get checkpoint artifacts, explicit end conditions, iteration caps, and re-grounding rules. This repo's own benchmark loops run on exactly these rules.
-4. **Multi-agent only when it pays.** A counted Decision Gate routes work single-agent by default and demands an explicit verdict line before the first edit; orchestration stays behind it.
-5. **Receipts.** A reproducible A/B benchmark harness ships in-repo, with our own retractions and nulls. Rerun every number yourself.
-
-<p align="center">
-  <img src="assets/discipline-demo.svg" alt="Two terminal close-outs quoted verbatim from benchmark streams: a baseline agent declares all done although no check ran, while the Maestro run opens with a counted GATE verdict line and exits with the honest status UNVERIFIED, no type-checker or linter configured in this project" width="860">
-</p>
+Maestro still ships its earlier orchestration doctrine and structural hooks as
+an independent, opt-in policy pack. It is off by default, is not required by
+Frontier, and no longer requires universal status banners or automatic human
+review labels. Enable it only where its workflow rules are useful.
 
 The price, measured rather than implied, is token overhead — not a speed
 tax. The discipline layer reloads a ~10 KB kernel each turn and runs a few
@@ -312,14 +340,12 @@ unattended work (overnight loops, scheduled runs, CI agents) where nobody
 reads the 3am transcript and a wrong "all done" costs far more than the
 tokens.
 
-## Discipline, Benchmarks, and Research
-
 <p align="center">
   <img src="assets/maestro-flow.svg" alt="Maestro orchestration flow: task through the S1 decision gate to either a single agent or the planner, specialist group, and staff engineer pipeline, converging on verified delivery" width="780">
 </p>
 
-The discipline layer (verification, scope, honest status) applies to
-every task, fusion or not. The full orchestration protocol lives in
+The optional discipline layer covers verification, scope, and long-horizon
+operation. Its full orchestration protocol lives in
 [`docs/orchestration.md`](docs/orchestration.md). Benchmark data,
 retractions, and methodology — including the honest reading that Maestro
 ON has never beaten OFF on success rate in any measured cell and that the
@@ -366,7 +392,9 @@ Code's armed Frontier indicator; ask the skill to show status, or run
 `maestro frontier status --scope codex-project` from a shell when using the
 CLI directly.
 
-GitHub Copilot, Cline, and Windsurf read `AGENTS.md` directly, so the portable core works there with no adapter. Maestro's always-on kernel (`AGENTS.md`) is ~10 KB, under Windsurf's 12,000-character limit and roughly a third of Codex's 32 KiB budget; the full multi-agent protocol loads on demand from `docs/orchestration.md`.
+With `--with-discipline`, GitHub Copilot, Cline, and Windsurf read
+`AGENTS.md` directly, so the optional portable policy core needs no adapter.
+The full multi-agent protocol loads on demand from `docs/orchestration.md`.
 
 **Subagents vs Agent Teams (Claude Code):** Maestro's `CLAUDE.md` adapter
 routes automatically. **Subagents** run within one session and report
@@ -380,7 +408,7 @@ builds. Agent teams are experimental and Claude Code-only.
 
 Optional Claude Code machinery; full install steps in the linked docs.
 
-- **Verification Hook**: a `SubagentStop` hook enforcing S7.3 structurally: warns when a file-modifying subagent skips a checker or omits a status token. Never blocks. [`docs/hooks.md`](docs/hooks.md)
+- **Verification Hook**: an optional `SubagentStop` hook that warns when a file-modifying subagent skips a checker. No mandatory status vocabulary. [`docs/hooks.md`](docs/hooks.md)
 - **Hook Pack**: five more zero-dependency hooks (doctrine guard, loop guard, phase-scope, gate reminder, opt-in gate telemetry) enforcing the rest of the doctrine. [`docs/hooks.md`](docs/hooks.md)
 - **Context Bar**: a status-line context-window progress bar that shifts green to amber to red and detects the model's window (including the 1M Opus tier). [`docs/context-bar.md`](docs/context-bar.md)
 - **Terse Mode + Compress**: opt-in output-token reduction (`/maestro:terse`) and a memory-file compressor (`/maestro:compress`), adapted from the MIT-licensed Caveman plugin. [`docs/context-bar.md`](docs/context-bar.md)
@@ -396,12 +424,12 @@ portable scripts noted below.
 | Command | What it does | Usage |
 |---|---|---|
 | `/maestro` (Codex) | Direct Codex command hub for Frontier, settings, terse mode, and updates. | `/maestro frontier off`, `… frontier fusion budget-trio`, `… frontier roster`, `… settings status`, `… settings set verify block`, `… terse ultra`, `… update` |
-| `/maestro-frontier` (Codex) | Specialized Codex Frontier skill entry when you want only the engine commands. | `… off`, `… single opus`, `… fusion opus-gpt`, `… status`, `… roster`, `… run "<prompt>"` |
+| `/maestro-frontier` (Codex) | Specialized Codex Frontier skill entry when you want only the engine commands. | `… off`, `… single opus`, `… fusion opus-gpt`, `… effort xhigh`, `… status`, `… roster`, `… run "<prompt>"` |
 | `/maestro-settings` (Codex) | Specialized Codex settings skill entry. | `… status`, `… list`, `… help`, `… set terse off` |
 | `/maestro-terse` (Codex) | Specialized Codex terse-mode skill entry. | `… lite`, `… full`, `… ultra`, `… off` |
 | `/maestro-update` (Codex) | Specialized Codex update skill entry; refreshes the marketplace plugin. | `/maestro-update` |
 | `/maestro:settings` | See or change all toggles. With arguments it runs the change directly; with no arguments it opens a keyboard picker. | `/maestro:settings`, `… status`, `… list`, `… help`, `… set terse off`, `… frontier fusion opus-gpt` |
-| `/maestro:frontier` | Drive the local multi-CLI fusion engine: switch mode, pick a model/preset, or run a prompt through it. | `… off`, `… single opus`, `… fusion opus-gpt`, `… status`, `… run "<prompt>"` |
+| `/maestro:frontier` | Drive the local multi-CLI fusion engine: switch mode, pick a model/preset, set effort, or run a prompt through it. | `… off`, `… single opus`, `… fusion opus-gpt`, `… effort xhigh`, `… status`, `… run "<prompt>"` |
 | `/maestro:terse` | Switch terse output mode for the session (off by default). | `… lite`, `… full`, `… ultra`, `… off` |
 | `/maestro:context-bar` | Toggle the status-line context progress bar (and the Maestro badges on it). | `/maestro:context-bar`, `… on`, `… off` |
 | `/maestro:compress <file>` | Rewrite a natural-language memory file in terse form to cut input tokens; keeps a backup and validates deterministically. | `… path/to/NOTES.md` |
@@ -413,21 +441,20 @@ portable scripts noted below.
 | Toggle | Values | What it controls |
 |---|---|---|
 | `terse` | `off`, `lite`, `full`, `ultra` | Output-token reduction. Shows an amber level badge (`ULTRA`) on the status bar. |
-| `frontier` | `off`; `single - <catalog model>`; `fusion - <catalog preset>`; or `fusion - custom (<models>)`, with optional `--judge` / `--synth` | The local fusion engine. Run `maestro frontier catalog` for current models, named presets, aliases, and local readiness; do not treat a documentation example or alias as a canonical provider ID. When armed it auto-runs on every prompt, and the blue `f` panel badge reflects the active selection. |
+| `frontier` | `off`; `single - <catalog model>`; `fusion - <catalog preset>`; or `fusion - custom (<models>)`, with optional judge, synth, and effort | The local fusion engine. Run `maestro frontier catalog` for current models, named presets, aliases, supported effort levels, and local readiness. When armed it auto-runs on every prompt, and the blue `f` panel badge reflects the active selection. |
 | `context-bar` | `on`, `off` | The status-line context-window progress bar. |
-| `discipline` | `on`, `off` | The enforcement-hook pack (gate-reminder, doctrine-guard, phase-scope, subagent-guard, verify-gate, loop-guard, gate-telemetry, toolbudget). `off` silences every hook for users who want only the Frontier engine. See [Discipline layer toggle](#discipline-layer-toggle) for the one caveat. |
-| `verify` | `off`, `warn`, `block` | The S7.3 verify-gate Stop hook. `warn` (default) injects a non-blocking nudge when a session modified files but ran no checker and stated no honest status token; `block` blocks the Stop once to force a checker run or honest token; `off` disables. `MAESTRO_VERIFY_GATE` overrides per-session. Arm `block` in repos with a real test suite. |
+| `discipline` | `on`, `off` | Optional enforcement-hook pack. `off` is the default; `on` enables gate-reminder, doctrine-guard, phase-scope, subagent-guard, verify-gate, loop-guard, gate-telemetry, and toolbudget. |
+| `verify` | `off`, `warn`, `block` | Optional verify-gate Stop hook. `off` is the default; `warn` injects a non-blocking nudge; `block` blocks Stop once until a checker runs or a plain validation-gap receipt is stated. `MAESTRO_VERIFY_GATE` overrides per-session. |
 
 Portable everywhere, Codex included: `node settings/cli.cjs status | list | help | set <key> <value>` (frontier also takes `--judge`, `--synth`, `--models a,b,c`, and `--scope <scope>`). Full references: [`docs/settings.md`](docs/settings.md) and [`docs/context-bar.md`](docs/context-bar.md).
 
 #### Discipline layer toggle
 
-Just as `frontier off` disables the engine, `discipline off` disables the
-discipline layer for users who want only Frontier:
+Discipline is off by default and independent of Frontier:
 
 ```bash
-node settings/cli.cjs set discipline off   # silence the enforcement hooks
-node settings/cli.cjs set discipline on    # default
+node settings/cli.cjs set discipline on    # enable optional policy hooks
+node settings/cli.cjs set discipline off   # default
 ```
 
 `MAESTRO_DISCIPLINE=off` (env) overrides the saved setting for one session.
@@ -459,8 +486,8 @@ which it controls:
   fully-toggleable half.
 - **Doctrine text** (the `AGENTS.md` kernel) — autoloaded into context at
   session start and *cannot be unloaded mid-session*, so the toggle does not
-  touch it. To run without the doctrine, install engine-only (below) so the
-  kernel is never laid down in the first place.
+  touch it. Default installs omit it; `--remove-discipline` removes managed
+  doctrine from an existing install.
 
 So `discipline off` = enforcement silent; the kernel text, if present, stays
 in context. Frontier toggles cleanly because it is an action; discipline is
@@ -471,9 +498,11 @@ mutually-exclusive profile flags:
 
 | Profile | Command | Lays down |
 |---|---|---|
-| Both (default) | `… install --target <tool>` | doctrine + engine |
-| Engine only | `… install --engine-only` | Frontier engine + wrapper/skills, no discipline |
+| Frontier (default) | `… install --target <tool>` | Frontier engine + wrapper/skills |
+| Frontier + discipline | `… install --with-discipline` | Frontier plus optional doctrine, adapter, and protocol doc |
+| Engine only (explicit alias) | `… install --engine-only` | Frontier engine + wrapper/skills |
 | Doctrine only | `… install --doctrine-only` | `AGENTS.md` kernel splice only (the sync path) |
+| Remove discipline | `… install --remove-discipline` | remove managed doctrine while preserving project content and Frontier |
 
 ## Updating Maestro
 
@@ -530,11 +559,11 @@ If you have benchmarks, case studies, or research that challenges or extends the
 ## Related Projects
 
 - **[Govyn](https://govynai.com)**: Open-source AI agent governance proxy. Maestro orchestrates your agents; Govyn ensures they never hold real API keys, stay within budget, and follow policy. They are designed to work together.
-- **[CostGuard](https://github.com/mbanderas/costguard)**: Audit your repos and cloud providers for CI and infrastructure cost leaks — a CLI + MCP server for AI coding agents (Claude Code, Codex, any MCP host). Maestro keeps your agents disciplined; CostGuard keeps the infrastructure they touch honest on spend.
+- **[CiteSurge](https://CiteSurge.com)**: Applies Maestro's evidence-first discipline to enterprise GEO: measure what answer engines say, turn findings into prioritized action, and document what changed.
 
 ## Community
 
-Using Maestro Frontier, or running the discipline layer on your own agent? [Open a discussion](https://github.com/mbanderas/maestro/discussions) or [file an issue](https://github.com/mbanderas/maestro/issues).
+Using Maestro Frontier or the optional discipline toolkit? [Open a discussion](https://github.com/mbanderas/maestro/discussions) or [file an issue](https://github.com/mbanderas/maestro/issues).
 
 ## License
 

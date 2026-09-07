@@ -27,6 +27,20 @@
 
 **Key lever**: Cart abandonment recovery (average 70% abandonment rate)
 
+### DTC Subscription / Repeat-Purchase Overlay
+
+For DTC brands built on subscriptions or repeat purchase (rather than one-off cart transactions), overlay this lifecycle on the core funnel:
+
+| Stage | Definition | Key Metrics | Benchmark |
+|-------|-----------|-------------|-----------|
+| **Awareness** | Discovers brand (social, ads, PR) | Reach, brand search volume | — |
+| **Trial** | First purchase (often low-risk entry) | First-order conversion, trial offers | 2-4% |
+| **Subscribe** | Converts to subscription/repeat | Subscription rate, 2nd order rate | 15-30% sub rate |
+| **Retain** | Stays subscribed | Monthly churn, LTV:CAC ratio | <8% monthly churn |
+| **Refer** | Shares with friends | Referral rate, K-factor | 10-20% referral rate |
+
+**Key lever**: First-to-second purchase conversion (biggest drop-off point)
+
 ---
 
 ## B2B Services / Consulting
@@ -92,20 +106,6 @@
 | **Advocate** | Promotes to their network | Share rate, UGC, testimonials | — |
 
 **Key lever**: Consistent content → engagement → trust → monetization
-
----
-
-## DTC (Direct-to-Consumer)
-
-| Stage | Definition | Key Metrics | Benchmark |
-|-------|-----------|-------------|-----------|
-| **Awareness** | Discovers brand (social, ads, PR) | Reach, brand search volume | — |
-| **Trial** | First purchase (often low-risk entry) | First-order conversion, trial offers | 2-4% |
-| **Subscribe** | Converts to subscription/repeat | Subscription rate, 2nd order rate | 15-30% sub rate |
-| **Retain** | Stays subscribed | Monthly churn, LTV:CAC ratio | <8% monthly churn |
-| **Refer** | Shares with friends | Referral rate, K-factor | 10-20% referral rate |
-
-**Key lever**: First-to-second purchase conversion (biggest drop-off point)
 
 ---
 

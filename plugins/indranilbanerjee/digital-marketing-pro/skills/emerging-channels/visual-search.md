@@ -8,7 +8,7 @@
 
 | Platform | Monthly Active Users | Primary Use Case | How It Works |
 |----------|---------------------|-----------------|-------------|
-| **Google Lens** | 15B+ queries/year | Product identification, text extraction, landmark recognition | Camera/photo → Google index → results |
+| **Google Lens** | ~20B visual searches/month (Google, late 2024) | Product identification, text extraction, landmark recognition | Camera/photo → Google index → results |
 | **Pinterest Lens** | 450M+ MAU (Pinterest total) | Product discovery, style inspiration, home decor | Camera/photo → Pinterest catalog → shoppable pins |
 | **Amazon Visual Search** | Integrated into Amazon app | Product matching on Amazon catalog | Camera/photo → Amazon product catalog → purchase |
 | **Bing Visual Search** | Integrated into Bing/Edge | General visual search, product finding | Image upload → Bing index → results |
@@ -147,7 +147,7 @@
 | Instagram | Product Tags in posts and Stories | Instagram Shopping + product catalog |
 | Pinterest | Product Pins with pricing and availability | Pinterest catalog + verified merchant |
 | Google | Product tags in Google Images | Google Merchant Center product feed |
-| Your website | Hotspot/tag overlays on lifestyle images | Shoppable image tools (Tagshop, Foursixty, Curalate) |
+| Your website | Hotspot/tag overlays on lifestyle images | Shoppable image tools (Tagshop, Foursixty, Bazaarvoice Galleries) |
 
 ### AR Try-On
 

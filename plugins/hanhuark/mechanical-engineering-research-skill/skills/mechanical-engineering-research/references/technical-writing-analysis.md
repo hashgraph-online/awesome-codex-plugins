@@ -130,13 +130,6 @@ When discussing disagreement with existing work, first check differences in geom
 
 ## Results Writing Pattern
 
-Use this sentence-level flow for each major result:
-
-1. "Figure X shows..." to orient the reader.
-2. "It is observed that..." to state the trend.
-3. "This trend indicates/suggests..." to interpret the result.
-4. "Physically, this can be attributed to..." to explain the mechanism.
-5. "This conclusion is consistent with/differs from..." to situate the result relative to prior work.
-6. "Therefore..." to state the implication for the research question.
+Develop each major result through orientation, observation, quantification, mechanism, comparison, and implication. Use the sequence as paragraph logic, not as a set of required sentence stems. Vary syntax and state findings directly so the prose does not become repetitive or AI-like.
 
 Avoid claiming novelty only because a trend was not previously reported. State why the new observation matters and what measurement, model, or analysis made it possible.

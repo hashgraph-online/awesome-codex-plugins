@@ -1,0 +1,127 @@
+---
+title: v3.0.3
+description: RAC 1.17 with 90% fewer deps, expandable Table rows, Apache 2.0 license, useTheme hook, DOM polymorphic render-prop API, and bug fixes.
+github:
+  pull: 6441
+---
+
+<div className="flex items-center gap-3 mb-6">
+  <span className="text-sm text-muted">April 17, 2026</span>
+</div>
+
+Patch release: React Aria Components 1.17 with 90% fewer dependencies, expandable Table rows, Apache 2.0 license, the `useTheme` hook for Vite and CRA apps, a DOM polymorphic utility for render-prop element swaps, and bug fixes.
+
+## Installation
+
+Update to the latest version:
+
+<Tabs items={["npm", "pnpm", "yarn", "bun"]}>
+  <Tab value="npm">
+    ```bash
+    npm i @heroui/styles@latest @heroui/react@latest
+    ```
+  </Tab>
+  <Tab value="pnpm">
+    ```bash
+    pnpm add @heroui/styles@latest @heroui/react@latest
+    ```
+  </Tab>
+  <Tab value="yarn">
+    ```bash
+    yarn add @heroui/styles@latest @heroui/react@latest
+    ```
+  </Tab>
+  <Tab value="bun">
+    ```bash
+    bun add @heroui/styles@latest @heroui/react@latest
+    ```
+  </Tab>
+</Tabs>
+
+<Callout type="info">
+  **Using AI assistants?** Simply prompt "Hey Cursor, update HeroUI to the latest version" and your AI assistant will automatically compare versions and apply the necessary changes. Learn more about the [HeroUI MCP Server](/docs/ui-for-agents/mcp-server).
+</Callout>
+
+## What's New
+
+### React Aria Components 1.17
+
+This release upgrades React Aria Components to [v1.17.0](https://react-aria.adobe.com/releases/v1-17-0). The highlight: dependency consolidation drops **90% of RAC's transitive dependencies**, resulting in faster installs and builds. See the full [RAC 1.17 release notes](https://react-aria.adobe.com/releases/v1-17-0) for details.
+
+### Expandable Table rows
+
+Table now supports expandable rows for tree-style data. Set a `treeColumn` and render a chevron in those cells to expand and collapse child rows — perfect for file browsers, nested categories, and hierarchical data.
+
+<ComponentPreview
+  name="table-expandable-rows"
+/>
+
+### useTheme hook
+
+For plain React with Vite or Create React App (no Next.js theme provider), import `useTheme` from `@heroui/react`. It accepts any theme name (`"light"`, `"dark"`, `"brutalism-light"`, etc.). Pass `"system"` to follow the OS preference. It persists the value in `localStorage`, and sets both `data-theme` and `class` on `<html>` to the resolved theme name.
+
+```tsx
+"use client";
+
+import { Button, useTheme } from "@heroui/react";
+
+export function ThemeSwitch() {
+  const { theme, setTheme } = useTheme("light");
+
+  return (
+    <div className="flex gap-2">
+      <Button onPress={() => setTheme("light")}>
+        Light
+      </Button>
+      <Button onPress={() => setTheme("dark")}>
+        Dark
+      </Button>
+      <Button onPress={() => setTheme("system")}>
+        System
+      </Button>
+      <Button onPress={() => setTheme("brutalism-light")}>
+        Brutalism Light
+      </Button>
+      <span className="text-sm opacity-70">Current: {theme}</span>
+    </div>
+  );
+}
+```
+
+### DOM polymorphic utility
+
+The DOM polymorphic helper lets lightweight components that are not built on React Aria primitives change their host element through a render prop.
+
+**Example:** rendering a Card component as `<button />`
+
+```tsx
+<Card<"button"> render={(props) => <button {...props} />} />
+```
+
+### License change
+
+HeroUI is now licensed under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0), replacing the previous MIT license. Apache 2.0 provides the same permissive freedoms while adding an explicit patent grant for additional legal protection. No action is required from existing users.
+
+## Bug Fixes
+
+- **Tabs**: scope secondary-variant styles so nested tab groups no longer inherit the parent variant ([#6384](https://github.com/heroui-inc/heroui/pull/6384))
+
+## Dependencies
+
+- **React Aria Components**: Updated from `1.16.0` to [`1.17.0`](https://react-aria.adobe.com/releases/v1-17-0)
+- **@react-aria/utils**: Updated from `3.33.1` to `3.34.0`
+- **@react-types/shared**: Updated from `3.33.1` to `3.34.0`
+- **@internationalized/date**: Updated from `3.12.0` to `3.12.1`
+
+## Links
+
+- [Component Docs](/docs/react/components)
+- [Figma Kit V3](https://www.figma.com/community/file/1546526812159103429/heroui-figma-kit-v3)
+- [GitHub Repository](https://github.com/heroui-inc/heroui)
+- [GitHub PR #6441](https://github.com/heroui-inc/heroui/pull/6441)
+
+## Contributors
+
+Thanks to everyone who contributed to this release!
+
+<PRContributors />

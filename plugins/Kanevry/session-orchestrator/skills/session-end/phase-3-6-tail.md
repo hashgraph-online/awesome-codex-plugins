@@ -37,6 +37,33 @@ The proposals queue is populated mid-session by wave-executor agents calling `no
 
 3. If `queue.length === 0`: log `memory-proposals: queue empty (stats: ${JSON.stringify(stats)})` and continue.
 
+3b. **Relation judgment (#1016)** — enrich each queued proposal with its relation to the existing corpus, BEFORE step 4 renders its label. Without this, the operator approves a proposal without being told that the corpus already holds it, or holds its opposite.
+
+   > **Cadence contrast — read this before the step above and the step below.** Step 2's `collectProposals` and step 3's short-circuit run ONCE per session-end; step 4 batches ONCE per 4 items. **This step runs once per queued proposal.** The pool build is one call; the judgment is per candidate.
+
+   > **Cost, and where it may run.** The pool build is O(N²) over `queue.length + corpus.length` (~13 ms at N=100 records; viability boundary ~N=2000). Session-end and `/evolve` are the only two sanctioned call sites. Never from a wave dispatch, an inter-wave checkpoint, or a hook.
+
+   Skip when `.orchestrator/metrics/learnings.jsonl` is absent or holds fewer than 2 entries — with no corpus there is no relation to judge. Otherwise:
+
+   ```javascript
+   import { buildCandidatePools } from '${PLUGIN_ROOT}/scripts/lib/learnings/candidates.mjs';
+   import { buildJudgmentInput, judgeCandidate, applyVerdict }
+     from '${PLUGIN_ROOT}/scripts/lib/learnings/judgment.mjs';
+
+   const { entries: corpus } = await readLearnings('.orchestrator/metrics/learnings.jsonl');
+   const { pools } = buildCandidatePools([...queue, ...corpus], { now: new Date() });
+   ```
+
+   `pools[]` is `{seed, candidates}` per seed — a bounded, per-seed, non-transitive neighbour set (a neighbour of a neighbour is not a neighbour; there is no clustering pass). For each pool whose `seed` is a QUEUE item (corpus-seeded pools are not this phase's business):
+
+   1. `buildJudgmentInput({ candidate: pool.seed, neighbours: pool.candidates.map((c) => c.record) })`. It returns `null` for a proposal with no usable `id` — leave that item's label bare and move on.
+   2. `judgeCandidate(input, { judge })`. `judge` is the injected verdict provider: the coordinator reads the `input` envelope and returns the JSON object its `output_contract` field describes. There is no subagent type for this — do not dispatch one (#614: a read-only agent that must write its own sidecar never fires; here the COORDINATOR is the judge and the coordinator holds the result).
+   3. `applyVerdict(verdict, effects)` — the single choke point where a judgment may become an effect. In this phase every handler (`refine`, `supersede`, `merge`, `proposeContradiction`) records the relation onto the queue item so step 4 can render it. **None of them writes to disk here**; the only write this phase performs is step 6's `promoteAndClear()`, on the operator's selection.
+
+   **Fail closed — a voided judgment never reaches the operator.** `verdict.ok === false` (any of the eight failure modes: `unparseable`, `partial`, `phantom_id`, `self_reference`, `empty`, `timeout`, `enum_violation`, `duplicate_target`) means no relation was READ, not that none exists. `applyVerdict` refuses the whole batch — including `proposeContradiction`, the AUQ renderer, because rendering a relation from an unreadable judgment IS the claim. The item then falls through to step 4 with its ordinary bare label, exactly as before #1016. Never substitute a default decision, never repair-retry, never surface the failure mode as if it were a verdict. A judge error is logged (`memory-proposals: judgment voided for <id> (${verdict.failureMode})`) and never blocks the close.
+
+   **Label enrichment (step 4 input).** A proposal carrying a relation renders as `[<type-12>] | <subject-40> | conf=X.XX | <decision> <n>` (e.g. `contradict 1`, `merge 2`) with the judgment's `rationale` leading the option description. A proposal with no relation — `skip`, `abstain`, no pool, or a voided verdict — renders exactly as it does today. The operator's selection remains the only gate; the judgment supplies the relation, never the decision.
+
 4. **AUQ pagination logic**: partition the queue into FIFO batches of 4 inline:
 
    - Empty queue → silent skip (no AUQ rendered).
@@ -54,39 +81,58 @@ The proposals queue is populated mid-session by wave-executor agents calling `no
    }
    ```
 
-   Then iterate `batches` and emit one `AskUserQuestion` per batch with `header: "Memory — Confirm Proposals (Batch N of M)"`. Option label format: `[<type-12>] | <subject-40> | conf=X.XX`. Option description: `evidence: <first 60 chars of insight>`. `multiSelect: true`.
+   Then iterate `batches` and emit one `AskUserQuestion` per batch. The verbatim template is `agents/memory-proposal-collector.md` § AUQ Question Template — keep the two in step:
+
+   ```javascript
+   AskUserQuestion({
+     questions: [{
+       header: "Memory",
+       question: "Batch <N> of <M> — which of these learnings should be stored permanently?",
+       options: [
+         // one entry per proposal in this batch (max 4)
+         // label + description formats are LOCKED by D3 — see that file, do not restate them here
+         { label: "[type   ] | subject(40) | conf=X.XX", description: "evidence: <first 60 chars of insight>" },
+         ...
+       ],
+       multiSelect: true
+     }]
+   })
+   ```
+
+   The batch counter moved out of `header` and into the question because `header` is cut off after 12 characters — `Memory — Confirm Proposals (Batch N of M)` reached the operator as `Memory — Con`.
 
 5. After all batches answered, partition the queue into `approved` (any option selected across all batches) and `rejected` (all unselected).
 
-6. Invoke `writeApproved` and `archiveRejected` from `scripts/lib/memory-proposals/sink.mjs`:
+6. Invoke `promoteAndClear` and `archiveRejected` from `scripts/lib/memory-proposals/sink.mjs`:
    ```javascript
-   import { writeApproved, archiveRejected, clearProposalsJsonl } from '${PLUGIN_ROOT}/scripts/lib/memory-proposals/sink.mjs';
-   const writeResult = await writeApproved({ approved, repoRoot, sessionId });
+   import { promoteAndClear, archiveRejected } from '${PLUGIN_ROOT}/scripts/lib/memory-proposals/sink.mjs';
+   const writeResult = await promoteAndClear({ approved, sessionId, repoRoot });
    const archiveResult = await archiveRejected({ rejected, repoRoot, reason: 'user-declined' });
-   await clearProposalsJsonl({ repoRoot });
    ```
 
-   > **Ordering invariant (#797 — write-before-clear, clear-only-on-confirmed-success).** `clearProposalsJsonl()` drains the ENTIRE proposals queue unconditionally — it has no knowledge of whether `writeApproved()` actually persisted anything. Always run `writeApproved()` BEFORE `clearProposalsJsonl()` (never reorder), and only proceed to `clearProposalsJsonl()` when `writeResult.written === approved.length` (i.e. every approved proposal was actually written, with zero `writeResult.errors`). If `written !== approved.length`, STOP: do NOT call `clearProposalsJsonl()` — leave the queue intact, surface a `⚠ memory-proposals: writeApproved wrote <written>/<approved.length> — queue NOT cleared, retry next session-end` warning to the operator, and let the discrepancy carry over to the next session's Phase 3.6.3 pass rather than silently losing the un-written proposals. `writeApproved()` itself now throws a `TypeError` if called with the wrong argument name (e.g. `{ proposals: [...] }` instead of `{ approved: [...] }`) instead of silently returning `{written: 0}` — treat any thrown error from this call the same as a `written !== approved.length` mismatch: skip the clear. As defense-in-depth, `clearProposalsJsonl()` itself now archives the full pre-clear content of `proposals.jsonl` to `.orchestrator/runtime/proposals-archive.jsonl` before truncating, so even a clear that runs after an undetected write shortfall leaves a recovery copy behind.
+   > **Ordering invariant (#797/#828 — write-before-clear, clear-only-on-confirmed-success) is now enforced IN-CODE.** `promoteAndClear()` composes `writeApproved()` + `clearProposalsJsonl()` behind a single mechanical guard: it calls `writeApproved({ approved, repoRoot, sessionId })` first, computes `expected` from `approved.length`, and clears `proposals.jsonl` (via `clearProposalsJsonl()`) ONLY when `written === expected && errors.length === 0`. There is no separate `writeApproved` → `clearProposalsJsonl` call sequence left for the coordinator to get wrong or reorder — the guard that used to be a prose instruction here is now a load-bearing conditional inside `promoteAndClear()` itself. The coordinator's remaining job is to INSPECT the returned `{ written, expected, errors, cleared, summariesCleared, skippedReason }` and surface a warning when `writeResult.cleared === false`: log `⚠ memory-proposals: ${writeResult.skippedReason} (${writeResult.written}/${writeResult.expected} written) — queue NOT cleared, retry next session-end` and let the discrepancy carry over to the next session's Phase 3.6.3 pass rather than silently losing the un-written proposals. `promoteAndClear()` throws a `TypeError` before calling `writeApproved()` at all when `sessionId` is missing/blank, or when `approved` is omitted alongside an unrecognised key (arg-name-typo guard, mirroring `writeApproved()`'s own #797 guard one layer up) — treat either thrown error the same as a hard stop: nothing was written, nothing was cleared. As defense-in-depth, `clearProposalsJsonl()` (invoked internally by `promoteAndClear()` on the success path) still archives the full pre-clear content of `proposals.jsonl` to `.orchestrator/runtime/proposals-archive.jsonl` before truncating, so even a clear that runs after an undetected write shortfall leaves a recovery copy behind. `archiveRejected()` remains a separate, caller-driven call — it operates on the disjoint rejected subset and has no bearing on whether the approved write succeeded; call it before or after `promoteAndClear()`, order does not matter between the two.
 
 7. Log outcome for Phase 6 Final Report: `memory.proposals: <queued> queued → <approved> approved, <rejected> rejected (dropped: <dropped> quota, <below_floor> below-floor)`.
 
 #### Failure modes
 
 - If `collectProposals` fails (fs error): log warning `⚠ memory-proposals: collect failed (${err}) — skipping`, do not block session close.
-- If `writeApproved` reports errors per-record: log each, but continue (per-record fault isolation per sink contract).
-- If `writeApproved` throws (arg-name mistake or non-array `approved` — #797): log the error and STOP before `clearProposalsJsonl()` — never clear a queue that failed to write cleanly.
-- If `writeResult.written !== approved.length` (partial write): per the ordering invariant above, skip `clearProposalsJsonl()` and surface a warning; do not block session close.
-- If `clearProposalsJsonl` fails: log warning; do not block. The file may be re-collected at the next session-end, idempotent. A pre-clear archive copy also survives at `.orchestrator/runtime/proposals-archive.jsonl` when the clear DID run.
+- If `promoteAndClear`'s internal `writeApproved` call reports errors per-record: those errors surface in `writeResult.errors` and the guard skips the clear (`cleared: false`, `skippedReason: 'write-errors'`); log each error, but continue — session close is never blocked.
+- If `promoteAndClear` throws (missing/blank `sessionId`, or `approved` omitted alongside an unrecognised key — #797/#828 arg-typo guard): log the error and treat it as a hard stop for this phase — nothing was written, nothing was cleared, the queue is untouched.
+- If `writeResult.cleared === false` (partial write, `written !== expected`): the internal guard already skipped `clearProposalsJsonl()` — surface `writeResult.skippedReason` in a warning; do not block session close. The queue is retried at the next session-end's Phase 3.6.3 pass.
+- If the internal `clearProposalsJsonl()` call fails on the success path: log warning; do not block. The file may be re-collected at the next session-end, idempotent. A pre-clear archive copy also survives at `.orchestrator/runtime/proposals-archive.jsonl` when the clear DID run.
 
 #### Cross-references
 
 - Spec: issue #501 — memory-proposals (F2.1); no standalone PRD file
 - Modules: `scripts/lib/memory-proposals/{schema,store,collector,sink}.mjs`
+- Relation judgment (step 3b, #1016): `scripts/lib/learnings/candidates.mjs` (`buildCandidatePools`) · `scripts/lib/learnings/judgment.mjs` (`buildJudgmentInput`, `judgeCandidate`, `applyVerdict`, `JUDGMENT_DECISIONS`, `FAILURE_MODES`)
 - CLI: `scripts/memory-propose.mjs` (agents call this)
 - Hook: `hooks/pre-bash-memory-propose-audit.mjs` (audit trail)
 - Coordinator AUQ spec: `agents/memory-proposal-collector.md` (reference doc)
 - Sibling phases: 3.6.5 Auto-Dream (#502), 3.6.6 Skill-Applied Judge (#645 L3), 3.6.7 Auto-Dialectic (#506)
-- Issue: #501
+- Sibling call site of the same judgment pair: `skills/evolve/SKILL.md` § Step 3.3b (the `/evolve` producer for the `-0.2 if contradicted` branch)
+- Issues: #501 (this phase), #1016 (step 3b)
 
 ### 3.6.4 Expired-Learnings Sweep (Advisory — Epic #723 B4)
 
@@ -106,9 +152,10 @@ After learnings are written (Phase 3.6), determine whether to emit a **manual-ca
    ```javascript
    import { shouldDispatchAutoDream } from '${PLUGIN_ROOT}/scripts/lib/auto-dream.mjs';
    import { resolveMemoryDir } from '${PLUGIN_ROOT}/scripts/lib/memory-paths.mjs';
-   const memoryDir = resolveMemoryDir();
+   const repoRoot = process.cwd();
+   const memoryDir = resolveMemoryDir(repoRoot);
    const decision = await shouldDispatchAutoDream({
-     repoRoot: process.cwd(),
+     repoRoot,
      memoryDir,
      threshold: config['memory-cleanup-threshold'] ?? 5,
      softLimit: config['memory-cleanup-soft-limit'] ?? 180,
@@ -242,7 +289,7 @@ After the auto-dialectic nudge decision is made (Phase 3.6.7), and when the reco
 
 #### Coordinator-direct procedure
 
-1. Read Session Config: `reconcile.enabled` (default `false`), `reconcile['rule-expiry-days']` (default `null` — falls back to per-type TTL in the engine), `reconcile['confidence-floor']` (default `0.5`), `reconcile['min-rule-days']` (default `7` — floor window (days) applied to a proposed rule's `expires-at` so a near-dead or already-elapsed natural expiry never produces a born-dead rule, issue #741.1), `reconcile['min-insight-chars']` (default `24` — opt-in minimum insight length gating the eligibility placeholder-insight check, issue #741.2). If `reconcile.enabled` is not `true`, log `reconcile: disabled (reconcile.enabled=false)` and skip all remaining steps.
+1. Read Session Config: `reconcile.enabled` (default `false`), `reconcile['rule-expiry-days']` (default `null` — falls back to per-type TTL in the engine), `reconcile['confidence-floor']` (default `0.5`), `reconcile['min-rule-days']` (default `7` — floor window (days) applied to a proposed rule's `expires-at` so a near-dead or already-elapsed natural expiry never produces a born-dead rule, issue #741.1), `reconcile['min-insight-chars']` (default `24` — opt-in minimum insight length gating the eligibility placeholder-insight check, issue #741.2), `reconcile['max-proposals-per-run']` (default `10` — volume brake, issue #900 D; the engine sorts eligible learnings by confidence DESC and proposes at most this many per run). If `reconcile.enabled` is not `true`, log `reconcile: disabled (reconcile.enabled=false)` and skip all remaining steps.
 
 2. Invoke `runReconcile` from `scripts/lib/reconcile/engine.mjs`:
 
@@ -253,6 +300,7 @@ After the auto-dialectic nudge decision is made (Phase 3.6.7), and when the reco
      ruleExpiryDays: config.reconcile['rule-expiry-days'] ?? undefined,
      minRuleDays: config.reconcile['min-rule-days'] ?? undefined,
      minInsightChars: config.reconcile['min-insight-chars'] ?? undefined,
+     maxProposalsPerRun: config.reconcile['max-proposals-per-run'] ?? undefined,
      now: new Date(),
    });
    ```
@@ -308,7 +356,24 @@ After the auto-dialectic nudge decision is made (Phase 3.6.7), and when the reco
    }
    ```
 
-   Iterate `batches` and emit one `AskUserQuestion` per batch with `header: "Reconciliation — Confirm Rule Proposals (Batch N of M)"`. Option label format: `<slug-40> | conf=<confidence>`. Option description: first 80 chars of the rendered `content` (the rule prose preview). `multiSelect: true`.
+   Iterate `batches` and emit one `AskUserQuestion` per batch:
+
+   ```javascript
+   AskUserQuestion({
+     questions: [{
+       header: "Regeln",
+       question: "Batch <N> of <M> — which rule proposals should be written into .claude/rules/?",
+       options: [
+         // one entry per proposal in this batch (max 4)
+         { label: "<slug-40>", description: "Confidence <confidence>. First 80 chars of the rendered rule text: <…>" },
+         ...
+       ],
+       multiSelect: true
+     }]
+   })
+   ```
+
+   The batch counter moved out of `header` and into the question because `header` is cut off after 12 characters — `Reconciliation — Confirm Rule Proposals (Batch N of M)` reached the operator as `Reconciliati`. The rendered `content` shown in the description is the rule prose that will land on disk.
 
 6. After all batches are answered, partition proposals into `approved` (any option selected across all batches) and `rejected` (all unselected). Proposals the operator rejected join the engine's `rejected` array for archival.
 
@@ -320,12 +385,19 @@ After the auto-dialectic nudge decision is made (Phase 3.6.7), and when the reco
      approved,
      rejected: [...rejected, ...operatorRejected],
      repoRoot: process.cwd(),
+     // #1099 — FORWARD BOTH. `decideReconcile()` already resolved them onto its
+     // RUN decision (`scripts/lib/session-end/phase-skip.mjs`, `targets` +
+     // `baselineRoot`); dropping them here silently pins every session to
+     // repo-local writes no matter what `reconcile.targets` says. Absent
+     // `baselineRoot` is the documented no-op path, not an error.
+     targets: decision.targets,
+     baselineRoot: decision.baselineRoot,
      sessionId,
    });
    // writeResult = { written: number, archived: number, errors: string[] }
    ```
 
-   `writeApprovedRules` is lock-serialised (via `withFileLock` on `.orchestrator/rules.lock`) and writes each approved proposal to `.claude/rules/<slug>.md`. Rejected proposals (engine-rejected + operator-rejected) are archived to `.orchestrator/reconcile.rejected.log` with reason `user-declined` for operator-rejected and the engine's own audit reason for engine-rejected.
+   `writeApprovedRules` is lock-serialised (via `withFileLock` on `.orchestrator/rules.lock`) and writes each approved proposal to the directory its target names — `.claude/rules/<slug>.md` for `repo-local`, `<baselineRoot>/proposals/<slug>.md` for `baseline`. Each target's write root is confined separately; the leaf comes from the renderer-minted `slug`, never from a caller-supplied path. Rejected proposals (engine-rejected + operator-rejected) are archived to `.orchestrator/reconcile.rejected.log` with reason `user-declined` for operator-rejected and the engine's own audit reason for engine-rejected.
 
 8. Log outcome for Phase 6 Final Report: `reconcile: ${surfaced.length} surfaced → ${approved.length} approved (written: ${writeResult.written}), ${operatorRejected.length} operator-declined${writeResult.errors.length > 0 ? `, ${writeResult.errors.length} write-errors (see sweep.log)` : ''}`.
 

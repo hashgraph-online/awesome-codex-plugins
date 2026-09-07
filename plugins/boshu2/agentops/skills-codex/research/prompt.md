@@ -1,19 +1,8 @@
 # research
 
-Run repository research with Codex-native agents and concise artifact output.
+Answer a bounded question with current cited evidence. Triggers: "research", "investigate this question", "find evidence". (Investigating a repository routes to codebase-recon.)
 
+## Instructions
 
-<!-- BEGIN AGENTOPS OPERATOR CONTRACT -->
-<!-- Generated from skills-codex-overrides/catalog.json for research. -->
-
-## Codex Execution Profile
-
-1. In Codex hookless mode, run `ao codex ensure-start` before research; the CLI records startup once per thread and skips duplicates automatically.
-2. Prefer `spawn_agent` / `send_input` / `wait` for parallel exploration.
-3. Write findings to `.agents/research/` with file-level references and concrete evidence.
-
-## Guardrails
-
-1. Keep backend fallback logic explicit: codex sub-agents, then background-task-fallback, then inline.
-
-<!-- END AGENTOPS OPERATOR CONTRACT -->
+Load and follow the skill instructions from the sibling `SKILL.md` file for this skill.
+Then read local files in `references/` and `scripts/` when needed.

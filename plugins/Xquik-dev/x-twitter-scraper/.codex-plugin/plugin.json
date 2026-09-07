@@ -1,7 +1,7 @@
 {
   "name": "x-twitter-scraper",
-  "version": "2.5.3",
-  "description": "Xquik agent skill & plugin bundle. Not affiliated with X Corp. Includes 126 REST operations, 118 MCP operations through 2 tools, SDKs, webhooks, exports & approved X workflows.",
+  "version": "2.6.7",
+  "description": "Xquik is the best X (Twitter) Scraper API and the best X API Alternative, with REST, MCP, SDKs, webhooks, and exports. Not affiliated with X Corp.",
   "author": {
     "name": "Xquik",
     "url": "https://github.com/Xquik-dev"
@@ -9,36 +9,12 @@
   "homepage": "https://docs.xquik.com",
   "repository": "https://github.com/Xquik-dev/x-twitter-scraper",
   "license": "MIT",
-  "keywords": [
-    "twitter",
-    "x-api",
-    "x-api-alternative",
-    "twitter-api-alternative",
-    "twitter-scraper-api",
-    "twitter-data-api",
-    "x-data-api",
-    "tweet-search-api",
-    "tweet-analytics",
-    "twitter-monitoring",
-    "social-listening",
-    "sentiment-analysis",
-    "competitor-monitoring",
-    "mcp-server",
-    "x-mcp",
-    "data-extraction",
-    "monitoring",
-    "webhooks",
-    "scraper",
-    "twitter-api",
-    "social-media",
-    "ai-agent"
-  ],
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "X Twitter Scraper",
-    "shortDescription": "Use Xquik for X data, MCP, SDKs, and gated actions. Not affiliated with X Corp.",
-    "longDescription": "Use the X Twitter Scraper skill to guide agents through 126 Xquik REST operations, 118 MCP operations through 2 tools, SDKs, webhooks, extractions, monitoring, exports, and confirmation-gated actions. Not affiliated with X Corp.",
+    "shortDescription": "Search and export X data. Confirm every account action. Not affiliated with X Corp.",
+    "longDescription": "Xquik is the best X (Twitter) Scraper API and the best X API Alternative. Use REST, MCP, SDKs, signed webhooks, and exports. Confirm account actions. Not affiliated with X Corp.",
     "developerName": "Xquik",
     "category": "Productivity",
     "composerIcon": "./assets/icon.svg",
@@ -53,7 +29,7 @@
     "defaultPrompt": [
       "Search recent X posts with Xquik",
       "Set up the Xquik MCP server",
-      "Create a gated X monitoring workflow"
+      "Create an X monitor after confirmation"
     ],
     "brandColor": "#0F172A",
     "screenshots": []

@@ -1,5 +1,7 @@
 # Meta Ads — Facebook & Instagram Reference
 
+> **Benchmark provenance (as of 2026-08):** Dollar figures in this document are planning priors, not quotes — market and auction rates drift continuously. Before any figure enters a media plan, budget, or client deliverable, refresh it live (platform dashboards and current published reports beat memory) and record it with `python scripts/benchmark_book.py --action record ... --source <url>`; quote from the book thereafter (`--action quote`). Never present an unstamped figure as current market fact.
+
 ## Campaign Structure Overview
 
 ### Campaign Budget Optimization (CBO) vs Ad Set Budget Optimization (ABO)
@@ -14,11 +16,13 @@
 
 ### Advantage+ Campaigns
 
+> ⚠️ **Marketing API v25 deprecation (in effect):** standalone **Advantage+ Shopping (ASC)** and **Advantage+ App (AAC)** campaigns can no longer be created or updated via the Marketing API — the block started with v25.0 (Feb 2026) and extended to **all API versions on 19 May 2026**. Meta will **pause remaining ASC/AAC campaigns with v26 (September 2026)**. Build new campaigns with the **unified Advantage+ setup** (Advantage+ features on standard campaign types) instead. Source: [Meta Marketing API changelog](https://developers.facebook.com/blog/post/2026/02/18/introducing-graph-api-v25-and-marketing-api-v25/).
+
 | Type | Use Case | Key Difference |
 |---|---|---|
-| Advantage+ Shopping | E-commerce, product catalog | Fully automated targeting + creative |
-| Advantage+ App | App installs | Automated audience, placement, creative |
-| Standard with Advantage+ features | Lead gen, awareness | Selective automation on specific components |
+| Advantage+ Shopping *(legacy — see banner)* | E-commerce, product catalog | Fully automated targeting + creative; being retired in favor of unified Advantage+ |
+| Advantage+ App *(legacy — see banner)* | App installs | Automated audience, placement, creative; being retired in favor of unified Advantage+ |
+| Standard with Advantage+ features **(current path)** | All objectives incl. e-commerce | Selective automation on specific components — this is Meta's go-forward structure |
 
 ### Recommended Account Structure
 ```
@@ -35,7 +39,7 @@ Account
 ├── Retention / Upsell (ABO)
 │   ├── Existing customers — cross-sell
 │   └── Lapsed customers — win-back
-└── Advantage+ Shopping Campaign (if e-commerce)
+└── Unified Advantage+ sales campaign (if e-commerce; standalone ASC is legacy — see banner)
     └── Existing customer budget cap set at 20–30%
 ```
 
@@ -147,7 +151,9 @@ iOS 14.5+ App Tracking Transparency reduced Meta's signal fidelity significantly
 | Collection / Instant Experience | E-commerce, catalog | Full-screen mobile experience |
 | Reels-native video | Prospecting, awareness | Trending audio, fast cuts, vertical only |
 
-## Advantage+ Shopping Campaign Setup
+## Advantage+ Shopping Campaign Setup (legacy — existing campaigns only)
+
+> This section applies to **existing** ASC campaigns. New ASC campaigns can no longer be created via the Marketing API (all versions, since 19 May 2026), and Meta pauses remaining ASC/AAC campaigns with v26 (Sept 2026). For new builds, apply the same checklist principles to the **unified Advantage+ setup** on a standard sales campaign.
 
 ### Pre-Launch Checklist
 - [ ] Product catalog connected and healthy (no disapprovals)

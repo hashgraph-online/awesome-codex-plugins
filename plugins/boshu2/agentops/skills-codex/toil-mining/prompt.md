@@ -1,6 +1,6 @@
 # toil-mining
 
-Mine usage history (cass, rtk, shell) for repeated toil, score frequency x pain, emit ranked candidates for automation-shape-routing. Triggers: when rituals repeat by hand.
+Mine caller-supplied usage history for repeated toil and emit ranked evidence. Triggers: "mine toil", "find repeated operational work".
 
 ## Instructions
 

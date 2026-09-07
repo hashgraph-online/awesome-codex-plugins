@@ -53,7 +53,7 @@ Voice assistants overwhelmingly pull answers from featured snippets. Winning Pos
 1. **Lead with the answer.** First 1-2 sentences should directly answer the target question
 2. **Use question-based H2s and H3s.** Mirror the exact phrasing people use when speaking
 3. **Write at an 8th-grade reading level.** Voice assistants favor concise, clear language
-4. **Keep answer blocks to 29-40 words.** Google's preferred featured snippet length
+4. **Keep answer blocks to 40-60 words.** Google's preferred featured snippet length
 5. **Include follow-up questions.** "People Also Ask" questions are voice search gold
 6. **Use conversational language.** Write as if explaining to someone face-to-face
 
@@ -226,7 +226,7 @@ Voice search attribution is inherently challenging because voice queries don't a
 | Long-tail query analysis | Conversational query traffic in Search Console | Filter GSC for queries with 5+ words, question words |
 | "Near me" query tracking | Local voice traffic proxy | GSC filter for "near me" queries |
 | Google Business Profile insights | Calls, directions, website clicks from GBP | GBP dashboard |
-| Smart speaker skills analytics | Alexa Skill / Google Action usage | Platform-specific dashboards |
+| Smart speaker skills analytics | Alexa Skill usage | Platform-specific dashboards |
 | Speakable impressions | Content read aloud by assistants | Google Search Console (limited) |
 
 ### Voice Search KPIs
@@ -247,13 +247,13 @@ Voice search attribution is inherently challenging because voice queries don't a
 - [ ] Audit top 50 branded and category keywords for question-based variants
 - [ ] Create or optimize FAQ pages with FAQ schema markup
 - [ ] Implement speakable schema on key content pages
-- [ ] Optimize content for featured snippets (40-word answer blocks, lists, tables)
+- [ ] Optimize content for featured snippets (40-60 word answer blocks, lists, tables)
 - [ ] Ensure Google Business Profile is 100% complete with all attributes
 - [ ] Claim Apple Business Connect and Bing Places listings
 - [ ] Write content at 8th-grade reading level using natural language
 - [ ] Implement LocalBusiness schema with complete details
 - [ ] Set up featured snippet tracking for target question keywords
-- [ ] Evaluate Alexa Skill or Google Action development for branded utility
+- [ ] Evaluate Alexa Skill development for branded utility (for Google Assistant/Gemini, invest in structured content and schema — standalone conversational actions were sunset in June 2023)
 - [ ] Review and optimize product listings for voice commerce readiness
 - [ ] Monitor Google Search Console for conversational query growth
 

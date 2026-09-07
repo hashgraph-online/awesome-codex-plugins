@@ -13,7 +13,7 @@
 3. [Security Principles](#security-principles)
 4. [Documentation Standards](#documentation-standards)
 5. [Code Organization Principles](#code-organization-principles)
-6. [Dedup Manifest](#dedup-manifest)
+6. [Canonical Language Owners](#canonical-language-owners)
 
 ---
 
@@ -431,6 +431,7 @@ file per language:
 | Python | `python.md` |
 | Rust | `rust.md` |
 | TypeScript | `typescript.md` |
+| JavaScript | `javascript.md` |
 | Shell | `shell.md` |
 | JSON/JSONL | `json.md` |
 | YAML | `yaml.md` |

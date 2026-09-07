@@ -1,6 +1,6 @@
 ---
 name: campaign-audit
-description: "Audit a brand's existing live campaigns across every active channel — paid, organic, email, social, content, SEO. Produce a current-state inventory, quick-wins backlog, and red-flags list. Use during agency onboarding or before any /campaign-plan refresh."
+description: "Inventory and score everything currently running for a brand across paid search, paid social, email, organic, SEO, AEO/GEO, CRM, and analytics — produces a dated audit document with a 4-tier triage (healthy / quick win / strategic gap / red flag), a quick-wins backlog, and a compliance posture section. Strictly read-only: it never pauses, edits, or launches anything. Triggers on \"/digital-marketing-pro:campaign-audit\", \"what's currently running for this brand\", \"audit our existing campaigns\", \"we just inherited this account\", \"where is budget leaking\". Requires a validated brand profile (run validate-profile first); missing connectors degrade gracefully into findings. Feeds /digital-marketing-pro:campaign-plan and pairs with /digital-marketing-pro:performance-check."
 user-invocable: true
 triggers:
   - audit existing campaigns
@@ -121,7 +121,7 @@ A red flag is anything that meets ANY of: (a) measurable monthly waste > $X (def
 
 ### Step 4 — Compose the audit document
 
-Write the audit to `~/.claude-marketing/brands/{slug}/audits/campaign-audit-{YYYY-MM-DD}.md` AND publish a user-visible copy to `~/Documents/DigitalMarketingPro/{brand}/audits/{YYYY-MM-DD}-campaign-audit.md` (mirroring the ContentForge dual-copy pattern). The document structure:
+Write the audit to `~/.claude-marketing/brands/{slug}/audits/campaign-audit-{YYYY-MM-DD}.md` AND publish a user-visible copy to `~/Documents/DigitalMarketingPro/{brand}/audits/{YYYY-MM-DD}-campaign-audit.md` (the dual-copy pattern). The document structure:
 
 ```markdown
 # Current-State Campaign Audit — {brand_name}
@@ -235,7 +235,7 @@ In the conversation, print:
 2. **One channel failure ≠ full audit failure.** A failing connector becomes a finding in the "Channels skipped" list, not an exception that aborts the whole skill.
 3. **Concrete numbers, not adjectives.** "Wasting $X/month" beats "spending inefficiently." If a number is unavailable, say "unknown — {connector} didn't return it" instead of fabricating one.
 4. **Quote primary sources for compliance findings.** Never cite Wikipedia, blog posts, or LLM output as the source for "X regulation requires Y." Use the entries in `skills/context-engine/compliance-rules.md`, and if a jurisdiction isn't covered there, mark the finding as `compliance_basis: unverified` rather than guessing.
-5. **Dual-copy the report.** Internal (tracking) under `~/.claude-marketing/brands/{slug}/audits/`; user-visible under `~/Documents/DigitalMarketingPro/{brand}/audits/` (or `$DIGITAL_MARKETING_PRO_PUBLISH_DIR` if set). Mirrors the ContentForge dual-copy pattern so the user can find the file without spelunking dotfolders.
+5. **Dual-copy the report.** Internal (tracking) under `~/.claude-marketing/brands/{slug}/audits/`; user-visible under `~/Documents/DigitalMarketingPro/{brand}/audits/` (or `$DIGITAL_MARKETING_PRO_PUBLISH_DIR` if set). The dual-copy pattern exists so the user can find the file without spelunking dotfolders.
 
 ## Arguments
 

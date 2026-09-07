@@ -37,7 +37,7 @@ Your North Star must satisfy all five criteria:
 
 | Business Model | Recommended North Star | Why |
 |----------------|----------------------|-----|
-| B2B SaaS | Weekly Active Users (qualified) | Predicts retention and expansion better than revenue |
+| B2B SaaS | Weekly Active Users (qualified) — product-led usage North Star; NRR is the revenue North Star | Predicts retention and expansion better than revenue |
 | eCommerce | Revenue per Visitor (RPV) | Combines traffic quality, conversion, and AOV |
 | Marketplace | Transactions completed per week | Captures both supply and demand health |
 | Local Business | Repeat visit rate (monthly) | Loyalty drives sustainable local economics |
@@ -50,7 +50,7 @@ Your North Star must satisfy all five criteria:
 
 ### B2B SaaS KPI Tree
 
-**North Star:** Net Revenue Retention (NRR)
+**North Star:** Net Revenue Retention (NRR) — the revenue North Star; WAU (qualified) from the selection guide above is the complementary product-led usage North Star
 
 | Level | Metric | Definition | Benchmark (Median) | Benchmark (Top Quartile) |
 |-------|--------|------------|--------------------|-----------------------|

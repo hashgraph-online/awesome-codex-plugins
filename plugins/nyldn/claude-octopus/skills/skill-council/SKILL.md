@@ -1,5 +1,6 @@
 ---
 name: skill-council
+disable-model-invocation: true
 description: "Run a configurable multi-LLM council with personas, budget caps, synthesis, veto gates, and optional implementation handoff."
 ---
 
@@ -14,6 +15,18 @@ Use this skill for `/octo:council` and council-style requests.
 ```bash
 "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude-octopus/plugin}/scripts/orchestrate.sh" council <user arguments>
 ```
+
+**Sandbox-safe invocation (required under Claude Code's sandbox).** `orchestrate.sh`
+must be the FIRST token of the command. The sandbox's unsandboxed-command allowlist is a
+leading-anchored prefix match, so a command that begins with `cd …`, an inline
+`VAR=… ` env-assignment, or any other prefix will NOT match an `…/orchestrate.sh *`
+entry — the runner then executes sandboxed and its `codex`/`agy` seat children fail to
+write temp files (`Operation not permitted`, agy `mkstemp` in `/var/folders`), so the
+council abandons the runner and falls back to direct single-provider dispatch. To run
+against a worktree, pass `--dir <path>` (the runner already honors `-d/--dir`) instead
+of wrapping in `cd <path> && …`; set any environment in a separate prior step or via a
+leading `env VAR=… /abs/path/orchestrate.sh council …` so the resolvable binary path is
+still first. Never prefix the runner with `cd`.
 
 Do not simulate a council, role-play all members inside the current model, or answer directly in place of the runner. A single-model simulation must be explicitly requested with `--simulate` or `--single-model`; when used, label the output as `single-model simulation` and keep the generated `summary.json` path visible. Otherwise, missing provider quorum is a partial/failed council, not permission to silently downgrade.
 

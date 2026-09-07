@@ -155,7 +155,7 @@ Neighborhood pages work when:
 
 | Content Type | Example | SEO Value | Effort |
 |--------------|---------|-----------|--------|
-| Local event coverage | "Guide to Chicago's Taste of Chicago 2025" | Medium (links, engagement) | Low |
+| Local event coverage | "Guide to Chicago's Taste of Chicago 2026" | Medium (links, engagement) | Low |
 | Neighborhood guides | "Living in Lincoln Park: A Complete Guide" | High (long-tail traffic, links) | Medium |
 | Local partnerships | "Our Partnership with Chicago Food Depository" | Medium (local links, brand) | Low |
 | Community involvement | "Sponsoring the Oak Park Little League Season" | Medium (local links, trust) | Low |

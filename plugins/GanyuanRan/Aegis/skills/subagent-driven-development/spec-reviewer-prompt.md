@@ -34,6 +34,9 @@ Task tool (general-purpose):
     - Check for missing pieces they claimed to implement
     - Look for extra features they didn't mention
 
+    This is a read-only review. Do not stage, commit, branch, create/remove a
+    worktree, or edit the implementation. Report findings to the coordinator.
+
     ## Your Job
 
     Read the implementation code and verify:

@@ -1,6 +1,6 @@
 ---
 name: analytics-insights
-description: "Analyze marketing performance. Use when: KPI frameworks, attribution modeling, anomaly investigation, measurement strategy."
+description: "Marketing measurement module — builds KPI trees per business model, reporting templates (weekly, monthly, QBR, campaign), anomaly root-cause diagnosis, MMM and incrementality guidance, dark-social tracking, and privacy-first cookieless measurement architecture, including the GA4 AI Assistant channel group for attributing AI-referred traffic. Triggers on \"/digital-marketing-pro:analytics-insights\", \"why did traffic drop\", \"define our KPIs\", \"design an executive dashboard\", \"can we do marketing mix modeling\". Reads the brand profile, industry benchmarks, and campaign history; pairs with /digital-marketing-pro:gsc-ai-performance and /digital-marketing-pro:aeo-audit to triangulate AI-surface impressions against actual traffic."
 ---
 
 # Analytics & Insights
@@ -190,6 +190,8 @@ For anomaly investigation, prioritize speed. Ask for the specific metric, timefr
 - `incrementality-testing.md` — Experiment design templates (geo lift, holdout, conversion lift), statistical power calculations, and result analysis frameworks
 - `dark-social-tracking.md` — Dark social measurement methods, implementation guides for tracking private shares, and estimation models
 - `privacy-first-measurement.md` — Cookieless attribution approaches, consent management architecture, server-side tracking implementation, and privacy regulation compliance guide
+- `clv-analysis.md` — Customer lifetime value models (historical, cohort-based, predictive, contractual), calculation guidance, and application to segmentation and budget decisions
+- `dashboard-design.md` — Three-tier dashboard architecture (executive, operational, campaign), metric selection per audience, and visualization best practices
 
 ## Output Formats
 

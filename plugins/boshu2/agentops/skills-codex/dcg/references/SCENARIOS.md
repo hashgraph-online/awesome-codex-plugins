@@ -32,12 +32,16 @@ git push --force-with-lease origin feature-branch
 
 ## 3. rm -rf Typo — DCG Saved You
 
-**Blocked:** `rm -rf /home/user/project/` (meant `./build`)
+**Blocked:** `rm -rf /home/user/project/` (typo — meant a scoped build dir)
 
-DCG caught the typo. Correct the path:
+DCG caught the typo. Note that `rm -rf ./build` is **also** blocked by default
+(relative non-temp path, `core.filesystem:rm-rf-general`). Reach for a genuinely
+safe target, or allowlist the build dir explicitly:
 
 ```bash
-rm -rf ./build  # Safe path, won't be blocked
+rm -rf "$TMPDIR/project-build"        # temp carve-out — allowed
+# or, if ./build itself must be cleaned, allowlist it once (see CONFIG.md):
+#   [overrides] allow_patterns = ["rm -rf ./build"]
 ```
 
 ---

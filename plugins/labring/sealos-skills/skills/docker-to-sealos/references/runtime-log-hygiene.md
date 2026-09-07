@@ -8,9 +8,9 @@ Run log checks at three points for web applications:
 
 1. After the first Ready state.
 2. After setup, registration, or login.
-3. After one random missing-path request such as `/__sealos_missing_<timestamp>`.
+3. After one documented API negative route or unique missing static-asset request.
 
-The random missing path should return HTTP 404 and leave recent application logs clear of traceback-style noise.
+API negative routes should return HTTP 404. SPA/browser shells may return the HTML shell with HTTP 200 for client-side routes; use a missing static asset or documented API path and leave recent application logs clear of traceback-style noise.
 
 Treat these recurring signals as template failures until classified and fixed:
 
@@ -23,6 +23,20 @@ Treat these recurring signals as template failures until classified and fixed:
 - `BackOff`
 - migration, bootstrap, auth, permission, or database compatibility failures
 
+## Event Convergence Gate
+
+Kubernetes Events persist after the triggering condition has recovered. Use two `sealos-log-scan.mjs` reports to classify current runtime state:
+
+1. Capture an initial report after the workload reaches Ready. Warning Events in this sample are `observed` and do not fail the scan by themselves.
+2. Wait at least 60 seconds. Extend the window to cover one full known reconciliation, probe, queue, or scheduled-work period.
+3. Run a second scan with `--baseline <initial-report>` and the selected `--min-window-seconds`.
+
+A Warning Event is `historical-transient` when its count and last-seen time remain fixed for the full window, the related Pod stays Ready, restart count stays fixed, and any Secret named by a `secret not found` message now exists. This covers asynchronous managed-Secret creation and startup-probe cold starts that converge cleanly.
+
+A Warning Event is `active-failure` when its count or last-seen time advances, a referenced Secret remains absent, the related Pod loses Ready, the Ready transition changes, the Pod is replaced, or restart count increases. Treat an incomplete stability window as an observation that still requires a later final scan.
+
+For controlled fault injection, retain the pre-injection report as evidence, recover the workload to Ready, and capture a fresh recovery baseline. Compare the final scan against the recovery baseline after the full stability window. This separates intentional fault history from failures that continue after recovery.
+
 ## Flask, Superset, And AppBuilder
 
 Flask-based applications may log framework-level exceptions for ordinary 404 requests. Superset and Flask-AppBuilder can emit `superset.views.error_handling:HTTPException` with `werkzeug.exceptions.NotFound` even when the browser behavior is correct.
@@ -32,7 +46,7 @@ Use exception-type filtering for benign 404 handling:
 - Filter `werkzeug.exceptions.NotFound` from the noisy handler or logger.
 - Keep other `HTTPException` classes visible.
 - Apply the filter before handlers format the traceback.
-- Re-run the random missing-path request after the patch.
+- Re-run the documented API or unique missing-static-asset request after the patch.
 
 For Superset templates, prefer a small `superset_config.py` logging filter that suppresses `NotFound` from the Superset error-handling logger and root handlers while keeping other HTTP errors and real exceptions visible.
 
@@ -132,7 +146,7 @@ Accepted fix:
 - Set Pod security context with `runAsNonRoot: true`, `runAsUser: 1000`, `runAsGroup: 1000`, `fsGroup: 1000`, `fsGroupChangePolicy: OnRootMismatch`, and `seccompProfile.type: RuntimeDefault`.
 - Generate GUI config in an initContainer with the official Syncthing command before the server starts.
 - Keep the main container on the official server startup path.
-- Validate `/rest/noauth/health`, login, an authenticated `/rest/system/status` call, a random authenticated 404, recent logs, and a 60-second stability window.
+- Validate `/rest/noauth/health`, login, an authenticated `/rest/system/status` call, a documented authenticated API 404, recent logs, and a 60-second stability window.
 - The validated minimum app resources were `limits.cpu=100m`, `limits.memory=128Mi`, `requests.cpu=10m`, and `requests.memory=12Mi`.
 
 ## Fix Loop
@@ -141,6 +155,6 @@ Accepted fix:
 2. Patch the template or mounted config.
 3. Deploy fresh or roll the workload.
 4. Complete setup/login and one authenticated action.
-5. Request a random missing path.
+5. Request a documented API negative route or unique missing static asset.
 6. Re-scan logs and footprint.
 7. Report success only when the live flow and logs are both clean.

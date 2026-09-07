@@ -1,0 +1,4 @@
+interface:
+  display_name: "Go Concurrency Pipelines"
+  short_description: "Build cancellable Go concurrency pipelines"
+  default_prompt: "Use $go-concurrency-pipelines to design and verify this bounded concurrent workflow."

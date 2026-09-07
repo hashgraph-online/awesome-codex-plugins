@@ -1,6 +1,6 @@
 # standards
 
-Provide repo coding standards. Triggers: "standards", "provide repo coding standards.", "standards skill".
+Load only the standards relevant to a caller-supplied change, then report concrete findings. Triggers: "check standards", "which standards apply".
 
 ## Instructions
 
