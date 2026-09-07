@@ -1,7 +1,7 @@
 {
   "name": "x-skills",
-  "description": "6 Claude Code and Codex skills for X (Twitter) marketing: single-tweet writing, long-form thread building, AI-tell humanizer with pre-publish audit, viral hook extraction, reply and quote-tweet drafting, and weekly content planning. Publora is the default publish layer for tweets and threads.",
-  "version": "1.0.13",
+  "description": "9 Claude Code and Codex skills for X (Twitter) marketing: single-tweet writing, long-form thread building, AI-tell humanizer with pre-publish audit, viral hook extraction, reply and quote-tweet drafting, profile optimization, content repurposing, audience insights, and weekly content planning. Publora is the default publish layer for tweets and threads.",
+  "version": "1.0.18",
   "author": {
     "name": "Serge Bulaev",
     "url": "https://github.com/sergebulaev"
@@ -25,7 +25,7 @@
   "interface": {
     "displayName": "X (Twitter) Skills",
     "shortDescription": "X (Twitter) marketing skills for Claude Code and Codex.",
-    "longDescription": "A bundle of 6 X (Twitter) marketing skills for Claude Code and Codex: single-tweet writing, long-form thread building, humanizing, hook extraction, reply and quote-tweet drafting, and content planning.",
+    "longDescription": "A bundle of 9 X (Twitter) marketing skills for Claude Code and Codex: single-tweet writing, long-form thread building, humanizing, hook extraction, reply and quote-tweet drafting, and content planning.",
     "developerName": "Serge Bulaev",
     "category": "Productivity",
     "capabilities": [

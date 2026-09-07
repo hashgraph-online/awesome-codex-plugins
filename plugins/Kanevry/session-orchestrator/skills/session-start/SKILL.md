@@ -41,8 +41,9 @@ This runs BEFORE the local session-lock acquire in Phase 1.2 — the preamble's 
 
 **Outcome handling:**
 - `PASS_THROUGH` → continue to Phase 1
+- `PASS_THROUGH` with a non-empty `advisory` array (GH#67) → a `discovered` peer with `lockSuperseded: true` never fires the Promotion AUQ (it stays visible, per the #1085 advisory-lock contract — it is not filtered). Print ONE advisory line per entry: `parallel-aware: registry entry <sessionId> (last heartbeat <N> min ago) is superseded by this root's live lock <lockOwnerId> — likely a finished task on a platform without SessionEnd (GH#67); still counted for PSA-001 awareness`, then continue to Phase 1. It remains PSA-002-relevant if the same id also shows up in STATE.md (`source: 'state-md'` is handled by Phase 1.2.1 unchanged).
 - `EXCLUSIVE_BLOCKED` → exit Phase 0 cleanly per the AUQ outcome (`Warten` / `Andere Session beenden` / `Abbrechen` — all three return without initializing STATE.md)
-- `PROMOTION_OFFER` with user picking "Worktree anlegen + starten" → call `enterWorktree({ basePath, sessionId, branch, repoRoot })` from `scripts/lib/autopilot/worktree-pipeline.mjs`. Compute params: `basePath = path.dirname(repoRoot)`, `sessionId` from resolveSemanticSessionId(), `branch` from current HEAD, `repoRoot = process.cwd()`. On success, exit Phase 0 immediately — the new worktree's own session-start runs from scratch (Phase 1 onwards), Phase 1.2 session-lock-acquire is the new worktree's responsibility. On enterWorktree failure (`WorktreeBoundaryError` or `git worktree add` non-zero exit), emit stderr WARN `parallel-aware: enterWorktree failed: <err>; falling back to Manuell` and proceed via the Manuell path.
+- `PROMOTION_OFFER` with user picking "Worktree anlegen + starten" → call `enterWorktree({ basePath, sessionId, branch, repoRoot, rawSessionId, reason: 'worktree-promotion' })` from `scripts/lib/autopilot/worktree-pipeline.mjs` — since #1170 this ONE call does both jobs: it creates the destination worktree AND, because `rawSessionId` is supplied, releases the source root internally (see below), so no separate `leaveSourceRoot` call is made at this site. Compute params: `basePath = path.dirname(repoRoot)`, `sessionId` from resolveSemanticSessionId() **for the worktree-name attribution label only**, `branch` from current HEAD, `repoRoot = process.cwd()`, `rawSessionId` from `readLock({ repoRoot }).session_id`. `sessionId` (the semantic label) is not a lock/registry ownership key; the new worktree's Phase 1.2 obtains its own physical raw `session_id`. Because `branch` is the current HEAD it is normally checked out by `repoRoot` already, so `enterWorktree` treats it as a start point only and lands the promoted worktree on a fresh `so/<sessionId>` branch, returning `{ branch: 'so/<sessionId>', promotedFrom: '<branch>' }` (#1067) — the new worktree's STATE.md `branch` MUST record `so/<sessionId>` and note `promoted from <branch>@<repoRoot>`, never the source branch alone. **`rawSessionId` is the RAW physical `session_id` read from this root's `.orchestrator/session.lock` via `readLock({ repoRoot })` — never the semantic label, and never the id in `current-session.json`, which may describe a peer session (#863); a wrong id aborts the internal `leaveSourceRoot()` teardown with `left.ok: false, reason: 'lock-session-mismatch:<owner>'` and removes nothing.** The promotion is a PROCESS BOUNDARY, not a live migration (#1069): the old root is deregistered and its `session.lock` released BEFORE the new worktree's own Phase 1.2 acquires, so the two roots never both own a live claim at once. `enterWorktree()`'s return value carries the outcome as `left: { ok, steps, reason? }`; `leaveSourceRoot()` never throws, so on `left.ok !== true` `enterWorktree` itself emits the stderr WARN `enterWorktree: leaveSourceRoot: <reason>` and the promotion continues regardless — the destination worktree already exists by the time this runs, so aborting here would leave exactly the two-live-roots state the call prevents. Then exit Phase 0 immediately — the new worktree's own session-start runs from scratch (Phase 1 onwards), Phase 1.2 session-lock-acquire is the new worktree's responsibility. On enterWorktree failure (`WorktreeBoundaryError` or `git worktree add` non-zero exit), emit stderr WARN `parallel-aware: enterWorktree failed: <err>; falling back to Manuell` and proceed via the Manuell path.
 - `PROMOTION_OFFER` with user picking "Manuell — in-place daneben" → append Deviation, continue to Phase 1
 - `PROMOTION_OFFER` with user picking "Abbrechen" → exit cleanly
 
@@ -112,14 +113,14 @@ if (content && !isDispatcherAutonomyBlockPresent(content)) {
 
 Acquire a distributed session-lock to detect parallel sessions in the same repo before initializing STATE.md. This prevents two concurrent Claude/Codex sessions from stomping each other's wave state and metrics writes.
 
-**Mechanical wiring (Epic #583, 2026-05-27):** The SessionStart hook (`hooks/on-session-start.mjs` → `hooks/_lib/lock-bootstrap.mjs`) now writes `.orchestrator/session.lock` mechanically BEFORE this skill's prose runs. The prose Phase 1.2 becomes confirmatory — it verifies the lock exists with the expected shape via `readLock({ repoRoot: process.cwd() })`. Re-call `acquire()` only if `readLock()` returns `null` (mechanical hook failed) OR the existing lock's `session_id` does not match the current session's id (a rare divergence — surface via AUQ before overwriting). The decision flow below still applies to all three outcomes (active / stale / fs-error) when the prose path needs to acquire.
+**Mechanical wiring (Epic #583, 2026-05-27):** The SessionStart hook (`hooks/on-session-start.mjs` → `hooks/_lib/lock-bootstrap.mjs`) now writes `.orchestrator/session.lock` mechanically BEFORE this skill's prose runs. The prose Phase 1.2 becomes confirmatory — it verifies the lock exists with the expected shape via `readLock({ repoRoot: process.cwd() })`. Re-call `acquire()` only if `readLock()` returns `null` (mechanical hook failed) OR the existing lock's raw `session_id` does not exactly match the current session's raw id (a rare divergence — surface via AUQ before overwriting). A matching `semantic_session_id`, STATE.md `session`, or owner proof cannot repair that mismatch. The decision flow below still applies to all three outcomes (active / stale / fs-error) when the prose path needs to acquire.
 
 ```javascript
 import { acquire, forceAcquire } from 'scripts/lib/session-lock.mjs';
 const result = acquire({ sessionId, mode: sessionType, ttlHours: 4, repoRoot: process.cwd() });
 ```
 
-Where `sessionId` is the session identifier derived from the session type and timestamp (e.g. `main-2026-05-08-deep-1`), and `sessionType` is the session mode (`housekeeping`, `feature`, or `deep`).
+Where `sessionId` is the physical raw identity for this invocation: the native harness-provided raw id, or a generated UUID when no trustworthy raw id exists. It is the only value passed to `acquire()` and the only live lock/registry ownership key. `semanticSessionId` may be recorded separately as an attribution/history label and may populate STATE.md `session`; neither label is a substitute for `sessionId`. `sessionType` is the session mode (`housekeeping`, `feature`, or `deep`).
 
 ### Decision flow
 
@@ -131,48 +132,57 @@ Where `sessionId` is the session identifier derived from the session type and ti
      ```js
      AskUserQuestion({
        questions: [{
-         question: `Another session lock is active in this repo (started ${ageHours}h ago, mode=${existingLock.mode}, host=${existingLock.host}, pid=${existingLock.pid}). How should I proceed?`,
-         header: "Session Lock Conflict",
+         question: `Another session holds the lock here — started ${ageHours}h ago, mode=${existingLock.mode}, host=${existingLock.host}, pid=${existingLock.pid}. Wait, or take the lock?`,
+         header: "Session lock",
          multiSelect: false,
          options: [
-           { label: "Abort (Recommended)", description: "Let the other session finish. Safe default — prevents metrics and wave-state corruption." },
-           { label: "Force-take the lock", description: "Overwrites the active lock. ONLY use if you are certain the other session is no longer running." },
+           { label: "Abort (Recommended)", description: "Stop here and let the other session finish, then start again. Nothing is written until it releases the lock, and two sessions sharing one wave state overwrite each other's metrics." },
+           { label: "Force-take the lock", description: "Overwrites the active lock and starts anyway. Only when that session is certainly gone — otherwise both keep writing the same wave state and one of them loses everything." },
          ],
        }],
      });
      ```
    - **Codex CLI / Cursor IDE fallback (numbered Markdown list):**
      ```
-     Session lock conflict — active lock detected (started <ageHours>h ago, mode=<mode>, host=<host>, pid=<pid>).
-     1. Abort (Recommended) — let the other session finish.
-     2. Force-take the lock — ONLY if the other session is known dead.
+     Another session holds the lock here — started <ageHours>h ago, mode=<mode>, host=<host>, pid=<pid>. Wait, or take the lock?
+     1. Abort (Recommended) — stop here and let the other session finish, then start again; nothing is written until it releases the lock.
+     2. Force-take the lock — overwrites the active lock. Only when that session is certainly gone, otherwise both keep writing the same wave state and one loses everything.
      Reply with the number of your choice.
      ```
    - On **Abort**: exit session-start cleanly with a brief stderr note (`session-lock: aborted — active lock held by session_id=<id>`). Do NOT initialize STATE.md.
    - On **Force-take**: call `forceAcquire({ sessionId, mode: sessionType, ttlHours: 4, repoRoot: process.cwd() })`. After Phase 1.5 initializes STATE.md, append a deviation via `appendDeviation()`:
      `Force-took session lock from session_id=<existingLock.session_id>, age=<ageHours>h, mode=<existingLock.mode>, pid=<existingLock.pid>`. Continue.
 
-3. **`result.ok === false`** with `reason === 'stale-pid-dead'` or `'stale-pid-alive'**:
-   - A stale lock was found (TTL expired). Likely left behind by a session that crashed or was force-killed.
+3. **`result.ok === false`** with `reason === 'stale-heartbeat'`:
+   - A stale lock was found (its last heartbeat is older than its ttl). Likely left behind by a session that crashed or was force-killed. The lock's recorded `pid` is NOT consulted — it belongs to the ephemeral hook subprocess that wrote the lock, never to the session; measured 2026-08-23: 7 of 7 recorded pids were dead, including the live heartbeating session's own (#1137).
    - Present a choice via `AskUserQuestion`:
      ```js
+     // `heartbeatAgeMinutes` and `ageHours` come straight off the acquire() result (#1137);
+     // `sameHost` is not on the result — compute it first. Use hostnamesMatch, NEVER a raw
+     // `===` against os.hostname(): the hostname flips spelling on a single machine
+     // (measured 2026-08-24: `Mac.home` and `Ferdinands-MacBook-Pro.local` ten minutes apart),
+     // so a raw comparison labels this machine's OWN lock "another machine" (#1072).
+     // `||`, not `??` — an EMPTY-STRING host_id must fall back to `host`, or
+     // hostnamesMatch('', …) is false and this machine reads its own lock as
+     // cross-host. Production uses `lockHostCandidate()` from host-identity.mjs.
+     const sameHost = hostnamesMatch(existingLock.host_id || existingLock.host, os.hostname());
      AskUserQuestion({
        questions: [{
-         question: `Stale session lock found (started ${ageHours}h ago, ttl=${existingLock.ttl_hours}h). Process pid=${existingLock.pid} on host=${existingLock.host} is ${reason === 'stale-pid-dead' ? 'confirmed dead' : 'still running or status unknown'}. Reclaim the lock?`,
-         header: "Stale Session Lock",
+         question: `A stale session lock is in the way — started ${ageHours}h ago on host=${existingLock.host}${sameHost ? '' : ' (another machine)'}, its ttl=${existingLock.ttl_hours}h has expired, and its last heartbeat was ${Math.round(heartbeatAgeMinutes)} minutes ago. Reclaim it?`,
+         header: "Stale lock",
          multiSelect: false,
          options: [
-           { label: "Reclaim (Recommended)", description: "Overwrite the stale lock and continue. Safe when the previous session is no longer active." },
-           { label: "Abort — investigate manually", description: "Stop here. Inspect .orchestrator/session.lock before proceeding." },
+           { label: "Reclaim (Recommended)", description: "Overwrites the stale lock and continues, because its time-to-live has run out. When that process is really dead, nothing of the old session is lost." },
+           { label: "Abort — investigate manually", description: "Stops here and writes nothing. The lock file `.orchestrator/session.lock` (it names the process that wrote it) tells you whether that session is still alive." },
          ],
        }],
      });
      ```
    - **Codex CLI / Cursor IDE fallback (numbered Markdown list):**
      ```
-     Stale session lock found (started <ageHours>h ago, ttl=<ttlHours>h, pid=<pid> on <host>).
-     1. Reclaim (Recommended) — overwrite stale lock and continue.
-     2. Abort — investigate .orchestrator/session.lock manually.
+     A stale session lock is in the way — started <ageHours>h ago on <host>, ttl=<ttlHours>h expired, last heartbeat <heartbeatAgeMinutes> minutes ago. Reclaim it?
+     1. Reclaim (Recommended) — overwrites the stale lock and continues, because its time-to-live has run out and that process is no longer holding anything.
+     2. Abort — stops here and writes nothing. The lock file `.orchestrator/session.lock` (it names the process that wrote it) tells you whether that session is still alive.
      Reply with the number of your choice.
      ```
    - On **Reclaim**: call `forceAcquire({ sessionId, mode: sessionType, ttlHours: 4, repoRoot: process.cwd() })`. After Phase 1.5 initializes STATE.md, append a deviation:
@@ -186,21 +196,24 @@ Where `sessionId` is the session identifier derived from the session type and ti
 
 ### Cross-host behaviour
 
-When `existingLock.host !== os.hostname()`, PID liveness cannot be checked (`pidAlive: null`). In this case:
+When `hostnamesMatch(existingLock.host_id || existingLock.host, os.hostname())` is **false** — never a raw `existingLock.host !== os.hostname()`, which labels this machine's own lock "another machine" the moment the hostname flips spelling (#1072; mirror the Phase-1.2 snippet above) — the lock was written on another machine and nothing local can corroborate its heartbeat. `checkStale()` carries no `pidAlive` field at all (REMOVED in #1151; #1137 had left it as an always-`null` stub) — `heartbeatAgeMinutes` is the magnitude to reason from, and `isLive` the verdict. In this case:
 - For `reason === 'active'`: the recommendation is **Abort** — cross-host locks cannot be verified as dead.
 - For stale reasons: the recommendation is still **Reclaim** only if TTL is clearly expired (>2× ttl_hours). Otherwise default to **Abort**.
 - **Never auto-reclaim cross-host locks** under any circumstance — always present the AUQ and let the user decide.
-- The AUQ question text for cross-host cases should note: `"(cross-host — PID liveness cannot be verified)"`.
+- The AUQ question text for cross-host cases should note: `"(cross-host — the heartbeat cannot be corroborated locally)"`. Do NOT phrase it as PID liveness: the pid on a lock belongs to the ephemeral writer subprocess, not the session, and is never probed (#1137/#1151).
 
 ## Phase 1.2.1: Peer-Guard (Epic #583 defense-in-depth)
 
 > Skip this phase if `persistence` config is `false`.
 
-After Phase 1.2 acquires (or confirms) the lock, call `checkPeerStateMd(repoRoot, sessionId)` from `scripts/lib/state-md-peer-guard.mjs`. This catches the rare case where lock-based detection missed an active peer (e.g., the peer's `session.lock` was force-deleted by an out-of-band sweep but STATE.md is still `status: active`, OR the peer's registry write succeeded but the lock-bootstrap hook crashed before the lock landed).
+After Phase 1.2 acquires (or confirms) the lock, use `findPeers(repoRoot, { mySessionId: callerSessionHint })` for the STATE.md peer guard. `callerSessionHint` is the original semantic attribution label when one exists, otherwise the raw `sessionId`: `findPeers` may translate the semantic hint for the discovered lock/registry surface only after the exact raw binding check in `parallel-aware-preamble.md`, while keeping the original hint for STATE.md. This catches the rare case where lock-based detection missed an active peer (e.g., the peer's `session.lock` was force-deleted by an out-of-band sweep but STATE.md is still `status: active`, OR the peer's registry write succeeded but the lock-bootstrap hook crashed before the lock landed).
 
 ```javascript
 import { findPeers } from '$PLUGIN_ROOT/scripts/lib/peer-discovery.mjs';
-const { peers } = await findPeers(process.cwd(), { mySessionId: sessionId });
+// Keep the STATE.md comparison in its original attribution-label space.
+// findPeers performs the guarded semantic→raw translation only for discovered peers.
+const callerSessionHint = semanticSessionId ?? sessionId;
+const { peers } = await findPeers(process.cwd(), { mySessionId: callerSessionHint });
 const peer = peers.find((p) => p.source === 'state-md') ?? null;
 // Phase 1.2.1 consumes only the 'state-md' subset (STATE.md surface only).
 if (peer) {
@@ -210,11 +223,13 @@ if (peer) {
 }
 ```
 
+GH#67 note: the `lockSuperseded` advisory-downgrade described in Phase 0.5's outcome handling applies only to the `discovered` peer subset — this phase's `peer` is always `source: 'state-md'`, so a `discovered`-side `lockSuperseded: true` never suppresses this guard; the Worktree-Promotion AUQ still fires exactly as below whenever a live STATE.md peer is found.
+
 ### Decision flow
 
 1. **`peer === null`** → no active peer owns STATE.md. Continue to Phase 1.5.
 2. **`peer !== null`** → STATE.md is owned by a live peer session. **Do NOT proceed with the default Phase 1.5/1b STATE.md overwrite.** Fire the Worktree-Promotion AUQ from `skills/_shared/parallel-aware-auq.md` (same options the Phase 0.5 preamble would emit on `PROMOTION_OFFER`).
-   - User picks "Worktree anlegen + starten" → call `enterWorktree(...)` and exit Phase 1 immediately (the new worktree's own session-start runs from scratch).
+   - User picks "Worktree anlegen + starten" → call `enterWorktree({ ..., rawSessionId, reason: 'worktree-promotion' })` from `scripts/lib/autopilot/worktree-pipeline.mjs` — since #1170 this ONE call also releases the source root: it calls `leaveSourceRoot({ repoRoot, sessionId: rawSessionId, semanticSessionId, reason })` from `scripts/lib/session-transition.mjs` internally, on BOTH success exits, so no separate `leaveSourceRoot` call is made at this site. `rawSessionId` is the RAW physical `session_id` read from this root's `.orchestrator/session.lock` via `readLock({ repoRoot })`, never the semantic label and never `current-session.json` (which may describe a peer, #863) — (#1069 process boundary: this site runs AFTER Phase 1.2 already acquired the lock, so the old root MUST be deregistered and its lock released here, or the new worktree's own Phase 1.2 finds a phantom owner). The return value's `left` field carries `leaveSourceRoot()`'s result; it never throws, so on `left.ok !== true` `enterWorktree` itself emits the stderr WARN `enterWorktree: leaveSourceRoot: <reason>` and the promotion continues regardless — the destination worktree already exists, so aborting here would leave exactly the two-live-roots state the call prevents. Then exit Phase 1 immediately (the new worktree's own session-start runs from scratch).
    - User picks "Manuell — in-place daneben" → append a Deviation describing the missed peer detection, continue to Phase 1.5. STATE.md WILL be overwritten — the user has explicitly accepted that risk.
    - User picks "Abbrechen" → exit cleanly.
 
@@ -367,29 +382,60 @@ If `snaps.length >= 1` → present the following choice:
 
 **Claude Code (AskUserQuestion):**
 
+Before asking, read what "Recover" would actually put back — the operator decides on that diff, not on the word:
+
+```js
+import { execFileSync } from 'node:child_process';
+
+// Read-only: `git stash show` prints a diffstat and never touches the working tree.
+// Capped at 12 lines so the preview box stays shorter than the option list beside it.
+const stat = execFileSync('git', ['stash', 'show', '--stat', snaps[0].sha], { encoding: 'utf8' })
+  .split('\n').slice(0, 12).join('\n');
+const refs = snaps.map((s) => s.ref).join('\n');
+```
+
 ```js
 AskUserQuestion({
   questions: [{
-    question: `Found ${snaps.length} coordinator snapshot(s) from the resumed session (latest from ${humanAgeOf(snaps[0].createdAt)}). Recover, keep as backup, or discard?`,
+    question: `${snaps.length} snapshot(s) from the resumed session, newest ${humanAgeOf(snaps[0].createdAt)}. Recover, keep, discard?`,
     header: "Snapshot",
     multiSelect: false,
     options: [
-      { label: "Recover (diff vs current tree) (Recommended)", description: "Apply the latest snapshot back onto the working tree. You will see a diff and can unstage unwanted changes before committing." },
-      { label: "Keep as backup", description: "Leave refs/so-snapshots/* in place untouched. You can recover manually later via `git stash apply $(git rev-parse <ref>)`." },
-      { label: "Discard all", description: "Delete all refs/so-snapshots/<sessionId>/* immediately via deleteSnapshot." },
+      {
+        label: "Recover (Recommended)",
+        description: "Puts the newest saved state back into your working tree and commits nothing. You can drop any of those changes afterwards.",
+        preview: `These files come back:\n\n\`\`\`\n${stat}\n\`\`\``,
+      },
+      {
+        label: "Keep as backup",
+        description: "Nothing happens now: `refs/so-snapshots/*` (the saved states) stay, and `git stash apply $(git rev-parse <ref>)` (this puts one back) works later.",
+      },
+      {
+        label: "Discard all",
+        description: "Deletes every saved state of this session for good: `refs/so-snapshots/<sessionId>/*` (all of them) is gone, and there is no second copy.",
+        preview: `Deleted for good:\n\n\`\`\`\n${refs}\n\`\`\``,
+      },
     ],
   }],
 });
 ```
 
+`preview` renders beside the option list and only works with `multiSelect: false`. It is used here because the answer decides which literal text lands in the working tree — "Recover" is a diff, "Discard all" is a list of refs that stop existing. "Keep as backup" carries none: keeping is exactly the state the operator already sees.
+
 **Codex CLI / Cursor IDE fallback (numbered Markdown list):**
 
-```markdown
-Snapshot recovery options:
+These harnesses have no preview box, so the same diffstat is printed inline — it is the only place the operator ever sees it:
 
-1. **Recover (Recommended)** — Apply the latest snapshot back onto the working tree. You will see a diff and can unstage unwanted changes before committing.
-2. **Keep as backup** — Leave the refs in place untouched. You can recover manually later.
-3. **Discard all** — Delete all refs/so-snapshots/<sessionId>/* immediately.
+```markdown
+"Recover" would put these files back:
+
+    <git stash show --stat <snaps[0].sha>, capped at 12 lines>
+
+<N> snapshot(s) from the resumed session, newest <age>. Recover, keep, discard?
+
+1. **Recover (Recommended)** — puts the newest saved state back into your working tree and commits nothing. You can drop any of those changes afterwards.
+2. **Keep as backup** — nothing happens now: `refs/so-snapshots/*` (the saved states) stay, and `git stash apply $(git rev-parse <ref>)` (this puts one back) works later.
+3. **Discard all** — deletes every saved state of this session for good: `refs/so-snapshots/<sessionId>/*` (all of them) is gone, and there is no second copy.
 
 Reply with the number of your choice.
 ```
@@ -471,7 +517,7 @@ await sweepBoard({
 
 This single call does three things:
 
-1. **Sets THIS repo's board row to `in-progress`** with the current semantic-session-id, branch, mode, and heartbeat (read off this repo's `session.lock` v2 lease + the host-wide registry — both already written by Phase 1.2's `acquire()`).
+1. **Sets THIS repo's board row to `in-progress`** with the current semantic-session-id **attribution label** (never a lock/registry ownership key), branch, mode, and heartbeat (read off this repo's `session.lock` v2 lease + the host-wide registry — both already written by Phase 1.2's `acquire()`).
 2. **Re-derives THIS repo's status from its live lease**, so a stale lease left by a prior crashed session in this same repo renders as `force-closed` (heartbeat older than the v2 ttl, default 4h — `DEFAULT_TTL_HOURS` in `scripts/lib/session-lock.mjs`, evaluated via `isLockLive`) and is **never silently dropped** — its fields are read straight off the dead lock.
 3. **Re-derives every OTHER busy repo's status host-wide** via `enumerateCandidates` — a dead lease in repo B renders `force-closed` on the board the next time ANY repo's session-start runs `sweepBoard`, closing the #676→#716 gap. `frei` (lock-less) repos are excluded from re-derivation to avoid board noise; their prior rows, and the prior rows of any repo `enumerateCandidates` did not surface, are preserved unchanged via the idempotent merge — never dropped.
 
@@ -676,13 +722,14 @@ Group issues by:
    - **info-only version mismatch** (patch or minor version only): `"ℹ bootstrap.lock: plugin-version=<lock-ver> (current=<plugin-ver>) — minor drift only, no action required."`
    - **legacy lock without plugin-version** (soft signal only): `"ℹ bootstrap.lock: lock predates plugin-version field; consider /bootstrap --refresh-lock to stamp a current plugin-version reference."`
 
-   Additionally, if `.orchestrator/metrics/vault-staleness.jsonl` exists in the current repo (vault-integration enabled), read the most recent line via `scripts/lib/vault-staleness-banner.mjs` (`checkVaultStaleness({repoRoot})`). When `stale_count > 0`, render a banner alongside the bootstrap-lock warning:
+   Additionally, if `.orchestrator/metrics/vault-staleness.jsonl` exists in the current repo (vault-integration enabled), read the most recent line via `scripts/lib/vault-staleness-banner.mjs` (`checkVaultStaleness({repoRoot})`). The helper returns THREE shapes, not two: `null` (silent no-op) when the JSONL is absent, malformed, or `stale_count === 0`; a fresh finding when `stale_count > 0` and the record itself is recent; or `{severity: 'warn', kind: 'probe-stale', message, ageDays, timestamp}` when `stale_count > 0` but the record's own `timestamp` is older than `MAX_RECORD_AGE_DAYS` (7 days, #1159) — the probe has stopped running, so its recorded findings are NOT a current finding about the repo. `severity` is `'warn'` in this case too (not a distinct `'info'` value) so a caller reading only `severity` still renders it; `kind` is what a caller uses to tell "probe went stale" apart from "projects are actually stale" (single-vocabulary fix, #1158/#1159 review N3). Render a banner alongside the bootstrap-lock warning for every non-null result:
    - **warn** (`stale_count > 0`, max `delta_hours <= 48`): `"⚠ vault-staleness: <N> projects stale (max delta: <X>h) — last run <timestamp>."`
    - **alert** (`stale_count > 0`, max `delta_hours > 48`): `"⚠ vault-staleness: <N> projects stale (max delta: <X>h) — Clank-Vault-Sync cron likely broken, see agents/vault#70 fix pattern."`
+   - **probe-stale** (`kind: 'probe-stale'`): `"⚠ vault-staleness: last probe record is <N> days old (<timestamp>) — the probe has not run since; the recorded <N> stale projects are NOT a current finding."`
 
-   The helper returns `null` (silent no-op) when the JSONL is absent, malformed, or `stale_count === 0`. Skip silently in those cases — do not block the session.
+   Skip silently on `null`; do not block the session in any case. This passage does not restate a severity-mapping table for the probe-stale shape — the `vault-staleness` entry in the probe registry (`scripts/lib/session-start-probes.mjs`, `PROBES`) is the single declaration site for how a probe's result maps onto the rendered banner severity, and (post-N3) needs no custom mapping for this probe at all.
 
-   Additionally, if the current repo has a configured `origin` remote and `glab` (GitLab) or `gh` (GitHub) is available, invoke the CI-status probe (`scripts/lib/ci-status-banner.mjs`) via `checkCiStatus({ repoRoot: process.cwd() })`. The helper returns `null` (silent no-op) when no VCS remote, no CLI tool, parse failure, or CLI timeout (8s default). When `result.status === 'red'`, render a banner alongside the bootstrap-lock and vault-staleness warnings:
+   Additionally, if the current repo has a configured `origin` remote and `glab` (GitLab) or `gh` (GitHub) is available, invoke the CI-status probe (`scripts/lib/ci-status-banner.mjs`) via `await checkCiStatus({ repoRoot: process.cwd() })` — it is `export async function` (`ci-status-banner.mjs:555`), so a caller following this line without `await` gets a Promise and renders nothing. The helper returns `null` (silent no-op) when no VCS remote, no CLI tool, parse failure, or CLI timeout (8s default). When `result.status === 'red'`, render a banner alongside the bootstrap-lock and vault-staleness warnings:
    - **Red** (`status === 'red'`): `"🚨 CI RED on HEAD (pipeline #<currentPipelineId>) — last green: #<lastGreen.pipelineId> (commit <SHA-7>, <redCount> pipelines ago). Failing job: <failingJobName>"`
    - **Green with soft failures** (`status === 'green'` AND `result.allowFailureJobs` is present): `"⚠ CI green on HEAD, but <N> allow_failure job(s) FAILED: <names>. A pipeline reports success regardless of these — a job red on every run stays invisible at the pipeline level."` Render this even though the pipeline passed: the whole point is that pipeline status cannot express it.
    - **Green** (no `allowFailureJobs`) or **unknown**: silent (no banner) — informational only.
@@ -789,7 +836,9 @@ Group issues by:
 
    The return contract has THREE states, not the usual two, and the third is the point: `null` means either "no mirror remote" or "queried successfully, zero open issues"; `{ severity, message, count, repoSpec, issues }` means N > 0; and `{ severity, message, repoSpec, degraded }` means the query did NOT succeed, where `degraded` is one of `cli-missing | timeout | parse-error | auth-error | query-failed`. Render `result.message` verbatim in either non-null case. A `degraded` result must be read as *"the mirror's state is unknown"* — never as clean. `scripts/lib/ci-status-banner.mjs` collapses all three of missing-CLI, unparseable output and absent-remote onto `null`, which in the banner contract reads as "all clear"; that collapse is why this gap survived unseen. Do not reproduce it.
 
-   Additionally, invoke the git-config-drift probe (`scripts/lib/git-config-drift.mjs`) via `checkGitConfigDrift({ repoRoot })` (synchronous — no await; `env` defaults to `process.env`). It reads `git config --local --list` with a FILTERED environment, so an ambient `GIT_DIR` cannot redirect the probe itself at a foreign repository and let it call this one clean. **Three states, not two:** `null` = read and clean; `{ severity: 'warn', message, findings }` = at least one unexpected entry (a local identity override, a local `commit.gpgsign`, a remote on a reserved fixture host, a `core.hooksPath` not pointing at `.husky/_`, or `GIT_DIR`/`GIT_WORK_TREE` set in the environment); `{ …, degraded }` = the config could NOT be read — **never render that as clean.** Render `result.message` alongside the other banners.
+   Additionally, invoke the git-config-drift probe (`scripts/lib/git-config-drift.mjs`) via `checkGitConfigDrift({ repoRoot })` (synchronous — no await; `env` defaults to `process.env`). It reads `git config --local --list` with a FILTERED environment, so an ambient `GIT_DIR` cannot redirect the probe itself at a foreign repository and let it call this one clean. **Three states, not two:** `null` = read and clean; `{ severity: 'warn', message, findings }` = at least one unexpected entry (a local identity override, a local `commit.gpgsign`, a remote on a reserved fixture host, a `core.hooksPath` not pointing at `.husky/_` AND not DECLARED by the repo, or `GIT_DIR`/`GIT_WORK_TREE` set in the environment); `{ …, degraded }` = the config could NOT be read — **never render that as clean.** Render `result.message` alongside the other banners.
+
+   The `core.hooksPath` trigger is narrower than "points somewhere other than `.husky/_`" — a hooksPath the repo DECLARES is accepted without any config key. Declared means `git ls-files -- <hooksPath>` finds at least one TRACKED file DIRECTLY under it (not nested deeper) whose BASENAME is a real git hook name (`pre-commit`, `pre-push`, `commit-msg`, …) — a tracked directory of ordinary source, or an untracked file merely named like a hook, does not count. This document does not restate the hook-name list — `GIT_HOOK_NAMES` in `scripts/lib/git-config-drift.mjs` (sourced from `git help hooks`) is the single declaration site (#1158 review N1 — the first cut of this rule accepted any tracked file under the path at all, which a fixture-planted `scripts/pre-commit` left untracked, sitting beside ordinary tracked source, would have bypassed silently).
 
    This is the only probe that inspects `.git/config`, and that is the whole point: `git status` cannot see that file. On 2026-08-19 a coordinator diagnostic exported `GIT_DIR` at this repository while the suite ran; test fixtures wrote a foreign remote and their own `user.email`/`user.name` into the local config, and the identity then authored two commits that reached both remotes. A recovery pass checked HEAD, the index and all 1614 tracked files, found everything clean, and missed it — because none of those surfaces show `.git/config`. It surfaced two hours later, from an agent measuring something else.
 
@@ -1027,6 +1076,8 @@ Cross-reference: PRD F2.3 acceptance criteria (#505); `scripts/lib/memory-banner
 
 > Skip this phase silently when `persistence: false` in Session Config. Also skip silently when non-interactive (headless / CI — no TTY to prompt on), and when the consent decision has already been made (stored `granted`/`denied`, an env override, or the fleet flag). In all of these `resolveConsent().prompt` is `false` and the phase is a no-op — it must NEVER print anything or slow session-start in the common (already-decided / headless) case.
 
+> **The trigger is MECHANICAL since #1138.** `hooks/on-session-start.mjs` calls `resolveConsent()` itself and, when `prompt === true` and the run is not CI, injects a one-line instruction into the session via `hookSpecificOutput.additionalContext`. This phase is the WORDING and the fallback — the AUQ text below is the single source of truth for what gets asked — but it is no longer what decides *whether* to ask. Two consequences: (a) the coordinator may receive that instruction before it ever reaches this line, and should act on it then; (b) the hook gates on `isCiEnv()`, **not** `!isHeadless()` as the snippet below does — measured 2026-08-23, `isHeadless()` returns `true` in ANY non-TTY subprocess (`isHeadless()=true isCiEnv()=false stdout.isTTY=undefined`), which includes both a hook process and the `node -e` a coordinator would run this snippet in. Executed verbatim in a Bash tool call, the snippet below therefore resolves `prompt: false` every time; keep it as the semantic reference, and trust the hook for the firing decision.
+
 Anonymous usage telemetry is **strictly opt-in** and, on a host that has never decided, is offered exactly once via a single interactive AskUserQuestion. The consent machine lives in `scripts/lib/telemetry/consent.mjs`; this phase only decides *whether* to prompt and then records the operator's answer. The `resolveConsent()` precedence machine is fail-closed — `prompt` is `true` only for a fresh, interactive, not-yet-decided, not-fleet, not-env-overridden host.
 
 ```javascript
@@ -1049,12 +1100,12 @@ if (!c.prompt) {
 ```js
 AskUserQuestion({
   questions: [{
-    question: "Anonyme Usage-Telemetrie aktivieren? Strikt opt-in, whitelist-projiziert (keine Repo-Namen/Pfade/Prompts), jederzeit abschaltbar — Details: docs/telemetry.md",
-    header: "Usage Telemetry",
+    question: "Anonyme Usage-Telemetrie aktivieren? Strikt opt-in, jederzeit abschaltbar; was genau gesendet wird: docs/telemetry.md",
+    header: "Telemetrie",
     multiSelect: false,
     options: [
-      { label: "Ja, aktivieren", description: "Anonymer Zähl-/Struktur-Datensatz (Skill-/Phasen-Nutzung, Erfolg/Abbruch) — whitelist-projiziert, keine Pfade/Prompts/Repo-Namen. Details: docs/telemetry.md" },
-      { label: "Nein", description: "Keine Telemetrie senden. Jederzeit später aktivierbar via node scripts/telemetry.mjs." },
+      { label: "Ja, aktivieren", description: "Sendet anonyme Zähl- und Strukturdaten (welche Phase lief, Erfolg oder Abbruch), whitelist-projiziert: keine Pfade, keine Prompts, keine Repo-Namen." },
+      { label: "Nein", description: "Sendet nichts; die Frage kommt hier nicht wieder. Einschalten geht später mit `node scripts/telemetry.mjs` (das ist der Befehl dafür)." },
     ],
   }],
 });
@@ -1064,9 +1115,9 @@ AskUserQuestion({
 
 - **Codex CLI / Cursor IDE fallback (numbered Markdown list — AUQ-004 exception 1):**
   ```
-  Anonyme Usage-Telemetrie aktivieren? Strikt opt-in, whitelist-projiziert (keine Repo-Namen/Pfade/Prompts), jederzeit abschaltbar — Details: docs/telemetry.md
-  1. Ja, aktivieren — anonymer Zähl-/Struktur-Datensatz, keine Pfade/Prompts/Repo-Namen.
-  2. Nein — keine Telemetrie senden.
+  Anonyme Usage-Telemetrie aktivieren? Strikt opt-in, jederzeit abschaltbar; was genau gesendet wird: docs/telemetry.md
+  1. Ja, aktivieren — sendet anonyme Zähl- und Strukturdaten (welche Phase lief, Erfolg oder Abbruch), whitelist-projiziert: keine Pfade, keine Prompts, keine Repo-Namen.
+  2. Nein — sendet nichts; die Frage kommt hier nicht wieder. Einschalten geht später mit `node scripts/telemetry.mjs` (das ist der Befehl dafür).
   Reply with the number of your choice. (No option is pre-recommended — the choice is yours.)
   ```
 
@@ -1146,13 +1197,13 @@ Present your findings following that structure. Key rules:
 
 ### Phase 8.5: Express Path Evaluation (#214)
 
-After the user confirms session type and scope, evaluate whether the Express Path applies. Activation requires ALL three: `express-path.enabled: true` in Session Config (default: `true` — when `express-path.enabled: false`, this evaluation is skipped entirely and the normal 5-wave session-plan flow runs), session type `housekeeping`, and scope ≤ 3 sequential issues. The 13 prior coordinator-direct sessions in `CLAUDE.md` (or `AGENTS.md` on Codex CLI; 2026-04 series) were all running this pattern implicitly — this phase codifies what was already proven to work.
+After the user confirms session type and scope, evaluate whether the Express Path applies. **Do not judge the conditions by hand — run `node scripts/express-path.mjs --repo-root "$PWD" --session-type <type> --task-count <N> --parallel-agents <true|false>`.** That CLI is the canonical caller (#1146): it makes the decision AND records it as `orchestrator.express_path.evaluated`, on refusal as well as activation. stdout is one JSON line `{"activated":<bool>,"reasons":[…]}`; exit 0 means the evaluation completed, so branch on `activated`, never on the exit code. Activation requires ALL three: `express-path.enabled: true` in Session Config (default: `true`; an explicit `false` still runs the evaluation and records `disabled-by-config`, then the normal 5-wave session-plan flow proceeds), session type `housekeeping`, and scope ≤ 3 sequential issues. The 13 prior coordinator-direct sessions in `CLAUDE.md` (or `AGENTS.md` on Codex CLI; 2026-04 series) were all running this pattern implicitly — this phase codifies what was already proven to work.
 
-When all conditions are met, emits the banner:
+When all conditions are met, the CLI emits the banner on stderr:
 ```
 Express path activated — <N> tasks, coordinator-direct, no inter-wave checks.
 ```
-Then executes tasks coordinator-direct (bypassing session-plan and wave-executor) and logs a Deviations entry in STATE.md. Silent no-op when any condition fails — proceeds normally to Phase 9.
+Carry that banner into Phase 9 and hand off to session-plan as usual — session-plan short-circuits to a 1-wave `coordinator-direct` plan, which is the artifact `/go` detects. Tasks are then executed coordinator-direct (bypassing wave-executor, subagent dispatch and inter-wave checkpoints) and a Deviations entry is logged in STATE.md. Silent no-op when any condition fails — proceeds normally to Phase 9.
 
 **See `phase-8-5-express-path.md` for full details.**
 
@@ -1173,7 +1224,7 @@ After user alignment:
 
 - **NEVER make assumptions** about code state based on memory or docs — always verify in actual files
 - **NEVER skip the Q&A phase** — the user MUST confirm direction before wave planning
-- **ALWAYS use `run_in_background: false`** for parallel subagent work — wait for completion
+- **ALWAYS verify parallel subagent work against the started set**, never against the launch ack — `run_in_background: true` is allowed and recommended for wave dispatch (`skills/wave-executor/wave-loop.md § Started-Set Verification`); skills that need every result before their next phase (persona-panel, discovery, test-runner, session-end) keep `false` and say why
 - **ALWAYS check `.env` or `.env.local`** for VCS host, API keys, and service URLs
 - **ALWAYS present options with pros/cons and a clear recommendation** — never just list facts
 - **ALWAYS update VCS issue status** when claiming work — use the issue update command per the "Common CLI Commands" section of the gitlab-ops skill

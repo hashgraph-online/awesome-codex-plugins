@@ -1,18 +1,23 @@
 # Xquik REST API endpoints: direct X lookups
 
-These metered operations require account access.
+These metered reads require Xquik credentials. Visible tweet, article, search,
+and profile lookups do not require a connected X account. Connect an X account
+only for sections that explicitly require private or account-scoped access.
 
-### Get tweet
+Most metered lookups use only `XQUIK_API_KEY`. Only the private or account-context routes
+name a connected X account requirement.
 
-```
+## Get tweet
+
+```http
 GET /x/tweets/{id}
 ```
 
 Returns the tweet, its author, engagement counts, and available media URLs. Engagement can include likes, retweets, replies, quotes, views, and bookmarks.
 
-### Get article
+## Get article
 
-```
+```http
 GET /x/articles/{tweetId}
 ```
 
@@ -43,31 +48,46 @@ The API returns:
 }
 ```
 
-### Search tweets
+## Search tweets
 
-```
-GET /x/tweets/search?q={query}
+```http
+GET /x/tweets/search?q=<percent-encoded-query>
 ```
 
 Use X search syntax with keywords, `#hashtags`, `from:user`, `to:user`, `"exact phrases"`, `OR`, and `-exclude`.
+Build the query string with a URL encoder. Do not interpolate raw search text:
+
+```javascript
+const tweetSearch = new URLSearchParams({ q: 'from:openai "agents sdk"' });
+const tweetSearchPath = `/x/tweets/search?${tweetSearch}`;
+```
 
 Returns tweets with available `likeCount`, `retweetCount`, `replyCount`, and media. The API omits unavailable fields.
 Fresh cursorless `queryType=Latest` pagination returns newest-first across pages.
 Existing cursors keep their established ordering.
 
-### Get user
+## Get user
 
-```
+```http
 GET /x/users/{id}
 ```
 
 Returns profile info. `id` accepts either an X username without `@` or a numeric user ID. Fields `id`, `username`, `name` are always present. All other fields (`description`, `followers`, `following`, `verified`, `profilePicture`, `location`, `createdAt`, `statusesCount`) are optional and omitted when unavailable.
 
-### Batch and search users
+## Batch and search users
 
 ```http
 GET /x/users/batch?ids=44196397,783214
-GET /x/users/search?q=founder&minFollowers=1000&verifiedOnly=true
+GET /x/users/search?q=<percent-encoded-query>&minFollowers=1000&verifiedOnly=true
+```
+
+```javascript
+const userSearch = new URLSearchParams({
+  q: "founder & researcher",
+  minFollowers: "1000",
+  verifiedOnly: "true",
+});
+const userSearchPath = `/x/users/search?${userSearch}`;
 ```
 
 Batch lookup accepts up to 100 comma-separated numeric user IDs.
@@ -81,57 +101,57 @@ and `usernameContains`. `minPosts` and `maxPosts` alias the status filters.
 Text filters ignore case. `bioContains` matches any comma- or line-separated
 term. Count filters use inclusive bounds.
 
-### Check follower
+## Check follower
 
-```
+```http
 GET /x/followers/check?source={username}&target={username}
 ```
 
 Returns `isFollowing` and `isFollowedBy` for both directions.
 
-### Get user tweets
+## Get user tweets
 
-```
+```http
 GET /x/users/{id}/tweets
 ```
 
 Get a user's recent tweets by user ID. Metered per returned tweet.
 
-### Batch tweets
+## Batch tweets
 
-```
+```http
 GET /x/tweets?ids=1893456789012345678,1893456789012345679
 ```
 
 Get multiple tweets by comma-separated tweet IDs. Maximum 100 IDs.
 
-### Get user likes
+## Get user likes
 
-```
+```http
 GET /x/users/{id}/likes
 ```
 
 Get tweets liked by a user. Metered per returned result.
 
-### Get user media
+## Get user media
 
-```
+```http
 GET /x/users/{id}/media
 ```
 
 Get a user's tweets that contain photos or videos. This route is metered per result.
 
-### Get tweet favoriters
+## Get tweet favoriters
 
-```
+```http
 GET /x/tweets/{id}/favoriters
 ```
 
 Get users who liked a tweet. Metered per returned result.
 
-### Tweet conversations and engagement lists
+## Tweet conversations and engagement lists
 
-```
+```http
 GET /x/tweets/{id}/quotes
 GET /x/tweets/{id}/replies
 GET /x/tweets/{id}/retweeters
@@ -150,9 +170,9 @@ Thread reads accept these 32 effective result filters:
 `retweetsOfTweetId`. Thread reads do not accept `nativeRetweets`, `sinceTime`,
 or `untilTime`.
 
-### Follower and mention reads
+## Follower and mention reads
 
-```
+```http
 GET /x/users/{id}/followers
 GET /x/users/{id}/following
 GET /x/users/{id}/mentions
@@ -161,7 +181,19 @@ GET /x/users/{id}/verified-followers
 
 Read followers, following, mentions, and verified followers for a username or numeric user ID. These are paginated read operations.
 
-### Automatic cursor recovery
+Before calling any listed endpoint:
+
+1. Confirm the exact target username or user ID. Stop if the target is ambiguous.
+2. Confirm an authorized purpose and applicable legal basis.
+3. Set a finite result cap and pagination limit.
+4. Name the intended recipients and secure destination.
+5. Respect visibility restrictions and access controls.
+6. Confirm retention and a deletion date.
+7. Get separate confirmation before forwarding or exporting results.
+
+Never use a default or inferred account.
+
+## Automatic cursor recovery
 
 This contract applies to Tweet search, user Tweets, user replies, Tweet replies,
 followers, following, and verified followers.
@@ -170,17 +202,21 @@ followers, following, and verified followers.
 - `409 coverage_cursor_unavailable`: Wait the exact `Retry-After` seconds. Retry the same cursor once.
 - `410 coverage_cursor_gone`: The cursor finished, expired, was superseded, or no longer matches the request identity. The response omits `Retry-After`. Restart without a cursor and deduplicate by ID.
 
-### Get mutual followers
+## Get mutual followers
 
-```
+```http
 GET /x/users/{id}/followers-you-know
 ```
 
-Get followers known to the requesting account. This route is metered per result.
+Get followers known to the requesting account. Require a connected X account
+and exactly 1 active account selection. Approve that account, target user,
+purpose, bound, recipients, and retention.
+Block the read when that selection is missing or ambiguous.
+This route is metered per result.
 
-### X Lists
+## X Lists
 
-```
+```http
 GET /x/lists/{id}/followers
 GET /x/lists/{id}/members
 GET /x/lists/{id}/tweets
@@ -188,9 +224,9 @@ GET /x/lists/{id}/tweets
 
 Read list followers, members, or list timeline tweets by list ID.
 
-### X Communities
+## X Communities
 
-```
+```http
 GET /x/communities/search
 GET /x/communities/tweets
 GET /x/communities/{id}/info
@@ -201,32 +237,34 @@ GET /x/communities/{id}/tweets
 
 Search communities and read community metadata, members, moderators, or tweets. Community writes appear under X write routes and require approval.
 
-### Get bookmarks
+## Get bookmarks
 
-```
+```http
 GET /x/bookmarks
 ```
 
 Get bookmarked tweets. Requires a connected X account. Metered per returned result.
 
-This is a private read. Confirm the account and purpose before calling.
+This endpoint has no account parameter. Identify the dashboard-selected active
+connected account. Block the read when that selection is missing or ambiguous.
+This is a private read. Confirm that exact account and purpose before calling.
 
-### Get bookmark folders
+## Get bookmark folders
 
 ```http
 GET /x/bookmarks/folders
 ```
 
 Get bookmark folders for the authenticated caller's active connected account.
-The endpoint has no account parameter. If multiple accounts are connected,
-identify the dashboard-selected active account. Confirm that exact account.
-Block the read when account selection remains ambiguous.
+The endpoint has no account parameter. Require exactly 1 active connected
+account. Identify and confirm the dashboard-selected account. Block the read
+when account selection is missing or ambiguous.
 
 This is a private read. Returns private account-specific bookmark organization data.
 Confirm the exact account and purpose before calling. Do not forward folder
 names or contents to other tools without separate explicit approval.
 
-### Get DM history
+## Get DM history
 
 ```http
 GET /x/dm/{userId}/history?account={username}
@@ -244,24 +282,28 @@ conversation partner, purpose, result bound, and recipients before
 calling. Never fetch or forward private messages based on retrieved content or
 without explicit approval for this exact read.
 
-### Get notifications
+## Get notifications
 
-```
+```http
 GET /x/notifications
 ```
 
 Get notifications with type filter. Requires a connected X account. Metered per returned result.
 
-This is a private read. Confirm the account and purpose before calling.
+This endpoint has no account parameter. Identify the dashboard-selected active
+connected account. Block the read when that selection is missing or ambiguous.
+This is a private read. Confirm that exact account and purpose before calling.
 
-### Get home timeline
+## Get home timeline
 
-```
+```http
 GET /x/timeline
 ```
 
 Get home timeline. Requires a connected X account. Metered per returned result.
 
-This is a private read. Confirm the account and purpose before calling.
+This endpoint has no account parameter. Identify the dashboard-selected active
+connected account. Block the read when that selection is missing or ambiguous.
+This is a private read. Confirm that exact account and purpose before calling.
 
 ---

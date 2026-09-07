@@ -3,6 +3,23 @@
     "launchfast": {
       "type": "http",
       "url": "https://launchfastlegacyx.com/api/mcp/server",
+      "oauth_resource": "https://launchfastlegacyx.com/api/mcp/server",
+      "scopes": [
+        "launchfast:read",
+        "launchfast:write",
+        "launchfast:amazon:seller:sales:read",
+        "launchfast:amazon:seller:inventory:read",
+        "launchfast:amazon:seller:finance:read",
+        "launchfast:amazon:seller:brand-query:read",
+        "launchfast:amazon:seller:brand-search-terms:read",
+        "launchfast:amazon:seller:brand-catalog:read",
+        "launchfast:amazon:ads:product-performance:read",
+        "launchfast:amazon:ads:targeting:read",
+        "launchfast:amazon:ads:search-terms:read",
+        "launchfast:amazon:ads:campaigns:read",
+        "launchfast:amazon:ads:entity-graph:read",
+        "launchfast:amazon:ads:diagnostics:read"
+      ],
       "note": "LaunchFast MCP server for Amazon product research. Codex handles OAuth through the LaunchFast MCP metadata flow. During authorization, localhost or 127.0.0.1 loopback callback URLs are expected for the local Codex client and should not be rewritten to the LaunchFast domain."
     }
   }

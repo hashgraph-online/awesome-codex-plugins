@@ -48,7 +48,7 @@ Returns `409 monitor_already_exists` if the username is already monitored.
 
 ### List monitors
 
-```
+```http
 GET /monitors
 ```
 
@@ -73,15 +73,13 @@ PATCH /monitors/{id}
 ```
 
 Get approval first. Show the current and proposed event types and active
-state. Apply only the explicitly approved change.
+state. Apply only the explicitly confirmed change.
 
 Send `{ "eventTypes": [...], "isActive": true|false }`. Both fields are optional.
 
 ### Delete monitor
 
-```
-DELETE /monitors/{id}
-```
+Use the delete method on `/monitors/{id}`.
 
 This action is destructive. This permanently stops tracking and deletes associated
 monitor data. Show the monitor ID, target, and lost data. Delete only after
@@ -89,21 +87,22 @@ explicit approval immediately before the call.
 
 ### Keyword monitors
 
-```
+```http
 GET /monitors/keywords
 POST /monitors/keywords
 GET /monitors/keywords/{id}
 PATCH /monitors/keywords/{id}
-DELETE /monitors/keywords/{id}
 ```
 
 Create and manage ongoing keyword monitors. They are persistent resources. Confirm the query, event delivery, and ongoing usage before creating or enabling one.
+
+Use the delete method on `/monitors/keywords/{id}` to remove one.
 
 Create with `{ "query": "#buildinpublic", "eventTypes": ["tweet.new"] }`.
 Poll its events with `GET /events?keywordMonitorId=<id>`.
 
 Creating, updating, enabling, disabling, or deleting a keyword monitor requires
-explicit approval for the exact monitor. For creates and updates, show the
+explicit approval for the exact monitor. For create and update operations, show the
 proposed keyword, event types, and delivery changes. For enable or disable,
 show the active-state transition. For deletion, show the exact target and all
 associated data that will be permanently lost.

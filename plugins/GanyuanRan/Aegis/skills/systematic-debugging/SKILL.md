@@ -9,7 +9,9 @@ Bug, failure, or unexpected behavior:
 
 1. **Isolate** — read error, reproduce, inspect the diff, and drill upward through diagnostic layers:
    L1 symptom → L2 logic → L3 system → L4 architecture → L5 cross-system
-   contract → L6 platform → L7 spec gap. Stop only when causal proof accounts
+   contract → L6 platform → L7 spec gap. Layers are observation altitudes,
+   not one causal chain; the causal shape at the stop altitude is classified
+   explicitly before any root claim. Stop only when causal proof accounts
    for the recurrence generator or reaches a T-class boundary.
 2. **Identify owner** — compare working behavior, trace the bad value, locate the
    canonical owner, and treat duplicate owners as a finding.
@@ -18,9 +20,15 @@ Bug, failure, or unexpected behavior:
    boundaries are involved. Surface Change Necessity for any new source-code
    path or non-trivial source edit. Run Minimality Check for a new branch,
    fallback, adapter, owner, or compatibility path, and Pre-Edit Complexity
-   Check for an overloaded owner or complexity growth.
+   Check for an overloaded owner or complexity growth. After Change Necessity
+   selects `code-change` and before the first repair edit, own the TDD Route for
+   the repair slice: `off` skips automatic TDD; `auto` selects `strict` on any
+   behavior, bugfix, shared/core, contract, persistence, permission, migration,
+   producer/consumer, or meaningful regression signal. `light` requires every
+   tiny/low-risk/single-owner/no-behavior-change condition; missing explicit
+   user TDD wording is never auto-light evidence.
 4. **Prove** — test one hypothesis with the smallest reproduction or
-   verification. A failing test first is required only by an explicit
+   verification. A failing test first is required only by a recorded
    `TDD Route: strict`; with `TDD Mode: off`, do not require a failing test or
    RED/GREEN cycle. Three failed fixes means stop and question architecture.
 5. **Repair and close** — fix minimally at the canonical owner, verify in
@@ -90,9 +98,24 @@ Decision: fix owner | continue investigation | escalate
 A locally green test does not erase triage. Before unplanned repair, compare
 invariant, owner, patch shape, and topology; a renamed carrier is not a new direction.
 
+When a repair may reinterpret or retire existing semantics, responsibility,
+contract, or relationship, name the behavior to preserve, highest-risk
+counterexample, and material unknown. For each known explicit anchor or
+upstream/downstream reference, state its role and disposition: preserve, rebind
+to the canonical owner, retire with reason, or reject because of conflict.
+Leave unresolved relationships unknown; do not re-infer them downstream.
+Bind role before value and retire invalid responsibility, not evidenced carrier
+capability. Identifiers and selectors are examples, not the trigger. This
+bounded reminder is not a behavior matrix, relationship graph,
+referential-integrity proof, or exhaustive discovery claim. It adds no artifact,
+TDD risk signal, or regression scope; the existing TDD route owner and
+configured/default mode still apply.
+
 If the diagnosis crosses L3, a patch-shape signal fires, a user disputes the
 root claim, a prior fix leaves a symptom, compound/root topology is plausible,
-or an upstream producer/config/default/contract/spec remains unexcluded, read
+two or more anchored manifestations of one incident exist, reproduction
+conditions diverge across occurrences, or an
+upstream producer/config/default/contract/spec remains unexcluded, read
 `root-cause-claim-contract.md` **before claiming a root cause**. It is the sole
 owner of the Pre-Claim Gate, causal-closure/falsifier proof, layer-ceiling
 proof, and Causal Topology Gate.
@@ -123,7 +146,8 @@ Minimality Check:
 - Existing owner / reuse path:
 - Correct owner and bug class:
 - New path and existence proof:
-- Old path retired or scheduled:
+- Invalid responsibility retired or scheduled:
+- Legitimate capability on the same carrier retained, if any:
 - Verdict: sufficient repair | local patch | needs first-principles review
 ```
 
@@ -192,6 +216,8 @@ python <aegis-workspace-helper> add-evidence --root <target-project-root> --work
 python <aegis-workspace-helper> check --root <target-project-root>
 ```
 
+Failed attempts use `<aegis-workspace-helper> add-attempt`; `add-evidence` is terminal-only.
+
 Fast bug fix or quick bug fix pressure does not skip this: if Ripple Signal
 Triage fires, record it before editing and verify the canonical owner plus
 affected downstream path. Records are advisory, not completion authority.
@@ -201,7 +227,8 @@ affected downstream path. Records are advisory, not completion authority.
 Always report:
 
 - **Repair** — cause, owner, smallest change, compatibility, verification.
-- **Retirement** — old path status, retention reason/trigger, removal check.
+- **Retirement** — invalid responsibility status, carrier/capability
+  disposition, retention reason/trigger, removal check.
 
 Confirm the reproduction, same-pattern handling, authority, complexity, and
 retirement. Confidence: A = direct regression evidence; B = strong evidence

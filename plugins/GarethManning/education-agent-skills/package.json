@@ -18,7 +18,7 @@
   },
   "homepage": "https://github.com/GarethManning/education-agent-skills#readme",
   "devDependencies": {
-    "@playwright/test": "^1.59.1",
-    "yaml": "^2.8.3"
+    "@playwright/test": "^1.62.1",
+    "yaml": "^2.9.0"
   }
 }

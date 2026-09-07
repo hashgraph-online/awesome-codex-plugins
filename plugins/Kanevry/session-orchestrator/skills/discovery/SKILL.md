@@ -104,13 +104,13 @@ When the gate above is satisfied, present exactly this AskUserQuestion (AUQ-003 
 ```
 AskUserQuestion({
   questions: [{
-    question: "Scope `feature` was requested. How should this run handle feature discovery?",
-    header: "Feature Scope",
+    question: "Scope `feature` was requested. How should this run handle it?",
+    header: "Scope",
     options: [
-      { label: "Grounded scan (Recommended)", description: "Run the evidence-anchored feature probes (intent-drift, stubbed-dead-feature) on the probe→verify→triage rails." },
-      { label: "Also judgment topics", description: "Grounded scan PLUS collect judgment-based product questions (opportunity framing, personas). A follow-up prompt after Phase 5 offers inline synthesis or hand-off to /brainstorm or /plan feature — judgment items never enter the verified-findings pipeline." },
-      { label: "Route out", description: "No scan; hand off to /brainstorm (product ideation) or /grill (assumption stress-test) instead." },
-      { label: "Skip", description: "Drop `feature` from this run's scope set." }
+      { label: "Grounded scan (Recommended)", description: "Every finding is tied to a file and line and is verified before it can become an issue. Cost: two extra probes (intent-drift, stubbed-dead-feature)." },
+      { label: "Also judgment topics", description: "Same scan, plus open product questions (opportunity framing, personas) kept as notes. They never become issues; after Phase 5 you pick where they go." },
+      { label: "Route out", description: "No scan at all. You get a pointer to /brainstorm (product ideation) or /grill (assumption stress-test) instead." },
+      { label: "Skip", description: "Drops `feature` (the probes for half-built and drifted features) from this run; the other scopes still run." }
     ],
     multiSelect: false
   }]
@@ -125,12 +125,12 @@ AskUserQuestion({
 ```
 AskUserQuestion({
   questions: [{
-    question: "Judgment topics were collected alongside the grounded scan. How should they be handled?",
-    header: "Judgment Topics",
+    question: "Where should the collected judgment topics go?",
+    header: "Topics",
     options: [
-      { label: "Inline synthesis (Recommended)", description: "Sketch a lightweight OST/persona pass directly in the report's `### Judgment Topics (non-verified)` appendix — explicitly marked non-verified, no separate skill invocation needed." },
-      { label: "Route to /brainstorm", description: "Hand the collected topics off as pre-filled context to /brainstorm for a full Socratic ideation dialogue." },
-      { label: "Route to /plan feature", description: "Hand the collected topics off as pre-filled context to /plan feature for feature-PRD scoping." }
+      { label: "Inline synthesis (Recommended)", description: "Sketches an outcome/persona pass into `### Judgment Topics (non-verified)` (a report section that never becomes issues). Cost: no second run." },
+      { label: "Route to /brainstorm", description: "Hands the topics to /brainstorm as its opening context, for a full question-and-answer design dialogue." },
+      { label: "Route to /plan feature", description: "Hands the topics to /plan feature as its opening context, for feature-PRD scoping." }
     ],
     multiSelect: false
   }]
@@ -370,14 +370,16 @@ For each Critical or High finding, use AskUserQuestion (on Codex CLI where AskUs
 ```
 AskUserQuestion({
   questions: [{
-    question: "<finding title>\n\n<file_path>:<line_number>\n```\n<matched_text with +/-3 lines context>\n```\n\n<description>\n\nRecommended fix: <recommended_fix>",
-    header: "<severity>",
+    question: "<severity> finding in <file_path> — what should happen with it?",
+    header: "Finding",
     options: [
-      { label: "Create issue (<severity>)", description: "Create a priority::<severity> issue for this finding" },
-      { label: "Adjust priority", description: "Create issue with different priority" },
-      { label: "Dismiss -- intentional", description: "This is by design, skip" },
-      { label: "Dismiss -- false positive", description: "Detection was wrong, skip" }
-    ]
+      { label: "Create issue (<severity>)", description: "Files it as priority::<severity>, so it is tracked outside this session. The code below is copied into the issue body.",
+        preview: "<finding title>\n\n<file_path>:<line_number>\n```\n<matched_text with +/-3 lines context>\n```\n\n<description>\n\nRecommended fix: <recommended_fix>" },
+      { label: "Adjust priority", description: "Same issue, a priority you pick — this question then comes back with the new label." },
+      { label: "Dismiss -- intentional", description: "The code is deliberate. Nothing is filed, and the finding stays only in this run's report." },
+      { label: "Dismiss -- false positive", description: "The probe misread the code. Nothing is filed; worth reporting if the same probe misfires again." }
+    ],
+    multiSelect: false
   }]
 })
 ```
@@ -391,13 +393,15 @@ Group remaining findings by category. For each category with medium/low findings
 ```
 AskUserQuestion({
   questions: [{
-    question: "[N] medium/low findings in [category]:\n\n1. [title] -- [file_path]:[line] ([severity])\n2. [title] -- [file_path]:[line] ([severity])\n...",
-    header: "[Category]",
+    question: "Create issues for all [N] medium/low findings in [category]?",
+    header: "Findings",
     options: [
-      { label: "Accept all (Recommended)", description: "Create issues for all [N] findings" },
-      { label: "Review individually", description: "Walk through each finding one by one" },
-      { label: "Dismiss all", description: "Skip all medium/low findings in this category" }
-    ]
+      { label: "Accept all (Recommended)", description: "Medium and low findings are cheap to file and cheap to close. Cost: [N] issues, roughly one second apart.",
+        preview: "1. [title] -- [file_path]:[line] ([severity])\n2. [title] -- [file_path]:[line] ([severity])\n..." },
+      { label: "Review individually", description: "One question per finding, same options as the critical ones. Cost: [N] more prompts." },
+      { label: "Dismiss all", description: "Nothing is filed for this category. The findings stay in this run's report only." }
+    ],
+    multiSelect: false
   }]
 })
 ```

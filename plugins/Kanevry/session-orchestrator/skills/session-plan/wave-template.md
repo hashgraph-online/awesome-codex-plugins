@@ -19,6 +19,7 @@ For each wave, define agents with:
 - `Isolation: worktree` means the wave-executor will pass `isolation: "worktree"` to the Agent tool, giving each agent its own git worktree copy
 - `MaxTurns` is enforced via the agent prompt — wave-executor includes a turn limit instruction in each agent's prompt
 - `status` is the mission-status enum value for this wave-plan item (#340). Always `brainstormed` in the initial plan. Wave-executor updates it at gate transitions (validated → in-dev → testing → completed). Rollback to `brainstormed` is allowed from any state. The five values are listed in `SKILL.md` § Mission-Status Enum; nothing validates them mechanically — `setMissionStatus` writes the string it is given to both STATE.md surfaces on purpose, so keeping the value in-enum is the coordinator's job.
+- The wave-plan item's `id` becomes the `taskId` every `setMissionStatus` call for this item uses, and `setMissionStatus` REFUSES ids outside `[a-z][a-z0-9]*(?:-[a-z0-9]+)*-\d+` (lowercase segments, single hyphens, trailing bare digits) with `refused: 'id-grammar'` and a stderr WARN — nothing is written. Mint ids matching it: `m-1`, `docs-2`, `w2-1`, `w2-a-10` all accepted; `w2-a10`, `w3-p2`, `W3-I1`, `Docs_2` all refused.
 
 > **Deconfliction rule:** Before finalizing agent specs for a wave, verify that no two agents in the same wave list overlapping `Files:` paths. If overlap is found, either merge the agents into one or move one task to a later wave. Two agents editing the same file in parallel causes merge conflicts that require manual resolution.
 

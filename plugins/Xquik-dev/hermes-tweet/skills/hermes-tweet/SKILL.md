@@ -1,11 +1,11 @@
 ---
 name: hermes-tweet
-description: 'Uses Xquik from Hermes Agent for public X research, monitoring, thread summaries, creator discovery, and explicitly approval-gated actions. Not affiliated with X Corp. Use when the user requests X data or a named, approved X action. Trigger with "search X", "monitor X", "post tweet", or "X trends".'
+description: 'Use Xquik in Hermes Agent for public X research, monitoring, thread summaries, creator discovery & approved actions. Not affiliated with X Corp. Use when the user requests X data or a named action. Trigger with "search X", "monitor X", "post tweet", or "X trends".'
 allowed-tools:
   - tweet_explore
   - tweet_read
   - tweet_action
-version: 0.1.12
+version: 0.1.13
 author: Burak Bayır (@kriptoburak), Xquik
 license: MIT
 compatibility: Requires Hermes Agent plugin support and Xquik API access.
@@ -23,7 +23,7 @@ tags:
   - social-media
   - automation
 metadata:
-  version: 0.1.12
+  version: 0.1.13
   author: Xquik
   tags:
     - hermes-agent
@@ -67,22 +67,14 @@ capabilities:
 
 ## Overview
 
-Hermes Tweet solves X research and automation tasks without direct HTTP fallbacks
-or guessed endpoints. It discovers catalog-listed Xquik routes, performs
-authenticated reads, and keeps write-like or private operations behind an
-explicit environment gate and user approval.
-
-Use the skill for read-first workflows. Enable action tooling only for a named
-operation whose endpoint, payload, account, and side effects the user approves.
+Discover catalog-listed Xquik routes and run authenticated reads without guessed endpoints.
+Private or state-changing operations require the action gate and user approval.
+Enable `tweet_action` only after the user approves its endpoint, payload, account, and effects.
 
 ## When to use Hermes Tweet
 
-Use this skill for Hermes Agent sessions that need X/Twitter data or controlled
-X actions through the Hermes Tweet plugin.
-
-Use this skill especially for social listening, launch monitoring, support
-triage, creator research, brand research, giveaway audits, community audits,
-and controlled publishing workflows.
+Use this Skill for X/Twitter research, social listening, monitoring, support triage,
+creator research, giveaway audits, community audits, and controlled publishing.
 
 Use `tweet_explore` first when the user asks for a capability, endpoint, route,
 or Xquik API route. Use `tweet_read` only after a read-only endpoint is known.

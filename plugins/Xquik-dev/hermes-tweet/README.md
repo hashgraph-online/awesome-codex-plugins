@@ -1,4 +1,4 @@
-# Hermes Tweet: Twitter search, timelines, followers & approved X actions
+# Hermes Tweet for Twitter Search & X Actions
 
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/13725/badge)](https://www.bestpractices.dev/projects/13725)
 [![CI](https://github.com/Xquik-dev/hermes-tweet/actions/workflows/ci.yml/badge.svg)](https://github.com/Xquik-dev/hermes-tweet/actions/workflows/ci.yml)
@@ -7,19 +7,14 @@
 Add Twitter API search, monitoring, and approved X actions to
 [Hermes Agent](https://github.com/NousResearch/hermes-agent).
 
-Hermes Tweet includes:
-
-- 102 agent-callable Xquik endpoints, generated from OpenAPI.
-- 33 prepaid read endpoints, including 7 direct MPP routes.
-- Separate read and action tools.
-- Actions disabled by default.
-- A bundled Hermes Skill and 2 slash commands.
+Explore 102 OpenAPI-generated endpoints, including 33 prepaid reads and 7 direct MPP routes.
+Reads and actions use separate tools. Actions stay disabled by default.
+The plugin bundles a Hermes Skill and 2 slash commands.
 
 ## When to use Hermes Tweet
 
-Choose this plugin when Hermes needs X/Twitter search, reads, or monitoring.
-It separates endpoint discovery, reads, and approved actions.
-Use an SDK for application code outside Hermes.
+Use this plugin for X/Twitter search, reads, or monitoring in Hermes.
+Choose an SDK for application code.
 
 ## Install
 
@@ -78,14 +73,14 @@ Copied Xquik URLs work when their paths match the catalog.
 
 Start with `tweet_explore`. Invoke only the path returned by the catalog.
 
-| User question | Catalog query | Tool |
+| Task | Catalog query | Tool |
 | --- | --- | --- |
-| How can an agent search X posts? | `search tweets by query` | `tweet_read` |
-| How can an agent read profile timelines? | `list recent tweets posted by a user` | `tweet_read` |
-| How can an agent export followers? | `run extraction` | `tweet_action` |
-| How can an agent export following accounts? | `run extraction` | `tweet_action` |
-| How can an agent monitor an account? | `create monitor` | `tweet_action` |
-| How can an agent post or reply? | `create tweet` | `tweet_action` |
+| Search X posts | `search tweets by query` | `tweet_read` |
+| Read profile timelines | `list recent tweets posted by a user` | `tweet_read` |
+| Export followers | `run extraction` | `tweet_action` |
+| Export following accounts | `run extraction` | `tweet_action` |
+| Monitor an account | `create monitor` | `tweet_action` |
+| Post or reply | `create tweet` | `tweet_action` |
 
 Set `include_actions` for extraction, monitoring, and writing searches.
 `tweet_action` always follows the approval rules below.

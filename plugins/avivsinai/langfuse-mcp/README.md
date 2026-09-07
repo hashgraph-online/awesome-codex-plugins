@@ -1,5 +1,7 @@
 # Langfuse MCP Server
 
+<!-- mcp-name: io.github.avivsinai/langfuse-mcp -->
+
 [![PyPI](https://badge.fury.io/py/langfuse-mcp.svg)](https://badge.fury.io/py/langfuse-mcp)
 [![GitHub stars](https://img.shields.io/github/stars/avivsinai/langfuse-mcp)](https://github.com/avivsinai/langfuse-mcp/stargazers)
 [![PyPI downloads](https://img.shields.io/pypi/dm/langfuse-mcp)](https://pypistats.org/packages/langfuse-mcp)

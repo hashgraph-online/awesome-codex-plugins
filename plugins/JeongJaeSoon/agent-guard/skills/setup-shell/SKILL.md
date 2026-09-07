@@ -23,8 +23,13 @@ locate the versioned plugin-cache binary.
    "<plugin-local-agent-guard>" setup-shell
    ```
 
-4. On success, report the rc path from the command output and tell the user to
-   restart the shell and any agent sessions launched from that shell.
+4. On success, report every rc path from the command output and tell the user to
+   restart the shell and any agent sessions launched from that shell. A fish
+   login shell gets two rc files (the integration is POSIX shell code that fish
+   cannot load, and agent shell snapshots run bash or zsh); relay the fish notice
+   from the output as-is, including that no automatic `agx` is installed at a
+   fish prompt, a bare `agent-guard` may be unavailable for plugin-only installs,
+   and the command prints an executable path that works without `PATH`.
 5. If the approved write is blocked by the host sandbox, relay the exact error.
    Do not retry the same blocked write, choose another rc, or edit the rc by
    hand. Show the exact plugin-local command for the user to run directly in a

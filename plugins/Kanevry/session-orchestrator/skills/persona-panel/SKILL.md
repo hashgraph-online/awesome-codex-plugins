@@ -334,7 +334,7 @@ result. If `final_verdict == "warn"`: exit 0 with a warning line on stderr. If
 - **NEVER** dispatch more than 20 personas per panel (security M2 cap).
 - **NEVER** write a sidecar that fails schema validation — validate BEFORE write (security M3).
 - **NEVER** skip `validatePathInsideProject` for the target path OR the sidecar output path (H1).
-- **NEVER** use `run_in_background: true` for persona agents — lose coordination ability.
+- **NEVER** use `run_in_background: true` for persona agents — the panel synthesis needs every reviewer's findings before Phase 4; background dispatch would add turn-juggling with no consumer for early results.
 - **ALWAYS** validate `model:` fields from the catalog against `MODEL_ID_RE` + aliases (H2).
 - **ALWAYS** run `output_contract` structural pre-check before `ajv.compile()` (H3).
 - **ALWAYS** emit the `aggregator_warning` to BOTH stderr and sidecar when using

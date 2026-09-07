@@ -1,0 +1,46 @@
+{
+  "name": "tmcra-local-memory",
+  "version": "0.1.1",
+  "description": "Automatic cross-session and cross-tool project memory for Codex through the owner-local TMCRA runtime.",
+  "author": {
+    "name": "Yu Haoxin",
+    "url": "https://github.com/reshuibuduo"
+  },
+  "homepage": "https://github.com/reshuibuduo/TMCRA-Codex-Memory#readme",
+  "repository": "https://github.com/reshuibuduo/TMCRA-Codex-Memory",
+  "license": "Apache-2.0",
+  "keywords": [
+    "agent-memory",
+    "codex",
+    "cross-session",
+    "cross-tool",
+    "local-first"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "TMCRA Local Memory",
+    "shortDescription": "Continue project work across Codex sessions and supported agent tools.",
+    "longDescription": "Recalls owner-global and current-project evidence before each Codex response, then stores user and assistant messages as separate source-attributed records in the owner-local TMCRA runtime.",
+    "developerName": "Yu Haoxin / TMCRA",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write",
+      "Automation"
+    ],
+    "websiteURL": "https://tmcra.com",
+    "privacyPolicyURL": "https://tmcra.com/privacy",
+    "termsOfServiceURL": "https://tmcra.com/terms",
+    "defaultPrompt": [
+      "Check whether TMCRA local memory is connected for this project.",
+      "Explain which TMCRA scopes are active in this Codex session.",
+      "Help me continue the last recorded work in this project."
+    ],
+    "brandColor": "#181A1F",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png",
+    "screenshots": [
+      "./assets/overview.png"
+    ]
+  }
+}

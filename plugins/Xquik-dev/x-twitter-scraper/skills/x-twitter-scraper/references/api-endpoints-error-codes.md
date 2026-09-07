@@ -38,16 +38,25 @@ and `code`. OpenAPI enumerates 112 codes, including `closed`, `expired`,
 | 409 | `coverage_cursor_unavailable` | Wait the exact `Retry-After` seconds, then retry the same cursor once |
 | 410 | `coverage_cursor_gone` | No `Retry-After`. Restart without a cursor and deduplicate by ID |
 | 422 | `login_failed` | Account connection failed; use dashboard re-auth flow |
-| 429 | - | Rate limited. Retry with backoff |
-| 429 | `x_api_rate_limited` | X data source rate limited. Retry |
-| 500 | `internal_error` | Server error |
-| 502 | `x_api_unavailable` | X data source temporarily unavailable |
-| 502 | `x_api_unauthorized` | X data source authentication failed. Retry |
+| 424 | `x_api_unavailable` | With `xquik-api-contract: 2026-04-29`, an upstream dependency failed. Apply the endpoint's documented fallback |
+| 429 | - | Rate limited. Honor `Retry-After` when present. Otherwise retry only `GET` with bounded backoff |
+| 429 | `x_api_rate_limited` | X data source rate limited. Honor `Retry-After` when present. Otherwise retry only `GET` with bounded backoff |
+| 500 | `internal_error` | Server error. Retry only safe reads |
+| 502 | `x_api_unavailable` | X data source temporarily unavailable. Retry only safe reads |
+| 502 | `x_api_unauthorized` | Stop. Do not retry automatically. Review X source authentication |
+
+Outside the cursor rules below, retry safe reads after connection failures,
+`408`, `429`, or `5xx`. Retry `424` only when `safeToRetry` is `true`. Never
+retry `POST`, `PATCH`, or `DELETE` automatically. For a write, preserve its
+`Idempotency-Key` and inspect `statusUrl`. Start another attempt only when
+`safeToRetry` is `true` and the user approves.
 
 ## Cursor recovery examples
 
 `409 coverage_cursor_unavailable` requires an integer `Retry-After` response
 header. Wait that many seconds, then retry the same cursor once.
+
+The following example uses the default v1 string error contract:
 
 ```json
 {
@@ -58,6 +67,8 @@ header. Wait that many seconds, then retry the same cursor once.
 
 `410 coverage_cursor_gone` has no `Retry-After` header. Restart without a
 cursor and deduplicate by ID.
+
+The following example also uses the default v1 string error contract:
 
 ```json
 {

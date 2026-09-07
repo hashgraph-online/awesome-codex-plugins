@@ -9,7 +9,7 @@ model-preference-cursor: claude-sonnet-4-6
 description: >
   Use this skill when performing VCS operations on GitLab or GitHub repositories — creating, updating, or
   closing issues and MRs, applying label taxonomy, running `glab`/`gh` CLI commands, or resolving project
-  IDs dynamically. Acts as the single source of truth for CLI command syntax and label conventions;
+  paths dynamically. Acts as the single source of truth for CLI command syntax and label conventions;
   consuming skills reference this rather than duplicating logic. Triggers: "create a GitLab issue", "list
   open MRs", "apply priority label", "how do I resolve the project ID", "what's the carryover issue
   template". <example>Context: session-end needs to file a carryover issue for an incomplete task. user:
@@ -45,7 +45,7 @@ syntax inline. This skill is the single source of truth for all VCS operations.
 When a skill needs VCS operations, include this reference block in its instructions:
 
 > **VCS Reference:** Detect the VCS platform per the "VCS Auto-Detection" section of the gitlab-ops skill.
-> Use CLI commands per the "Common CLI Commands" section. For cross-project queries, see "Dynamic Project Resolution."
+> Use CLI commands per the "Common CLI Commands" section. For GitLab API operations, see "Canonical Project Identity."
 
 **Canonical commands:** All `glab` and `gh` command syntax — flags, output formats,
 pagination options — is defined in the "Common CLI Commands" section below. Consuming
@@ -57,33 +57,34 @@ command variant not listed there, add it to this file first, then reference it.
 - Any skill-specific *parameters* they pass to commands (e.g., label names, issue templates)
 - They should NOT include raw `glab`/`gh` invocations or detection snippets
 
-## Dynamic Project Resolution
+## Canonical Project Identity
 
-Never hardcode project IDs. Resolve them at runtime — and re-resolve live each session; never cache a project ID across sessions (a stale ID silently targets the wrong project on rename/fork/mirror-drift, and is the root cause behind the close-verification incident documented below).
+GitLab REST endpoints accept a URL-encoded `namespace/project` path. Select the GitLab host and project path explicitly; never derive a numeric project ID from `glab repo view`, search `projects?search=`, or use `:id` placeholders. Those forms can resolve through the ambient working directory or a stale search result and target another project after a rename, fork, or scaffold.
 
-### Current project
+Set the identity once per operation sequence and reuse the encoded identifier without encoding it again:
 
 ```bash
-# GitLab — get numeric project ID
-glab repo view -R <OWNER>/<REPO> --output json | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])"
+GITLAB_HOST="<selected GitLab hostname>"
+GROUP_PATH="<selected group path>"
+PROJECT_NAME="<selected project name>"
+PROJECT_PATH="$GROUP_PATH/$PROJECT_NAME"
+ENCODED_PROJECT_PATH="$(node -e 'process.stdout.write(encodeURIComponent(process.argv[1]))' "$PROJECT_PATH")"
+```
 
-# GitHub — get owner/name identifier (gh repo takes the repo POSITIONALLY; it rejects -R)
+For a link target in another project, use the same path-first shape instead of a numeric ID:
+
+```bash
+TARGET_PROJECT_PATH="<target namespace>/<target project>"
+TARGET_ENCODED_PROJECT_PATH="$(node -e 'process.stdout.write(encodeURIComponent(process.argv[1]))' "$TARGET_PROJECT_PATH")"
+```
+
+Pass `--hostname "$GITLAB_HOST"` to every `glab api` call. The endpoint itself then pins the project, including directly after creating a repository when the current directory does not yet identify the new project.
+
+GitHub continues to use an `owner/repo` slug; `gh repo` takes it positionally and rejects `-R`:
+
+```bash
 gh repo view --json nameWithOwner -q '.nameWithOwner'
 ```
-
-### Cross-project queries
-
-When a skill needs to reference other projects (e.g., from `cross-repos` in Session Config):
-
-```bash
-# GitLab — resolve project ID by name
-glab api "projects?search=<project-name>" | python3 -c "import json,sys; [print(p['id'], p['path_with_namespace']) for p in json.load(sys.stdin)]"
-
-# GitHub — resolve repo details
-gh api "repos/<owner>/<name>" --jq '.full_name'
-```
-
-**Note:** Some API calls require numeric project IDs (GitLab) or `owner/repo` slugs (GitHub). Always resolve dynamically from the project name.
 
 ### Canonical enumeration pattern
 
@@ -93,7 +94,7 @@ To enumerate ALL projects (or issues) in a group, a single page is never the who
 # GitLab — paginate a group's projects, following x-next-page until empty
 page=1
 while [ -n "$page" ]; do
-  resp=$(glab api "groups/<group-id>/projects?include_subgroups=true&per_page=100&page=$page" --include)
+  resp=$(glab api --hostname "$GITLAB_HOST" "groups/<group-id>/projects?simple=true&include_subgroups=true&per_page=100&page=$page" --include)
   # parse the response body ($resp) for project ids/paths here, deduping by id.
   # Then advance by reading the `x-next-page` response header — an empty value
   # means this was the last page, so the loop exits (the guard above is what breaks).
@@ -146,13 +147,16 @@ done
 
 ## Issue Linking (`blocks` / `is_blocked_by`)
 
-GitLab's native issue-link types `blocks` and `is_blocked_by` (`glab api -X POST projects/:id/issues/:issue_iid/links -f link_type=blocks|is_blocked_by`) are a **Premium/Ultimate license feature**. On a Free/Core-tier GitLab instance this call returns **HTTP 403** — a license-gate signal, not an auth/permission failure. Do not retry with different credentials or escalate as an auth bug.
+GitLab's native issue-link types `blocks` and `is_blocked_by` (`glab api --silent --hostname "$GITLAB_HOST" -X POST "projects/${ENCODED_PROJECT_PATH}/issues/${ISSUE_IID}/links" -f target_project_id="$TARGET_ENCODED_PROJECT_PATH" -f target_issue_iid="$OTHER_ISSUE_IID" -f link_type="$LINK_TYPE"`) are a **Premium/Ultimate license feature**. Set `LINK_TYPE` to `blocks` or `is_blocked_by`; the target accepts an encoded project path, so no numeric project ID is needed. On a Free/Core-tier GitLab instance this call returns **HTTP 403** — a license-gate signal, not an auth/permission failure. Do not retry with different credentials or escalate as an auth bug.
 
 **Fallback (non-Premium instances):**
 1. **Use `relates_to` instead** — `link_type=relates_to` is available on every GitLab tier (no ordering semantics, just an unscoped relation). Same API shape, only the `link_type` value changes:
    ```bash
-   glab api -X POST "projects/:id/issues/:issue_iid/links" \
-     -f target_project_id=:id -f target_issue_iid=:other_iid -f link_type=relates_to
+   glab api --silent --hostname "$GITLAB_HOST" -X POST \
+     "projects/${ENCODED_PROJECT_PATH}/issues/${ISSUE_IID}/links" \
+     -f target_project_id="$TARGET_ENCODED_PROJECT_PATH" \
+     -f target_issue_iid="$OTHER_ISSUE_IID" \
+     -f link_type=relates_to
    ```
 2. **Document the blocking semantics in the issue body** — since `relates_to` carries no ordering meaning, add an explicit ordering note to both issues, e.g. `⚠ Ordering: erst #<blocker_iid>, dann dieses Issue — blocks-Link nicht verfügbar (non-Premium)`.
 3. **Recognize the 403 as a license signal, not an auth error** — before assuming a token/scope problem, try `relates_to` on the same project pair: if `relates_to` succeeds where `blocks`/`is_blocked_by` 403s, the license gate — not authentication — is the cause.
@@ -187,14 +191,14 @@ glab mr merge -R <OWNER>/<REPO> <MR_IID>                                   # Mer
 glab pipeline list -R <OWNER>/<REPO> --per-page 5                          # Recent pipelines
 glab pipeline status -R <OWNER>/<REPO> <ID>                                # Pipeline details
 
-# API (no --repo exists here — the endpoint path IS the target; pin the host with --hostname)
-glab api "projects/$(glab repo view -R <OWNER>/<REPO> --output json | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])")/issues?state=opened&per_page=50"
-glab api "projects/$(glab repo view -R <OWNER>/<REPO> --output json | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])")/milestones?state=active"
+# API (no --repo exists here — the encoded endpoint and explicit host identify the target)
+glab api --hostname "$GITLAB_HOST" "projects/${ENCODED_PROJECT_PATH}/issues?state=opened&per_page=50"
+glab api --hostname "$GITLAB_HOST" "projects/${ENCODED_PROJECT_PATH}/milestones?state=active"
 ```
 
 **Label update caveat (PUT-replaces, not additive):** `glab issue update --label` (and the underlying GitLab labels API) PUT-REPLACES the entire label set — it does not add to the existing set. To change a single label you must pass the FULL desired label list, or use the dedicated add/remove operations, which are themselves unreliable across `glab` versions. Preferred safe pattern: use `--label` (adds) together with `--unlabel` (removes) on `glab issue update` when your installed `glab` version supports both; otherwise read the current labels first, compute the full new set, and PUT once. The same PUT-replace semantics apply to `glab mr update --label`.
 
-**Close verification:** after `glab issue close <IID>`, always verify the close actually landed — re-read the issue (`glab issue view <IID>`) and confirm `state: closed` in the output. A stale/wrong project ID or a silent 404 can report local success while closing nothing; a documented incident closed 32 issues into the void this way (project ID pointed at the wrong project — see "Dynamic Project Resolution" above for the re-resolve-each-session rule that prevents it).
+**Close verification:** after `glab issue close <IID>`, always verify the close actually landed — re-read the issue (`glab issue view <IID>`) and confirm `state: closed` in the output. A stale or wrong project path, or a silent 404, can report local success while closing nothing; use the canonical project identity above for API operations rather than resolving a numeric ID.
 
 **Commit-body close-keyword footgun:** GitLab (and GitHub) auto-close an issue when a commit pushed to the default branch contains a close keyword — `close`/`closes`/`closed`/`fix`/`fixes`/`fixed`/`resolve`/`resolves`/`resolved` — followed by `#N` ANYWHERE in the commit body, not just the subject line. This fires even inside a negation ("does NOT close #N") — the platform pattern-matches the keyword + issue reference; it does not parse English negation, so the negation offers no protection. Rule: when a commit body needs to MENTION an issue without closing intent, always use a non-closing reference — `refs #N`, `part of #N`, `siehe #N` — never a close-keyword verb next to the number, negated or not.
 

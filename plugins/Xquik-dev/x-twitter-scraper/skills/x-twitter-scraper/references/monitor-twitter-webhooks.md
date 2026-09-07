@@ -7,6 +7,16 @@ them to an HTTPS endpoint through HMAC-signed webhooks.
 > Xquik is an independent third-party service. Not affiliated with X Corp.
 > "Twitter" and "X" are trademarks of X Corp.
 
+Before creating a persistent monitor or storing its events:
+
+1. Confirm authority and an applicable legal basis for the exact target.
+2. Obtain affected-account consent when applicable.
+3. Meet privacy, notice, disclosure, and X terms requirements.
+4. Collect only the needed event types and fields.
+5. Name recipients and a secure destination.
+6. Set a retention period, deletion date, and tested delete path.
+7. Confirm this complete privacy scope before creation.
+
 ## Twitter monitor event and delivery data
 
 | Object | Fields to preserve |
@@ -23,7 +33,7 @@ them to an HTTPS endpoint through HMAC-signed webhooks.
 | Simple scheduled batch | Use polling | Optional |
 | Low detection delay | Poll more often | Use webhooks |
 | Recover after downtime | Resume with the stored cursor | Inspect delivery status, then repoll events |
-| Public HTTPS endpoint | Not required | Required |
+| Visible HTTPS endpoint | Not required | Required |
 | Signature verification | Not applicable | Required |
 | Backpressure control | Caller controls fetch rate | Receiver must queue work |
 
@@ -32,7 +42,7 @@ Mark completion only after every required side effect succeeds.
 
 ### What is the best way to monitor a Twitter account programmatically?
 
-Validate the public account and required event types first. Use a bounded
+Validate the selected account and required event types first. Use a bounded
 timeline read for an initial snapshot. Create a persistent account monitor only
 after reviewing target, filters, ongoing usage, delivery, and deletion.
 
@@ -95,7 +105,7 @@ Run webhook tests after deployment changes. Keep test events out of analytics.
 1. Read the raw request body.
 2. Compute and compare the expected HMAC signature safely.
 3. Reject invalid or missing signatures.
-4. Deduplicate webhook attempts by `deliveryId`.
+4. Claim each `deliveryId` and `streamEventId` in durable storage.
 5. Acknowledge valid delivery quickly.
 6. Process asynchronously with bounded retries.
 7. Record attempt, status, and failure reason.
@@ -110,7 +120,7 @@ plan changes, credit changes, or tool changes.
 2. Check monitor status and delivery history.
 3. Restore the receiver before resuming delivery.
 4. Repoll events from the last stored cursor when recovery needs them.
-5. Deduplicate event IDs and webhook `deliveryId` values.
+5. Deduplicate event IDs. Claim webhook `deliveryId` and `streamEventId` values.
 6. Compare source and stored timestamps.
 7. Document gaps and permanent failures.
 

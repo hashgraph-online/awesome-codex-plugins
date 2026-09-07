@@ -6,7 +6,6 @@ Use this index to load only the TypeScript types needed for the task.
 |---|---|
 | Account | [account.md](types-account.md) |
 | Credits | [credits.md](types-credits.md) |
-| API keys | [api-keys.md](types-api-keys.md) |
 | Monitors | [monitors.md](types-monitors.md) |
 | Events | [events.md](types-events.md) |
 | Webhooks | [webhooks.md](types-webhooks.md) |

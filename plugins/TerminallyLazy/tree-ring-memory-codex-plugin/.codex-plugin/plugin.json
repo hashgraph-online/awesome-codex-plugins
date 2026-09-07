@@ -1,7 +1,7 @@
 {
   "name": "tree-ring-memory",
-  "version": "0.2.0",
-  "description": "Lifecycle-aware local and same-host multi-agent memory guidance for Codex using Tree Ring Memory v0.13+.",
+  "version": "0.3.3",
+  "description": "Local-first memory lifecycle, project bootstrap, and receipt-backed harness guidance for coding agents using Tree Ring Memory v0.15+.",
   "author": {
     "name": "TerminallyLazy",
     "url": "https://github.com/TerminallyLazy"
@@ -14,6 +14,7 @@
     "memory",
     "agent-memory",
     "multi-agent",
+    "harness-activation",
     "idempotency",
     "local-first",
     "recall",
@@ -24,7 +25,7 @@
   "interface": {
     "displayName": "Tree Ring Memory",
     "shortDescription": "Local-first memory lifecycle guidance for Codex agents.",
-    "longDescription": "Tree Ring Memory gives Codex a lifecycle-aware memory practice for project recall, durable decisions, same-host fan-out/fan-in, idempotent worker writes, coordinator-authorized shared publication, explicit forgetting, and privacy-safe memory capture using Tree Ring Memory v0.13 or newer.",
+    "longDescription": "Tree Ring Memory gives coding agents a lifecycle-aware practice for verified project-local setup, project recall, durable decisions, receipt-backed harness readiness, same-host fan-out/fan-in, idempotent worker writes, coordinator-authorized shared publication, explicit forgetting, privacy-safe memory capture, and scope-preserving CLI updates using Tree Ring Memory v0.15 or newer.",
     "developerName": "TerminallyLazy",
     "category": "Developer Tools",
     "capabilities": [
@@ -32,18 +33,16 @@
       "Write",
       "Interactive"
     ],
-    "websiteURL": "https://github.com/TerminallyLazy/Tree-Ring-Memory",
-    "privacyPolicyURL": "https://github.com/TerminallyLazy/tree-ring-memory-codex-plugin/blob/main/SECURITY.md",
-    "termsOfServiceURL": "https://github.com/TerminallyLazy/tree-ring-memory-codex-plugin/blob/main/LICENSE",
+    "websiteURL": "https://terminallylazy.github.io/Tree-Ring-Memory/",
+    "privacyPolicyURL": "https://github.com/TerminallyLazy/tree-ring-memory-codex-plugin/blob/main/PRIVACY.md",
+    "termsOfServiceURL": "https://github.com/TerminallyLazy/tree-ring-memory-codex-plugin/blob/main/TERMS.md",
     "defaultPrompt": [
-      "Use Tree Ring Memory to recall durable project context before editing.",
-      "Use Tree Ring Memory to capture this validated lesson without storing a transcript.",
-      "Use Tree Ring Memory to audit stale or sensitive memory before closeout.",
-      "Use Tree Ring Memory v0.13 coordinated policy for this same-host fan-out and fan-in."
+      "Recall durable project context before changing release behavior.",
+      "Capture this validated lesson without storing a transcript.",
+      "Check Tree Ring harness readiness and explain any non-active state."
     ],
     "brandColor": "#2F7D5C",
-    "composerIcon": "./assets/icon.svg",
-    "logo": "./assets/icon.svg",
-    "screenshots": []
+    "composerIcon": "./assets/tree-ring-memory-logo.png",
+    "logo": "./assets/tree-ring-memory-logo.png"
   }
 }

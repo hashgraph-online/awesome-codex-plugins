@@ -98,12 +98,79 @@ git rev-parse --git-path BISECT_LOG
 - record initial staged/unstaged/untracked paths and task-owned path boundary
 - preserve pre-existing user state; do not infer cleanliness from task scope
 
+For a ChatGPT desktop app Codex task, also record trusted workspace binding as
+exposed by the session/environment or a host-native lifecycle result, plus the
+default command `cwd` without a per-command override. Shell output can prove
+Git state and default `cwd`; it cannot by itself prove what workspace the app
+has bound to the chat.
+
 See `using-git-worktrees` Step 0 and `finishing-a-development-branch` Step 1 for
 how each skill uses these signals.
 
 The coordinating Codex agent is the only default Git mutation owner. Spawned
 implementers and reviewers share the task workspace and may edit, inspect, test,
 and report, but they do not stage, commit, branch, or create/remove worktrees.
+
+## Codex Desktop Managed Worktrees
+
+OpenAI documents ChatGPT desktop app Worktree chats as Codex-managed Git
+worktrees associated with chats. Users can select **Worktree** in the composer
+or use **Handoff** to move a chat between Local and Worktree; Codex manages the
+Git transfer. See:
+<https://learn.chatgpt.com/docs/environments/git-worktrees>.
+
+This host lifecycle is distinct from `git worktree add` in a shell:
+
+- an external Git worktree does not rebind the current Codex chat;
+- a per-command `workdir` changes only that command's directory;
+- `$CODEX_HOME/worktrees` or another managed-looking path is not trusted
+  binding evidence by itself;
+- Git `HEAD`, branch, and worktree readback cannot prove the app/UI/diff/review
+  workspace.
+
+When a worktree is necessary in a Desktop task:
+
+1. If trusted host context says the current chat is already in the intended
+   Worktree, reuse it and verify the joint postcondition below.
+2. Otherwise use the native Worktree/Handoff capability exposed by the current
+   host. Native operations may be deferred; discover capabilities before
+   choosing a shell path and follow the live tool schema instead of assuming a
+   stable internal tool name.
+3. If the operation is UI-only, ask the user to select Worktree or Handoff and
+   stop before the first task content or Git-history write. Resume in the bound
+   chat and verify the postcondition after the native lifecycle operation.
+4. If native binding is required but unavailable or unverifiable, fail closed.
+   Do not substitute `git worktree add` plus command-level `workdir`.
+
+Classify the current surface as `managed`, `non-managed`, or `unknown` from
+trusted session/host evidence. A missing native tool or absent binding metadata
+does not prove `non-managed`; `unknown` fails closed. Codex CLI uses the generic
+fallback only when the current session is positively identified as a
+non-managed CLI surface.
+
+After native creation or Handoff, verify:
+
+- trusted chat/task workspace;
+- default command `cwd` without an override;
+- matching Git worktree root;
+- intended `HEAD` and branch/detached state.
+
+Compare host-resolved path identity rather than raw strings. The default `cwd`
+may be the worktree root or a descendant; Git invoked from that default `cwd`
+must resolve to the intended root.
+
+Codex-managed worktrees start in detached `HEAD` by default. Treat that state
+as intended only when trusted host binding evidence identifies the current
+workspace as the managed worktree; do not create a branch merely to normalize
+it. An unexplained detached `HEAD` still stops work.
+
+Preserve an existing unbound manual worktree. Inventory its exact state before
+any separately authorized commit/patch transfer, verify the transferred result
+inside the bound task, and only then consider owner-proven cleanup.
+
+Codex CLI or another surface positively identified as lacking chat-bound
+managed workspace semantics may retain the generic Git fallback in
+`using-git-worktrees`; do not classify from the `Codex` product name alone.
 
 ## Codex App Finishing
 

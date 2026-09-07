@@ -35,7 +35,18 @@ You can also let HOL Guard install its managed local copy into detected DSH prof
 hol-guard install dsh
 ```
 
-The plugin registers a native `tools/pre-execute` gate. Every DSH tool call is sent to `hol-guard guard hook --harness dsh` before dispatch. A missing Guard command, timeout, malformed response, policy review, or explicit denial fails closed and prevents the tool from running.
+### DSH enforcement contract
+
+The plugin uses both DSH policy layers instead of relying on a reorderable listener alone:
+
+1. `tools/pre-execute` performs the bounded asynchronous HOL Guard review.
+2. Guard `ask`, `review`, and `require-reapproval` outcomes use DSH's native one-time approval service when it is mounted.
+3. The resolved decision is latched onto the exact DSH execution.
+4. `ctx.tools.guard()` enforces the latch as a monotonic final denial boundary before dispatch.
+
+A missing Guard command, timeout, malformed response, rejected or unavailable approval, `sandbox-required` outcome, incomplete review, or another plugin short-circuiting the pre-execute waterfall fails closed and prevents the tool from running. An ordinary pre-execute listener cannot force-allow a HOL Guard denial.
+
+See [DeepSeek Harness security boundary](docs/dsh-security-boundary.md) for the ordering, failure matrix, trust properties, and explicit limitations.
 
 ## Install the security skill
 
@@ -45,11 +56,11 @@ Install the portable `plugin-scanner` skill with the open Skills CLI:
 npx skills add hashgraph-online/hol-guard-plugin --skill plugin-scanner
 ```
 
-The Skills CLI supports many coding agents. The skill asks before installing the `hol-guard` package and never executes code from a repository just to scan it.
+The Skills CLI supports many coding agents. The skill asks before installing the separate `plugin-scanner` package and never executes code from a repository just to scan it.
 
 ## What this plugin adds
 
-- A native DSH bundle with a fail-closed pre-tool security gate.
+- A native DSH bundle with asynchronous Guard review, native one-time approval, and a monotonic pre-dispatch denial guard.
 - A public Codex skill at [`skills/hol-guard/SKILL.md`](skills/hol-guard/SKILL.md).
 - A portable security skill at [`skills/plugin-scanner/SKILL.md`](skills/plugin-scanner/SKILL.md).
 - Guard setup guidance for Codex, Claude Code, Copilot CLI, Cursor, DeepSeek Harness, Gemini, Hermes, OpenClaw, OpenCode, and Antigravity.
@@ -139,7 +150,7 @@ bash scripts/hol-guard-plugin scan .
 bash scripts/hol-guard-plugin evidence
 ```
 
-The helper does not read `.env` files. It only calls `hol-guard` and `plugin-scanner` commands already exposed by the upstream package.
+The helper does not read `.env` files. It only calls `hol-guard` and `plugin-scanner` commands already exposed by their respective upstream distributions.
 
 ## Supported harness systems
 

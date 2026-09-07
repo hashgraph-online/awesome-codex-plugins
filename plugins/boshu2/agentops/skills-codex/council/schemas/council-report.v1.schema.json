@@ -69,7 +69,30 @@
           }
         },
         "minority": {"type": "array", "items": {"type": "string", "minLength": 1}},
-        "unresolved": {"type": "array", "items": {"type": "string", "minLength": 1}}
+        "unresolved": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "caller_challenge": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "caller_stated",
+              "judges_recommend",
+              "reasoning",
+              "context_possibly_missing",
+              "cost_if_wrong"
+            ],
+            "properties": {
+              "caller_stated": {"type": "string", "minLength": 1},
+              "judges_recommend": {"type": "string", "minLength": 1},
+              "judge_count": {"type": "integer", "minimum": 2},
+              "reasoning": {"type": "string", "minLength": 1},
+              "context_possibly_missing": {"type": "string", "minLength": 1},
+              "cost_if_wrong": {"type": "string", "minLength": 1},
+              "disagreement_kind": {"enum": ["preference", "security", "feasibility"]}
+            }
+          }
+        }
       }
     }
   }

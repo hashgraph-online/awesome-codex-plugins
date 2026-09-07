@@ -4,6 +4,8 @@ Every AI model has blind spots. Claude Octopus supports ten external provider in
 
 **Claude-native first, Octopus for escalation.** Use Claude-native `/init`, `/review`, and `/security-review` when Claude is enough. Use Octopus when you want multiple model opinions, adversarial review, or stricter multi-LLM workflows.
 
+> Claude Octopus is an independent open-source project. It is not affiliated with, endorsed by, or sponsored by Anthropic.
+
 <p align="center">
   <img src="docs/assets/demo.gif" alt="Claude Octopus Demo — debate and research with multiple AI providers" width="720">
 </p>
@@ -11,7 +13,7 @@ Every AI model has blind spots. Claude Octopus supports ten external provider in
 <p align="center">
   <a href="https://claude.ai"><img src="https://img.shields.io/badge/Claude-Built_with_AI-c96442?logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iI2ZmZiIgZD0iTTEyIDJhMTAgMTAgMCAxIDAgMCAyMCAxMCAxMCAwIDAgMCAwLTIwbTAgMS44YTEuMiAxLjIgMCAwIDEgLjg1LjM1bDEuNSA0LjVhLjYuNiAwIDAgMCAuMzUuMzVsNC41IDEuNWExLjIgMS4yIDAgMCAxIDAgMi4yN2wtNC41IDEuNWEuNi42IDAgMCAwLS4zNS4zNWwtMS41IDQuNWExLjIgMS4yIDAgMCAxLTIuMjcgMGwtMS41LTQuNWEuNi42IDAgMCAwLS4zNS0uMzVsLTQuNS0xLjVhMS4yIDEuMiAwIDAgMSAwLTIuMjdsNC41LTEuNWEuNi42IDAgMCAwIC4zNS0uMzVsMS41LTQuNUExLjIgMS4yIDAgMCAxIDEyIDMuOCIvPjwvc3ZnPg==&labelColor=333" alt="Built with Claude"></a>
   <a href="https://github.com/nyldn/claude-octopus/actions/workflows/test.yml"><img src="https://github.com/nyldn/claude-octopus/actions/workflows/test.yml/badge.svg" alt="Tests"></a>
-  <img src="https://img.shields.io/badge/Version-9.65.0-blue" alt="Version 9.65.0">
+  <img src="https://img.shields.io/badge/Version-10.1.0-blue" alt="Version 10.1.0">
   <img src="https://img.shields.io/badge/Claude_Code-v2.1.14+_required-blueviolet" alt="Requires Claude Code v2.1.14+">
   <img src="https://img.shields.io/badge/License-MIT-green" alt="MIT License">
 </p>
@@ -24,7 +26,7 @@ Every AI model has blind spots. Claude Octopus supports ten external provider in
 
 🔄 **Four-phase methodology, not just tools.** Every task moves through Discover → Define → Develop → Deliver, with quality gates between phases. Other orchestrators give you infrastructure. Octopus gives you the workflows.
 
-🐙 **32 specialized personas** (role-specific AI agents like security-auditor, backend-architect), **54 commands** (slash commands you type), **63 skills** (reusable workflow modules). Explicit workflows select the experts they need; ordinary Claude requests do not activate Octopus.
+🐙 **31 specialized personas** (role-specific AI agents like security-auditor, backend-architect), **53 commands** (slash commands you type), **62 skills** (reusable workflow modules). Explicit workflows select the experts they need; ordinary Claude requests do not activate Octopus.
 
 🐙 **Works with just Claude. Adds up to ten external provider integrations.** Zero external providers are needed to start. Add them one at a time — each becomes available when detected and runs only inside an explicit workflow.
 
@@ -35,7 +37,7 @@ Every AI model has blind spots. Claude Octopus supports ten external provider in
 ## What's New
 
 <!-- BEGIN CURRENT RELEASE -->
-> 🆕 **v9.65.0 — Setup enables routing suggestions; council and tangle runs stay recoverable.**
+> 🆕 **v10.1.0 — Simplify setup, provider readiness, dispatch controls, cost reporting, and uninstall guidance.**
 >
 > **Default roster:** Claude Opus 5 leads architecture, planning, security reasoning, and final judgment; GPT-5.6 Sol is the independent implementation/review peer; Claude Sonnet 5 is the standard Claude seat; Fable 5 remains an opt-in judgment escalation. Existing model pins and provider configuration still win. See [the routing strategy](docs/MODEL-ROUTING-STRATEGY.md).
 <!-- END CURRENT RELEASE -->
@@ -55,7 +57,7 @@ Every AI model has blind spots. Claude Octopus supports ten external provider in
 
 | Version | Best Features |
 |---------|--------------|
-| **v9.65.0** (new) | Setup enables routing suggestions; council and tangle runs stay recoverable. |
+| **v10.1.0** (new) | Simplify setup, provider readiness, dispatch controls, cost reporting, and uninstall guidance. |
 | **v9.50** | **Claude Code 2026 compatibility layer** — routines manifest (schedule + GitHub-event automations), SubagentStop quality/cost gate, `/octo:usage` cost attribution, `worktree.bgIsolation` opt-out, Claude Agent SDK seat (introduced with Opus 4.8 and now following the current Opus 5 default), starter skills pack, `/plugin browse` manifest with projected context cost. |
 | **v9.41** | **`/octo:council`** promoted to first-class workflow — structured multi-LLM deliberation with goal modes, adversarial/red-team styles, benchmark-aware persona routing, quorum and critical-veto gates, budget preflight, and gated worktree handoff for approved implementation plans. |
 | **v9** | Up to 10 external provider integrations (Codex, Antigravity CLI, Copilot, Qwen, Ollama, Perplexity, OpenRouter, OrcaRouter, OpenCode, and Grok) alongside the Claude Code host. Structured provider debates and configurable multi-LLM councils. Explicit-only activation by default, with an optional smart router. Agent summary tables show which providers actually contributed. Provider-aware prompt preflight prevents silent oversize failures. Research breadth modes fan out light, standard, or exhaustive investigations. Setup aliases and fuzzy `/octo:*` corrections reduce command friction. Opt-in discipline gates and token compression. Two-stage review. Circuit breakers with automatic provider recovery inside active workflows. Cursor + OpenCode + Codex cross-compatibility. `bin/octopus` CLI. 182 Claude Code capability flags through v2.1.219, including Opus 5, Sonnet 5, and dynamic workflow awareness. |
@@ -63,6 +65,20 @@ Every AI model has blind spots. Claude Octopus supports ten external provider in
 | **v7** | Double Diamond workflow. Multi-provider dispatch. Quality gates and consensus scoring. Configurable sandbox modes. |
 
 [Full changelog →](CHANGELOG.md)
+
+[V10 migration guide →](docs/V10-MIGRATION.md)
+
+<details>
+<summary>Upgrading to v10</summary>
+
+V10 adds a durable execution contract, fail-closed contribution validation,
+Doctor 2.0, Provider Registry 2.0, process-tree cancellation evidence, and
+opt-in eval routing. Existing provider and model pins still win. Automation that
+uses `doctor --json` must handle exit `1` while retaining its valid JSON body;
+invalid arguments return `2`. See the migration guide for compatibility and
+rollback details.
+
+</details>
 
 <details>
 <summary>Upgrading to 9.5x</summary>
@@ -95,6 +111,15 @@ Installing Octopus does not route ordinary prompts, launch provider workflows,
 or delegate to Octopus agents. Every shipped command and skill uses Claude
 Code's native manual-invocation gate. Start it with `/octo:*`.
 
+> **Seeing `cannot be used with Skill tool due to disable-model-invocation`?**
+> That is the gate working as intended — the model tried to auto-invoke an
+> Octopus skill. Invoke it explicitly instead: type `/octo:skill-doctor` (the
+> manually invokable skill), not a model call to the `skill-doctor` skill. Slash skills are
+> user-invoked, so they bypass this invocation gate; the model will not call
+> Octopus skills on its own unless you opt into the router below. Rule of thumb:
+> **invoke Octopus with
+> `/octo:…`, don't expect Claude to reach for it for you.**
+
 Optional automation remains available, but it is explicit opt-in:
 
 ```bash
@@ -117,7 +142,7 @@ Safety guards that prevent invalid direct Codex, Qwen, or retired Gemini CLI
 dispatch remain available, but host-side command filters keep them out of
 unrelated tool calls.
 
-Claude Code **v2.1.14+** is the minimum supported runtime. Newer Claude Code releases unlock additional Octopus diagnostics and release checks automatically; the current plugin tracks 182 Claude Code capability flags through **Claude Code v2.1.219**.
+Claude Code **v2.1.14+** is the minimum supported runtime. Newer Claude Code releases unlock additional Octopus diagnostics and release checks automatically; the current plugin tracks 183 Claude Code capability flags through **Claude Code v2.1.219**.
 
 <details>
 <summary>Install for Codex CLI</summary>
@@ -366,7 +391,7 @@ Not sure which command to use? Pick by goal:
 | Write a product spec | `/octo:prd` |
 | Go from spec to shipping code | `/octo:factory` |
 | Debug a tricky issue | `/octo:debug` |
-| Reduce token usage | `/octo:doctor` (includes RTK install + token tips) |
+| Reduce token usage | `/octo:skill-doctor` or `octopus doctor` (includes RTK install + token tips) |
 | Just run something quick | `/octo:quick` |
 
 Or type `/octo:auto <what you want>` and the smart router picks for you. Plain-prompt routing is off until you run `/octo:setup`, which turns on **suggestions** (Octopus names a matching command; it never dispatches a provider on its own). Set `OCTOPUS_AUTO_ROUTER_MODE=off` to silence them, or `invoke` to let a matched route load automatically. 🔍
@@ -430,13 +455,13 @@ Four structured phases adapted from the UK Design Council's methodology:
 
 Run phases individually or all four with `/octo:embrace`. Configure autonomy: supervised (approve each phase), semi-autonomous (intervene on failures), or autonomous (run all four).
 
-### 32 Specialist Personas
+### 31 Specialist Personas
 
 Specialized agents selected by explicit Octopus workflows. `/octo:security` can select security-auditor and `/octo:design-ui-ux` can select ui-ux-designer; ordinary requests never delegate to these agents merely because keywords match.
 
-Categories: Software Engineering (11), Specialized Development (6), Documentation & Communication (5), Research & Strategy (3), Business & Compliance (3), Creative & Design (4).
+Categories span Software Engineering, Specialized Development, Documentation & Communication, Research & Strategy, Business & Compliance, and Creative & Design.
 
-[Full persona reference](docs/AGENTS.md) | [All 63 skills](docs/COMMAND-REFERENCE.md)
+[Full persona reference](docs/AGENTS.md) | [All 62 skills](docs/COMMAND-REFERENCE.md)
 
 ### Built-in Reaction Engine
 
@@ -499,7 +524,7 @@ Before an expensive run, `/octo:costs` shows a session cost projection; after ru
 
 ### What You Get With Just Claude
 
-Everything except multi-AI features. You get all 32 personas, structured workflows, smart routing, context detection, and every skill. Multi-AI orchestration (parallel analysis, debate, consensus) activates when external providers are configured.
+Everything except multi-AI features. You get all 31 personas, structured workflows, smart routing, context detection, and every skill. Multi-AI orchestration (parallel analysis, debate, consensus) activates when external providers are configured.
 
 ---
 
@@ -560,7 +585,7 @@ A SessionStart hook injects the dispatch profile (prompt anti-patterns, judgment
 
 **Session provider controls** — Temporarily disable exhausted providers without uninstalling them. For example, `/octo:model-config disable codex --session` keeps Codex out of provider detection and multi-LLM fanout for the current session; `/octo:model-config clear-allowlist --session` restores the default.
 
-**Clean uninstall** — Run `claude plugin uninstall octo` from your terminal. If you see a scope error, add `--scope project`. No residual config changes.
+**Uninstall the plugin.** Run `claude plugin uninstall octo` from your terminal. If you see a scope error, add `--scope project`. This removes the plugin but does not delete results, logs, configuration, or local state under `~/.claude-octopus/`, nor project state in `.octo/`. Review [uninstall and retained-data guidance](docs/TROUBLESHOOTING.md#uninstall-the-plugin-and-keep-local-data) before removing any of those paths manually.
 
 ---
 
@@ -647,7 +672,7 @@ The extension registers as an OpenClaw plugin with configurable workflows, auton
 No. One external provider plus Claude gives you multi-AI features. No external providers still gives you personas, workflows, and skills.
 
 **Will this break my existing Claude Code setup?**
-No. Activates only with the `octo` prefix. Results stored separately. Uninstalls cleanly.
+No. Its commands are namespaced under the `octo` prefix, and results are stored separately. Lifecycle hooks still attach to Claude Code. If you explicitly set `OCTOPUS_AUTO_ROUTER_MODE=invoke`, ordinary prompts can also route through Octopus. Uninstalling the plugin removes its commands and hooks but preserves local data until you choose to remove it.
 
 **What happens if a provider times out?**
 The workflow continues with available providers. You'll see the status in the visual indicators.
@@ -656,7 +681,7 @@ The workflow continues with available providers. You'll see the status in the vi
 🐙 *Fun fact: a real octopus has three hearts, blue blood, and 500 million neurons — two-thirds of which live in its eight arms.* Each arm can taste, touch, and act independently. Claude Octopus works the same way: each tentacle (command) operates autonomously with its own squeeze of logic, then ink flows back as the final deliverable. The crossfire review? That's the squeeze — adversarial pressure that untangles everything before it ships.
 
 **How do I debug when something goes wrong?**
-Run commands with the `--verbose` flag to get detailed debugging output. Logs are stored in `~/.claude-octopus/logs/` for inspection. You can also use `/octo:doctor` to run diagnostics and identify potential issues.
+Run commands with the `--verbose` flag to get detailed debugging output. Logs are stored in `~/.claude-octopus/logs/` for inspection. You can also invoke `/octo:skill-doctor` in Claude Code or run `octopus doctor` in a shell to identify potential issues.
 
 ---
 
@@ -682,7 +707,7 @@ See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for details.
 - [Command Reference](docs/COMMAND-REFERENCE.md) — Commands, triggers, and provider indicators
 - [Troubleshooting](docs/TROUBLESHOOTING.md) — Provider auth failures and common errors
 - [Architecture](docs/ARCHITECTURE.md) — Provider flow and execution model
-- [Agents & Personas](docs/AGENTS.md) — All 32 personas
+- [Agents & Personas](docs/AGENTS.md) — All 31 personas
 - [Provider Wiring Map](docs/PROVIDERS.md) — How a provider is wired (contributors)
 - [Developer Guide](docs/DEVELOPER.md) — Modular config, E2E testing, enforcement patterns
 - [Scheduler](docs/SCHEDULER.md) — Scheduled workflow runner

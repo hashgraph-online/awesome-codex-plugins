@@ -107,7 +107,10 @@ changing the persistent profile selection.
 GrayMatter is model-neutral. Ollama, LM Studio, llama.cpp, and other local-model
 hosts connect through MCP while the model process remains separate from the H2
 memory and authorization boundary. See [Local models](docs/local-models.md) for
-stdio and HTTP examples.
+stdio and HTTP examples. Local Workflow execution uses two MCP boundaries:
+Valkyr SWARM owns registration and signed Workflow coordination; GrayMatter
+owns memory, context, and durable evidence. Model-only LM Studio/Ollama nodes
+are `signed-workflow-only` inference workers, never general command runners.
 
 ## Imports, exports, and starter knowledge
 

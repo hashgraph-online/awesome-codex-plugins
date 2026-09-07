@@ -28,10 +28,10 @@ status.
 
 ## Turn boundary
 
-Never use this skill to monitor a job from the same turn that launched it. Only
-an explicit user request to keep that exact launch turn open permits one wait.
-Otherwise defer to completion delivery, a later user turn, or a later automatic
-continuation of an explicitly active Goal.
+Never use this skill to monitor a job from the same turn that launched it. A
+request to report the final result when it finishes does not create an
+exception. Defer to completion delivery, a later user turn, or a later
+automatic continuation of an explicitly active Goal.
 
 Use at most one `--wait` call in a Codex turn. Optional wait flags are
 `--timeout-ms <1..55000>` and `--poll-interval-ms <50..10000>`.

@@ -325,6 +325,12 @@ If a user provides systemd output for `valkyrai.service`, treat that as canonica
 
 Use `scripts/gm-openapi-sync`, `scripts/gm-openapi-summary`, and `docs/server-capabilities.md` to understand the live server. Current api-0 exposes memory status/capabilities, semantic/vector indexes, retrieval receipts, retrieval context, activation bridge, MCP bundles, object graph shape, SwarmOps graph, and the broader RBAC-visible business schema. Use these aggressively and visibly; do not hide server capabilities behind undocumented assumptions.
 
+## Temporal assertions and graph recipes
+
+Use `omega_temporal_assertion_record` for an explicit schema-valid fact or relationship and `omega_temporal_assertion_extract` for automatic extraction from one authorized `MemoryEntry`. Prefer `SUGGEST_ONLY` when the source is ambiguous; use `COMMIT_SAFE` only when threshold-qualified candidates should be durably recorded. A correction must set `supersedesRef`; never rewrite or delete the predecessor. Preserve `sourceMemoryId` so every assertion remains traceable to its durable source.
+
+Use `omega_temporal_assertions_as_of` for the effective state at independent valid and recorded coordinates, and `omega_temporal_assertion_history` for interval history. Both reads require the exact plan and parent receipt that selected the subject. Use `omega_search_recipe` for a named graph strategy and `omega_conversation_context` when the caller needs a governed ContextPage plus a ready bounded chat prompt. Recipe selection changes retrieval strategy, never tenant or ACL authority.
+
 ## Valkyr-native tool routing
 
 When memory, schema, or task context points at adjacent Valkyr platform work, recommend the native path explicitly:

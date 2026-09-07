@@ -19,7 +19,7 @@ description: >
 
 This skill runs when the Bootstrap Gate is closed (missing CLAUDE.md, Session Config, or `.orchestrator/bootstrap.lock`) or when the user invokes `/bootstrap` directly. It scaffolds the minimum structure required by all session-orchestrator skills, commits it, and writes the lock file that opens the gate for all future invocations.
 
-**Anti-bureaucracy contract:** At most ONE `AskUserQuestion` call in the normal case (tier confirmation). A second question is only asked when the archetype is truly ambiguous on the Public Path for Standard/Deep tiers. No wizard, no multi-step flow.
+**Anti-bureaucracy contract:** On a first-time full bootstrap (no tier flags, no `--no-interview`), expect **7–9** `AskUserQuestion` prompts in three fixed blocks — not an open-ended wizard. (1) **Tier/stack** (Phase 2): one tier-confirmation question, plus an optional second archetype question when `PATH_TYPE = public` and archetype confidence is low (Standard/Deep only). (2) **Owner persona** (Phase 3.5): five questions from `scripts/lib/owner-interview.mjs` (first-run only). (3) **Dispatcher autonomy** (Phase 3.5.1): one question from `scripts/lib/config/dispatcher-autonomy-capture.mjs`. Flagged flows (`--upgrade`, `--retroactive`, `--sync-rules`, `--ecosystem-health`) and `--no-interview` skip some or all of these blocks.
 
 ## Invocation Context
 
@@ -79,7 +79,6 @@ AskUserQuestion({
     question: "Leeres Repo erkannt. Basierend auf '<HEURISTIC_REASON>' empfehle ich **<RECOMMENDED_TIER>**. Passt das?",
     header: "Bootstrap",
     options: [
-      { label: "<RECOMMENDED_TIER> (Empfohlen)", description: "<one-line description of what this tier scaffolds>" },
       { label: "fast", description: "Nur CLAUDE.md + .gitignore + README. Für Demos, Spikes, Playgrounds." },
       { label: "standard", description: "Fast + package.json/Manifest + TypeScript + Linting + Tests. Für MVPs und echte Produkte." },
       { label: "deep", description: "Standard + CI + CODEOWNERS + CHANGELOG. Für Production, Team, Langlebige Repos." },
@@ -89,6 +88,8 @@ AskUserQuestion({
   }]
 })
 ```
+
+Before rendering: append ` (Empfohlen)` to whichever of the three tier labels equals `<RECOMMENDED_TIER>`, and move that option to position 1. The recommended tier is one of the three — listing it a fourth time as its own option made five options, one more than `AskUserQuestion` accepts, and repeated the same choice twice.
 
 If user selects "Abbrechen": stop. Report "Bootstrap abgebrochen. Kein Kommando wird ausgeführt." Do not continue.
 
@@ -119,7 +120,7 @@ AskUserQuestion({
 })
 ```
 
-Store as `CONFIRMED_ARCHETYPE`. Maximum interactions in bootstrap flow: **2 questions total**.
+Store as `CONFIRMED_ARCHETYPE`. The tier/stack block contributes **1–2** questions; a first-run full bootstrap adds **6 more** from the owner interview (Phase 3.5, five questions) and dispatcher-autonomy capture (Phase 3.5.1, one question) — **7–9 total**.
 
 ## Upgrade Flow (`--upgrade <tier>`)
 
@@ -585,7 +586,7 @@ If invoked directly via `/bootstrap`: report the created files list and stop.
 
 - **NEVER create application code during bootstrap** — only structural files (CLAUDE.md, .gitignore, README.md, manifests, CI). The feature that follows brings its own implementation.
 - **NEVER skip the lock file write** — `.orchestrator/bootstrap.lock` is the gate's mechanical truth. Bootstrap without a lock file is incomplete.
-- **NEVER ask more than 2 questions** — even if the user's intent is unclear, make a best-effort recommendation and let the user correct via `/bootstrap --upgrade` later.
+- **Fixed question budget, no ad-hoc prompts** — tier/stack (1–2), owner interview (5, Phase 3.5), dispatcher-autonomy capture (1, Phase 3.5.1) sum to **7–9** on a first-run full bootstrap; `--no-interview` and flag short-circuits reduce this. Make a best-effort tier recommendation and let the user correct via `/bootstrap --upgrade` later — do not add prompts beyond these blocks.
 - **ALWAYS commit** — bootstrap ends with a git commit. The lock file is part of that commit.
 - **ALWAYS check for retroactive flag** — if `--retroactive` is in `$ARGUMENTS`, skip all scaffolding and jump directly to writing `bootstrap.lock` (tier inferred from existing file inventory, fallback: `fast`).
 - **NEVER abort bootstrap on rules-fetch failure** — rules-fetch is opt-in and best-effort. The legacy Clank sync path is the safety net.

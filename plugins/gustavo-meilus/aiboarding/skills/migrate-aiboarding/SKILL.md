@@ -43,8 +43,10 @@ one-question-at-a-time style from create-agent-onboarding) ONLY for these gaps.
 ## Step 3: Generate the wrapper and lifecycle files
 Follow create-agent-onboarding Phase 6: `CLAUDE.md` (`@AGENTS.md` + fenced
 Claude-notes block), `state.json`, `config.json`, `.aiboarding/.gitignore`, the six
-hook files, and the three tools. Runtime awareness applies (hook/settings steps are
-Claude Code-only).
+hook files, and its complete current tool set including `write-evidence`.
+Repo-local hook/settings steps are Claude Code-only. Codex plugin hooks are native,
+optional, and require `/hooks` trust review; standalone skills use manual
+`update-agent-onboarding` after meaningful commits.
 
 ## Step 4: Rewire hooks and settings (Claude Code runtimes)
 In `<repo>/.claude/settings.json`:

@@ -34,6 +34,15 @@ When the user opens a message with `loopy <task>`, act as the loop engineer:
 - The user types only `loopy <task>`. You run every Superloopy command and report progress as criteria proven and the next step.
 - `loopy` with no task asks what to build; `loopy` mid-loop resumes from existing state. The Stop hook is packaged with the plugin but stays inert until `SUPERLOOPY_STOP_HOOK=on`; when enabled, it blocks completion until evidence exists.
 
+### Reassurance-copy gate (conditional)
+
+- Decide from the affected artifact: if it creates or changes user-visible Korean product copy about behavior, add a plan criterion for RC-1 through RC-4 and Korean naturalness.
+- State supplied outcomes, fallback, recovery, or next action; preserve verified privacy/legal commitments; never invent behavior.
+- Apply `humanize-korean` semantic review for misplaced modifiers.
+- Ignore internal logs, developer docs, quotations, general/marketing prose, and non-Korean copy.
+
+Read the detailed [reassurance-copy reference](references/reassurance-copy.md) when this condition applies. Artifact ownership decides the condition; prompt wording does not.
+
 ### Two tiers: solo and crew (`loopy team`)
 
 The loop engineer directive is injected for every `loopy` prompt, and it scales to the work:

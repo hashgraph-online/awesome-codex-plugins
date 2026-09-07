@@ -2,13 +2,29 @@
 
 Turn Codex from a code generator into a verifiable engineering workflow.
 
-![Codex How To: from scope through evidence](assets/social-preview.svg)
-
 This engineering-first guide takes a task through scoping, implementation,
 testing, review, and evidence—with focused workflows for frontend, backend,
 DevOps, security, and multi-agent orchestration.
 
+## What you get
+
+- Learn Codex progressively, from its mental model and sandbox to advanced
+  engineering workflows.
+- Install focused skills for frontend, backend, DevOps, testing, security,
+  review, and bounded orchestration.
+- Run changes through baseline, implementation, tests, diff review, and an
+  evidence handoff.
+- Limit unnecessary context, agent fan-out, conflicting edits, and retries.
+- Measure whether a skill or multi-agent workflow actually improved the task.
+
+**New to Codex?** Run the dependency-free
+[five-minute playground](labs/engineering-playground/README.md).
+**Already using Codex?** [Install `engineering-loop`](#try-the-engineering-loop).
+
+![Codex How To: from scope through evidence](assets/social-preview.svg)
+
 [![Validate](https://github.com/Phelan164/codex-howto/actions/workflows/validate.yml/badge.svg)](https://github.com/Phelan164/codex-howto/actions/workflows/validate.yml)
+[![Release](https://img.shields.io/github/v/release/Phelan164/codex-howto)](https://github.com/Phelan164/codex-howto/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![skills.sh](https://skills.sh/b/phelan164/codex-howto)](https://skills.sh/phelan164/codex-howto)
 [![Engineering Loop security](https://skillstore.io/badges/skills/phelan164-engineering-loop/security.svg)](https://skillstore.io/skills/phelan164-engineering-loop)
@@ -21,9 +37,10 @@ DevOps, security, and multi-agent orchestration.
 [Fork a tested edition](resources/fork-an-edition.md) ·
 [Contribute](#contributing)
 
-> **Status:** community preview. Content was checked against official Codex
-> documentation on 2026-07-31. Codex changes quickly; verify settings and
-> commands through the links marked **Official source**.
+> **Status:** active. Latest release: [v0.6.0](https://github.com/Phelan164/codex-howto/releases/tag/v0.6.0).
+> Content was checked against official Codex documentation on 2026-07-31.
+> Codex changes quickly; verify settings and commands through the links marked
+> **Official source**.
 
 ## Choose the smallest workflow that fits
 

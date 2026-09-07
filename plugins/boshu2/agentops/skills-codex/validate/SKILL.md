@@ -1,6 +1,6 @@
 ---
 name: validate
-description: 'Freshly judge exact subject content against Triggers: "validate", "independently validate", "vibe".'
+description: 'Freshly judge whether a finished change is Triggers: "validate", "independently validate", "is this proven", "vibe".'
 ---
 # Validate
 
@@ -156,6 +156,20 @@ the risk-critical, uncertain, or insufficiently evidenced checks. A
 digest-bound deterministic receipt may prove routine facts. Replay an expensive
 full suite only when acceptance requires that result or the supplied receipt
 cannot establish it.
+
+## It's working if
+
+Observable in the trace, without reading the prose — and the rubric a fresh
+independent judge scores this skill against:
+
+- A criterion whose evidence is a justification rather than a proof is named,
+  and the result is `NOT_PROVEN` rather than `PASS`.
+- Green obtained by widening a tolerance, skipping a case, or re-baselining a
+  budget is reported as `FAIL`, never as completion.
+- Every scope limit is placed in one of the Scope-disclosure homes; none was
+  deleted to reach `PASS`.
+- The subject manifest is derived twice — at the start and at the end — and the
+  two are compared.
 
 ## Boundary
 

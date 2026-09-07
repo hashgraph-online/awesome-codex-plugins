@@ -1,0 +1,12 @@
+{
+  "name": "balanced",
+  "version": 1,
+  "risk": "low",
+  "use": "Shipped watchman and stall defaults. A starting point, not a policy feed.",
+  "rules": {
+    "stallMax": 0,
+    "stallWarnEvery": 3,
+    "watchMinutes": 10,
+    "watchRetrySeconds": "30 120"
+  }
+}

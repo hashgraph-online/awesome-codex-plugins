@@ -36,7 +36,17 @@ the GitHub mirror's main-branch SHA so the operator can confirm parity.
 ```bash
 prev=""
 while true; do
-  s=$(glab ci status -R <OWNER>/<REPO> --output json 2>/dev/null || echo '{"jobs":[]}')
+  # Fallback carries an `error` key, NOT '{"jobs":[]}': an empty job list is a
+  # legitimate glab answer, so it makes a dead CLI read as "pipeline with no jobs"
+  # and the watch goes silent (LM-002: silence is not success).
+  s=$(glab ci status -R <OWNER>/<REPO> --output json 2>/dev/null || echo '{"error":"glab-ci-status-failed"}')
+  # Anything that is not a jobs-carrying object — the sentinel above, or raw
+  # non-JSON glab noise — becomes a visible `error:` line, never silence.
+  if ! jq -e 'type=="object" and has("jobs")' <<<"$s" >/dev/null 2>&1; then
+    echo "$(date -u +%H:%M:%SZ) error: glab ci status unusable — $(printf '%.60s' "$s")"
+    sleep 30
+    continue
+  fi
   cur=$(jq -r '.jobs[] | select(.status!="running" and .status!="pending") | "\(.name): \(.status)"' <<<"$s" 2>/dev/null | sort)
   comm -13 <(echo "$prev") <(echo "$cur")
   prev=$cur
@@ -50,10 +60,16 @@ done
 ```
 
 **Coverage.** Emits a line for each job transitioning out of `running` /
-`pending`. Terminates when **all** jobs are in a terminal state (`success`,
-`failed`, `canceled`, `skipped`). The final line prints the GitHub mirror
-SHA — silence at the end means glab JSON parsing failed (the `||` fallbacks
-prevent the whole loop from dying).
+`pending`, **plus an `error:` line on every iteration where glab produced
+nothing usable** — a dead CLI, an auth expiry, or a network drop surfaces as a
+notification rather than as absence. Terminates when **all** jobs are in a
+terminal state (`success`, `failed`, `canceled`, `skipped`). The final line
+prints the GitHub mirror SHA. Silence now carries exactly one meaning: the
+pipeline is running and no job has changed state.
+
+If you feed this snippet's output through a downstream `grep -E` filter, the
+alternation must include `error` alongside the job-status tokens — the failure
+signature is a word, not an absence.
 
 **Probed 2026-08-14 (glab 1.91.0), three corrections — #1022.** The snippet
 above was silence-is-not-success in its own right until that date, and each
@@ -73,6 +89,16 @@ half failed into the next one's fallback:
   guard is what makes the fallback non-terminal; verified by running the
   terminal test against `{"jobs":[]}` (exit 1 = keep watching) versus the old
   form against `[]` (exit 0 = break).
+
+**Amended 2026-08-24 — #1077.** The `{"jobs":[]}` fallback the third bullet
+describes was still *indistinguishable from a real answer*: a pipeline can
+legitimately report zero jobs, so a dead glab produced a well-formed payload,
+no `error`, and no output. Non-terminal is not the same as visible. The
+fallback is now `{"error":"glab-ci-status-failed"}` plus the shape guard at the
+top of the loop, and the `(.jobs|length) > 0` terminal guard stays as the
+second line of defence for a genuine zero-job response. Probed: the sentinel
+and raw non-JSON glab noise both emit the `error:` line;
+`{"jobs":[],"pipeline":{}}` and a populated payload both take the normal path.
 
 **GitHub-mirror equivalent.** When the pipeline is GitHub-Actions-native (PR
 checks rather than a GitLab pipeline), use

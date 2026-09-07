@@ -55,7 +55,7 @@
 /plugin marketplace add study8677/repobrain
 /plugin install repobrain@repobrain
 
-# 2 — Pick LLM provider, build the knowledge base
+# 2 — Configure a backend (logged-in local CLI = no key, or paste an API key), build the knowledge base
 /repobrain:rb-setup
 /repobrain:rb-refresh
 
@@ -66,6 +66,14 @@
 > **99% factual · 2.1× faster than Codex CLI · works in any AI IDE.**
 > [Head-to-head benchmark ↓](#head-to-head-eval-repobrain-vs-codex-cli-vs-claude-code-2026-05-09)
 > Codex CLI users — drop the `repobrain:` prefix; the same four slash commands ship there too.
+
+### 🧠 Fastest start — let your AI install it for you (no API key)
+
+Already in a logged-in AI IDE (Trae / Cursor / Claude Code / Codex)? Don't touch pip or an API key — **paste this one line to your AI assistant** and it does the rest (detects your logged-in CLI, wires up a zero-key backend, initializes the project, self-tests):
+
+> Read https://github.com/study8677/repobrain/blob/main/AI_INSTALL.md and follow it to install RepoBrain in this project.
+
+Then just ask your AI anything about your codebase.
 
 ---
 
@@ -159,7 +167,7 @@ Full report (data, methodology, per-cell tables, caveats):
 # Claude Code
 /plugin marketplace add study8677/repobrain
 /plugin install repobrain@repobrain
-/repobrain:rb-setup            # interactive: pick LLM provider, paste API key, writes .env
+/repobrain:rb-setup            # interactive: use a logged-in local CLI (Codex/Trae/Claude, no key) or paste an API key; writes .env
 /repobrain:rb-refresh          # first refresh auto-creates .repobrain/
 /repobrain:rb-ask "How does this project work?"
 
@@ -225,7 +233,7 @@ Same four slash commands ship to both **Claude Code** and **Codex CLI**. Claude 
 | Claude Code | Codex CLI | Purpose |
 |---|---|---|
 | `/repobrain:rb-setup` | `/rb-setup` | First-time setup — pick LLM provider, write `.env` |
-| `/repobrain:rb-refresh [quick]` | `/rb-refresh [quick]` | Build / incrementally refresh the project knowledge base |
+| `/repobrain:rb-refresh [quick]` | `/rb-refresh [quick]` | Build a full baseline or manually update only affected Agent groups |
 | `/repobrain:rb-ask <question>` | `/rb-ask <question>` | Routed Q&A on the current codebase |
 | `/repobrain:rb-init <name>` | `/rb-init <name>` | Scaffold a new multi-agent repo from this template |
 
@@ -237,19 +245,34 @@ If installation or provider setup looks wrong, run `rb doctor --workspace .`.
 
 ### `rb-setup` — first-time configuration
 
-Run this **once per project**, right after installing the plugin. Interactive picker for the LLM provider (OpenAI / DeepSeek / Groq / 阿里灵积 / NVIDIA NIM / Ollama local / any OpenAI-compatible endpoint), then writes `.env` to the project root with `OPENAI_BASE_URL`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `RB_ASK_TIMEOUT_SECONDS`. It can also write an explicit local Codex host-runner config for experimental no-API-key `rb-ask`. Also ensures `.env` is in `.gitignore`. Skip it if you already have a working `.env`.
+Run this **once per project**, right after installing the plugin. Interactive picker that first **detects the headless CLIs you're already logged into** (Codex / Trae / Claude / Gemini) and offers a **no-API-key local host-runner** as the most convenient option — no key to paste, RepoBrain just drives your existing CLI login for both `rb-ask` and `rb-refresh`. If you'd rather use a hosted model, it also offers the API-key providers (OpenAI / DeepSeek / Groq / 阿里灵积 / NVIDIA NIM / Ollama local / any OpenAI-compatible endpoint). Either way it writes `.env` to the project root — `RB_HOST_RUNNER` + `RB_HOST_COMMAND` for a local CLI, or `OPENAI_BASE_URL` / `OPENAI_API_KEY` / `OPENAI_MODEL` for a provider — and ensures `.env` is in `.gitignore`. Skip it if you already have a working `.env`.
 
 ### `rb-refresh` — build / refresh the knowledge base
 
-Deploys the multi-agent cluster to read your code: each module gets its own Agent that produces a knowledge doc under `.repobrain/agents/*.md`, plus a `map.md` routing index. Run after install, after significant code changes, or when `rb-ask` returns stale answers. The first refresh auto-creates `.repobrain/` — no separate init step needed. Pass `quick` for an incremental update, `failed-only` to rerun only previously failed modules.
+Deploys the multi-agent cluster and creates an atomic generation baseline. The
+first run must be a full refresh. Later, `quick` compares committed changes from
+the active generation to HEAD, requires a clean worktree, and lets RepoBrain's
+ImpactPlanner plus an independent Verifier execute only affected Agent groups.
+It never falls back to a full refresh. Use `failed-only` to resume failed or
+pending groups for the same target commit. `rb-ask` only warns about new commits;
+it never refreshes knowledge automatically.
 
-Time: a few minutes for small repos, longer for large ones. Requires `rb-setup` to have completed. Full LLM refresh requires an API-key/OpenAI-compatible provider; local host-runner mode can use `RB_REFRESH_SCAN_ONLY=1 rb-refresh --workspace .` for scan artifacts.
+Time: a few minutes for small repos, longer for large ones. Requires `rb-setup` to have completed. Works with either backend: an API-key/OpenAI-compatible provider runs the full LLM refresh, while a **local host-runner** (Codex / Trae / Claude / …) runs the tool-free stages (module docs, `map.md`) through your logged-in CLI and automatically degrades the tool/handoff stages (conventions, git insights) to deterministic output — no API key needed. Add `RB_REFRESH_SCAN_ONLY=1` only if you want a fast structure-only index with no LLM narration at all.
 
 ### `rb-ask` — routed Q&A on the codebase
 
 The **main reason this plugin exists**. Routes your question to the right ModuleAgent (and GitAgent when applicable), then returns an answer grounded in actual source with file paths and line numbers. Use it **before** manually grepping or reading files — it's faster and more accurate. Good question shapes: "where is X defined/handled?", "why was Y done this way?", "how does the auth flow work?", "what depends on module Z?".
 
 Requires a knowledge base — if you see "no index" or empty answers, run `rb-refresh` first.
+
+**Calling from another AI / script?** Add `--json` for a stable, parseable envelope instead of human-formatted text — this is the lightweight way to let any agent that can run a shell command query RepoBrain, no MCP server required:
+
+```bash
+rb-ask "How does auth work?" --workspace . --json
+# → {"answer": "...", "sources": [...], "limitations": [...], "workspace": "...", "question": "..."}
+```
+
+On failure, `--json` keeps stdout empty and writes `{"error": "..."}` to stderr with a non-zero exit code, so a calling agent can branch cleanly. It runs the same engine as everything else, so it works with an API-key provider **or** a no-API-key local host runner. See [Let another AI call RepoBrain (CLI, no MCP)](#let-another-ai-call-repobrain-cli-no-mcp).
 
 ### `rb-init` — scaffold a new multi-agent repo
 
@@ -351,6 +374,43 @@ All are generated by `rb init`: `AGENTS.md` is the single behavioral rulebook, I
 
 ---
 
+## Let another AI call RepoBrain (CLI, no MCP)
+
+The lightest way to let another LLM or agent use RepoBrain is the CLI — no long-running server, no protocol handshake. Any agent that can run a shell command can call:
+
+```bash
+rb-ask "<question>" --workspace /path/to/project --json
+```
+
+and read back a stable JSON object:
+
+```json
+{
+  "answer": "Auth is handled in engine/hub/auth.py …",
+  "sources": ["engine/hub/auth.py:12", "engine/hub/auth.py:44"],
+  "limitations": ["host-runner single-turn mode"],
+  "workspace": "/path/to/project",
+  "question": "<question>"
+}
+```
+
+- **Success** → the envelope above on stdout, exit code `0`.
+- **Failure** → stdout stays empty; a `{"error": "..."}` object is written to stderr with a non-zero exit code, so your wrapper can branch on it without scraping text.
+
+**How agents discover this automatically:** `rb init` drops an `AGENTS.md` (and `CLAUDE.md` for Claude Code) into the project telling any agent to prefer `rb-ask` over manual grep/file search. Editors like Cursor, Windsurf, Codex, and Gemini CLI read those files, so they'll call `rb-ask` on their own once the project is initialized.
+
+**Zero API key:** `rb-ask` runs the same engine as everything else, so it honors a no-API-key local host runner. Put this in the project's `.env` (or run `rb-setup`) and the calling AI drives a CLI you're already logged into — no key changes hands:
+
+```bash
+RB_HOST_RUNNER=generic
+RB_HOST_COMMAND=trae-cli exec --cd {workspace} --sandbox read-only --skip-git-repo-check --ephemeral -o {output_file}
+RB_HOST_OUTPUT_MODE=file
+```
+
+Prefer this over the MCP server (below) whenever the caller can shell out; reach for `rb-mcp` only for clients that speak MCP exclusively.
+
+---
+
 ## Advanced Features
 
 <details>
@@ -448,17 +508,21 @@ repobrain/
         ├── _cli_entry.py    # rb-ask / rb-refresh / rb-mcp + python -m dispatch
         ├── config.py        # Pydantic configuration
         ├── hub/             # ★ Core: multi-agent cluster
-        │   ├── agents.py    #   Router + ModuleAgent + GitAgent
+        │   ├── agents.py    #   Refresh swarm (ScanAnalyst → ArchitectureReviewer → ConventionWriter) + Ask swarm (Router / ModuleAgent / GitAgent)
         │   ├── contracts.py #   Pydantic models: claims, evidence, refresh status
         │   ├── ask_pipeline.py    # agent.md + graph-enriched ask
         │   ├── refresh_pipeline.py # LLM-driven refresh → agents/*.md + map.md
         │   ├── ask_tools.py
         │   ├── scanner.py   #   multi-language project scanning
         │   ├── module_grouping.py # smart functional file grouping
+        │   ├── incremental.py #   committed-diff / --quick agent-group refresh
+        │   ├── host_runner.py #   local CLI backend, no API key
+        │   ├── storage.py   #   generation dirs + current.json
         │   ├── structure.py
         │   ├── knowledge_graph.py
         │   ├── retrieval_graph.py
-        │   └── mcp_server.py
+        │   ├── mcp_server.py
+        │   └── language_adapters/ # language-specific code adapters
         ├── mcp_client.py    # MCP consumer (connects external tools)
         ├── memory.py        # Persistent interaction memory
         ├── tools/           # MCP query tools + extensions

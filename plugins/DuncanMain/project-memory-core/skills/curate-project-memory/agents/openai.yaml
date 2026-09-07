@@ -1,0 +1,4 @@
+interface:
+  display_name: "PMC"
+  short_description: "Give Codex lasting project context"
+  default_prompt: "Use $curate-project-memory to set up lasting memory for this project in my Obsidian vault, create a useful project overview, and explain how to remember important knowledge as we work."

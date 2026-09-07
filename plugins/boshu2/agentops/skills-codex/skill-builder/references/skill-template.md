@@ -38,7 +38,6 @@ context:
     mode: <none|task|questions>
   sections:
     exclude: [HISTORY]
-  intel_scope: <none|topic|full>
 metadata:
   tier: <judgment|execution|library|session|product|contribute|meta|background|orchestration|cross-vendor|knowledge>
   dependencies: [<other-skill-names>]

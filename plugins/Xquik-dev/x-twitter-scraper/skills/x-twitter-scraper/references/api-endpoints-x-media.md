@@ -1,8 +1,8 @@
 # Xquik REST API endpoints: X media downloads
 
-### Download media
+## Download media
 
-```
+```http
 POST /x/media/download
 ```
 
@@ -12,13 +12,16 @@ This sends data to an external host. Get approval first. This operation copies r
 media to a shareable Xquik gallery. Anyone who receives the unlisted gallery URL
 may access it. Confirm the exact tweets, media rights, bulk bound, and intended
 recipients before calling. Never use private or access-restricted media. Do not
-share the returned URL beyond the approved audience.
+share the returned URL beyond the confirmed audience.
 
-Send either `tweetInput` for 1 tweet or `tweetIds` for a bulk download. Exactly 1 field is required.
+Send exactly 1 input field. Use `tweetInput`, `tweetId`, or `tweetUrl` for a
+single tweet. Use `tweetIds` for a bulk download.
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `tweetInput` | string | Tweet URL or numeric tweet ID for a single download. Accepts `x.com` and `twitter.com` URL formats |
+| `tweetId` | string | Numeric tweet ID alias for `tweetInput` |
+| `tweetUrl` | string | Tweet URL alias for `tweetInput` |
 | `tweetIds` | string[] | Array of tweet URLs or IDs for bulk download. Maximum 50 items. Returns a single combined gallery |
 
 For a single response, the API returns:

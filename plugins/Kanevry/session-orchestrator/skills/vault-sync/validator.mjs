@@ -92,6 +92,26 @@ const vaultNoteTypeSchema = z.enum([
   'board',
 ]);
 
+// VENDORED COPY. SSOT: projects-baseline/packages/zod-schemas/src/vault-frontmatter.ts
+// (`vaultNoteStatusSchema`). This file is a standalone CLI with no exports, so the
+// values cannot be imported — they are hand-kept in sync, and that is the known cost.
+//
+// Measured 2026-08-23: FOUR hand-maintained copies of this enum exist —
+//   1. the SSOT above
+//   2. this file
+//   3. sven-infra `02-cron/vault-overview-sync.sh:216`
+//   4. `tests/lib/vault-mirror/render-sessions.test.mjs:490`, whose own comment names
+//      this file as its source and then transcribes it
+// Copy 4 is deliberately NOT widened: it asserts membership for a mapper that emits
+// only `verified`/`draft`, so adding values it cannot produce would weaken it.
+//
+// A drift test reading the SSOT directly was considered and REJECTED: the SSOT lives
+// in a sibling repo resolved host-locally, so such a test passes on this machine and
+// fails in CI, where projects-baseline is not checked out. The durable fix is
+// generation from the SSOT at build time, not a test that reads across a repo
+// boundary. Revisit trigger: a fifth copy, or the first CI-visible drift.
+//
+// Order below mirrors the SSOT exactly, so a diff of the two lists is readable.
 const vaultNoteStatusSchema = z.enum([
   'draft',
   'active',
@@ -100,6 +120,17 @@ const vaultNoteStatusSchema = z.enum([
   'production',
   'mvp',
   'idea',
+  // Added 2026-08-23 (baseline MR !27, merge 6f38aeb). sven renders these into
+  // `01-projects/*/_overview.md`; measured the same day, SIX of them already carried
+  // one of these values (4x dead, 1x paused, 1x maintenance). Falsified rather than
+  // assumed: removing the four again produced exactly 6 `status` errors, re-adding
+  // them produced 0. Without them the strict gate blocks every vault session-close.
+  // Slugs deliberately not listed here — the scanner treats them as private
+  // (`check-owner-leakage` CP6), and the count is the load-bearing part anyway.
+  'maintenance',
+  'planned',
+  'paused',
+  'dead',
 ]);
 
 const vaultFrontmatterSchema = z

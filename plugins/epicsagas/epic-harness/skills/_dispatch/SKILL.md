@@ -7,7 +7,9 @@ description: "Core router. Always active. Auto-invokes matching skill before eve
 
 **CRITICAL**: When accessing harness data, run `HARNESS_DIR=$(epic-harness path)` first. NEVER use `.harness/` in the project directory.
 
-You have access to the following skills. **Invoke the matching skill BEFORE responding or taking action.** Even a 1% chance of relevance means you should invoke it.
+You have access to the following skills. Invoke a skill **only on a clear trigger
+signal from the table below**; when the signal is ambiguous, proceed without a
+skill — a wrong skill costs more than no skill.
 
 ## Dispatch Rules
 
@@ -17,15 +19,13 @@ You have access to the following skills. **Invoke the matching skill BEFORE resp
 | Test failure, error, or unexpected behavior | **debug** |
 | Auth, DB, API, infra, or secrets code touched | **secure** |
 | Loops, queries, rendering, or data processing code | **perf** |
-| File > 200 lines or high cyclomatic complexity | **simplify** |
+| File > 500 lines, nesting > 3 levels, or copy-paste blocks | **simplify** |
 | Public API/function added or changed | **document** |
 | Before completing /go or /ship | **verify** |
 | User wants to commit changes | **commit** |
-| Context window > 70% used | **context** |
+| Before or during context compaction (working-state snapshot) | **context** |
 | User request is vague, unfocused, or presents a solution without a clear problem | **discover** |
-| User shares code for review, mentions code smells, or asks to refactor/analyze | **episteme** → `analyze_code` + `suggest_refactorings` → feed results into **go:plan** mode |
 | User invokes `/reflect`, asks about AI usage quality, "am I using AI well", "thought amplifier", or requests AI usage self-assessment | **reflect** |
-| Session start (project has harness-mem psychographic node) | Call `mem_query` type=psychographic → apply 5-dimension profile to all subsequent skill dispatch |
 | Orchestration run active (`$HARNESS_DIR/orchestrator/run.json` exists with status "running") | **orchestrate** |
 | Agent tool output received with inter-agent message | **orchestrate** |
 | User runs `/intervene` | **orchestrate** |
@@ -70,15 +70,9 @@ When `/orbit` is active (detected by: `$HARNESS_DIR/orbit/PIPELINE-*.json` exist
 
 - **SUPPRESS** normal phase transition prompts ("Run `/go`", "Run `/audit`", "Run `/ship`", etc.) — orbit handles its own phase transitions internally
 - **Dispatch skills normally** — tdd, debug, verify, secure, perf, simplify, document, context all fire as usual within each phase
-- **episteme pre-analysis**: if episteme `suggest_refactorings` output is present in context before `/orbit` starts, pass it directly to **go:plan** as spec material — skip mode selection entirely and enter Direct Build
 - **After orbit completes** (`status: complete` or `status: aborted`) — resume normal dispatch behavior
 
-**Orbit Recovery on Session Resume**: When a session resumes (after context compaction or crash) and an active pipeline is detected:
-- Emit: `"(orbit) Recovering pipeline {id}. Phase: {phase}. Branch: {branch}."`
-- **Do NOT re-run mode selection** — the mode was already chosen and recorded in `mode` field
-- **Do NOT re-run spec creation** — the spec file path is in `spec_file` field
-- Resume from the current `phase` as documented in the pipeline state
-- If `phase` is `mode_select` with no `mode` set, then and only then prompt for mode selection
+**Orbit Recovery on Session Resume**: On a `PIPELINE-*.json` with `status: running`, follow the **Phase Recovery Protocol** in `skills/orbit/SKILL.md` — do not re-run mode selection or spec creation.
 
 The orbit command is a self-contained pipeline. Interjecting normal transition nudges during orbit would confuse the user.
 
@@ -128,11 +122,11 @@ This enables Ring 3 to analyze which skills fire most often, which are effective
 
 Before invoking any skill, **proactively recall** relevant knowledge from the memory graph:
 
-1. **At task start**: Call `mem_recall` with a hint describing the current task (e.g., "auth refactor", "CI pipeline fix"). This returns relevance-ranked memories combining FTS match, importance, recency, access frequency, and graph connectivity.
-2. **On errors**: Call `mem_recall` with the error category/message as hint. Past resolutions and patterns for similar errors surface automatically.
-3. **On architectural decisions**: Call `mem_recall` with the domain area. Past `decision` nodes (importance=0.9) rank highest and prevent contradictory choices.
-4. **After resolution**: Record via `mem_add` with type `resolution` (auto-importance=0.8) or `decision` (auto-importance=0.9). These high-importance nodes persist across sessions and resist decay.
-5. **Fallback**: If `mem_recall` is unavailable, use `mem_search` (keyword FTS) or `mem_context` (project-scoped smart recall).
+1. **At task start**: Run `epic mem recall "<task hint>"` (e.g., "auth refactor", "CI pipeline fix"). This returns relevance-ranked memories combining FTS match, importance, recency, access frequency, and graph connectivity.
+2. **On errors**: Run `epic mem recall` with the error category/message as hint. Past resolutions and patterns for similar errors surface automatically.
+3. **On architectural decisions**: Run `epic mem recall` with the domain area. Past `decision` nodes (importance=0.9) rank highest and prevent contradictory choices.
+4. **After resolution**: Record via `epic mem add` with type `resolution` (auto-importance=0.8) or `decision` (auto-importance=0.9). These high-importance nodes persist across sessions and resist decay.
+5. **Fallback**: If `epic mem recall` is unavailable, use `epic mem search` (keyword FTS) or `epic mem context` (project-scoped smart recall).
 
 Memory scoring: recency(25%) + importance(35%) + access_freq(15%) + FTS_match(25%). Frequently accessed and important memories naturally float to the top; unused noise decays over time.
 
@@ -158,38 +152,3 @@ Evolved skills are generated by the Ring 3 evolution loop from actual failure pa
 - The evolution loop detected a real weakness in past sessions
 - Following the evolved skill's guidance should prevent repeat failures
 - If an evolved skill's advice conflicts with a static skill, **prefer the static skill** — evolved skills supplement, static skills are authoritative
-
-## Psychographic Adaptation
-
-When user preference data is available in harness-mem (psychographic nodes), adapt dispatch behavior:
-
-### 5-Dimension Profile
-
-| Dimension | Values | Effect on dispatch |
-|-----------|--------|-------------------|
-| `scope_appetite` | conservative / moderate / ambitious | conservative: smaller, safer changes. ambitious: larger refactors allowed |
-| `risk_tolerance` | cautious / balanced / bold | cautious: more verification steps. bold: fewer checkpoints |
-| `detail_preference` | brief / standard / thorough | brief: minimal output. thorough: detailed explanations |
-| `autonomy` | guided / collaborative / independent | guided: ask before each step. independent: execute autonomously |
-| `architecture_care` | pragmatic / balanced / principled | pragmatic: working > elegant. principled: patterns > shortcuts |
-
-### How to use
-
-1. At session start, call `mem_query` with type=psychographic to load profile
-2. If no profile exists, use defaults: moderate/balanced/standard/collaborative/balanced
-3. Apply profile dimensions to skill selection and execution parameters:
-
-**scope_appetite=conservative**: Prefer `simplify` skill. Flag changes touching >3 files.
-**risk_tolerance=cautious**: Run `verify` after every skill. Add extra test runs.
-**detail_preference=brief**: Skip explanatory output. Show only results and blockers.
-**autonomy=guided**: Present plan before execution. Ask at each decision point.
-**architecture_care=principled**: Trigger `council` skill for architectural decisions. Enforce pattern compliance.
-
-### Profile storage
-
-Store profiles using `mem_add` with:
-- type: "psychographic"
-- title: "user-profile: {project}"
-- tags: ["psychographic", "profile", project slug]
-- body: YAML-formatted 5-dimension values
-- importance: 0.8 (high — guides all behavior)

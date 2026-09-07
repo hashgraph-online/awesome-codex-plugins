@@ -144,7 +144,12 @@ This card is an advisory readback. It is not a `GateDecision`,
 
 ## Causal Topology Gate
 
-Bugs have one of six causal topologies. The topology is not optional metadata
+Bugs have one of six causal topologies. Diagnostic layers (L1-L7) are
+observation altitudes, not causal shapes: any topology can occur at any stop
+layer. These topologies assume convergence on discrete mechanisms within an
+acyclic incident graph; when member-by-member repair keeps regenerating the
+symptom, treat that as Architecture Escalation evidence rather than adding
+another cluster member. The topology is not optional metadata
 — it determines the correct stop condition and the correct repair shape. The
 default is `unknown`; an agent must actively exclude the multi-root topologies
 before it may collapse to a single-root claim.

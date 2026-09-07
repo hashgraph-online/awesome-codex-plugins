@@ -47,6 +47,18 @@
           }
         ]
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c 'r=${PLUGIN_ROOT:-}; b=${r%/*}; s=\"$b/current/bin/agent-guard\"; x=; if [ -n \"$r\" ]; then x=$(for c in \"$b\"/*/bin/agent-guard; do [ -x \"$c\" ] || continue; v=${c%/bin/agent-guard}; printf \"%s\\\\t%s\\\\n\" \"${v##*/}\" \"$c\"; done | awk -F \"\\\\t\" \"\\$1 ~ /^[0-9]+\\\\.[0-9]+\\\\.[0-9]+$/\" | sort -t. -k1,1n -k2,2n -k3,3n | tail -n 1 | cut -f 2-); fi; if [ -x \"$x\" ]; then v=${x%/bin/agent-guard}; v=${v##*/}; if [ ! -e \"$b/current\" ] || [ -L \"$b/current\" ]; then ln -sfn \"$v\" \"$b/current\" 2>/dev/null || :; fi; [ -L \"$b/current\" ] && [ -x \"$s\" ] && x=\"$s\"; fi; if [ ! -x \"$x\" ] && [ -x \"$r/bin/agent-guard\" ]; then x=\"$r/bin/agent-guard\"; fi; if [ ! -x \"$x\" ]; then mode=${AGENT_GUARD_INFRA_FAILURE_MODE:-open}; case \"$mode\" in closed) action=blocking ;; *) mode=open; action=continuing ;; esac; d=${AGENT_GUARD_WARNING_DIR:-${TMPDIR:-/tmp}/agent-guard-warnings-${UID:-user}}; p=; while IFS= read -r line || [ -n \"$line\" ]; do p=$p$line; done; i=${AGENT_GUARD_SESSION_ID:-}; if [ -z \"$i\" ] && command -v jq >/dev/null 2>&1; then i=$(printf %s \"$p\" | jq -r \".session_id // empty\" 2>/dev/null); fi; if [ -z \"$i\" ]; then case \"$p\" in *\\\"session_id\\\":\\\"*) i=${p#*\\\"session_id\\\":\\\"}; i=${i%%\\\"*}; case \"$i\" in \"\"|*[!A-Za-z0-9._:-]*) i= ;; esac ;; esac; fi; if [ -n \"$i\" ]; then i=$(printf %s \"$i\" | cksum); else i=ppid-${PPID:-0}; fi; k=\"$d/manifest-codex-$i-$mode\"; warn=1; if mkdir -p \"$d\" 2>/dev/null; then (umask 077; set -C; : >\"$k\") 2>/dev/null || warn=0; fi; [ \"$warn\" -eq 0 ] || echo \"agent-guard: PLUGIN_ROOT env not set or no installed binary was found; $action because AGENT_GUARD_INFRA_FAILURE_MODE=$mode\" >&2; [ \"$mode\" = closed ] && exit 2; exit 0; fi; AGENT_GUARD_HOOK_HOST=codex \"$x\" hook-user-prompt'",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   }
 }

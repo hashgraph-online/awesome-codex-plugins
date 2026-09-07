@@ -151,6 +151,22 @@ TDD is the implementation discipline for approved atomic tasks, not the first
 entrypoint for medium- or high-complexity work. TDD Mode controls test-first
 discipline, not completion evidence, and its default is off.
 
+The workflow that first authorizes production-source edits owns the route for
+that slice. `using-aegis` may select for a direct low-complexity slice;
+`writing-plans` selects before planned task decomposition;
+`systematic-debugging` selects after Change Necessity and before repair edits.
+Execution, TDD, and subagent workflows validate and consume the record instead
+of reclassifying it.
+
+In `auto`, strict-risk signals use OR semantics. Behavior, bugfix, shared/core,
+contract, persistence, permission, migration, producer/consumer, or meaningful
+regression risk each independently require `strict`. `light` uses AND semantics:
+tiny, low-risk, single-owner, no behavior change or strict signal,
+and an obvious focused check must all hold. Absence of an explicit user TDD
+request is never evidence for `light`. Unknown risk returns to the owning
+workflow; a TDD-fit exception records `skipped` plus compensating verification,
+not `light`.
+
 ## Project Baseline Bootstrap
 
 In an active project, a project-related question or "what should I do next?"

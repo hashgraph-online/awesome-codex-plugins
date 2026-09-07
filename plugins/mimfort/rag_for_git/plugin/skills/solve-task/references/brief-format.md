@@ -32,7 +32,7 @@
 
    **Relevance filter (adaptive — retrieval is already bounded server-side).** Server-side cliff
    (`search_codebase`) and rails (`search_tasks`) already cap retrieval adaptively per task — and
-   `search_tasks`'s `score` is an RRF rank score (`SUM(1/(60+rank))`, ≈0.016–0.033), NOT comparable
+   `search_tasks`'s `score` is an RRF rank score (`SUM(1/(k+rank))`, k from `reviewer/rrf.py::RRF_K`, ≈0.016–0.033), NOT comparable
    across queries, so never gate on an absolute value (`search_codebase` exposes no score at all,
    only result order). So DO NOT re-truncate to a fixed number and DO NOT pad artificially: include
    EVERY returned item that *directly informs* the implementation. The keep/drop judgment stays

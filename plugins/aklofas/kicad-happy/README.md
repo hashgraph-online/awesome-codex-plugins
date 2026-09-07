@@ -439,7 +439,7 @@ Or set up the [GitHub Action](github-action.md) and get automated analysis on ev
 
 ## 🎯 Release notes
 
-**Current release: v2.1.0 — correctness batch.** Seventeen analyzer fixes from field reports and external reviews: inner power planes no longer fragment into false islands on 4+ layer boards (#24), via-in-pad and courtyard-overlap checks use real pad/courtyard geometry instead of bounding boxes (#28, #29), USB compliance failures surface as findings (new UC-001..UC-004), plus a dozen false-positive fixes across sleep-current, decoupling, derating, and lifecycle checks. Includes three fixes ported from Anya Sabo's fork. Upgrading from v2.0.0: expect finding churn in exactly those classes — overwhelmingly false positives disappearing; four additive JSON fields, no breaking schema changes.
+**Current release: v2.2.1 — maintenance batch.** Twenty-five verified fixes: the GP-001 via-antipad and power-rail-classification false positives from the field are gone, no-connect markers no longer absorb pins into wires passing beneath them (community-contributed, `kicad-cli`-verified), internal-oscillator IC descriptions stop triggering false clock findings, and a whole class of output nondeterminism was eliminated with a CI guard to keep it that way. Skipped or degraded analysis is now visible (`checks_run` manifest, connectivity-error notes, conditional-rule skip counts). Upgrading: GitHub Action users with multi-project repos must set the `schematic`/`pcb` inputs explicitly (auto-detect now fails loudly instead of guessing), and `analyze_pcb.py --schematic analysis/schematic.json` now classifies your declared power rails correctly.
 
 Per-release stories are in [release-notes.md](release-notes.md); line-level detail in the [CHANGELOG](CHANGELOG.md).
 

@@ -4,7 +4,7 @@
 
 interface TweetMediaItem {
   mediaUrl: string;
-  type: string;       // "photo" | "video" | "animated_gif"
+  type: "photo" | "video" | "animated_gif";
   url: string;
   adultContent?: boolean; allowDownload?: boolean;
   altText?: string; availabilityReason?: string;
@@ -30,12 +30,13 @@ interface Tweet {
   text: string;
   author?: TweetAuthor;
   createdAt?: string;
-  retweetCount: number;
-  replyCount: number;
-  likeCount: number;
-  quoteCount: number;
-  viewCount: number;
-  bookmarkCount: number;
+  inReplyToId?: string;
+  retweetCount?: number;
+  replyCount?: number;
+  likeCount?: number;
+  quoteCount?: number;
+  viewCount?: number;
+  bookmarkCount?: number;
   media?: TweetMediaItem[];
   article?: Record<string, unknown>;
   card?: Record<string, unknown>;
@@ -80,9 +81,9 @@ interface TweetSearchResult {
   id: string;
   text: string;
   createdAt?: string;
-  likeCount: number;    // Zero can mean X did not report the count
-  retweetCount: number; // Zero can mean X did not report the count
-  replyCount: number;   // Zero can mean X did not report the count
+  likeCount?: number;
+  retweetCount?: number;
+  replyCount?: number;
   media?: TweetMediaItem[];
   author?: UserProfile;
 }
@@ -139,6 +140,9 @@ state appears only through an explicitly requested
 `GET /api/v1/x/followers/check` lookup.
 
 Use `mode=complete&limit=25000` for bounded maximum-coverage reply collection.
+Before this metered bulk read, show the exact target, filters, limit, usage
+estimate or limitation, destination, recipients, retention, and cancellation
+path. Obtain explicit confirmation for that unchanged plan before sending it.
 Count direct replies only when `inReplyToId` equals the root tweet ID. Keep
 `nested_replies` separate. On `424 replies_incomplete`, retain safe partial rows
 and follow `diagnostic.recommendedFallback`.

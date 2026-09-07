@@ -11,13 +11,17 @@ repository:
 
 ## Reporting A Vulnerability
 
-Open a private security advisory on GitHub when available, or open a public
-issue with sensitive details removed:
+Report vulnerabilities privately through the canonical repository's GitHub
+security advisory form:
 
-<https://github.com/TerminallyLazy/tree-ring-memory-codex-plugin/issues>
+<https://github.com/TerminallyLazy/Tree-Ring-Memory/security/advisories/new>
 
-Do not include secrets, tokens, private memory contents, or personal data in a
-public issue.
+Use the canonical issue tracker only for non-sensitive support:
+
+<https://github.com/TerminallyLazy/Tree-Ring-Memory/issues>
+
+Never include vulnerability details, secrets, tokens, private memory contents,
+or personal data in a public issue.
 
 ## Data Handling
 

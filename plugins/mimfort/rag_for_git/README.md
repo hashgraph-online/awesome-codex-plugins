@@ -685,6 +685,20 @@ namespaced skills with `$rag-reviewer:...`.
   empty search) is reported per-section in `gaps` instead of aborting the skill. Graph expansions
   (`get_related_symbols`, `callers`, `implementations`, `family`, …) and `get_pr_diff` stay
   separate calls made at the LLM's discretion, since they depend on what the brief turns up.
+- **A storage outage is a signal, not silence:** when Postgres or Neo4j is unreachable, the first
+  failing section short-circuits the rest: every remaining section gets its default plus a `gaps`
+  entry, instead of each paying its own 30-second pool timeout. The *class* of unavailability is
+  decided by exception type (`is_storage_unavailable`), but the cause *within* that class — a wrong
+  password or a missing database, as opposed to stopped containers — is decided by text
+  (`classify_storage_failure`): a failure during connection setup gives libpq nothing to return, so
+  SQLSTATE is empty and there is no code to branch on. Raw text only ever reaches the caller when
+  the cause couldn't be named, and even then only redacted (`reviewer/storage_health.py`). Every
+  `gaps` entry carries `cause` (`storage_unavailable` | `unknown`), `cause_detail` (`auth_failed` |
+  `missing_database` | `null`), and `remedy` — empty not only for remote storages but also once a
+  cause is named, since the containers are already up and the cure doesn't apply — so the skill
+  branches on machine-readable fields rather than on prose. The server never starts containers — it
+  names the cure, and `solve-task` asks the user whether to run it. The same flag stops `index_batch`
+  from walking a dead pool task by task and from spending Voyage quota it has nowhere to store.
 - **Multi-query retrieval for `code`:** the `code` and `test_exemplars` sections are searched with a
   *set* of subqueries, not one query over the whole task text. Subqueries are extracted
   deterministically (`reviewer/mcp/subqueries.py`: list items under "what to do"/"acceptance"

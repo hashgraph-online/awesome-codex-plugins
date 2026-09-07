@@ -1,14 +1,15 @@
 {
   "name": "aiboarding",
-  "version": "0.5.0",
-  "description": "Onboard AI agents like fresh engineers: generates and maintains AGENTS.md and CLAUDE.md with drift tracking, compression, and auditing.",
+  "version": "1.0.2",
+  "description": "Keep canonical AGENTS.md onboarding current for AI coding agents, with drift tracking, compression, and auditing.",
   "repository": "https://github.com/gustavo-meilus/aiboarding",
   "license": "MIT",
   "skills": "./skills/",
+  "hooks": "./hooks/hooks.json",
   "interface": {
     "displayName": "AIBoarding",
-    "shortDescription": "Generate, maintain, compress, and audit AI-agent onboarding files.",
-    "longDescription": "AIBoarding creates and maintains standard AI-agent onboarding files for repositories. It generates AGENTS.md, keeps CLAUDE.md as a thin loader, tracks drift through sidecar state, offers compression and audit skills, and ships deterministic hook templates for Claude Code lifecycle nudges.",
+    "shortDescription": "Keep canonical AI-agent onboarding current.",
+    "longDescription": "AIBoarding creates and maintains canonical AGENTS.md guidance for repositories, keeps CLAUDE.md thin, tracks onboarding drift through sidecar state, and provides compression, auditing, and optional Codex lifecycle nudges.",
     "developerName": "Gustavo Meilus",
     "category": "Development & Workflow",
     "capabilities": [

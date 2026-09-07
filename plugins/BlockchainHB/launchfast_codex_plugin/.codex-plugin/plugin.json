@@ -1,7 +1,7 @@
 {
   "name": "launchfast",
-  "version": "0.1.1",
-  "description": "LaunchFast Amazon seller research plugin for Codex with bundled FBA workflows and the LaunchFast MCP server.",
+  "version": "0.2.0",
+  "description": "LaunchFast Amazon seller intelligence plugin for Codex with research, Seller, Brand Analytics, Ads, and FBA workflows.",
   "author": {
     "name": "Launch Fast",
     "url": "https://launchfastlegacyx.com"
@@ -14,6 +14,9 @@
     "product-research",
     "keyword-research",
     "supplier-sourcing",
+    "seller-analytics",
+    "brand-analytics",
+    "amazon-ads",
     "ppc",
     "trademark",
     "patent"
@@ -22,8 +25,8 @@
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "LaunchFast",
-    "shortDescription": "Amazon seller research tools for Codex",
-    "longDescription": "Connect Codex to the production LaunchFast MCP server and bundle reusable Amazon FBA workflows for product research, PPC planning, supplier sourcing, and IP risk checks. Authentication uses Codex's MCP OAuth flow against LaunchFast, including expected localhost or 127.0.0.1 loopback callbacks during authorization.",
+    "shortDescription": "Amazon seller intelligence and research for Codex",
+    "longDescription": "Connect Codex to the production LaunchFast MCP server for product and keyword research, supplier sourcing, rank tracking, IP risk checks, and read-only Amazon Seller, Brand Analytics, and Ads intelligence. The plugin explicitly requests the complete LaunchFast OAuth scope set and uses Codex-managed localhost or 127.0.0.1 loopback callbacks during authorization.",
     "developerName": "Launch Fast",
     "category": "Productivity",
     "capabilities": [
@@ -35,8 +38,8 @@
     "termsOfServiceURL": "https://launchfastlegacyx.com/terms",
     "defaultPrompt": [
       "Research this Amazon keyword with LaunchFast",
-      "Run a full FBA opportunity report for this niche",
-      "Find supplier and PPC angles for this product"
+      "Review my Amazon sales, inventory, and finance performance",
+      "Audit my Amazon Ads and Brand Analytics performance"
     ],
     "brandColor": "#111111",
     "composerIcon": "./assets/icon.png",

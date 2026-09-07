@@ -50,6 +50,13 @@ After drafting: summarize handoff rules, identify ambiguity, flag unmapped requi
 ssf state set <change-dir> dp_3_result "approved: <summary>"
 ssf state set <change-dir> dp_3_timestamp $(date -u +%Y-%m-%dT%H:%M:%SZ)
 ```
+
+Advance the state after approval:
+```bash
+ssf state transition <change-dir> bridging
+ssf state transition <change-dir> approved-for-build
+```
+
 DP-3 is a hard gate — no implementation without this record.
 
 ## Stale Contract Detection

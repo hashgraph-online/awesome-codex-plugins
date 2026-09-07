@@ -7,7 +7,7 @@ description: Use when publishing this package to npm — a version release (npm 
 
 # npm-publish — token auth, and the calls the script cannot make
 
-> **The release itself is `/release` → `scripts/release.mjs`.** That script mechanizes the whole sequence: version surfaces, CHANGELOG gate, drift sweep, tag/registry collision, CI, leakage gate, publish, tag-after-publish, push to both remotes, live-site poll. This skill does not restate it.
+> **The release itself is `/release` → `scripts/release.mjs`.** That script mechanizes the whole sequence: version surfaces, CHANGELOG gate, drift sweep, tag/registry collision, CI, leakage gate, publish, the target-confirmed npm receipt boundary, tag-after-receipt, push to both remotes, GitHub-release handling, and live-site poll. This skill does not restate it.
 >
 > What lives here is the half a script cannot own: the **token setup**, the **auth failure diagnosis**, and the **judgement calls** — which version, what a leak means, when to abort rather than repair.
 
@@ -39,7 +39,7 @@ The script gates mechanics. These three are yours, and it will not make them for
 
 **2. What a leak means when one is found.** A hit from the leakage gate is not a pattern to silence. Decide which of two it is: a real leak (fix `package.json` `files`, re-pack, re-check) or genuine over-matching (fix `LEAKAGE_PATTERNS` in `scripts/release.mjs` **with a test**). There is no third option, and neither is "publish anyway and clean it up in the next version" — an npm publish is not revocable, and unpublishing burns the version number permanently. Operator handling detail: `docs/distribution/npm-publish-checklist.md` § 3.
 
-**3. When to abort instead of repair.** Abort — do not patch forward — when the failure is upstream of the publish: a red preflight row, a lagging `github` mirror, CI not green on the exact commit, a dead token. These are cheap to fix and re-run from the top. Repair-in-place is only ever appropriate *after* a verified publish, where the version is already immutable: a missing GitHub release or a lagging site deploy can be reconciled, because npm already has the correct artifact. The dividing line is whether the registry has accepted the tarball — before that point, restart; after it, reconcile. `commands/release.md` § Abort criteria is the operative list.
+**3. When to abort instead of repair.** Abort — do not patch forward — when the failure is upstream of the target-confirmed npm receipt: a red preflight row, a lagging `github` mirror, CI not green on the exact commit, a dead token, or a publish that did not issue the target receipt. These are cheap to fix and re-run from the top. Repair-in-place is only appropriate *after* that receipt, where the version is already immutable: registry propagation, a missing GitHub release, or a lagging site deploy can be reconciled because npm already has the correct artifact. When `--publish` reports **Post-publish reconciliation required**, **do not rerun `--publish`**; repair the listed state directly. `commands/release.md` § Abort criteria is the operative list.
 
 ## Failure-mode table
 
@@ -48,13 +48,13 @@ The script gates mechanics. These three are yours, and it will not make them for
 | `E403 ... Two-factor authentication or granular access token with bypass 2fa enabled is required` — no OTP prompt | Account has no 2FA enrolled AND token (if any) lacks Bypass-2FA | Create granular token with all four requirements above, or enroll 2FA |
 | Same E403 despite a fresh token | Token created without the Bypass-2FA checkbox, or Read-only, or package-scoped on a first publish | Re-create: RW + All packages + Bypass-2FA |
 | `npm whoami` silent or non-zero | Token expired, or `.env.local` missing | Re-create the token; do not proceed — the preflight fails this row on purpose |
-| `E404` on `npm view` after publish | Registry propagation (rare, seconds) or publish actually failed | Re-check the publish output for `+ <name>@<version>` |
+| `E404` on `npm view` after a target-confirmed publish receipt | Registry propagation (rare, seconds) | Let the script finish its tag/push/GitHub/site tail, then reconcile the registry result; do **not** rerun `--publish` |
 | `ENEEDAUTH` | No login/token at all | Token flow above, or `npm login` |
 | OTP prompt appears but flow is non-interactive (`!`-prefix, script) | No TTY for the prompt | Use the token flow, or a real terminal |
 
 ## Post-publish — the human half
 
-`--publish` verifies the registry and polls the live site itself, and prints the rest. What still needs a person:
+`--publish` attempts registry verification and polls the live site itself. A target-confirmed receipt plus a delayed registry result is a reconciliation outcome, not a failed publish or a retry instruction. What still needs a person:
 
 1. **Rotate/delete the token** at https://www.npmjs.com/settings/<user>/tokens. A token that ever transited a conversation, a screenshot, or any log is burned — rotate immediately.
 2. **pi.dev gallery**: indexing is asynchronous — check https://pi.dev/packages later; do not block on it.

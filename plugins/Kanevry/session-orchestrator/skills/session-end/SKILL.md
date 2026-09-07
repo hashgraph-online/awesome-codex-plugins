@@ -141,7 +141,8 @@ For every `SPIRAL` or `FAILED` agent surfaced in the walk above, ALSO append a c
 ```js
 import { appendWhatNotToRetryOnDisk } from '${PLUGIN_ROOT}/scripts/lib/state-md.mjs';
 
-// `parsed` = parseStateMd(STATE.md); session id from the `session:` frontmatter field.
+// `parsed` = parseStateMd(STATE.md); `session:` is an attribution/history label.
+// It records this entry's provenance only and never authorizes lock ownership.
 const sessionId = parsed.frontmatter.session ?? 'unknown-session';
 const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 
@@ -646,7 +647,7 @@ import { planTailPhases } from '${PLUGIN_ROOT}/scripts/lib/session-end/phase-ski
 const { plan, skippedReport } = await planTailPhases({
   repoRoot: process.cwd(),
   config,        // parsed Session Config (from $CONFIG)
-  sessionId,     // session.lock `session_id` / STATE.md `session:` field (or null)
+  sessionId,     // physical session.lock `session_id` only (or null), never STATE.md `session`
   platform,      // 'claude' | 'codex' | 'cursor'
 });
 // plan: Array<{ phase, run, reason, inputSource }>, already in ascending phase order.
@@ -733,20 +734,21 @@ After STATE.md is finalized with `status: completed` (Phase 3.4) and Recommendat
 
 ```javascript
 import { release } from 'scripts/lib/session-lock.mjs';
-// sessionId = the session identifier established by session-start Phase 1.2 acquire()
-//   and stored in .orchestrator/session.lock (session_id field); matches the
-//   STATE.md frontmatter `session:` field written during Pre-Wave 1b initialization.
-const result = release({ sessionId, repoRoot: process.cwd() });
+// sessionId is the physical raw value established by session-start Phase 1.2
+// and stored in .orchestrator/session.lock `session_id`. It is not STATE.md
+// `session:` or `semantic_session_id`, both of which are attribution labels.
+const rawSessionId = sessionId;
+const result = release({ sessionId: rawSessionId, repoRoot: process.cwd() });
 // result.ok is always true unless a filesystem error occurred.
 // result.deleted === true  → lock file removed successfully.
-// result.deleted === false → lock was absent or belonged to a different session_id (silent-OK).
+// result.deleted === false → lock was absent or had a different raw session_id.
 ```
 
-If `result.deleted === false`, log `info: session-lock not released — already absent or session_id mismatch (no action needed)` and continue. This is a non-error state.
+If `result.deleted === false`, log `info: session-lock not released — already absent or raw session_id mismatch` and continue. An active lock whose raw id differs is ambiguous: do **not** retry release with an equal `semantic_session_id`, STATE.md `session`, or owner proof. Leave that live lock for its TTL/Reaper lifecycle.
 
 If `result.ok === false` (rare filesystem error), log `⚠ session-lock: release failed — <result.reason>` and continue. Do NOT block the close for a lock-release failure — the TTL provides automatic expiry for the next session.
 
-The lock is released here — AFTER all STATE.md writes are complete and BEFORE the commit is staged in Phase 4.1. This ordering ensures a clean handover: the lock file is absent from the working tree when the commit is assembled, so it is not accidentally staged.
+The lock is released here — AFTER all STATE.md writes are complete and BEFORE the commit is staged in Phase 4.1. This ordering ensures a clean handover when the current raw owner releases it: the lock file is absent from the working tree when the commit is assembled, so it is not accidentally staged.
 
 ## Phase 4: Commit & Push
 
@@ -841,7 +843,12 @@ Auto-promoted sibling worktrees are created by `enterWorktree()` during the Phas
 
 > **Authoritative impl:** `scripts/lib/session-end/worktree-cleanup.mjs` — `detectAutoPromotedWorktree(repoRoot, sessionId, opts)`. Import and call; do NOT re-implement from this doc.
 >
-> Algorithm: parse `sessionId` via `parseSessionId()`; return `null` immediately for UUID-format sessions (never auto-promoted). Derive the MAIN checkout root from the first `worktree ` entry of `git worktree list --porcelain` (NOT `path.basename(repoRoot)` — the promoted worktree's basename IS the comparison target). If `repoRoot` resolves to the main checkout, return `null`. Otherwise compare `path.basename(repoRoot)` against `<main-repo-name>-<sessionId>`; on match return `{ wtPath, sessionId, branch }`, else `null`. All git invocation is via the injection-safe `opts.execFileFn` (default `execFileSync` with an args array — #577 HARDEN-001).
+> Two keys, tried in this order:
+>
+> 1. **Marker (primary).** Reads `<repoRoot>/.orchestrator/promoted-from.json` (`PROMOTION_MARKER_RELPATH`), written by `enterWorktree()` at creation time with `branch`, `source_session_id`, `source_root_hash`, `source_root_basename`, `promoted_at`. Accepted when the file parses, carries a non-empty `branch` + `source_session_id`, and the worktree's current branch (`git branch --show-current`) either matches the recorded one or cannot be read at all — an unverifiable branch never triggers auto-removal by itself, since that is gated separately by `isWorktreeClean()`, which fails closed on any git error. On match returns `{ wtPath, sessionId: marker.source_session_id, branch: marker.branch, source: 'marker' }`. This is the only key that survives the #1069 process boundary: since #1069 the session that RUNS in the promoted worktree is a brand-new session with its own id (see ADR-0013), so the current session's id appears in neither the worktree's directory name nor its branch — key 2 below can never match a #1069-promoted worktree.
+> 2. **Basename (legacy fallback).** Parse `sessionId` via `parseSessionId()`; return `null` immediately for UUID-format sessions (never auto-promoted). Derive the MAIN checkout root from the first `worktree ` entry of `git worktree list --porcelain` (NOT `path.basename(repoRoot)` — the promoted worktree's basename IS the comparison target). If `repoRoot` resolves to the main checkout, return `null`. Otherwise compare `path.basename(repoRoot)` against `<main-repo-name>-<sessionId>` (the CURRENT session id); on match return `{ wtPath, sessionId, branch: parsed.branch, source: 'basename' }` — still correct for worktrees created before the marker existed. Returns `null` on no match.
+>
+> All git invocation is via the injection-safe `opts.execFileFn` (default `execFileSync` with an args array — #577 HARDEN-001).
 
 ### Clean-check
 
@@ -853,7 +860,7 @@ A worktree is clean iff ALL three conditions hold:
 
 > **Authoritative impl:** `scripts/lib/session-end/worktree-cleanup.mjs` — `isWorktreeClean(wtPath, opts)`. Import and call; do NOT re-implement from this doc.
 >
-> Algorithm: run `git status --porcelain`; if non-empty → dirty (`false`). Else run `git status --short --branch`; if it matches `/\bahead\b/` → unpushed (`false`). Otherwise `true`. On ANY git error → `false` (conservative PSA-003 default: never auto-remove a worktree we could not verify). Git invocation is via the injection-safe `opts.execFileFn` (default `execFileSync` with an args array — #577 HARDEN-001).
+> Algorithm: run `git status --porcelain`; filter blank lines, then discount EXACTLY the one untracked line the promotion marker itself produces (`?? .orchestrator/promoted-from.json` — in a repo where `.orchestrator/` is only partly gitignored, or on a worktree whose branch predates the ignore line, the marker `enterWorktree()` writes would otherwise make every promoted worktree read "dirty"; a modified/staged/renamed/conflicted marker still counts as dirty). If any lines remain → dirty (`false`). Else run `git status --short --branch`; if it matches `/\bahead\b/` → unpushed (`false`). Otherwise `true`. On ANY git error → `false` (conservative PSA-003 default: never auto-remove a worktree we could not verify). Git invocation is via the injection-safe `opts.execFileFn` (default `execFileSync` with an args array — #577 HARDEN-001).
 
 ### Clean path: auto-remove + WARN (PRD §3 P3 Gherkin row 2)
 
@@ -890,15 +897,24 @@ if (!promoted) {
 When the worktree is dirty (uncommitted, untracked, OR unpushed), render this AUQ via the coordinator's `AskUserQuestion` tool. The AUQ is coordinator-only — per `.claude/rules/ask-via-tool.md` AUQ-004, dispatched agents cannot call AUQ. Calling `git worktree remove --force` without explicit operator confirmation would violate PSA-003 (destructive action safeguards) — the dirty state may contain another session's work-in-progress or unmerged commits.
 
 ```js
+// What is actually at stake, shown beside the options via `preview` (AUQ-006):
+// the operator must see WHICH changes he would lose before he authorises the delete.
+// Capped at 10 lines so the preview never outgrows the option list next to it.
+const dirtyDetail = execFileSync('git', ['-C', promoted.wtPath, 'status', '--short', '--branch'], { encoding: 'utf8' })
+  .trim()
+  .split('\n')
+  .slice(0, 10)
+  .join('\n');
+
 AskUserQuestion({
   questions: [{
     question: `Auto-promoted worktree at ${promoted.wtPath} has uncommitted/untracked/unpushed changes. How should I proceed?`,
-    header: "Worktree-Cleanup",
+    header: "Worktree",
     multiSelect: false,
     options: [
-      { label: "Behalten (Recommended)", description: "Keep the worktree as-is. No cleanup. Review and remove manually later." },
-      { label: "Löschen", description: "I confirm the changes are handled or expendable. Run 'git worktree remove --force' on the worktree." },
-      { label: "Manuell", description: "Exit /close. I will inspect the worktree before re-running /close." },
+      { label: "Behalten (Recommended)", description: "Keeps the worktree exactly as it is — nothing is deleted, and you can still remove it by hand later.", preview: `Stays on disk:\n${dirtyDetail}` },
+      { label: "Löschen", description: "I confirm the changes are handled or expendable. Run 'git worktree remove --force' on the worktree.", preview: `Deleted with the worktree:\n${dirtyDetail}` },
+      { label: "Manuell", description: "Exit /close. I will inspect the worktree before re-running /close.", preview: `You would inspect this first:\n${dirtyDetail}` },
     ],
   }],
 });
@@ -907,8 +923,8 @@ AskUserQuestion({
 **Codex CLI / Cursor IDE fallback** (numbered Markdown list):
 
 ```
-Worktree cleanup options:
-1. **Behalten (Recommended)** — Keep the worktree as-is. No cleanup. Review and remove manually later.
+Worktree cleanup options (the changes at stake are the `git status --short --branch` lines printed above):
+1. **Behalten (Recommended)** — Keeps the worktree exactly as it is; nothing is deleted, and you can still remove it by hand later.
 2. **Löschen** — I confirm the changes are handled or expendable. Run 'git worktree remove --force'.
 3. **Manuell** — Exit /close. I will inspect the worktree before re-running /close.
 Reply with the number of your choice.
@@ -1021,24 +1037,54 @@ if (sweep) {
 
      Fail-open: a `markOpenQuestionAnsweredOnDisk` failure is non-fatal — log a WARN and proceed with the close; the question simply stays `- [ ]` and roundtrips to the next session.
 
-3b. **Drain the issue-budget overflow — exactly ONE collector artefact (issue-budget):** when `.orchestrator/runtime/issue-budget.json` has a non-empty `overflow[]`, the session hit its `issue-budget.max-per-session` cap and every over-cap creation was PARKED rather than filed. Fold the whole list into a single artefact so nothing is silently dropped.
+3b. **Drain the issue-budget overflow — exactly ONE collector artefact (issue-budget):** when this session's budget file (`budgetStatePath(repoRoot, accountingSessionId)` → `.orchestrator/runtime/issue-budget/<hash>.json`, #1141) has a non-empty `overflow[]`, the session hit its `issue-budget.max-per-session` cap and every over-cap creation was PARKED rather than filed. Fold the whole list into a single artefact so nothing is silently dropped.
 
     **Ordering (load-bearing):** run this as the LAST issue-creating action of Phase 5 — after step 3, after "Discovery Issue Creation", after step 4 — and re-read the counter file at that moment. Those steps can themselves push new entries into `overflow[]`; draining early would leave them unfiled.
 
     ```js
-    import { readBudgetState, budgetStatePath } from '${PLUGIN_ROOT}/scripts/lib/issue-budget.mjs';
-    const state = readBudgetState(repoRoot, sessionId);   // { sessionId, count, exempt, overflow: [...] }
+    import { readFileSync } from 'node:fs';
+    import {
+      readBudgetState,
+      budgetStatePath,
+      resolveIssueBudgetSessionId,
+    } from '${PLUGIN_ROOT}/scripts/lib/issue-budget.mjs';
+
+    // `sessionId` is the physical raw lock/registry identity from session-start.
+    const rawSessionId = sessionId;
+    let currentSession = null;
+    try {
+      currentSession = JSON.parse(
+        readFileSync(`${repoRoot}/.orchestrator/current-session.json`, 'utf8'),
+      );
+    } catch { /* no verified semantic accounting bridge */ }
+    const accountingSessionId = resolveIssueBudgetSessionId(rawSessionId, currentSession);
+    const state = readBudgetState(repoRoot, accountingSessionId);
+    // { sessionId, count, exempt, overflow: [...] }
     ```
 
+    `accountingSessionId` may be semantic only after
+    `currentSession.session_id === rawSessionId`; this is budget accounting, not
+    lock/registry ownership. When that proof is absent it remains the raw id.
+    A host rotation that changes both raw and semantic values has no guaranteed
+    budget continuity.
+
     - **`issue-budget.overflow: collect-issue` (default)** — create exactly ONE issue:
-      - Title: `[Backlog-Sammel] <session-id>, <N> zurückgestellte Punkte`
+      - Title: `[Backlog-Sammel] <accountingSessionId>, <N> zurückgestellte Punkte`
       - Labels: `type::backlog`, `priority::low`
       - Body: a Markdown checklist with one `- [ ]` line per `overflow[]` entry (`title` when present, otherwise the truncated `command`, plus its `at` timestamp).
       - This collector issue is itself EXEMPT from the cap (`[Backlog-Sammel]` is in the exemption list in `scripts/lib/issue-budget.mjs`), so it always lands even at count == max.
-    - **`issue-budget.overflow: vault-note`** — create NO issue. Write one Markdown file `vault/00-inbox/<session-id>-backlog-sammel.md` (path relative to `vault-integration.vault-dir`) with valid vault frontmatter and the same checklist body.
+    - **`issue-budget.overflow: vault-note`** — create NO issue. Write one Markdown file `vault/00-inbox/<accountingSessionId>-backlog-sammel.md` (path relative to `vault-integration.vault-dir`) with valid vault frontmatter and the same checklist body.
     - After the artefact exists, reset `overflow` to `[]` in the counter file and record the collector issue ID / note path in the Phase 6 Final Report under `### Zurückgestellt (issue-budget)`.
     - **Never exempt-by-accident:** the cap never applied to `priority::critical`, the carryover class (`[Carryover]`, SPIRAL/FAILED, `type::carryover`), or `broken-window` closure issues, so nothing on the Phase 1.65 carry-list can ever appear in `overflow[]`. The promises at Phase 1.8 ("SPIRAL / FAILED agent carryover … non-deselectable") and the Critical Rule "ALWAYS create issues for unfinished PLANNED work" stay intact by construction.
     - Fail-open: a missing or malformed counter file means "no overflow" — log a WARN and continue the close.
+    - **Then reap stale counter files (#1151):** the per-session split (#1141) writes one file per accounting session and nothing ever deleted them, so `.orchestrator/runtime/issue-budget/` grew without bound in every working copy. After the drain, sweep files older than 14 days; THIS session's file is exempt regardless of age, and the call is best-effort (it never throws, so it can never abort the close).
+
+      ```js
+      import { reapStaleBudgetFiles } from '${PLUGIN_ROOT}/scripts/lib/issue-budget.mjs';
+
+      const { removed } = reapStaleBudgetFiles({ repoRoot, sessionId: accountingSessionId });
+      if (removed.length) console.log(`issue-budget: reaped ${removed.length} stale counter file(s) (> 14 d)`);
+      ```
 
 #### Discovery Issue Creation (if discovery ran in Phase 1.5)
 
@@ -1128,13 +1174,13 @@ Present to the user:
 | `learning-patterns.md` | Phases 3.5a + 3.6 extraction heuristics, confidence updates, passive decay, and JSONL write procedure |
 | `phase-3-6-tail.md` | Phase 3.6.x tail — full unabridged detail procedures for all six tail phases: 3.6.3 Memory-Proposals Collection (`collectProposals` + AUQ multiSelect + `promoteAndClear`, composing `writeApproved` + `clearProposalsJsonl` behind a mechanical write-before-clear guard, #828), 3.6.4 Expired-Learnings Sweep (Epic #723 B4), 3.6.5 Auto-Dream nudge (`shouldDispatchAutoDream`, #614), 3.6.6 Skill-Applied Judge (#645 L3 — `runSkillJudge`, coordinator-writes), 3.6.7 Auto-Dialectic nudge (`shouldDispatchAutoDialectic`, #614), 3.6.8 Reconciliation Rule Proposals (#696 FA3 — `runReconcile` + AUQ + `writeApprovedRules`). Loaded on demand by the SKILL.md skip-plan dispatcher (#724) — only phases with `run: true` in the `planTailPhases()` plan execute |
 | `scripts/lib/session-end/phase-skip.mjs` | Phase 3.6.x tail skip-plan aggregator (#724) — `planTailPhases({repoRoot, config, sessionId, platform})` → `{plan, skippedReport}`; side-effect-free (reconcile/sweep via dry-run — no writes), never-throws (per-phase probe error fail-opens to `run: true`); wraps the six existing signal helpers with config gates first, then input detection |
-| (inline) Phase 3.45 | Telemetry Flush (advisory, #844) — `flush()` from `scripts/lib/telemetry/sync.mjs` drains the host-local send-queue fire-and-forget; no config key (send-gate is `resolveConsent()` inside the module, fail-closed); skip when `persistence: false`; never-throw + ~3s-bounded, offline → bounded oldest-dropped queue, optional `Telemetry: sent/queued/gated` close-summary line, NEVER an error banner; runs late in the close after Phase 3.7 |
+| (inline) Phase 3.45 | Telemetry Flush (advisory, #844; MECHANICAL since #1138 — `hooks/on-session-end.mjs` calls `flush()` itself at the end of every teardown and emits an `orchestrator.telemetry.flush` breadcrumb, so this phase is the DESCRIPTION and the fallback, never the trigger; a coordinator that skips it changes nothing) — `flush()` from `scripts/lib/telemetry/sync.mjs` drains the host-local send-queue fire-and-forget; no config key (send-gate is `resolveConsent()` inside the module, fail-closed); skip when `persistence: false`; never-throw + ~3s-bounded, offline → bounded oldest-dropped queue, optional `Telemetry: sent/queued/gated` close-summary line, NEVER an error banner; runs late in the close after Phase 3.7 |
 | `session-metrics-write.md` | Phase 3.7 JSONL append, vault-mirror invocation, durable narrative mirror (`mirrorNarrative`, #675), and behavior matrix |
 | `phase-3-7a-recommendations.md` | Phase 3.7a full procedural body — computeV0Recommendation call, STATE.md field write, data source guarantee, error mode |
 | `phase-3-7a-recommendations.md` § 3.7b | Phase 3.7b full procedural body — `withDurableCommit` invocation for `sessions.jsonl` + `STATE.md` (#490 AC2), `enabled:false` local no-op, autopilot.jsonl exclusion note |
 | (inline) Phase 3.7c | Vault Board → Closed (#674) — `mirrorBoard({ explicitStatus: 'closed' })` transitions this repo's board row to `closed`; gated on `vault-integration.enabled`, generator-marked + idempotent, non-blocking, ordered after 3.7b and before 3.7d/3.4/3.8 |
 | (inline) Phase 3.7d | Session-Eval (opt-in — #803) — `node scripts/eval-session.mjs --json` scores the just-closed session; gated on `eval.enabled` + `eval.mode != off` (parsed by `scripts/lib/config/eval.mjs`), optional `eval-judge` dispatch + `writeEvalReport`, advisory/never-blocks-close, ordered after 3.7 (record must exist) and before 3.4/Phase 4 (record committed with the session). Full flow in `skills/eval/SKILL.md` |
-| (inline) Phase 3.8 | Session Lock Release — `release()` call, silent-OK on mismatch/absent, non-fatal on fs-error, ordering note (after STATE.md writes, before Phase 4 commit staging) |
+| (inline) Phase 3.8 | Session Lock Release — `release()` uses the physical raw `session_id`; raw mismatch/absent is non-fatal but never repaired with semantic labels or proof (live ambiguity remains for TTL/Reaper); fs-errors are non-fatal; runs after STATE.md writes and before Phase 4 commit staging |
 
 ## Anti-Patterns
 

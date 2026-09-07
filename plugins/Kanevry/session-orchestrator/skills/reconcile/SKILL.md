@@ -122,7 +122,38 @@ fi
 Resolve `$PLUGIN_ROOT` per `skills/_shared/config-reading.md` (the standard resolution chain:
 `$CLAUDE_PLUGIN_ROOT` → `$CODEX_PLUGIN_ROOT` → `$CURSOR_RULES_DIR` → common install locations).
 
-### 2.2 Invoke `runReconcile`
+### 2.2 Resolve the Effective Write-Targets
+
+`reconcile.targets` says WHERE approved rules land. Resolve it BEFORE surfacing
+the approval AUQ — the operator must never be asked to approve a write to a
+destination that cannot exist:
+
+```javascript
+import { resolveEffectiveTargets } from '$PLUGIN_ROOT/scripts/lib/reconcile/engine.mjs';
+
+const { targets, baselineRoot, dropped, reason } = resolveEffectiveTargets({
+  targets: CONFIG.reconcile?.targets,        // ['repo-local'] | ['baseline'] | both
+  baselineRoot: CONFIG['plan-baseline-path'], // already 3-tier-resolved by config.mjs
+});
+```
+
+| Target | Writes to | Root |
+|---|---|---|
+| `repo-local` (default) | `<repoRoot>/.claude/rules/<slug>.md` | `repoRoot` |
+| `baseline` (#1099) | `<baselineRoot>/proposals/<slug>.md` | `plan-baseline-path`, resolved `SO_BASELINE_PATH` env > `owner.yaml` `paths.baseline-path` > committed |
+
+`baseline` is DROPPED (with one stderr WARN, and `dropped: ['baseline']` in the
+return) when the root is unresolvable on all three tiers, is still the committed
+`OVERRIDE-IN-…` placeholder, or is not absolute. A dropped target means: do not
+surface its proposals in the AUQ at all. If `targets` comes back EMPTY, stop
+here and report the `reason` — there is nowhere to write.
+
+Writing to `baseline` is still advisory and AUQ-gated exactly like `repo-local`:
+files land under `proposals/` in the baseline checkout, nothing is committed
+there, and no branch is touched. The operator reviews and commits in that repo
+himself.
+
+### 2.3 Invoke `runReconcile`
 
 ```javascript
 import { runReconcile } from '$PLUGIN_ROOT/scripts/lib/reconcile/engine.mjs';
@@ -243,12 +274,12 @@ For each batch (proposals sliced into groups of 4):
 ```
 AskUserQuestion({
   questions: [{
-    question: "Which rule proposals should be written to .claude/rules/?  (batch K of N)",
-    header: "Reconcile — Approve Rule Proposals",
+    question: "Batch K of N — which rule proposals should be written into .claude/rules/?",
+    header: "Regeln",
     options: [
       {
         label: "<slug>.md (confidence: 0.72)",
-        description: "Learning: <learningKey> | Path: .claude/rules/<slug>.md | <first 100 chars of rendered content>"
+        description: "From learning <learningKey>. Becomes a file under .claude/rules/ — where this repo keeps its rules. Text: <first 100 chars of rendered content>"
       },
       ...up to 4 options per batch...
       {
@@ -282,11 +313,20 @@ const { written, archived, errors } = await writeApprovedRules({
   approved: approved,             // proposals the operator approved
   rejected: rejected_by_operator, // proposals the operator declined
   repoRoot,
+  baselineRoot,                   // from Phase 2.2; omit/undefined ⇒ baseline is a no-op
+  targets,                        // from Phase 2.2; omitted ⇒ ['repo-local']
   sessionId: currentSessionId,    // informational; from STATE.md or 'manual'
 });
 ```
 
 `writeApprovedRules` NEVER throws — per-item failures are collected in `errors[]`.
+
+`written` is a FILE count, not a proposal count: one proposal approved with both
+targets in effect writes two files and counts 2, while stamping the idempotency
+sidecar exactly once. A baseline root that does not exist on disk (the
+fresh-clone / CI case) skips that target with an `errors[]` entry — it is NEVER
+created, because a typo'd path that silently mints a directory tree looks
+exactly like a successful write.
 
 ### 6.2 Handle Errors
 

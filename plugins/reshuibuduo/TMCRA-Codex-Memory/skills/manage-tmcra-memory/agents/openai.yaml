@@ -1,0 +1,4 @@
+interface:
+  display_name: "TMCRA Memory"
+  short_description: "Recall, store, and verify TMCRA project memory"
+  default_prompt: "Use $manage-tmcra-memory to recall the relevant project context and verify any memory write."

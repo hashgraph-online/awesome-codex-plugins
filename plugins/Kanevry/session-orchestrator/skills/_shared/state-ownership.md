@@ -17,7 +17,7 @@ current-wave: <N>
 total-waves: <N>
 # Optional fields (schema-version 1, additive for backward-compat):
 updated: <ISO 8601 UTC>      # last write timestamp, touched by any writer
-session: <session-id>        # <branch>-<YYYY-MM-DD>-<mode>-<n> (semantic, since #573); legacy UUID-v4 also accepted by parseSessionId
+session: <session-label>     # attribution/history label; normally semantic since #573, legacy UUID-v4 remains readable; never a lock/registry ownership key
 session-start-ref: <sha>     # git ref at session start
 ---
 ```
@@ -25,7 +25,7 @@ session-start-ref: <sha>     # git ref at session start
 ### Required vs. optional fields
 
 - `schema-version`, `session-type`, `branch`, `issues`, `started_at`, `status`, `current-wave`, `total-waves` — **required** in every session-owned STATE.md.
-- `updated`, `session`, `session-start-ref` — **optional**. Added by #184. STATE.md files without these fields remain valid and should be treated as `updated: null` / `session: null`. Writers SHOULD populate these fields but readers MUST tolerate their absence. The `session` field's value format is `<branch>-<YYYY-MM-DD>-<mode>-<n>` since #573 (Epic #568 Parallel-Aware Sessions P2.2); pre-#573 files may contain a UUID-v4 — both formats are read via `parseSessionId()` from `scripts/lib/session-id.mjs` per PRD §3 P2 row 3 (backward-compat).
+- `updated`, `session`, `session-start-ref` — **optional**. Added by #184. STATE.md files without these fields remain valid and should be treated as `updated: null` / `session: null`. Writers SHOULD populate these fields but readers MUST tolerate their absence. `session` is an attribution/history label, normally `<branch>-<YYYY-MM-DD>-<mode>-<n>` since #573 (Epic #568 Parallel-Aware Sessions P2.2); pre-#573 files may contain a UUID-v4 — both formats are read via `parseSessionId()` from `scripts/lib/session-id.mjs` per PRD §3 P2 row 3 (backward-compat). Neither form grants lock or registry ownership.
 
 The `session-type: none` + `status: idle` combination is used only for bootstrap-scaffolded placeholder files (no active session).
 
@@ -79,6 +79,32 @@ A log of unresolved, user-facing questions surfaced by wave agents during a sess
 
 Helpers: `readOpenQuestions` (pure), `appendOpenQuestion` (pure), `markOpenQuestionAnswered` (pure), `appendOpenQuestionOnDisk` (lock-guarded write), `markOpenQuestionAnsweredOnDisk` (lock-guarded write) — all exported from `scripts/lib/state-md.mjs`.
 
+## Session Identity and Lock Ownership (#1085)
+
+This contract distinguishes a physical live-session key from labels that make a
+session intelligible to people and history readers. It does not add an identity
+layer.
+
+- **`session_id` is the only live ownership key.** It is the native raw identity
+  supplied by the active harness, or a generated UUID when no trustworthy raw
+  identity is available. Lock acquisition, registry membership, self-exclusion,
+  proof checks, and lock release use this physical key.
+- **`semantic_session_id` and STATE.md `session` are attribution/history
+  labels, never ownership.** They may describe the same work to a human, but
+  equality of either label cannot acquire, refresh, release, or reclaim a lock.
+  A legacy UUID in STATE.md remains readable only as historical data.
+- **Never bridge a raw mismatch with a label or a proof.** If the current raw
+  id and a live lock's raw id differ, ownership is ambiguous. Leave the live
+  lock visible and let its TTL/Reaper lifecycle resolve it; do not substitute a
+  semantic match, STATE.md `session` match, or owner-proof match.
+- **There is no `logical_session_id`.** A true cross-harness restart-continuity
+  contract requires a trusted native resume identifier and remains a follow-up.
+  In particular, a host rotation that changes both raw and semantic values has
+  no guaranteed continuity.
+
+The peer-discovery and issue-budget procedures below apply these rules at their
+narrow surfaces; neither creates a second ownership model.
+
 ## CCU-009 — Status = Index, Never History (#730/H6)
 
 > Adopted from an external-repo fleet-mining finding (2026-07-02): narrative
@@ -116,6 +142,20 @@ The Ownership Model above resolves *STATE.md* specifically, but the same discipl
 - **Coordinator-direct defer** — no agent in the wave touches the file at all; the coordinator applies the accumulated edits itself at the inter-wave checkpoint, after all agents report.
 
 This is the wave-plan-time analog of PSA-007 (subagents never race the shared git index) applied one layer up, to shared *files* rather than the git index — see [`../../.claude/rules/parallel-sessions.md`](../../.claude/rules/parallel-sessions.md) § PSA-007.
+
+### `wave-scope.json` Session Binding (#1123)
+
+The rule above deconflicts writers *inside one wave*. The same working copy is also shared across SESSIONS, and `<state-dir>/wave-scope.json` is the one control artefact that constrains writes rather than describing them. It lives in the working copy, not in the session — so before #1123 a manifest written by session A governed session B's every Edit. Measured 2026-08-22 (#1082): a Discovery wave's `allowedPaths: []` — prescribed for every Discovery wave — denied all writes of an unrelated parallel session, with a deny reason that could only tell it to fix a wave plan it does not own.
+
+**The manifest is SESSION-BOUND since #1123.** The coordinator that writes it names itself in two optional fields, `session` (raw `session_id`) and `semantic_session`, both from ONE `sessionAttribution(repoRoot)` call (`scripts/lib/events.mjs`) — see `skills/wave-executor/wave-loop.md` § Scope Manifest 1. `hooks/enforce-scope.mjs` Gate 3b classifies the manifest with `readOwnSessionIds()` + `classifyManifestSession()` (`scripts/lib/session-identity/own-session.mjs`):
+
+- **`foreign`** (ids present, none of them ours) → the gate ALLOWS the write and emits one `orchestrator.scope.foreign_session_ignored` event. A foreign manifest is somebody else's wave plan; it never had authority here, and the event keeps the skip counted rather than silent.
+- **`own`** → enforce, unchanged.
+- **`unknown`** — no id in the manifest (legacy, pre-#1123) or our own identity unresolvable → enforce, unchanged. Only what is PROVABLY foreign is treated as foreign; a guess would turn "cannot tell" into a silent enforcement-off.
+
+Two consequences for anyone touching this artefact. A stale manifest left by a crashed or finished PEER session no longer scopes this session out of its own writes — but a stale manifest of THIS session still does, so the § Scope Manifest lifecycle (delete `wave-scope.json` with `filescopes/` at session end) remains the operator's job. And an empty id is never an honest "unbound": `scripts/validate-wave-scope.mjs` (`validateSession()`) rejects `"session": ""` as an ERROR while an ABSENT key is only a warning, because an empty id matches nobody and would make every reader treat the manifest as foreign where the writer meant "binds everyone".
+
+Mechanism, disposition table and named limits: [`../../docs/scope-collision-guard.md`](../../docs/scope-collision-guard.md) § 2.3.
 
 ## Guards
 
@@ -174,8 +214,8 @@ The `.orchestrator/session.lock` file is written mechanically by `hooks/_lib/loc
 
 ```json
 {
-  "session_id":          "<UUID-v4 OR semantic-id>",
-  "semantic_session_id": "<branch>-<YYYY-MM-DD>-<mode>-<n>",
+  "session_id":          "<native-raw-id OR generated-UUID>",
+  "semantic_session_id": "<attribution-label>",
   "started_at":          "<ISO-8601 UTC>",
   "last_heartbeat":      "<ISO-8601 UTC>",
   "mode":                "deep|feature|housekeeping|session|...",
@@ -189,8 +229,8 @@ The `.orchestrator/session.lock` file is written mechanically by `hooks/_lib/loc
 
 | Field | Required since | Description |
 |---|---|---|
-| `session_id` | v1 | The session identifier (UUID-v4 on Claude Code, semantic on Codex/Cursor). |
-| `semantic_session_id` | v2 (Epic #583) | The semantic form (`<branch>-<YYYY-MM-DD>-<mode>-<n>`) **always present**, even when `session_id` is a UUID. Closes D4 gap: semantic-id branch was previously dead code on Claude Code (stdin always provides UUID). |
+| `session_id` | v1 | The physical live lock/registry ownership key: a native raw harness identity, or a generated UUID when no trustworthy raw identity exists. Never use a semantic label here. |
+| `semantic_session_id` | v2 (Epic #583) | An attribution/history label, normally `<branch>-<YYYY-MM-DD>-<mode>-<n>`, surfaced alongside the raw key. It never establishes lock or registry ownership, including when it equals STATE.md `session`. |
 | `started_at` | v1 | ISO-8601 timestamp when the lock was written. |
 | `last_heartbeat` | v2 (Epic #583) | ISO-8601 timestamp updated by the `SessionStart` hook and by `PostToolBatch`/`Stop` hooks. **Basis for liveness determination** — replaces PID-liveness (see below). |
 | `mode` | v1 | Session mode consulted by exclusivity-matrix. May be `"unknown"` in the provisional lock written by the hook before Session Config + AUQ have settled. |
@@ -211,10 +251,23 @@ This replaces the v1 PID-liveness check (`process.kill(pid, 0)`) which was funda
 Despite the v2 liveness rule above existing since Epic #583, `acquire()`'s conflict classifier (`scripts/lib/session-lock.mjs`, the `classifyExisting()` closure) and `checkStale()` still let `pidAlive`/TTL-age act as an independent veto — which let an external `/close` observe the lock's recorded `pid` (the ephemeral hook subprocess / `node -e acquire()` PID, routinely dead within <1s) as dead and misclassify a live, actively-heartbeating session as `stale-pid-dead`, hijacking it mid-wave. Fixed in #744:
 
 - `classifyExisting()` now checks `isLockLive(existing)` **first** and unconditionally returns `{ reason: 'active' }` when true — a dead recorded `pid` can never veto a fresh `last_heartbeat`.
-- Only once `isLockLive()` is false does `pidAlive` pick the stale variant: `stale-pid-dead` when `pidAlive === false` (same-host, confirmed dead), else `stale-pid-alive` — which also covers `pidAlive === null` (cross-host locks, `host !== os.hostname()`, never a confirmable dead PID, so cross-host locks can never land on `stale-pid-dead`).
-- `checkStale()` surfaces the same `isLockLive()` result as an additive `isLive` field alongside the legacy `ttlExpired`/`pidAlive` signals, so recovery-flow diagnostics can observe when the two diverge.
+- Only once `isLockLive()` is false is the lock classified stale — see the #1137 follow-up below for the single reason it now returns.
+- `checkStale()` surfaces the same `isLockLive()` result as an additive `isLive` field alongside the legacy `ttlExpired` signal, so recovery-flow diagnostics can observe when the two diverge.
 
 Net: `pid` (field notes above) stays forensic-only; `last_heartbeat` freshness is the sole determinant of "is this session still active" everywhere in `session-lock.mjs`.
+
+### #1137 — one stale reason, `stale-heartbeat`
+
+#744 left the *stale* half still keyed on `pidAlive`: `stale-pid-dead` when the recorded pid was confirmed dead, `stale-pid-alive` otherwise. Measured 2026-08-23 across the fleet's live locks: **7 of 7 recorded pids were dead**, including the lock of the session that was heartbeating at that very moment. The pid on a lock is the `node -e` / hook subprocess that wrote it, and it exits within about a second of genesis. Two consequences, both live defects:
+
+- `stale-pid-alive` was **structurally unreachable** same-host — nothing could produce it except a pid-number collision.
+- The Phase-1.2 recovery AUQ rendered "pid=… is confirmed dead" for **every** same-host stale lock, presenting a measurement it had not made as the operator's reason to reclaim.
+
+The fix removes the question rather than re-answering it. `classifyExisting()` returns exactly one stale reason, `stale-heartbeat`, carrying `ageHours` (age from `started_at`, unchanged) and `heartbeatAgeMinutes` (age from `last_heartbeat`) — the quantity the liveness rule actually thresholds against, so a recovery prompt states the measured heartbeat age instead of a liveness verdict. `checkStale()` gains the same `heartbeatAgeMinutes` field.
+
+**#1151 follow-up — the `pidAlive` stub is GONE.** #1137 left `checkStale()` returning `pidAlive: null` as a shape-compatible placeholder. It was removed outright: measured @ `f0766e1`, zero production readers repo-wide, so the field only invited a reader to treat `null` as "unknown liveness" — a question this code no longer asks. `checkStale()` now returns `isLive` (the verdict) and `heartbeatAgeMinutes` (the magnitude behind it); anything reasoning about a lock's liveness reads those two. `isPidAliveOnHost` stays exported for `file-lock.mjs` and `lock-reaper.mjs`, where the pid IS the process being asked about.
+
+`isPidAliveOnHost` remains exported from `session-lock.mjs` and is unaffected — `file-lock.mjs` and `lock-reaper.mjs` are legitimate callers, because there the pid IS the process being asked about.
 
 ### Schema v1 → v2 backward-compat
 

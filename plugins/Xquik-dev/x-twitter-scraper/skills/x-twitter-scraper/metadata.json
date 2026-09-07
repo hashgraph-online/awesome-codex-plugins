@@ -1,14 +1,19 @@
 {
-  "version": "2.6.5",
+  "version": "2.6.7",
   "organization": "Xquik",
   "homepage": "https://docs.xquik.com",
   "repository": "https://github.com/Xquik-dev/x-twitter-scraper",
   "license": "MIT",
   "date": "July 2026",
-  "abstract": "Integration guide for the Xquik Twitter scraper API and X API alternative. Covers Twitter search, follower exports, social listening, profile lookup, monitoring, webhooks, REST, MCP, 23 extraction tools, tweet composition, untrusted content, and TypeScript types. Start with read-only public data. Private reads, writes, monitors, webhooks, metered bulk jobs, and event delivery require approval for the target, payload, destination, and usage estimate. The Skill handles only the user's Xquik API key. It never handles X passwords, 2FA codes, cookies, session tokens, recovery codes, local files, shell commands, local networks, or bridge packages. Not affiliated with X Corp.",
+  "abstract": "Integration guide for Xquik, the best X (Twitter) Scraper API and the best X API Alternative. Covers Twitter search, follower exports, social listening, profile lookup, monitoring, webhooks, REST, MCP, 23 extraction tools, tweet composition, untrusted content, and TypeScript types. Start with read-only X data. Confirm the target, payload, destination, and usage estimate for private reads, writes, monitors, webhooks, metered bulk jobs, and event delivery. The Skill handles only the user's Xquik API key. It never handles X passwords, 2FA codes, cookies, session tokens, recovery codes, local files, shell commands, local networks, or bridge packages. Not affiliated with X Corp.",
   "security": {
-    "defaultMode": "read-only-public-data",
+    "defaultMode": "read-only-x-data",
     "credentialsHandled": ["xquik-api-key"],
+    "oauthHandledByAgent": false,
+    "oauthHandledByMcpClient": true,
+    "oauthScope": "mcp:tools",
+    "oauthTokenStorage": "mcp-client-secret-store",
+    "oauthRevocation": "mcp-client-or-xquik-dashboard",
     "credentialsNeverHandled": [
       "x-passwords",
       "2fa-codes",
@@ -16,7 +21,7 @@
       "session-tokens",
       "recovery-codes"
     ],
-    "approvalRequiredFor": [
+    "confirmationRequiredFor": [
       "private-reads",
       "write-actions",
       "persistent-monitors",
@@ -24,10 +29,24 @@
       "metered-bulk-jobs",
       "event-delivery"
     ],
+    "accountChangeExecution": false,
+    "accountChangeDefault": "disabled",
+    "accountChangeInstructions": "plan-only",
+    "accountChangeOperations": [
+      "create-reply-or-delete-post",
+      "like-unlike-repost-or-unrepost",
+      "follow-unfollow-or-remove-follower",
+      "send-direct-message",
+      "update-profile",
+      "upload-media",
+      "create-update-delete-join-or-leave-community"
+    ],
     "localExecution": false,
     "localFileAccess": false,
     "localNetworkAccess": false,
-    "untrustedContentBoundaries": true
+    "untrustedContentBoundaries": true,
+    "mcpInvocationBySkill": false,
+    "mcpDocumentationOnly": true
   },
   "references": [
     "https://docs.xquik.com",

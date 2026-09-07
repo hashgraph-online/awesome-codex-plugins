@@ -1,8 +1,8 @@
 # Xquik REST API endpoints: radar
 
-### List radar items
+## List radar items
 
-```
+```http
 GET /radar
 ```
 
@@ -18,6 +18,21 @@ Use these query parameters:
 | `limit` | number | Items per page from 1-100; defaults to 50 |
 | `hours` | number | Look-back window from 1-72 hours; defaults to 6 |
 | `region` | string | `US`, `GB`, `TR`, `ES`, `DE`, `FR`, `JP`, `IN`, `BR`, `CA`, `MX`, or `global`; defaults to `global` |
+
+Pass `nextCursor` as `after` for the next page:
+
+```javascript
+const originalQuery = new URLSearchParams({
+  source: "hacker_news",
+  category: "tech",
+  limit: "50",
+  hours: "6",
+  region: "global",
+});
+const query = new URLSearchParams(originalQuery);
+query.set("after", nextCursor);
+const nextPath = `/radar?${query}`;
+```
 
 The API returns:
 ```json

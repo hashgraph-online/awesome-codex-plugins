@@ -78,6 +78,38 @@
       "route_message": "This is an INSTALLED skill copy (overwritten on install, or symlinked through to the factory checkout) — editing it is lost work. Edit skills/<name>/ in the source repo instead.",
       "rationale": "Registry twin of the standalone installed-skill-edit-guard: matches tool_input.file_path ONLY (prose that merely mentions claude/skills lands in tool_input.content and can never fire). Subsumes the standalone guard for dispatcher users; the standalone script remains for hosts wanting only that one guard.",
       "value_proof": "declining fire-attempt rate (token_class core.skills:edit-installed-copy); 2 real fires already recorded by the standalone guard's telemetry; retire on false-positive evidence"
+    },
+    {
+      "id": "core.verdicts:hand-edit",
+      "predicate_class": "pure",
+      "mode": "deny",
+      "matchers": [
+        {
+          "tools": [
+            "Bash"
+          ],
+          "field": "command",
+          "pattern": "(>>?[[:space:]]*[^[:space:];&|]*\\.agents/ao/verdicts/)|(tee[[:space:]]+(-[^[:space:];&|]*[[:space:]]+)*[^[:space:];&|]*\\.agents/ao/verdicts/)|((^|[;&|][[:space:]]*)(cp|rsync|mv)[[:space:]][^;&|]*[[:space:]][^[:space:];&|]*\\.agents/ao/verdicts/[^[:space:];&|]*[[:space:]]*([;&|]|$))"
+        },
+        {
+          "tools": [
+            "Bash"
+          ],
+          "field": "command",
+          "pattern": "((^|[;&|][[:space:]]*)sed[[:space:]]+([^;&|]*[[:space:]])?-i[^[:space:]]*[[:space:]][^;&|]*\\.agents/ao/verdicts/)|((^|[;&|][[:space:]]*)perl[[:space:]]+([^;&|]*[[:space:]])?-(p|n)?i[^[:space:]]*[[:space:]][^;&|]*\\.agents/ao/verdicts/)|((^|[;&|][[:space:]]*)(rm|unlink|shred)[[:space:]][^;&|]*\\.agents/ao/verdicts/)"
+        },
+        {
+          "tools": [
+            "Edit",
+            "Write"
+          ],
+          "field": "file_path",
+          "pattern": "(^|/)\\.agents/ao/verdicts/"
+        }
+      ],
+      "route_message": ".agents/ao/verdicts/ holds content-addressed evidence — the filename IS the SHA-256 of the file's own canonical content, and only the validate flow writes it. A hand edit breaks digest identity: the name keeps pointing at bytes that no longer hash to it, so every consumer reads a verdict that cannot verify. Don't patch the artifact — re-run validation and let it persist a fresh one: python3 skills/validate/scripts/validate.py store-verdict --draft <draft.json> --intent-source <intent> --subject-manifest <manifest.json> --scope-result <PASS|FAIL|NOT_PROVEN>",
+      "rationale": "The first policy guarding the PRODUCT's invariant rather than this repo's own artifacts. CLAUDE.md 'Validate once, fresh' and docs/architecture/rpi-traversal.md make a verdict.v2 artifact digest-named (sha256/<digest>.json), so hand-editing one is silent evidence forgery, not a typo fix. Sibling craft of core.provenance:ledger-hand-append. Destination position is enforced on cp/rsync/mv (the verdicts path must be the LAST token of the segment), so copying a verdict OUT for inspection never fires, and reads (cat/ls/jq with no redirect ONTO the store) never match. .agents/ao/intents/ stays deliberately out of scope: this policy guards one invariant and ships the evidence for that one; widening it needs its own fire evidence. In-place editors (sed -i, perl -pi/-ni, with or without a backup suffix) and deleters (rm, unlink, shred) are matched as flag-tokens so reads never fire (sed 's/-input//' <verdict> stays silent — bats-proven both directions). Remaining disclosed gap: the noclobber override redirect (>|), which needs its own shaping.",
+      "value_proof": "declining fire-attempt rate in guardrail telemetry (token_class core.verdicts:hand-edit); retire on false-positive evidence"
     }
   ]
 }

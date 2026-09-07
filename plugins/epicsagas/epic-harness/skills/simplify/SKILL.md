@@ -1,16 +1,15 @@
 ---
 name: simplify
 dimension: context_assembly
-description: "Code simplification for high-complexity files. Targets deep nesting, copy-paste patterns, god functions, and files over 200 lines."
+description: "Code simplification for high-complexity files. Targets deep nesting, copy-paste patterns, and god functions."
 ---
 
 # Simplify — Code Simplification
 
 ## When to Trigger
-- File exceeds 200 lines
-- Function exceeds 40 lines
-- Deeply nested code (3+ levels)
-- Copy-pasted blocks detected
+- File exceeds 500 lines
+- Function exceeds 40 lines or nesting exceeds 3 levels of control flow
+- Repeated copy-paste blocks (same shape, 2+ sites)
 - "This is getting hard to follow" feeling
 
 ## Process

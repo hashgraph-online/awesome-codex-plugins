@@ -206,7 +206,11 @@ const modeSelector = async () => {
   // Each iteration rebuilds signals from current disk state. STATE.md will be
   // freshly idle-reset by the previous /close, sessions.jsonl will have the
   // new tail entry, etc. This is the contract: live signals every iteration.
-  const signals = await buildLiveSignals({ backlogLimit: 50 });
+  // `repoRoot` is passed explicitly (#1071) rather than left to the helper's
+  // cwd default. Do NOT hand-write a `backlogLimit` here — the window default
+  // lives once, in backlog-scan.mjs (`DEFAULT_BACKLOG_LIMIT`); see
+  // skills/session-start/phase-7-5-mode-selector.md for the same contract.
+  const signals = await buildLiveSignals({ repoRoot: process.cwd() });
   return selectMode(signals);
 };
 

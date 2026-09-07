@@ -56,6 +56,9 @@ TDD Route:
 - Mode: off | auto
 - Decision: strict | light | skipped
 - Strict authority: explicit user/project request | recorded auto decision | not applicable
+- Strict signals:
+- Light eligibility:
+- TDD-fit exception:
 - Test posture: diagnostic reproduction | post-change regression | strict RED test
 - Reason:
 - Verification:
@@ -63,8 +66,16 @@ TDD Route:
 
 In `off`, record `Decision: skipped` unless an explicit user/project strict
 request overrides it. The record makes the boundary reviewable; it does not
-load `test-driven-development`. An approved plan, bug label, architecture risk,
-contract risk, or shared-module label is not strict authority.
+load `test-driven-development`. An approved plan or a risk label alone is not
+strict authority; matching risk is a signal that requires this owner to record
+`recorded auto decision` as the authority.
+
+In `auto`, select `strict` when any behavior, bugfix, shared/core, contract,
+persistence, permission, migration, producer/consumer, or meaningful
+regression signal applies. Select `light` only when tiny, low-risk,
+single-owner, no behavior change or strict signal, and an obvious focused check
+all apply. Absence of an explicit user TDD request is never evidence for
+`light`. Unknown risk returns to requirement, debugging, or plan review.
 
 Only `Decision: strict` with stated strict authority may prescribe `Write
 failing test`, `Verify RED`, `GREEN`, or `REFACTOR` as task steps. Otherwise,

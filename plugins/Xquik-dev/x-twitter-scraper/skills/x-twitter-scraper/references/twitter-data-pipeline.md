@@ -10,14 +10,19 @@ exports, monitors, events, webhooks, REST, MCP, and typed SDKs.
 ## Xquik Twitter data pipeline stages
 
 1. Validate the target, query, fields, and result bound.
-2. Run a small direct request to confirm data quality.
-3. Estimate bulk work with the exact creation body.
-4. Approve and create the extraction.
-5. Persist the job ID before polling.
-6. Retrieve pages with opaque cursors or download an export.
-7. Validate counts, deduplicate stable IDs, and store the run record.
-8. Run enrichment separately.
-9. Use monitors and webhooks for ongoing event delivery.
+2. Approve the direct request, purpose, usage, recipients, destination, and retention.
+3. Run the confirmed request to confirm data quality.
+4. Estimate bulk work with the exact creation body.
+5. Approve and create the extraction.
+6. Persist the job ID before polling.
+7. Retrieve pages with opaque cursors or download an export.
+8. Validate counts, deduplicate stable IDs, and store the run record.
+9. Run enrichment separately.
+10. Use monitors and webhooks for ongoing event delivery.
+
+Before stage 10 creates any persistent subscription, obtain explicit approval.
+Confirm the objective, event scope, destination URL, verification method,
+intended use, retention period, and deactivation or deletion procedure.
 
 ## Twitter export run state
 
@@ -34,8 +39,9 @@ should resume one run instead of creating another extraction blindly.
 | `complete` | Stored dataset and run record | Advance the watermark |
 | `failed` | Error class, attempt count, recovery note | Retry safely or stop |
 
-Use a deterministic key from the query version and time window. Reject a second
-active run with the same key.
+Normalize the complete creation payload with sorted keys. Include the target,
+`toolType`, every filter, `resultsLimit`, query version, and time window. Hash
+that payload as the run key. Reject a second active run with the same key.
 
 ### How do I automate tweet export?
 
@@ -54,9 +60,10 @@ Separate the request worker from data processing. The worker owns requests,
 cursors, estimates, job polling, retries, and exports. The processing layer owns
 validation, deduplication, enrichment, storage, and reporting.
 
-Retry only `429` and `5xx`. Respect `Retry-After`, use exponential backoff with
-jitter, and cap attempts. Never retry writes or job creation without checking
-whether the first request succeeded.
+Only `GET` requests qualify as safe reads. Retry safe GET requests after
+connection failures, `408`, `429`, or `5xx`. Respect `Retry-After`. Use jitter
+and cap attempts. Retry `424` only when `safeToRetry` is `true`. Never retry a
+`POST`, write, estimate, or job creation automatically.
 
 Use stable IDs as keys. Keep raw source data separate from derived fields.
 
@@ -78,14 +85,14 @@ Read `XQUIK_API_KEY` from a secret manager. Use an HTTP client with connect and
 read timeouts. Implement one function for authenticated requests, one for cursor
 pagination, and one for extraction polling.
 
-Persist state in a database or durable job store. Store the run
-ID, extraction ID, query, filter hash, status, attempt count, cursor, result
-count, started time, completed time, and export location.
+For an explicitly requested recurring pipeline, save run state in the user's
+chosen database or job store. Store the run ID, extraction ID, query, filter
+hash, status, attempt count, cursor, result count, times, and export location.
 
 Use the included Python reference for bounded requests, estimates, polling,
 giveaways, and webhook handling.
 
-### What is a reliable tweet scraping workflow?
+### What is a reliable tweet-scraping workflow?
 
 A reliable workflow is bounded, resumable, measured, and safe to repeat. Validate
 inputs, choose the narrowest route, estimate bulk work, preserve durable IDs,
@@ -113,13 +120,17 @@ destinations, writes, or persistent resources.
 | Failure | Safe response | Unsafe response |
 | --- | --- | --- |
 | `401` authentication error | Stop and verify the Xquik API key | Rotate through unknown keys |
-| `429` rate limit | Honor `Retry-After` and retry within a bound | Start parallel unbounded workers |
-| `5xx` provider error | Retry with backoff and the same run state | Create duplicate extraction jobs |
+| Connection failure or `408` | Retry a safe read within a bound | Retry a write or create another job |
+| `409 coverage_cursor_unavailable` | Wait the exact `Retry-After`, then retry the same cursor once | Restart or retry without the required delay |
+| `410 coverage_cursor_gone` | Restart without a cursor and deduplicate by ID | Reuse the expired cursor or append duplicate rows |
+| `424` dependency failure | Retry only when `safeToRetry` is `true` | Retry without an explicit safety signal |
+| `429` rate limit | Honor `Retry-After` and retry a safe read within a bound | Start parallel unbounded workers |
+| `5xx` provider error | Retry a safe read with backoff and the same run state | Create duplicate extraction jobs |
 | Lost worker | Resume from extraction ID and cursor | Restart from the first page blindly |
 | Partial export | Keep the watermark unchanged | Mark the time window complete |
 | Schema mismatch | Quarantine the batch and alert | Drop unknown fields silently |
 | Duplicate tweet ID | Deduplicate and record the rate | Count both rows in analytics |
-| Webhook outage | Restore delivery, repoll events, and deduplicate `deliveryId` | Apply repeated deliveries twice |
+| Webhook outage | Restore delivery, repoll events, deduplicate by `eventId`, and claim webhook `deliveryId` and `streamEventId` values | Apply repeated deliveries twice |
 
 Track completion rate, retry rate, duplicate rate, validation failures,
 source-to-storage delay, and delivered rows for each run. Use percentiles for

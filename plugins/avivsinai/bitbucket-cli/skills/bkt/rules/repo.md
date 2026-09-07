@@ -306,6 +306,7 @@ bkt repo list [flags]
 ## bkt repo view
 
 Display details for a repository, including its name, web URL, and clone URLs.
+On Data Center, output also includes whether the repository is archived.
 
 On Data Center, the project key and repository slug are resolved from the active
 context or overridden with --project and --repo. On Cloud, the workspace and

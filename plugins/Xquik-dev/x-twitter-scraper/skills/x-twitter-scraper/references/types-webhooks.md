@@ -32,7 +32,7 @@ interface Delivery {
   deliveredAt?: string;
 }
 
-interface WebhookPayload {
+interface ProductionWebhookPayload {
   schemaVersion: 1;
   streamEventId: string;
   deliveryId: string;
@@ -42,5 +42,13 @@ interface WebhookPayload {
   occurredAt: string;
   data: Record<string, unknown>;
 }
+
+interface WebhookTestPayload {
+  eventType: "webhook.test";
+  data: { message: string };
+  timestamp: string;
+}
+
+type WebhookPayload = ProductionWebhookPayload | WebhookTestPayload;
 
 ```

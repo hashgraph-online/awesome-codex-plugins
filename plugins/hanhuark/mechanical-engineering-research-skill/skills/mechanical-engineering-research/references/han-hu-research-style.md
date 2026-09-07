@@ -1,6 +1,6 @@
 # Han Hu Research-Writing Style
 
-Use this reference only when the user explicitly asks to match Han Hu's established research-writing style. Apply these preferences after the domain and integrity checks in the main skill.
+Use this reference for manuscripts authored or supervised by Han Hu and when the user explicitly asks to match Han Hu's established research-writing style. Apply these preferences after the domain and integrity checks in the main skill. When a private style-calibration corpus is available, also use [han-hu-style-calibration-protocol.md](han-hu-style-calibration-protocol.md); its evidence labels control which exemplars may be treated as accepted-author text.
 
 ## Stable Style Primitives
 

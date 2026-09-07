@@ -1,6 +1,6 @@
 {
   "name": "agent-deck",
-  "version": "1.6.3",
+  "version": "1.7.0",
   "description": "Agent Deck — decks of tools, keys, and self-improving playbooks",
   "private": true,
   "workspaces": [
@@ -55,5 +55,9 @@
   "bugs": {
     "url": "https://github.com/not-so-fat/agent_deck/issues"
   },
-  "homepage": "https://github.com/not-so-fat/agent_deck#readme"
+  "homepage": "https://github.com/not-so-fat/agent_deck#readme",
+  "overrides": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  }
 }

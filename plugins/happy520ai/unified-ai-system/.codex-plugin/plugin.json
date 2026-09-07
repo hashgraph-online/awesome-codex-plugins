@@ -1,6 +1,6 @@
 {
   "name": "unified-ai-system",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Connect Codex to a self-hosted AI gateway with provider-free prompt enhancement and twelve governed MCP tools.",
   "author": {
     "name": "happy520ai",

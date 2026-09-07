@@ -623,9 +623,14 @@ Phase 6. The extension is not done until the Phase 6 gate passes.
       - **Match found:** link the issue in the README and ask the user
         to 👍 it.
       - **No match:** write a complete, copy-paste-ready draft inline —
-        title, description, relevant context — then ask: "Want me to
-        file this, or will you copy it?" If filing, use the repo's
-        existing issue templates and open the body with:
+        title, description, relevant context. Keep it short: a title,
+        a few sentences on the gap, and the smallest reproduction that
+        shows it. No boilerplate sections, no restated background the
+        issue tracker already has. Then ask: "Want me to file this, or
+        will you copy it?" Before anything is filed, tell the user to
+        read the draft themselves and edit it — the user owns what
+        lands on the tracker. If filing, use the repo's existing issue
+        templates and open the body with:
         > *Surfaced by the VillageSQL Extension Builder skill while
         > building `<extension-name>`.*
 
@@ -639,9 +644,12 @@ Phase 6. The extension is not done until the Phase 6 gate passes.
    **Feature** issue draft for
    [villagesql-server](https://github.com/villagesql/villagesql-server/issues)
    announcing the extension — include title, description, what it does,
-   and a link to the repo. Then ask the user: "Want me to file this, or
-   will you copy it?" VillageSQL uses these to consider adding community
-   extensions to the website. Suggested title:
+   and a link to the repo. Keep it short: a few sentences, not a page.
+   Then ask the user: "Want me to file this, or will you copy it?"
+   Before anything is filed, tell the user to read the draft themselves
+   and edit it — the user owns what lands on the tracker. VillageSQL
+   uses these to consider adding community extensions to the website.
+   Suggested title:
    `[Community Extension] <extension-name>`. If the agent files it, the
    body must open with:
    > *Filed by the VillageSQL Extension Builder skill.*

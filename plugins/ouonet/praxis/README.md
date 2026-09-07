@@ -228,16 +228,16 @@ npx @ouonet/praxis uninstall --host codex --scope project
 
 | Scope | Description | Typical Use Case |
 | ----- | ----------- | ---------------- |
-| `project` | **Project scope (Git-tracked)**: Configures project manifests (`opencode.json`, `.agents/`, `package.json`, etc.) so that Praxis configurations are committed to version control and shared across all team members cloning the repo. (Default inside a repository). | Team repository shared discipline |
+| `project` | **Project scope (Git-tracked)**: Configures project manifests (`opencode.json`, `.agents/`, `package.json`, etc.) so that Praxis configurations are committed to version control and shared across all team members cloning the repo. | Team repository shared discipline |
 | `local` | **Local scope**: Installs directly to local workspace directory (`.claude/plugins/`, `.codex/plugins/`, `.opencode/`, `.pi/skills/`, `.omp/skills/`, etc.) without modifying shared repo manifests. | Developer-local workspace testing without committing |
-| `user` (or `global`) | **User scope**: Installs globally in the user's home directory (`~/.claude/`, `~/.codex/`, `~/.gemini/config/`, `~/.config/opencode/`, `~/.pi/`, `~/.omp/`, `~/.agents/`, `~/.grok/`). (Default when run in home directory). | Global availability across all local projects |
+| `user` (or `global`) | **User scope**: Installs globally in the user's home directory (`~/.claude/`, `~/.codex/`, `~/.gemini/config/`, `~/.config/opencode/`, `~/.pi/`, `~/.omp/`, `~/.agents/`, `~/.grok/`). (Default across all commands and directories). | Global availability across all local projects |
 
 #### CLI Options & Flags
 
 | Flag | Description | Default |
 | ---- | ----------- | ------- |
 | `--host, -H <name>` | Target agent: `claude`, `codex`, `opencode`, `copilot`, `antigravity` (`agy`), `pi`, `omp`, `qoder`, `grok`, `agents`, `all` | `all` |
-| `--scope, -s <scope>` | Target installation scope: `project`, `local`, or `user` / `global` | `project` (in repo) / `user` (in home) |
+| `--scope, -s <scope>` | Target installation scope: `user` / `global`, `project`, or `local` | `user` |
 | `--ref, -r <ref>` | Git branch, tag, or commit to install/pin (e.g. `--ref single-module`) | latest `main` |
 | `--dry-run` | Preview actions and file paths without writing files or running commands | `false` |
 | `--force, -f` | Overwrite existing configurations or files | `false` |

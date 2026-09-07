@@ -1,0 +1,13 @@
+filters:
+  and:
+    - 'type == "decision"'
+    - 'status == "accepted"'
+views:
+  - type: table
+    name: Active decisions
+    order:
+      - file.name
+      - project_id
+      - updated
+      - review_after
+      - owner

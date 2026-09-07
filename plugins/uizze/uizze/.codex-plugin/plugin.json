@@ -1,7 +1,7 @@
 {
   "name": "uizze",
-  "version": "1.2.11",
-  "description": "Stop AI coding agents from shipping generic UI with a free anti-ui-slop Skill, a UI Slop Gate, and optional UIZZE research across 800,000+ real web and iOS screens.",
+  "version": "1.2.14",
+  "description": "Build product-specific UI with the free anti-ui-slop skill and optional focused UIZZE references.",
   "author": {
     "name": "UIZZE",
     "email": "business@uizze.com",
@@ -18,16 +18,10 @@
     "agent-skill"
   ],
   "skills": "./skills/",
-  "mcpServers": {
-    "uizze-preview": {
-      "type": "http",
-      "url": "https://uizze.com/mcp/preview"
-    }
-  },
   "interface": {
     "displayName": "UIZZE",
     "shortDescription": "Stop UI slop before it ships",
-    "longDescription": "Stop AI coding agents from shipping generic UI. Start with the free anti-ui-slop Skill and UI Slop Gate; add optional UIZZE research across 800,000+ real web and iOS screens when it materially improves the work.",
+    "longDescription": "Use the product's existing system first, then retrieve a few focused UIZZE references only when they answer a concrete UI question.",
     "composerIcon": "./integrations/mcp/assets/uizze-logo-400x400.png",
     "logo": "./integrations/mcp/assets/uizze-logo-400x400.png",
     "developerName": "UIZZE",
@@ -39,9 +33,8 @@
     "privacyPolicyURL": "https://uizze.com/privacy",
     "termsOfServiceURL": "https://uizze.com/terms",
     "defaultPrompt": [
-      "Use UIZZE to plan this interface from real product evidence, then run the finish gate before shipping.",
-      "Run the UIZZE finish gate and fix every blocking issue before shipping.",
-      "Use UIZZE to make this interface unmistakably belong to this product."
+      "Find focused references for this interface, then adapt the useful decisions to the existing product.",
+      "Find hosted UI materials for this screen only if they are actually needed."
     ],
     "brandColor": "#111111"
   }

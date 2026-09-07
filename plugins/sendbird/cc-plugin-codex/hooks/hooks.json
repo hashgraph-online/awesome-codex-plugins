@@ -12,6 +12,19 @@
         ]
       }
     ],
+    "SessionEnd": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$PLUGIN_ROOT/hooks/session-lifecycle-hook.mjs\"",
+            "timeout": 3,
+            "statusMessage": "Closing Claude Code bridge"
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [

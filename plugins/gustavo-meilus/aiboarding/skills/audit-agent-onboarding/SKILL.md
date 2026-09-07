@@ -18,50 +18,50 @@ Read `.aiboarding/state.json:receipts` and render a table: file, level, bytes an
 lines before/after, percent saved, measured-at. Label token figures approximate
 when the receipt does (they are byte/4 estimates unless a real tokenizer produced
 them). Since instruction files load every session, per-session savings compound  - 
-present "per-session saved × sessions" only as a clearly labeled estimate. Then stop.
+present "per-session saved × sessions" only as a clearly labeled estimate. For each
+receipt, render optional `high_consequence_regions` evidence as location, category,
+outcome (`preserved` or `rewritten`), and explicit opt-in status, without instruction
+text. Render an empty array as `none`; when field is absent, render `not recorded`.
+Keep existing level, byte, line, date, and token output unchanged. Then stop.
 
-## Linters
-Run every check against `AGENTS.md`, `CLAUDE.md`, and any `.claude/rules/*.md`;
-tag each finding **FAIL** (breaks agents or leaks something) / **WARN** (costs
-quality or tokens) / **INFO** (improvement candidate).
+## Evidence-aware audit
+Run `.aiboarding/tools/audit-onboarding-evidence <repo-root>` first (fallback:
+the plugin's `templates/tools/audit-onboarding-evidence`). Capture its lines and
+exit status. Exit `0` means no computed FAIL; `1` means computed validation FAIL;
+`2` is an operational error: stop and report tooling failure, never render it as an
+audit finding. Do not write onboarding files in either case.
 
-1. **Size budget** - run `.aiboarding/tools/check-size-budget AGENTS.md` (plugin
-   `templates/tools/` fallback if not installed). Its WARN/FAIL map directly.
-2. **Codex-cap chain** - for monorepos, sum the byte sizes of every nested
-   `AGENTS.md` on a leaf-to-root chain; a chain projected over 32768 bytes is a
-   FAIL (Codex truncates silently at `project_doc_max_bytes`).
-3. **Duplication** - CLAUDE.md restating imported `AGENTS.md` content (imports
-   expand at launch; duplication doubles token cost). Sections restating the
-   README near-verbatim: WARN, suggest the doc link instead.
-4. **Contradictions** - conflicting instructions within or across files (e.g. two
-   different test commands, contradictory guardrails). FAIL.
-5. **Stale commands** - extract every backticked command; verify each resolves
-   against package scripts, Makefile/justfile targets, CI workflows, or a binary
-   on PATH. Unresolvable: FAIL with the source line.
-6. **Vague commands** - imperative instructions without an executable invocation
-   ("run the tests" with no command). WARN.
-7. **Missing sections** - no `Agent Guardrails` or no `Verification Before
-   Completion` content: WARN (these are the sections that prevent repeated agent
-   mistakes).
-8. **Skill leakage** - long procedural walkthroughs (roughly >15 lines of
-   numbered steps for one task) that belong in a skill, not always-loaded
-   context. INFO, name the candidate skill.
-9. **Lint leakage** - formatting/style rules that belong in linter or formatter
-   config, not prose. INFO.
-10. **Rules extraction candidates** - sections both long and domain-scoped
-    (testing minutiae, one subsystem's details) that fit `.claude/rules/<topic>.md`
-    with a `paths:` scope, or a nested `AGENTS.md` for cross-agent visibility.
-    INFO. Note the asymmetry honestly: `.claude/rules/` is Claude-only.
-11. **Unsafe content** - secrets or credentials (key-shaped strings, `-----BEGIN`,
-    bearer tokens, connection strings with passwords): FAIL, name the line, do not
-    quote the secret itself. Destructive commands (`rm -rf`, `DROP TABLE`, force
-    pushes) presented without confirmation framing: WARN.
-12. **Wrapper integrity** - `CLAUDE.md` missing the `@AGENTS.md` line, or
-    aiboarding marker fences unbalanced: FAIL.
+Each finding has independent severity (`FAIL`, `WARN`, `INFO`) and provenance
+(`computed`, `inferred`). Preserve validator provenance and render one report
+ordered FAIL, WARN, INFO. Never upgrade model judgment to `computed`.
+
+| Category | Evidence |
+| --- | --- |
+| Local size budget; Codex project-chain budget; wrapper integrity | Computed |
+| Stale commands | Mixed: validator only for explicit paths, package scripts, Make/Just targets; infer unresolved context-dependent cases |
+| Duplication; contradictions; vague commands; missing sections; skill leakage; lint leakage; rules extraction candidates; unsafe content | Inferred |
+
+Then review inferred categories and unresolved command references across `AGENTS.md`,
+`CLAUDE.md`, and `.claude/rules/*.md`:
+
+1. **Duplication** - imported or README content restated meaningfully.
+2. **Contradictions** - instructions whose scope or intent conflicts.
+3. **Stale commands** - only commands validator cannot prove absent.
+4. **Vague commands** - imperative guidance lacking usable invocation.
+5. **Missing sections** - absent guardrail or verification guidance, not headings alone.
+6. **Skill/lint leakage and rules extraction candidates** - ownership and scope need judgment.
+7. **Unsafe content** - secrets and destructive-command framing need context; do not quote secrets.
 
 ## Report
-Output findings ordered FAIL → WARN → INFO, each with file, location, one-line
-rationale, and a concrete suggested fix. End with the one-line verdict and the
-handoff: content fixes → offer to run `update-agent-onboarding` (its approval gate
-still applies); compression fixes → `compress-onboarding`. Suggestions are never
-auto-applied.
+Output findings ordered FAIL → WARN → INFO, each with provenance, file, location,
+one-line rationale, and concrete fix. Example:
+
+```text
+FAIL [computed] wrapper-integrity CLAUDE.md:1 — missing @AGENTS.md import; add it.
+WARN [computed] size-budget AGENTS.md:1 — 24001 bytes > budget 24000; compress it.
+WARN [inferred] vague-commands AGENTS.md:8 — "run tests" lacks invocation; name command.
+```
+
+End with one-line verdict and handoff: content fixes → offer
+`update-agent-onboarding` (approval gate applies); compression fixes →
+`compress-onboarding`. Suggestions are never auto-applied.

@@ -225,7 +225,7 @@ $cc:setup --disable-review-gate     # turn it off
 ```
 
 Setup checks Claude Code availability, native plugin hook feature gates, and review-gate state. If Claude Code isn't installed, it offers to install it.
-This is also the repair path for marketplace-installed copies of the plugin: `$cc:setup` confirms `[features].hooks = true` and `[features].plugin_hooks = true`, trusts this plugin's current native hook hashes, and allows sandboxed writes to Codex's injected marketplace-qualified plugin-data root plus the legacy roots needed for one-time migration. If those writable roots were just added, restart Codex and rerun setup before changing the review gate.
+This is also the repair path for marketplace-installed copies of the plugin: `$cc:setup` confirms `[features].hooks = true`, trusts this plugin's current native hook hashes, and allows sandboxed writes to Codex's injected marketplace-qualified plugin-data root plus the legacy roots needed for one-time migration. If those writable roots were just added, restart Codex and rerun setup before changing the review gate.
 
 ## Background Jobs
 
@@ -308,7 +308,7 @@ Then install `cc` from the Sendbird marketplace inside Codex, and run:
 $cc:setup
 ```
 
-Marketplace/plugin install places the plugin under Codex's plugin cache. `$cc:setup` verifies Claude Code, confirms `[features].hooks = true` plus `[features].plugin_hooks = true`, and trusts the current `hooks/hooks.json` hook hashes from the active plugin cache.
+Marketplace/plugin install places the plugin under Codex's plugin cache. `$cc:setup` verifies Claude Code, confirms `[features].hooks = true`, and trusts the current `hooks/hooks.json` hook hashes from the active plugin cache.
 
 ### npx helper
 
@@ -362,7 +362,7 @@ claude auth login
 Re-run install and restart Codex. This plugin expects Codex plugin support and no longer installs local skill-wrapper fallbacks.
 
 **Hooks not firing**
-Check that `hooks = true` and `plugin_hooks = true` are set in `~/.codex/config.toml` under `[features]`. Run `$cc:setup` to verify and auto-repair the feature gates plus this plugin's hook trust hashes, then restart Codex if those flags were just changed.
+Check that `hooks = true` is set in `~/.codex/config.toml` under `[features]`. Run `$cc:setup` to verify and auto-repair the feature gate plus this plugin's hook trust hashes, then restart Codex if that flag was just changed.
 
 **A background job finished but I did not get the result nudge**
 Use:

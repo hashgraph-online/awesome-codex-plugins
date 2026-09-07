@@ -281,17 +281,17 @@ If any criterion is FAIL:
 2. Revise the affected PRD sections
 3. Re-submit to the reviewer
 
-Maximum 3 iterations. After 3 iterations with remaining issues, present them to the user via AskUserQuestion:
+Maximum 3 iterations. After 3 iterations with remaining issues, list the flagged points in plain text (they are context, not a choice), then ask via AskUserQuestion:
 
 ```
 AskUserQuestion({
   questions: [{
-    question: "The PRD reviewer flagged these remaining issues after 3 revision rounds:\n\n[list issues]\n\nHow do you want to proceed?",
+    question: "The reviewer still flags [N] points after 3 revision rounds. Proceed anyway?",
     header: "PRD Review",
     options: [
-      { label: "Accept as-is (Recommended)", description: "Issues are minor, proceed with current PRD." },
-      { label: "Manual edit", description: "I'll edit the PRD myself before continuing." },
-      { label: "Re-run review", description: "Try one more revision round." }
+      { label: "Accept as-is (Recommended)", description: "Three rounds did not close them, so a fourth probably will not. The flags then stay in the PRD and travel into the issues filed from it." },
+      { label: "Manual edit", description: "You edit the PRD yourself; the flow waits, then re-runs the reviewer on your version." },
+      { label: "Re-run review", description: "One more revision round. Cost: another reviewer pass, and the same points may come back unchanged." }
     ],
     multiSelect: false
   }]
@@ -300,16 +300,16 @@ AskUserQuestion({
 
 ### 5.3 User Review Gate
 
-After the reviewer passes (or user accepts), present the final PRD:
+After the reviewer passes (or user accepts), present the final PRD in plain text — path plus a short section summary — then ask:
 
 ```
 AskUserQuestion({
   questions: [{
-    question: "PRD is ready for your review. It has been saved to [path].\n\nPlease review the document and confirm.",
+    question: "Approve the PRD at [path]?",
     header: "PRD Approval",
     options: [
-      { label: "Approve PRD (Recommended)", description: "PRD looks good, proceed to issue creation." },
-      { label: "Request changes", description: "I have feedback — let me describe what to change." }
+      { label: "Approve PRD (Recommended)", description: "Nothing further is checked after this: approval commits the PRD to HEAD (Phase 5.5), then issue creation starts." },
+      { label: "Request changes", description: "Describe what to change; the PRD is rewritten and comes back here. No limit on rounds." }
     ],
     multiSelect: false
   }]
@@ -395,18 +395,20 @@ Assign labels from the standard taxonomy:
 
 ### 6.3 User Review
 
-Present the full issue structure via AskUserQuestion before creating anything:
+Present the full issue structure via AskUserQuestion before creating anything. The table is the text that is about to be filed, so it belongs in `preview` — not in the question:
 
 ```
 AskUserQuestion({
   questions: [{
-    question: "Proposed issue structure:\n\n**Epic:** [title]\n\n| # | Sub-Issue | Priority | Labels | Blocked By |\n|---|----------|----------|--------|------------|\n| 1 | [title]  | critical | [labels] | — |\n| 2 | [title]  | high     | [labels] | #1 |\n| ... | ... | ... | ... | ... |\n\nTotal: [N] issues. Confirm or adjust.",
-    header: "Issue Review",
+    question: "Create these [N] issues from the PRD?",
+    header: "Issues",
     options: [
-      { label: "Create all issues (Recommended)", description: "Proceed with the proposed structure." },
-      { label: "Adjust priorities", description: "I want to change some priorities before creating." },
-      { label: "Remove issues", description: "Some issues should not be created." },
-      { label: "Cancel", description: "Do not create any issues." }
+      { label: "Create all [N] (Recommended)",
+        description: "Priorities and blocked-by links come straight from the approved PRD. Cost: one API call per issue, ~1s apart.",
+        preview: "**Epic:** [title]\n\n| # | Sub-Issue | Priority | Labels | Blocked By |\n|---|----------|----------|--------|------------|\n| 1 | [title]  | critical | [labels] | — |\n| 2 | [title]  | high     | [labels] | #1 |\n| ... | ... | ... | ... | ... |" },
+      { label: "Adjust priorities", description: "Same [N] issues, different priority labels. Name them and this question comes back with the table updated." },
+      { label: "Remove issues", description: "Name the ones to drop; the rest are created unchanged." },
+      { label: "Cancel", description: "Nothing is created. The PRD stays committed, so Phase 6 can run again later." }
     ],
     multiSelect: false
   }]

@@ -1,6 +1,6 @@
 {
   "name": "session-orchestrator",
-  "version": "3.21.0",
+  "version": "3.23.0",
   "description": "Loop engineering for AI coding agents — turn ad-hoc sessions into a repeatable research → plan → wave-execute → close loop with verification gates. Runs on Claude Code, Codex CLI, Cursor, and Pi.",
   "type": "module",
   "homepage": "https://session-orchestrator.com",
@@ -42,6 +42,8 @@
     "docs/telemetry/telemetry-claims.md",
     "NOTICE",
     "SECURITY.md",
+    "!scripts/tests/**",
+    "!skills/vault-sync/tests/**",
     "!**/node_modules/**",
     "!**/.DS_Store"
   ],

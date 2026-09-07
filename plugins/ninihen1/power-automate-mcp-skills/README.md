@@ -2,7 +2,7 @@
 
 Give your AI agent the same visibility you have in the Power Automate portal — plus a bit more.
 The Graph API only returns top-level run status — agents can't see action inputs,
-loop iterations, or nested failures. Flow Studio MCP exposes all of it.
+loop iterations, or nested failures. FlowStudio MCP exposes all of it.
 
 ![Agent debugging a Power Automate flow via MCP](assets/demo-debug.gif)
 
@@ -10,7 +10,7 @@ loop iterations, or nested failures. Flow Studio MCP exposes all of it.
 
 ![The portal shows everything to a human — but agents only see the top-level error via Graph API](assets/portal-vs-reality.png)
 
-![With Flow Studio MCP, the agent sees what you see](assets/mcp-root-cause.png)
+![With FlowStudio MCP, the agent sees what you see](assets/mcp-root-cause.png)
 
 ## When you need this
 
@@ -21,11 +21,11 @@ loop iterations, or nested failures. Flow Studio MCP exposes all of it.
 - You need to classify flows, detect orphaned resources, or audit connectors at scale — without installing the CoE Starter Kit
 - You're tired of being the middle-man between your agent and the portal
 
-## Graph API vs Flow Studio MCP
+## Graph API vs FlowStudio MCP
 
 The core difference: **Graph API gives your agent run status. MCP gives your agent the inputs and outputs of every action.**
 
-| What the agent sees                           | Graph API | Flow Studio MCP |
+| What the agent sees                           | Graph API | FlowStudio MCP |
 | --------------------------------------------- | --------- | --------------- |
 | Run passed or failed                          | Yes       | Yes             |
 | **Action inputs and outputs**                 | **No**    | **Yes**         |
@@ -57,9 +57,27 @@ and works with any compatible agent.
 
 ### Supported agents
 
-Copilot, Claude Code, Codex, OpenClaw, Gemini CLI, Cursor, Goose, Amp, OpenHands
+Copilot, Claude Code, ChatGPT, Codex, OpenClaw, Gemini CLI, Cursor, Goose, Amp, OpenHands
+
+## Guides
+
+Full walkthroughs on [learn.flowstudio.app](https://learn.flowstudio.app):
+
+- [Getting started](https://learn.flowstudio.app/mcp-getting-started) — install FlowStudio MCP for any agent
+- [Build flows with AI agents](https://learn.flowstudio.app/build-power-automate-flows-with-ai-agents) — a worked 3-step example
+- [Vibe code Power Automate](https://learn.flowstudio.app/vibe-code-power-automate) — describe the flow, the agent builds it
+- [Power Automate in VS Code](https://learn.flowstudio.app/power-automate-ide) — work on flows from your editor
+- [Debug a failing flow](https://learn.flowstudio.app/mcp-debug) — find the root cause from action-level data
+- By agent: [ChatGPT](https://learn.flowstudio.app/chatgpt-power-automate) · [Claude](https://learn.flowstudio.app/claude-power-automate) · [GitHub Copilot](https://learn.flowstudio.app/github-copilot-power-automate) · [Copilot Studio](https://learn.flowstudio.app/copilot-studio-power-automate) · [Codex](https://learn.flowstudio.app/codex-power-automate)
 
 ## Quick Start
+
+### Connect from ChatGPT or claude.ai
+
+Sign in with your Microsoft account instead of pasting a key. Add
+`https://mcp.flowstudio.app/mcp/oauth` as a connector in ChatGPT (Developer mode
+on) or at claude.ai, then follow the sign-in prompt. Walkthrough:
+[ChatGPT for Power Automate](https://learn.flowstudio.app/chatgpt-power-automate).
 
 ### Install as Claude Code plugin
 
@@ -207,7 +225,7 @@ LICENSE                        MIT
 
 ## Available on GitHub
 
-Works with Copilot, Claude, and any MCP-compatible agent.
+Works with Copilot, Claude, ChatGPT, and any MCP-compatible agent.
 
 - [awesome-copilot](https://github.com/github/awesome-copilot) (merged)
 - [skills.sh](https://skills.sh/?q=flowstudio) (3K+ installs)

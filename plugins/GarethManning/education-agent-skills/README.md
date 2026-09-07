@@ -12,7 +12,7 @@ An open-source library of 165 evidence-based pedagogical skills across 20 domain
 >
 > The library is still free and open source, and local/plugin/manual use remains the recommended free path. The hosted MCP server is still available for people who specifically need a remote MCP endpoint, but anonymous access is now blocked so the service stays sustainable.
 >
-> **Need hosted MCP?** [Request an access token](https://docs.google.com/forms/d/e/1FAIpQLSdW1EdcmtjSPPq68Hx-bdth5hO2KNyjhAwEV9Ld0EwWL1Gr8Q/viewform) or [jump to hosted MCP setup](#mcp-server).
+> **Need hosted MCP?** [Request an access token](https://mcp-server-sigma-sooty.vercel.app/request-access) or [jump to hosted MCP setup](#mcp-server).
 
 ---
 
@@ -42,7 +42,7 @@ claude plugin install https://github.com/GarethManning/education-agent-skills
 https://mcp-server-sigma-sooty.vercel.app/mcp
 ```
 
-Request a token here: [Hosted MCP access signup](https://docs.google.com/forms/d/e/1FAIpQLSdW1EdcmtjSPPq68Hx-bdth5hO2KNyjhAwEV9Ld0EwWL1Gr8Q/viewform). Free local and manual options remain available. See [Hosted MCP access](docs/HOSTED_MCP_ACCESS.md).
+Request a token here: [Hosted MCP access signup](https://mcp-server-sigma-sooty.vercel.app/request-access). Free local and manual options remain available. See [Hosted MCP access](docs/HOSTED_MCP_ACCESS.md).
 
 ### OpenAI Codex
 
@@ -244,7 +244,7 @@ The skill library is available as a live MCP server for clients that specificall
 
 Important: the hosted MCP server is a convenience endpoint, not the only way to use the library. If you can install the skills locally, prefer the free local options in [Get Started](#get-started).
 
-Hosted MCP access now requires a unique auth token. Request one here: [Hosted MCP access signup](https://docs.google.com/forms/d/e/1FAIpQLSdW1EdcmtjSPPq68Hx-bdth5hO2KNyjhAwEV9Ld0EwWL1Gr8Q/viewform). Gareth's Agent normally emails the MCP URL, token, and short setup instructions within a few minutes. See [Hosted MCP access](docs/HOSTED_MCP_ACCESS.md) for details.
+Hosted MCP access requires a bearer token. Request one through the [self-hosted access page](https://mcp-server-sigma-sooty.vercel.app/request-access); if the email provider accepts the request, the email contains the MCP URL, token, and setup instructions. See [Hosted MCP access](docs/HOSTED_MCP_ACCESS.md) for exact authentication, expiry, revocation, privacy, and serverless-limit details.
 
 Connect from Claude.ai by adding the URL under **Integrations > MCP Servers**. Connect from Claude Desktop:
 
@@ -263,8 +263,8 @@ Connect from Claude.ai by adding the URL under **Integrations > MCP Servers**. C
 ```
 
 The server exposes:
-- **169 tools** (165 skills + 4 discovery tools: `list_skills`, `find_skills`, `suggest_skills`, `get_skill_details`)
-- **165 prompts** (for clients that surface MCP prompts)
+- **157 tools** (153 model-invocable skills + 4 discovery tools: `list_skills`, `find_skills`, `suggest_skills`, `get_skill_details`)
+- **165 prompts** (all skills, including the 12 marked `disable-model-invocation: true`, remain available for explicit prompt use)
 
 Source code, local setup, and development instructions: [`mcp-server/`](mcp-server/)
 

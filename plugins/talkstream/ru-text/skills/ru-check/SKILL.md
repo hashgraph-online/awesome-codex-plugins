@@ -71,14 +71,14 @@ findings are confirmed · the text is bound for a reader (a deliverable, a publi
 client). Escalating is silent — continue into the full procedure as though it had been asked
 for.
 
-A triage report names itself: «Быстрая проверка: типографика и стоп-слова. Полная вычитка по
+A triage report names itself: «Быстрая проверка: типографика и стоп-слова. Полная вычитка по
 корпусу не выполнялась.» Reporting triage as the full check is the failure this product
 exists to prevent. No search tool on this host → no triage: run the full check.
 
 ## Check order
 
 1. **Typography** — read `typography.md`, then apply:
-   - Quotes: «» primary, „" nested
+   - Quotes: «» primary, „“ nested
    - Dashes: — (em) in text, – (en) in ranges, - (hyphen) in compounds only
    - Spaces: NBSP after single-letter words, in digit groups, before units
    - Ellipsis, abbreviations, special characters
@@ -110,8 +110,21 @@ exists to prevent. No search tool on this host → no triage: run the full check
    - Hollowed mechanism (AD-12) — «зависит от различных факторов», «свои особенности»
    - Phantom attribution (AD-13) — «исследования показывают», «эксперты отмечают»
    - Chat transcript as the artifact (AD-14) — the document's skeleton is a dialogue
-   - Search-engine addressee (AD-15) — the query phrase where a pronoun would serve
+   - Search-engine addressee (AD-15) — the query phrase repeated where a pronoun would serve
    - Additive pseudo-pair (AD-16) — «не только X, но и Y» where Y adds nothing
+   - Comma welded to a dash (AD-17) — a comma and an em dash side by side inside one sentence,
+     both demanded by the same construction: «Отчёт, собранный за ночь, — на столе». Search by
+     codepoint: the gap between the marks is normally the NBSP R16/R44 require before a dash, so
+     a search written with an ordinary space finds nothing in correctly typeset text. Direct
+     speech («Сроки поедут», — предупредила Петрова) is two constructions meeting, and a comma
+     closing homogeneous subordinate clauses before the main clause forms a single mark with the
+     dash — different grounds, same outcome: never this rule
+   - Uppercase band (AD-18) — three or more consecutive uppercase Cyrillic words of two letters
+     or more, unbroken by a lowercase word or by a line break. Not a neuroslop tell, and it is
+     absent from the index above on purpose: a person shouts on a keyboard with no italic key,
+     a model does not. It belongs to this full pass and to nothing faster. One or two uppercase
+     words are deliberate emphasis and are never flagged; abbreviations, machine text, status
+     cells and headings do not count toward the run
 
    The list above is a prompt for the eye, not the rule set. Two of these — AD-14 and AD-15
    — are charged to the **document**, so ask them of the piece as a whole and not of any

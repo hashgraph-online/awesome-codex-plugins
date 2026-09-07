@@ -1,5 +1,7 @@
 # YouTube Skills for AI Agents 🎬
 
+[![skills.sh](https://skills.sh/b/ZeroPointRepo/youtube-skills)](https://skills.sh/ZeroPointRepo/youtube-skills)
+
 > Get YouTube transcripts, search videos, browse channels, and extract playlists — from any AI agent.
 
 YouTube Skills gives your AI agent instant access to **YouTube transcripts**, **video search**, **channel data**, and **playlist extraction**. No yt-dlp (YouTube blocks all major cloud IPs), no headless browsers, no binaries — just a fast API call that works everywhere. Powered by [TranscriptAPI](https://transcriptapi.com), the same backend behind [YouTubeToTranscript.com](https://youtubetotranscript.com).
@@ -281,6 +283,8 @@ Three more cases worth knowing:
 Also available: [MCP Server](https://github.com/ZeroPointRepo/youtube-mcp) for direct LLM integration with Claude and ChatGPT.
 
 Full API docs: [transcriptapi.com/docs](https://transcriptapi.com/docs)
+
+Listed in [awesome-hermes-skills](https://github.com/ZeroPointRepo/awesome-hermes-skills), our directory of Hermes Agent skills, plugins, agent profiles and memory providers.
 
 ## Disclosure
 

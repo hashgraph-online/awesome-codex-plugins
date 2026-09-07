@@ -1,6 +1,6 @@
 {
   "name": "unified-ai-system",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "license": "Apache-2.0",
   "repository": {
@@ -23,11 +23,15 @@
     "notify:indexnow": "node tools/submit-indexnow.mjs",
     "verify:mcp": "pnpm --filter @unified-ai-system/mcp-server test",
     "smoke:mcp": "node ./tools/mcp-smoke.mjs",
+    "smoke:local-clients": "node ./tools/local-client-control-plane-smoke.mjs",
     "eval:prompt-enhancement": "node ./tools/prompt-enhancement-eval.mjs",
     "build": "pnpm -r --if-present build",
-    "check": "pnpm -r --if-present check && pnpm check:language-policy && pnpm check:supply-chain-config && pnpm check:route-permissions && pnpm check:outbound-policy",
+    "check": "pnpm -r --if-present check && pnpm typecheck && pnpm check:language-policy && pnpm check:supply-chain-config && pnpm check:route-permissions && pnpm check:outbound-policy && pnpm check:vision-invariants",
     "typecheck": "tsc -p tsconfig.json",
     "test": "pnpm -r --if-present test",
+    "test:local-clients": "vitest run apps/ai-gateway-service/src/capabilities/localClientAdapterRegistry.test.ts apps/ai-gateway-service/src/capabilities/localClientConfigTransaction.test.ts apps/ai-gateway-service/src/capabilities/localClientExecutionIdempotencyCoordinator.test.ts apps/ai-gateway-service/src/capabilities/localClientExecutionOrchestrator.test.ts apps/ai-gateway-service/src/capabilities/localClientExecutionPreview.test.ts apps/ai-gateway-service/src/capabilities/localClientExecutionReadiness.test.ts apps/ai-gateway-service/src/capabilities/localClientGovernedExecutionApi.test.ts apps/ai-gateway-service/src/capabilities/localClientGovernedOnboardingApi.test.ts apps/ai-gateway-service/src/capabilities/localClientGovernedOnboardingRuntime.test.ts apps/ai-gateway-service/src/capabilities/localClientLoopbackAdapter.test.ts apps/ai-gateway-service/src/capabilities/localClientLoopbackAdapterConfig.test.ts apps/ai-gateway-service/src/capabilities/localClientLoopbackVerificationProbe.test.ts apps/ai-gateway-service/src/capabilities/localClientManagementService.test.ts apps/ai-gateway-service/src/capabilities/localClientOnboardingConfig.test.ts apps/ai-gateway-service/src/capabilities/localClientOnboardingRegistry.test.ts apps/ai-gateway-service/src/capabilities/localClientRoutePlanStore.test.ts apps/ai-gateway-service/src/capabilities/localClientSqliteExecutionClaimStore.test.ts apps/ai-gateway-service/src/capabilities/localClientSqliteFeedbackDedupStore.test.ts apps/ai-gateway-service/src/capabilities/localClientSqliteOnboardingReceiptAuthorityStore.test.ts apps/ai-gateway-service/src/capabilities/localClientSqliteRoutePlanStore.test.ts apps/ai-gateway-service/src/capabilities/localClientSqliteVerificationAuthorityEpochStore.test.ts apps/ai-gateway-service/src/capabilities/localClientVerificationOwnership.test.ts apps/ai-gateway-service/src/capabilities/localClientVerificationService.test.ts apps/ai-gateway-service/src/capabilities/localClientVerifiedExecutionFence.test.ts apps/ai-gateway-service/src/capabilities/localClientWindowsProtectedAuthorityAnchor.test.ts apps/ai-gateway-service/src/http/localClientGovernedExecution.e2e.test.ts apps/ai-gateway-service/src/http/localClientManagementRoutes.test.ts apps/ai-gateway-service/src/routing/localClientProviderPolicy.test.ts apps/ai-gateway-service/src/routing/localClientProviderPolicyConfig.test.ts apps/ai-gateway-service/src/routing/localClientProviderRuntimeRouter.test.ts && pnpm test:local-client-intelligence-additions && pnpm --filter @unified-ai-system/shared-sdk test",
+    "test:local-client-intelligence-additions": "vitest run apps/ai-gateway-service/src/capabilities/localClientPopIdentityAuthority.test.ts apps/ai-gateway-service/src/capabilities/localClientPopHttpAuth.test.ts apps/ai-gateway-service/src/capabilities/localClientSqlitePopReplayGuard.test.ts apps/ai-gateway-service/src/capabilities/localClientPopSnapshotRollbackProtection.test.ts apps/ai-gateway-service/src/capabilities/localClientExecutionReceiptReconciliation.test.ts apps/ai-gateway-service/src/capabilities/localClientExecutionReceiptJournalRegistry.test.ts apps/ai-gateway-service/src/capabilities/localClientExecutionReceiptRecoveryService.test.ts apps/ai-gateway-service/src/capabilities/localClientProtocolPrincipalConfig.test.ts apps/ai-gateway-service/src/capabilities/localClientSmartManagementScheduler.test.ts apps/ai-gateway-service/src/capabilities/localClientSmartManagementSchedulerConfig.test.ts apps/ai-gateway-service/src/capabilities/localClientSqliteExecutionFeedbackOutbox.test.ts apps/ai-gateway-service/src/capabilities/localClientExecutionFeedbackDispatcher.test.ts apps/ai-gateway-service/src/capabilities/localClientWindowsAuthorityBrokerService.test.ts apps/ai-gateway-service/src/application/createGatewayApplication.test.js apps/ai-gateway-service/src/http/gatewayShutdown.test.ts apps/ai-gateway-service/src/http/httpRequestExecution.test.ts apps/ai-gateway-service/src/http/httpServer.providerDispatch.test.ts apps/ai-gateway-service/src/http/openAiChatCompletionResponseCache.test.ts apps/ai-gateway-service/src/http/utils/responseUtils.test.js apps/ai-gateway-service/src/routing/localClientProviderDispatchBinding.test.ts apps/ai-gateway-service/src/core/gatewayService.providerDispatch.test.ts apps/ai-gateway-service/src/core/gatewayService.providerOperation.test.ts",
+    "test:local-client-windows-broker": "vitest run apps/ai-gateway-service/src/capabilities/localClientWindowsAuthorityBrokerService.test.ts apps/ai-gateway-service/src/capabilities/localClientWindowsProtectedAuthorityAnchor.test.ts",
     "check:public": "node tools/public-repo-check.mjs",
     "verify:public-clone": "node tools/verify-public-clone.mjs",
     "growth:campaign": "node ./tools/star-growth-check.mjs campaign --output .tmp/growth/star-growth-latest.md --daily-output .tmp/growth/star-growth-daily.md --check-output .tmp/growth/star-growth-check.md",
@@ -37,6 +41,8 @@
     "quality:score": "node tools/quality-scorecard.mjs",
     "drill:gateway-circuit": "node ./tools/circuit-recovery-drill.mjs --managed-gateway --json",
     "drill:gateway-circuit:dry-run": "node ./tools/circuit-recovery-drill.mjs --dry-run --json",
+    "drill:postgres-recovery": "node ./tools/postgres-recovery-drill.mjs",
+    "drill:postgres-recovery:dry-run": "node ./tools/postgres-recovery-drill.mjs --dry-run --json",
     "benchmark:gateway:slo": "node ./tools/gateway-slo-benchmark.mjs --profile ci",
     "benchmark:gateway:soak": "go run ./tools/gateway-soak/main.go",
     "benchmark:gateway:resource-soak": "node ./tools/gateway-resource-soak.mjs --profile ci",
@@ -54,7 +60,8 @@
     "check:supply-chain-config": "node ./tools/check-supply-chain-config.mjs",
     "check:route-permissions": "node ./tools/check-route-permission-consistency.mjs && node ./tools/check-runtime-route-permissions.mjs",
     "check:outbound-policy": "node ./tools/check-outbound-request-policy.mjs",
-    "report:language-policy-expiry": "node ./tools/language-policy-expiry-report.mjs --json"
+    "report:language-policy-expiry": "node ./tools/language-policy-expiry-report.mjs --json",
+    "check:vision-invariants": "node ./tools/check-vision-invariants.mjs"
   },
   "engines": {
     "node": ">=22.18.0",
@@ -64,7 +71,10 @@
     "@a2a-js/sdk": "1.0.1",
     "@anthropic-ai/sdk": "0.116.0",
     "@types/node": "^22.10.0",
+    "@types/pg": "8.23.1",
+    "@types/ws": "8.18.1",
     "openai": "7.4.0",
+    "pg": "8.23.0",
     "typescript": "^5.6.3",
     "vitest": "^4.1.10"
   }

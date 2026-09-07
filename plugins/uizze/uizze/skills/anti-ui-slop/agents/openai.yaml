@@ -1,4 +1,4 @@
 interface:
-  display_name: "UIZZE — STOP UI SLOP"
-  short_description: "Catch generic UI before it ships"
-  default_prompt: "Use $anti-ui-slop to identify generic UI decisions, ground this interface in real product evidence, and run a hard finish gate before shipping."
+  display_name: "Uizze Anti UI Slop"
+  short_description: "Design guidance with quiet visual evidence"
+  default_prompt: "Use Uizze for design judgment. Retrieve evidence or materials only for one concrete unresolved need."

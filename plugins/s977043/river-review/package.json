@@ -1,6 +1,6 @@
 {
   "name": "river-review",
-  "version": "1.87.3",
+  "version": "1.89.3",
   "private": true,
   "workspaces": [
     "runners/node-api",
@@ -27,7 +27,7 @@
     "build": "docusaurus build",
     "serve": "docusaurus serve",
     "assets:social": "node scripts/build-social-assets.mjs",
-    "test": "node --test",
+    "test": "node --experimental-test-isolation=none --test",
     "lint:md": "markdownlint '**/*.md' --ignore node_modules",
     "lint:text": "textlint 'pages/**/*.md' 'docs/**/*.md' 'README*.md'",
     "check:dashes": "node scripts/fix-dashes.mjs --check",
@@ -85,9 +85,9 @@
     "skills:validate:refs": "node scripts/check-skill-id-references.mjs"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.116.0",
+    "@anthropic-ai/sdk": "^0.121.0",
     "@google/generative-ai": "^0.24.1",
-    "@inquirer/prompts": "^8.5.2",
+    "@inquirer/prompts": "^8.6.0",
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/auto-instrumentations-node": "^0.79.0",
     "@opentelemetry/exporter-trace-otlp-http": "^0.221.0",
@@ -98,9 +98,9 @@
     "ajv-formats": "^3.0.1",
     "commander": "^15.0.0",
     "gray-matter": "^4.0.3",
-    "js-yaml": "^5.2.3",
+    "js-yaml": "^5.4.1",
     "minimatch": "^10.2.6",
-    "openai": "^7.4.0",
+    "openai": "^7.5.0",
     "ora": "^9.4.1",
     "zod": "^4.4.3"
   },
@@ -114,14 +114,14 @@
     "@vercel/ncc": "^0.45.0",
     "glob": "^13.0.6",
     "husky": "^9.1.7",
-    "lint-staged": "^17.3.0",
+    "lint-staged": "^17.4.1",
     "markdownlint-cli": "^0.49.1",
     "prettier": "^3.9.6",
     "prh": "^6.0.6",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "recharts": "^3.10.1",
-    "textlint": "^15.7.1",
+    "textlint": "^15.8.0",
     "textlint-rule-preset-ja-technical-writing": "^12.0.2",
     "textlint-rule-prh": "^6.1.0"
   },

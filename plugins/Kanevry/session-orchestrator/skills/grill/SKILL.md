@@ -66,7 +66,7 @@ Walk the decision tree **one question at a time**. For each branch, in order:
 AskUserQuestion({
   questions: [{
     question: "Your code cancels whole Orders, but the PRD says a customer can cancel one line item. Which is the real model?",
-    header: "Cancellation Scope",
+    header: "Cancel scope",
     options: [
       { label: "Line-item cancellation (Recommended)", description: "Matches the PRD intent. Cost: new partial-refund path + Order stays open after one item is voided." },
       { label: "Whole-order only", description: "Matches today's code. Cost: contradicts the stated user story — re-scope the PRD." },
@@ -118,12 +118,12 @@ Per the user's configured behaviour, the grill ends with a hand-off and an OPTIO
 AskUserQuestion({
   questions: [{
     question: "Grill complete. How do you want to proceed?",
-    header: "Grill Hand-off",
+    header: "Hand-off",
     options: [
-      { label: "Write grill summary + hand off to /plan feature (Recommended)", description: "Persist resolved decisions to docs/specs/, then formalize into a PRD." },
-      { label: "Write grill summary only", description: "Keep the resolved decisions as a reference; no further step now." },
-      { label: "Hand off to /plan feature — no file", description: "Carry the resolved decisions straight into planning; nothing persisted." },
-      { label: "Done — no file, no hand-off", description: "The grilling itself was the value; leave no artifact." }
+      { label: "Summary + /plan feature (Recommended)", description: "Writes the resolved decisions to docs/specs/ (a folder of markdown notes), then hands them to planning. Cost: one file." },
+      { label: "Write grill summary only", description: "Same file, no planning step. The decisions keep, so you can hand them off later." },
+      { label: "Hand off to /plan feature — no file", description: "Carries the decisions straight into planning. They then live only in this conversation." },
+      { label: "Done — no file, no hand-off", description: "The grilling itself was the value. Nothing is written, nothing is handed on." }
     ],
     multiSelect: false
   }]

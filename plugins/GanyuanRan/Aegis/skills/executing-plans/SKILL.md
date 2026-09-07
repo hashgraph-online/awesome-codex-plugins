@@ -34,11 +34,14 @@ remains the only Git mutation owner.
 4. If the view contradicts the plan, baseline, or current worktree evidence,
    return to plan review or refresh the advisory handoff before editing.
 5. Run the TDD Route Guard before implementation: confirm `Mode`, `Decision`, `Strict authority`,
-   `Test posture`, and verification. Strict steps require recorded explicit
-   user/project authority; plan approval or risk labels are not authority. An
+   strict signals, light eligibility, `Test posture`, and verification. Strict
+   steps require either an explicit user/project request or a recorded auto
+   decision; plan approval or risk labels alone are not authority. An
    off-mode missing record may be repaired only as `Mode: off / Decision:
    skipped` without loading TDD. Missing/unsupported auto decisions return to
-   plan review. Only `Decision: strict` with recorded strict authority may
+   plan review. An auto-light record is unsupported when any strict signal is
+   present or when its tiny/low-risk/single-owner/no-behavior-change proof is
+   incomplete. Only `Decision: strict` with recorded strict authority may
    authorize steps named `Write failing test`, `Verify RED`, `GREEN`, or
    `REFACTOR`. Do not infer `strict` during execution.
 6. If concerns: Raise them with your human partner before starting

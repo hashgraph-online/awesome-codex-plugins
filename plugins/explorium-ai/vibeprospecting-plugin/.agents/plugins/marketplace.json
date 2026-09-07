@@ -1,0 +1,20 @@
+{
+  "name": "vibeprospecting",
+  "interface": {
+    "displayName": "Vibe Prospecting"
+  },
+  "plugins": [
+    {
+      "name": "vpai",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Business & Operations"
+    }
+  ]
+}

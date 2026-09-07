@@ -22,15 +22,18 @@ Fires when an `exclusive`-class session (`bootstrap`, `housekeeping`, `memory-cl
 ### Claude Code (AskUserQuestion)
 
 ```js
+// Unpacked once so the question reads as one sentence instead of five key=value pairs.
+const { mode, host, pid, worktreePath } = blockingSession;
+
 AskUserQuestion({
   questions: [{
-    question: `An exclusive session is active in this repository (mode=${blockingSession.mode}, started ${ageHours}h ago, host=${blockingSession.host}, pid=${blockingSession.pid}, worktree=${blockingSession.worktreePath}). This blocks all other modes. How should I proceed?`,
-    header: "Parallel-Exclusive",
+    question: `A ${mode} session (process ${pid} on ${host}) started ${ageHours}h ago in ${worktreePath}. What now?`,
+    header: "Repo belegt",
     multiSelect: false,
     options: [
-      { label: "Warten (Recommended)", description: "Wait for the exclusive session to finish. The preamble will not retry automatically — re-run the command after the other session closes." },
-      { label: "Andere Session beenden", description: "I will close the other session myself, then re-run this command. The preamble surfaces but does NOT terminate the other session." },
-      { label: "Abbrechen", description: "Exit cleanly. No STATE.md initialization, no lock acquired." },
+      { label: "Warten (Recommended)", description: "Nothing else can start here until that session closes. This command does not retry — run it again afterwards." },
+      { label: "Andere Session beenden", description: "You close it yourself, then run this command again. Nothing here stops the other session for you." },
+      { label: "Abbrechen", description: "Exit now. Nothing is written: no STATE.md, no lock." },
     ],
   }],
 });
@@ -39,18 +42,16 @@ AskUserQuestion({
 ### Codex CLI / Cursor IDE / Pi fallback (numbered Markdown list)
 
 ```
-Parallel-Exclusive conflict — an exclusive session is active in this repository.
-  Mode: <blockingSession.mode>
-  Started: <ageHours>h ago (host=<host>, pid=<pid>)
-  Worktree: <blockingSession.worktreePath>
-This blocks all other modes.
+A <mode> session (process <pid> on <host>) started <ageHours>h ago in <worktreePath>. What now?
 
-1. Warten (Recommended) — wait for the exclusive session to finish; re-run after it closes.
-2. Andere Session beenden — I will close the other session myself.
-3. Abbrechen — exit cleanly without initializing STATE.md.
+1. Warten (Recommended) — nothing else can start here until that session closes; this command does not retry, so run it again afterwards.
+2. Andere Session beenden — you close it yourself, then run this command again. Nothing here stops the other session for you.
+3. Abbrechen — exit now. Nothing is written: no STATE.md, no lock.
 
 Reply with the number of your choice.
 ```
+
+The four slots are `blockingSession.mode`, `blockingSession.host`, `blockingSession.pid` and `blockingSession.worktreePath`; `<ageHours>` is the age of that session in hours.
 
 ### Outcome handling
 
@@ -65,37 +66,42 @@ Fires when the caller is `parallel-ok`-class AND another `parallel-ok` session i
 ### Claude Code (AskUserQuestion)
 
 ```js
+// Unpacked once so the question reads as one sentence instead of three key=value pairs.
+const { mode, pid } = parallelPeer;
+
 AskUserQuestion({
   questions: [{
-    question: `A compatible parallel session is active in this worktree (mode=${parallelPeer.mode}, started ${ageHours}h ago, pid=${parallelPeer.pid}). You can either: (a) auto-promote to a sibling worktree to run isolated, or (b) run in-place alongside the existing session (file conflicts likely). How should I proceed?`,
-    header: "Worktree-Promo",
+    question: `A ${mode} session (process ${pid}) started ${ageHours}h ago in this same folder. Run separately or alongside?`,
+    header: "Wo starten?",
     multiSelect: false,
     options: [
-      { label: "Worktree anlegen + starten (Recommended)", description: "Create a sibling git worktree at ../<repo-name>-<semantic-session-id>/ and start the new session there. Isolates file edits; recommended for parallel deep/feature sessions. Calls enterWorktree() from scripts/lib/autopilot/worktree-pipeline.mjs." },
-      { label: "Manuell — in-place daneben", description: "Run in the current worktree alongside the existing session. File conflicts possible; PSA-001/002/004 discipline required. A Deviation is logged." },
-      { label: "Abbrechen", description: "Exit cleanly. No STATE.md initialization." },
+      { label: "Worktree anlegen + starten (Recommended)", description: "Creates a second working folder beside this one and starts there — isolates your edits, so nothing collides." },
+      { label: "Manuell — in-place daneben", description: "Both sessions write in this same folder — conflicts are likely and you resolve them yourself. A Deviation is logged." },
+      { label: "Abbrechen", description: "Exit now. Nothing is written: no STATE.md, no lock." },
     ],
   }],
 });
 ```
 
+The second working folder is a git worktree at `<basePath>/<repo-name>-<sessionId>/`; `enterWorktree()` from `scripts/lib/autopilot/worktree-pipeline.mjs` creates it (see Outcome handling below). Running in-place puts PSA-001/PSA-002/PSA-004 discipline on the operator.
+
 ### Codex CLI / Cursor IDE / Pi fallback (numbered Markdown list)
 
 ```
-Worktree-Promotion offer — a compatible parallel session is active in this worktree.
-  Peer mode: <parallelPeer.mode>
-  Started: <ageHours>h ago (pid=<pid>)
+A <mode> session (process <pid>) started <ageHours>h ago in this same folder. Run separately or alongside?
 
-1. Worktree anlegen + starten (Recommended) — create sibling worktree and start isolated session.
-2. Manuell — in-place daneben — run alongside (file conflicts possible, Deviation logged).
-3. Abbrechen — exit cleanly.
+1. Worktree anlegen + starten (Recommended) — creates a second working folder beside this one and starts there; isolates your edits, so nothing collides.
+2. Manuell — in-place daneben — both sessions write in this folder; conflicts are likely and you resolve them. A Deviation is logged.
+3. Abbrechen — exit now. Nothing is written: no STATE.md, no lock.
 
 Reply with the number of your choice.
 ```
 
+The two slots are `parallelPeer.mode` and `parallelPeer.pid`; `<ageHours>` is the age of that session in hours.
+
 ### Outcome handling
 
-- **Worktree anlegen + starten** → invoke `enterWorktree({ basePath, sessionId, branch, repoRoot })` from `scripts/lib/autopilot/worktree-pipeline.mjs`. The helper creates a sibling worktree at `<basePath>/<repo-name>-<sessionId>/`, runs idempotency + boundary checks, and logs a WARN line to stderr on fresh creation. Once the worktree exists, exit the current preamble flow — the new worktree's own session-start runs from scratch (Phase 1 onwards). On failure (`WorktreeBoundaryError` or `git worktree add` non-zero exit), emit a stderr warning `parallel-aware: enterWorktree failed: <error>; falling back to Manuell` and proceed via the Manuell path.
+- **Worktree anlegen + starten** → invoke `enterWorktree({ basePath, sessionId, branch, repoRoot, rawSessionId, reason: 'worktree-promotion' })` from `scripts/lib/autopilot/worktree-pipeline.mjs`. The helper creates a sibling worktree at `<basePath>/<repo-name>-<sessionId>/`, runs idempotency + boundary checks, and logs a WARN line to stderr on fresh creation. When `<branch>` is already checked out by another worktree — the normal case, since Phase 0.5 passes the current HEAD — the worktree lands on a fresh `so/<sessionId>` branch created at `<branch>` and the helper returns `{ branch: 'so/<sessionId>', promotedFrom: '<branch>' }` (#1067); the new worktree's STATE.md `branch` MUST record `so/<sessionId>` and note `promoted from <branch>@<repoRoot>`. Since #1170, `enterWorktree` releases the source root ITSELF once the destination worktree provably exists — it calls `leaveSourceRoot({ repoRoot, sessionId: rawSessionId, semanticSessionId: sessionId, reason })` from `scripts/lib/session-transition.mjs` internally, on BOTH success exits, so this AUQ handler makes no separate `leaveSourceRoot` call. `rawSessionId` — **read from this root's `.orchestrator/session.lock` via `readLock({ repoRoot })`, never the semantic label, and never `current-session.json`, which may describe a peer session (#863)** — is the RAW physical `session_id` owning this root's lock/registry entry; a wrong id aborts the teardown with `left.ok: false, reason: 'lock-session-mismatch:<owner>'` and removes nothing. In detail: the promotion is a PROCESS BOUNDARY, not a live migration (#1069) — the old root is deregistered and its `session.lock` released BEFORE the new worktree's own Phase 1.2 acquires, so the two roots never both own a live claim at once. `enterWorktree`'s return value carries the outcome as `left: { ok, steps, reason? }`; `leaveSourceRoot()` never throws, so on `left.ok !== true` `enterWorktree` itself emits the stderr WARN `enterWorktree: leaveSourceRoot: <reason>` and the promotion continues regardless (the destination worktree already exists — aborting here would leave the two-live-roots state the call prevents). Then exit the current preamble flow — the new worktree's own session-start runs from scratch (Phase 1 onwards). On failure (`WorktreeBoundaryError` or `git worktree add` non-zero exit), emit a stderr warning `parallel-aware: enterWorktree failed: <error>; falling back to Manuell` and proceed via the Manuell path.
 - **Manuell** → append a Deviation via `appendDeviationOnDisk()`:
   `Worktree-Auto-Promotion declined; running in-place alongside session_id=<peer.sessionId>, mode=<peer.mode>, pid=<peer.pid>. PSA-001/PSA-002/PSA-004 discipline applies.`
   Continue Phase-0.

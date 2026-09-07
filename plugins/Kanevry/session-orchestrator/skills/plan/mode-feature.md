@@ -127,7 +127,7 @@ Apply per gitlab-ops skill label taxonomy:
 
 ### User Review Gate
 
-Present the full issue structure via AskUserQuestion before creation:
+Present the full issue structure via the AskUserQuestion payload in `SKILL.md` § 6.3 — the issue table belongs in the option's `preview` field, not in the question text:
 
 - Epic title and description
 - Each sub-issue: title, priority, labels, dependency links

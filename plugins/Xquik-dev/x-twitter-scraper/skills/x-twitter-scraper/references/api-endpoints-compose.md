@@ -1,12 +1,17 @@
 # Xquik REST API endpoints: compose
 
-### Compose tweet
+## Compose tweet
 
-```
+```http
 POST /compose
 ```
 
 Compose, refine, and score tweets with Xquik style signals. Run each step separately.
+
+The request sends its topic, draft, username, URLs, and extra context to Xquik.
+Remove secrets, personal data, and confidential text first. Show the exact
+content and confirm it before sending. Review current privacy, retention,
+deletion, and data-sharing terms before sensitive work.
 
 Send this body:
 
@@ -20,7 +25,7 @@ Send this body:
 | `additionalContext` | string | No | Extra context or URLs for refine |
 | `callToAction` | string | No | Desired call to action for refine |
 | `mediaType` | string | No | `photo`, `video`, or `none` for refine |
-| `draft` | string | No | Tweet text to evaluate for score |
+| `draft` | string | For `score` | Tweet text to evaluate for score |
 | `hasLink` | boolean | No | Whether score evaluates a link |
 | `hasMedia` | boolean | No | Whether score evaluates media |
 
@@ -29,5 +34,8 @@ For `step=compose`, the API returns `contentRules`, `scorerWeights`, `followUpQu
 For `step=refine`, the API returns `compositionGuidance` and `examplePatterns`.
 
 For `step=score`, the API returns `totalChecks`, `passedCount`, `topSuggestion`, and `checklist[]`. Each checklist item contains `factor`, `passed`, and `suggestion`.
+
+`step=score` requires a nonempty `draft`. Do not send a score request without
+the final text to check.
 
 ---

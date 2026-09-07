@@ -103,11 +103,13 @@ The function never throws — it always returns a result object. Treat `skipped:
      description: "...",
      prompt: "...",
      subagent_type: "general-purpose",
-     run_in_background: false,
+     run_in_background: true,
      isolation: "worktree"
    })
    ```
    When resolved isolation is `none`, omit the `isolation` parameter (agents run in the coordinator's working tree).
+
+   `isolation` and `run_in_background` are orthogonal: worktree isolation partitions the filesystem, backgrounding decides when the coordinator's turn returns. A backgrounded worktree agent still merges back on completion — but do NOT read the immediate launch ack as "the worktree merged". Wait for the agent's task-notification before step 4 below (`wave-loop.md § Started-Set Verification`).
 
 4. **Post-wave merge**: After wave completes, worktree changes are automatically available. If agents made changes in worktrees:
    - Review each agent's changes for conflicts using `git diff` between worktree branches
@@ -120,7 +122,11 @@ The function never throws — it always returns a result object. Treat `skipped:
 
 ## Stagnation Patterns
 
-> Detection rules for the coordinator to apply during post-wave review (step 2 of `wave-loop.md`). All three patterns are LLM heuristics, not executable code — the coordinator interprets them contextually based on agent output and tool-call history.
+> Detection rules applied at two different moments, by two different producers of the SAME `stagnation_detected` record (`wave-loop.md` § "Review Agent Outputs" carries the schema; `source` says which).
+>
+> - **Coordinator heuristics (3):** Pagination Spiral, Turn-Key Repetition, Error Echo. LLM heuristics, not executable code — the coordinator interprets them contextually from agent output and tool-call history during post-wave review (step 2 of `wave-loop.md`). Recorded with `source: "coordinator"`.
+> - **Tail-mechanical (2):** PSA-007 Git-Write and Status-Partial (§ 4 / § 5 below). Executable regexes run live by `scripts/lib/wave-transcript-tail.mjs` against the session's subagent transcripts — no model call, no judgement. Recorded with `source: "tail"`.
+> - **Error Echo is BOTH.** The coordinator's contextual reading of it is unchanged, and the tailer additionally matches its repeated-failure signature mechanically. One wave can therefore produce an error-echo record from either producer; the records are otherwise identical and are told apart only by `source`.
 
 ### 1. Pagination Spiral
 
@@ -153,19 +159,38 @@ Same error message returned 3 times, with the agent attempting the same fix (or 
 - `command-blocked` — denial from `enforce-commands.sh` (blocked command list).
 - `other` — fallback when none of the above match.
 
-The `error_class` value is used by the stagnation event-write rule in `wave-loop.md` § "Review Agent Outputs".
+The `error_class` value is used by the stagnation event-write rule in `wave-loop.md` § "Review Agent Outputs". The taxonomy belongs to Error Echo **alone** — the four patterns below and above it omit the field entirely rather than falling back to `other`.
+
+### 4. PSA-007 Git-Write (source: tail)
+
+**Indicator:** a subagent's Bash call runs a git-write command — `git add`, `git commit`, `git stash`, `git push`, and equally `git mv` / `git rm` / `git reset` / `git checkout -- <file>`. `.claude/rules/parallel-sessions.md` § PSA-007 forbids all of them for dispatched agents: the git index and stash are shared resources of the working copy, not a per-agent workspace. Fleet evidence (2 repos, 2026-07, conf ≥ 0.9) records `index.lock` collisions and stash operations that silently discarded a sibling agent's work-in-progress.
+
+**Detected by:** the tailer, mechanically, on the FIRST occurrence — not by post-wave review, and not on a repetition threshold. Today the coordinator learns of a subagent git-write only when the agent volunteers it in its own report.
+
+**Action:** surface it in the wave progress update at once and inspect the shared index (`git status --porcelain`, `git stash list`) before the next dispatch. Do NOT re-dispatch into the same shared tree until the index state is understood — a stash the agent created is one the sibling cannot find. No `error_class`; `occurrences: 1` is the normal value.
+
+### 5. Status-Partial (source: tail)
+
+**Indicator:** the agent's own transcript contains `STATUS: partial` (or `STATUS: failed`) — a **self-reported** failure, not an inferred one, so there is nothing to interpret.
+
+**Detected by:** the tailer, mechanically. The value here is **durability, not earliness**: when maxTurns kills an agent after it wrote the line but before its final report reaches the coordinator, the finding is lost today. The `events.jsonl` record survives that kill.
+
+**Action:** treat exactly as the § Status Detection Protocol `partial` / `failed` branch above — carry forward the remaining work, or re-dispatch with narrower scope. A tail record is a **backstop for** the agent's report, never a replacement: when the report does arrive, the report wins and the tail record is corroboration (do not double-count one failure as two). No `error_class`; `occurrences: 1`.
 
 ### Decision Table
 
-| Pattern | Indicator | Action | Error Class |
-|---------|-----------|--------|-------------|
-| Pagination Spiral | 3+ Read/Grep on same file with only pagination args, no Edit between | STAGNANT — re-dispatch with line-range scope | N/A |
-| Turn-Key Repetition | 3 identical consecutive turn keys (pagination-stripped) | SPIRAL — revert, narrow, re-dispatch | N/A |
-| Error Echo | Same error 3x, same fix attempted | FAILED — escalate with error context | see taxonomy above |
+| Pattern | Indicator | Action | Error Class | Source |
+|---------|-----------|--------|-------------|--------|
+| Pagination Spiral | 3+ Read/Grep on same file with only pagination args, no Edit between | STAGNANT — re-dispatch with line-range scope | N/A | coordinator |
+| Turn-Key Repetition | 3 identical consecutive turn keys (pagination-stripped) | SPIRAL — revert, narrow, re-dispatch | N/A | coordinator |
+| Error Echo | Same error 3x, same fix attempted | FAILED — escalate with error context | see taxonomy above | coordinator **and** tail |
+| PSA-007 Git-Write | Subagent Bash runs `git add`/`commit`/`stash`/`push` (or `mv`/`rm`/`reset`/`checkout --`) | Surface immediately; inspect shared index before next dispatch | N/A | tail |
+| Status-Partial | Agent transcript carries `STATUS: partial` / `STATUS: failed` | Same as the Status Detection Protocol `partial`/`failed` branch; backstop for a lost report | N/A | tail |
 
 ### Detection Discipline
 
-- These checks run during step 2 of `wave-loop.md` ("Review Agent Outputs"), per agent, after the wave completes — not during the agent's execution.
+- The three **coordinator** checks run during step 2 of `wave-loop.md` ("Review Agent Outputs"), per agent, after the wave completes — not during the agent's execution. The two **tail** checks (§ 4 / § 5) run live and are the exception to that timing, which is exactly why they survive a maxTurns kill.
+- **Tail silence is not a clean wave.** Transcripts flush per turn, so an agent inside one long tool call is unobservable for that call's duration (`.claude/rules/loop-and-monitor.md` § LM-002). Absence of tail records never substitutes for the post-wave review.
 - Two different agents reading the same file is **not** a spiral. That is coordination across agents, not stagnation within an agent.
 - A legitimate sequential read of a large file (e.g., reading lines 1-200, then 200-400 to gather full context for an upcoming edit) is **not** a pagination spiral if the agent eventually edits the file. The pattern triggers only when paging continues without ever producing an edit.
 - These patterns are heuristics. When in doubt, prefer false negatives (let the agent finish) over false positives (kill productive work).

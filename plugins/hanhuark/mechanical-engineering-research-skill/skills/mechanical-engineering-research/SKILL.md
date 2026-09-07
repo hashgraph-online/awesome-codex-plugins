@@ -1,6 +1,6 @@
 ---
 name: mechanical-engineering-research
-description: Apply source-aware mechanical-engineering judgment to research, analysis, coding, writing, teaching, and release work. Use for thermal-fluid systems, heat transfer, fluid mechanics, thermodynamics, HVAC, energy systems, turbomachinery, piping, multiphase flow, experiments, correlations, CFD, reduced-order models, AI/ML, uncertainty, engineering datasets, literature reviews, citations, manuscripts, reviewer revisions, Overleaf packages, figures, proposals, research software, reproducibility, public releases, or engineering teaching materials.
+description: Apply source-aware mechanical-engineering judgment to research, analysis, coding, writing, teaching, research identity, and release work. Use for thermal-fluid systems, heat transfer, fluid mechanics, thermodynamics, HVAC, energy systems, turbomachinery, piping, multiphase flow, experiments, correlations, CFD, reduced-order models, AI/ML, uncertainty, engineering datasets, literature reviews, citations, manuscripts, reviewer revisions, Overleaf packages, figures, proposals, research software, reproducibility, public releases, engineering teaching materials, or a research-project logo and visual identity.
 ---
 
 # Mechanical Engineering Research
@@ -49,6 +49,7 @@ Read only the references needed for the task.
 | Research brief or trade study | [brief-template.md](references/brief-template.md) |
 | Technical analysis, DOE, plotting, or results discussion | [technical-writing-analysis.md](references/technical-writing-analysis.md) |
 | Paper drafting or structural revision | [paper-writing-style.md](references/paper-writing-style.md) |
+| Review article drafting, revision, or evidence-mapped narrative/scoping review | [review-article-workflow.md](references/review-article-workflow.md) |
 | Reviewer response, highlighted manuscript, Overleaf package, or submission audit | [manuscript-revision-submission.md](references/manuscript-revision-submission.md) |
 | Literature review or research-gap synthesis | [literature-review.md](references/literature-review.md) |
 | Citation repair, bibliography audit, or claim verification | [citation-integrity.md](references/citation-integrity.md) |
@@ -65,11 +66,13 @@ Read only the references needed for the task.
 | Research presentation or poster | [presentation-slides.md](references/presentation-slides.md) |
 | Mechanical-engineering teaching material | [teaching-mechanical-engineering.md](references/teaching-mechanical-engineering.md) |
 | Invention disclosure or commercialization support | [innovation-commercialization.md](references/innovation-commercialization.md) |
+| Research-project logo, laboratory or software identity, icon, wordmark, or brand asset pack | [research-logo-and-identity.md](references/research-logo-and-identity.md) |
 | Explicit request to match Han Hu's established research-writing style | [han-hu-research-style.md](references/han-hu-research-style.md) |
+| Calibrated Han Hu manuscript drafting or revision with a private corpus | [han-hu-style-calibration-protocol.md](references/han-hu-style-calibration-protocol.md) |
 
 For document, PDF, spreadsheet, or presentation files, also use any available format-specific skill for file manipulation and rendering. Keep this skill responsible for engineering validity and scientific interpretation.
 
-For a manuscript authored or supervised by Han Hu, read [han-hu-research-style.md](references/han-hu-research-style.md) together with the task-specific paper and figure references even when the request does not explicitly ask for style matching.
+For a manuscript authored or supervised by Han Hu, read [han-hu-research-style.md](references/han-hu-research-style.md) together with the task-specific paper and figure references even when the request does not explicitly ask for style matching. When the user provides or configures a private style-calibration corpus, also read [han-hu-style-calibration-protocol.md](references/han-hu-style-calibration-protocol.md), retrieve only genre-matched evidence, and report the evidence status of the exemplars used.
 
 For iterative peer-review work, use `reviewer-author-loop` as the process scaffold when available. Apply this skill to physics, equations, instrumentation, uncertainty, data reduction, figures, modeling assumptions, and claim support.
 

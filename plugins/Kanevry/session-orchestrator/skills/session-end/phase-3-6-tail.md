@@ -81,7 +81,25 @@ The proposals queue is populated mid-session by wave-executor agents calling `no
    }
    ```
 
-   Then iterate `batches` and emit one `AskUserQuestion` per batch with `header: "Memory — Confirm Proposals (Batch N of M)"`. Option label format: `[<type-12>] | <subject-40> | conf=X.XX`. Option description: `evidence: <first 60 chars of insight>`. `multiSelect: true`.
+   Then iterate `batches` and emit one `AskUserQuestion` per batch. The verbatim template is `agents/memory-proposal-collector.md` § AUQ Question Template — keep the two in step:
+
+   ```javascript
+   AskUserQuestion({
+     questions: [{
+       header: "Memory",
+       question: "Batch <N> of <M> — which of these learnings should be stored permanently?",
+       options: [
+         // one entry per proposal in this batch (max 4)
+         // label + description formats are LOCKED by D3 — see that file, do not restate them here
+         { label: "[type   ] | subject(40) | conf=X.XX", description: "evidence: <first 60 chars of insight>" },
+         ...
+       ],
+       multiSelect: true
+     }]
+   })
+   ```
+
+   The batch counter moved out of `header` and into the question because `header` is cut off after 12 characters — `Memory — Confirm Proposals (Batch N of M)` reached the operator as `Memory — Con`.
 
 5. After all batches answered, partition the queue into `approved` (any option selected across all batches) and `rejected` (all unselected).
 
@@ -134,9 +152,10 @@ After learnings are written (Phase 3.6), determine whether to emit a **manual-ca
    ```javascript
    import { shouldDispatchAutoDream } from '${PLUGIN_ROOT}/scripts/lib/auto-dream.mjs';
    import { resolveMemoryDir } from '${PLUGIN_ROOT}/scripts/lib/memory-paths.mjs';
-   const memoryDir = resolveMemoryDir();
+   const repoRoot = process.cwd();
+   const memoryDir = resolveMemoryDir(repoRoot);
    const decision = await shouldDispatchAutoDream({
-     repoRoot: process.cwd(),
+     repoRoot,
      memoryDir,
      threshold: config['memory-cleanup-threshold'] ?? 5,
      softLimit: config['memory-cleanup-soft-limit'] ?? 180,
@@ -337,7 +356,24 @@ After the auto-dialectic nudge decision is made (Phase 3.6.7), and when the reco
    }
    ```
 
-   Iterate `batches` and emit one `AskUserQuestion` per batch with `header: "Reconciliation — Confirm Rule Proposals (Batch N of M)"`. Option label format: `<slug-40> | conf=<confidence>`. Option description: first 80 chars of the rendered `content` (the rule prose preview). `multiSelect: true`.
+   Iterate `batches` and emit one `AskUserQuestion` per batch:
+
+   ```javascript
+   AskUserQuestion({
+     questions: [{
+       header: "Regeln",
+       question: "Batch <N> of <M> — which rule proposals should be written into .claude/rules/?",
+       options: [
+         // one entry per proposal in this batch (max 4)
+         { label: "<slug-40>", description: "Confidence <confidence>. First 80 chars of the rendered rule text: <…>" },
+         ...
+       ],
+       multiSelect: true
+     }]
+   })
+   ```
+
+   The batch counter moved out of `header` and into the question because `header` is cut off after 12 characters — `Reconciliation — Confirm Rule Proposals (Batch N of M)` reached the operator as `Reconciliati`. The rendered `content` shown in the description is the rule prose that will land on disk.
 
 6. After all batches are answered, partition proposals into `approved` (any option selected across all batches) and `rejected` (all unselected). Proposals the operator rejected join the engine's `rejected` array for archival.
 
@@ -349,12 +385,19 @@ After the auto-dialectic nudge decision is made (Phase 3.6.7), and when the reco
      approved,
      rejected: [...rejected, ...operatorRejected],
      repoRoot: process.cwd(),
+     // #1099 — FORWARD BOTH. `decideReconcile()` already resolved them onto its
+     // RUN decision (`scripts/lib/session-end/phase-skip.mjs`, `targets` +
+     // `baselineRoot`); dropping them here silently pins every session to
+     // repo-local writes no matter what `reconcile.targets` says. Absent
+     // `baselineRoot` is the documented no-op path, not an error.
+     targets: decision.targets,
+     baselineRoot: decision.baselineRoot,
      sessionId,
    });
    // writeResult = { written: number, archived: number, errors: string[] }
    ```
 
-   `writeApprovedRules` is lock-serialised (via `withFileLock` on `.orchestrator/rules.lock`) and writes each approved proposal to `.claude/rules/<slug>.md`. Rejected proposals (engine-rejected + operator-rejected) are archived to `.orchestrator/reconcile.rejected.log` with reason `user-declined` for operator-rejected and the engine's own audit reason for engine-rejected.
+   `writeApprovedRules` is lock-serialised (via `withFileLock` on `.orchestrator/rules.lock`) and writes each approved proposal to the directory its target names — `.claude/rules/<slug>.md` for `repo-local`, `<baselineRoot>/proposals/<slug>.md` for `baseline`. Each target's write root is confined separately; the leaf comes from the renderer-minted `slug`, never from a caller-supplied path. Rejected proposals (engine-rejected + operator-rejected) are archived to `.orchestrator/reconcile.rejected.log` with reason `user-declined` for operator-rejected and the engine's own audit reason for engine-rejected.
 
 8. Log outcome for Phase 6 Final Report: `reconcile: ${surfaced.length} surfaced → ${approved.length} approved (written: ${writeResult.written}), ${operatorRejected.length} operator-declined${writeResult.errors.length > 0 ? `, ${writeResult.errors.length} write-errors (see sweep.log)` : ''}`.
 

@@ -26,9 +26,21 @@ staged/unstaged/untracked paths, active Git operations, and:
 git worktree list --porcelain
 ```
 
-Stop on detached HEAD, unresolved conflicts, or an active merge/rebase/
-cherry-pick/revert/bisect. Preserve user state: no automatic stash, reset,
-clean, broad staging, or commit.
+Classify the current host surface's task/chat-bound managed workspace semantics
+as `managed`, `non-managed`, or `unknown`. Use trusted host/session context, an
+explicit host contract, or a host-native lifecycle result; do not infer the
+classification from a product name, directory prefix, command-level `workdir`,
+missing tool, or absent metadata. `non-managed` requires positive evidence that
+the current surface lacks task-bound managed semantics. When the host exposes
+workspace fields, record the task workspace and the command's default `cwd`
+without a per-command directory override.
+
+Stop on unresolved conflicts, an active merge/rebase/cherry-pick/revert/bisect,
+or an unexplained detached HEAD. A detached HEAD is acceptable only when
+trusted host binding evidence identifies it as the intended state of the
+current managed worktree; Codex-managed worktrees, for example, start detached
+by default. Preserve user state: no automatic stash, reset, clean, broad
+staging, or commit.
 
 Before deciding necessity or placement, read the smallest relevant project
 `AGENTS.md`, `CLAUDE.md`, current authority, and existing worktree convention.
@@ -64,6 +76,48 @@ exact path before creation; do not target a broad home, workspace, or repo root.
 Prefer reusing an existing branch carrying the same goal. Create a branch only
 when the approved Git lifecycle requires independent history.
 
+### Managed-host binding gate
+
+When the host surface declares task/chat-bound managed workspaces, use its
+native Worktree/Handoff lifecycle instead of shell creation. Reuse the current
+task only when trusted host evidence says it is already bound to the intended
+workspace. If the native operation creates or moves work into another task,
+continue only in that bound task.
+
+After the native lifecycle operation, or immediately when entering/reusing an
+already-bound managed workspace, and before the first task content or Git
+history write, read back one joint postcondition:
+
+- trusted task workspace;
+- default command `cwd` without a command-level directory override;
+- intended Git worktree root;
+- intended `HEAD` and branch/detached state.
+
+All four must describe the same execution environment. `git worktree list`, a
+managed-looking path, or a per-command `workdir` proves only part of that
+postcondition. If native creation/handoff is unavailable, only UI-driven, or
+cannot be verified, stop before shell worktree creation or task content/history
+writes and give the user the host-native re-entry action. Do not silently fall
+back on `git worktree add`.
+Compare resolved path identity using host-appropriate semantics, not raw path
+strings. The default `cwd` may equal the worktree root or be inside it; running
+Git from that default `cwd` must resolve to the intended worktree root.
+An intended host-managed detached HEAD satisfies the Git-state component; do
+not create a branch merely to make that state look like a generic checkout.
+
+If an unbound manual worktree already exists, preserve it and report its exact
+path, `HEAD`, branch, status, and ownership evidence. Dirty, untracked, or
+ownership-unknown state is not auto-migrated, deleted, stashed, reset, or
+overwritten. A later commit/patch transfer follows normal Git authorization and
+must be verified in the new bound task before cleanup is offered.
+
+### Generic Git fallback
+
+Use the shell path below only when trusted evidence positively classifies the
+current host/CLI surface as `non-managed`. An `unknown` classification fails
+closed; an absent native tool or missing binding metadata is not
+generic-fallback evidence.
+
 ```bash
 # Existing branch
 git worktree add <exact-path> <branch>
@@ -73,7 +127,8 @@ git worktree add -b <branch> <exact-path> <start-point>
 ```
 
 Read back `git worktree list --porcelain`, the new worktree's `HEAD`/branch, and
-its status. Do not use force flags.
+its status. Do not use force flags. A command-level `workdir` may target this
+checkout on a generic host, but it never proves managed task binding.
 
 ## Step 4: Authority-Led Setup and Baseline
 
@@ -104,6 +159,10 @@ Never:
 - modify `.gitignore` merely to make worktree creation possible;
 - install dependencies blindly;
 - create one worktree per subagent;
+- treat Git readback, a path prefix, or command-level `workdir` as proof of
+  managed task binding;
+- use shell worktree creation merely because a host-native capability is
+  deferred, UI-only, or absent from the initial tool list;
 - run global prune or force cleanup as routine hygiene;
 - remove dirty, untracked, locked, user-owned, or ownership-unknown resources.
 

@@ -11,6 +11,9 @@ A high-performance, schema-driven architecture for AI agents to generate, edit, 
 
 ---
 
+<p align="center"><a href="https://www.youtube.com/watch?v=SOXsxqnQGlc"><img src="https://i.ytimg.com/vi/SOXsxqnQGlc/maxresdefault.jpg" width="720"></a></p>
+<p align="center"><a href="https://www.youtube.com/watch?v=SOXsxqnQGlc"><b>▶ Watch: Best AI Video Generator (API) in 2026 (Quality, Price, Uncensored, Editing)</b></a></p>
+
 ## Related Projects
 
 - [minimax-music-3-api](https://github.com/SamurAIGPT/minimax-music-3-api) — Python SDK for MiniMax Music 3.0 text-to-music generation on Muapi.
@@ -18,9 +21,11 @@ A high-performance, schema-driven architecture for AI agents to generate, edit, 
 - [MiniMax-H3-API](https://github.com/Anil-matcha/MiniMax-H3-API) — Python SDK for MiniMax H3 video-generation workflows on Muapi.
 - [awesome-minimax-h3-prompts](https://github.com/Anil-matcha/awesome-minimax-h3-prompts) — Prompt gallery and runnable examples for the MiniMax H3 skills.
 - [Wan-3.0-API](https://github.com/Anil-matcha/Wan-3.0-API) — Python SDK and MCP server for Wan 3.0-compatible video-generation workflows.
+- [Wan-3.0-Prime-API](https://github.com/Anil-matcha/Wan-3.0-Prime-API) — Python SDK and MCP server for the higher-fidelity Wan 3.0 Prime tier.
 - [Open-Generative-AI](https://github.com/Anil-matcha/Open-Generative-AI) — Free self-hosted AI media studio — GUI alternative to these skills for the same model set
 - [Awesome-GPT-Image-2-API-Prompts](https://github.com/Anil-matcha/Awesome-GPT-Image-2-API-Prompts) — Curated GPT-Image-2 prompts to use with these skills
 - [Awesome-Gemini-Omni-API-Prompts](https://github.com/Anil-matcha/Awesome-Gemini-Omni-API-Prompts) — Curated Gemini Omni prompts for video generation
+- [Gemini-Omni-1.1-Flash-API](https://github.com/Anil-matcha/Gemini-Omni-1.1-Flash-API) — Python SDK and MCP server for Google's newly announced Gemini Omni 1.1 Flash update
 - [AI-Voice-Agent](https://github.com/Anil-matcha/AI-Voice-Agent) — Self-hosted AI voice agent for real-time voice conversations, sales calls, and customer support
 - [awesome-ai-image-models](https://github.com/Anil-matcha/awesome-ai-image-models) — compare AI image models by API, price & quality
 - [flux-3-video-api](https://github.com/SamurAIGPT/flux-3-video-api) — Python wrapper focused on FLUX 3 Text-to-Video and Image-to-Video

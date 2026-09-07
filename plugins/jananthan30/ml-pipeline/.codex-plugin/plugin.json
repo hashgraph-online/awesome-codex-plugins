@@ -1,0 +1,34 @@
+{
+  "name": "ml-pipeline",
+  "version": "0.1.1",
+  "description": "Data-first ML discipline: forces coding agents through a strict 16-step pipeline — inspect and understand the raw data, define the prediction problem, clean, engineer, and split it BEFORE any model training — with explicit user-permission gates, marimo notebooks, and matplotlib visuals at every step.",
+  "author": {
+    "name": "Jananthan Paramsothy"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/jananthan30/ml-pipeline",
+  "repository": "https://github.com/jananthan30/ml-pipeline",
+  "keywords": [
+    "machine-learning",
+    "ml-pipeline",
+    "eda",
+    "data-cleaning",
+    "data-leakage",
+    "marimo",
+    "matplotlib",
+    "workflow-discipline"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "ML Pipeline",
+    "developerName": "Jananthan Paramsothy",
+    "category": "Productivity",
+    "shortDescription": "Stops coding agents from jumping straight to model training.",
+    "longDescription": "Enforces a strict 16-step, data-first ML pipeline: data inspection, EDA, and prediction-problem definition before any cleaning or modeling; train/val/test split before feature engineering and preprocessing; a baseline before any complex model; and a final test set that is touched exactly once. Explicit user-permission gates after each phase, marimo notebooks as the workbench, matplotlib figures at every data-facing step, and a per-project PIPELINE.md checklist so sessions resume instead of restarting.",
+    "description": "Stops coding agents from jumping straight to model training. 16 strict steps, 4 permission gates, visuals at every step.",
+    "capabilities": [
+      "skills"
+    ],
+    "websiteURL": "https://github.com/jananthan30/ml-pipeline"
+  }
+}

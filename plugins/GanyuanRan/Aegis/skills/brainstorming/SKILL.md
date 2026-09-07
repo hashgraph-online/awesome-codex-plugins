@@ -157,8 +157,10 @@ Every user question must pass this test:
 > If the user chooses another answer, which design boundary, behavior, owner,
 > acceptance criterion, or risk decision changes?
 
-If none changes, do not ask. This classification clarifies which decisions are
-user-owned; it does not remove the approval points this workflow already
+If none changes, do not ask. When a question passes this test,
+attach a recommended option and the reason for it, so the user decides
+between framed choices instead of researching. This classification clarifies which decisions
+are user-owned; it does not remove the approval points this workflow already
 defines.
 
 ## Checklist
@@ -205,8 +207,8 @@ non-goals). Refresh when scope changes.
 **Compact output contract:** `Aegis Visibility`, `TaskIntentDraft`, `BaselineReadSetHint`,
 `BaselineUsageDraft`, `Requirement Ready Check`, `ImpactStatementDraft`,
 `Existence Check`, `Product Risk Lens`, `Architecture Integrity Lens`,
-`Baseline Role Alignment`, `Plan-Time Complexity Check`, `Options`, and
-`Decision Needed`. Use this compact shape before expanding into a full design
+`Prior-Art & Reuse Lens`, `Baseline Role Alignment`, `Plan-Time Complexity
+Check`, `Options`, and `Decision Needed`. Use this compact shape before expanding into a full design
 structure.
 
 `Aegis Visibility` for this workflow names why design/spec clarification comes
@@ -332,6 +334,31 @@ higher-level owner / contract / source-of-truth simplification. The lens should
 answer invariant, canonical owner / contract, responsibility overlap,
 higher-level simplification, retirement / falsifier, and verdict before the
 approach is recommended.
+
+**Prior-Art & Reuse Lens:** When a candidate approach would introduce a new
+mechanism, protocol, artifact shape, or nontrivial interaction pattern, check
+proven external practice before inventing one. This lens is behavior-triggered:
+research precedents when the direction is novel for the project, plausible
+approaches remain after internal reuse checks, or the domain sits outside
+current repository evidence. Do not run research ceremony for routine work that
+already maps to well-known framework patterns, and do not let an unavailable
+web/search tool stall approach selection.
+
+```text
+Prior-Art & Reuse Lens:
+- Searched precedents: <bounded sources; index-first summary; cite anchor per claim>
+- Adopt verbatim: <proven pattern + source>
+- Adapt with reason: <tailored part -> project constraint / non-negotiable it maps to>
+- Reject with reason: <project fact that makes the pattern inapplicable>
+- Degraded: <no web/search tooling -> external basis unknown; internal-only evidence stated>
+```
+
+Search results are evidence candidates, not prompt payload: summarize
+index-first and cite anchors instead of pasting raw pages. An "industry
+standard" claim without a citable anchor stays `unknown`. Every adapt/reject
+decision binds to a named project constraint or fact, not taste. The lens feeds
+only the approach recommendation; it stays advisory and grants no completion
+authority.
 
 **Baseline Role Alignment:** When a question may involve both "what should be
 built" and "where it should live", keep requirement truth separate from

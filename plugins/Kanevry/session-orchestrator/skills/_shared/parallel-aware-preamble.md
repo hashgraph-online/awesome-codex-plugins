@@ -29,6 +29,33 @@ If an `exclusive`-class session is also active, the Exclusive-Conflict AUQ takes
 **Always-OK class** (`discovery`, `evolve`, `plan`, `repo-audit`, `portfolio`):
 The preamble passes through with zero AUQ regardless of other active sessions. Read-only modes never conflict.
 
+## Identity Binding for `findPeers` (#1085)
+
+`mySessionId` / `callerSessionId` is a **hint for the caller's original
+surface**, not a license to turn an attribution label into ownership. A native
+raw id self-excludes on the discovered lock/registry surface directly. Given a
+semantic hint, `findPeers` may translate it to a concrete local raw id only when
+both proofs hold: `current-session.json` has the same semantic label **and** its
+raw `session_id` exactly equals the readable local lock's raw `session_id`.
+
+On a missing, malformed, or mismatched binding, `findPeers` must map nothing and
+leave the discovered lock visible. The STATE.md surface always receives the
+original hint and therefore compares STATE.md `session` as the attribution label
+it is; it is never rewritten to a raw id. This guarded translation is only
+self-exclusion for discovery, not lock/registry ownership and not a continuity
+bridge across a host rotation that changes both values.
+
+**What the binding does not prove.** Both files it reads are repo-global, so the
+check establishes that they are mutually CONSISTENT — not that they describe
+*this* process. Semantic labels are routinely shared between simultaneously live
+sessions, and when a foreign live session wrote both files last under a label
+equal to this hint, its raw id is filtered out and the peer disappears from the
+result. Measured 2026-08-21: with a null hint the foreign peer is returned, with
+the colliding semantic hint `peers` is empty. Treat a quiet `findPeers` result as
+weaker evidence than a git or filesystem signal, and prefer passing the native
+raw id whenever the caller has one. Closing this needs a per-process ownership
+proof; see #1091.
+
 ## Preamble Algorithm
 
 Execute these steps in order. Any classification determines outcome.
@@ -107,14 +134,23 @@ async function runParallelAwarePreamble({ repoRoot, callerMode, callerSessionId 
     return { outcome: 'EXCLUSIVE_BLOCKED', callerClass, blockingSession: exclusiveActive, active: classifiedActive };
   }
 
+  // GH#67: a registry-sourced peer whose lock is SUPERSEDED (a LIVE lock at
+  // this repoRoot is owned by a DIFFERENT raw session_id) is likely a
+  // finished-but-still-fresh task on a platform without SessionEnd. It stays
+  // visible in `active` (never a filter — the lock is advisory, #1085
+  // contract), but it is not eligible to trigger the Promotion AUQ. Split it
+  // out as advisory before the parallelPeer lookup.
+  const supersededPeers = classifiedActive.filter((e) => e.lockSuperseded === true);
+  const promotionEligible = classifiedActive.filter((e) => e.lockSuperseded !== true);
+
   const parallelPeer = callerClass === 'parallel-ok'
-    ? classifiedActive.find((e) => e._class === 'parallel-ok' && e.sessionId !== callerSessionId)
+    ? promotionEligible.find((e) => e._class === 'parallel-ok' && e.sessionId !== callerSessionId)
     : null;
   if (parallelPeer) {
     return { outcome: 'PROMOTION_OFFER', callerClass, parallelPeer, active: classifiedActive };
   }
 
-  return { outcome: 'PASS_THROUGH', callerClass, active: classifiedActive };
+  return { outcome: 'PASS_THROUGH', callerClass, active: classifiedActive, advisory: supersededPeers };
 }
 ```
 
@@ -126,7 +162,9 @@ The skill consuming the preamble translates the outcome:
 |---------|--------|
 | `PASS_THROUGH` | Continue immediately. No AUQ. Pre-P1.3 behavior. |
 | `EXCLUSIVE_BLOCKED` | Fire Exclusive-Conflict AUQ from `parallel-aware-auq.md`. Block until user response. On "Abbrechen": exit cleanly. On "Andere Session beenden": surface to user (preamble does NOT kill other session). On "Warten": pause Phase 0; re-run preamble on user retry. |
-| `PROMOTION_OFFER` | Fire Promotion AUQ from `parallel-aware-auq.md`. On "Worktree anlegen": call enterWorktree() from worktree-pipeline.mjs (see parallel-aware-auq.md outcome-handling). On "Manuell": append Deviation (`Worktree-Auto-Promotion declined; running in-place alongside session_id=<peer.sessionId>`) and continue. On "Abbrechen": exit. |
+| `PROMOTION_OFFER` | Fire Promotion AUQ from `parallel-aware-auq.md`. On "Worktree anlegen": call `enterWorktree({ ..., rawSessionId, reason: 'worktree-promotion' })` from worktree-pipeline.mjs (see parallel-aware-auq.md outcome-handling) — since #1170 this ONE call also releases the source root: it calls `leaveSourceRoot({ repoRoot, sessionId: rawSessionId, semanticSessionId, reason })` from `session-transition.mjs` internally, on BOTH success exits, so no separate call is made here. `rawSessionId` is the RAW physical `session_id` from this root's `.orchestrator/session.lock` (`readLock({ repoRoot })`), never the semantic label and never `current-session.json` (may describe a peer, #863). The promotion is a process boundary, not a live migration (#1069): the old root is deregistered and its lock released BEFORE the new worktree's own Phase 1.2 acquires — never both roots owning at once. The return value's `left` field carries the outcome; `leaveSourceRoot()` never throws, so on `left.ok !== true` `enterWorktree` itself emits the stderr WARN `enterWorktree: leaveSourceRoot: <reason>` and the promotion continues regardless. On "Manuell": append Deviation (`Worktree-Auto-Promotion declined; running in-place alongside session_id=<peer.sessionId>`) and continue. On "Abbrechen": exit. |
+
+**Superseded-lock advisory (GH#67).** A `discovered` peer with `lockSuperseded: true` never fires the Promotion AUQ — it is downgraded to the `advisory` array on the `PASS_THROUGH` result instead (see the `runParallelAwarePreamble` reference above), because a live lock at this repoRoot is owned by a different raw session_id and the entry is likely a finished-but-still-fresh task on a platform without SessionEnd, not a live collision (#1085 advisory-lock contract — the entry is never filtered, only downgraded). The consuming skill prints ONE advisory line per entry: `parallel-aware: registry entry <sessionId> (last heartbeat <N> min ago) is superseded by this root's live lock <lockOwnerId> — likely a finished task on a platform without SessionEnd (GH#67); still counted for PSA-001 awareness`, then continues. `lockSuperseded: false` with `lockOwnerId: null` means "no live lock here" — distinct from "own lock". The same session id remains PSA-002-relevant if it also shows up in STATE.md (`source: 'state-md'`, handled unchanged by Phase 1.2.1/Phase 1b below).
 
 ## Phase 1b Peer-Guard (defense-in-depth)
 
@@ -142,7 +180,11 @@ The guard is a SOFT-GATE — operator can override, but the warning is mandatory
 findPeers(repoRoot, { mySessionId }) → peer = peers.find((p) => p.source === 'state-md') →
   peer === null  →  safe to write STATE.md; continue Phase 1b normally.
   peer !== null  →  fire Promotion AUQ (parallel-aware-auq.md "Promotion" block).
-                    On "Worktree anlegen": enterWorktree() → continue in sibling.
+                    On "Worktree anlegen": enterWorktree(..., rawSessionId) — releases
+                                           the source root internally (#1170; no
+                                           separate leaveSourceRoot call needed)
+                                           → continue in sibling (process boundary,
+                                             old root released before the new acquire).
                     On "Manuell": appendDeviationOnDisk() + continue in-place.
                     On "Abbrechen": exit cleanly.
 ```
@@ -152,8 +194,10 @@ findPeers(repoRoot, { mySessionId }) → peer = peers.find((p) => p.source === '
 ```js
 import { findPeers } from '../../scripts/lib/peer-discovery.mjs';
 
-// Inside Phase 1b, before writing STATE.md:
-const { peers } = await findPeers(repoRoot, { mySessionId: sessionId });
+// Inside Phase 1b, before writing STATE.md. Preserve the original
+// attribution-label hint for the STATE.md surface; findPeers guards any
+// semantic→raw translation for discovered peers internally.
+const { peers } = await findPeers(repoRoot, { mySessionId: callerSessionHint });
 const peer = peers.find((p) => p.source === 'state-md') ?? null;
 // Phase 1.2.1 consumes only the 'state-md' subset (STATE.md surface only).
 if (peer !== null) {

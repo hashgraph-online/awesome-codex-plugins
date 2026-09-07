@@ -4,17 +4,39 @@ import { readFile, writeFile } from "node:fs/promises";
 const PATTERNS = [
   ["A-2", /를 통해|을 통해|통하여/gu],
   ["A-3", /에 있어서|에 있어/gu],
-  ["A-7", /가지고 있다|가졌다/gu],
-  ["A-8", /되어진다|되어졌다/gu],
-  ["A-10", /할 수 있다|할 수 있을/gu],
+  ["A-7", /가지고 있다|가지고 있습니다|가졌다/gu],
+  ["A-8", /되어진다|되어집니다|되어졌다/gu],
+  ["A-10", /할 수 있다|할 수 있을|할 수 있습니다/gu],
   ["C-11", /(고|며|지만|아서|어서),/gu],
   ["D-1", /결론적으로|따라서|요약하면|정리하면/gu],
-  ["D-2", /시사하는 바가 크다|주목할 만하다/gu],
-  ["H-1", /(^|\n)\s*(또한|따라서|즉|나아가|아울러|게다가|더욱이)/gu],
-  ["I-1", /인 것이다|한 것이다/gu],
-  ["J-2", /"[^"]{1,40}"/gu]
+  ["D-2", /시사하는 바가 크다|시사하는 바가 큽니다|주목할 만하다|주목할 만합니다/gu],
+  ["H-1", /(^|\n|[.!?]\s)\s*(또한|따라서|즉|나아가|아울러|게다가|더욱이)/gu],
+  ["I-1", /인 것이다|인 것입니다|한 것이다|한 것입니다|는 것입니다/gu],
+  ["J-2", /"[^"]{1,40}"/gu],
+  ["K-1", /멱등(?:성)?/gu],
+  ["M-1", /[—–]/gu]
 ];
-const REQUIRED_S1_PATTERN_IDS = ["A-2", "A-3", "A-7", "A-8", "C-11", "D-1", "D-2", "H-1", "I-1"];
+const REQUIRED_S1_PATTERN_IDS = ["A-2", "A-3", "A-7", "A-8", "C-11", "D-1", "D-2", "H-1", "I-1", "K-1", "M-1"];
+// Quoted spans are protected byte-for-byte, so the rewriter cannot repair J-2;
+// it stays informational and is excluded from grading.
+const GRADE_EXEMPT_IDS = ["J-2"];
+const PROSE_SPAN_FILTERED_IDS = new Set(["K-1", "M-1"]);
+const PROTECTED_PROSE_SPAN_PATTERN = /`[^`\r\n]+`|"[^"\r\n]+"|“[^”\r\n]+”|‘[^’\r\n]+’|「[^」\r\n]+」|『[^』\r\n]+』/gu;
+// Upstream v2.4 서법 보존: a decrease in deontic or hedge markers means a
+// demand or reservation may have become a plain assertion. Repositioning
+// (the D-6 repair) keeps the counts identical; only substitution loses one.
+// A decrease warns rather than fails: A-10/G-2 repairs may legitimately drop
+// a hedge when the source itself is certain.
+const DEONTIC_MARKER_PATTERN = /[가-힣]야(?:만)?\s*(?:한다|합니다|했다|할|하며|하고|겠다|겠습니다|된다|됩니다)|필요가\s?있(?:다|습니다|을)|요구(?:된다|됩니다)/gu;
+// `수도` needs the trailing 있 so the nouns 수도 (capital, water supply) do
+// not count; `~로 보인다` is matched through any preceding syllable because
+// the hedge is the ending, not the 것으로 nominalizer.
+const HEDGE_MARKER_PATTERN = /수\s?(?:있다|있습니다|있을)|[가-힣]로\s?보(?:인다|입니다)|가능성이\s?(?:있|높)(?:다|습니다)|[가-힣]\s?수도\s?있|듯하(?:다|습니다)/gu;
+// Upstream v2.4 C-8: paired antithesis rhetoric is absent from the human
+// corpus, so two or more remaining pairs are a safe repetition signal.
+// The 인가 branch requires both halves of the pair; a lone rhetorical
+// question or the noun 인가 (approval) is not antithesis.
+const ANTITHESIS_PATTERN = /[가-힣](?:가|이)\s?아니라|인가[,，][^\n.!?]*인가\?/gu;
 const KOREAN_NAME_STOPLIST = new Set([
   "광고",
   "계획",
@@ -66,13 +88,14 @@ if (!report.ok) fail(report.problems.join("; "));
 async function audit(args) {
   const source = await readInputFile("source", args.source);
   const final = await readInputFile("final", args.final);
+  const genre = args.genre ?? null;
   const sourceRatio = koreanRatio(source);
   const finalRatio = koreanRatio(final);
   const protectedTokens = collectProtectedTokens(source);
   const missing = [...protectedTokens].filter((token) => !final.includes(token));
   const before = countPatterns(source);
   const after = countPatterns(final);
-  const changeRate = levenshtein(source, final) / Math.max(source.length, 1);
+  const changeRate = levenshtein(source, final) / Math.max(source.length, final.length, 1);
   const problems = [];
   if (sourceRatio < 0.2) problems.push("Korean source text required");
   if (missing.length > 0) problems.push("Protected tokens changed");
@@ -81,11 +104,26 @@ async function audit(args) {
   if (requiredS1Count(before) > 0 && requiredS1Count(after) >= requiredS1Count(before)) {
     problems.push("S1 AI-tell count not reduced");
   }
+  if ((after["K-1"] ?? 0) > 0) problems.push("Unnecessary technical jargon remains");
+  if ((after["M-1"] ?? 0) > 0) problems.push("Em dash remains in Korean prose");
 
-  const warnings = changeRate > 0.3 && changeRate <= 0.5 ? ["Change rate exceeds 30%"] : [];
+  const warnings = [];
+  if (changeRate > 0.3 && changeRate <= 0.5) warnings.push("Change rate exceeds 30%");
+  const modality = {
+    deontic: { before: countMatches(source, DEONTIC_MARKER_PATTERN), after: countMatches(final, DEONTIC_MARKER_PATTERN) },
+    hedge: { before: countMatches(source, HEDGE_MARKER_PATTERN), after: countMatches(final, HEDGE_MARKER_PATTERN) }
+  };
+  if (modality.deontic.after < modality.deontic.before || modality.hedge.after < modality.hedge.before) {
+    warnings.push("Modality markers decreased; a demand or hedge may have become a plain assertion — reposition instead of substituting (D-6), and drop a hedge only when the source is certain");
+  }
+  const antithesis = { before: countMatches(source, ANTITHESIS_PATTERN), after: countMatches(final, ANTITHESIS_PATTERN) };
+  if (antithesis.after >= 2) {
+    warnings.push("Paired antithesis rhetoric repeats; keep the strongest pair and flatten the rest into direct statements (C-8)");
+  }
   return {
     ok: problems.length === 0,
     grade: grade({ after, changeRate, missing, problems }),
+    genre,
     sourceChars: source.length,
     finalChars: final.length,
     changeRate: Number(changeRate.toFixed(4)),
@@ -95,9 +133,15 @@ async function audit(args) {
     },
     protectedTokens: { total: protectedTokens.size, missing },
     patterns: { before, after },
+    modality,
+    antithesis,
     warnings,
     problems
   };
+}
+
+function countMatches(text, pattern) {
+  return [...text.matchAll(pattern)].length;
 }
 
 async function readInputFile(label, path) {
@@ -113,12 +157,15 @@ async function writeFailureReport(path, message) {
   const report = {
     ok: false,
     grade: "D",
+    genre: null,
     sourceChars: 0,
     finalChars: 0,
     changeRate: 0,
     koreanRatio: { source: 0, final: 0 },
     protectedTokens: { total: 0, missing: [] },
     patterns: { before: {}, after: {} },
+    modality: { deontic: { before: 0, after: 0 }, hedge: { before: 0, after: 0 } },
+    antithesis: { before: 0, after: 0 },
     warnings: [],
     problems: [message]
   };
@@ -143,7 +190,7 @@ function collectProtectedTokens(text) {
   const patterns = [
     /https?:\/\/\S+/gu,
     /`[^`]+`/gu,
-    /"[^"]+"/gu,
+    PROTECTED_PROSE_SPAN_PATTERN,
     /\b[A-Z][A-Za-z0-9.-]*\b/gu,
     /\b[A-Z]{2,}\b/gu,
     /\b\d+(?:\.\d+){1,}\b/gu,
@@ -157,7 +204,14 @@ function collectProtectedTokens(text) {
 }
 
 function countPatterns(text) {
-  return Object.fromEntries(PATTERNS.map(([id, pattern]) => [id, [...text.matchAll(pattern)].length]));
+  return Object.fromEntries(PATTERNS.map(([id, pattern]) => {
+    const input = PROSE_SPAN_FILTERED_IDS.has(id) ? removeProtectedProseSpans(text) : text;
+    return [id, [...input.matchAll(pattern)].length];
+  }));
+}
+
+function removeProtectedProseSpans(text) {
+  return text.replace(PROTECTED_PROSE_SPAN_PATTERN, "");
 }
 
 function collectKoreanProductNameCandidates(text) {
@@ -170,8 +224,8 @@ function collectKoreanProductNameCandidates(text) {
     .filter((token) => token.length >= 3 && !KOREAN_NAME_STOPLIST.has(token));
 }
 
-function requiredS1Count(counts) {
-  return REQUIRED_S1_PATTERN_IDS.reduce((total, id) => total + (counts[id] ?? 0), 0);
+function requiredS1Count(counts, requiredIds = REQUIRED_S1_PATTERN_IDS) {
+  return requiredIds.reduce((total, id) => total + (counts[id] ?? 0), 0);
 }
 
 function levenshtein(left, right) {
@@ -206,9 +260,9 @@ function levenshtein(left, right) {
 
 function grade({ after, changeRate, missing, problems }) {
   if (problems.length > 0 || missing.length > 0 || changeRate > 0.5) return "D";
-  const s1After = requiredS1Count(after) + (after["J-2"] ?? 0);
+  const s1After = requiredS1Count(after);
   const s2After = Object.entries(after)
-    .filter(([id]) => ![...REQUIRED_S1_PATTERN_IDS, "J-2"].includes(id))
+    .filter(([id]) => ![...REQUIRED_S1_PATTERN_IDS, ...GRADE_EXEMPT_IDS].includes(id))
     .reduce((total, [, count]) => total + count, 0);
   if (s1After === 0 && changeRate >= 0.1 && changeRate <= 0.3) return "A";
   if (s1After === 0 && s2After <= 4) return "B";

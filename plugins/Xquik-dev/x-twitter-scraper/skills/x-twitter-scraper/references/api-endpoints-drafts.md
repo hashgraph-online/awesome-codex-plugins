@@ -46,8 +46,10 @@ For a 201 response, the API returns:
 
 List saved tweet drafts with cursor pagination.
 
-This is a private read. Show the requested page size and account scope. List drafts
-only after explicit approval for that exact read.
+This is a private read. Show the account scope, page size, starting `afterCursor`
+or lack of one, and maximum page count. List drafts only after explicit approval
+for that exact scope. Stop at the confirmed page limit. Obtain new approval before
+following any `nextCursor` beyond it.
 
 Use these query parameters:
 
@@ -70,10 +72,12 @@ For a 200 response, the API returns:
       "updatedAt": "2026-02-24T10:30:00.000Z"
     }
   ],
-  "afterCursor": "cursor_string",
+  "nextCursor": "cursor_string",
   "hasMore": true
 }
 ```
+
+The final page omits `nextCursor` when `hasMore` is `false`.
 
 ---
 
@@ -94,7 +98,7 @@ Possible errors include `400 invalid_id` and `404 draft_not_found`.
 
 ### Delete draft
 
-Send a delete request to `/drafts/{id}`.
+Use the delete method on `/drafts/{id}`.
 
 This action is destructive. Deletion is permanent and cannot be recovered through
 this API. Show the draft ID and text, then obtain explicit approval immediately

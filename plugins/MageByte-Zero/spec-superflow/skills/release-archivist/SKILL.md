@@ -113,9 +113,26 @@ run `ssf state transition <change-dir> closing`.
 `executing → closing` is the final action: once it succeeds, select no next
 skill and run no recovery scans.
 
+## Physical Archive (Full/legacy Hotfix only)
+
+After the `executing → closing` transition succeeds, complete the physical
+archive with:
+
+```bash
+ssf finish <change-dir> [--test-cmd <command>]
+```
+
+`ssf finish` merges the isolation branch back to the trunk (`--no-ff`),
+verifies the trunk (default `npm test`, `--test-cmd` override, 10-minute
+timeout), then removes the worktree and the isolation branch. For submodule
+projects it auto-falls-back to `--force` worktree removal; if that also
+fails it prints the merge commit and manual cleanup commands. Quick /
+direct Hotfix / tweak / lightweight skip this step — their `closing` is
+already the physical terminal.
+
 ## Lightweight Closure (Quick/direct Hotfix/tweak)
 
-Quick and direct Hotfix use a concise verification summary: changed files, focused command, result, and persisted `test_result: pass`. Quick runs targeted tests or syntax/static checks; direct Hotfix proves the original symptom regression. Do not require a contract, execution plan, review receipt, DP-6, or DP-7. A legacy Hotfix remains on the full contract/DP/review closure path. Tweak verifies file integrity and also persists `test_result: pass`.
+Quick and direct Hotfix use a concise verification summary: changed files, focused command, result, and persisted `test_result: pass`. Quick runs targeted tests or syntax/static checks; direct Hotfix proves the original symptom regression. Do not require a contract, execution plan, review receipt, DP-6, or DP-7. A legacy Hotfix remains on the full contract/DP/review closure path. Tweak verifies file integrity and also persists `test_result: pass`. Closing is the physical terminal for lightweight paths — no `ssf finish` step is needed.
 
 ## Exception Handling
 
@@ -161,5 +178,8 @@ persisted `closing` state and `abandoned` are terminal.
 
 - Current stage: successfully persisted `closing` or `abandoned`.
 - Completed / blocker: `<persisted terminal outcome>`.
-- Next stage: `none`.
-- Entry condition: no further transition exists.
+- Next stage: for Full/legacy Hotfix, the physical archive via `ssf finish
+  <change-dir>` (worktree merge + cleanup); once it succeeds, next = none.
+  For Quick / direct Hotfix / tweak / lightweight, `none` — closing is the
+  physical terminal.
+- Entry condition: no further state transition exists.

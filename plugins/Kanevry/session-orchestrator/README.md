@@ -1,7 +1,7 @@
 # Session Orchestrator
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-3.21.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-3.23.0-blue.svg)](CHANGELOG.md)
 [![npm](https://img.shields.io/npm/v/session-orchestrator.svg)](https://www.npmjs.com/package/session-orchestrator)
 [![Tests](https://img.shields.io/badge/tests-12%2C000%2B-brightgreen.svg)](docs/telemetry/telemetry-claims.md)
 
@@ -52,6 +52,8 @@ That is the whole loop. `/plan` and `/evolve` extend it (see [Lifecycle](#lifecy
 
 ## Quick Start
 
+Run `/bootstrap` in your project repo first — it writes `.orchestrator/bootstrap.lock`, which session-start requires before `/session` will run.
+
 Add a `## Session Config` section to your project's `CLAUDE.md` (Claude Code and Cursor IDE) or `AGENTS.md` (Codex CLI and Pi) — see [instruction-file-resolution](skills/_shared/instruction-file-resolution.md) for which file each platform reads. The smallest valid config is seven fields:
 
 ```yaml
@@ -70,8 +72,8 @@ Everything else is opt-in. See [`docs/session-config-template.md`](docs/session-
 
 ## What you get
 
-- **45 skills** for the session lifecycle (start, plan, execute, close, evolve), discovery, vault sync, MCP authoring, debugging, brainstorming, plan grilling, persona panels, cross-repo dispatch, learning→rule reconciliation, session-process eval, audits, and more
-- **24 slash commands** (`/session`, `/go`, `/close`, `/discovery`, `/plan`, `/grill`, `/evolve`, `/autopilot`, `/dispatcher`, `/reconcile`, `/eval`, `/test`, `/debug`, …)
+- **48 skills** for the session lifecycle (start, plan, execute, close, evolve), discovery, vault sync, MCP authoring, debugging, brainstorming, plan grilling, persona panels, cross-repo dispatch, learning→rule reconciliation, session-process eval, audits, and more
+- **28 slash commands** (`/session`, `/go`, `/close`, `/discovery`, `/plan`, `/grill`, `/evolve`, `/autopilot`, `/dispatcher`, `/reconcile`, `/eval`, `/test`, `/debug`, …)
 - **15 typed subagents** (code-implementer, test-writer, security-reviewer, session-reviewer, qa-strategist, architect-reviewer, …)
 - **10 hook event types** enforcing scope, blocking destructive commands, gating templates-first, capturing telemetry — full on Claude Code; experimental, post-hoc, or bridged on the other platforms ([Platform support](#platform-support))
 - **10,000+ vitest tests** run on every commit ([telemetry methodology](docs/telemetry/telemetry-claims.md))
@@ -127,22 +129,23 @@ The system is markdown-driven config plus a thin Node runtime — skills, comman
 - **Five typed waves, not one big batch.** Discovery first, so implementers start with shared context. Impl-Core before Impl-Polish, so architecture lands before integrations. Quality runs a *simplification pass* on AI-generated code **before** tests are written — otherwise tests pin the AI patterns into place.
 - **Inter-wave reviews, not just end-of-session.** Catching regressions between waves — not only at the end — stops a bad pattern from propagating into later work; the confidence floor filters speculative criticism so only high-signal findings reach you.
 - **State persists across crashes.** `STATE.md` records wave progress and deviations; the next `/session` offers to resume from the last completed wave.
-- **Hooks enforce, not just warn.** A pre-Bash guard blocks destructive shell commands, and pre-Edit scope enforcement blocks writes outside an agent's allowed paths — in main sessions and subagent waves alike (specifics in [Safety](#safety)). This hard enforcement is full on Claude Code; it degrades to experimental / post-hoc / bridged on Codex CLI, Cursor IDE, and Pi (see [Platform support](#platform-support)).
+- **Hooks enforce, not just warn.** A pre-Bash guard blocks destructive shell commands, and pre-Edit scope enforcement blocks writes outside an agent's allowed paths — in main sessions and subagent waves alike (specifics in [Safety](#safety)). This hard enforcement is full on Claude Code; Cursor and Pi reach it through payload bridges; Codex is still pending a real `apply_patch` adapter (see [Platform support](#platform-support)).
 - **Cross-session learning is opt-in and inspectable.** Every session writes a record; after 5+ sessions `/evolve analyze` extracts confidence-scored patterns you can read and prune. Nothing is hidden.
 - **VCS dual support, no lock-in.** Auto-detects GitLab or GitHub from your remote and drives the full lifecycle for both.
 
-## Recent highlights (v3.21.0)
+## Recent highlights (v3.23.0)
 
-Every release is additive and backward-compatible. Highlights of the v3.21.0 line:
+Every release is additive and backward-compatible. Highlights of the v3.23.0 line: the first shaped by three external bug reports on the public mirror (Kanevry#64, #65, #66), all three reproduced, fixed and live-verified:
 
-- **The site that proves its own numbers (#1043–#1046)** — the live page had served v3.19.0 against v3.20.0 in the repo for six days, all five legal paths were 404, and the `Measured` block — the honesty argument of the whole page — carried five wrong numbers. It is now generated: `scripts/site-numbers.mjs` reads **13 metrics** from the repo into `data-metric` spans, and its very first run caught three real errors, one of them the coordinator's own (`skills: page says 47, repo says 46`) and one a contract defect that would have shipped `vv3.20.0` at the next release. Deploy config moved from a dashboard into a versioned `vercel.json`. Rendered height fell to **52.4%** of the old page (10,350 → 5,428px), and mobile navigation — previously `display:none` with no hamburger — exists.
-- **The documented Claude Code install path was guaranteed broken** — `claude plugin dir` is not a subcommand; it exits 1, the fallback path does not exist, `cd` fails, `npm install` never runs, and every hook afterwards cannot find `zx`. Measured on Claude Code 2.1.235. That is the cause behind external issues #62/#63, whose reporters described the symptom — and **all four issues opened by people outside this repo are install or environment failures, not one a feature request**. The replacement was extracted from the shipped HTML, entity-decoded and executed verbatim.
-- **The scope guard shipped the instructions for its own disarmament (#1057)** — the stale-manifest denial ended on ``remove it with `rm -f <path>` ``, and that string travels in `permissionDecisionReason` into the context of the agent just denied. `rm -f` is not blocked (14 rules, only `rm-rf-destructive` bites), and with the manifest gone both allowedPaths **and** project-root containment fall. A parallel session in the same working copy received this suggestion for the live manifest of this one, and declined on an indicator rather than on knowledge.
-- **Two dead instruments, found by measuring rather than reading** — the v2 vault renderer's branch condition was **structurally false from its first commit** and matched **0 of 253** session records; the obvious fix would have been worse than the bug, because `agents` is polymorphic (210× a number, 14× an array over 599 wave objects) and a naive `??` would have written `[object Object]` into the vault. And `scanBacklog` read 50 of 89 open issues while reporting the window nowhere: `critical 0, high 10, stale 0` where the truth was `1 / 18 / 5`.
-- **Cross-session messaging is wired (Epic #1048, waves 1–2)** — a new always-on rule with CSM-001..005, and a peer-inform branch hung **below** the sibling check in the PSA decision tree so it can mask neither that branch nor the PSA-002 pause. The moat was never "peer sessions cannot talk to each other" — they demonstrably can — it is that they share one working copy, and what crosses the channel is information, never isolation.
-- **Guards that were green without biting** — the owner-leakage scanner did not read `.html` at all; admitting the class immediately found a live `U+00AD` breaking a word visibly on a legally required page. `harness-audit` category 6 awarded **2/2** outside a git repository. Six consecutive CI pipelines were red because a test depended on untracked ledger files: locally 23/23, on CI `23 tests | 23 skipped`. Each is now closed by a mechanism, and the review panel found further holes inside the fixes themselves — including one fail-open state inside the fix that was closing fail-open.
+- **Codex CLI mints UUIDv7 session ids; every reader accepted only v4 (#66 / #1091)** — each SessionStart minted a fresh v4, so a resumed or compacted thread read its own lock as a foreign session. `parseSessionId` now accepts RFC 9562 versions 1–8 and the stop/end hooks apply the writer's rule, so one id owns the lock from start through release. The `UUID_V4_RE` alias is gone: zero importers, and a name that said v4 while matching v1–8.
+- **Every `/close` wrote 0 of 5 recommendation fields (#65 / #1036)** — the documented Phase 3.7a call passed `undefined` where a repo root is required, and the fail-open catch hid it on every run. The snippet binds the root; the catch now names the cause. A second defect found while verifying the fix: backticks in a comment inside a `node -e "…"` string made bash execute `undefined` on each close.
+- **Codex copies a marketplace plugin and starts the MCP child with no plugin-root variable (#64)** — measured: the copy lives under `~/.codex/plugins/cache/<marketplace>/session-orchestrator/<version>/`, and from a non-git cwd the launcher resolved to `/scripts/mcp-server.sh`. `.mcp.json` and `plugin-root.mjs` gained a cache-scan tier with a name-matched `package.json`, and `.mcp.json` now mirrors the module's tier order under two drift tests. Existing installs need a reinstall — Codex snapshots `.mcp.json` at install time.
+- **Worktree-Auto-Promotion is a process boundary, not a live migration (#1069, ADR-0013)** — the source session deregisters and releases its lock before the new worktree's session acquires (`leaveSourceRoot()`, called from inside `enterWorktree()` since #1170), which removes the phantom peer that stayed visible for up to 60 minutes. Because the new session's id never equals the worktree suffix, Phase 4a cleanup keys on a promotion marker written at creation time; the review panel found that key dead before any user did.
+- **The host registry contributed nothing to session numbering (#1066)** — the census projected only raw UUIDs, which the n-increment discards. It now counts `semantic_session_id`, so two sessions on one host cannot mint the same label. The semantic id stays a best-effort label; ownership remains the raw id plus owner proof.
+- **The mode selector scored a field no record carries (#1071)** — `completion_rate` sits under `effectiveness` in all 281 ledger records; the flat read was always `undefined`, so the high-completion bonus was unreachable and the fixtures pinned a shape production never writes. Fixed with a nested-first read and a divisor test for the 99 records that carry no rate at all.
+- **Semgrep regained two rules a path filter had dropped (#1129)** — re-aimed at this repo's real trust boundary (hook stdin, child-process stdout), taint-mode; the first true positives were three unguarded `JSON.parse` calls on `glab`/`gh` output in the CI banner. A proposed spread-sink was refused with a measurement: object spread cannot pollute a prototype.
 
-Previous line (v3.20.0): the memory pipeline — 233 sessions of learnings that reached no agent (#1014), agent-authored text neutralised at the render point (#1015), and a learning store made durable after 11 of 13 provenance pointers resolved to nothing (#1017).
+Previous line (v3.22.0): instruments that confidently measured the wrong quantity — the 99%-firing resource warning, the AUQ audit, and the lock-release identity split.
 
 Full version history: [CHANGELOG.md](CHANGELOG.md).
 
@@ -165,10 +168,10 @@ The design goal is engineering quality: every wave exits verified, every unfinis
 
 | Feature | Claude Code | Codex CLI | Cursor IDE | Pi |
 |---|---|---|---|---|
-| All 24 commands | Native slash commands | Native plugin commands | Rules-based (.mdc) | Prompt templates |
+| All 28 commands | Native slash commands | Native plugin commands | Native `.cursor/commands` slash commands | Prompt templates |
 | Parallel agents | Agent tool | Multi-agent roles | Sequential only | Sequential (parallel planned) |
 | Session persistence | `.claude/STATE.md` | `.codex/STATE.md` | `.cursor/STATE.md` | `.pi/STATE.md` |
-| Scope enforcement | PreToolUse hooks | Unavailable — pending a real `apply_patch` adapter | `afterFileEdit` (post-hoc) | `tool_call` bridge |
+| Scope enforcement | PreToolUse hooks | Unavailable — pending a real `apply_patch` adapter | `preToolUse` + `beforeShellExecution` via cursor-hook-bridge; `afterFileEdit` post-hoc | `tool_call` bridge |
 | AskUserQuestion | Native tool | Numbered-list fallback | Numbered-list fallback | Numbered-list fallback |
 | Quality gates | Full | Full | Full | Full |
 

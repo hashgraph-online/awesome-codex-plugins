@@ -248,8 +248,8 @@ Present extracted patterns to the user for confirmation. Use AskUserQuestion wit
 ```
 AskUserQuestion({
   questions: [{
-    question: "Which learnings should be saved?\n\nExtracted patterns from session history:",
-    header: "Evolve — Confirm Learnings",
+    question: "Which of the patterns extracted from this session's history should be saved?",
+    header: "Speichern?",
     options: [
       {
         label: "[type] subject",
@@ -455,19 +455,18 @@ Use AskUserQuestion with options:
 AskUserQuestion({
   questions: [{
     question: "What would you like to do with your learnings?",
-    header: "Evolve — Review",
+    header: "Learnings",
     options: [
-      { label: "Boost confidence", description: "Select learnings to boost (+0.15)" },
-      { label: "Reduce confidence", description: "Select learnings to reduce (-0.2)" },
-      { label: "Delete specific learnings", description: "Select learnings to remove" },
-      { label: "Extend expiry", description: "Reset expires_at by learning-expiry-days from now" },
-      { label: "Done — no changes", description: "Exit without changes" }
+      { label: "Confidence ändern", description: "Pick the learnings, then the direction: +0.15 or -0.2. Cheapest fix when a learning is merely mis-weighted." },
+      { label: "Ablauf verlängern", description: "Keeps a still-useful learning alive: its expiry date moves to today plus the configured window. Confidence is untouched." },
+      { label: "Delete specific learnings", description: "Takes the selected learnings out of the store. They are archived rather than shredded, but they stop influencing anything." },
+      { label: "Done — no changes", description: "Leaves the store exactly as it is and ends the review. Nothing is written." }
     ]
   }]
 })
 ```
 
-If user selects "Boost confidence", "Reduce confidence", "Delete specific learnings", or "Extend expiry", present a follow-up AskUserQuestion with `multiSelect: true` listing all learnings by `# | type | subject` so the user can select which ones to modify.
+If user selects "Confidence ändern", "Ablauf verlängern", or "Delete specific learnings", present a follow-up AskUserQuestion with `multiSelect: true` listing all learnings by `# | type | subject` so the user can select which ones to modify. For "Confidence ändern" the same follow-up also asks for the direction — **Boost** (+0.15) or **Reduce** (-0.2). Both operations are unchanged; only the point at which the direction is chosen moved, because a single AskUserQuestion accepts at most 4 options and the previous list had 5.
 
 > On Codex CLI where AskUserQuestion is unavailable, present as a numbered Markdown list.
 

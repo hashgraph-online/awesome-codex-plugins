@@ -1,9 +1,9 @@
 # Xquik REST API and MCP field naming
 
-Hosted MCP exposes `explore` and `xquik`. It no longer exposes
+Hosted MCP exposes `docs`, `search`, and `execute`. It no longer exposes
 operation-named tools with separate legacy response models.
 
-Use `explore` to inspect the current operation. Then use its OpenAPI response
+Use `search` to inspect the current operation. Then use its OpenAPI response
 schema. Do not map fields through old names such as `eventData`,
 `monitoredAccountId`, `following`, or `followedBy`.
 

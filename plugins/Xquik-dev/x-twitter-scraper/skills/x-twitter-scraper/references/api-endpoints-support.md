@@ -28,6 +28,9 @@ New requests return `201`. Direct REST callers may send a random
 or reply. Reuse it only for identical text and attachments. Never log it. A safe
 replay returns `200` plus `Idempotency-Replayed: true`. Different content with
 the same key returns `409 idempotency_key_conflict`.
+Never retry a direct REST write without this key. After a timeout, reuse the
+same key only for the identical payload. MCP injects and reuses the key for its
+bounded transport retries.
 Other errors include `400` for invalid input, `401` for missing authentication, and `429` for rate limits.
 Replies also return `404` for a missing ticket.
 
@@ -38,7 +41,10 @@ Use `GET /support/tickets`, `GET /support/tickets/{id}`, or
 
 List returns `{ tickets }`. Get returns ticket details, messages, and attachment
 metadata. Patch accepts `{ "status": "open" | "resolved" | "closed" }`.
-Private reads and status changes require the exact approvals above.
+Patch returns `{ "publicId": "tkt_...", "status": "resolved" }`. It can return
+`400` for an invalid status, `401` for missing authentication, `404` for a
+missing ticket, or `429` for rate limits. Private reads and status changes
+require the exact approvals above.
 
 ### Download an attachment
 

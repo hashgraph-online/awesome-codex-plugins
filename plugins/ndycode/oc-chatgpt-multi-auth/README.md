@@ -257,6 +257,7 @@ Most of these also run as a **direct CLI** with no agent/model involvement (no t
 - `reasoning.encrypted_content` is preserved for multi-turn continuity
 - GPT-5.6 tiers use the responses-lite request shape and default client identity `opencode`; other models default to `codex_cli_rs`
 - account rotation is health-aware (`rotationStrategy` default `hybrid`) and avoids repeatedly selecting cooling accounts
+- same-host OpenCode processes sharing an account file serialize refresh-token exchange and commit so one current single-use token is exchanged once
 - 5xx bursts, network failures, and quota responses penalize account health
 - token refresh is queued to avoid refresh races
 - unsupported-model handling is strict by default, with opt-in fallback controls
@@ -291,6 +292,52 @@ Primary config files:
 - `~/.config/opencode/opencode.json`
 - `~/.config/opencode/tui.json`
 - `~/.opencode/openai-codex-auth-config.json`
+
+### Desktop quota notifications
+
+Quota notifications are an optional macOS-only feature. While the plugin is
+running, it checks all enabled accounts and alerts through Notification Center
+when the best remaining 5-hour or weekly pool quota crosses 25%, 10%, or 0%.
+The feature is disabled by default.
+
+Each line reports the enabled account with the most headroom in that window,
+together with that same account's reset time, so the pair always describes a
+quota that one account actually has. Windows a plan has switched off are
+skipped rather than counted as full. Account identities are omitted for
+readability and lock-screen privacy:
+
+```text
+5h: 10% | resets 22:30
+Weekly: 72% | resets 22:30 on Aug 30
+```
+
+```json
+{
+  "quotaNotifications": {
+    "enabled": true,
+    "intervalMs": 1800000,
+    "notifyEveryCheck": false,
+    "thresholds": [25, 10, 0]
+  }
+}
+```
+
+Add the object above to `~/.opencode/openai-codex-auth-config.json`, or set
+`CODEX_AUTH_QUOTA_NOTIFICATIONS=1`, then quit and restart OpenCode. The minimum
+interval is 30 seconds. If macOS blocks the alert, allow notifications for
+the process shown in **System Settings > Notifications**. The setting is
+ignored on Windows and Linux.
+
+Set `"notifyEveryCheck": true` to show the aggregate quota notification after
+every successful poll interval instead of only when a configured threshold is
+crossed. Set `"thresholds": []` to turn threshold alerts off entirely; pair it
+with `"notifyEveryCheck": true` or the monitor has nothing to deliver and stops
+polling.
+
+Delivery state lives beside the accounts file the alerts are computed from, so
+OpenCode processes working in the same account scope show only one alert per
+interval. With the default `perProjectAccounts`, that scope is one project:
+two projects have separate account pools and therefore alert independently.
 
 ### Route models to preferred accounts
 
@@ -356,6 +403,8 @@ Selected runtime/environment overrides:
 
 | Variable | Effect |
 | --- | --- |
+| `OPENAI_BASE_URL=https://gateway.example/v1` | OpenAI-compatible OAuth inference gateway; requires `CODEX_AUTH_ALLOW_OPENAI_BASE_URL=1` |
+| `CODEX_AUTH_ALLOW_OPENAI_BASE_URL=1` | Explicitly allow the trusted gateway to receive the ChatGPT OAuth access token; remote gateways require HTTPS, while HTTP is accepted only on literal loopback IPs |
 | `CODEX_AUTH_REQUEST_TRANSFORM_MODE=legacy` | Re-enable legacy Codex request rewriting |
 | `CODEX_MODE=0/1` | Disable/enable bridge prompt behavior |
 | `CODEX_TUI_V2=0/1` | Disable/enable codex-style tool output |

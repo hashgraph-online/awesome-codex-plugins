@@ -92,6 +92,15 @@ class NetPin:
 
 
 @dataclass
+class NetLabel:
+    """One label record attached to a net."""
+    name: str = field(metadata={
+        "description": "Label text."})
+    type: str = field(metadata={
+        "description": "Label kind: 'label', 'global_label', 'hierarchical_label', or 'directive_label'."})
+
+
+@dataclass
 class NetEntry:
     """Connectivity entry for one net."""
     name: str = field(metadata={
@@ -104,8 +113,12 @@ class NetEntry:
         "description": "Net terminated by a no-connect flag."})
     has_pwr_flag: bool = field(default=False, metadata={
         "description": "Net carries a PWR_FLAG ERC source declaration."})
-    labels: list[str] = field(default_factory=list, metadata={
-        "description": "Label strings attached to this net."})
+    labels: list[NetLabel] = field(default_factory=list, metadata={
+        "description": "Label records attached to this net."})
+    display_name: str | None = field(default=None, metadata={"description":
+        "Bare display name when the map key is disambiguated: sheet-qualified "
+        "local nets (/<sheet>/<name>, KH-359) and annotated __unnamed_ nets. "
+        "Absent when the key is already the display name."})
 
 
 @dataclass
@@ -156,6 +169,29 @@ class PinCoverageWarning:
         "description": "Count of missing placements."})
     message: str = field(metadata={
         "description": "Human-readable warning message."})
+
+
+@dataclass
+class BusUnresolved:
+    """One bus construct the resolver could not confidently resolve."""
+    reason: str = field(metadata={
+        "description": "Why this bus construct could not be resolved."})
+    name: Optional[str] = field(default=None, metadata={
+        "description": "Associated bus alias / label / sheet-pin name, "
+                       "when known; null otherwise."})
+
+
+@dataclass
+class BusTopology:
+    """Bus wire statistics and resolver honesty markers (GH #25)."""
+    bus_wire_count: int = field(metadata={
+        "description": "Count of bus wire segments."})
+    bus_entry_count: int = field(metadata={
+        "description": "Count of bus entry taps."})
+    unresolved: list[BusUnresolved] = field(metadata={
+        "description": "Bus constructs the resolver could not confidently "
+                       "resolve — connectivity through them is NOT asserted "
+                       "(honest-limitation marker, GH #25)."})
 
 
 @dataclass
@@ -217,7 +253,9 @@ class SchematicEnvelope:
                        "plus internal bookkeeping (_sheet, pin_nets, "
                        "pin_uuids). Tightens to a typed Component in v1.5."})
     nets: dict[str, NetEntry] = field(metadata={
-        "description": "Net connectivity map keyed by net name."})
+        "description": "Net connectivity map keyed by unique net key — the "
+                       "display name, sheet-qualified as /<sheet>/<name> "
+                       "when distinct nets share a bare name."})
     subcircuits: list[dict] = field(metadata={
         "description": "Hierarchical sub-sheets: "
                        "[{reference, path, sheet_name, sheet_file, instances}]."})
@@ -252,8 +290,10 @@ class SchematicEnvelope:
     ground_domains: dict = field(metadata={
         "description": "Ground topology: ground_nets, multiple_domains, "
                        "domains, optional star-ground note."})
-    bus_topology: dict = field(metadata={
-        "description": "Bus wire statistics: bus_wire_count, bus_entry_count."})
+    bus_topology: BusTopology = field(metadata={
+        "description": "Bus wire statistics: bus_wire_count, bus_entry_count, "
+                       "unresolved. May also carry aliases / "
+                       "detected_bus_signals (undeclared, shape varies)."})
     wire_geometry: dict = field(metadata={
         "description": "Wire-geometry summary: total_wires, "
                        "total_length_mm, avg_length_mm, optional "

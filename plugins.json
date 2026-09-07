@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-08-20",
-  "total": 196,
+  "last_updated": "2026-09-02",
+  "total": 212,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -190,6 +190,16 @@
       "install_url": "https://raw.githubusercontent.com/armoriq/armorCodex/HEAD/plugins/armorcodex/.codex-plugin/plugin.json"
     },
     {
+      "name": "AtomLane",
+      "url": "https://github.com/cloudguo123/atomlane",
+      "owner": "cloudguo123",
+      "repo": "atomlane",
+      "description": "Parallelizes only work proven safe by compiling resource-aware atomic plans for builds, tests, Make/Compose workflows, and long-running jobs with live progress and measured savings.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/cloudguo123/atomlane/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "BABOK Analyst",
       "url": "https://github.com/GSkuza/BABOK_ANALYST",
       "owner": "GSkuza",
@@ -300,6 +310,16 @@
       "install_url": "https://raw.githubusercontent.com/nyldn/claude-octopus/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "Claudemon",
+      "url": "https://github.com/OriginalName457/claudemon",
+      "owner": "OriginalName457",
+      "repo": "claudemon",
+      "description": "Turns your coding agents into pixel creatures you can watch work and collect, with a built-in Clawland .io brawler for breaks.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/OriginalName457/claudemon/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "Clean Room",
       "url": "https://github.com/whit3rabbit/clean-room-skill",
       "owner": "whit3rabbit",
@@ -308,6 +328,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/whit3rabbit/clean-room-skill/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Click",
+      "url": "https://github.com/grapefruit0205/click",
+      "owner": "grapefruit0205",
+      "repo": "click",
+      "description": "Turn software intent into one approved contract, then let AI build and verify in one shot—with traceable evidence for each requirement.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/grapefruit0205/click/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Codebase Recon",
@@ -340,16 +370,6 @@
       "install_url": "https://raw.githubusercontent.com/yimwoo/codex-agenteam/HEAD/.codex-plugin/plugin.json"
     },
     {
-      "name": "Codex Full-Stack Workflow",
-      "url": "https://github.com/kevin592/codex-full-stack-workflow",
-      "owner": "kevin592",
-      "repo": "codex-full-stack-workflow",
-      "description": "Turns rough product requests into staged, reviewable full-stack delivery with persistent requirements, change control, visual evidence, and completion gates.",
-      "category": "Development & Workflow",
-      "source": "awesome-codex-plugins",
-      "install_url": "https://raw.githubusercontent.com/kevin592/codex-full-stack-workflow/HEAD/.codex-plugin/plugin.json"
-    },
-    {
       "name": "Codex How To",
       "url": "https://github.com/Phelan164/codex-howto",
       "owner": "Phelan164",
@@ -378,6 +398,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/joelfarthing/codex-process-jobs/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Codex Quota Title",
+      "url": "https://github.com/nokisenpai/CodexQuotaTitle",
+      "owner": "nokisenpai",
+      "repo": "CodexQuotaTitle",
+      "description": "Shows live Codex quota usage and reset time directly in the Codex Desktop window title on Windows.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/nokisenpai/CodexQuotaTitle/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Codex Reviewer",
@@ -458,6 +488,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/hccccc01333/codex-deepseek-mini-router/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Delx Recovery",
+      "url": "https://github.com/davidmosiah/delx-plugins",
+      "owner": "davidmosiah",
+      "repo": "delx-plugins",
+      "description": "Free recovery and continuity plugin for AI agents: resume prior sessions, capture state, process failures into a recovery plan, and remember across sessions through a hosted MCP server (works in Codex, Claude Code, Cursor, and VS Code).",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/davidmosiah/delx-plugins/HEAD/delx-recovery/.codex-plugin/plugin.json"
     },
     {
       "name": "Designer Skill",
@@ -640,6 +680,16 @@
       "install_url": "https://raw.githubusercontent.com/yimwoo/hotl-plugin/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "Kernel",
+      "url": "https://github.com/ariaxhan/kernel-claude",
+      "owner": "ariaxhan",
+      "repo": "kernel-claude",
+      "description": "Hook-enforced guardrails for Codex and Claude Code with blocked destructive commands, one-time human tokens for irreversible operations, context-blind verification agents, and SQLite agent memory recalled at session start.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/ariaxhan/kernel-claude/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "Krypton",
       "url": "https://github.com/jturntdev/krypton",
       "owner": "jturntdev",
@@ -690,6 +740,16 @@
       "install_url": "https://raw.githubusercontent.com/Alex0nder/MailAgent/HEAD/examples/codex/plugin/.codex-plugin/plugin.json"
     },
     {
+      "name": "Markdown Reader",
+      "url": "https://github.com/JoseEstevez520/mcp-md-reader",
+      "owner": "JoseEstevez520",
+      "repo": "mcp-md-reader",
+      "description": "Navigate Markdown structure and retrieve only the relevant section through a portable Codex MCP plugin.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/JoseEstevez520/mcp-md-reader/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "memi",
       "url": "https://github.com/sarveshsea/memi",
       "owner": "sarveshsea",
@@ -698,6 +758,36 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/sarveshsea/memi/HEAD/plugins/memoire/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "ML Pipeline",
+      "url": "https://github.com/jananthan30/ml-pipeline",
+      "owner": "jananthan30",
+      "repo": "ml-pipeline",
+      "description": "Enforces a strict 16-step data-first ML workflow — data inspection, EDA, and problem definition before any model training — with explicit user-permission gates, marimo notebooks, and matplotlib figures at every step; also works in Claude Code and Kimi.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/jananthan30/ml-pipeline/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Nightshift",
+      "url": "https://github.com/orwa-mahmoud/nightshift",
+      "owner": "orwa-mahmoud",
+      "repo": "nightshift",
+      "description": "Accountable, time-bounded Codex shifts with a persistent punch list, parked decisions, and reviewable run history.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/orwa-mahmoud/nightshift/HEAD/plugins/nightshift/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Oh My Cassette",
+      "url": "https://github.com/Cassette-Editor/oh-my-cassette",
+      "owner": "Cassette-Editor",
+      "repo": "oh-my-cassette",
+      "description": "Turn raw local clips into a finished cut by chatting: beat-synced edits, auto-matched music, subtitles, and transitions through a local stdio MCP server, with a timeline delta and contact-sheet preview every turn before anything renders.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/Cassette-Editor/oh-my-cassette/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Ontoly",
@@ -728,6 +818,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/AltByteSG/personal-data-protection-skill/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "PMC",
+      "url": "https://github.com/DuncanMain/project-memory-core",
+      "owner": "DuncanMain",
+      "repo": "project-memory-core",
+      "description": "Give Codex lasting project context in an Obsidian vault you control.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/DuncanMain/project-memory-core/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Praxis",
@@ -768,6 +868,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/mimfort/rag_for_git/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Red-Green Proof",
+      "url": "https://github.com/RooAGI/red-green-proof",
+      "owner": "RooAGI",
+      "repo": "red-green-proof",
+      "description": "Prove suspected bugs with a red-green-red test loop: verify the cause, watch the test fail, apply the fix, and confirm the test fails again when the fix is reverted.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/RooAGI/red-green-proof/HEAD/plugins/red-green-proof/.codex-plugin/plugin.json"
     },
     {
       "name": "Registry Broker",
@@ -970,6 +1080,26 @@
       "install_url": "https://raw.githubusercontent.com/Colin4k1024/tsp/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "TMCRA Local Memory",
+      "url": "https://github.com/reshuibuduo/TMCRA-Codex-Memory",
+      "owner": "reshuibuduo",
+      "repo": "TMCRA-Codex-Memory",
+      "description": "Owner-local memory for Codex that recalls user and project evidence before each answer and carries source-attributed project context across sessions and supported agent tools.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/reshuibuduo/TMCRA-Codex-Memory/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "TNT House Risk-Data API",
+      "url": "https://github.com/menantonio83-hue/codex-plugin-tnt-risk-api",
+      "owner": "menantonio83-hue",
+      "repo": "codex-plugin-tnt-risk-api",
+      "description": "Solana token risk scoring for AI trading agents via MCP: safety score, insider wallet cluster detection, mint/freeze authority, honeypot risk, and LP-lock status in one call.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/menantonio83-hue/codex-plugin-tnt-risk-api/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "token-optimizer",
       "url": "https://github.com/ooples/token-optimizer-mcp",
       "owner": "ooples",
@@ -1048,6 +1178,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/epicsagas/Velith/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Vibe Prospecting",
+      "url": "https://github.com/explorium-ai/vibeprospecting-plugin",
+      "owner": "explorium-ai",
+      "repo": "vibeprospecting-plugin",
+      "description": "Live B2B company and contact intelligence for building lead lists, researching prospects, enriching contacts, and personalizing outreach.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/explorium-ai/vibeprospecting-plugin/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "VibePortrait",
@@ -1700,6 +1840,16 @@
       "install_url": "https://raw.githubusercontent.com/anzy-renlab-ai/pronounce/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "Qatom",
+      "url": "https://github.com/TODAQmicro/qatom-skill",
+      "owner": "TODAQmicro",
+      "repo": "qatom-skill",
+      "description": "An MCP agentic commerce market. One-step register your MCP server. Build your API & services catalog. Sell with your own merchant agent. Customers, agents, and consumers discover and purchase from your catalog. Control your own payments, auditable records, payouts to supply chain and bank.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/TODAQmicro/qatom-skill/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "Read Image",
       "url": "https://github.com/ZXY1240/read-image",
       "owner": "ZXY1240",
@@ -1748,6 +1898,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/ScrapeGraphAI/just-scrape/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "SEO Dungeon",
+      "url": "https://github.com/avalonreset/seo-dungeon",
+      "owner": "avalonreset",
+      "repo": "seo-dungeon",
+      "description": "Gamified local SEO audits that turn website issues into 16-bit dungeon battles for Codex, Claude, and Gemini CLI workflows.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/avalonreset/seo-dungeon/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Shots",

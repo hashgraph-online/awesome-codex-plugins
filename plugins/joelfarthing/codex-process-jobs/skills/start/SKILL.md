@@ -1,6 +1,6 @@
 ---
 name: start
-description: Launch an ordinary finite local workload as a durable detached process job, then release the assigning Codex turn instead of monitoring it. Use proactively for builds, test suites, evaluations, benchmarks, inference/model A/B runs, data jobs, and repairs whose underlying work may exceed 60 seconds or has uncertain duration, even when a task-specific workflow emits a quick wrapper or launcher. Also use when the user explicitly asks to enable or disable CPJ's experimental live CLI completion delivery.
+description: Launch an ordinary finite local workload as a durable detached process job, then release the assigning Codex turn instead of monitoring it. Use proactively for downloads, builds, test suites, evaluations, benchmarks, inference/model A/B runs, data jobs, and repairs whose underlying work may exceed 60 seconds or has uncertain duration. The user-visible parent must launch the job directly; never delegate local process execution or monitoring to a subagent.
 ---
 
 # Start Process Job
@@ -9,25 +9,9 @@ Resolve `<plugin-root>` as two directories above this `SKILL.md`.
 
 Never search memory for CPJ work; use validated CPJ state.
 
-## Optional live CLI completion
-
-Only when the user explicitly requests it, configure CPJ's experimental live
-CLI delivery with:
-
-```text
-node "<plugin-root>/scripts/job.mjs" config --cli-live-injection true --json
-codex app-server daemon start
-```
-
-The official App Server daemon must be running before an ordinary `codex` TUI
-starts, so tell the user to restart every open CLI session afterward. Do not
-enable remote control, create another service, edit Codex configuration, or
-start the daemon merely because a job was launched. The normal CPJ fallback
-remains authoritative if the daemon or its private socket is unavailable.
-
-Disable the CPJ preference with `config --cli-live-injection false`. Stop the
-official daemon only if the user explicitly asks and it is not needed by other
-Codex work.
+The user-visible parent owns every CPJ launch and completion. Never delegate
+local process execution, launch, waiting, monitoring, or CPJ ownership to a
+spawned subagent. A subagent can analyze independent material only.
 
 ## Launch exactly once
 
@@ -65,6 +49,13 @@ predictable `EPERM`, weaken the sandbox, or edit Codex configuration.
 Use CPJ when the user asks to detach/background work, or when a finite local
 workload may exceed about 60 seconds, has uncertain duration, should survive a
 client exit, or merits later lightweight status checks.
+
+On a consented CPJ `PreToolUse` pause, classify the underlying workload from
+context, not its executable name. A qualifying script, download, inference
+runner, or wrapper uses its original foreground payload through CPJ without the
+escape. Retry with `# cpj:foreground` only when the command is clearly quick,
+excluded, persistent, already detached, or explicitly requested in the
+foreground. Never escape because it is unfamiliar or to avoid turn release.
 
 Exclude quick commands, interactive stdin, servers/watchers, intentional
 daemons, remote/external services, and fire-and-exit launchers. The tracked
@@ -109,23 +100,24 @@ user-initiated turn, or a later automatic continuation of an explicitly active
 Goal. If the same user request includes independent work, continue only that
 independent work.
 
-Only an explicit user request to keep this exact Codex turn open and wait
-overrides the boundary. Then follow the status skill's one-wait and
-yielded-session rule; inspect a result only after an explicit terminal CPJ
-state. Never substitute polling.
+This boundary has no same-turn wait exception. A request to report the final
+result when it finishes is an eventual-delivery request, not permission to keep
+the launch turn open. If the user explicitly requires foreground execution in
+the same turn, do not use CPJ for that command. State the tradeoff and run the
+foreground command only with the user's approval. Never substitute polling.
 
 ## Report and stop
 
-For an ordinary pending notification, state conversationally:
+Name this workflow **Codex Process Jobs**, never a detached-job skill or
+workflow. Before launch, use at most one short sentence: say that Codex Process
+Jobs will run it in the background and hand back immediately. Do not narrate
+procedure, payload, argv, cwd, controller mechanics, metadata, or validation.
 
-1. the label/id and that it is running in the background;
-2. completion is recorded and a live notification may appear;
-3. after it finishes, recap the outcome as soon as the conversation can pick it
-   up; and
-4. status is available on request.
-
-Do not guarantee an immediate wake. If notification is unavailable or disabled,
-explain the status/result fallback.
+After success, use no more than two short sentences: identify the background
+job ID, then say that a completion notification and any requested summary
+should appear when it finishes; status is available on request. If delivery is
+unavailable or disabled, say completion is recorded and status/result is
+available. Never promise an immediate wake.
 
 For `--goal-mode`, say the job is durably tracked under the Goal and will be
 picked up by completion delivery, a hook, or Goal continuation. Automatic

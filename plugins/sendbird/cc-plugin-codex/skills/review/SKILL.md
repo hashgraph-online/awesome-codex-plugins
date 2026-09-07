@@ -45,7 +45,7 @@ Execution mode rules:
 - Then ask the user once which execution mode to use, offering two options with the recommended one first and its label suffixed `(Recommended)`:
   - `Wait for results`
   - `Run in background`
-- Use a question tool for that ask only when this thread actually has one. Codex exposes `request_user_input` only behind `[tools] experimental_request_user_input`, and it does not exist in non-interactive threads. If you have no question tool but a user is reading this thread, ask in your own reply and stop there. In a non-interactive thread with no user to answer, skip the ask and proceed with the recommended mode. Never spin on a wait or collaboration tool looking for a picker this thread does not have.
+- Use a question tool for that ask only when this thread actually has one. Codex exposes `request_user_input` by default in interactive threads and hides it only when `[tools] experimental_request_user_input = false`, and it does not exist in non-interactive threads. If you have no question tool but a user is reading this thread, ask in your own reply and stop there. In a non-interactive thread with no user to answer, skip the ask and proceed with the recommended mode. Never spin on a wait or collaboration tool looking for a picker this thread does not have.
 
 Argument handling:
 - Preserve the user's arguments exactly.

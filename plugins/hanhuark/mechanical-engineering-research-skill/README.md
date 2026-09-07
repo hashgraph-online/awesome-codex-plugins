@@ -178,6 +178,8 @@ mechanical-engineering-research = thermal-fluid domain judgment layer
 | [`me-lit-review.md`](commands/me-lit-review.md) | Develop a critical thermal-fluid literature review and gap synthesis. |
 | [`me-proposal.md`](commands/me-proposal.md) | Develop or revise a solicitation-aligned research proposal. |
 | [`me-write-section.md`](commands/me-write-section.md) | Draft or revise manuscript, proposal, report, or thesis sections. |
+| [`me-han-hu-draft.md`](commands/me-han-hu-draft.md) | Draft a manuscript section using Han Hu manuscript mode and the private style corpus. |
+| [`me-han-hu-revise.md`](commands/me-han-hu-revise.md) | Revise a manuscript while preserving evidence and applying Han Hu manuscript mode. |
 | [`me-data-analysis.md`](commands/me-data-analysis.md) | Plan baseline-first thermal-fluid data analysis and hypothesis-driven DOE. |
 | [`me-build-slides.md`](commands/me-build-slides.md) | Build graphics-first research presentations and speaker notes. |
 | [`me-code-review.md`](commands/me-code-review.md) | Perform a full architecture, reproducibility, testing, and release review. |

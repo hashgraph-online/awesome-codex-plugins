@@ -124,4 +124,7 @@ Task tool (general-purpose):
     Use DONE_WITH_CONCERNS if you completed the work but have doubts about correctness.
     Use BLOCKED if you cannot complete the task. Use NEEDS_CONTEXT if you need
     information that wasn't provided. Never silently produce work you're unsure about.
+    On BLOCKED or NEEDS_CONTEXT hand back three things together:
+    the specific question or blocker, the evidence already gathered, and
+    candidate options you considered with their trade-offs.
 ```

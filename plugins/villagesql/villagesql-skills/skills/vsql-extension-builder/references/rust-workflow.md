@@ -50,6 +50,7 @@ These define what the Rust SDK can express today.
 - Null handling: `InValue::Null` variant and `VdfReturn::null()`
 - Error and warning returns: `VdfReturn::Error(String)` and
   `VdfReturn::Warning(String)`
+- Aggregate functions (`agg_func!`) and variadic-argument functions (`varargs_func!`)
 
 **Known behaviors that constrain design** (see
 `references/capabilities.md` → "STRING return size and charset"):
@@ -67,7 +68,6 @@ to run with `vsql_allow_preview_extensions=ON`.
 
 **Not yet available in the Rust SDK** (confirm against the crate source
 before treating as current):
-- Aggregate functions and variadic parameters
 - SQL sessions from background threads (`sql_query` — `thread_worker.rs`
   reserves a handle for it)
 - Variable-length column storage (Column Storage ABI)

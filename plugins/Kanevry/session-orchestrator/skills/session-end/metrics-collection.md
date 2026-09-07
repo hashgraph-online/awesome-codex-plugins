@@ -36,7 +36,8 @@ Finalize session metrics by reading the wave data accumulated during execution:
    From the `stagnation` array, aggregate into `stagnation_events`:
    - `total`: count of entries in the array
    - `by_pattern`: count by `pattern` value (omit zero-valued keys)
-   - `by_error_class`: count by `error_class` value (omit zero-valued keys; omit entire sub-object if all entries lack `error_class`)
+   - `by_error_class`: count by `error_class` value (omit zero-valued keys; omit entire sub-object if all entries lack `error_class` — only `error-echo` records carry one)
+   - `by_source`: count by `source` value — `coordinator` (post-wave review) vs `tail` (the `wave-transcript-tail` monitor, #1114). Same rule: omit zero-valued keys; omit the entire sub-object when no entry carries `source` (pre-#1114 records do not).
    - `files`: unique list of non-null `file` values (deduplicated)
    - **Omit the entire `stagnation_events` field if `total == 0`** (keeps historical entries clean).
 
@@ -67,7 +68,7 @@ Finalize session metrics by reading the wave data accumulated during execution:
      total_agents: <N>,
      total_files_changed: <N>,
      agent_summary: {complete: <N>, partial: <N>, failed: <N>, spiral: <N>},
-     waves: [/* {wave, role, agent_count, files_changed, quality, planned_files_count?, over_delivery_ratio?} */],
+     waves: [/* {wave, role, agent_count, files_changed, quality, agent_count_planned?, agent_count_started?, agent_count_completed?, planned_files_count?, over_delivery_ratio?} */],
      // effectiveness is CONSTRUCTED EXPLICITLY (#773) — NOT left as an optional
      // field for the coordinator to remember. Leaving it optional is exactly how
      // the carryover=0 blind spot recurred (41/41 records read carryover:0).
@@ -110,7 +111,7 @@ Finalize session metrics by reading the wave data accumulated during execution:
      "total_files_changed": N,
      "agent_summary": {"complete": N, "partial": N, "failed": N, "spiral": N},
      "waves": [
-       {"wave": 1, "role": "Discovery", "agent_count": N, "files_changed": N, "quality": "pass|fail|skip", "planned_files_count": N, "over_delivery_ratio": 0.0},
+       {"wave": 1, "role": "Discovery", "agent_count": N, "files_changed": N, "quality": "pass|fail|skip", "agent_count_planned": N, "agent_count_started": N, "agent_count_completed": N, "planned_files_count": N, "over_delivery_ratio": 0.0},
        ...
      ],
      "discovery_stats": {
@@ -152,7 +153,8 @@ Finalize session metrics by reading the wave data accumulated during execution:
      },
      "stagnation_events": {
        "total": N,
-       "by_pattern": {"error-echo": N, "turn-key-repetition": N, "pagination-spiral": N},
+       "by_pattern": {"error-echo": N, "turn-key-repetition": N, "pagination-spiral": N, "psa007-git-write": N, "status-partial": N},
+       "by_source": {"coordinator": N, "tail": N},
        "by_error_class": {"edit-format-friction": N, "scope-denied": N, "command-blocked": N, "other": N},
        "files": ["<relative path>", "..."]
      }
@@ -168,6 +170,7 @@ Finalize session metrics by reading the wave data accumulated during execution:
 > - `review_stats`: populated ONLY when Phase 1.8 dispatched the session-reviewer agent AND it returned findings. Source: the session-reviewer's output summary.
 > - `effectiveness`: ALWAYS populated from Phase 1 plan verification results, and CONSTRUCTED EXPLICITLY in the METRICS_ENTRY snippet (#773) — never deferred to a "remember to add" optional step (that omission is how `carryover: 0` slipped past 41 records). `completion_rate` = `completed / planned_issues` (0.0-1.0, where 0.0 means nothing was completed). **`carryover` counting rule (#773):** `carryover` is the **length of the Phase 1.65 gate carry-list** — `autoCarry` ∪ the middle-band `ask` items the operator LEFT SELECTED ∪ the answered-question `impliesWork: true` candidates — NOT the raw Phase 1.2+1.3 candidate count. On the fail-open skip (gate disabled / headless / AUQ unavailable), EVERY candidate carries, so `carryover` = the full candidate-list length. Count the gate's OUTPUT (what reaches Phase 5 Step 3 filing), not its INPUT.
 > - `effectiveness.override_ratio` (#730/H5): OPTIONAL nested field = `overridden_findings / max(total_findings_surfaced, 1)` (float 0.0-1.0). Populate ONLY when Phase 2.6 (Broken-Window Budget) ran this session (`broken-window-budget.enabled: true`). OMIT (do NOT write null/0) otherwise — **absent = "not measured"**, `0.0` = "measured, nothing overridden". `overridden_findings` = the summed `count` of the `orchestrator.finding.overridden` events emitted this session; `total_findings_surfaced` = every MED/LOW+ finding surfaced across Phase 1.8 + wave reviewers.
+> - `waves[].agent_count_planned` / `waves[].agent_count_started` / `waves[].agent_count_completed` (#724/#1115): OPTIONAL per-wave fields, sourced from `wave-loop.md` § Capture wave metrics step 7 — mirror its definitions exactly, do not re-derive them here. `agent_count_planned` = agents named in the session plan for this wave. `agent_count_started` = distinct agents whose `agent-<id>.meta.json` sidecar is present, after any silent-drop re-dispatch — NOT "produced a tool-result" (under background dispatch the launch ack is a result and would count an agent that never ran). `agent_count_completed` = distinct agents whose task-notification (`<status>completed</status>`) arrived. Omit each field when the wave did not measure it — **absent = "not measured"**, never zero-fill; `0` would read as "measured, no agent started", which is the opposite of an unmeasured wave. The two gaps carry the diagnosis: `agent_count_planned > agent_count_started` after re-dispatch is a persistent silent drop, `agent_count_started > agent_count_completed` at wave end is an agent that started and never returned. Both are also logged to STATE.md `## Deviations` by wave-loop.md, so a record and a deviation entry should agree.
 > - `waves[].planned_files_count` / `waves[].over_delivery_ratio` (#730/H4): OPTIONAL per-wave fields, populated from STATE.md Wave History headers of the form `(planned <P> files → actual <A>, over-delivery <R>)` (written by wave-executor §3a since #730/H4); omit when absent (pre-#730 sessions / grounding-check: false).
 > - `waves[].suite_passed` / `waves[].suite_failed` / `waves[].suite_platform` (#944): OPTIONAL per-wave fields. Omit all three when absent — absent = "not measured", `suite_failed: 0` = "measured, zero failures".
 >   **`suite_passed` / `suite_failed`: read the event FIRST, the STATE.md header only as fallback (#966 step 3).** Since #954/#967 the between-waves gate wrapper `scripts/run-quality-gate.mjs` emits `orchestrator.quality_gate.{passed,failed}` with a machine-measured `counts: {passed, failed, total}` AND the `wave_number` it resolved from the `wave-scope.json` sidecar, so per-wave attribution needs no wall-clock window join. Payload fields are flat at the record's top level; for each wave `N` of this session:

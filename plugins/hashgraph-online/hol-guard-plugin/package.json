@@ -1,6 +1,6 @@
 {
   "name": "hol-guard-plugin",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "private": true,
   "description": "HOL Guard security plugin for Codex, DeepSeek Harness, and agent ecosystems.",
   "license": "Apache-2.0",
@@ -12,6 +12,7 @@
   },
   "files": [
     "index.js",
+    "dsh-process.js",
     "cordis.patch.yml",
     "dsh.plugin.json",
     "README.md",
@@ -31,7 +32,7 @@
     }
   },
   "scripts": {
-    "test": "npm run test:runtime-sync && node tests/validate-plugin.mjs && node tests/validate-spec-kit.mjs && node tests/validate-marketplace-manifests.mjs && node tests/validate-clawhub.mjs && node tests/validate-wshobson-agents.mjs && node tests/validate-dsh-plugin.mjs && node --test tests/dsh-plugin.test.mjs",
+    "test": "npm run test:runtime-sync && node tests/validate-adoption-integrations.mjs && node tests/validate-plugin.mjs && node tests/validate-spec-kit.mjs && node tests/validate-marketplace-manifests.mjs && node tests/validate-clawhub.mjs && node tests/validate-wshobson-agents.mjs && node tests/validate-dsh-plugin.mjs && node --test tests/dsh-plugin.test.mjs tests/dsh-decision-precedence.test.mjs tests/dsh-execution-binding.test.mjs tests/dsh-process-trust.test.mjs",
     "test:runtime-sync": "node --test tests/sync-hol-guard-runtime-version.test.mjs",
     "sync:hol-guard-runtime": "node scripts/sync-hol-guard-runtime-version.mjs",
     "test:dsh-e2e": "node tests/dsh-e2e.mjs"

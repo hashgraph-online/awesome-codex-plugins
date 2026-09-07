@@ -1,27 +1,17 @@
 # AgentOps
 
-AgentOps is the operations layer for agentic engineering.
-
-AgentOps connects intent, coding agents, software factories, context
-sources, and independent judgment through portable skills and evidence
-contracts without replacing the systems that own work, execution, or
-delivery.
-
-The architecture is a federated integration graph: your tracker keeps the
-work, Git keeps the history, your coding agents and factories run the
-execution, deterministic checks prove facts, and a fresh validator judges
-meaning. AgentOps supplies the semantic work-and-proof protocol that joins
-those nodes — exact intent, exact subject, evidence, fresh judgment, honest
-outcomes. The standard traversal through the graph is RPI, one experiment
-at a time:
+AgentOps is the operations layer for agentic engineering. It is a set of
+portable skills and evidence contracts that make one coding-agent change
+independently judgeable: the context that wrote the code does not get to
+declare it done. Your tracker keeps the work, Git keeps the history, and your
+coding agents keep running the execution; AgentOps joins them as a
+federated integration graph and adds the judgment step. A fresh context reads
+the exact change and returns `PASS`, `FAIL`, or `NOT_PROVEN`. The standard
+path is one RPI traversal:
 
 ```text
 RPI -> Plan -> Implement -> fresh Validate -> report and stop
 ```
-
-For contested calls, opt into [`council`](skills/council/SKILL.md)
-(independent judges) or [`idea-genie`](skills/idea-genie/SKILL.md) duel mode
-(sealed perspectives before Plan).
 
 ## Quickstart
 
@@ -33,6 +23,10 @@ One command installs the skill bundle into every coding agent you use. The
 skills run **inside your coding agent** (Claude Code, Codex, Cursor, …): type
 `/rpi` in that agent's chat, or ask for `plan`, `implement`, `validate`, and
 `learn` by name. No other runtime is required.
+
+Ran it? Tell us what it judged. Open an issue, and paste the `verdict.v2` if
+you asked `validate` to persist one:
+<https://github.com/boshu2/agentops/issues>.
 
 ## Plugins (Claude Code / Codex)
 
@@ -124,17 +118,9 @@ exact candidate and evidence.
 ## Optional: `ao` CLI
 
 Deterministic checks, inspection, and skill linking. Skip it if you only need
-the skills.
-
-```bash
-brew tap boshu2/agentops https://github.com/boshu2/homebrew-agentops
-brew install agentops
-```
-
-Without Homebrew: `go install github.com/boshu2/agentops/cli/cmd/ao@latest`
-
-To track skills from a local checkout instead of a release bundle, run
-`ao skills link` from that checkout.
+the skills. Install steps (Homebrew or `go install`), and `ao skills link` for
+tracking skills from a local checkout:
+[Install and day-2 operations](docs/install-day2-ops.md#maintainer--contributor-the-ao-binary).
 
 ## Why AgentOps exists
 

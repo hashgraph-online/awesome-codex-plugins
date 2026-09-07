@@ -96,10 +96,10 @@ For each `${PERM_NAME}` in `$MISSING`:
 ```
 AskUserQuestion({
   questions: [{
-    question: `${PERM_NAME} permission is required but not granted. Open System Settings > Privacy & Security > ${PERM_NAME}, enable the terminal entry, then confirm here.`,
-    header: `Missing Permission: ${PERM_NAME}`,
+    question: `${PERM_NAME} is not granted. Enable the terminal entry under System Settings > Privacy & Security, then confirm.`,
+    header: "Zugriff",
     options: [
-      { label: "Granted — continue (Recommended)", description: `I have enabled ${PERM_NAME} in System Settings.` },
+      { label: "Granted — continue (Recommended)", description: "I enabled the terminal entry in that pane — the driver then checks again and carries on if the grant took effect." },
       { label: "Skip this run", description: "Abort peekaboo-driver. Test-runner will record a framework-error finding." }
     ],
     multiSelect: false
@@ -156,11 +156,15 @@ For SwiftUI 26+ targets (projects with `Package.swift` declaring `.iOS("26")` or
 ```bash
 # Gate: glass-modifiers emit is opt-in per the active profile's rubric_features flag (v1 rubric does not consume).
 PROFILES_FILE=".orchestrator/policy/test-profiles.json"
-HAS_GLASS_V2="false"
+HAS_GLASS_V2="false"   # preconditions unmet (no PROFILE / no file / no jq) = feature not requested
 if [ -n "${PROFILE:-}" ] && [ -f "$PROFILES_FILE" ] && command -v jq >/dev/null 2>&1; then
-  HAS_GLASS_V2=$(jq -r --arg p "$PROFILE" '(.[$p].rubric_features // []) | contains(["glass-v2"])' "$PROFILES_FILE" 2>/dev/null || echo false)
+  # Fallback is `unknown`, NOT `false`: false is jq's legitimate "feature off" answer,
+  # so a jq crash on a malformed profiles file would read as a deliberate opt-out.
+  HAS_GLASS_V2=$(jq -r --arg p "$PROFILE" '(.[$p].rubric_features // []) | contains(["glass-v2"])' "$PROFILES_FILE" 2>/dev/null || echo unknown)
 fi
-if [ "$HAS_GLASS_V2" = "true" ]; then
+if [ "$HAS_GLASS_V2" = "unknown" ]; then
+  echo "WARN: glass-v2 probe failed (jq could not read $PROFILES_FILE) — no conformance artifact emitted" >&2
+elif [ "$HAS_GLASS_V2" = "true" ]; then
   cat > "${RUN_DIR}/ax-snapshots/glass-modifiers-$(date +%s%3N).json" <<EOF
 {
   "schema_version": "v1",
@@ -174,6 +178,14 @@ if [ "$HAS_GLASS_V2" = "true" ]; then
 EOF
 fi
 ```
+
+`HAS_GLASS_V2` has **three** states, and the third is the reason the fallback is not `false`:
+
+| Value | Meaning | Driver action |
+|---|---|---|
+| `true` | The active profile lists `glass-v2` in `rubric_features` | Emit the conformance artifact |
+| `false` | The profile does not list it — a real answer from a readable file, or preconditions unmet (no `PROFILE`, no profiles file, no `jq`) | Skip the artifact silently |
+| `unknown` | The probe itself failed — `jq` could not read/parse `$PROFILES_FILE` | WARN on stderr, skip the artifact. **Never** collapsed into `false`: a crashed probe is not an opt-out, and ux-evaluator Check 4 would otherwise report screenshot-only fallback as if the profile had chosen it |
 
 The ux-evaluator Check 4 reads this file. `glassEffect_frames` = compliant (uses `.glassEffect()`). `legacy_material_frames` = non-compliant (uses `.background(.thinMaterial)` etc.). `blur_modifier_frames` = non-compliant (uses `.blur(radius:)` as background). In v1 the arrays are always empty — the evaluator falls back to screenshot-only analysis. Do NOT emit a bare `{}` — use the full schema structure with empty arrays.
 

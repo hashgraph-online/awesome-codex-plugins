@@ -102,21 +102,21 @@ A `exec_command` is blocked mid-session because a production pattern matched. Th
 
 ---
 
-## Try AxonFlow on a real plugin rollout
+## Take a governed plugin rollout into production
 
-We're opening limited **Plugin Design Partner** slots.
+Solo developers and self-serve teams can use the free 90-day [Plugin Evaluation License](https://getaxonflow.com/plugins/evaluation-license?utm_source=readme_plugin_codex_eval) to validate hook behavior, policy packs, and override workflows.
 
-30-minute hook lifecycle review, policy pack scoping, override workflow design, and IDE/CLI rollout pattern walkthrough — for solo developers and small teams putting governance on Codex.
+Organizations with a dated production requirement, written controls, an executive sponsor, and a technical owner can use AxonFlow's paid [Production Program](https://getaxonflow.com/design-partner?utm_source=readme_plugin_codex). It takes one scoped workflow into production over 60 or 75 days with Enterprise access, founder-led rollout support, upfront conversion pricing, and a fixed decision date.
 
-[Apply here](https://getaxonflow.com/plugins/design-partner?utm_source=readme_plugin_codex) or email [design-partners@getaxonflow.com](mailto:design-partners@getaxonflow.com). Personal email is fine — solo developers welcome.
+Public Design Partner pricing starts at $2,000; the Confidential Paid Pilot starts at $4,000. Prices are subject to eligibility and a signed agreement.
 
 ### See AxonFlow in Action
 
-Three short videos covering different angles of the platform:
+Videos covering different angles of the platform:
 
-- **[Community Quickstart Demo (Code + Terminal, 2.5 min)](https://youtu.be/BSqU1z0xxCo)** — governed calls, PII block, Gateway Mode with LangChain/CrewAI, and MAP from YAML
-- **[Runtime Control Demo (Portal + Workflow, 3 min)](https://youtu.be/6UatGpn7KwE)** — approvals, retry safety, execution state, and the audit viewer
-- **[Architecture Deep Dive (12 min)](https://youtu.be/Q2CZ1qnquhg)** — how the control plane works, policy enforcement flow, and multi-agent planning
+- **[Product demos: Platform + Fraud & Risk](https://getaxonflow.com/demo/?utm_source=github&utm_medium=readme&utm_campaign=product_demo&utm_content=axonflow-codex-plugin)** - runtime enforcement, HITL approvals, audit evidence, cost visibility, and agentic payment controls
+- **[Community Quickstart walkthrough (2 min)](https://youtu.be/BSqU1z0xxCo)** - governed calls, PII blocking, Gateway Mode with LangChain/CrewAI, and MAP from YAML
+- **[Architecture deep dive (12 min)](https://youtu.be/Q2CZ1qnquhg)** - how the control plane works, policy enforcement flow, and multi-agent planning
 
 ### Plugin Evaluation Tier (Free 90-day License)
 
@@ -585,7 +585,7 @@ axonflow-codex-plugin/
 │   ├── post-tool-audit.sh   # Audit + PII scan (PostToolUse)
 │   ├── mcp-auth-headers.sh  # Basic-auth + X-License-Token headers for MCP
 │   ├── recover.sh           # request|verify|apply-token|status user surface
-│   ├── telemetry-ping.sh    # Anonymous telemetry (fires once per install)
+│   ├── telemetry-ping.sh    # Anonymous heartbeat (at most once per 7 days)
 │   ├── uninstall.sh         # Clean removal of hooks, config, and marketplace entry
 │   └── lib/
 │       └── license-token.sh # Pro-tier token resolver + TOML config writer
@@ -635,7 +635,9 @@ More troubleshooting in the [integration guide](https://docs.getaxonflow.com/doc
 
 ## Telemetry
 
-Anonymous heartbeat at most once every 7 days per machine: plugin version, OS, architecture, bash version, AxonFlow platform version, deployment mode (community-saas / self-hosted production / self-hosted development). **Never** tool arguments, message contents, or policy data. The stamp file mtime advances only after the HTTP POST returns 2xx, so a transient network failure does not silence telemetry until the next window.
+Anonymous heartbeat at most once every 7 days per machine: plugin version, OS, architecture, bash version, AxonFlow platform version, the licence tier that platform reports about itself, deployment mode (`community_saas` / `self_hosted` / `unknown`), and endpoint type (`localhost` / `private_network` / `remote` / `unknown`). **Never** tool arguments, message contents, or policy data. The stamp file mtime advances only after the HTTP POST returns 2xx, so a transient network failure does not silence telemetry until the next window.
+
+The licence tier sent is whatever the platform reported about itself, relayed verbatim. The plugin does not normalise, map, or restrict the value, so a transient state such as `starting`, or a tier name introduced after this plugin shipped, reaches the wire unchanged rather than being flattened into a fixed list. What is never read or sent: **no licence key, no expiry date, no seat count, and no customer or organisation name**. It is read from the `tier` field of the `/health` response the heartbeat already fetches to detect the platform version, so it costs no additional request, and it is omitted entirely whenever that probe does not answer with one.
 
 Opt out: set `AXONFLOW_TELEMETRY=off` in the environment Codex runs in.
 

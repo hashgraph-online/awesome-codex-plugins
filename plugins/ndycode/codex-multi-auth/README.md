@@ -161,6 +161,19 @@ codex-multi-auth forecast --live
 
 If browser launch is blocked, use the alternate login paths in [docs/getting-started.md](docs/getting-started.md#alternate-login-paths).
 For remote or headless shells, prefer `codex-multi-auth login --device-auth`.
+To refresh one saved account without changing the active selection or manual
+pin, run:
+
+```bash
+codex-multi-auth login --account <index|email|account_id> --preserve-selection
+```
+
+Add `--device-auth` on a remote shell. The refreshed OAuth identity must match
+the requested saved account or nothing is written. Refreshing the account Codex
+is currently using still publishes its new tokens to the native CLI; refreshing
+any other account leaves the active selection and the manual pin untouched. A
+disabled account stays disabled. `--account` cannot be combined with `--org`,
+which would rebind the row to a different workspace.
 
 ---
 
@@ -316,6 +329,7 @@ The Settings menu now includes an `Experimental` section for staged features:
 - preview-first sync into `oc-chatgpt-multi-auth`
 - named local pool backup export with filename prompt
 - refresh guard toggle and interval controls moved out of Backend Controls
+- context budget guard: pause a session before it hits the model's context window, with independently configurable soft/hard thresholds (default 65% / 69%) — ships disabled; see [Context Budget Guard](docs/features.md#context-budget-guard-experimental)
 
 These flows are intentionally non-destructive by default: sync previews before apply, destination-only accounts are preserved, and backup filename collisions fail safely.
 
@@ -392,7 +406,7 @@ codex-multi-auth doctor --json
 
 ## Release Notes
 
-- Current stable: [docs/releases/v2.8.6.md](docs/releases/v2.8.6.md) — install via `npm i -g codex-multi-auth`
+- Current stable: [docs/releases/v2.10.0.md](docs/releases/v2.10.0.md) — install via `npm i -g codex-multi-auth`
 - Previous stable: [docs/releases/v2.8.3.md](docs/releases/v2.8.3.md)
 - Previous stable: [docs/releases/v2.8.2.md](docs/releases/v2.8.2.md)
 - Previous stable: [docs/releases/v2.7.1.md](docs/releases/v2.7.1.md)

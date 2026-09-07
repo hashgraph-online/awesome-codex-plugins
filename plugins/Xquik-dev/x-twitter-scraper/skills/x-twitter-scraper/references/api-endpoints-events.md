@@ -1,8 +1,12 @@
 # Xquik REST API endpoints: events
 
-### List events
+## List events
 
-```
+Events can contain private monitor data. Show the exact monitor or keyword
+monitor, event type filters, page size, cursor, destination, and retention.
+Require explicit approval for that scope before reading a page.
+
+```http
 GET /events
 ```
 
@@ -28,9 +32,14 @@ The API returns:
       "username": "elonmusk",
       "occurredAt": "2026-02-24T16:45:00.000Z",
       "data": {
-        "tweetId": "1893556789012345678",
+        "id": "1893556789012345678",
         "text": "Hello world",
-        "metrics": { "likes": 3200, "retweets": 890, "replies": 245 }
+        "author": {
+          "id": "44196397",
+          "userName": "elonmusk",
+          "name": "Elon Musk"
+        },
+        "createdAt": "2026-02-24T16:45:00.000Z"
       }
     }
   ],
@@ -39,12 +48,23 @@ The API returns:
 }
 ```
 
-### Get event
+Account events set `monitorType` to `account`. They include `monitorId` and
+`username`. They omit `keywordMonitorId` and `query`.
 
-```
+Keyword events set `monitorType` to `keyword`. They include `monitorId`,
+`keywordMonitorId`, and `query`. Both ID fields contain the keyword monitor ID.
+Keyword events omit `username`.
+
+## Get event
+
+Show the event ID, monitor or account scope, destination, and retention. Require
+explicit approval before retrieving the event. Require separate approval before
+another workflow forwards private event data.
+
+```http
 GET /events/{id}
 ```
 
-Returns 1 event.
+Returns 1 event. Detailed events may include `xEventId`, the source X event ID.
 
 ---

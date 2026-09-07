@@ -1,0 +1,14 @@
+# Keeps the SHA-pinned GitHub Actions in .github/workflows/ from going stale.
+# Every `uses:` is pinned to a 40-character commit SHA with a trailing version
+# comment; Dependabot is what moves those pins forward.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "ci"
+    labels:
+      - "dependencies"

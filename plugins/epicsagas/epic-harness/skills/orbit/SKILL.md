@@ -30,6 +30,16 @@ If no file with `"status": "running"` exists, orbit was not started or has compl
 
 ## Step 0: Preflight
 
+**Concurrent-orbit guard** — before starting, run:
+
+```bash
+epic orbit lock   # exit 1 + "another orbit is running" if one is active → STOP
+```
+
+On success you own the guard; run `epic orbit unlock` when the pipeline reaches
+a terminal state (complete/aborted). If a crashed orbit left the lock behind,
+`lock` reclaims it automatically once no PIPELINE-*.json is `running`.
+
 Initialize pipeline state at `$HARNESS_DIR/orbit/PIPELINE-{timestamp}.json`:
 ```json
 {
@@ -195,7 +205,7 @@ Run the evolution engine to analyze this session and generate/improve skills.
 
 3. Report the evolution outcome in the final summary (evolved skills generated, score trend).
 
-4. Update pipeline state: `"phase": "evolve"`, `"status": "complete"`.
+4. Update pipeline state: `"phase": "evolve"`, `"status": "complete"`, then run `epic orbit unlock`.
 
 ## Step 8: Report
 

@@ -24,12 +24,29 @@ AMQ gives agents a **local interoperability bus**: they can send messages, reply
 - **Zero infrastructure** — Pure file-based. No server, no daemon, no database. Works anywhere files work.
 - **Crash-safe** — Atomic Maildir delivery (tmp→new→cur). Messages are never partially written or lost.
 - **Human-readable** — JSON frontmatter + Markdown body. Inspect with `cat`, debug with `grep`, version with `git`.
-- **Real-time notifications** — `amq wake` injects terminal notifications when messages arrive (experimental).
+- **Real-time notifications** — `amq wake` injects terminal notifications when messages arrive.
 - **Built for agents** — Priority levels, message kinds, threading, delivery receipts, and waitable handoffs.
 - **Cross-project federation** — Route messages across peer repos, preserve reply routing, and run decision threads that span projects.
 - **Swarm mode** — Join Claude Code Agent Teams, claim tasks, and bridge task notifications into AMQ.
 - **Optional adapters** — Lightweight Symphony hooks and an experimental Kanban bridge can emit normal AMQ messages with structured metadata.
 - **Operational diagnostics** — `amq doctor --ops` shows queue depth, sibling-session backlogs, DLQ state, presence freshness, and integration hints.
+- **Two-host fleets** — Companion `amq-bridge` hops signed envelopes between two local AMQ roots (`apply-file` today; HTTPS courier when an operator provisions a rendezvous).
+
+### v1 will not
+
+AMQ Core stays a local CLI. These stay out of the `amq` binary and out of v1
+product claims (see [two-host fleets](docs/adr-two-host-fleets.md) and
+[bridge protocol](docs/adr-bridge-protocol.md)):
+
+- sockets or listeners in `amq`
+- Maildir sync or remote drain of a foreign mailbox
+- git as the cross-host relay
+- OAuth MCP inside `amq`, ACP v2, or `--always-approve` in committed launch plans
+- prompt-selected `--root` / argv / env / executable
+- AMQ holding a Buzz nsec; Mac mailbox files on the Grok Bot VM
+- silent inject→notify or submit→prefill; Accessibility scraping of ChatGPT
+
+Cross-host mail is companion `amq-bridge` (alias send / local apply / same-thread reply), not Core. The proven hop is `amq-bridge apply-file` on the destination host. The HTTPS courier stays implemented for an operator-provided rendezvous; AMQ does not ship a hosted relay. See [amq-bridge](cmd/amq-bridge/README.md).
 
 ![AMQ Demo — Claude and Codex collaborating via split-pane terminal](docs/assets/demo.gif)
 
@@ -39,8 +56,9 @@ AMQ gives agents a **local interoperability bus**: they can send messages, reply
 
 About five minutes from install to the first delivered message. You need two
 agent CLIs on `PATH`. This walkthrough uses **Claude Code** (`claude`) and
-**Codex CLI** (`codex`) on one machine. `amq setup` also detects Cursor when
-`agent` is on `PATH` (or legacy `cursor-agent` if `agent` is absent).
+**Codex CLI** (`codex`) on one machine. `amq setup` also detects Grok Build
+(`grok`) and Cursor when `agent` is on `PATH` (or legacy `cursor-agent` if
+`agent` is absent).
 
 Native Windows can run the core queue from the Windows ZIP, but this
 walkthrough needs `coop exec` and `wake`, which are not supported natively.
@@ -101,7 +119,7 @@ In the repository the two agents will share:
 amq setup
 ```
 
-Setup probes for Claude and Codex (and Cursor when present), previews the
+Setup probes for Claude, Codex, and Grok (and Cursor when present), previews the
 roster and launcher preference, then writes `.amqrc`, `.amq/launch.json`,
 local preferences, the default session, and roster mailboxes. Confirm the
 preview.
@@ -165,6 +183,15 @@ Homebrew:
 brew upgrade amq
 ```
 
+`amq upgrade` checks the raw and resolved executable paths against every
+evidenced or executable-derived Homebrew prefix and delegates to the matched
+Homebrew executable instead of overwriting the Cellar; pass `amq upgrade -y`
+to run the delegate without an AMQ prompt. The package manager may still
+prompt. Scoop installs on Windows are scoped as user (`$SCOOP` or the default
+`%USERPROFILE%\scoop`) or global (`$SCOOP_GLOBAL` or `C:\ProgramData\scoop`);
+the matched `scoop` executable receives `scoop update amq` for user scope or
+`scoop update -g amq` for global scope.
+
 Retire live wakes started by the previous Cellar binary first. If a leftover
 lock's image directory is gone, `wake check` reports `binary_dir_gone`;
 remove it with `amq doctor --ops --fix-wake-locks`. See
@@ -174,17 +201,65 @@ GitHub Actions `verify-brew-release` confirms a published tag installs from
 `avivsinai/tap/amq` and that `amq --version` matches that tag. It does not
 replace `brew upgrade` on an operator machine.
 
-Install-script or other manual binary installs:
+Install-script or other manual binary installs outside an evidenced Homebrew
+prefix keep the direct download and atomic-replace path:
 
 ```bash
 amq upgrade
 ```
 
+Upgrade the companion binaries (`amq-keepalive`, `amq-bridge`, `amq-acp`)
+that sit in the raw or resolved executable directory of a direct-install
+`amq`, or in `~/.local/bin`, from the same release tag, with checksum
+verification:
+
+```bash
+amq upgrade --all
+```
+
+The command plans one verified target per companion, unique across all
+companions, before any companion replacement. It verifies each target's Go
+build identity. Missing companions are skipped with a line; cross-companion
+aliases, wrong builds, and multiple distinct targets refuse the upgrade and
+give a repair action. Same-name symlink aliases to one canonical target are
+accepted; same-name hardlinks refuse. A
+running `amq-keepalive` is never killed: the atomic rename swaps the path
+while the running process keeps the old image.
+When the upgraded path is the supervisor's path, `amq upgrade --all` notes
+that self-upgrade can pick up a strictly newer image on its next supervise pass. A
+supervisor started with `--no-self-upgrade` must be restarted through its
+service manager; on macOS use `amq-keepalive install-launchd`, and on Linux
+restart the service unit, for example
+`systemctl --user restart amq-keepalive.service`. Companions are
+direct-installed only; the
+Homebrew formula and Scoop manifest ship `amq` itself, so `--all` under a
+package-managed install is a no-op with an explanatory line. Companion links
+are revalidated by their primary path; a secondary same-name alias repointed
+during download is not detected.
+
+`AMQ_CACHE_DIR` overrides the update cache location used by `amq upgrade` and
+the background update notifier. When unset, the platform cache
+(`~/Library/Caches` on macOS, `XDG_CACHE_HOME` or `~/.cache` on Linux and
+other Unix systems, and the user's Local AppData cache on Windows) is used.
+`internal/update.DefaultCachePath` is the sole authority for the platform
+update-cache path. For the direct-upgrade cache-writing path, a set override
+must resolve to an absolute path; AMQ fails before replacement rather than
+silently falling back to the platform cache. The version cache is refreshed
+after an authoritative direct check confirms the latest version (already
+current, or after a successful immediate replacement). A later companion
+failure does not change that result. A scheduled replacement is reflected when
+the next successful check refreshes the cache (best-effort).
+
+On Windows, `amq upgrade --all` upgrades a directly installed
+`amq-keepalive.exe`; it skips `amq-bridge` and `amq-acp`, which are not
+published for Windows, then continues with the core upgrade.
+
 ### Keepalive companion
 
 `amq-keepalive` is developed and released from this repository alongside AMQ.
 `make build` produces both binaries, and each AMQ release includes a separate
-`amq-keepalive` archive stamped with the same release version. Verify a build
+`amq-keepalive` archive stamped with the same release version, including a
+native Windows ZIP. Verify a build
 with any equivalent form:
 
 ```bash
@@ -231,6 +306,12 @@ because executing them is the remaining operator action. Paste those emitted
 lines exactly, one per terminal. Managed `tmux`, `cmux`, and `ghostty`
 backends run the declared plan in-app instead of printing those lines.
 
+Grok Build is also supported by the managed launch adapter. It mints an exact
+`--session-id` from the AMQ launch nonce and resumes only with the stored
+`--resume <UUID>`; `--continue`, `--always-approve`, and `--yolo` are rejected
+from committed launch arguments. Grok uses `--tools` / `--disallowed-tools`
+with opaque provider names (not Claude `--allowedTools`).
+
 Each launched agent gets a session environment and wake notifications. See
 [COOP.md](COOP.md#running-co-op-mode) for co-op operations.
 
@@ -262,6 +343,17 @@ can validate and include them in its semantic trust digest. For example:
 Dangerous permission-bypass flags are not valid committed arguments. Keep
 them in an operator-controlled direct `coop exec` invocation when that
 low-level path is intentionally required.
+
+Direct `coop exec` names the provider session by default as
+`<session>/<handle>` (or `<handle>` for a sessionless root). Claude and Pi
+receive the name in their argv. Codex and Cursor `agent` receive a best-effort
+TUI rename after AMQ verifies the newly created session. Codex supports direct
+resume by name, for example `codex resume session1/codex`. Cursor `agent`
+resumes through its picker only; resume-by-name is unproven. Set
+`--named=false`, `AMQ_COOP_NAMED=0`, or `"named": false` in `.amq/launch.json`
+to disable it. Explicit provider names and resume or continue flags remain
+unchanged, including `codex resume` and `agent --resume`. Managed launches keep
+naming disabled until their provider-name contract is available.
 
 ### Named sessions
 
@@ -609,6 +701,10 @@ Building something on AMQ? Open an issue or PR to be listed here.
 - [Getting started](#getting-started) — Install, start two agents, send one message
 - [INSTALL.md](INSTALL.md) — Alternative installation methods
 - [docs/amq-keepalive.md](docs/amq-keepalive.md) — Keepalive command and safety reference
+- [cmd/amq-bridge/README.md](cmd/amq-bridge/README.md) — Two-host courier: identity, apply-file, HTTPS rendezvous
+- [docs/adr-two-host-fleets.md](docs/adr-two-host-fleets.md) — Two-host identity, aliases, receipts, v1 kill-list
+- [docs/adr-bridge-protocol.md](docs/adr-bridge-protocol.md) — Bridge envelope, auth, and transport
+- [cmd/amq-acp/README.md](cmd/amq-acp/README.md) — Preview ACP v1 stdio companion and Buzz BYOH JSON
 - [docs/session-routing.md](docs/session-routing.md) — Session selection, routing guards, and worktree behavior
 - [docs/wake-operations.md](docs/wake-operations.md) — Wake inspection, repair, recovery, and retirement
 - [docs/wake-lifecycle.md](docs/wake-lifecycle.md) — Wake lock/target state contract, self-upgrade, log retention, JSON schema, injector identity
@@ -626,7 +722,7 @@ Building something on AMQ? Open an issue or PR to be listed here.
 ```bash
 git clone https://github.com/avivsinai/agent-message-queue.git
 cd agent-message-queue
-make build   # Build binary
+make build   # Build amq plus companion binaries
 make test    # Run tests
 make ci      # Full CI: vet + lint + test + smoke
 ```
@@ -640,15 +736,17 @@ Files are universal, debuggable, and work everywhere. No connection strings, no 
 Those require infrastructure. AMQ is for local inter-process communication where agents share a filesystem. No server to configure or keep running.
 
 **What about Windows?**
-Native Windows supports the core queue, but not `coop exec` or `wake`. Use WSL
-with the Linux binary for the complete co-op workflow. See the explicit
-[platform capability matrix](INSTALL.md#platform-capability-matrix).
+Native Windows supports the core queue and direct submitted injection into a
+live Codex or Claude Code session through `amq-keepalive.exe`; it does not
+support `coop exec`, `amq wake`, or terminal supervision. Use WSL with the
+Linux binary for the complete co-op workflow. See the explicit [platform
+capability matrix](INSTALL.md#platform-capability-matrix).
 
 **Is this production-ready?**
 For local development workflows, yes. AMQ is intentionally simple—it's not trying to be a distributed message broker.
 
 **How does AMQ compare to other multi-agent tools?**
-Tools like [MCP Agent Mail](https://github.com/Dicklesworthstone/mcp_agent_mail) (server-based coordination + SQLite), [Gas Town](https://github.com/steveyegge/gastown) (tmux-based orchestration), and others offer richer features. AMQ is intentionally minimal: single binary, no server, Maildir delivery. Best for 2-3 agents on one machine.
+Tools like [MCP Agent Mail](https://github.com/Dicklesworthstone/mcp_agent_mail) (server-based coordination + SQLite), [Gas Town](https://github.com/steveyegge/gastown) (tmux-based orchestration), and others offer richer features. AMQ is intentionally minimal: single Core binary, no server, Maildir delivery. Best for a handful of local agents. Two machines use companion `amq-bridge`, not a shared filesystem.
 
 ## License
 

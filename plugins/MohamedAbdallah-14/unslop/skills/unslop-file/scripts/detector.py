@@ -6,10 +6,10 @@ license, 99.28% AUROC on RAID) and exposes:
   score_ai_probability(text) -> float in [0, 1]
       Probability that the text is AI-generated, per the cached detector.
 
-  feedback_loop(text, intensity_start, target, max_iterations) -> dict
+  feedback_loop(text, target_probability, max_iterations, ...) -> FeedbackResult
       Humanize, score, and re-humanize with escalating settings until the
-      score drops below `target` or `max_iterations` runs out. Returns the
-      final text plus an audit trail per iteration.
+      score drops below `target_probability` or the ladder is exhausted.
+      Returns a FeedbackResult with final text and per-iteration audit trail.
 
 Design constraints:
   - Heavy deps (torch/transformers) import lazily so the CLI stays fast for
@@ -24,8 +24,9 @@ Design constraints:
 
 Research basis: Cat 05 (detection arms race), Cat 15 (DAMAGE COLING 2025).
 The DAMAGE audit showed commercial humanizers score 20-100 points apart from
-their marketing claims. Building the detector into the rewrite loop is how
-you close that gap: you don't ship anything unless the detector confirms it.
+their marketing claims. The feedback loop is a maintainer diagnostic, not a
+release gate — deterministic passes move TMR ~0.0–0.2 pp on fixtures, so
+treat scores as a signal, not a pass certificate. TMR ≠ GPTZero/Turnitin.
 
 NOT a silver bullet. Nicks et al. (ICLR 2024): "we advise against continued
 reliance on LLM-generated text detectors." Use this as a signal, not a gate.
@@ -36,7 +37,19 @@ from __future__ import annotations
 import os
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Literal
+from typing import Literal, Protocol, runtime_checkable
+
+
+@runtime_checkable
+class SurprisalReadingLike(Protocol):
+    """Duck type for surprisal readings returned by surprisal_fn."""
+
+    surprisal_stdev: float
+
+    def to_dict(self) -> dict: ...
+
+
+SurprisalResult = SurprisalReadingLike | float | None
 
 # Available detector backends. Keep this short — each one is a ~500MB-1.5GB
 # download. TMR is the default because it's smaller and still competitive
@@ -229,6 +242,7 @@ class IterationRecord:
     ai_isms_after: int
     soul: bool = False
     surprisal_stdev: float | None = None
+    surprisal_reading: dict | None = None
 
 
 @dataclass
@@ -264,6 +278,8 @@ class FeedbackResult:
                         if r.surprisal_stdev is not None
                         else None
                     ),
+                    **({"surprisal_reading": r.surprisal_reading}
+                       if r.surprisal_reading is not None else {}),
                 }
                 for r in self.iterations
             ],
@@ -273,12 +289,13 @@ class FeedbackResult:
 # Escalation ladder: each tuple is (intensity, structural-on, soul-on).
 # Step 1: balanced, no structural, no soul — gentlest rewrite.
 # Step 2: full, no structural, no soul — adds filler + negative-parallelism + superficial-ing.
-# Step 3: full, structural, soul — strongest deterministic mode.
-#         Touches sentence shape AND token distribution via contractions.
+# Step 3: full, structural, soul — strongest deterministic mode before anti-detector.
+# Step 4: anti-detector — runs lexical_targets gap nudges (requires baseline JSON).
 DEFAULT_LADDER: list[tuple[str, bool, bool]] = [
     ("balanced", False, False),
     ("full", False, False),
     ("full", True, True),
+    ("anti-detector", True, True),
 ]
 
 LADDER_AGGRESSIVE: list[tuple[str, bool, bool]] = [
@@ -287,6 +304,7 @@ LADDER_AGGRESSIVE: list[tuple[str, bool, bool]] = [
     ("balanced", True, False),
     ("full", True, False),
     ("full", True, True),
+    ("anti-detector", True, True),
 ]
 
 
@@ -302,12 +320,12 @@ def feedback_loop(
     text: str,
     *,
     target_probability: float | dict[str, float] = 0.5,
-    max_iterations: int = 3,
+    max_iterations: int = 4,
     detector: DetectorName = DEFAULT_DETECTOR,
     ladder: list[tuple] | None = None,
     score_fn: Callable[[str], float] | None = None,
     humanize_fn: Callable | None = None,
-    surprisal_fn: Callable[[str], float | None] | None = None,
+    surprisal_fn: Callable[[str], SurprisalResult] | None = None,
 ) -> FeedbackResult:
     """Escalate humanize settings until the detector score drops below target.
 
@@ -355,12 +373,17 @@ def feedback_loop(
         )
         prob = score_fn(current_text)
         surprisal_stdev = None
+        surprisal_reading = None
         if surprisal_fn is not None:
             try:
                 value = surprisal_fn(current_text)
-                surprisal_stdev = float(value) if value is not None else None
+                if isinstance(value, SurprisalReadingLike):
+                    surprisal_stdev = float(value.surprisal_stdev)
+                    surprisal_reading = value.to_dict()
+                elif value is not None:
+                    surprisal_stdev = float(value)
             except Exception:
-                surprisal_stdev = None
+                pass
         iterations.append(
             IterationRecord(
                 iteration=i,
@@ -370,6 +393,7 @@ def feedback_loop(
                 ai_probability=prob,
                 ai_isms_after=_count_ai_isms(current_text),
                 surprisal_stdev=surprisal_stdev,
+                surprisal_reading=surprisal_reading,
             )
         )
         if prob <= target:
@@ -387,11 +411,11 @@ def feedback_loop(
     # can print it verbatim rather than inventing their own wording.
     #
     # Research basis: TempParaphraser (EMNLP 2025, HJJWorks/TempParaphraser)
-    # reduces average detector accuracy 82.5% via temperature-simulation
-    # paraphrase with no LLM call needed — i.e. at detection-evasion margins
-    # the next step is *structural* paraphrase by a different model family,
-    # not more deterministic regex. Adversarial Paraphrasing (NeurIPS 2025)
-    # and DIPPER (NeurIPS 2023) confirm this pattern.
+    # reports ~82.5% average reduction in detector accuracy via LLM paraphrase
+    # at elevated temperature — i.e. the next step is structural paraphrase by
+    # a different model family, not more deterministic regex. Adversarial
+    # Paraphrasing (NeurIPS 2025) and DIPPER (NeurIPS 2023) confirm this
+    # pattern. Rewrites may incidentally degrade statistical watermarks.
     #
     # EU AI Act Article 50 (Dec 2025 Code of Practice, August 2026 effective)
     # prohibits watermark removal specifically — we do not recommend that.
@@ -402,8 +426,8 @@ def feedback_loop(
         "Next step is outside this module: paraphrase the text through a "
         "different model family (e.g. if generated by GPT, rewrite via Claude "
         "or Gemini). TempParaphraser (EMNLP 2025) and Adversarial Paraphrasing "
-        "(NeurIPS 2025) document this as the single most reliable detector-"
-        "evasion lever. Do NOT attempt watermark removal — EU AI Act Article 50 "
+        "(NeurIPS 2025) document cross-model paraphrase as the strongest "
+        "deterministic-layer follow-up. Do NOT attempt watermark removal — EU AI Act Article 50 "
         "prohibits it."
     )
     return FeedbackResult(
@@ -419,11 +443,11 @@ def feedback_loop_aggressive(
     text: str,
     *,
     target_probability: float | dict[str, float] = 0.5,
-    max_iterations: int = 5,
+    max_iterations: int = 6,
     detector: DetectorName = DEFAULT_DETECTOR,
     score_fn: Callable[[str], float] | None = None,
     humanize_fn: Callable | None = None,
-    surprisal_fn: Callable[[str], float | None] | None = None,
+    surprisal_fn: Callable[[str], SurprisalResult] | None = None,
 ) -> FeedbackResult:
     return feedback_loop(
         text,

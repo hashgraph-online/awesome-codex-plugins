@@ -68,6 +68,16 @@ def _get_version() -> str:
         return "0.0.0"
 
 
+def _positive_int(value: str) -> int:
+    try:
+        parsed = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("expected an integer") from exc
+    if parsed < 1:
+        raise argparse.ArgumentTypeError("must be at least 1")
+    return parsed
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="unslop",
@@ -241,8 +251,8 @@ def _build_parser() -> argparse.ArgumentParser:
         "--detector-loop-aggressive",
         action="store_true",
         help=(
-            "Use the 5-step detector-feedback ladder instead of the default "
-            "3-step ladder."
+            "Use the 6-step detector-feedback ladder instead of the default "
+            "4-step ladder."
         ),
     )
     parser.add_argument(
@@ -253,15 +263,25 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--detector-max-iterations",
-        type=int,
-        default=3,
-        help="Cap how many escalation steps to try. Default 3.",
+        type=_positive_int,
+        default=None,
+        help="Cap how many escalation steps to try. Default 4 (default ladder) or 6 (aggressive).",
     )
     parser.add_argument(
         "--detector-model",
         choices=("tmr", "desklib"),
         default="tmr",
         help="Which detector to use. TMR (~500MB) is the default.",
+    )
+    parser.add_argument(
+        "--detector-surprisal",
+        action="store_true",
+        help=(
+            "Opt-in: attach a real surprisal-variance reading (distilgpt2, ~330MB) "
+            "to each detector-feedback iteration. Without this flag, detector "
+            "feedback runs without loading a language model. Uses --surprisal-model "
+            "for the model id."
+        ),
     )
     parser.add_argument(
         "--surprisal-variance",
@@ -319,19 +339,18 @@ def _process_stdin(args: argparse.Namespace) -> int:
     if args.detector_feedback:
         from .detector import DetectorUnavailable, feedback_loop, feedback_loop_aggressive
 
+        surprisal_fn = None
+        if args.detector_surprisal:
+            surprisal_fn = _build_surprisal_fn(args.surprisal_model)
+
         try:
             loop = feedback_loop_aggressive if args.detector_loop_aggressive else feedback_loop
-            max_iterations = (
-                5
-                if args.detector_loop_aggressive
-                and args.detector_max_iterations == 3
-                else args.detector_max_iterations
-            )
             outcome = loop(
                 text,
                 target_probability=args.detector_target,
-                max_iterations=max_iterations,
+                max_iterations=_detector_feedback_max_iterations(args),
                 detector=args.detector_model,
+                surprisal_fn=surprisal_fn,
             )
         except DetectorUnavailable as exc:
             sys.stderr.write(f"detector feedback disabled: {exc}\n")
@@ -440,6 +459,54 @@ def _emit_stylometric_gaps(out, text: str) -> None:
         )
 
 
+_SURPRISAL_WARNING_EMITTED = False
+
+
+def _build_surprisal_fn(model: str):
+    """Build a surprisal callable that returns full SurprisalReading objects.
+
+    Returns None (not a callable) when deps are missing so the caller
+    can distinguish 'user opted in but deps absent' from 'user did not
+    opt in'. Emits exactly one stderr diagnostic per CLI invocation.
+    """
+    global _SURPRISAL_WARNING_EMITTED  # noqa: PLW0603
+    try:
+        from .surprisal import SurprisalUnavailable, compute_surprisal_variance
+    except ImportError:
+        if not _SURPRISAL_WARNING_EMITTED:
+            _SURPRISAL_WARNING_EMITTED = True
+            sys.stderr.write(
+                "unslop: --detector-surprisal requested but dependencies unavailable. "
+                "Install with: pip install unslop[surprisal]\n"
+            )
+        return None
+
+    def _fn(text: str):
+        nonlocal model
+        try:
+            return compute_surprisal_variance(text, model=model)
+        except SurprisalUnavailable:
+            global _SURPRISAL_WARNING_EMITTED  # noqa: PLW0603
+            if not _SURPRISAL_WARNING_EMITTED:
+                _SURPRISAL_WARNING_EMITTED = True
+                sys.stderr.write(
+                    "unslop: surprisal model unavailable. "
+                    "Install with: pip install unslop[surprisal]\n"
+                )
+            return None
+        except (RuntimeError, OSError):
+            return None
+
+    return _fn
+
+
+def _detector_feedback_max_iterations(args: argparse.Namespace) -> int:
+    """Map CLI defaults to full ladder length when user didn't override."""
+    if args.detector_max_iterations is not None:
+        return args.detector_max_iterations
+    return 6 if args.detector_loop_aggressive else 4
+
+
 def _process_file_detector_feedback(
     path: Path,
     args: argparse.Namespace,
@@ -453,19 +520,19 @@ def _process_file_detector_feedback(
     from .validate import format_report, validate
 
     original = path.read_text(encoding="utf-8")
+
+    surprisal_fn = None
+    if args.detector_surprisal:
+        surprisal_fn = _build_surprisal_fn(args.surprisal_model)
+
     try:
         loop = feedback_loop_aggressive if args.detector_loop_aggressive else feedback_loop
-        max_iterations = (
-            5
-            if args.detector_loop_aggressive
-            and args.detector_max_iterations == 3
-            else args.detector_max_iterations
-        )
         outcome = loop(
             original,
             target_probability=args.detector_target,
-            max_iterations=max_iterations,
+            max_iterations=_detector_feedback_max_iterations(args),
             detector=args.detector_model,
+            surprisal_fn=surprisal_fn,
         )
     except DetectorUnavailable as exc:
         sys.stderr.write(f"[{path.name}] detector feedback disabled: {exc}\n")

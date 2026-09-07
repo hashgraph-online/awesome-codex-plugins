@@ -23,7 +23,7 @@ and explicitly requested long-form output is left uncompressed.
 ## Install
 
 ```bash
-codex plugin marketplace add Maksim-Burtsev/simple-man --ref v0.3.1
+codex plugin marketplace add Maksim-Burtsev/simple-man --ref v0.3.2
 codex plugin add simple-man@simple-man
 ```
 

@@ -111,9 +111,9 @@ Use graph semantics deliberately:
 Use live `bd`/`br` state as authority and `bv --robot-*` output for
 prioritization, parallel tracks, bottlenecks, and graph insight. Never treat a
 static plan as fresher than the graph. The `bd`/`br`/`bv` tracker is an external,
-caller-owned runtime the emitted goal will drive (declared via
-`intel_scope: topic`); craft-goal reads live tracker state when present but
-starts nothing and requires no tracker to be installed to compile a prompt.
+caller-owned runtime the emitted goal will drive; craft-goal reads live tracker
+state when present but starts nothing and requires no tracker to be installed to
+compile a prompt.
 
 ## What counts as a ratchet
 
