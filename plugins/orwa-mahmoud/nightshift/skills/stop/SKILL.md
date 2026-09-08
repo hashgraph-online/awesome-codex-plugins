@@ -1,6 +1,7 @@
 ---
 name: stop
 description: Issue a stop-work order: pause the shift now, leaving unfinished items open.
+license: MIT
 ---
 
 Pause the host-opened project immediately so the owner can edit the punch list and resume later.

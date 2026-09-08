@@ -1,6 +1,7 @@
 ---
 name: archive
 description: File finished shift state into a dated archive so the live files stay lean.
+license: MIT
 ---
 
 Archive the finished paperwork for the host-opened project. This files records — it never does

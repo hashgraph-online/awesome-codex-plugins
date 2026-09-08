@@ -11,12 +11,14 @@ For multi-model judgment (mixed council, dueling perspectives, cross-model
 validate, which is default on risky surfaces per ADR-0017 and caller-elected
 otherwise), follow
 [references/model-dispatch.md](references/model-dispatch.md): the working
-session is the controller; probe `codex-exec` and `ntm` at runtime; never
-require either; never use Agent Mail for judgment; never invoke `claude -p`.
+session is the controller; check the explicitly selected adapter at runtime;
+no factory is required and Agent Mail is never the judgment path. The recipe
+owns host authorization, finite input/output, timeout and cleanup requirements.
 
-Role separation works because each role's authority is checkable from its
-packet: a worker that cannot exceed its declared subject cannot corrupt a
-sibling's evidence, so factory failures stay local instead of systemic.
+Role requests declare authority; actual native runtime/OS filesystem and egress
+controls must enforce it. A prompt, worktree, chmod or unrestricted same-user
+process does not establish isolation. Observe synthetic canary denials before
+restricted-source work; unavailable protection remains unavailable.
 
 When a worker looks stuck, score interventions by evidence and reversibility
 before acting: observe more (free, fully reversible), then nudge, then replace
@@ -42,9 +44,23 @@ stalled, and rescue is usually cheaper than rerun.
 
 ## Contract
 
-1. Require an explicit packet, role, workspace, context identity, and evidence
-   destination before starting a worker.
-2. Prove runtime readiness and engagement from observable state; a successful
+1. Require caller intent, role, workspace, authorized source/output scope and
+   evidence destination before starting a worker. Pass source-store/project/work
+   identity and permitted intent locators before execution can fail. Record this
+   dispatch association in caller-owned native comments/metadata or runtime
+   facts, with actual worker session/context IDs explicitly unknown until
+   observed; a requested ID is not an observed ID. This adds no AO packet schema.
+2. Capture observed native runtime/session/context identity at startup, before
+   substantive work and independently of final handoff. Return the observation
+   through the caller-owned native recording channel with its provenance and
+   permitted source locator. Preserve launch failures and unknowns if startup
+   never becomes observable. Follow
+   [session associations](../cass/references/SESSION_FORMATS.md#work-to-session-associations)
+   for separate parent/resume links, supported multi-work spans and frozen source
+   bounds. A controller is not necessarily a native parent; every requested
+   child and resumed execution needs its own observed association. If recording
+   fails, report the gap; do not claim crash recovery from prompt delivery alone.
+   Prove runtime readiness and engagement from observable state; a successful
    prompt send is not proof of work.
 3. Keep concurrent writers disjoint and isolated. Runtime coordination is not a
    claim, lease, queue, or completion state in AgentOps.

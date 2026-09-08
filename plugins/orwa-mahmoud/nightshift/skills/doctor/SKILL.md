@@ -1,6 +1,7 @@
 ---
 name: doctor
 description: Read-only diagnosis of the workspace, rules, markers, lease, watchman and deadline, with classified next actions.
+license: MIT
 ---
 
 Diagnose the host-opened project **without changing anything**. Doctor is deeper than status: it

@@ -47,7 +47,7 @@ Load `skills/_shared/gate-contract.md` and `skills/_shared/elicitation-contract.
 
 IF `.archcore/` does not exist, THEN announce initialization in one line and call `mcp__archcore__init_project` without asking a question. IF `.archcore/` contains zero documents, THEN proceed on git and codebase grounding and report that zero documents were found.
 
-**Grounding.** Search all three categories — vision, knowledge, experience — with `mcp__archcore__search_documents` / `mcp__archcore__list_documents`; never exclude a category from reads. Pass a type filter matched to the review moment — `spec`, `rule`, `adr`, `doc`, `guide` for claims on changed code; `cpat`, `task-type` for precedent; `plan`, `prd`, `idea`, `rnd` for the closeout track's plan-and-implements-chain scope — instead of relying on the global type ranking. When a found document has `implements` or `related` relations, pull the linked documents one hop across categories.
+**Grounding.** Search all three categories — vision, knowledge, experience — with `mcp__archcore__search_documents` / `mcp__archcore__list_documents`; never exclude a category from reads. Pass a type filter matched to the review moment — `spec`, `rule`, `adr`, `doc`, `guide` for claims on changed code; `cpat`, `task-type` for precedent; `plan`, `prd`, `idea`, `rnd`, and `research` (when `skills/_shared/research-compatibility.md` returned `yes`) for the closeout track's plan-and-implements-chain scope — instead of relying on the global type ranking. When a found document has `implements` or `related` relations, pull the linked documents one hop across categories.
 
 **Global sources (only when present).** If any `list_documents` / `search_documents` result carries `global: true` / `read_only: true` / `source_kind: "global"`, load `skills/_shared/globals.md`. Also load it when a `search_documents` response's `coverage` names a source other than `"local"` — even when `results` is empty: the empty page is exactly where that file's retry ladder applies. Never modify a global document and never add a relation to one. Exclude global documents from every local-health metric — counts, orphan detection, drift; you MAY add one separate line naming the mounted source and its document count.
 
@@ -76,6 +76,13 @@ With `--drift`, the `on-default-branch` and `empty-diff` sentinels widen the act
 - one-line issues summary (orphans, high draft count).
 
 End with: *For staleness detection, run `/archcore:review --drift`. For a full audit, run `/archcore:review --deep`.*
+
+Before delegating an audit, supply the resolved branch scope, scoped diff, and
+relevant git history to the auditor. Identify missing history explicitly.
+
+Before computing project-wide metrics, page through `list_documents` until
+`truncated: false`, increasing `offset` by `returned` after each page. If a
+truncated page returns zero documents, report an incomplete inventory.
 
 ### Step 2: Bidirectional check
 

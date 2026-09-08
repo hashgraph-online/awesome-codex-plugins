@@ -210,13 +210,12 @@ def invoke_once(
 # The 2026-07-14 cathedral cut removed the iterate loop together with the
 # unproven compounding claim, although ADR-0011 demoted only the latter. What
 # comes back is control flow, not knowledge: a repair round is admitted only
-# while every condition of the convergence law holds, so the loop cannot grind,
-# cannot re-open settled ground, and cannot spin without moving the subject.
+# while every condition of the convergence law holds. Byte movement and finding
+# counts are identity/accounting facts, not evidence of acceptance progress.
 #
-# Condition ordering is deliberate. A reopened id is diagnosed before a grown
-# set, so the operator is told the specific regression rather than the generic
-# symptom; progress is checked last because it is the only condition that can
-# be satisfied by evidence instead of by bytes.
+# Recurrence is checked before progress. It requires causal examination by the
+# caller, not an automatic claim that the design is wrong. This pure reference
+# neither diagnoses causes nor dispatches a HOLD helper.
 
 REPAIR_ROUNDS_DEFAULT = 2
 
@@ -227,8 +226,10 @@ STOP_REASONS = (
     "diversity_unsatisfied",
     "repair_budget_exhausted",
     "reopened_finding",
-    "finding_set_grew",
-    "no_subject_or_evidence_change",
+    "recurring_finding_class",
+    "introduced_regression",
+    "new_finding_requires_causal_review",
+    "no_acceptance_progress",
     "not_converged",
 )
 
@@ -263,7 +264,7 @@ def normalize_round(value: Any) -> dict[str, Any]:
 
     open_findings: dict[str, dict[str, Any]] = {}
     families: list[str] = []
-    evidence_refs: list[str] = []
+    evidence_refs: list[dict[str, Any]] = []
     checked: list[str] = []
     not_checked: list[str] = []
     digest: Any = None
@@ -289,9 +290,16 @@ def normalize_round(value: Any) -> dict[str, Any]:
             if finding_id in leg_ids:
                 raise ValueError(f"finding id {finding_id!r} appears twice in one validate leg")
             leg_ids.add(finding_id)
-            # Last leg wins on wording; the id is the identity, so a reworded
-            # summary is the same finding and never counts as a new one.
-            open_findings[finding_id] = dict(finding)
+            if "class" in finding and (
+                not isinstance(finding["class"], str) or not finding["class"].strip()
+            ):
+                raise ValueError("finding class must be a nonempty string when present")
+            # Wording can differ, but another leg cannot erase a class used to
+            # detect recurrence or silently replace it with a conflicting one.
+            existing = open_findings.get(finding_id, {})
+            if existing.get("class") and finding.get("class") not in {None, existing["class"]}:
+                raise ValueError(f"finding id {finding_id!r} has conflicting classes")
+            open_findings[finding_id] = {**existing, **finding}
         if leg_status == "PASS" and leg_ids:
             raise ValueError("a PASS leg cannot carry open findings")
         if leg_status == "FAIL" and not leg_ids:
@@ -313,15 +321,21 @@ def normalize_round(value: Any) -> dict[str, Any]:
                 if not isinstance(ref.get("ref"), str) or not ref["ref"].strip():
                     raise ValueError("each evidence binding must carry a nonempty ref")
                 entry = dict(ref)
-                resolves = entry.get("resolves")
-                if resolves is not None and not valid_string_list(resolves):
-                    raise ValueError("evidence.resolves must be a list of finding ids")
+                # These are decoded facts from existing check receipts, not
+                # additional verdict.v2 fields or a persisted receipt schema.
+                for key in ("resolves", "preexisting", "introduced"):
+                    ids = entry.get(key)
+                    if ids is not None and not valid_string_list(ids):
+                        raise ValueError(f"evidence.{key} must be a list of finding ids")
                 if "subject_digest" in entry and not valid_digest(entry["subject_digest"]):
                     raise ValueError("evidence.subject_digest must be a valid digest")
             else:
                 raise ValueError("each evidence ref must be a string or a binding mapping")
-            if entry["ref"] not in {e["ref"] for e in evidence_refs}:
+            existing_evidence = next((e for e in evidence_refs if e["ref"] == entry["ref"]), None)
+            if existing_evidence is None:
                 evidence_refs.append(entry)
+            elif existing_evidence != entry:
+                raise ValueError(f"evidence ref {entry['ref']!r} has conflicting bindings")
         leg_digest = leg.get("subject_digest", leg.get("subject_manifest_digest"))
         if not valid_digest(leg_digest):
             raise ValueError("each validate leg must carry a valid subject digest")
@@ -333,6 +347,14 @@ def normalize_round(value: Any) -> dict[str, Any]:
             if not valid_string_list(items):
                 raise ValueError(f"{key} must be a list of strings")
             sink.extend(items)
+        # Each required leg must carry its own visible proof surface; a peer's
+        # receipts cannot repair a deficient PASS. Exact identities and all
+        # criterion proofs remain Validate's upstream contract, not a claim
+        # that this pure reference attested or re-executed them.
+        if leg_status == "PASS" and (
+            leg.get("not_checked") or not leg.get("checked") or not raw_evidence
+        ) and status == "PASS":
+            status = "NOT_PROVEN"
 
     return {
         "status": status,
@@ -350,27 +372,45 @@ def law_violation(
     previous: Mapping[str, Any],
     current: Mapping[str, Any],
     closed_ids: set[str],
+    closed_classes: set[str] | None = None,
 ) -> str | None:
     """Return the violated convergence-law condition, or None when all hold.
 
     Condition 1 (the caller's `repair_rounds`) is a precondition on admission
     and is checked by `run_repair_phase` before a round is consumed; conditions
-    2, 3, and 4 are properties of the round that was produced.
+    2 and 3 are properties of the round that was produced. The existing receipt
+    binding names a gap that a fresh judge actually closed; the function does
+    not prove that closure or infer a new finding's cause from prose or counts.
     """
     reopened = current["open_ids"] & closed_ids
     if reopened:
         return "reopened_finding"
-    if len(current["open_ids"]) > len(previous["open_ids"]):
-        return "finding_set_grew"
-    if current["subject_digest"] != previous["subject_digest"]:
-        return None
+    current_classes = {f.get("class") for f in current["open_findings"] if f.get("class")}
+    if current_classes & (closed_classes or set()):
+        return "recurring_finding_class"
+    new_ids = current["open_ids"] - previous["open_ids"]
+    introduced = {
+        fid
+        for evidence in current["evidence_refs"]
+        if evidence.get("subject_digest") == current["subject_digest"]
+        for fid in evidence.get("introduced", [])
+    }
+    if introduced & current["open_ids"]:
+        return "introduced_regression"
+    preexisting = {
+        fid
+        for evidence in current["evidence_refs"]
+        if evidence.get("subject_digest") == previous["subject_digest"]
+        for fid in evidence.get("preexisting", [])
+    }
+    if new_ids - preexisting:
+        return "new_finding_requires_causal_review"
     previous_refs = {e["ref"] for e in previous["evidence_refs"]}
     resolved = previous["open_ids"] - current["open_ids"]
-    # The evidence branch is NOT_PROVEN-only by construction, on both sides: a
-    # FAIL says the subject is wrong, and no amount of new evidence over
-    # unchanged bytes repairs a wrong subject. The new evidence must be BOUND:
-    # it names this exact subject digest and at least one finding id that this
-    # round actually closed. A bare new label admits nothing.
+    # New digest-bound evidence is required even when the bytes or count moved.
+    # It names a gap actually closed this round, not a renamed or still-open
+    # finding. New findings remain visible; their count is not a regression
+    # diagnosis. Fresh judgment must establish acceptance relevance and cause.
     binding_evidence = [
         e
         for e in current["evidence_refs"]
@@ -378,13 +418,12 @@ def law_violation(
         and e.get("subject_digest") == current["subject_digest"]
         and resolved & set(e.get("resolves") or [])
     ]
-    if (
-        previous["status"] == "NOT_PROVEN"
-        and current["status"] != "FAIL"
-        and binding_evidence
+    if binding_evidence and (
+        current["subject_digest"] != previous["subject_digest"]
+        or (previous["status"] == "NOT_PROVEN" and current["status"] != "FAIL")
     ):
         return None
-    return "no_subject_or_evidence_change"
+    return "no_acceptance_progress"
 
 
 def run_repair_phase(
@@ -420,6 +459,7 @@ def run_repair_phase(
 
     checked: list[str] = []
     closed_ids: set[str] = set()
+    closed_classes: set[str] = set()
     rounds_used = 0
     current = normalize_round(validations[0])
     previous = current
@@ -439,12 +479,18 @@ def run_repair_phase(
             checked.append(
                 f"repair round {rounds_used}: {len(current['open_ids'])} open findings"
             )
-            violation = law_violation(previous, current, closed_ids)
+            violation = law_violation(previous, current, closed_ids, closed_classes)
             if violation is not None:
                 stop_reason = violation
                 law_stopped = True
                 break
             closed_ids |= previous["open_ids"] - current["open_ids"]
+            # A class closes only when none of its findings remain open. A
+            # later return, even under a new id, warrants causal examination.
+            closed_classes |= (
+                {f.get("class") for f in previous["open_findings"] if f.get("class")}
+                - {f.get("class") for f in current["open_findings"] if f.get("class")}
+            )
         else:
             checked.append(f"repair round 0: {len(current['open_ids'])} open findings")
 

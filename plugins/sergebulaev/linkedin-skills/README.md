@@ -192,6 +192,8 @@ By default, skills draft content for you to copy-paste into LinkedIn. If you wan
 
 [Publora](https://publora.com) is a publishing API that handles LinkedIn's quirks (3 different URL formats, reaction type mismatches, thread flattening bugs). The free tier gives you 15 posts/month.
 
+Publora also ships [official MCP skills](https://github.com/publora/skills) (`npx skills add publora/skills`): one skill per platform, covering the publish side only. This bundle is the layer above them, adding the reading, the writing craft and the approval flow.
+
 ### Setup (2 minutes)
 
 **Step 1.** Sign up at https://app.publora.com/signup (free)

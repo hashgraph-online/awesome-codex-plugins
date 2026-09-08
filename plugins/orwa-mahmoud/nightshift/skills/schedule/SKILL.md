@@ -1,6 +1,7 @@
 ---
 name: schedule
 description: Print the launchd, cron or Task Scheduler config that starts a shift at a fixed time; registers nothing.
+license: MIT
 ---
 
 Get the host-opened project ready to start on a clock, then hand the owner the config. Work through
@@ -49,11 +50,11 @@ before the scheduled time, because start will not promote it.
 A scheduled run is headless and cannot answer a prompt. On Claude Code, if neither
 `$TASK_ROOT/.claude/settings.local.json` nor `$TASK_ROOT/.claude/settings.json` grants
 frictionless permissions, warn
-once. On Codex the grant travels in the command itself — the generator's
-`--agent 'codex exec -s danger-full-access'` (POSIX) or
-`-Agent 'codex exec -s danger-full-access'` (native Windows) carries it — so a Codex entry generated
-without that agent will stall on the
-first tool that asks. Setup offers the fix.
+once. On Codex the grant travels in the command itself: pass the owner's Codex launch command, as
+the Codex host page (`$NIGHTSHIFT_PLUGIN_ROOT/skills/nightshift/references/hosts/codex.md`)
+spells it, through `--agent`. The generator's preflight warns when a Codex command carries no
+headless grant, and a Codex entry generated without one will stall on the first tool that asks.
+Setup offers the fix.
 
 ## 4. Confirm the queued work is unarmed
 
@@ -75,7 +76,7 @@ and show its output as it comes:
 ```bash
 "$NIGHTSHIFT_PLUGIN_ROOT/runtime/ns" schedule --preflight
 "$NIGHTSHIFT_PLUGIN_ROOT/runtime/ns" schedule --at <HH:MM>
-# Codex projects add: --agent 'codex exec -s danger-full-access'
+# Codex projects add: --agent '<the Codex launch command from references/hosts/codex.md>'
 # Linux user timers:  --target systemd
 ```
 

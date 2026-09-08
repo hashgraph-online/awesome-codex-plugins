@@ -20,47 +20,73 @@ prompt runs read-only, full stop.
 
 ## Procedure
 
-1. Confirm `codex login status` for the intended profile.
+1. Confirm the intended executable, profile, and caller-supplied prompt.
 2. Set the working root explicitly with `-C`.
 3. Match the sandbox to the requested effects: read-only for offline review,
    workspace-write for authorized edits, and broader access only when the caller
    explicitly requires network or external effects.
-4. Pipe the prompt to stdin (or close stdin) in non-TTY execution so the process
-   cannot wait indefinitely for input.
-5. A wall-clock **deadline is mandatory** — never run codex unbounded. Use the
-   caller's deadline, or the declared default of **600s (10 min)** when the
-   caller supplies none, and record which one applied. Enforce it so the whole
-   process **tree** is reaped, not just the direct child: run codex in its own
-   process group and kill the group on expiry: `setsid` (own process group) +
-   `kill -KILL -<pgid>` on the group; `--kill-after` only escalates TERM→KILL
-   and plain `timeout <secs> codex …` signals only the direct child. If the
-   wrapper cannot guarantee process-group reaping, **do not execute** — that
-   host lacks the cleanup capability this skill requires (capability
-   unavailable, fail closed). Deadline expiry is
-   **fail-closed**: the run is killed and reported as timed-out / not proven,
-   partial output preserved — never a completed review.
-6. Capture the final response with `-o`, JSONL, or an output schema.
+4. Use `scripts/lib/codex-exec.sh` and `codex_exec_guarded`. Pipe the prompt,
+   provide a prompt file/argument, or close stdin in non-TTY execution.
+5. The adapter defaults to **600 seconds**. `CODEX_EXEC_TIMEOUT` may override
+   it with a positive finite number of seconds. An inherited
+   `CODEX_EXEC_DEADLINE_EPOCH` is an optional absolute Unix timestamp in seconds:
+   it clamps the remaining allowance, including capability probes and prompt
+   preparation. Pass the same timestamp to successive calls; a new invocation
+   cannot renew it. Empty, zero, negative, or malformed explicit limits prevent
+   launch; an expired deadline returns timeout without launching the reviewer.
+6. Capture stdout with `CODEX_EXEC_OUT_FILE` and optionally separate stderr with
+   `CODEX_EXEC_STDERR_FILE`. `CODEX_EXEC_MAX_OUTPUT_BYTES` defaults to **10 MiB**
+   (10485760 bytes) and must be a positive finite integer. It caps stdout and
+   stderr **combined**; file-prompt copies and AGY/local-mlx stdin preparation
+   each use the same cap. Capture sinks must be regular files (or `/dev/null`).
+   Reviewer workspace writes, including files it writes with `-o`, are outside
+   this capture cap.
 7. Report the typed run result, then stop: the process exit status, the captured
-   artifact path, which deadline applied and whether it fired, that the
-   process tree was reaped (a run without guaranteed reaping never starts), and whether
-   the `codex` binary was present at all. Cancellation is the caller's; this
-   skill neither retries nor continues on its own.
+   artifact path, the timeout/deadline and capture cap applied, and whether
+   cleanup was triggered. Cancellation is the caller's; this skill neither
+   retries nor continues on its own.
 
-Terminal outcomes are explicit: **binary absent** (no `codex` on PATH) → report
-unavailable and stop; **deadline expiry** → fail-closed, report the kill and
-preserved partial output, never a completed review; **nonzero exit** → runtime
-evidence, not a semantic verdict. The caller decides whether to launch another
-invocation.
+The supported host must have `/usr/bin/perl` with its core POSIX, IO::Select,
+Fcntl, and Time::HiRes modules, a monotonic clock, process-group signalling,
+and a resolved `timeout`/`gtimeout` supporting `--foreground`. Missing capability
+fails closed. The embedded adapter mechanism establishes one owned process
+group before launching the reviewer. It sends TERM then KILL after 200 ms on
+expiry, cancellation, excess output, or direct-parent exit; it bounds pipe
+draining to a further short cleanup window rather than waiting indefinitely
+for descendants to close inherited pipes. This includes ordinary descendants
+left by a successful parent and TERM-resistant children. It does **not** promise
+cleanup of processes that deliberately escape the owned group or session.
+Group members remaining after direct-parent exit are reported as `rep-survivor`
+(exit 122): the run remains degraded even when cleanup subsequently succeeds.
+After its cleanup window the adapter checks whether the owned group still
+exists. Remaining membership, including zombies it cannot independently reap,
+is reported as `CLEANUP-UNVERIFIED` (exit 2), never successful cleanup.
+
+`CODEX_EXEC_WRAP` remains Codex-only: the sealed launch order is wrapper →
+resolved timeout → reviewer, with Codex's sandbox bypass only when the external
+wrapper supplies the sandbox. The capture/cleanup supervisor runs outside that
+sealed launch. No process-wide file-size limit restricts reviewer work products.
+
+Terminal outcomes are explicit: **unavailable/invalid limits** → 2;
+**descendants left after direct-parent exit** → 122;
+**capture/input limit** → 123; **deadline expiry or empty consumed output** →
+124; **prompt echo** → 125; **cancellation** → 128 + signal number. Other genuine
+reviewer exit codes are preserved. These reserved codes describe runtime
+evidence, never a semantic verdict. On timeout, cancellation, or excess output,
+partial capture stays in caller-provided files; an adapter-owned output sink is
+streamed before removal. Failed prompt preparation reports its preserved partial
+input path. The caller decides whether to launch another invocation.
 
 ## Example
 
 ```bash
-# Deadline mandatory; default 600s. `setsid` puts codex in its own process
-# group so expiry kills the whole tree, with `--kill-after` escalating
-# TERM->KILL. No setsid (or equivalent group kill) available -> do not run:
-# fail closed as capability-unavailable.
-printf '%s\n' "$PROMPT" | setsid timeout --kill-after=10s "${CODEX_TIMEOUT:-600}" \
-  codex exec -C "$WORKSPACE" -s read-only -o "$OUTPUT" -
+# If a caller has an absolute deadline, export CODEX_EXEC_DEADLINE_EPOCH once
+# and retain that same value for every invocation in its scope.
+. "$AGENTOPS_ROOT/scripts/lib/codex-exec.sh"
+CODEX_EXEC_DIR="$WORKSPACE" CODEX_EXEC_SANDBOX=read-only \
+CODEX_EXEC_PROMPT_ARG="$PROMPT" CODEX_EXEC_TIMEOUT=600 \
+CODEX_EXEC_MAX_OUTPUT_BYTES=10485760 CODEX_EXEC_OUT_FILE="$OUTPUT" \
+  codex_exec_guarded </dev/null
 ```
 
 For a validator, the prompt must name the acceptance digest, exact subject

@@ -52,7 +52,7 @@ mechanics follow `skills/_shared/elicitation-contract.md`.
 - Purpose: Compose and create the ADR for a settled decision per `skills/_shared/adr-contract.md` and `skills/_shared/precision-rules.md`.
 - Entry conditions:
   - skip_when: `decision.classify` selected `decision.rfc`.
-  - The request, recorded clarifications, or an `rnd` covering the topic state the specific choice (version or name), the considered alternatives with rejection reasons, and the conditions that would invalidate the decision.
+  - The request, recorded clarifications, or an `rnd` or `research` covering the topic state the specific choice (version or name), the considered alternatives with rejection reasons, and the conditions that would invalidate the decision.
 - Elicitation knobs:
   - trigger: the coverage scan returns `Missing` on a named category — the decision lacks a specific choice, named alternatives with rejection reasons, or invalidation conditions.
   - taxonomy: Constraints & Tradeoffs, Completion Signals from `skills/_shared/coverage-taxonomy.md` [assumption].
@@ -60,7 +60,7 @@ mechanics follow `skills/_shared/elicitation-contract.md`.
 - Produces:
   - type: adr
   - status: draft
-  - relations: adr `related` existing `rfc`, `spec`, `plan`, or `rnd` documents on the same topic — the source relate step names the link but not the relation type, and allowed unnamed further document types; narrowed to `rfc`, `spec`, `plan`, and `rnd` (the research evidence base) to avoid an open-ended list [assumption].
+  - relations: adr `related` existing `rfc`, `spec`, `plan`, `rnd`, or `research` documents on the same topic — the source relate step names the link but not the relation type, and allowed unnamed further document types; narrowed to `rfc`, `spec`, `plan`, `rnd`, and `research` (the research evidence base) to avoid an open-ended list [assumption].
 - Exit checks:
   - blocking: the draft carries every section that `skills/_shared/adr-contract.md` requires.
 - Next: `decision.cascade`.

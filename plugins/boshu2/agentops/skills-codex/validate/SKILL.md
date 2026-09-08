@@ -33,20 +33,35 @@ manifest --root . --include cli/internal/gates`. Author context ctx-a1. Re-run `
 
 ## Cross-family fresh validator (default on risky surfaces)
 
-A second fresh validator from a different model family runs by default when
-the diff touches `cli/internal/gates/**`, `scripts/check-*.sh`, `tests/**`,
-`skills/*/scripts/**`, `skills/cc-hooks/policies/**`, `lib/**`,
-`.github/workflows/**`, or `scripts/security-gate.sh`; elsewhere it is
-caller-elected. The runtime floor holds: never `claude -p` or
-`claude --print`, directly or indirectly. Adapters and `model_identity`
-recording: [references/mechanics.md](references/mechanics.md). With no
-authorized live adapter, disclose `diversity_unsatisfied`: off a risky surface
-it rides along with a same-model result; on a risky surface a single-family
-PASS is `NOT_PROVEN`, and same-family agreement is not convergence. A
-single-family FAIL stands.
+Classify risk by the change's effect on acceptance and enforcement, not its
+extension or location alone. Changes to acceptance, tests/gates, stopping and
+allowance rules, safety, disclosure, hooks, or executable control behavior need
+a second fresh validator from a different model family. Documentation that
+agents execute as policy can change enforcement and takes this stronger path.
+
+The conservative cues remain `cli/internal/gates/**`, `scripts/check-*.sh`,
+`tests/**`, `skills/*/scripts/**`, `skills/cc-hooks/policies/**`, `lib/**`,
+`.github/workflows/**`, and `scripts/security-gate.sh`. A narrowly scoped wording
+or reference correction with evidence of no behavioral or enforcement effect
+may use one fresh author-distinct judge and applicable exact-input receipts.
+Record that risk reason in existing intent/evidence prose; no risk artifact is
+required. Unknown or disputed risk takes the stronger path. This rule applies
+prospectively: it cannot remove a review leg already required for the current
+change, or override caller-required diversity. Fresh judgment, exact subject,
+all acceptance, and empty `not_checked` remain mandatory at every risk level.
+Route adapter selection and invocation through
+[agent-native model-dispatch](../agent-native/references/model-dispatch.md);
+[references/mechanics.md](references/mechanics.md) owns evidence storage.
+The fresh and cross-family legs receive independently supplied initial inputs:
+exact subject, unchanged acceptance and authorized evidence, without peer
+conclusions. Record actual model/context identities and runtime receipts.
+With no authorized live adapter, disclose `diversity_unsatisfied`. If the leg
+is required by risk or caller acceptance, a single-family PASS is `NOT_PROVEN`;
+optional unavailable diversity is disclosed with the same-model result.
+Same-family agreement is not convergence. A single-family FAIL stands.
 
 When the two judges disagree, each reports its own verdict and neither resolves
-the split. A risky surface converges only when both judges pass, so a split is
+the split. Required diversity converges only when both judges pass, so a split is
 never PASS. Repair works the split down, and what survives it is the
 orchestrator's decision, made in the open: both reads go in the report with
 what was decided and why. Validate never treats agreement with itself, the
@@ -70,7 +85,8 @@ scope limit has a home that survives inside a PASS: a bounded proof in
 in the report (table in the mechanics reference). Emptying `not_checked` to
 obtain PASS is a contract violation: unverified acceptance makes the honest
 result `NOT_PROVEN`, and an entry that was never acceptance moves to its home
-and stays visible.
+and stays visible. A finding necessary to acceptance cannot be relabeled as
+optional, residual risk, or a non-goal to obtain PASS.
 
 ## Workflow
 
@@ -95,8 +111,13 @@ and stays visible.
    `not_checked`, both identities, both context IDs, and the freshness
    attestation. Name a `class` for each finding: one short stable name for the
    kind of defect, one per finding, reused word for word when the same kind
-   recurs, so the orchestrator can see a closed kind come back. Name it or omit
-   it; a `class` that is present and blank is a finding against this validator,
+   recurs, so the orchestrator can see a closed kind come back. Explain in the
+   existing summary and evidence whether a newly exposed defect pre-existed the
+   change, was introduced by it, or has unknown cause. Use before/after proof or
+   equivalent causal evidence under unchanged acceptance; counts and timestamps
+   do not establish cause. Recurrence calls for causal examination and does not
+   by itself prove a design failure. Name the class or omit it; a `class` that is
+   present and blank is a finding against this validator,
    and so is a class that does not describe its finding. PASS
    requires distinct identities, explicit freshness, nonempty checked scope,
    nonempty top-level evidence, evidence for every criterion, and an empty

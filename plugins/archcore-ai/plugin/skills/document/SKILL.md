@@ -1,15 +1,16 @@
 ---
 name: document
-argument-hint: "[module, topic, or decision] [adr|rfc|spec|doc|guide|rule]"
-description: "Record a decision or document existing code. Use for 'we decided', 'record this decision', 'document why we chose X', 'make it our standard', 'draft an RFC', 'should we switch to Y' proposals, 'resolve the RFC', 'we accepted the proposal', 'document the auth module', 'capture how the payment system works', reference material, or how-to instructions. Planning a feature → /archcore:plan. Checking docs against code or docs health → /archcore:review."
+argument-hint: "[module, topic, or decision] [adr|rfc|spec|doc|guide|rule|research|evidence]"
+description: "Record a decision or document existing code. Use for 'we decided', 'record this decision', 'document why we chose X', 'make it our standard', 'draft an RFC', 'should we switch to Y' proposals, 'resolve the RFC', 'we accepted the proposal', 'document the auth module', 'capture how the payment system works', reference material, or how-to instructions. Use document research to file an existing investigation report, or document evidence to file one external material. Planning a feature → /archcore:plan. Checking docs against code or docs health → /archcore:review."
 ---
 
 # /archcore:document
 
 Record a technical decision or document existing code. The skill classifies the
-request, then executes one gated track: the decision track for ADRs and RFCs, or
-the describe track for specs, docs, and guides. Write affinity: knowledge types;
-the decision cascade can add a `plan` (vision) or `cpat` (experience).
+request, then executes a gated track: decision, describe, or research for an
+explicit report or material. Write affinity: knowledge types; a filed `research`
+and the decision cascade's `plan` belong to vision. The standard cascade can
+add a `cpat` (experience).
 
 Command tense: `/archcore:plan` declares a future canon delta, `/archcore:document`
 records the present state — including work that shipped without a plan — and
@@ -31,6 +32,8 @@ Load `skills/_shared/gate-contract.md` and `skills/_shared/elicitation-contract.
 - "Capture how the payment system works"
 - "Create reference docs for the config system" — reference material
 - "Write a guide for the release process" — how-to instructions
+- `document research <report>` — file a ready investigation
+- `document evidence <material>` — file one external material
 
 **Not document:**
 
@@ -42,7 +45,7 @@ Load `skills/_shared/gate-contract.md` and `skills/_shared/elicitation-contract.
 
 | Signal | Route |
 |---|---|
-| The invocation names a type — `adr`, `rfc`, `spec`, `doc`, `guide`, `rule` | → expert form, no routing (Step 2) |
+| The invocation names a type — `adr`, `rfc`, `spec`, `doc`, `guide`, `rule`, `research`, `evidence` | → expert form, no routing (Step 2) |
 | Decision signals: "we decided", "record this decision", "document why we chose X", "make it our standard", "draft an RFC", a "should we switch to Y" proposal. A bare "compare X vs Y" with no proposed target belongs to `/archcore:plan`'s research track; a proposal to add a new capability with no named technical target ("should we add caching?") is feature framing → `/archcore:plan`, sdd track | → decision track — `skills/_shared/tracks/decision.md`, entry at `decision.classify` |
 | Resolution signals: "resolve the RFC", "we accepted the proposal", "reject the RFC" — an `rfc` draft exists on the topic | → decision track — `skills/_shared/tracks/decision.md`, entry at `decision.resolve` |
 | Code-doc signals: "document the auth module", "capture how the payment system works", reference material (registry, glossary, lookup), how-to instructions | → describe track — `skills/_shared/tracks/describe.md`, entry at `describe.read` |
@@ -52,10 +55,21 @@ Load `skills/_shared/gate-contract.md` and `skills/_shared/elicitation-contract.
 
 ### Step 1: Ground
 
+Apply `skills/_shared/research-compatibility.md` under its condition 1 — a
+request or type naming `research` or `evidence`, the research track, or a
+grounding result of either type. If this skill has no shell tool and no probe
+result was supplied, report `needs-vocabulary-probe` with the helper path and
+stop before the first MCP call that names either type.
+Before delegating research or evidence work, pass the current vocabulary probe
+result and absolute plugin root to the assistant. If the assistant returns
+`needs-vocabulary-probe`, run the helper and resume the same task.
+When the probe returns `yes`, add `research` and `evidence` to the type filter
+below. On older engines, keep the legacy filter.
+
 Search `.archcore/` on the request topic across all three categories — vision,
 knowledge, experience. Do not exclude a category from reads. Pass a type filter
 matched to this command's moment (`adr`, `rfc`, `spec`, `doc`, `guide`, `rule`,
-plus `rnd` as decision evidence) instead of relying on the global type ranking. When a found document carries
+plus `rnd` as decision evidence, and `research` and `evidence` when the probe returned `yes`) instead of relying on the global type ranking. When a found document carries
 `implements` or `related` relations, pull the linked documents one hop across
 categories. Duplicate handling lives in the tracks' check-existing gates — do
 not resolve duplicates here.
@@ -77,6 +91,13 @@ ladder applies. Never modify a global document and never target one with
 
 If the invocation names a type, execute the named path without routing:
 
+- `research` → research track at `research.frame`; the track selects `research`
+  or `rnd` by its closing test — a report that ends in a recommendation is an
+  `rnd`, a report that covers a scope is a `research`; the supplied report satisfies frame inputs without an interview.
+- `evidence` → research track at `research.gather`, standalone material;
+  the request satisfies frame, recorded in the evidence draft's Clarifications.
+  This entry needs no parent investigation and exits after gather. Follow the
+  compatibility contract's no-write exit when the type is unsupported.
 - `adr` → decision track at `decision.adr`
 - `rfc` → decision track at `decision.rfc`
 - `spec`, `doc`, `guide` → describe track at `describe.read`; the named type
@@ -121,8 +142,8 @@ per-gate maxima.
 
 Report the produced documents grouped by category:
 
-- **knowledge** — `adr`, `rfc`, `spec`, `doc`, `guide`, `rule`
-- **vision** — `plan` (architecture cascade)
+- **knowledge** — `adr`, `rfc`, `spec`, `doc`, `guide`, `rule`, `evidence`
+- **vision** — `research` (scope-covering report), `rnd` (recommendation-closed report, or compatibility fallback), `plan` (architecture cascade)
 - **experience** — `cpat` (standard cascade opt-in)
 
 List each document's path and relation edges. Close with one recommended next

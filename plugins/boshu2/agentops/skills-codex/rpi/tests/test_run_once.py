@@ -35,7 +35,7 @@ def validation_round(
     finding_ids,
     *,
     digest="a" * 64,
-    evidence=(),
+    evidence=("acceptance-receipt",),
     family="fresh",
     summaries=None,
     checked=("acceptance",),
@@ -188,7 +188,9 @@ class RunOnceTests(unittest.TestCase):
         outcome = MODULE.run_repair_phase(
             [
                 validation_round("FAIL", ["f1"], digest="a" * 64),
-                validation_round("PASS", [], digest="d" * 64),
+                validation_round("PASS", [], digest="d" * 64, evidence=(
+                    {"ref": "fixed-f1", "subject_digest": "d" * 64, "resolves": ["f1"]},
+                )),
             ],
             repair_rounds=2,
             intent_ref=result["intent_ref"],
@@ -299,7 +301,7 @@ class RepairPhaseTests(unittest.TestCase):
     """The bounded repair phase and its convergence law (ADR-0017).
 
     RPI is no longer single-pass: a `FAIL` or `NOT_PROVEN` with findings may be
-    repaired and re-validated while all four law conditions hold. The loop is
+    repaired and re-validated while acceptance progress and the bound hold. The loop is
     modelled here as pure data — a sequence of already-produced validate rounds
     — so the stop semantics are executable without Git, `ao`, or a tracker.
     """
@@ -322,7 +324,7 @@ class RepairPhaseTests(unittest.TestCase):
                 validation_round("PASS", [], digest="a" * 64),
             ]
         )
-        self.assertEqual(outcome["stop_reason"], "no_subject_or_evidence_change")
+        self.assertEqual(outcome["stop_reason"], "no_acceptance_progress")
         self.assertEqual(outcome["report"]["status"], "NOT_PROVEN")
 
     def test_new_evidence_must_resolve_a_prior_finding_to_admit_an_unchanged_digest(self):
@@ -336,7 +338,7 @@ class RepairPhaseTests(unittest.TestCase):
             ]
         )
         # "resolves" claims gap, but gap is still open: nothing was resolved.
-        self.assertEqual(outcome["stop_reason"], "no_subject_or_evidence_change")
+        self.assertEqual(outcome["stop_reason"], "no_acceptance_progress")
 
     def test_a_bare_new_evidence_label_does_not_admit_an_unchanged_digest(self):
         outcome = self.repair(
@@ -345,7 +347,7 @@ class RepairPhaseTests(unittest.TestCase):
                 validation_round("NOT_PROVEN", ["other"], digest="a" * 64, evidence=("receipt-2",)),
             ]
         )
-        self.assertEqual(outcome["stop_reason"], "no_subject_or_evidence_change")
+        self.assertEqual(outcome["stop_reason"], "no_acceptance_progress")
 
     def test_evidence_bound_to_another_digest_does_not_admit(self):
         outcome = self.repair(
@@ -357,7 +359,7 @@ class RepairPhaseTests(unittest.TestCase):
                 ),
             ]
         )
-        self.assertEqual(outcome["stop_reason"], "no_subject_or_evidence_change")
+        self.assertEqual(outcome["stop_reason"], "no_acceptance_progress")
 
     def test_missing_findings_or_evidence_keys_are_rejected(self):
         for key in ("findings", "evidence_refs"):
@@ -384,7 +386,7 @@ class RepairPhaseTests(unittest.TestCase):
                 validation_round("FAIL", ["bug"], digest="a" * 64, evidence=("receipt-2",)),
             ]
         )
-        self.assertEqual(outcome["stop_reason"], "no_subject_or_evidence_change")
+        self.assertEqual(outcome["stop_reason"], "no_acceptance_progress")
         self.assertEqual(outcome["report"]["status"], "FAIL")
 
     def test_malformed_rounds_are_rejected_not_swallowed(self):
@@ -405,8 +407,10 @@ class RepairPhaseTests(unittest.TestCase):
     def test_rounds_past_the_bound_are_never_normalized(self):
         outcome = self.repair(
             [
-                validation_round("FAIL", ["f1"], digest="a" * 64),
-                validation_round("FAIL", ["f1"], digest="b" * 64),
+                validation_round("FAIL", ["f1", "f2"], digest="a" * 64),
+                validation_round("FAIL", ["f1"], digest="b" * 64, evidence=(
+                    {"ref": "fixed-f2", "subject_digest": "b" * 64, "resolves": ["f2"]},
+                )),
                 {"status": "garbage-that-would-raise"},
             ],
             repair_rounds=1,
@@ -426,8 +430,10 @@ class RepairPhaseTests(unittest.TestCase):
     def test_repair_stops_at_the_declared_repair_rounds_budget(self):
         outcome = self.repair(
             [
-                validation_round("FAIL", ["f1"], digest="a" * 64),
-                validation_round("FAIL", ["f1"], digest="b" * 64),
+                validation_round("FAIL", ["f1", "f2"], digest="a" * 64),
+                validation_round("FAIL", ["f1"], digest="b" * 64, evidence=(
+                    {"ref": "fixed-f2", "subject_digest": "b" * 64, "resolves": ["f2"]},
+                )),
                 validation_round("FAIL", ["f1"], digest="c" * 64),
             ],
             repair_rounds=1,
@@ -437,17 +443,17 @@ class RepairPhaseTests(unittest.TestCase):
         self.assertEqual(outcome["report"]["status"], "FAIL")
         self.assertEqual(
             outcome["report"]["checked"][:2],
-            ["repair round 0: 1 open findings", "repair round 1: 1 open findings"],
+            ["repair round 0: 2 open findings", "repair round 1: 1 open findings"],
         )
 
-    def test_repair_stops_when_the_open_finding_set_grows(self):
+    def test_new_finding_with_unknown_cause_requires_causal_review(self):
         outcome = self.repair(
             [
                 validation_round("FAIL", ["f1"], digest="a" * 64),
                 validation_round("FAIL", ["f1", "f2"], digest="b" * 64),
             ]
         )
-        self.assertEqual(outcome["stop_reason"], "finding_set_grew")
+        self.assertEqual(outcome["stop_reason"], "new_finding_requires_causal_review")
         self.assertEqual(outcome["report"]["status"], "FAIL")
         self.assertEqual(outcome["rounds_used"], 1)
         self.assertEqual(
@@ -458,13 +464,124 @@ class RepairPhaseTests(unittest.TestCase):
         outcome = self.repair(
             [
                 validation_round("FAIL", ["f1", "f2"], digest="a" * 64),
-                validation_round("FAIL", ["f1"], digest="b" * 64),
+                validation_round("FAIL", ["f1"], digest="b" * 64, evidence=(
+                    {"ref": "fixed-f2", "subject_digest": "b" * 64, "resolves": ["f2"]},
+                )),
                 validation_round("FAIL", ["f2"], digest="c" * 64),
             ]
         )
         self.assertEqual(outcome["stop_reason"], "reopened_finding")
         self.assertEqual(outcome["rounds_used"], 2)
         self.assertEqual(outcome["report"]["status"], "FAIL")
+
+    def test_digest_and_count_movement_without_bound_proof_are_not_progress(self):
+        for remaining in (["f1", "f2"], ["f1"], []):
+            with self.subTest(remaining=remaining):
+                outcome = self.repair([
+                    validation_round("FAIL", ["f1", "f2"], digest="a" * 64),
+                    validation_round("FAIL" if remaining else "PASS", remaining,
+                                     digest="b" * 64, evidence=("another-check-label",)),
+                ])
+                self.assertEqual(outcome["stop_reason"], "no_acceptance_progress")
+                self.assertNotEqual(outcome["report"]["status"], "PASS")
+
+    def test_discovered_preexisting_defects_may_grow_count_with_real_progress(self):
+        outcome = self.repair([
+            validation_round("FAIL", ["fixed"], digest="a" * 64),
+            validation_round("FAIL", ["discovered-1", "discovered-2"], digest="b" * 64,
+                             evidence=(
+                {"ref": "fixed-check", "subject_digest": "b" * 64, "resolves": ["fixed"]},
+                {"ref": "reproduced-on-prior", "subject_digest": "a" * 64,
+                 "preexisting": ["discovered-1", "discovered-2"]},
+            )),
+        ])
+        self.assertEqual(outcome["stop_reason"], "not_converged")
+        self.assertEqual(outcome["report"]["status"], "FAIL")
+        self.assertEqual(len(outcome["open_findings"]), 2)
+        self.assertEqual(outcome["rounds_used"], 1)
+
+    def test_new_finding_cannot_hide_behind_another_resolved_gap(self):
+        for proof in ((), ({"ref": "wrong-baseline", "subject_digest": "c" * 64,
+                           "preexisting": ["new"]},)):
+            with self.subTest(proof=proof):
+                outcome = self.repair([
+                    validation_round("FAIL", ["fixed"], digest="a" * 64),
+                    validation_round("FAIL", ["new"], digest="b" * 64, evidence=(
+                        {"ref": "fixed-check", "subject_digest": "b" * 64, "resolves": ["fixed"]},
+                    ) + proof),
+                ])
+                self.assertEqual(outcome["stop_reason"], "new_finding_requires_causal_review")
+
+    def test_introduced_regression_stops_even_if_another_gap_closed(self):
+        outcome = self.repair([
+            validation_round("FAIL", ["fixed"], digest="a" * 64),
+            validation_round("FAIL", ["regression"], digest="b" * 64, evidence=(
+                {"ref": "fixed-check", "subject_digest": "b" * 64, "resolves": ["fixed"]},
+                {"ref": "before-after-check", "subject_digest": "b" * 64,
+                 "introduced": ["regression"]},
+            )),
+        ])
+        self.assertEqual(outcome["stop_reason"], "introduced_regression")
+        self.assertEqual(outcome["report"]["status"], "FAIL")
+
+    def test_recurring_class_requires_causal_review_without_design_diagnosis(self):
+        first = validation_round("FAIL", ["f1", "f2"], digest="a" * 64)
+        first["findings"][0]["class"] = "deadline-bypass"
+        recurrence = validation_round("FAIL", ["new-id"], digest="c" * 64)
+        recurrence["findings"][0]["class"] = "deadline-bypass"
+        outcome = self.repair([
+            first,
+            validation_round("FAIL", ["f2"], digest="b" * 64, evidence=(
+                {"ref": "fixed-f1", "subject_digest": "b" * 64, "resolves": ["f1"]},
+            )),
+            recurrence,
+        ])
+        self.assertEqual(outcome["stop_reason"], "recurring_finding_class")
+        self.assertEqual(outcome["rounds_used"], 2)
+        self.assertNotIn("design", str(outcome))
+
+    def test_old_receipt_does_not_prove_new_acceptance_progress(self):
+        receipt = {"ref": "old-check", "subject_digest": "b" * 64, "resolves": ["f2"]}
+        outcome = self.repair([
+            validation_round("FAIL", ["f1", "f2"], digest="a" * 64, evidence=(receipt,)),
+            validation_round("FAIL", ["f1"], digest="b" * 64, evidence=(receipt,)),
+        ])
+        self.assertEqual(outcome["stop_reason"], "no_acceptance_progress")
+
+    def test_peer_leg_cannot_silently_override_a_receipts_causal_binding(self):
+        with self.assertRaisesRegex(ValueError, "conflicting bindings"):
+            self.repair([[
+                validation_round("FAIL", ["f1"], evidence=(
+                    {"ref": "comparison", "subject_digest": "a" * 64, "preexisting": ["f1"]},
+                )),
+                validation_round("FAIL", ["f1"], family="other", evidence=(
+                    {"ref": "comparison", "subject_digest": "a" * 64, "introduced": ["f1"]},
+                )),
+            ]])
+
+    def test_peer_leg_cannot_silently_replace_a_recurrence_class(self):
+        first = validation_round("FAIL", ["f1"])
+        first["findings"][0]["class"] = "deadline-bypass"
+        peer = validation_round("FAIL", ["f1"], family="other")
+        self.assertEqual(MODULE.normalize_round([first, peer])["open_findings"][0]["class"],
+                         "deadline-bypass")
+        peer["findings"][0]["class"] = "cosmetic"
+        with self.assertRaisesRegex(ValueError, "conflicting classes"):
+            self.repair([[first, peer]])
+
+    def test_pass_cannot_converge_with_unverified_acceptance_or_missing_proof(self):
+        cases = (
+            validation_round("PASS", [], not_checked=("required-cancellation-case",)),
+            validation_round("PASS", [], checked=()),
+            validation_round("PASS", [], evidence=()),
+        )
+        for raw in cases:
+            with self.subTest(raw=raw):
+                for round_value in (raw, [raw, validation_round("PASS", [], family="other")]):
+                    outcome = self.repair([round_value])
+                    self.assertEqual(outcome["report"]["status"], "NOT_PROVEN")
+                    self.assertNotEqual(outcome["stop_reason"], "converged")
+                    self.assertEqual(outcome["report"]["not_checked"], raw["not_checked"])
 
     def test_repair_stops_when_the_digest_is_unchanged_and_no_new_evidence(self):
         outcome = self.repair(
@@ -473,7 +590,7 @@ class RepairPhaseTests(unittest.TestCase):
                 validation_round("FAIL", ["f1"], digest="a" * 64, evidence=["r1"]),
             ]
         )
-        self.assertEqual(outcome["stop_reason"], "no_subject_or_evidence_change")
+        self.assertEqual(outcome["stop_reason"], "no_acceptance_progress")
         self.assertEqual(outcome["rounds_used"], 1)
 
     def test_not_proven_is_resolved_by_new_evidence_with_an_unchanged_digest(self):
@@ -494,10 +611,10 @@ class RepairPhaseTests(unittest.TestCase):
         self.assertEqual(outcome["report"]["subject_manifest_digest"], "a" * 64)
 
     def test_new_evidence_does_not_rescue_a_fail_round(self):
-        """Condition 4's evidence branch is NOT_PROVEN-only.
+        """Evidence alone cannot repair an unchanged subject already judged FAIL.
 
-        A FAIL means the subject is wrong, so only a moved subject digest is
-        progress; extra evidence over the same bytes is not.
+        A FAIL means the subject is wrong; both a changed subject and proven
+        acceptance progress are needed, not an extra unbound evidence label.
         """
         outcome = self.repair(
             [
@@ -505,7 +622,7 @@ class RepairPhaseTests(unittest.TestCase):
                 validation_round("FAIL", ["f1"], digest="a" * 64, evidence=["r1", "r2"]),
             ]
         )
-        self.assertEqual(outcome["stop_reason"], "no_subject_or_evidence_change")
+        self.assertEqual(outcome["stop_reason"], "no_acceptance_progress")
 
     def test_a_reworded_summary_with_the_same_id_is_the_same_finding(self):
         outcome = self.repair(
@@ -522,7 +639,7 @@ class RepairPhaseTests(unittest.TestCase):
             ]
         )
         self.assertEqual(outcome["rounds_used"], 1)
-        self.assertEqual(outcome["stop_reason"], "not_converged")
+        self.assertEqual(outcome["stop_reason"], "no_acceptance_progress")
         self.assertEqual([f["id"] for f in outcome["open_findings"]], ["f1"])
         self.assertEqual(
             outcome["open_findings"][0]["summary"],
@@ -534,7 +651,9 @@ class RepairPhaseTests(unittest.TestCase):
             [
                 validation_round("FAIL", ["f1", "f2", "f3"], digest="a" * 64),
                 [
-                    validation_round("FAIL", ["f1"], digest="b" * 64, family="fresh"),
+                    validation_round("FAIL", ["f1"], digest="b" * 64, family="fresh", evidence=(
+                        {"ref": "fixed-f3", "subject_digest": "b" * 64, "resolves": ["f3"]},
+                    )),
                     validation_round("FAIL", ["f2"], digest="b" * 64, family="codex"),
                 ],
             ]
@@ -545,11 +664,13 @@ class RepairPhaseTests(unittest.TestCase):
             outcome["report"]["checked"][1], "repair round 1: 2 open findings"
         )
 
-    def test_a_generated_only_change_that_moves_the_digest_counts_as_a_round(self):
+    def test_a_generated_only_change_needs_proven_acceptance_progress(self):
         outcome = self.repair(
             [
                 validation_round("FAIL", ["f1"], digest="a" * 64),
-                validation_round("PASS", [], digest="b" * 64),
+                validation_round("PASS", [], digest="b" * 64, evidence=(
+                    {"ref": "projection-parity", "subject_digest": "b" * 64, "resolves": ["f1"]},
+                )),
             ]
         )
         self.assertEqual(outcome["stop_reason"], "converged")

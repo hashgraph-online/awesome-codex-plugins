@@ -23,8 +23,9 @@ hosts. Gate execution, state block, and resume rules:
 - Content voice for produced documents: `skills/_shared/precision-rules.md`
   Rule 6.
 - Before the first gate, the `plan` skill calls `list_documents` for the types
-  `idea`, `prd`, `rnd`, `mrd`, `brd`, `urd`, `spec`, `plan`, and `guide` and
-  checks the topic for duplicates and recorded discovery.
+  `idea`, `prd`, `rnd`, `mrd`, `brd`, `urd`, `spec`, `plan`, and `guide` —
+  plus `research` when `skills/_shared/research-compatibility.md` returned
+  `yes` — and checks the topic for duplicates and recorded discovery.
 - WHEN a `brd` or `urd` covers the topic, `sdd.require` composes Goals and
   Success Metrics from the `brd`'s success metrics and Requirements from the
   `urd`'s acceptance criteria — recorded requirements are never re-asked.
@@ -48,9 +49,9 @@ hosts. Gate execution, state block, and resume rules:
 - Purpose: Establish the core concept, its beneficiary, and known risks — the
   framing the later gates implement.
 - Entry conditions:
-  - skip_when: an `idea`, `prd`, or `rnd` covering the topic exists in
-    `.archcore/` — an `rnd`'s Recommendation frames the topic the way an
-    `idea` does; a complete sources set (`mrd`, `brd`, `urd`) on the topic
+  - skip_when: an `idea`, `prd`, `rnd`, or `research` covering the topic
+    exists in `.archcore/` — an `rnd`'s Recommendation or a `research`'s
+    Synthesis frames the topic the way an `idea` does; a complete sources set (`mrd`, `brd`, `urd`) on the topic
     also closes this gate — the `urd` records the concept's beneficiary.
   - The conductor invokes this gate per sequencing rule 2 of
     `skills/_shared/delta-routing.md` (the high-uncertainty portfolio).
@@ -77,11 +78,11 @@ hosts. Gate execution, state block, and resume rules:
   single feature; size never changes the type.
 - Entry conditions:
   - skip_when: a `prd` covering the topic exists in `.archcore/`; or the
-    request is feature-scoped and an `idea`, `rnd`, or `adr` covering the
-    topic already records the problem and the goals — the compression path in
+    request is feature-scoped and an `idea`, `rnd`, `research`, or `adr`
+    covering the topic already records the problem and the goals — the compression path in
     `skills/_shared/prd-contract.md`.
-  - The concept and beneficiary are recorded — in an `idea` or `rnd`
-    document, in a `urd` or `srs` covering the topic (recorded requirement
+  - The concept and beneficiary are recorded — in an `idea`, `rnd`, or
+    `research` document, in a `urd` or `srs` covering the topic (recorded requirement
     sources), under `## Clarifications`, or in the request text.
 - Elicitation knobs:
   - trigger: the problem statement or the success metrics are not recorded.
@@ -123,7 +124,7 @@ hosts. Gate execution, state block, and resume rules:
     `skills/_shared/delta-routing.md` — one invocation per capability.
   - A `prd` on the topic exists, or `sdd.require` closed through the
     compression path in `skills/_shared/prd-contract.md` and the `idea`,
-    `rnd`, or `adr` that closed it records the problem and the goals.
+    `rnd`, `research`, or `adr` that closed it records the problem and the goals.
 - Elicitation knobs:
   - trigger: the dependents, the surface, the constraints and invariants, or
     the failure behaviors are not recorded.
@@ -135,7 +136,7 @@ hosts. Gate execution, state block, and resume rules:
   - type: spec
   - status: draft
   - relations: `implements` → the `prd` from `sdd.require`; `implements` →
-    the `idea`, `rnd`, or `adr` that closed `sdd.require`'s compression path
+    the `idea`, `rnd`, `research`, or `adr` that closed `sdd.require`'s compression path
     when no `prd` exists.
 - Exit checks:
   - blocking: the spec draft contains every mandatory section defined in

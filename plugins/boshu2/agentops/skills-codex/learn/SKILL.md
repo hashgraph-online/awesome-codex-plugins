@@ -40,18 +40,24 @@ When invoked, bind every observation to verdict and finding digests, distinguish
 repeated objectives from repeated reviews of one objective, disclose the sample
 size, and stop at advisory evidence.
 
-Overweight failures: a `NOT_PROVEN` or `FAIL` verdict carries more teaching
-value than a PASS, because it names a rule the loop lacked. Harvest kernels
-from failed lanes first — the canonical example is the mutating-check
-quarantine in `skills/validate/SKILL.md`, a durable rule minted from a
-`NOT_PROVEN`-then-`PASS` verdict pair.
+Inspect informative failures first, but verdict color alone establishes neither
+learning value nor a missing rule. Cite the live hypothesis falsified or the
+uncertainty resolved, distinguish pre-existing discovery from introduced
+regression, and retain unknown causes as unknown. Repetition may justify causal
+examination; it does not prove that the design was wrong or require a new gate.
+The mutating-check quarantine in `skills/validate/SKILL.md` is an example grounded
+in a specific subject-mutation incident and a NOT_PROVEN-then-PASS pair.
 
-Promote a repeat into a check proposal: a finding `class` seen in two repair
-rounds of one traversal, or in two separate runs, leaves the output as a
-deterministic check proposal named with that class, the exact sentence or
-pattern the check would refuse, and the gate tier it would run in. The
-proposal is advisory text for a human or caller to weigh; Learn never edits a
-gate, a registry, or a check script itself.
+Knowledge is revisable. Preserve evidence and provenance when retracting an
+unsupported or stale belief; artifact accumulation is not a monotonic increase
+in truth or utility. Negative, null, and contradictory results remain visible.
+
+A repeated finding class may support a check proposal only when causal evidence
+identifies a preventable defect and a concrete consumer needs that check. Name
+the exact behavior the check would refuse and why existing checks missed it;
+two sightings alone do not justify a gate. The proposal is advisory text for a
+human or caller to weigh; Learn never edits a gate, registry, or check script,
+and learning never changes a completed verdict or selects another experiment.
 
 Prune for provenance decay: every cited artifact must still resolve — the
 file exists or the verdict digest is present under `.agents/ao/verdicts/`. A

@@ -22,9 +22,22 @@ Feature: RPI runs one bounded experiment
 
   @covered-by:skills/rpi/tests/test_run_once.py::test_repair_stops_when_a_closed_finding_reopens
   Scenario: The convergence law stops a repair spiral
-    Given a repair round reopens a closed finding id, grows the open set, or changes nothing
+    Given a repair round reopens a closed finding id or has no new acceptance-relevant proof
     When RPI evaluates the law
     Then RPI stops and reports the current status with the open findings
+
+  @covered-by:skills/rpi/tests/test_run_once.py::test_discovered_preexisting_defects_may_grow_count_with_real_progress
+  Scenario: Discovery is distinct from regression
+    Given a repair closes a named acceptance gap with a new digest-bound receipt
+    And new findings are proven to exist on the prior exact subject
+    When the new findings increase the open count
+    Then RPI retains them and admits bounded repair without declaring a regression
+
+  @covered-by:skills/rpi/tests/test_run_once.py::test_new_finding_cannot_hide_behind_another_resolved_gap
+  Scenario: Unknown cause requires causal examination
+    Given a repair closes one acceptance gap but exposes a new finding of unknown cause
+    When RPI evaluates the law
+    Then RPI stops even if the open count did not grow
 
   @covered-by:skills/rpi/scripts/validate.sh
   Scenario: Interactive output does not require a machine artifact

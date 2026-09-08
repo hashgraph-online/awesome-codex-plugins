@@ -1,6 +1,7 @@
 ---
 name: reset
 description: Drop the runtime markers and deadline without deleting the owner's work or evidence.
+license: MIT
 ---
 
 Reset runtime mechanics for the host-opened project. This recovers from damaged or confusing

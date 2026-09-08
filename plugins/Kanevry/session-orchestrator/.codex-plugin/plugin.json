@@ -1,6 +1,6 @@
 {
   "name": "session-orchestrator",
-  "version": "4.0.0+codex.20260906130352",
+  "version": "4.0.1+codex.20260907191442",
   "description": "Loop engineering for AI coding agents — turn ad-hoc sessions into a repeatable research → plan → wave-execute → close loop with verification gates. Runs on Claude Code, Codex CLI, Cursor, and Pi.",
   "keywords": [
     "session",
@@ -11,7 +11,8 @@
     "quality-gates",
     "codex"
   ],
-  "skills": "./skills/",
+  "skills": "./.codex-plugin/skills/",
+  "commands": [],
   "hooks": "./hooks/hooks-codex.json",
   "mcpServers": "./.mcp.json",
   "interface": {

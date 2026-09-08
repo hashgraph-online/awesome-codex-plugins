@@ -1,13 +1,13 @@
 # Session Orchestrator
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-4.0.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-4.0.1-blue.svg)](CHANGELOG.md)
 [![npm](https://img.shields.io/npm/v/session-orchestrator.svg)](https://www.npmjs.com/package/session-orchestrator)
 [![Tests](https://img.shields.io/badge/tests-vitest-brightgreen.svg)](docs/telemetry/telemetry-claims.md)
 
 Loop engineering for AI coding agents — turn ad-hoc sessions into a repeatable research → plan → wave-execute → close loop with verification gates. Runs on **Claude Code, Codex CLI, Cursor IDE, and [Pi](docs/pi-setup.md)**, as a community plugin (MIT, community-maintained) for solo devs and small teams.
 
-The same skills and commands are available on all four harnesses; **enforcement depth differs** — scope enforcement is full on Claude Code, bridged on Cursor and Pi, and currently unavailable on Codex CLI (see [Platform support](#platform-support)).
+The same workflows are available on all four harnesses; Codex exposes commands as selectable skills. **Enforcement depth differs** — scope enforcement is full on Claude Code, bridged on Cursor and Pi, and currently unavailable on Codex CLI (see [Platform support](#platform-support)).
 
 ## Requirements
 
@@ -46,7 +46,7 @@ Setup guides: [Codex](docs/codex-setup.md) · [Cursor IDE](docs/cursor-setup.md)
 /plugin update session-orchestrator@kanevry     # Claude Code
 ```
 
-Restart the harness afterwards, and re-run `npm install` in the plugin directory when the release adds dependencies. On Codex CLI, Cursor, and Pi the upgrade is `git pull` in your clone followed by the same install script you originally ran.
+Restart the harness afterwards, and re-run `npm install` in the plugin directory when the release adds dependencies. On Cursor and Pi the upgrade is `git pull` in your clone followed by the same install script you originally ran. For Codex, follow the [refresh instructions](docs/codex-setup.md#refresh-and-explicit-cache-invalidation) for your marketplace source, then reload the skill picker or restart Codex.
 
 Session-start tells you when the running copy is behind: `scripts/lib/plugin-update-banner.mjs` compares the version of the code **that is actually loaded** against the published npm version and warns in the session-start banner (minor or major; patch-only updates stay silent). It fails silent — offline, a non-2xx response, or a malformed answer produces *no statement*, never a false "up to date".
 
@@ -66,6 +66,8 @@ Remove the plugin through your harness's own plugin manager — `/plugin` in Cla
 Deleting `.orchestrator/metrics/` deletes your session history. Nothing is sent anywhere without your explicit consent (see [Data & telemetry](#safety--data--telemetry)) — the one exception is the session-start update check (`scripts/lib/plugin-update-banner.mjs`): a single anonymous `GET` to the npm registry, at most once per day per repo, comparing your installed version against the latest release. Set `SO_DISABLE_UPDATE_CHECK=1` (or `DO_NOT_TRACK=1`) to turn it off. Beyond that, there is nothing else to revoke.
 
 ## Quick Start
+
+In Codex, select the corresponding **Session Orchestrator** skill in the picker or use `$session-orchestrator:<command>`; the slash commands below name the shared workflows. For example, bootstrap with `$session-orchestrator:bootstrap`. See [Codex usage](docs/codex-setup.md#usage).
 
 **1. Bootstrap the repo once.** Run `/bootstrap` in your project — it scaffolds the minimum structure and writes `.orchestrator/bootstrap.lock`, which session-start requires before `/session` will run.
 
@@ -105,7 +107,15 @@ Everything else is opt-in. Full template: [`docs/session-config-template.md`](do
 /close              # verify every item, commit cleanly, file carryover issues for the rest
 ```
 
-That is the whole loop. `/plan` and `/evolve` extend it, but you can start with just these three.
+In Codex, invoke the same loop through the generated command skills:
+
+```text
+$session-orchestrator:session feature
+$session-orchestrator:go
+$session-orchestrator:close
+```
+
+These entries preserve each command's full workflow and prechecks. Codex's native `/goal` is a separate feature. `/plan` and `/evolve` extend the loop, but you can start with just these three.
 
 ## Lifecycle and waves
 
@@ -161,16 +171,16 @@ The system is markdown-driven config plus a thin Node runtime — skills, comman
 
 ## What you get
 
-Counts measured on 2026-09-06 with the command in brackets:
+Counts measured on 2026-09-07 with the command in brackets:
 
 - **43 skills** for the session lifecycle (start, plan, execute, close, evolve), discovery, vault sync, MCP authoring, debugging, brainstorming, plan grilling, persona panels, cross-repo dispatch, learning→rule reconciliation, session-process eval, and audits (`ls -d skills/*/ | grep -v _shared | wc -l`)
 - **25 slash commands** (`/session`, `/go`, `/close`, `/discovery`, `/plan`, `/grill`, `/evolve`, `/autopilot`, `/dispatcher`, `/reconcile`, `/eval`, `/test`, `/debug`, …) (`ls commands/*.md | wc -l`)
 - **14 typed subagents** (code-implementer, test-writer, security-reviewer, session-reviewer, qa-strategist, architect-reviewer, …) (`ls agents/*.md | wc -l`)
 - **27 hook files across 10 event types**, enforcing scope, blocking destructive commands, gating templates-first, and capturing telemetry — full on Claude Code; experimental, post-hoc, or bridged elsewhere ([Platform support](#platform-support)) (`ls hooks/*.mjs | wc -l`)
 - **26 always-on rule files** and **18 ADRs** carrying the reasoning behind the mechanisms (`ls .claude/rules/*.md | wc -l`, `ls docs/adr/*.md | wc -l`)
-- **664 vitest test files** run on every commit — 13,752 static `it()`/`test()` definitions at that measurement, and the runtime total is higher because of parameterised blocks ([methodology](docs/telemetry/telemetry-claims.md)) (`find tests -name '*.test.mjs' | wc -l`)
+- **667 vitest test files** run on every commit — 13,827 static `it()`/`test()` definitions at that measurement, and the runtime total is higher because of parameterised blocks ([methodology](docs/telemetry/telemetry-claims.md)) (`find tests -name '*.test.mjs' | wc -l`)
 
-**Portable across harnesses by construction.** The repo ships a root `AGENTS.md` generated byte-identical from `CLAUDE.md`, a root `plugin.json` following the [agent-plugins.org](https://agent-plugins.org) 1.0.0 schema, and a `.agents/skills/<name>/SKILL.md` mirror of all 43 skills carrying spec-legal frontmatter plus a pointer body. All three are generated by `scripts/generate-agents-skills.mjs` and drift-checked in `scripts/validate-plugin.mjs` — never hand-edited.
+**Portable across harnesses by construction.** `scripts/generate-agents-skills.mjs` generates root `AGENTS.md` byte-identical from `CLAUDE.md` and the `.agents/skills/<name>/SKILL.md` mirrors, with spec-legal frontmatter and pointers to canonical instructions. `scripts/generate-codex-skills.mjs` generates the Codex command entrypoints. Plugin validation checks both surfaces. Separate manifests under `.claude-plugin/`, `.codex-plugin/` and `.cursor-plugin/` register each harness's components; see [Codex manifest compatibility](docs/codex-setup.md#manifest-compatibility).
 
 Full component inventory: [`docs/components.md`](docs/components.md). Version history and per-release detail: [CHANGELOG.md](CHANGELOG.md).
 
@@ -186,17 +196,15 @@ Full component inventory: [`docs/components.md`](docs/components.md). Version hi
 
 How this compares to other orchestrators — with the parts that are measured and the parts that are not: [`docs/components.md` § Comparisons](docs/components.md#comparisons).
 
-## Recent highlights (v4.0.0)
+## Recent highlights (v4.0.1)
 
-v4.0.0 is the first release that REMOVES public surfaces, so read [docs/migration-v4.md](docs/migration-v4.md) before upgrading. Highlights of the v4.0.0 line: less surface, an instruction layer that loads on demand, and three instruments that were reporting numbers nobody could reproduce:
+4.0.1 is a patch on top of 4.0.0 — if you're upgrading from before 4.0, read [docs/migration-v4.md](docs/migration-v4.md) first; nothing below removes anything further. Highlights of the v4.0.1 line: Codex command entrypoints, a redesigned public site, and a review-hardened owner-privacy scanner — plus the sixteen follow-ups the 4.0.0 review left open:
 
-- **Five skills, three commands and eight top-level scripts are gone.** Removal followed a measured two-signal rule — 0 telemetry ∧ 0 fleet invocation over 90 days ∧ no runtime consumer — never a judgement call. Prose-invoked skills, which register 0 by construction, were exempt. `skills/domain-model/` was merged into `skills/architecture/` rather than dropped.
-- **`.claude/rules/` goes 61 → 26 files.** Forty-three machine-generated learning files were consolidated into eight thematic ones, each keeping its provenance markers so the reconcile engine still dedupes on them.
-- **The three largest instruction files are split, not shortened.** `session-start`, `session-end` and the wave loop keep every phase; the bodies move into per-phase files under `references/`, and the top-level file becomes an index that is heading-complete against the original. Nothing was summarised away.
-- **`ultradeep` is a profile over `deep`, not a fourth session type.** Seven waves with a blocking synthesis gate and a read-only review panel. Downstream tooling still sees `deep`, which is why it costs about eight touchpoints instead of forty-eight.
-- **A session-start banner now says when the plugin you are RUNNING is behind the one published** (minor or major; patch-only updates stay silent). This host had been running a copy five minors old for four weeks with no warning, because nothing anywhere compared installed against available.
-- **Two instruments were corrected rather than tuned.** Telemetry attributed the operator's own second machine to the external fleet, and the abandoned-session rate was an artefact of backfilled records. Both now report what they measure.
-- **A root `AGENTS.md`, a root `plugin.json` and a portable `.agents/skills/` mirror.** The repo now speaks the cross-harness instruction conventions it documents, generated and validated rather than hand-maintained.
+- **4.0.0 removed public surfaces and split the largest instruction files.** Five skills, three commands and eight top-level scripts were dropped on a measured two-signal rule (0 telemetry ∧ 0 fleet invocation over 90 days ∧ no runtime consumer, never a judgement call); `.claude/rules/` went 61 → 26 files; `session-start`, `session-end` and the wave loop keep every phase, with bodies moved into per-phase `references/` files. Full detail and upgrade steps: [docs/migration-v4.md](docs/migration-v4.md).
+- **Codex command workflows are now selectable skills.** `scripts/generate-codex-skills.mjs` generates 51 entries (25 command-backed, 26 skill-backed); `go`, `close`, and 6 others that were previously absent from the skill surface (`harness-audit`, `portfolio`, `release`, `session`, `templates-ack`, `test`) are now discoverable and invocable as `$session-orchestrator:<name>`. Native `commands: []` stops the installer from separately aliasing the source commands into policy-less duplicates. The intercepting standard root manifest moved to [`.cursor-plugin/plugin.json`](.cursor-plugin/plugin.json) so it no longer shadows Codex's own manifest resolution (Refs #1263).
+- **Public website redesigned**, including a German `/de` landing page.
+- **Review-driven hardening.** The owner-privacy scanner (CP11) now fails CLOSED on a corrupted or env-configured-but-unresolvable confidential-names list instead of silently degrading to allow, and no longer prints the names-file path into logs; `check-unwired-features` splits 46 coordinator-invoked modules out of its actionable finding set (52 → 5 unreachable), so the report names what an operator can actually act on; a new session-start probe (`telemetry-flush-health`) surfaces when the sandbox refused a telemetry flush instead of that failure staying silent.
+- **Sixteen follow-ups from the 4.0.0 review closed, and the patch itself was reviewed before the cut.** A four-reviewer panel plus an external Codex gpt-6-astra pass over the packed npm tarball found two P1 and three P2 defects in this session's own changes — a names-file path printed into the scanner's failing output, a deep-import contract change, a flag swallowed as a value, a substring match that hid a real finding, a comment that counted as a target — all fixed before publishing. The residual list lives in GitLab #1268–#1273.
 
 Full list, with the evidence for each claim: [CHANGELOG.md](CHANGELOG.md).
 
@@ -204,7 +212,7 @@ Full list, with the evidence for each claim: [CHANGELOG.md](CHANGELOG.md).
 
 | Feature | Claude Code | Codex CLI | Cursor IDE | Pi |
 |---|---|---|---|---|
-| All 25 commands | Native slash commands | Native plugin commands | Native `.cursor/commands` slash commands | Prompt templates |
+| All 25 commands | Native slash commands | Generated skills (`$session-orchestrator:<name>`) | Native `.cursor/commands` slash commands | Prompt templates |
 | Parallel agents | Agent tool | Multi-agent roles | Sequential only | Sequential (parallel planned) |
 | Session persistence | `.claude/STATE.md` | `.codex/STATE.md` | `.cursor/STATE.md` | `.pi/STATE.md` |
 | Scope enforcement | PreToolUse hooks | Unavailable — pending a real `apply_patch` adapter | `preToolUse` + `beforeShellExecution` via cursor-hook-bridge; `afterFileEdit` post-hoc | `tool_call` bridge |

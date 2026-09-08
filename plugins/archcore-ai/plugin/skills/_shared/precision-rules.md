@@ -125,7 +125,7 @@ file is corrected — one canon with two owners is two canons.
    step is an action to take rather than an obligation that holds.
 
    **Claim-recording types** — `adr`, `rfc`, `doc`, `prd`, `plan`, `idea`, `rnd`,
-   `cpat`, `mrd`, `brd`, `urd`. A numbered clause MUST NOT carry a BCP 14 modal.
+   `research`, `evidence`, `cpat`, `mrd`, `brd`, `urd`. A numbered clause MUST NOT carry a BCP 14 modal.
    State the claim with its evidence — `@path/to/file`, a measurement, a commit —
    or mark it `[assumption]`. An obligation that belongs to one of these
    documents belongs in a linked `spec` or `rule` instead.

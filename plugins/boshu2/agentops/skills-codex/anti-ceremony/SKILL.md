@@ -34,6 +34,14 @@ the gate row, green in CI. Stop condition: that gate passes on main.
 5. Return `STOP` when the traversal would only create control artifacts or the
    frozen outcome is already sufficiently proved; otherwise return `CONTINUE`.
 
+Progress needs evidence tied to acceptance or a named blocking uncertainty.
+Digest movement, finding counts, and additional reviews alone earn no credit.
+Informative red can justify a different experiment inside an explicitly selected
+outer goal's unchanged acceptance and allowance; repeated no-information work
+cannot. Keep required independent proof in `remaining_proof`, including every
+necessary unresolved finding. Apply Validate's effect-based risk rule to the
+cost of proof; never weaken the exact-subject or all-acceptance PASS bar.
+
 Perform the guard exactly once in memory. Parking is a field in the response,
 not a tracker or delivery mutation. Return this shape:
 

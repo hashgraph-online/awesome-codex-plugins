@@ -82,6 +82,22 @@ computed route omits both fields. A `plan`-skill resume that finds them
 absent follows the conductor's resume rules; every other skill resumes per
 this file alone.
 
+The research track may append `artifact_type: research|rnd|evidence` after
+`deferred`. The field is optional on older artifacts and absent on other tracks.
+On resume, the filename type supplies a missing value. A recorded value that
+contradicts the filename is a blocking state error; do not convert the document.
+
+### Evidence operations inside a gate
+
+The research gather gate may create evidence and relation edges before its
+single gate-close update. Before creating dependent evidence, it may persist
+pending paths and edges in the parent draft's `deferred` field. This checkpoint
+is an exception to gate-close-only persistence, not an extra gate close.
+Standalone evidence carries its own state and needs no parent draft. Its request
+satisfies frame, so the missing-upstream resume rule does not create an
+investigation. Failure recovery and edge ordering belong to
+`skills/_shared/tracks/research.md`.
+
 ### State lifecycle
 
 1. The draft artifact is the only carrier of track state.

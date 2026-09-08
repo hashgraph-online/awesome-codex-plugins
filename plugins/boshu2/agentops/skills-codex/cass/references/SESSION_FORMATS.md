@@ -1,9 +1,12 @@
 # Session File Formats by Agent
 
-> **Critical knowledge for parsing raw session logs.** Each agent stores conversations in JSONL with different structures.
+> Format examples are connector/version-specific inspection aids, not identity
+> or completeness guarantees. Read only sources authorized for the task, owner,
+> model/provider and destination; raw native stores retain authority.
 
 ## Contents
 
+- [Work-to-session associations](#work-to-session-associations)
 - [Quick Detection](#quick-detection)
 - [Claude Code Format](#claude-code-format)
 - [Codex CLI Format](#codex-cli-format)
@@ -15,7 +18,66 @@
 
 ---
 
+## Work-to-session associations
+
+The caller passes work identity at dispatch/start before execution can fail,
+and records the dispatch reference in native work comments/metadata or existing
+runtime facts. At startup, record observed identity in that caller-owned channel
+before substantive work, independently of final handoff. These are versioned
+facts under their source owners, not a new AO association database, lifecycle,
+packet schema or permanent writer. Core skills return facts; tracker mutation
+requires the caller's authority. No memory/evidence file belongs in a consumer
+checkout by default; requested CDLC evidence uses owner-selected protected
+external non-Git storage.
+
+Keep these facts distinct in the native record or its permitted evidence:
+
+| Fact | Required distinction |
+|---|---|
+| Source work | Backend/store identity, database/project identity where available, native work ID and permitted source revision/intent locator; a bead ID alone or workspace basename is not globally unique. |
+| Execution | Selected runtime and requested model/ID separately from actual observed model/session/context IDs; absent observations are explicit unknowns, never synthetic UUIDs. |
+| Relations | Native parent, dispatch controller and resume predecessor are separate links, each with its observation source. Record the selected runtime's actual resume identity even when it reuses a session ID. Unknown is distinct from an observed absence of parent. |
+| Provenance | Who or which runtime observed the fact, when, through which native operation/record, and its permitted locator. Caller-supplied facts remain labeled as supplied; do not upgrade inference to observation. |
+| Discovery | Exact query/filters/limits, index freshness, observed cutoff and missing/unavailable/restricted sources. CASS results discover candidates, not every episode member. |
+| Source extent | Permitted native locator plus available frozen byte length/bounds and digest, with the cutoff and digest scope. Unknown or unreadable extent/digest remains unknown, never zero or a hash of an excerpt represented as the full source. |
+| Work span | Only the source interval supported by explicit work/start/switch observations. Where frozen byte offsets are available use half-open `[start, end)` ranges tied to that source identity/digest. A search line is a locator, not an inferred byte boundary. |
+
+For a child, pass its work identity before launch, then record the child's
+observed ID and independently supported parent link at startup. For resume,
+retain the predecessor reference and add the observed resume relation; a
+requested resume ID does not prove a resumed execution. Workspace adjacency,
+matching task titles, filenames and guessed line numbers establish neither
+identity nor parentage. A native session can cover multiple work items: record
+only supported spans for each, preserve unrelated and unassigned spans, and
+leave an unknown end unknown until an observation supports it. Never assign a
+whole session to a work item because one hit names that work.
+
+If launch, startup observation or native recording fails, retain the caller's
+pre-execution record, available bounded failure facts and explicit unknowns;
+report any recording gap. Recovery reopens permitted startup/native sources
+without depending on a final handoff, preserving earlier failures/unknowns as
+history when later observations resolve them. Do not fill gaps with invented
+IDs, inferred edges or unrelated source spans.
+
+All metadata follows source-owner and recipient/model/destination authorization,
+including locators, native comments, filenames and diagnostics. BD/Dolt is
+versioned and is not a secret store. Use permitted opaque locators rather than
+restricted paths/excerpts or credentials; opacity grants no clearance. Check
+access before resolving a locator, never retrieve denied bytes and redact later.
+
+Association is not coverage: CASS discovery, `view`/`expand` windows and tool-call
+mining do not prove full prose/outcome reading. Preserve missing sources and
+unknown lengths. Frozen bounds/digests identify available evidence; they do not
+prove bytes were emitted, delivered to the host or semantically processed.
+Head/tail excerpts leave the middle unread; new tails or children belong to a
+later observation, not a rewritten completed denominator. T09 owns the later
+coverage verifier; no coverage command or acceptance claim is introduced here.
+
 ## Quick Detection
+
+These probes illustrate older formats only. Metadata may precede messages;
+unknown format stays unknown until the selected connector/version is observed.
+Do not infer a native session ID from either probe.
 
 ```bash
 # Detect agent type from first line
@@ -147,29 +209,32 @@ jq 'select(.role == "user") | .content' session.jsonl
 ### Subagent Structure
 
 ```
+Possible older layout, not guaranteed:
 Line 1: Session metadata (type, model info)
-Line 2: THE USER PROMPT (this is gold — the extraction prompt that worked)
+Line 2: User prompt
 Line 3+: Agent execution and responses
 ```
 
 ### Why Subagents Matter
 
-Deep dive extraction prompts live here. The prompt at line 2 is copy-paste ready — it's the exact instruction that produced the extraction.
+Subagent prompts may live here. Inspect the actual authorized message type and
+source position before citing a prompt; line 2 is only a legacy heuristic and
+never evidence of identity, parentage or complete reading.
 
 ### Extract Subagent Prompt
 
 ```bash
-# View prompt with context
+# Inspect the possible prompt position; verify the actual message before use
 cass view /path/subagents/agent-XXXXX.jsonl -n 2 -C 1
 
-# Extract just the text
+# Legacy-layout excerpt only, after verifying the actual prompt position
 sed -n '2p' /path/subagents/agent-XXXXX.jsonl | jq '.message.content'
 
 # Or with jq slurp
 jq -s '.[1].message.content' /path/subagents/agent-XXXXX.jsonl
 ```
 
-### Find All Subagent Sessions
+### Discover Candidate Subagent Sessions
 
 ```bash
 # Via cass search
@@ -184,11 +249,11 @@ find ~/.claude/projects -path "*/subagents/*.jsonl" | head -20
 
 ## Universal Extraction Patterns
 
-### Detect and Extract (Any Agent)
+### Detect and Extract (Legacy Examples)
 
 ```bash
 #!/bin/bash
-# extract_prompts.sh — works with any agent format
+# Legacy-format example; unsupported formats remain unknown
 
 FILE="$1"
 

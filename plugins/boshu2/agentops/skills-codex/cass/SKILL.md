@@ -19,8 +19,34 @@ This skill carries only the AgentOps operating doctrine: when to reach for cass,
 ## Constraints
 
 - Never run bare `cass` because it launches a blocking TUI; use a JSON, robot, or explicit file-output command.
-- Treat a stale index as searchable and refresh it with a bounded background command because stale is not broken and an unbounded rebuild can stall the lane.
+- Within authorized sources and destinations, treat a stale index as searchable
+  and refresh it only when the selected invocation permits indexing, using a
+  bounded background command; stale is not broken.
 - Preserve source sessions and require explicit permission for destructive cleanup; recovery may rebuild only derived index state.
+
+## Authorization and episode association
+
+Before any search, view, context lookup, export, index recovery or sync, check
+source-owner, task, model/provider and destination authorization. Indexes,
+hit metadata, source paths and tracker comments inherit source restrictions;
+read permission does not permit forwarding to another model or versioning in
+Git. The recovery defaults below apply only inside this authorized envelope;
+source sync and model downloads also require the selected egress authority.
+Unavailable controls leave restricted-source operations unavailable, without
+retrieving first and redacting later. Missing, restricted, unavailable,
+no-match and insufficient evidence are different outcomes.
+
+Capture work identity at dispatch/start and observed native IDs at startup
+through the caller-owned native comments/metadata or runtime facts, independently
+of handoff. Use [SESSION_FORMATS.md](references/SESSION_FORMATS.md#work-to-session-associations)
+for source-store/work identity, parent/resume provenance, supported work spans,
+permitted locators and available frozen source bounds/digests. Native logs retain
+execution authority; CASS discovers candidates. Search/view/expand/context
+output does not prove a complete episode was read or that a related hit is a
+parent. Record query, filters, limit, index freshness and discovery cutoff;
+zero hits means no match within those observed limits, not absence everywhere.
+Missing children, new tails and unknown source lengths remain explicit. T09 owns
+later coverage verification; this skill does not implement or certify it.
 
 ## When to Use
 
@@ -31,7 +57,10 @@ This skill carries only the AgentOps operating doctrine: when to reach for cass,
 
 ### Folded triggers (ag-s43tg wave 1): `casr` + `cass-memory` route here
 
-- **`casr` → cross-harness resume.** Cross Agent Session Resumer: convert and resume sessions across Claude Code, Codex, Gemini, and other providers — `cass resume` plus [RESUME.md](references/RESUME.md) own this lane (resolve subagent logs to their parent via `cass context` first; subagent files are not resumable).
+- **`casr` → cross-harness resume.** [RESUME.md](references/RESUME.md)
+  distinguishes `cass resume` (same-harness command resolution) from the separate
+  cross-harness converter. `cass context` discovers candidate relations; verify
+  a native parent link before choosing a parent session to resume.
 - **`cass-memory` → `cm` procedural memory.** Use when starting non-trivial work, mining lessons, or preventing repeated mistakes with cm procedural memory — mine past sessions here first, then promote the durable lessons through `cm` instead of re-deriving them each session.
 
 ## The Goldmine Principle
@@ -55,9 +84,9 @@ routing:
   cite `source_path` and line in whatever you build on it.
 - **Adjacent hit** — prior work borders the problem. Extract the working
   fragments, then derive only the missing part fresh.
-- **Verified absence** — zero hits after retrying against discovered workspace
-  keys (`--aggregate workspace`). Now derivation is justified, and the absence
-  itself is worth noting: you are in new territory, so budget accordingly.
+- **Bounded no-match** — zero hits after retrying against authorized discovered
+  workspace keys (`--aggregate workspace`). Derive from available evidence and
+  report the query/index limits; this does not establish global absence.
 
 The named failure mode is re-derivation drift: solving the same problem
 slightly differently each session, so the corpus accumulates near-duplicate
@@ -97,17 +126,17 @@ Mined lessons are evidence with a shelf life, not doctrine:
    cass search "KEYWORD" --workspace /data/projects/PROJECT --json --fields minimal --limit 50 \
      | jq '[.hits[] | select(.line_number <= 3)]'
 
-3. Follow hits: View the actual content
+3. Follow authorized hits: View a bounded excerpt of the actual content
    cass view /path/from/source_path.jsonl -n LINE -C 20
 
-4. Expand context: See the full conversation flow
+4. Expand context: Inspect another bounded conversation window
    cass expand /path/from/source_path.jsonl --line LINE --context 3
 
-5. Discover related: Find the whole work cluster
+5. Discover related: Find candidates, not proven parents or a complete cluster
    cass context /path/from/source_path.jsonl --json
 ```
 
-Why it works: aggregations first (know the terrain), `--fields minimal` (5x smaller output), `line_number <= 3` (user prompts live at the top), context clustering (one good hit → many related sessions). >10 matches for a prompt = a ritual; document and reuse it.
+Why it works: aggregations first (know the terrain), `--fields minimal` (5x smaller output), `line_number <= 3` (a discovery heuristic, not guaranteed prompt position), context clustering (one good hit → many related sessions). >10 matches for a prompt = a ritual; document and reuse it.
 
 ## Operating Doctrine: Stale ≠ Broken
 
@@ -164,7 +193,7 @@ cass evolves quickly; the released binary may lack HEAD features. When a flag re
 | Running `cass index --full` whenever `status` says unhealthy | A 25s rebuild for a 30-min stale index is wasteful | Check `index.stale` separately from `database.exists`; prefer incremental |
 | Running bare `cass` to "see what's there" | Launches blocking TUI in the agent's session | Always `--json` or `--robot`; never bare |
 | Piping `cass export` into `head`/`jq` | Broken-pipe panic on large sessions | `cass export ... -o /tmp/x.json` first, then operate on the file |
-| Treating subagent files as parent sessions | Subagents are separate logs with their own line-2 prompt; also NOT resumable | Filter by `select(.source_path \| contains("subagent"))`; resolve to parent via `cass context` before `cass resume` |
+| Treating subagent files as parent sessions | Subagents have separate logs; prompt positions vary and logs may not be resumable | Filter by `select(.source_path \| contains("subagent"))`; use `cass context` for candidates, then verify native parent evidence before `cass resume` |
 | Using `--limit 0` for "no limit" | Earlier cass panics | Use a real limit (`--limit 50`); `--limit 1` minimum for aggregations |
 | Trusting 0 hits with `--workspace /X` | Workspace strings are case- and trailing-slash-sensitive | Re-run with `--aggregate workspace --limit 1` to discover the canonical key |
 | Skipping `--fields minimal` on wide scans | ~3KB per hit × 100 hits = 300KB context burn | `--fields minimal` for wide passes; upgrade to `summary`/`full` for keepers |
@@ -177,7 +206,7 @@ Long-form versions with mined evidence: [ANTI_PATTERNS.md](references/ANTI_PATTE
 
 ## Safety Boundaries
 
-Pre-authorized (rebuilds derived index data only, never destroys source sessions): `cass doctor --fix --json`, `cass index --full --force-rebuild --json`, `cass sources doctor/sync`, `cass models install/verify`.
+Within the authorized source/model/destination and egress envelope above, the following operate on derived state rather than granting new source access: `cass doctor --fix --json`, `cass index --full --force-rebuild --json`, `cass sources doctor/sync`, `cass models install/verify`.
 
 Do NOT without explicit permission: delete `core.NNNNN` coredumps, delete `.beads/`, `git reset --hard`, or hand-edit `~/.config/cass/sources.toml` — the CLI commands above already do everything safely. Never run bare `cass` (blocking TUI) inside an agent loop.
 
@@ -206,7 +235,7 @@ When the right reference isn't obvious from titles, `grep -ni "SYMPTOM" referenc
 
 ## Scripts
 
-Scripts live under `scripts/`. They execute, never load — zero context tokens. Consistent with the Safety Boundaries above, `recover.sh` and `quick_analysis.sh` may rebuild **derived index state** autonomously (pre-authorized: `doctor --fix`, `index --full`) and `multi_machine_search.sh` reads remote sources over ssh; none destroy source sessions, and nothing destructive (coredump/`.beads` deletion, `git reset --hard`, source edits) runs without explicit confirmation.
+Scripts live under `scripts/`. Inspect their access and write scope before use when uncertain. Consistent with the Safety Boundaries above, `recover.sh` and `quick_analysis.sh` may rebuild **derived index state** autonomously (pre-authorized: `doctor --fix`, `index --full`) and `multi_machine_search.sh` reads remote sources over ssh; none destroy source sessions, and nothing destructive (coredump/`.beads` deletion, `git reset --hard`, source edits) runs without explicit confirmation.
 
 | Script | Usage |
 |--------|-------|
@@ -238,5 +267,5 @@ If `false`, run: `cass index --json`
 ## Quality Checklist
 
 - Results come from a canonical workspace key and include enough source location to reopen the session context.
-- A zero-hit result was retried against discovered workspace keys before concluding that no prior art exists.
+- A zero-hit result was retried against authorized discovered workspace keys and reported as bounded no-match with its discovery limits.
 - Index recovery stayed bounded and preserved source sessions; no stale state was misreported as broken.

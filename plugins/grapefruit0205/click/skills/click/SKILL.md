@@ -73,6 +73,17 @@ Before implementation, read the [anti-loop policy](references/anti-loop-policy.m
 
 Collect each assigned source once after the last mutation that can invalidate it. Reuse successful evidence, keep Browser or hosted work out of a shadow verification suite, and stop verification when each condition has current evidence. Treat repeat, retry, and timing notices as non-authoritative guidance, not permission failures; active runner conflicts, Browser receipt binding, and verification-time repository mutation remain hard. Stop any managed service before declaring completion. A failed or stale source may be repaired or replaced under the documented retry rules; it is not a reason to accumulate another proof path.
 
+Verification `reporting` and `failure_collection` are presentation and bounded
+execution-policy options, not new authority. Keep the compatibility defaults of
+raw output and source-order fail-fast unless the user or task explicitly selects
+the versioned alternatives. Actionable diagnostics may summarize only the
+original one-time execution and point to owner-readable bounded local detail.
+Bounded failure collection may continue only across caller-declared independent
+submitted sources and must recheck claim, workspace, environment and executable
+at every additional source boundary. Follow the schemas, limits, stop conditions,
+dashboard privacy rules and whole-task measurement distinctions in
+[Verification efficiency](references/verification-efficiency.md).
+
 For a sharded broad source, always resubmit the approved parent id and exact parent argv. Never invoke internal shard ids directly or treat the shard map as permission to skip a stale child. A sibling pass may survive a same-revision failure; after a mutation, reuse remains subject to the existing per-child authority.
 
 When submitting verification, include the actual repository directory as the top-level absolute `workdir` whenever the execution tool is launched outside the Hook session directory. This is required for Codex calls that select a per-call workdir because the Hook event exposes only the session cwd. The one-use runner checks that its real cwd matches the prepared binding before any check executes.

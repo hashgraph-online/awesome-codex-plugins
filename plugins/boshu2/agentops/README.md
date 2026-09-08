@@ -13,6 +13,17 @@ path is one RPI traversal:
 RPI -> Plan -> Implement -> fresh Validate -> repair to convergence -> report
 ```
 
+The selected **CDLC (Context Delivery Lifecycle)** contract adds maintained
+external context and learning around disposable agents. Discovery (shaped by
+Plan), Implement and Validate remain bounded by caller intent; a selected outer
+goal can authorize a new experiment within its native limits. This is contract
+adoption: Recall, extended Learn, evolve and the Go evidence migration are later
+work, not new runnable entrypoints. It promises neither weight training nor
+deterministic inference, and the current trial demonstrates no memory benefit.
+External reviewed Markdown/OKF memory, protected non-Git evidence and separate
+support/disclosure/utility claims are specified in
+[ADR-0016](docs/adr/ADR-0016-state-tiers.md).
+
 ## Quickstart
 
 ```bash
@@ -95,10 +106,15 @@ writes [BDD](https://cucumber.io/docs/bdd/) acceptance and DDD [ubiquitous
 language](https://martinfowler.com/bliki/UbiquitousLanguage.html) into the bead;
 Implement builds against it; Validate judges a hashed snapshot under
 `.agents/ao/intents/sha256/`. No beads? Plan shapes the caller's issue or chat
-text and the runtime snapshots those bytes the same way.
+text and the runtime snapshots those bytes the same way. These are standalone
+product-proof defaults; selected CDLC knowledge/disclosure evidence requires
+protected external routing before storage (ADR-0016).
 
-`validate` must run in a fresh context (not the author session). It can use
-the same model as the author or a different one.
+`validate` must run in a fresh context (not the author session). Risky surfaces
+and caller-required diversity need both fresh and cross-family exact-subject
+judgments; an unavailable required leg leaves PASS unproven. Other surfaces
+may use the same model. See the authorized bounded
+[model-dispatch recipe](skills/agent-native/references/model-dispatch.md).
 
 ## Multi-agent systems
 
@@ -176,7 +192,7 @@ one unless requested.
 
 | Skill | Job |
 |---|---|
-| [`rpi`](skills/rpi/SKILL.md) | run the anti-ceremony guard, then Plan, Implement, and fresh Validate at most once |
+| [`rpi`](skills/rpi/SKILL.md) | guard once, Plan and Implement at most once, fresh Validate plus admitted bounded repairs; report |
 | [`anti-ceremony`](skills/anti-ceremony/SKILL.md) | STOP/CONTINUE guard before Plan: name the consumer, the decision, the defect, and the retirement condition, or do not create the artifact |
 | [`plan`](skills/plan/SKILL.md) | create the bead (BDD + DDD ubiquitous language) |
 | [`implement`](skills/implement/SKILL.md) | TDD against the bead: RED → GREEN → refactor |

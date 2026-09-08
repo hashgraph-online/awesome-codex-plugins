@@ -44,9 +44,11 @@ scope as a class (cli/internal/gates/** plus regen outputs), first check
    evidence concrete, carrying citations forward; research and specialist
    skills are advisory inputs.
 3. Ensure the source contains acceptance examples, important non-goals, and the
-   allowed write scope. Name the write scope, whether it reaches a risky surface
-   (the short list [`validate`](../validate/SKILL.md) names), the caller's
-   `repair_rounds`, and the evidence this change will orphan: bound scorecards
+   allowed write scope. Name the write scope, its effect on acceptance and
+   enforcement under [`validate`](../validate/SKILL.md)'s risk rule (unknown risk
+   takes stronger review), the caller's `repair_rounds`, the named acceptance
+   gap and discriminating check that would establish progress, and the evidence
+   this change will orphan: bound scorecards
    or contracts whose evaluator files sit in the write scope. Run
    `bash scripts/evidence-orphans.sh <write scope>` to see that list rather than
    guessing it, and budget recapturing it as work this plan carries, not a
@@ -81,4 +83,8 @@ in the planning conversation into the source before freezing.
 Planning produces no AgentOps packet: the runtime carries the source's
 reference and digest to detect acceptance drift. Bound the work around the
 caller-visible outcome, not files, gates, or reviewer comments; decompose only
-when it reduces reasoning cost.
+when it reduces reasoning cost. An explicitly selected bounded outer goal may
+admit a different experiment after informative red within unchanged terminal
+acceptance and remaining allowance. A new hypothesis is not an acceptance
+expansion; recurrence alone is not proof that the design is wrong. Do not reopen
+an accepted plan merely to produce another control artifact.

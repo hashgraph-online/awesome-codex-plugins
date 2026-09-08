@@ -25,7 +25,7 @@ record shape, state rules, and execution rules:
   routes to actualize.
 - Scope: the `plan` document covering the branch work (matched by topic or
   path references), its `implements` chain one hop (`prd`, `idea`, `rnd`,
-  `spec`), plus every document the branch diff references. The `review`
+  `research`, `spec`), plus every document the branch diff references. The `review`
   skill pre-fills the branch boundary per `skills/_shared/branch-state.md`.
 - Status rule: this track transitions draft → accepted only, one
   per-document confirmation each; a decline leaves the status unchanged.
@@ -222,5 +222,5 @@ statements belong to the `spec` it implements, to the branch commits, and to
 whatever `closeout.capture` routed out — nothing unique survives the work.
 Every other type keeps its residual value. The `archived` status value does not exist in the kernel;
 WHILE that value is absent, the executing skill MUST NOT apply a discharge
-transition to a `prd`, an `idea`, or an `rnd`, and the report leaves each such
+transition to a `prd`, an `idea`, an `rnd`, or a `research`, and the report leaves each such
 candidate's status unchanged for the user's later action.

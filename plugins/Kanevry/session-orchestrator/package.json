@@ -1,6 +1,6 @@
 {
   "name": "session-orchestrator",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "description": "Loop engineering for AI coding agents — turn ad-hoc sessions into a repeatable research → plan → wave-execute → close loop with verification gates. Runs on Claude Code, Codex CLI, Cursor, and Pi.",
   "type": "module",
   "homepage": "https://session-orchestrator.com",
@@ -25,7 +25,6 @@
     ".mcp.json",
     "AGENTS.md",
     "CHANGELOG.md",
-    "plugin.json",
     "pi/",
     "skills/",
     "agents/",
@@ -39,6 +38,7 @@
     "assets/",
     ".claude-plugin/",
     ".codex-plugin/",
+    ".cursor-plugin/",
     ".agents/",
     ".cursor/",
     ".orchestrator/policy/",

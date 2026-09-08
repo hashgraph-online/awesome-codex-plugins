@@ -19,8 +19,9 @@ return the manifest digest and check receipts, stop.
 
 ## It's working if
 
-- The first transcript command is the acceptance check, and its output shows
-  the expected failure (or a green baseline for a relocation or refactor).
+- After source activation and startup association, the first behavior check
+  is the acceptance check; its output shows the expected failure (or an honest
+  green structural baseline for documentation, relocation, or refactor work).
 - Every path in `git diff --stat` falls inside the declared scope; an outside
   consumer is reported as `file:line`, not absorbed.
 - The response carries the `subject-manifest.v1` digest, author context ID,
@@ -30,7 +31,17 @@ return the manifest digest and check receipts, stop.
 
 1. Read the intent, acceptance, and scope from their existing source; before
    the first write, read `boundaries.md` in the rpi skill's `references`
-   directory for what Implement does not own.
+   directory for what Implement does not own. Before execution can fail, the
+   caller passes source-store/project/work identity and permitted intent
+   locators at dispatch/start. At startup, return observed native runtime,
+   session/context identity (or explicit unknowns) through the caller-owned
+   runtime channel for native comments/metadata recording; do not defer this
+   association until handoff. Follow the fact distinctions in
+   [session associations](../cass/references/SESSION_FORMATS.md#work-to-session-associations).
+   Parent and resume links need observed provenance; controller dispatch alone
+   does not establish native parentage. If startup observation or recording
+   fails, preserve that failure and the pre-execution reference with the caller,
+   leaving unobserved IDs unknown. Implement does not mutate the tracker.
 2. Run the declared first acceptance check before changing behavior. RED-first
    applies when acceptance is behavioral: preserve evidence that the check
    fails for the expected missing behavior. Relocations, doc merges, and pure

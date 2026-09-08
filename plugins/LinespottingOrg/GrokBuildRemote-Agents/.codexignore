@@ -1,0 +1,9 @@
+.git/
+.github/
+dist/
+node_modules/
+.env
+*.log
+*.exe
+mcp/gbr-mcp/node_modules/
+mcp/gbr-mcp/test/

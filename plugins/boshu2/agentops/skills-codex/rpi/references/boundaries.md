@@ -71,6 +71,12 @@ read and judge; the orchestrating context fixes. Validate emits no WARN,
 confidence, disposition, briefing learning, owner, next action, repair, retry,
 replan, helper, escalation, tracker, Git, release, closure, or delivery state.
 RPI and Validate reports end with the evidence; the caller owns continuation.
+A selected bounded outer goal may consume informative red and authorize a
+different experiment under unchanged acceptance. Its one causal HOLD helper
+per incident stays inside the remaining allowance and cannot replace required
+validation or revive a spent RPI bound. Cancellation, explicit refusal/judgment,
+and spent hard time/cost/quota skip that helper. The core never claims native
+pause or aggregate budget enforcement from objective text alone.
 A wrong subject needs no second judge: a subject or digest mismatch is
 `NOT_PROVEN` before any cross-family leg runs. Validate never asks the model
 to reconstruct Plan or Candidate packets; identity, scope, and freshness come

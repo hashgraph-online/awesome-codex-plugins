@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-09-07",
-  "total": 217,
+  "last_updated": "2026-09-08",
+  "total": 218,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -1368,6 +1368,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/avivsinai/bitbucket-cli/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Build Remote Agent",
+      "url": "https://github.com/LinespottingOrg/GrokBuildRemote-Agents",
+      "owner": "LinespottingOrg",
+      "repo": "GrokBuildRemote-Agents",
+      "description": "Pair a phone as spectator to a local Codex session via gbr-agent (QR / 8-char) and attach at 127.0.0.1:8788 or gbr-mcp.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/LinespottingOrg/GrokBuildRemote-Agents/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "BurpSuite MCP Bridge",

@@ -24,7 +24,10 @@ When the fresh judge and the cross-family judge disagree and the disagreement
 survives repair, the split is the orchestrator's decision, made in the open and
 recorded in the report. A caller who wants more reads before deciding may
 select council on that split alone. Council is that caller's choice, never a
-step the traversal takes on its own.
+step the traversal takes on its own. A selected outer goal's single HOLD helper
+is bounded causal advice, not permission to convene more votes or substitute
+for required fresh validation. An exhausted allowance or cancellation skips
+that helper; an unhelpful consultation does not authorize a second one.
 
 Ask which findings are real, never which verdict stands. Give the leg the
 acceptance, the write scope, the changed paths, the criteria, and both judges'
@@ -57,9 +60,14 @@ When the caller pins judges to model profiles, record each judge's
 the `agent-native` model-dispatch recipe).
 Cross-model agreement is an additional diversity axis: single-model unanimity
 is weighted as one confirmation with the same anti-echo-consensus rationale,
-regardless of how many judges share that model. If a requested profile has no
-live adapter, disclose `diversity_unsatisfied` on the report and continue
-single-model — never silently, never via `claude -p`.
+regardless of how many judges share that model. Use the caller-authorized
+bounded adapter in [agent-native's model-dispatch recipe](../agent-native/references/model-dispatch.md);
+this skill does not prescribe a separate invocation route. If a requested
+profile has no authorized live adapter, disclose `diversity_unsatisfied`.
+Available advisory views may still be returned with that limitation, but they
+do not satisfy the missing required leg. A required cross-family validation
+leg remains unsatisfied and prevents convergence; Council cannot substitute
+single-model agreement for it.
 
 ## Fresh sessions per round
 

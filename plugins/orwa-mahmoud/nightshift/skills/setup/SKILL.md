@@ -1,6 +1,7 @@
 ---
 name: setup
 description: Scaffold .nightshift/ and propose quality gates for this stack; asks, never imposes.
+license: MIT
 ---
 
 Set up Nightshift in this project. Do the scaffolding first, then the gates conversation, then
@@ -190,13 +191,14 @@ denied means denied. Ask one question:
  project nothing, and the first prompt of the night proves it. Settings on disk are what revivals
  inherit — a mode picked at launch dies with the process.
 - **Yes, on Codex** → there is no settings file to write: approvals are per launch. Tell the owner
- the unattended spelling — `codex -a never -s danger-full-access` — and say the trade plainly:
- the workspace-write sandbox protects `.git`, so a session under it can edit but never commit,
- and the default contract commits once per item. The fence around that access is nightshift's
+ that unattended execution and sandbox scope are two separate choices, and say the trade plainly:
+ a contract that does not commit runs unattended under `-a never -s workspace-write` — ticks alone
+ finish a night, in the gate and the stall guard alike, and the commit rule is theirs to strip
+ from the punch list and `clockOutMessage`. Under Codex's `workspace-write` sandbox `.git` is
+ protected, so the default contract, which commits once per item, cannot run under it and is
+ started with the launch command on the Codex host page,
+ `$NIGHTSHIFT_PLUGIN_ROOT/skills/nightshift/references/hosts/codex.md`. The fence around that access is nightshift's
  own guards, which hold in every mode — the same trade `bypassPermissions` makes on Claude Code.
- An owner whose contract does not commit (the commit rule is theirs to strip from the punch
- list and `clockOutMessage`) runs unattended under plain `workspace-write` — ticks alone finish
- a night, in the gate and the stall guard alike.
 - **No** → respect it and say the cost plainly: *"a permission prompt mid-shift freezes the night
  until morning — if the shift stalls on one, that was tonight's trade."* Suggest the narrower
  alternative: pre-allow just the punch list's tools (test runner, linter, git) in the same file.

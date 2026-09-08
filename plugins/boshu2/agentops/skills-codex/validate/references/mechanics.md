@@ -33,17 +33,51 @@ conflicting content is an integrity failure represented by `NOT_PROVEN`.
 `store-verdict` refuses an empty manifest and refuses a PASS carrying
 `not_checked` entries, recording a `validate.integrity` finding.
 
+## Selected CDLC evidence routing (contract, later runtime work)
+
+For knowledge/disclosure review, the caller must resolve an external protected
+non-Git evidence root before any storage. Intents, drafts, manifests, verdicts,
+receipts and diagnostics all belong there; missing or ambiguous owner/project
+routing fails without consumer-workspace fallback. Exact factual support and
+destination disclosure use distinct immutable caller-supplied acceptance and
+exact payload/metadata identities. A fresh authorized reviewer may judge both;
+neither substitutes for later usefulness. Read permission alone does not permit
+model transmission or Git ingestion. ADR-0016 owns the full confidentiality order.
+
+The current helper table above describes standalone behavior. In particular,
+`store-verdict` still snapshots under `<workspace>/.agents/ao/intents/sha256`;
+`--verdict-dir` alone does not relocate all evidence. This source adoption does
+not implement the selected Go manifest/snapshot/verdict-storage path or certify
+current helper defaults for restricted CDLC inputs. Keep such inputs out of an
+incompatible entrypoint until its later owner provides the explicit external
+routing and shared conformance. Existing requested standalone proof remains
+caller-owned and is preserved.
+
+## Proportionate fresh checks
+
+Apply the owning skill's prospective effect-based risk rule. A low-risk wording
+correction can use one fresh judge; acceptance or enforcement changes and
+unknown risk require stronger review. The current change keeps every review
+leg already required. This changes review cost, never the exact subject, full
+acceptance, evidence for every criterion, or the empty-`not_checked` bar.
+
+Reuse existing digest-bound check receipts when their subject, inputs, tool
+identity, and claimed criterion still match. Rerun the fast discriminating
+check for a changed or uncertain criterion; rerun broader checks when the change
+invalidates their receipts or acceptance explicitly requires them. A new receipt
+label, changed digest, reduced finding count, or repeated review is not useful
+progress without evidence that a named acceptance gap closed. Reuse the current
+findings/evidence fields for causal comparisons; create no progress ledger.
+
 ## Cross-family adapters
 
-| Orchestrating runtime | Cross-family judge leg |
-|---|---|
-| Claude | a read-only `codex exec` judge leg |
-| Codex | a caller-selected interactive Claude session in an NTM pane |
-
-Probe the adapters at runtime through the `agent-native` model-dispatch
-recipe (`codex-exec` and/or `ntm`). The judge leg reads and judges; it never
-mutates the subject. Record author and validator `model_identity` in evidence
-refs and freshness attestation notes; the `verdict.v2` schema is unchanged.
+Use the single [agent-native model-dispatch recipe](../../agent-native/references/model-dispatch.md)
+for caller selection, host authorization and bounded invocation. Both fresh
+and required cross-family exact-subject legs remain; their initial inputs are
+independent. A judge reads and judges; it never mutates the subject. Record
+actual author/judge model and context identities in protected evidence refs
+and freshness attestation notes; the `verdict.v2` schema is unchanged.
+Transport, output, exit and process completion are facts, not semantic PASS.
 
 ## Where each scope limit lives inside a PASS
 

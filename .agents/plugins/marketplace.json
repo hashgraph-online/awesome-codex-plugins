@@ -2016,6 +2016,21 @@
       "icon": "./plugins/avivsinai/bitbucket-cli/assets/bkt-icon.svg"
     },
     {
+      "name": "build-remote-agent",
+      "displayName": "Build Remote Agent",
+      "source": {
+        "source": "local",
+        "path": "./plugins/LinespottingOrg/GrokBuildRemote-Agents"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Pair a phone as spectator to a local Codex session via gbr-agent (QR / 8-char) and attach at 127.0.0.1:8788 or gbr-mcp.",
+      "icon": "./plugins/LinespottingOrg/GrokBuildRemote-Agents/.codex-plugin/icon.svg"
+    },
+    {
       "name": "burpsuite-mcp-bridge",
       "displayName": "BurpSuite MCP Bridge",
       "source": {
