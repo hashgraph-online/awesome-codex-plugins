@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-09-09",
-  "total": 218,
+  "total": 219,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -668,6 +668,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/NotNull92/hera-agent-unity/HEAD/plugins/hera-unity/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Herdr Codex Subagents",
+      "url": "https://github.com/arvkonstantin/herdr-codex-subagents",
+      "owner": "arvkonstantin",
+      "repo": "herdr-codex-subagents",
+      "description": "Opens a read-only Herdr pane for every Codex subagent and closes it when the work is done.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/arvkonstantin/herdr-codex-subagents/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "HOL Guard Plugin",

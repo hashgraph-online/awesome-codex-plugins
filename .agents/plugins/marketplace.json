@@ -982,6 +982,21 @@
       "icon": "./plugins/NotNull92/hera-agent-unity/assets/icon.svg"
     },
     {
+      "name": "herdr-codex-subagents",
+      "displayName": "Herdr Codex Subagents",
+      "source": {
+        "source": "local",
+        "path": "./plugins/arvkonstantin/herdr-codex-subagents"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Opens a read-only Herdr pane for every Codex subagent and closes it when the work is done.",
+      "icon": "./plugins/arvkonstantin/herdr-codex-subagents/assets/icon.svg"
+    },
+    {
       "name": "hol-guard-plugin",
       "displayName": "HOL Guard Plugin",
       "source": {
