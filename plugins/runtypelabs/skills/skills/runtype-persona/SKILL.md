@@ -1,11 +1,6 @@
 ---
 name: runtype-persona
-description: >-
-  Use when embedding, deploying, configuring, styling, or debugging Runtype Persona chat
-  widgets, fullscreen AI assistant layouts, chat surfaces, client-token installs, theme
-  tokens, artifacts, tool/reasoning visibility, programmatic widget access, WebMCP page
-  tools, or browser-side local tools. Prefer generate_persona_embed_code and
-  get_persona_theme_reference over hand-written snippets.
+description: 'Embed, style, or debug Runtype Persona widgets and browser-side chat integrations.'
 user-invocable: true
 argument-hint: '[Persona widget or chat UI task]'
 ---

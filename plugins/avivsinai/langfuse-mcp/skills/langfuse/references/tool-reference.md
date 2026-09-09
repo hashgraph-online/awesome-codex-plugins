@@ -114,13 +114,13 @@ fetch_trace(trace_id="abc-123", include_observations=true, output_mode="full_jso
 
 ### fetch_observations
 
-Search and filter observations (spans, generations, events).
+Search and filter observations (spans, generations, events, tool calls, agent steps, and more).
 
 **Parameters:**
 | Name | Type | Required | Default | Description |
 |------|------|----------|---------|-------------|
 | `age` | int | Yes | - | Look back window in minutes from now. Max 10080 (7 days). |
-| `type` | string | No | null | Filter by type: "SPAN", "GENERATION", or "EVENT" |
+| `type` | string | No | null | Filter by type: `SPAN`, `GENERATION`, `EVENT`, `AGENT`, `TOOL`, `CHAIN`, `RETRIEVER`, `EVALUATOR`, `EMBEDDING`, or `GUARDRAIL` |
 | `name` | string | No | null | Name filter (passed to API) |
 | `user_id` | string | No | null | User ID filter (exact match) |
 | `trace_id` | string | No | null | Trace ID filter (exact match) |

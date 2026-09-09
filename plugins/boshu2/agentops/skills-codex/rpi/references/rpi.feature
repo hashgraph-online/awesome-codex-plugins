@@ -1,8 +1,8 @@
-Feature: RPI runs one bounded experiment
+Feature: Optional fixed-dispatch reference adapter remains bounded
   @covered-by:skills/rpi/tests/test_run_once.py::test_anti_ceremony_guard_runs_once_before_plan
   Scenario: Guard CONTINUE preserves the core phase order
     Given one intent
-    When RPI is invoked
+    When the fixed-dispatch adapter is explicitly selected
     Then the anti-ceremony guard is invoked exactly once before Plan
     And Plan and Implement are each dispatched at most once in that order, and fresh Validate repeats only inside the bounded repair phase
     And the final report contains no next action
@@ -10,7 +10,7 @@ Feature: RPI runs one bounded experiment
   @covered-by:skills/rpi/tests/test_run_once.py::test_anti_ceremony_stop_dispatches_no_core_phase
   Scenario: Guard STOP admits no core phase
     Given the anti-ceremony guard returns STOP with its required response fields
-    When RPI is invoked
+    When the fixed-dispatch adapter is explicitly selected
     Then Plan, Implement, and Validate are not dispatched
     And RPI reports NOT_PLANNED and stops
 
@@ -18,7 +18,7 @@ Feature: RPI runs one bounded experiment
   Scenario: Validation failure enters the bounded repair phase
     Given Validate returns FAIL or NOT_PROVEN with findings
     When the convergence law admits another round
-    Then RPI repairs the named findings and re-validates freshly, without replan, helper, or delivery
+    Then the adapter evaluates supplied repair evidence, without runtime dispatch or delivery
 
   @covered-by:skills/rpi/tests/test_run_once.py::test_repair_stops_when_a_closed_finding_reopens
   Scenario: The convergence law stops a repair spiral

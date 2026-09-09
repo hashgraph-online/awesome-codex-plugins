@@ -1,6 +1,6 @@
 # anti-ceremony
 
-Guard outcome work against process overhead. Triggers: RPI pre-Plan guard; explicit "full anti-ceremony audit" requests.
+Guard outcome work against process overhead. Triggers: optional "quick guard"; explicit "full anti-ceremony audit" requests.
 
 ## Instructions
 

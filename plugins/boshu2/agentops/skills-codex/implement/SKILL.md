@@ -1,12 +1,13 @@
 ---
 name: implement
-description: 'Execute one bounded RED to GREEN experiment from bead or caller intent; return derived subject identity and check facts. Triggers: "implement", "implement this bead", "run the experiment". Full plan-to-validation requests route to rpi.'
+description: 'Implement authorized work and repair understood defects; return derived subject identity and check facts. Triggers: "implement", "implement this bead", "run the experiment". Full plan-to-validation requests route to rpi.'
 ---
 # Implement
 
-Execute exactly one bounded experiment described by the resolved bead or caller
-intent. Implement owns subject edits and factual evidence; the runtime derives
-identity and receipts.
+Implement the authorized outcome, including ordinary direct repairs. Use the
+resolved bead or caller intent; do not turn every failed check into a new phase.
+Implement owns subject edits and factual evidence; the runtime derives identity
+and receipts. A clear trivial change needs no Plan, Recall or Learn worksheet.
 
 ## Prompt
 
@@ -41,21 +42,27 @@ return the manifest digest and check receipts, stop.
    Parent and resume links need observed provenance; controller dispatch alone
    does not establish native parentage. If startup observation or recording
    fails, preserve that failure and the pre-execution reference with the caller,
-   leaving unobserved IDs unknown. Implement does not mutate the tracker.
+   leaving unobserved IDs unknown. Startup association applies when the caller selected episode tracking; a
+   trivial edit does not need a new tracking worksheet. Use the caller-owned
+   runtime channel for handoff facts, without a second work account.
 2. Run the declared first acceptance check before changing behavior. RED-first
    applies when acceptance is behavioral: preserve evidence that the check
    fails for the expected missing behavior. Relocations, doc merges, and pure
    refactors record an honest green pre-change baseline instead.
-3. Make the smallest in-scope change that satisfies the active behavior.
+3. Make the smallest in-scope change that satisfies the active behavior. Repair
+   ordinary known defects directly. A failed test with an understood cause needs
+   a fix and another discriminating check, not a helper or fresh planning lane.
+   If evidence disproves an assumption, revise the approach within unchanged
+   acceptance and scope; use Plan only to resolve consequential uncertainty.
 4. Run the targeted acceptance checks and capture factual results.
 5. Refactor only while those checks stay green. Refactoring does not change the
    acceptance test.
 6. Have the runtime derive actual changed paths and `subject-manifest.v1` from
    the before/after subject.
-7. Run `bash scripts/evidence-orphans.sh <changed paths>` over the changed
-   paths the runtime derived, and put its output in the check receipts the
-   validator reads, so orphaned evidence arrives as a receipt rather than as a
-   surprise at verify time. Run it again after every repair round, over the
+7. When changed files affect bound acceptance evidence, run `ao provenance evidence-orphans --root <repo-root>` with one
+   `--changed <path>` per changed path the runtime derived, and put its JSON
+   output in the check receipts the validator reads, so orphaned evidence
+   arrives as a receipt rather than as a surprise at verify time. Run it again after every repair round, over the
    paths as they stand, because a repair can orphan evidence the first pass did
    not. Read the output as written and never hand-list the orphans instead.
 8. Return the manifest digest, author context ID, and exact check receipts in the
@@ -71,9 +78,9 @@ first check.
 
 On discovering a live consumer of the change outside the declared write scope
 (a test asserting the old path, a generated twin, a gate reading the moved
-file), stop and report the exact file and line to the caller, who may revise
-the intent and start a separate invocation; a different acceptance contract
-is a new intent.
+file), stop and report the exact file and line to the caller for a scope amendment; continue independent authorized work. A different
+acceptance contract needs caller authority. Generated outputs already included
+as a scope class need no new permission.
 
 Before declaring GREEN, self-audit the diff for mocks, placeholders, TODO
 stubs, hardcoded fixture values, weakened assertions, regenerated goldens,
@@ -85,6 +92,10 @@ oracle is not evidence: finish the behavior or report it as not built.
 
 ## Boundary
 
-Do not commit, push, claim, close, release, land, reserve, retry, or invoke a
-semantic validator. A failed check is evidence for the caller, not permission
-to create a packet or validation loop.
+Do not issue semantic PASS or infer Git, tracker or delivery permission from
+this skill. Follow the caller's existing authority and repository policy.
+An implement-only handoff returns facts to its caller; a full outcome request
+uses RPI through fresh final validation. Known defects stay implementation work.
+On a genuine causal stall, use RPI's at-most-one bounded helper rule, never a
+helper chain. Reserve finishing capacity and respect actual caller/native bounds;
+a retry count alone is not a spent time or quota budget.

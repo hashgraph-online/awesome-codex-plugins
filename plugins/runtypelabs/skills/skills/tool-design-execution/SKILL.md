@@ -1,12 +1,6 @@
 ---
 name: tool-design-execution
-description: >-
-  Use when deciding how an agent tool executes: synchronous versus async job with
-  polling, idempotency keys so retries are safe, transactional boundaries,
-  compensation for cross-system multi-step operations, and timeout boundaries with
-  partial results. Trigger phrases: "long-running tool", "tool times out", "agent
-  retried and created a duplicate", "idempotent tool", "job id and poll", "rollback
-  when a step fails", "async tool for the agent", "saga".
+description: 'Design agent tool execution: async jobs, idempotency, timeouts, transactions, and compensation.'
 user-invocable: true
 argument-hint: '[tool whose execution semantics to design]'
 ---

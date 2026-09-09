@@ -55,6 +55,10 @@ shared method, laundered as independent confirmation.
 
 ## Model-diversity axis
 
+Default to fresh contexts in the author's model family on both Codex and Claude.
+The caller selects mixed-family review explicitly and may pin each model.
+Review time comes from caller/native bounds, with no fixed ten-minute cap.
+
 When the caller pins judges to model profiles, record each judge's
 `model_identity` beside its methodology and context ID (see
 the `agent-native` model-dispatch recipe).

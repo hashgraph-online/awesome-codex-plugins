@@ -1,6 +1,6 @@
 ---
 name: session-plan
-description: Creates a structured wave execution plan with role-based assignment after user alignment. Decomposes agreed tasks into configurable waves (default 5) with optimal agent assignment, dependency ordering, and inter-wave checkpoints. Activated by session-start after Q&A phase completes.
+description: Creates a structured wave execution plan with role-based assignment after user alignment. Decomposes agreed tasks into waves resolved from the session mode by `scripts/session-shape.mjs`, with optimal agent assignment, dependency ordering, and inter-wave checkpoints. Activated by session-start after Q&A phase completes.
 metadata:
   user-invocable: 'false'
   tags: orchestration, planning, waves, agents

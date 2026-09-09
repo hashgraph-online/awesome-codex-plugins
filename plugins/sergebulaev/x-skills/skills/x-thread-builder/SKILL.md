@@ -1,6 +1,6 @@
 ---
 name: x-thread-builder
-description: Build a long-form X (Twitter) thread (tweetstorm) using a 2026 thread formula (listicle-thread, story thread, curiosity-gap opener, how-I teardown), picked by goal (bookmarks, likes, reposts, replies). Structures tweet 1 as a promise plus open loop, paces one beat per tweet, and closes for the repost. Publishes via Publora, which auto-splits long content into a numbered (1/N) thread. Not for single tweets (use x-post-writer) or auditing a draft (use x-humanizer --mode audit).
+description: "Build a long-form X (Twitter) thread (tweetstorm) using a 2026 thread formula (listicle-thread, story thread, curiosity-gap opener, how-I teardown), picked by goal (bookmarks, likes, reposts, replies). Structures tweet 1 as a promise plus open loop, paces one beat per tweet, and closes for the repost. Publishes via Publora, which auto-splits long content into a numbered (1/N) thread. Not for single tweets (use x-post-writer) or auditing a draft (use x-humanizer --mode audit)."
 ---
 
 # X Thread Builder

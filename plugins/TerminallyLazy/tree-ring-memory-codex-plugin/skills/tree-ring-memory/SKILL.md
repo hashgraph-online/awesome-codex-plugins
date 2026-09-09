@@ -31,6 +31,9 @@ working directory by accident.
    this project. Otherwise check `command -v tree-ring` and run
    `tree-ring --version`.
 2. Read existing `<project-root>/.tree-ring/SKILL.md` and `CLI.md` when present.
+   Lifecycle hooks need CLI 0.15.6 or newer; older packages may omit
+   automatic hooks. Current Codex packages include them, including the public upload. Use `integrations status --verbose` to inspect the last
+   recall count and query class, and distinguish no receipt from zero results.
 3. This package targets Tree Ring Memory CLI 0.15.0 or newer. If no compatible
    CLI is available and the user's request already authorizes Tree Ring setup,
    install the verified current release project-locally from the project root.
@@ -91,8 +94,10 @@ Use this sequence for meaningful project work:
    changed and defer to current source files, tests, policies, and user input.
 4. Do the work. Do not write memory merely because a session is active.
 5. At a natural checkpoint or closeout, capture only durable decisions,
-   corrections, validated lessons, warnings, or future seeds. Never store raw
-   transcripts, secrets, or sensitive data.
+   corrections, validated lessons, warnings, preferences, or future seeds.
+   Never store raw transcripts, secrets, or sensitive data. Repository
+   lifecycle integrations enforce one agent-mediated checkpoint at `Stop` or
+   `SubagentStop`; they do not derive memory from hook payloads.
 6. Observe the command result and report the actual outcome. A proposed memory,
    dry run, bridge file, or generated marker is not proof that a durable write,
    sync, activation, correction, or deletion occurred.
@@ -484,6 +489,23 @@ Tree Ring Memory does not autonomously scrape chats or write durable memory in
 the background. The active agent is responsible for deciding when a Tree Ring
 command is warranted, then calling the CLI deliberately.
 
+Repository lifecycle integrations register exactly `SessionStart`,
+`SubagentStart`, `Stop`, and `SubagentStop`. Start events perform bounded recall.
+Each stop event enforces one synchronous, agent-mediated memory checkpoint. The
+hook parser uses stable harness identity and project fields only; it never
+inspects or persists `transcript_path`, `last_assistant_message`, prompts, or
+transcript content. It does not register a prompt, tool, or `SessionEnd` hook.
+
+At the checkpoint, evaluate the grounded work already in your context. If there
+are no durable candidates, finish without a memory write. For up to three
+concise candidates that are durable, source-grounded, and normal sensitivity,
+automatically run the exact strict `tree-ring capture` command template supplied
+by the lifecycle handler. Do not edit its project, agent, workflow, session,
+checkpoint, operation, or source identity fields. Strict capture fixes
+`scope=agent`, adds the automatic-capture tag, and rejects sensitive content.
+Never substitute `remember`, `evidence`, an import, or a transcript summary for
+that checkpoint command.
+
 Use bridge files only to discover Tree Ring and its command reference:
 
 - project-level bridges should point to `.tree-ring/SKILL.md` and
@@ -513,7 +535,8 @@ Never keep known-wrong memory merely because it was previously recalled.
 
 ## Closeout Habit
 
-At the end of meaningful work, ask:
+At the end of meaningful work, or when a stop hook requests the single
+agent-mediated checkpoint, ask:
 
 - What did we decide?
 - What did we learn?
@@ -522,4 +545,6 @@ At the end of meaningful work, ask:
 - Is there a future seed worth revisiting?
 - Is any memory sensitive and better left unstored?
 
-Only remember the answers that will materially improve future work.
+Only remember the answers that will materially improve future work and pass the
+normal-sensitivity gate. During a lifecycle checkpoint, use only the supplied
+strict `tree-ring capture` template.

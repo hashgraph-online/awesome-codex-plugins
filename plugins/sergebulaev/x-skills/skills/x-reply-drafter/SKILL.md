@@ -1,6 +1,6 @@
 ---
 name: x-reply-drafter
-description: Draft a reply or a value-add quote tweet for a specific X (Twitter) tweet from its URL. Use to reply in a thread, answer a creator, or quote-tweet with added value. Parses the tweet URL, reads pasted context, decides reply vs quote tweet, and drafts 1-3 variants in your voice. X has no LinkedIn-style 2-level thread flattening, so a reply is just a tweet. Publora has no reply endpoint, so the draft is returned as a copy-paste block to post yourself. Not for top-level posts (use x-post-writer).
+description: "Draft a reply or a value-add quote tweet for a specific X (Twitter) tweet from its URL. Use to reply in a thread, answer a creator, or quote-tweet with added value. Parses the tweet URL, reads pasted context, decides reply vs quote tweet, and drafts 1-3 variants in your voice. X has no LinkedIn-style 2-level thread flattening, so a reply is just a tweet. Publora has no reply endpoint, so the draft is returned as a copy-paste block to post yourself. Not for top-level posts (use x-post-writer)."
 ---
 
 # X Reply Drafter

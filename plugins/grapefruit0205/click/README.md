@@ -12,6 +12,11 @@ Click provides **incremental verification** for coding agents. It records which 
 
 The goal is to complete the same agreed work with less time, token use, and intervention. Reused checks are one part of that result; they do not by themselves demonstrate a faster completed task.
 
+The current source adds parent-relative cost checks, fewer duplicate setup runs,
+stable Vitest/Jest file groups, and owner-declared file-input reuse policies.
+See [verification economics](docs/architecture/verification-economics.md) for
+configuration, the paired-session comparison, and the limits of time-saving claims.
+
 - **Reuse with an explanation:** retain a valid result only when its execution bindings and reuse rules still hold.
 - **Automatic sharding:** propose and maintain groups for supported suites, retaining the full-suite fallback when splitting is unsupported or not worthwhile.
 - **Useful verification feedback:** show executed, reused, failed, and outstanding checks; optionally summarize failures.
@@ -30,14 +35,14 @@ codex plugin add click@click
 
 Restart Codex and start a new task so the installed Hooks and skill reload. Review pending Click Hooks in the CLI's `/hooks` view before relying on them; see [Hook troubleshooting](#hook-troubleshooting).
 
-Current release: **v0.93.0**. To update:
+Current release: **v0.96.0**. To update:
 
 ```sh
 codex plugin marketplace upgrade click
 codex plugin add click@click
 ```
 
-Restart and use a fresh task after updating. v0.93.0 rejects malformed evidence revisions, binds safe-change and successor reuse to their exact current inputs, confirms those inputs again before reuse, and improves explicit process termination and fallback-report cleanup. Automatic sharding and authorized shard reuse remain supported. See [release notes](RELEASE_NOTES.md) and the [review-hardening record](docs/review-hardening/reports/phase-6.md) for validation, measurements, and their limits.
+Restart and use a fresh task after updating. v0.96.0 rejects uneconomic splits, avoids duplicate Evidence bootstrap child runs, supports stable large Vitest/Jest groups, and adds owner-declared file-input policy v2 for child-specific cross-revision reuse. Affected or uncertain children run, and an incomplete split falls back to the parent. Automatic sharding `init/status/refresh` and authorized shard reuse remain required regressions. See [release notes](RELEASE_NOTES.md) and [verification economics](docs/architecture/verification-economics.md).
 
 ## Start with everyday work
 
@@ -114,11 +119,24 @@ For an eligible proposal, the normal sequence is:
 1. Review the proposal; `refresh` applies eligible policy in Evidence, or under the separately approved Guarded scope.
 2. At `commit-required`, commit the exact proposed policy through your normal Git workflow. The setup controller does not run `git add`, `commit`, or `push`.
 3. `refresh` performs parent/child bootstrap, then reports `baseline-required`. Bootstrap is setup cost.
-4. `refresh` obtains baseline verification for the current revision. Passing children can reach `sharding-ready` with reuse unavailable; `reuse-ready` additionally requires complete authoritative observations for every child.
+4. `refresh` obtains baseline verification for the current revision. Passing children reach `sharding-ready`; an unchanged request can use exact receipts even when Observer is off. Committed-policy and authoritative-observation readiness are reported separately.
 
-Read `status` between steps and follow its next action. Automatic setup's reuse readiness is separate from the ordinary exact-receipt and safe-change routes above. Later discovery changes produce a bounded diff; refresh updates only policy matching Click's previously committed lineage and does not overwrite user-owned or modified policy.
+Read `status` between steps and follow its next action. Status separates command execution, automatic inventory/split, exact reuse, committed-policy reuse, and authoritative-observation reuse; one ready route does not imply the others are ready. Later discovery changes produce a bounded diff; refresh updates only policy matching Click's previously committed lineage and does not overwrite user-owned or modified policy.
 
-The collector supports bounded unittest discovery and a conservative pytest collect-only profile on CPython 3.10–3.14. Unsupported or ambiguous collection retains the parent command. See the [automatic sharding guide](skills/click/references/automatic-sharding-setup.md) and [two-project E2E record](docs/auto-sharding-e2e.md).
+Automatic inventory and exact splitting are locally verified for bounded unittest, pinned Vitest 5, and pinned Jest 30 profiles. The conservative pytest collect-only profile is implemented and assigned to pinned pytest CI; this checkout has no pytest runtime. Vitest and Jest use profile-limited static configuration; unsupported or ambiguous collection retains the parent command. See the [automatic sharding guide](skills/click/references/automatic-sharding-setup.md) and [two-project E2E record](docs/history/auto-sharding/e2e.md).
+
+Support is tracked by tool profile rather than by language name alone:
+
+| Tool/profile | Actual local execution | Automatic inventory/split |
+| --- | --- | --- |
+| CPython unittest | Verified | Profile-limited |
+| pytest | Collector/profile implemented; pinned CI assigned, unavailable in this local final run | Profile-limited |
+| Vitest 5 / Jest 30 | Verified with pinned fixtures | Profile-limited, exact file children |
+| Node test/check, npm test, Go test | Verified | Parent execution only |
+| JSON/YAML/Markdown/SVG project validators, jq | Verified fixtures | Parent execution only |
+| Cargo, Gradle/Maven, .NET, TypeScript/CMake/CTest, direct SQL/XML linters | Command/runtime profile recognized; native execution still unverified in this checkout | None |
+
+A recognized-only profile is not a claim that its native toolchain passed. Runtime and CI evidence by phase is recorded in the [multilanguage expansion history](docs/history/multilang-expansion/README.md).
 
 ## Can Observer stay off?
 
@@ -144,7 +162,7 @@ click-gate dashboard status
 click-gate dashboard stop
 ```
 
-Open the local URL reported by the control. The dashboard shows the current task, verification-group states, reuse reasons, and work history. Each completed group is persisted while later groups run. A viewer can remain connected across successive Evidence tasks in the same host session and workspace.
+Open the local URL reported by the control. The first screen separates command, auto-inventory, exact-reuse, committed-policy, and observation readiness and shows the next action. It also shows the current task, verification-group states, reuse reasons, and work history. Each completed group is persisted while later groups run. A viewer can remain connected across successive Evidence tasks in the same host session and workspace.
 
 The **top-right language selector** offers **한국어 · English · 简体中文**. Korean is the default; the browser remembers the preference for the same origin when local storage is available. Reports follow the selected language, while user-authored task and check names retain their original text.
 
@@ -236,7 +254,7 @@ Protocol details and implementation boundaries:
 - [Verification profiles](skills/click/references/verification-profiles.md) and [capability protocol](skills/click/references/capability-protocol.md)
 - [Automatic sharding setup](skills/click/references/automatic-sharding-setup.md) and [Evidence Shards v1](skills/click/references/evidence-shards-v1.md)
 - [Authoritative Observer v2](skills/click/references/authoritative-observer-v2.md), [Shadow Observer v1](skills/click/references/observer-v1.md), and [Shadow Intelligence v1](skills/click/references/shadow-intelligence-v1.md)
-- [Verification efficiency](skills/click/references/verification-efficiency.md), [anti-loop policy](skills/click/references/anti-loop-policy.md), and [runtime architecture and optimization](docs/runtime-optimization.md)
+- [Documentation map](docs/README.md), [verification efficiency](skills/click/references/verification-efficiency.md), [anti-loop policy](skills/click/references/anti-loop-policy.md), and [runtime architecture and optimization](docs/architecture/runtime-optimization.md)
 
 ## License
 

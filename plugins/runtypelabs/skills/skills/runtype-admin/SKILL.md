@@ -1,11 +1,6 @@
 ---
 name: runtype-admin
-description: >-
-  Use when operating a live Runtype account through MCP or Code Mode MCP: inspect resources,
-  debug failed flows or agents, read logs and traces, manage products, surfaces, records,
-  schedules, secrets, models, evals, batches, conversations, client tokens, or make safe
-  account mutations. Includes search/execute patterns, read-before-write, validation,
-  pagination, and conservative destructive-change policy.
+description: 'Inspect, debug, or manage a live Runtype account through MCP or CLI; mutate only within the requested scope.'
 user-invocable: true
 argument-hint: '[live account operation or debugging task]'
 ---

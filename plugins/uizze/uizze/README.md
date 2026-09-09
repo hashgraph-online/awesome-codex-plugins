@@ -1,89 +1,129 @@
-> **Stop AI coding agents from shipping generic UI.**
+# UIZZE · Better UI for coding agents
 
-# Stop Making UI Slop
+**Build interfaces that look like your product.** Give Codex, Claude Code, Cursor, and GitHub Copilot a focused UI workflow, with optional references from **800,000+ real web and iOS screens**.
 
-Build product-specific UI with free skills and, when useful, focused
-references from [UIZZE](https://uizze.com).
-
-![Stop Making UI Slop with UIZZE](https://uizze.com/landing/anti-ui-slop-skill-banner.png)
+[![Stop Making UI Slop with UIZZE](https://uizze.com/landing/anti-ui-slop-skill-banner.png)](https://uizze.com/?utm_source=github&utm_medium=repository&utm_campaign=discovery&utm_content=readme_banner)
 
 [![CI](https://github.com/uizze/uizze/actions/workflows/ci.yml/badge.svg)](https://github.com/uizze/uizze/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE)
+[![Licenses: MIT and Apache-2.0](https://img.shields.io/badge/Licenses-MIT_%2F_Apache--2.0-black.svg)](LICENSING.md)
+[![GitHub MCP Registry](https://img.shields.io/badge/GitHub-MCP_Registry-181717?logo=github)](https://github.com/mcp/uizze/uizze)
 
-## Install a skill
+[**Explore UIZZE →**](https://uizze.com/?utm_source=github&utm_medium=repository&utm_campaign=discovery&utm_content=readme_product) · [Try a workflow](examples/agent-workflows.md) · [Connect MCP](integrations/mcp) · [Add the PR check](integrations/github-action)
 
-Use `ui-design` as the broad design and implementation workflow:
+## Watch UIZZE before and after
+
+30-second mobile UI comparison: **No skills** on the left, **MCP + Skills** on the right.
+
+https://github.com/user-attachments/assets/0137638f-d963-4e6b-a1a6-d7e2dce87600
+
+[**Build your next screen with UIZZE →**](https://uizze.com/?utm_source=github&utm_medium=repository&utm_campaign=discovery&utm_content=readme_video)
+
+[Try a billing screen in Claude Code, Cursor, or Copilot](examples/first-screen.md): install, copy the brief, connect optional reference search, and check the result.
+
+## Start with your next screen
+
+Install the free UI design skill:
 
 ```bash
 npx skills add https://uizze.com --skill ui-design
 ```
 
-Use `anti-ui-slop` when the task is specifically about preventing or reviewing
-generic UI:
+Then give your agent a real task:
+
+```text
+Use ui-design to improve our billing settings page. Make the current plan,
+payment method, and invoices easy to scan. Reuse our components and design
+tokens. Include loading, empty, error, and permission states. Inspect the
+result at desktop and mobile sizes and fix what breaks.
+```
+
+The skills work without an account or MCP connection. Start in an existing project: your brief, components, and design system guide the work.
+
+| Your task | Free skill | What to ask for |
+| --- | --- | --- |
+| Build or redesign an interface | [`ui-design`](skills/ui-design) | A clear hierarchy, working interactions, and the states your users need |
+| Fix a generic first draft | [`anti-ui-slop`](skills/anti-ui-slop) | Product-specific content, deliberate layouts, and a finish review |
+| Investigate a UI decision | [`ui-radar`](skills/ui-radar) | A focused reference workflow; connect the paid MCP for live retrieval |
+
+For a focused review, install `anti-ui-slop` instead:
 
 ```bash
 npx skills add https://uizze.com --skill anti-ui-slop
 ```
 
-The skills work without an account, token, script, or MCP connection. The
-domain packages are canonical; this repository mirrors them for GitHub-native
-installers.
+Prefer installing from GitHub? Use `npx skills add uizze/uizze --skill ui-design`. The domain packages remain canonical; this repository mirrors all three skills.
 
-## Connect the paid MCP
+## Bring real product references into the conversation
 
-Create an agent token in [UIZZE](https://uizze.com), keep it out of source
-control, and connect the authenticated endpoint:
+Use UIZZE when the agent needs to see how real products handle a specific design problem: a dense settings page, a permission flow, an invoice table, or an iOS onboarding screen.
 
-```bash
-export UIZZE_AGENT_TOKEN="uizze_at_your_token"
-codex mcp add uizze --url https://uizze.com/mcp --bearer-token-env-var UIZZE_AGENT_TOKEN
+The optional **paid MCP** connects your agent to focused reference and material search:
+
+| Tool | What your agent gets |
+| --- | --- |
+| `find_ui_references` | Up to three full-screen references per result, drawn from UIZZE's web and iOS library |
+| `find_ui_materials` | Up to three hosted fonts, icons, animated icons, or explicitly requested packs |
+
+```text
+Find references for a team permissions screen with inherited roles and
+restricted actions. Explain which decisions would help our workflow,
+then implement them using our existing components and visual language.
 ```
 
-The MCP intentionally exposes two tools:
+Create an agent token in [UIZZE](https://uizze.com/?utm_source=github&utm_medium=repository&utm_campaign=discovery&utm_content=readme_mcp), then follow the [MCP setup guide](integrations/mcp). References inform the design; the agent builds the interface in your own product's style. If a search returns no useful evidence, continue from the project.
 
-- `find_ui_references` — find or inspect up to three full-screen references.
-- `find_ui_materials` — find up to three hosted fonts, icons, animated icons,
-  or explicitly requested packs.
+## Use it where you already build
 
-No result is a valid result. Agents should continue with the product's existing
-system instead of retrying or inventing advice.
+| Environment | Start here |
+| --- | --- |
+| Codex, Claude Code, Cursor | [Install and try your first task](examples/agent-workflows.md) |
+| GitHub Copilot | [UIZZE plugin in Awesome Copilot](https://github.com/github/awesome-copilot/tree/main/plugins/uizze) |
+| Gemini CLI | [Install the Uizze extension](plugins/gemini-cli/) |
+| Antigravity | [Install the Uizze custom plugin](plugins/antigravity/) |
+| VS Code, Windsurf / Cascade, Zed | [Native MCP connection instructions](integrations/mcp/) |
+| MCP clients | [GitHub MCP Registry](https://github.com/mcp/uizze/uizze) · [Connection guide](integrations/mcp) |
+| GitHub pull requests | [UI Slop Gate Action](integrations/github-action) · [Inspect actual example output](examples/pull-request-check.md) |
 
-## GitHub Action
+## Catch unfinished UI in pull requests
+
+The free **UI Slop Gate** checks changed frontend source for inert controls, missing state markers, hardcoded colors, and combinations of generic dashboard cues. Findings appear next to the code and in the workflow summary.
 
 ```yaml
 permissions:
   contents: read
 
 steps:
-  - uses: actions/checkout@v4
+  - uses: actions/checkout@v7
+    with:
+      fetch-depth: 2
+      persist-credentials: false
   - uses: uizze/uizze@v1
+    with:
+      fail-on: error
 ```
 
-The action performs a conservative source check on the GitHub runner. It does
-not upload source or replace visual, accessibility, security, or usability
-review. See [integrations/github-action](integrations/github-action).
+No account, API key, or source upload. [Watch the published Action check a before-and-after example](https://github.com/uizze/uizze/actions/workflows/ui-slop-gate-example.yml), then [copy the complete workflow](integrations/github-action#usage). This is a conservative source check; use rendered inspection and your normal accessibility and usability checks alongside it.
 
-## Repository map
+## Build a screen with a worked example
 
-| Path | Purpose |
-| --- | --- |
-| [`skills/anti-ui-slop`](skills/anti-ui-slop) | Prevent or review generic UI |
-| [`skills/ui-design`](skills/ui-design) | Design, build, redesign, or improve interfaces |
-| [`skills/ui-radar`](skills/ui-radar) | Find and compare focused UI references |
-| [`integrations/mcp`](integrations/mcp) | Authenticated MCP setup and registry metadata |
-| [`integrations/github-action`](integrations/github-action) | Local pull-request source check |
-| [`integrations`](integrations) | Optional examples and host-specific packaging |
+- [Free UI task-brief builder](https://uizze.com/tools/ui-design-prompt-builder): describe the task, user, and outcome; copy or download a concrete agent prompt. No account required.
+- [SaaS dashboard walkthrough](https://uizze.com/guides/saas-dashboard-design): compare information hierarchy and try loading, empty, error, and assignment states.
+- [DESIGN.md template](https://uizze.com/guides/design-md-for-coding-agents): download a design contract and apply it across settings and billing.
+- [Empty-state examples](https://uizze.com/guides/empty-state-ui-design): distinguish first use, no matches, service failure, and unavailable access.
+- [iOS onboarding and recovery](https://uizze.com/guides/onboarding-ui-design): try a small browser prototype and explore the native SwiftUI starter.
 
-Production metadata is authoritative:
+These are original UIZZE teaching examples with fictional data. [Browse all guides](https://uizze.com/guides) for agent-specific setup, comparisons, and review workflows.
 
-- [Agent Skills index](https://uizze.com/.well-known/agent-skills/index.json)
-- [MCP manifest](https://uizze.com/.well-known/mcp.json)
-- [MCP server card](https://uizze.com/.well-known/mcp/server-card.json)
-- [Setup documentation](https://uizze.com/docs)
+## Explore the repository
 
-Public directory status lives in [DISTRIBUTION.md](DISTRIBUTION.md). It is a
-short inventory, not a submission backlog.
+- [Practical agent workflows](examples/agent-workflows.md): billing settings, data tables, permission screens, and native iOS.
+- [Reproduce a pull-request check](examples/pull-request-check.md): source, findings, and a local command.
+- [Next.js starter](integrations/nextjs-starter): an existing starting point for a product-specific interface.
+- [Storybook integration](integrations/storybook): review UI states alongside your components.
+- [Public distribution](DISTRIBUTION.md): maintained install and catalog paths.
+
+Production metadata: [skills index](https://uizze.com/.well-known/agent-skills/index.json) · [MCP manifest](https://uizze.com/.well-known/mcp.json) · [server card](https://uizze.com/.well-known/mcp/server-card.json) · [documentation](https://uizze.com/docs).
 
 ## License
 
-[MIT](LICENSE). Bundled third-party material retains its own notices and license.
+Uizze-authored repository code and text use [MIT](LICENSE) unless a more specific notice applies. Bundled skill playbooks retain their Apache-2.0 license and third-party notices. See [the license map](LICENSING.md) before redistributing a skill package.

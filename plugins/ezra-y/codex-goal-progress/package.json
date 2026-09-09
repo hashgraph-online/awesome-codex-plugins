@@ -1,0 +1,41 @@
+{
+  "name": "codex-goal-progress",
+  "version": "0.3.7",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "packageManager": "pnpm@11.19.0",
+  "scripts": {
+    "lint": "biome check package.json tsconfig.base.json tsconfig.json biome.json scripts packages platform hooks runtime",
+    "typecheck": "tsc --project tsconfig.json --noEmit",
+    "validate:plugin": "node scripts/validate_plugin_contract.mjs . && node scripts/validate_plugin_contract.mjs plugins/codex-goal-progress",
+    "validate:hygiene": "node scripts/check_release_hygiene.mjs",
+    "helper": "tsx packages/host/src/index.ts",
+    "build:code": "node scripts/build_code.mjs",
+    "build:renderer": "node scripts/build_renderer_bundle.mjs",
+    "build:plugin": "node scripts/build_plugin_package.mjs",
+    "build:release:macos": "pnpm build:plugin && pnpm build:renderer && tsx scripts/build_macos_release.ts",
+    "package:release:macos": "node scripts/package_macos_update_assets.mjs",
+    "build": "pnpm build:code && pnpm build:renderer && pnpm build:plugin",
+    "verify": "pnpm verify:public",
+    "verify:public": "pnpm lint && pnpm typecheck && pnpm build && pnpm validate:plugin && pnpm validate:hygiene"
+  },
+  "dependencies": {
+    "@lucide/icons": "^1.37.0",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "lit": "^3.3.3",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.8",
+    "@types/node": "^22.20.1",
+    "esbuild": "^0.28.2",
+    "postject": "1.0.0-alpha.6",
+    "tsx": "^4.23.12",
+    "typescript": "^7.0.2",
+    "yaml": "^2.9.0"
+  }
+}

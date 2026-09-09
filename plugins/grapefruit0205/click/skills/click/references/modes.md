@@ -51,12 +51,17 @@ binding and observed input is checked again in the separately approved
 successor contract. Unsupported or incomplete observation simply reruns the
 check.
 
-Automatic shard setup is also Guarded-only once it would collect project tests,
-write proposed policy, or run its bootstrap. The public
-`click-gate sharding init|status|refresh` controls preserve the proposal,
-application, user-owned commit, baseline, and observation boundaries described
-in [automatic sharding setup](automatic-sharding-setup.md). A setup proposal is
-never approval or active repository policy.
+Automatic shard setup follows the active mode. In Evidence mode, `init` may
+collect a bounded proposal under host authority and a later explicit `refresh`
+may apply the reviewed proposal. In Guarded mode, collection, application, and
+bootstrap require the separately approved contracts described in
+[automatic sharding setup](automatic-sharding-setup.md). The public
+`click-gate sharding init|status|refresh` controls preserve proposal review,
+application, the user-owned commit, baseline, and observation boundaries. A
+setup proposal is never approval or active repository policy. Status reports
+command execution, automatic inventory/split, same-state exact reuse,
+owner-committed policy reuse, and authoritative-observation reuse separately.
+Observer may remain off when exact or committed-policy authority is sufficient.
 
 ## Off
 

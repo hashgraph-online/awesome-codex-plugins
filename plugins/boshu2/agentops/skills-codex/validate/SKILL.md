@@ -1,12 +1,13 @@
 ---
 name: validate
-description: 'Freshly judge a finished change against its acceptance: PASS, FAIL, or NOT_PROVEN. Not for claim-vs-tree checks; that is reality-check. Triggers: "validate", "is this proven", "check this change".'
+description: 'Freshly judge a finished change against its acceptance: PASS, FAIL, or NOT_PROVEN. Not for claim-vs-tree checks; that is reality-check. Triggers: "validate", "is this proven", "check this change", "cross-model review".'
 ---
 # Validate
 
 Independently judge one exact subject against the acceptance in its existing
 bead or caller source, return one semantic result, and stop. Validate is the
-sole `verdict.v2` writer when persistence is requested. Before the verdict,
+sole semantic author of `verdict.v2` when persistence is requested.
+`ao provenance store-verdict` supplies structural verification and atomic storage. Before the verdict,
 read `boundaries.md` in the rpi skill's `references` directory for the state
 Validate leaves to the caller.
 
@@ -14,9 +15,10 @@ Validate leaves to the caller.
 
 ```text
 Validate bead ag-1234 in this fresh context. Intent: the bead text and digest.
-Subject: manifest.json from `python3 skills/validate/scripts/validate.py
-manifest --root . --include cli/internal/gates`. Author context ctx-a1. Re-run `cd cli && go test
-./internal/gates/...`. Return PASS, FAIL, or NOT_PROVEN with evidence; stop.
+Subject: manifest.json from:
+ao provenance manifest --root . --include cli/internal/gates
+Author context ctx-a1. Re-run `cd cli && go test ./internal/gates/...`.
+Return PASS, FAIL, or NOT_PROVEN with evidence; stop.
 ```
 
 ## Preconditions
@@ -31,41 +33,56 @@ manifest --root . --include cli/internal/gates`. Author context ctx-a1. Re-run `
   colliding, or unattested identities produce `NOT_PROVEN`: a declared trust
   fact, not cryptographic proof of isolation.
 
-## Cross-family fresh validator (default on risky surfaces)
+## Fresh validator and model selection
 
-Classify risk by the change's effect on acceptance and enforcement, not its
-extension or location alone. Changes to acceptance, tests/gates, stopping and
-allowance rules, safety, disclosure, hooks, or executable control behavior need
-a second fresh validator from a different model family. Documentation that
-agents execute as policy can change enforcement and takes this stronger path.
+Default to one fresh, author-distinct validator from the author's model family:
+Codex/OpenAI work uses a fresh Codex/OpenAI reviewer; Claude/Anthropic work uses
+a fresh Claude/Anthropic reviewer. Use the runtime's configured capable model
+unless the caller pins one. Fresh context is required even when model weights
+are identical; a new role instruction in the author's session is not fresh.
+Risk determines the depth of evidence inspection, not an automatic second family.
 
-The conservative cues remain `cli/internal/gates/**`, `scripts/check-*.sh`,
+Acceptance, tests/gates, stopping, allowances, safety, disclosure, hooks and
+executable controls warrant deeper checks, including policy written as prose.
+Conservative risk cues include `cli/internal/gates/**`, `scripts/check-*.sh`,
 `tests/**`, `skills/*/scripts/**`, `skills/cc-hooks/policies/**`, `lib/**`,
-`.github/workflows/**`, and `scripts/security-gate.sh`. A narrowly scoped wording
-or reference correction with evidence of no behavioral or enforcement effect
-may use one fresh author-distinct judge and applicable exact-input receipts.
-Record that risk reason in existing intent/evidence prose; no risk artifact is
-required. Unknown or disputed risk takes the stronger path. This rule applies
-prospectively: it cannot remove a review leg already required for the current
-change, or override caller-required diversity. Fresh judgment, exact subject,
-all acceptance, and empty `not_checked` remain mandatory at every risk level.
-Route adapter selection and invocation through
+`.github/workflows/**` and `scripts/security-gate.sh`. Unknown risk receives
+deeper inspection; it does not silently change the selected model families.
+
+The caller can request `--cross-model` or say "cross-model review" to add one
+fresh validator from a different family. `--cross-model <model>` pins that
+additional reviewer, for example `--cross-model claude-fable-5-1` from Codex
+or `--cross-model gpt-6-astra` from Claude. These are skill prompt options,
+not `ao` CLI flags. RPI forwards them unchanged. Without a pin, use an available,
+authorized capable model from the other family; never silently substitute for
+a pinned model or count two models in one family as cross-family diversity.
+An explicit caller requirement remains required until the caller changes it;
+changing the default cannot erase a finding or relabel a missing verdict as PASS.
+
+Route selection and invocation through
 [agent-native model-dispatch](../agent-native/references/model-dispatch.md);
 [references/mechanics.md](references/mechanics.md) owns evidence storage.
-The fresh and cross-family legs receive independently supplied initial inputs:
-exact subject, unchanged acceptance and authorized evidence, without peer
-conclusions. Record actual model/context identities and runtime receipts.
-With no authorized live adapter, disclose `diversity_unsatisfied`. If the leg
-is required by risk or caller acceptance, a single-family PASS is `NOT_PROVEN`;
-optional unavailable diversity is disclosed with the same-model result.
-Same-family agreement is not convergence. A single-family FAIL stands.
+There is no fixed ten-minute review timeout. Use the caller's selected review
+timeout or remaining native deadline, respecting any earlier host or goal limit.
+A timeout is missing judgment, not FAIL; never restart to renew an allowance.
 
-When the two judges disagree, each reports its own verdict and neither resolves
-the split. Required diversity converges only when both judges pass, so a split is
-never PASS. Repair works the split down, and what survives it is the
-orchestrator's decision, made in the open: both reads go in the report with
-what was decided and why. Validate never treats agreement with itself, the
-absence of a second verdict, or a preferred judge as a tie-break.
+Each selected judge receives the exact subject, unchanged acceptance and
+authorized evidence independently, without the author's desired verdict or peer
+conclusions. Record actual model/context identities and runtime receipts.
+Missing freshness, an unbound subject, incomplete acceptance evidence, or
+nonempty `not_checked` prevents PASS regardless of model family.
+With no authorized adapter for requested diversity, disclose
+`diversity_unsatisfied`: the required combined result is `NOT_PROVEN` even if
+the same-family judge passed. A delivered FAIL stands. Advisory diversity that
+the caller explicitly made optional may accompany the same-family result with
+that limitation; it cannot discard an acceptance-relevant finding.
+
+When selected judges disagree, preserve both verdicts and their evidence.
+Required diversity converges only when both pass; neither majority vote nor a
+preferred judge settles a split. Repair addresses known findings directly under RPI and real caller/native
+bounds. Report unresolved dissent and the caller's decision openly.
+Same-family fresh judgment reduces anchoring, but does not prove independence
+from shared training biases; cross-family agreement is corroboration, not truth.
 
 ## Mutating-check quarantine
 
@@ -116,7 +133,9 @@ optional, residual risk, or a non-goal to obtain PASS.
    change, was introduced by it, or has unknown cause. Use before/after proof or
    equivalent causal evidence under unchanged acceptance; counts and timestamps
    do not establish cause. Recurrence calls for causal examination and does not
-   by itself prove a design failure. Name the class or omit it; a `class` that is
+   by itself prove a design failure. Known defects return to direct repair;
+   unknown cause, recurrence or no progress uses the charter's single bounded
+   helper rule, without delegating repairs to this validator. Name the class or omit it; a `class` that is
    present and blank is a finding against this validator,
    and so is a class that does not describe its finding. PASS
    requires distinct identities, explicit freshness, nonempty checked scope,

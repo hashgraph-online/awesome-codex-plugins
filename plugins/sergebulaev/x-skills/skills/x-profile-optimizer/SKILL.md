@@ -1,6 +1,6 @@
 ---
 name: x-profile-optimizer
-description: Audit and rewrite an X (Twitter) profile end-to-end for 2026: bio (160 chars), display name with a searchable keyword, @handle, header image, pinned tweet, link, and location. Triggers on "review my X profile", "fix my bio", "rewrite my Twitter bio", "optimize my header", "pin the right tweet", "X profile audit". Turns a default profile into one that converts visitors into followers. Not for writing tweets (use x-post-writer).
+description: "Audit and rewrite an X (Twitter) profile end-to-end for 2026: bio (160 chars), display name with a searchable keyword, @handle, header image, pinned tweet, link, and location. Triggers on \"review my X profile\", \"fix my bio\", \"rewrite my Twitter bio\", \"optimize my header\", \"pin the right tweet\", \"X profile audit\". Turns a default profile into one that converts visitors into followers. Not for writing tweets (use x-post-writer)."
 ---
 
 # X Profile Optimizer

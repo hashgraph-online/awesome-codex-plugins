@@ -1,6 +1,6 @@
 ---
 name: x-post-writer
-description: Draft a single tweet or short auto-thread for X (Twitter) using a 2026 X hook formula (one-liner contrarian, data-point, build-in-public, mini-list, relatable cold-open), picked by goal (replies, reposts, likes, bookmarks). Respects the 280-char limit (25,000 on Premium), runs the humanizer pass, and publishes via Publora on approval. Use to write a tweet from notes. Not for long threads (use x-thread-builder) or auditing a draft (use x-humanizer --mode audit).
+description: "Draft a single tweet or short auto-thread for X (Twitter) using a 2026 X hook formula (one-liner contrarian, data-point, build-in-public, mini-list, relatable cold-open), picked by goal (replies, reposts, likes, bookmarks). Respects the 280-char limit (25,000 on Premium), runs the humanizer pass, and publishes via Publora on approval. Use to write a tweet from notes. Not for long threads (use x-thread-builder) or auditing a draft (use x-humanizer --mode audit)."
 ---
 
 # X Post Writer

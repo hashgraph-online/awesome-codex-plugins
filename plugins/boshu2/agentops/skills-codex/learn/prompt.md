@@ -1,6 +1,6 @@
 # learn
 
-Optionally analyze collections of durable verdicts for recurring evidence after the critical path. Triggers: "learn from verdicts", "mine validation history".
+Optionally mine bounded episodes, verdicts and corrections after the critical path. Triggers: "learn from verdicts", "mine validation history".
 
 ## Instructions
 

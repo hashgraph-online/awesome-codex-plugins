@@ -25,8 +25,10 @@ Optional budgets for iterations, no-new-evidence retries, time, tokens, cost,
 scope expansions, and human checkpoints:
 ```
 
-Unknown acceptance criteria or an ambiguous execution environment is a planning
-gap, not permission to guess.
+Resolve routine gaps from repository evidence and the user's stated outcome.
+Record assumptions that affect verification. Ask when a missing decision would
+materially change behavior, scope, or authorization; continue independent
+authorized work while that decision is pending.
 
 For a repeated autonomous loop, define the judge and apply the damping,
 stop-loss, and resume rules in [loop-policy.md](loop-policy.md).
@@ -46,19 +48,21 @@ Next evidence-producing action:
 Replace superseded assumptions instead of accumulating a long history in the
 main context.
 
-## Scope expansion gate
+## Plan changes and scope expansion
 
-Before changing an unplanned path, subsystem, public contract, migration, or
-external system:
+When an unplanned path, subsystem, public contract, migration, or external
+system becomes relevant:
 
 1. show the evidence that makes the expansion necessary;
 2. classify it as required, optional, or unrelated;
 3. state the added verification and risk;
-4. obtain approval when it changes the authorized task or side effects; and
+4. proceed when existing authorization covers it; otherwise obtain the missing
+   approval before changing the authorized task or side effects; and
 5. update the contract once instead of rediscovering the boundary repeatedly.
 
-Generated files named by an approved build step do not require a new gate, but
-their source and necessity must remain explainable.
+A newly discovered implementation path does not itself expand the user's
+requested outcome. Generated files named by an approved build step also need
+no new approval; their source and necessity must remain explainable.
 
 ## Failure classification
 

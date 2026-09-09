@@ -53,7 +53,11 @@ mark, and every one-way mark carries its undo cost.
 
 1. Resolve the existing intent source and derive its digest; inspect acceptance,
    non-goals, evidence requirements, and declared write scope there.
-2. Use one fresh judge with a context ID distinct from the plan author.
+2. Use one fresh judge with a context ID distinct from the plan author, in the
+   author's model family by default (Codex or Claude). A caller may explicitly
+   select a different-family judge. Follow
+   [model-dispatch](../agent-native/references/model-dispatch.md) for model pins,
+   authorization and caller/native time bounds; no fixed ten-minute cap applies.
 3. Test acceptance completeness, edge behavior, scope, dependencies,
    reversibility, and evidence shape against cited repository facts.
 4. Return one complete set of concrete findings and checked/not-checked scope.

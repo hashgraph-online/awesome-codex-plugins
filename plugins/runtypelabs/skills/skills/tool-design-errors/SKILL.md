@@ -1,13 +1,6 @@
 ---
 name: tool-design-errors
-description: >-
-  Use when designing how a tool fails for an AI agent: error messages that guide
-  recovery, classifying errors as retryable, permanent, needs-user-input, or
-  needs-auth, confirmation requests for ambiguous input, fuzzy-match thresholds,
-  graceful degradation with partial results, and fallback tools. Trigger phrases:
-  "tool error message", "agent keeps retrying", "agent gives up after an error",
-  "ambiguous match", "which user did it mean", "raw 429", "error handling for agent
-  tools", "recovery guidance".
+description: 'Design actionable agent tool errors, ambiguity handling, retry guidance, and fallback behavior.'
 user-invocable: true
 argument-hint: '[tool whose failure paths to design]'
 ---

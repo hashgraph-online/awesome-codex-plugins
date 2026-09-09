@@ -1,14 +1,6 @@
 ---
 name: tool-design-security
-description: >-
-  Use when deciding how an agent tool handles identity, credentials, permissions,
-  scope, and state: injecting secrets server-side instead of through the model,
-  permission gates enforced in code, declared OAuth scopes, audit trails, a
-  who-am-i identity anchor, session context, automatic context injection, and
-  context boundaries such as tenant scope or root paths. Trigger phrases: "API key
-  as a tool parameter", "the agent leaked a secret", "prompt says the agent can't
-  delete", "tenant isolation for tools", "who_am_i tool", "audit log for tool
-  calls", "OAuth scopes per tool".
+description: 'Design tool identity, credential injection, authorization, tenant scope, and audit boundaries.'
 user-invocable: true
 argument-hint: '[tool or toolkit whose trust boundary to design]'
 ---

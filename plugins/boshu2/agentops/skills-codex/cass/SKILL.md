@@ -219,6 +219,7 @@ Do NOT without explicit permission: delete `core.NNNNN` coredumps, delete `.bead
 | jq patterns | [PATTERNS.md](references/PATTERNS.md) |
 | Pitfalls & fixes | [PITFALLS.md](references/PITFALLS.md) |
 | Session file formats | [SESSION_FORMATS.md](references/SESSION_FORMATS.md) |
+| Bounded authorized source-byte reads | [RAW_SOURCE_READS.md](references/RAW_SOURCE_READS.md) |
 | Remote sources, multi-machine search | [REMOTE_SOURCES.md](references/REMOTE_SOURCES.md) |
 | Semantic / hybrid / models | [SEMANTIC_AND_HYBRID.md](references/SEMANTIC_AND_HYBRID.md) |
 | Token / tool / model analytics | [ANALYTICS.md](references/ANALYTICS.md) |

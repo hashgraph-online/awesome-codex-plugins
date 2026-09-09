@@ -10,19 +10,21 @@ the exact change and returns `PASS`, `FAIL`, or `NOT_PROVEN`. The standard
 path is one RPI traversal:
 
 ```text
-RPI -> Plan -> Implement -> fresh Validate -> repair to convergence -> report
+RPI charter -> on-demand Plan -> Implement and checks -> fresh Validate -> finish
 ```
 
-The selected **CDLC (Context Delivery Lifecycle)** contract adds maintained
-external context and learning around disposable agents. Discovery (shaped by
-Plan), Implement and Validate remain bounded by caller intent; a selected outer
-goal can authorize a new experiment within its native limits. This is contract
-adoption: Recall, extended Learn, evolve and the Go evidence migration are later
-work, not new runnable entrypoints. It promises neither weight training nor
-deterministic inference, and the current trial demonstrates no memory benefit.
-External reviewed Markdown/OKF memory, protected non-Git evidence and separate
-support/disclosure/utility claims are specified in
-[ADR-0016](docs/adr/ADR-0016-state-tiers.md).
+The lean [RPI charter](skills/rpi/SKILL.md) owns an authorized outcome through
+finish: Plan on demand, direct repair of understood failures, cheap checks and
+fresh final judgment. Evidence can revise an approach within unchanged outcome
+and scope. A clear small edit needs no planning or memory worksheet.
+
+[Memory](skills/memory/SKILL.md) offers on-demand recall and separately budgeted
+mining/curation over reviewed caller-selected external Markdown topic pages.
+Update an existing page; preserve support, limits and invalidation. Learning may
+remove rules. Saved pages do not prove benefit; only later task evidence does.
+This lean path uses public or already-cleared inputs and claims no native
+restricted-source enforcement. Protected external drafts, review before Git and
+legacy evidence preservation follow [ADR-0016](docs/adr/ADR-0016-state-tiers.md).
 
 ## Quickstart
 
@@ -38,9 +40,9 @@ more:
 
 | Skill | Needs | Why |
 |---|---|---|
-| `rpi` | `python3`, conditional | invokes plan and validate, which may run `python3` (see below); rpi's own procedure only cites `scripts/run_once.py` as reference behavior |
-| `plan` | `python3`, conditional | runs `scripts/validate.py snapshot-intent` only when the intent source is not durable |
-| `validate` | `python3` | its helper commands run `python3` against `scripts/validate.py` |
+| `rpi` | `ao`, conditional | delegates exact-subject checks to Validate; only persists `verdict.v2` when requested, with the fixed-dispatch adapter optional |
+| `plan` | `ao`, conditional | runs `ao provenance snapshot-intent` with an explicit evidence root when the intent source is not durable |
+| `validate` | `ao` | derives exact subject identity with the helper and uses `ao provenance store-verdict` when persistence is requested; Python/schema checks are developer-only |
 | `fitness` | `ao` | its whole procedure is running one `ao goals` subcommand |
 | `using-gc` | `ao` | rig prep runs `ao gc prepare` and `ao gc check` |
 | `handoff` | `ao`, optional | `ao session handoff`/`rehydrate` cover the same artifact; the skill can write it directly |
@@ -110,10 +112,11 @@ text and the runtime snapshots those bytes the same way. These are standalone
 product-proof defaults; selected CDLC knowledge/disclosure evidence requires
 protected external routing before storage (ADR-0016).
 
-`validate` must run in a fresh context (not the author session). Risky surfaces
-and caller-required diversity need both fresh and cross-family exact-subject
-judgments; an unavailable required leg leaves PASS unproven. Other surfaces
-may use the same model. See the authorized bounded
+`validate` runs in a fresh context from the author's model family by default:
+Codex reviews Codex work, and Claude reviews Claude work. Request
+`--cross-model [model]` in Validate or RPI to add a different-family reviewer;
+an unavailable requested leg leaves the combined result unproven. Review time
+comes from caller/native bounds, with no fixed ten-minute cap. See the
 [model-dispatch recipe](skills/agent-native/references/model-dispatch.md).
 
 ## Multi-agent systems
@@ -176,15 +179,16 @@ for sealed or multi-judge review. They return a report; an author-distinct
 
 ### 3. Acceptance drifted mid-flight
 
-Without a fixed behavior and write scope, "done" is whatever the agent
-improvised. `plan` locks acceptance in the bead before anyone builds. Later
-phases bind to that digest.
+Keep accepted behavior and write scope in the existing intent source. Use
+`plan` when they need shaping; revise the approach when evidence requires it,
+without silently changing acceptance. Validation binds to that accepted intent.
 
 ### 4. Nobody can replay what was judged
 
 Chat scrolls away. When replay or automation needs durable evidence, `validate`
-writes a content-addressed `verdict.v2` under
-`.agents/ao/verdicts/sha256/` with checked scope, omissions, and evidence refs.
+writes a content-addressed `verdict.v2` in caller-selected protected external
+non-Git storage, with checked scope, omissions, and evidence refs. Existing
+`.agents/` proof remains preserved under owner policy.
 Plain JSON. No hosted service required. Interactive validation does not create
 one unless requested.
 
@@ -192,13 +196,14 @@ one unless requested.
 
 | Skill | Job |
 |---|---|
-| [`rpi`](skills/rpi/SKILL.md) | guard once, Plan and Implement at most once, fresh Validate plus admitted bounded repairs; report |
-| [`anti-ceremony`](skills/anti-ceremony/SKILL.md) | STOP/CONTINUE guard before Plan: name the consumer, the decision, the defect, and the retirement condition, or do not create the artifact |
-| [`plan`](skills/plan/SKILL.md) | create the bead (BDD + DDD ubiquitous language) |
-| [`implement`](skills/implement/SKILL.md) | TDD against the bead: RED → GREEN → refactor |
+| [`rpi`](skills/rpi/SKILL.md) | own the authorized outcome through checks, direct repair and fresh final judgment |
+| [`plan`](skills/plan/SKILL.md) | shape existing intent when needed; revise disproved approaches within accepted scope |
+| [`implement`](skills/implement/SKILL.md) | implement and repair known defects with discriminating checks |
 | [`validate`](skills/validate/SKILL.md) | fresh context (optionally different model); optionally persist `verdict.v2` |
+| [`memory`](skills/memory/SKILL.md) | recall reviewed topic pages or separately mine and curate when useful |
 
-Optional later: [`learn`](skills/learn/SKILL.md). Strategies:
+Optional later: [`learn`](skills/learn/SKILL.md). Optional strategies:
+[`anti-ceremony`](skills/anti-ceremony/SKILL.md),
 [`council`](skills/council/SKILL.md), [`idea-genie`](skills/idea-genie/SKILL.md),
 [`premortem`](skills/premortem/SKILL.md), [`postmortem`](skills/postmortem/SKILL.md),
 [`one-way-door`](skills/one-way-door/SKILL.md) (is this decision reversible?),

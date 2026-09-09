@@ -1,15 +1,6 @@
 ---
 name: runtype
-description: >-
-  Runtype umbrella skill for onboarding and routing. Use when the user mentions Runtype,
-  asks what Runtype can build, needs MCP/CLI/dashboard setup, or wants to scope an AI
-  product on Runtype. Route hands-on product builds to runtype-build-product, live account
-  ops to runtype-admin, Persona widgets to runtype-persona, FPO packaging to
-  runtype-templates, SDK/CLI/Marathon work to runtype-sdk-marathon, and agents that run
-  outside Runtype (Flue, Cloudflare Agents SDK, Vercel AI SDK, LangChain, custom loops;
-  OpenTelemetry traces, flue-otel, eval capture from external runs) to
-  runtype-external-agents. Do not use for generic LLM chat or non-AI infrastructure
-  unless Runtype is explicitly part of the request.
+description: 'Scope a Runtype project or set up platform access; route implementation to the relevant Runtype skill.'
 user-invocable: true
 argument-hint: '[Runtype goal or setup question]'
 ---

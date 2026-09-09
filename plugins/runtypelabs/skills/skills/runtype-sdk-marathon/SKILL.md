@@ -1,10 +1,6 @@
 ---
 name: runtype-sdk-marathon
-description: >-
-  Use when working with the Runtype TypeScript or Python SDK, FlowBuilder, BatchBuilder,
-  EvalBuilder, CLI commands, Marathon long-running agent tasks, playbooks, model fallback,
-  built-in CLI tools, sandboxes, code-first stored/upsert/virtual agents or flows, local
-  tools, hidden parameters, or source-controlled Runtype workflows.
+description: 'Build source-controlled Runtype workflows with the SDK or CLI, including Marathon tasks and playbooks.'
 user-invocable: true
 argument-hint: '[SDK, CLI, or Marathon task]'
 ---

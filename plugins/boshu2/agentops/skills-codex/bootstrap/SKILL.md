@@ -57,6 +57,12 @@ the local evidence and verdict directories (`.agents/ao/**`). `ao session
 bootstrap` is a read-only session command that reports which local orientation
 files are present. This skill invokes neither.
 
+For selected CDLC, the caller resolves existing external storage through the
+[context-routing reference](references/context-routing.md). Bootstrap never
+creates a consumer project config or replacement knowledge/withdrawal source.
+New CDLC proof uses the explicitly selected external evidence root; the local
+verdict-directory recipe above applies to caller-requested standalone proof.
+
 ## Non-goals
 
 - installing or invoking `ao`, `br`, `bd`, NTM, Agent Mail, or another runtime;
@@ -76,3 +82,4 @@ failed writes, and validation observations. Do not include a next action.
 - [Product](../product/SKILL.md)
 - [Documentation](../doc/SKILL.md)
 - [Examples](references/examples.md)
+- [External context routes](references/context-routing.md)

@@ -27,13 +27,13 @@ prompt runs read-only, full stop.
    explicitly requires network or external effects.
 4. Use `scripts/lib/codex-exec.sh` and `codex_exec_guarded`. Pipe the prompt,
    provide a prompt file/argument, or close stdin in non-TTY execution.
-5. The adapter defaults to **600 seconds**. `CODEX_EXEC_TIMEOUT` may override
-   it with a positive finite number of seconds. An inherited
-   `CODEX_EXEC_DEADLINE_EPOCH` is an optional absolute Unix timestamp in seconds:
-   it clamps the remaining allowance, including capability probes and prompt
-   preparation. Pass the same timestamp to successive calls; a new invocation
-   cannot renew it. Empty, zero, negative, or malformed explicit limits prevent
-   launch; an expired deadline returns timeout without launching the reviewer.
+5. Supply `CODEX_EXEC_TIMEOUT` as positive finite seconds or inherit an
+   absolute `CODEX_EXEC_DEADLINE_EPOCH`. There is no fixed ten-minute default:
+   without an explicit timeout, use the deadline's remaining time; with both,
+   the earlier bound wins, including capability probes and prompt preparation.
+   Pass the same deadline to successive calls; a new invocation cannot renew
+   it. Missing both bounds, or empty, zero, negative or malformed explicit
+   values, prevents launch. An expired deadline times out before dispatch.
 6. Capture stdout with `CODEX_EXEC_OUT_FILE` and optionally separate stderr with
    `CODEX_EXEC_STDERR_FILE`. `CODEX_EXEC_MAX_OUTPUT_BYTES` defaults to **10 MiB**
    (10485760 bytes) and must be a positive finite integer. It caps stdout and
@@ -80,11 +80,12 @@ input path. The caller decides whether to launch another invocation.
 ## Example
 
 ```bash
-# If a caller has an absolute deadline, export CODEX_EXEC_DEADLINE_EPOCH once
-# and retain that same value for every invocation in its scope.
+# REVIEW_TIMEOUT_SECONDS is selected by the caller. Alternatively export
+# CODEX_EXEC_DEADLINE_EPOCH once and omit CODEX_EXEC_TIMEOUT below; retain
+# that same absolute deadline for every invocation in its scope.
 . "$AGENTOPS_ROOT/scripts/lib/codex-exec.sh"
 CODEX_EXEC_DIR="$WORKSPACE" CODEX_EXEC_SANDBOX=read-only \
-CODEX_EXEC_PROMPT_ARG="$PROMPT" CODEX_EXEC_TIMEOUT=600 \
+CODEX_EXEC_PROMPT_ARG="$PROMPT" CODEX_EXEC_TIMEOUT="$REVIEW_TIMEOUT_SECONDS" \
 CODEX_EXEC_MAX_OUTPUT_BYTES=10485760 CODEX_EXEC_OUT_FILE="$OUTPUT" \
   codex_exec_guarded </dev/null
 ```
@@ -96,3 +97,11 @@ report. The validator context ID must be distinct from the author's before a
 validator, record model identities per
 the `agent-native` model-dispatch recipe and match the sandbox to
 declared effects.
+
+For caller-required model identity, preserve native session metadata and terminal
+events as well as rendered output. The [judgment receipt convention](../agent-native/references/judgment-receipts.md)
+binds exact transcript byte spans and their SHA-256 through existing
+`evidence_refs`; the consumer supplies expected profiles, subject and acceptance
+independently. A requested model flag, Codex `turn_context` configuration, stdout
+marker or model self-description does not prove actual model identity. Missing
+native reporting stays `identity_unverified` and cannot satisfy a required leg.

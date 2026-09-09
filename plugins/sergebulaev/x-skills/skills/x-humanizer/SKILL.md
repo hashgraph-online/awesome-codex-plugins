@@ -1,6 +1,6 @@
 ---
 name: x-humanizer
-description: 'Remove the AI tells human readers react to in a tweet or thread: 2026 vocabulary by density, reveal bridges, staccato stacks, stacked triads, performed sincerity; caps em dashes at one per tweet. Includes --mode audit (280-char fit, hook, hashtag and emoji limits) and --mode profile. Not for beating AI detectors (no edit reliably does). Not for writing from scratch (use x-post-writer or x-thread-builder). Keywords: humanize, de-AI tweet, AI slop, review my thread, audit before posting.'
+description: "Remove the AI tells human readers react to in a tweet or thread: 2026 vocabulary by density, reveal bridges, staccato stacks, stacked triads, performed sincerity; caps em dashes at one per tweet. Includes --mode audit (280-char fit, hook, hashtag and emoji limits) and --mode profile. Not for beating AI detectors (no edit reliably does). Not for writing from scratch (use x-post-writer or x-thread-builder). Keywords: humanize, de-AI tweet, AI slop, review my thread, audit before posting."
 ---
 
 # X Humanizer V3

@@ -1,0 +1,7 @@
+{
+  "name": "@codex-goal-progress/platform-macos",
+  "version": "0.3.7",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.ts"
+}

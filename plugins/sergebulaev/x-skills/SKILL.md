@@ -1,6 +1,6 @@
 ---
 name: x-marketing
-description: Plan, draft, audit, and publish posts and threads for X (Twitter). Use when the user wants to write a single tweet or an auto-numbered thread, build a long-form tweetstorm, remove AI tells from a draft, reverse-engineer the hook from a viral tweet, draft a reply or quote tweet, or plan a week of X content. Tweets and threads publish via the Publora API, which auto-splits long content into a numbered thread. User provides notes or a tweet URL, the skill drafts, the user approves, then it publishes.
+description: "Plan, draft, audit, and publish posts and threads for X (Twitter). Use when the user wants to write a single tweet or an auto-numbered thread, build a long-form tweetstorm, remove AI tells from a draft, reverse-engineer the hook from a viral tweet, draft a reply or quote tweet, or plan a week of X content. Tweets and threads publish via the Publora API, which auto-splits long content into a numbered thread. User provides notes or a tweet URL, the skill drafts, the user approves, then it publishes."
 ---
 
 # X (Twitter) Marketing Skills

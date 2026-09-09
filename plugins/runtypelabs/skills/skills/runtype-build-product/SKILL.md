@@ -1,11 +1,6 @@
 ---
 name: runtype-build-product
-description: >-
-  Use when building, designing, validating, or deploying Runtype AI products with agents,
-  flows, tools, surfaces, records, secrets, schedules, evals, orchestration, webhooks,
-  Slack/email/SMS/Telegram/Discord/WhatsApp/iMessage/messaging/chat/API/MCP/A2A/hosted-page
-  surfaces, commerce tools, agent skills, or hosted product generation. Always fetch current MCP build
-  instructions before creating resources.
+description: 'Build or modify Runtype-hosted AI products, agents, flows, and surfaces using current platform instructions.'
 user-invocable: true
 argument-hint: '[product idea or build task]'
 ---

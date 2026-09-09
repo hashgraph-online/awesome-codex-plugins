@@ -13,12 +13,12 @@ assert SPEC and SPEC.loader
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
 
-# The REAL Validate implementation, not a stand-in. The composed-contract test
+# The unchanged Validate reference oracle, not a stand-in. The composed-contract test
 # below drives RPI against this module's actual identity functions; that is the
 # only shape that can catch a disagreement between the two skills, which is
 # exactly the defect that hid here (both suites green over a broken contract
 # because the fake Validate borrowed RPI's own digest function).
-VALIDATE_PATH = Path(__file__).parents[2] / "validate" / "scripts" / "validate.py"
+VALIDATE_PATH = Path(__file__).parents[2] / "validate" / "tests" / "validate.py"
 VALIDATE_SPEC = importlib.util.spec_from_file_location("ao_validate", VALIDATE_PATH)
 assert VALIDATE_SPEC and VALIDATE_SPEC.loader
 VALIDATE = importlib.util.module_from_spec(VALIDATE_SPEC)
@@ -696,12 +696,29 @@ class RepairPhaseTests(unittest.TestCase):
         self.assertEqual([f["id"] for f in outcome["open_findings"]], ["f1"])
         self.assertNotIn("finding f1", outcome["report"]["not_checked"])
 
-    def test_a_risky_surface_needs_a_second_validator_family_to_converge(self):
+    def test_a_risky_surface_uses_one_fresh_family_by_default(self):
+        for family in ("codex", "claude"):
+            with self.subTest(family=family):
+                single = self.repair(
+                    [validation_round("PASS", [], family=family)], risky_surface=True
+                )
+                self.assertEqual(single["stop_reason"], "converged")
+                self.assertEqual(single["report"]["status"], "PASS")
+
+    def test_selected_cross_model_review_needs_a_second_family(self):
         single = self.repair(
-            [validation_round("PASS", [], family="fresh")], risky_surface=True
+            [validation_round("PASS", [], family="claude")], cross_model=True
         )
         self.assertEqual(single["stop_reason"], "diversity_unsatisfied")
         self.assertEqual(single["report"]["status"], "NOT_PROVEN")
+
+        same_family = self.repair(
+            [[validation_round("PASS", [], family="claude"),
+              validation_round("PASS", [], family="claude")]],
+            cross_model=True,
+        )
+        self.assertEqual(same_family["stop_reason"], "diversity_unsatisfied")
+        self.assertEqual(same_family["report"]["status"], "NOT_PROVEN")
 
         crossed = self.repair(
             [
@@ -710,10 +727,19 @@ class RepairPhaseTests(unittest.TestCase):
                     validation_round("PASS", [], family="codex"),
                 ]
             ],
-            risky_surface=True,
+            cross_model=True,
         )
         self.assertEqual(crossed["stop_reason"], "converged")
         self.assertEqual(crossed["report"]["status"], "PASS")
+
+    def test_selected_cross_model_disagreement_keeps_the_failure(self):
+        split = self.repair(
+            [[validation_round("PASS", [], family="claude"),
+              validation_round("FAIL", ["f1"], family="codex")]],
+            cross_model=True,
+        )
+        self.assertEqual(split["report"]["status"], "FAIL")
+        self.assertEqual([f["id"] for f in split["open_findings"]], ["f1"])
 
     def test_the_report_keeps_the_nine_key_rpi_report_shape(self):
         outcome = self.repair([validation_round("PASS", [])])

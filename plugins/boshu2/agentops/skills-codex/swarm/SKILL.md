@@ -36,7 +36,9 @@ Anti-pattern: re-dispatching a packet whose executor returned an error.
 Corrective: return the error as that packet's factual result; retry is the
 caller's decision, not the dispatcher's.
 
-The reference implementation is [`scripts/dispatch_once.py`](scripts/dispatch_once.py).
+The developer-only reference implementation is [`scripts/dispatch_once.py`](scripts/dispatch_once.py).
+Repository tests exercise this module; the supported native installed path
+follows this skill through the caller-selected executor and does not invoke Python.
 It validates the entire explicit batch before the first call, invokes the supplied
 executor exactly once for each packet, and returns executor exceptions as factual
 per-packet errors.

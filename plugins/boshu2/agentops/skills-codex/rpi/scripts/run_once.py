@@ -248,7 +248,7 @@ def normalize_round(value: Any) -> dict[str, Any]:
     """Fold one validation round's legs into the facts the law reasons over.
 
     A round is one or more validate results (the fresh validator, plus the
-    cross-family validator when the diff touches a risky surface). Open findings
+    cross-family validator when the caller selects one). Open findings
     are the UNION of the legs' stable `findings[].id`; the round's status is the
     worst leg's; the digest is the subject every leg judged.
     """
@@ -431,6 +431,7 @@ def run_repair_phase(
     *,
     repair_rounds: int = REPAIR_ROUNDS_DEFAULT,
     risky_surface: bool = False,
+    cross_model: bool = False,
     intent_ref: str | None = None,
     acceptance_digest: str | None = None,
     verdict_ref: str | None = None,
@@ -440,6 +441,10 @@ def run_repair_phase(
 
     `validations[0]` is the traversal's first fresh validation; every later
     element is a repair round the orchestrator produced after fixing findings.
+    ``cross_model`` requires a second family; risk alone does not select it.
+    ``risky_surface`` remains an accepted compatibility hint with no effect on
+    family selection. This pure reference consumes declared family facts; it
+    does not dispatch models or attest fresh context identities.
 
     Returns a mapping with:
 
@@ -494,7 +499,7 @@ def run_repair_phase(
         else:
             checked.append(f"repair round 0: {len(current['open_ids'])} open findings")
 
-        converged, reason = _converged(current, risky_surface)
+        converged, reason = _converged(current, cross_model)
         previous = current
         if converged:
             stop_reason = "converged"
@@ -533,12 +538,12 @@ def run_repair_phase(
     }
 
 
-def _converged(current: Mapping[str, Any], risky_surface: bool) -> tuple[bool, str | None]:
-    """Converged ⇔ fresh PASS, plus a cross-family PASS on a risky surface."""
+def _converged(current: Mapping[str, Any], cross_model: bool) -> tuple[bool, str | None]:
+    """Converged ⇔ fresh PASS, plus a cross-family PASS when selected."""
     if current["status"] != "PASS":
         return False, None
-    if risky_surface and len(current["families"]) < 2:
-        # No authorized second family judged the risky surface, so same-family
-        # agreement is not independence: NOT_PROVEN, never a convergence.
+    if cross_model and len(current["families"]) < 2:
+        # Fresh same-family judgment is valid by default, but cannot satisfy
+        # an explicitly selected second family.
         return False, "diversity_unsatisfied"
     return True, None

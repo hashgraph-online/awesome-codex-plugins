@@ -1,15 +1,6 @@
 ---
 name: tool-design
-description: >-
-  Use when designing, building, or reviewing tools that an AI agent will call: MCP
-  server tools, function-calling schemas, agent toolkits, runtime tools, or an API
-  being wrapped for an LLM. Covers classifying a tool (query, command, discovery;
-  sync or async; atomic to orchestrated), the four rules every tool must satisfy, a
-  pre-ship checklist, and an audit procedure for an existing tool set. Routes deeper
-  work to tool-design-interface, tool-design-output, tool-design-errors,
-  tool-design-composition, tool-design-execution, and tool-design-security. Trigger
-  phrases: "design a tool", "tool schema", "MCP tool", "function calling", "agent
-  can't figure out which tool", "review my tools", "why does the agent keep retrying".
+description: 'Design or audit an AI agent toolset; route naming, schemas, output, errors, execution, and security to focused guides.'
 user-invocable: true
 argument-hint: '[tool or tool set to design or review]'
 ---

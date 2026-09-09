@@ -12,7 +12,9 @@ Context Guard keeps important requirements from disappearing during a long Codex
 
 It works beside Codex Plan, Goal, memories, subagents, worktrees, and the transcript; it does not replace or control them.
 
-> Current release: `0.12.1`. See the [release notes](docs/releases/v0.12.1.md), [changelog](CHANGELOG.md), [compatibility matrix](docs/COMPATIBILITY.md), and [local acceptance record](docs/LOCAL_ACCEPTANCE.md).
+> Current release: `0.12.4`. See the [release notes](docs/releases/v0.12.4.md), [changelog](CHANGELOG.md), [compatibility matrix](docs/COMPATIBILITY.md), and [local acceptance record](docs/LOCAL_ACCEPTANCE.md).
+>
+> Version `0.12.4` fixes lost task limits, unrelated confirmations clearing pauses, incomplete recovery text, and commit-and-push target mistakes. See the [changelog](CHANGELOG.md) for changes and the [acceptance record](docs/LOCAL_ACCEPTANCE.md) for platform checks.
 
 ## Install
 
@@ -34,17 +36,11 @@ The installer adds this repository as a marketplace, installs `context-guard@cod
 
 Installing a plugin does not trust its Hooks automatically. Start a fresh Codex task, open `/hooks`, review and trust all nine definitions, then start another fresh task so it loads the current version.
 
-### Version and compatibility notes
+### Upgrade notes
 
-- Version 0.12.1 removes redundant push-target confirmation from the Skill guidance, loads advanced instructions only when needed, and avoids repeating test subsets already covered by the selected full suite. Hook behavior and public protocols are unchanged.
-- Version 0.12.0 makes normal success paths silent, isolates completed or historical work after compaction and resume, and distinguishes real high-risk execution from quoted text, searches, examples, and dry runs.
-- Its explicit profile ladder separates ordinary completion protection from strict evidence and release policy. Internally, protocol semantics are separated from the Codex Hook adapter, with `PreToolUse`, one-shot action tickets, checked Stop dispositions, and scoped work units used only where their profile requires them.
-- The 0.12.0 runtime passed independent native macOS and Windows acceptance on the same 26-file runtime-tree digest; the Windows evidence has explicitly authorized remote-reported provenance.
-- Version 0.11.0 introduced exact release-action authorization and the ninth Hook event, `PreToolUse`.
-- Version 0.10.0 checks that evidence proves the operation the user requested.
-- Context Guard chooses a supported Python interpreter and can recover from a surviving managed cache. If neither is available, it stops with a reinstall hint instead of guessing.
+Upgrade with the managed installer, then start a fresh task to load the new version. Keep old versioned caches for tasks that still use them. Version 0.12.4 migrates private state from schemas 10 and 9; see [compatibility](docs/COMPATIBILITY.md) before downgrading.
 
-Detailed version and platform evidence is in the [compatibility matrix](docs/COMPATIBILITY.md), [changelog](CHANGELOG.md), and [local acceptance record](docs/LOCAL_ACCEPTANCE.md).
+If the required Python interpreter and managed cache are both unavailable, Context Guard stops with a reinstall hint. Version history is in the [changelog](CHANGELOG.md); detailed behavior and remaining host-dependent checks are in the [0.12.4 baseline](docs/BEHAVIOR_BASELINE_0_12_4.md).
 
 ## Try it
 

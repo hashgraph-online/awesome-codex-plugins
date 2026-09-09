@@ -923,6 +923,21 @@
       "icon": "./plugins/SamurAIGPT/Generative-Media-Skills/assets/icon.svg"
     },
     {
+      "name": "codex-goal-progress",
+      "displayName": "Goal Progress",
+      "source": {
+        "source": "local",
+        "path": "./plugins/ezra-y/codex-goal-progress"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "A native progress bar for Codex Goals with checklist-based progress and token usage on Apple Silicon Macs.",
+      "icon": "./plugins/ezra-y/codex-goal-progress/assets/icon.png"
+    },
+    {
       "name": "graymatter",
       "displayName": "GrayMatter",
       "source": {
@@ -1689,7 +1704,7 @@
       },
       "category": "Development & Workflow",
       "description": "STOP UI SLOP. Gives Codex 800,000+ real web and iOS screens, a product-specific design contract, and a hard finish gate before generic UI ships; connect it at https://uizze.com.",
-      "icon": "./plugins/uizze/uizze/integrations/mcp/assets/uizze-logo-400x400.png"
+      "icon": "./plugins/uizze/uizze/plugins/openai-directory/uizze/assets/uizze-logo.png"
     },
     {
       "name": "unforgit",
@@ -3014,21 +3029,6 @@
       "category": "Tools & Integrations",
       "description": "Thermal-fluid mechanical engineering research workflow for literature review, technical writing, data analysis, presentations, proposals, coding, and AI/ML tools.",
       "icon": "./plugins/hanhuark/mechanical-engineering-research-skill/assets/icon.svg"
-    },
-    {
-      "name": "token-harbor",
-      "displayName": "Token Harbor",
-      "source": {
-        "source": "local",
-        "path": "./plugins/NickHOI/Token-Harbor"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
-      "category": "Tools & Integrations",
-      "description": "Turn Codex token usage into Sail Power for a local-first fishing, fleet, and harbor-building companion game.",
-      "icon": "./plugins/NickHOI/Token-Harbor/assets/icon.svg"
     },
     {
       "name": "tokrepo-search",

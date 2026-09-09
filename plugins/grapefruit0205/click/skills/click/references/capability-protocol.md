@@ -150,6 +150,15 @@ The observer-free alternative is a committed `.click/evidence-reuse.json` file w
 
 Host coverage identity is a compact receipt containing the canonical host, a deterministic digest of its registered pre/post tool surface, and the assurance `known-surfaces-only`. Verification preparation binds it to the one-use runner, the runner requires the registry to remain current before execution, and a successful argv source records it for later exact or dependency-aware reuse. Legacy evidence without this receipt remains readable but is rerun. This identity detects host or registry drift; it does not claim that a host emitted an event for a capability outside the registered surface, and it does not turn the Hook into an operating-system monitor.
 
+Version 2 of `.click/evidence-reuse.json` additionally requires `inputs` on
+every entry. The owner declares the complete file-content boundary before the
+baseline. Both the allowed-change envelope and unchanged input fingerprints
+must hold, including ignored files, directory membership and absent literal
+inputs. Input drift during execution cannot mint a reusable scoped baseline.
+Policy v1 semantics remain unchanged. Static graphs and proposed shards never
+generate this authority automatically. See the [file-input policy example and
+limits](../../../docs/architecture/verification-economics.md).
+
 The optional repository manifest is `.click/evidence-dependencies.json`:
 
 ```json

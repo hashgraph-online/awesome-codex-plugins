@@ -1,9 +1,9 @@
 {
   "name": "uizze",
-  "version": "1.2.14",
-  "description": "Build product-specific UI with the free anti-ui-slop skill and optional focused UIZZE references.",
+  "version": "1.2.16",
+  "description": "UI design that stands out",
   "author": {
-    "name": "UIZZE",
+    "name": "Uizze",
     "email": "business@uizze.com",
     "url": "https://uizze.com"
   },
@@ -19,22 +19,23 @@
   ],
   "skills": "./skills/",
   "interface": {
-    "displayName": "UIZZE",
-    "shortDescription": "Stop UI slop before it ships",
-    "longDescription": "Use the product's existing system first, then retrieve a few focused UIZZE references only when they answer a concrete UI question.",
-    "composerIcon": "./integrations/mcp/assets/uizze-logo-400x400.png",
-    "logo": "./integrations/mcp/assets/uizze-logo-400x400.png",
-    "developerName": "UIZZE",
+    "displayName": "Uizze",
+    "shortDescription": "UI design that stands out",
+    "longDescription": "Uizze gives coding agents a free anti-ui-slop Skill and optional full MCP access to live UI references and license-clear materials. Use the skill to inspect the product and design system, write a design contract, cover required states, and run a bounded finish gate. The MCP answers one concrete unresolved UI question with strong full-screen references and finds license-clear materials for a concrete role.",
+    "composerIcon": "./plugins/openai-directory/uizze/assets/uizze-logo.png",
+    "logo": "./plugins/openai-directory/uizze/assets/uizze-logo.png",
+    "developerName": "Uizze",
     "category": "Developer Tools",
     "capabilities": [
       "Read"
     ],
-    "websiteURL": "https://uizze.com",
+    "websiteURL": "https://uizze.com/ai-ui-slop",
     "privacyPolicyURL": "https://uizze.com/privacy",
     "termsOfServiceURL": "https://uizze.com/terms",
     "defaultPrompt": [
-      "Find focused references for this interface, then adapt the useful decisions to the existing product.",
-      "Find hosted UI materials for this screen only if they are actually needed."
+      "Help me ground a new interface in Uizze real screens.",
+      "Find strong full-screen UI references for this unresolved interface question.",
+      "Run the bounded UI finish gate on my rendered interface."
     ],
     "brandColor": "#111111"
   }

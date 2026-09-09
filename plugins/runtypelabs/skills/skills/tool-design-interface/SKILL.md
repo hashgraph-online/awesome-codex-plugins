@@ -1,14 +1,6 @@
 ---
 name: tool-design-interface
-description: >-
-  Use when writing or fixing the contract an AI agent sees for a tool: the name, the
-  description, and the parameter schema. Covers descriptions written for model
-  comprehension, enums and ranges instead of free-form strings, smart defaults,
-  natural identifiers resolved internally, exactly-one-of parameter rules, performance
-  hints, flexible input coercion, and marking query versus command tools. Trigger
-  phrases: "tool description", "write the tool schema", "parameter names for the
-  agent", "agent passes the wrong format", "agent picks the wrong tool", "too many
-  required parameters", "JSON schema for an MCP tool".
+description: 'Design agent-facing tool names, descriptions, and parameter schemas; diagnose incorrect tool selection or inputs.'
 user-invocable: true
 argument-hint: '[tool whose name, description, or parameters to design]'
 ---

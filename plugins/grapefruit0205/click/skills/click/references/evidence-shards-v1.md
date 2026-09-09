@@ -87,6 +87,26 @@ shard id, inventory partition, or a sibling's result can never authorize a
 cross-revision skip. `.click/evidence-shards.json` is itself a protected policy
 path and cannot be declared safe by the safe-change policy.
 
+## Child continuity across a reviewed refresh
+
+New internal child identities bind the exact parent command, shard id, child
+argv, coverage patterns, and resolved covered files. They do not depend on a
+sibling's definition or the total shard count. Full-plan and inventory digests
+still govern admission, runner revalidation, and complete receipt aggregation.
+
+When a newly committed, complete map replaces an active map for the same
+parent, Click uses its children directly. An unchanged child's prior success
+may survive only as a stale candidate. Its normal current dependency,
+environment, executable, host coverage, mutation-boundary and policy checks
+must pass before reuse. A changed child starts fresh. Unavailable reuse
+evidence reruns that child, without invalidating the valid decomposition.
+
+Complete authoritative observations bind the child's own selection while the
+runner independently binds the entire current plan. Legacy facts without this
+child binding are not upgraded into narrower authority; they need a new
+baseline. Safe-change policy protections still reject a changed shard policy.
+Several intervening edits preserve stale candidates, never current completion.
+
 ## Fail-closed fallback
 
 Click runs the original parent suite when the map is absent, uncommitted,

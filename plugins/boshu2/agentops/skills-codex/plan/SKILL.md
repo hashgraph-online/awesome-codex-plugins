@@ -1,90 +1,70 @@
 ---
 name: plan
-description: 'Shape or refine the existing bead or caller intent without a second planning artifact. Triggers: "plan", "discover and plan", "shape this goal", "review write scope", "check scope boundaries", "scope this change".'
+description: 'Shape or refine the existing bead or caller intent in place. Triggers: "plan", "discover and plan", "shape this goal", "review write scope", "check scope boundaries", "scope this change".'
 ---
 # Plan
 
-Turn the caller's intent into one bounded, testable behavior in the place that
-already owns the work. Prefer the caller's tracker, if any; otherwise the
-caller's conversation or supplied text, which the runtime snapshots so later
-contexts read and hash the same bytes.
+Shape only what is missing from the authorized intent. Prefer the caller's tracker, if any;
+otherwise use the caller's conversation or supplied text. A clear trivial change
+needs no planning worksheet or separate Plan dispatch. Planning produces no AgentOps packet.
+
+## Workflow
+
+1. Read the actual intent, relevant source owners and active constraints. Find
+   the caller-visible outcome, allowed write scope and first useful check.
+   Inspect only enough context to resolve a consequential uncertainty.
+2. Where needed, clarify acceptance examples, important non-goals and scope in
+   the existing source. Include generated companions as a class: hand-edited
+   sources plus every output of the owning regeneration commands. Include tests
+   and live consumers that must change with them. Scope is authority, not a
+   prediction of an exact file count.
+3. Choose the smallest acceptance-advancing action or discriminating check.
+   Identify evidence the change could invalidate and include recapture where
+   required. Use `ao provenance evidence-orphans` for affected bound evidence;
+   avoid a mandatory ledger or taxonomy for changes that do not need one.
+4. Revise the approach when evidence disproves an assumption under unchanged
+   accepted outcome and scope. Record the disproved assumption, evidence and
+   revised check briefly in the existing source or handoff. No new permission
+   is needed for this approach revision. Changing acceptance or expanding scope
+   needs caller authority; never quietly weaken the original check.
+5. When another context needs the intent, pass enough exact source and references
+   to act without the author's private reasoning. The runtime binds accepted
+   intent for final validation; useful approach notes are separate from frozen
+   acceptance so revising a hypothesis does not fabricate acceptance drift.
+
+A plan is sufficient when the implementer can act and the validator can judge.
+Then stop planning and implement. Specialists and
+[ground-truth routing](references/ground-truth-routing.md) are optional tools for
+consequential integration or design uncertainty, not universal worksheets.
+[Memory recall](../memory/references/recall.md) is useful only when applicable
+prior experience may change this work's next action.
+
+## Identity and scope
+
+Use the runtime's source reference and digest for exact accepted intent. For
+conversation-only intent, existing `ao provenance snapshot-intent --source -
+--evidence-root <explicit-root>` stores resolved bytes in a caller-selected
+protected external non-Git evidence directory. Missing routing does not authorize
+a workspace fallback or a second plan artifact. Preserve legacy proof.
+
+Scope patterns are normalized repository-relative paths, cover the behavior,
+and include generator-owned companions without granting unrelated directories.
+A live consumer outside accepted scope needs a concise exact-file amendment to
+the caller; continue independent authorized work while that decision is pending.
+[Boundaries](../rpi/references/boundaries.md) keep work/status in the caller's
+tracker and Git/delivery under repository policy.
 
 ## Prompt
 
 ```text
-Plan bead ag-1234: "ao gate check lists the probe-coverage row". Shape it in
-the bead itself: one active behavior, acceptance examples, non-goals, write
-scope as a class (cli/internal/gates/** plus regen outputs), first check
-`cd cli && go test ./internal/gates/...`. Update the bead in place.
+Use Plan to resolve the uncertain parser interface for this accepted change.
+Keep acceptance and scope; use a real consumer check to test the assumption.
+Revise the approach if it fails, then implement. No new planning artifact.
 ```
 
 ## It's working if
 
-- The bead or issue text itself gains acceptance, non-goals, and write scope;
-  no plan file appears under `.agents/` in the diff.
-- Write scope names a regen class (`skills/**` plus every output of
-  `scripts/regen-all.sh`), not a hand-enumerated path list.
-- The plan names one first check as a runnable command, such as
-  `bash scripts/check-x.sh`, and a fresh context given only the source can
-  start Implement.
-- On a risky write scope the plan names the evidence the change will orphan,
-  rather than leaving it for verify time.
-
-## Workflow
-
-1. Resolve the intent source and choose one active behavior. When the source
-   is not durable, have the runtime pass its exact bytes to the validate
-   skill's `scripts/validate.py snapshot-intent --source -` (under
-   `skills/validate/` in a checkout, `.agents/skills/validate/` when
-   installed) and carry the returned `intent_ref` into later phases.
-2. Route the work by type (Integrate, Extend, or Greenfield) and name its
-   ground truth, control experiment, and deviation ledger first from
-   [references/ground-truth-routing.md](references/ground-truth-routing.md).
-   Then inspect only enough real context to make paths, interfaces, and
-   evidence concrete, carrying citations forward; research and specialist
-   skills are advisory inputs.
-3. Ensure the source contains acceptance examples, important non-goals, and the
-   allowed write scope. Name the write scope, its effect on acceptance and
-   enforcement under [`validate`](../validate/SKILL.md)'s risk rule (unknown risk
-   takes stronger review), the caller's `repair_rounds`, the named acceptance
-   gap and discriminating check that would establish progress, and the evidence
-   this change will orphan: bound scorecards
-   or contracts whose evaluator files sit in the write scope. Run
-   `bash scripts/evidence-orphans.sh <write scope>` to see that list rather than
-   guessing it, and budget recapturing it as work this plan carries, not a
-   discovery for verify time. Use lightweight prose or Given/When/Then only
-   where it removes ambiguity. Write-scope checks (folded from the retired
-   `scope` skill):
-   - patterns are normalized repository-relative paths;
-   - includes cover the behavior without granting unrelated directories;
-   - excludes do not contradict required changes;
-   - generated companions that must move with the sources are explicit;
-   - no ownership, scheduling, Git, hook, retry, release, or delivery state.
-4. Name the first useful acceptance check.
-5. If authorized and the source is writable, update that bead or issue in
-   place. Otherwise return a concise proposed amendment to the caller.
-
-## Scope admission
-
-At scope, read `boundaries.md` in the rpi skill's `references` directory for
-what Plan does not own. In a repository with generated projections, write
-scope names generator-owned outputs as a class (the hand-edited sources plus
-all outputs of the owning regen commands), because a hand-enumerated list is
-falsified the first time a regen command rewrites an unlisted companion.
-Before freezing acceptance, enumerate the generated companions, parity twins
-such as `skills-codex/`, and tests asserting on the changed paths;
-anything unadmitted here surfaces later as an out-of-scope diff or a broken
-gate.
-
-A plan is done only when it passes the fresh-context test: a cold context,
-given the intent source alone, could execute it. Move any fact that lives only
-in the planning conversation into the source before freezing.
-
-Planning produces no AgentOps packet: the runtime carries the source's
-reference and digest to detect acceptance drift. Bound the work around the
-caller-visible outcome, not files, gates, or reviewer comments; decompose only
-when it reduces reasoning cost. An explicitly selected bounded outer goal may
-admit a different experiment after informative red within unchanged terminal
-acceptance and remaining allowance. A new hypothesis is not an acceptance
-expansion; recurrence alone is not proof that the design is wrong. Do not reopen
-an accepted plan merely to produce another control artifact.
+A clear small change skips planning paperwork. A falsified assumption changes
+the approach and the next check; it does not trigger another approval round
+unless outcome or scope changes. Generated outputs remain in scope and the
+existing intent gives a fresh implementer enough information to act.

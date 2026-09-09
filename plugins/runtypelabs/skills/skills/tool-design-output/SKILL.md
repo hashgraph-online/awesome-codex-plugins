@@ -1,12 +1,6 @@
 ---
 name: tool-design-output
-description: >-
-  Use when deciding what a tool should return to an AI agent: shaping raw API
-  responses, keeping results token-efficient, cursor pagination, summary-versus-full
-  detail, per-item results for batch calls, GUI links, next-action hints, resource
-  references for large payloads, and canonical data models across a tool set. Trigger
-  phrases: "tool response shape", "response too large", "context window blown by tool
-  output", "pagination for the agent", "what should the tool return", "partial success".
+description: 'Design agent tool results, including pagination, partial success, context size, and actionable next steps.'
 user-invocable: true
 argument-hint: '[tool whose result shape to design]'
 ---

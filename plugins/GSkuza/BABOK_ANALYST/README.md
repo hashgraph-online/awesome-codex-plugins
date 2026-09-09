@@ -658,7 +658,7 @@ When multiple analysts work on the **same project directory** (e.g. on a shared 
   ⛔ Stage 3 is currently locked by another user:
      anna@WORKSTATION-02 (PID 14872), locked 12 min ago
   ```
-- Locks older than **2 hours** are automatically treated as stale and removed
+- Locks older than **15 minutes** are automatically treated as stale and removed
 - Lock files are excluded from git (`.gitignore`)
 
 > **Recommendation:** Store the `projects/` directory on a shared network drive or sync folder for team use. Each analyst works on separate stages to avoid contention.
@@ -1043,7 +1043,7 @@ Most of the time is not spent working with the agent, but gathering data from st
 | Error in earlier response | `CORRECTION in [Section X.Y]: [error description and fix]` |
 | Document too technical | "Simplify section [X] for non-technical audience" |
 | Change requirement priority | "Change requirement FR-015 from MUST to SHOULD. Reasoning: [...]" |
-| Stage locked by another user | Wait for them to finish, or remove stale lock file after 2 h |
+| Stage locked by another user | Wait for them to finish, or remove stale lock file after 15 min |
 | `babok` command not found | Run `setup.bat` (Windows) or `npm link` in `cli/` |
 
 ---

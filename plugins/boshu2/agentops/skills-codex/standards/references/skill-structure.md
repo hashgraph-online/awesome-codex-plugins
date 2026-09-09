@@ -68,15 +68,14 @@ skill. Advisory context belongs in prose links or `context_rel`; it is not a
 hard dependency. The core hard-dependency graph is only:
 
 ```text
-rpi -> anti-ceremony
 rpi -> plan
 rpi -> implement
 rpi -> validate
 ```
 
-RPI invokes the anti-ceremony quick guard once before Plan. `STOP` dispatches
-none of Plan, Implement, or Validate; `CONTINUE` preserves the ordered
-Plan -> Implement -> fresh Validate traversal.
+These are available core operations, not mandatory worksheets or dispatches for
+every edit. RPI uses Plan on demand and requires fresh final Validate.
+Anti-ceremony and Memory are optional, with no hard edge.
 
 ## Body contract
 
@@ -94,11 +93,11 @@ must not silently start a runtime or assume one exists.
 
 ## Product boundary
 
-AgentOps skills may shape intent, run one bounded experiment, establish exact
+AgentOps skills may shape intent, implement and repair authorized work, establish exact
 subject identity, make one fresh independent judgment, and preserve evidence.
 They do not own:
 
-- retry loops, attempt budgets, or automatic repair;
+- aggregate retry controllers or attempt budgets;
 - queues, claims, leases, priorities, or work selection;
 - Git state, commits, pushes, merging, release, or delivery;
 - lifecycle closure, next actions, or operator notification policy.

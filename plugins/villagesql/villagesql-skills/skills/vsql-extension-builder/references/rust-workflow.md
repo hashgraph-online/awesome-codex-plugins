@@ -56,8 +56,10 @@ These define what the Rust SDK can express today.
 `references/capabilities.md` → "STRING return size and charset"):
 - STRING returns are capped at 256 bytes. Designing a 0-arg "return all
   rows as JSON" function will hit this — chunk or prefix-filter instead.
-- STRING results carry the `binary` charset; callers consuming results
-  via MySQL JSON functions need `CONVERT(... USING utf8mb4)`.
+- On VillageSQL 0.0.6 and earlier, STRING results carry the `binary`
+  charset; callers consuming results via MySQL JSON functions need
+  `CONVERT(... USING utf8mb4)` there. Fixed in VillageSQL 0.0.7 — check
+  `SELECT VERSION()` against the target server rather than assuming.
 
 **Preview capabilities:** the crate has a `preview` module
 (`villagesql/src/preview/`), and each ported capability ships a working
@@ -68,8 +70,6 @@ to run with `vsql_allow_preview_extensions=ON`.
 
 **Not yet available in the Rust SDK** (confirm against the crate source
 before treating as current):
-- SQL sessions from background threads (`sql_query` — `thread_worker.rs`
-  reserves a handle for it)
 - Variable-length column storage (Column Storage ABI)
 
 If the user's request requires any unavailable capability, present the

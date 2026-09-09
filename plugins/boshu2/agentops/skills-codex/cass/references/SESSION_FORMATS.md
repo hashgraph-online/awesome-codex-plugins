@@ -7,6 +7,7 @@
 ## Contents
 
 - [Work-to-session associations](#work-to-session-associations)
+- [Bounded raw source reads](RAW_SOURCE_READS.md)
 - [Quick Detection](#quick-detection)
 - [Claude Code Format](#claude-code-format)
 - [Codex CLI Format](#codex-cli-format)
@@ -72,6 +73,11 @@ prove bytes were emitted, delivered to the host or semantically processed.
 Head/tail excerpts leave the middle unread; new tails or children belong to a
 later observation, not a rewritten completed denominator. T09 owns the later
 coverage verifier; no coverage command or acceptance claim is introduced here.
+
+For byte-preserving reads of explicitly authorized sources, follow
+[bounded raw source reads](RAW_SOURCE_READS.md). The source reader checks native
+policy before opening bytes and reports frozen prefix/span digests, reversible
+content and delivery limits; emitted stdout does not establish full reading.
 
 ## Quick Detection
 

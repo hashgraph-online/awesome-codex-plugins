@@ -9,7 +9,7 @@
       "source": {
         "source": "url",
         "url": "https://github.com/grapefruit0205/click.git",
-        "ref": "v0.93.0"
+        "ref": "v0.96.0"
       },
       "policy": {
         "installation": "AVAILABLE",

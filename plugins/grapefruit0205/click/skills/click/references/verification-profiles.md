@@ -38,6 +38,23 @@ The Hook skips an exact successful argv check in the same revision only when the
 
 Finalize non-argv evidence with `click-gate evidence '{"version":1,"evidence_id":"E2"}'`. For Browser this succeeds only after a successful current-revision call in the tracked session. For `hosted`, `manual`, and `existing`, the command records an explicit completion attestation; do not claim that the Hook proved an unmatched external action. It rejects `argv` ids, which can complete only through their bound runner checks.
 
+## Tool support boundary
+
+Execution and reuse are tool-profile capabilities, not a single language
+checkbox. Real local Hook-to-runner fixtures cover CPython unittest/pytest,
+Node test/check, npm test, Go test, pinned Vitest 5, and pinned Jest 30.
+Automatic inventory and exact file splitting are profile-limited to unittest,
+pytest, Vitest, and Jest. JSON, YAML, Markdown, SVG, and jq validation have real
+local fixtures; other direct content linters remain recognized or untested as
+recorded in `docs/history/multilang-expansion/`.
+
+Cargo, Gradle/Maven, .NET, TypeScript/CMake/CTest, SQL, and XML command profiles
+do not become verified merely because the adapter recognizes their argv. Their
+native toolchain, required offline/no-restore boundary, runtime identity, and CI
+result must be present before claiming actual execution support. Unsupported
+inventory, dynamic configuration, or ambiguous selection preserves the exact
+parent command.
+
 In a Git worktree, the runner snapshots tracked content and pre-existing non-ignored untracked content. If protected content changes, verification fails stale and advances the mutation revision instead of recording success. Every newly created non-ignored untracked path is reported and also fails stale; source, application, library, configuration, or migration classification only makes the warning clearer. Git-ignored paths, external dependencies, and external system state are outside the protected tree digest. Outside Git, this content-change and receipt-reuse boundary is unavailable; command allowlisting, shell-free execution, and revision state still apply.
 
 Accepted capability execution is deterministic for the supplied argv and inferred minimum class, but a custom program can conceal expensive work. Unknown verification-like wrapper names are measured conservatively as `deep`; an executable that cannot be resolved and fingerprinted, or an unrecognized non-check command, is rejected. This guard is not a resource sandbox and does not prove semantic test sufficiency.

@@ -58,7 +58,7 @@ get_exception_details(trace_id="<trace_id from the file results>")
 fetch_trace(trace_id="<trace_id>", include_observations=true)
 ```
 
-Exceptions are read from SPAN observation events with `exception.type`. If none appear, `get_error_count(age=1440)` and `fetch_traces(age=1440)` still confirm the project has recent telemetry.
+Known limitation: the exception tools scan observation events for `exception.type` attributes, but standard Langfuse observation responses do not include nested events, so they may return nothing even when errors exist. Inspect errors directly with `fetch_observations` (each observation carries `level` and `status_message`) or `fetch_trace(trace_id="<trace_id>", include_observations=true)`.
 
 ## Project Links
 

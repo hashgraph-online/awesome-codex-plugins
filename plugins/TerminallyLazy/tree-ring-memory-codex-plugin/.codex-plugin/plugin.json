@@ -1,6 +1,6 @@
 {
   "name": "tree-ring-memory",
-  "version": "0.3.3",
+  "version": "0.3.7",
   "description": "Local-first memory lifecycle, project bootstrap, and receipt-backed harness guidance for coding agents using Tree Ring Memory v0.15+.",
   "author": {
     "name": "TerminallyLazy",
@@ -22,6 +22,7 @@
     "skills"
   ],
   "skills": "./skills/",
+  "hooks": "./hooks/codex-hooks.json",
   "interface": {
     "displayName": "Tree Ring Memory",
     "shortDescription": "Local-first memory lifecycle guidance for Codex agents.",
@@ -34,8 +35,8 @@
       "Interactive"
     ],
     "websiteURL": "https://terminallylazy.github.io/Tree-Ring-Memory/",
-    "privacyPolicyURL": "https://github.com/TerminallyLazy/tree-ring-memory-codex-plugin/blob/main/PRIVACY.md",
-    "termsOfServiceURL": "https://github.com/TerminallyLazy/tree-ring-memory-codex-plugin/blob/main/TERMS.md",
+    "privacyPolicyURL": "https://github.com/TerminallyLazy/Tree-Ring-Memory/blob/main/plugins/tree-ring-memory/PRIVACY.md",
+    "termsOfServiceURL": "https://github.com/TerminallyLazy/Tree-Ring-Memory/blob/main/plugins/tree-ring-memory/TERMS.md",
     "defaultPrompt": [
       "Recall durable project context before changing release behavior.",
       "Capture this validated lesson without storing a transcript.",

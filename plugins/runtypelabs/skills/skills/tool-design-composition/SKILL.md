@@ -1,15 +1,6 @@
 ---
 name: tool-design-composition
-description: >-
-  Use when shaping a set of agent tools rather than one tool: bundling common
-  sequences into task tools, batch variants, preview and dry-run modes, abstraction
-  ladders from raw to intent-level, explicit tool chains, scatter-gather across
-  sources, and how agents discover tools (registry, layered schema exploration,
-  dependency hints, capability search, health checks). Also covers gateways,
-  adapters for legacy APIs, canonical models, and versioning. Trigger phrases: "too
-  many tools", "agent calls the same three tools every time", "bundle these
-  operations", "batch tool", "dry run mode", "tool discovery", "wrap this legacy API",
-  "tool versioning".
+description: 'Compose and expose agent toolsets: task-level operations, batching, discovery, dry runs, and versioning.'
 user-invocable: true
 argument-hint: '[tool set to organize or extend]'
 ---
