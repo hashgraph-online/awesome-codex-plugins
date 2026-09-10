@@ -5,8 +5,8 @@ cited report. SEO audit, documentation-from-sources, and research-synthesis inhe
 verbatim. It is not a Hunt catalog entry; those specialized shifts live in `shifts/`.
 
 Use it in repository mode or artifact mode. Artifact mode completes with
-`ns write-receipt` into `$NS/receipts/`
-against the report and any other output files. Repository mode still makes one conventional commit per item.
+the item receipt under `$NS/receipts/`
+against the cited page and any other output files. Repository mode still makes one conventional commit per item.
 
 ## Source policies
 
@@ -37,7 +37,7 @@ Bounded discovery also carries recency limits, and a source outside the bounds i
 than fetched quietly. A connected corpus may be an authenticated connector scope the owner named.
 
 In artifact mode — a folder that is not a Git repository — plan completion in the skill and write
-the receipt with `ns write-receipt` into `$NS/receipts/`. Never require or invent a repository,
+the receipt into `$NS/receipts/`. Never require or invent a repository,
 branch, package manager, or tooling setup for research, documentation, or non-code quality work.
 
 ## Sources are an explicit list
@@ -112,5 +112,5 @@ Exit 0 is a complete cited report. Exit 2 is a contract failure (empty or missin
 missing headings, uncited `ok` sources, unrecorded unavailable sources, fabricated ids, or
 secret lines). Fix the report; do not weaken the checker.
 
-In artifact mode, pass the same output paths to `write-receipt.sh` / `write-receipt.ps1` after
-the checker is green. Completion lands in `$NS/receipts/`, not a git log.
+In artifact mode, record the same output paths in the item receipt after the checker is green.
+Completion lands in `$NS/receipts/`, not a git log.

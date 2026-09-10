@@ -61,8 +61,7 @@ Detect the work mode, explain it, and ask before persisting it. Use
   target, never guess.
 - `artifact` — there is no Git repository here. The persistent folder itself is the work target
   (research, docs, audits, planning). Say so plainly: gates, commits, and stack detection that
-  require Git do not apply; complete each item with
-  `"$NIGHTSHIFT_PLUGIN_ROOT/runtime/ns" write-receipt`.
+  require Git do not apply; complete each item with a receipt under `$NS/receipts/`.
   Completion in that folder is `$NS/receipts/`, not a git log.
   When `$NS/receipts` exists but is not a usable directory, say so and do not treat artifact setup as complete.
 - scratch (`ns_propose_work_mode` status 2, or `Get-NSProposedWorkMode` throwing) — stop; create

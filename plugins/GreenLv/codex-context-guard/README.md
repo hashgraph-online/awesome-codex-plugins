@@ -8,17 +8,21 @@
 
 [简体中文](README.zh-CN.md) | [Introduction](https://greenlv.github.io/blogs/protecting-context-in-long-running-agent-tasks/) | [Changelog](CHANGELOG.md)
 
-Context Guard keeps important requirements from disappearing during a long Codex task. It restores a private checklist after compaction or resume and requires successful evidence before the task can be reported complete.
+Context Guard keeps important requirements from disappearing during a long Codex task. It restores a private checklist after compaction or resume and requires successful evidence before the task can be reported complete. It does not gate ordinary edits, commits, or pushes with its own approval prompts.
 
 It works beside Codex Plan, Goal, memories, subagents, worktrees, and the transcript; it does not replace or control them.
 
-> Current release: `0.12.4`. See the [release notes](docs/releases/v0.12.4.md), [changelog](CHANGELOG.md), [compatibility matrix](docs/COMPATIBILITY.md), and [local acceptance record](docs/LOCAL_ACCEPTANCE.md).
+> Source candidate: `0.13.3` (Unreleased). It fixes ordinary commits and single branch pushes being blocked by damaged release state; the published release and its acceptance evidence remain below.
+
+> Current release: `0.13.2`. See the [release notes](docs/releases/v0.13.2.md), [changelog](CHANGELOG.md), [compatibility matrix](docs/COMPATIBILITY.md), and [local acceptance record](docs/LOCAL_ACCEPTANCE.md).
+>
+> Version `0.13.2`: the default Context Guard stops gating ordinary edits, commits, pushes, tags, and publications with its own authorization prompts, and keeps only requirement recovery, task continuity, honest completion checking, answer-delivery tracking, and private-control integrity. Native results have been reviewed for macOS and Windows; see the [changelog](CHANGELOG.md) for evidence boundaries.
 >
 > Version `0.12.4` fixes lost task limits, unrelated confirmations clearing pauses, incomplete recovery text, and commit-and-push target mistakes. See the [changelog](CHANGELOG.md) for changes and the [acceptance record](docs/LOCAL_ACCEPTANCE.md) for platform checks.
 
 ## Install
 
-Requirements: Python 3.10 or newer, Codex CLI `0.146.0` or newer as the tested minimum, and a Codex surface that loads plugins and lifecycle Hooks.
+Requirements: Python 3.10 or newer, Codex CLI `0.153.4` (the version tested for this release), and a Codex surface that loads plugins and lifecycle Hooks.
 
 ```shell
 git clone https://github.com/GreenLv/codex-context-guard.git
@@ -38,9 +42,11 @@ Installing a plugin does not trust its Hooks automatically. Start a fresh Codex 
 
 ### Upgrade notes
 
-Upgrade with the managed installer, then start a fresh task to load the new version. Keep old versioned caches for tasks that still use them. Version 0.12.4 migrates private state from schemas 10 and 9; see [compatibility](docs/COMPATIBILITY.md) before downgrading.
+Upgrade with the managed installer, then start a fresh task to load the new version. Keep old versioned caches for tasks that still use them; installed caches are immutable, and 0.13.2 never refreshes a consumed copy.
 
-If the required Python interpreter and managed cache are both unavailable, Context Guard stops with a reinstall hint. Version history is in the [changelog](CHANGELOG.md); detailed behavior and remaining host-dependent checks are in the [0.12.4 baseline](docs/BEHAVIOR_BASELINE_0_12_4.md).
+Version 0.13.2 changes responsibilities: the default guard no longer asks for execution authorization, so it no longer prompts you to approve edits, commits, or pushes. Codex and repository approval rules still apply. Private state migrates from schemas 11, 10, and 9 to schema 12. Pending questions from old sessions without trusted delivery facts show a "historical answer-delivery uncertain" note instead of being mechanically re-asked, and old natural-language authorization records are preserved as history that never blocks anything. See [compatibility](docs/COMPATIBILITY.md) before downgrading.
+
+If the required Python interpreter and managed cache are both unavailable, Context Guard stops with a reinstall hint. Version history is in the [changelog](CHANGELOG.md); current behavior and platform limits are in [compatibility](docs/COMPATIBILITY.md). The [0.12.4 baseline](docs/BEHAVIOR_BASELINE_0_12_4.md) is historical.
 
 ## Try it
 
@@ -64,22 +70,27 @@ For a recovery check, use it on a non-trivial synthetic task, run `/compact`, an
 - Requirements, acceptance criteria, prohibitions, and later corrections keep stable task-local identities.
 - Compaction and resume restore the open checklist instead of relying only on a conversational summary.
 - Successful tool evidence must match the named file, URL, image, or other requested result before it can close an item.
+- A delivered answer is not a completed task. A natural answer actually delivered to a pure question closes that item as `answered` and never replays after compaction; an execution obligation always needs evidence; an unknown delivery state is never presented as completion.
 - Images and other multimodal inputs keep only hashes and bounded metadata. When the user asks for an image change, completion evidence can be tied to an inspection of the changed image rather than merely to a successful tool call.
-- Ambiguous output remains `unknown`; damaged or unverifiable private state fails closed.
+- Ambiguous output remains `unknown`; damaged or unverifiable private state blocks completion verification.
 - Exports are explicit and redacted. Image bytes, credentials, and raw transcript content are not copied into the requirement ledger.
 
 Automatic checks are used only when the request names a concrete target, such as a file, URL, edited image, or complete object list. If Context Guard cannot verify a result exactly, it leaves the item open instead of guessing. Waiting for the user, an external result, or a later turn does not close unfinished requirements.
 
 ## Who decides what
 
-- The user decides the task and which changes are allowed.
+- You decide the task and which changes are allowed.
 - Repository instructions and selected Skills define the adopted workflow, but cannot grant new authority.
 - Codex Plan describes the model's current steps; Context Guard can keep a read-only reference but does not edit the plan.
-- Tool, file, image, UI, and public-page readbacks establish facts. A successful result cannot authorize a push, release, installation, or other change by itself.
+- Tool, file, image, UI, and public-page readbacks establish facts. They do not by themselves decide whether an action is authorized.
 
-Context Guard records these boundaries when the project opts in and asks for review if the adopted instructions or plan change. Its `PreToolUse` Hook can deny covered release and remote-mutation calls, but it does not grant permissions or replace platform approval, and specialized tools outside Hook coverage remain an explicit gap.
+From version 0.13 the responsibilities split like this:
 
-When you ask to push and the current repository has one clear destination, Codex proceeds without asking you to repeat the remote and branch. Context Guard binds that target internally; it asks only when the target is unresolved, conflicting, or has changed. Ordinary push permission does not include force-push, branch deletion, or release publication.
+- **You and the executing agent decide execution.** Whether an edit, commit, push, tag, or publication is within your authorization is judged by the main executing agent from the real conversation, repository rules, and host permissions — not by a Context Guard prompt. A Context Guard allow was never authorization, and the product now says so explicitly.
+- **Context Guard owns correctness continuity.** It recovers requirements and constraints across compaction and resume, keeps task state continuous, checks completion claims against matching deterministic evidence, tracks whether a requested answer was actually delivered, and protects its own private control state. These checks are fail-closed and never ask you to re-authorize ordinary work.
+- **An explicitly adopted release execution contract owns precise identity actions.** Only after an explicit adoption or an explicit `context-guard release` declaration do tier-A actions — tags, registry publish/yank, GitHub Releases — require an exact one-shot action ticket.
+
+Context Guard does not grant permissions or replace platform approval, and specialized tools outside Hook coverage remain outside its view.
 
 ## Protection levels
 
@@ -87,12 +98,12 @@ Context Guard's checks follow the active protection level. Skills, repository in
 
 | Level | How it turns on | What it does |
 | --- | --- | --- |
-| **Standard** (default) | Activating the guard | Recovers your requirements after compaction, checks completion honestly for the current work unit, and blocks a real high-risk action (such as a remote push or a publish) unless you actually asked for it in this task. |
-| **Strict** | You explicitly ask for strict evidence protection | Standard, plus enforced proof obligations for the current work unit — useful for formal deliverables and multi-image work. Never implies release checking. |
-| **Release** | You explicitly adopt a release execution contract or declare the release profile | Standard, plus candidate-closure, publication-readiness, and a one-shot ticket for covered release actions (tags, registry publish/yank, GitHub Releases). Having a tag or release authorized never follows automatically from anything else. |
-| **Observe** | Maintainer or canary configuration | Records what it would have blocked, without blocking anything. |
+| **Standard** (default) | Activating the guard | Recovers your requirements after compaction and resume, keeps task state continuous, checks completion honestly against deterministic evidence, and tracks answer delivery. No execution approvals and no repeated authorization asks: ordinary edits, commits, pushes, status questions, and compaction never trigger a Context Guard prompt. |
+| **Strict** | You explicitly ask for strict evidence protection | Standard, plus enforced proof obligations for the current work unit — useful for formal deliverables and multi-image work. Strict never implies release or Git gating. |
+| **Release** | Only an explicitly adopted release execution contract or an explicit `context-guard release` declaration | Standard, plus candidate-closure, publication-readiness, and exact one-shot tickets for covered tier-A identity actions (tags, registry publish/yank, GitHub Releases). Having a tag or release authorized never follows automatically from anything else. |
+| **Observe** | Maintainer or canary configuration | Records bounded what-it-would-have-done results, without blocking anything. |
 
-Everything else stays open by design: local edits, tests, ordinary commits, reads, searches, and dry-runs do not need authorization, and turning the guard `off` stops all gating while prompt journaling continues. When a normal action is allowed, nothing appears on screen; when an action is denied, you get one short actionable reason.
+Everything else stays open by design: local edits, tests, ordinary commits, reads, searches, and dry-runs need no additional Context Guard approval, and turning the guard `off` stops all gating while prompt journaling continues. When a normal action is allowed, nothing appears on screen; when an action is refused — a release-contract ticket failure or an integrity failure — you get one short actionable reason.
 
 ## How it works
 
@@ -129,6 +140,8 @@ Write docs/design/checkout-v2.md.
 After research, edits, diagrams, and `/compact`, Context Guard restores those same items. A passing Markdown check cannot close the whole task: the approved decisions, RFC template, source links, and prohibited commitments each still need matching evidence.
 
 This example explains the contract boundary; it does not claim that Context Guard can decide whether the design itself is sound.
+
+The same boundary applies to routine execution. After you say “finish the changes, commit and push” (完成修改，提交并推送), ordinary edits, commits, pushes, status questions, and compaction proceed without any Context Guard re-authorization, before and after a `/compact`. A reply that claims the whole task is complete still needs matching evidence for everything still open.
 
 ## What you may see in a guarded task
 
@@ -214,7 +227,7 @@ The Hook runtime uses only the Python standard library. CI covers Ubuntu, macOS,
 
 Context Guard is not a semantic proof system, security sandbox, transcript backup, cloud sync service, second Plan/Goal controller, agent scheduler, or replacement for tests and human review. It does not guarantee that arbitrary content is correct; it enforces only the deterministic checks it can express. It does not replace Codex's permission system, the `repository-release` publication contract, human review, or platform readbacks.
 
-Version 0.12 is a model- and agent-agnostic baseline: it does not assume the model or agent host brings reliable long-context protection or recovery. The recovery → work unit → evidence → completion → authorization loop is provided locally by Context Guard itself, with protocol semantics separated from the Codex Hook adapter.
+Version 0.13 keeps the model- and agent-agnostic baseline: it does not assume the model or agent host brings reliable long-context protection or recovery. The recovery → work unit → evidence → completion loop is provided locally by Context Guard itself, with protocol semantics separated from the Codex Hook adapter; whether an action is authorized is decided by you, the executing agent, and host permissions — not by a Context Guard prompt.
 
 Project instructions and plan references are adopted only after the user who started the root task runs `context-guard adopt <project-relative-json>`. Installing a Skill, loading a template, or mentioning a plan in prose does not activate this behavior. Adoption does not modify Codex Plan state or grant authority. Covered action checks follow the protection levels described above.
 

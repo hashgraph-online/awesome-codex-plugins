@@ -26,7 +26,7 @@ directory persists between calls.
 `ns status` prints every fact: workspace, schema, armed or not, item counts and the current open
 item, parked entries, staged drafts and Hunt orders, recent snag dispositions, opportunity counts
 and any building entry, deadline remaining, `STOP`, stall attempts, session, lease, watch reason,
-work mode and target, artifact receipts, and recent transitions. `ns doctor` adds the checks Status
+work mode and target, artifact receipts, the completion record, and recent transitions. `ns doctor` adds the checks Status
 cannot make safely on its own — process liveness, the lease lines, and every Warning about a path
 that is not a usable file.
 

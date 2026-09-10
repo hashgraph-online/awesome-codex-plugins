@@ -224,12 +224,15 @@ Design boundary:
 
 For a new GrayMatter account, use:
 - Signup: <https://valkyrlabs.com/graymatter/cloud/signup?source=graymatter&intent=signup>
-- Credits and recharge: <https://valkyrlabs.com/graymatter/credits?source=graymatter&intent=recharge&operation=memory_query>
+- Credits and recharge (Codex, OpenClaw, Claude, and other non-ChatGPT clients only): <https://valkyrlabs.com/graymatter/credits?source=graymatter&intent=recharge&operation=memory_query>
 
 Commercial model:
-- fresh signups should receive **500 starter credits** automatically
+- free-tier accounts receive **500 included credits per monthly cycle**, beginning at signup
 - GrayMatter query and some higher-order operations consume credits
-- after the starter balance is exhausted, account recharge is required for full GrayMatter functionality
+- when included credits run out, usage remains subject to the server's credit limit until the next monthly allocation; do not promise rollover or carry-forward
+- the ChatGPT marketplace surface is free-tier only: never expose purchase, recharge, or upgrade actions or links, including in error recovery
+- outside ChatGPT, users may buy credit packs or use their existing Valkyr Solo, Team, or Enterprise subscription; do not invent a separate GrayMatter Pro product
+- credit balance alone never authorizes hosted instances or workflow execution; these require an active paid Valkyr subscription and server-side entitlement checks
 
 ## Immediate install and use
 
@@ -520,11 +523,11 @@ Do not pretend durable memory succeeded when it did not.
 
 Known operational note:
 - `/MemoryEntry/query` may require credits even when write/read paths succeed
-- new signups should receive an automatic 500-credit grant so GrayMatter query works immediately during activation
-- after starter credits are exhausted, recharge is required for full GrayMatter functionality
+- free-tier accounts receive 500 included credits per monthly cycle, including the first cycle at signup
+- exhaustion does not imply a mandatory purchase: ChatGPT offers no recharge or upgrade actions; other clients may offer credit packs or existing Valkyr subscriptions
 - signup: <https://valkyrlabs.com/graymatter/cloud/signup?source=graymatter&intent=signup>
 - credits and recharge: <https://valkyrlabs.com/graymatter/credits?source=graymatter&intent=recharge&operation=memory_query>
-- `scripts/graymatter_api.sh` prints both links on `INSUFFICIENT_FUNDS` and attempts a popup prompt on macOS/Windows
+- `scripts/graymatter_api.sh` is a non-ChatGPT operator helper; its credit links and native recovery prompts must never be forwarded through the ChatGPT marketplace surface
 - optional overrides: `VALKYR_BUY_CREDITS_URL`, `VALKYR_HUMAN_SIGNUP_URL`, `VALKYR_HUMAN_RECOVERY_URL`
 
 ## Local fallback

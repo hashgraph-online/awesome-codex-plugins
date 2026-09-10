@@ -24,6 +24,10 @@ Refactor billing-service/internal/retry/backoff.go: extract the exponential back
 
 1. Name the preserved behavior and the focused acceptance surface.
 2. Record an honest baseline, including any reproducible ambient failures.
+   For an evaluation comparing executable behavior, pin the starting source
+   and build its baseline before edits; retain that binary and the comparison
+   inputs. Compare the candidate using those inputs and the same toolchain.
+   This adds no executable-comparison ritual to ordinary refactoring.
 3. Apply one bounded transformation: extract, rename, inline, simplify,
    encapsulate, move, or delete dead code.
 4. Run the focused check and the smallest package-level regression check justified

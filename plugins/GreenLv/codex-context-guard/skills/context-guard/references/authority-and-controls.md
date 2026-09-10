@@ -4,44 +4,45 @@ Read for profile or ticket diagnosis, contract adoption, explicit export,
 successor handoff, or schema/plan migration questions. Loading this file does
 not adopt a contract, authorize an action, or change a profile.
 
-## Pre-action authorization
+## Responsibility boundaries (0.13)
 
-- Enforcement profiles decide what the synchronous `PreToolUse` decision
-  checks. `standard` (default) verifies that a covered high-risk action was
-  really authorized by the root user inside the current work unit. `strict`
-  adds enforced proofs for the current work unit but never implies release.
-  `release` — active only after the user explicitly adopts a repository-release
-  execution contract or declares the release profile — additionally requires
+- 0.13 removed the default execution-approval gate. `standard` and `strict`
+  never veto ordinary edits, tests, commits, pushes, or tags, and the Guard
+  no longer parses natural-language authorization statements, rebuilds an
+  edit-provenance chain, or tracks expected commits or authorization
+  generations on the default path. Whether an action is within the user's
+  authorization is decided by the main executing agent from the real
+  conversation, repository rules, and host permissions. A Guard allow is
+  not authorization, and no Guard decision (allow or deny) is evidence that
+  a user approved anything.
+- The user's stated restrictions (for example "cleanup only, do not change
+  the product", or "do not force-push") remain recoverable requirements that
+  the executing agent must honor; the Guard preserves them across
+  compaction and resume but does not enforce them by vetoing tools.
+- `release` — active only after the user explicitly adopts a repository-release
+  execution contract or declares the release profile — requires
   `candidate-closure/v1`, passing publication `release-readiness/v3` (with
   explicit `v2` compatibility), and an exact one-shot `action-ticket/v1` for
-  covered A-tier mutations. `observe` computes the same decision and records
-  it without blocking; `off` and inactive sessions gate nothing at all.
-- Inside the release profile, covered A-tier mutations are release tag
-  creation/push, registry publish/yank, and GitHub Release
-  creation/update/deletion/upload. A ticket binds the repository, candidate
-  commit, release tag/version, passing `candidate-closure/v1`, passing
-  publication `release-readiness/v3`, normalized tool-input hash, adopted
-  contract revision, root-user authorization source, and expiry. Success
+  covered A-tier mutations: release tag creation/push, registry publish/yank,
+  and GitHub Release creation/update/deletion/upload. A ticket binds the
+  repository, candidate commit, release tag/version, passing
+  `candidate-closure/v1`, passing publication `release-readiness/v3`,
+  normalized tool-input hash, adopted contract revision, and expiry. Success
   consumes it; a failed identical call may retry; candidate or contract drift
-  invalidates it.
-- B-tier actions require applicable root-user authorization for the action,
-  not a prescribed command spelling. For an ordinary push, resolve and bind
-  the exact repository, remote, ref and commit from the request and unique
-  task/repository state. For example, a request to push the current repository
-  with a single established `origin/main` upstream needs no second confirmation
-  or repetition of `origin` and `refs/heads/main`.
-- Bind those resolved facts when authorization is recorded; do not choose a
-  different target later. Ask once only for an unresolved or competing target,
-  a conflict with the request, or material target drift. Status questions and
-  continuation do not erase still-applicable authorization. For commit-and-push,
-  retain the verified authorized-commit transition before pushing.
-- Ordinary push authority does not cover force-push, remote-branch deletion,
-  or release publication. Each needs its own action authorization and applicable
-  gates. Quoted text, delegated instructions and a merge-only request cannot
-  create push authority. Platform approval is a separate boundary.
-- C-tier local edits, tests, ordinary commits, and proven-redundant local
-  worktree cleanup are not hard-gated. A cleanup work unit still cannot perform
-  product edits; create a separately authorized work unit first.
+  invalidates it. Inside the release profile a compound remote mutation that
+  cannot be bound to exact facts is refused with a request to split the
+  calls, `gem push` stays a declared-unsupported surface, and an unloaded
+  release-verification module fails closed instead of silently passing.
+- `observe` computes the release-profile would-decision and records it
+  without blocking or consuming tickets; `off` and inactive sessions gate
+  nothing at all.
+- Schema-11 natural-language authorization records survive migration as
+  explicit history marked `participation: "historical"`; they never
+  participate in 0.13 execution decisions and never block an action.
+- Ordinary push authority is the executing agent's judgment; a normal push
+  never covers force-push, remote-branch deletion, or release publication,
+  and quoted or delegated text cannot create it. Platform approval is a
+  separate boundary.
 - A denied action shows one bounded actionable reason. An allowed action
   returns no text at all. Hooks are a strong guardrail, not a complete
   security boundary: preserve platform approval checks, and report specialized

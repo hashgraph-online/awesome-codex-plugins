@@ -6,7 +6,7 @@ version: 1.0.0
 author: CarsXE
 ---
 
-When the user asks about a vehicle's history, past accidents, title status, or ownership:
+When the user asks about a vehicle's history, past accidents, title status, or previous owners (not registered-owner contact lookup — that is the `ownership` skill):
 
 1. Make an HTTP GET request to the CarsXE History API:
    ```

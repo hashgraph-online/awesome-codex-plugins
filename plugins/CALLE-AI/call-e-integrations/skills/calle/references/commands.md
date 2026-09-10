@@ -20,7 +20,7 @@ installation. Select the MCP package independently of the SDK command name.
 ```json
 {
   "package_dir": "/absolute/trusted/node_modules/@call-e/cli",
-  "integration": {"source": "codex", "name": "codex_plugin", "version": "0.1.11"},
+  "integration": {"source": "codex", "name": "codex_plugin", "version": "0.1.12"},
   "argv": ["auth", "status"]
 }
 ```

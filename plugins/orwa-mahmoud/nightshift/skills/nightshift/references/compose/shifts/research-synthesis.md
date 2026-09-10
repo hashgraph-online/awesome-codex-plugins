@@ -45,8 +45,8 @@ a generic dashboard, invent a metric, broaden access, or make a causal claim fro
     a later shift can resume from the same provenance. Do not replace them with a summary that
     drops locators or retrieval times.
   - Review first writes the brief, manifest, and notes only. Direct mode may update those local
-    files; it never publishes. Artifact mode writes the receipt through `ns write-receipt`
-    into `$NS/receipts/` for the brief, notes, and manifest. Never `git init` or invent repository tooling.
+    files; it never publishes. Artifact mode writes the receipt into `$NS/receipts/` for the
+    brief, notes, and manifest. Never `git init` or invent repository tooling.
   - Inherit cited-research.md. Keep private code, secrets, customer data, and unpublished
     material out of external fetches and out of the brief.
   - Dedupe against snag-log.md (ALL seen — fixed and rejected).

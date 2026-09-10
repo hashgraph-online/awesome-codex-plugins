@@ -706,6 +706,8 @@ Building something on AMQ? Open an issue or PR to be listed here.
 - [docs/amq-keepalive.md](docs/amq-keepalive.md) — Keepalive command and safety reference
 - [cmd/amq-bridge/README.md](cmd/amq-bridge/README.md) — Two-host courier: identity, apply-file, HTTPS rendezvous
 - [docs/adr-two-host-fleets.md](docs/adr-two-host-fleets.md) — Two-host identity, aliases, receipts, v1 kill-list
+- [docs/adr-remote-control.md](docs/adr-remote-control.md) — Remote control attaches to a running harness session; request identity, exact cancel, Buzz surfaces
+- [docs/remote-compat.md](docs/remote-compat.md) — Pinned harness versions and the seam register the remote companion relies on
 - [docs/adr-bridge-protocol.md](docs/adr-bridge-protocol.md) — Bridge envelope, auth, and transport
 - [cmd/amq-acp/README.md](cmd/amq-acp/README.md) — Preview ACP v1 stdio companion and Buzz BYOH JSON
 - [docs/session-routing.md](docs/session-routing.md) — Session selection, routing guards, and worktree behavior

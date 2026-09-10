@@ -20,7 +20,7 @@ Do not treat a question about Click as a mutation. Bypass and cancel require the
 
 ## Evidence mode: work first, bind evidence honestly
 
-Use the current user prompt as the intent lineage. Do not invent a contract, contract approval, or approved dependency declaration. Choose concrete checks from repository evidence during execution and submit their stable evidence ids with `click-gate verify`; Evidence mode may register those argv sources dynamically. Same-revision reuse still requires exact receipt bindings. A committed `.click/evidence-dependencies.json` mapping remains candidate policy only in Evidence mode because authoritative observation requires an approved Guarded contract. Caller-supplied observation JSON, profiling output, and Shadow data never grant reuse authority.
+Use the current user prompt as the intent lineage. Do not invent a contract, contract approval, or approved dependency declaration. Choose concrete checks from repository evidence during execution and submit their stable evidence ids with `click-gate verify`; Evidence mode may register those argv sources dynamically. New Evidence lifecycles select automatic input observation for supported checks. Without an owner dependency policy, a built-in versioned capture policy can bind a complete signed observation; it never manufactures an owner declaration. Same-revision reuse still requires exact receipt bindings and rechecks any recorded inputs outside the Git snapshot. Caller-supplied observation JSON, profiling output, and Shadow data never grant reuse authority.
 
 An exact check may also use a committed `.click/evidence-reuse.json` safe-change entry without an observer. Treat that file only as repository-owner authority established before the baseline: never create, widen, or reinterpret it to skip checks for the current mutation. Click compares the baseline and current effective Git states, reports net changed paths, and reuses only when every path matches `reuse_if_only_changed`. Any unknown or unlisted path reruns automatically. A complete runtime observation is stronger and cannot be overridden by this declaration.
 
@@ -90,15 +90,24 @@ When submitting verification, include the actual repository directory as the top
 
 When the user asks to view Shadow data, use the explicit `click-gate dashboard start`, `status`, and `stop` controls described in the capability protocol. Treat its Evidence Map and ROI as current-lifecycle, non-authoritative telemetry, and stop the viewer when the inspection is complete.
 
-Keep Observer collection separate from that viewer. New lifecycles default to
-`click-gate observer off`; use the explicit `shadow` control only when Shadow
-collection is intended. Use `click-gate observer authoritative` only after a
-Guarded contract that covers the work has been separately approved, and only
-for the exact supported profile in
+Keep Observer collection separate from that viewer. New Evidence lifecycles use
+`click-gate observer auto`; Guarded lifecycles default to `off`. Explicit `off`
+and `shadow` choices survive completed Evidence turns in the same host session.
+Use `click-gate observer authoritative` to prepare explicitly in active Evidence
+or a separately approved Guarded contract, and only for the supported profile in
 [Authoritative Observer v2](references/authoritative-observer-v2.md). Enabling
-the mode prepares a candidate runtime; only the one-use verification runner's
-complete, signed and current observation can authorize reuse. Never interpret
+the mode prepares a candidate runtime; automatic preparation installs nothing,
+does not request privileges, and never repeats a check to improve capture. Only the one-use verification runner's
+complete, signed and current observation—or its separately signed conditional
+JS receipt—can authorize observation-based reuse. Always disclose the
+conditional receipt's unproven completeness; never describe it as complete
+input evidence. Never interpret
 the control, dashboard, caller JSON, or a Shadow record as authority.
+
+Automatic preparation preserves existing `evidence-reuse.json` owner policy.
+Keep actionable diagnostics and bounded failure collection using output from
+the same execution used for native input capture.
+Do not change the requested reporting mode merely to obtain a reuse receipt.
 
 In Guarded mode, do not request reapproval for an in-scope detail, a narrowing instruction, or a technical choice. Record the follow-up turn digest and continue. Reapproval is required only when the approved outcome, visible behavior, boundary, invariant, authority, or verification commitment materially changes. The digest proves that the follow-up was recorded, not that the Hook semantically proved it was inside the prior boundary; interpret that distinction faithfully. In Evidence mode there is no Click approval to repeat; follow the host's authority prompts.
 

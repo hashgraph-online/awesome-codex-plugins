@@ -65,13 +65,12 @@
     "layout": "date",
     "templatePath": ""
   },
-  "report": {
+  "receipts": {
     "enabled": true,
     "progressMode": "time",
     "progressMinutes": 20,
     "progressTokens": 100000,
     "usage": "when-available",
-    "legacyItemReceipts": false,
     "templatePath": ""
   },
   "recovery": {

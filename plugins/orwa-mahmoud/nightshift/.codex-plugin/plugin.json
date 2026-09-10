@@ -1,6 +1,6 @@
 {
   "name": "nightshift",
-  "version": "0.21.0",
+  "version": "0.22.0",
   "description": "Accountable, time-bounded Codex shifts. Hand it your punch list, or let it research the product and ship complete improvements until quitting time. Progress stays on disk through compaction and resume. The morning is reviewable commits or artifact receipts, a shift log, and the decisions that were made. When you are done reviewing the run, archive it dated so the live session stays lean.",
   "author": {
     "name": "Orwa Mahmoud",
@@ -39,7 +39,7 @@
   "interface": {
     "displayName": "Nightshift",
     "shortDescription": "Run accountable coding shifts",
-    "longDescription": "Nightshift gives Codex accountable, time-bounded engineering shifts. Hand it your punch list, or let it research the product, rank opportunities, and ship complete improvements until quitting time. Progress stays on disk—goals, remaining work, parked decisions, and the exact next action—so compaction or resume cannot quietly clock out with open boxes. Hooks enforce your safety rules. The morning is reviewable commits or artifact receipts, a shift log, and the decisions that were made. When you are done reviewing the run, archive it dated so the live session stays lean. Open a persistent project in Codex — a Git repository or a local folder — or connect its GitHub repository; a temporary ChatGPT scratch workspace is the wrong place for a night.",
+    "longDescription": "Nightshift gives Codex accountable, time-bounded coding shifts. Hand it your punch list, or let it research the product, rank opportunities, and ship complete improvements until quitting time. Progress stays on disk—goals, remaining work, parked decisions, and the exact next action—so compaction or resume cannot quietly clock out with open boxes. Hooks enforce your safety rules. The morning is reviewable commits or artifact receipts, a shift log, and the decisions that were made. When you are done reviewing the run, archive it dated so the live session stays lean. Open a persistent project in Codex — a Git repository or a local folder — or connect its GitHub repository; a temporary ChatGPT scratch workspace is the wrong place for a night.",
     "developerName": "Orwa Mahmoud",
     "category": "Productivity",
     "capabilities": [

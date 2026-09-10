@@ -31,6 +31,11 @@ Named failure mode — **prompt-send optimism**: treating a successfully
 delivered prompt as a working worker; delivery proves transport, not
 engagement.
 
+For new authorized work after a worker completes, use the selected runtime's
+documented follow-up or resume operation that starts a turn. A message operation
+may only queue text for a running worker. Check native state and engagement;
+do not treat a queued repair request as a resumed implementation attempt.
+
 Anti-pattern: restarting an unresponsive worker as the first move. Corrective:
 capture its observable state first — a restart destroys the evidence of why it
 stalled, and rescue is usually cheaper than rerun.

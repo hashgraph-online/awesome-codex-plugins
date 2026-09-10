@@ -27,7 +27,7 @@
 - **Quitting time** — past `deadline`, the gate clocks the shift out. Belongs to
   open-ended work: start NOTHING new past the whistle, finish the unit in hand, then clock out.
 - **Orderly clock-out** — if a shift must end with work in hand, commit it as a `wip:` commit
-  (repository mode) or mark the item's section in `shift-report.md` in progress (artifact mode),
+  (repository mode) or mark the item's receipt under `$NS/receipts/` in progress (artifact mode),
   plus one handover line in `shift-log.md`, then stop.
 
 ## The standard — what "done" means
@@ -39,7 +39,7 @@
   splitting an item for later. Only correctness does.
 - Run the item gate (the `## Gates` block below) right before each commit or artifact receipt; it must be green to tick.
 - No suppression — fix root causes. No lint disables without a written reason next to them.
-- One conventional commit per item in repository mode; one artifact receipt per item in artifact mode under `$NS/receipts/` (`ns write-receipt`). Local only. Never fake a tick.
+- One conventional commit per item in repository mode; one artifact receipt per item in artifact mode under `$NS/receipts/`. Local only. Never fake a tick.
 
 ## Site discipline
 

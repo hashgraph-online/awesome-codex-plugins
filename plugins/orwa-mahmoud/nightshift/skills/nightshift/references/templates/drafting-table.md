@@ -18,7 +18,7 @@ artifact receipt in artifact mode.
   - Commit: `<type: message>`
 ```
 
-In artifact mode record the receipt in `$NS/receipts/` with `ns write-receipt` instead of a conventional git subject.
+In artifact mode record the receipt in `$NS/receipts/` instead of a conventional git subject.
 
 **Order = dependency order.** Top → bottom; nothing is built twice.
 

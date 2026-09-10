@@ -61,7 +61,7 @@ invention.
 
 ## Receipt and limits
 
-The shift receipt (commit message body or artifact receipt via `write-receipt.sh`) must name
+The shift receipt (commit message body or artifact receipt in the item receipt) must name
 **which evidence mode ran**, which sources were `ok` vs `unavailable`, and what remains unknowable
 after honest not-measured rows are applied. Rank blockers first: crawl/indexing, canonical/redirect,
 rendered/schema, evidence-backed opportunity, internal discovery/intent, measured

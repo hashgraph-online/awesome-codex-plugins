@@ -334,14 +334,14 @@
         }
       }
     },
-    "report": {
+    "receipts": {
       "type": "object",
       "additionalProperties": false,
       "description": "The owner preference this shift was composed with, frozen so a later edit to rules.json applies to the next shift rather than moving the ground under this one. Every supported field is present: the owner's value where their file states one, the shipped default where it does not.",
       "properties": {
         "enabled": {
           "type": "boolean",
-          "description": "Write the report. false keeps every other record honest — punch status, real outputs, continuity and the verification you selected — and does not quietly bring back a mandatory receipt per item instead."
+          "description": "Write per-item receipts. false keeps every other record honest — punch status, real outputs, continuity and the verification you selected — and does not invent a receipt the owner turned off."
         },
         "progressMode": {
           "type": "string",
@@ -351,7 +351,7 @@
             "tokens",
             "either"
           ],
-          "description": "When a section is updated while an item is still running. completion-only writes once, at the end. time updates after progressMinutes of work on that item. tokens updates after progressTokens, and falls back to the time cadence when the host exposes no usable counter. either fires at the next safe point after whichever threshold is reached first. A completed item is always finalized when reporting is enabled."
+          "description": "When a receipt is updated while an item is still running. completion-only writes once, at the end. time updates after progressMinutes of work on that item. tokens updates after progressTokens, and falls back to the time cadence when the host exposes no usable counter. either fires at the next safe point after whichever threshold is reached first. A completed item is always finalized when receipts are enabled."
         },
         "progressMinutes": {
           "type": "integer",
@@ -371,13 +371,9 @@
           ],
           "description": "Whether a section records what the item cost. when-available reads only the numbers the host already exposes to the session; where it exposes none, the section says unavailable. Unavailable is never written as zero, and nothing here polls an account, counts tokens itself, or turns a count into a price."
         },
-        "legacyItemReceipts": {
-          "type": "boolean",
-          "description": "Compatibility. Artifact items are completed by their report section; set true to also write the separate per-item receipt file older workspaces expect. Baseline, checkpoint and source receipts are unaffected — they carry evidence a section does not."
-        },
         "templatePath": {
           "type": "string",
-          "description": "A Markdown template for the report, relative to the workspace and inside it. Wording and layout only, on the same terms as the handoff template: never executed, never a source of policy, and never able to describe an unavailable check as a passed one."
+          "description": "A Markdown template for the item receipt, relative to the workspace and inside it. Wording and layout only, on the same terms as the handoff template: never executed, never a source of policy, and never able to describe an unavailable check as a passed one."
         }
       }
     },

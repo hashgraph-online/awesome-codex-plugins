@@ -1,8 +1,11 @@
 {
   "mcpServers": {
     "agent-deck": {
-      "type": "http",
-      "url": "http://127.0.0.1:1110/mcp"
+      "type": "stdio",
+      "command": "agent-deck",
+      "args": [
+        "mcp-launch"
+      ]
     }
   }
 }

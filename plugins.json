@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-09-09",
-  "total": 219,
+  "last_updated": "2026-09-10",
+  "total": 220,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -2068,6 +2068,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/hanhuark/mechanical-engineering-research-skill/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "TokenChronicle",
+      "url": "https://github.com/HuaHuiJian/tokenchronicle-marketplace",
+      "owner": "HuaHuiJian",
+      "repo": "tokenchronicle-marketplace",
+      "description": "Local-first Codex work journal that automatically archives sessions for private search, audit, usage analytics, and long-term memory continuity without recurring model-token cost.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/HuaHuiJian/tokenchronicle-marketplace/HEAD/plugins/tokenchronicle/.codex-plugin/plugin.json"
     },
     {
       "name": "TokRepo Search",

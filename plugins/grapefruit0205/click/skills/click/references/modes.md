@@ -20,16 +20,13 @@ click-gate default off
 
 Evidence mode does not stage or approve a Click contract. The host remains the execution authority. Click creates an intent session from the user prompt, records mutation revisions and exact verification receipts, prevents stale evidence from claiming completion, and exports an honest receipt with `approval_bound: false` and `execution_authority: host`.
 
-The model chooses evidence ids and concrete argv during execution. Same-revision reuse requires the exact check, protected tree, environment, executable, and host-coverage bindings. A committed `.click/evidence-dependencies.json` mapping can describe candidate inputs, but authoritative observation is unavailable in Evidence mode and an agent's observation JSON is never authority. Cross-revision reuse in Evidence therefore requires an unchanged repository-owner `.click/evidence-reuse.json` policy and all of its ordinary receipt bindings.
+The model chooses evidence ids and concrete argv during execution. Same-revision reuse requires the exact check, protected tree, environment, executable, and host-coverage bindings; observed ignored files are rechecked too. A committed dependency mapping only describes candidate inputs. Cross-revision reuse may use a complete signed native observation, an unchanged repository-owner reuse policy, or a separately attested conditional JS receipt. Conditional JS reuse discloses that input completeness is unproven and excludes known dynamic inputs and capture gaps. Caller-supplied observation JSON and raw diagnostics never authorize reuse. See [automatic observation](https://github.com/grapefruit0205/click/blob/main/docs/architecture/automatic-observation.md) and [conditional JS limits](https://github.com/grapefruit0205/click/blob/main/docs/architecture/node-runtime-observation.md).
 
 An in-scope or narrowing follow-up continues the same session and appends its prompt digest to the receipt lineage. When current evidence completes the session, the next software request starts a fresh Evidence session. Questions and explanations remain lightweight.
 
-Each lifecycle starts with native Observer collection off. The explicit
-`click-gate observer shadow` command enables only non-authoritative telemetry,
-while `observer off` disables it and `observer status` reports it. These
-controls neither change the current mutation revision nor grant evidence
-reuse. `observer authoritative` is rejected without a separately approved
-Guarded contract. The dashboard remains an independent read-only viewer.
+New Evidence lifecycles select `observer auto`; explicit off and diagnostic choices survive completed Evidence turns in the same host session. Guarded starts with collection off. `observer authoritative` can prepare a supported native profile in active Evidence or an approved Guarded contract. Automatic preparation does not install tools, elevate privileges or replace an owner policy. A failed preparation is retried when relevant environment, tool, policy or runtime metadata changes; explicit `observer auto` also allows a retry. That scheduling metadata never authorizes reuse.
+
+`observer status` and `verification status` report bounded preparation reasons and next actions. The dashboard explains the last recorded per-check decisions. These views do not probe or execute checks, verify current input completeness or grant authority; mode selection alone always reports `reuse_authorized: false`. The actual runner revalidates every reuse request.
 
 For a read-only code review, use `click-gate review`, remain read-only, and collect only relevant inspection evidence. A request that also asks for fixes follows Evidence mode and does not introduce Click approval.
 
@@ -44,7 +41,7 @@ After every declared evidence source is current for the final mutation revision 
 That completed contract may retain successful verification candidates for the next Guarded contract, never approval, execution claims, tokens or completion. The successor must be separately approved and request its own declared checks before current-binding requalification. Changing a dependency declaration does not inherit its predecessor's authority. See the capability protocol for v5 lineage and conservative rerun rules.
 
 After approval, `click-gate observer authoritative` may explicitly prepare the
-one supported [Authoritative Observer v2](authoritative-observer-v2.md) profile.
+supported [Authoritative Observer v2](authoritative-observer-v2.md) profiles.
 The switch itself grants no reuse. The original check must finish once under
 the verified runner and produce a complete signed observation; every current
 binding and observed input is checked again in the separately approved

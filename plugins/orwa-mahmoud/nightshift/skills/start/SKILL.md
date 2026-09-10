@@ -212,8 +212,8 @@ stop-work order on every host, and the only stop a headless run can receive.
 
 ## 7. Work
 
-Read `$NS/punch-list.md` in full, then begin item 1 and follow the nightshift skill, which owns the loop, the gates, the receipts, cited
-research and the shift report: one item at a time, tick only after the item is complete, park don't
+Read `$NS/punch-list.md` in full, then begin item 1 and follow the nightshift skill, which owns the loop, the gates, the receipts and cited
+research: one item at a time, tick only after the item is complete, park don't
 ask, leave pushing to the owner unless the punch list says otherwise. From here the clock-out gate
 owns the session — it will not let you stop while any box is open. When the gate logs
 `JSON parser unavailable`, write the morning page by hand from

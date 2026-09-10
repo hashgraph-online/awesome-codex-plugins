@@ -3046,6 +3046,21 @@
       "icon": "./plugins/hanhuark/mechanical-engineering-research-skill/assets/icon.svg"
     },
     {
+      "name": "tokenchronicle",
+      "displayName": "TokenChronicle",
+      "source": {
+        "source": "local",
+        "path": "./plugins/HuaHuiJian/tokenchronicle-marketplace"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Local-first Codex work journal that automatically archives sessions for private search, audit, usage analytics, and long-term memory continuity without recurring model-token cost.",
+      "icon": "./plugins/HuaHuiJian/tokenchronicle-marketplace/assets/icon.png"
+    },
+    {
       "name": "tokrepo-search",
       "displayName": "TokRepo Search",
       "source": {

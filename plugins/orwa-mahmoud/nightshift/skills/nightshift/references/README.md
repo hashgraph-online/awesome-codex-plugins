@@ -8,7 +8,7 @@ first. Nothing here is loaded because it might come up.
   gates. A shift already running one has no reason to open any of it. `compose/shifts/` holds the
   catalog entries; `ns catalog-index` lists them without reading them.
 - `shift/` — read by the shift that is working: direct-mode decisions, the cited-research contract,
-  and the report template.
+  and the state map.
 - `receipts/` — one receipt kind per file. The file names are the index; open the one you are
   writing.
 - `hosts/` — read only when a Start verdict names that host. Every verdict-tied paragraph already

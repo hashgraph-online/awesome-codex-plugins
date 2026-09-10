@@ -6,6 +6,8 @@ version: 1.0.0
 author: CarsXE
 ---
 
+When the user wants to browse available years, makes, models, or trims (dropdowns, "which years was X sold"), use the `ymm-options` skill (`/v1/ymm-options`) instead of this specs lookup.
+
 When the user asks about a vehicle by year, make, and model (without a VIN):
 
 1. Make an HTTP GET request to the CarsXE YMM API:

@@ -2,7 +2,7 @@
 
 # 🌀 Superloopy
 
-**Loop engineering for Codex and Claude Code.** Type `loopy <task>` — an agent does the work, proves each piece with real evidence, and only then says it's done.
+**Loop engineering for Codex, Claude Code, and Google Antigravity.** Type `loopy <task>` — an agent does the work, proves each piece with real evidence, and only then says it's done.
 
 <p>
   <a href="README.md">English</a> ·
@@ -20,7 +20,7 @@
 
 ## Use it
 
-After installing, type your task in Codex or Claude Code with a leading `loopy`:
+After installing, type your task in Codex, Claude Code, or Antigravity with a leading `loopy`:
 
 ```
 loopy add the payments module
@@ -30,7 +30,7 @@ The agent plans it, proves each piece with a real file, and reports back — you
 
 ## Why Superloopy?
 
-Superloopy is for Codex and Claude Code work where "done" needs to mean more than a confident status sentence.
+Superloopy is for Codex, Claude Code, and Antigravity work where "done" needs to mean more than a confident status sentence.
 
 - Evidence-first: every pass points at a real artifact under `.superloopy/evidence/`.
 - Lightweight by default: one small CLI, repo-local state, zero runtime dependencies.
@@ -211,6 +211,15 @@ Refresh the marketplace, update the installed plugin, then reload — no restart
 
 `/plugin update` resolves the new version from the refreshed marketplace, and `/reload-plugins` applies it in the current session (no Claude Code restart, and hooks do not need re-approval). Verify with `node "${CLAUDE_PLUGIN_ROOT}/src/cli.js" doctor --json`. If you loaded a checkout with `--plugin-dir`, just `git pull --ff-only` and run `/reload-plugins`.
 
+### Google Antigravity
+
+Pull the latest version in the plugin directory and validate:
+
+```sh
+git -C ~/.gemini/config/plugins/superloopy pull --ff-only
+agy plugin validate ~/.gemini/config/plugins/superloopy
+```
+
 ## Troubleshooting
 
 If plugin install or upgrade commands fail, update the Codex CLI first. `codex plugin add` is available in Codex CLI 0.131.0 and newer; older builds can have trouble with current plugin marketplace commands and hook approval flows.
@@ -257,5 +266,29 @@ If you installed with `CODEX_HOME`, `SUPERLOOPY_BIN_DIR`, or `CODEX_LOCAL_BIN_DI
 ```
 
 Then run `/reload-plugins`. Nothing else to clean up — Claude Code installs are fully plugin-bundled (no `superloopy` wrapper, no `~/.codex` writes). Removing the marketplace from its last remaining scope also uninstalls the plugin.
+
+### Google Antigravity
+
+```sh
+agy plugin disable superloopy
+rm -rf ~/.gemini/config/plugins/superloopy
+```
+
+```powershell
+agy plugin disable superloopy
+Remove-Item "$env:USERPROFILE\.gemini\config\plugins\superloopy" -Recurse -Force -ErrorAction SilentlyContinue
+```
+
+Optional wrapper cleanup: if you do not also use Superloopy on Codex, remove the command wrapper:
+
+```sh
+rm -f ~/.local/bin/superloopy
+```
+
+```powershell
+Remove-Item "$env:APPDATA\npm\superloopy.cmd" -ErrorAction SilentlyContinue
+```
+
+If you keep Superloopy on Codex, keep the wrapper or run `superloopy install` to repoint it to your Codex installation. Agents and skills on Antigravity are plugin-bundled so no agent TOMLs are placed. If you installed with `SUPERLOOPY_BIN_DIR`, clean up that configured path instead.
 
 <sub>MIT licensed.</sub>

@@ -1,7 +1,7 @@
 {
   "name": "carsxe",
-  "version": "1.0.0",
-  "description": "CarsXE vehicle data APIs for OpenAI Codex — decode VINs, look up license plates, get market values, history, recalls, lien and theft, OBD codes, and more.",
+  "version": "1.1.0",
+  "description": "CarsXE vehicle data APIs for OpenAI Codex — decode VINs, look up license plates, get market values, history, recalls (VIN, YMM, or batch), YMM options, ownership, lien and theft, OBD codes, and more.",
   "author": {
     "name": "CarsXE",
     "email": "devops@carsxe.com",
@@ -19,6 +19,10 @@
     "market-value",
     "vehicle-history",
     "recalls",
+    "recalls-ymm",
+    "recalls-batch",
+    "ymm-options",
+    "ownership",
     "lien",
     "theft",
     "obd",
@@ -32,8 +36,8 @@
   "hooks": "./hooks/hooks.json",
   "interface": {
     "displayName": "CarsXE",
-    "shortDescription": "Decode VINs, plates, market value, history, recalls, liens, and OBD codes — the full CarsXE vehicle data suite.",
-    "longDescription": "CarsXE brings the full suite of CarsXE vehicle data APIs into OpenAI Codex as 12 auto-invoked skills. Decode any VIN for full specifications, look up vehicles from a license plate, estimate market value, pull a full vehicle history report, check open safety recalls, screen for liens and theft, decode international (non-US) VINs, extract a VIN or plate number straight from a photo, look up vehicles by Year/Make/Model, and decode OBD-II diagnostic trouble codes. Codex selects the right skill automatically from your request, or call any skill explicitly with its name. Requires a CarsXE API key (free signup at api.carsxe.com).",
+    "shortDescription": "Decode VINs, plates, market value, history, recalls, YMM options, ownership, liens, and OBD codes — the full CarsXE vehicle data suite.",
+    "longDescription": "CarsXE brings the full suite of CarsXE vehicle data APIs into OpenAI Codex as 16 auto-invoked skills. Decode any VIN for full specifications, look up vehicles from a license plate, estimate market value, pull a full vehicle history report, check open safety recalls by VIN, year/make/model, or in bulk, screen for liens and theft, decode international (non-US) VINs, extract a VIN or plate number straight from a photo, look up vehicles by Year/Make/Model, browse YMM options, look up registered owners (Enterprise), and decode OBD-II diagnostic trouble codes. Codex selects the right skill automatically from your request, or call any skill explicitly with its name. Requires a CarsXE API key (free signup at api.carsxe.com).",
     "developerName": "CarsXE",
     "category": "Data & Analytics",
     "capabilities": [
@@ -47,6 +51,8 @@
       "Look up California plate 7XER187",
       "What's the market value of VIN WBAFR7C57CC811956 with 45,000 miles?",
       "Does VIN 1C4JJXR64PW696340 have any open recalls?",
+      "Any recalls on a 2023 Toyota Camry?",
+      "What Toyota models were sold in 2023?",
       "What does OBD code P0300 mean?"
     ],
     "brandColor": "#2563EB",

@@ -1,7 +1,7 @@
 {
   "name": "superloopy",
-  "version": "0.17.2",
-  "description": "A lightweight loop harness for Codex and Claude Code with strict evidence gates.",
+  "version": "0.18.0",
+  "description": "A lightweight loop harness for Codex, Claude Code, and Google Antigravity with strict evidence gates.",
   "type": "module",
   "bin": {
     "superloopy": "src/cli.js"
@@ -14,6 +14,9 @@
   "keywords": [
     "codex",
     "codex-plugin",
+    "claude-code",
+    "antigravity",
+    "gemini",
     "ai-agents",
     "developer-tools",
     "workflow-automation",

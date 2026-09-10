@@ -25,11 +25,11 @@ production default and a written note, so the morning is a review rather than a 
 - `snag-log.md` — findings with dispositions, so a later pass never re-reports an earlier one.
 - `drafting-table.md` — known work staged for a later shift.
 - `work-orders.md` — timed catalog work composed only through Hunt.
-- `shift-report.md` — what the night delivered, a section per item, written as the work happens.
+- `receipts/` — what the night delivered, one file per item, written as the work happens.
 
 Never route an ordinary plan through Hunt, call later work "parked," or put a known task in the
 parking lot. Repository mode leaves commits as the punch-list contract says — one per item unless the contract
-above `## Items` says otherwise; artifact mode completes an item with its section in `shift-report.md`.
+above `## Items` says otherwise; artifact mode completes an item with its receipt under `$NS/receipts/`.
 
 **Three ways a shift gets composed**, after Setup has scaffolded the site once:
 
@@ -81,7 +81,7 @@ Read the resolved policy once at the start of the shift and follow it:
 Two rows decide how the loop below runs. `verificationLevel` is the gate cadence: `none` runs the `## Gates` block never,
 `final` once before clock-out, `per-item` before every tick, and `custom` on the cadence the punch
 list itself names. `toolingPolicy` says what to do about tooling the project does not have. The
-rest of the table is guards and the owner's preference blocks — `report.*`, `handoff.*`,
+rest of the table is guards and the owner's preference blocks — `receipts.*`, `handoff.*`,
 `archive.*`, `recovery.*` and `shift.*` — and they apply whatever this skill says.
 
 The table is the whole surface: every preference this skill tells you to honour is a row in it, so
@@ -117,13 +117,11 @@ Top to bottom, one item:
   local by default. When the contract asks for a coherent batch, one commit may cover the items it
   belongs with, still local, still a real change. When the contract asks for no commits, finish the
   item and leave the work in the tree — say plainly in the handoff that it is uncommitted, and
-  never invent a commit to satisfy a convention. Artifact mode leaves the item's section in the
-  shift report, with links to what it produced. A separate per-item receipt file is written only
-  when the owner set `report.legacyItemReceipts`, and then through
-  `"$NIGHTSHIFT_PLUGIN_ROOT/runtime/ns" write-receipt`, recording the item, outputs,
-  verification, and sources. Push yourself only when the punch list says to.
-5. **Finalize the section** in `$NS/shift-report.md` before the tick, however long or short the
-  item was.
+  never invent a commit to satisfy a convention. Artifact mode writes the item's receipt at
+  `$NS/receipts/<NN-slug>.md`, with links to what it produced. Push yourself only when the punch
+  list says to.
+5. **Write the item's receipt** at `$NS/receipts/<NN-slug>.md` before the tick, however long or
+  short the item was.
 6. **Tick** the box to `- [x]`. Never fake a tick: the box means the work behind it is complete —
   that claim is about the work, not about how it was recorded or how often a gate ran.
 
@@ -132,26 +130,24 @@ Then the next item. Item anatomy: one top-level checkbox per task, plain `-` sub
 when the punch list has no open item, and only through Start; on shift, drafts stay where the owner
 left them, and you never invent scope the owner didn't ask for.
 
-## The shift report
+## The receipts
 
-`$NS/shift-report.md` is the narrative of the night, written as you go rather than reconstructed
-at the end. It says what was delivered and why; the shift log stays the execution journal, the
-snag log the findings, the parking lot the decisions. Link to those rather than copying them, and
-keep it out of public commit messages — a commit says what the change does, not how the night
-went.
+`$NS/receipts/<NN-slug>.md` is the narrative of each item, written as you go rather than
+reconstructed at the end. It says what was delivered and why; the shift log stays the execution
+journal, the snag log the findings, the parking lot the decisions. Link to those rather than
+copying them, and keep it out of public commit messages — a commit says what the change does, not
+how the night went.
 
-From the table you already read, the `report.*` rows decide the report. `report.enabled=false` means
-write no report; every other record stays exactly as honest, and no per-item receipt quietly comes back in
-its place.
+From the table you already read, the `receipts.*` rows decide the receipts. `receipts.enabled=false`
+means write no receipt files; every other record stays exactly as honest.
 
-The shape of every block is in
-`$NIGHTSHIFT_PLUGIN_ROOT/skills/nightshift/references/shift/shift-report-template.md`; read it once when
-the first item starts.
+The shape of every item file is What was delivered · Why · Tried and rejected · Verification ·
+Outputs · Parked decisions and snags. Read that shape once when the first item starts. When
+`receipts.templatePath` is set, follow that template instead.
 
-**One section per punch-list item**, headed by that item's own id. A section carries the item's
-state, what a user gets from it, the changes that mattered and why they were made that way, the
-verification that actually ran with its result and its limits, where the outputs or commits are,
-and any snag or parked decision it touched. With `report.usage` at `when-available`, the runtime
+**One file per punch-list item**, named `<NN-slug>.md`. It carries what was delivered, why, what
+was tried and rejected, the verification that actually ran, where the outputs or commits are, and
+any snag or parked decision it touched. With `receipts.usage` at `when-available`, the runtime
 adds what the item cost and how long it took.
 
 The runtime measures what each item cost, from the records the host already keeps, and writes the
@@ -159,32 +155,32 @@ usage and duration lines into the section at the tick. **Do not write, estimate 
 duration figure**: you cannot see your own token counts from inside the conversation, and a number
 you infer would be a guess wearing a measurement's clothes.
 
-**Start the section when substantive work on the item starts.** While it is running, keep one
+**Start the receipt when substantive work on the item starts.** While it is running, keep one
 short paragraph on where it has got to and what is left. Update that paragraph rather than
 appending another status snapshot under it, and never write it as though the item were finished.
 When the runtime says a progress update is due, refresh that paragraph; otherwise keep working.
 Completing the item is step 5 above: the finished result replaces the progress paragraph. If a later item
-changes an earlier result, correct that section and leave one line saying what changed.
+changes an earlier result, correct that receipt and leave one line saying what changed.
 
-On resume or after compaction, reload the active section and the current policy rather than the
-whole history, and leave every finalised section alone.
+On resume or after compaction, reload the active receipt and the current policy rather than the
+whole history, and leave every finished receipt alone.
 
-**At clock-out** add a short overall outcome and the owner's next steps, built from the sections
-you already wrote and whatever is still unresolved. Do not re-read the whole commit history or
-the conversation to reconstruct the night; go back to the original evidence only for a specific
-gap. If the shift ends before you can, the built-in page still gets written and the report stands
-as far as it got — a missing summary never holds up a stop or a deadline.
+**At clock-out** the morning receipt is the compact ending, built from the receipts you already
+wrote and whatever is still unresolved. Do not re-read the whole commit history or the
+conversation to reconstruct the night; go back to the original evidence only for a specific gap.
+A missing morning page never holds up a stop or a deadline.
 
 Receipt shapes live one per kind in
 `$NIGHTSHIFT_PLUGIN_ROOT/skills/nightshift/references/receipts/`. Open the page whose title names
-the kind you are writing, and no other.
+the kind you are writing, for source, cycle and specialist receipts, and no other.
 
 Before the first fix that answers an originating source, write that source's baseline — once per
 source class — using
-`$NIGHTSHIFT_PLUGIN_ROOT/skills/nightshift/references/receipts/cycle-specialist-evidence.md`, the page
-for source, cycle and specialist receipts, and reuse that id for every fix from that source. Before a risky cluster — a migration, a codemod, a
-provisioning step, anything whose undo is not obvious — write a checkpoint receipt naming
-touched paths, the rollback ref, and the verification plan. The model writes both receipts; nothing here requires a parser.
+`$NIGHTSHIFT_PLUGIN_ROOT/skills/nightshift/references/evidence/baseline.md`, and reuse that id for
+every later record from that source. Before a risky cluster — a migration, a codemod, a
+provisioning step, anything whose undo is not obvious — write a checkpoint using
+`$NIGHTSHIFT_PLUGIN_ROOT/skills/nightshift/references/evidence/checkpoint.md`, naming
+touched paths, the rollback ref, and remaining verification. Both are ledger records; nothing here requires a parser.
 
 Cited research, SEO audits, sourced documentation, and research synthesis follow
 `$NIGHTSHIFT_PLUGIN_ROOT/skills/nightshift/references/shift/cited-research.md`. Verify those reports with
@@ -239,9 +235,13 @@ exist.
 ## Snag log discipline
 
 Before reporting findings in a review or walkthrough, read
-`$NS/snag-log.md` and dedupe against ALL seen
+`$NS/snag-log.md` and `$NS/parking-lot.md` first. Dedupe against ALL seen
 — fixed AND rejected — so a later cycle never re-reports an earlier one. Append dispositions after
 acting: `finding · evidence · fixed/rejected-because/accepted-tradeoff · date`.
+A `Filed:` pointer (label: id; target: relative path) is navigation, not an entry: follow that pointer and search the
+linked file by topic or identifier; do not open every archive. Historical decisions are evidence,
+not fresh authorization — a current rule always prevails over an archived allowance. A broken
+pointer is reported in the snag log; never guess or delete history.
 
 ## Walkthroughs
 
@@ -282,7 +282,7 @@ item. Do not loop. The gate's stall warning is the backstop, not the plan.
 
 You may stop only when every box is `- [x]`, or the owner issues a stop-work order
 (`$NS/STOP`). If a shift must end mid-work, clock out orderly: a
-`wip:` commit in repository mode, or the item's section in `shift-report.md` marked in progress in
+`wip:` commit in repository mode, or the item's receipt under `$NS/receipts/` marked in progress in
 artifact mode, plus one handover line in `$NS/shift-log.md`, then
 stop. History is append-only on shift — no `reset --hard`,
 `rebase`, `amend`, or force operations; the night's receipts must survive to morning.

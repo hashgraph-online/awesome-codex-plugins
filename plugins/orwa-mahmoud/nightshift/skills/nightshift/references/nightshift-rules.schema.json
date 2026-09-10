@@ -368,14 +368,14 @@
         }
       }
     },
-    "report": {
+    "receipts": {
       "type": "object",
       "additionalProperties": false,
-      "description": "The shift report: one local page the shift writes as it goes, a section per punch-list item, describing what was delivered and why. It is the narrative record — the shift log stays the execution journal, the snag log the findings, the parking lot the decisions — and it never reaches a public commit message.",
+      "description": "Per-item receipts: one local file per punch-list item plus a runtime-written index. The shift log stays the execution journal, the snag log the findings, the parking lot the decisions. Receipts never reach a public commit message.",
       "properties": {
         "enabled": {
           "type": "boolean",
-          "description": "Write the report. false keeps every other record honest — punch status, real outputs, continuity and the verification you selected — and does not quietly bring back a mandatory receipt per item instead."
+          "description": "Write receipts. false keeps every other record honest — punch status, real outputs, continuity and the verification you selected."
         },
         "progressMode": {
           "type": "string",
@@ -405,13 +405,9 @@
           ],
           "description": "Whether a section records what the item cost. when-available reads only the numbers the host already exposes to the session; where it exposes none, the section says unavailable. Unavailable is never written as zero, and nothing here polls an account, counts tokens itself, or turns a count into a price."
         },
-        "legacyItemReceipts": {
-          "type": "boolean",
-          "description": "Compatibility. Artifact items are completed by their report section; set true to also write the separate per-item receipt file older workspaces expect. Baseline, checkpoint and source receipts are unaffected — they carry evidence a section does not."
-        },
         "templatePath": {
           "type": "string",
-          "description": "A Markdown template for the report, relative to the workspace and inside it. Wording and layout only, on the same terms as the handoff template: never executed, never a source of policy, and never able to describe an unavailable check as a passed one."
+          "description": "A Markdown template for each item receipt, relative to the workspace and inside it. Wording and layout only, on the same terms as the handoff template: never executed, never a source of policy, and never able to describe an unavailable check as a passed one."
         }
       }
     },

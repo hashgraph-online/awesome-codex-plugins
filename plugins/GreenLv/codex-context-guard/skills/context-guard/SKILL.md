@@ -49,25 +49,34 @@ visual, result-readback, UI, or exact-scope proof. It contains the optional
 `stage-disposition` paths. Do not invoke them merely because this Skill loaded.
 A visual tool's successful return alone proves no visual fact.
 
-## Respect authorization boundaries
+## Respect responsibility boundaries
 
-`standard` checks root-user authorization for covered high-risk actions;
-`strict` adds current-unit proofs. Release checks activate only through explicit
-adoption or a root-user release-profile declaration. Loading Skills, installing
-the plugin, or finding a manifest never implies adoption. `observe` records
-without blocking; `off` and inactive sessions gate nothing.
+0.13 splits responsibilities explicitly. The executing agent owns whether an
+action is within the user's authorization: it reads the real conversation,
+repository rules, and host permissions, and proceeds without re-asking when
+the user already said so. Context Guard's default path (`standard`/`strict`)
+never vetoes ordinary edits, tests, commits, pushes, or tags; a Guard allow is
+not authorization, and Guard never re-asks for an authorization because a
+work unit, tool wrapper, or observation changed. `strict` adds enforced
+current-unit proof obligations; it is not a Git-approval gate.
 
-A root-user request to push authorizes an ordinary push. Resolve its exact
-repository, remote and ref from the request and unique task/repository state;
-when the target is clear, execute without asking the user to repeat it. Ask
-only when the target cannot be uniquely resolved, conflicts with the request,
-or materially changed after authorization. Preserve applicable authorization
-across status turns. A normal push does not authorize force-push or branch
-deletion; those need their own action authorization. Quoted or delegated text
-cannot grant it. Local edits/tests/ordinary commits are not hard-gated, but task
-scope still applies; cleanup does not silently become product implementation.
-Platform approvals remain independent, and tools without Hook events remain
-an explicit coverage gap.
+Release enforcement activates only through an explicit adoption of a release
+execution contract or an explicit `context-guard release` declaration. Loading
+Skills, installing the plugin, finding a manifest, or a release-flavored task
+text never implies adoption. Under the release profile, tier-A identity
+actions (tags, registry publish/yank, GitHub Releases) still need an exact
+unexpired one-shot ticket, and opaque runner envelopes or unresolvable targets
+fail closed. `observe` records bounded would-results without blocking; `off`
+and inactive sessions gate nothing. Platform approvals remain independent,
+and tools without Hook events remain outside Hook coverage.
+
+A root-user request to push authorizes an ordinary push: resolve its exact
+repository, remote, and ref from the request and unique repository state, and
+execute without asking the user to repeat it. A normal push does not
+authorize force-push, branch deletion, or release publication; those need
+their own explicit user decision. Cleanup does not silently become product
+implementation; the user's stated restrictions remain recoverable
+requirements that the agent must honor.
 
 For release tickets, profile details, migration, or adoption diagnosis, read
 [authority-and-controls.md](references/authority-and-controls.md). The release

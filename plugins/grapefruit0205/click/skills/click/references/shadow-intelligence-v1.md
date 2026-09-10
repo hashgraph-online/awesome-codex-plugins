@@ -152,4 +152,4 @@ projection, stops explicitly or at session end, and enforces a two-hour maximum
 lifetime. Its start and stop do not change the mutation revision or evidence
 status because the viewer is read-only. Dashboard activation does not enable
 collection: `click-gate observer shadow` is a separate, explicit lifecycle
-choice, and new lifecycles default the Observer to `off`.
+choice. Shadow remains opt-in; new Evidence lifecycles use automatic input capture and Guarded defaults to `off`.

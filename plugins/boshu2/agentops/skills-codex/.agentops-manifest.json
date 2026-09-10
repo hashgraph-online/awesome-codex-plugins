@@ -381,8 +381,8 @@
     {
       "name": "agent-native",
       "source_skill": "skills/agent-native",
-      "source_hash": "82db24856239d7489842a400d273dae6192b8795f908c27884a829336105cd23",
-      "generated_hash": "e17fcecf436bbaab6b863e83a8c94cbc32ff18dfa8a14078e27d949f14ef7f7e"
+      "source_hash": "4cd2a8cf4daea6f4b21fcc765fc796f18a7cc1916f894b900fc78817c0467479",
+      "generated_hash": "a43294b142586708c48324dc339d0729e9079966780bf0e9dadaefc20e8dca63"
     },
     {
       "name": "agy-native",
@@ -501,8 +501,8 @@
     {
       "name": "implement",
       "source_skill": "skills/implement",
-      "source_hash": "bbe13c744a2da8697eb253fbf46a01b557d1eda4ad7963166661178ec8773915",
-      "generated_hash": "4f86a43384647c93bf9f26b37ddabb10d405e11dd1a5ef0a9a6005558da831cf"
+      "source_hash": "3595c7401ac6fc8c1de10d92799124897870f829bcae385a5a2aca06130ad7e3",
+      "generated_hash": "913621062d45dee471648a7946f235d6dad50e9b95219c037ac1817434a57872"
     },
     {
       "name": "learn",
@@ -549,8 +549,8 @@
     {
       "name": "plan",
       "source_skill": "skills/plan",
-      "source_hash": "2a51bd355c0ce2dde9da62bd03e2898a5e2c05f1248a97550f9278f372a9a6d1",
-      "generated_hash": "f24926c0841ef5a441c9ad163612116f4767caa54e90d0e91ded3369d1d2d350"
+      "source_hash": "197bff6ba45c503871ebb58120abf6f031da524568139a6c31bb5a65e01e4917",
+      "generated_hash": "9a20e81d0a9a51b5ed72a9d0d03d4304a9098bf14cb5665c88b79366083f4a65"
     },
     {
       "name": "postmortem",
@@ -585,8 +585,8 @@
     {
       "name": "refactor",
       "source_skill": "skills/refactor",
-      "source_hash": "9b27393da0ab3775d23170b288c60cc0b60038e938e30dd23fbf395bea55b0a2",
-      "generated_hash": "93c9377e2862a9f968f4c820a27c649cc973c534f424065b24f92fbc9b8998b1"
+      "source_hash": "1b33858d4a5ea3a2f7f3489e96b6376c35c817e634db554f0c3d0a73be035242",
+      "generated_hash": "3ef5c82022f25f73b1a1ac58666c3be4ae2ad5cc4f508adb0d4db349251e62c7"
     },
     {
       "name": "research",
@@ -609,8 +609,8 @@
     {
       "name": "rpi",
       "source_skill": "skills/rpi",
-      "source_hash": "12e97ce8d2f9d35fe1c6c925438b1a760aa1a8f654edec9495f354f4b08020f8",
-      "generated_hash": "41e97957623941521e73719a2ca3839b3815e9892c6450954ce95dc947982265"
+      "source_hash": "fd5a6deaff8240607040c50e75958f4ea94c9ce11e73628cac29d0b73771c2b6",
+      "generated_hash": "fa475c8695a6116f245788325c0f3098a1b8ddf2d131637de65b2331dd937652"
     },
     {
       "name": "sbh",
@@ -687,8 +687,8 @@
     {
       "name": "validate",
       "source_skill": "skills/validate",
-      "source_hash": "bb32065fad40750a975908bfd75dc3b051bced9cc5ceddcd5c4249b4db70dc3d",
-      "generated_hash": "a3d85a18264d6ae61fb1c72dc13ed5c4581149d122642889a0adfe4a35b13794"
+      "source_hash": "d458f6c3ccc510825984c9decff2eae90e8aca5111e8561be6e06bd12c2c17b6",
+      "generated_hash": "f8aabaed14d3e61c1f9b23376c7f79fb3b28751567418fe3a2e043efa53b30f7"
     },
     {
       "name": "workflow-builder",

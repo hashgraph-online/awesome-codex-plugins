@@ -12,9 +12,9 @@ archive the shift with its evidence intact.
   and review-first or immediate execution.
 - **Work for hours:** product evolution, coverage hunts, and owner-defined walkthroughs preserve
   the current work and exact next action across sessions. Each has an explicit ending.
-- **See progress and usage:** the shift report updates during work; the runtime adds per-item
+- **See progress and usage:** each item receipt updates during work; the runtime adds per-item
   tokens and duration from host records, marking unavailable measurements explicitly.
-- **Keep useful history:** archive finished shifts with linked reports and evidence, while open
+- **Keep useful history:** archive finished shifts with linked receipts and evidence, while open
   items and unanswered decisions remain live. Automatic filing is optional.
 
 MIT licensed. Bash on macOS and Linux, PowerShell on native Windows. No separate service or API key.
@@ -55,15 +55,15 @@ Disposable ChatGPT scratch workspaces are not supported.
    to verify it. The [first-shift guide](https://github.com/orwa-mahmoud/nightshift#your-first-shift)
    has a filled example.
 3. Ask **“Start the Nightshift shift”**, or use `/nightshift:start` in Claude Code. Keep this first
-   run attended, then review its changes and report before publishing anything.
+   run attended, then review its changes and receipts before publishing anything.
 
 ## Read more
 
 - [Why Nightshift exists](https://github.com/orwa-mahmoud/nightshift/blob/main/docs/why-nightshift.md) — the screen and the failures behind the design.
 - [Choose the work](https://github.com/orwa-mahmoud/nightshift/blob/main/docs/shift-modes.md) — an approved list, a catalog entry, or a goal with a clock.
-- [Shift report and token usage](https://github.com/orwa-mahmoud/nightshift/blob/main/docs/shift-report.md) — progress, measurements, and host limits.
+- [Receipts and token usage](https://github.com/orwa-mahmoud/nightshift/blob/main/docs/receipts.md) — progress, measurements, and host limits.
 - [Archive and continue](https://github.com/orwa-mahmoud/nightshift/blob/main/docs/archive.md) — keep finished history and the next shift's work.
-- [Real shifts and reviewed results](https://github.com/orwa-mahmoud/nightshift/blob/main/examples/README.md).
+- [Real runs](https://github.com/orwa-mahmoud/nightshift/blob/main/examples/README.md).
 - [Documentation](https://github.com/orwa-mahmoud/nightshift/blob/main/docs/README.md) and [website](https://nightshift.orwamahmoud.com/).
 
 Security reporting: [SECURITY.md](SECURITY.md#security-policy). License: [LICENSE](LICENSE).
