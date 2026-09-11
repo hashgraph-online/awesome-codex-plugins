@@ -2416,6 +2416,21 @@
       "icon": "./plugins/zlsbksdxl/codex-exa/assets/logo.svg"
     },
     {
+      "name": "fantasy-football-manager",
+      "displayName": "Fantasy Football Manager",
+      "source": {
+        "source": "local",
+        "path": "./plugins/krmisystems/fantasy-football-manager"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Manage ESPN fantasy drafts and season transactions with configurable approval limits and a multi-team portfolio dashboard.",
+      "icon": "./plugins/krmisystems/fantasy-football-manager/plugins/fantasy-football-manager/assets/icon.svg"
+    },
+    {
       "name": "feishu2codex",
       "displayName": "Feishu to Codex",
       "source": {

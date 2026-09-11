@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-09-11",
-  "total": 222,
+  "total": 223,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -1638,6 +1638,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/zlsbksdxl/codex-exa/HEAD/plugins/exa/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Fantasy Football Manager",
+      "url": "https://github.com/krmisystems/fantasy-football-manager",
+      "owner": "krmisystems",
+      "repo": "fantasy-football-manager",
+      "description": "Manage ESPN fantasy drafts and season transactions with configurable approval limits and a multi-team portfolio dashboard.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/krmisystems/fantasy-football-manager/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Feishu to Codex",
