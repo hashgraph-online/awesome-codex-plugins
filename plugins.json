@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-09-11",
-  "total": 223,
+  "total": 224,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -758,6 +758,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/mbanderas/maestro/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Magents",
+      "url": "https://github.com/abnegate/magents",
+      "owner": "abnegate",
+      "repo": "magents",
+      "description": "Shared session bus MCP + skill so Codex can list, read, hand off, send, and spawn with Claude, Cursor, Grok, and friends without pasting context.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/abnegate/magents/HEAD/plugins/codex/.codex-plugin/plugin.json"
     },
     {
       "name": "MailAgent",

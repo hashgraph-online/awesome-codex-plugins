@@ -1,0 +1,44 @@
+{
+  "name": "magents",
+  "version": "0.11.0",
+  "description": "Shared session bus so Codex can list/read/handoff/send/spawn with Claude, Cursor, Grok, and friends without pasting context.",
+  "author": {
+    "name": "abnegate",
+    "url": "https://github.com/abnegate"
+  },
+  "homepage": "https://abnegate.github.io/magents",
+  "repository": "https://github.com/abnegate/magents",
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "agents",
+    "sessions",
+    "handoff",
+    "claude",
+    "cursor",
+    "grok"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "magents",
+    "shortDescription": "Shared session bus across Claude/Codex/Cursor/Grok.",
+    "longDescription": "magents is a Rust MCP server + CLI over the session files coding agents already write. From Codex you can digest another live session, hand off into it, send into a specific chat, or spawn independent work that replies through magents. Requires magents on PATH (brew install abnegate/tap/magents).",
+    "developerName": "abnegate",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://abnegate.github.io/magents",
+    "privacyPolicyURL": "https://github.com/abnegate/magents/blob/main/SECURITY.md",
+    "termsOfServiceURL": "https://github.com/abnegate/magents/blob/main/LICENSE",
+    "defaultPrompt": [
+      "What was Claude working on in this repo?",
+      "Hand this off to the other live agent."
+    ],
+    "brandColor": "#ec4899",
+    "logo": "./assets/logo.svg",
+    "composerIcon": "./assets/logo.svg"
+  }
+}

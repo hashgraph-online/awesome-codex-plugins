@@ -1116,6 +1116,21 @@
       "icon": "./plugins/mbanderas/maestro/assets/icon.png"
     },
     {
+      "name": "magents",
+      "displayName": "Magents",
+      "source": {
+        "source": "local",
+        "path": "./plugins/abnegate/magents"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Shared session bus MCP + skill so Codex can list, read, hand off, send, and spawn with Claude, Cursor, Grok, and friends without pasting context.",
+      "icon": "./plugins/abnegate/magents/assets/logo.svg"
+    },
+    {
       "name": "mailagent",
       "displayName": "MailAgent",
       "source": {
