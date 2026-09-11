@@ -31,7 +31,7 @@ no native isolation for restricted sources.
    the protected draft; do not invent an alternate memory destination.
 
 Ordinary Markdown is sufficient. If the caller selects the existing OKF profile,
-use [its profile](../../learn/references/okf-page-profile.md) and
+use [its profile](learn/okf-page-profile.md) and
 `ao provenance check-okf --file <topic.md>` for structure. This checks no factual
 support, disclosure, isolation, review or usefulness; the profile is optional.
 

@@ -1,6 +1,6 @@
 ---
 name: orchestration
-description: "Multi-agent orchestration. Lane contracts, worker-model doctrine, fault tolerance, worktree isolation. Triggers: orchestrate, coordinate, agents, parallel, spawn, contract, tier 2, tier 3."
+description: "Multi-agent orchestration: lane contracts, worker-model doctrine, fault tolerance. Triggers: orchestrate, coordinate, agents, parallel, spawn, contract, tier 2, tier 3."
 allowed-tools: Task, Bash, Read
 kernel:
   kind: methodology
@@ -30,6 +30,15 @@ Every spawned lane gets ALL of these fields; a missing field is where the lane f
 6. **Forbidden list**: what the lane must NOT do (push, touch _meta/, add deps, ...).
 7. **Raw-data return format**: counts, file lists, command output. Never narrative
    alone; a lane that returns only prose has returned nothing checkable.
+8. **Capabilities needed from outside the runtime**: none | browser | isolated-chromium |
+   gui | keychain | ssh | api:vendor | interactive. A lane that needs a capability the
+   sandbox denies fails deep into the work, having already spent the budget.
+
+The prompt must stand alone in a fresh session with no conversation history: no "as
+discussed", no reference to a target that exists only in your context, no compressed
+shorthand only this session can expand. Read it as if you had just booted.
+Pass it by FILE PATH once it is large; an inline prompt over a few hundred KB dies on the
+subprocess argv limit (E2BIG), and the failure looks like a crash, not a size error.
 </lane_contract>
 
 <output_integrity>
@@ -41,6 +50,23 @@ Pass large input pools to lanes by FILE PATH, never as an inline slice (silent
 truncation reads as full coverage). Each lane keeps a per-lane journal/checkpoint
 so a degraded final message is not the only record of what it did.
 </output_integrity>
+
+<frozen_inputs>
+Freeze the exact bytes a review lane judges before dispatching it. A concurrent lane
+correcting the same artifact mid-review destroys the review: it now reports on a version
+that no longer exists, and the finding cannot be reproduced or dismissed. Snapshot the
+input to a path the reviewer reads, record its hash in the contract, and re-check the hash
+when the verdict lands. If the source moved, the verdict is void, not stale.
+</frozen_inputs>
+
+<shared_resources>
+Any id, lock, slot, or row a runner allocates for lanes is contended the moment two lanes
+start. Allocate atomically (a real transaction, O_EXCL that is checked, a database
+constraint), then READ BACK what you got and fail loudly if it is empty. Exit 0 with a
+blank id is the signature of a lost race, and it produces a malformed record that outlives
+the run. An O_EXCL lock created during initialization admits a second owner unless the
+initialization itself is inside the lock.
+</shared_resources>
 
 <single_coordinator>
 One coordinator per repo at a time. Before coordinating, check for a live second
@@ -97,7 +123,8 @@ parallel lanes touching shared files (N-way merge conflicts) · serial execution
 parallel is genuinely safe · retrying without new information from the failure ·
 autonomous loops without a budget cap (`max_budget_usd` on the contract) ·
 accepting a lane return without the output-integrity check (placeholder degradation
-is silent) · two coordinators on one repo.
+is silent) · two coordinators on one repo · dispatching a review over bytes another lane
+is still editing · a prompt that only makes sense inside the dispatching session.
 </anti_patterns>
 
 </skill>

@@ -1,6 +1,6 @@
 ---
 name: app-dev
-description: "Mobile/web app build pipeline: fastlane-first local builds, store submission, pre-submission checklists. Triggers: app, mobile, store submission, build, deploy app, fastlane, expo, react native, flutter."
+description: "Mobile/web build pipeline: fastlane-first local builds, store submission, pre-submission checklists. Triggers: app, mobile, store submission, deploy app, fastlane, expo, react native, flutter."
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Task
 kernel:
   kind: methodology

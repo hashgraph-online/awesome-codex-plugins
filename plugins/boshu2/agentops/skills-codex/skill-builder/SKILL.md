@@ -1,156 +1,113 @@
 ---
 name: skill-builder
-description: 'Create a metadata-complete AgentOps skill source package, regenerate its derived projections, and check or repair structural hygiene in skill packages. Triggers: "create a skill", "scaffold skill", "absorb external skill", "new skill", "heal skill", "repair skill hygiene", "audit skill structure", "check skill package".'
+description: 'Create, adapt, consolidate or repair skill packages and projections. Use when: authoring guidance, descriptions or structure; Skill Eval measures behavioral benefit.'
 ---
-# Skill Builder — Create, heal, and audit skill packages
+# Skill Builder
 
-`skill-builder` owns the full structural lifecycle of one `skills/<slug>/`
-source package: create it, verify its structure, repair owned projections, and
-audit its content discipline. It does not schedule work, allocate writers,
-operate Git, validate a software candidate, promote learnings, or decide what
-happens after a failure.
+Create, repair, audit or export one canonical skill package, or turn supported
+expertise into a small authoring proposal. Search existing owners before adding
+a root. Extend the owner that already handles the behavior.
 
-Before creating a new root, search `skills/*/SKILL.md` for an existing owner.
-Extend an existing skill when it already owns the requested behavior.
+## Choose the requested operation
 
-## Modes
+| Need | Entry point |
+|---|---|
+| Create a source package | `scripts/build.sh` with `from-scratch`, `from-template` or `absorb-external` |
+| Check package structure | `scripts/heal.sh --check [--strict] skills/<slug>` |
+| Repair owned projections | `scripts/heal.sh --fix skills/<slug>` |
+| Audit authoring quality | `scripts/audit.sh [--strict] [--json <path>] skills/<slug>` |
+| Export to another platform | [Conversion](#conversion) |
+| Make repeated expertise reusable | [Distill expertise](#distill-expertise) |
 
-| Trigger phrases | Mode | Entry point |
-|---|---|---|
-| "create a skill", "scaffold skill", "new skill" | create (build) | `scripts/build.sh` |
-| "absorb external skill" | create (absorb-external) | `scripts/build.sh` |
-| "check skill package" | check | `scripts/heal.sh --check [--strict]` |
-| "heal skill", "repair skill hygiene" | heal | `scripts/heal.sh --fix` |
-| "audit skill structure" | audit | `scripts/audit.sh` |
+Run only the selected operation. Skills remain optional tools within the native
+caller's authorized outcome; this skill does not add execution phases, own work,
+operate Git, validate a software candidate, or decide delivery and retries.
 
-## Constraints
+## Create and maintain
 
-- Create exactly one source package because metadata must have one canonical
-  owner.
-- Treat external skills as structural signals only because clean-room output
-  must not copy names, prose, prompts, scripts, or examples.
-- Regenerate projections once and stop because validation, revision, Git, and
-  delivery remain caller-owned.
-- Check and audit modes never mutate files; fix mode changes only an explicit
-  source target and its owned projections, because source behavior remains
-  human-authored.
+Treat external skills as structural signals only. Clean-room output must not
+copy their names, prose, prompts, scripts or examples. `from-template` reuses
+metadata defaults; `absorb-external <slug> --from <path>` verifies an input and
+creates a blank source package. Neither imports another skill's content.
 
-## Create mode
+For creation, supply one input to `scripts/build.sh`, then replace placeholders
+with the actual behavior. The caller can supply `SKILL_TIER`,
+`SKILL_DEPENDENCIES`, `SKILL_CAPABILITIES` and `SKILL_EFFECTS`; lists are JSON
+arrays. The result is one source package with `SKILL.md` and
+`scripts/validate.sh`. The builder's report is
+`.agents/scratch/skill-builder/<slug>-build.json` under
+[build-report.json](schemas/build-report.json).
 
-Choose exactly one build input:
+Edit `skills/<slug>/` as the source owner. Check the completed source with
+`scripts/heal.sh --check --strict skills/<slug>`, then regenerate its owned
+projections through the repository's owning commands. `scripts/regen-all.sh`
+is the integrated projection recipe; `scripts/generate-skill-mesh.py`,
+`scripts/codex-sync.sh --only <slug>` and
+`scripts/regen-codex-hashes.sh --only <slug>` are the existing scoped surfaces.
+Do not repeat work already performed by `build.sh` unless source changes
+require it. Inspect the generated diff; hand-edit no projection.
 
-- `from-scratch <slug>` creates a blank source package.
-- `from-template <slug> --like <existing-slug>` uses the existing skill only
-  for metadata defaults; it does not copy its prose.
-- `absorb-external <slug> --from <path>` verifies the source exists, then
-  creates a clean-room blank package without copying names, prose, prompts,
-  scripts, or examples.
+Check/heal targets must be real direct children of `skills/`; reject missing
+paths, traversal and symlink spellings. Check mode is read-only. Fix mode
+regenerates owned projections for explicit targets and does not invent source
+behavior. Findings name their code, target and concrete issue; `--strict`
+returns nonzero for findings. Check the slug/name match, description, API
+version, metadata, live dependencies and linked resources.
 
-The caller may set `SKILL_TIER`, `SKILL_DEPENDENCIES`,
-`SKILL_CAPABILITIES`, and `SKILL_EFFECTS`. Values that represent lists must be
-JSON arrays.
+Deep audit reports structural and advisory authoring findings; it is not a
+candidate verdict. Its optional JSON follows
+[audit-report.json](schemas/audit-report.json). Interpret static scores as
+structure and authoring signals, not proof that a skill works. Exact checks live
+in [audit checks](references/audit-checks.md),
+[authoring doctrine](references/authoring-doctrine.md), and
+[Codex parity](references/codex-parity.md).
 
-### Procedure
+## Conversion
 
-1. Run `scripts/build.sh` with one mode and one new slug.
-2. Fill the generated placeholders with the skill's actual behavior.
-3. Run `scripts/heal.sh --check --strict skills/<slug>`.
-4. Run `scripts/generate-skill-mesh.py` to derive the catalog, registry,
-   router, graph, maps, counts, and runtime image manifests from `SKILL.md`
-   metadata.
-5. Run `scripts/codex-sync.sh --only <slug>` and
-   `scripts/regen-codex-hashes.sh --only <slug>` to derive the Codex twin.
-6. Inspect the generated diff. Validation and delivery remain caller-owned.
+Use `bash skills/skill-builder/scripts/converter/convert.sh <skill-dir> <target>
+[output-dir]` for an explicit out-of-tree export. Targets are `codex`, `cursor`
+and `test`; `--all` selects all source packages, and `--codex-layout inline`
+selects the legacy inline Codex layout. Read
+[SkillBundle](references/converter/skill-bundle-schema.md) when format details
+matter. Parse the source once, render the target, then validate resource parity
+and target format. Report layout and any omitted Cursor references.
 
-`build.sh` performs steps 1, 3, 4, and 5 once. It never retries or chooses a
-next action.
+The default export is `.agents/projections/converter/<target>/<skill-name>/`.
+The exporter clean-writes its output directory, so use only the explicit derived
+target: refuse a source package, its ancestor, or the repository root. Preserve
+the source unchanged and fix the source or adapter instead of editing output.
+A parse, write, format or required-resource failure leaves an incomplete export.
+The shipped `skills-codex/**` remains owned by `scripts/codex-sync.sh` through
+`scripts/regen-all.sh`; this ad-hoc exporter never replaces that authority.
 
-## Heal and check modes
+## Distill expertise
 
-```bash
-bash skills/skill-builder/scripts/heal.sh --check [skills/<slug> ...]
-bash skills/skill-builder/scripts/heal.sh --check --strict [skills/<slug> ...]
-bash skills/skill-builder/scripts/heal.sh --fix [skills/<slug> ...]
-```
+When the caller wants a reusable rule, begin with cited occurrences or a named
+authoritative source. State the trigger, desired behavior, inputs, outputs,
+negative example and limits. Prefer an addition to an existing reference or
+skill over a new root, library, gate or workflow; no action is a valid result.
 
-Every explicit target must be a real, direct child of `skills/` or
-`skills-codex/`. Missing paths, traversal, and symlink spellings are rejected.
+An abstraction needs three independently evidenced real occurrences and a
+successful reapplication to a source case without missing context. Preserve
+short source excerpts or command results with resolvable citations. Fewer
+occurrences support a narrow reference note; an authoritative source substitutes
+only for a faithful statement of that source, not a wider generalization.
+Use Research's [pattern mode](../research/SKILL.md#pattern-evidence) when the
+claim needs exemplars and a holdout before packaging.
 
-### Procedure
+A proposed process artifact must have a concrete consumer, a subject or release
+decision it informs, an observed defect and a retirement condition. If any is
+missing, omit the artifact. Code written only to consume it supplies no consumer.
+Minimal recovery state needs a named evidence-loss or corruption risk. Show a
+negative/holdout case and how the proposed rule returns the right decision.
 
-1. Resolve and contain all requested target directories.
-2. Parse each `SKILL.md` frontmatter.
-3. Check the path/name match, description, API version, disposition metadata,
-   and linked local references.
-4. Print every finding once.
-5. In `--fix` mode only, regenerate metadata-owned projections and scoped Codex
-   twins, then stop.
+Return the proposal inline unless a durable proposal was requested. Respect
+[Memory's source and destination rules](../memory/SKILL.md) for mined material.
+Evidence cannot publish itself as policy. Build an artifact only when the
+caller's authorization includes adoption; a proposal-only request ends with the
+proposal. Repair ordinary known defects within existing authority; tool failures
+remain explicit facts for the native caller, not an automatic helper chain.
 
-`--check` is read-only. `--strict` makes any finding produce exit 1. A failed
-fix is returned to the caller; the skill does not retry or select another
-action. Structural findings are printed as:
-
-```text
-[FINDING_CODE] skills/example: concrete explanation
-```
-
-Generated Codex parity follows [codex-parity.md](references/codex-parity.md).
-A second identical fix is idempotent, and remaining non-fixable findings stay
-explicit.
-
-## Audit mode
-
-The optional read-only deep content audit is:
-
-```bash
-bash skills/skill-builder/scripts/audit.sh [--strict] [--json <path>] skills/<slug>
-```
-
-It combines the structural result with deterministic authoring checks and an
-advisory static package-readiness score. It is not the core `Validate` phase,
-does not write a `verdict.v2`, and has no delivery authority. Check definitions live in
-[audit-checks.md](references/audit-checks.md); density scoring is described in
-[context-density-checks.md](references/context-density-checks.md).
-
-## Output
-
-A created source package contains:
-
-```text
-skills/<slug>/
-├── SKILL.md
-└── scripts/validate.sh
-```
-
-The build report is `.agents/scratch/skill-builder/<slug>-build.json` and
-conforms to `schemas/build-report.json`. Deep audit JSON conforms to
-`schemas/audit-report.json`. Generated inventories and runtime projections are
-not additional sources of truth. The caller owns any subsequent edit or
-invocation.
-
-## Checks
-
-- The slug and frontmatter `name` match.
-- Metadata declares `tier`, `dependencies`, `capabilities`, `effects`,
-  `canonical_status`, and `disposition`.
-- Every hard dependency names a live skill.
-- The generated package contains no Git, tracker, queue, retry, release, or
-  delivery behavior.
-- External material is treated only as a signal that a clean-room skill may be
-  useful; its content is not copied.
-- Check mode never mutates files; fix mode changes only an explicit source
-  target and its owned projections.
-
-## Failure behavior
-
-Any invalid input, structural failure, projection failure, or Codex sync
-failure exits nonzero after one attempt. The caller decides whether to revise
-or invoke the builder again.
-
-## References
-
-- [skill template](references/skill-template.md)
-- [authoring doctrine](references/authoring-doctrine.md) — prose-quality
-  principles behind the advisory `authoring` audit block
-- [heal.feature](references/heal.feature)
-- [skill-auditor.feature](references/skill-auditor.feature)
+For an actual package edit, use the [source template](references/skill-template.md)
+for required fields and [context density guidance](references/context-density-checks.md)
+when deciding which prose earns a place. Neither requires adding a new skill.

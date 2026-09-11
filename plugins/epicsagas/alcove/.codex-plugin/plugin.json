@@ -1,6 +1,6 @@
 {
   "name": "alcove",
-  "version": "0.12.2",
+  "version": "0.13.1",
   "description": "Local-first memory server — hybrid BM25+vector search, vault management, lint, and launchd lifecycle for project knowledge.",
   "author": {
     "name": "epicsagas",

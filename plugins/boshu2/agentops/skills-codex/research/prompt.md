@@ -1,6 +1,6 @@
 # research
 
-Answer one bounded question, cited. Not for dissecting a codebase; that is codebase-recon or reverse-engineer. Triggers: "research", "investigate this question", "find evidence".
+Trace code or test a recurring pattern to answer one cited question. Use when: uncertainty needs evidence. Not for external feature teardowns; use reverse-engineer.
 
 ## Instructions
 

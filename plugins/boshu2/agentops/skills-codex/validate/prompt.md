@@ -1,6 +1,6 @@
 # validate
 
-Freshly judge a finished change against its acceptance: PASS, FAIL, or NOT_PROVEN. Not for claim-vs-tree checks; that is reality-check. Triggers: "validate", "is this proven", "check this change", "cross-model review".
+Freshly judge a finished change against original acceptance before merge. Use when: independent proof is needed; author tests cannot issue PASS. Triggers: "check this change".
 
 ## Instructions
 

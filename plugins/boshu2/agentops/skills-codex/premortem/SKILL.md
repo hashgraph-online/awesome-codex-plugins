@@ -1,6 +1,6 @@
 ---
 name: premortem
-description: 'Fresh-judge a frozen plan. Not for a live decision''s reversibility; that is one-way-door. Triggers: "premortem", "challenge this plan", "one judge", "what could make this plan fail".'
+description: 'Challenge a rollout plan with one fresh judge before implementation; identify what could make it fail. Not for finished-code judgment. Triggers: "one judge", "challenge this plan".'
 ---
 # Premortem
 
@@ -39,10 +39,10 @@ catches the plan shape that no single-step review sees: nineteen reversible step
 followed by an irreversible one, where the reflex trained by the first nineteen
 answers the twentieth.
 
-A plan that crosses a one-way door with no caller checkpoint at the crossing is a
-finding, stated as such, whatever else the plan gets right. Classify with
-[`one-way-door`](../one-way-door/SKILL.md); its registry and patterns are the
-declared source, and an unclassifiable step is treated as one-way.
+A material irreversible action outside existing caller authority is a finding.
+Trace actual undo cost and authorization using [Plan](../plan/SKILL.md). Prior
+authorization remains valid; do not demand repeated approval at the crossing
+or classify every uncertain implementation detail as irreversible.
 
 The named failure mode here is **reversibility asserted, not traced**: a plan
 that says "fully reversible" in its rollback section while one step revokes a

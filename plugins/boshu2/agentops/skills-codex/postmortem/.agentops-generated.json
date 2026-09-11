@@ -2,6 +2,6 @@
   "generator": "codex-sync",
   "source_skill": "skills/postmortem",
   "layout": "modular",
-  "source_hash": "c3c9d504600a02a5bce60a1a94d863109e4d33d5ae3bd414d2aa0fd8c70f71ff",
-  "generated_hash": "afa0e2cc6c9143eb5c120300fc1e569d894a26d7c8b5f48a24de3bbdd63676ed"
+  "source_hash": "92f7b2e76704eac10e9099f18400faf2d430101c85ad2c031045929e70995644",
+  "generated_hash": "cedb3c17ddf726729b3c43521fba546f0fda3003e14c06b78216b548e9a29480"
 }

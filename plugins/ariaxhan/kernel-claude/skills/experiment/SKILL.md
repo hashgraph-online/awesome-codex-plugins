@@ -1,6 +1,6 @@
 ---
 name: experiment
-description: "Experiment engine for development rules. Treats rules as hypotheses, designs falsifiable tests, updates confidence, and graduates or kills rules. Triggers: experiment, hypothesis, prove, test rule, validate methodology, scientific, evidence."
+description: "Rules as hypotheses: falsifiable tests, confidence updates, graduate or kill. Triggers: experiment, hypothesis, prove, test rule, validate methodology, evidence."
 user-invocable: true
 disable-model-invocation: true
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Agent, WebSearch, WebFetch

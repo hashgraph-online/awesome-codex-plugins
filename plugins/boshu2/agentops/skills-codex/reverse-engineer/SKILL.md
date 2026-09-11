@@ -1,6 +1,6 @@
 ---
 name: reverse-engineer
-description: 'Inventory an authorized repo, binary, or product. Not for tracing your own repo; that is codebase-recon. Triggers: "reverse-engineer X", "tear down Y", "what should we steal from Z", "evaluate competitor/upstream", "should we fork/adopt/build-native".'
+description: 'Tear down an authorized competitor repo, binary or product into a feature inventory and adoption choices. Use when: comparing an external system; local questions go to Research.'
 ---
 # Reverse Engineer
 

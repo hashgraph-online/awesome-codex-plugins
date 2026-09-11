@@ -15,7 +15,7 @@ Omitting `reporting` keeps raw streaming. The equivalent default is:
 }
 ```
 
-Use `format: "actionable"` only when a compact unittest/pytest diagnosis is wanted. Click drains stdout and stderr from the original execution once, retains at most the configured 4–128 KiB per stream, and reports truncation or parser uncertainty. It does not alter argv or rerun the check. Local detail is owner-readable, expires after 24 hours, and is bounded by 128 files and 8 MiB. Context candidates come only from safe workspace-relative file/line output and still require a separate normal inspect claim; the runner does not read them automatically.
+Evidence mode selects `format: "actionable"` automatically when a request omits `reporting` and every check is a supported unittest/pytest runner; Guarded and every other runner keep `raw`. Choose `format: "actionable"` explicitly elsewhere only when a compact unittest/pytest diagnosis is wanted, and `format: "raw"` in Evidence when the full stream is needed. Click drains stdout and stderr from the original execution once, retains at most the configured 4–128 KiB per stream, and reports truncation or parser uncertainty. It does not alter argv or rerun the check. Local detail is owner-readable, expires after 24 hours, and is bounded by 128 files and 8 MiB. Context candidates come only from safe workspace-relative file/line output and still require a separate normal inspect claim; the runner does not read them automatically.
 
 ## Failure collection v1
 

@@ -99,11 +99,17 @@ including:
 - source, configuration, data, import-search, standard-library, distribution,
   site-package, loader, locale, and runtime support inputs.
 
-Input records use role-based content, metadata, directory, missing, or symlink
-fingerprints. Persisted project paths are repository-relative. Absolute runtime
-paths are reduced to role and identity records; raw trace paths are transient.
-Reuse re-fingerprints every record, so content or metadata changes, directory
-membership changes, a missing path appearing, a symlink change, a new import
+Input records use role-based content, directory, missing, or symlink
+fingerprints. An input's identity is what the check can consume: the file
+type and permission bits, the content of a read or executed file, the size of
+a metadata-only file, the sorted member names and types of a directory, or the
+link text of a symlink. Inode numbers, link counts, ownership and timestamps
+are runtime assumptions rather than modeled inputs, so an equal-content
+rewrite, a checkout of identical content or a `touch` keeps the receipt.
+Persisted project paths are repository-relative. Absolute runtime paths are
+reduced to role and identity records; raw trace paths are transient. Reuse
+re-fingerprints every record, so a content or permission change, directory
+membership change, a missing path appearing, a symlink change, a new import
 candidate, backend drift, or companion drift makes the prior observation
 ineligible.
 
@@ -113,6 +119,20 @@ activity, project time or random input, inherited descriptor input, unsupported 
 access, observer introspection or tampering, an unresolved event, capture loss,
 or an incomplete process stream. These conditions affect reuse eligibility
 only; they never change the test result.
+
+## Conditional native receipts
+
+When the process tree was followed completely and every file input was
+snapshotted, but the companion reported only a followed child process,
+concurrent thread execution, or dynamic runtime introspection, the observation
+is recorded with status `conditional` instead of `failed`. Such a receipt
+permits explicitly conditional reuse: the check is skipped only while every
+observed input, the runtime, backend and companion remain unchanged, the plan
+reports the authority `conditional-python-observation` with the reason
+`conditional-observed-inputs-current`, and host output, status and the
+dashboard disclose that input completeness is unproven. Time or random input,
+network or IPC activity, inherited descriptors, tampering, capture loss and
+unresolved events never produce a conditional receipt.
 
 ## Binding and successor requalification
 

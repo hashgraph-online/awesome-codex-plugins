@@ -1,6 +1,6 @@
 {
   "name": "click",
-  "version": "0.96.0",
+  "version": "0.96.1",
   "description": "Incremental verification for coding agents: propose complete test shards, rerun affected checks, and reuse authoritative passing evidence with optional Guarded approval boundaries.",
   "author": {
     "name": "Junseok Pak",

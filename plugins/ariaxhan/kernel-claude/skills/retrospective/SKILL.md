@@ -1,6 +1,6 @@
 ---
 name: retrospective
-description: "Audit whether prior learnings actually fired, then convert this run's recurrences into installed mechanisms. Refuses to emit a finding without an install path and a firing test. Triggers: retrospective, reflect, what did we learn, patterns, synthesis, post-mortem, why does this keep happening."
+description: "Audit whether prior learnings actually fired, then install mechanisms for this run's recurrences. No finding without an install path and a firing test. Triggers: retrospective, reflect, what did we learn, patterns, post-mortem, why does this keep happening."
 user-invocable: true
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 kernel:

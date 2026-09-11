@@ -1,6 +1,6 @@
 ---
 name: knowledge-graph
-description: "Build + keep-fresh + query a deterministic code knowledge graph to cut agent orientation-token cost. Triggers: knowledge graph, graphify, code graph, god nodes, orientation cost, token bill, map the codebase, what connects X to Y, callers of, blast radius."
+description: "Build, refresh and query a deterministic code knowledge graph to cut orientation-token cost. Triggers: knowledge graph, graphify, code graph, god nodes, orientation cost, map the codebase, what connects, callers of, blast radius."
 allowed-tools: Read, Bash, Grep, Glob
 kernel:
   kind: methodology

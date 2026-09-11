@@ -1,129 +1,104 @@
 ---
 name: doc
-description: 'Generate and validate repo docs, READMEs, and OSS doc packs. Triggers: "doc", "generate and validate repo docs", "doc skill".'
+description: 'Write grounded docs, READMEs, repo instructions or continuity handoffs. Use when: these documents are requested; no reports as a routine completion ritual.'
 ---
-# Doc Skill
+# Doc
 
-**YOU MUST EXECUTE THIS WORKFLOW. Do not just describe it.**
-
-Generate and validate documentation for any project. `--mode` selects the artifact family — the default mode handles code/API docs and code-maps; `--mode=readme` generates a gold-standard README; `--mode=oss` scaffolds and audits the open-source doc pack.
-
-## Prompt
-
-```text
-Document the retry-queue package at platform-lab/internal/retryqueue: default mode, code/API docs plus a code-map. Ground every claim in the current source, run the default mode's validation, and report which files were created or updated plus any not-checked gaps.
-```
-
-## It's working if
-
-- The generated doc cites real symbols from `internal/retryqueue/queue.go`, never an invented function name.
-- AgentOps self-documentation stays inside the operations-layer category from `docs/contracts/ubiquitous-language.md`, never calling it an execution orchestrator, factory, corpus, or loop.
-- OSS scaffold mode creates only missing files, e.g. skips `README.md` when it already exists and reports that skip.
-- The report names the mode's validation command it ran, such as `scripts/docs-build.sh --check`, with its result.
-
-## Constraints
-
-- Ground every documentation claim in the current repository, because plausible but stale prose is a documentation defect.
-- When the subject is AgentOps itself, generated product and docs copy starts from the canonical category (`docs/contracts/ubiquitous-language.md`: the operations layer for agentic engineering) and preserves the ownership boundary; never describe AgentOps as an execution orchestrator, factory, corpus, or loop.
-- Research in bounded chunks against a coverage ledger, and hold finished docs to the conceptual-surprise floor (see [Research and depth kernels](#research-and-depth-kernels)).
-- In OSS scaffold mode, create missing docs only by default; never update or overwrite an existing doc unless the user explicitly confirms, because these files may contain operator-owned policy and project history. Treat `refresh` as a separate opt-in path and confirm its target writes with the user before proceeding.
-- Keep mode boundaries explicit and run the selected mode's validation, because default, README, and OSS outputs have different completion criteria.
+Write or update the documentation the caller needs, grounded in the current
+repository and its accepted intent. A small explanation needs no interview,
+coverage ledger or separate report. Select only the mode relevant to the task.
 
 ## Modes
 
-| `--mode` | Artifact | Read first |
-|----------|----------|-----------|
-| *(default)* | API docs, code-maps, doc coverage/validate | this file |
-| `readme` | Gold-standard README (interview → generate → de-slop → deterministic checks) | [references/readme-craft.md](references/readme-craft.md) |
-| `oss` | OSS doc pack (CONTRIBUTING/CHANGELOG/AGENTS.md, audit + scaffold) | [references/oss-pack.md](references/oss-pack.md) |
+| Need | Scope and reference |
+|---|---|
+| Explain an API, command, code-map or architecture | Inspect its consumers and source; use [code/API guidance](references/default-mode.md) or [architecture guidance](references/architecture-report.md) when useful. |
+| Create or improve a README | Lead with the user's problem and a working first-use path; preserve useful depth. See [README craft](references/readme-craft.md). |
+| Audit or scaffold OSS documentation | Compare existing docs with the requested pack. Create missing files; revise existing files only within the authorized request. See [OSS pack](references/oss-pack.md). |
+| Initialize missing entry documents | Create only explicitly requested missing files; report existing paths as skipped. See [setup examples](references/bootstrap/examples.md). |
+| Preserve a session for another context | Write the compact factual handoff described below to the caller's authorized destination. |
 
-Same skill, different shapes. Prefer modes and references over a pile of
-one-off doc skills. README generate/rewrite always runs the
-[de-slopify](references/de-slopify.md) docs-prose pass before checks.
+These are optional task shapes, not successive phases. Detailed references
+supply techniques and formats; they do not add interviews, approval checkpoints,
+reports or files beyond the accepted request. Existing authorization to revise
+specified documents is sufficient.
 
-**Mode routing (absorbed skills):**
+## Grounded writing
 
-| You typed | Runs |
-|-----------|------|
-| "readme", "rewrite the README", "validate the README" | Doc in `readme` mode |
-| "oss docs", "scaffold contributing", "audit OSS docs" | Doc in `oss` mode |
+1. Identify the audience, question and existing document owner. Reuse accepted
+   intent; ask only for missing content that materially changes the document.
+2. Read the relevant declarations and verify them against code, configuration,
+   command help or executable behavior. Use the caller's domain terminology.
+   For a larger surface, retain enough source references to disclose what was
+   inspected and what remains unknown; do not imply whole-repository coverage.
+3. Make the smallest useful edit. Explain non-obvious rules, ordering and tradeoffs
+   when they help the reader; a reference page need not manufacture a lesson.
+   Preserve operator policy and history outside the authorized scope.
+4. Check links, examples and the repository's applicable documentation build or
+   validator. Remove empty claims and redundant prose; [prose guidance](references/de-slopify.md)
+   can help when the requested output is substantial.
+5. Return changed paths and check results, plus unresolved factual gaps. Write a
+   separate report only when the caller requests one or an existing consumer
+   requires it.
 
-When invoked with `--mode=readme` or `--mode=oss`, read the corresponding reference above and follow its workflow verbatim. The default-mode steps below apply only when no mode (or the implied code-docs mode) is selected.
+For AgentOps itself, read `docs/contracts/ubiquitous-language.md`: the product
+is the operations layer for agentic engineering. Preserve the distinction
+between that layer and caller-owned execution, work tracking and delivery.
 
-## Execution Steps (default mode — code/API docs)
+## Missing-document setup
 
-Default mode is deliberately thin. Given a Doc command and target:
+Create only the requested missing documents, such as `PRODUCT.md`, `GOALS.md`
+or `AGENTS.md`; a collision is skipped, not overwritten by setup. Verify the
+created paths and report created, skipped and failed writes. Setup does not
+install tools, run `ao session bootstrap`, initialize Git or trackers, start a
+runtime, add hooks, or infer a repository workflow.
 
-1. **Detect project type** — `ls package.json pyproject.toml go.mod Cargo.toml` + existing `docs/`; classify CODING / INFORMATIONAL / OPS.
-2. **Run the command** — `discover` (grep undocumented funcs), `coverage` (documented vs total), `gen [feature]` (read code → stamp function/class markdown), `all`, or `validate`.
-3. **Write the report** to `.agents/scratch/doc/YYYY-MM-DD-<target>.md` (coverage %, generated, gaps, validation issues), then report coverage + gaps to the user.
+Standalone verdict storage at `.agents/ao/verdicts/sha256/` is created only when
+explicitly requested. New CDLC proof uses the caller-selected protected external
+non-Git evidence root; a missing route permits no checkout fallback. Preserve
+existing evidence and use the repository's actual source owners.
 
-Full step-by-step detail — grep recipes, function/class + code-map templates, the report skeleton, key rules, worked examples, and the troubleshooting table — lives in **[references/default-mode.md](references/default-mode.md)** (moved there in the generic-craft trim). Read it when you need the exact shapes; otherwise just do the three steps.
+## Session handoff
 
-## Research and depth kernels
+A requested handoff records end-state facts another context can verify:
 
-**Bounded-chunk research with a coverage ledger.** Before writing about a
-surface larger than a handful of files, enumerate the chunks to read (modules,
-commands, config surfaces) as a ledger in the report, then research one
-bounded chunk at a time, marking each `read`, `skimmed`, or `skipped` with a
-reason. The document may only make claims about `read` chunks; `skimmed` and
-`skipped` chunks appear in the report as disclosed gaps. Writing from an
-unledgered wander through the codebase is the **ambient research** failure
-mode: coverage becomes whatever the walk happened to touch, and nobody —
-including you — can say what the doc silently omits. Stop condition: the
-ledger has no unmarked chunks before the doc is reported complete.
+- accepted goal, completed artifacts and exact evidence paths;
+- commands and observed results, unresolved acceptance, findings and causal gaps;
+- useful repository/content identity, observed native stop state and measured
+  remaining allowance or explicit unknowns; record whether the helper for a
+  current HOLD incident was used when that fact matters to continuation;
+- permitted dispatch/startup association and observed runtime/session/context
+  identities, with separately evidenced parent/resume links and source bounds;
+- caller-supplied continuation, when present.
 
-**Conceptual-surprise floor.** A doc that surprises no one taught nothing.
-Before reporting completion, name at least one thing in the document that a
-reader who already skimmed the code would not have known — a non-obvious
-invariant, an ordering constraint, a why behind a structure, a trap. If no
-such item exists, the doc is restating the code's surface; either dig for the
-missing concept or report the doc as reference-only coverage, not teaching
-material. Prose that renarrates signatures and file names is the **mirror
-doc** failure mode — accurate, complete, and useless.
+Follow [session associations](../cass/references/SESSION_FORMATS.md#work-to-session-associations)
+for those identities. End-state notes cannot replace missing startup evidence.
+Do not invent IDs, infer a paused goal from a report saying HOLD, assign a whole
+multi-work session to one task, or reset budgets and helper incidents through
+compaction. Preserve informative failures and withdrawn claims.
 
-## Output Specification
+Check source, recipient/model and destination authorization before copying
+metadata. An opaque locator grants no access. New CDLC handoffs require the
+selected protected external non-Git destination; preserve legacy evidence and
+report missing routing without creating a fallback file. Otherwise use the
+caller's named location and read it back after writing.
 
-- **Path:** default-mode reports go to the artifact directory `.agents/scratch/doc/`; README mode updates the repository `README.md`; OSS scaffold mode creates missing root documentation only by default. The separate OSS `refresh` path may update an existing doc only after explicit user confirmation.
-- **Filename:** default reports use the filename convention `YYYY-MM-DD-<target>.md`; README and OSS filenames follow their mode references.
-- **Format:** outputs are Markdown; the default report schema records coverage percentage, generated artifacts, gaps, and validation issues.
-- **Validation command:** validate the skill contract with `bash skills/doc/scripts/validate.sh`, then run the mode-specific validation required by its reference before reporting completion.
-- **Downstream handoff:** return changed paths, validation results, coverage or remaining gaps, and any blocked decision to the requesting caller or evidence consumer.
+Existing JSON under `.agents/handoff/` remains read-only evidence.
+`ao session handoff` writes `.agents/ao/handoff/`; `ao session rehydrate` searches
+both and selects the newest lexical ID, preferring the canonical directory for
+an identical filename. Those commands do not establish startup associations or
+external storage authorization. Return the exact path to Markdown consumers.
 
-## Quality Checklist
+Writing a handoff changes no tracker, Git, runtime or verdict state. The native
+caller continues owning the authorized outcome; this documentation mode does
+not select work or decide continuation for it.
 
-- Every factual claim is traceable to inspected code, configuration, or existing documentation.
-- Generated documentation follows the selected mode's templates and preserves useful existing depth.
-- README generate/rewrite runs [references/de-slopify.md](references/de-slopify.md) before deterministic checks.
-- Completion reports name the validators run and disclose unresolved gaps rather than implying full coverage.
+## Reference menu
 
-## Reference Documents
+Load these only for the document being written. They supply examples and
+techniques under the kernel's accepted scope, not additional workflow gates.
 
-- [references/default-mode.md](references/default-mode.md) — default mode (code/API docs): the full Steps 1-7 detail — grep recipes, function/class + code-map templates, report skeleton, worked examples, troubleshooting (moved out of SKILL.md in the generic-craft trim)
-- [references/doc.feature](references/doc.feature) — Executable spec: detect project type, generate type-appropriate docs from the repo, validate existing docs against source (soc-qk4b)
-- [references/readme.feature](references/readme.feature) — Executable spec (`--mode=readme`): mode detection, problem-first lead, trust block near install, collapse-don't-delete depth, evidence reporting, and anti-pattern detection
-- [references/oss-docs.feature](references/oss-docs.feature) — Executable spec (`--mode=oss`): audit existing/missing OSS docs, scaffold missing without overwrite, project-type-tailored (soc-qk4b)
-
-- [references/readme-craft.md](references/readme-craft.md) — `--mode=readme`: the 8 gold-standard README patterns, interview, generation structure, deterministic checks, and anti-pattern table
-- [references/oss-pack.md](references/oss-pack.md) — `--mode=oss`: audit + scaffold the OSS doc pack (CONTRIBUTING/CHANGELOG/AGENTS.md), project-type templates
-- [references/oss-documentation-tiers.md](references/oss-documentation-tiers.md) — OSS doc tier definitions (core/standard/enhanced)
-- [references/oss-project-types.md](references/oss-project-types.md) — Per-type OSS scaffolding templates (cli/operator/service/library/helm)
-- [references/generation-templates.md](references/generation-templates.md)
-- [references/prose-and-report-workmanship.md](references/prose-and-report-workmanship.md)
-- [references/project-types.md](references/project-types.md)
-- [references/validation-rules.md](references/validation-rules.md)
-- [references/de-slopify.md](references/de-slopify.md) — Docs prose pass (required in README mode)
-- [references/architecture-report.md](references/architecture-report.md) — Generate technical architecture documents
-
-## Examples
-
-- Default mode documents the changed surface using `references/default-mode.md`.
-- `readme` mode creates or revises the repository README.
-- `oss` mode creates the explicitly requested open-source documentation pack.
-
-## Troubleshooting
-
-| Problem | Fix |
-|---------|-----|
-| Default mode feels heavyweight | Read [references/default-mode.md](references/default-mode.md) — or just ask the model directly for simple docs |
-| README evidence has gaps | Report the concrete gaps; the caller decides whether to start a revision |
+- Formats and examples: [generation templates](references/generation-templates.md), [project types](references/project-types.md).
+- OSS scope: [documentation tiers](references/oss-documentation-tiers.md), [OSS project types](references/oss-project-types.md).
+- Writing and checks: [prose workmanship](references/prose-and-report-workmanship.md), [validation techniques](references/validation-rules.md).
+- Explicit context configuration: [context routing](references/bootstrap/context-routing.md).

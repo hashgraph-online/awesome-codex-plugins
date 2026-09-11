@@ -1,6 +1,6 @@
 ---
 name: frontend
-description: "Context-led frontend design. Derives art direction from product, audience, brand, content, and the existing system; avoids generic defaults. Triggers: frontend, UI, CSS, styling, visual, theme, component, layout, responsive, accessibility, design system, aesthetic, animation, motion, abyss, spatial, verdant, substrate, ember, arctic, void, patina, signal, kinetic-type, haunted-machine, cursor-field, real-weight, one-surface, liquid-material, held-breath, grand-tour."
+description: "Context-led frontend design: art direction derived from product, audience, brand and the existing system, not generic defaults. Named mood variants listed inside. Triggers: frontend, UI, CSS, styling, visual, theme, component, layout, responsive, accessibility, animation."
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 kernel:
   kind: methodology

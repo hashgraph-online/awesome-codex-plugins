@@ -1,6 +1,6 @@
 ---
 name: marketing-site
-description: "Honest marketing-site method: audience, offer, proof, objections, privacy, art direction, handoff. Triggers: marketing site, landing page, company website, product website, portfolio, campaign page, client website, conversion, positioning, offer, value proposition, CTA, social proof, testimonial, privacy policy."
+description: "Honest marketing-site method: audience, offer, proof, objections, privacy, art direction, handoff. Triggers: marketing site, landing page, company website, portfolio, campaign page, conversion, positioning, value proposition, CTA, social proof, privacy policy."
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 kernel:
   kind: methodology

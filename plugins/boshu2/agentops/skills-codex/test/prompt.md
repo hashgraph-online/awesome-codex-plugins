@@ -1,6 +1,6 @@
 # test
 
-Generate tests and coverage plans. Triggers: "test", "generate tests and coverage plans.", "test skill".
+Write behavioral tests, practice TDD or inspect important coverage gaps. Use when: test design or missing proof needs work; running an existing suite needs no skill.
 
 ## Instructions
 

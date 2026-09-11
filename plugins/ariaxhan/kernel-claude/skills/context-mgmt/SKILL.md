@@ -1,6 +1,6 @@
 ---
 name: context-mgmt
-description: "Context engineering and token management. Compaction strategies, progressive disclosure, structured note-taking via AgentDB. Triggers: tokens, compaction, memory, handoff, summarize, context window."
+description: "Context engineering: compaction, progressive disclosure, structured notes via AgentDB. Triggers: tokens, compaction, memory, handoff, summarize, context window."
 allowed-tools: Read, Bash, Task
 kernel:
   kind: methodology

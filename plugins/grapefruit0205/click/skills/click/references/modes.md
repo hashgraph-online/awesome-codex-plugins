@@ -26,7 +26,7 @@ An in-scope or narrowing follow-up continues the same session and appends its pr
 
 New Evidence lifecycles select `observer auto`; explicit off and diagnostic choices survive completed Evidence turns in the same host session. Guarded starts with collection off. `observer authoritative` can prepare a supported native profile in active Evidence or an approved Guarded contract. Automatic preparation does not install tools, elevate privileges or replace an owner policy. A failed preparation is retried when relevant environment, tool, policy or runtime metadata changes; explicit `observer auto` also allows a retry. That scheduling metadata never authorizes reuse.
 
-`observer status` and `verification status` report bounded preparation reasons and next actions. The dashboard explains the last recorded per-check decisions. These views do not probe or execute checks, verify current input completeness or grant authority; mode selection alone always reports `reuse_authorized: false`. The actual runner revalidates every reuse request.
+`observer status` and `status --json` report bounded preparation reasons and next actions; plain `status` prints a short localized summary. The dashboard explains the last recorded per-check decisions. These views do not probe or execute checks, verify current input completeness or grant authority; mode selection alone always reports `reuse_authorized: false`. The actual runner revalidates every reuse request.
 
 For a read-only code review, use `click-gate review`, remain read-only, and collect only relevant inspection evidence. A request that also asks for fixes follows Evidence mode and does not introduce Click approval.
 

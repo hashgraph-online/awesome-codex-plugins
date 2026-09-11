@@ -45,6 +45,21 @@ Same logic in 3+ places = extract to utility.
 <check id="5" name="complexity" detection="eslint complexity rule">
 Functions under 30 lines. No nested ternaries > 2 levels.
 </check>
+
+<check id="6" name="gate_integrity" detection="seed a known violation and confirm the gate goes red">
+A gate nobody has seen fail is not a gate. Before trusting any check you ship or run:
+- Prove it red. Seed the exact violation it claims to catch, watch it fail, then unseed.
+  A gate that has only ever printed PASS is measuring nothing.
+- The checker re-derives its evidence. A hash, a "PASS" string, a file that merely exists,
+  or a count supplied by the thing being checked is an assertion, not evidence. Read the
+  bytes, run the command, fetch the remote.
+- Exit 0 with empty or blank output is a failure, not a pass. Never pipe a gate to
+  `tail`/`head`; the pipe reports the pager's exit code.
+- A gate that stays green after you delete the code it guards is blind. Delete-and-rerun
+  is the cheapest mutation test there is.
+- Randomness in a gate makes it a coin flip. Pin the seed or pin the input.
+- Absence of a run is red, not pending.
+</check>
 </big5>
 
 <quick_checks>

@@ -1,16 +1,16 @@
-# Mined Gold-Standard Prompts
+# Example Discovery Prompts
 
-> **Source:** Real prompts from this user's session corpus that have been *re-used 5+ times*. These are tested, working entry points to cass — copy/paste, then adapt the keyword.
+> Adapt these examples to an authorized source scope and a bounded question. Reuse counts do not establish success; inspect source roles, outcomes and corrections.
 
 ## Contents
 
 - [Discovery Openers](#discovery-openers)
 - [Compile-A-File Prompts (Aggregation Tasks)](#compile-a-file-prompts-aggregation-tasks)
-- [Subagent Mining (Line 2 = THE Prompt)](#subagent-mining-line-2--the-prompt)
+- [Subagent Mining](#subagent-mining)
 - [Cross-Machine Recall](#cross-machine-recall)
 - ["What Worked Last Time?"](#what-worked-last-time)
 - [Decision Archaeology](#decision-archaeology)
-- [Ritual Detection](#ritual-detection)
+- [Recurring Candidates](#recurring-candidates)
 - [Cost & Usage Reports](#cost--usage-reports)
 - [Sentinel Phrases (Triggers for /cass)](#sentinel-phrases-triggers-for-cass)
 - [Anti-Templates](#anti-templates)
@@ -53,17 +53,21 @@ Use cass to extract every "first read ALL of AGENTS.md" prompt across this works
 
 ---
 
-## Subagent Mining (Line 2 = THE Prompt)
+## Subagent Mining
 
 ```
-Use cass to find all subagent sessions in the last 30 days where the prompt mentions "deep dive" — give me the line-2 text from each.
+Use cass to find up to three relevant subagent sessions in the last 30 days
+where the prompt mentions <TASK>. Verify the message roles and native
+relationships; show cited excerpts and disclose missing or mismatched sources.
 ```
 
 Implementation:
 ```bash
-cass search "deep dive" --workspace /path --json --fields minimal --limit 50 \
-  | jq -r '[.hits[] | select(.source_path | contains("subagent"))] | unique_by(.source_path) | .[].source_path' \
-  | xargs -I{} sh -c 'echo "=== {} ==="; sed -n "2p" "{}" | jq -r ".message.content"' 
+cass search "<TASK>" --workspace /path --days 30 --mode lexical --json --fields minimal --limit 20
+cass pack "<TASK>" --workspace /path --days 30 --mode lexical --json \
+  --limit 20 --max-sessions 3 --max-evidence 6 --max-tokens 4000
+# Follow a selected candidate's actual locator; there is no fixed prompt line.
+cass expand /path/from/selected-hit.jsonl --line LINE --context 3 --json
 ```
 
 ---
@@ -81,14 +85,19 @@ Search cass on css, csd, ts1, and ts2 for any mention of <KEYWORD> and dedup by 
 ## "What Worked Last Time?"
 
 ```
-Use cass to find the most-recent successful run of <TASK> and resume that session.
+Use cass to find a recent run of <TASK>. Inspect intent, outcome and later
+corrections before calling it successful. Show enough source context to judge
+whether it applies now; only resume a verified native session when requested.
 ```
 
 ```bash
-HIT=$(cass search "<TASK>" --workspace /repo --json --fields summary --limit 1 \
-        | jq -r '.hits[0].source_path')
-cass resume "$HIT" --shell
+cass pack "<TASK>" --workspace /repo --mode lexical --json \
+  --limit 20 --max-sessions 3 --max-evidence 6 --max-tokens 4000
 ```
+
+A relevance-ranked first hit is not necessarily recent or successful. Check
+returned timestamps and source records. Use [RESUME.md](RESUME.md) only for a
+selected resume request.
 
 ---
 
@@ -104,18 +113,22 @@ Find the earliest session where we discussed adopting <LIBRARY>, and the convers
 
 ---
 
-## Ritual Detection
+## Recurring Candidates
 
 ```
-What prompts have I used 10+ times across all my agent sessions? Surface the top 20.
+Within this project, find recurring prompts relevant to <TASK>. Review up to
+three episodes for intent, outcome and corrections. Include a competing
+explanation or counterexample; do not infer success from repetition.
 ```
 
 ```bash
-cass search "*" --workspace /path --json --limit 500 \
-  | jq '[.hits[] | select(.line_number <= 3) | .title[0:80]]
-        | group_by(.) | map({prompt: .[0], count: length})
-        | sort_by(-.count) | .[0:20]'
+cass search "<TASK>" --workspace /path --mode lexical --json --fields summary --limit 20
 ```
+
+See [PATTERNS.md](PATTERNS.md#pattern-detection) for limited hit counts. Titles
+and repeated indexed hits are not counts of distinct user messages. Check native
+roles and observed results before proposing reuse; rule changes need separate
+authority and later task evidence is needed to establish usefulness.
 
 ---
 
@@ -149,7 +162,7 @@ These literal phrases are reliable triggers for the skill in this user's vocabul
 - "scope archaeology"
 - "what worked last time"
 
-When you hear any of these, jump straight to the [Two-Step Bootstrap](../SKILL.md#two-step-bootstrap-replaces-always-first) and start mining.
+When the caller requests this work, use the [bounded discovery workflow](../SKILL.md#discovery-workflow) within the authorized scope. Ordinary work has no mandatory history step.
 
 ---
 
@@ -162,4 +175,4 @@ These prompts trigger /cass but produce *poor* results — rewrite them before e
 | "Search cass for everything about X" | unbounded; will return 10k hits | Add `--workspace /repo` and `--days 30` |
 | "Find all sessions" | no filter; useless | Pick a keyword OR an aggregate (`--aggregate agent,date`) |
 | "What's in the index?" | not actionable | `cass status --json` + `cass search "*" --aggregate workspace --limit 1 --json` |
-| "Re-extract all my prompts" | duplicates work cass already does | `cass search "*" --json --limit 500 \| jq '... select(.line_number <= 3)'` |
+| "Re-extract all my prompts" | an indexed sample does not prove full source coverage | Select a scope and budget; use CASS pack/view/expand and verify native roles, reporting unread or unavailable portions |

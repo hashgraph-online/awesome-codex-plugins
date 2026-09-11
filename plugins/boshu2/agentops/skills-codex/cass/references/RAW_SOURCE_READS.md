@@ -1,6 +1,10 @@
 # Bounded raw source reads
 
-CASS search, `view` and `expand` locate excerpts. `ao session read-source`
+Use installed CASS search/pack/view/expand first for discovery and cited excerpts.
+Choose this optional AO route only for a demonstrated precision gap, such as
+required raw tool-output bytes or a consumer's frozen-span requirement. A missing
+original or mismatched locator remains a retrieval gap; raw extraction cannot
+reconstruct unavailable source content. `ao session read-source`
 returns explicit raw bytes after checking caller-selected policy; it does not
 parse records or replace the existing `ao provenance mine-session` tool-call
 contract. Raw bytes include prose, operator corrections, malformed records and

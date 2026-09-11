@@ -1,5 +1,17 @@
 #!/usr/bin/env node
 import { readFile, writeFile } from "node:fs/promises";
+import {
+  CALQUE_ADVISORY_PATTERNS,
+  CALQUE_GATING_PATTERNS,
+  CALQUE_PATTERN_IDS,
+  CALQUE_REPAIR_HINTS,
+  P3_TRANSPARENT_PATTERN,
+  PROTECTED_PROSE_SPAN_PATTERN,
+  countP1bOnly,
+  koreanRatio,
+  removeProtectedProseSpans,
+  stripAlphaContextSentences
+} from "./calque-patterns.mjs";
 
 const PATTERNS = [
   ["A-2", /를 통해|을 통해|통하여/gu],
@@ -14,14 +26,41 @@ const PATTERNS = [
   ["I-1", /인 것이다|인 것입니다|한 것이다|한 것입니다|는 것입니다/gu],
   ["J-2", /"[^"]{1,40}"/gu],
   ["K-1", /멱등(?:성)?/gu],
-  ["M-1", /[—–]/gu]
+  ["M-1", /[—–]/gu],
+  // Upstream v2.5–v2.7 adoptions (im-not-ai, 2026-09-10 drift pass). Human-near-zero forms count toward
+  // S2; density- or threshold-conditioned forms (A-20, A-22, A-24) are advisory below.
+  ["A-20", /(?:되|지)고\s?있(?:다|습니다|는|었|어)/gu],
+  ["A-21", /단순한\s[^.!?\n]{1,20}?(?:을|를)\s?넘어(?:서)?/gu],
+  ["A-22", /(?:은|는|이|가)\s*(?:명확|분명)(?:하다|합니다|하며|하고|해졌|하지만|해\s?보인다)/gu],
+  ["A-24", /더\s?이상(?!의)[^.!?\n]{0,25}(?:않|아니|없|못하|불가)/gu],
+  ["D-8", /(?:필요한|중요한|핵심적인|시급한|절실한|더\s?심각한|뼈아픈)\s?것은(?=\s|$)|(?<![가-힣])관건은(?=\s)/gu],
+  ["D-9", /(?:으)?로\s?이어(?:진다|집니다|졌다|질\s)|에\s?직결(?:된다|됩니다)/gu],
+  ["D-10", /[가-힣]는\s?이유(?:다|입니다|였다|이다)(?=[.!?\s"”』]|$)/gu],
+  ["D-12", /(?:^|[.!?]\s+)(?:그러나\s|하지만\s|다만\s|물론\s)?(?:과제|한계|숙제|아쉬운\s?점)(?:도|는)\s?(?:남아\s?있다|분명하다|있다|적지\s?않다)(?=[.!?]|\s*$)/gmu],
+  // Q-1 (local): chatbot frame sentences pasted along with the body — greeting header, closing offer,
+  // knowledge-cutoff disclaimer. Zero meaning loss on removal; quoted mentions are filtered. 물론입니다
+  // counts only at the start of the text or a line: as a predicate (계약 연장은 물론입니다) it is prose.
+  // D-9b (injection watch): logical-settlement 결국 is human-used in narrative, so it is never graded
+  // and never a "remains" warning; it is counted so the injection guard sees a rewrite that adds one.
+  ["D-9b", /(?<![가-힣])결국(?![가-힣])/gu],
+  ["Q-1", /(?:^|\n)\s*물론(?:입니다|이죠|이에요)[!.]?|다음은\s[^\n:]{0,30}입니다:|요청하신\s[^\n]{0,20}?(?:정리하면|정리해\s?드리)|도움이\s?되(?:셨|었)(?:길|으면)\s?(?:바랍니다|좋겠습니다)|추가\s?질문이\s?있(?:으시)?(?:면|다면)|제\s?지식은\s[^\n]{0,20}?까지/gu]
 ];
-const REQUIRED_S1_PATTERN_IDS = ["A-2", "A-3", "A-7", "A-8", "C-11", "D-1", "D-2", "H-1", "I-1", "K-1", "M-1"];
+const REQUIRED_S1_PATTERN_IDS = ["A-2", "A-3", "A-7", "A-8", "C-11", "D-1", "D-2", "H-1", "I-1", "K-1", "M-1", "P-1a", "P-2", "P-4", "Q-1"];
 // Quoted spans are protected byte-for-byte, so the rewriter cannot repair J-2;
 // it stays informational and is excluded from grading.
 const GRADE_EXEMPT_IDS = ["J-2"];
-const PROSE_SPAN_FILTERED_IDS = new Set(["K-1", "M-1"]);
-const PROTECTED_PROSE_SPAN_PATTERN = /`[^`\r\n]+`|"[^"\r\n]+"|“[^”\r\n]+”|‘[^’\r\n]+’|「[^」\r\n]+」|『[^』\r\n]+』/gu;
+// Calque warn tier (P family): reported with a repair hint, never graded. Developer prose uses
+// 투명하게 for alpha and disclosure far more than for the calque, 정본 keeps its legal sense, and
+// the open-class 조용히 heuristic (P-1b) is a heuristic; none of them may cost a grade.
+// A-20 (passive progressive), A-22 (evaluative predicate) and A-24 (더 이상) are advisory too: upstream
+// fires them only at paragraph density or a document threshold, which a whole-text count cannot see.
+const ADVISORY_PATTERN_IDS = [...CALQUE_ADVISORY_PATTERNS.map(([id]) => id), "A-20", "A-22", "A-24", "D-9b"];
+const PROSE_SPAN_FILTERED_IDS = new Set(["K-1", "M-1", "Q-1", ...CALQUE_PATTERN_IDS]);
+const UPSTREAM_ADVISORY_HINTS = {
+  "A-20": "~되고 있다/~지고 있다 is the English progressive passive; act only when three or more cluster in one paragraph, and then turn some into a plain trend (심화되고 있다 → 심해졌다), keeping isolated uses.",
+  "A-22": "~은 명확하다/분명하다 is `it is clear that`; drop the evaluative predicate and assert the proposition, keeping certainty as an adverb (분명히) if the source is certain. A conclusion the text actually argued for stays.",
+  "A-24": "더 이상 ~ 않다 is `no longer`; use 이제 or a change verb (~로 옮겨 갔다) when it repeats or closes a redefinition. Never turn the negation into a positive claim, and never write a new 더 이상 A가 아니라 B."
+};
 // Upstream v2.4 서법 보존: a decrease in deontic or hedge markers means a
 // demand or reservation may have become a plain assertion. Repositioning
 // (the D-6 repair) keeps the counts identical; only substitution loses one.
@@ -118,7 +157,24 @@ async function audit(args) {
   }
   const antithesis = { before: countMatches(source, ANTITHESIS_PATTERN), after: countMatches(final, ANTITHESIS_PATTERN) };
   if (antithesis.after >= 2) {
-    warnings.push("Paired antithesis rhetoric repeats; keep the strongest pair and flatten the rest into direct statements (C-8)");
+    warnings.push("Paired antithesis rhetoric repeats; keep the strongest pair and flatten the rest into direct statements, and do not create a new pair elsewhere (C-8)");
+  }
+  // Injection guard (upstream v2.6 finding): a rewrite that fixes one tell must not create another
+  // — 결국, ~하는 이유다, 더 이상 A가 아니라 B, and connective commas were all measured appearing in
+  // rewritten text that lacked them. Any counted id that rose is named; quoted spans (J-2) are
+  // protected byte-for-byte, so a rise there is the source's, not the rewrite's.
+  for (const id of Object.keys(after)) {
+    if (GRADE_EXEMPT_IDS.includes(id)) continue;
+    if ((after[id] ?? 0) > (before[id] ?? 0)) warnings.push(`${id} injected by the rewrite (${before[id] ?? 0} → ${after[id]}); a repair must not create a tell in another sentence`);
+  }
+  if (antithesis.after > antithesis.before) warnings.push(`C-8 injected by the rewrite (${antithesis.before} → ${antithesis.after}); flatten the pair you added`);
+  // A remaining calque always explains its ladder step. Gating ids also hold the grade below A/B
+  // through REQUIRED_S1_PATTERN_IDS; advisory ids stop here.
+  for (const id of CALQUE_PATTERN_IDS) {
+    if ((after[id] ?? 0) > 0) warnings.push(`${id} remains (${after[id]}): ${CALQUE_REPAIR_HINTS[id]}`);
+  }
+  for (const [id, hint] of Object.entries(UPSTREAM_ADVISORY_HINTS)) {
+    if ((after[id] ?? 0) > 0) warnings.push(`${id} remains (${after[id]}): ${hint}`);
   }
   return {
     ok: problems.length === 0,
@@ -180,12 +236,6 @@ function parseArgs(values) {
   return parsed;
 }
 
-function koreanRatio(text) {
-  const hangul = text.match(/[\u3131-\u318E\uAC00-\uD7A3]/gu)?.length ?? 0;
-  const letters = text.match(/[\p{L}]/gu)?.length ?? 0;
-  return letters === 0 ? 0 : hangul / letters;
-}
-
 function collectProtectedTokens(text) {
   const patterns = [
     /https?:\/\/\S+/gu,
@@ -204,14 +254,24 @@ function collectProtectedTokens(text) {
 }
 
 function countPatterns(text) {
-  return Object.fromEntries(PATTERNS.map(([id, pattern]) => {
+  const counts = Object.fromEntries(PATTERNS.map(([id, pattern]) => {
     const input = PROSE_SPAN_FILTERED_IDS.has(id) ? removeProtectedProseSpans(text) : text;
     return [id, [...input.matchAll(pattern)].length];
   }));
+  return { ...counts, ...countCalquePatterns(removeProtectedProseSpans(text)) };
 }
 
-function removeProtectedProseSpans(text) {
-  return text.replace(PROTECTED_PROSE_SPAN_PATTERN, "");
+// Every P id is span-filtered: a bug report quotes the offending text, and the quote must not
+// count against the rewrite. P-1b counts only what P-1a did not claim; P-3 is counted after
+// rendering sentences (alpha transparency) are dropped.
+function countCalquePatterns(prose) {
+  const counts = {};
+  for (const [id, pattern] of [...CALQUE_GATING_PATTERNS, ...CALQUE_ADVISORY_PATTERNS]) {
+    if (id === "P-1b") counts[id] = countP1bOnly(prose);
+    else if (id === "P-3") counts[id] = countMatches(stripAlphaContextSentences(prose), P3_TRANSPARENT_PATTERN);
+    else counts[id] = countMatches(prose, pattern);
+  }
+  return counts;
 }
 
 function collectKoreanProductNameCandidates(text) {
@@ -262,7 +322,7 @@ function grade({ after, changeRate, missing, problems }) {
   if (problems.length > 0 || missing.length > 0 || changeRate > 0.5) return "D";
   const s1After = requiredS1Count(after);
   const s2After = Object.entries(after)
-    .filter(([id]) => ![...REQUIRED_S1_PATTERN_IDS, ...GRADE_EXEMPT_IDS].includes(id))
+    .filter(([id]) => ![...REQUIRED_S1_PATTERN_IDS, ...GRADE_EXEMPT_IDS, ...ADVISORY_PATTERN_IDS].includes(id))
     .reduce((total, [, count]) => total + count, 0);
   if (s1After === 0 && changeRate >= 0.1 && changeRate <= 0.3) return "A";
   if (s1After === 0 && s2After <= 4) return "B";

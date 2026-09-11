@@ -1,6 +1,6 @@
 ---
 name: postmortem
-description: 'Optionally test a retrospective causal question against durable verdict evidence. Triggers: "postmortem", "causal retrospective", "test a retrospective hypothesis".'
+description: 'Test a retrospective causal question against outcome evidence. Use when: a postmortem is explicitly requested; finishing a task does not require a report or lesson.'
 ---
 # Postmortem
 

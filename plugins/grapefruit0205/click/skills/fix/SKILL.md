@@ -5,7 +5,7 @@ description: When explicitly invoked with a software defect or unwanted behavior
 
 # Fix
 
-Use `$fix` only when the user explicitly selects it. Do not infer activation from words such as “bug,” “broken,” or “fix,” and do not promise a native `/fix` command. `$fix` intentionally selects Click's Guarded repair workflow. Read Click's [operating modes](../click/references/modes.md) for the exact arm, bypass, cancel, and resume rules.
+Use `$fix` only when the user explicitly selects it. Do not infer activation from words such as “bug,” “broken,” or “fix,” and do not promise a native `/fix` command. `$fix` intentionally selects Click's Guarded repair workflow. Read Click's [operating modes](../click/references/modes.md) for the exact arm, bypass, cancel, and resume rules, and the [Guarded mode workflow](../click/references/guarded-mode.md) for the contract, approval, and execution rules it shares.
 
 Trace the reported symptom to the narrowest owning behavior, relevant state, public contract, and focused evidence. Keep confirmed repository evidence separate from hypotheses. Resolve ordinary repair tactics yourself and expose only consequential assumptions in the contract instead of asking serial implementation questions.
 

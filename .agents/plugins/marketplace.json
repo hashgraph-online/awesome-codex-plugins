@@ -2825,6 +2825,20 @@
       "description": "An MCP agentic commerce market. One-step register your MCP server. Build your API & services catalog. Sell with your own merchant agent. Customers, agents, and consumers discover and purchase from your catalog. Control your own payments, auditable records, payouts to supply chain and bank."
     },
     {
+      "name": "qrstuff-mcp-server",
+      "displayName": "QRStuff",
+      "source": {
+        "source": "local",
+        "path": "./plugins/qrstuff/codex-plugins"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Connects OpenAI Codex to the QRStuff platform to generate, customize, and manage 25+ dynamic and static QR code types and scan analytics."
+    },
+    {
       "name": "omnimodal",
       "displayName": "Read Image",
       "source": {

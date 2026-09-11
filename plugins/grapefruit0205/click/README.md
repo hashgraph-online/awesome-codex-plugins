@@ -6,21 +6,25 @@
 
 English | [한국어](README.ko.md) | [简体中文](README.zh-CN.md)
 
-> **Verify what changed. Reuse what still holds.**
+> **The same test never runs twice. Its output is never read twice. And nothing is skipped by guess.**
 
-You change one part of a project. Your coding agent runs the whole test suite again.
-Then you make another small edit—and wait for the same checks once more.
+You change one part of a project. Your coding agent runs the whole test suite again,
+then reads the whole output again. Another small edit, and the same wait and the
+same context spend repeat.
 
 **Click is a workflow guardrail for verification and reuse that leaves your
-model selection and reasoning settings unchanged.** The model analyzes the
-problem and chooses how to implement it. Click connects actual execution results
-to workspace changes, reducing valid repeated checks and checking that an old
-success still applies before reusing it.
+model selection and reasoning settings unchanged.** The model still decides how
+to implement. Click records each check's exact receipt, decides at execution time
+which checks must run again, and replaces a skipped run with one line instead of
+its full output. A check is skipped only when an exact same-state receipt, a
+signed input observation, or a committed owner policy proves it still holds;
+anything ambiguous runs.
 
 This is **incremental verification**, backed by **revision-aware evidence**:
-a record of what passed and whether it remains valid now. Savings target repeated
-workflow execution; Click does not switch you to a weaker model or lower its
-reasoning settings.
+a record of what passed and whether it remains valid now. Every decision carries
+a reason code, and the dashboard shows where reuse was lost. Savings target
+repeated execution and repeated reading; Click does not switch you to a weaker
+model or lower its reasoning settings.
 
 ## What changes in your workflow?
 
@@ -37,9 +41,11 @@ per-group input or policy evidence. A shared change may run all groups; an
 unverifiable split runs the original full suite.
 
 - **Less waiting between edits:** avoid eligible unchanged checks while rerunning affected ones.
-- **A reason for each decision:** see what ran, what was reused, and why.
+- **Less context spent:** a reused check returns one receipt line; supported Python runners report a bounded failure summary instead of raw output by default in Evidence mode.
+- **Never a wrong skip:** reuse needs an exact receipt, a signed input observation, or a committed owner policy; ambiguity always runs.
+- **A reason for each decision:** see what ran, what was reused, and why, including the rerun-reason distribution over retained history.
 - **Continuity across tasks:** carry successful results forward as candidates and recheck them.
-- **A visible outcome:** inspect verification and available measurements in a local dashboard.
+- **A visible outcome:** inspect verification, estimated avoided execution time, and output the host did not read again in a local dashboard.
 
 Click fits projects with **slow checks, repeated edit/test cycles, and separable
 test groups**. If your entire suite takes two seconds, setup and bookkeeping may
@@ -48,7 +54,10 @@ production minutes and token savings still need representative measurement.
 
 ## Install and update
 
-Install from the Codex CLI:
+Click ships as a plugin for **Codex CLI** and **Claude Code**. Both hosts run
+the same runtime, evidence rules, and `click-gate` commands.
+
+### Codex CLI
 
 ```sh
 codex plugin marketplace add grapefruit0205/click
@@ -57,20 +66,40 @@ codex plugin add click@click
 
 Restart Codex and start a new task so the installed Hooks and skill reload. Review pending Click Hooks in the CLI's `/hooks` view before relying on them; see [Hook troubleshooting](#hook-troubleshooting).
 
-Current release: **v0.96.0**. To update:
+To update:
 
 ```sh
 codex plugin marketplace upgrade click
 codex plugin add click@click
 ```
 
-Restart and start a new task after updating.
+### Claude Code
 
-This README includes the **unreleased v0.97 candidate** source: automatic observation, conditional JS reuse and recovery. The published release remains **v0.96.0**; updating it does not install candidate changes. See [release notes](RELEASE_NOTES.md).
+```sh
+claude plugin marketplace add grapefruit0205/click
+claude plugin install click@click
+```
+
+Start a new Claude Code session so the installed Hooks and skill load. Every
+`click-gate` command is an ordinary Bash command that the installed `PreToolUse`
+Hook rewrites onto Click's runner; Evidence state lives under
+`~/.claude/plugins/data/click-click/`. Linux and macOS are supported; see
+[Click for Claude Code](platforms/claude/README.md) for the host limits.
+
+To update:
+
+```sh
+claude plugin marketplace update click
+claude plugin update click@click
+```
+
+Current release: **v0.96.1**. Restart and start a new task after updating.
+
+This README also describes the **unreleased v0.97 candidate** source on `main`: automatic observation, conditional JS reuse and recovery. The published release remains **v0.96.1**; updating it does not install candidate changes. See [release notes](RELEASE_NOTES.md).
 
 ## Try it on your next change
 
-After installation, ask Codex:
+After installation, ask Codex or Claude Code:
 
 ```text
 Use Click Evidence for this change. Run the relevant tests, show which checks
@@ -90,10 +119,14 @@ For a large suite, ask it to inspect `click-gate sharding init`, then follow
 
 ```text
 click-gate status
+click-gate status --json
 click-gate dashboard start
 ```
 
-Open the local URL returned by the dashboard command. See executed, reused,
+`click-gate status` prints a few short lines in the dashboard language: executed
+and reused counts with the estimated avoided time, the mode and revision, and
+the next action. `--json` returns the full report. Open the local URL returned
+by the dashboard command. See executed, reused,
 failed and outstanding groups, their reuse reasons, and the next action when
 input collection is not ready. The top-right language selector offers
 **한국어 · English · 简体中文**.
@@ -154,7 +187,7 @@ separates execution, splitting and reuse; a language name alone does not guarant
 | Mode | Behavior |
 | --- | --- |
 | **Evidence — default** | Records work and verification under host permissions, without an additional Click approval step. |
-| **Guarded — opt in** | Stages a readable contract and waits for explicit approval in a later user turn before work inside that contract. |
+| **Guarded — opt in** | Plan mode with enforcement: stages a readable contract, waits for explicit approval in a later user turn, then blocks mutations outside the approved boundary, binds the promised checks to receipts, and prevents self-approval through turn separation and digests. You notice it only on the day something would have gone wrong. |
 | **Off** | Leaves execution to the host without Click's workflow enforcement. |
 
 To change the default, choose one:
@@ -184,6 +217,8 @@ Click checks the exact command, workspace and mutation state, relevant inputs, e
 | Declared file inputs (policy v2) | The committed policy's allowed changes and complete owner-declared file boundary both match the baseline, including ignored inputs. This is owner policy, not automatic dependency discovery. |
 | Authoritative input observation | A complete signed input snapshot from supported automatic Evidence capture or an approved Guarded run, with all reuse conditions rechecked. |
 | Conditional JS observation | Eligible requested executions establish a separately attested observed-input receipt, then recheck inputs and execution bindings. Reports disclose that input completeness is unproven. |
+| Conditional Python observation | A native observation whose only gaps are a followed child process, threads, or dynamic introspection keeps its input snapshot as a conditional receipt. Reuse stays limited to unchanged observed inputs and is disclosed as completeness-unproven. |
+| Input identity and environment | Observed inputs are identified by content, type and membership, not timestamps or inodes. Receipts fingerprint interpreter, toolchain, locale, path and proxy variables plus an owner's `.click/environment.json`; other session variables are runtime assumptions. |
 
 For example, if a policy for the exact authentication test command was committed before revision 12 and permits `README.md` changes:
 
@@ -249,7 +284,7 @@ A tool smoke is narrower than a Hook-to-runner reuse test. The [.NET smoke](.git
 
 **Yes.** New Evidence tasks select automatic capture for supported checks; Guarded defaults to off. Evidence recording, ordinary verification, the dashboard, and qualifying exact-receipt or safe-change reuse work with Observer off. An explicit off selection survives completed Evidence turns in the same session.
 
-Preparation failure reasons and recovery actions appear in `click-gate observer status`, `click-gate verification status`, and the dashboard. These read-only views never grant reuse permission. The [code-derived support matrix](docs/architecture/runtime-support.md) separates execution, splitting, complete observation and conditional JS reuse, with platform prerequisites. A failed preparation retries when relevant capabilities change; explicit `click-gate observer auto` also permits a retry.
+Preparation failure reasons and recovery actions appear in `click-gate observer status`, `click-gate status --json`, and the dashboard. These read-only views never grant reuse permission. The [code-derived support matrix](docs/architecture/runtime-support.md) separates execution, splitting, complete observation and conditional JS reuse, with platform prerequisites. A failed preparation retries when relevant capabilities change; explicit `click-gate observer auto` also permits a retry.
 
 ```text
 click-gate observer status
@@ -327,7 +362,7 @@ Sharing supports a copied summary, public JSON, and standalone HTML. The public 
 
 ## Verification status and failure feedback
 
-Use `click-gate status` for a compact read-only view of checks that ran, were reused, did not run, or remain unrequested, including invalidation after mutations. It reports registered evidence, not whole-task correctness.
+`click-gate status` prints a short read-only summary: executed and reused counts with the estimated avoided time, the mode and mutation revision, and the next action, in the dashboard language selected by `CLICK_LANGUAGE` or the POSIX locale (Korean by default). `click-gate status --json` returns the full report of checks that ran, were reused, did not run, or remain unrequested, including invalidation after mutations, per-check reason codes, and actionable failure details. Both report registered evidence, not whole-task correctness, and neither grants reuse.
 
 Raw output and source-order fail-fast are the defaults. Opt-in actionable reporting for supported unittest/pytest output summarizes failed tests with bounded local details. Optional bounded failure collection continues only across explicitly submitted, caller-declared independent sources within stated limits; automatic shards are not assumed independent. Setup errors, cancellation, drift, and unknown output stop collection. See [reporting and failure collection](skills/click/references/verification-efficiency.md).
 
@@ -373,6 +408,8 @@ Restart Codex after an installation or update. In the CLI, use `/hooks` to revie
 
 Then start a new task, perform a small real verification, and inspect `click-gate status`. An enabled plugin alone does not demonstrate that its Hooks ran. Windows CI coverage and native Observer validation are described in the [release notes](RELEASE_NOTES.md); they do not replace checking the user's installed host and configuration.
 
+On Claude Code, `claude plugin list` shows the installed plugin and `/hooks` lists the `[plugin:click]` Hook definitions; `claude plugin validate ./dist/claude --strict` checks a source build. The Hook command runs `python3`, so confirm `python3 --version` works in the shell Claude Code uses. Hook output and errors appear in the transcript as `click hook error` lines.
+
 ## Antigravity
 
 An experimental Google Antigravity adapter is available from the source checkout:
@@ -395,7 +432,7 @@ Click is a workflow guardrail, not an operating-system sandbox. It cannot prove 
 Protocol details and implementation boundaries:
 
 - [Product Constitution](PRODUCT_CONSTITUTION.md) and [guard classification](GUARD_CLASSIFICATION.md)
-- [Operating modes](skills/click/references/modes.md) and [Guarded contract format](skills/click/references/directive-format.md)
+- [Operating modes](skills/click/references/modes.md), [Guarded workflow](skills/click/references/guarded-mode.md), and [Guarded contract format](skills/click/references/directive-format.md)
 - [Verification profiles](skills/click/references/verification-profiles.md) and [capability protocol](skills/click/references/capability-protocol.md)
 - [Automatic sharding setup](skills/click/references/automatic-sharding-setup.md) and [Evidence Shards v1](skills/click/references/evidence-shards-v1.md)
 - [Authoritative Observer v2](skills/click/references/authoritative-observer-v2.md), [Shadow Observer v1](skills/click/references/observer-v1.md), and [Shadow Intelligence v1](skills/click/references/shadow-intelligence-v1.md)

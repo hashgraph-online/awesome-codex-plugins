@@ -1,6 +1,6 @@
 ---
 name: using-flywheel
-description: 'Operate the Agentic Coding Flywheel as a caller-selected software factory; keep its runtime state out of AgentOps verdicts. Triggers: "using flywheel", "agent flywheel".'
+description: 'Operate the Agentic Coding Flywheel through its native workflow. Use when: the caller explicitly selects this factory; convergence and closed work do not prove semantic acceptance.'
 ---
 # Using the Agentic Coding Flywheel
 

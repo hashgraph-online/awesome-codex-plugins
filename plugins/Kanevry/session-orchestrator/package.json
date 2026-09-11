@@ -36,6 +36,7 @@
     "output-styles/",
     "monitors/",
     "assets/",
+    "!assets/marketing/**",
     ".claude-plugin/",
     ".codex-plugin/",
     ".cursor-plugin/",

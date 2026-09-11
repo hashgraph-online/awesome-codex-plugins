@@ -2,8 +2,8 @@
 
 [![CI](https://github.com/GreenLv/codex-context-guard/actions/workflows/ci.yml/badge.svg)](https://github.com/GreenLv/codex-context-guard/actions/workflows/ci.yml)
 [![HOL Plugin Scanner](https://github.com/GreenLv/codex-context-guard/actions/workflows/hol-plugin-scanner.yml/badge.svg)](https://github.com/GreenLv/codex-context-guard/actions/workflows/hol-plugin-scanner.yml)
-[![Release](https://img.shields.io/github/v/release/GreenLv/codex-context-guard)](https://github.com/GreenLv/codex-context-guard/releases)
 [![HOL Guard](https://img.shields.io/endpoint?url=https%3A%2F%2Fhol.org%2Fapi%2Fregistry%2Fbadges%2Fplugin%3Fslug%3Dgerui-lv%252Fcontext-guard%26metric%3Dtrust)](https://hol.org/registry/plugins/gerui-lv%2Fcontext-guard)
+[![Release](https://img.shields.io/github/v/release/GreenLv/codex-context-guard)](https://github.com/GreenLv/codex-context-guard/releases)
 [![License](https://img.shields.io/github/license/GreenLv/codex-context-guard)](LICENSE)
 
 [简体中文](README.zh-CN.md) | [Introduction](https://greenlv.github.io/blogs/protecting-context-in-long-running-agent-tasks/) | [Changelog](CHANGELOG.md)
@@ -12,17 +12,17 @@ Context Guard keeps important requirements from disappearing during a long Codex
 
 It works beside Codex Plan, Goal, memories, subagents, worktrees, and the transcript; it does not replace or control them.
 
-> Source candidate: `0.13.3` (Unreleased). It fixes ordinary commits and single branch pushes being blocked by damaged release state; the published release and its acceptance evidence remain below.
-
-> Current release: `0.13.2`. See the [release notes](docs/releases/v0.13.2.md), [changelog](CHANGELOG.md), [compatibility matrix](docs/COMPATIBILITY.md), and [local acceptance record](docs/LOCAL_ACCEPTANCE.md).
+> Current release: `0.13.3`. See the [release notes](docs/releases/v0.13.3.md), [changelog](CHANGELOG.md), [compatibility matrix](docs/COMPATIBILITY.md), and [local acceptance record](docs/LOCAL_ACCEPTANCE.md).
 >
-> Version `0.13.2`: the default Context Guard stops gating ordinary edits, commits, pushes, tags, and publications with its own authorization prompts, and keeps only requirement recovery, task continuity, honest completion checking, answer-delivery tracking, and private-control integrity. Native results have been reviewed for macOS and Windows; see the [changelog](CHANGELOG.md) for evidence boundaries.
+> Version `0.13.3` keeps ordinary commits and single branch pushes available even when an active release ledger is unreadable, while publication actions remain fail-closed. It is a compatible patch with no schema, protocol, activation, or host-permission change.
+>
+> Version `0.13.2` moved ordinary execution authorization out of Context Guard and kept requirement recovery, task continuity, honest completion checking, answer-delivery tracking, and private-control integrity.
 >
 > Version `0.12.4` fixes lost task limits, unrelated confirmations clearing pauses, incomplete recovery text, and commit-and-push target mistakes. See the [changelog](CHANGELOG.md) for changes and the [acceptance record](docs/LOCAL_ACCEPTANCE.md) for platform checks.
 
 ## Install
 
-Requirements: Python 3.10 or newer, Codex CLI `0.153.4` (the version tested for this release), and a Codex surface that loads plugins and lifecycle Hooks.
+Requirements: Python 3.10 or newer, Codex CLI, and a Codex surface that loads plugins and lifecycle Hooks. Portable acceptance used Codex CLI `0.153.4` on macOS and `0.149.0` on native Windows; see [compatibility](docs/COMPATIBILITY.md) for the full evidence boundary.
 
 ```shell
 git clone https://github.com/GreenLv/codex-context-guard.git
@@ -42,9 +42,9 @@ Installing a plugin does not trust its Hooks automatically. Start a fresh Codex 
 
 ### Upgrade notes
 
-Upgrade with the managed installer, then start a fresh task to load the new version. Keep old versioned caches for tasks that still use them; installed caches are immutable, and 0.13.2 never refreshes a consumed copy.
+Upgrade with the managed installer, then start a fresh task to load the new version. Keep old versioned caches for tasks that still use them; installed caches are immutable, and 0.13.3 never refreshes a consumed copy.
 
-Version 0.13.2 changes responsibilities: the default guard no longer asks for execution authorization, so it no longer prompts you to approve edits, commits, or pushes. Codex and repository approval rules still apply. Private state migrates from schemas 11, 10, and 9 to schema 12. Pending questions from old sessions without trusted delivery facts show a "historical answer-delivery uncertain" note instead of being mechanically re-asked, and old natural-language authorization records are preserved as history that never blocks anything. See [compatibility](docs/COMPATIBILITY.md) before downgrading.
+Version 0.13.3 narrows release enforcement before private release state is read: damaged release state cannot block an ordinary commit or one branch push, but tags, package uploads, GitHub Releases, mutation runners, and restricted compound calls remain protected. It keeps the schema and protocols from 0.13.2. See [compatibility](docs/COMPATIBILITY.md) before downgrading.
 
 If the required Python interpreter and managed cache are both unavailable, Context Guard stops with a reinstall hint. Version history is in the [changelog](CHANGELOG.md); current behavior and platform limits are in [compatibility](docs/COMPATIBILITY.md). The [0.12.4 baseline](docs/BEHAVIOR_BASELINE_0_12_4.md) is historical.
 
@@ -171,6 +171,8 @@ Existing tasks may keep the Hook version they started with. Start a fresh task a
 | --- | --- |
 | `$context-guard` or `context-guard on` | Activate recovery and completion gating. |
 | `context-guard off` | Disable gating while preserving prompt journaling. |
+| `context-guard standard\|strict\|release\|observe` | Select a protection level explicitly; `release` does not authorize a publication action. |
+| `context-guard adopt <project-relative-json>` | Explicitly adopt one validated project execution contract. |
 | `context-guard status` | Show protected-state counts without raw prompts. |
 | `context-guard diagnose` | Show bounded diagnostics without raw prompts or replies. |
 | `context-guard export <path>` | Write an explicit redacted handoff in the current project. |
@@ -216,7 +218,10 @@ python3 scripts/validate_public_repo.py .
 python3 scripts/audit_public_tree.py .
 python3 scripts/run_current_behavior_suite.py
 python3 scripts/check_phase3_transition.py
+python3 scripts/context_guard.py self-test
 ruff check .
+python3 -m compileall -q scripts tests tools
+git diff --check
 ```
 
 The current-behavior runner discovers every current `test_*.py` module except the byte-frozen 0.11.x observation baseline. The transition audit runs that historical baseline separately and succeeds only when its exact fixed/inverted manifest matches; running the frozen file as an ordinary all-pass suite would intentionally report failures and unexpected successes.

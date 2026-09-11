@@ -1,6 +1,6 @@
 {
   "name": "centricmem-skill",
-  "version": "0.21.48",
+  "version": "0.21.51",
   "description": "Hosted CentricMem librarian: organise and retrieve Markdown memory via host MCP.",
   "author": {
     "name": "Dr. Z",
@@ -23,7 +23,7 @@
   "interface": {
     "displayName": "CentricMem",
     "shortDescription": "Hosted librarian for agent memory",
-    "longDescription": "Organise and retrieve Markdown memory on the hosted CentricMem librarian. Authenticate with a /connect?device= link; never paste keys in chat.",
+    "longDescription": "Organise and retrieve Markdown memory on the hosted CentricMem librarian. After install, if cm_* are missing send https://centricmem.com/login?signup=1 (or /connect?device= when centricmem is on PATH); never paste keys in chat.",
     "developerName": "Dr. Z",
     "category": "Productivity",
     "capabilities": [

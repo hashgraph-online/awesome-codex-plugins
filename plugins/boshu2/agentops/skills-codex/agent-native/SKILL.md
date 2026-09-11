@@ -1,6 +1,6 @@
 ---
 name: agent-native
-description: 'Operate explicit orchestrator, implementer, validator, and scribe roles through a caller-selected agent runtime. Triggers: "agent-native factory", "role-shaped agent panes", "persistent workers".'
+description: 'Dispatch independent tasks to parallel workers or selected persistent roles. Use when: delegation is authorized with disjoint scopes; execution does not validate output.'
 ---
 # Agent Native
 
@@ -48,6 +48,23 @@ stalled, and rescue is usually cheaper than rerun.
 - **Scribe:** records runtime evidence without judging acceptance.
 
 ## Contract
+
+For a caller-selected parallel batch, validate every complete packet before the
+first launch. Require the selected executor, packet identity and all transitive
+effects, with canonical workspace-relative write scopes in separate isolation.
+Resolve symlinks and normalize paths; compare scopes case-insensitively so an
+alias cannot hide a collision. A lexical disjointness check alone cannot prove
+symlink or runtime isolation. The reference batch contract rejects nonempty
+`write_scope.exclude` because its proof cannot honor those exclusions.
+
+Dispatch each validated packet once and preserve its identity with the result:
+candidate, evidence or executor error. Do not partly launch a batch that later
+fails validation, or retry an error as if it had never happened. Native caller
+authority determines any repair or follow-up. The developer reference
+`scripts/swarm/dispatch_once.py` requires an AgentOps source checkout; it is
+exercised by repository tests and is not bundled with standalone skills.
+Installed use dispatches through the selected native runtime. This optional
+batch mode selects no backlog work, creates no queue and integrates no changes.
 
 1. Require caller intent, role, workspace, authorized source/output scope and
    evidence destination before starting a worker. Pass source-store/project/work

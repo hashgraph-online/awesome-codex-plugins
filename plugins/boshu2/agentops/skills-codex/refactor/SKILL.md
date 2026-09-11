@@ -1,6 +1,6 @@
 ---
 name: refactor
-description: 'Execute one behavior-preserving structural transformation and report evidence. Triggers: "refactor this", "simplify without changing behavior".'
+description: 'Simplify structure, interfaces or responsibilities while preserving behavior. Use when: a focused refactor is requested; feature changes need their own intent.'
 ---
 # Refactor — one structural experiment
 
@@ -22,14 +22,17 @@ Refactor billing-service/internal/retry/backoff.go: extract the exponential back
 
 ## Procedure
 
-1. Name the preserved behavior and the focused acceptance surface.
+1. Name the preserved behavior, the focused acceptance surface and the concrete
+   structural problem for its callers. Reuse the caller's domain terms and
+   accepted behavioral examples; preserve their meaning through the change.
 2. Record an honest baseline, including any reproducible ambient failures.
    For an evaluation comparing executable behavior, pin the starting source
    and build its baseline before edits; retain that binary and the comparison
    inputs. Compare the candidate using those inputs and the same toolchain.
    This adds no executable-comparison ritual to ordinary refactoring.
 3. Apply one bounded transformation: extract, rename, inline, simplify,
-   encapsulate, move, or delete dead code.
+   encapsulate, move, or delete dead code. Judge the result by what callers must
+   understand and where a domain rule must be changed, not by file size alone.
 4. Run the focused check and the smallest package-level regression check justified
    by the changed surface.
 5. Return the diff summary, commands, results, and behavior not checked.
@@ -38,7 +41,21 @@ Do not combine a newly discovered behavior fix with the structural change. A red
 result is evidence for the caller; this skill does not revert, narrow, retry,
 commit, validate, or route subsequent work automatically.
 
-## Seam experiments before commitment
+## Responsibility and interface cost
+
+Before adding an interface or splitting a module, inspect representative callers.
+Count the concepts they must coordinate: required setup, ordering, states, error
+handling and repeated domain rules. A useful boundary puts a cohesive rule under
+one owner and lets callers request an outcome without reproducing that rule.
+Reject a wrapper that only adds another name or pushes the same coordination
+into its callers. Existing boundaries are sufficient when no concrete caller
+problem warrants changing them.
+
+Use the caller's vocabulary for extracted operations and types. A naming
+ambiguity that changes behavior belongs with the existing domain definition;
+consult [Domain](../domain/SKILL.md) only when that distinction needs work.
+Renaming a public symbol, persisted field or protocol value is a compatibility
+change unless the accepted scope provides for it.
 
 When the transformation needs a seam — an extraction boundary, interface, or
 module split — and more than one candidate seam exists, probe before you cut.
@@ -75,3 +92,4 @@ any surface the gates did not cover in the report's behavior-not-checked list.
 
 - [Behavior-preserving simplification](references/behavior-preserving-simplification.md)
 - [Behavior scenarios](references/refactor.feature)
+- [Upstream capability reference](https://github.com/mattpocock/skills/blob/main/skills/engineering/codebase-design/SKILL.md) — Matt Pocock; original AgentOps adaptation.

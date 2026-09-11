@@ -1,6 +1,6 @@
 # rch
 
-Use RCH once to offload a build or collect remote-compilation diagnostics. Triggers: "use RCH", "offload this build".
+Offload one build through RCH or diagnose its remote compiler. Use when: remote compilation is selected; report errors without creating a retry controller.
 
 ## Instructions
 

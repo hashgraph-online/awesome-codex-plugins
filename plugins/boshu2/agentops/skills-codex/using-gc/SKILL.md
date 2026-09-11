@@ -1,6 +1,6 @@
 ---
 name: using-gc
-description: 'Operate a caller-selected Gas City 1.4 with upstream registry packs and native run-centered surfaces while keeping GC runtime state out of AgentOps verdicts. Triggers: "using gc", "gas city", "drive the mayor", "dispatch through gc".'
+description: 'Operate Gas City through its Mayor, registry packs and native run state. Use when: the caller explicitly selects Gas City; factory completion does not replace independent judgment.'
 ---
 # Using GC
 

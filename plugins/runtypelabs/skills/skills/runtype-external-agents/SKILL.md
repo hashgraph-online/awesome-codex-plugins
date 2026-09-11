@@ -70,19 +70,9 @@ at module scope in `app.ts`, and tell the user this also removes eval capture. T
 use the same destination and store no payloads unless the agent class sets
 `storeMessages = true` and `storeTools = true`.
 
-**Cloudflare Agents SDK (`agents`): not zero-code; logical-run support is incomplete.** The app must call
-`import { wrapAISDK } from "agents/observability/ai"` and call `wrapAISDK(ai, { storeMessages: true, storeTools: true })`
-(content is off by default) and use the same Workers Observability destination as above.
-Local captures grouped WebSocket turns into one trace; deployed captures used distinct
-traces for turns and approval continuations. Runtype files one run per trace, so one
-request paused for approval can appear as multiple runs. Slow and cancelled deployed
-turns also emitted `span_not_ended` warnings with missing GenAI fields. Logs marks
-recognized Cloudflare invocation, chat, and tool diagnostics as incomplete with
-an unknown outcome. Missing usage stays unknown; reported usage may be partial.
-A trace with no
-GenAI operation, model or inference signal, or recognized Runtype execution
-telemetry stays in Logs as a diagnostic and creates no Run. Do not promise complete output, usage, or cancellation
-status from those exports. Recognized Cloudflare approval lifecycle spans with a valid captured state and real tool-call id have a durable, read-only trace-local history: requested, approved, denied, and conflicts remain captured under that call id and source span. Missing lifecycle halves, source-span conflicts, and bounded-history omissions remain visible. This never authorizes or resumes a tool, supplies a resolver, reason, or duration, or joins distinct traces. Newly recorded structural history survives logging off and ingest-fact expiry; older runs without recorded history show it as unavailable, not proof that no approval occurred. The chip is withheld.
+**Cloudflare Agents SDK (`agents`): dedicated adapter beta, release pending.** Do not recommend an npm install or dashboard chip yet. The adapter is acceptance-gated. Once released, it wraps the application's one `streamText` call with `observeStreamTextOptions`, sends observations through `createDurableObserver`, and uses a separate SQLite Durable Object (`RuntypeOtlpOutbox`) for session state, immutable batches, retries, and alarms. It sends OTLP directly to Runtype; it does not need a Workers Observability destination. The app supplies stable submission and conversation IDs plus the SDK request ID as the exchange ID, and keeps `RUNTYPE_AGENT_ID`, `RUNTYPE_API_KEY`, and `RUNTYPE_BASE_URL` as Worker-only bindings.
+
+All adapter content is off by default. `messages`, `instructions`, `tools`, and `errors` are separate opt-ins; system/developer messages need `instructions`, and tool arguments/results need `tools`. A redactor runs before storage and transmission. Structural tool-call identity and duration remain metadata when tool payloads are off. The companion reports only observed terminal facts: cancellation is `cancelled`; missing terminal or delivery failure is incomplete, never successful. Do not promise approval continuations, client tools, subagent trees, native-trace association, or hosted approval/resume controls. Preserve application `abortSignal`, `onFinish`, `onError`, and `prepareStep` callbacks when wrapping stream options; the pinned compatibility fixture uses `agents@0.22.0`, `@cloudflare/ai-chat@0.11.0`, and `ai@6.0.277`. Native Cloudflare traces may remain enabled for infrastructure diagnostics in Logs, and their Workers Observability route can retain native read-only approval history, but it is separate from the adapter lifecycle and cannot authorize or resume an approval.
 
 **Flue on Node / Cloud Run / anywhere else.** Point exactly ONE Flue instrumentation at
 Runtype (two would double tokens and cost):

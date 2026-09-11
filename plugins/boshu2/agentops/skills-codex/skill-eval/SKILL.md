@@ -1,210 +1,195 @@
 ---
 name: skill-eval
-description: 'Author and tier behavioral probes for a skill, including seeded-defect probes that escape ceiling saturation. Triggers: "measure this skill", "the probe came back INERT", "the control arm aces it", "harden this scenario", "is this skill actually doing anything".'
+description: 'Measure whether a skill helps a named task or needs revision or removal. Use when: a bounded routing or coding evaluation is requested; conformance alone cannot show benefit.'
 ---
 # /skill-eval
 
-Author one behavioral probe for one skill, at the cheapest tier that can still
-separate the arms, and report the verdict honestly. A probe measures
-**behavior-change** — did loading the skill change what the agent *did* — never
-quality-uplift. This skill authors and tiers probes. `scripts/probe-skill.sh`
-runs them.
+Answer one named maintenance decision: **retain, revise, remove, or insufficient
+evidence**. Choose the measurement that can answer that decision, use the caller's
+accepted cases and resource envelope, make one scoped recommendation, and stop.
+A completed evaluation does not require a positive difference.
 
-**Insight:** when a probe returns INERT because the control arm already aces the
-scenario, the measurement failed, not the skill. Weakening the producer is one
-escape and it costs realism. The cheaper escape is to **plant the defect**: build
-a scenario containing exactly one flaw the discipline catches and a skim does
-not, then grade whether the agent acted on it. Signal you manufacture is signal
-you can reproduce.
+This is an optional specialist. The repository's selected runner owns execution
+and bounds; native results own measurements; BD and Git retain their authority.
+Do not add a core skill, AO evaluation command, scheduler, dashboard, second
+tracker, or mandatory review merely to run an experiment.
 
-**The failure mode this exists to prevent:** a skill catalog whose tier badges are
-editorial. A skill nobody measured is a skill nobody can defend, and re-running a
-saturated scenario at a lower effort level produces more rows in the ledger
-without producing more knowledge.
+## Choose the question
 
-## Modes
-
-| Trigger phrases | Mode | Entry point |
+| Caller decision | Measurement | What it can establish |
 |---|---|---|
-| "measure this skill", "does this skill do anything" | author tier 1 (quiz probe) | `evals/skill-probes/<id>/` |
-| "the control arm aces it", "harden this scenario" | author tier 2 (seeded-defect probe) | [`references/seeding.md`](references/seeding.md) |
-| "the probe came back INERT" | diagnose headroom | gate `skill.probe-headroom` |
-| "run the probes" | run a tier | `scripts/probe-skill.sh` |
+| Does loading this skill change a specific observable act? | Behavioral probe with `scripts/probe-skill.sh` | Behavior change on that scenario; not correct code or productivity |
+| Does this package or version improve engineering outcomes at acceptable cost? | Repository-selected controlled coding comparison, such as `evals/skills-rpi` | Endpoint outcomes and cost on selected tasks; independent completion only when required exact-subject evidence exists |
+| Does a qualified memory update help later work? | Separate frozen-versus-updated memory transfer test | Narrow later-task reuse evidence with skill and runtime held fixed |
+| What happened in ordinary runs? | Existing native accounting and acceptance evidence | Observational failures, repairs and cost; not causal skill benefit |
 
-## Inputs
-
-Required: the skill slug, and one sentence naming the **action** the skill should
-cause — a tool call made, an artifact written, a question raised, a sequence
-followed. If the sentence names a belief instead of an action ("understands
-that…", "considers…"), stop: that is not probeable, and rewriting it as an action
-is the actual work.
-
-Optional: an existing probe id to harden.
-
-**Non-goals.** This skill does not score output quality, rank skills, claim a
-skill is good, or gate a release. It does not run `claude -p`. It does not
-generalize from N=2 — small N is directional and every artifact it produces says
-so.
-
-## The two tiers
-
-| | Tier 1 — quiz | Tier 2 — seeded task |
-|---|---|---|
-| Scenario | asks the agent a question about a situation | hands the agent work containing a planted defect |
-| Grades | which answer it gave | whether it acted on the defect |
-| Saturates | fast — frontier models answer doctrine questions correctly unaided | slowly — skimming is a real failure mode at every altitude |
-| Cost | low | higher (real task, longer transcript) |
-| Use when | the skill's whole content is a decision rule | tier 1 saturated, or the skill's value is *noticing* |
-
-Historical tier-1 groups saturate repeatedly at both `xhigh` and `low` effort —
-harder quizzes did not fix it (`validate-not-proven-v2` re-saturated). Run the
-`skill.probe-headroom` gate for the live classification; do not trust a
-hardcoded count. Tier 2 is the escape, because it
-changes what is being measured from *knowing the rule* to *applying it while busy*.
+Start from the caller's intended decision, not a mandatory quiz. Reuse an
+existing accepted decision and scope. For a behavioral question, name one
+observable action (a file written, tool used, criterion rejected); a belief such
+as “understands validation” needs translation into an action. For coding or
+memory questions, name unchanged task acceptance and the maintenance choice.
 
 ## Procedure
 
-1. **State the action.** One sentence, an observable act. Reject beliefs.
-2. **Pick the tier.** Start at tier 1 unless a prior probe for this skill is
-   saturated; then go straight to tier 2.
-3. **Build the scenario.** For tier 2, seed exactly one forcing defect using the
-   rules in [`references/seeding.md`](references/seeding.md). One defect for a
-   floor probe; N defects for a band probe.
-4. **Write the discriminator.** Deterministic, over one transcript. Exit `0`
-   present, `1` absent, `2` infra. It checks the **act**, never a mention — a
-   discriminator that greps for a word the prelude contains measures the prelude.
-5. **Calibrate on replay** against committed fixtures before spending a live run.
-6. **Run both arms** at two effort levels. Same scenario, same reps; the
-   declared `treatment_source` is the only variable — `canonical-skill` (the
-   exact SKILL.md bytes; the only mode the coverage gate counts) or
-   `injected-prelude` (prelude-only evidence, never skill coverage).
-7. **Pre-screen headroom before believing the verdict** — gate
-   `skill.probe-headroom`. A verdict over a saturated scenario is void.
-8. **Record the outcome and stop.** Pre-screen passed (`SEPARATED`/`FLOOR`):
-   append exactly one ledger row in `evals/skill-probes/LEDGER.md`. `SATURATED`:
-   append nothing to the ledger — note the scenario's retirement in the RUNBOOK.
+1. **Fix the decision and bounds.** Name the subject package/version or qualified
+   memory update, relevant cases, allowed runtime and existing aggregate time,
+   trial and cost limits. Do not infer billing enforcement from token counters.
+   Smoke runs, infrastructure retries, interrupted attempts and inner review
+   consume the same declared envelope. A new configuration or context does not
+   renew it. Do not launch live work without caller authorization and bounds.
+2. **Choose the smallest relevant measurement.** Use behavioral probes for acts,
+   coding tasks for engineering outcomes, and separate later sessions for memory.
+   There is no universal two-effort requirement. Keep the deployed model and
+   effort unless the caller's decision concerns effort. Retain easy regression
+   and cost controls; do not weaken the producer to manufacture separation.
+3. **Freeze and calibrate.** Fix task, acceptance, package, model/runtime,
+   environment and grader identities before trials. Executable oracles must
+   accept the intended solution and reject plausible incorrect/no-op solutions.
+   Include genuinely correct and incomplete cases when evaluating judgment.
+   Exposed incidents are development cases, never unseen holdouts by renaming.
+   Broken or leaked cases invalidate affected comparisons; preserve their
+   historical disposition when versioning a correction.
+4. **Run within the selected consumer's bounds.** Equalize instructions, tools
+   and environment across arms apart from the intended variable. Coding trials
+   expose the actual selected package and required resources. A worktree or a
+   prompt prohibition is not runtime isolation. Exclude operator home, production
+   tracker, session history, sibling output and solutions; capture launched
+   configuration and final artifacts outside the worker. Report an incompatible
+   adapter as such; do not build a replacement platform to rescue a result.
+5. **Read all attempts.** Use native runner results and existing accounting;
+   collection must not require another model call or handwritten evaluation.
+   Keep failed, abandoned, blocked, interrupted and missing attempts visible.
+   Wrong identity, changed acceptance, contamination or ambiguous pairing cannot
+   establish comparison proof even when a deterministic check passed.
+6. **Compare only supported facts.** Pair by task and repetition; preserve
+   repetitions within task clusters. Report case outcomes, denominators,
+   uncertainty and failure disposition. Endpoint reward, worker done claim,
+   in-workflow validator PASS and independent acceptance are different facts.
+   Missing review, usage, billing, phase or feasibility evidence stays unknown.
+7. **Recommend once and stop.** State retain, revise, remove or insufficient
+   evidence, the scope and supporting facts, and what remains unproven. A
+   concrete reproduced defect with clean controls can support a provisional
+   narrow repair; general improvement needs held-out comparison. Do not add
+   trials until green, require a positive result, or automatically publish a
+   lesson. Do not remove losing observations or relax acceptance.
+
+## Coding and memory readout
+
+Use the development adapter documented in
+[`evals/skills-rpi/readout.md`](../../evals/skills-rpi/readout.md), or the caller's
+existing equivalent. Its report is a rebuildable view, not work authority.
+The pilot's default `insufficient-evidence` recommendation is an honest limit;
+the specialist may make a narrower supported maintenance recommendation and
+must state its evidence and provisional scope.
+
+- Report endpoint success against **all assigned/observed attempts** alongside
+  any feasible-task rate. Retain infrastructure invalidity, infeasibility and
+  unknown coverage separately; do not hide them by dropping the denominator.
+- Report false completion, false acceptance and needless blocking separately
+  when independent evidence measures them. Clean cases and abstentions are
+  denominators, not opportunities to reward finding-count spray. Unknown is not
+  zero. Deterministic code truth may settle an experimental criterion, while a
+  required native handoff or exact-subject judgment remains unproven.
+- Report raw time/cost distributions and total cost of all attempts per accepted
+  outcome. Zero accepted outcomes makes that ratio undefined. Partial Harbor
+  cost is not total billing. Native input includes cached input; native output
+  includes reasoning. Keep counters distinct and never add native totals to
+  Harbor totals or assume parents exclude children. Split producer, in-workflow
+  validation, orchestration and grading only where native identity supports it.
+  State the measurement window and excluded setup/analysis overhead.
+- Use `evals/_stats` for paired task-cluster uncertainty after verifying its
+  dependencies and semantics. A pilot is descriptive unless sample size and
+  decision thresholds were justified and fixed in advance. A zero-crossing
+  interval or `no_change` is **not equivalence**; equivalence needs its own margin
+  and test. Same numeric repetitions/seeds do not prove controlled provider
+  randomness. Do not extrapolate local results across libraries or models.
+- For memory, hold skill/runtime fixed and compare frozen with independently
+  qualified updated memory in fresh later sessions, using an unseen transfer
+  task and an unrelated or invalidating control. Count acquisition, qualification,
+  retrieval and downstream trial cost separately. Package available, content
+  delivered, relevant action and later outcome are separate facts. Saving a page
+  earns no benefit credit; coding-pilot completion does not establish compounding.
+
+Raw trials and new proof belong in caller-selected protected external non-Git
+storage. Only public/sanitized fixtures cleared for that destination belong in
+Git. Preserve legacy `.agents/` evidence. Existing independent support and
+disclosure review precedes memory import; this skill does not auto-publish
+transcripts or mutate knowledge from aggregate scores (ADR-0016).
+
+## Behavioral probes: preserve their existing meaning
+
+`scripts/probe-skill.sh` remains the runner for small behavioral regression
+probes and immutable replay. It exposes an empty workspace and one injected
+SKILL.md, not a complete installed-package coding trial. Its verdict measures
+**behavior change**, never quality uplift or productive engineering completion.
+Existing ledger entries retain that meaning and their recorded limitations.
+
+| Probe form | Use when | Discriminator |
+|---|---|---|
+| Tier 1 — quiz | A decision rule is the caller's behavioral question | The answer/action on the scenario |
+| Tier 2 — seeded task | Applying a discipline in work is the question | Whether the agent acted on a realistic planted defect |
+
+Either form may be the starting point. Use
+[`references/seeding.md`](references/seeding.md) for seeded tasks. Grade the act,
+never vocabulary copied from the treatment. A floor probe detects at least one
+act; a multi-defect band needs both lower and upper bounds to catch omission and
+finding spray. Calibrate against a transcript performing the act without the
+prelude's wording and one repeating the wording without the act.
+
+The declared `treatment_source` remains the only arm variable: `canonical-skill`
+uses exact SKILL.md bytes and is the mode the coverage gate counts;
+`injected-prelude` establishes prelude-only evidence. Live runs use the selected
+authorized native producer with equal scenario and repetitions. Effort levels
+are a declared experimental choice, not a prerequisite for every question.
 
 ```bash
-# Calibrate deterministically against committed fixtures.
 bash scripts/probe-skill.sh --probe <id> --replay
-
-# Live A/B (codex exec — the sanctioned headless path).
+# Only within an already authorized live envelope:
 bash scripts/probe-skill.sh --probe <id> --live --capture --reps 3 --output out.json
-
-# Is the verdict trustworthy, or did the control arm ace it?
 bash scripts/check-skill-probe-headroom.sh
 ```
 
-### Floor and band
+The existing `skill.probe-headroom` gate in `cli/internal/probeheadroom` owns
+classification and thresholds. Its multi-effort saturation rule remains the
+legacy gate contract; do not fabricate enough runs to satisfy it or rederive
+the rule in a new report. Read and report the actual answer:
 
-- **Floor probe** — one seeded defect, assert the agent acted **at least once**.
-  Catches the total no-op: the review that produced a polished report naming
-  nothing.
-- **Band probe** — N seeded defects, assert findings land in **[N-1, N+2]**.
-  The lower bound catches rubber-stamping; the upper bound catches spray, where
-  an agent lists every conceivable concern and is credited for the one that
-  happened to be planted. A probe with only a floor rewards noise.
+- **SATURATED:** the probe cannot distinguish the targeted act. Preserve the
+  observation as a scenario limitation in the RUNBOOK; do not append a skill
+  verdict to the legacy ledger. Do not infer skill value or lack of value.
+- **FLOOR:** treatment did not act. Check the discriminator on a known passing
+  transcript. The result alone does not prove the skill cannot help elsewhere.
+- **UNMEASURED:** no usable measurement, not INERT.
+- **SEPARATED:** the gate found usable headroom. This classification itself does
+  not establish positive treatment benefit; retain the actual probe verdict.
 
-### Saturation rule — owned by the gate, not by this skill
+Legacy behavioral ledger rows cite the headroom result, model, effort and
+sample size. Append one row only under that ledger's existing admissibility
+rules; preserve a valid INERT or losing result. Small samples remain
+directional. If producer failure or truncation makes a rep `infra`
+(discriminator exit 2), exclude it from the legacy **usable behavioral rate**
+and report its count in the all-attempt accounting. Zero usable treatment reps
+is UNMEASURED, never INERT. This rate convention does not authorize dropping
+infrastructure attempts from coding-cohort accounting.
 
-The rule is **deterministic, so it does not live here.** Gate
-`skill.probe-headroom` owns it: a scenario is **SATURATED** when the control arm
-scores **≥ 0.75 at two or more effort levels** with at least 2 usable control
-reps each. The rule, its thresholds, and its exit codes are
-`cli/internal/probeheadroom`; the gate script is
-[`scripts/check-skill-probe-headroom.sh`](../../scripts/check-skill-probe-headroom.sh)
-and the helper it drives is `cli/cmd/probe-headroom`. Do not restate the
-thresholds in a probe package or re-derive them by hand — read the gate's answer.
-This skill's job is what to DO with that answer:
+## Output and completion
 
-- **SATURATED** — retire the scenario and promote it to tier 2. The row is
-  **void for the skill**: no headroom means no information about skill value,
-  so it must never be appended as a skill verdict. Note the scenario
-  retirement in the RUNBOOK if useful. Never re-run it at a lower effort.
-- **FLOOR** — the treatment arm never acted at any level. Check the
-  discriminator against a hand-written passing transcript before re-seeding.
-- **UNMEASURED** — the run did not happen. Not INERT; do not record it as one.
-- **SEPARATED** — the scenario left room, so the verdict is about the skill.
+One scoped recommendation with the decision, cases, all attempts/coverage,
+paired outcomes when valid, uncertainty, cost/unknowns and failure disposition.
+For behavioral authoring, also supply the existing probe package (`probe.json`,
+`question.md`, `discriminator.sh`, `fixtures/`, and a prelude only in
+`injected-prelude` mode) and its replay result. Use the legacy ledger/RUNBOOK
+only for their existing consumers. No new per-run worksheet is required.
 
-Never resolve saturation by lowering the discriminator's bar. That converts a
-measurement problem into a false positive.
+Done when the requested measurement has reached its accepted stop, the relevant
+replay/oracle checks discriminate, missing coverage is explicit, and one
+recommendation answers the named maintenance decision. Insufficient evidence,
+an adverse result or an incompatible runtime can complete this evaluation;
+none counts as demonstrated skill benefit.
 
-## Anti-patterns
+## References
 
-| Anti-pattern | Corrective |
-|---|---|
-| Discriminator greps for a term that appears in the treatment prelude | Grade the act (file written, tool called, question raised), never the vocabulary |
-| Re-running a saturated scenario at a lower effort to find separation | Retire it; promote to tier 2, noting the ceiling in the RUNBOOK (never as a ledger row) |
-| Seeding a defect so obvious both arms catch it | Calibrate: the control arm must plausibly miss it. See `references/seeding.md` |
-| Seeding a defect so obscure neither arm catches it | The defect must be *derivable from the discipline*, not from trivia |
-| Floor-only band on a multi-defect scenario | Add the ceiling; an agent that flags everything is not detecting anything |
-| Reporting N=2 as evidence the skill works | Say "directional, not statistical" in the same sentence as the number |
-| Deleting a losing probe | Append the row when its headroom pre-screen passed. A skill measured INERT over a SEPARATED group is knowledge; a missing row is a gap; a SATURATED-group row is void and stays out |
-
-## Output
-
-A probe package under `evals/skill-probes/<id>/` (`probe.json`, `question.md`,
-`discriminator.sh`, `fixtures/`, and `treatment-prelude.md` only in
-`injected-prelude` mode), plus one appended ledger row when the headroom
-pre-screen passed — a `SATURATED` run appends no ledger row; it retires the
-scenario in the RUNBOOK.
-
-`probe.json` for a tier-2 probe declares its seeding:
-
-```json
-{
-  "id": "validate-not-proven-t2",
-  "skill": "validate",
-  "tier": "judgment",
-  "probe_tier": 2,
-  "reps": 3,
-  "seeded_defects": 1,
-  "band": [1, 3],
-  "treatment_source": "canonical-skill",
-  "behavior": "the agent returns NOT_PROVEN rather than PASS when one in-scope acceptance criterion has no evidence",
-  "discriminator": "discriminator.sh",
-  "budget_note": "N=3 — DIRECTIONAL, not statistical",
-  "honesty": "measures behavior-change on a seeded task, NOT quality-uplift"
-}
-```
-
-**Done when:** `probe-skill.sh --replay` reproduces the recorded verdict from
-committed fixtures, and either `skill.probe-headroom` classifies the scorecard
-group `SEPARATED` and exactly one ledger row was appended, or it classifies
-the group `SATURATED` and the scenario was retired with a RUNBOOK note and
-zero ledger rows.
-
-## Checks
-
-- The discriminator passes on a hand-written transcript that performs the act
-  without using the prelude's wording, and fails on one that uses the wording
-  without performing the act. Both directions, or it is not a discriminator.
-- Control and treatment prompts differ **only** by the declared
-  `treatment_source` — the canonical SKILL.md bytes, or the prelude in
-  `injected-prelude` mode.
-- The seeded defect count in `probe.json` equals the count actually present in
-  `question.md`.
-- The ledger row names the producer model and effort levels.
-- The ledger row cites a headroom pre-screen: a row over a `SATURATED` group is
-  a void row, not evidence.
-- No claim of quality-uplift appears anywhere in the output.
-
-## Provenance
-
-- Harness this extends: [`scripts/probe-skill.sh`](../../scripts/probe-skill.sh), [`evals/skill-probes/README.md`](../../evals/skill-probes/README.md).
-- Scenario retirements and capture incidents live in
-  [`evals/skill-probes/RUNBOOK.md`](../../evals/skill-probes/RUNBOOK.md) — the
-  ledger holds verdicts, the RUNBOOK holds everything a verdict must not.
-- The saturation evidence that motivated tier 2: [`evals/skill-probes/LEDGER.md`](../../evals/skill-probes/LEDGER.md) — the INERT rows dated 2026-08-04/05 annotated "scenario needs hardening, not the skill"; run the `skill.probe-headroom` gate for the live classification.
-- Coverage gate (does a result exist): [`scripts/check-skill-probe-coverage.sh`](../../scripts/check-skill-probe-coverage.sh), whose denominator is declared in `scripts/.skill-probe-denominator-exclusions`.
-- Headroom gate (could a result have existed): [`scripts/check-skill-probe-headroom.sh`](../../scripts/check-skill-probe-headroom.sh) — gate id `skill.probe-headroom`, rule in `cli/internal/probeheadroom`.
-- Seeded-forcing-defect and floor/band mechanism analysis (§2.1, §2.5): not on main; read it at `git show 9872483bd:docs/research/gstack-teardown-2026-08-08.md` (branch `recover/gstack-clean-room`).
-- Overclaim discipline: ADR-0011.
-
-## Failure behavior
-
-If the live producer errors or the transcript is truncated, the rep is `infra`
-(discriminator exit 2), not `absent`. Infra failures are excluded from rates and
-named in the ledger row. A run whose usable treatment reps reach zero is
-`UNMEASURED` — never INERT. Scoring an infra failure as a miss manufactures the
-result the harness exists to prevent.
+- Behavioral runner and conventions: [`scripts/probe-skill.sh`](../../scripts/probe-skill.sh), [`evals/skill-probes/README.md`](../../evals/skill-probes/README.md).
+- Behavioral verdicts and non-verdict incidents: [`LEDGER.md`](../../evals/skill-probes/LEDGER.md), [`RUNBOOK.md`](../../evals/skill-probes/RUNBOOK.md).
+- Existing coverage and headroom gates: [`check-skill-probe-coverage.sh`](../../scripts/check-skill-probe-coverage.sh), [`check-skill-probe-headroom.sh`](../../scripts/check-skill-probe-headroom.sh).
+- Evidence and overclaim limits: ADR-0011, ADR-0016 and [`RPI traversal`](../../docs/architecture/rpi-traversal.md).

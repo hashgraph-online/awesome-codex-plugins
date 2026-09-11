@@ -1,6 +1,6 @@
 # premortem
 
-Fresh-judge a frozen plan. Not for a live decision's reversibility; that is one-way-door. Triggers: "premortem", "challenge this plan", "one judge", "what could make this plan fail".
+Challenge a rollout plan with one fresh judge before implementation; identify what could make it fail. Not for finished-code judgment. Triggers: "one judge", "challenge this plan".
 
 ## Instructions
 

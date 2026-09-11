@@ -1,6 +1,6 @@
 # memory
 
-Recall applicable reviewed topic pages or maintain them through separately budgeted mining, learning and curation. Triggers: "memory", "recall prior work", "mine and learn", "curate memory", "qualify or retire a lesson".
+Recall reviewed lessons or deliberately mine and curate experience. Use when: prior evidence can change an action, or learning is requested; no mandatory recall or lesson.
 
 ## Instructions
 

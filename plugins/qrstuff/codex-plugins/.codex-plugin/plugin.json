@@ -1,0 +1,26 @@
+{
+  "name": "qrstuff-mcp-server",
+  "displayName": "QRStuff MCP Server",
+  "version": "0.1.0",
+  "description": "Official QRStuff plugin for OpenAI Codex. Connects the QRStuff MCP server so agents can generate, customize, and manage QR codes and track scan analytics.",
+  "skills": "./skills/",
+  "author": {
+    "name": "QRStuff Team",
+    "email": "engineering@qrstuff.com"
+  },
+  "homepage": "https://www.qrstuff.com",
+  "repository": "https://github.com/qrstuff/codex-plugins",
+  "license": "MIT",
+  "keywords": [
+    "qrstuff",
+    "codex-plugin",
+    "qr code",
+    "qr code generator",
+    "qrcode",
+    "qrcode-generator",
+    "mcp",
+    "mcp-server",
+    "codex"
+  ],
+  "logo": "assets/logo.png"
+}

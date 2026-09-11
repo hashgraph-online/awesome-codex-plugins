@@ -1,12 +1,14 @@
 ---
 name: plan
-description: 'Shape or refine the existing bead or caller intent in place. Triggers: "plan", "discover and plan", "shape this goal", "review write scope", "check scope boundaries", "scope this change".'
+description: 'Define intended behavior, review write scope and assess reversible decisions. Use when: acceptance or approach is unclear before coding; stop once actionable.'
 ---
 # Plan
 
 Shape only missing intent. Prefer the caller's tracker, if any; otherwise use
 the conversation or supplied text. Planning produces no AgentOps packet.
-A clear change can proceed directly.
+A clear change can proceed directly. Use established domain names throughout
+intent, examples, code and validation; [Domain](../domain/SKILL.md) helps when
+meanings or boundaries are genuinely unclear.
 
 ## Workflow
 
@@ -14,7 +16,12 @@ A clear change can proceed directly.
    Resolve only consequential uncertainty; do not reopen settled decisions
    without new evidence. Identify the caller-visible outcome, scope and first
    useful check.
-2. Clarify missing acceptance examples and non-goals in that existing source.
+2. Describe the intended observable behavior before implementation. Reuse
+   acceptance already supplied in the conversation or bead; clarify only what
+   prevents action or judgment. Name the actor or caller, the event and the
+   observable result. One example often suffices; use Given/When/Then for
+   branching behavior and consequential boundaries. Include non-goals only
+   where they prevent a plausible scope mistake in that existing source.
    Scope includes the hand-edited owners, affected tests/live consumers and
    generator-owned companions as a class; it is authority, not a predicted
    file count. A consequential assumption deserves an early discriminating
@@ -36,6 +43,44 @@ research, decomposition or review must resolve a named remaining uncertainty.
 Specialists and [ground-truth routing](references/ground-truth-routing.md) are
 optional. [Memory recall](../memory/references/recall.md) is useful only when
 prior evidence could change the next action.
+
+## Behavior and naming
+
+An example can be plain text; BDD does not require a `.feature` file or an
+interview. For example, in a repository that calls queued work a **Job**:
+
+> Given a Job has already completed, when the worker receives it again,
+> then its completed result is returned and its side effect is not repeated.
+
+Use the actual domain term instead of inventing a parallel label such as
+"task item." Identify what the caller can observe and the smallest check that
+distinguishes the desired behavior from the current failure. Keep the accepted
+example available to Implement and Validate. Tests added after coding may
+supplement it; they cannot redefine what was promised.
+
+For uncertain designs, probe the assumption that could change the approach.
+For product planning, distinguish demonstrated behavior from aspiration and
+refine the existing product owner only within the request. A product document
+is not required for an ordinary feature.
+
+## Decision cost and stopping
+
+Use real undo cost, affected users and existing authority when choosing who
+must decide. Resolve reversible implementation details within accepted scope.
+A material irreversible choice outside that authority needs the caller; prior
+authorization remains valid. Reviewer agreement is evidence, not permission
+to replace the caller's intent. Explain a consequential disagreement and its
+support rather than silently changing acceptance.
+
+A proposed process artifact earns its cost only with a concrete consumer,
+subject or release decision, observed defect and retirement condition. If the
+next action adds only ceremony or repeats settled evidence, omit it. Stop when
+the implementer can act and the validator can judge, reserving capacity for
+implementation, integration and repair.
+
+This guidance adapts the intent-first approach in
+[Matt Pocock's engineering skills](https://github.com/mattpocock/skills)
+using AgentOps' existing intent and evidence contracts.
 
 ## Identity and scope
 

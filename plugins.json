@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-09-10",
-  "total": 220,
+  "last_updated": "2026-09-11",
+  "total": 221,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -1918,6 +1918,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/TODAQmicro/qatom-skill/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "QRStuff",
+      "url": "https://github.com/qrstuff/codex-plugins",
+      "owner": "qrstuff",
+      "repo": "codex-plugins",
+      "description": "Connects OpenAI Codex to the QRStuff platform to generate, customize, and manage 25+ dynamic and static QR code types and scan analytics.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/qrstuff/codex-plugins/HEAD/plugins/qrstuff-mcp-server/.codex-plugin/plugin.json"
     },
     {
       "name": "Read Image",

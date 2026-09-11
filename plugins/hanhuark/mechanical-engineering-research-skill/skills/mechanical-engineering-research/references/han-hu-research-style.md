@@ -17,6 +17,20 @@ Use this reference for manuscripts authored or supervised by Han Hu and when the
 - Use short noun phrases for section titles. Do not place conclusions in headings.
 - Refer to subfigures as `Fig. 6a`, `Fig. 6b`, and so forth. Do not use "panel" in manuscript text or captions.
 
+## Reader-First Narrative
+
+For an abstract, introduction, conclusion, or other high-level passage, make the main story understandable before introducing a dense list of inputs, metrics, or acronyms. An informed reader outside the immediate specialty should be able to identify i) the problem, ii) what the work does, iii) what the main result is, and iv) why the result matters.
+
+- State what is developed, measured, modeled, or analyzed in direct language before listing the data sources, variables, or implementation details.
+- Do not treat combining datasets, building a map, or running a model as the innovation by itself. State what that integration is used to estimate, compare, test, reveal, or support.
+- Keep the narrative chain explicit: existing work and its remaining gap; the consequence of that gap; the present response; the principal result; and the bounded practical implication.
+- Do not make a known limitation the paper's main conclusion. Show what the present work quantifies, distinguishes, tests, or makes possible because it addresses that limitation.
+- State the consequence of a methodological gap when evidence supports it. For example, an unsupported national estimate may be mistaken for a local effect, or scarce validation effort may be directed to the wrong cases.
+- Prefer two connected sentences over one sentence that combines a long list of inputs, methods, findings, and implications. Remove repeated restatements of the same purpose or limitation.
+- Use plain terms for the function of a method before introducing specialized terminology. Retain technical precision, but define non-obvious abbreviations and avoid an array of terms that a reader does not need to understand the central message.
+
+For conclusions, state what the study did, what was learned, and how the finding should be used. Keep numerical detail to the one or two findings that carry the take-home message. Do not cite figures in the conclusion unless the citation is necessary to resolve genuine ambiguity. Do not repeat the detailed methods, a catalog of assumptions, or the figure-by-figure results discussion.
+
 Use [paper-writing-style.md](paper-writing-style.md) for paper structure, [literature-review.md](literature-review.md) for synthesis, and [manuscript-revision-submission.md](manuscript-revision-submission.md) for revision/submission details. Do not duplicate their checklists here.
 
 ## Figure And Caption Preferences
@@ -35,7 +49,9 @@ Use [paper-writing-style.md](paper-writing-style.md) for paper structure, [liter
 When revising a manuscript to match this style, preserve the scientific evidence while strengthening the connection from engineering need to mechanism, method, result, and bounded implication. Revise the section and paragraph structure before making sentence-level edits; generic simplification alone is insufficient.
 
 - Make the abstract evidence-dense. When the data support it, include two to three principal quantitative findings rather than incidental experimental detail, then state what the result enables within its tested scope.
+- Build the abstract as a compact story: problem, present method, what the method does with the evidence, principal findings, claim boundary, and practical use. Do not make the abstract a method catalog or a compressed results section.
 - Synthesize the literature by application, architecture, material, diagnostic method, or modeling approach. Distinguish adjacent approaches from the specific remaining gap; do not claim that no prior work exists when relevant neighboring work exists.
+- End an introduction by linking the specific gap and its consequence to the present contribution. Follow with a short road map that tells the reader what the paper examines and why each analysis is needed; do not merely list section contents or variables.
 - Define experimental and model boundaries explicitly: system boundary, coordinate convention, imposed and inferred quantities, calibration, uncertainty, and the distinction between a fitted effective property and an intrinsic constituent property.
 - Treat every principal result as a figure-led argument: orient the reader, report the quantitative observation, relate it to the physical architecture or mechanism, and give the design implication.
 - Place each caveat near the claim it bounds. Identify the relevant unmeasured quantity, uncertain boundary, untested condition, or model-form limitation once, rather than repeating generic defensive qualifications throughout the manuscript.

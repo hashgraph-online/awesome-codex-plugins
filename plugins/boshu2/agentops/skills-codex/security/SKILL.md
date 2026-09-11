@@ -1,6 +1,6 @@
 ---
 name: security
-description: 'Run authorized repository security scans for vulnerabilities, dependency risk, secrets, and binary policy. Triggers: "security", "run repository security scans for", "security skill".'
+description: 'Review code or scan for security vulnerabilities, secrets, dependencies and prompt risks. Use when: concrete exposure needs assessment; never silently change policy.'
 ---
 # Security Skill
 

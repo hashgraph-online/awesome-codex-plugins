@@ -1,6 +1,6 @@
 ---
 name: council
-description: 'Gather independent views on a high-stakes judgment. Not for one-judge plan challenge; that is premortem. Triggers: "council", "multi-judge review", "independent perspectives".'
+description: 'Compare independent views on a consequential or contested decision. Use when: the caller selects multiple judges; evidence resolves disagreement, not voting.'
 ---
 # Council
 
@@ -8,7 +8,7 @@ Council is an optional judgment strategy, not a lifecycle or delivery gate. Use
 it when one fresh validator is insufficient for a named irreversible,
 high-blast-radius, or genuinely contested decision. Do not convene a council for
 a routine or reversible decision that a single fresh validator can settle: the
-cost of independent contexts is warranted only by a named one-way door.
+cost of independent contexts needs a named consequential uncertainty.
 
 1. Freeze one question, acceptance surface, evidence set, and subject digest.
 2. Give each judge an independent context and the same bounded packet.
@@ -116,8 +116,8 @@ caller-stated direction appears in `caller_challenge` with all five fields, or i
 does not appear in the report at all.
 
 Reversibility is the sibling question — whether the decision under challenge can
-be undone at all is [`one-way-door`](../one-way-door/SKILL.md)'s to classify, not
-the council's to assume.
+be undone belongs in [Plan](../plan/SKILL.md) with actual undo cost and existing
+authority; the council must not assume either.
 
 ## Synthesis section
 

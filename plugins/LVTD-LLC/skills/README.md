@@ -1,3 +1,6 @@
+> [!NOTE]
+> **This repository is archived and is no longer maintained.** The skills in this collection are no longer relevant to my current workflows, and I am changing my approach to creating, organizing, and maintaining skills. The repository remains available for historical reference.
+
 <img src="assets/app-icon.png" alt="LVTD fire heart logo" width="96" height="96">
 
 # LVTD Skills

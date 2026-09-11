@@ -1,9 +1,10 @@
 ---
 name: debug
-description: "Scientific debugging: reproduce, hypothesize, predict, isolate, fix root cause; every fix gets a regression test. Triggers: bug, error, fix, broken, not working, fails, crashed, unexpected, stack trace, regression, exception."
-allowed-tools: Read, Bash, Grep, Glob
+description: "Diagnosis before prescription: reproduce, hypothesize, isolate, fix root cause, add a regression test; refactor mode maps deps, coupling and blast radius. Triggers: bug, error, fix, broken, not working, crashed, stack trace, exception, refactor, restructure, coupling, dependency map."
+user-invocable: true
+allowed-tools: Read, Bash, Grep, Glob, Write, Agent
 kernel:
-  kind: methodology
+  kind: workflow
   version: 1
   side_effects: none
   confirmation: none
@@ -17,6 +18,10 @@ Not random changes. Not guessing. Scientific method applied to code.
 DEFECT (in code) → INFECTION (in state) → FAILURE (visible symptom).
 The failure you see is NOT where the bug is. Binary search upstream.
 Systematic methodology beats ad-hoc guessing. The process is the multiplier.
+
+Diagnosis comes before prescription: a surgeon cutting before the X-ray is guessing with a
+knife. Two modes, same discipline. `bug` (default) is the steps below. `refactor` swaps the
+subject from a failure to a structure, and produces a plan instead of a fix.
 </purpose>
 
 <prerequisite>Run `agentdb recall` with the exact error text, subsystem/library, failing
@@ -57,6 +62,36 @@ skills/debug/reference/debug-research.md.</prerequisite>
    - (gate: regression test green; original failing case passes)
 </steps>
 
+<refactor_mode>
+Triggers: refactor, restructure, clean up, coupling, dependency, "what breaks if".
+Same rule: diagnose, then hand off. Do not start cutting inside this mode.
+1. **MAP**: every file/module touching the target. Grep/Glob every reference, or
+   `graphify affected <symbol>` when the graph is fresh. Build the import/call map.
+2. **TRACE DEPS**: per file, who calls it, who depends on it, what breaks if it changes.
+3. **MEASURE COUPLING**: cross-module reference counts, circular dependencies, the
+   per-function CCN from `scripts/complexity.sh`.
+4. **RISKS**: current edge cases, what is tested, what is not, invariants to preserve.
+5. **PLAN**: files in change order, tests that must pass before AND after, tier by
+   reversibility x blast radius (file count is only a weak hint).
+Hand off to /kernel:simplify to execute, which owns the preservation contract and the gate.
+</refactor_mode>
+
+<diagnosis_output>
+When the run ends at a diagnosis rather than a fix, emit this and stop:
+```
+## Diagnosis: <title>
+Mode: bug | refactor · Confidence: high | medium | low
+Root cause: <one sentence naming the violated invariant>
+Affected: <file - origin> | <file - downstream> ...
+Blast radius: N files. Tier 1|2|3.
+Hypotheses: 1. <h> -> CONFIRMED | REJECTED (<evidence>) ...
+Recommended approach: <what, not how>
+Tests required: <fails before> / <passes after>
+Next: /kernel:ingest to implement, /kernel:simplify to restructure.
+```
+Decide and state the recommendation. Never stop to ask which hypothesis to pursue.
+</diagnosis_output>
+
 <anti_patterns>
 Shotgun (random changes until it works) · fix-and-pray (never re-run the original case) ·
 symptom fixing (null check at the crash site) · printf flooding (binary search first, then
@@ -79,6 +114,10 @@ reproduction. Bug only in production → add targeted monitoring, document, move
 For 3+ plausible causes, spawn one fresh-context agent per hypothesis (evidence_for /
 evidence_against / confidence); fresh context catches what a long session anchors past.
 </escalation>
+
+<telemetry>
+agentdb emit command "debug" "" '{"mode":"bug|refactor","confidence":"high|medium|low","blast_radius":N,"tier":N}'
+</telemetry>
 
 <on_complete>
 agentdb write-end '{"skill":"debug","bug":"<description>","root_cause":"<what_broke>","fix":"<what_fixed>","test":"<regression_test_name>","learned":"<pattern_for_future>"}'

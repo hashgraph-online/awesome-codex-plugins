@@ -1,6 +1,6 @@
 ---
 name: implement
-description: 'Implement authorized work and repair understood defects; return derived subject identity and check facts. Triggers: "implement", "implement this bead", "run the experiment". Full plan-to-validation requests route to rpi.'
+description: 'Implement accepted behavior, repair defects or execute a selected wave with per-lane evidence. Use when: coding is authorized and ready; return facts, not a binding verdict.'
 ---
 # Implement
 
@@ -18,7 +18,9 @@ owns source changes and factual checks; the runtime derives identity and receipt
    stay explicit; do not invent parentage or a second tracker. The optional
    [session association reference](../cass/references/SESSION_FORMATS.md#work-to-session-associations)
    supplies mechanics for that selected workflow.
-2. Find nearby validation scripts and tests that consume the edited paths or
+2. Carry the accepted behavior examples forward unchanged. Use repository
+   domain names in symbols and tests; check observable outcomes through the
+   relevant interface. Find nearby validation scripts and tests that consume the edited paths or
    contract wording. Keep their exact commands and the required integration
    recipe in one short check list in the existing handoff; reuse it, updating
    only when inputs or scope change. Run the smallest applicable check before
@@ -58,6 +60,34 @@ owns source changes and factual checks; the runtime derives identity and receipt
    at their source; do not copy them into another inventory or status document.
    Missing or truncated evidence stays explicit.
 
+## Diagnosis, scaffolding and delegated work
+
+For an unexplained failure, first match the reported symptom and reduce the
+reproduction. State one causal prediction, test it with a discriminating check,
+and repair the cause supported by the result. Rerun the original scenario.
+Do not keep collecting hypotheses after the cause is understood. This compact
+diagnosis path is informed by
+[Matt Pocock's engineering skills](https://github.com/mattpocock/skills).
+
+When scaffolding is the requested change, start from the repository's existing
+layout and a working vertical slice. See [scaffold references](references/scaffold/agent-facing-tool-scaffolds.md)
+only for the relevant tool shape. Avoid placeholder success paths and a new
+framework for a one-off operation.
+
+Prefer current-session execution. If delegation is authorized and useful,
+partition independent writes in isolated workspaces; shared generators and
+integration serialize. Supply each lane its intent, acceptance and scope, then
+integrate its exact content and check facts. A selected wave ends with the
+caller-requested wave result; do not invent another wave. One fresh review of
+the integrated candidate can cover unjudged increments. Preserve any separately
+required lane judgments; a successful process exit is not semantic PASS.
+[Agent Native](../agent-native/SKILL.md) supplies optional dispatch mechanics.
+
+An explicitly requested one-shot adapter dispatches each supplied operation
+once, reports its output or error, and stops. Show dispatch count and failure
+reporting with a dry-run or fixture. It does not silently acquire a scheduler,
+retry controller or store. Factories require the caller's selection.
+
 ## Scope and finish
 
 Report an uncovered live consumer as `file:line` for a caller scope amendment;
@@ -72,3 +102,6 @@ Return facts, not semantic PASS. An implement-only handoff does not authorize
 Git, tracker or delivery transitions; existing caller authority remains usable.
 A full outcome request uses RPI through fresh final judgment. Success is working
 behavior with usable evidence, not volume of logs or process artifacts.
+
+[Generic scaffold examples](references/scaffold/generic-templates.md) are
+optional starting points when the repository has no suitable existing pattern.

@@ -2,6 +2,6 @@
   "generator": "codex-sync",
   "source_skill": "skills/reverse-engineer",
   "layout": "modular",
-  "source_hash": "13f02c911897f447a199d4e162f7fcb3dbab753eb72edf3d0afe00d13002e848",
-  "generated_hash": "7963b820bea031918a42b6f4ff570fa0df708bb2a2d06f2feeadb6c9a9d85470"
+  "source_hash": "39ed7c7f7143865a969884a8e012a2e1f0442e7ace232086b5c3df86cdcc8dae",
+  "generated_hash": "9c7a338eba1036e2685a28133dbba1299da680823ecae5d9b2b8b81b16a8d0cf"
 }

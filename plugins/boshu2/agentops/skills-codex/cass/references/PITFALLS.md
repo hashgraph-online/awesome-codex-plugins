@@ -25,7 +25,7 @@
 | Exit code 2 | Special characters in query | Quote query or use nearby anchor |
 | Broken pipe on export | Piping large output | Export to file first with `-o` |
 | Tool calls hidden | Missing flag | Add `--include-tools` to export |
-| Stale results | Index needs refresh | Run `cass index --json` |
+| Stale results | Newer records may be missing | Search usable state now; refresh only if needed and authorized, with a time cap |
 | jq returns null | Wrong field name | Use `jq 'keys'` to check structure |
 | Can see in file, cass finds nothing | Content not indexed | Fallback to `rg` on raw file |
 
@@ -37,8 +37,10 @@
 
 ```bash
 cass status --json              # Check state
-cass index --json               # Incremental refresh (try first)
-cass index --full --json        # Full rebuild (if still stale)
+# Search stale-but-usable state now; record its freshness.
+# Optional only when needed and authorized:
+timeout 600 cass index --json
+# Persistent staleness alone does not justify a full rebuild.
 ```
 
 ### Index Shows 0 Conversations

@@ -1,128 +1,66 @@
 # Agent Guard
 
-Agent Guard is a local-by-default, no-telemetry secret-leak guardrail for AI
-coding agents. Its hooks inspect supported tool-call inputs and outputs in every
-enabled session, block common credential exposure paths before execution, mask
-secret-like output, and scan changed files after mutations and before stop.
+Agent Guard is a local-first secret-leak guardrail for Claude Code and Codex.
+In every enabled session, its hooks inspect supported tool inputs and outputs,
+block common credential exposure paths before execution, mask secret-like output,
+and scan changed files after mutations and before stop.
 
-It is a defense-in-depth control, not a vault, DLP system, credential rotator,
-or replacement for GitHub Secret Scanning and Push Protection.
+It is defense in depth, not a vault, DLP system, credential rotator, or
+replacement for GitHub Secret Scanning and Push Protection.
 
-## Install in Claude Code
+## Setup
 
-```text
-/plugin marketplace add JeongJaeSoon/agent-guard
-/plugin install agent-guard@agent-guard
-/reload-plugins
-```
-
-After installation, SessionStart reports `DEGRADED` protection whenever `jq`,
-`git`, gitleaks, or a bundled policy is unavailable. The warning names the
-host-appropriate skill: `$setup-agent-guard` in Codex or
-`/agent-guard:setup-agent-guard` in Claude Code. You can also run the
-plugin-local `agent-guard setup` directly. Dependency installation always
-requires explicit approval. Then verify:
+After installing the plugin, run the host setup skill:
 
 ```text
-/agent-guard:verify
+# Claude Code
+/agent-guard:setup-agent-guard
+
+# Codex
+$setup-agent-guard
 ```
 
-Optional Claude shell command wrapping requires an explicit shell-rc change:
+The guided flow diagnoses dependencies, runs `check` and `smoke-test`, and asks
+before downloading software. Lifecycle hooks never run an installation on their
+own. Setup proves local dependencies and deterministic behavior; finish the
+harmless live probes in the public [verification guide](https://github.com/JeongJaeSoon/agent-guard/blob/main/docs/verification.md)
+to establish that the current host route dispatches hooks.
+
+For Claude Code’s optional shell-output protection, run:
 
 ```text
 /agent-guard:setup-shell
 ```
 
-The slash command uses Claude's Bash tool so a sandboxed session can request
-approval before changing the shell rc. If the host cannot grant that approval,
-run the plugin-local `agent-guard setup-shell` command directly in a terminal.
-Restart the shell and Claude Code after setup. Dependency downloads never run
-from a lifecycle hook. Until wrapping is loaded, SessionStart repeats the
-`/agent-guard:setup-shell` instruction. The guided setup path asks before
-installing software and requires the published SHA-256 for the selected
-gitleaks archive.
+This explicitly updates the shell rc. Restart the shell and agent session after
+it succeeds.
 
-Plugin executions maintain a version-independent sibling path at
-`current/bin/agent-guard`; hook manifests and `setup-shell` use it. A healthy
-`current` remains authoritative over merely cached higher versions. If it is
-missing or invalid, the shell resolver can recover only through the newest
-complete semantic-version sibling whose embedded version agrees; it does not
-infer host plugin-registry selection. Existing managed rc blocks embed the
-resolver, so rerun the plugin-local `agent-guard setup-shell` after a resolver
-upgrade (preserving `--no-command-wrapping` when selected), then start a new
-shell and restart Claude Code. Scanner
-infrastructure failures use `AGENT_GUARD_INFRA_FAILURE_MODE=open|closed`
-(`open` by default) and warn once per session. Secret detections always block.
+## Coverage and limits
 
-## Hooks and data scope
+Claude Code supports the plugin’s matched tool inputs and outputs. Codex matches
+the currently supported hook surfaces (`Bash`, `apply_patch`, `Agent`, `Task`,
+and MCP tools); it does not claim arbitrary read/search/web interception. Both
+hosts require hooks to be enabled and trusted. Re-test the exact route after a
+plugin update or when a tool is wrapped by orchestration.
 
-The Claude plugin registers:
+`apply_patch` additions are scanned before execution. Structured write targets
+also receive a direct post-write scan; patch envelopes do not reliably provide a
+target path. Git and CI remain the backstops for repository-wide coverage.
 
-- `UserPromptSubmit` to inspect the submitted prompt for secret-like values
-  (and opt-in PII) before it reaches the model or the transcript.
-- `PreToolUse` for supported read, search, write, shell, web, patch, and MCP
-  tools. It inspects paths and proposed tool input before execution.
-- `PostToolUse` for supported tools. It scans output for secret-like values and,
-  after mutations, scans changed files in the current Git work tree.
-- `Stop` to scan changed files in the current Git work tree.
-- `SessionStart` to report missing dependencies and, on Claude Code,
-  shell-integration version drift. It never installs software.
+Scanner infrastructure has an explicit policy: `open` warns and continues by
+default; `closed` refuses the action. Secret detections block. A degraded scan
+is never evidence of a clean result.
 
-Recognized checksum fields in `go.sum`, `package-lock.json`, `yarn.lock`,
-`Cargo.lock`, and `uv.lock` are allowlisted only when both their path and exact
-hash-line shape match. Other content in those files remains subject to normal
-secret detection. Output masking likewise replaces assignment values, not
-secret-like key names or surrounding prose.
+Default processing is local and ephemeral. PII hook handling is off by default;
+endpoint-backed PII processing is opt-in. Read the packaged [privacy policy](PRIVACY.md)
+before enabling it.
 
-Environment templates are readable only with an explicit final
-`.example`/`.sample`/`.template`/`.dist` marker, or a leading
-`example`/`sample`/`template` marker directly before `.env` or `.envrc`.
-Runtime forms such as `.env.local`, `local.env`, `env.local`, `.flaskenv`, and
-`.dev.vars.production` remain blocked. Source modules such as `config.env.ts`
-stay readable, while environment data forms such as `schema.env.json` remain
-protected. A template name cannot override a non-environment deny rule, a
-deny-listed ancestor, or an operator-supplied `AGENT_GUARD_DENY_READ_PATHS`
-policy, and template-named symlinks are checked against their resolved target.
-Template contents still undergo normal secret scanning on writes.
+## Documentation and support
 
-Default processing is local, ephemeral, and has no telemetry. PII hook handling
-is off by default. Explicitly selecting the experimental `http` adapter or the
-`pleno` provider sends the text described in [PRIVACY.md](PRIVACY.md) to the
-user-configured endpoint. The generic `http` adapter does not guarantee
-compatibility with any specific service; `pleno` is verified only against the
-pleno-anonymize `/api/redact` contract at upstream commit
-`ba3a14bc125fd6c6eb80aa5b24c22f6b99801126`.
-
-## Requirements and platforms
-
-Supported platforms are macOS and Linux on x64 and arm64. Windows is not
-currently supported. Runtime requirements are `sh`, `awk`, `git`, `jq`, and
-gitleaks 8.30 or newer (recommended).
-
-## Commands
-
-- `/agent-guard:verify` — scan staged, unstaged, and untracked work-tree data.
-- `/agent-guard:checksum [VERSION]` — print published gitleaks checksums.
-
-## Skills
-
-- `/agent-guard:setup-agent-guard` — resolve the plugin-local binary, diagnose
-  `jq`/gitleaks, and guide approved installation. Codex invokes the same skill
-  as `$setup-agent-guard`; the skill selects the correct host verification path
-  and runs live probes through that host's normal command surface.
-- `/agent-guard:setup-shell` — install or refresh the optional shell integration
-  through the plugin-local binary with approval before changing the shell rc.
-  Codex invokes the same skill as `$setup-shell`.
-
-## Policies and support
-
-- [Privacy and data handling](PRIVACY.md)
-- [Security reporting](SECURITY.md)
-- [Support and platform policy](SUPPORT.md)
-- [License](LICENSE)
-- [Third-party notices](THIRD_PARTY_NOTICES.md)
-- [Full documentation](https://github.com/JeongJaeSoon/agent-guard#readme)
-- [Verification and troubleshooting](https://github.com/JeongJaeSoon/agent-guard#verification-and-troubleshooting)
-- [Managed deployment](https://github.com/JeongJaeSoon/agent-guard#managed-deployment)
-- [Upgrading older installations](https://github.com/JeongJaeSoon/agent-guard#upgrading-older-installations)
-- [Known limitations](https://github.com/JeongJaeSoon/agent-guard#known-limitations)
+- [Installation](https://github.com/JeongJaeSoon/agent-guard/blob/main/docs/installation.md)
+- [Integrations and known limits](https://github.com/JeongJaeSoon/agent-guard/blob/main/docs/integrations.md)
+- [Verification](https://github.com/JeongJaeSoon/agent-guard/blob/main/docs/verification.md)
+- [Configuration](https://github.com/JeongJaeSoon/agent-guard/blob/main/docs/configuration.md)
+- [Operations](https://github.com/JeongJaeSoon/agent-guard/blob/main/docs/operations.md)
+- [Privacy](PRIVACY.md), [Security](SECURITY.md), [Support](SUPPORT.md), and
+  [third-party notices](THIRD_PARTY_NOTICES.md)

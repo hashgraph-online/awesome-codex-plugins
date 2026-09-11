@@ -1,6 +1,6 @@
 {
   "name": "centricmem-skill",
-  "version": "0.21.48",
+  "version": "0.21.51",
   "private": true,
   "description": "CentricMem agent skill for the hosted librarian. Install with npx skills add zeyu-j/centricmem-skill --skill centricmem-agent -y",
   "license": "PolyForm-Noncommercial-1.0.0",

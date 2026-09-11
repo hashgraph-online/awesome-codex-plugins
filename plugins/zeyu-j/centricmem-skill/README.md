@@ -11,7 +11,7 @@ This repository is **one package**: [Agent Skills](https://agentskills.io) `SKIL
 Paste this to the agent (one line):
 
 ```
-Install CentricMem from zeyu-j/centricmem-skill. If CLI is blocked, send https://centricmem.com/login?signup=1 — never paste keys.
+Install CentricMem from zeyu-j/centricmem-skill. After install, send https://centricmem.com/login?signup=1 and a /connect?device= link. Tell them the key appears only once — save a backup; never paste keys.
 ```
 
 If the shell works, a terminal in the project can run:
@@ -34,13 +34,14 @@ Same GitHub repo as a plugin marketplace:
 | Codex | `codex plugin marketplace add https://github.com/zeyu-j/centricmem-skill.git` then install **centricmem-skill** in Plugins |
 | Copilot CLI | `copilot plugin marketplace add zeyu-j/centricmem-skill` then `copilot plugin install centricmem-skill` |
 | Kiro | Powers → Add Custom Power → GitHub `https://github.com/zeyu-j/centricmem-skill` |
-| Grok Bot | Paste the one-liner. If CLI is blocked, add `https://mem.centricmem.com/mcp` in that bot’s MCP settings (key from Keys, never in chat). |
+| Hermes | Paste the one-liner. After install, send signup **and** a `/connect?device=` URL (POST `https://mem.centricmem.com/connect/device`; keep the secret off chat). Tell them to save a backup — the key appears only once. Enter the key on that page. Writes `~/.hermes/config.yaml`. |
+| Grok Bot | Paste the one-liner. Shell is blocked, so send signup only; add `https://mem.centricmem.com/mcp` in that bot’s MCP settings (key from Keys, never in chat). |
 | SkillKit | `skillkit add https://centricmem.com` or `skillkit add zeyu-j/centricmem-skill` |
 | skills.sh / SkillMD | `npx skills add` above, or `skillmd add zeyu-j/centricmem-skill` |
 
-Then keep talking. After install, if `cm_*` tools are missing the agent sends signup or a `/connect?device=` link. You do not paste chats, tokens, or CLI.
+Then keep talking. After install, if `cm_*` tools are missing the agent sends signup **and** a `/connect?device=` link, and tells you to save a backup of the key (it appears only once). You do not paste chats, tokens, or CLI.
 
-Hosted librarian: [centricmem.com](https://centricmem.com). Sign up is open. Host MCP: `https://mem.centricmem.com/mcp`. CLI agents send a `/connect?device=` link. Agents that cannot run a CLI send https://centricmem.com/login?signup=1 and the human adds MCP in that agent’s settings. Never paste keys in chat.
+Hosted librarian: [centricmem.com](https://centricmem.com). Sign up is open. Host MCP: `https://mem.centricmem.com/mcp`. After install, if `cm_*` are missing the agent sends https://centricmem.com/login?signup=1 and a `/connect?device=` URL, and tells you to save a backup — Keys shows the secret only once. Never paste keys in chat.
 
 ## How you use it
 

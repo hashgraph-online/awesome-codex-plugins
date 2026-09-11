@@ -1,6 +1,6 @@
 # ms
 
-meta_skill (ms) — the skill-search/load engine over both corpora (agentops + jsm). Find a skill for a task, search skills, or load runnable skill guidance. Triggers: "ms", "meta_skill", "skill search", "find a skill for", "load skill guidance".
+Find and load guidance with the meta_skill search engine. Use when: searching a skill corpus; CASS owns past sessions and Skill Builder owns package authoring.
 
 ## Instructions
 

@@ -4,9 +4,10 @@ A **forcing defect** is a flaw planted in a realistic work artifact that the
 skill's discipline catches and a skim does not. The probe grades whether the
 agent *acted* on it.
 
-## The calibration window
+## Diagnostic calibration
 
-A defect is useful only inside a narrow band:
+A seeded probe can help diagnose headroom. These are possible observations,
+not requirements for accepting or retaining a case:
 
 ```
 too obvious          USABLE WINDOW           too obscure
@@ -16,8 +17,9 @@ too obvious          USABLE WINDOW           too obscure
  (ceiling)                                     (floor)
 ```
 
-Both failure modes produce the same useless verdict, so calibrate before
-spending live reps. The check: **can the defect be derived from the discipline
+Ceiling and floor observations limit the question a probe can answer. Calibrate
+the discriminator on known transcripts before spending live reps. The check:
+**can the defect be derived from the discipline
 alone?** If catching it needs domain trivia the skill never taught, it is below
 the window. If catching it needs nothing but reading the first paragraph, it is
 above.
@@ -78,22 +80,27 @@ green reading. Use as a **modifier** on shapes 1–3, never alone.
    plausibly write. Implausible defects get caught by implausibility, not by the
    discipline.
 
-## Calibration procedure
+## Optional live development calibration
 
-Before any live run:
+Use live calibration only inside an already accepted trial/time envelope. It
+is development data, counts against the total cap, and does not become a hidden
+holdout. Predeclare its stop; do not keep reseeding until treatment wins.
 
 1. Draft the artifact with the defect.
-2. Run the **control arm only**, 2 reps, at the highest effort you plan to use.
-3. If the control arm catches it in **2/2** — above the window. Re-seed using a
-   stronger shape (move from 3 → 2 → 1) or bury it deeper.
+2. If needed for the decision, run a bounded control sample at the deployed
+   model and selected effort. Two reps can diagnose a scenario, not prove a rate.
+3. If the control catches it in every sampled rep, record the observed ceiling.
+   Keep it as an easy regression/cost control when relevant. A new development
+   variant is a separate version, not permission to erase an unfavorable case.
 4. If the control arm catches it in **0/2**, hand the same artifact to the
    treatment arm. If treatment is also 0/2 — below the window. The defect is not
-   derivable from the discipline; that is a defect in the *skill*, and it is a
-   real finding worth recording.
-5. Control at 0–1 of 2 with treatment at 2/2 is the window. Proceed to the full
-   run.
+   showing a positive signal in this sample. Check the discriminator and record
+   the floor; do not infer a general defect in the skill from two misses.
+5. Report the observed results whether positive, null or adverse. Freeze the
+   chosen development cases before any separately authorized comparison.
 
-Calibration costs 2 reps and saves a full run's spend on an unusable scenario.
+Count all calibration starts, including failures and treatment calibration;
+calibration does not always cost only two reps or guarantee useful separation.
 
 ## Worked shape (illustrative)
 
