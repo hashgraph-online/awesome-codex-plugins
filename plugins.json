@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-09-11",
-  "total": 221,
+  "total": 222,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -1048,6 +1048,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/f0d010c/stark/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Stop That Shit",
+      "url": "https://github.com/lennney/stop-that-shit",
+      "owner": "lennney",
+      "repo": "stop-that-shit",
+      "description": "Local-first scope guard for Codex with explicit task modes, before-action checks, and bounded dependency, hash, and subagent decisions.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/lennney/stop-that-shit/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Superloopy",

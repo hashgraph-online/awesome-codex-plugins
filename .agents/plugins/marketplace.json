@@ -1545,6 +1545,21 @@
       "description": "UI/UX design plugin for AI coding agents with product-flow routing, platform-native interface guidance, asset planning, and shipped-reference analysis before code."
     },
     {
+      "name": "stop-that-shit",
+      "displayName": "Stop That Shit",
+      "source": {
+        "source": "local",
+        "path": "./plugins/lennney/stop-that-shit"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Local-first scope guard for Codex with explicit task modes, before-action checks, and bounded dependency, hash, and subagent decisions.",
+      "icon": "./plugins/lennney/stop-that-shit/assets/stop-icon.svg"
+    },
+    {
       "name": "superloopy",
       "displayName": "Superloopy",
       "source": {
