@@ -228,6 +228,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [Maestro](https://github.com/mbanderas/maestro) - Opt-in local multi-CLI fusion engine and orchestration doctrine that fans a prompt across model CLIs, then judges and synthesizes one grounded answer.
 - [Magents](https://github.com/abnegate/magents) - Shared session bus MCP + skill so Codex can list, read, hand off, send, and spawn with Claude, Cursor, Grok, and friends without pasting context.
 - [MailAgent](https://github.com/Alex0nder/MailAgent) - Temporary inboxes for Codex — OTP, magic links, signup QA, simulate-first autotests (23 MCP tools).
+- [Maintainer Mode](https://github.com/jacobbabula/maintainer-mode) - Evidence gates for AI-generated pull requests that catch stale issues, overlapping work, and unsupported test claims.
 - [Markdown Reader](https://github.com/JoseEstevez520/mcp-md-reader) - Navigate Markdown structure and retrieve only the relevant section through a portable Codex MCP plugin.
 - [memi](https://github.com/sarveshsea/memi) - Interface understanding and design-system memory for Codex, Claude Code, Cursor, and MCP agents with UI audits, Tailwind token extraction, shadcn registry workflows, and a bundled Codex plugin.
 - [ML Pipeline](https://github.com/jananthan30/ml-pipeline) - Enforces a strict 16-step data-first ML workflow — data inspection, EDA, and problem definition before any model training — with explicit user-permission gates, marimo notebooks, and matplotlib figures at every step; also works in Claude Code and Kimi.
