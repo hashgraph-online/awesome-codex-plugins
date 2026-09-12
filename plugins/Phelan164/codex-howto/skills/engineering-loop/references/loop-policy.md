@@ -17,8 +17,9 @@ Human-gate triggers:
 ```
 
 Prefer a machine-decidable success predicate such as a test, evaluator, build,
-or observable behavior. Keep subjective product, design, security, and risk
-decisions human-gated rather than converting them into a weak automated proxy.
+or observable behavior. Use stated requirements for subjective judgments;
+request a human decision when a material tradeoff remains unresolved. Do not
+substitute a weak automated proxy for required review or acceptance.
 
 ## Plan, build, judge
 
@@ -51,8 +52,9 @@ before the final accepted judge unless the task explicitly requires it.
 - Stop when an explicit iteration, retry, time, token, or cost budget is
   exhausted. Report the last judge result and the smallest evidence-producing
   next action.
-- Pause at a human gate before expanding scope, changing a public contract,
-  accessing an external system, or taking an irreversible action.
+- Honor explicit human gates. Before expanding scope, changing a public
+  contract, accessing an external system, or taking an irreversible action,
+  check existing authorization and obtain only the authority still missing.
 
 ## Resumable checkpoint
 

@@ -1,6 +1,6 @@
 ---
 name: premortem
-description: Optionally challenge a frozen plan with one
+description: 'Challenge a rollout plan with one fresh judge before implementation; identify what could make it fail. Not for finished-code judgment. Triggers: "one judge", "challenge this plan".'
 ---
 # Premortem
 
@@ -8,7 +8,7 @@ Premortem is an optional plan-challenge strategy. It asks one fresh context to
 identify concrete ways the resolved bead or caller intent could fail before implementation.
 It is not part of the required RPI sequence and does not authorize readiness.
 
-## The first check: who verifies, and are they fresh? (MEASURED)
+## The first check: who verifies, and are they fresh?
 
 Before any technical risk, test the plan's EVIDENCE SHAPE: for every unit of
 work, who verifies it, and is the verifying context distinct from the
@@ -20,13 +20,44 @@ because it silently converts every other failure into a shipped one.
 > Measured 2026-08-04, probe `premortem-self-validation` (gpt-5.6-luna, N=2,
 > directional): without this doctrine loaded the producer named the planted
 > self-validation flaw in 1/2 runs; with it loaded, 2/2. Ledger:
-> `evals/skill-probes/LEDGER.md`.
+> `evals/skill-probes/LEDGER.md`. That row is `LEGACY-UNVERIFIED` under the
+> current capture contract — replay cannot establish producer, configuration,
+> or reproducibility — so treat this skill as unmeasured until a tier-2 probe
+> under the current contract re-establishes it.
+
+## The second check: which steps are one-way doors?
+
+After evidence shape, test the plan's REVERSIBILITY SHAPE. Walk the plan's steps
+and mark each one two-way (the plan can back out of it) or one-way (it cannot).
+For every one-way step, name three things: the exact undo cost, the point of no
+return, and who is holding the handle when it is crossed — the caller, or an
+agent auto-deciding inside a batch.
+
+This ranks above every technical risk on a one-way step, because a two-way
+failure costs a retry and a one-way failure costs the thing itself. It also
+catches the plan shape that no single-step review sees: nineteen reversible steps
+followed by an irreversible one, where the reflex trained by the first nineteen
+answers the twentieth.
+
+A material irreversible action outside existing caller authority is a finding.
+Trace actual undo cost and authorization using [Plan](../plan/SKILL.md). Prior
+authorization remains valid; do not demand repeated approval at the crossing
+or classify every uncertain implementation detail as irreversible.
+
+The named failure mode here is **reversibility asserted, not traced**: a plan
+that says "fully reversible" in its rollback section while one step revokes a
+credential, force-pushes, or publishes. Stop condition: every step carries a
+mark, and every one-way mark carries its undo cost.
 
 ## Workflow
 
 1. Resolve the existing intent source and derive its digest; inspect acceptance,
    non-goals, evidence requirements, and declared write scope there.
-2. Use one fresh judge with a context ID distinct from the plan author.
+2. Use one fresh judge with a context ID distinct from the plan author, in the
+   author's model family by default (Codex or Claude). A caller may explicitly
+   select a different-family judge. Follow
+   [model-dispatch](../agent-native/references/model-dispatch.md) for model pins,
+   authorization and caller/native time bounds; no fixed ten-minute cap applies.
 3. Test acceptance completeness, edge behavior, scope, dependencies,
    reversibility, and evidence shape against cited repository facts.
 4. Return one complete set of concrete findings and checked/not-checked scope.
@@ -75,6 +106,29 @@ Two questions the challenger answers with an artifact, not an opinion:
 These are integration- and extension-class checks. The Grain question's
 native-counterpart list applies only to integration-class work; do not impose it
 on routine feature work.
+
+## Prompt
+
+```text
+Premortem this plan before I implement: bead ag-4f21 proposes rewriting
+`scripts/regen-all.sh` to call `ao gate check` instead of shelling out to
+the Python generators, touching cli/internal/gates/regen.go. Plan and
+acceptance are in the bead. Find concrete ways it fails.
+```
+
+## It's working if
+
+Observable in the trace, without reading the prose — and the rubric a fresh
+independent judge scores this skill against:
+
+- Every unit of work carries a named verifier, and any unit verified by the
+  context that authored it comes back as a finding.
+- Every step carries a two-way or one-way mark, and each one-way mark names its
+  undo cost and its point of no return.
+- Every reported finding cites a defeat attempt — the input, command, or
+  repository state constructed — or the fact that blocked the construction.
+- The finding set is bounded: a review that flags every step has reported
+  nothing.
 
 ## Boundary
 

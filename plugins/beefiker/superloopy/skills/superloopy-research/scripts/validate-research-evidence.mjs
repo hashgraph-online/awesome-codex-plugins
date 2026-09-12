@@ -6,19 +6,7 @@ import { readdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
-const LEDGER_COLUMNS = [
-  "id",
-  "claim",
-  "risk",
-  "cost",
-  "observations",
-  "counter",
-  "primary",
-  "observed",
-  "as-of",
-  "depends-on",
-  "status"
-];
+const LEDGER_COLUMNS = ["id", "claim", "risk", "cost", "observations", "counter", "primary", "observed", "as-of", "depends-on", "status"];
 const STATUSES = new Set(["verified", "unresolved", "refuted", "deferred"]);
 const RISKS = new Set(["high", "normal"]);
 // Closed labels make “two independent surfaces” checkable instead of relabelling one observation.
@@ -140,10 +128,16 @@ export function parseTable(text, options) {
   const missing = options.columns.filter((column) => !header.includes(column));
   if (missing.length > 0) problems.push(`${options.label} header missing columns: ${missing.join(", ")}.`);
 
+  // Markdown renders a table only when a separator row follows the header; without one every
+  // preview shows the ledger as running text (issue #50), so its absence is structural damage too.
+  const separator = cells(tableLines[headerIndex + 1] ?? "");
+  if (!isSeparatorRow(separator)) problems.push(`${options.label} header has no markdown separator row (\`| --- | ... |\`) beneath it.`);
+  else if (separator.length !== header.length) problems.push(`${options.label} separator row has ${separator.length} cells, header has ${header.length}.`);
+
   const seen = new Set();
   for (const line of tableLines.slice(headerIndex + 1)) {
     const values = cells(line);
-    if (values.length === 0 || values.every((value) => /^:?-{1,}:?$/u.test(value))) continue;
+    if (values.length === 0 || isSeparatorRow(values)) continue;
     if (values.length !== header.length) {
       problems.push(`${options.label} row has ${values.length} cells, header has ${header.length}: ${values[0] ?? line}`);
       continue;
@@ -509,6 +503,10 @@ function cells(line) {
     .replace(/\|$/u, "")
     .split("|")
     .map((cell) => cell.trim());
+}
+
+function isSeparatorRow(values) {
+  return values.length > 0 && values.every((value) => /^:?-{1,}:?$/u.test(value));
 }
 
 function isBlank(value) {

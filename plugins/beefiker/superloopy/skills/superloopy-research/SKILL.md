@@ -124,6 +124,7 @@ Keep them in `expected-truths.md`, one row per expectation, in the columns the v
 
 ```text
 | id | expected | source | observed | status | claim |
+| --- | --- | --- | --- | --- | --- |
 | T1 | <what must be true> | <where the intent says so> | <what reality showed> | violated | C1 |
 ```
 
@@ -185,6 +186,7 @@ A source leaves the run only when the ladder is exhausted or a terminal reason m
 
 ```text
 | url | tiers | reason | substitute | status |
+| --- | --- | --- | --- | --- |
 | https://x.example/spec | api, plain, tls, headless | bot challenge survived every tier | https://mirror.example/spec | substituted |
 | https://y.example/pricing | api | auth-required: behind a customer login | none | gap |
 ```
@@ -248,6 +250,7 @@ Anything that fails goes to an `Unresolved` (insufficient evidence) or `Refuted`
 
 ```text
 | id | claim | risk | cost | observations | counter | primary | observed | as-of | depends-on | status |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | C1 | <assertion> | high | <cost of being wrong> | api: <url> · rendered: <url> | <counter-search result> | <primary source> | 2026-07-29 | 2026-06-01 | none | verified |
 ```
 

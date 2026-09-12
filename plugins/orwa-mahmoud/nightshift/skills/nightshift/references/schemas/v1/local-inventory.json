@@ -1,0 +1,181 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/orwa-mahmoud/nightshift/main/plugins/nightshift/skills/nightshift/references/schemas/v1/local-inventory.json",
+  "title": "Nightshift SEO local inventory evidence",
+  "description": "Dependency-free page inventory from a static site tree, supplied routes, or local build output. Wave 1 schema; runtime helper is planned.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "evidenceMode",
+    "siteRoot",
+    "inventory",
+    "templateClusters",
+    "orphanCandidates",
+    "intentMap",
+    "notMeasured"
+  ],
+  "properties": {
+    "schemaVersion": { "type": "integer", "enum": [1] },
+    "kind": { "type": "string", "enum": ["local-inventory"] },
+    "evidenceMode": { "type": "string", "enum": ["local"] },
+    "siteRoot": { "type": "string", "minLength": 1 },
+    "generatedAt": { "type": "string" },
+    "inventory": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "locator", "route"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "locator": { "type": "string", "minLength": 1 },
+          "route": { "type": "string", "minLength": 1 },
+          "title": { "type": ["string", "null"] },
+          "canonical": { "type": ["string", "null"] },
+          "robotsMeta": { "type": ["string", "null"] },
+          "headings": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "internalLinksOut": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "internalLinksIn": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "structuredDataTypes": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "templateId": { "type": ["string", "null"] },
+          "wordCount": { "type": ["integer", "null"], "minimum": 0 },
+          "language": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "templateClusters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "label", "pageIds"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "label": { "type": "string", "minLength": 1 },
+          "pageIds": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "string" }
+          },
+          "sharedSignals": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "duplicateRisk": { "type": "string", "enum": ["none", "low", "medium", "high"] }
+        }
+      }
+    },
+    "orphanCandidates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["pageId", "reason"],
+        "properties": {
+          "pageId": { "type": "string", "minLength": 1 },
+          "reason": { "type": "string", "minLength": 1 },
+          "inboundInternalLinks": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "intentMap": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["intent", "pageIds"],
+        "properties": {
+          "intent": { "type": "string", "minLength": 1 },
+          "pageIds": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "coverage": {
+            "type": "string",
+            "enum": ["served", "partial", "gap", "cannibalized"]
+          },
+          "notes": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "cannibalizationCandidates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["intent", "pageIds", "reason"],
+        "properties": {
+          "intent": { "type": "string", "minLength": 1 },
+          "pageIds": {
+            "type": "array",
+            "minItems": 2,
+            "items": { "type": "string" }
+          },
+          "reason": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "contentGaps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["intent", "reason"],
+        "properties": {
+          "intent": { "type": "string", "minLength": 1 },
+          "reason": { "type": "string", "minLength": 1 },
+          "suggestedRoute": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "notMeasured": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["surface", "reason"],
+        "properties": {
+          "surface": {
+            "type": "string",
+            "enum": [
+              "live-crawl",
+              "production-rendering",
+              "backlinks",
+              "search-console",
+              "analytics",
+              "field-performance",
+              "lab-performance",
+              "rankings"
+            ]
+          },
+          "reason": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "renderedBuildOutput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "available": { "type": "boolean" },
+        "path": { "type": ["string", "null"] },
+        "notes": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

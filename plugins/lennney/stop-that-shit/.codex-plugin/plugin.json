@@ -1,0 +1,43 @@
+{
+  "name": "stop-that-shit",
+  "version": "0.2.1",
+  "description": "Keep Codex tasks bounded and reduce defensive wording with local-first guardrails and two Skills.",
+  "author": {
+    "name": "Stop That Shit contributors",
+    "url": "https://github.com/lennney"
+  },
+  "homepage": "https://github.com/lennney/stop-that-shit",
+  "repository": "https://github.com/lennney/stop-that-shit",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "scope-control",
+    "overengineering",
+    "guardrail"
+  ],
+  "skills": "./skills/",
+  "hooks": "./hooks/codex-hooks.json",
+  "interface": {
+    "displayName": "Stop That Shit（别再造史了）",
+    "shortDescription": "Bound agent work and reduce defensive writing.",
+    "longDescription": "Stop That Shit runs locally. Its Guard blocks covered unneeded actions, and its optional STSS Skill reduces defensive wording in decision-facing text.",
+    "developerName": "Stop That Shit contributors",
+    "category": "Productivity",
+    "capabilities": [
+      "Local",
+      "Guardrail"
+    ],
+    "websiteURL": "https://github.com/lennney/stop-that-shit",
+    "privacyPolicyURL": "https://github.com/lennney/stop-that-shit/blob/main/PRIVACY.md",
+    "termsOfServiceURL": "https://github.com/lennney/stop-that-shit/blob/main/LICENSE",
+    "brandColor": "#D92D20",
+    "composerIcon": "./assets/stop-icon.svg",
+    "logo": "./assets/stop-icon.svg",
+    "defaultPrompt": [
+      "$stop-that-shit review -- Review this diff. Report findings; do not edit.",
+      "$stop-that-shit change -- Fix the failing test only.",
+      "$stop-that-shit lock change agents=0 -- Make the requested change without delegation.",
+      "$stss rewrite -- Make this proposal direct."
+    ]
+  }
+}

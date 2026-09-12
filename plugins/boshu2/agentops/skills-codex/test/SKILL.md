@@ -1,216 +1,111 @@
 ---
 name: test
-description: Generate tests and coverage plans.
+description: 'Write behavioral tests, practice TDD or inspect important coverage gaps. Use when: test design or missing proof needs work; running an existing suite needs no skill.'
 ---
-# Test Skill
+# Test
 
-Generate real tests, run them, and leave reproducible coverage or TDD evidence.
-Do not stop at a plan unless the requested mode is `strategy`.
-
-## Critical Constraints
-
-- **Why: behavior is the contract.** Derive tests from acceptance scenarios and
-  public behavior, not implementation details or coverage percentages alone.
-- **Why: prove new behavior.** In TDD mode record a real failing test before the
-  minimal implementation; a test that starts green is not RED evidence.
-- **Why: avoid false confidence.** Assert exact values, error types/messages,
-  and branch outcomes; ban zero-assertion, tautological, and padding tests.
-- **Why: keep suites trustworthy.** Tests must be deterministic, isolated, and
-  independent of timing, ordering, production services, or mutable shared state.
-- **Why: protect user intent.** Report a product bug discovered by a test; do
-  not silently change product behavior or delete existing tests without approval.
-- **Why: close with proof.** Run the narrow test after each edit, then the
-  relevant suite and coverage command before handing work downstream.
+Write or strengthen tests for a named behavior. Use existing tests directly when
+the task is only to run a known suite; this skill is not a required wrapper.
+A test is useful when it distinguishes an accepted outcome from a plausible
+failure, not merely when it executes the implementation.
 
 ## Modes
 
-| Mode | Use when | Required result |
+| Mode | Use when | Result |
 |---|---|---|
-| `generate` | writing tests for existing code | passing focused and suite tests |
-| `coverage` | finding and filling important gaps | before/after coverage plus tests |
-| `tdd` | implementing new behavior test-first | logged RED → green → refactor cycles |
-| `strategy` | designing test architecture only | inventory, risks, and recommendations |
+| `generate` | Existing behavior needs tests | Useful tests and focused/suite results |
+| `coverage` | The caller asks to find or fill gaps | Before/after coverage, valuable tests and remaining risks |
+| `tdd` | New behavior is being developed test first | Real expected RED, implementation, green and refactor |
+| `strategy` | The caller wants test design only | Prioritized risks and proposed checks in the existing discussion |
 
-Default to `generate`. Flags: `--mode`, `--scope`, `--min-coverage`, and
-`--dry-run` narrow the workflow but never weaken its evidence requirements.
+Default to `generate`; mode and scope are skill prompt choices, not invented
+CLI flags. Coverage thresholds come from the caller or repository.
+
+## Critical Constraints
+
+- Derive cases from accepted observable behavior. Reuse examples from the
+  conversation, bead, specification or existing contract before inventing new ones.
+- Preserve established domain names in test names and fixtures. Different
+  bounded contexts may use different terms; do not unify them by renaming tests.
+- Use the repository's framework and real check recipe. Keep tests isolated
+  from accidental timing, ordering and mutable shared-state dependencies.
+- A test that starts green on existing correct behavior is legitimate. Never
+  manufacture a RED claim or alter acceptance to excuse a product defect.
+- Repair a discovered defect when already authorized; otherwise report the
+  reproducer and finding. Do not mask it by deleting or weakening a test.
 
 ## Oracle-strength hierarchy
 
-Every test asserts through an oracle, and oracles are not equal. Rank them:
-
-```text
-exact value > property/invariant > differential (two implementations agree) > smoke (it ran)
-```
-
-Choose the strongest oracle the behavior admits and name the oracle-strength
-tier when a test uses anything below exact. A smoke assertion where an exact one was available
-is the **oracle downgrade** failure mode: the test runs the code but proves
-almost nothing about it. Stop condition: no acceptance scenario may be covered
-only by smoke-tier tests when a stronger oracle is practical; if only smoke is
-practical (e.g. nondeterministic external output), record why in
-`.agents/scratch/tests/summary.md` so the gap is a visible decision, not an accident.
+Prefer exact observable values or errors when known. Use properties or
+invariants when they express the contract more faithfully than one example.
+Differential agreement needs an independently credible reference. A smoke
+check proves only what it observes; it cannot establish an exact behavior by
+itself. Explain a material oracle limit in the native handoff, without creating
+a worksheet or mandatory report.
 
 ## Mutation-kill proof
 
-A new test earns trust by failing when the behavior it guards is broken. In
-`tdd` mode the recorded RED run is that proof. In other mutating modes, prove
-at least one kill per new behavioral test: mutate the covered logic (flip the
-branch, break the boundary value, or use the project's mutation tool), confirm
-the test fails, then restore. A test that stays green through its own mutation
-is the **immortal test** failure mode — delete or strengthen it before handoff;
-never count it as coverage.
+Establish that an important new behavioral check can catch the defect it claims
+to guard. An authentic pre-fix RED or reproduction is usually sufficient. If a
+regression test was written after the fix, run it against the pre-fix version
+or use a safe, targeted negative control in an isolated copy. Mutate only when
+that would resolve real doubt about the oracle, then restore and verify the
+candidate. Do not demand one mutation experiment per table row or new test.
 
 ## Harness health floors
 
-Green is only evidence when the harness can go red. Before trusting or
-reporting a green suite, confirm these floors:
-
-- The suite runs to completion — a crashed or truncated run is not a pass.
-- Zero-assertion test count did not grow with this change.
-- Skipped or excluded tests did not silently increase; new skips are named in
-  the summary with a reason.
-- At least one deliberate failure (the mutation-kill or RED run above) failed
-  through the same runner and reporting path you are about to trust.
-
-A suite that cannot demonstrate a failure is the **dead harness** failure mode:
-its green is decoration. Report a dead harness as a finding; do not build
-coverage claims on top of it.
+Confirm the runner completed, the intended tests actually ran, and assertions
+observe the promised behavior. Report crashes, truncation, unexpected skips or
+exclusions as gaps. When runner discovery or failure reporting changed, use a
+negative control through that same path before trusting green. No need to
+re-prove an unchanged healthy runner on each edit.
 
 ## Workflow
 
-### 1. Bind tests to behavior
+1. Read the accepted examples and relevant public interface. For a small change,
+   one discriminating example may suffice; add consequential error/boundary
+   cases where they could falsify acceptance. A `.feature` file is optional.
+   If the repository already uses scenario-to-test annotations, maintain them
+   and use its scenario coverage checker. Do not add a feature file just to
+   satisfy this skill.
+2. Find the owning suite, applicable repository standards and a narrow baseline.
+   Use [Domain's standards](../domain/references/standards/test-pyramid.md) only
+   if additional guidance would affect the test choice. Measure broad coverage
+   only for `coverage` mode or an existing repository requirement.
+3. Write the smallest test that observes the promised result through a stable
+   interface. In `tdd` mode run it before implementation and require the expected
+   missing-behavior failure, then implement and refactor under green. In other
+   modes use evidence appropriate to existing versus newly fixed behavior.
+4. Run the focused checks during editing, then the relevant integration recipe
+   before handoff. Broaden only for changed risk, a failure or repository policy;
+   avoid replaying the full suite after every small edit.
+5. Return test changes, literal commands and results, discovered defects and
+   material unchecked behavior. Compare against the original accepted examples.
+   New tests added after implementation may supplement but never replace them.
 
-When the caller supplies a `.feature` file with scenarios, work forward from
-each Given/When/Then. Name one covering test after the behavior, and add
-`@covered-by:<test-path>[::<TestName>]` above the scenario. Prove the mapping by
-running the coverage checker against that caller-supplied feature (not this
-skill's own spec):
+## Specialized references
 
-```bash
-bash scripts/check-scenario-coverage.sh <path-to-caller-feature> --run
-```
+Load only the guidance needed by the subject:
 
-Without scenarios, inventory public behavior, error paths, branches, and edge
-cases. Rank gaps by risk: high complexity plus low coverage first.
-
-### 2. Detect the language and baseline
-
-Stop at the first applicable project marker and consult the Standards skill for it:
-
-| Marker | Framework | Baseline command |
-|---|---|---|
-| `go.mod` | Go test | `go test -coverprofile=coverage.out ./...` |
-| `pyproject.toml`, `setup.py` | pytest | `pytest --cov --cov-report=term-missing` |
-| `package.json` | Jest/Vitest | `npx jest --coverage` or `npx vitest run --coverage` |
-| `Cargo.toml` | cargo test | `cargo tarpaulin --out Lcov` |
-
-Write raw coverage to `.agents/scratch/tests/coverage-raw.txt`, a ranked gap inventory
-to `.agents/scratch/tests/gaps.md`, and language-native machine output where available.
-
-### 3. Write the smallest valuable tests
-
-Read the target function and its callers before writing tests. Cover every
-branch and error return with exact expected results. Use descriptive test names
-and one behavioral focus per table row or parameter set.
-
-Load specialized guidance only when its trigger applies:
-
-- API, CLI, schema, or compatibility contracts: [conformance-harnesses.md](references/conformance-harnesses.md)
-- Parsers, serializers, or hostile input: [fuzzing.md](references/fuzzing.md)
-- Generated output or snapshots: [golden-artifacts.md](references/golden-artifacts.md)
-- Invariant-heavy behavior: [metamorphic-testing.md](references/metamorphic-testing.md)
-- Real databases, queues, APIs, or services: [real-service-e2e.md](references/real-service-e2e.md)
-
-For golden updates, follow [golden-artifact-strategy.md](references/golden-artifact-strategy.md)
-and review the artifact diff; regeneration alone is not acceptance.
-
-### 4. Run RED, green, and refactor checks
-
-In `tdd` mode:
-
-1. Write one behavioral test and run it; require a relevant failure.
-2. Implement only enough to pass that test.
-3. Refactor under green without changing the test contract.
-4. Run the focused test and the relevant suite after each cycle.
-5. Append the exact commands and outcomes to `.agents/scratch/tests/tdd-log.md`.
-
-In other mutating modes, run each new test immediately, then the owning package
-or module, then the relevant project suite. A failure caused by a wrong test is
-fixed in the test; a product defect is reported explicitly rather than masked.
-
-**Checkpoint:** before coverage measurement, confirm the focused test and the
-relevant suite are green and the recorded RED evidence names the intended behavior.
-
-### 5. Measure and hand off
-
-Re-run the baseline coverage command. Summarize before/after coverage, tests
-added, remaining high-risk gaps, bugs found, and exact validation commands in
-`.agents/scratch/tests/summary.md`. Supply that evidence to Validate when the test
-change accompanies a product slice or is ready for acceptance.
-
-## Language Rules
-
-- **Go:** use `<source>_test.go`, `Test<Uppercase>`, table-driven cases, and
-  exact output assertions; never `cov*_test.go` or `*_extra_test.go`.
-- **Python:** use pytest fixtures and parametrization; type test helpers.
-- **JS/TS:** group `describe`/`it` by public behavior and mock external services,
-  not internal implementation.
-- **Rust:** prefer focused unit tests plus integration tests at public boundaries;
-  keep fixtures deterministic.
-
-## Strategy Mode
-
-Inventory test files, functions, assertion density, unit/integration/e2e split,
-fixtures, and CI wiring. Write `.agents/scratch/tests/strategy.md` with prioritized
-structural gaps and a test architecture; do not generate code in this mode.
+- Public compatibility contracts: [conformance-harnesses](references/conformance-harnesses.md)
+- Parsers and hostile inputs: [fuzzing](references/fuzzing.md)
+- Snapshots: [golden artifacts](references/golden-artifacts.md) and [update strategy](references/golden-artifact-strategy.md)
+- Invariants: [metamorphic testing](references/metamorphic-testing.md)
+- Service integration: [real-service E2E](references/real-service-e2e.md)
 
 ## Output Specification
 
-- **Artifact directory:** `.agents/scratch/tests/` plus test files in the target's
-  language-native locations.
-- **Filename convention:** `coverage-raw.txt`, `coverage-func.txt` or
-  `coverage.json`, `gaps.md`, `summary.md`, `tdd-log.md`, and `strategy.md`.
-- **Serialization/schema format:** Markdown evidence reports, native coverage
-  text/profile formats, and JSON where the coverage tool supports it.
-- **Validator command:** run the focused test, relevant suite, coverage command,
-  and `bash scripts/check-scenario-coverage.sh ... --run` when scenarios exist.
-- **Downstream use:** factual evidence that a caller may supply to Validate.
+Tests belong in the repository's language-native locations. Check facts and
+limits belong in the existing handoff. Persist coverage or other reports only
+when requested or required by a declared consumer, at its selected destination;
+no automatic `.agents/` output. Factual green is input to fresh validation,
+not the test author's binding PASS.
 
-## Quality Rubric
+Example: for a duplicate Job delivery, assert that the completed result is
+returned and the external side effect is called only once. Run the focused
+case and owning suite. A coverage increase without those assertions would not
+prove the behavior.
 
-- Every acceptance scenario maps to a passing behavioral test.
-- New behavior has authentic RED evidence before implementation.
-- Assertions are exact and cover happy, edge, and error paths.
-- Tests are deterministic, isolated, fast at the unit layer, and maintainable.
-- Coverage changes prioritize risk and never substitute for behavioral proof.
-- Artifacts name the commands, results, remaining gaps, and discovered defects.
-
-## Examples
-
-**Generate mode:** inspect a parser, baseline coverage, add table-driven happy,
-malformed, and empty-input cases, run focused plus package tests, then record the
-coverage delta and remaining gaps.
-
-**TDD mode:** write `TestParseConfig_MissingName`, capture its failing output,
-add the minimum validation, rerun green, refactor, run the full package, and log
-the cycle in `tdd-log.md`.
-
-## Troubleshooting
-
-| Problem | Response |
-|---|---|
-| new test starts green | strengthen it until it proves the missing behavior |
-| flaky timing/network test | inject deterministic clocks/data and fake the external boundary |
-| coverage rises but risk remains | add behavior and error-path assertions, not padding |
-| golden update is large | inspect the diff and split intentional from accidental change |
-| product bug discovered | preserve the reproducer, report the bug, and do not mask it |
-
-## References
-
-- [test.feature](references/test.feature) — executable behavior contract
-- [conformance-harnesses.md](references/conformance-harnesses.md)
-- [fuzzing.md](references/fuzzing.md)
-- [golden-artifacts.md](references/golden-artifacts.md)
-- [golden-artifact-strategy.md](references/golden-artifact-strategy.md)
-- [metamorphic-testing.md](references/metamorphic-testing.md)
-- [real-service-e2e.md](references/real-service-e2e.md)
+This guidance uses original examples informed by
+[Matt Pocock's engineering skills](https://github.com/mattpocock/skills),
+with AgentOps' existing acceptance and evidence boundaries.

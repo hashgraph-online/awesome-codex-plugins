@@ -1,6 +1,6 @@
 ---
 name: using-flywheel
-description: Operate the Agentic Coding Flywheel as a
+description: 'Operate the Agentic Coding Flywheel through its native workflow. Use when: the caller explicitly selects this factory; convergence and closed work do not prove semantic acceptance.'
 ---
 # Using the Agentic Coding Flywheel
 
@@ -25,7 +25,7 @@ roles, or orchestration inside either.
 ## What the Flywheel is
 
 Jeffrey Emanuel's free, open-source stack that turns a dedicated VPS into a
-supervised multi-agent factory: Codex, Codex CLI, and Antigravity CLI as
+supervised multi-agent factory: Claude Code, Codex CLI, and Antigravity CLI as
 worker runtimes, coordinated through NTM (orchestration), Agent Mail
 (coordination and file reservations), Beads/BV (task graph), and the wider
 Flywheel toolset. Its methodology is planning-first: decompose work into
@@ -50,11 +50,11 @@ cities (use [using-gc](../using-gc/SKILL.md)), or as a verdict source.
    run its `onboard` tutorial once. AgentOps does not fork, pin, or mirror the
    Flywheel stack; upstream owns its installer and versions.
 2. Make AgentOps skills visible to each worker runtime the Flywheel drives
-   (Codex, Codex CLI, Antigravity CLI), using the install paths in the
+   (Claude Code, Codex CLI, Antigravity CLI), using the install paths in the
    repository [README](../../README.md). Verify per runtime:
 
    ```sh
-   ls ~/.codex/skills/validate ~/.codex/skills/validate 2>/dev/null
+   ls ~/.claude/skills/validate ~/.codex/skills/validate 2>/dev/null
    ```
 
    A runtime that cannot list the skill will never invoke it.

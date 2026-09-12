@@ -1,0 +1,23 @@
+{
+  "name": "tmcra-memory-codex-plugin",
+  "version": "0.3.0-rc.10",
+  "private": true,
+  "description": "Automatic TMCRA long-term memory for Codex and Claude Code",
+  "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "test": "node scripts/test_codex_e2e.mjs",
+    "test:claude": "node tests/claude_code_contract.mjs",
+    "test:provider-setup": "node tests/provider_setup_contract.mjs",
+    "build:release": "pwsh -NoProfile -File scripts/build_release.ps1",
+    "verify": "node --check hooks/run_hook.mjs && node --check hooks/claude_run_hook.mjs && node --check scripts/tmcra_client.mjs && node --check scripts/provider_config.mjs && node --check scripts/provider_setup.mjs && node --check scripts/provider_executor.mjs && npm run test:provider-setup && npm test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/reshuibuduo/tmcra-plugin-codex.git"
+  },
+  "author": "TMCRA",
+  "license": "Apache-2.0"
+}

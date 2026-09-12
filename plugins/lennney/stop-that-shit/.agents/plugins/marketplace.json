@@ -1,0 +1,20 @@
+{
+  "name": "stop-that-shit",
+  "interface": {
+    "displayName": "Stop That Shit（别再造史了）"
+  },
+  "plugins": [
+    {
+      "name": "stop-that-shit",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

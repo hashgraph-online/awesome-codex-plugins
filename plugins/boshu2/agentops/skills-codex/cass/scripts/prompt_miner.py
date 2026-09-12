@@ -3,8 +3,9 @@
 Prompt Miner — Extract and cluster prompts across agent session logs.
 
 Mines user prompts from Claude Code, Codex CLI, and Gemini CLI sessions,
-clusters them by similarity, and identifies "ritual" prompts (repeated patterns
-that indicate working workflows).
+groups identical text after whitespace normalization, and reports recurring
+candidates. Counts do not establish success; retries and copied instructions
+can recur too. Prefer CASS search/pack for discovery and cited evidence.
 
 Usage:
     python prompt_miner.py --workspace /data/projects/PROJECT [OPTIONS]
@@ -16,7 +17,7 @@ Examples:
     # Mine all sessions with custom glob
     python prompt_miner.py --glob "~/.claude/projects/**/*.jsonl" --top 50
 
-    # Only show rituals (10+ occurrences)
+    # Only show frequent candidates (10+ occurrences; outcomes unassessed)
     python prompt_miner.py --workspace /path --min-count 10
 
     # Output as JSON for further processing
@@ -68,23 +69,19 @@ def parse_iso(ts: str) -> Optional[datetime]:
 
 
 def extract_text_from_content(content) -> str:
-    """Extract text from various content formats."""
+    """Extract explicit user text, excluding tool results nested in user envelopes."""
     if isinstance(content, str):
         return content
     elif isinstance(content, list):
         parts = []
         for c in content:
-            if isinstance(c, dict):
-                if "text" in c:
+            if isinstance(c, dict) and c.get("type") in ("text", "input_text"):
+                if isinstance(c.get("text"), str):
                     parts.append(str(c["text"]))
-                elif "content" in c:
-                    parts.append(extract_text_from_content(c["content"]))
         return " ".join(parts)
     elif isinstance(content, dict):
-        if "text" in content:
+        if content.get("type") in ("text", "input_text") and isinstance(content.get("text"), str):
             return str(content["text"])
-        elif "content" in content:
-            return extract_text_from_content(content["content"])
     return ""
 
 
@@ -141,11 +138,23 @@ def mine_prompts(
                             msg = obj.get("message", {})
                             if not isinstance(msg, dict):
                                 continue
+                            if msg.get("role", "user") != "user":
+                                continue
                             content = msg.get("content", "")
                             text = extract_text_from_content(content)
                             ts = obj.get("timestamp")
 
-                        # Codex/Gemini format
+                        # Current Codex response_item records carry the role in payload.
+                        elif obj.get("type") == "response_item":
+                            payload = obj.get("payload", {})
+                            if not isinstance(payload, dict) or payload.get("role") != "user":
+                                continue
+                            if payload.get("type") != "message":
+                                continue
+                            text = extract_text_from_content(payload.get("content", ""))
+                            ts = obj.get("timestamp")
+
+                        # Flat Codex/Gemini format
                         elif obj.get("role") == "user" and "content" in obj:
                             text = extract_text_from_content(obj["content"])
                             ts = obj.get("timestamp") or obj.get("created_at")
@@ -200,7 +209,7 @@ def find_repeated_prompts(
                 "first_seen": data["first_seen"].isoformat() if data["first_seen"] else None,
                 "last_seen": data["last_seen"].isoformat() if data["last_seen"] else None,
                 "example_paths": data["paths"],
-                "is_ritual": data["count"] >= 10
+                "outcome": "unassessed"
             })
 
     results.sort(key=lambda x: -x["count"])
@@ -260,7 +269,7 @@ Examples:
     parser.add_argument(
         "--rituals-only",
         action="store_true",
-        help="Only show ritual prompts (10+ occurrences)"
+        help="Legacy alias for --min-count 10; recurrence does not establish success"
     )
 
     args = parser.parse_args()
@@ -305,12 +314,11 @@ Examples:
             "repeated_prompts": repeated
         }, indent=2, default=str))
     else:
-        print(f"\nTop {len(repeated)} repeated prompts (count >= {min_count}):\n")
+        print(f"\nTop {len(repeated)} recurring candidates (count >= {min_count}; outcomes unassessed):\n")
         for item in repeated:
-            ritual_marker = " [RITUAL]" if item["is_ritual"] else ""
             display = truncate(item["prompt"], 100)
             agents = ", ".join(item["agents"])
-            print(f"{item['count']:3d}x ({agents}){ritual_marker}: {display}")
+            print(f"{item['count']:3d}x ({agents}): {display}")
 
 
 if __name__ == "__main__":

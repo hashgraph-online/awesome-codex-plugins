@@ -11,9 +11,18 @@ Keep `AGENTS.md` current as the project evolves, without re-grilling the whole r
 
 ## Runtime awareness
 Works under Claude Code, Codex, Copilot CLI, or any SKILL.md-compatible agent - the
-triage and patch logic below has no Claude Code dependency. Only the drift *nudge*
-that usually leads here is a Claude Code hook; on other runtimes, run this skill
-manually after meaningful commits.
+triage and patch logic below has no runtime dependency. Claude repo hooks and optional
+native Codex plugin hooks can nudge; when unavailable, disabled, untrusted, or using
+copied standalone skills, run this skill manually after meaningful commits.
+
+## Managed refresh
+For an existing Claude installation, before classification compare the current
+plugin's `templates/hooks/drift-check` and `templates/tools/classify-drift` with
+their managed copies. If either is missing or differs, replace only those two
+AIBoarding-owned files, then rerun classification. Do not rewrite config, state,
+`AGENTS.md`, or `CLAUDE.md`. If current plugin assets cannot be located, route to
+full revalidation. Repeating this refresh is byte-identical and rollback is safe:
+older readers ignore the optional config and receipt fields.
 
 ## Triage
 Read `last_synced_commit` from `.aiboarding/state.json` (NOT from any instruction
@@ -28,24 +37,40 @@ re-validation of all nine sections, then reseed `state.json`.
 **If the repo has `AIBOARDING.md` and no `AGENTS.md`**, it is on the legacy layout:
 stop and run `migrate-aiboarding` instead.
 
-1. **Gather the delta.** Run `git diff <last_synced_commit>..HEAD` and
-   `git diff --name-only <last_synced_commit>..HEAD`. Drop paths matching
-   `config.json:ignored_paths` plus the always-ignored set (`AGENTS.md`,
-   `CLAUDE.md`, `.aiboarding/*`). Reflect on the current conversation - it is the
-   "chat log" and is already in your context (after compaction, use the summary).
-2. **Classify scope impact** against the `AGENTS.md` sections:
+1. **Classify before reading semantics.** Run the self-contained sibling
+   `classify-drift --project <repo> --base <last_synced_commit> --head HEAD` (or
+   `.aiboarding/tools/classify-drift` if installed). Missing tool, invalid pointer,
+   malformed report, rebased pointer, or changed `HEAD` means full revalidation;
+   never advance state from those outcomes. Its routes are unambiguous:
+   `irrelevant` advances state only; `semantic-review` needs section evidence;
+   `mandatory-revalidation` requires applicable section revalidation; and
+   `invalid-pointer` requires all nine sections. High-risk evidence always wins over
+   ignored paths and cannot be downgraded by a semantic no-op.
+2. **Classify scope impact** for every potentially relevant path against the
+   `AGENTS.md` sections:
    - `Stack and Runtime` / `Build, Test, Run` - stack, tooling, or commands changed?
    - `Architecture Map` - boundaries, directories, data flow moved?
    - `Project Purpose` / `Domain Model` - new concepts or changed behavior?
    - `Agent Guardrails` / `Known Failure Modes` - new gotchas or constraints?
    - `Verification Before Completion` / `Escalation` - done-criteria or stop-and-ask
      cases changed?
-3. **Branch:** no relevant change → No-op (below). Relevant change → Targeted-delta patch.
+   Record each potential path's applicable sections and rationale. Only complete
+   evidence covering every potential path can authorize `--semantic complete-no-op`.
+   Semantic review may escalate scope, never hide deterministic high-risk evidence.
+3. **Branch:** classifier `irrelevant`, or complete evidenced potential no-op → No-op.
+   Mandatory route → Targeted-delta revalidation. Other routes → full revalidation.
 
 ## No-op: nothing relevant changed
 If triage finds no scope-relevant change:
-- Set `last_synced_commit` in `.aiboarding/state.json` to the current
-  `git rev-parse HEAD`.
+- Build a `drift-classification` evidence record from the classifier report: repository
+  identity, exact base/head, final disposition, categorized path dispositions,
+  reviewed sections, and outcome (`proven-irrelevant` or
+  `revalidated-no-content-change`). Write it with `.aiboarding/tools/write-evidence`.
+  Do not copy command output or prose into the record.
+- Recheck `git rev-parse HEAD` equals the evidenced `head_commit`; only then set
+  `last_synced_commit` and `last_drift_classification` together. An evidence write
+  failure or changed `HEAD` leaves state unchanged. Preserve unknown top-level state
+  fields.
 - **Hard invariant: do not touch `AGENTS.md` or `CLAUDE.md`.** Not even whitespace.
   The pointer advance is a state-only write; this is what keeps the drift hook from
   ever re-nudging on its own bookkeeping.
@@ -62,12 +87,22 @@ architectural interrogation, reconciliation), scoped to the affected sections on
    text from the existing `AGENTS.md` to avoid duplicate headings. Leave untouched
    sections byte-for-byte intact. Keep commands/identifiers/paths backtick-quoted.
 3. **Compress.** Follow the `compress-onboarding` skill on the re-drafted sections
-   only (same level as the rest of the doc; Guardrails/Escalation capped at `lite`),
-   verifying with `.aiboarding/tools/check-preservation`.
+   only (same level as the rest of the doc; it owns high-consequence preservation
+   and any per-region opt-in), verifying with `.aiboarding/tools/check-preservation`.
 4. **Approval gate.** Show the user a diff of the patched sections against the prior
    `AGENTS.md`. Content changes ALWAYS require approval before writing. Only the
    no-op pointer advance is automatic.
-5. **Advance state.** After the approved write, set `last_synced_commit` to the
-   current `git rev-parse HEAD` in `state.json` and append the compression receipt.
+5. **Advance state.** After approved content work, persist the matching
+   `drift-classification` and `onboarding-validation` evidence records first, with the
+   exact base/head, affected sections, path dispositions, and validator identities.
+   Recheck `HEAD` against the evidenced head immediately before writing the pointer
+   and classification receipt together. Evidence failure or a changed head leaves
+   state unchanged; preserve unknown fields, then append the legacy compression receipt.
 6. **Validate.** Run create-agent-onboarding's Phase 7 gate (files, import line,
-   size budget, command resolution, pointer == HEAD) before reporting done.
+   local size sensor, Codex project-chain validation, command resolution, pointer ==
+   HEAD) before reporting done.
+
+When a state-owning create or update flow invokes `audit-onboarding-evidence`, import
+only its machine-readable computed findings as validator provenance in the matching
+record. The standalone `audit-agent-onboarding` workflow remains read-only and never
+creates evidence history.

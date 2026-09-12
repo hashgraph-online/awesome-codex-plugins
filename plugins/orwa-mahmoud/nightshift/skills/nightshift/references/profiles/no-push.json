@@ -1,0 +1,9 @@
+{
+  "name": "no-push",
+  "version": 1,
+  "risk": "low",
+  "use": "Deny git push during a shift so an unattended agent cannot publish.",
+  "rules": {
+    "forbiddenCommands": "git .*push"
+  }
+}

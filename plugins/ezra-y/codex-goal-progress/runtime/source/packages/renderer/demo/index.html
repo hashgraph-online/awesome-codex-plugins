@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Goal Progress Renderer</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        letter-spacing: 0;
+      }
+
+      html {
+        color-scheme: light;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Segoe UI", sans-serif;
+      }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        background: #eef0f3;
+        color: #242933;
+      }
+
+      main {
+        width: min(720px, calc(100% - 32px));
+        margin: 48px auto;
+      }
+
+      .native-goal {
+        display: flex;
+        min-height: 56px;
+        align-items: center;
+        gap: 11px;
+        border: 1px solid rgba(52, 59, 70, 0.14);
+        border-radius: 8px;
+        padding: 10px 12px;
+        background: #ffffff;
+      }
+
+      .native-icon {
+        display: grid;
+        width: 26px;
+        height: 26px;
+        flex: none;
+        place-items: center;
+        border-radius: 6px;
+        background: #edf0f4;
+        color: #596171;
+      }
+
+      .native-copy {
+        min-width: 0;
+      }
+
+      .native-label {
+        color: #777f8c;
+        font-size: 10px;
+      }
+
+      .native-title {
+        overflow: hidden;
+        margin-top: 2px;
+        font-size: 12px;
+        font-weight: 680;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      codex-goal-progress {
+        margin-top: 8px;
+      }
+
+      body[data-theme="dark"] {
+        color-scheme: dark;
+        background: #1f2228;
+        color: #f0f2f5;
+      }
+
+      body[data-theme="dark"] .native-goal {
+        border-color: rgba(218, 223, 232, 0.14);
+        background: #292d35;
+      }
+
+      body[data-theme="dark"] .native-icon {
+        background: #343942;
+        color: #b0b7c2;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="native-goal" aria-label="原生 Goal">
+        <span class="native-icon" aria-hidden="true">◎</span>
+        <div class="native-copy">
+          <div class="native-label">Goal</div>
+          <div class="native-title">完成 Codex Goal Progress 的可安装第一版</div>
+        </div>
+      </section>
+      <codex-goal-progress id="goal-progress" theme="light"></codex-goal-progress>
+    </main>
+    <script src="../../../dist/renderer/goal-progress.js"></script>
+    <script>
+      document.getElementById("goal-progress").viewModel = {
+        schemaVersion: 2,
+        contractId: "gp_renderer_demo",
+        sessionId: "renderer-demo",
+        revision: 6,
+        scopeRevision: 0,
+        trackingPhase: "active",
+        objective: "完成 Codex Goal Progress 的可安装第一版",
+        overallProgressBps: 4600,
+        overallPercent: 46,
+        finalVerificationPending: false,
+        maxVisibleObjectives: 3,
+        token: {
+          used: 128400,
+          budget: 250000,
+          label: "输入 96K · 输出 32K"
+        },
+        objectives: [
+          {
+            id: "C1",
+            title: "创建并绑定原生 Goal",
+            status: "completed",
+            progressBps: 10000,
+            progressPercent: 100,
+            completionVerification: "verified"
+          },
+          {
+            id: "C2",
+            title: "生成专属验收清单",
+            status: "completed",
+            progressBps: 10000,
+            progressPercent: 100,
+            completionVerification: "reported"
+          },
+          {
+            id: "C3",
+            title: "稳定保存与计算进度",
+            status: "active",
+            progressBps: 7200,
+            progressPercent: 72,
+            completionVerification: null
+          },
+          {
+            id: "C4",
+            title: "把组件嵌入 Goal 区域",
+            status: "pending",
+            progressBps: 2400,
+            progressPercent: 24,
+            completionVerification: null
+          },
+          {
+            id: "C5",
+            title: "可靠显示当前 Goal Token",
+            status: "pending",
+            progressBps: 0,
+            progressPercent: 0,
+            completionVerification: null
+          },
+          {
+            id: "C6",
+            title: "重启后恢复当前状态",
+            status: "pending",
+            progressBps: 0,
+            progressPercent: 0,
+            completionVerification: null
+          },
+          {
+            id: "C7",
+            title: "完成兼容与安全降级",
+            status: "blocked",
+            progressBps: 0,
+            progressPercent: 0,
+            completionVerification: null
+          },
+          {
+            id: "C8",
+            title: "通过最终安装验收",
+            status: "pending",
+            progressBps: 0,
+            progressPercent: 0,
+            completionVerification: null
+          }
+        ]
+      };
+    </script>
+  </body>
+</html>

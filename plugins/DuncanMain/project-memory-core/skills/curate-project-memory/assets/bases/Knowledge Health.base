@@ -1,0 +1,15 @@
+filters:
+  or:
+    - 'review_after < today()'
+    - 'status == "proposed"'
+    - 'status == "superseded"'
+views:
+  - type: table
+    name: Needs attention
+    order:
+      - file.name
+      - type
+      - status
+      - confidence
+      - updated
+      - review_after

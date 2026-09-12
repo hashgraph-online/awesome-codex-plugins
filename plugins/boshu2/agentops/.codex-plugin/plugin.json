@@ -1,6 +1,6 @@
 {
   "name": "agentops",
-  "version": "3.5.0",
+  "version": "3.6.0",
   "description": "The operations layer for agentic engineering: portable skills and evidence contracts connecting intent, coding agents, software factories, and independent judgment.",
   "skills": "./skills-codex",
   "interface": {

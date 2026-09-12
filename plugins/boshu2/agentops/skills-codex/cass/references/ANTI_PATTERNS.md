@@ -25,16 +25,14 @@
 **Bad:**
 > "Your cass index is stale. Could you run `cass index --full` and let me know when it's done?"
 
-**Why bad:** The user has 22 agents waiting. Every "could you" multiplies their interrupt cost.
+**Why bad:** Delegating an already authorized repair back to the user creates
+unnecessary work. But staleness alone does not require repair.
 
-**Instead:**
-```bash
-cass doctor --fix --json   # safe by default; preserves all source data
-cass index --json &        # background refresh while you proceed
-```
-Then proceed and mention the rebuild ran in passing.
-
-**Authorization scope:** Anything under `~/.local/share/coding-agent-search/` is yours to manage. Source session files (`~/.claude/projects/`, `~/.codex/sessions/`) are NOT — those are user data.
+**Instead:** Search healthy or stale-but-usable state immediately. If a concrete
+recovery need is already authorized, use the bounded helper in
+[RECOVERY.md](RECOVERY.md). Do not infer mutation authority from a search-only
+request or from where the derived index lives. Sources, metadata, destinations
+and model access retain their authorization boundaries.
 
 ---
 
@@ -63,20 +61,11 @@ cass doctor --fix --json   # rebuilds only what's broken
 
 **Why bad:** The index is stale only because it's older than the threshold (default 30 min). The data is still **correct** — it just doesn't have sessions from the last 30 min indexed yet.
 
-**Instead:**
-```bash
-state=$(cass status --json | jq -r '.index | "\(.fresh)/\(.stale)/\(.documents // "N")"')
-case "$state" in
-  true/*)        echo "fresh — search now" ;;
-  false/true/*)  echo "stale but usable"
-                 # ALWAYS wrap bg cass index in `timeout` — without it, a hung
-                 # rebuild silently strands forever. See scripts/recover.sh.
-                 ( timeout 600 cass index --json >/tmp/cass-bg.$$.log 2>&1 </dev/null & ) 2>/dev/null ;;
-  */*/0|*null)   echo "broken" && timeout 60 cass doctor --fix --json ;;
-esac
-```
-
-The agent's first search returns immediately on the still-correct stale index. The background `cass index` finishes in 1–3s for incremental refreshes.
+**Instead:** Search the usable index and retain observed freshness. Refresh only
+when the task needs newer records and its indexing scope is authorized, using
+a bounded invocation from [RECOVERY.md](RECOVERY.md). Do not start a second
+indexer while an earlier authorized rebuild is progressing. A failed status
+read is unknown, not evidence that the index is empty or corrupt.
 
 ---
 
@@ -152,13 +141,11 @@ Use the exact key from the bucket.
 
 **Why bad:** cass deliberately skips large tool outputs at index time to keep the corpus searchable on prompts and replies. Tool outputs are still **in the source file**.
 
-**Instead:**
-```bash
-cass search "near-by user-prompt phrase" --json --fields minimal --limit 10 \
-  | jq -r '.hits[0].source_path' | xargs rg -n "the exact tool output bytes"
-```
-
-Find the session via prompt, then `rg` for the bytes inside.
+**Instead:** Find the episode using a nearby prompt phrase, then use CASS
+pack/view/expand to inspect bounded context. If the actual required tool bytes
+remain omitted, use a selected authorized raw excerpt as described in
+[RAW_SOURCE_READS.md](RAW_SOURCE_READS.md). Missing source files and mismatched
+returned locators remain retrieval gaps; do not bulk-read every search hit.
 
 ---
 
@@ -207,17 +194,16 @@ If `_warning` is non-null, mention it. If `hits_clamped: true`, paginate. If `fa
 
 **Bad:** Pre-flight in a tight loop runs `cass index --full --json` every iteration. 25s × 60 iter = 25 min wasted.
 
-**Instead:**
-```bash
-# Once at startup
-cass status --json | jq -e '.index.fresh' >/dev/null || cass index --json
-
-# Or use watch mode and never refresh inline
-cass index --watch --json &   # one daemon, all agents share the index
-```
+**Instead:** Search immediately when the index is usable. Staleness is a coverage
+limit to report; an authorized bounded refresh is optional when newer records
+are needed. Do not add a startup refresh, watch process or preflight hook to an
+ordinary history query.
 
 ---
 
 ## Summary
 
-The pattern across these anti-patterns: **lack of trust in cass**. Trust the autonomous-recovery commands. Trust the safe-by-default `doctor --fix`. Trust the stale-but-correct lexical index. Trust the server to filter. Then your agent stops bothering the user.
+Use CASS's native retrieval surface, distinguish stale from unavailable, and
+verify selected source context. Recovery is a separate bounded operation within
+the caller's authority; search hits and citation flags do not prove source
+continuity, message roles or successful outcomes.

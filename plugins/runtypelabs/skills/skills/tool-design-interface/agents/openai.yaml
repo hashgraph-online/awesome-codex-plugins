@@ -1,0 +1,7 @@
+interface:
+  display_name: 'Tool Interface Design'
+  short_description: 'Names, descriptions, and schemas agents understand'
+  brand_color: '#6D5EF7'
+  default_prompt: 'Use $tool-design-interface to write the name, description, and parameter schema for this tool.'
+policy:
+  allow_implicit_invocation: true

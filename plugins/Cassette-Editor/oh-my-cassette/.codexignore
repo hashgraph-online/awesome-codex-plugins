@@ -1,0 +1,53 @@
+# Paths that never belong in an installed plugin bundle.
+#
+# Everything the runtime needs must stay out of this list: core/, mcp_plugin/,
+# scripts/, skills/, runtime_config.py, __init__.py, requirements-mcp.lock, and
+# version.txt are all load-bearing at install and run time.
+
+# Python caches and coverage artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Local environment and credentials
+.env
+.env.*
+!.env.example
+
+# Runtime state, downloads, and exports
+downloads/
+metadata/
+cache/
+exports/
+jobs/
+logs/
+*.part
+*.log
+
+# Development-only trees
+tests/
+.github/
+.playwright-mcp/
+playwright-report/
+test-results/
+blob-report/
+artifacts/
+
+# Local agent and editor files
+.serena/
+.codex/
+.claude/
+.impeccable/
+.DS_Store
+.idea/
+.vscode/

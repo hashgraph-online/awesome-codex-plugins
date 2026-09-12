@@ -1,0 +1,50 @@
+{
+  "name": "oh-my-cassette",
+  "version": "0.4.19",
+  "description": "Edit local project media through a self-contained stdio MCP runtime that connects directly to Cassette.",
+  "author": {
+    "name": "Oh My Cassette contributors",
+    "url": "https://github.com/Cassette-Editor/oh-my-cassette"
+  },
+  "homepage": "https://github.com/Cassette-Editor/oh-my-cassette",
+  "repository": "https://github.com/Cassette-Editor/oh-my-cassette",
+  "license": "MIT",
+  "keywords": [
+    "cassette",
+    "video-editing",
+    "media",
+    "mcp",
+    "codex",
+    "claude"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.codex-plugin/mcp.json",
+  "interface": {
+    "displayName": "Oh My Cassette",
+    "shortDescription": "Edit project videos through local MCP",
+    "longDescription": "Use a local stdio MCP runtime to ingest trusted project media, guide Cassette edits, monitor background jobs, answer follow-up questions, review completion, and return validated export artifacts.",
+    "developerName": "Oh My Cassette contributors",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/Cassette-Editor/oh-my-cassette",
+    "privacyPolicyURL": "https://cassette-editor.github.io/oh-my-cassette/privacy",
+    "termsOfServiceURL": "https://cassette-editor.github.io/oh-my-cassette/terms",
+    "logo": "./assets/logo-400.png",
+    "composerIcon": "./assets/logo-400.png",
+    "screenshots": [
+      "./assets/contact-sheet.jpg",
+      "./assets/ctl-digest.svg"
+    ],
+    "defaultPrompt": [
+      "Edit this project video with Cassette.",
+      "Let me choose the Cassette model for this edit.",
+      "Add captions and background music to this clip.",
+      "Continue this Cassette job from its job ID."
+    ],
+    "brandColor": "#6D5EF5"
+  }
+}

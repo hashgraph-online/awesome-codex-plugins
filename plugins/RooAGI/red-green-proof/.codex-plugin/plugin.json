@@ -1,0 +1,42 @@
+{
+  "name": "red-green-proof",
+  "version": "0.1.0",
+  "description": "Turn a suspected bug into a proven one: verify the cause, write a failing test, apply the smallest fix, and prove the test is load-bearing.",
+  "author": {
+    "name": "RooAGI",
+    "url": "https://github.com/RooAGI"
+  },
+  "homepage": "https://github.com/RooAGI/red-green-proof",
+  "repository": "https://github.com/RooAGI/red-green-proof",
+  "license": "MIT",
+  "keywords": [
+    "testing",
+    "tdd",
+    "debugging",
+    "regression",
+    "red-green"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Red-Green Proof",
+    "shortDescription": "Prove bugs with a real red-green-red test loop.",
+    "longDescription": "Verify the cause, watch a focused test fail, apply the smallest fix, and revert it to prove the test is load-bearing.",
+    "developerName": "RooAGI",
+    "category": "Engineering",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/RooAGI/red-green-proof",
+    "privacyPolicyURL": "https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement",
+    "termsOfServiceURL": "https://docs.github.com/en/site-policy/github-terms/github-terms-of-service",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/logo.svg",
+    "screenshots": [
+      "./assets/screenshot.svg"
+    ],
+    "defaultPrompt": [
+      "Prove this bug using the red-green-proof loop."
+    ]
+  }
+}

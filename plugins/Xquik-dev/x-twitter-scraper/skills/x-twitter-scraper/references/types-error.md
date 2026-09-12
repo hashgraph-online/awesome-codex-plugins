@@ -1,4 +1,4 @@
-# Xquik TypeScript Types: Error
+# Xquik TypeScript types: error
 
 ```typescript
 type ApiErrorType =

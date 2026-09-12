@@ -383,3 +383,7 @@ PYTHONPYCACHEPREFIX="$PWD/tmp/python-pycache" python3 -m unittest discover -s te
 ```
 
 </details>
+
+### 文書ヘッダーのパンくずリスト
+
+文書間の階層を案内する場合は、任意の `metadata.breadcrumbs` を指定できます。[入力形式と責任範囲](docs/breadcrumbs.md)を参照してください。

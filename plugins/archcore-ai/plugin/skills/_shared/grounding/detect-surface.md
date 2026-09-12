@@ -92,6 +92,13 @@ surface doc.
 Body = an orientation line naming the surface kind, then grouped one-liners. Drop
 empty groups; one line per unit; ≤ 25 unit lines (group `##` headings do not count).
 
+**Overflow is stated, never silent.** IF the detected units exceed the cap, THEN keep
+the highest-level ones and close the body with one line naming the remainder — e.g.
+`+31 more routes — see the route table.` The orientation line's `{N} units` count MUST
+report the full detected total, not the trimmed one, so a reader sees at a glance that
+the doc is an index rather than a complete inventory. Same convention as
+`detect-config.md` and `detect-integrations.md`.
+
 ```
 Surface: {kind(s)} · {N} units.
 

@@ -1,6 +1,6 @@
 ---
 name: math-unicode
-description: This skill must be used whenever a response needs mathematical notation — equations, filters, set-builder notation, statistics, calculus, linear algebra, logic, ratios, drops, or counts. Load it before composing, including when the user explicitly mentions math-unicode. Emit terminal-native Unicode inline, never raw LaTeX delimiters or commands.
+description: Use when a response needs mathematical notation (equations, filters, set-builder notation, statistics, calculus, linear algebra, logic, ratios, drops, counts) and the output goes to a terminal or TUI that cannot render LaTeX: Claude Code, Codex CLI, SSH and tmux sessions, CI logs. Load it before composing, including when the user explicitly mentions math-unicode. Emit Unicode glyphs inline, never raw LaTeX delimiters or commands. Do not use when the host renders math natively, such as ChatGPT or Codex on desktop and web, notebooks, or a KaTeX/MathJax target, and do not use when the user asked for LaTeX or a .tex file.
 disable-model-invocation: false
 ---
 
@@ -9,6 +9,21 @@ disable-model-invocation: false
 When emitting mathematical notation in a terminal coding agent (Claude Code, Codex CLI, or similar), **always use Unicode glyphs inline** — never wrap math in `$…$`, `\(...\)`, or `$$...$$`. These terminals do not render LaTeX; raw delimiters appear as plain dollar signs and reduce readability.
 
 ## When this skill applies
+
+Two conditions, both required: the response carries mathematical notation, and
+the surface it lands on does not render LaTeX.
+
+Surfaces that do not render LaTeX (apply the skill):
+- Claude Code, Codex CLI, and other terminal or TUI coding agents
+- Anything read through SSH, tmux, a pager, or a CI log
+
+Surfaces that render math natively (do not apply the skill):
+- ChatGPT and Codex on desktop and web, where math already renders
+- Notebooks, and any target consumed by KaTeX or MathJax
+
+No host exposes a per-surface predicate to a skill today, so this boundary is a
+judgement the model makes from its own context. If you cannot tell, and the
+session is a terminal coding agent, apply the skill.
 
 Triggers (use Unicode math):
 - Equations, formulas, derivations
@@ -36,34 +51,34 @@ variants    ϵ ϑ ϕ ϖ ϱ ς
 
 ```
 arithmetic     + − × ÷ ± ∓ · ∗ ⋅ ∘ ⊕ ⊖ ⊗ ⊘ ⊙
-big            ∑ ∏ ∐ ∫ ∮ ∬ ∭ ⨁ ⨂ ⨅ ⨆
+big            ∑ ∏ ∐ ∫ ∬ ∭
 roots          √ ∛ ∜
-calculus       ∂ ∇ Δ ∆ ⅆ ⅇ
-constants      ∞ ∅ ℵ ℶ
+calculus       ∂ ∇ Δ ∆
+constants      ∞ ∅
 ```
 
 ### Relations
 
 ```
 equality       =  ≠  ≈  ≅  ≡  ≜  ≝  ≐  ∝  ∼  ≃  ≢
-order          <  >  ≤  ≥  ≪  ≫  ⋘  ⋙  ⊴  ⊵
+order          <  >  ≤  ≥  ⊴  ⊵
 set            ∈ ∉ ∋ ∌  ⊂ ⊃ ⊆ ⊇ ⊊ ⊋  ⊏ ⊐ ⊑ ⊒
-set ops        ∪ ∩ ⊎ ⊔ ⊓ ∖
+set ops        ∪ ∩ ⊎ ⊔ ⊓        (set difference: A \ B)
 ```
 
 ### Logic & arrows
 
 ```
-logic          ∧ ∨ ¬ ⊕ ⊻ ⊼ ⊽   ⊢ ⊨ ⊥ ⊤
+logic          ∧ ∨ ¬ ⊕   ⊢ ⊥ ⊤
 quantifiers    ∀ ∃ ∄ ∴ ∵
-arrows         → ← ↔ ⇒ ⇐ ⇔ ↦ ↪ ↩ ↑ ↓ ⇑ ⇓ ⟶ ⟵ ⟷ ⟹ ⟸ ⟺ ⊸
+arrows         → ← ↔ ⇒ ⇐ ⇔ ↦ ↪ ↩ ↑ ↓ ⇑ ⇓ ⟶ ⟵ ⟷ ⊸
 ```
 
 ### Number sets & brackets
 
 ```
-sets           ℕ ℤ ℚ ℝ ℂ ℙ ℍ 𝔽
-brackets       ⟨ ⟩  ⌈ ⌉  ⌊ ⌋  ‖ ‖  〈 〉
+sets           ℕ ℤ ℚ ℝ ℂ ℙ ℍ
+brackets       ⟨ ⟩  ⌈ ⌉  ⌊ ⌋  ‖ ‖
 ```
 
 ### Sub/superscript glyph blocks
@@ -71,26 +86,99 @@ brackets       ⟨ ⟩  ⌈ ⌉  ⌊ ⌋  ‖ ‖  〈 〉
 ```
 superscript    ⁰ ¹ ² ³ ⁴ ⁵ ⁶ ⁷ ⁸ ⁹  ⁺ ⁻ ⁼ ⁽ ⁾  ⁱ ⁿ ᵃ ᵇ ᶜ ᵈ ᵉ ᶠ ᵍ ʰ ʲ ᵏ ˡ ᵐ ᵒ ᵖ ʳ ˢ ᵗ ᵘ ᵛ ʷ ˣ ʸ ᶻ
 sup (capital)  ᴬ ᴮ ᴰ ᴱ ᴳ ᴴ ᴵ ᴶ ᴷ ᴸ ᴹ ᴺ ᴼ ᴾ ᴿ ᵀ ᵁ ⱽ ᵂ
+sup (Greek)    ᶿ                    (θ only; the rest are opt-in)
 subscript      ₀ ₁ ₂ ₃ ₄ ₅ ₆ ₇ ₈ ₉  ₊ ₋ ₌ ₍ ₎  ₐ ₑ ₕ ᵢ ⱼ ₖ ₗ ₘ ₙ ₒ ₚ ᵣ ₛ ₜ ᵤ ᵥ ₓ
 ```
 
-**No glyph exists for these. Do not invent or approximate one.** A whitelist on
-its own is not a membership test; these are the exact gaps that make the bare
-`^x` / `_x` fallbacks in Rules 3, 4 and 5 fire:
+**Do not invent or approximate a missing glyph.** A whitelist on its own is not
+a membership test; these are the exact gaps that make the bare `^x` / `_x`
+fallbacks in Rules 3, 4 and 5 fire. Two separate causes, same outcome.
+
+No Unicode code point exists at all:
 
 ```
-subscript letters      b c d f g q w y z    → bare underscore: x_b, x_c, x_d
-superscript capitals   S X Y Z              → bare caret: A^S, A^X, M^Y
-superscript C F Q      U+A7F2–A7F4 only     → treat as absent (most fonts show tofu)
-superscript ∞          does not exist       → never ^∞ as a glyph; use ∫[a..∞] (Rule 5)
-Greek sub/superscript  ν μ ρ θ σ ...        → bare form: I_ν, ∂_μ, x^ν (Rules 3, 4, 8)
+subscript letters      b c d f g q w y z    → x_b, x_c, x_d
+subscript capitals     all 26               → A_B, M_N  (Unicode has no
+                                              subscript capital, 0/26)
+superscript capitals   X Y Z                → A^X, M^Y, A^Z
+superscript ∞          none                 → never ^∞ as a glyph; use ∫[a..∞]
+Greek sub/superscript  μ ν σ and most rest  → I_ν, ∂_μ, x^ν (Rules 3, 4, 8)
 ```
 
-Measured coverage: **17/26** lowercase subscripts and **19/26** superscript
-capitals. The `∞` gap is why big-operator bounds use a bracketed range rather
-than stacked scripts: `∫₀^∞` would render one bound as a glyph and the other as
-a caret in the same operator. When unsure, the bare `^` / `_` form is always
-acceptable; a wrong or missing glyph is not.
+A code point exists, but no monospace font in the measured set ships it, so
+treat it as absent:
+
+```
+superscript S          U+A7F1, Unicode 17.0 → A^S
+superscript C F Q      U+A7F2..U+A7F4       → A^C, A^F, A^Q
+superscript q          U+107A5, outside BMP → x^q
+Greek subscripts       ᵦ ᵧ ᵨ ᵩ ᵪ            → x_β, I_ρ, x_γ
+Greek superscripts     ᵝ ᵞ ᵟ ᵠ ᵡ            → x^β, x^φ
+```
+
+Two Greek exceptions worth knowing, because the older wording here got them
+wrong. `ᶿ` (superscript θ, U+1DBF) renders as widely as the Latin blocks below
+and is a normal part of the portable set, so write `xᶿ`, not `x^θ`. And `ρ` does
+have a subscript, `ᵨ` U+1D68; it is missing from most terminal fonts rather than
+from Unicode, which is why `I_ρ` stays the recommendation.
+
+Measured coverage of the portable set: **17/26** lowercase subscripts, **0/26**
+subscript capitals, and **19/26** superscript capitals with a code point that
+some monospace font ships. The `∞` gap is why big-operator bounds use a
+bracketed range rather than stacked scripts: `∫₀^∞` would render one bound as a
+glyph and the other as a caret in the same operator. When unsure, the bare `^` /
+`_` form is always acceptable; a wrong or missing glyph is not.
+
+If your terminal font does carry the Greek scripts or the rarer capitals, see
+`references/extended-glyphs.md` for the opt-in set.
+
+## Font coverage
+
+Unicode says a code point exists. Whether a terminal draws it is a property of
+the font. These counts come from reading the `cmap` table of twelve monospace
+fonts: the six most widely installed programming fonts (JetBrains Mono, Fira
+Code, Cascadia Code, Hack, Source Code Pro, IBM Plex Mono) and six system fonts
+(DejaVu Sans Mono, Liberation Mono, Ubuntu Mono, Ubuntu Sans Mono, Noto Mono,
+Cousine). `scripts/measure-font-coverage.mjs` regenerates them and the test
+suite asserts every number below against the result.
+
+| what | glyphs | fonts |
+|---|---|---|
+| core operators and relations | ∑ ∏ ∫ √ ∂ ∞ ± × ÷ · ≈ ≠ ≤ ≥ ¬ − ² ³ | 12/12 |
+| Greek letters | α β γ δ θ λ μ π σ φ ω Γ Δ Θ Λ Σ Φ Ω | 11-12/12 |
+| sub/superscript digits | ⁰ ¹ ² ³ ⁴ ⁵ ⁶ ⁷ ⁸ ⁹ ₀ ₁ ₂ ₃ ₄ ₅ ₆ ₇ ₈ ₉ | 9-12/12 |
+| arrows, single | → ← ↔ ↑ ↓ | 9/12 |
+| set and logic symbols | ∈ ∉ ∪ ∩ ⊂ ⊆ ∧ ∨ ∀ ∃ ∅ ∇ | 4-8/12 |
+| superscript letters, lowercase | ᵃ ᵇ ᶜ ᵈ ᵉ ᶠ ᵍ ʰ ʲ ᵏ ˡ ᵐ ᵒ ᵖ ʳ ˢ ᵗ ᵘ ᵛ ʷ ˣ ʸ ᶻ | 4-5/12 |
+| superscript i and n | ⁱ ⁿ | 2-7/12 |
+| superscript theta | ᶿ | 4/12 |
+| superscript signs and parens | ⁺ ⁻ ⁼ ⁽ ⁾ | 3-4/12 |
+| subscript signs and parens | ₊ ₋ ₌ ₍ ₎ | 3-4/12 |
+| superscript letters, capital | ᴬ ᴮ ᴰ ᴱ ᴳ ᴴ ᴵ ᴶ ᴷ ᴸ ᴹ ᴺ ᴼ ᴾ ᴿ ᵀ ᵁ ⱽ ᵂ | 1-3/12 |
+| subscript letters, wider half | ₐ ₑ ᵢ ₒ ᵣ ᵤ ᵥ ₓ | 3/12 |
+| subscript letters, thin half | ₕ ₖ ₗ ₘ ₙ ₚ ₛ ₜ ⱼ | 1/12 |
+| number sets | ℕ ℤ ℚ ℝ ℂ ℙ ℍ | 3/12 |
+| arrows, double | ⇒ ⇐ ⇔ ⇑ ⇓ | 4/12 |
+| multiline brackets | ⎡ ⎣ ⎤ ⎦ ⎧ ⎩ ⟨ ⟩ | 4/12 |
+
+Read that table as a ranking, not a verdict. A glyph the primary font lacks is
+usually supplied by fontconfig from another installed font, so it still draws,
+but at a different advance width, which is what breaks column alignment in
+aligned derivations and matrices. Only a glyph no installed font carries shows
+as tofu.
+
+Two consequences worth acting on:
+
+- The operators, Greek letters and digit scripts survive everywhere. Prefer them,
+  and they carry most of the load in ordinary output.
+- The letter sub/superscripts are DejaVu-class. JetBrains Mono, Fira Code, Hack
+  and IBM Plex Mono ship none of them, so `xᵢ` and `xᵀ` arrive through fallback
+  there. That is the reason Rules 3 and 4 keep `x_i` and `x^T` as first-class
+  alternatives rather than last resorts.
+- `ⱼ` and `ⱽ` are the two thinnest glyphs in the portable blocks, carried by one
+  font each. They sit in the ranges above rather than in *Glyphs to avoid*
+  because their fallback, `x_j` and `A^V`, is already what Rules 3 and 4 say to
+  write when in doubt.
 
 ### Common LaTeX → Unicode
 
@@ -102,7 +190,7 @@ acceptable; a wrong or missing glyph is not.
 | `\delta` | δ | `\partial` | ∂ | `\subseteq` | ⊆ |
 | `\epsilon` | ε | `\nabla` | ∇ | `\cup` | ∪ |
 | `\theta` | θ | `\infty` | ∞ | `\cap` | ∩ |
-| `\lambda` | λ | `\emptyset` | ∅ | `\setminus` | ∖ |
+| `\lambda` | λ | `\emptyset` | ∅ | `\setminus` | `\` |
 | `\mu` | μ | `\leq` | ≤ | `\wedge` | ∧ |
 | `\pi` | π | `\geq` | ≥ | `\vee` | ∨ |
 | `\sigma` | σ | `\neq` | ≠ | `\neg` | ¬ |
@@ -132,6 +220,7 @@ Good:
 ### Rule 3 — Subscripts
 
 - Single Unicode-renderable index: prefer the glyph (x₁, x₂, xᵢ, xⱼ, xₙ).
+  `ⱼ` is the thinnest-supported glyph in this block, so `x_j` is equally fine.
 - Single index with no subscript glyph: use a bare underscore — `I_ν`, `∂_μ`,
   and `x_c` / `x_b` / `x_d`, which have no subscript form at all. Check the
   gap list under *Sub/superscript glyph blocks* before reaching for a glyph.
@@ -147,8 +236,10 @@ Good:
 - Simple / Unicode-mappable exponent: prefer the glyph — x², x³, xⁿ, eˣ, A⁻¹,
   and the transpose xᵀ / vᵀ.
 - Single exponent with no glyph: use a bare caret — `x^ν`, `(z/2)^a`, and
-  `A^S` / `A^X` / `A^Y` / `A^Z`, which have no capital superscript form.
-  `Aᵀ` is fine; see the gap list under *Sub/superscript glyph blocks*.
+  `A^X` / `A^Y` / `A^Z`, which have no capital superscript code point, plus
+  `A^S`, which has one (U+A7F1, Unicode 17.0) that no terminal font ships.
+  `Aᵀ` is fine, and so is `xᶿ`; see the gap list under *Sub/superscript glyph
+  blocks*.
 - Multi-character or expression exponent: use **caret + parentheses**, never
   `^{...}` — `x^(k+1)`, `x^(i)`, `e^(iπ)`. A bare `x^{T}` / `x^{(i)}` leaks
   LaTeX source; write `xᵀ` (single glyph) or `x^(i)` (parenthesized).
@@ -162,8 +253,12 @@ target, and an equation/condition when that is the natural selector:
 ```
 ∑[i=1..n] aᵢ            ∏[k ∈ K] pₖ            ∫[a..b] f(x) dx
 ∫[−∞..∞] e^(−x²) dx     ⋃[i=1..n] Aᵢ           lim[x→0] f(x)
-∑[m₁+...+mₙ=N] c_m      ∮[C] f(z) dz           Res[z=z₀] f(z)
+∑[m₁+...+mₙ=N] c_m      ∫[C] f(z) dz           Res[z=z₀] f(z)
 ```
+
+Write a contour integral as `∫[C]`. The dedicated contour glyph is in no
+monospace font measured here, and the bracketed selector already says the path
+is C. See *Glyphs to avoid*.
 
 Use ordinary letters for named functions: `Γ`, `B`, `erf`, `det`, `tr`, `Re`,
 `Im`, `exp`, `log`, `sin`, `cos`, `argmin`. Do not emit `\operatorname`.
@@ -248,17 +343,19 @@ whichever form is clearest, then stay consistent within a passage.
 
 ### Rule 13 — Plain letters for variables; never style with math-alphanumeric codepoints
 
-Write variable names and identifiers with ordinary letters (x, A, Var, RSS). Do **not** reach into the Unicode *Mathematical Alphanumeric Symbols* block (𝐀 bold, 𝐴 italic, 𝓐 script, 𝔸 styled double-struck) to *style* ordinary letters. Those codepoints garble on copy/paste, terminal search, and screen readers — the same failure Claude Code hit in issue #61558.
+Write variable names and identifiers with ordinary letters (x, A, Var, RSS). Do **not** reach into the Unicode *Mathematical Alphanumeric Symbols* block (U+1D400 onward: bold, italic, script and styled double-struck letters) to *style* ordinary letters. Those code points garble on copy/paste, terminal search, and screen readers — the same failure Claude Code hit in issue #61558. They are also the least renderable characters in the block table: see *Glyphs to avoid*.
 
-Exception: the standard, semantically meaningful blackboard-bold sets and operators are correct notation, not styling — keep using ℕ ℤ ℚ ℝ ℂ ℙ 𝔽 (number sets) and 𝔼 (expectation). Use those; don't hand-style anything else.
+Exception: the standard blackboard-bold number sets are correct notation rather than styling, and they live in the Letterlike Symbols block, which terminal fonts do carry. Keep using ℕ ℤ ℚ ℝ ℂ ℙ ℍ.
+
+The exception stops there. Double-struck F and double-struck E sit in the Mathematical Alphanumeric Symbols block this rule bans, and they measure worse than anything else the skill emitted before: one monospace font out of twelve. Write a general field as `F` and an expectation as `E[X]`. Everything the rule says about copy, search and screen readers applies to them too.
 
 ## Quick reference — common forms
 
 ```
 Mean / std        μ ± σ                        x̄ ± s
 Probability       P(A | B)                     ℙ(A ∩ B) = ℙ(A) · ℙ(B | A)
-Expectation       𝔼[X] = ∫ x · f(x) dx
-Variance          Var(X) = 𝔼[X²] − 𝔼[X]²
+Expectation       E[X] = ∫ x · f(x) dx
+Variance          Var(X) = E[X²] − E[X]²
 Gradient          ∇f = ( ∂f/∂x₁ , ... , ∂f/∂xₙ )
 Norm              ‖x‖₂ = √(∑[i=1..n] xᵢ²)
 Big-O             T(n) = O(n log n)
@@ -286,7 +383,7 @@ T_N(b,z) = ∑[m₁+...+mₙ=N] ((b₁)_{m₁} ··· (bₙ)_{mₙ}) / (m₁! ·
 
 R^ρ_{σμν} = ∂_μ Γ^ρ_{νσ} − ∂_ν Γ^ρ_{μσ} + Γ^ρ_{μλ} Γ^λ_{νσ} − Γ^ρ_{νλ} Γ^λ_{μσ}
 
-f^(n)(z₀) = n! / (2π i) ∮[C] f(z) / (z−z₀)^(n+1) dz
+f^(n)(z₀) = n! / (2π i) ∫[C] f(z) / (z−z₀)^(n+1) dz
 
 ∂u/∂t + (u · ∇)u = −∇p + νΔu + f,  ∇·u = 0
 
@@ -298,6 +395,43 @@ f(x) =
   ⎧ x²    if x ≥ 0
   ⎩ −x    if x < 0
 ```
+
+## Glyphs to avoid
+
+Every glyph below has a code point and looks correct in a proportional editor.
+None of them is carried by more than one of the twelve monospace fonts measured
+in *Font coverage*, so in a terminal each one either draws from a fallback at the
+wrong width or shows as tofu. Write the replacement instead. Counts are
+`fonts carrying the glyph / fonts measured`.
+
+| avoid | code point | fonts | write instead |
+|---|---|---|---|
+| ∮ | U+222E | 0/12 | `∫[C] f(z) dz` |
+| ⅆ | U+2146 | 0/12 | `d` |
+| ⅇ | U+2147 | 0/12 | `e` |
+| ∖ | U+2216 | 0/12 | `A \ B` |
+| ℵ | U+2135 | 0/12 | `aleph_0` |
+| ℶ | U+2136 | 0/12 | `beth_0` |
+| ⋘ | U+22D8 | 0/12 | `<<` |
+| ⋙ | U+22D9 | 0/12 | `>>` |
+| ⨁ | U+2A01 | 0/12 | `⊕[i=1..n]` |
+| ⨂ | U+2A02 | 0/12 | `⊗[i=1..n]` |
+| 〈 | U+3008 | 0/12 | `⟨` (U+3008 is a full-width CJK bracket) |
+| 〉 | U+3009 | 0/12 | `⟩` |
+| ≪ | U+226A | 1/12 | `<<` |
+| ≫ | U+226B | 1/12 | `>>` |
+| ⊨ | U+22A8 | 1/12 | `\|=` |
+| ⊻ | U+22BB | 1/12 | `xor`, or `⊕` in a boolean-ring context |
+| ⊼ | U+22BC | 1/12 | `nand` |
+| ⊽ | U+22BD | 1/12 | `nor` |
+| ⟸ | U+27F8 | 1/12 | `⇐` |
+| ⟹ | U+27F9 | 1/12 | `⇒` |
+| ⟺ | U+27FA | 1/12 | `⇔` |
+| ⨅ | U+2A05 | 1/12 | `⊓[i=1..n]` |
+| ⨆ | U+2A06 | 1/12 | `⊔[i=1..n]` |
+| 𝔼 | U+1D53C | 1/12 | `E[X]` (also banned by Rule 13) |
+| 𝔽 | U+1D53D | 1/12 | `F` (also banned by Rule 13) |
+| 𝔸 | U+1D538 | 1/12 | `A`, or `ℕ ℤ ℚ ℝ ℂ` when a specific set is meant |
 
 ## Anti-patterns — never emit these in the terminal (Claude Code / Codex)
 

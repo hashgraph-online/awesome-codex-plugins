@@ -211,6 +211,7 @@ npx @ouonet/praxis install --host copilot
 npx @ouonet/praxis install --host pi
 npx @ouonet/praxis install --host omp
 npx @ouonet/praxis install --host qoder
+npx @ouonet/praxis install --host grok
 npx @ouonet/praxis install --host agents  # generic .agents directory
 
 # 3. Status Check: inspect installation state across all agent platforms
@@ -227,16 +228,16 @@ npx @ouonet/praxis uninstall --host codex --scope project
 
 | Scope | Description | Typical Use Case |
 | ----- | ----------- | ---------------- |
-| `project` | **Project scope (Git-tracked)**: Configures project manifests (`opencode.json`, `.agents/`, `package.json`, etc.) so that Praxis configurations are committed to version control and shared across all team members cloning the repo. (Default inside a repository). | Team repository shared discipline |
+| `project` | **Project scope (Git-tracked)**: Configures project manifests (`opencode.json`, `.agents/`, `package.json`, etc.) so that Praxis configurations are committed to version control and shared across all team members cloning the repo. | Team repository shared discipline |
 | `local` | **Local scope**: Installs directly to local workspace directory (`.claude/plugins/`, `.codex/plugins/`, `.opencode/`, `.pi/skills/`, `.omp/skills/`, etc.) without modifying shared repo manifests. | Developer-local workspace testing without committing |
-| `user` (or `global`) | **User scope**: Installs globally in the user's home directory (`~/.claude/`, `~/.codex/`, `~/.gemini/config/`, `~/.config/opencode/`, `~/.pi/`, `~/.omp/`, `~/.agents/`). (Default when run in home directory). | Global availability across all local projects |
+| `user` (or `global`) | **User scope**: Installs globally in the user's home directory (`~/.claude/`, `~/.codex/`, `~/.gemini/config/`, `~/.config/opencode/`, `~/.pi/`, `~/.omp/`, `~/.agents/`, `~/.grok/`). (Default across all commands and directories). | Global availability across all local projects |
 
 #### CLI Options & Flags
 
 | Flag | Description | Default |
 | ---- | ----------- | ------- |
-| `--host, -H <name>` | Target agent: `claude`, `codex`, `opencode`, `copilot`, `antigravity` (`agy`), `pi`, `omp`, `qoder`, `agents`, `all` | `all` |
-| `--scope, -s <scope>` | Target installation scope: `project`, `local`, or `user` / `global` | `project` (in repo) / `user` (in home) |
+| `--host, -H <name>` | Target agent: `claude`, `codex`, `opencode`, `copilot`, `antigravity` (`agy`), `pi`, `omp`, `qoder`, `grok`, `agents`, `all` | `all` |
+| `--scope, -s <scope>` | Target installation scope: `user` / `global`, `project`, or `local` | `user` |
 | `--ref, -r <ref>` | Git branch, tag, or commit to install/pin (e.g. `--ref single-module`) | latest `main` |
 | `--dry-run` | Preview actions and file paths without writing files or running commands | `false` |
 | `--force, -f` | Overwrite existing configurations or files | `false` |
@@ -313,6 +314,21 @@ copilot plugin install ouonet/praxis
 ```
 open customization of copilot -> Plugins -> Install Plugin From Source -> input  "ouonet/praxis"
 ```
+
+#### Grok CLI
+
+Grok does not inject SessionStart hook stdout. Praxis CLI copies `rules/praxis.md` into Grok's rules directory so `using-praxis` triage is auto-loaded at session start, plus skills under `.grok/skills` (project) or `~/.grok/skills` (user).
+
+```bash
+# Using Praxis CLI (Recommended) — required for using-praxis auto-intro
+npx @ouonet/praxis install --host grok
+
+# Native plugin install (skills/hooks only; does not inject using-praxis)
+grok plugin marketplace add ouonet/praxis
+grok plugin install praxis --trust
+```
+
+Project plugins under `.grok/plugins/` need folder trust (`/hooks-trust` or `--trust`). Rules and `.grok/skills` load without enabling the plugin.
 
 #### Antigravity CLI / AGY
 

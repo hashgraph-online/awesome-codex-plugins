@@ -1,6 +1,6 @@
 {
   "name": "token-optimizer",
-  "version": "5.7.0",
+  "version": "6.0.2",
   "description": "Context-window optimization: caching, compression, and smart file tooling that cut token usage 60-90%.",
   "author": {
     "name": "ooples",

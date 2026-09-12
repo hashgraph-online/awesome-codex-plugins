@@ -1,6 +1,6 @@
 ---
 name: x-repurposer
-description: Repurpose existing content into a native X (Twitter) post or thread. Take a LinkedIn post, blog, YouTube script, or newsletter and rewrite it for X: re-hook for the no-fold first line, refit to 280 chars or a thread, strip off-platform artifacts, run the humanizer, publish via Publora on approval. Not for writing from scratch (use x-post-writer or x-thread-builder), not for auditing a draft (use x-humanizer --mode audit).
+description: "Repurpose existing content into a native X (Twitter) post or thread. Take a LinkedIn post, blog, YouTube script, or newsletter and rewrite it for X: re-hook for the no-fold first line, refit to 280 chars or a thread, strip off-platform artifacts, run the humanizer, publish via Publora on approval. Not for writing from scratch (use x-post-writer or x-thread-builder), not for auditing a draft (use x-humanizer --mode audit)."
 ---
 
 # X Repurposer
@@ -28,7 +28,7 @@ Not for a blank-page draft (use `x-post-writer` for a tweet, `x-thread-builder` 
 4. **Re-hook for X.** X has no "see more" fold: line one must land the whole punch. The source's hook almost never survives; write a new first line using a 2026 X formula (see `../../references/hook-formulas.md`), picked by the goal.
 5. **Refit the format.** 280 chars on a standard account (emoji count as 2). One idea per tweet, line breaks as beats. Cut the source's connective tissue; X rewards compression.
 6. **Strip off-platform artifacts.** Remove "link in bio", "smash subscribe", "read more below", hashtag walls, @-handles that only exist elsewhere, and any "as I wrote on LinkedIn" throat-clearing. A repurposed post should not admit it was repurposed.
-7. **Humanizer pass.** Run the scrub: em dashes, AI vocab, rule-of-three, generic openers. Keep the user's real numbers and named entities from the source.
+7. **Humanizer pass.** Run the scrub: 2026 AI vocab by density, em dashes above the cap (at most one per tweet, never swapped for a period), stacked rule-of-three triads, generic openers and reveal bridges. Leave a single tweet's rhythm alone; on a thread never insert a punch tweet for variance. Keep the user's real numbers and named entities from the source. Canonical rules: `x-humanizer` V3.
 8. **Approval card.** Show: source -> X mapping (what became what), the container (tweet or N-tweet thread), formula used, char counts, primary goal.
 9. **On approval.** Publish via `lib.publish(kind="post", draft_text=<approved>, target_url="https://x.com/compose/tweet", platforms=[<X_PLATFORM_ID>], scheduled_time=<iso_or_None>)`. Publora auto-splits an over-length draft into a numbered thread.
 
@@ -55,7 +55,8 @@ Global voice rules: see root `SKILL.md` Voice rules. Additional skill-specific r
 - Copy-pasting the source with light edits (that is not repurposing).
 - Keeping the source platform's artifacts ("link in bio", "smash subscribe", hashtag walls).
 - ALL CAPS first line for intensity. Carry it with word choice.
-- Em dashes anywhere.
+- Em dashes above the cap (more than one in a tweet), or an em dash swapped for a period.
+- "The result?" / "Here's what" reveal bridges and staccato stacks added during the rewrite.
 - Rule-of-three lists without specifics.
 - "leverage", "fundamentally", "game-changer", "deep dive".
 - An external link in the tweet body (offer a reply).

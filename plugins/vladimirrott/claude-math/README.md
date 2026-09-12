@@ -117,8 +117,72 @@ node --test test/                   # run the test suite
 a sandbox without touching your real `~/.claude` state, useful for
 contributing.
 
-The `math-unicode` skill auto-triggers any time the model (Claude or Codex)
-writes or explains math. No configuration required.
+The `math-unicode` skill triggers on its own when the model writes math for a
+surface that cannot render LaTeX. No configuration required. See *Where the
+skill should not fire* for the cases where you want it quiet.
+
+## Which glyphs actually render
+
+Unicode having a code point does not mean your terminal draws it. The skill
+ships a measured answer rather than a guess: `scripts/measure-font-coverage.mjs`
+reads the `cmap` table of twelve monospace fonts, six of the most widely
+installed programming fonts (JetBrains Mono, Fira Code, Cascadia Code, Hack,
+Source Code Pro, IBM Plex Mono) and six system fonts (DejaVu Sans Mono,
+Liberation Mono, Ubuntu Mono, Ubuntu Sans Mono, Noto Mono, Cousine). The counts
+live in the skill's *Font coverage* table and the test suite asserts every
+published number against the measurement.
+
+The short version:
+
+- Operators, Greek letters and digit sub/superscripts render in every font
+  measured. Most output is these.
+- Letter sub/superscripts (`xᵢ`, `xᵀ`, `aₙ`) are DejaVu-class. JetBrains Mono,
+  Fira Code, Hack and IBM Plex Mono carry none of them, so they arrive through
+  fontconfig fallback there, which draws them at another font's width. That is
+  why the rules keep `x_i` and `x^T` as equal alternatives.
+- A short list of glyphs renders in at most one of the twelve. The skill names
+  them under *Glyphs to avoid* with what to write instead.
+
+### Wider coverage, if your font has it
+
+If you run a font with broader Unicode coverage, the portable default leaves
+glyphs on the table: Greek indices in particular, where `ᵨ` and `ᵦ` exist and
+Liberation Mono and Cousine ship them. Ask for them once per session:
+
+> Use extended glyph coverage from math-unicode.
+
+Or put that line in your `CLAUDE.md` or `AGENTS.md` to make it permanent. The
+full opt-in set, with measured coverage per glyph, is in
+[`skills/math-unicode/references/extended-glyphs.md`](skills/math-unicode/references/extended-glyphs.md).
+Big-operator bounds stay bracketed either way, so `∑[i=1..n]` never becomes the
+mixed `∑ᵢ₌₀ⁿ` form.
+
+## Where the skill should not fire
+
+The skill targets surfaces that cannot render LaTeX. Its description says so, so
+a host that renders math natively (ChatGPT or Codex on desktop and web) should
+not pick it up. That is the model reading its own context, not an enforced
+predicate: no host exposes a per-surface switch to a skill today.
+
+To turn it off yourself, Codex takes either of these. In `~/.codex/config.toml`:
+
+```toml
+[[skills.config]]
+name = "math-unicode"
+enabled = false
+```
+
+Or, for explicit-only invocation while keeping `$math-unicode` available, add
+`skills/math-unicode/agents/openai.yaml` to your installed copy:
+
+```yaml
+policy:
+  allow_implicit_invocation: false
+```
+
+In Claude Code, `/plugin` disables the plugin, and `disable-model-invocation:
+true` in the installed `SKILL.md` leaves `/math-unicode` working while stopping
+automatic activation.
 
 ## Graphical rendering (sixel / kitty): not inside the chat
 

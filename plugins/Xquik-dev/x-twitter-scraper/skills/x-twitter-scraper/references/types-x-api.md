@@ -1,27 +1,27 @@
-# Xquik TypeScript Types: X API
+# Xquik TypeScript types: X API
 
 ```typescript
 
 interface TweetMediaItem {
   mediaUrl: string;
-  type: string;       // "photo" | "video" | "animated_gif"
+  type: "photo" | "video" | "animated_gif";
   url: string;
-  allowDownload?: boolean;
-  altText?: string;
-  aspectRatio?: number[];
-  availabilityStatus?: string;
-  displayUrl?: string;
-  durationMillis?: number;
-  expandedUrl?: string;
-  faceRects?: Record<string, unknown>;
-  focusRects?: Array<Record<string, number>>;
-  height?: number;
-  id?: string;
+  adultContent?: boolean; allowDownload?: boolean;
+  altText?: string; availabilityReason?: string;
+  aspectRatio?: number[]; availabilityStatus?: string;
+  description?: string; displayUrl?: string;
+  durationMillis?: number; expandedUrl?: string;
+  embeddable?: boolean;
+  faceRects?: Record<string, unknown>; focusRects?: Array<Record<string, number>>;
+  grokPostId?: string; height?: number; id?: string;
   indices?: number[];
-  mediaKey?: string;
-  monetizable?: boolean;
+  mediaKey?: string; monetizable?: boolean;
   sizes?: Record<string, unknown>;
+  sourceStatusId?: string; sourceUserId?: string;
+  tags?: Array<Record<string, string>>;
+  title?: string;
   videoVariants?: Array<Record<string, unknown>>;
+  watchNowUrl?: string; visitSiteUrl?: string;
   width?: number;
 }
 
@@ -30,12 +30,13 @@ interface Tweet {
   text: string;
   author?: TweetAuthor;
   createdAt?: string;
-  retweetCount: number;
-  replyCount: number;
-  likeCount: number;
-  quoteCount: number;
-  viewCount: number;
-  bookmarkCount: number;
+  inReplyToId?: string;
+  retweetCount?: number;
+  replyCount?: number;
+  likeCount?: number;
+  quoteCount?: number;
+  viewCount?: number;
+  bookmarkCount?: number;
   media?: TweetMediaItem[];
   article?: Record<string, unknown>;
   card?: Record<string, unknown>;
@@ -51,20 +52,20 @@ interface Tweet {
 
 interface ProfileRichness {
   affiliatesHighlightedLabel?: Record<string, unknown>;
-  businessAccountAffiliatesCount?: number;
-  creatorSubscriptionsCount?: number;
+  businessAccountAffiliatesCount?: number; creatorSubscriptionsCount?: number;
   hasGraduatedAccess?: boolean;
   hasHiddenSubscriptionsOnProfile?: boolean;
-  highlightsInfo?: Record<string, unknown>;
-  identityVerification?: Record<string, unknown>;
+  highlightsInfo?: Record<string, unknown>; identityVerification?: Record<string, unknown>;
   isProfileTranslatable?: boolean;
   parodyCommentaryFanLabel?: string;
-  profileDescriptionLanguage?: string;
-  profileImageShape?: string;
-  profileInterstitialType?: string;
-  profileSortEnabled?: boolean;
+  profileDescriptionLanguage?: string; profileImageShape?: string;
+  profileInterstitialType?: string; profileSortEnabled?: boolean;
   profileTranslatorType?: string;
   superFollowEligible?: boolean;
+  withheldScope?: string; professional?: Record<string, unknown>;
+  grokTranslatedBio?: Record<string, unknown>;
+  superFollowsUserProfileActive?: boolean;
+  tipJar?: Record<string, unknown>;
 }
 
 interface TweetAuthor extends ProfileRichness {
@@ -80,24 +81,18 @@ interface TweetSearchResult {
   id: string;
   text: string;
   createdAt?: string;
-  likeCount: number;    // Zero can mean X did not report the count
-  retweetCount: number; // Zero can mean X did not report the count
-  replyCount: number;   // Zero can mean X did not report the count
+  likeCount?: number;
+  retweetCount?: number;
+  replyCount?: number;
   media?: TweetMediaItem[];
   author?: UserProfile;
 }
 
 interface UserProfile extends ProfileRichness {
-  id: string;
-  username: string;
-  name: string;
+  id: string; username: string; name: string;
   description?: string;
-  followers?: number;
-  following?: number;
-  verified?: boolean;
-  profilePicture?: string;
-  location?: string;
-  createdAt?: string;
+  followers?: number; following?: number; verified?: boolean;
+  profilePicture?: string; location?: string; createdAt?: string;
   statusesCount?: number;
 }
 
@@ -145,6 +140,9 @@ state appears only through an explicitly requested
 `GET /api/v1/x/followers/check` lookup.
 
 Use `mode=complete&limit=25000` for bounded maximum-coverage reply collection.
+Before this metered bulk read, show the exact target, filters, limit, usage
+estimate or limitation, destination, recipients, retention, and cancellation
+path. Obtain explicit confirmation for that unchanged plan before sending it.
 Count direct replies only when `inReplyToId` equals the root tweet ID. Keep
 `nested_replies` separate. On `424 replies_incomplete`, retain safe partial rows
 and follow `diagnostic.recommendedFallback`.

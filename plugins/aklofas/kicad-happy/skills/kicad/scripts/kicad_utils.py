@@ -427,8 +427,15 @@ def snap_to_e_series(value: float, series: str = "E96") -> tuple:
 
 def classify_component(ref: str, lib_id: str, value: str, is_power: bool = False,
                        footprint: str = "", in_bom: bool = False,
-                       description: str = "") -> str:
-    """Classify component type from reference designator and library."""
+                       description: str = "", pins: list | None = None) -> str:
+    """Classify component type from reference designator and library.
+
+    pins: optional list of pin dicts (as produced by extract_lib_symbols,
+    each with a "name" key) for the KH-370 oscillator corroboration check.
+    None means pin data wasn't available to the caller (e.g. legacy .sch
+    parsing) — corroboration is skipped and prior (permissive) behavior
+    is preserved.
+    """
     # Power symbols: trust the lib_symbol (power) flag unconditionally.
     # KH-080: Components in the power: library WITHOUT the (power) flag
     # (e.g., DD4012SA buck converter) are real parts, not power symbols —
@@ -530,7 +537,20 @@ def classify_component(ref: str, lib_id: str, value: str, is_power: bool = False
             if any(x in _desc_low for x in ("oscillator", "clock oscillator",
                                               "mems oscillator", "tcxo", "vcxo", "ocxo")):
                 if "crystal" not in _desc_low:
-                    return "oscillator"
+                    # KH-370: bare "oscillator" substring over-fires on bus
+                    # peripherals (ADC/MCU/sensor ICs) whose datasheet
+                    # description merely mentions a built-in reference/timing
+                    # oscillator. Exclude that phrasing, then require pin
+                    # evidence of an actual clock-output part.
+                    _osc_internal_phrases = ("internal oscillator", "on-chip oscillator",
+                                              "internal reference", "with oscillator")
+                    if not any(x in _desc_low for x in _osc_internal_phrases):
+                        _clock_pin_names = {"OUT", "OUTPUT", "CLK", "CLKOUT", "XOUT", "FOUT"}
+                        _has_clock_pin = pins is not None and any(
+                            (p.get("name") or "").strip().upper() in _clock_pin_names
+                            for p in pins)
+                        if pins is None or _has_clock_pin or len(pins) <= 4:
+                            return "oscillator"
         if result == "varistor":
             if ("r_pot" in lib_low or "pot" in lib_low or "potentiometer" in lib_low
                     or "potentiometer" in val_low):
@@ -1435,28 +1455,70 @@ def estimate_dc_bias_derating(dielectric, package, voltage_ratio):
 # .kicad_pro project file parsing
 # ======================================================================
 
-def load_kicad_pro(file_path: str) -> dict | None:
-    """Load .kicad_pro from the same directory as a .kicad_sch or .kicad_pcb file.
+def find_project_settings_file(file_path: str, ext: str) -> str | None:
+    """Find the ``ext`` file (e.g. ``.kicad_pro``, ``.kicad_dru``) matching
+    ``file_path``'s project, in ``file_path``'s directory.
 
-    Scans the directory for a ``*.kicad_pro`` file (there should be exactly one).
-    Returns the parsed JSON dict, or None if not found, not valid JSON, or a
-    KiCad 5 ``.pro`` file (which uses a different, non-JSON format).
+    Shared discovery logic for `load_kicad_pro` / `load_kicad_dru` (KH-362).
+    Scans the directory for files ending in ``ext`` and prefers the one
+    whose stem matches ``file_path``'s stem (KiCad names project/rules
+    files after the board/schematic they belong to). Falls back to the
+    sole candidate when there's only one; with multiple candidates and no
+    stem match, deterministically picks the first (sorted) candidate and
+    warns on stderr (a directory with several projects previously took
+    whatever the OS listed first).
+
+    Returns the chosen file's full path, or None if no candidate exists
+    or the directory can't be listed.
     """
-    import json as _json
+    import sys as _sys
     parent = os.path.dirname(os.path.abspath(file_path))
+    stem = os.path.splitext(os.path.basename(file_path))[0]
     try:
         entries = os.listdir(parent)
     except OSError:
         return None
-    for fname in entries:
-        if fname.endswith('.kicad_pro'):
-            pro_path = os.path.join(parent, fname)
-            try:
-                with open(pro_path) as f:
-                    return _json.load(f)
-            except (ValueError, OSError):
-                return None
-    return None
+    candidates = sorted(f for f in entries if f.endswith(ext))
+    if not candidates:
+        return None
+
+    exact = [f for f in candidates if os.path.splitext(f)[0] == stem]
+    if exact:
+        chosen = exact[0]
+    elif len(candidates) == 1:
+        chosen = candidates[0]
+    else:
+        chosen = candidates[0]
+        print(
+            "kicad_utils.find_project_settings_file: {0} {1} files in "
+            "{2!r}, none match stem {3!r}; using {4!r}".format(
+                len(candidates), ext, parent, stem, chosen),
+            file=_sys.stderr,
+        )
+
+    return os.path.join(parent, chosen)
+
+
+def load_kicad_pro(file_path: str) -> dict | None:
+    """Load .kicad_pro from the same directory as a .kicad_sch or .kicad_pcb file.
+
+    Discovery is stem-matched via `find_project_settings_file` (KH-362) —
+    in a multi-project directory, the ``.kicad_pro`` sharing this file's
+    stem is preferred over whatever the OS lists first.
+    Returns the parsed JSON dict, or None if not found, not valid JSON, or a
+    KiCad 5 ``.pro`` file (which uses a different, non-JSON format).
+    Tolerates JS-style comments / trailing commas (KH-368-style JSONC).
+    """
+    pro_path = find_project_settings_file(file_path, '.kicad_pro')
+    if not pro_path:
+        return None
+    try:
+        # Local import: project_config has no kicad_utils dependency, so
+        # this doesn't introduce a cycle (KH-362 pre-flight check).
+        from project_config import load_jsonc
+        return load_jsonc(pro_path)
+    except (ValueError, OSError):
+        return None
 
 
 def is_referenced_as_child(file_path: str) -> bool:
@@ -1757,18 +1819,13 @@ def load_kicad_dru(file_path: str) -> list[dict] | None:
 
     Conditions are kept as raw strings — not evaluated.
     Returns None if no ``.kicad_dru`` found.
+
+    Discovery is stem-matched via `find_project_settings_file`, same rule
+    as ``load_kicad_pro`` (KH-362).
     """
     from sexp_parser import parse as _sexp_parse, find_all, find_first, get_value
 
-    parent = os.path.dirname(os.path.abspath(file_path))
-    dru_path = None
-    try:
-        for fname in os.listdir(parent):
-            if fname.endswith('.kicad_dru'):
-                dru_path = os.path.join(parent, fname)
-                break
-    except OSError:
-        return None
+    dru_path = find_project_settings_file(file_path, '.kicad_dru')
     if not dru_path:
         return None
 

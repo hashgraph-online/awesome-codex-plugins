@@ -1,23 +1,21 @@
-# Executable spec for the /test skill — test generation + coverage (supporting role).
-# /test loads the language's test standards, generates REAL tests for existing code, runs them to
-# verify they pass (it does not stop at a plan), and fills coverage gaps — writing artifacts to
-# .agents/scratch/tests/. Hexagon: supporting; consumes standards (test conventions) + repo-context (the
-# code under test); produces test-evidence. (soc-qk4b)
+Feature: Tests establish accepted observable behavior
+  Scenario: Existing acceptance examples drive tests
+    Given the caller describes a Job's expected behavior in a bead
+    When tests are generated
+    Then they observe that behavior using established domain terms
+    And no feature file is required just to invoke the skill
 
-Feature: Test generates real, passing tests and coverage
-  As the test-generation step
-  I want tests generated to the project's standards and verified by running them
-  So that coverage improves with real passing tests, not a plan
+  Scenario: New behavior is developed test first
+    When the caller selects TDD for missing behavior
+    Then the focused test fails for the expected missing behavior before implementation
+    And the implemented behavior passes the same test
 
-  Scenario: standards and language are loaded before generating
-    When /test runs
-    Then it detects the language and loads the test standards (AI-native test shape) for it
+  Scenario: Coverage is a selected measurement
+    When the caller requests important coverage gaps to be filled
+    Then before and after measurements accompany the valuable new tests
+    And a coverage increase alone does not prove acceptance
 
-  Scenario: generate produces real tests that are run and verified
-    When /test generate runs on existing code
-    Then it writes real tests, runs them, and verifies they pass
-    And it does not output a plan and stop
-
-  Scenario: coverage analyzes and fills gaps
-    When /test coverage runs
-    Then it analyzes coverage gaps and fills them, writing a coverage report to .agents/scratch/tests/
+  Scenario: Routine test writing stays proportional
+    When a useful test is added for existing correct behavior
+    Then a green baseline is reported honestly
+    And no report file or per-test mutation ceremony is required

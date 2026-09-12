@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "tmcra-memory": {
+      "command": "node",
+      "args": ["./hooks/run_hook.mjs", "mcp_server.mjs"],
+      "cwd": "."
+    }
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${PLUGIN_ROOT}/hooks/deja.sh hook-context",
+            "timeout": 10,
+            "statusMessage": "Recalling past sessions…"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${PLUGIN_ROOT}/hooks/deja.sh hook-prompt",
+            "timeout": 10,
+            "statusMessage": "Searching past sessions…"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "manual|auto",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${PLUGIN_ROOT}/hooks/deja.sh hook-precompact",
+            "timeout": 30,
+            "statusMessage": "Saving this session to memory…"
+          }
+        ]
+      }
+    ]
+  }
+}

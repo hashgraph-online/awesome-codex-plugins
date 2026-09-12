@@ -168,10 +168,10 @@ River Review は、単にコードをAIに読ませるツールではありま�
 
 ## フローのストーリー
 
-- **上流（設計）**: ADR を踏まえたチェックでコードのドリフトを防ぎ、アーキテクチャ判断との整合を保ちます。
-- **中流（実装）**: スタイルと保守性のガードレールで日々のコーディングを支援します。
-- **下流（テスト/QA）**: テスト指向のスキルがカバレッジ不足や失敗パスを浮かび上がらせます。
-- **フェーズ指向ルーティング**: `phase` とファイルメタデータを見て、開発段階に合ったスキルを選択します。
+- **上流（設計）**: ADR を踏まえたチェックでコードのドリフトを防ぎ、アーキテクチャ判断との整合を保つ。
+- **中流（実装）**: スタイルと保守性のガードレールで日々のコーディングを支援する。
+- **下流（テスト/QA）**: テスト指向のスキルがカバレッジ不足や失敗パスを浮かび上がらせる。
+- **フェーズ指向ルーティング**: `phase` とファイルメタデータを見て、開発段階に合ったスキルを選択する。
 
 ## ポジション: artifact-driven review agent
 
@@ -183,8 +183,8 @@ River Review は **artifact-driven review agent** です。外部から渡され
 
 - **設計レビュー**: `pbi-input` / `plan` を入力に、計画の整合性・網羅性を上流 skill で検査します（例: `skills/upstream/plangate-plan-integrity/`）。
 - **実装レビュー**: `plan` と `diff` を入力に、実装差分が計画と一致しているかを検査します（例: `skills/upstream/plangate-exec-conformance/`）。
-- **QA レビュー**: `test-cases` / `junit` / `coverage` を入力に、テストカバレッジや失敗パスの抜けを下流 skill で浮かび上がらせます。
-- **W チェック（二重レビュー）**: 既存の AI / 人間レビュー結果を `review-self` / `review-external` として渡し、レビューそのものを再点検します。
+- **QA レビュー**: `test-cases` / `junit` / `coverage` を入力に、テストカバレッジや失敗パスの抜けを下流 skill で浮かび上がらせる。
+- **W チェック（二重レビュー）**: 既存の AI / 人間レビュー結果を `review-self` / `review-external` として渡し、レビューそのものを再点検する。
 
 ### CLI 利用例
 
@@ -238,7 +238,7 @@ jobs:
 
 <!-- x-release-please-start-version -->
 
-最新リリース: [v1.83.0](https://github.com/s977043/river-review/releases/latest)
+最新リリース: [v1.109.1](https://github.com/s977043/river-review/releases/latest)
 
 <!-- x-release-please-end -->
 
@@ -377,9 +377,9 @@ GitHub Actions では:
 
 **Prompt caching（自動）**: skill の systemPrompt は Anthropic の 5 分 ephemeral cache を自動利用します。同じ skill で複数ファイルをレビューする際、2 回目以降の system トークンが大幅に割引（cache_read 単価は通常の 1/10）されます。グローバル無効化は `RIVER_ANTHROPIC_PROMPT_CACHE=0`、skill 単位無効化は `skill.disableCache: true` を使用します。
 
-**コスト計測（usage telemetry）**: `AIClientFactory.create(...)` が返す Anthropic / OpenAI クライアントは、`generateReview()` 完了後に `client.lastUsage` を `{ provider, model, inputTokens, outputTokens, cacheCreationInputTokens, cacheReadInputTokens }` 形式で公開します。`SkillDispatcher` の結果配列にも `usage` フィールドとして含まれるため、独自スクリプトでコスト集計や cache 効率の計測に利用できます。`RIVER_AI_RETRY_DEBUG=1` を設定すると 1 呼び出しごとに usage が標準出力にも記録されます。
+**コスト計測（usage telemetry）**: `AIClientFactory.create(...)` が返すクライアントは Anthropic / OpenAI のいずれかです。このクライアントは `generateReview()` の完了後に `client.lastUsage` として usage を公開します。形式は `{ provider, model, inputTokens, outputTokens, cacheCreationInputTokens, cacheReadInputTokens }` です。`SkillDispatcher` の結果配列にも `usage` フィールドとして含まれるため、独自スクリプトでコスト集計や cache 効率の計測に利用できます。`RIVER_AI_RETRY_DEBUG=1` を設定すると 1 呼び出しごとに usage が標準出力にも記録されます。
 
-**Disk への永続化（opt-in）**: `RIVER_USAGE_TELEMETRY=1` を設定すると、`SkillDispatcher` 実行完了時に `artifacts/usage/<YYYY-MM-DD>-<runId>.jsonl` へ 1 (file, skill) ペアにつき 1 行の JSONL を書き出します。各行は `{ timestamp, runId, commit, file, skill, provider, model, inputTokens, outputTokens, cacheCreationInputTokens, cacheReadInputTokens }` の安定スキーマで、外部のコスト分析ツールに直接食わせられます。永続化失敗はレビュー本体を止めません（警告のみ）。
+**Disk への永続化（opt-in）**: `RIVER_USAGE_TELEMETRY=1` を設定すると、`SkillDispatcher` の実行が完了するたびに書き出しが走ります。そのタイミングで `artifacts/usage/<YYYY-MM-DD>-<runId>.jsonl` へ 1 (file, skill) ペアにつき 1 行の JSONL を書き出します。各行は `{ timestamp, runId, commit, file, skill, provider, model, inputTokens, outputTokens, cacheCreationInputTokens, cacheReadInputTokens }` の安定スキーマです。そのため、外部のコスト分析ツールに直接食わせられます。永続化失敗はレビュー本体を止めません（警告のみ）。
 
 ### セキュリティ考慮事項
 
@@ -436,11 +436,13 @@ river-review は同一リポジトリ内のマーケットプレイスから Cla
 
 得られるもの（プラグイン名で名前空間化されます）:
 
-- コマンド: `/river-review:setup-team` / `/river-review:review-local` / `/river-review:review-team` / `/river-review:challenge` / `/river-review:skill` / `/river-review:check` / `/river-review:pr`
+- コマンド: `/river-review:setup-team` / `/river-review:review-local` / `/river-review:review-team` / `/river-review:challenge` が含まれる。加えて `/river-review:skill` / `/river-review:check` / `/river-review:pr` も使える。
 - エージェント: `river-review`（スキルルーティング型のコードレビュー・オーケストレーター）
-- スキル: オーケストレーターの `river-review` に加えて `river-review-code` / `river-review-security` / `river-review-performance` / `river-review-architecture` / `river-review-testing` / `river-review-frontend` / `river-review-docs` / `adversarial-review` / `review-team` / `unknown-coverage-review`—`/river-review:<skill-name>` で呼び出せます
+- スキル: オーケストレーターの `river-review` に加えて `river-review-code` / `river-review-security` / `river-review-performance` の各スキルが含まれる。さらに `river-review-architecture` / `river-review-testing` / `river-review-frontend` も含まれる。加えて `river-review-docs` / `adversarial-review` / `review-team` / `unknown-coverage-review` も含まれる。いずれも `/river-review:<skill-name>` で呼び出せる
 
 管理: `/plugin enable|disable|uninstall river-review@river-review-marketplace`。
+
+> **Stop hook（Beta）**: プラグインはセッション終了（`Stop`）時に `river review plan --plan-only --entry review-task` を走らせ、Review Artifact を `$TMPDIR/river-review-task-checkpoint/` に書きます（過去分を 20 件まで残すため、実行後は最大 21 件）。hook は `CLAUDE_PLUGIN_ROOT/node_modules` を要求するため、npm パッケージを導入するか plugin ディレクトリで `npm ci` を実行してください。LLM 呼び出しと課金はなく、所要は 1〜7 秒です（本 repo で 3 回実測 5.0〜5.4 秒、別環境で 6.7 秒。大規模 repo では 60 秒の timeout で打ち切られえます）。CLI が無ければ skip します。止めるには環境変数 `RIVER_TASK_CHECKPOINT_HOOK=0` を設定するか、プラグインを無効化してください。詳細は [Stable Interfaces](https://river-review.the3396.com/reference/stable-interfaces) を参照してください。
 
 インストールせずにローカルで開発・テストする場合:
 
@@ -482,9 +484,9 @@ Codex（および Cursor）の完全なセットアップは `templates/agent-wo
 
 ## AI エージェント運用
 
-- ルートの `AGENTS.md` が AI コーディングエージェント向けの SSOT です。
-- `AGENT_LEARNINGS.md` には、再利用できる確定済みの学びだけを追加します。
-- 秘密情報、個人情報、一時的なメモはどちらにも書きません。
+- ルートの `AGENTS.md` が AI コーディングエージェント向けの SSOT である。
+- `AGENT_LEARNINGS.md` には、再利用できる確定済みの学びだけを追加する。
+- 秘密情報、個人情報、一時的なメモはどちらにも書かない。
 
 ### Codex を project-local config で使う
 
@@ -504,9 +506,9 @@ npm run codex:exec -- "review this branch"
 
 運用上の前提:
 
-- project-local config は安全寄りの既定値だけを持ち、モデル選択や web search は CLI 引数で都度上書きします。
-- レビューや PR 準備の前には、少なくとも `npm run lint` と `npm test` を実行してください。
-- `src/` と `docs/` は要確認パスです。変更が必要な場合は、先に明示的な許可を取ってください。
+- project-local config は安全寄りの既定値だけを持ち、モデル選択や web search は CLI 引数で都度上書きする。
+- レビューや PR 準備の前には、少なくとも `npm run lint` と `npm test` を実行する。
+- `src/` と `docs/` は要確認パスである。変更が必要な場合は、先に明示的な許可を取る。
 
 ### ローカルレビュー実行（river run .）
 
@@ -516,9 +518,9 @@ npm run codex:exec -- "review this branch"
 2. `--debug` を付けるとマージベース、対象ファイル一覧、プロンプトのプレビュー、トークン見積もり、diff 抜粋を標準出力へ表示
 3. OpenAI の LLM を使う場合は `OPENAI_API_KEY`（または `RIVER_OPENAI_API_KEY`）を設定して `river run .` を実行。未設定時はスキルベースのヒューリスティックコメントでフォールバック
 4. `--dry-run` は外部 API を呼ばず標準出力のみ。`--phase upstream|midstream|downstream` でフェーズ指定も可能（デフォルトは `RIVER_PHASE` 環境変数または `midstream`）
-5. コンテキスト/依存の制御: `RIVER_AVAILABLE_CONTEXTS=diff,tests` や `RIVER_AVAILABLE_DEPENDENCIES=code_search,test_runner` を設定すると、スキル選択時に要求を満たさないものを理由付きでスキップできます（未設定の場合は依存チェックをスキップ）。
-6. CLI で直接指定する場合: `--context diff,fullFile` や `--dependency code_search,test_runner` フラグで環境変数を上書きできます（逗号区切り）。
-7. 依存のスタブ有効化: `RIVER_DEPENDENCY_STUBS=1` を指定すると、既知の依存（`code_search` / `test_runner` / `coverage_report` / `adr_lookup` / `repo_metadata` / `tracing`）を「利用可能」とみなしてスキップを防ぎます。実装準備中の環境でプランだけ確認したいときに使用してください。
+5. コンテキスト/依存の制御: `RIVER_AVAILABLE_CONTEXTS=diff,tests` や `RIVER_AVAILABLE_DEPENDENCIES=code_search,test_runner` を設定する。すると、スキル選択時に要求を満たさないものを理由付きでスキップできる（未設定の場合は依存チェックをスキップ）。
+6. CLI で直接指定する場合: `--context diff,fullFile` や `--dependency code_search,test_runner` フラグで環境変数を上書きできる（カンマ区切り）。
+7. 依存のスタブ有効化: `RIVER_DEPENDENCY_STUBS=1` を指定すると、既知の依存（`code_search` / `test_runner` / `coverage_report` / `adr_lookup` / `repo_metadata` / `tracing`）を「利用可能」とみなす。`custom:` で始まる拡張依存も、ワイルドカード `custom:*` によりまとめて「利用可能」となる。これによりスキップを防ぐ。実装準備中の環境でプランだけ確認したいときに使用する。
 
 ### 出力形式（`--output`）
 
@@ -550,7 +552,7 @@ CLI の `--output` と GitHub Action の `output_format` は次の形式を受�
 ## Project-specific review rules
 
 - リポジトリルートに `.river/rules.md` を置くと、プロジェクト固有のレビューポリシーが LLM プロンプトへ自動注入されます（`river run .` と GitHub Actions の双方で有効）
-- ファイルが無い/空の場合は従来通り。読み込みエラー時のみ失敗します
+- ファイルが無い/空の場合は従来通り。読み込みエラー時のみ失敗する
 - 例（.river/rules.md）:
   - Next.js App Router を前提とし、`pages/` ディレクトリは使用しない
   - React サーバーコンポーネントを優先し、クライアントコンポーネントは必要な場合のみ使う
@@ -558,9 +560,9 @@ CLI の `--output` と GitHub Action の `output_format` は次の形式を受�
 
 ## Diff Optimization（差分最適化）
 
-- River Review は lockfile や Markdown、コメント・フォーマットのみの変更を自動で除外し、LLM に渡すトークン量を削減します
-- 大きな差分はハンク単位で圧縮し、必要な変更周辺のみを送信してコストとノイズを低減します
-- `river run . --debug` で最適化前後のトークン見積もりと削減率を確認できます
+- River Review は lockfile や Markdown、コメント・フォーマットのみの変更を自動で除外し、LLM に渡すトークン量を削減する
+- 大きな差分はハンク単位で圧縮し、必要な変更周辺のみを送信してコストとノイズを低減する
+- `river run . --debug` で最適化前後のトークン見積もりと削減率を確認できる
 
 ## スキルと拡張性
 
@@ -648,7 +650,7 @@ severity: minor
 
 - サンプル: `examples/skills/` 配下の 3 スキル（参考用。レビュー実行では選択されない。詳細は `examples/skills/README.md`）
 - examples: `examples/README.md`
-- スキーマ: スキルメタデータは `schemas/skill.schema.json`, レビュー出力は `schemas/output.schema.json`
+- スキーマ: スキルメタデータは `schemas/skill.schema.json`。レビュー出力は `schemas/output.schema.json`
 - 参考: スキルスキーマの詳細は `pages/reference/skill-schema-reference.md`、Riverbed Memory の設計ドラフトは `pages/explanation/riverbed-memory.md`
 - 既知の制限: `pages/reference/known-limitations.md`
 

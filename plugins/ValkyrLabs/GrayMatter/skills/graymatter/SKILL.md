@@ -75,8 +75,7 @@ scripts/gm-openapi-sync
 scripts/gm-doctor --quick
 ```
 
-Auth should be treated as an OpenClaw-managed first-run step.
-The user should be prompted for `api-0` username and password, and the resulting session should be stored securely in macOS/iCloud Keychain for reuse.
+Auth is an automatic first-run step. The plugin opens one native secure dialog on macOS or Windows for the `api-0` username and masked password, exchanges them directly over HTTPS, and stores only the resulting session and username in macOS Keychain or Windows Credential Manager. Rejected credentials reopen the dialog with the username preserved and an actionable error. Temporary validation outages preserve the stored session; only explicit `401` or `403` responses invalidate it. Windows transparently chunks oversized sessions across protected Credential Manager entries. Linux uses Secret Service when available and a hidden terminal fallback otherwise. The password must never be printed or persisted.
 The user should not need to manually fetch or paste a raw auth token.
 
 ## What this skill gives the agent
@@ -213,7 +212,7 @@ Local/server packaging:
 - `scripts/package-local-server`
 
 MCP server:
-- `mcp-server/` exposes `memory_write`, `memory_read`, `memory_query`, `memory_retrieve_with_receipt`, high-level `omega_remember`, `omega_plan`, `omega_resolve_domains`, `omega_recall`, `omega_forget`, `omega_trajectory_get`, `omega_evaluate`, `omega_outcome`, and `omega_index_job`, `retrieval_receipt_get`, `retrieval_receipt_query`, `graph_get`, GrayMatter status/semantic/retrieval/activation/MCP-bundle tools, `graymatter_invariant_preflight`, `entity_list`, `entity_get`, `entity_create`, and `schema_summary`
+- `mcp-server/` exposes `memory_write`, `memory_read`, `memory_query`, `memory_retrieve_with_receipt`, `retrieval_receipt_get`, `retrieval_receipt_query`, `graph_get`, GrayMatter status/semantic/retrieval/activation/MCP-bundle tools, `graymatter_invariant_preflight`, `entity_list`, `entity_get`, `entity_create`, and `schema_summary`
 - set `VALKYR_API_BASE` to hosted api-0 for Cloud mode or to the running GrayMatter Light base URL for local ThorAPI mode
 
 Design boundary:
@@ -224,13 +223,16 @@ Design boundary:
 ## Account signup and credits
 
 For a new GrayMatter account, use:
-- Signup and activation: <https://valkyrlabs.com/graymatter/activate?source=graymatter&intent=signup&operation=memory_query>
-- Credits and recharge: <https://valkyrlabs.com/graymatter/credits?source=graymatter&intent=recharge&operation=memory_query>
+- Signup: <https://valkyrlabs.com/graymatter/cloud/signup?source=graymatter&intent=signup>
+- Credits and recharge (Codex, OpenClaw, Claude, and other non-ChatGPT clients only): <https://valkyrlabs.com/graymatter/credits?source=graymatter&intent=recharge&operation=memory_query>
 
 Commercial model:
-- fresh signups should receive **500 starter credits** automatically
+- free-tier accounts receive **500 included credits per monthly cycle**, beginning at signup
 - GrayMatter query and some higher-order operations consume credits
-- after the starter balance is exhausted, account recharge is required for full GrayMatter functionality
+- when included credits run out, usage remains subject to the server's credit limit until the next monthly allocation; do not promise rollover or carry-forward
+- the ChatGPT marketplace surface is free-tier only: never expose purchase, recharge, or upgrade actions or links, including in error recovery
+- outside ChatGPT, users may buy credit packs or use their existing Valkyr Solo, Team, or Enterprise subscription; do not invent a separate GrayMatter Pro product
+- credit balance alone never authorizes hosted instances or workflow execution; these require an active paid Valkyr subscription and server-side entitlement checks
 
 ## Immediate install and use
 
@@ -272,7 +274,7 @@ scripts/gm-openapi-sync
 scripts/gm-openapi-summary
 ```
 
-`scripts/gm-login` is the intended OpenClaw login UX: prompt once for username/password, store securely in Keychain, and let the rest of the skill use that session automatically.
+`scripts/gm-login` is the intended login UX: prompt once with a native dialog, store only the session in the platform credential vault, and let the rest of the skill use it automatically. Account creation may open the activation website, but JWT/session capture must come from the direct API login response rather than a browser redirect or manual paste.
 
 `scripts/gm-register-agent` should run immediately after auth succeeds so the OpenClaw server creates or refreshes an Agent record for itself in api-0 before normal operation.
 
@@ -280,19 +282,19 @@ After that, GrayMatter is ready to use as primary durable memory and schema cont
 
 ## Startup and self-healing
 
-The MCP entrypoint is `scripts/gm-mcp-launcher`. It performs a bounded signed-release check, auth/connectivity check, conditional OpenAPI refresh, and authenticated tenant-context replay check before it execs Node. Startup failures are surfaced on stderr; the MCP protocol stream remains clean, and a valid stale schema is discovery-only.
+The cross-platform MCP entrypoint is `node scripts/gm-mcp-launcher.mjs --stdio`. It owns first-run native authentication and then preserves the bounded signed-release, schema-refresh, and replay checks on supported Unix installs before starting the MCP server. Startup failures are surfaced on stderr so the MCP protocol stream remains clean.
 
 Every Codex/OpenClaw/agent process using GrayMatter should:
 
-1. use `scripts/gm-mcp-launcher` for MCP startup
+1. use `node scripts/gm-mcp-launcher.mjs --stdio` for cross-platform MCP startup; it opens native sign-in automatically when the session is missing or expired
 2. run `scripts/gm-activate` on first install, auth failure, suspicious transport behavior, or after a refresh is due
 3. rely on `scripts/gm-login` to store reusable auth in the OS keychain when available
 4. let `scripts/graymatter_api.sh` and the MCP server refresh expired process-scoped auth automatically
 5. use `scripts/gm-openapi-sync` for online-first ETag validation; scoped metadata must report freshness, revision, API base, tenant/principal fingerprints, and document SHA-256
 6. run `scripts/gm-doctor --quick` after startup, plugin updates, or suspicious auth/transport behavior
-7. rely on bounded automatic replay after authenticated connectivity and
-   authorized tenant context are restored; use `scripts/gm-replay-deferred`
-   only for an explicit operator retry or verification
+7. run `scripts/gm-replay-deferred` only after authenticated connectivity and authorized tenant context are restored
+
+The repository `install.sh` and `install.ps1` entrypoints use the same cross-platform Node installer. When Codex is present they add the checked-out marketplace and install `graymatter@graymatter` automatically, then reuse or establish vault-backed authentication and validate the portable MCP runtime without requiring `jq` or a manually pasted JWT. `scripts/gm-activate` remains the expanded OpenClaw smoke, registration, and schema-sync flow.
 
 User-facing progress should stay simple:
 
@@ -326,6 +328,12 @@ If a user provides systemd output for `valkyrai.service`, treat that as canonica
 ## Capability discovery
 
 Use `scripts/gm-openapi-sync`, `scripts/gm-openapi-summary`, and `docs/server-capabilities.md` to understand the live server. Current api-0 exposes memory status/capabilities, semantic/vector indexes, retrieval receipts, retrieval context, activation bridge, MCP bundles, object graph shape, SwarmOps graph, and the broader RBAC-visible business schema. Use these aggressively and visibly; do not hide server capabilities behind undocumented assumptions.
+
+## Temporal assertions and graph recipes
+
+Use `omega_temporal_assertion_record` for an explicit schema-valid fact or relationship and `omega_temporal_assertion_extract` for automatic extraction from one authorized `MemoryEntry`. Prefer `SUGGEST_ONLY` when the source is ambiguous; use `COMMIT_SAFE` only when threshold-qualified candidates should be durably recorded. A correction must set `supersedesRef`; never rewrite or delete the predecessor. Preserve `sourceMemoryId` so every assertion remains traceable to its durable source.
+
+Use `omega_temporal_assertions_as_of` for the effective state at independent valid and recorded coordinates, and `omega_temporal_assertion_history` for interval history. Both reads require the exact plan and parent receipt that selected the subject. Use `omega_search_recipe` for a named graph strategy and `omega_conversation_context` when the caller needs a governed ContextPage plus a ready bounded chat prompt. Recipe selection changes retrieval strategy, never tenant or ACL authority.
 
 ## Valkyr-native tool routing
 
@@ -396,22 +404,23 @@ reads across at least two profiles and blocks all writes until one profile is
 selected. MCP supports the same blended memory query/read/health subset and
 returns read-only recovery for mutating or unsupported tools.
 
-Local passwords remain in mode-0600 profile secret files; hosted tokens remain
-in Keychain. Neither secret is stored in `profiles.json`.
+Local-only passwords remain in mode-0600 profile secret files; hosted sessions
+remain in the platform credential vault. Hosted passwords are never persisted,
+and neither local passwords nor hosted sessions are stored in `profiles.json`.
 
 `graymatter_api.sh` uses:
 - `VALKYR_API_BASE`, defaulting to `https://api-0.valkyrlabs.com/v1`
 - `VALKYR_KEYCHAIN_SERVICE`, defaulting to `VALKYR_AUTH`
-- macOS/iCloud Keychain lookup for `VALKYR_AUTH`
+- platform credential-vault lookup for `VALKYR_AUTH`
 - `VALKYR_AUTH_TOKEN` if already present as an override/debug path
 - `VALKYR_JWT_SESSION` as a compatible env fallback
 
 Preferred auth behavior is OpenClaw-first:
-- check Keychain for `VALKYR_AUTH` first
+- check the platform credential vault for `VALKYR_AUTH` first
 - if present, reuse it automatically
 - otherwise prompt for username/password
 - exchange for a `VALKYR_AUTH` token
-- store it in Keychain
+- store only the session and username in the platform credential vault
 
 If activation can write/read by id and register the agent but semantic memory query is blocked by missing credits, treat that as a degraded startup state rather than total activation failure. Preserve auth, register the agent, sync the schema, and surface that query/list capability is limited until credits are available.
 
@@ -514,12 +523,12 @@ Do not pretend durable memory succeeded when it did not.
 
 Known operational note:
 - `/MemoryEntry/query` may require credits even when write/read paths succeed
-- new signups should receive an automatic 500-credit grant so GrayMatter query works immediately during activation
-- after starter credits are exhausted, recharge is required for full GrayMatter functionality
-- signup and activation: <https://valkyrlabs.com/graymatter/activate?source=graymatter&intent=signup&operation=memory_query>
+- free-tier accounts receive 500 included credits per monthly cycle, including the first cycle at signup
+- exhaustion does not imply a mandatory purchase: ChatGPT offers no recharge or upgrade actions; other clients may offer credit packs or existing Valkyr subscriptions
+- signup: <https://valkyrlabs.com/graymatter/cloud/signup?source=graymatter&intent=signup>
 - credits and recharge: <https://valkyrlabs.com/graymatter/credits?source=graymatter&intent=recharge&operation=memory_query>
-- `scripts/graymatter_api.sh` prints both links on `INSUFFICIENT_FUNDS` and attempts a popup prompt on macOS/Windows
-- optional overrides: `VALKYR_BUY_CREDITS_URL`, `VALKYR_HUMAN_SIGNUP_URL`
+- `scripts/graymatter_api.sh` is a non-ChatGPT operator helper; its credit links and native recovery prompts must never be forwarded through the ChatGPT marketplace surface
+- optional overrides: `VALKYR_BUY_CREDITS_URL`, `VALKYR_HUMAN_SIGNUP_URL`, `VALKYR_HUMAN_RECOVERY_URL`
 
 ## Local fallback
 

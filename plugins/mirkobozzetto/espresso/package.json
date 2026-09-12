@@ -1,22 +1,11 @@
 {
-  "name": "espresso",
-  "version": "1.0.0",
-  "description": "Concentrated Claude. Zero fluff, max power per token.",
-  "author": "Mirko Bozzetto <mirko.prodev@gmail.com>",
+  "name": "espresso-agent-tools",
+  "version": "2.1.0",
+  "description": "Concise, evidence-preserving coding workflows for Claude Code, Codex, OMP and Pi.",
   "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/mirkobozzetto/espresso"
-  },
-  "keywords": [
-    "claude-code",
-    "claude-code-plugin",
-    "token-optimization",
-    "productivity",
-    "espresso"
-  ],
-  "files": [
-    ".claude-plugin/",
-    "src/hooks/"
-  ]
+  "repository": {"type": "git", "url": "git+https://github.com/mirkobozzetto/espresso.git"},
+  "keywords": ["pi-package", "claude-code-plugin", "codex", "omp"],
+  "files": ["src", "skills", ".claude-plugin", ".codex-plugin", "INSTALL.md"],
+  "pi": {"extensions": ["./src/extension.ts"], "skills": ["./skills"]},
+  "scripts": {"install-adapter": "node src/hooks/install.js"}
 }

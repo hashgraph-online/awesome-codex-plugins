@@ -28,7 +28,18 @@ explicit human approval. Ask questions **one at a time** with a progress indicat
 - **Legacy CLI export:** `BABOK_Analysis/` — only when using `babok run -o BABOK_Analysis`
 - Each project contains `PROJECT_JOURNAL_<id>.json` plus `STAGE_0N_*.md` deliverables
 
-## Pipeline (Stages 0–8)
+## Pipeline profiles
+
+Every project runs one **pipeline profile** (`profiles/<id>/profile.json`), recorded in the journal as `profile` and encoded in the project-ID prefix. All tools derive stage names, prompts, templates, rubric and validation rules from the project's profile.
+
+| Profile | Prefix | Stages | Use for |
+|---------|--------|--------|---------|
+| `babok` (default) | `BABOK-` | 0–8 | IT-delivery business analysis per BABOK v3 (below) |
+| `consulting` | `BC-` | 0–6 | Non-IT advisory: charter → stakeholders & governance → diagnostic & root cause → strategic options → target operating model & roadmap → risk & change readiness → business case & value realization. Never produces software requirements, system designs or vendor selections. |
+
+Start a consulting engagement with `/babok-new-consulting` or `babok new --profile consulting`. Consulting prompts live in `profiles/consulting/stages/`, resources at `babok://profiles/consulting/stages/0..6`.
+
+## Pipeline (Stages 0–8, profile `babok`)
 
 | Stage | Name |
 |-------|------|
@@ -63,7 +74,7 @@ When MCP is connected, prefer these tools over manual file edits:
 
 | Tool | Purpose |
 |------|---------|
-| `babok_new_project` | Create project, get ID |
+| `babok_new_project` | Create project, get ID (`profile`: `babok` \| `consulting`) |
 | `babok_list_projects` | List all projects |
 | `babok_get_stage` | Stage prompt + journal + existing deliverable |
 | `babok_get_stage_template` | Deliverable skeleton + modules for current stage |
@@ -90,6 +101,7 @@ Stage instruction resources: `babok://stages/0` through `babok://stages/8`.
 - `/babok-new` — start a new BABOK project (Stage 0); asks for language if not given
 - `/babok-new PL` or `/babok-new-pl` — start in Polish
 - `/babok-new ENG` or `/babok-new-eng` — start in English
+- `/babok-new-consulting [PL|ENG]` — start a consulting engagement (profile `consulting`, stages 0–6)
 - `/babok-status` — show current project progress
 - `/babok-help` — quick reference
 

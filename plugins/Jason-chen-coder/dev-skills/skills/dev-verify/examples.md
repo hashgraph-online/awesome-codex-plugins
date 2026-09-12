@@ -1,29 +1,25 @@
-# dev-verify · Examples
+# Dev Verify Examples
 
-## 例 1 — skill 仓库变更
+## Skill 变更
 
-Claims:
-1. 新 skill 目录齐全 — `bash scripts/validate-repo.sh`
-2. plugin manifest JSON 有效 — 同一脚本中的 Python JSON parse
-3. README 技能数同步 — 同一脚本 grep `9 个 skill` / `skills-9`
+仓库校验脚本检查 frontmatter、引用资源和分发一致性,另一次独立评估用真实场景检查指令是否会误阻塞或扩权。
 
-合格输出:
+可以报告结构校验及已评估的场景,不能将脚本 PASS 等同于“所有模型执行效果均改善”。
 
-```
-Verified:
-- bash scripts/validate-repo.sh: PASS (Validation OK)
-- git diff --check: PASS (no whitespace errors)
+## 验证证据仍有效
 
-Status: ready for dev-code-review
-```
+测试覆盖最终修改后文件,随后只进行只读 review。已有命令输出可以复用,不用因为另一个回合或 handoff 再跑一遍。
 
-## 例 2 — bug 修复
+如果 review 后修改了生产代码、fixture 或相关配置,重新运行受影响检查;不要沿用过期绿灯。
 
-Claims:
-1. 原 bug 修复 — regression test passes
-2. regression test 有效 — 临时反转 fix 后 test fails,恢复后 passes
-3. 相关模块未回归 — module test passes
+## 本地与设备
 
-反模式:
-- “我改了空值判断,应该修好了。”
-- “单测过了,所以构建也没问题。”但没有跑 build。
+协议构建单测通过,但没有连接设备。报告该请求字段与本地转换已验证,设备执行未验证。不能从局部成功推导完整设备工作流成功。
+
+## 不同 Git 快照
+
+working tree 测试通过,但 index 是较早版本。对“当前工作区测试通过”的声明有效,对“暂存内容可提交”的声明不足。验证对应 index 快照或明确缺口。
+
+## 隐藏失败
+
+命令退出码为零但关键集成测试被跳过。读取结果后将该行为标成未验证,不要只根据 exit 0 宣布全部通过。

@@ -53,6 +53,14 @@ Smallest Sufficient Path: What is the least complex path that satisfies the firs
 Escalation Signal: What finding would require spec/design/architecture review?
 ```
 
+When the direction depends on a new mechanism or an unfamiliar domain, insert
+one optional line between path and escalation:
+
+```text
+Known Prior Art: proven external pattern worth adopting or adapting to project
+constraints (cite source), or `unknown` when precedent cannot be verified here
+```
+
 For repair choices, "smallest" means smallest sufficient stable repair, not the
 smallest textual diff:
 
@@ -81,6 +89,9 @@ Escalate from the five-line review when any of these risk signals appear:
   principles", or "Occam"
 - a plan could encode the wrong owner, abstraction, compatibility boundary, or
   retirement schedule
+- an existing object, behavior, responsibility, contract, or relationship may
+  be reinterpreted, narrowed, replaced, or retired, and the proposal could lose
+  a legitimate role or explicit reference while removing invalid authority
 
 Use this compact shape:
 
@@ -90,16 +101,44 @@ First-principles invariants:
 - Non-negotiable constraints:
 - Historical assumptions to delete:
 
+Bounded preservation reminder:
+- Evidence-backed behavior that must remain correct:
+- Highest-risk counterexample:
+- Material unknown / uninspected surface:
+- Known explicit anchors / upstream-downstream refs and disposition:
+- Role-before-value ambiguity, if any:
+
 Owner / retirement matrix:
 - New canonical owner:
 - Old owner:
 - Compat-only carrier:
 - Delete-first / retirement trigger:
 
-Falsification matrix:
-- Dependency-removal test:
-- Counterexample scenario:
-- Must fail / degrade / remain correct cases:
+Falsification matrix (evaluate in order; stop at the first failing gate):
+- Gate 0 - Premise evidence (stage-graded): design stage accepts spec/logic
+  refs; implementation/runtime stage requires log, telemetry, or test
+  evidence. No evidence -> park as watch-listed, do not enter value
+  evaluation.
+- Gate 1 - Decidability: no obtainable evidence to judge it -> park as a
+  watched falsifier, do not act.
+- Gate 2 - Value (any one): lowers future fix probability / shrinks the
+  solution set / exposes a missing actionable acceptance criterion / the same
+  broken assumption is reused elsewhere. Passing here still requires
+  gates 3-5.
+- Gate 3 - Cost match: change cost vs business priority, costed at the
+  current stage; a valid but deferred counterexample is recorded in the owner
+  doc, never parked orally.
+- Gate 4 - Goal regression: the constrained solution still meets the original
+  goal; re-read the accepted-constraint list at existing checkpoints (design
+  review, plan approval, pre-completion verification).
+- Gate 5 - Minimize then classify: boundary-shaped destructive claims must be
+  minimized first; premise attacks classify as destructive directly.
+  Classes: destructive (refactor/retirement track) | supplementary (boundary
+  constraint) | watch-listed (falsifier). Conflicting counterexamples are
+  decided by business-goal ranking, never by stacking constraints.
+- Gate 6 - Adoption trace: the cheapest checkable form (regression test for
+  destructive; contract, assertion, or checklist line for supplementary),
+  written into the existing owner doc.
 
 Verdict:
 - Adopt / revise / reject / needs evidence:
@@ -135,8 +174,19 @@ Architecture Integrity Lens:
 - Responsibility overlap: What duplicate owner, caller-side patch, fallback, or stale path might still carry real logic?
 - Higher-level simplification: Can the problem be solved at the owner / contract / source-of-truth layer instead of by another local branch?
 - Retirement / falsifier: What old path retires, or what evidence would disprove this architecture judgment?
+- Responsibility / capability boundary: Which invalid authority retires, and
+  does the same carrier still serve a separately evidenced legitimate role?
 - Verdict: proceed | revise design | split owner | return to baseline | needs ADR/baseline sync
 ```
+
+`Bounded preservation reminder` is a risk-triggered reasoning aid, not a
+universal artifact or an exhaustive behavior inventory. Inspect the smallest
+relevant contract, consumer, test, or history evidence. Preserve, rebind,
+retire, or reject each known explicit reference; state unresolved relationships
+as unknown instead of re-inferring them or claiming semantic completeness. The
+Method Pack does not build an authoritative relationship graph, prove
+referential integrity or input lineage, calculate complete behavior coverage,
+or issue a runtime gate.
 
 Do not run this lens for every low-risk task. If it does not change the
 decision surface, return to the active workflow immediately.

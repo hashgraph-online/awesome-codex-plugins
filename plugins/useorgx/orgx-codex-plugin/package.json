@@ -1,6 +1,6 @@
 {
   "name": "@useorgx/codex-plugin",
-  "version": "0.1.14",
+  "version": "0.1.20",
   "description": "OrgX Codex plugin with MCP access, initiative-aware skills, and a Sovereign Execution peer sidecar.",
   "type": "module",
   "private": false,
@@ -18,6 +18,7 @@
   },
   "bin": {
     "orgx-codex-peer": "lib/peer/cli.mjs",
+    "orgx-codex-install-hooks": "scripts/install-codex-hooks.mjs",
     "orgx-codex-reconcile-hooks": "hooks/scripts/orgx-work-graph-reconcile.mjs",
     "orgx-codex-diagnose-reporting": "scripts/diagnose-reporting-gates.mjs"
   },
@@ -30,9 +31,8 @@
     ".codex-plugin/",
     ".mcp.json",
     "assets/",
-    "hooks/codex/",
-    "hooks/scripts/orgx-reconcile-hook.mjs",
-    "hooks/scripts/orgx-session-hook.mjs",
+    "hooks/hooks.json",
+    "hooks/scripts/hydrate-context-pack.mjs",
     "hooks/scripts/orgx-work-graph-reconcile.mjs",
     "docs/client-hook-coverage.md",
     "docs/operator-reporting-gates.json",
@@ -50,12 +50,15 @@
     "lib/peer/autonomousTerminalEvidence.mjs",
     "lib/peer/continuityHealth.mjs",
     "lib/peer/peer.mjs",
+    "lib/peer/transportLog.mjs",
+    "lib/peer/hookSpoolReplay.mjs",
     "lib/peer/README.md",
     "lib/peer/runtimeConfig.mjs",
     "lib/peer/runnerInstanceIdentity.mjs",
     "lib/peer/sentry.mjs",
     "plugin.manifest.json",
     "scripts/diagnose-reporting-gates.mjs",
+    "scripts/install-codex-hooks.mjs",
     "scripts/verify-plugin.mjs",
     "skills/",
     "README.md",
@@ -63,13 +66,14 @@
   ],
   "scripts": {
     "check": "node scripts/verify-plugin.mjs",
-    "test": "node --test lib/peer/peer.test.mjs lib/peer/CodexAppServerClient.test.mjs lib/peer/CodexMcpPolicy.test.mjs lib/peer/DurableReceiptOutbox.test.mjs lib/peer/autonomousCodexExecution.test.mjs lib/peer/autonomousReadiness.test.mjs lib/peer/autonomousDispatch.test.mjs lib/peer/autonomousTerminalEvidence.test.mjs lib/peer/childProcessEnv.test.mjs lib/peer/cli.test.mjs lib/peer/runtimeConfig.test.mjs lib/peer/runnerInstanceIdentity.test.mjs hooks/scripts/orgx-session-hook.test.mjs hooks/scripts/orgx-reconcile-hook.test.mjs hooks/scripts/orgx-work-graph-reconcile.test.mjs scripts/diagnose-reporting-gates.test.mjs tests/continuity-health.test.mjs",
+    "test:security": "node --test lib/peer/transportLog.test.mjs lib/peer/cli.test.mjs",
+    "test": "node --test lib/peer/peer.test.mjs lib/peer/CodexAppServerClient.test.mjs lib/peer/CodexMcpPolicy.test.mjs lib/peer/DurableReceiptOutbox.test.mjs lib/peer/autonomousCodexExecution.test.mjs lib/peer/autonomousReadiness.test.mjs lib/peer/autonomousDispatch.test.mjs lib/peer/autonomousTerminalEvidence.test.mjs lib/peer/childProcessEnv.test.mjs lib/peer/cli.test.mjs lib/peer/transportLog.test.mjs lib/peer/hookSpoolReplay.test.mjs lib/peer/runtimeConfig.test.mjs lib/peer/runnerInstanceIdentity.test.mjs hooks/scripts/hydrate-context-pack.test.mjs hooks/scripts/orgx-session-hook.test.mjs hooks/scripts/orgx-reconcile-hook.test.mjs hooks/scripts/orgx-work-graph-reconcile.test.mjs scripts/diagnose-reporting-gates.test.mjs scripts/install-codex-hooks.test.mjs tests/continuity-health.test.mjs",
     "prepublishOnly": "npm run check && npm test",
     "peer:start": "node lib/peer/cli.mjs"
   },
   "dependencies": {
     "@sentry/node": "10.65.0",
-    "@useorgx/orgx-gateway-sdk": "github:useorgx/orgx-gateway-sdk#c3dfd41ad01d44660457961f3ddee080e1596faa",
+    "@useorgx/orgx-gateway-sdk": "0.1.0-alpha.12",
     "ws": "^8.18.3"
   },
   "engines": {

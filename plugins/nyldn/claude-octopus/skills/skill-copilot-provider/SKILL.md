@@ -107,7 +107,7 @@ Indicator legend:
 
 ## Doctor Integration
 
-The `/octo:doctor` providers check reports Copilot availability and auth method:
+The `octopus doctor providers` check reports Copilot availability and auth method:
 
 ```
 Providers:

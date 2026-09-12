@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">mcp-md-reader icon</title>
+  <rect width="512" height="512" rx="112" fill="#07121f"/>
+  <path d="M132 108h248v296H132z" fill="#10283d" stroke="#57a8ff" stroke-width="18"/>
+  <path d="M178 174h156M178 238h112M178 302h156" fill="none" stroke="#55e2cc" stroke-linecap="round" stroke-width="24"/>
+  <circle cx="340" cy="302" r="16" fill="#ffb85c"/>
+</svg>

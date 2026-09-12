@@ -29,6 +29,7 @@ This gate is the reverse direction of the routing gate in
 
 - An unexplored concept and its value → `idea`
 - Evidence gathered before a decision → `rnd`
+- Coverage of a territory with no decision pending → `research`
 - Market, business, or user discovery that opens a requirements cascade →
   `mrd`, `brd`, `urd`
 - Regulated or traceable requirements → the ISO cascade `brs` → `strs` →
@@ -120,8 +121,8 @@ feature. Size never changes the type.
 - Routing stays content-kind-based, per the ownership table above, never
   size-based.
 - A `prd` is not owed on every topic. WHEN the request is feature-scoped and an
-  `idea`, `rnd`, or `adr` on the topic already records the problem and the
-  goals, the track continues straight to the `spec` and links it to that
+  `idea`, `rnd`, `research`, or `adr` on the topic already records the problem
+  and the goals, the track continues straight to the `spec` and links it to that
   upstream document. The `sdd.require` gate in `skills/_shared/tracks/sdd.md`
   carries this compression path as a `skip_when` condition.
 
@@ -147,9 +148,8 @@ the one place that assignment lives.
 The Archcore CLI checks the mechanical part of this contract in the post-tool-use
 hook — the mandatory sections, the requirement form, the ownership headings, and
 near-verbatim restatement across an `implements` or `extends` link — under the
-advisory pattern in `skills/_shared/precision-rules.md`. A CLI that predates a
-check reports nothing for it and blocks nothing, so where the hook is silent the
-gate exit checks carry the contract alone.
+advisory pattern in `skills/_shared/precision-rules.md`. Where the hook is
+silent, the gate exit checks carry the contract alone.
 
 Whether a document **paraphrases** the document it links to is not decidable
 there at any version. That judgement stays with the executing skill at the gate

@@ -161,6 +161,19 @@ codex-multi-auth forecast --live
 
 If browser launch is blocked, use the alternate login paths in [docs/getting-started.md](docs/getting-started.md#alternate-login-paths).
 For remote or headless shells, prefer `codex-multi-auth login --device-auth`.
+To refresh one saved account without changing the active selection or manual
+pin, run:
+
+```bash
+codex-multi-auth login --account <index|email|account_id> --preserve-selection
+```
+
+Add `--device-auth` on a remote shell. The refreshed OAuth identity must match
+the requested saved account or nothing is written. Refreshing the account Codex
+is currently using still publishes its new tokens to the native CLI; refreshing
+any other account leaves the active selection and the manual pin untouched. A
+disabled account stays disabled. `--account` cannot be combined with `--org`,
+which would rebind the row to a different workspace.
 
 ---
 
@@ -201,6 +214,7 @@ For remote or headless shells, prefer `codex-multi-auth login --device-auth`.
 | Command | What it answers |
 | --- | --- |
 | `codex-multi-auth report --live --json` | How do I get the full machine-readable health report? |
+| `codex-multi-auth limits --json [--refresh]` | How do I read account quota windows without parsing internal cache files or terminal text? |
 | `codex-multi-auth fix --live --model gpt-5.5` | How do I run live repair probes with a chosen model? |
 | `codex-multi-auth why-selected --json` | Which account does the selector pick now, and why? |
 | `codex-multi-auth usage --since 24h --by project` | What local usage has been recorded recently? |
@@ -283,6 +297,8 @@ Selected runtime/environment overrides:
 | `CODEX_MULTI_AUTH_FORCE_ACCOUNT=<index\|email\|id>` | Force one account for a single `codex-multi-auth-codex` run (ephemeral; requires rotation proxy) |
 | `CODEX_MULTI_AUTH_BYPASS=1` | Skip multi-auth intercept and forward straight to official Codex |
 | `CODEX_MULTI_AUTH_RUNTIME_ROTATION_PROXY=0/1` | Opt out/in of live Responses proxy rotation for forwarded Codex CLI/app sessions |
+| `CODEX_MULTI_AUTH_RUNTIME_PROXY_UPSTREAM_BASE_URL=http://127.0.0.1:<port>/<path>` | Route the runtime rotation proxy through an explicit loopback HTTP upstream; requires an explicit port and a numeric loopback host (`127.0.0.0/8` or `[::1]`), and rejects credentials, query strings, fragments, HTTPS, and every other host |
+| `CODEX_MULTI_AUTH_MODEL_CAPACITY_RETRY_MS=<ms>` | Wall-clock ceiling on how long one request waits out a "selected model is at capacity" response before giving up (default 600000, max 3600000, `0` disables) |
 | `CODEX_MULTI_AUTH_APP_ROTATION_IDLE_MS=<ms>` | Override automatic Codex app helper idle shutdown |
 | `CODEX_MULTI_AUTH_APP_BIND_INSTALL=0/1` | Opt out/in of packaged Codex app bind self-heal on first CLI run or rotation enable |
 | `CODEX_MULTI_AUTH_APP_LAUNCHER_INSTALL=0/1` | Opt out/in of routing supported app shortcuts on first CLI run or rotation enable |
@@ -305,6 +321,12 @@ Responses background mode stays opt-in. Enable `backgroundResponses` in settings
 
 Runtime rotation is enabled by default for request-bearing wrapper-launched Codex sessions. Package install scripts stay side-effect-free: npm postinstall only prints a short notice (and stays silent in CI or non-interactive installs). The first CLI run after an install self-heals supported packaged Codex app binds and user-level launcher routing when possible (recorded once in a `first-run-setup.json` marker under the multi-auth runtime root), while `codex-multi-auth rotation enable` remains the explicit repair command. `codex-multi-auth rotation disable` turns the setting off and removes the persistent app bind. Set `CODEX_MULTI_AUTH_RUNTIME_ROTATION_PROXY=0`, `CODEX_MULTI_AUTH_APP_BIND_INSTALL=0`, or `CODEX_MULTI_AUTH_APP_LAUNCHER_INSTALL=0` to opt out of the matching default behavior.
 
+Advanced local proxy chains can set `CODEX_MULTI_AUTH_RUNTIME_PROXY_UPSTREAM_BASE_URL` for one wrapper process. The wrapper passes that URL to both the shadow-runtime and interactive-helper rotation paths and fails closed if the configured upstream is invalid or unavailable; it never falls back silently to the direct backend while an explicit upstream is required. Because the request that reaches the upstream carries the managed OAuth bearer token, the host must be a numeric loopback literal: a name such as `localhost` is rejected, since a hosts-file entry can point it at a routable address. "Fails closed" also covers the case where runtime rotation itself is off (`CODEX_MULTI_AUTH_RUNTIME_ROTATION_PROXY=0`, `CODEX_MULTI_AUTH_BYPASS=1`, or the setting disabled): a request-bearing invocation exits non-zero rather than bypassing the configured upstream. Subcommands that make no backend requests still run normally.
+
+When the backend answers that the selected model is at capacity, the runtime proxy waits and re-sends the request instead of burning the pool. Capacity is a property of the model, not of an account, so rotating spends the transient budget against accounts that all fail identically and the request ends as a 503 within seconds. The wait backs off (2s, 5s, 15s, 30s, then 60s), honors an upstream `retry-after` when one is sent, and stops at a wall-clock deadline set by `CODEX_MULTI_AUTH_MODEL_CAPACITY_RETRY_MS` (10 minutes by default, 1 hour maximum). Set that variable to `0` to restore the previous rotate-and-fail behavior. The responding account is left completely unpenalized: its pool token is refunded and it is never marked rate limited or cooled down, so selection runs normally on the next pass and may pick any healthy account. The wait is abandoned if the client disconnects, so no further upstream request is sent for a response nobody is reading. See [#689](https://github.com/ndycode/codex-multi-auth/issues/689).
+
+Trust boundary: the loopback check bounds exposure to the local machine, and nothing more. It does not authenticate the process listening on that port, and plaintext HTTP is what a local inspection proxy needs, so any process that can bind the port you name receives the managed bearer token in cleartext. Set this variable only on a machine where you trust every local process that can bind a loopback port, and only for as long as you need the chain.
+
 Installed wrappers may perform a best-effort daily npm version check during normal forwarded Codex startup. When a newer package is detected, the wrapper only prints a manual notice on an interactive TTY or when `CODEX_MULTI_AUTH_DEBUG=1`: `npm install -g codex-multi-auth@latest`. It never runs npm install or update commands for you.
 
 ---
@@ -316,6 +338,7 @@ The Settings menu now includes an `Experimental` section for staged features:
 - preview-first sync into `oc-chatgpt-multi-auth`
 - named local pool backup export with filename prompt
 - refresh guard toggle and interval controls moved out of Backend Controls
+- context budget guard: pause a session before it hits the model's context window, with independently configurable soft/hard thresholds (default 65% / 69%) — ships disabled; see [Context Budget Guard](docs/features.md#context-budget-guard-experimental)
 
 These flows are intentionally non-destructive by default: sync previews before apply, destination-only accounts are preserved, and backup filename collisions fail safely.
 
@@ -392,7 +415,7 @@ codex-multi-auth doctor --json
 
 ## Release Notes
 
-- Current stable: [docs/releases/v2.8.5.md](docs/releases/v2.8.5.md) — install via `npm i -g codex-multi-auth`
+- Current stable: [docs/releases/v2.14.0.md](docs/releases/v2.14.0.md) — install via `npm i -g codex-multi-auth`
 - Previous stable: [docs/releases/v2.8.3.md](docs/releases/v2.8.3.md)
 - Previous stable: [docs/releases/v2.8.2.md](docs/releases/v2.8.2.md)
 - Previous stable: [docs/releases/v2.7.1.md](docs/releases/v2.7.1.md)

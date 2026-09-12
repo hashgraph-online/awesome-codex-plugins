@@ -1,0 +1,4 @@
+interface:
+  display_name: "Manage TMCRA Memory"
+  short_description: "Connect, recall, store, and inspect TMCRA memory"
+  default_prompt: "Use $manage-tmcra-memory to inspect or manage TMCRA memory, including local Writer and background-organizer settings."

@@ -38,12 +38,17 @@
 </p>
 
 <p align="center">
-  <img src="assets/demo/mcp-flow.gif" alt="SysKnife in Claude Code via MCP" width="900"/>
+  <img src="assets/demo/ubuntu-flow.gif" alt="SysKnife in Claude Code via MCP on Ubuntu 24.04: UfwAllow, AptInstall and UfwStatus through terminal-issued receipts" width="900"/>
 </p>
 
 <p align="center">
-  <em>Illustrative reproduction of the Claude Code MCP flow — same flow works in Cursor and Codex CLI.</em><br/>
-  <em>Looking for the standalone CLI? See <a href="docs/cli.md">the CLI guide</a>.</em>
+  <em>A deterministic reproduction of the Claude Code MCP flow on Ubuntu 24.04, rendered offline by
+  <a href="assets/demo/ubuntu-flow-mock.sh">ubuntu-flow-mock.sh</a> so it replays identically from a
+  fresh checkout. Every action name, risk level and command shown is the one the catalogue
+  carries. The same flow works in Cursor and Codex CLI.</em><br/>
+  <em>On an atomic host the plan uses rpm-ostree instead:
+  <a href="assets/demo/mcp-flow.gif">the Fedora Atomic recording</a>.
+  Looking for the standalone CLI? See <a href="docs/cli.md">the CLI guide</a>.</em>
 </p>
 
 > **Describe what you want in plain language.** Review a typed plan with risk
@@ -100,7 +105,8 @@ What this does:
 4. **Writes the integration-specific MCP config** (merging into any existing
    file, never clobbering) so the next chat session sees the `sysknife_*` tools —
    `sysknife_plan`, `sysknife_execute`, `sysknife_history`, `sysknife_doctor`,
-   `sysknife_audit_verify` — as first-class tools.
+   `sysknife_audit_verify`, and distro-compatible direct read-only queries such
+   as `sysknife_get_disk_usage` — as first-class tools.
 5. **Installs and starts the daemon as a service** (last step) — a systemd
    *user* service by default (no sudo; kept alive across logout via linger).
    That service runs as you, so read-only actions work but **mutating ones do
@@ -160,6 +166,37 @@ newgrp sysknife                       # or log out and back in
 npx sysknife-setup --no-binary --daemon-mode=skip
 ```
 
+### Uninstall
+
+Whichever way you installed, there is one command for it.
+
+```sh
+# Removes what the wizard installed: the user service, the binaries in
+# ~/.local/bin, and the MCP + agent config in the current directory.
+npx sysknife-setup --uninstall
+
+# See exactly what that would touch, without touching it.
+npx sysknife-setup --uninstall --dry-run
+```
+
+**Your audit history is kept by default.** Removing the software should not
+destroy the record of what it did, so the audit database, the safety-audit log
+and `~/.config/sysknife` are left in place and their paths printed. Delete those
+too, only if you mean to, with:
+
+```sh
+npx sysknife-setup --uninstall --purge   # names each file before deleting it
+```
+
+If you installed the **system** service with `sudo make install`, remove it with
+the Makefile that owns its sudoers grants, polkit rules and privileged helpers.
+`--uninstall` deliberately will not touch those, because half a removed
+privilege boundary is worse than none:
+
+```sh
+sudo make uninstall
+```
+
 All three Ubuntu LTS releases record a live-VM run of the 79-story Ubuntu
 suite, and each run has a replay twin that reproduces it: 22.04, 24.04 and 26.04
 all at 79/79, every twin serving every call with zero misses. The runs are in
@@ -191,6 +228,13 @@ SysKnife, not an afterthought. See the [CLI guide](docs/cli.md).
 
 <p align="center">
   <img src="assets/demo/demo.gif" alt="sysknife CLI — plan, approve, and execute in the terminal" width="900"/>
+</p>
+
+<p align="center">
+  <em>A deterministic reproduction of a real planning and execution session, rendered offline by
+  <a href="assets/demo/demo-mock.sh">demo-mock.sh</a>. Live LLM calls are nondeterministic and the
+  tape has to render with no daemon or provider configured, so the recording is scripted rather
+  than captured; the output styling is generated from the same code paths as the real CLI.</em>
 </p>
 
 > **Also: a desktop GUI — development paused.** An experimental Tauri desktop
@@ -270,7 +314,7 @@ milestone.
 | **Every Ubuntu LTS validated** — 22.04, 24.04 and 26.04 all at 79/79, each with a replay twin that reproduces it | ✅ |
 | Telegram approval interface | 📋 roadmap |
 
-**1,758 Rust tests and 72 frontend tests** form the current deterministic
+**1,852 Rust tests and 72 frontend tests** form the current deterministic
 release baseline.
 
 ## Configure your LLM
@@ -318,8 +362,9 @@ See [ROADMAP.md](ROADMAP.md) for the full milestone breakdown.
 
 - ✅ **Ubuntu 22.04** — 79/79 stories on a live VM (recorded in `tests/evidence/story-runs/`)
 - ✅ **Ubuntu 24.04 and 26.04** — 79/79 and 79/79 on live VMs; every LTS run has a replay twin that reproduces it
+- ✅ `sysknife audit export` — stored signed chain rows as JSON with `--since` / `--limit`
 - 📋 Telegram inline-button approvals
-- 📋 `sysknife audit export` (CEF / NDJSON for SIEM ingest)
+- 📋 CEF / NDJSON output modes for SIEM ingest
 - 📋 Fleet plan/execute (one plan, N targets, parallel approval)
 
 ## Protocol
@@ -342,6 +387,20 @@ roadmap matrix and [`CONTRIBUTING.md`](CONTRIBUTING.md) for the workflow.
 Issues labelled
 [`good first issue`](https://github.com/lacs-project/sysknife/labels/good%20first%20issue)
 are scoped with clear acceptance criteria.
+
+### Thanks
+
+Patches so far from [@ITSMERNB](https://github.com/ITSMERNB),
+[@QinXi-ai](https://github.com/QinXi-ai), [@Osheun](https://github.com/Osheun),
+[@danial-razi](https://github.com/danial-razi),
+[@vsolano9](https://github.com/vsolano9) and
+[@Georgefifth](https://github.com/Georgefifth). Every release names who fixed
+what in [CHANGELOG.md](CHANGELOG.md).
+
+If you send a patch, watching
+[Releases](https://github.com/lacs-project/sysknife/releases) is the quickest way
+to see it ship and to catch new `good first issue` entries as they land. A star
+helps other people find the project.
 
 ## Documentation
 

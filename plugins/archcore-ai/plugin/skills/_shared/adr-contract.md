@@ -1,7 +1,8 @@
 # ADR Content Contract
 
-Plugin runtime asset. Loaded by skills creating ADRs: `decide` (Step 3),
-`capture` (Step 3, ADR path). Companion to `skills/_shared/precision-rules.md`.
+Plugin runtime asset. Loaded by skills creating ADRs: `document` (the decision
+track, `skills/_shared/tracks/decision.md`) and any skill that routes a settled
+choice through it. Companion to `skills/_shared/precision-rules.md`.
 
 ## Mandatory sections
 
@@ -56,8 +57,7 @@ The Archcore CLI reports the mechanical part of this contract in the post-tool-u
 hook: the four mandatory sections, a bullet list inside Context, a single
 alternative where the contract asks for two, an alternative carrying no rejection
 verb, and a BCP 14 modal inside a numbered clause — an `adr` records a claim, so
-an obligation it states belongs in a linked `rule` or `spec`. A CLI that predates
-a check reports nothing for it, and no version blocks a write.
+an obligation it states belongs in a linked `rule` or `spec`.
 
 Three obligations stay with review at every version: whether Context names a
 *concrete* problem rather than a generic one, whether a consequence is genuinely

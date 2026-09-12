@@ -10,6 +10,8 @@
         <img src="https://badgen.net/github/release/GanyuanRan/Aegis?label=Latest%20Release" /></a>
     <a href="https://github.com/GanyuanRan/Aegis" alt="GitHub Stars">
         <img src="https://img.shields.io/github/stars/GanyuanRan/Aegis?style=flat&label=Stars" /></a>
+    <a href="https://gitcode.com/m0_67899281/Aegis" alt="AtomGit Stars">
+        <img src="https://gitcode.com/m0_67899281/Aegis/star/badge.svg" alt="AtomGit Stars" /></a>
     <a href="https://olud.ai/project/ganyuanran-aegis.html" alt="Aegis on olud.ai">
         <img src="https://olud.ai/badge.php?tool=ganyuanran-aegis" alt="Aegis on olud.ai" /></a>
 </p>
@@ -80,7 +82,7 @@ install-and-verify flow is below.
 Give this prompt to your AI coding agent:
 
 ```text
-Read https://github.com/GanyuanRan/Aegis, identify my current AI coding host, and install Aegis globally using the correct host guide. If the host is the official DeepSeek Harness (`dsh`), treat global/minimal installation as native profile-plugin installation with `dsh plugin --profile <profile> add github:GanyuanRan/Aegis`; do not silently substitute the direct-child compatibility path unless the plugin manager is unavailable and I explicitly approve compatibility mode. Restart or reload the host if needed, then run complete-install verification from the installed Aegis method-pack root. Do not run the doctor command from the target project directory. First locate `<aegis-method-pack-root>`, then run `cd <aegis-method-pack-root> && python scripts/aegis-doctor.py --write-config --json`. Treat the install as complete only if the JSON includes `"ok": true`, `"workspaceSupport": "available"`, and `"configStatus": "configured"`; if the host uses a separate skill discovery directory, also verify it with `--discovery-root <path>`; if the host guide declares a skill directory name prefix, also pass `--discovery-name-prefix <prefix>`. Also complete the selected host guide's native activation and automatic-entry checks; file discovery or a generic doctor result alone is not sufficient when the host provides a plugin, hook, or session-start bootstrap contract.
+Read https://github.com/GanyuanRan/Aegis, identify my current AI coding host, and install Aegis globally using the correct host guide. If the host is the official DeepSeek Harness (`dsh`), treat global/minimal installation as native profile-plugin installation with `dsh plugin --profile <profile> add "git+https://github.com/GanyuanRan/Aegis.git"`; do not silently substitute the direct-child compatibility path unless the plugin manager is unavailable and I explicitly approve compatibility mode. Restart or reload the host if needed, then run complete-install verification from the installed Aegis method-pack root. Do not run the doctor command from the target project directory. First locate `<aegis-method-pack-root>`, then run `cd <aegis-method-pack-root> && python scripts/aegis-doctor.py --write-config --json`. Treat the install as complete only if the JSON includes `"ok": true`, `"workspaceSupport": "available"`, and `"configStatus": "configured"`; if the host uses a separate skill discovery directory, also verify it with `--discovery-root <path>`; if the host guide declares a skill directory name prefix, also pass `--discovery-name-prefix <prefix>`. Also complete the selected host guide's native activation and automatic-entry checks; file discovery or a generic doctor result alone is not sufficient when the host provides a plugin, hook, or session-start bootstrap contract.
 ```
 
 ## Updating Aegis
@@ -104,21 +106,19 @@ core, an authoritative `GateDecision`, an authoritative `PolicySnapshot`, or
 final completion authority. User instructions and target-project rules outrank
 Aegis guidance.
 
-The following files are optional, manually copied host/profile projections.
-They do not install Aegis or prove skill discovery. If the host already has
-reliable Aegis bootstrap and routing, no extra global rule is usually needed
-for routing. Otherwise, copy Lite as the complete base profile. Advanced is a
-non-standalone additive overlay; append only the rules needed for persistent
-governance preferences:
+The [global routing prefix](GLOBAL_USER_RULES_TEMPLATE.md) is an optional,
+manually copied host/profile projection. It does not install Aegis or prove
+skill discovery. If the host already has reliable Aegis bootstrap and routing,
+no extra global rule is usually needed. Otherwise, add the prefix at the very
+beginning of the existing global user rules without changing unrelated
+content.
 
-- [Lite global rules](GLOBAL_USER_RULES_LITE.md)
-- [Advanced governance overlay](GLOBAL_USER_RULES_TEMPLATE.md)
-
-These copied rules are not managed by `aegis:update`. Lite owns the default
-`auto` activation profile and its explicit-mode replacement; Advanced inherits
-that choice instead of repeating it. When switching to `explicit`, update the
-copied Lite profile too; host-native skill matching may still remain
-host-controlled.
+This copied prefix is not managed by `aegis:update`. Users who previously
+copied the retired Lite / Advanced profiles should replace only those old
+Aegis blocks with the unified prefix. The prefix follows the host or session
+activation mode, defaults to `auto` when none is declared, and leaves detailed
+workflow governance to the loaded Aegis skills. Host-native skill matching may
+still remain host-controlled.
 
 Activation mode defaults to automatic. To switch to explicit mode, run this
 from the installed method-pack root:

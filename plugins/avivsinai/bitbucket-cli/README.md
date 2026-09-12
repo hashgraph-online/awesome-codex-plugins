@@ -5,12 +5,24 @@
 [![CI](https://github.com/avivsinai/bitbucket-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/avivsinai/bitbucket-cli/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/avivsinai/bitbucket-cli/graph/badge.svg)](https://codecov.io/gh/avivsinai/bitbucket-cli)
 [![Release](https://img.shields.io/github/v/release/avivsinai/bitbucket-cli?cache=none)](https://github.com/avivsinai/bitbucket-cli/releases)
-[![Go Report Card](https://goreportcard.com/badge/github.com/avivsinai/bitbucket-cli?cache=none)](https://goreportcard.com/report/github.com/avivsinai/bitbucket-cli)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/avivsinai/bitbucket-cli/badge)](https://scorecard.dev/viewer/?uri=github.com/avivsinai/bitbucket-cli)
 [![Go Reference](https://pkg.go.dev/badge/github.com/avivsinai/bitbucket-cli.svg)](https://pkg.go.dev/github.com/avivsinai/bitbucket-cli)
 [![License](https://img.shields.io/github/license/avivsinai/bitbucket-cli?cache=none)](LICENSE)
 
 `bkt` is a stand-alone Bitbucket command-line interface that targets Bitbucket Data Center **and** Bitbucket Cloud. It mirrors the ergonomics of `gh` and delivers a consistent JSON/YAML contract for automation.
+
+This project (`github.com/avivsinai/bitbucket-cli`, binary `bkt`) is unrelated to the Rust [`bkt`](https://github.com/dimo414/bkt) subprocess-caching tool and to the [Bitbucket Enterprise CLI](https://github.com/swisscom/bitbucket-cli) and other same-named `bitbucket-cli` packages.
+
+<p align="center">
+  <img src="docs/demo.gif" alt="Recorded terminal: brew install avivsinai/tap/bitbucket-cli, then bkt --help" width="860">
+</p>
+
+```bash
+brew install avivsinai/tap/bitbucket-cli
+bkt --help
+```
+
+Recorded from a real `bkt --help` run — no Bitbucket login or token required. Other installers: [WinGet](#winget-windows), [Scoop](#scoop-windows), [Nix](#nix-nixos--nix-darwin--linux--macos), [Go](#go-install), [binaries](#binary-downloads).
 
 **Built for AI & automation:** Drop `bkt` into Claude Code, Codex and other coding agents, or shell scripts and they inherit structured output, predictable flags, and safe defaults—no glue code required.
 
@@ -91,8 +103,8 @@ All `bkt` behaviour can be configured via environment variables, which is especi
 |---|---|
 | `BKT_TOKEN` | Authentication token. Bypasses keyring storage entirely. |
 | `BKT_HOST` | Bitbucket server base URL (e.g. `https://bitbucket.example.com`). Required alongside `BKT_TOKEN` for config-free use. `bitbucket.org` is auto-detected as Cloud. |
-| `BKT_USERNAME` | Username for basic authentication in headless mode. |
-| `BKT_AUTH_METHOD` | Authentication method: `basic` or `bearer`. DC defaults to `bearer` when `BKT_USERNAME` is absent; Cloud always uses `basic`. |
+| `BKT_USERNAME` | Username for basic authentication in headless mode. Required for Cloud basic auth; not required for bearer auth. |
+| `BKT_AUTH_METHOD` | Authentication method: `basic` or `bearer`. DC defaults to `bearer` when `BKT_USERNAME` is absent; Cloud defaults to `basic`. Use `bearer` for Cloud repository, project, or workspace access tokens. |
 | `BKT_PROJECT` | Default Data Center project key (headless mode). |
 | `BKT_WORKSPACE` | Default Bitbucket Cloud workspace (headless mode). |
 | `BKT_REPO` | Default repository slug (headless mode). |
@@ -115,6 +127,7 @@ bkt pr create --title "Automated PR" --source feature/my-branch
 **Minimal headless example (Bitbucket Cloud):**
 
 ```bash
+# User API token — basic auth
 export BKT_HOST=https://bitbucket.org
 export BKT_TOKEN=my-api-token
 export BKT_USERNAME=me@example.com
@@ -122,7 +135,18 @@ export BKT_WORKSPACE=my-workspace
 export BKT_REPO=my-repo
 
 bkt pr list
+
+# Repository, project, or workspace access token — bearer auth
+export BKT_TOKEN=my-resource-access-token
+export BKT_AUTH_METHOD=bearer
+unset BKT_USERNAME
+
+bkt pr list
 ```
+
+Resource access tokens are not associated with a user. Commands that require
+authenticated-user identity, such as cross-repository `bkt pr list --mine`,
+still require user API-token or OAuth credentials.
 
 ### From Source
 
@@ -348,6 +372,7 @@ bkt branch create release/1.9 --from main    # Data Center branch utils
 bkt perms repo list --project DATA --repo platform-api
 bkt webhook create --name "CI" --url https://ci.example.com/hook --event repo:refs_changed
 bkt pipeline run --workspace myteam --repo api --ref main --var ENV=staging
+bkt pipeline run --ref master --selector-type custom --selector-pattern deploy-to-production
 bkt extension install https://github.com/example/bkt-hello.git
 bkt extension exec hello -- --flag=1
 bkt status pipeline {pipeline-uuid}
@@ -357,6 +382,37 @@ bkt status rate-limit
 Branch utilities use Bitbucket's Branch Utils REST API for listing, creation, deletion, and default updates. Permission and webhook commands map to their respective REST endpoints for consistent automation.
 
 Extensions are cloned into `$XDG_CONFIG_HOME/bkt/extensions` (or the directory configured via `BKT_CONFIG_DIR`) and executed in-place. Binaries should follow the `bkt-<name>` naming convention so the CLI can discover them automatically.
+
+### 7. Agent skills
+
+`bkt skill` installs [Agent Skills](https://agentskills.io/specification) from Bitbucket repositories, mirroring [`gh skill`](https://github.com/cli/cli#agent-skills) so the same workflow works for skills hosted on Bitbucket Cloud and Data Center.
+
+```bash
+bkt skill install myteam/agent-skills                  # List the skills a repository publishes
+bkt skill install myteam/agent-skills code-review      # Install one skill
+bkt skill install PROJ/agent-skills code-review        # Data Center, addressed by project key
+bkt skill install myteam/agent-skills code-review@v1.2.0 --agent claude-code --scope user
+bkt skill list                                         # Show what is installed, and from where
+bkt skill preview myteam/agent-skills code-review      # Inspect before installing
+bkt skill update --all                                 # Refresh everything that changed
+bkt skill search "code review"                         # Search SKILL.md files across a Cloud workspace
+```
+
+If your repository publishes skills, `bkt skill publish` validates them and tags a version:
+
+```bash
+bkt skill publish --dry-run                            # Validate without tagging
+bkt skill publish --fix                                # Strip committed install metadata
+bkt skill publish --tag v1.2.0                         # Tag the current commit as a version
+```
+
+Skills are discovered with the specification's conventions (`skills/*/SKILL.md`, `skills/{author}/*/SKILL.md`, `plugins/*/skills/*/SKILL.md`, root-level `*/SKILL.md`, and a `skills/` directory nested under a prefix). Use `--allow-hidden-dirs` to include copies kept in `.claude/skills/` or `.agents/skills/`.
+
+Placement follows the target agent: `--agent` selects one of the supported hosts (Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, and many more; run `bkt skill install --help` for the full list) and `--scope project|user` chooses between the current repository and your home directory. The default agent, `universal`, writes to the shared `.agents/skills` directory that most agents read. `--dir` overrides both.
+
+Installed skills record their origin in `SKILL.md` frontmatter under `metadata.bitbucket-*`, which is what `bkt skill update` compares against the source repository. Because Bitbucket exposes no per-directory tree hash, the recorded version is the latest commit that touched the skill directory. Installing with `@version` or `--pin` pins the skill, and `bkt skill update` then skips it until you pass `--unpin`.
+
+`bkt skill search` is available for Bitbucket Cloud only. It searches `SKILL.md` files across the workspace selected by `--workspace` or the active context, and supports Bitbucket query terms such as `repo:agent-skills`. Bitbucket Data Center has no public workspace code-search API. Atlassian has announced that the [Cloud code-search REST endpoint](https://developer.atlassian.com/cloud/bitbucket/rest/api-group-other-operations/#api-workspaces-workspace-search-code-get) will be deprecated on November 1, 2026.
 
 ### Structured output & raw API access
 

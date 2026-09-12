@@ -1,11 +1,6 @@
 ---
 name: runtype-build-product
-description: >-
-  Use when building, designing, validating, or deploying Runtype AI products with agents,
-  flows, tools, surfaces, records, secrets, schedules, evals, orchestration, webhooks,
-  Slack/email/SMS/Telegram/Discord/WhatsApp/iMessage/messaging/chat/API/MCP/A2A/hosted-page
-  surfaces, commerce tools, agent skills, or hosted product generation. Always fetch current MCP build
-  instructions before creating resources.
+description: 'Build or modify Runtype-hosted AI products, agents, flows, and surfaces using current platform instructions.'
 user-invocable: true
 argument-hint: '[product idea or build task]'
 ---
@@ -23,30 +18,19 @@ Before designing or creating resources:
 - Flow build: `get_build_instructions(task="generate-flow", description=..., name=...)`.
 - Capability scoping: `get_build_instructions(task="explain-capabilities")`.
 
-Then fetch only the docs needed for the current design:
+Then fetch only relevant `get_platform_documentation` topics:
 
-- `get_platform_documentation(topic="surface-types")`
-- `get_platform_documentation(topic="flow-step-types")`
-- `get_platform_documentation(topic="product-schema")`
-- `get_platform_documentation(topic="types-fpo")`
-- `get_platform_documentation(topic="types-flow-steps")`
-- `get_platform_documentation(topic="types-entities")`
-- `get_platform_documentation(topic="types-surface-configs")`
-- `get_platform_documentation(topic="builtin-tools")`
-- `get_platform_documentation(topic="agent-skills")`
-- `get_platform_documentation(topic="orthogonal-tools")`
-- `get_platform_documentation(topic="external-tools")`
-- `get_platform_documentation(topic="models")`
-- `get_platform_documentation(topic="dashboard-links")`
-- `get_platform_documentation(topic="mock-ecommerce")`
-- `get_platform_documentation(topic="persona-embed")`
-- `get_platform_documentation(topic="persona-fullscreen-assistant")`
-- `get_platform_documentation(topic="sdk-reference")`
+| Need                           | Topics                                                                    |
+| ------------------------------ | ------------------------------------------------------------------------- |
+| Product/FPO shape              | `product-schema`, `types-fpo`, `types-fpo-template`                       |
+| Flow step configs              | `flow-step-types`, `types-flow-steps`                                     |
+| Delivery and embeds            | `surface-types`, `types-surface-configs`, `persona-embed`                 |
+| Tools and credentials          | `builtin-tools`, `external-tools`; use `vendor` for one Orthogonal vendor |
+| Models                         | `models` plus account `list_model_configs`                                |
+| Validation or go-live blockers | `validation-errors`, `setup-readiness`                                    |
 
-Also read MCP resources directly when available for richer coverage:
-`runtype://types/fpo-template`, `runtype://guide/subagent-delegation`,
-`runtype://catalog/skills`, `runtype://catalog/provider-native-search`, and
-`runtype://catalog/ucp-commerce`.
+Build instructions route deeper subjects such as skills, subagents, retrieval, commerce,
+and evals. Do not fetch every catalog in advance or read the same topic again as a resource.
 
 ## Design Policy
 
@@ -63,13 +47,24 @@ Start with an agent unless the work is a fixed sequence. Use flows for determini
 pipelines, indexing, batch processing, artifact rendering, and hot paths that should be
 cheap and fast. Use subagents or multiple capabilities instead of one giant prompt.
 
+When the product needs a custom tool (an `external` HTTP tool, `custom` code, or a
+flow exposed as a tool), design it with the `tool-design` skill family before
+`create_tool`: it covers the model-facing description and schema, result shape, error
+classes, idempotency, secrets, and the save-time validator codes. If that skill is not
+installed, the same checklist is public at
+`https://github.com/runtypelabs/skills/tree/main/skills/tool-design`.
+
 For commerce products, check UCP support when a merchant domain is known, summarize the
 finding, and ask whether to use UCP or the traditional commerce path before proceeding.
 
 ## Build Loop
 
-1. Discover account state with `get_me`, `list_products`, `list_agents`, `list_flows`,
+1. Discover only the account state the task needs with `get_me`, `list_products`, `list_agents`, `list_flows`,
    `list_tools`, `list_model_configs`, and product-scoped `list_surfaces` when relevant.
+   These large inventory tools use compact string previews by default; keep that shape
+   for discovery, use `agent_type` when narrowing agents, and call the matching `get_*`
+   tool for complete configuration. Request `view: "full"` only when complete strings
+   are needed for every row.
 2. Pick surfaces from the live `surface-types` docs. Include `messaging` as the generic
    multi-channel surface, and prefer dedicated surfaces when channel constraints matter.
    For browser-side WebMCP tools, use a `chat` surface with `behavior.webmcp` rather
@@ -80,18 +75,24 @@ finding, and ask whether to use UCP or the traditional commerce path before proc
 4. Validate before creating: `validate_product`, `validate_flow`, `validate_product_flow`,
    `validate_product_agent`, `validate_product_surface`, `validate_product_tool`, and
    `validate_code` for custom JS or transform code.
-5. Create in a reviewable order: tools/secrets, agents/flows, product, capabilities,
-   surfaces, surface items, schedules, client tokens, and evals.
+5. `create_product` creates an empty container, not an FPO import. Create the required
+   agents/flows and tools, attach capabilities and surfaces using returned IDs, and create
+   schedules or credentials only when requested delivery requires them. Read
+   `get_product_setup` before testing integrations; complete authorized setup or return
+   the remaining human-action links. A bare flow does not need product setup.
 6. Test at the user-facing layer. Use `execute_agent`, `dispatch`, `execute_tool`,
    `run_flow`, `submit_batch`, `submit_eval`, `trace_execution`, and
-   `trace_conversation` as appropriate.
+   `trace_conversation` as appropriate. Use fixtures/sandbox targets for side effects; do
+   not send live messages, charge money, or activate recurring work merely to smoke-test.
+   Report validation, setup readiness, tested behavior, and untested paths separately.
 
 ## Guardrails
 
 - Never invent schemas or model IDs; fetch docs and model configs.
 - Do not inline credentials. Use `{{secret:KEY}}` and secret intake.
 - Read before update; preserve fields the user did not ask to change.
-- Treat `update_agent` as wholesale replacement unless live docs say otherwise.
+- Check update semantics in the live schema; preserve sibling config fields when replacing
+  nested objects. `update_flow.steps` replaces the entire step list.
 - Surface-level evals catch orchestration and formatting issues that per-agent evals miss.
 - If a product needs deeper or newer platform rules than this skill names, fetch
   `platform-catalog` and focused direct resources instead of appending feature

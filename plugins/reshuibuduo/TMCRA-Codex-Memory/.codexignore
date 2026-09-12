@@ -1,0 +1,13 @@
+.git
+.git/
+.github/
+node_modules/
+tests/
+*.log
+*.tmp
+*.key
+*.pem
+.env
+.env.*
+.tmcra/
+scanner-report.*

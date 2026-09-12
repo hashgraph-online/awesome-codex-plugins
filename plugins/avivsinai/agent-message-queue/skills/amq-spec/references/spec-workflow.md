@@ -88,8 +88,9 @@ amq send --to <partner> --kind brainstorm \
   --thread spec/<topic> --subject "Research: <topic>" \
   --body "<your findings using template below>"
 
-# 4) Wait for partner findings
-amq watch --timeout 120s
+# 4) With a live injecting wake, yield; drain when its doorbell arrives.
+# Do not start watch, monitor, or background polling alongside that wake.
+# Only without an injecting wake: amq watch --timeout 120s
 ```
 
 **Receiving agent (got the kickoff request):**
@@ -121,7 +122,8 @@ amq send --to <partner> --kind brainstorm \
   --body "<analysis + open questions>"
 
 # Continue rounds until aligned
-amq watch --timeout 120s
+# With a live injecting wake, yield and drain on its doorbell.
+# Only without an injecting wake: amq watch --timeout 120s
 amq drain --include-body
 ```
 

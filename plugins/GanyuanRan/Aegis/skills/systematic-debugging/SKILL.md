@@ -9,7 +9,9 @@ Bug, failure, or unexpected behavior:
 
 1. **Isolate** — read error, reproduce, inspect the diff, and drill upward through diagnostic layers:
    L1 symptom → L2 logic → L3 system → L4 architecture → L5 cross-system
-   contract → L6 platform → L7 spec gap. Stop only when causal proof accounts
+   contract → L6 platform → L7 spec gap. Layers are observation altitudes,
+   not one causal chain; the causal shape at the stop altitude is classified
+   explicitly before any root claim. Stop only when causal proof accounts
    for the recurrence generator or reaches a T-class boundary.
 2. **Identify owner** — compare working behavior, trace the bad value, locate the
    canonical owner, and treat duplicate owners as a finding.
@@ -18,9 +20,12 @@ Bug, failure, or unexpected behavior:
    boundaries are involved. Surface Change Necessity for any new source-code
    path or non-trivial source edit. Run Minimality Check for a new branch,
    fallback, adapter, owner, or compatibility path, and Pre-Edit Complexity
-   Check for an overloaded owner or complexity growth.
+   Check for an overloaded owner or complexity growth. After Change Necessity
+   selects `code-change` and before the first repair edit, own the TDD Route for
+   the repair slice per `test-driven-development` (`off` default; `strict` on
+   behavior/bugfix/shared/contract/persistence/permission/migration risk).
 4. **Prove** — test one hypothesis with the smallest reproduction or
-   verification. A failing test first is required only by an explicit
+   verification. A failing test first is required only by a recorded
    `TDD Route: strict`; with `TDD Mode: off`, do not require a failing test or
    RED/GREEN cycle. Three failed fixes means stop and question architecture.
 5. **Repair and close** — fix minimally at the canonical owner, verify in
@@ -55,9 +60,11 @@ Pass root cause, avoided misfix, boundary, evidence, complexity, and risk to
 
 1. Read the complete error/stack and record inputs, environment, versions, and
    success criteria.
-2. Reproduce consistently. If reproduction is not stable, read
+2. Reproduce consistently. If unstable, read
    `feedback-loop-construction.md` **only when evidence shows intermittent or
-   timing-dependent reproduction** and build a bounded automated loop.
+   timing-dependent reproduction** and build a bounded loop. Shrink the repro
+   to load-bearing elements as the test input, never the fix scope: still drill
+   upward; test at the correct seam.
 3. Inspect recent changes and compare a working example. Code is evidence; if
    authority, glossary, code, and tests disagree, compose
    `establishing-project-context` rather than silently redefining a term.
@@ -87,67 +94,41 @@ UpwardDrillSignal:
 Decision: fix owner | continue investigation | escalate
 ```
 
-A locally green test does not erase triage. Before unplanned repair, compare
-invariant, owner, patch shape, and topology; a renamed carrier is not a new direction.
+A locally green test does not erase triage; a renamed carrier is not a new direction.
+
+When a repair may reinterpret or retire existing semantics, responsibility,
+contract, or relationship, name the behavior to preserve, highest-risk
+counterexample, and material unknown. For each known explicit anchor or
+upstream/downstream reference, state its role and disposition: preserve, rebind
+to the canonical owner, retire with reason, or reject because of conflict.
+Leave unresolved relationships unknown; do not re-infer them downstream.
+Bind role before value and retire invalid responsibility, not evidenced carrier
+capability. This bounded reminder is not a behavior matrix, relationship graph,
+referential-integrity proof, or exhaustive discovery claim. It adds no artifact,
+TDD risk signal, or regression scope; the existing TDD route owner and
+configured/default mode still apply.
 
 If the diagnosis crosses L3, a patch-shape signal fires, a user disputes the
 root claim, a prior fix leaves a symptom, compound/root topology is plausible,
-or an upstream producer/config/default/contract/spec remains unexcluded, read
+two or more anchored manifestations of one incident exist, reproduction
+conditions diverge across occurrences, or an
+upstream producer/config/default/contract/spec remains unexcluded, read
 `root-cause-claim-contract.md` **before claiming a root cause**. It is the sole
 owner of the Pre-Claim Gate, causal-closure/falsifier proof, layer-ceiling
 proof, and Causal Topology Gate.
 
 ### Change Necessity
 
-This decision is behavior-triggered, not prompt-triggered. It applies to any new source-code path. Before that path or a non-trivial source edit, expose:
-
-```text
-Change Necessity:
-- User-visible need:
-- No-change / non-code option:
-- Why code change is necessary:
-- Minimum change boundary:
-- Decision: no-change | docs/config-only | code-change | needs-clarification
-```
-
-`no-change` blocks source edits; `docs/config-only` narrows them;
-`needs-clarification` pauses; `code-change` carries the minimum boundary into
-repair and verification.
+This decision is behavior-triggered, not prompt-triggered. It applies to any new source-code path. Before that path or a non-trivial source edit, expose the `Change Necessity` decision (`no-change | docs/config-only | code-change | needs-clarification`); field detail lives in `advanced-debugging-governance.md`.
 
 ### Minimality and owner fit
 
-For any proposed branch, fallback, adapter, compatibility path, or new owner:
-
-```text
-Minimality Check:
-- Existing owner / reuse path:
-- Correct owner and bug class:
-- New path and existence proof:
-- Old path retired or scheduled:
-- Verdict: sufficient repair | local patch | needs first-principles review
-```
-
-A `local patch` needs a retention reason and retirement trigger. For a new
-non-ordinary repair surface, run the `Existence Check` in
-`docs/current/AEGIS_MINIMALITY_REFERENCE.md`. If retirement involves old code,
+For any proposed branch, fallback, adapter, compatibility path, or new owner, run `Minimality Check` (fields in `advanced-debugging-governance.md`) with verdict `sufficient repair | local patch | needs first-principles review`, and retire invalid responsibility: a `local patch` needs a retention reason and retirement trigger. For a new non-ordinary repair surface, run the `Existence Check` in `docs/current/AEGIS_MINIMALITY_REFERENCE.md`. If retirement involves old code,
 external compatibility, or persistent-state risk, compose
 `anti-entropy-governance`; it chooses the retirement path but never grants
 destructive authority.
 
-Before editing an overloaded or mixed-purpose owner:
-
-```text
-Pre-Edit Complexity Check:
-- Target edit file:
-- Existing pressure signal:
-- Owner fit and safer boundary:
-- Decision: edit-in-place | extract helper | add owner file | split task | pause for plan update
-
-Pre-Edit Owner-Fit Decision:
-- Edit intent: wiring-only | move-out / extract-first | local-fix-without-new-responsibility | new-responsibility | emergency / compatibility patch
-- Owner fit and safer boundary:
-- Decision: edit-in-place | extract helper | add owner file | split task | pause for plan update
-```
+Before editing an overloaded or mixed-purpose owner, complete `Pre-Edit Complexity Check` and `Pre-Edit Owner-Fit Decision` (templates in `advanced-debugging-governance.md`).
 
 Use `using-aegis/references/complexity-governance.md` for pressure signals.
 Do not add `new-responsibility` in place by default. If the safer boundary
@@ -192,6 +173,8 @@ python <aegis-workspace-helper> add-evidence --root <target-project-root> --work
 python <aegis-workspace-helper> check --root <target-project-root>
 ```
 
+Failed attempts use `<aegis-workspace-helper> add-attempt`; `add-evidence` is terminal-only.
+
 Fast bug fix or quick bug fix pressure does not skip this: if Ripple Signal
 Triage fires, record it before editing and verify the canonical owner plus
 affected downstream path. Records are advisory, not completion authority.
@@ -201,10 +184,11 @@ affected downstream path. Records are advisory, not completion authority.
 Always report:
 
 - **Repair** — cause, owner, smallest change, compatibility, verification.
-- **Retirement** — old path status, retention reason/trigger, removal check.
+- **Retirement** — invalid responsibility status, carrier/capability
+  disposition, retention reason/trigger, removal check.
 
 Confirm the reproduction, same-pattern handling, authority, complexity, and
-retirement. Confidence: A = direct regression evidence; B = strong evidence
+retirement. Prefix debug logs (e.g. `[DEBUG-a4f2]`); confirm one-grep removal before close. Confidence: A = direct regression evidence; B = strong evidence
 with bounded unknowns; C = partial and not resolved.
 
 `Trace Digest` may summarize audit evidence; never expose chain-of-thought or

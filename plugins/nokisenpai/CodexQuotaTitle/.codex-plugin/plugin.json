@@ -1,0 +1,31 @@
+{
+  "name": "codex-quota-title",
+  "version": "0.1.9",
+  "description": "Displays Codex quotas in the correlated Codex Desktop window title on Windows.",
+  "author": {
+    "name": "NoKi"
+  },
+  "homepage": "https://github.com/nokisenpai/CodexQuotaTitle",
+  "repository": "https://github.com/nokisenpai/CodexQuotaTitle",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "windows",
+    "quota",
+    "title"
+  ],
+  "interface": {
+    "displayName": "Codex Quota Title",
+    "shortDescription": "Show Codex quotas in the Desktop title bar.",
+    "longDescription": "A Windows helper that safely adds live Codex quota information to one unambiguously correlated Codex Desktop window.",
+    "developerName": "NoKi",
+    "category": "Productivity",
+    "capabilities": [
+      "Read"
+    ],
+    "defaultPrompt": [
+      "Show CodexQuotaTitle status and settings."
+    ],
+    "composerIcon": "./assets/icon.svg"
+  }
+}

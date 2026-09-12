@@ -1,0 +1,6 @@
+interface:
+  display_name: "KERNEL Experiment"
+  short_description: "Run an explicit controlled experiment"
+  default_prompt: "Run a KERNEL experiment with explicit bounds."
+policy:
+  allow_implicit_invocation: false

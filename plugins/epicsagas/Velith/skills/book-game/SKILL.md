@@ -1,24 +1,74 @@
 ---
 name: book-game
-description: "Game scenario patterns — quest/event trees, branching dialogue, world-building, character arcs across routes, lore bibles."
+description: "Game narrative craft reference: branching architecture, quest design, dialogue systems, lore bible, player agency, and game-writing AI tells. Read by all agents on game scenarios, visual novels, and interactive fiction."
 ---
 
-# Game Scenario Patterns
+# Game Narrative
 
-**Story architecture**: Main scenario (critical path, 60%) + Side scenarios (optional, 30%) + Hidden scenarios (easter eggs, 10%). Critical path must work standalone; side scenarios enrich but never gate main progression.
+The reader is a player. They act, and the story must answer. A game script that reads well but ignores the player's hands is a screenplay with buttons.
 
-**Branching structure**: Binary choice (A/B), multi-way (3+ options), conditional (requires item/flag), timed (deadline-based). Branch depth: ≤4 levels before convergence. Convergence types: full (all paths merge), partial (some carry forward), butterfly (small choice → big consequence later).
+## Architecture
 
-**Quest design**: Objective (clear goal) → Prerequisites (what player needs) → Steps (3-7 per quest, each with verification) → Branch points (player agency) → Resolution + Reward. Quest chains: linear (A→B→C), hub (return to base between quests), parallel (simultaneous tracks).
+- **Critical path (60%)**: must work if the player does nothing optional. Every beat of the main story lands regardless of side content.
+- **Side content (30%)**: enriches, never gates. Side quests reward with understanding of the world or characters, not only items.
+- **Hidden (10%)**: for players who look. Rewards curiosity.
+- **Branch depth** ≤ 4 before convergence. Convergence types: full (all paths merge), partial (state carries), butterfly (small early choice, large late consequence; use once or twice per game, telegraph nothing).
+- **Choice types**: binary, multi-way, conditional (flag/item), timed. A choice with no consequence is a menu, not a choice. A choice where one option is obviously correct is not a choice.
+- **Endings**: each ending is earned by a pattern of choices, not one final selection. The player should be able to explain why they got their ending.
 
-**Dialogue system**: Dialogue nodes with speaker, line, emotion tag, and next-node links. Player responses: investigate (info), persuade (relationship), action (consequence). Branch dialogue: ≤3 choices per node. Emotional tone tracking per NPC (friendly/neutral/hostile affects available options).
+## Quest design
 
-**World-building layers**: Geography (maps, regions, travel routes) → History (timeline, key events, ruins) → Culture (factions, beliefs, customs, taboos) → Economy (resources, trade, scarcity) → Ecology (creatures, environments, hazards). Each layer must be consistent and interconnected.
+Per quest: ID, title, hook (why the player cares), prerequisites (flags, items, relationships), steps (3-7, each verifiable by the game), branch points, resolution, rewards, flags set. Quest chains: linear, hub, parallel.
 
-**Character arc across routes**: Core identity (consistent across all routes) + Route-specific development. NPC relationship system: trust level (0-100) with threshold gates. Companion characters: personal quest triggered by trust threshold.
+The hook is narrative, not "collect five." The reward includes a change in the world the player can see.
 
-**Lore bible**: Entry per: location, character, faction, item, event, concept. Fields: name, description, connections (linked entries), game-mechanic relevance, narrative role. Consistency check: cross-reference all entries before finalizing.
+## Dialogue system
 
-**Scenario document structure**: Overview (concept, tone, themes) → World bible → Character bible → Main quest line → Side quests → Dialogue trees → Cutscene scripts → Branching map (visual flowchart). Each quest has: ID, title, summary, prerequisites, steps, branches, rewards, flags set.
+- Node: speaker, line, emotion tag, next-node links, conditions.
+- Player responses ≤ 3 per node; each is a stance (investigate, push, withdraw), not a paraphrase of the same thing.
+- NPC state (trust, fear, knowledge) affects available lines. Track in the bible.
+- Barks and ambient lines carry world texture; write them with the same care as cutscene dialogue.
+- Lines are short. Players skip. The most important line in a conversation is the one that changes state, and it should be unmissable.
+- Localization: avoid idioms that do not travel; keep string lengths sane for UI.
 
-**Format**: Markdown with YAML frontmatter per quest/node. Branching maps as Mermaid flowcharts. Dialogue as structured blocks with speaker/emotion/response fields.
+## Lore bible
+
+Entries per location, character, faction, item, event, concept, rule. Fields: name, description, connections, mechanical relevance, narrative role, first appearance, flags. Consistency check before finalizing: every named thing in a quest or line exists in the bible. World rules (magic, tech, politics) are stated once and never broken without a story reason.
+
+## Character across routes
+
+Core identity is constant; route-specific development varies. A companion who is warm on one route and cold on another needs a reason the player can find. Personal quests unlock on trust thresholds. Companions comment on the player's choices; silence is also a comment.
+
+## Game-writing tells
+
+- NPCs who explain the world to a player character who lives in it.
+- Every choice offering good / neutral / evil.
+- Quest text that restates the objective marker.
+- Lore dumps in item descriptions that nobody reads.
+- Villains monologuing at the boss door.
+- Companions who approve of everything.
+- Endings differentiated by one final dialogue choice.
+- Uniform dialogue length across NPCs.
+
+## Format
+
+Markdown with YAML frontmatter per quest and per dialogue tree. Branching maps as Mermaid flowcharts. Dialogue as structured blocks:
+
+```markdown
+### NODE guard_gate_01
+**Speaker:** GUARD · **Emotion:** wary · **Condition:** !has_pass
+"State your business."
+- [investigate] "What happened here?" → guard_gate_02
+- [push] "Let me through." → guard_gate_03 (sets: guard_hostile)
+- [withdraw] (leave) → END
+```
+
+Deliverables per outline: overview, world bible, character bible, main quest line, side quests, dialogue trees, cutscene scripts, branching map, flag table.
+
+## Validation (architect scoring for game)
+
+Critical path works standalone; branch depth within limit with defined convergence; every choice has consequence; endings earned by patterns; every named entity in the bible; flag table complete and no orphan flags; quest steps verifiable.
+
+## Visuals
+
+The scenario document needs: world map and region maps (figure-engineer base layers from the lore bible, stylized by the illustrator), branching maps (Mermaid flowcharts from the quest data, never drawn by hand), character sheets with mechanical annotations, location key art, item and UI mock references. Character and location sheets are locked before scene art. Consistency is not optional: the art bible's constants become the studio's reference. All through `/book-visuals`.

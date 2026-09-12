@@ -1,0 +1,83 @@
+{
+  "$schema": "https://raw.githubusercontent.com/orwa-mahmoud/nightshift/main/plugins/nightshift/skills/nightshift/references/nightshift-rules.schema.json",
+  "toolDeny": {
+    "AskUserQuestion": "BLOCKED (park, don't ask): a shift is active and the owner is asleep. Choose the most sensible production-grade default yourself, record the decision and your reasoning in .nightshift/parking-lot.md, and KEEP WORKING. The owner reviews it in the morning.",
+    "request_user_input": "BLOCKED (park, don't ask): a shift is active and the owner is asleep. Choose the most sensible production-grade default yourself, record the decision and your reasoning in .nightshift/parking-lot.md, and KEEP WORKING. The owner reviews it in the morning.",
+    "AskQuestion": "BLOCKED (park, don't ask): a shift is active and the owner is asleep. Choose the most sensible production-grade default yourself, record the decision and your reasoning in .nightshift/parking-lot.md, and KEEP WORKING. The owner reviews it in the morning."
+  },
+  "forbiddenCommands": "",
+  "neverCommitPatterns": "",
+  "expectedEmail": "",
+  "protectedDirs": "",
+  "elevation": {
+    "sudo": {
+      "policy": "deny",
+      "pattern": "(^|[;&|(`]|[[:space:]]|'|\")(/[A-Za-z0-9._-]+)*/*(sudo|d[o]as)([[:space:]]|[;&|)'\"`]|$)"
+    },
+    "containers": {
+      "policy": "deny",
+      "pattern": "(/var/run/docker\\.sock|unix://[^ \\t]*docker\\.sock|DOCKER_HOST=)|(^|[;&|(`]|[[:space:]]|'|\")(docker-compose)[[:space:]]+(up|run|start|build|down|create)|(^|[;&|(`]|[[:space:]]|'|\")(docker|podman|nerdctl|colima)[[:space:]]+(run|create|start|build|compose[[:space:]]+(up|run|start|build|down|create))"
+    },
+    "global-packages": {
+      "policy": "deny",
+      "pattern": "(^|[;&|(`]|[[:space:]]|'|\")(brew|apt|apt-get|dnf|yum|pacman|choco|winget|scoop)[[:space:]]+(install|upgrade|uninstall|remove|reinstall)|npm[[:space:]]+(i|install)[[:space:]]+(-g|--global)|pnpm[[:space:]]+add[[:space:]]+-g|yarn[[:space:]]+global|(pip3?|cargo|go)[[:space:]]+install"
+    },
+    "daemons": {
+      "policy": "deny",
+      "pattern": "(^|[;&|(`]|[[:space:]]|'|\")(systemctl|launchctl|service|brew[[:space:]]+services|pg_ctl|redis-server|mongod|mysqld)([[:space:]]|$)"
+    },
+    "external-services": {
+      "policy": "deny",
+      "pattern": "(^|[;&|(`]|[[:space:]]|'|\")(gh[[:space:]]+auth[[:space:]]+login|npm[[:space:]]+login|docker[[:space:]]+login|az[[:space:]]+login|gcloud[[:space:]]+auth|aws[[:space:]]+configure)([[:space:]]|$)"
+    }
+  },
+  "stallMax": 0,
+  "stallWarnEvery": 3,
+  "longUnitWarnMinutes": 0,
+  "watchMinutes": 10,
+  "watchRetrySeconds": "30 120",
+  "watchAgent": "",
+  "receiptsAutoCommit": false,
+  "notifyCommand": "",
+  "revivalPrompt": "You were cut off mid-work by an outage or a crash — not by the owner. Pick up exactly where you left off and continue.",
+  "freshRevivalPrompt": "Resume the nightshift. Read .nightshift/punch-list.md and work its open items per the contract, one at a time; run the item gate before each commit or artifact receipt; tick what you finish. Leave pushing to the owner unless the punch list says otherwise. Park owner decisions in parking-lot.md. Stop only when every box is ticked or a stop-work order exists.",
+  "clockOutMessage": "DO NOT STOP — the punch list (.nightshift/punch-list.md) still has open items. Work them top to bottom, ONE at a time, each to its own Verify. Per item: implement fully — no stubs, no deferrals, no 'documented for later'; effort is never a reason to defer, and this IS the focused session; run the item gate right before its commit or artifact receipt and require it GREEN; make ONE conventional commit in repository mode or ONE artifact receipt under .nightshift/receipts/ in artifact mode; then tick the box to '- [x]'. Never fake a tick. Deletion is not completion — never remove an item or edit the contract above '## Items'. Park any decision that is genuinely the owner's in .nightshift/parking-lot.md with a sensible default chosen, and KEEP WORKING — never ask, never wait. A walkthrough cycle that finds nothing new is SUCCESS, not idleness. You may stop only when zero '- [ ]' remain, or the owner issues a stop-work order (.nightshift/STOP).",
+  "clockOutReminderMode": "full",
+  "clockOutReminder": "{item} still open, {open} of {total} remain. The contract you were given still binds; continue.",
+  "clockOutReminderLimit": 10,
+  "shift": {
+    "verificationProfile": "fast",
+    "hours": null,
+    "execution": "review-first",
+    "toolingPolicy": "existing-tools"
+  },
+  "handoff": {
+    "enabled": true,
+    "view": "owner",
+    "language": "auto",
+    "detail": "concise",
+    "sections": [],
+    "templatePath": ""
+  },
+  "archive": {
+    "automatic": false,
+    "root": "archive",
+    "layout": "date",
+    "templatePath": ""
+  },
+  "receipts": {
+    "enabled": true,
+    "progressMode": "time",
+    "progressMinutes": 20,
+    "progressTokens": 100000,
+    "usage": "when-available",
+    "templatePath": ""
+  },
+  "recovery": {
+    "launchScope": "inherit-recorded-scope"
+  },
+  "retention": {
+    "runtimeLogDays": 0,
+    "archiveDays": 0
+  }
+}

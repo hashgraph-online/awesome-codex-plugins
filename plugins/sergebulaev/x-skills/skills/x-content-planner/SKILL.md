@@ -1,6 +1,6 @@
 ---
 name: x-content-planner
-description: Generate a weekly X (Twitter) content plan from a theme, audience, and content pillars. Produces per-day recommendations (single tweet vs thread, X hook formula, angle, posting time, primary goal), a single-to-thread mix, daily reply and quote-tweet targets, and a goal-mix balance check across replies, reposts, likes, and bookmarks. Use when the user wants to plan a week of X content instead of ad-hoc posting. Not for drafting one tweet (use x-post-writer) or one thread (use x-thread-builder).
+description: "Generate a weekly X (Twitter) content plan from a theme, audience, and content pillars. Produces per-day recommendations (single tweet vs thread, X hook formula, angle, posting time, primary goal), a single-to-thread mix, daily reply and quote-tweet targets, and a goal-mix balance check across replies, reposts, likes, and bookmarks. Use when the user wants to plan a week of X content instead of ad-hoc posting. Not for drafting one tweet (use x-post-writer) or one thread (use x-thread-builder)."
 ---
 
 # X Content Planner

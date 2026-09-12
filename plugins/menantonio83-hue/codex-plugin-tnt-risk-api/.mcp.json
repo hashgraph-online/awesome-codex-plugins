@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "tnt-house-risk-data-api": {
+      "type": "http",
+      "url": "https://tnt-audit.com/api/mcp",
+      "note": "Solana token risk-scoring MCP server. check_token_risk works with no API key for 3 free calls/day per IP. Higher limits and the batch/history tools need a free API key from tnt-audit.com/risk-api, sent as an Authorization: Bearer header."
+    }
+  }
+}

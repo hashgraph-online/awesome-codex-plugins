@@ -52,7 +52,7 @@ mechanics follow `skills/_shared/elicitation-contract.md`.
 - Purpose: Compose and create the ADR for a settled decision per `skills/_shared/adr-contract.md` and `skills/_shared/precision-rules.md`.
 - Entry conditions:
   - skip_when: `decision.classify` selected `decision.rfc`.
-  - The request, recorded clarifications, or an `rnd` covering the topic state the specific choice (version or name), the considered alternatives with rejection reasons, and the conditions that would invalidate the decision.
+  - The request, recorded clarifications, or an `rnd` or `research` covering the topic state the specific choice (version or name), the considered alternatives with rejection reasons, and the conditions that would invalidate the decision.
 - Elicitation knobs:
   - trigger: the coverage scan returns `Missing` on a named category — the decision lacks a specific choice, named alternatives with rejection reasons, or invalidation conditions.
   - taxonomy: Constraints & Tradeoffs, Completion Signals from `skills/_shared/coverage-taxonomy.md` [assumption].
@@ -60,7 +60,7 @@ mechanics follow `skills/_shared/elicitation-contract.md`.
 - Produces:
   - type: adr
   - status: draft
-  - relations: adr `related` existing `rfc`, `spec`, `plan`, or `rnd` documents on the same topic — the source relate step names the link but not the relation type, and allowed unnamed further document types; narrowed to `rfc`, `spec`, `plan`, and `rnd` (the research evidence base) to avoid an open-ended list [assumption].
+  - relations: adr `related` existing `rfc`, `spec`, `plan`, `rnd`, or `research` documents on the same topic — the source relate step names the link but not the relation type, and allowed unnamed further document types; narrowed to `rfc`, `spec`, `plan`, `rnd`, and `research` (the research evidence base) to avoid an open-ended list [assumption].
 - Exit checks:
   - blocking: the draft carries every section that `skills/_shared/adr-contract.md` requires.
 - Next: `decision.cascade`.
@@ -106,7 +106,7 @@ mechanics follow `skills/_shared/elicitation-contract.md`.
 
 ### gate: decision.cascade
 
-- Purpose: Offer the continuation cascade that matches the ADR — standard (rule + guide) or architecture (spec + plan) — and create the documents the user confirms, per `skills/_shared/precision-rules.md`, `skills/_shared/rule-contract.md` (rule), and `skills/_shared/spec-contract.md` (spec).
+- Purpose: Offer the continuation cascade that matches the ADR — standard (rule + guide) or architecture (spec + plan) — and create the documents the user confirms, per `skills/_shared/precision-rules.md`, `skills/_shared/rule-contract.md` (rule), `skills/_shared/spec-contract.md` (spec), and `skills/_shared/guide-contract.md` (guide).
 - Entry conditions:
   - skip_when: the track produced an `rfc`, or the ADR content matches neither signal set below — the ADR alone is a valid endpoint.
   - An ADR draft produced by `decision.adr` exists.
@@ -124,7 +124,7 @@ mechanics follow `skills/_shared/elicitation-contract.md`.
   - blocking: every cascade document was created after a recorded user confirmation (request wording that names the cascade counts), never before.
   - blocking: every created cascade document carries its relation from the Produces list.
   - blocking: each created rule carries every section that `skills/_shared/rule-contract.md` requires; each created spec carries every section that `skills/_shared/spec-contract.md` requires.
-  - blocking: each created guide covers Prerequisites, Steps, Verification, Common Issues; each created plan covers Goal, Tasks, Acceptance Criteria, Dependencies; each created cpat covers What Changed, Why, Before, After, Scope.
+  - blocking: each created guide carries every section `skills/_shared/guide-contract.md` requires; each created plan covers Goal, Tasks, Acceptance Criteria, Dependencies; each created cpat covers What Changed, Why, Before, After, Scope.
   - advisory: WHEN grounding surfaced a concrete file or module for a plan task, the created plan annotates that task with `@path` notation — parity with the plan skill's task-mapping step.
   - advisory: the closing report lists document paths, relation edges, and one recommended next action.
 - Next: exit.

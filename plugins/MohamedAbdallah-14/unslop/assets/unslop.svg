@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 160" role="img" aria-label="Unslop logo">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7C9885" />
+      <stop offset="100%" stop-color="#5E7867" />
+    </linearGradient>
+  </defs>
+  <rect x="16" y="16" width="128" height="128" rx="28" fill="url(#bg)" />
+  <path d="M44 45h20v28h32V45h20v70H96V91H64v24H44V45z" fill="#F7FBF8" />
+  <text x="170" y="98" font-family="Inter, SF Pro Text, Segoe UI, Roboto, sans-serif" font-size="56" font-weight="700" fill="#324439">
+    unslop
+  </text>
+</svg>

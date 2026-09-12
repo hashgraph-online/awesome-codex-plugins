@@ -1,8 +1,9 @@
 # Deep Skill Audit Checks
 
 `audit.sh` runs the structural `heal.sh --check --strict` pass, eight content
-checks, an advisory quality score, and advisory craft instrumentation. The
-checks protect usability without rewarding ceremony or package size.
+checks, an advisory static package-readiness score, and advisory craft
+instrumentation. The checks protect usability without rewarding ceremony or
+package size.
 
 Executable thresholds and severities come from
 `skills/skill-builder/references/skill-conformance-profiles.yaml`.

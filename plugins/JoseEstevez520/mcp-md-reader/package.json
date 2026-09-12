@@ -1,0 +1,24 @@
+{
+  "name": "mcp-md-reader",
+  "version": "1.4.1",
+  "description": "Structural Markdown navigation and on-demand section reading for MCP clients",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "bundle:plugin": "npm run build && esbuild src/plugin-entry.ts --bundle --platform=node --format=cjs --outfile=plugin/mcp-md-reader.cjs",
+    "start": "node dist/index.js",
+    "benchmark": "npm run build && node dist/benchmark.js",
+    "test": "npm run bundle:plugin && node --test test/*.test.mjs",
+    "dev": "tsc && node dist/benchmark.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "yaml": "^2.9.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.28.2",
+    "typescript": "^5.7.0"
+  }
+}

@@ -1,13 +1,13 @@
-# Xquik REST API Endpoints: Support
+# Xquik REST API endpoints: support
 
-## Safety Boundary
+## Protect private support data
 
 Tickets can disclose private account context. Preview each subject, message,
 file, ticket ID, or status change. Obtain approval for that exact action. Before
 private reads, show the account, purpose, scope, bound, recipients, and retention
 plan. Exclude secrets, unrelated context, and unnecessary personal data.
 
-### Create or Reply
+### Create or reply
 
 ```http
 POST /support/tickets
@@ -28,19 +28,25 @@ New requests return `201`. Direct REST callers may send a random
 or reply. Reuse it only for identical text and attachments. Never log it. A safe
 replay returns `200` plus `Idempotency-Replayed: true`. Different content with
 the same key returns `409 idempotency_key_conflict`.
-Other errors: `400` invalid input, `401` unauthenticated, and `429` rate limited.
+Never retry a direct REST write without this key. After a timeout, reuse the
+same key only for the identical payload. MCP injects and reuses the key for its
+bounded transport retries.
+Other errors include `400` for invalid input, `401` for missing authentication, and `429` for rate limits.
 Replies also return `404` for a missing ticket.
 
-### Read or Update Tickets
+### Read or update tickets
 
 Use `GET /support/tickets`, `GET /support/tickets/{id}`, or
 `PATCH /support/tickets/{id}`.
 
 List returns `{ tickets }`. Get returns ticket details, messages, and attachment
 metadata. Patch accepts `{ "status": "open" | "resolved" | "closed" }`.
-Private reads and status changes require the exact approvals above.
+Patch returns `{ "publicId": "tkt_...", "status": "resolved" }`. It can return
+`400` for an invalid status, `401` for missing authentication, `404` for a
+missing ticket, or `429` for rate limits. Private reads and status changes
+require the exact approvals above.
 
-### Download an Attachment
+### Download an attachment
 
 Call `GET /support/attachments/{id}`. Optionally send `Range: bytes=0-1048575`.
 

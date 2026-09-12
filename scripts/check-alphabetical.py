@@ -1,21 +1,27 @@
 #!/usr/bin/env python3
-"""Linter: verify that list entries within each section of README.md are alphabetically sorted.
+"""Verify that README list entries do not introduce alphabetical regressions.
 
 Supports pinned entries: any list item preceded by `<!-- pinned -->` is treated as
-always-first and excluded from alphabetical checking. The remaining items must be sorted.
+always-first and excluded from alphabetical checking. With ``--base-ref``, existing
+inversions in the base revision are treated as baseline debt while new inversions fail.
 """
 
+import argparse
+from collections import Counter
 import re
+import subprocess
 import sys
 from pathlib import Path
 
 
-def extract_sections(filepath: str) -> list[tuple[str, str, list[str]]]:
+Inversion = tuple[str, str, str]
+
+
+def extract_sections_from_text(content: str) -> list[tuple[str, list[str]]]:
     """Extract sections and their list items from a markdown file.
 
-    Returns list of (section_heading, context, items) where items are the display text.
+    Returns ``(section_heading, items)`` pairs where items are normalized display text.
     """
-    content = Path(filepath).read_text()
     lines = content.split("\n")
 
     sections = []
@@ -57,40 +63,117 @@ def extract_sections(filepath: str) -> list[tuple[str, str, list[str]]]:
     return sections
 
 
-def check_sorted(items: list[str]) -> bool:
-    """Return True if items are alphabetically sorted."""
-    return all(items[i] <= items[i + 1] for i in range(len(items) - 1))
+def extract_sections(filepath: str) -> list[tuple[str, list[str]]]:
+    """Extract sections from a UTF-8 markdown file."""
+
+    return extract_sections_from_text(Path(filepath).read_text(encoding="utf-8"))
+
+
+def inversion_counts(sections: list[tuple[str, list[str]]]) -> Counter[Inversion]:
+    """Return every out-of-order item pair, grouped by section."""
+
+    inversions: Counter[Inversion] = Counter()
+    for heading, items in sections:
+        if heading == "Contents":
+            continue
+        for index, left in enumerate(items):
+            for right in items[index + 1 :]:
+                if left > right:
+                    inversions[(heading, left, right)] += 1
+    return inversions
+
+
+def new_inversion_counts(
+    head_sections: list[tuple[str, list[str]]],
+    base_sections: list[tuple[str, list[str]]] | None = None,
+) -> tuple[Counter[Inversion], Counter[Inversion]]:
+    """Return newly introduced inversions and all inversions in the head."""
+
+    head = inversion_counts(head_sections)
+    base = inversion_counts(base_sections or [])
+    return head - base, head
+
+
+def read_base_sections(base_ref: str, filepath: str) -> list[tuple[str, list[str]]]:
+    """Read the markdown file from a git revision and extract its sections."""
+
+    path = Path(filepath)
+    try:
+        repo_path = path.resolve().relative_to(Path.cwd().resolve()).as_posix()
+    except ValueError:
+        repo_path = path.as_posix()
+    result = subprocess.run(
+        ["git", "show", f"{base_ref}:{repo_path}"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+    )
+    if result.returncode != 0:
+        detail = result.stderr.strip() or "git show returned no content"
+        raise RuntimeError(f"could not read {repo_path} from {base_ref}: {detail}")
+    return extract_sections_from_text(result.stdout)
 
 
 def main():
-    readme = sys.argv[1] if len(sys.argv) > 1 else "README.md"
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("readme", nargs="?", default="README.md")
+    parser.add_argument(
+        "--base-ref",
+        help="Allow inversions already present in this git revision while rejecting new ones.",
+    )
+    args = parser.parse_args()
+    readme = args.readme
 
     if not Path(readme).exists():
         print(f"ERROR: {readme} not found")
         sys.exit(1)
 
     sections = extract_sections(readme)
+    try:
+        base_sections = read_base_sections(args.base_ref, readme) if args.base_ref else None
+    except RuntimeError as error:
+        print(f"ERROR: {error}")
+        sys.exit(1)
+
+    new_inversions, all_inversions = new_inversion_counts(sections, base_sections)
     errors = 0
 
-    skip_sections = {"Contents"}  # TOC follows document order, not alphabetical
-
     for heading, items in sections:
-        if not items or heading in skip_sections:
+        if not items or heading == "Contents":
             continue
-        if not check_sorted(items):
-            sorted_items = sorted(items)
+        section_new = [
+            (left, right, count)
+            for (section, left, right), count in new_inversions.items()
+            if section == heading
+        ]
+        section_all = sum(
+            count
+            for (section, _left, _right), count in all_inversions.items()
+            if section == heading
+        )
+        if section_new:
             print(f"FAIL: Section '{heading}' is not alphabetically sorted.")
-            print(f"  Current order: {', '.join(items)}")
-            print(f"  Expected order: {', '.join(sorted_items)}")
+            for left, right, count in section_new[:5]:
+                suffix = f" ({count} occurrences)" if count > 1 else ""
+                print(f"  New inversion: {left} appears before {right}{suffix}")
             errors += 1
+        elif section_all:
+            print(
+                f"OK:   '{heading}' ({len(items)} items; "
+                f"{section_all} baseline inversion(s) unchanged)"
+            )
         else:
             print(f"OK:   '{heading}' ({len(items)} items)")
 
     if errors:
-        print(f"\n{errors} section(s) failed alphabetical check.")
+        print(f"\n{errors} section(s) introduced alphabetical regressions.")
         sys.exit(1)
     else:
-        print("\nAll sections are alphabetically sorted.")
+        if args.base_ref:
+            print("\nNo new alphabetical inversions were introduced.")
+        else:
+            print("\nAll sections are alphabetically sorted.")
         sys.exit(0)
 
 

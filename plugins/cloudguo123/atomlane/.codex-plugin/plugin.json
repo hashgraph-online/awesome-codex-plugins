@@ -1,0 +1,81 @@
+{
+  "name": "atomlane",
+  "version": "0.17.0",
+  "description": "AtomLane combines a universal safety core with platform-native, workload-tailored parallel execution on macOS Stable and native Windows Preview.",
+  "author": {
+    "name": "cloudguo123",
+    "url": "https://github.com/cloudguo123"
+  },
+  "homepage": "https://cloudguo123.github.io/atomlane/",
+  "repository": "https://github.com/cloudguo123/atomlane",
+  "license": "MPL-2.0",
+  "keywords": [
+    "macos",
+    "windows",
+    "cross-platform",
+    "workload-optimization",
+    "parallel",
+    "pytest",
+    "pytest-xdist",
+    "scheduler",
+    "atomic-planning",
+    "effect-analysis",
+    "python",
+    "static-analysis",
+    "refactoring",
+    "scenario-planning",
+    "local-execution",
+    "performance"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "AtomLane",
+    "shortDescription": "Universal-safe, workload-tailored parallelism",
+    "longDescription": "AtomLane uses one typed safety core for control flow, effects, conflicts, resources, hashes, and authorization, then tailors execution to the active platform and workload. Its cross-process host scheduler evaluates each ready batch together, shares CPU and memory capacity across concurrent Codex tasks, and adapts to topology, load, thermal, power, and memory conditions. It delegates concurrency to native owners when safer, isolates Windows, WSL, and Docker realms, and executes exact verified plans with live progress and honestly labeled savings.",
+    "developerName": "cloudguo123",
+    "category": "Productivity",
+    "capabilities": [
+      "Local execution",
+      "Parallel scheduling",
+      "Cross-process host admission control",
+      "Batch-level ready-set scheduling",
+      "Dynamic CPU and memory capacity refresh",
+      "Atomic workload compilation",
+      "Typed effect analysis",
+      "Plan hash verification",
+      "In-task work discovery",
+      "Visible per-prompt acceleration assessment",
+      "Advisory lifecycle hook",
+      "Native concurrency delegation",
+      "Resource-bounded pytest-xdist worker pools",
+      "Scenario profiling",
+      "Trace-informed routing",
+      "Workload-tailored execution",
+      "Cross-platform safety core",
+      "Resource awareness",
+      "Windows Job Object process-tree control",
+      "Windows ConPTY and UTF-8 pipe progress",
+      "PowerShell file workflows",
+      "Windows, WSL, and Docker realm isolation",
+      "Apple silicon routing",
+      "Python parallelism advice",
+      "Source-hash-bound rewrite previews",
+      "GIL-aware executor selection"
+    ],
+    "brandColor": "#65E6B4",
+    "composerIcon": "./assets/growth/listing-logo.svg",
+    "websiteURL": "https://cloudguo123.github.io/atomlane/",
+    "privacyPolicyURL": "https://github.com/cloudguo123/atomlane/blob/main/PRIVACY.md",
+    "termsOfServiceURL": "https://github.com/cloudguo123/atomlane/blob/main/TERMS.md",
+    "logo": "./assets/growth/listing-logo.png",
+    "screenshots": [
+      "./assets/growth/social-preview.png"
+    ],
+    "defaultPrompt": [
+      "Use $accelerate-local-work to run only the concurrency proven safe for this project.",
+      "Use $optimize-python-parallelism to review this long-running Python entrypoint for a safe parallel refactor.",
+      "Use $accelerate-local-work to run this independent pytest suite in one bounded native worker pool with live savings."
+    ]
+  },
+  "mcpServers": "./.mcp.json"
+}

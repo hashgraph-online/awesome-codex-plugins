@@ -1,6 +1,6 @@
 {
   "name": "session-orchestrator",
-  "version": "3.20.0",
+  "version": "4.2.0",
   "description": "Loop engineering for AI coding agents — turn ad-hoc sessions into a repeatable research → plan → wave-execute → close loop with verification gates. Runs on Claude Code, Codex CLI, Cursor, and Pi.",
   "type": "module",
   "homepage": "https://session-orchestrator.com",
@@ -23,6 +23,7 @@
   },
   "files": [
     ".mcp.json",
+    "AGENTS.md",
     "CHANGELOG.md",
     "pi/",
     "skills/",
@@ -35,13 +36,20 @@
     "output-styles/",
     "monitors/",
     "assets/",
+    "!assets/marketing/**",
     ".claude-plugin/",
     ".codex-plugin/",
+    ".cursor-plugin/",
+    ".agents/",
     ".cursor/",
+    ".orchestrator/policy/",
     "docs/*.md",
     "docs/telemetry/telemetry-claims.md",
     "NOTICE",
     "SECURITY.md",
+    "!skills/vault-sync/package-lock.json",
+    "!scripts/tests/**",
+    "!skills/vault-sync/tests/**",
     "!**/node_modules/**",
     "!**/.DS_Store"
   ],
@@ -62,23 +70,26 @@
   "dependencies": {
     "@babel/parser": "^7.26.0",
     "ajv": "^8.17.1",
-    "js-yaml": "^4.3.1",
+    "js-yaml": "^4.3.2",
     "mdast-util-to-string": "^4.0.0",
+    "picomatch": "^4.0.4",
     "remark": "^15.0.0",
     "remark-parse": "^11.0.0",
     "unified": "^11.0.0",
+    "yaml": "^2.9.0",
+    "zod": "^3.25.76",
     "zx": "^8.1.0"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.6.0",
     "@commitlint/config-conventional": "^19.6.0",
     "@eslint/js": "^10.0.1",
-    "@vitest/coverage-v8": "^4.1.5",
+    "@vitest/coverage-v8": "^4.1.11",
     "eslint": "^10.2.1",
     "husky": "^9.1.7",
     "lint-staged": "^15.2.10",
     "prettier": "^3.0.0",
-    "vitest": "^4.1.5"
+    "vitest": "^4.1.11"
   },
   "overrides": {
     "vite": "^8.0.16",

@@ -1,6 +1,6 @@
 # Implementation Paths
 
-Choose the implementation path after image analysis and clarification.
+Choose the implementation path from the image, target project, and task scope.
 
 ## Decision Tree
 
@@ -14,7 +14,7 @@ Choose the implementation path after image analysis and clarification.
 | Mobile image | Fixed design width plus responsive constraints | Keep touch targets usable |
 | Multiple images/states | Shared components plus state map | Do not duplicate per-screen markup |
 | SaaS/admin UI | Semantic table/form/card components | Prioritize density, alignment, repeat actions |
-| Chart/map/canvas/3D UI | Ask for data and interaction semantics | Static approximation must be explicit |
+| Chart/map/canvas/3D UI | Reuse known data and interaction semantics | Resolve missing semantics for real behavior; static approximation must be explicit |
 
 ## Existing Project Rules
 
@@ -27,8 +27,9 @@ Before editing:
 - Use existing theme variables, rem rules, breakpoints, and icon libraries.
 - Keep copy in the existing i18n system if the project uses one.
 
-Do not introduce a new UI library, icon set, CSS framework, chart library, or
-state manager just to match one screenshot unless the user approves it.
+Prefer installed libraries. Introduce a dependency only when the requested
+experience needs it and existing components cannot reasonably provide it; follow
+project dependency policy and explain consequential changes.
 
 ## Standalone Web Rules
 
@@ -38,15 +39,16 @@ When no project is present:
 - Use semantic HTML and scoped CSS.
 - Use CSS custom properties for design tokens.
 - Use fixed design-size preview styles first, then optional responsive behavior.
-- Avoid external network assets unless the user supplied them or approved them.
+- Prefer supplied or project assets. Retrieve relevant assets when within the
+  task scope; disclose substitutions that affect fidelity.
 
 ## Responsive Rules
 
 The provided design size proves one breakpoint only.
 
 - If the user asks for exact reconstruction, match the design size first.
-- If the user asks for responsive behavior, ask which breakpoints matter unless
-  the project already defines them.
+- If the user asks for responsive behavior, use project breakpoints or
+  conservative mobile/desktop coverage unless a specific target is required.
 - If no breakpoints are provided, make conservative responsive constraints:
   fluid containers, no overlap, readable text, usable touch targets.
 - Do not claim mobile fidelity from a desktop-only image.
@@ -59,11 +61,11 @@ Static UI images do not prove business logic.
   established fixtures.
 - Implement visible control semantics when the control type is clear from the
   screenshot or local project context.
-- Ask before wiring destructive actions, navigation destinations, hidden tab
-  panels, dropdown option lists, filters, sorting, pagination, chart data, map
-  layers, uploads, payments, or auth.
-- Preserve visible states from the image. Hidden states require user or project
-  evidence.
+- Reuse documented destinations, options, panels, filters, and data behavior.
+  Resolve unknown business effects before wiring actions, especially destructive
+  operations, uploads, payments, or auth. Existing task authorization still applies.
+- Preserve visible states from the image. Use local/native defaults for routine
+  focus and keyboard behavior; do not invent hidden business states.
 
 ## Minimum Semantic Controls
 
@@ -79,9 +81,10 @@ Even for a standalone web simulation, use real controls for clear UI elements:
 | Expand/collapse row | `<button aria-expanded>` plus region | Project accordion/disclosure |
 | Data grid/table | `<table>` where tabular | Project table/grid component |
 
-When hidden options or panels are unknown, use the visible value/state and a
-documented placeholder/no-op for the hidden behavior, then ask the user before
-inventing real content.
+When hidden options or panels are unknown, preserve the visible value/state and
+record the missing behavior. A prototype may use documented mock/no-op behavior;
+do not mark those controls fully functional. Ask if the missing content is
+required to finish the requested workflow.
 
 ## Implementation Quality Checklist
 

@@ -23,7 +23,10 @@ New: state the stack's idiomatic practices. Existing: read from code.
 
 1. **Mechanical**: Declared lint/format/typecheck must be green. None declared → `review` flags FIX, not BLOCK.
 2. **Convention**: Code matches the declared `convention`.
-3. **Design**: Coupling, cohesion, abstraction — is the structure sound and idiomatic for the stack? Lint/typecheck can't catch this; you must.
+3. **Design & boundaries**: Lint/typecheck can't catch this; verify:
+   - **Inward dependencies**: Core logic never imports volatile I/O, UI, or DB adapters.
+   - **Isolated side-effects**: Pure computations separated from I/O and state mutations.
+   - **Cohesion & simplicity**: Single responsibility; no bloated functions or leaky abstractions.
 
 State what you ran, assessed, and changed — or why not.
 

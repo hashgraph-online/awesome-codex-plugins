@@ -1,17 +1,17 @@
-# Security Policy
+# Security policy
 
-## Supported Versions
+## Supported versions
 
 Security fixes target the latest published release.
 
-## Reporting A Vulnerability
+## Report a vulnerability
 
 Report vulnerabilities privately by emailing support@xquik.com.
 
 Do not open public issues for secrets, credential handling bugs, private data
 exposure, account takeover paths, or write-action safety bypasses.
 
-We aim to acknowledge reports within 3 business days. We will coordinate a
+We acknowledge reports within 3 business days. We coordinate a
 disclosure timeline after confirming the issue.
 
 ## Scope

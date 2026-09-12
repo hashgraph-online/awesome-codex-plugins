@@ -12,9 +12,9 @@ Scan at most 200 source files; skip if nothing meets a threshold. From 2–3 rep
 2. **Per-handler guard mechanism** — find how the stack wraps a handler at definition time: decorator, attribute, annotation, plug, layer, before-filter, or middleware chain. Signal: **one identical guard recurs at ≥ 3 handler definitions**, excluding framework built-ins (the router/route macro itself).
 3. **Local shared-module import idiom** — find the stack's import form for a repo-local module (relative path, repo package name, internal package). Signal: **the same local symbol is imported in ≥ 5 files** AND an obvious direct third-party alternative exists that some files could have used instead but don't.
 
-Recurrence below a threshold = no signal. Keep the conservative "surface nothing over a false rule" bar — false positives are worse than missed patterns — **unchanged at every depth**. Do NOT read a Python data-script's `print("[Stage 1]...")` progress output as a log-prefix convention; do NOT promote infrastructure `app.use(...)` (CORS, body-parser, compression) into a security-guard MUST-rule; do NOT mandate a coincidental shared utility import that has no third-party alternative. If multiple signals fire, keep at most the active depth's cap (below), priority **guard > log-prefix > shared-import** (auth matters most; shared-import is weakest). Emit a signal only on positive evidence; when no candidate is unambiguous, prefer omission over a guess — never invent.
+Recurrence below a threshold = no signal. Keep the conservative "surface nothing over a false rule" bar — false positives are worse than missed patterns — **unchanged at every depth**. Do NOT read a Python data-script's `print("[Stage 1]...")` progress output as a log-prefix convention; do NOT promote infrastructure `app.use(...)` (CORS, body-parser, compression) into a security-guard MUST-rule; do NOT mandate a coincidental shared utility import that has no third-party alternative. If multiple signals fire, keep every one that clears its threshold; the priority order **guard > log-prefix > shared-import** (auth matters most; shared-import is weakest) sets presentation rank in the preview and decides what a user drops first with `edit`, not what init suppresses. Emit a signal only on positive evidence; when no candidate is unambiguous, prefer omission over a guess — never invent.
 
-**Depth-scoped scan cost, not depth-scoped scope.** This detector now runs at every `--depth` (Change: previously `light` skipped it entirely). At `light`, the run MAY narrow the ~200-file scan to cost-control it — e.g. sample toward the **guard** and **mandated-shared-indirection** primitives first (cheaper to confirm, higher value) and de-prioritize the log-prefix scan — but this is a scan-order optimization only: it MUST NOT suppress a high-confidence candidate that the narrowed scan still turns up. If a log-prefix candidate clears its threshold within whatever `light` actually scanned, surface it like any other candidate, subject to the depth cap below.
+**Depth-scoped scan cost, not depth-scoped scope.** This detector now runs at every `--depth` (Change: previously `light` skipped it entirely). At `light`, the run MAY narrow the ~200-file scan to cost-control it — e.g. sample toward the **guard** and **mandated-shared-indirection** primitives first (cheaper to confirm, higher value) and de-prioritize the log-prefix scan — but this is a scan-order optimization only: it MUST NOT suppress a high-confidence candidate that the narrowed scan still turns up. If a log-prefix candidate clears its threshold within whatever `light` actually scanned, surface it like any other candidate.
 
 ## Common signals (non-exhaustive examples)
 
@@ -30,15 +30,9 @@ These are non-exhaustive examples to orient pattern-matching — absence from th
 
 ## Output
 
-**In `/archcore:init` (Tier-2):** cross-cutting synthesis runs at **every** `--depth` in `medium`/`large` mode — it is the highest value-per-token artifact init seeds and is never skipped for cost reasons; only its cap scales with depth:
+**In `/archcore:init` (Tier-2):** cross-cutting synthesis runs at **every** `--depth` in `medium`/`large` mode — it is the highest value-per-token artifact init seeds and is never skipped for cost reasons. **No per-depth count cap applies** (Change: the former `light` ≤ 2 / `standard` ≤ 3 / `deep` ≤ 4 caps are removed). The recurrence thresholds above are the only gate: a repo that genuinely runs five conventions the same way everywhere gets five rules, and a repo with one gets one. Depth changes only the **scan cost** at `light` (the narrowed scan order described above), never how many confirmed candidates survive.
 
-| Depth | Cap (candidates) |
-|---|---|
-| `light` (opt-down) | ≤ 2 |
-| `standard` (default) | ≤ 3 |
-| `deep` (opt-up) | ≤ 4 |
-
-Each surviving candidate (up to the active depth's cap) is surfaced as a `rule`
+Each surviving candidate is surfaced as a `rule`
 **stub** in init's single preview (the one-line description + the paths it governs).
 On `confirm`, init composes and creates it as a `rule` — concern-slug filename,
 `status='draft'` (heuristic-derived; the user confirms before it becomes canon) —

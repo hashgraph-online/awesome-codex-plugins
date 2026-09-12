@@ -1,6 +1,6 @@
 ---
 name: cc-hooks
-description: Configure default Claude Code enforcement
+description: 'Configure Claude Code hooks and narrow enforcement guards. Use when: the caller requests hook installation, repair or policy changes; a hook is not required to use other skills.'
 ---
 # Claude Code Hooks
 
@@ -13,6 +13,19 @@ why every hook must be narrow, silent, and reversible.
 Named failure mode — **chatty happy path**: a hook that emits stdout on exit 0
 corrupts the tool call it was guarding; silence on success is part of the
 contract, not a style preference.
+
+## Prompt
+
+```text
+Add a PreToolUse hook to fleet-router/.claude/settings.json that blocks `git push --force` on the main branch. Keep it silent on exit 0, exit 2 with a message on block, and confirm it fires with a manual test invocation before committing the change.
+```
+
+## It's working if
+
+- The hook script exits `2` with a stderr message when it blocks `git push --force`, and exit `0` with no stdout on the allowed path.
+- `.claude/settings.json` gains one matcher entry for the new hook, alongside the existing hooks list rather than replacing it.
+- A manual test invocation against the new matcher shows the block firing in the transcript, with exit `2` visible, before the change gets committed.
+- The hook inspects only the `PreToolUse` call it guards, keeping every other file untouched.
 
 ## Constraints
 
@@ -190,7 +203,10 @@ allow + record. Every fire appends one hashed guardrail-telemetry line
 `AOP_WAIVE=<policy-id>`, or a `policy-waivers` file line
 `<policy-id> <expiry-epoch>`. Missing registry or jq fails OPEN.
 
-Day-1 enforce cohort (age-wnyt, all pure-regex, high-pain):
+Enforce cohort (all pure-regex, high-pain). The first four are the day-1
+maintainer cohort (age-wnyt) — they guard *this repository's* artifacts. The
+fifth guards the **product's own invariant** and therefore fires on every
+consumer repo, not just this one:
 
 | Policy | Blocks | Routes to |
 |---|---|---|
@@ -198,6 +214,17 @@ Day-1 enforce cohort (age-wnyt, all pure-regex, high-pain):
 | `core.provenance:ledger-hand-append` | redirect/`tee`/Edit/Write onto `docs/provenance/ledger.jsonl` (hash-chained, sealed) | `ao provenance add` |
 | `core.skills:copy-into-installed` | `cp`/`rsync`/`mv` INTO `~/.claude|.codex|.gemini/skills` (dest-position enforced) | `ao skills link` |
 | `core.skills:edit-installed-copy` | Edit/Write of an installed skill copy (`file_path` only — prose can never fire it) | edit repo `skills/<name>/` |
+| `core.verdicts:hand-edit` | Edit/Write, or Bash `>`/`>>`/`tee`/`cp`/`rsync`/`mv` INTO `.agents/ao/verdicts/` (dest-position enforced) — the filename IS the SHA-256 of the content, so a hand edit breaks digest identity | re-run validation and let it persist a fresh artifact (`validate.py store-verdict`) |
+
+`core.verdicts:hand-edit` is the one policy whose subject is the *promise*
+rather than the repo: a verdict that no longer hashes to its own filename is
+forged evidence, and nothing above the tool-call altitude catches it. Reading
+the store is untouched — `cat`/`ls`/`jq`/`rg`/`diff` over a verdict, and
+copying one OUT for inspection, never fire; only writes landing IN the store
+do — including in-place editors (`sed -i`, `perl -pi`/`-ni`) and deleters
+(`rm`, `unlink`, `shred`), matched as flag-tokens so a read whose script text
+merely contains `-i` stays silent (bats-proven both directions). Remaining
+disclosed gap: the noclobber override redirect (`>|`).
 
 **How it reaches users — every install path delivers hooks:**
 

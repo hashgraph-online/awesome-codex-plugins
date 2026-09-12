@@ -119,9 +119,12 @@ bkt pipeline logs <id> [flags]
 
 Trigger a new pipeline run on Bitbucket Cloud for the current repository.
 
-The pipeline runs against the specified Git ref (branch, tag, or commit). You can
-pass custom pipeline variables using the --var flag, which accepts KEY=VALUE pairs
-and can be repeated. This command is available for Bitbucket Cloud contexts only.
+The pipeline runs against the specified branch. Set --selector-type to choose a
+pipeline definition for that branch target. For selector types other than default,
+also set --selector-pattern. Selector values are passed directly to Bitbucket. You
+can pass custom pipeline variables using the --var flag, which accepts KEY=VALUE
+pairs and can be repeated. This command is available for Bitbucket Cloud contexts
+only.
 
 Use --wait to poll the triggered pipeline until it completes, with exponential
 backoff and jitter. Exit codes in --wait mode: 0 = pipeline succeeded,
@@ -139,8 +142,10 @@ bkt pipeline run [flags]
 |---|---|---|
 | `--interval` |  | Initial polling interval when using --wait |
 | `--max-interval` |  | Maximum polling interval (backoff cap) |
-| `--ref` |  | Git ref to run the pipeline on |
+| `--ref` |  | Branch to run the pipeline on |
 | `--repo` |  | Repository slug override |
+| `--selector-pattern` |  | Pipeline definition name or pattern; omit for default |
+| `--selector-type` |  | Pipeline selector type (for example custom or pull-requests) |
 | `--timeout` |  | Maximum time to wait for the pipeline (0 for no timeout) |
 | `--var` |  | Pipeline variable in KEY=VALUE form (repeatable) |
 | `--wait` |  | Wait for the triggered pipeline to complete |
@@ -160,11 +165,14 @@ bkt pipeline run [flags]
 ### Examples
 
 ```bash
-# Run the pipeline on the default branch
+# Run the pipeline on the main branch
   bkt pipeline run
 
   # Run the pipeline on a specific branch
   bkt pipeline run --ref feature/my-branch
+
+  # Run a named custom pipeline
+  bkt pipeline run --ref master --selector-type custom --selector-pattern deploy-to-production
 
   # Run with custom pipeline variables
   bkt pipeline run --ref main --var ENV=staging --var DEBUG=true

@@ -1,6 +1,6 @@
 ---
 name: craft-goal
-description: Compile or lint a persistent Mayor-style
+description: 'Draft or lint a bounded persistent goal above a bead graph of RPI experiments. Use when: this goal workflow is explicitly selected; shaping a single change belongs to Plan.'
 ---
 # Craft Goal
 
@@ -12,13 +12,15 @@ ratchets toward a larger outcome.
 ```text
 Goal / Mayor: observe graph → choose bounded wave → consume verdicts → ratchet
   └─ Bead: durable experiment intent, context, scratch, evidence, and links
-       └─ RPI: plan → implement → fresh validate → verdict → report and stop
+       └─ RPI: plan → implement → fresh validate → bounded repair → verdict → report
             └─ Implementation: one RED → GREEN → refactor experiment
 ```
 
 The number of RPIs need not be known in advance. The goal is safe when success
-is decidable, every experiment is bounded, knowledge is monotonic, and the
-authorization envelope cannot silently renew itself.
+is decidable, every experiment is bounded, evidence retains its provenance,
+and the authorization envelope cannot silently renew itself. Beliefs are
+revisable: new evidence may retract an earlier claim. More stored knowledge is
+neither progress nor proof that knowledge is correct.
 
 **Insight:** bounded waves shorten the feedback loop; one hard, non-renewing
 campaign envelope prevents those waves from becoming infinite continuation.
@@ -82,9 +84,12 @@ outcome; do not invent one universal budget.
 - **Two-level bounds:** Every RPI is bounded; every dispatch wave is bounded;
   the full goal also has monotonic hard ceilings. **Why:** a new wave must not
   mint a new campaign.
-- **Earned andon:** Ordinary red may change the route. Repeated no-information
-  failure, oscillation, scope pressure, or exhaustion enters HOLD and gets
-  exactly 1 bounded fresh helper before `UNSTUCK` or `ESCALATE`.
+- **Earned andon:** Ordinary informative red may change the route within frozen
+  acceptance. Repeated no-information failure, regression, recurrence,
+  oscillation, or scope pressure enters HOLD. Exactly 1 bounded fresh helper
+  per incident may return `UNSTUCK` or `ESCALATE` inside the remaining allowance;
+  cancellation, an explicit refusal/judgment lane, or a spent hard budget skips
+  the helper and stops work.
 - **Operator legibility:** At each wave boundary, report the acceptance matrix,
   graph frontier, verdicts, ratchets, churn, remaining budget, and next thesis.
 - **Exterior self-repair:** Repair an unstable factory from an ordinary
@@ -108,12 +113,14 @@ Use graph semantics deliberately:
 - `related` for alternatives or correlated observations;
 - `discovered-from` for provenance of newly exposed work.
 
-Use live `bd`/`br` state as authority and `bv --robot-*` output for
-prioritization, parallel tracks, bottlenecks, and graph insight. Never treat a
-static plan as fresher than the graph. The `bd`/`br`/`bv` tracker is an external,
-caller-owned runtime the emitted goal will drive (declared via
-`intel_scope: topic`); craft-goal reads live tracker state when present but
-starts nothing and requires no tracker to be installed to compile a prompt.
+Use the caller's actual tracker as the authority for work and dependencies.
+In this repository that is BD (`bd`); verify `bd context --json` before mutation.
+BR (`br`) is a different implementation, never a fallback or alias for BD.
+Beads Viewer (`bv`) offers advice over an explicitly refreshed export; recheck
+its suggestions against live BD and frozen acceptance. Viewer ranking proves
+neither readiness nor permission for concurrent writes. Never treat a static
+plan as fresher than the live graph. Craft-goal reads tracker state when present
+but starts nothing and needs no tracker installed to compile a prompt.
 
 ## What counts as a ratchet
 
@@ -124,10 +131,20 @@ An RPI makes progress when its durable result does at least one:
 3. resolves an uncertainty or owner so the next experiment is materially
    different.
 
-More code, another commit, a repeated error, or a rewritten plan is not itself
-progress. A NOT_PROVEN result counts only when its evidence narrows the next
-question; repetition without new information increments the no-progress
-counter. Stop when no ratchet remains inside the envelope.
+More code, a changed digest, fewer findings, another commit, a repeated error,
+or a rewritten plan is not itself progress. Cite the acceptance criterion or
+blocking uncertainty, the exact evidence, and the decision it changes. A
+NOT_PROVEN or FAIL may be informative when it falsifies a live hypothesis or
+narrows the next experiment; repeated red without new information is churn.
+Preserve necessary unresolved findings even when a result is informative.
+
+Separate newly discovered pre-existing defects from regressions introduced by
+the change using before/after reproduction or equivalent causal evidence under
+the same acceptance. Counts, timestamps, and new ids cannot establish cause.
+Unknown cause, a reopened finding, or recurrence of a closed finding class
+warrants causal HOLD; none alone proves that the design is wrong. Do not relabel
+a necessary finding as optional to claim progress. Stop when no ratchet remains
+inside the envelope.
 
 ## Mayor loop
 
@@ -160,23 +177,42 @@ Specify both:
   and any patch/surface limit for the whole campaign.
 
 Dispatch budget: every wave declares numeric RPI, token, time, and concurrency
-limits before any work is selected. Fresh-helper budget: exactly 1 per HOLD.
+limits before any work is selected, including helper and validation costs.
+Name the native control that enforces each claimed hard limit and how remaining
+allowance is observed. Objective text is an instruction, not enforcement; do
+not represent an unmeasured aggregate as a remaining balance. No helper, retry,
+new subject, compaction, or wave renews the goal allowance.
 
 Continue automatically across waves only while a ratchet exists and the next
 experiment fits frozen acceptance, authority, and remaining envelope.
 
 Enter HOLD on any declared trigger: repeated blocker, no ratchet for the
-configured number of RPIs, oscillation between prior approaches, repeated live
-failure class, requested acceptance change, operator-reserved decision, or
-hard-ceiling exhaustion. HOLD permits exactly 1 bounded fresh-context helper:
+configured number of RPIs, oscillation between prior approaches, introduced
+regression, unknown new-defect cause, recurrence, requested acceptance change,
+or operator-reserved decision. HOLD stops implementation for causal examination.
+While the caller's remaining allowance admits it, consult exactly 1 bounded
+fresh-context helper per HOLD incident; rewording the blocker or receiving an
+automatic continuation does not create a new incident. Supply acceptance,
+observations, failed approaches, exact evidence, and remaining allowance.
 
-- `UNSTUCK` must name a materially different bounded experiment, then resume.
-- `ESCALATE` emits `NEEDS_OPERATOR` and performs no more implementation.
+- `UNSTUCK` must name a materially different experiment, its discriminating
+  check, and why it fits unchanged acceptance, authority, and remaining bounds;
+  only the selected outer goal may resume. It never revives a spent RPI bound.
+- `ESCALATE`, an unhelpful helper, or no admissible experiment emits
+  `NEEDS_OPERATOR` and performs no more implementation or helper dispatch.
+- Cancellation stops immediately. An explicit refusal/judgment lane or a
+  genuinely spent hard time, cost, or quota ceiling skips the helper; report the
+  refusal or `NOT_ACHIEVED` with the exact gaps. A retry threshold alone is not
+  proof of a spent hard budget.
 
-Current Codex goals lack an agent-triggered pause/checkpoint state. A
-`NEEDS_OPERATOR` report therefore also tells the operator to pause the goal;
-the prompt alone cannot guarantee that product-level pause.
-Stop when any terminal report is emitted.
+Native goal objective text and a terminal report do not enforce continuation.
+No agent-callable native pause or aggregate allowance operation is demonstrated
+by this contract. Report which native controls were actually observed, any
+unmeasured allowance, and whether implementation stopped; never claim the goal
+is paused from prose alone. When operator action is required, report that need
+truthfully and keep further work stopped. The persistent controller's threshold
+for recording `blocked` is separate status bookkeeping, never permission for
+extra experiments or helpers. Stop when any terminal report is emitted.
 
 ## Frozen prompt
 
@@ -185,7 +221,8 @@ Preserve its headings and terminal semantics; replace every angle-bracket field.
 
 ## Quality
 
-Lead with `SAFE_TO_CREATE`, `USE_RPI`, or `UNSAFE_GOAL`. Return the copy-paste
+Lead with `SAFE_TO_CREATE`, `USE_RPI`, or `UNSAFE_GOAL`. `SAFE_TO_CREATE` judges
+prompt content; it does not certify native enforcement or create a goal. Return the copy-paste
 prompt, separate goal-tool token budget, assumptions, and one lint line for:
 outcome, evidence, admission, bead graph, RPI boundary, ratchet, discovery,
 wave budget, hard budget, breaker, operator andon, scope, self-hosting, and

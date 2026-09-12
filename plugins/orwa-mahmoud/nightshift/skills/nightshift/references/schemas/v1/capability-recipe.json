@@ -1,0 +1,154 @@
+{
+  "schemaVersion": 1,
+  "description": "Recipe contract for the provisioning engine. Keys and enums are stable; recipe bodies are registered separately. Elevation is authorized by the resolved shift policy, never by this file: a recipe declares the categories it needs in the optional elevationCategories array (absent or empty means none) and the engine asks the resolver for each one, then matches every command it may run against every category pattern. The three maintenance fields carry a recipe's provenance: they are optional to the engine, which never reads them, and required of every registered recipe by runtime/recipe-audit.sh. Specialist recipes also carry an admission block naming the contract, fixture, and demand evidence that justified shipping; the audit reports inadmissible when any field is missing. enabledShifts entries are either a contract id string (core recipes) or an object with contract and fallback (specialist recipes). auditStates is in precedence order: a recipe is reported under the first state it matches, and unresolved is reached only under the audit verb, which runs the resolves query.",
+  "requiredRecipeFields": [
+    "capabilityId",
+    "ecosystems",
+    "versionConstraints",
+    "detect",
+    "probe",
+    "packageManagerAdditions",
+    "allowedFiles",
+    "minimalConfig",
+    "smoke",
+    "rollback",
+    "enabledShifts",
+    "safetyClass",
+    "permissionRequirements",
+    "recipeVersion"
+  ],
+  "maintenanceFields": [
+    "lastVerified",
+    "upstream",
+    "maintenance"
+  ],
+  "maintenanceKeys": [
+    "check",
+    "resolves"
+  ],
+  "lastVerifiedFormat": "YYYY-MM-DD",
+  "resolvesForm": "one plain command: argv words of [A-Za-z0-9._/@:=+,-] separated by single spaces, run without a shell",
+  "recipeStaleDays": 180,
+  "auditStates": [
+    "inadmissible",
+    "missing-maintenance",
+    "missing-upstream",
+    "stale",
+    "unresolved",
+    "ok"
+  ],
+  "registryIndexFile": "recipes/index.json",
+  "registryIndexFields": [
+    "ecosystem",
+    "capabilityId",
+    "recipeVersion",
+    "lastVerified",
+    "upstream",
+    "path"
+  ],
+  "safetyClass": [
+    "local-dev-free",
+    "local-dev-with-config",
+    "forbidden"
+  ],
+  "elevationCategories": [
+    "sudo",
+    "containers",
+    "global-packages",
+    "daemons",
+    "external-services"
+  ],
+  "transactionStages": [
+    "authorize",
+    "capture-baseline",
+    "apply",
+    "smoke",
+    "record",
+    "commit-tooling",
+    "rollback"
+  ],
+  "refusalReasons": [
+    "policy-not-auto-add",
+    "artifact-mode",
+    "elevation-denied:sudo",
+    "elevation-denied:containers",
+    "elevation-denied:global-packages",
+    "elevation-denied:daemons",
+    "elevation-denied:external-services",
+    "incompatible-ecosystem",
+    "permission-prompt-required",
+    "provisioning-runtime-unavailable",
+    "owner-dirty-conflict",
+    "safety-forbidden"
+  ],
+  "skipReasons": [
+    "permission-prompt-required",
+    "provisioning-runtime-unavailable"
+  ],
+  "transactionStateFile": ".nightshift/provision-transaction.json",
+  "setupCommitSubjectPrefix": "chore(tooling):",
+  "preflightBudgetSecondsDefault": 120,
+  "never": [
+    "elevate-without-an-allowance",
+    "create-accounts",
+    "paid-services",
+    "replace-existing-tools",
+    "broad-autofix",
+    "weaken-checks",
+    "guess-legal-privacy-spend-deploy-publish"
+  ],
+  "admissionFields": [
+    "contract",
+    "fixture",
+    "demand"
+  ],
+  "admission": {
+    "type": "object",
+    "required": [
+      "contract",
+      "fixture",
+      "demand"
+    ],
+    "properties": {
+      "contract": {
+        "type": "string",
+        "minLength": 1
+      },
+      "fixture": {
+        "type": "string",
+        "minLength": 1
+      },
+      "demand": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "additionalProperties": false
+  },
+  "enabledShiftEntry": {
+    "oneOf": [
+      {
+        "type": "string",
+        "minLength": 1
+      },
+      {
+        "type": "object",
+        "required": [
+          "contract",
+          "fallback"
+        ],
+        "properties": {
+          "contract": {
+            "type": "string",
+            "minLength": 1
+          },
+          "fallback": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false
+      }
+    ]
+  }
+}

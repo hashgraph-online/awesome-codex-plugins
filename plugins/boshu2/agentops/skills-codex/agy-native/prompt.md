@@ -1,6 +1,6 @@
 # agy-native
 
-Use an explicitly selected AGY runtime for one provided packet or fresh validator context. Triggers: "agy", "antigravity", "AGY evidence".
+Run a supplied task in AGY Antigravity and collect its result. Use when: the caller selects AGY; never a fallback for native coding.
 
 ## Instructions
 

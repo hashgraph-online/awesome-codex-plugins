@@ -1,6 +1,17 @@
 {
   "name": "@ouonet/praxis",
-  "version": "4.2.3",
+  "version": "4.2.11",
+  "description": "Token-lean discipline skills for coding agents.",
+  "license": "MIT",
+  "author": "ouonet",
+  "homepage": "https://ouonet.github.io/praxis/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ouonet/praxis.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ouonet/praxis/issues"
+  },
   "publishConfig": {
     "access": "public"
   },

@@ -2,7 +2,7 @@
 
 # 🌀 Superloopy
 
-**Loop engineering for Codex and Claude Code.** Type `loopy <task>` — an agent does the work, proves each piece with real evidence, and only then says it's done.
+**Loop engineering for Codex, Claude Code, and Google Antigravity.** Type `loopy <task>` — an agent does the work, proves each piece with real evidence, and only then says it's done.
 
 <p>
   <a href="README.md">English</a> ·
@@ -20,17 +20,17 @@
 
 ## Use it
 
-After installing, type your task in Codex or Claude Code with a leading `loopy`:
+After installing, type your task in Codex, Claude Code, or Antigravity with a leading `loopy`:
 
 ```
 loopy add the payments module
 ```
 
-The agent plans it, proves each piece with a real file, and reports back — you don't run any commands yourself. The packaged Stop hook stays quiet unless `SUPERLOOPY_STOP_HOOK=on`.
+The agent plans it, proves each piece with a real file, and reports back — you don't run any commands yourself. The packaged Stop hook stays quiet unless `SUPERLOOPY_STOP_HOOK=on`. Set `SUPERLOOPY_CALQUE_NUDGE=on` to get an advisory note at your next prompt when the previous Korean reply carried an English calque such as 조용히 실패 or 우아하게 종료.
 
 ## Why Superloopy?
 
-Superloopy is for Codex and Claude Code work where "done" needs to mean more than a confident status sentence.
+Superloopy is for Codex, Claude Code, and Antigravity work where "done" needs to mean more than a confident status sentence.
 
 - Evidence-first: every pass points at a real artifact under `.superloopy/evidence/`.
 - Lightweight by default: one small CLI, repo-local state, zero runtime dependencies.
@@ -49,10 +49,12 @@ Superloopy keeps the command layer small. Skills carry the specialist workflow: 
 | `superloopy-research` | You explicitly invoke Codex `$superloopy:superloopy-research` or Claude Code `/superloopy:superloopy-research`, or start the research task with a leading `loopy`/`루피` (such as `loopy research`). Plain research, investigate, or summarize requests do not activate it. | Research axes, expansion waves, a verdict on every retrieval, graded and dated sources, a priced claim ledger, verification notes, and a cited synthesis artifact. |
 | `superloopy-clone` | You ask for `loopy clone`, authorized website cloning, rebuilding, migration, or pixel-focused page recovery. | Browser captures, page topology, design tokens, asset inventory, implementation notes, build output, and visual QA evidence. |
 | `superloopy-frontend` | You explicitly invoke Codex `$superloopy:superloopy-frontend` or Claude Code `/superloopy:superloopy-frontend` for supported screen-based application UI across browser-hosted Web (public, authenticated, private/internal, installed PWA, or extension), interactive deployed content-led Web (campaign, publication, or landing experiences with a user journey), desktop, mobile/tablet, embedded/hybrid clients, custom-rendered UI, Qt, or mixed targets, or start that work with a leading `loopy`/`루피`. Plain UI, platform, or framework terms do not activate it; TV, wearable, XR, automotive, game UI, TUI, static media/document artifacts, and non-UI work stay excluded. | One shared UX contract plus platform/composition routes. Evidence is proportional to changed claims and independently covers each browser, native target/shell, renderer, and mixed target. Standalone runs retain run-scoped receipts; active loops bind them to the goal and criterion. |
-| `humanize-korean` | Use when Korean users ask to remove AI tone, fix 번역투, or make Korean text sound human without changing facts. | Writes `final.md`, `summary.md`, and `audit.json`; in Superloopy loops it records evidence under `.superloopy/evidence/humanize-korean/`. |
+| `humanize-korean` | Use when Korean users ask to remove AI tone, fix 번역투, or make Korean text sound human without changing facts. | Owns Korean naturalness, including semantic review of misplaced modifiers and the P-family calque rules (조용히 실패, 우아하게 종료, 단일 진실 공급원). It writes `final.md`, `summary.md`, and `audit.json`; in Superloopy loops it records evidence under `.superloopy/evidence/humanize-korean/`. |
 | `i-have-adhd` | You explicitly invoke Codex `$superloopy:i-have-adhd` or Claude Code `/superloopy:i-have-adhd`, or a leading `loopy`/`루피` brief directly asks for ADHD-friendly, action-first, one-step, or easy-to-scan output. Writing style alone never activates it. | Shapes progress updates so the next action stays visible. It does not create a Superloopy evidence artifact or weaken planning, safety, validation, or completion gates. |
 | `say-it-straight` | Explicit Codex `$superloopy:say-it-straight` or Claude `/superloopy:say-it-straight` for direct, concise, natural prose and supplied task artifacts; never activates from writing style alone. Full Loopy progress/final output is direct by default, with exact English/Korean controls limited to the current incomplete loop. | Explicit artifact editing preserves facts, register, protected text, and required detail; file-backed edits use the audit. ADHD owns structure and Korean rewriting remains with `humanize-korean`. |
 | `superloopy-slides` | You ask for slides, a presentation, a deck, or a PPT/PPTX-to-web conversion. | A zero-dependency single-file HTML deck on a fixed 16:9 stage, three style previews to pick from, and a rendered-screenshot visual-QA artifact under `.superloopy/evidence/slides/`. |
+
+**Automatic reassurance-copy gate.** Every full Loopy start or resume carries this conditional gate. It activates only when an affected artifact creates or changes user-visible Korean product-behavior copy, then adds RC-1 through RC-4 and `humanize-korean` naturalness review to the plan criterion. Internal logs and diagnostics, developer documentation and comments, test narration, quotations, general or marketing prose, and non-Korean copy are excluded. The gate uses supplied behavior and records a blocker or question when facts are missing instead of inventing an outcome; it has no standalone skill or invocation name.
 
 The loop skill is the default guardrail. A complete leading `loopy` token starts or resumes the evidence loop; `loopy team` escalates to crew mode. Leading `loopywork`, `lpy`, and `$lpy` tokens only inject starter guidance. Structured `SUPERLOOPY_STEER` directives can adjust an active loop. Full-loop direct output never silently rewrites supplied prose or task artifacts: direct editing remains explicit-only. The prompt hook does not infer frontend or Korean-writing modes from ordinary text; invoke specialist skills explicitly or let an already-active loop route a real specialist subtask.
 
@@ -67,6 +69,12 @@ The loop skill is the default guardrail. A complete leading `loopy` token starts
 [![Fileloom intro deck built with superloopy-slides](.github/assets/slides-demo-reference.png)](https://fileloom-slides.pages.dev)
 
 `superloopy-slides` generated this **[live multilingual deck →](https://fileloom-slides.pages.dev)** — a zero-dependency single-file HTML presentation on a fixed 16:9 stage in English · 한국어 · 中文 · 日本語 · Español. It passed real-browser visual-QA (standalone, phone letterbox, and iframe embed) recorded under `.superloopy/evidence/slides/`.
+
+## Writing Comparison Demo
+
+[![Writing comparison app showing an original document next to its Say It Straight rewrite](.github/assets/writing-comparison-demo.png)](https://writing-comparison.pages.dev/)
+
+The **[live writing-comparison viewer →](https://writing-comparison.pages.dev/)** puts one source document next to its `humanize-korean` (A), `i-have-adhd` (B), and `say-it-straight` (C) rewrites across fourteen Korean and English samples, plus eight benchmark fixtures with each skill's measured output and a [benchmark page](https://writing-comparison.pages.dev/benchmark.html) with the cost and latency numbers. Every Say It Straight edit carries a rationale note, and any comparison is shareable by URL.
 
 ## Qt Kanban Demo
 
@@ -86,7 +94,7 @@ examples/qt-kanban/scripts/audit-macos-accessibility.sh \
 
 For bigger work, Superloopy ships six optional subagents — each owns one lane. Claude Code uses the plugin-bundled `agents/*.md`. On Codex, bootstrap, `superloopy install`, and `superloopy agents install` materialize personal TOMLs under `$CODEX_HOME/agents`; model routing is resolved during that installation step.
 
-Codex calls the stable `model/list` method only when resolution state is missing, the policy version or target changed, the cache is at least 24 hours old, or `--refresh-models` is supplied. When fresh state still matches the managed files, it reuses the exact manifest without a query or state rewrite. Profiles select the first supported complete model/effort/tier tuple: `gpt-5.6-terra` / `high` / `priority` for `standard`, `gpt-5.6-sol` / `xhigh` / `priority` for `deep`, and `gpt-5.6-luna` / `low` / `fast` for `fast`. If a preferred model is unavailable, that profile uses its explicit `gpt-5.5` compatibility tuple. An unknown first probe conservatively selects policy compatibility; an unknown refresh preserves a valid existing resolution. `--compat` makes the compatibility choice deterministically without querying.
+Codex calls the stable `model/list` method only when resolution state is missing, the policy version or target changed, the cache is at least 24 hours old, or `--refresh-models` is supplied. When fresh state still matches the managed files, it reuses the exact manifest without a query or state rewrite. Profiles select the first supported complete model/effort/tier tuple: `gpt-5.6-terra` / `high` / `priority` for `standard`, `gpt-5.6-sol` / `xhigh` / `priority` for `deep`, and `gpt-5.6-luna` / `low` / `fast` for `fast`. If a preferred model is unavailable, that profile uses its explicit `gpt-5.5` compatibility tuple. `gpt-6-astra` is allowed for the orchestrator (your own Codex session) when you select it in Codex; crew lanes keep their pins and never inherit the orchestrator's model. An unknown first probe conservatively selects policy compatibility; an unknown refresh preserves a valid existing resolution. `--compat` makes the compatibility choice deterministically without querying.
 
 Upgrades from pre-managed Superloopy releases are hash-bound: a complete exact legacy fleet is adopted and upgraded without `--force`, while one edit, symlink, missing file, or unknown hash keeps the whole fleet in conflict. Changed agent definitions require a Codex restart; an unchanged fresh manifest does not. `superloopy doctor --refresh-models` can report preferred availability before managed state exists, detects a wrapper/plugin split-brain, and never rewrites resolution state or agent files.
 
@@ -203,6 +211,15 @@ Refresh the marketplace, update the installed plugin, then reload — no restart
 
 `/plugin update` resolves the new version from the refreshed marketplace, and `/reload-plugins` applies it in the current session (no Claude Code restart, and hooks do not need re-approval). Verify with `node "${CLAUDE_PLUGIN_ROOT}/src/cli.js" doctor --json`. If you loaded a checkout with `--plugin-dir`, just `git pull --ff-only` and run `/reload-plugins`.
 
+### Google Antigravity
+
+Pull the latest version in the plugin directory and validate:
+
+```sh
+git -C ~/.gemini/config/plugins/superloopy pull --ff-only
+agy plugin validate ~/.gemini/config/plugins/superloopy
+```
+
 ## Troubleshooting
 
 If plugin install or upgrade commands fail, update the Codex CLI first. `codex plugin add` is available in Codex CLI 0.131.0 and newer; older builds can have trouble with current plugin marketplace commands and hook approval flows.
@@ -249,5 +266,29 @@ If you installed with `CODEX_HOME`, `SUPERLOOPY_BIN_DIR`, or `CODEX_LOCAL_BIN_DI
 ```
 
 Then run `/reload-plugins`. Nothing else to clean up — Claude Code installs are fully plugin-bundled (no `superloopy` wrapper, no `~/.codex` writes). Removing the marketplace from its last remaining scope also uninstalls the plugin.
+
+### Google Antigravity
+
+```sh
+agy plugin disable superloopy
+rm -rf ~/.gemini/config/plugins/superloopy
+```
+
+```powershell
+agy plugin disable superloopy
+Remove-Item "$env:USERPROFILE\.gemini\config\plugins\superloopy" -Recurse -Force -ErrorAction SilentlyContinue
+```
+
+Optional wrapper cleanup: if you do not also use Superloopy on Codex, remove the command wrapper:
+
+```sh
+rm -f ~/.local/bin/superloopy
+```
+
+```powershell
+Remove-Item "$env:APPDATA\npm\superloopy.cmd" -ErrorAction SilentlyContinue
+```
+
+If you keep Superloopy on Codex, keep the wrapper or run `superloopy install` to repoint it to your Codex installation. Agents and skills on Antigravity are plugin-bundled so no agent TOMLs are placed. If you installed with `SUPERLOOPY_BIN_DIR`, clean up that configured path instead.
 
 <sub>MIT licensed.</sub>

@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "cassette": {
+      "command": "python3",
+      "args": [
+        "${CLAUDE_PROJECT_DIR:-.}/scripts/run_local_mcp.py"
+      ],
+      "env": {
+        "CASSETTE_MCP_HOST": "claude"
+      }
+    }
+  }
+}

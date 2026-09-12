@@ -6,8 +6,12 @@
 > In today's fast-paced world, founders must leverage AI tools to fundamentally
 > streamline their workflow — it's a game-changer.
 
-Tells: "in today's fast-paced world", leverage, fundamentally, streamline, em
-dash, game-changer, zero specifics, no first line that lands alone.
+Tells: the tweet scores 4 markers ("in today's fast-paced world", leverage,
+fundamentally, streamline) plus "game-changer", so the whole tweet is
+rewritten rather than word-swapped; zero specifics; no first line that lands
+alone. The single em dash was under the cap (one per tweet) and was not a tell
+on its own; it went only because the sentence around it was rewritten. It was
+not replaced with a period.
 
 **After:**
 > Most founders use AI to write faster.
@@ -15,7 +19,9 @@ dash, game-changer, zero specifics, no first line that lands alone.
 > The ones who win use it to decide faster. Same tools, different job.
 
 Why it is better: a complete one-liner contrarian (X1) take, lands in the first
-line, no AI vocab, no em dash, one clear idea, reads in a glance.
+line, no marker cluster, one clear idea, reads in a glance. Pass 2 left the
+rhythm alone (single tweet: uniform rhythm is fine). Pass 4: nothing was
+inserted, no hedge, no "not gonna lie" frame.
 
 ## Example 2 - Tweet over 280 from emoji
 

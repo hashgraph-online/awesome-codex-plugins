@@ -40,6 +40,8 @@ dev-skills 是一套给 Claude Code / Codex 用的 SDD-style 开发工作流和 
 
 > 不知道下一步做什么,就先用 `dev-auto`。它只会推荐下一步,不会替你自动执行其他 skill。
 
+这套规则按任务风险决定流程长度:清楚的小改动直接实施并检查;业务含义、权限或不可逆操作仍有关键缺口时才提问。已有需求、方案和授权会沿用,不用在每个阶段重新确认。skill 不绑定模型版本;在运行环境选择模型即可,升级后可用 [校准用例](./references/calibration-cases.md) 检查实际决策。
+
 ---
 
 ## 快速开始
@@ -79,7 +81,7 @@ dev-fix -> dev-verify -> dev-code-review -> git commit -> dev-finish
 dev-image-to-code -> dev-verify -> dev-code-review -> git commit -> dev-finish
 ```
 
-先给 UI 图和设计尺寸。看得出的 input、tab、select、button 要做成真实控件;看不准的文案、状态、隐藏面板或业务行为先停下来问。
+先给 UI 图,有设计尺寸就一起给。清楚的 input、tab、select、button 要做成真实控件;关键文案、隐藏业务和权限含义不清时先问,可逆的布局细节依据图片和项目模式处理。
 
 ### Swagger / OpenAPI 文档
 
@@ -169,7 +171,7 @@ Types     6
 
 ### UI 图生成代码
 
-- [`dev-image-to-code`](./skills/dev-image-to-code/):根据 UI 截图/设计图和设计尺寸生成可运行代码;保留清晰控件的语义和可见交互,有疑惑就先问。
+- [`dev-image-to-code`](./skills/dev-image-to-code/):根据 UI 截图/设计图生成可运行代码;保留控件语义和可见交互,只对关键缺口提问,用真实截图验证。
 
 ### 实现和修复
 
@@ -180,7 +182,7 @@ Types     6
 
 - [`dev-verify`](./skills/dev-verify/):声称完成、fixed、ready 前,补齐真实命令证据。
 - [`dev-code-review`](./skills/dev-code-review/):准备 commit 前,检查 diff 风险。
-- [`dev-commit-writer`](./skills/dev-commit-writer/):明确跳过 review 且只要 commit message 时使用。
+- [`dev-commit-writer`](./skills/dev-commit-writer/):只要 commit message 时使用;生成 message 不代表已通过 review 或授权执行 commit。
 - [`dev-finish`](./skills/dev-finish/):验证和 review 通过后,处理分支收尾。
 
 ---
@@ -396,12 +398,12 @@ flowchart TD
 | `dev-grill-docs` | `.claude/artifacts/designs/<feature>.md` + 可选 `CONTEXT.md` / `docs/adr/<nnnn>-<slug>.md` |
 | `dev-spec` | 兼容入口,同 `.claude/artifacts/designs/<feature>.md` |
 | `dev-plan` | `.claude/artifacts/plans/<feature>.md` |
-| `dev-image-to-code` | `UI_RECON/<screen>/` 或 `RECON/dev-image-to-code/<screen>/`,含截图、组件映射和视觉验证报告 |
+| `dev-image-to-code` | 实现代码和实际验证截图;复杂任务或明确要求时补充组件映射和视觉报告,产物路径沿用项目约定 |
 | `swagger-doc-skill` | 仅在用户要求导出时生成完整 Markdown / JSON API 文档;普通查询只输出到 chat |
-| `dev-fix` | `.claude/artifacts/fixes/<slug>.md` |
+| `dev-fix` | 复杂调查或明确要求时生成修复文档,默认路径为 `.claude/artifacts/fixes/<slug>.md`;简单修复可直接在回答中交付 |
 | `dev-auto` / `dev-tdd` / `dev-verify` / `dev-code-review` / `dev-commit-writer` / `dev-finish` | 不生成 artifact,只输出到 chat |
 
-`dev-code-review` 和 `dev-commit-writer` 可以读取这些 artifact,并在 commit message 里自动补 `Refs: <type>/<slug>`。
+`dev-code-review` 和 `dev-commit-writer` 可以读取这些 artifact;只有实际关联明确且符合项目惯例时,才在 commit message 中添加 `Refs: <type>/<slug>`。
 
 </details>
 
@@ -423,7 +425,7 @@ dev-tdd -> dev-verify -> dev-code-review -> git commit
 
 准备 commit 前,默认用 `dev-code-review`。
 
-只有你已经自审过、明确只想要 commit message 时,才用 `dev-commit-writer`。
+明确只想要 commit message 时,用 `dev-commit-writer`;生成 message 不代表已通过 review 或授权执行 commit。
 
 </details>
 

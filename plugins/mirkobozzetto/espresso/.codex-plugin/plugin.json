@@ -1,5 +1,30 @@
 {
   "name": "espresso",
-  "description": "Concentrated output + full token-saving stack. Zero fluff, max power per token.",
-  "hooks": "./hooks/hooks.json"
+  "version": "2.1.0",
+  "description": "Concise output without sacrificing evidence or uncertainty.",
+  "skills": "./skills",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/src/hooks/espresso-activate.js\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/src/hooks/espresso-remind.js\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
 }

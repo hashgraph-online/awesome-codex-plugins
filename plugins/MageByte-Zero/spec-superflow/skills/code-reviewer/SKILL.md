@@ -18,6 +18,7 @@ Two responsibilities: requesting review (dispatching a reviewer subagent) and re
 3. Fill placeholders: `[DESCRIPTION]` (what was built), `[PLAN_OR_REQUIREMENTS]` (contract/spec reference), `[BASE_SHA]`, `[HEAD_SHA]`, `[WAVE_ID]`, and a distinct `[REVIEW_REPORT_FILE]`.
 4. Require the reviewer to write a non-empty persisted review report at `.superpowers/sdd/reviews/<wave-id>.md`, then record that exact in-overlay path in the wave receipt with `ssf execution review <change-dir> --wave <wave-id> --base <base-sha> --head <head-sha> --report .superpowers/sdd/reviews/<wave-id>.md --verdict <pass|fail>`. The execution plan initializes this directory; paths outside it are rejected for audit safety.
 5. Act on feedback: Critical/Important findings require a `fail` receipt, focused repair, re-review, and replacement `pass` receipt before a dependent wave or closing can proceed. Note Minor for later, push back with reasoning if reviewer is wrong.
+6. At `adjudication-required`, wait for a human to run `ssf execution adjudicate <change-dir> --wave <id> --decision allow-review --confirm --reason <text>` before another review. It authorizes one review and never substitutes for `pass`.
 
 ### Minimality And Scope
 

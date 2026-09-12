@@ -1,6 +1,6 @@
 {
   "name": "orgx-codex-plugin",
-  "version": "0.1.14",
+  "version": "0.1.20",
   "description": "OrgX MCP access and initiative-aware Codex skills for operating inside OrgX workstreams.",
   "author": {
     "name": "OrgX Team",
@@ -33,7 +33,7 @@
     "privacyPolicyURL": "https://useorgx.com/privacy",
     "termsOfServiceURL": "https://useorgx.com/terms",
     "defaultPrompt": [
-      "Use OrgX to show my operator chronicle: yesterday, week, 30 days, decisions, PRs, artifacts, goals, gaps, and top priorities. Call get_operator_chronicle first; if this Codex session has a stale tool list, use orgx_recommend mode=\"morning_brief\" and lead with reportingNarrative.briefMarkdown.",
+      "Operator chronicle: get_operator_chronicle; else orgx_recommend mode=\"morning_brief\"; use reportingNarrative.briefMarkdown.",
       "Use OrgX to scaffold this goal into workstreams, milestones, and tasks."
     ],
     "brandColor": "#14B8A6",

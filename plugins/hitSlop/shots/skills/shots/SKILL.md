@@ -138,6 +138,9 @@ source icon with `--kind icon`:
   and a specific UI moment that proves it.
 - Use real UI facts in prompts: screen names, layout, visible data, controls,
   states, and emotional payload.
+- Treat visible product UI as closed-world. Critical user direction overrides
+  references; otherwise preserve reference UI and never invent plausible rows,
+  controls, labels, values, or states the references do not show.
 - Keep references selective. Pass only the images that a specific screenshot
   actually needs.
 - Prefer selected/promoted App Store screenshots for product and campaign

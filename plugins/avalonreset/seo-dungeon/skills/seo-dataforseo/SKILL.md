@@ -14,7 +14,7 @@ license: MIT
 compatibility: "Uses DATAFORSEO_USERNAME or DATAFORSEO_LOGIN plus DATAFORSEO_PASSWORD from project .env; MCP optional"
 metadata:
   author: AgriciDaniel
-  version: "2.2.16"
+  version: "2.2.5"
   category: seo
 ---
 
@@ -23,7 +23,7 @@ metadata:
 Live search data via DataForSEO API credentials. Provides real-time SERP results
 (organic + images), keyword metrics, backlink profiles, on-page analysis, content
 analysis, business listings, AI visibility checking, and LLM mention tracking
-across 10 API modules. MCP tools may be used when already configured, but are not required.
+across 9 API modules. MCP tools may be used when already configured, but are not required.
 
 ## Prerequisites
 
@@ -38,7 +38,7 @@ DATAFORSEO_PASSWORD=your-password
 The extension installer and MCP server are optional for users who already
 prefer MCP.
 
-**Check availability:** First check for `DATAFORSEO_USERNAME` or `DATAFORSEO_LOGIN` plus `DATAFORSEO_PASSWORD` in the selected project environment. Use `python scripts/dataforseo_api.py ...` or specialized scripts for direct API calls. If an optional DataForSEO adapter is already available, you may use it quietly, but do not require MCP setup or spend context inventorying MCP servers unless the user asks.
+**Check availability:** First check for `DATAFORSEO_USERNAME` or `DATAFORSEO_LOGIN` plus `DATAFORSEO_PASSWORD` in the selected project environment. Use `claude-seo run dataforseo_api.py ...` or specialized scripts for direct API calls. If an optional DataForSEO adapter is already available, you may use it quietly, but do not require MCP setup or spend context inventorying MCP servers unless the user asks.
 
 ## API Credit Awareness
 
@@ -52,7 +52,7 @@ DataForSEO charges per API call. Be efficient:
 
 **Before every DataForSEO API call**, run cost estimation:
 ```
-python3 scripts/dataforseo_costs.py check <endpoint> [--count N]
+claude-seo run dataforseo_costs.py check <endpoint> [--count N]
 ```
 
 - If `"status": "approved"` → proceed with the API call
@@ -61,7 +61,7 @@ python3 scripts/dataforseo_costs.py check <endpoint> [--count N]
 
 **After each API call completes**, log the cost:
 ```
-python3 scripts/dataforseo_costs.py log <endpoint> <actual_cost>
+claude-seo run dataforseo_costs.py log <endpoint> <actual_cost>
 ```
 
 **User commands for cost management:**
@@ -125,7 +125,7 @@ Fetch YouTube search results. Valuable for GEO. YouTube mentions correlate most 
 
 ### `/seo dataforseo youtube <video_id>`
 
-Deep analysis of a specific YouTube video: info, comments, and subtitles. YouTube mentions have the strongest correlation (0.737) with AI visibility, making this critical for GEO analysis.
+Deep analysis of a specific YouTube video: info, comments, and subtitles. Some third-party studies report a 0.737 correlation between YouTube mentions and AI visibility, so treat this as a methodology-dependent GEO signal.
 
 **Direct API operation:** `serp_youtube_video_info_live_advanced`, `serp_youtube_video_comments_live_advanced`, `serp_youtube_video_subtitles_live_advanced`
 
@@ -343,7 +343,7 @@ Search business listings for local SEO competitive analysis.
 
 ### `/seo dataforseo ai-scrape <query>`
 
-Scrape what ChatGPT web search returns for a query. Real GEO visibility check: see which sources ChatGPT cites for your target keywords.
+Scrape what ChatGPT web search returns for a query. ChatGPT visibility check: see which sources ChatGPT cites for your target keywords. Check Google AI Overviews and AI Mode with GSC gen-AI reports when available.
 
 **Direct API operation:** `ai_optimization_chat_gpt_scraper`
 

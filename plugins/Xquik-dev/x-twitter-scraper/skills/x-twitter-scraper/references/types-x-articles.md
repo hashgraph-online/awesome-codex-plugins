@@ -1,4 +1,4 @@
-# Xquik TypeScript Types: X Articles
+# Xquik TypeScript types: X Articles
 
 ```typescript
 interface ArticleResponse {

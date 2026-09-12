@@ -1,6 +1,6 @@
 ---
 name: account-rotation
-description: Switch a caller-selected coding-agent
+description: 'Switch coding-agent accounts and verify runtime identity. Use when: the caller requests an account change; never rotate automatically to evade a quota.'
 ---
 # Account rotation — credential adapter
 

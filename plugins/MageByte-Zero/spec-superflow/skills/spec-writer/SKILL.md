@@ -55,6 +55,7 @@ When DP-0 has made the scope clear, generate the configured planning pack (propo
 
 ### tasks.md
 - delivery/proof map, numbered tasks, affected paths or bounded areas, observable outcomes, no placeholders, every requirement mapped, explicit dependencies
+- Must use the template checkbox format (one `- [ ]` per task on its own line); the guard enforces this format when entering execution
 
 **If any artifact fails validation, fix before handing off to contract-builder.**
 
@@ -64,6 +65,11 @@ Present a concise summary of all 4 artifacts, then ask one DP-2 question for mat
 ```bash
 ssf state set <change-dir> dp_2_result "approved: <summary>"
 ssf state set <change-dir> dp_2_timestamp $(date -u +%Y-%m-%dT%H:%M:%SZ)
+```
+
+After the artifacts are done and DP-2 is recorded, advance the state:
+```bash
+ssf state transition <change-dir> specifying
 ```
 
 ## Handoff Rule

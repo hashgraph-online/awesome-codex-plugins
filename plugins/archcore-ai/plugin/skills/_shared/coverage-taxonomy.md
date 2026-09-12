@@ -57,8 +57,8 @@ Family membership is derived from the produced document's type:
 
 | Family | Document types |
 |---|---|
-| vision | prd, idea, plan, rnd, mrd, brd, urd, brs, strs, syrs, srs |
-| knowledge | adr, rfc, rule, guide, doc, spec |
+| vision | prd, idea, plan, rnd, research, mrd, brd, urd, brs, strs, syrs, srs |
+| knowledge | adr, rfc, rule, guide, doc, spec, evidence |
 | experience | cpat, task-type |
 
 `Yes` — the coverage scan applies the category to drafts of this family.

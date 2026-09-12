@@ -1,0 +1,21 @@
+{
+  "name": "codex-tasklist",
+  "version": "2.0.1",
+  "description": "Persistent Codex CLI task queue with native terminal panels and automatic tmux setup",
+  "repository": "https://github.com/martinille/codex-tasklist",
+  "license": "MIT",
+  "author": {
+    "name": "Martin Ille"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Codex Tasklist",
+    "composerIcon": "./assets/icon.svg",
+    "shortDescription": "A persistent task queue below Codex across terminals.",
+    "longDescription": "Track user requests with stable IDs, live statuses, scrolling and adjustable panel height. Native terminal integrations and a simple launcher with tmux fallback. Local storage; task commands work without a panel.",
+    "developerName": "Martin Ille",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": "Show and maintain the task list for this session."
+  }
+}

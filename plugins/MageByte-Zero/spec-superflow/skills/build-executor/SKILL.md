@@ -13,7 +13,9 @@ For Full or legacy Hotfix, read `execution-contract.md`, `tasks.md`, relevant `s
 
 Check workflow mode and receipt first. Tweak → direct edit mode. Quick or a valid direct incident Hotfix → Direct Quick and Hotfix. Full or legacy Hotfix → standard contract-first discipline.
 
-Branch/worktree preflight before ANY implementation edit (mandatory — do not skip):
+Branch/worktree preflight before ANY implementation edit — **workflow-aware**:
+
+**Full / legacy Hotfix — isolation mandatory (do not skip):**
 1. Run the isolation check:
    ```bash
    ssf isolate <change-dir>
@@ -23,9 +25,18 @@ Branch/worktree preflight before ANY implementation edit (mandatory — do not s
    have not approved `--force`.
 2. If `ssf isolate` exits non-zero: STOP. Do not edit `main`/`master` in place.
    Ask the user for explicit approval (and re-run with `ssf isolate <change-dir> --force`
-   only after they approve).
+   only after they approve). A non-zero exit also covers a failed submodule
+   initialization after the isolation context was created — never implement on a
+   half-initialized worktree.
 3. If it succeeds, report the chosen branch/worktree and make all implementation
-   edits there.
+   edits there. `ssf isolate` also recursively initializes submodules in the new
+   isolation context when a `.gitmodules` exists, and appends a cwd-persistence
+   warning (isolation path + mandatory `cd` prefix rule) to
+   `<change-dir>/.superpowers/sdd/progress.md` so later Bash calls do not silently
+   edit the trunk.
+4. Closure (including `ssf finish <change-dir>` for Full/legacy Hotfix) is owned by release-archivist — route there after review passes.
+
+**Quick / direct Hotfix / Tweak / lightweight — skip isolation, edit directly on the current branch.** Rationale: no recordReview (R4 never fires), no `ssf finish` merge, no wave receipts — a worktree would be dead weight. For sensitive scenarios requiring manual isolation, run `ssf isolate <change-dir> --force` explicitly.
 
 ## Core Laws
 
@@ -111,7 +122,9 @@ The recommendation uses task count, configured `execution.inlineThreshold`, and 
 | **Inline** | Recommended for a single sequential task; always available for a user-confirmed choice |
 | **Batch Inline** | Recommended for a bounded sequential batch; it remains serial and is never presented as parallel |
 
-Do not transition to `executing` until `execution show` reports `current: true` and the phase guard passes. A revised plan must repeat `ssf execution recommend` and use `ssf execution revise --confirm`; it creates a new revision and invalidates receipts from the prior revision.
+Do not transition to `executing` until `execution show` reports `current: true` and the phase guard passes. Once `current: true` is confirmed, run `ssf state transition <change-dir> executing` (skip if already in that state). A revised plan must repeat `ssf execution recommend` and use `ssf execution revise --confirm`; it creates a new revision and invalidates receipts from the prior revision.
+
+When the plan becomes stale only because planning documents received a non-semantic correction (e.g. formatting fixes) and no fail receipt awaits repair, use `ssf execution resync <change-dir> --confirm --reason <text>` instead of revising. Resync refreshes the plan's artifacts_hash reference while keeping every existing receipt intact — unlike `revise`, which re-plans scope into a new revision and invalidates old receipts; resync never changes plan content. The operation writes an audit record to the progress ledger.
 
 ## Batch Inline Execution
 
@@ -153,6 +166,10 @@ history, and must not write, edit, or modify a repair-state file directly.
 - **Third unresolved failure — stop:** the third unresolved receipt yields CLI
   status `adjudication-required`. Stop automatic dispatch and request a human
   adjudication rather than attempting a fourth repair.
+- After human review, record the decision with `ssf execution adjudicate
+  <change-dir> --wave <id> --decision allow-review --confirm --reason <text>`.
+  It authorizes one continuous review only, never a pass; a failed authorized
+  review returns to `adjudication-required`.
 - Every focused re-review still writes its separate persisted report and is
   recorded only through `ssf execution review <change-dir> --wave <id> --base
   <sha> --head <sha> --report .superpowers/sdd/reviews/<wave-id>-rereview.md --verdict <pass|fail>`.

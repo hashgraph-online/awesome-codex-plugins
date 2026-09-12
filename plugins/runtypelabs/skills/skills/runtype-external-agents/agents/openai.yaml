@@ -1,0 +1,14 @@
+interface:
+  display_name: 'Runtype External Agents'
+  short_description: 'Connect Flue, Cloudflare, AI SDK, or custom agents to Runtype'
+  brand_color: '#6D5EF7'
+  default_prompt: 'Use $runtype-external-agents to send my Flue agent traces to Runtype and capture eval cases from them.'
+dependencies:
+  tools:
+    - type: 'mcp'
+      value: 'runtype'
+      description: 'Hosted Runtype MCP server for agent records, ingested runs, traces, and eval capture'
+      transport: 'streamable_http'
+      url: 'https://api.runtype.com/v1/mcp/protocol'
+policy:
+  allow_implicit_invocation: true

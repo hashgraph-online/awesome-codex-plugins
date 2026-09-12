@@ -1,6 +1,6 @@
 # plan
 
-Shape or refine the existing bead or caller intent without a second planning artifact. Triggers: "plan", "discover and plan", "shape this goal", "plan manifest".
+Define intended behavior, review write scope and assess reversible decisions. Use when: acceptance or approach is unclear before coding; stop once actionable.
 
 ## Instructions
 

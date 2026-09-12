@@ -1,0 +1,448 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/orwa-mahmoud/nightshift/main/plugins/nightshift/skills/nightshift/references/nightshift-rules.schema.json",
+  "title": "Nightshift rules",
+  "description": "Owner knobs for an unattended shift. Extra top-level keys are rejected; missing optional keys keep runtime defaults. toolDeny and the three host-native ask-tool entries are required so question behavior is never hidden. An empty string lifts a string rule. Schema validation never changes hook behaviour.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "toolDeny"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Optional pointer for editors. Ignored by Nightshift runtime."
+    },
+    "toolDeny": {
+      "type": "object",
+      "description": "Exact host tool_name to denial message. A non-empty value denies that tool with this message; an empty value lifts this map entry; an unlisted optional tool is allowed by this map. Other hardhat guards still apply independently. AskUserQuestion is Claude Code's native question tool, request_user_input is Codex's, and AskQuestion is Cursor's. Codex file edits report apply_patch (Edit and Write are matcher aliases only). Other built-in and MCP names may be added when that host exposes them to PreToolUse. Examples and host coverage: https://github.com/orwa-mahmoud/nightshift/blob/main/docs/knobs.md#tool-rules",
+      "required": [
+        "AskUserQuestion",
+        "request_user_input",
+        "AskQuestion"
+      ],
+      "properties": {
+        "AskUserQuestion": {
+          "type": "string",
+          "description": "Claude Code question policy. Non-empty parks with this denial; empty allows Claude Code to ask and wait."
+        },
+        "request_user_input": {
+          "type": "string",
+          "description": "Codex question policy. Non-empty parks with this denial; empty allows Codex to ask and wait."
+        },
+        "AskQuestion": {
+          "type": "string",
+          "description": "Cursor question policy. Non-empty parks with this denial; empty allows Cursor to ask and wait."
+        }
+      },
+      "additionalProperties": {
+        "type": "string"
+      },
+      "examples": [
+        {
+          "AskUserQuestion": "",
+          "request_user_input": "Park the question with a default and continue.",
+          "AskQuestion": "Park the question with a default and continue.",
+          "Bash": "Shell commands are disabled for this shift.",
+          "mcp__github__delete_file": "Repository deletion is disabled for this shift."
+        }
+      ]
+    },
+    "forbiddenCommands": {
+      "type": "string",
+      "description": "grep -E pattern matched against Bash command text during a shift. Empty disables the guard."
+    },
+    "neverCommitPatterns": {
+      "type": "string",
+      "description": "grep -E pattern matched against a commit diff during a shift. Empty disables the guard."
+    },
+    "expectedEmail": {
+      "type": "string",
+      "description": "During a shift, deny commits authored under any other identity. Empty disables the guard."
+    },
+    "protectedDirs": {
+      "type": "string",
+      "description": "Space- or pipe-separated directory names never to git add/commit/tag/remote during a shift. Empty disables the guard."
+    },
+    "elevation": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Permanent per-category elevation policy for the five default-denied categories: sudo, containers, global-packages, daemons, and external-services. Elevation gates creating system state, never using what already exists: connecting to a running database, calling a local API, and running migrations or tests against the owner's dev stack are never gated. Containers cover the Docker socket and create-state verbs (run, create, compose up, start, build); read-only forms such as docker ps, docker logs, and brew list are not elevation. Hardhat is hardening, not a sandbox — patterns match command text and are not unbypassable isolation. A missing object, or a missing category inside it, denies that category and keeps the shipped pattern. policy is the visible switch; pattern is the grep -E the guard and the permission preflight both match against, so they can never disagree. An allowance authorizes its category within all other boundaries — protected paths, never-commit patterns, and the expected commit identity are never lifted. forbiddenCommands stays the owner's separate free-form list; it is not how the five categories are denied.",
+      "properties": {
+        "sudo": {
+          "$comment": "Root escalation.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "policy"
+          ],
+          "properties": {
+            "policy": {
+              "type": "string",
+              "enum": [
+                "deny",
+                "allow"
+              ]
+            },
+            "pattern": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "containers": {
+          "$comment": "Starting or creating container resources.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "policy"
+          ],
+          "properties": {
+            "policy": {
+              "type": "string",
+              "enum": [
+                "deny",
+                "allow"
+              ]
+            },
+            "pattern": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "global-packages": {
+          "$comment": "Installing tools outside the project.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "policy"
+          ],
+          "properties": {
+            "policy": {
+              "type": "string",
+              "enum": [
+                "deny",
+                "allow"
+              ]
+            },
+            "pattern": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "daemons": {
+          "$comment": "Starting services, servers, or database engines.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "policy"
+          ],
+          "properties": {
+            "policy": {
+              "type": "string",
+              "enum": [
+                "deny",
+                "allow"
+              ]
+            },
+            "pattern": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "external-services": {
+          "$comment": "Creating accounts, logins, and paid services.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "policy"
+          ],
+          "properties": {
+            "policy": {
+              "type": "string",
+              "enum": [
+                "deny",
+                "allow"
+              ]
+            },
+            "pattern": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "stallMax": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "0 holds a stuck run (default). N clocks the shift out after N stuck stop attempts."
+    },
+    "stallWarnEvery": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Warn in the shift log every N stuck stop attempts while holding. 0 disables the cadence warning."
+    },
+    "watchMinutes": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Minutes between watchman wakes. 0 disarms the watchman."
+    },
+    "longUnitWarnMinutes": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "0 disables (default). When positive, warn in the shift log that a live unit has run this many minutes without a durable checkpoint. Never resets or replaces the stall counter."
+    },
+    "watchRetrySeconds": {
+      "type": "string",
+      "pattern": "^([0-9]+( [0-9]+)*)?$",
+      "description": "Space-separated seconds between revival attempts in one wake, e.g. \"30 120\"."
+    },
+    "watchAgent": {
+      "type": "string",
+      "description": "Optional owner revival command. Empty keeps the host default resume ladder. A non-empty value is used verbatim on every revival attempt (no resume/--continue/fresh ladder)."
+    },
+    "receiptsAutoCommit": {
+      "type": "boolean",
+      "description": "When true, clock-out and Archive commit the local receipts repo ($NS/.git) with the headless nightshift identity. Default false: even if Setup created that repo, the owner commits it. Missing or unreadable is treated as false."
+    },
+    "notifyCommand": {
+      "type": "string",
+      "description": "Unrestricted owner-provided shell run at shift-end or unrecoverable outage. Empty is silent."
+    },
+    "revivalPrompt": {
+      "type": "string",
+      "description": "Order a resumed conversation receives after a crash or outage."
+    },
+    "freshRevivalPrompt": {
+      "type": "string",
+      "description": "Order a fresh-session fallback receives when the recorded conversation cannot be resumed."
+    },
+    "clockOutMessage": {
+      "type": "string",
+      "description": "Text the Stop hook re-injects when open punch-list items remain."
+    },
+    "clockOutReminderMode": {
+      "type": "string",
+      "enum": [
+        "full",
+        "changed-only"
+      ],
+      "description": "Whether every block carries the whole clockOutMessage. `full` is today’s behaviour and the default. `changed-only` sends the full message when the shift state moved — a tick, a stop-work order, a passed deadline, a stall — and the short clockOutReminder when the gate positively knows nothing changed. The push itself never changes: the turn is blocked either way."
+    },
+    "clockOutReminder": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The one line a block carries in `changed-only` mode when nothing has moved. `{item}`, `{open}`, `{ticked}` and `{total}` are filled in by the gate; drop any of them and the rest of your sentence stands. Never used in `full` mode, and never used when the gate cannot tell whether something changed."
+    },
+    "clockOutReminderLimit": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "How many short lines may follow one another before the full message is sent again regardless. The safety net on a host that cannot signal a context reset, so a compacted conversation is never left with only the short line."
+    },
+    "shift": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Remembered composition choices. These decide what a shift is composed with when nothing overrides them for the night; the resolved snapshot for a running shift is .nightshift/shift-policy.json, which is a record rather than a second settings file. Absent keys keep the documented default.",
+      "properties": {
+        "verificationProfile": {
+          "type": "string",
+          "enum": [
+            "fast",
+            "balanced",
+            "strict",
+            "custom"
+          ],
+          "description": "How often the punch list's ## Gates block runs. fast means never, balanced once before clock-out, strict before every tick and once at the end, and custom is the cadence the owner names in the punch list itself. A fresh workspace is fast, so the gates a new owner has not written yet cannot fail a shift; an explicit choice is kept exactly as written."
+        },
+        "hours": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "description": "Remembered time budget for a composed shift, in whole hours, or null to leave composition to ask. A finite punch list may still end at its last tick with no clock at all."
+        },
+        "execution": {
+          "type": "string",
+          "enum": [
+            "review-first",
+            "run-direct"
+          ],
+          "description": "Whether a composed shift is shown for review before it runs, or started directly. It never widens what the shift may do: the host permission boundary and every rule in this file still apply."
+        },
+        "toolingPolicy": {
+          "type": "string",
+          "enum": [
+            "existing-tools",
+            "review-missing",
+            "auto-add"
+          ],
+          "description": "What a shift does about development tooling the project does not have. existing-tools uses only what is installed, review-missing reports the gap, auto-add may add a tool the project itself selects. Artifact mode is always existing-tools."
+        }
+      }
+    },
+    "handoff": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The morning receipt: the one page waiting when the shift ends. Presentation only — it never decides whether a check ran, and a section with nothing to report is omitted whatever this says.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Render the receipt at clock-out. false leaves the factual records — the ledger, the archive, the shift log — untouched and writes no page."
+        },
+        "view": {
+          "type": "string",
+          "enum": [
+            "owner",
+            "reviewer",
+            "release",
+            "artifact"
+          ],
+          "description": "Which reader the page is written for. owner is every section, reviewer the baseline and the comparison, release the shift line with regressions only, and artifact the sections that make sense for a site rather than a repository."
+        },
+        "language": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Language for the prose the receipt writes. auto follows the language of the conversation that ran the shift. Facts, paths, commands and identifiers are never translated."
+        },
+        "detail": {
+          "type": "string",
+          "enum": [
+            "concise",
+            "detailed"
+          ],
+          "description": "How much each section carries. concise is the shipped page; detailed keeps the longer per-row explanation where a section has one."
+        },
+        "sections": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "shift",
+              "baseline",
+              "changed",
+              "parked",
+              "unsupported",
+              "next"
+            ]
+          },
+          "description": "The documented factual sections to render, in the order given. An empty array means the built-in order for the chosen view. These name sections, not prose: wording belongs in templatePath."
+        },
+        "templatePath": {
+          "type": "string",
+          "description": "Path to a Markdown template for the page, relative to the workspace. Empty means the built-in layout. The file is an asset carrying presentation instructions only — it is never a second place to set policy, and it cannot turn an unavailable check into a passed one."
+        }
+      }
+    },
+    "archive": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Where finished shift state is filed and how those directories are named. Filing is a copy, never a deletion: retention is the only setting that removes anything, it keeps forever by default, and only Nightshift Archive may prune after a printed preview and an explicit yes.",
+      "properties": {
+        "automatic": {
+          "type": "boolean",
+          "description": "File the finished shift automatically when it ends. false leaves filing to Nightshift Archive, which the owner runs after reading the night. Enabling it never implies pruning."
+        },
+        "root": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Directory the dated archives live in, relative to .nightshift/. Must stay inside the state directory."
+        },
+        "layout": {
+          "type": "string",
+          "enum": [
+            "date",
+            "shift"
+          ],
+          "description": "How an archive directory is named: date groups a night under YYYY-MM-DD, shift gives each shift its own directory named for its id. Two shifts on one day never collide either way, because the shift id names the files inside."
+        },
+        "templatePath": {
+          "type": "string",
+          "description": "Path to a Markdown template for the archive summary, relative to the workspace. Empty means the built-in summary."
+        }
+      }
+    },
+    "receipts": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Per-item receipts: one local file per punch-list item plus a runtime-written index. The shift log stays the execution journal, the snag log the findings, the parking lot the decisions. Receipts never reach a public commit message.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Write receipts. false keeps every other record honest — punch status, real outputs, continuity and the verification you selected."
+        },
+        "progressMode": {
+          "type": "string",
+          "enum": [
+            "completion-only",
+            "time",
+            "tokens",
+            "either"
+          ],
+          "description": "When a section is updated while an item is still running. completion-only writes once, at the end. time updates after progressMinutes of work on that item. tokens updates after progressTokens, and falls back to the time cadence when the host exposes no usable counter. either fires at the next safe point after whichever threshold is reached first. A completed item is always finalized when reporting is enabled."
+        },
+        "progressMinutes": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Minutes of work on the current item before a progress update is due. Checked when a tool returns, so it is a best-effort cadence and never interrupts a running command. The interval restarts after each update and is discarded when the item completes."
+        },
+        "progressTokens": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Tokens of work on the current item before a progress update is due, counted once as input plus output when the host's own numbers support that. A starting value to tune, not a host limit and not a saving."
+        },
+        "usage": {
+          "type": "string",
+          "enum": [
+            "off",
+            "when-available"
+          ],
+          "description": "Whether a section records what the item cost. when-available reads only the numbers the host already exposes to the session; where it exposes none, the section says unavailable. Unavailable is never written as zero, and nothing here polls an account, counts tokens itself, or turns a count into a price."
+        },
+        "templatePath": {
+          "type": "string",
+          "description": "A Markdown template for each item receipt, relative to the workspace and inside it. Wording and layout only, on the same terms as the handoff template: never executed, never a source of policy, and never able to describe an unavailable check as a passed one."
+        }
+      }
+    },
+    "recovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "What the night watchman is allowed to do when it revives a session the host killed. It decides the permission scope a revived session starts under; it never widens what the host itself permits, and it never lifts a rule in this file.",
+      "properties": {
+        "launchScope": {
+          "type": "string",
+          "enum": [
+            "inherit-recorded-scope",
+            "host-grant",
+            "host-default"
+          ],
+          "description": "inherit-recorded-scope revives a session with the permissions the shift was started under, as they were recorded when it armed. It is the shipped choice, and it never widens what the original session had: where the scope could not be recorded, revival falls back to the host's own default and says so rather than reaching for more. host-grant starts a revived session with the documented grant for that host — on Codex danger-full-access, on Cursor --trust --yolo — which is broader than a restricted session had and is only ever used because the owner wrote it here. host-default adds no permission argument at all. Claude Code inherits its own launch in every case. The scope in force is named in the shift log on every revival, and a failed revival is retried at the same scope, never a broader one."
+        }
+      }
+    },
+    "retention": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Optional history retention. 0 keeps forever. Only Nightshift Archive may prune, and only after a printed preview and explicit confirmation.",
+      "properties": {
+        "runtimeLogDays": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Delete Nightshift-generated runtime logs older than N days. 0 keeps forever."
+        },
+        "archiveDays": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Delete dated .nightshift/archive/YYYY-MM-DD directories older than N days. 0 keeps forever."
+        }
+      }
+    }
+  }
+}

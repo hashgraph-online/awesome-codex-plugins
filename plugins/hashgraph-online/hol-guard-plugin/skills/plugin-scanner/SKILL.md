@@ -8,7 +8,7 @@ license: Apache-2.0
 
 Use HOL's local `plugin-scanner` when a user asks to inspect an AI agent skill, plugin, MCP server, agent package, or repository before installation or use.
 
-The scanner is shipped by the open-source `hol-guard` Python package. Scanning runs locally and does not require Guard Cloud.
+The scanner is shipped by the open-source `plugin-scanner` Python distribution. It is built from the same HOL Guard source repository, but it is intentionally packaged separately from the `hol-guard` runtime CLI. Scanning runs locally and does not require Guard Cloud.
 
 ## When to use this skill
 
@@ -27,7 +27,7 @@ Use this skill when the user asks to:
 - Never read `.env` files, credential stores, private keys, or unrelated user secrets.
 - Prefer scanning a local path or a repository the user has already chosen to inspect.
 - Treat scanner findings as security evidence, not a guarantee that a package is safe.
-- Ask before installing `hol-guard` if `plugin-scanner` is not already available.
+- Ask before installing `plugin-scanner` if the command is not already available.
 
 ## Workflow
 
@@ -37,13 +37,13 @@ Use this skill when the user asks to:
 command -v plugin-scanner
 ```
 
-If it is not installed, explain that `plugin-scanner` is provided by HOL Guard and, with user approval, install it in an isolated CLI environment:
+If it is not installed, explain that `plugin-scanner` is a separate open-source CLI distribution from the HOL Guard repository and, with user approval, install it in an isolated CLI environment:
 
 ```bash
-pipx install hol-guard
+pipx install plugin-scanner
 ```
 
-If `pipx` is unavailable, point the user to the HOL Guard installation instructions rather than silently changing their Python environment.
+Do not assume an existing `hol-guard` installation also provides the `plugin-scanner` command. If `pipx` is unavailable, point the user to the plugin-scanner installation instructions rather than silently changing their Python environment.
 
 ### 2. Scan the target without executing it
 
@@ -90,5 +90,6 @@ Do not claim "safe" solely because no finding was returned. Say that no covered 
 
 ## Source
 
-- HOL Guard / plugin-scanner: https://github.com/hashgraph-online/hol-guard
+- Plugin Scanner source: https://github.com/hashgraph-online/hol-guard
+- Plugin Scanner package: https://pypi.org/project/plugin-scanner/
 - Distribution companion: https://github.com/hashgraph-online/hol-guard-plugin

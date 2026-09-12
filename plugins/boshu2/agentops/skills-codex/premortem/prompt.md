@@ -1,6 +1,6 @@
 # premortem
 
-Optionally challenge a frozen plan with one fresh independent judge before implementation. Triggers: "premortem", "challenge this plan", "what could make this plan fail".
+Challenge a rollout plan with one fresh judge before implementation; identify what could make it fail. Not for finished-code judgment. Triggers: "one judge", "challenge this plan".
 
 ## Instructions
 

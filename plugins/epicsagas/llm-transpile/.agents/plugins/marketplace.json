@@ -8,7 +8,7 @@
       "name": "llm-transpile",
       "source": {
         "source": "local",
-        "path": "./"
+        "path": "./plugins/llm-transpile"
       },
       "pluginManifest": "./.codex-plugin/plugin.json",
       "policy": {

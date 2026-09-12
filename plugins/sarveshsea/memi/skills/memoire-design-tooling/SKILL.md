@@ -21,27 +21,27 @@ Install one focused skill directly:
 npx skills add memi-design/memi --skill audit-frontend-design
 ```
 
+This workflow targets published beta **2.8.0-beta.2**. Use `npx -y @memi-design/cli@2.8.0-beta.2 --version` to verify the exact package; a local `memi` must report that same version before these recipes run. The independent stable compatibility baseline is **2.7.9**. See [current release state](https://github.com/memi-design/memi/blob/main/docs/CURRENT_RELEASE.md) and [known limitations](https://github.com/memi-design/memi/blob/main/docs/trust/KNOWN_LIMITATIONS.md). npm availability alone does not establish native-binary success.
+
 ## Compact Preflight
 
 ```bash
-npx -y @memi-design/cli@2.7.9 agent brief . --intent "<interface task>" --detail compact --json
+memi agent brief . --frontend --intent "<interface task>" --max-bytes 16384 --json
 ```
 
-Use `--detail standard` only when the compact brief lacks evidence needed for the edit.
+Read cited source files when the bounded brief lacks necessary evidence. Optional `--design-evidence design/selected-node.json` accepts normalized Figma/Paper data supplied by the harness; missing mappings and verification stay explicit.
 
-## Advanced Paths
+## Local Checks And MCP
 
 ```bash
-memi agent install --dry-run --json
-memi scaffold component EvidenceCard --level organism --json
-memi ios brief --intent "<SwiftUI task>" --detail compact --json
-memi ios scaffold FeatureName --kind screen --module AppModule --json
-memi research design --intent "<task>" --json
-memi shadcn export --out public/r --json
-memi mcp start --no-figma
+memi diagnose . --json --no-write --fail-on none
+memi diagnose . --receipt-only --fail-on none
+memi --profile locked mcp start --no-figma
 ```
 
-Review dry-run output before writes. Every created component must state its Atomic Design level, reuse local or shadcn primitives, and use semantic tokens instead of raw hex values.
+Locked MCP exposes four read tools: prepare_frontend_brief, prepare_design_agent_brief, prepare_apple_design_brief, and diagnose_app_quality. The frontend tool supplies actual repository evidence. Many legacy CLI and write tools remain unavailable; capability grants do not unlock deferred command paths. Keep connector calls, project edits, and browser execution in the harness's reviewed workflow.
+
+Reuse local components and tokens according to the consumer project's conventions. Source-bearing JSON is working context; receipt-only is a separate metadata output. See docs/FRONTEND_WORKFLOW.md for the beta evidence schema and actual verification flow.
 
 ## Evidence Contract
 

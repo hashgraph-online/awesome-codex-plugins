@@ -25,7 +25,7 @@ agentpack guard --agent auto --repair-stale --refresh-context
 ```
 
 If you bypass this refresh, state the bypass reason before continuing.
-2. Prepare the full review bundle. If `$ARGUMENTS` names a PR number or PR URL, `agentpack review` must bind metadata, diff, and context to that PR. If the user did not name a PR, `agentpack review` must identify the current PR through `gh`; do not accept silent `HEAD~1` fallback.
+2. Prepare the full review bundle. If `$ARGUMENTS` names a PR number or PR URL, `agentpack review` must bind metadata, diff, and context to that PR. If no PR target is named, use local review only with explicit `--allow-local-fallback` and a resolvable base (prefer `--base origin/main`); never run ambient `gh pr view` or silently compare `HEAD~1`.
 
 ```bash
 agentpack review "$ARGUMENTS"

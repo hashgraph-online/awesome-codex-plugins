@@ -1,6 +1,6 @@
 ---
 name: agy-native
-description: Use an explicitly selected AGY runtime for
+description: 'Run a supplied task in AGY Antigravity and collect its result. Use when: the caller selects AGY; never a fallback for native coding.'
 ---
 # AGY Native
 

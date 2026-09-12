@@ -1,126 +1,226 @@
 {
   "setup": {
-    "description": "Bootstrap the project: discovery interview, write PRODUCT.md, offer DESIGN.md, configure preview mode. Run once per project before other UI work.",
-    "argumentHint": ""
+    "description": "Bootstrap approved project context when requested.",
+    "argumentHint": "",
+    "aliases": ["init"],
+    "cues": ["setup", "set up project", "bootstrap", "first time", "no product.md", "write product.md", "project setup"],
+    "reads": ["project-init"]
   },
   "plan": {
-    "description": "Plan UX and UI before code. Discovery interview, visual direction, user-confirmed brief — no implementation.",
-    "argumentHint": "[feature]"
+    "description": "Plan UX and UI without implementation edits.",
+    "argumentHint": "[feature]",
+    "aliases": ["shape"],
+    "cues": ["plan", "shape", "think through", "before code", "brief", "approach", "wireframe"],
+    "reads": ["design-principles", "aesthetic-systems", "differentiation-playbook"]
   },
   "build": {
-    "description": "Build a feature end-to-end: plan (if needed), visual gates, production code, in-browser iteration.",
-    "argumentHint": "[feature]"
+    "description": "Build the requested interface with behavior and verification.",
+    "argumentHint": "[feature]",
+    "aliases": ["craft"],
+    "cues": ["build", "craft", "make a", "create", "scaffold", "implement", "from scratch", "new page", "new component", "landing page", "end to end", "full build flow"],
+    "reads": ["craft-flow", "engineering-and-performance", "design-principles", "differentiation-playbook"]
   },
   "preview": {
-    "description": "Interactive browser variant mode. Select elements, generate HTML+CSS alternatives hot-swapped via HMR. Requires a dev server.",
-    "argumentHint": ""
+    "description": "Preview authorized variants using an existing development server.",
+    "argumentHint": "",
+    "aliases": ["live"],
+    "cues": ["preview mode", "live mode", "live variant", "browser variants", "pick elements", "hot swap", "iterate in browser", "visual experiment"],
+    "reads": ["live-mode"]
   },
   "spec": {
-    "description": "Generate or refresh DESIGN.md from the codebase (colors, type, spacing, components). Stitch-compatible format.",
-    "argumentHint": ""
+    "description": "Document the existing design and tokens in DESIGN.md.",
+    "argumentHint": "",
+    "aliases": ["document"],
+    "cues": ["spec", "design.md", "document the design", "write design", "capture the design system", "document tokens"],
+    "reads": ["refactor-and-redesign"]
   },
   "check": {
-    "description": "Technical quality audit: accessibility, performance, responsive, anti-patterns. Scored report — fixes nothing.",
-    "argumentHint": "[area]"
+    "description": "Audit technical UI quality; report findings without implementation edits.",
+    "argumentHint": "[area]",
+    "aliases": ["audit"],
+    "cues": ["check", "audit", "review the", "review my", "a11y", "accessibility", "performance review", "responsive check", "lighthouse"],
+    "reads": ["engineering-and-performance", "refactor-and-redesign", "css-techniques"]
   },
   "review": {
-    "description": "Design review: hierarchy, IA, cognitive load, scoring, anti-pattern detection. Actionable feedback — fixes nothing.",
-    "argumentHint": "[area]"
+    "description": "Review visual hierarchy, clarity and brand fidelity without edits.",
+    "argumentHint": "[area]",
+    "aliases": ["critique", "score"],
+    "cues": ["review", "critique", "is this good", "design review", "feels ai", "looks ai", "feedback on", "visual critique", "score the design", "rate the design"],
+    "reads": ["visual-critique", "design-principles", "avoid-ai-slop"]
   },
   "finish": {
-    "description": "Final polish pass: alignment, spacing, consistency, interaction states. Last step before shipping.",
-    "argumentHint": "[target]"
+    "description": "Polish alignment, spacing and applicable interaction states.",
+    "argumentHint": "[target]",
+    "aliases": ["polish"],
+    "cues": ["finish", "polish", "final pass", "tighten", "before shipping", "ship ready", "refine", "clean up the ui"],
+    "reads": ["design-principles", "engineering-and-performance", "css-techniques"]
   },
   "layout": {
-    "description": "Fix spacing, rhythm, and visual hierarchy.",
-    "argumentHint": "[target]"
+    "description": "Repair spacing, rhythm and visual hierarchy.",
+    "argumentHint": "[target]",
+    "aliases": [],
+    "cues": ["layout", "spacing", "feels off", "alignment", "hierarchy", "grid", "whitespace", "cramped", "looks off"],
+    "reads": ["design-principles", "css-techniques"]
   },
   "type": {
-    "description": "Improve typography: fonts, hierarchy, sizing, readability.",
-    "argumentHint": "[target]"
+    "description": "Improve typography and readability within the approved identity.",
+    "argumentHint": "[target]",
+    "aliases": ["typeset"],
+    "cues": ["type", "typography", "typeset", "font", "typeface", "type scale", "headings", "text hierarchy", "fonts"],
+    "reads": ["design-principles"]
   },
   "color": {
-    "description": "Add or refine color strategy, palette, and contrast.",
-    "argumentHint": "[target]"
+    "description": "Refine the approved palette and verify contrast.",
+    "argumentHint": "[target]",
+    "aliases": ["colorize"],
+    "cues": ["color", "colors", "colour", "colorize", "palette", "grayscale", "greyscale", "monochrome", "add color", "color scheme"],
+    "reads": ["design-principles", "aesthetic-systems"]
   },
   "motion": {
-    "description": "Add purposeful animation, transitions, and micro-interactions.",
-    "argumentHint": "[target]"
+    "description": "Add purposeful motion with reduced-motion alternatives.",
+    "argumentHint": "[target]",
+    "aliases": ["animate"],
+    "cues": ["motion", "animate", "animation", "transition", "feels static", "smooth this", "hover effect", "scroll effect", "micro-interaction"],
+    "reads": ["motion-and-interaction"]
   },
   "responsive": {
-    "description": "Adapt UI for mobile, tablet, and cross-device contexts.",
-    "argumentHint": "[target] [context]"
+    "description": "Adapt the interface to supported viewports and inputs.",
+    "argumentHint": "[target] [context]",
+    "aliases": ["adapt"],
+    "cues": ["responsive", "adapt", "mobile", "tablet", "different device", "breakpoint", "small screen", "touch"],
+    "reads": ["engineering-and-performance", "refactor-and-redesign", "css-techniques"]
   },
   "simplify": {
-    "description": "Remove clutter and unnecessary complexity.",
-    "argumentHint": "[target]"
+    "description": "Reduce unnecessary complexity without removing required behavior.",
+    "argumentHint": "[target]",
+    "aliases": ["distill"],
+    "cues": ["simplify", "distill", "too complex", "cluttered", "strip", "minimal", "reduce complexity", "declutter"],
+    "reads": ["design-principles"]
   },
   "copy": {
-    "description": "Improve UX writing: labels, errors, microcopy, instructions.",
-    "argumentHint": "[target]"
+    "description": "Improve labels, errors and microcopy using accurate product content.",
+    "argumentHint": "[target]",
+    "aliases": ["clarify"],
+    "cues": ["copy", "clarify", "microcopy", "ux copy", "ux writing", "rewrite this error", "error message", "button label", "labels are confusing", "wording"],
+    "reads": ["interaction-design", "avoid-ai-slop"]
   },
   "onboard": {
-    "description": "Design onboarding, first-run flows, and empty states.",
-    "argumentHint": "[target]"
+    "description": "Design first-run and empty-state paths to useful outcomes.",
+    "argumentHint": "[target]",
+    "aliases": [],
+    "cues": ["onboard", "onboarding", "first run", "first-run", "first-time", "product tour", "activation", "getting started", "welcome screen", "empty states"],
+    "reads": ["interaction-design", "engineering-and-performance"]
   },
   "ship": {
-    "description": "Make UI production-ready: edge cases, errors, i18n, overflow, real data.",
-    "argumentHint": "[target]"
+    "description": "Verify edge cases, recovery, real data and internationalization.",
+    "argumentHint": "[target]",
+    "aliases": ["harden"],
+    "cues": ["ship", "harden", "production-ready", "production ready", "edge case", "real data", "empty state", "error state", "i18n", "loading state", "rtl"],
+    "reads": ["engineering-and-performance", "css-techniques"]
   },
   "speed": {
-    "description": "Fix UI performance: load time, rendering, bundle size, animations.",
-    "argumentHint": "[target]"
+    "description": "Measure and repair actual UI performance bottlenecks.",
+    "argumentHint": "[target]",
+    "aliases": ["optimize"],
+    "cues": ["speed", "optimize", "optimise", "slow", "janky", "jank", "lag", "fps", "bundle size", "performance issue", "core web vitals"],
+    "reads": ["engineering-and-performance", "css-techniques"]
   },
   "tokens": {
-    "description": "Extract reusable patterns and design tokens into the design system.",
-    "argumentHint": "[target]"
+    "description": "Extract reusable semantic tokens when repetition justifies them.",
+    "argumentHint": "[target]",
+    "aliases": ["extract"],
+    "cues": ["tokens", "extract", "reusable", "design system", "componentize", "dedupe", "shared component"],
+    "reads": ["design-systems", "engineering-and-performance"]
   },
   "brand": {
-    "description": "Build a distinctive brand identity: aesthetic language, fonts, palette.",
-    "argumentHint": "[target]"
+    "description": "Develop an authorized identity grounded in the product brief.",
+    "argumentHint": "[target]",
+    "aliases": [],
+    "cues": ["brand", "identity", "distinctive", "not generic", "logo", "brand voice", "make it unique"],
+    "reads": ["aesthetic-systems", "differentiation-playbook"]
   },
   "refresh": {
-    "description": "Improve existing UI without breaking functionality.",
-    "argumentHint": "[target]"
+    "description": "Improve existing UI while preserving required behavior.",
+    "argumentHint": "[target]",
+    "aliases": ["redesign"],
+    "cues": ["refresh", "redesign", "improve existing", "fix this ui", "without breaking", "revamp", "modernize", "modernise", "existing site", "existing app", "upgrade the design"],
+    "reads": ["refactor-and-redesign", "engineering-and-performance", "css-techniques"]
   },
   "options": {
-    "description": "Generate 2–3 design variants within the same identity.",
-    "argumentHint": "[target]"
+    "description": "Compare meaningfully different variants within the approved scope.",
+    "argumentHint": "[target]",
+    "aliases": ["variants"],
+    "cues": ["options", "variants", "variations", "show me options", "show me 3", "3 versions", "three versions", "alternatives", "a few directions"],
+    "reads": ["refactor-and-redesign", "differentiation-playbook"]
   },
   "amplify": {
-    "description": "Increase visual impact: stronger hierarchy, bolder color, more presence.",
-    "argumentHint": "[target]"
+    "description": "Increase visual emphasis where the brief warrants it.",
+    "argumentHint": "[target]",
+    "aliases": ["bolder"],
+    "cues": ["amplify", "bolder", "too safe", "bland", "make it pop", "boring", "more striking", "stand out", "needs energy"],
+    "reads": ["aesthetic-systems", "differentiation-playbook"]
   },
   "calm": {
-    "description": "Reduce visual noise and intensity while keeping quality.",
-    "argumentHint": "[target]"
+    "description": "Reduce noise while retaining clarity and identity.",
+    "argumentHint": "[target]",
+    "aliases": ["quieter"],
+    "cues": ["calm", "quieter", "too loud", "too busy", "aggressive", "overstimulating", "tone down", "calmer", "too much"],
+    "reads": ["design-principles", "aesthetic-systems"]
   },
   "push": {
-    "description": "Maximum ambition: advanced motion, scroll effects, showpiece interactions.",
-    "argumentHint": "[target]"
+    "description": "Explore ambitious interactions within accessibility and performance constraints.",
+    "argumentHint": "[target]",
+    "aliases": ["overdrive"],
+    "cues": ["push", "overdrive", "extraordinary", "wow", "push past", "cinematic", "award", "go crazy", "showstopper"],
+    "reads": ["motion-and-interaction", "engineering-and-performance"]
   },
   "delight": {
-    "description": "Add memorable moments: personality, charm, earned micro-interactions.",
-    "argumentHint": "[target]"
+    "description": "Add context-appropriate feedback and personality.",
+    "argumentHint": "[target]",
+    "aliases": [],
+    "cues": ["delight", "personality", "memorable", "charm", "easter egg", "playful", "fun touch"],
+    "reads": ["motion-and-interaction", "interaction-design"]
   },
   "form": {
-    "description": "Form UX: layout, validation, labels, multi-step flows.",
-    "argumentHint": "[target]"
+    "description": "Design form labels, validation, recovery and submission behavior.",
+    "argumentHint": "[target]",
+    "aliases": [],
+    "cues": ["form", "forms", "form design", "input fields", "form validation", "multi-step form", "form layout", "checkout form", "sign up form"],
+    "reads": ["interaction-design", "engineering-and-performance"]
   },
   "nav": {
-    "description": "Navigation patterns: menus, sidebars, tabs, breadcrumbs.",
-    "argumentHint": "[target]"
+    "description": "Choose navigation consistent with product information architecture.",
+    "argumentHint": "[target]",
+    "aliases": ["navigate"],
+    "cues": ["nav", "navigation", "nav menu", "sidebar nav", "tab bar", "breadcrumb", "menu structure", "top nav", "bottom nav"],
+    "reads": ["interaction-design", "design-principles"]
   },
   "states": {
-    "description": "Map UI states: loading, empty, error, success — no impossible combinations.",
-    "argumentHint": "[target]"
+    "description": "Specify applicable UI states and transitions without impossible combinations.",
+    "argumentHint": "[target]",
+    "aliases": [],
+    "cues": ["state machine", "ui states", "all states", "impossible state", "model behavior", "define all states", "every state"],
+    "reads": ["interaction-design", "engineering-and-performance"]
   },
   "tone": {
-    "description": "Humanize flat or sterile UI through motion, copy voice, and feel.",
-    "argumentHint": "[target]"
+    "description": "Refine product voice and feedback without changing its meaning.",
+    "argumentHint": "[target]",
+    "aliases": ["feel"],
+    "cues": ["tone", "feel", "feels flat", "feels lifeless", "no personality", "feels cold", "humanize", "feels robotic", "too sterile"],
+    "reads": ["interaction-design", "motion-and-interaction"]
   },
   "system": {
-    "description": "Design system architecture: tokens, components, theming, naming.",
-    "argumentHint": "[target]"
+    "description": "Evolve tokens, components and themes with compatibility checks.",
+    "argumentHint": "[target]",
+    "aliases": [],
+    "cues": ["design system", "token system", "naming convention", "theming", "design tokens", "dark mode system", "component library", "token architecture"],
+    "reads": ["design-systems", "engineering-and-performance"]
+  },
+  "css": {
+    "description": "Apply supported CSS patterns and fix stylesheet defects.",
+    "argumentHint": "[target]",
+    "aliases": [],
+    "cues": ["css", "stylesheet", "tailwind", "css fix", "fix the css", "css bug", "selector", "specificity", "centering", "center this", "aspect-ratio", "container query", ":has", "logical properties", "flexbox", "css grid", "clamp", "box-sizing", "css reset"],
+    "reads": ["css-techniques", "design-principles"]
   }
 }

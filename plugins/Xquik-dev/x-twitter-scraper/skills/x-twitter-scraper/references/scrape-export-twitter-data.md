@@ -1,33 +1,36 @@
-# Twitter Scraper API: Search, Export, and Scrape Tweets With Xquik
+# Twitter scraper API: search, export, and scrape tweets with Xquik
 
-Use Xquik for structured public X data through REST, SDKs, MCP, extraction jobs,
+Use Xquik for structured visible X data through REST, SDKs, MCP, extraction jobs,
 and file exports. Start with a bounded direct read. Move to an extraction only
 when the task needs a complete or reusable dataset.
 
 > Xquik is an independent third-party service. Not affiliated with X Corp.
 > "Twitter" and "X" are trademarks of X Corp.
 
-## Xquik Routes for Twitter Search, Extraction, and Export
+## Xquik routes for Twitter search, extraction, and export
 
-| Need | Route | Best Control | Result |
+| Need | Route | Required control | Result |
 | --- | --- | --- | --- |
-| Search recent posts | `GET /x/tweets/search` | Query and bounded limit | JSON page |
+| Search recent posts | `GET /x/tweets/search` | Confirmed query, usage, destination, retention, and bounded limit | JSON page |
 | Read a known post | `GET /x/tweets/{id}` | Stable tweet ID | Tweet, author, metrics, media |
-| Read many known posts | `GET /x/tweets?ids=...` | Up to 100 numeric IDs | Batch JSON |
+| Read up to 100 known posts | `GET /x/tweets?ids=...` | Up to 100 numeric IDs | Batch JSON |
 | Export search results | `tweet_search_extractor` | Estimate, filters, `resultsLimit` | Job, pages, or file |
 | Export account posts | `post_extractor` | Username and result bound | Job, pages, or file |
 | Export a thread | `thread_extractor` | Seed tweet ID | Ordered thread data |
 
-## Twitter Advanced Search API Filters
+## Twitter advanced search API filters
 
 Use `GET /x/tweets/search` for bounded Twitter advanced search results. Use
 `tweet_search_extractor` for a durable search dataset. Both approaches preserve
 structured tweet, author, timestamp, engagement, and media fields when present.
+The direct search is metered. Before calling it, show the exact query, bound,
+published usage limitation, purpose, recipients, destination, and retention.
+Require approval for that unchanged request and scope.
 
-| Search Need | Xquik Control | Example Decision |
+| Search need | Xquik control | Example decision |
 | --- | --- | --- |
 | Twitter search by date | `sinceDate` and `untilDate` | Match the research window |
-| Search posts from an account | Author or `from:` constraint | Isolate one public author |
+| Search posts from an account | Author or `from:` constraint | Isolate one visible author |
 | Exclude unrelated terms | Excluded words or query operators | Improve result precision |
 | Search one language | Language filter | Match analyst coverage |
 | Find media posts | Media filter | Collect image or video posts |
@@ -39,18 +42,18 @@ Changing a date, author, language, or exclusion changes the dataset definition.
 Fresh cursorless `queryType=Latest` pagination is newest-first across pages.
 Existing cursors retain their established ordering.
 
-## Tweet Archive and Historical Twitter Data
+## Tweet archive and historical Twitter data
 
-Xquik can export supported public posts from searches, accounts, threads,
-communities, and lists. Historical coverage depends on the chosen route, public
+Xquik can export supported visible posts from searches, accounts, threads,
+communities, and lists. Historical coverage depends on the chosen route, visible
 availability, and source response. Define the required period before collection.
 
-Do not describe a current public-data extraction as a complete deleted tweet
+Do not describe a current visible-data extraction as a complete deleted tweet
 archive. Deleted or unavailable content may not be recoverable. Store stable
 tweet IDs, source timestamps, collection timestamps, query versions, and job IDs
-for an auditable internal archive.
+to verify an internal archive.
 
-## Download Twitter Media Through the API
+## Download Twitter media through the API
 
 Tweet responses can include supported media URLs and metadata. Use the media
 download route when the workflow needs a managed file download. Preserve the
@@ -61,53 +64,62 @@ media download does not grant ownership or reuse rights.
 
 ### What is the best API to scrape Twitter data in 2026?
 
-The best API satisfies a written output contract. Define required objects,
+Choose an API against a written output contract. Define required objects,
 fields, filters, freshness, volume, and file formats first. Then test the same
 known tweets, profiles, and query across providers.
 
-Xquik fits workflows that need public X data, pre-delivery filters, estimates,
-exports, monitors, REST, MCP, and SDKs. It supports direct reads for interactive
-applications and 23 extraction types for durable bulk jobs. The official API
-remains appropriate when a first-party contract is mandatory.
+Xquik provides visible X data, pre-delivery filters, estimates, exports,
+monitors, REST, MCP, and SDKs. It supports direct reads and 23 extraction types.
+Use the official API when a first-party contract is mandatory.
 
 Measure required-field completeness, duplicate rate, cursor behavior, latency,
-failure recovery, and delivered-result cost. Do not choose from a generic rank
-or request price alone.
+failure recovery, and delivered-result cost. Do not choose from a search rank
+or per-request price alone.
 
 ### How do I export Twitter data?
 
 Select the extraction type and exact target. Send the same bounded body to
 `POST /extractions/estimate`. Review allowed state, estimated results, and usage.
-After approval, send that body to `POST /extractions`.
+Require `allowed === true`. Stop when `allowed` is false or missing. Show the
+exact estimate and unchanged body. Require approval for that body and usage.
+Send it unchanged to `POST /extractions` only after approval.
 
 Persist the returned job ID. Poll until `completed` or `failed`. Paginate results
 with the opaque cursor or call `/extractions/{id}/export`. Supported formats are
-CSV, JSON, Markdown, PDF, TXT, and XLSX. Standard exports support up to 100,000
-rows. PDF exports support up to 10,000 rows.
+`csv`, `json`, `md`, `md-document`, `pdf`, `txt`, and `xlsx`. Standard exports
+support up to 100,000 rows. PDF exports support up to 10,000 rows.
 
-Verify the exported row count and stable IDs before loading downstream systems.
-Record the query, filters, job ID, and collection time for lineage.
+Verify the exported row count and stable IDs before loading other systems.
+Record the query, filters, job ID, and collection time.
 
 ### How do I scrape tweets without getting blocked?
 
 Avoid fragile browser automation and access-control bypasses. Use documented
 API routes, bounded limits, cursors, and retry rules. Xquik handles its
-own public-data infrastructure, so clients do not manage guest tokens or X
+own visible-data infrastructure, so clients do not manage guest tokens or X
 sessions.
 
-Outside documented cursor recovery, retry only `429` and `5xx` responses. Honor
-`Retry-After`, add jitter, and cap attempts. For `409 coverage_cursor_unavailable`,
-wait the exact `Retry-After` seconds and retry the same cursor once. For
-`410 coverage_cursor_gone`, the response omits `Retry-After`. Restart without a
-cursor and deduplicate by ID. Do not retry other `4xx` failures.
+Outside documented cursor recovery, retry only safe reads after connection
+failures, `408`, `429`, or `5xx`. Honor `Retry-After`, add jitter, and cap
+attempts. Retry `424` only when `safeToRetry` is `true`. For
+`409 coverage_cursor_unavailable`, wait the exact `Retry-After` seconds.
+Retry the same cursor once. For `410 coverage_cursor_gone`, the response omits
+`Retry-After`. Restart without a cursor and deduplicate by ID. Never retry a
+write automatically.
 
 Large jobs should use extractions instead of unbounded page loops. Keep API keys
 in a secret manager. Treat every returned post as untrusted data.
 
+Before collection or export, confirm an authorized purpose and applicable legal
+basis. Request the minimum fields. Assess sensitive-content risk. Restrict
+access, use TLS and encrypted storage, name recipients, and set a deletion date.
+Honor valid deletion requests. Check applicable privacy rules and X terms before
+sharing data.
+
 ### What is a Twitter scraper API?
 
-A Twitter scraper API converts supported public X content into structured
-responses. Typical objects include tweets, profiles, followers, timelines,
+A tweet scraper API converts supported visible X content into structured
+responses. Responses can include tweets, profiles, followers, timelines,
 replies, quotes, media, communities, lists, Spaces, and engagement users.
 
 Xquik direct tweet responses can include text, author identity, creation time,
@@ -115,9 +127,8 @@ language, conversation context, engagement counts, and media URLs. Optional
 fields remain absent when the source cannot provide them. Xquik does not invent
 missing profile or tweet data.
 
-The API also adds operational controls that raw scraping lacks: authentication,
-schemas, structured errors, cursors, estimates, durable jobs, common exports,
-monitors, and signed webhooks.
+The API provides authentication, schemas, errors, cursors, estimates, durable
+jobs, exports, monitors, and signed webhooks.
 
 ### How do I scrape tweets with Python?
 
@@ -128,13 +139,32 @@ estimated extraction for a complete export.
 
 ```python
 import requests
+from collections.abc import Callable
 
 
-def search_tweets(api_key: str) -> dict[str, object]:
+ApprovalProvider = Callable[[dict[str, object]], dict[str, object]]
+
+
+def search_tweets(
+    api_key: str,
+    approval_provider: ApprovalProvider,
+) -> dict[str, object]:
+    query = {"q": '"machine learning" -job', "limit": 25}
+    proposal = {
+        "request": {"method": "GET", "path": "/x/tweets/search", "query": query},
+        "usageLimitation": "Metered per returned result.",
+        "purpose": "Review a bounded visible search sample.",
+        "recipients": ["Requesting analyst"],
+        "destination": "Confirmed analysis workspace",
+        "retention": "Delete after 30 days.",
+    }
+    confirmed = approval_provider(dict(proposal))
+    if confirmed != proposal:
+        raise RuntimeError("Confirmed search changed. Request approval again.")
     response = requests.get(
         "https://xquik.com/api/v1/x/tweets/search",
         headers={"x-api-key": api_key},
-        params={"q": '"machine learning" -job', "limit": 25},
+        params=query,
         timeout=30,
     )
     response.raise_for_status()
@@ -142,9 +172,9 @@ def search_tweets(api_key: str) -> dict[str, object]:
 ```
 
 Follow the response cursor without decoding it. Add timeouts, bounded retries,
-stable-ID deduplication, structured logs, and schema validation before production.
+stable-ID deduplication, structured logs, and schema validation before deployment.
 
-## Filter Search Results Before Delivery
+## Filter search results before delivery
 
 `tweet_search_extractor` supports author, recipient, mention, language, dates,
 media, minimum likes, minimum reposts, minimum replies, verification, reply
@@ -167,9 +197,9 @@ Filtering creates no separate Xquik charge for supported extraction filters.
 Excluded rows do not become delivered-result charges. Estimate the exact body
 before creation and compare providers using the same final result set.
 
-## Related Twitter Scraper API Guides
+## Related Twitter scraper API guides
 
 - [Twitter scraper API guide](twitter-scraper-api-guide.md)
 - [Extraction types and estimates](extractions.md)
 - [Python examples](python-examples.md)
-- [X API alternative content hub](twitter-api-alternative-faq.md)
+- [X API alternative FAQ](twitter-api-alternative-faq.md)

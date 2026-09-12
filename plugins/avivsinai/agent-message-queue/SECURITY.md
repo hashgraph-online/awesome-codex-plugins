@@ -56,7 +56,7 @@ hardening beyond the above is intentionally out of scope.
 
 #### TIOCSTI Terminal Injection (`amq wake`)
 
-The `amq wake` command uses TIOCSTI (terminal input character stuffing) to inject notification text into the terminal. This is an **experimental feature** with inherent security considerations:
+The `amq wake` command uses TIOCSTI (terminal input character stuffing) to inject notification text into the terminal. TIOCSTI has inherent security considerations:
 
 - TIOCSTI allows a process to inject input characters as if they were typed
 - On some systems (hardened Linux kernels), TIOCSTI is disabled for security reasons

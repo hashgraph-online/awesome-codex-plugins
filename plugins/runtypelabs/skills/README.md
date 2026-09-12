@@ -12,7 +12,13 @@ Official agent skills for the [Runtype](https://runtype.com) platform — instal
 npx skills add runtypelabs/skills
 ```
 
-**Pick specific skills:**
+**Pick specific skills** (repeat `--skill` once per skill; comma lists and globs are not supported):
+
+```bash
+npx skills add runtypelabs/skills --skill tool-design --skill tool-design-interface
+```
+
+**Browse what's available:**
 
 ```bash
 npx skills add runtypelabs/skills --list
@@ -20,14 +26,35 @@ npx skills add runtypelabs/skills --list
 
 ## Skills
 
+### Runtype platform
+
+Start with `runtype`; it routes to the focused skill for the job.
+
 | Skill | Description |
 |-------|-------------|
-| [`runtype`](skills/runtype/) | Umbrella onboarding and routing skill for Runtype setup, capability scoping, and choosing the right focused workflow. |
-| [`runtype-build-product`](skills/runtype-build-product/) | Build and validate hosted Runtype products with agents, flows, tools, surfaces, records, schedules, secrets, and evals. |
-| [`runtype-admin`](skills/runtype-admin/) | Operate live Runtype accounts safely through MCP or Code Mode MCP: inspect resources, debug traces, logs, evals, and apply careful mutations. |
-| [`runtype-persona`](skills/runtype-persona/) | Embed, theme, and debug Persona chat widgets, fullscreen assistants, client tokens, artifacts, and browser-side local tools. |
-| [`runtype-templates`](skills/runtype-templates/) | Create, validate, and package distributable Runtype FPO templates with pending secrets and import readiness checks. |
-| [`runtype-sdk-marathon`](skills/runtype-sdk-marathon/) | Use the Runtype SDK, CLI, Marathon, playbooks, sandboxes, and code-first stored/upsert/virtual workflows. |
+| [`runtype`](skills/runtype/) | Scope a Runtype project or set up platform access; route implementation to the relevant Runtype skill. |
+| [`runtype-build-product`](skills/runtype-build-product/) | Build or modify Runtype-hosted AI products, agents, flows, and surfaces using current platform instructions. |
+| [`runtype-admin`](skills/runtype-admin/) | Inspect, debug, or manage a live Runtype account through MCP or CLI; mutate only within the requested scope. |
+| [`runtype-persona`](skills/runtype-persona/) | Embed, style, or debug Runtype Persona widgets and browser-side chat integrations. |
+| [`runtype-external-agents`](skills/runtype-external-agents/) | Connect externally executed agents (Flue, Cloudflare Agents SDK, Vercel AI SDK, LangGraph, custom loops) to Runtype traces, evals, or surfaces; not Runtype-hosted execution. |
+| [`runtype-templates`](skills/runtype-templates/) | Create, validate, or package distributable Runtype FPO templates and their setup requirements. |
+| [`runtype-sdk-marathon`](skills/runtype-sdk-marathon/) | Build source-controlled Runtype workflows with the SDK or CLI, including Marathon tasks and playbooks. |
+
+### Tool design
+
+Framework-agnostic guidance for designing the tools an AI agent calls. Start with `tool-design`; it routes to the focused guide.
+
+| Skill | Description |
+|-------|-------------|
+| [`tool-design`](skills/tool-design/) | Design or audit an AI agent toolset; route naming, schemas, output, errors, execution, and security to focused guides. |
+| [`tool-design-interface`](skills/tool-design-interface/) | Design agent-facing tool names, descriptions, and parameter schemas; diagnose incorrect tool selection or inputs. |
+| [`tool-design-output`](skills/tool-design-output/) | Design agent tool results, including pagination, partial success, context size, and actionable next steps. |
+| [`tool-design-errors`](skills/tool-design-errors/) | Design actionable agent tool errors, ambiguity handling, retry guidance, and fallback behavior. |
+| [`tool-design-execution`](skills/tool-design-execution/) | Design agent tool execution: async jobs, idempotency, timeouts, transactions, and compensation. |
+| [`tool-design-composition`](skills/tool-design-composition/) | Compose and expose agent toolsets: task-level operations, batching, discovery, dry runs, and versioning. |
+| [`tool-design-security`](skills/tool-design-security/) | Design tool identity, credential injection, authorization, tenant scope, and audit boundaries. |
+
+Skill descriptions above mirror each skill's `SKILL.md` frontmatter; update both together.
 
 ## Validation
 

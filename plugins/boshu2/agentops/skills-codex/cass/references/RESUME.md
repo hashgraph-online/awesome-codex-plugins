@@ -13,6 +13,26 @@
 
 ---
 
+## Authorization and startup evidence
+
+Resolving a command does not authorize executing it. Before reading a source or
+resuming, verify task/source-owner/model/provider/destination authorization and
+that the caller selected this runtime operation. Cross-harness conversion sends
+content to a new recipient and requires its own applicable authorization.
+
+Before execution, pass source-store/project/work identity and permitted intent
+locators, and have the caller record the dispatch/resume request in native
+comments/metadata or runtime facts. Keep the requested predecessor separate
+from the actual resumed context. At startup, record the selected runtime's
+observed session/context ID and resume relation with observation provenance;
+it may reuse an ID or create another context. Until observed, use explicit
+unknowns. Command text, a filename and successful command resolution do not
+prove that resumption occurred. Preserve failed starts and unresolved links
+without waiting for handoff. Follow
+[session associations](SESSION_FORMATS.md#work-to-session-associations) for
+supported spans and available frozen source boundaries/digests; never transfer
+all work associations from a predecessor automatically.
+
 ## The Three Modes
 
 ```bash
@@ -25,7 +45,7 @@ cass resume /path/to/session.jsonl
 # 2. Emit a single shell-escaped command line
 cass resume /path/to/session.jsonl --shell
 # claude resume '8efcc298-90d8-4764-9144-944c40f1a321'
-eval "$(cass resume /path/to/session.jsonl --shell)"
+# Inspect the emitted command; execute only the caller-authorized native resume.
 
 # 3. Replace the current process (mutually exclusive with --shell/--json)
 cass resume /path/to/session.jsonl --exec
@@ -66,32 +86,23 @@ cass resume /home/x/.claude/projects/<ws>/subagents/agent-a0b4d4b58a1fd73da.json
 #  "hint":"Did you pass a project directory or notes file instead..."}}
 ```
 
-Recover the parent session via `cass context`. The schema is:
-
-```json
-{
-  "source":  {"path": "...", "agent": "...", "workspace": "...", ...},
-  "counts":  {"same_workspace": 12, "same_day": 8, "same_agent": 15},
-  "related": {
-    "same_workspace": [{"path": "...", "agent": "...", "title": "...", ...}, ...],
-    "same_day":       [...],
-    "same_agent":     [...]
-  }
-}
-```
-
-Note: items use `.path` (not `.source_path`) and `related` is an **object**, not a flat array.
+Use `cass context` only to discover candidate sessions. Its `related` object
+contains `same_workspace`, `same_day` and `same_agent` lists; their entries use
+`.path`, not `.source_path`. These are similarity groups, not parent edges.
 
 ```bash
-# Find the parent (first non-subagent file in same_workspace)
-cass context /path/to/subagents/agent-XXXXX.jsonl --json \
-  | jq -r '.related.same_workspace[]
-            | select(.path | contains("subagents") | not)
-            | .path' \
-  | head -1
+# Bounded candidate discovery for an authorized source; do not select a parent.
+cass context /path/to/subagents/agent-XXXXX.jsonl --json
 ```
 
-Then `cass resume` that path.
+Verify parentage using an authorized native startup/dispatch observation or
+explicit parent link in native runtime metadata, with its exact permitted
+source locator. A dispatch-attested controller relation is distinct from a
+native parent relation. The first non-subagent workspace hit, a matching title,
+a filename or a guessed prompt line is never proof. If no link is observable,
+record parent unknown and stop parent-based resume selection. Only after the
+link is verified and the caller selects execution may `cass resume` target the
+verified parent; do not erase the child's separate source/work association.
 
 ---
 
@@ -107,7 +118,7 @@ HIT=$(cass search "implement auth flow" --workspace /myrepo --json --fields summ
 # 2. Print the command without executing
 cass resume "$HIT" --shell
 
-# 3. Drop the user into the resumed conversation
+# 3. Only after caller authorization and pre-execution association recording
 cass resume "$HIT" --exec
 ```
 
@@ -123,7 +134,7 @@ cass expand "$HIT" --line 1 --context 5    # see the original prompt
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| `session_id_not_found` for `agent-*.jsonl` | Subagent file | Use `cass context` to find parent |
+| `session_id_not_found` for `agent-*.jsonl` | Subagent file | Discover candidates with `cass context`; verify a native parent link or leave parent unknown |
 | `unknown harness` | Path doesn't match any connector layout | Pass `--agent` explicitly |
 | Resumed session won't open | The native CLI was upgraded and changed its session schema | Try the harness's own `--list` to see if the ID is still valid; the source jsonl is your fallback |
 | `cross_agent_session_resumer#9` style: Codex → Pi resumption broken | Cross-harness resume requires casr (separate tool) | Use the matching native CLI; cass resume only does *same-harness* |

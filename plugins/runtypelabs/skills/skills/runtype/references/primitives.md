@@ -238,7 +238,7 @@ Each surface has:
 - For hosted pages: product-level `HostedPageBehavior` and per-capability
   `HostedPagePresentation` in `runtype://types/surface-configs`
 
-Lifecycle: `create_surface` → `add_surface_item` (wire a capability in) → `update_surface` / `delete_surface`. Slack-specific: `install_slack_integration` for OAuth.
+Lifecycle: `create_surface` → `add_surface_item` (wire a capability in) → `update_surface` / `delete_surface`. Slack-specific: connect the workspace with the `slack-setup` runbook (`runtype://guide/slack-setup`); `install_slack_integration` is only for a caller who already holds a bot token and signing secret.
 
 ## Record
 
@@ -296,7 +296,7 @@ Reference syntax — same everywhere (tool configs, FPO templates, runtime): `{{
 Two adjacent syntaxes that look similar but are different:
 
 - `{{secrets:KEY}}` — **plural with colon is invalid**. The resolver rejects it.
-- `{{secrets.key}}` — plural with **dot** is a legacy agent/external-tool dispatch namespace, not a managed secret. Hosted FLOW execution ignores it.
+- `{{secrets.key}}` — plural with **dot** is RETIRED, not a managed secret: a non-empty dispatch `secrets` map is refused with 400 `RUNTIME_AGENT_TRANSIENT_SECRETS_UNSUPPORTED` on agent dispatches and 400 `RUNTIME_FLOW_TRANSIENT_SECRETS_UNSUPPORTED` on flow dispatches. Never emit it; `{{secret:KEY}}` is the only credential contract.
 
 **Always redacted in logs at every level.** If a value matches a known secret, it's stripped from log output across the platform.
 

@@ -1,6 +1,6 @@
 {
   "name": "agentpack",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "description": "Thin Codex plugin for AgentPack ranked repo context.",
   "author": {
     "name": "AgentPack",

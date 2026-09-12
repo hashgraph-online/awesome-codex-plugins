@@ -117,7 +117,7 @@ gemini extensions update spec-superflow   # 升级
 | **Qoder** | `npx spec-superflow@latest install-qoder` | 已提供安装器 |
 | **OpenCode** | `.opencode/plugins/spec-superflow.js` 或 `.agents/skills -> skills/` | 已提供入口 |
 | **WorkBuddy** | `npx spec-superflow@latest install-workbuddy` | 已提供安装器 |
-| **CodeBuddy Code CLI** | `ssf install-codebuddy` | 已提供安装器 |
+| **CodeBuddy Code CLI** | `npx spec-superflow@latest install-codebuddy` | 已提供安装器 |
 | **Trae IDE / TRAE Work** | `.trae/skills/`、`~/.trae/skills/` 或上传 zip/.skill | 手动/导入 |
 
 > 共支持 19 个平台，完整安装说明见 [INSTALL.md](INSTALL.md)，支持矩阵见 [docs/platform-matrix.md](docs/platform-matrix.md)。
@@ -148,11 +148,14 @@ npx spec-superflow list          # 或通过 npx 使用
 | `ssf handoff list <dir>` | 列出 handoff 生命周期状态 |
 | `ssf handoff finish <dir> <id>` | 校验 handoff 结果 |
 | `ssf handoff resolve <dir> <id> --decision <decision>` | 记录显式 handoff 决策 |
+| `ssf isolate <dir>` | 实现前强制 git 隔离：在 main/master 时创建 worktree（含递归初始化子模块）或分支，并向 progress 账本写入 cwd 不持续警告 |
+| `ssf finish <dir> [--test-cmd <command>]` | 一键收尾：merge --no-ff 回主干、验证同步、在主干执行验证命令（默认 `npm test`，10 分钟超时），验证通过才删除 worktree 与隔离分支；失败保留 worktree 返回修改 |
 | `ssf execution recommend <dir> ...` | 基于任务量、wave 和工作流列出可用执行方式并给出推荐 |
 | `ssf execution plan <dir> ...` | 在用户确认选择后，为 Full/legacy Hotfix 保存受 guard 保护的执行计划 |
 | `ssf execution show <dir> [--json]` | 查看并校验当前执行计划、wave 与 receipt |
 | `ssf execution revise <dir> ...` | 将已有计划保留/升级为 SDD，并生成新 revision；不允许降级 |
 | `ssf execution review <dir> ...` | 为一个计划 wave 记录 review receipt |
+| `ssf execution adjudicate <dir> ...` | 为 `adjudication-required` wave 授权一次 review |
 | `ssf install-cursor` | 部署到 Cursor `.cursor/` 目录 |
 | `ssf install-workbuddy` | 部署到 WorkBuddy marketplace 插件（含 skills/rules/runtime） |
 | `ssf install-codebuddy` | 部署到 `~/.codebuddy/`（CodeBuddy Code CLI） |
@@ -167,9 +170,11 @@ npx spec-superflow list          # 或通过 npx 使用
 | `ssf install-pi` | 部署到 Pi `.pi/skills/`（无规则目录） |
 | `ssf install-qoder` | 部署到 Qoder `.qoder/` + `.qoder/rules/` |
 
+> **CodeBuddy 安装与 PATH**：`npx spec-superflow@latest install-codebuddy` 无需全局安装即可用——安装器把 skills/rules/hooks 部署到 `~/.codebuddy/`，并在 `~/.codebuddy/spec-superflow/bin/` 生成 `ssf` 命令 shim（Windows 为 `ssf.cmd`/`ssf.ps1`）。默认会把 bin 目录注册到用户 PATH（Windows 写入用户级环境变量，POSIX 追加到 shell 配置文件），新开终端即可直接使用 `ssf` 命令；`--no-path` 跳过 PATH 修改（shim 仍会生成），`--dry-run` 仅预览安装计划不落盘。
+
 ### 版本
 
-- 当前版本：`v1.0.1`
+- 当前版本：`v1.2.0`
 - v1.0：默认按风险走 Quick、direct Hotfix、Tweak 或 Full；小改动只保留边界与验证，复杂改动才进入完整规划、契约和审查
 - 自包含插件，不需要运行时安装 OpenSpec 或 Superpowers
 - 上游来源：[Fission-AI/OpenSpec](https://github.com/Fission-AI/OpenSpec) 和 [obra/superpowers](https://github.com/obra/superpowers)
@@ -245,6 +250,8 @@ ssf execution revise changes/my-change --mode sdd --confirm --reason "need paral
 # 每个 wave 都先写入非空 review report，再记录 receipt。
 ssf execution review changes/my-change --wave foundation --base <sha> --head <sha> \
   --report .superpowers/sdd/reviews/foundation.md --verdict pass
+ssf execution adjudicate changes/my-change --wave foundation --decision allow-review \
+  --confirm --reason "reviewed the unresolved findings and authorizes one focused review"
 ```
 
 `--report` 相对于 `<change>` 解析，且必须位于
@@ -256,6 +263,8 @@ report 本身必须为普通、非空、非符号链接文件。
 每个 wave 的 review receipt 必须是当前 revision 的 `pass`，依赖 wave 和 closing
 才会放行；修订计划会使旧 receipt 失效。恢复、切换和手动保存是 control-plane
 overlay，不会增加第九个状态；其 CLI 与 CodeBuddy/WorkBuddy Markdown adapter 保持相同 guard。
+裁决不会生成 `pass` 或放行依赖；授权 review 若仍失败，wave 会再次进入
+`adjudication-required` 并需要新的人工裁决。
 
 ---
 

@@ -1,31 +1,31 @@
-# Xquik REST API Endpoints: Drafts
+# Xquik REST API endpoints: drafts
 
-## Safety Boundary
+## Require approval for drafts
 
 `GET` operations expose private saved content. State the exact draft scope and
-obtain explicit approval immediately before each read. `POST` and delete
+obtain explicit approval immediately before each read. `POST` and `DELETE`
 operations are non-default writes. Show the exact draft text or draft ID and
 obtain explicit approval immediately before each write. Never infer approval
 from an earlier request or retry a failed write automatically.
 
-### Create Draft
+### Create draft
 
 `POST /drafts`
 
 Save a tweet draft for later.
 
-**Approval required:** Preview the complete text and metadata. Create the draft
+Get approval first. Preview the complete text and metadata. Create the draft
 only after the user explicitly approves that exact payload.
 
-**Request body:**
+Send this request body:
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `text` | string | Yes | The draft tweet text |
 | `topic` | string | No | Topic the tweet is about |
-| `goal` | string | No | Optimization goal: `engagement`, `followers`, `authority`, `conversation` |
+| `goal` | string | No | `engagement`, `followers`, `authority`, or `conversation` |
 
-**Response (201):**
+For a 201 response, the API returns:
 
 ```json
 {
@@ -40,23 +40,25 @@ only after the user explicitly approves that exact payload.
 
 ---
 
-### List Drafts
+### List drafts
 
 `GET /drafts`
 
 List saved tweet drafts with cursor pagination.
 
-**Private read:** Show the requested page size and account scope. List drafts
-only after explicit approval for that exact read.
+This is a private read. Show the account scope, page size, starting `afterCursor`
+or lack of one, and maximum page count. List drafts only after explicit approval
+for that exact scope. Stop at the confirmed page limit. Obtain new approval before
+following any `nextCursor` beyond it.
 
-**Query parameters:**
+Use these query parameters:
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `limit` | number | No | 50 | Results per page (max 50) |
+| `limit` | number | No | 50 | Results per page; maximum 50 |
 | `afterCursor` | string | No | - | Pagination cursor from previous response |
 
-**Response (200):**
+For a 200 response, the API returns:
 
 ```json
 {
@@ -70,36 +72,38 @@ only after explicit approval for that exact read.
       "updatedAt": "2026-02-24T10:30:00.000Z"
     }
   ],
-  "afterCursor": "cursor_string",
+  "nextCursor": "cursor_string",
   "hasMore": true
 }
 ```
 
+The final page omits `nextCursor` when `hasMore` is `false`.
+
 ---
 
-### Get Draft
+### Get draft
 
 `GET /drafts/{id}`
 
 Get a specific draft by ID.
 
-**Private read:** Show the draft ID. Fetch it only after explicit approval for
+This is a private read. Show the draft ID. Fetch it only after explicit approval for
 that exact read, including any preview before deletion.
 
-**Response (200):** Single draft object.
+For a 200 response, the API returns 1 draft object.
 
-**Errors:** `400 invalid_id`, `404 draft_not_found`
+Possible errors include `400 invalid_id` and `404 draft_not_found`.
 
 ---
 
-### Delete Draft
+### Delete draft
 
-delete request to `/drafts/{id}`
+Use the delete method on `/drafts/{id}`.
 
-**Destructive action:** Deletion is permanent and cannot be recovered through
+This action is destructive. Deletion is permanent and cannot be recovered through
 this API. Show the draft ID and text, then obtain explicit approval immediately
 before deleting it. Returns `204 No Content`.
 
-**Errors:** `400 invalid_id`, `404 draft_not_found`
+Possible errors include `400 invalid_id` and `404 draft_not_found`.
 
 ---

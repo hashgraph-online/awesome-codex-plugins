@@ -349,7 +349,14 @@ server-side tracking issues happens in Phase 6.
      `mysql-test/r/hello_basic.result`, and any leftover hello code.
    - Update `CMakeLists.txt`: project name, extension name constant,
      library target
-   - Update `manifest.json`: `name`, `description`, `author`
+   - Update `manifest.json`: `name`, `description`, `author`, and
+     `version`. The template ships `1.0.0`; set it to `0.0.1`. An
+     extension that declares any preview capability stays below `1.0.0`,
+     because a preview capability can still change under it — reaching
+     `1.0.0` means every capability it uses is GA. Inside either range the
+     three positions keep their normal meaning: breaking, feature, fix.
+     Phase 6 publishes a matching GitHub release for whatever version
+     ships.
    - Update `README.md` placeholder content (the template has a stub —
      replace it now with at least the extension name, one-line
      description, and install command; full README assembly happens in
@@ -616,9 +623,14 @@ Phase 6. The extension is not done until the Phase 6 gate passes.
       - **Match found:** link the issue in the README and ask the user
         to 👍 it.
       - **No match:** write a complete, copy-paste-ready draft inline —
-        title, description, relevant context — then ask: "Want me to
-        file this, or will you copy it?" If filing, use the repo's
-        existing issue templates and open the body with:
+        title, description, relevant context. Keep it short: a title,
+        a few sentences on the gap, and the smallest reproduction that
+        shows it. No boilerplate sections, no restated background the
+        issue tracker already has. Then ask: "Want me to file this, or
+        will you copy it?" Before anything is filed, tell the user to
+        read the draft themselves and edit it — the user owns what
+        lands on the tracker. If filing, use the repo's existing issue
+        templates and open the body with:
         > *Surfaced by the VillageSQL Extension Builder skill while
         > building `<extension-name>`.*
 
@@ -632,9 +644,12 @@ Phase 6. The extension is not done until the Phase 6 gate passes.
    **Feature** issue draft for
    [villagesql-server](https://github.com/villagesql/villagesql-server/issues)
    announcing the extension — include title, description, what it does,
-   and a link to the repo. Then ask the user: "Want me to file this, or
-   will you copy it?" VillageSQL uses these to consider adding community
-   extensions to the website. Suggested title:
+   and a link to the repo. Keep it short: a few sentences, not a page.
+   Then ask the user: "Want me to file this, or will you copy it?"
+   Before anything is filed, tell the user to read the draft themselves
+   and edit it — the user owns what lands on the tracker. VillageSQL
+   uses these to consider adding community extensions to the website.
+   Suggested title:
    `[Community Extension] <extension-name>`. If the agent files it, the
    body must open with:
    > *Filed by the VillageSQL Extension Builder skill.*
@@ -654,7 +669,31 @@ Phase 6. The extension is not done until the Phase 6 gate passes.
    print the path (meaning ignored). If not, fix `.gitignore` before
    any commit.
 
-7. **Offer cleanup.** Ask the user whether to uninstall and remove the
+7. **Publish the release.** Skip this step when `local_only: true` is
+   recorded in `.claude/tracking/architecture.md` — there is no remote to
+   release from. Otherwise the version in `manifest.json` gets a matching
+   GitHub release. `INSTALL EXTENSION ... VERSION` checks against that
+   manifest version, so a version with no release leaves nobody able to
+   point at the source that produced a given `.veb`. The initial `0.0.1`
+   counts — do not treat the first version as exempt.
+
+   a. Read the version out of `manifest.json`.
+   b. Confirm the commits are on the remote. Ask the user before pushing —
+      a push publishes their code.
+   c. List what already exists:
+      `gh release list --repo <owner>/<extension-repo>`
+   d. If the version is missing, ask the user before creating it — a
+      release is public and permanent-looking — then:
+      ```bash
+      gh release create <version> --repo <owner>/<extension-repo> \
+        --title <version> --notes "<one line on what this version is>"
+      ```
+
+   Name the tag as the bare version (`0.0.1`), with no `v` prefix. Every
+   VillageSQL extension repo uses that form. Any later version bump
+   repeats this step.
+
+8. **Offer cleanup.** Ask the user whether to uninstall and remove the
    extension. If yes:
    1. Check for dependent columns:
       ```sql
@@ -666,7 +705,7 @@ Phase 6. The extension is not done until the Phase 6 gate passes.
    2. `UNINSTALL EXTENSION <extension_name>;`
    3. `rm -rf <veb_dir>/_expanded/<extension_name>`
 
-8. **Summary.** Present a structured closing summary to the user.
+9. **Summary.** Present a structured closing summary to the user.
    This is the handoff — someone who wasn't in the session should be able
    to read it and understand exactly what was built and what comes next.
 
@@ -683,8 +722,10 @@ Phase 6. The extension is not done until the Phase 6 gate passes.
    the constraint and its outcome: linked issue # (with URL), drafted
    issue (copy-paste ready inline), or "no upstream issue exists."
 
-   **Commit**
+   **Commit and release**
    - Run `git log -1 --oneline` and show the SHA and summary line.
+   - Give the release version and its URL, or say the release was skipped
+     and why (local-only scaffold, or the user declined).
 
    **What to do next**
    Three concrete, specific items — not generic advice. Examples: "👍 issue
@@ -707,8 +748,10 @@ Finale:**
 - [ ] Step 5: Vocabulary grep clean — zero hits for forbidden terms across
   all committed files
 - [ ] Step 6: `.claude/` confirmed git-ignored
-- [ ] Step 7: Cleanup offer made (user accepted or declined)
-- [ ] Step 8: Summary presented
+- [ ] Step 7: Release for the `manifest.json` version exists in the extension
+  repo, or the step was skipped because `local_only: true`
+- [ ] Step 8: Cleanup offer made (user accepted or declined)
+- [ ] Step 9: Summary presented
 
 Do not present the Summary until every box above is checked. If any
 step was skipped, complete it now — do not ask the user whether to skip.

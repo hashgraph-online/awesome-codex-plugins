@@ -1,0 +1,8 @@
+{
+  "name": "vpai-plugin",
+  "private": true,
+  "scripts": {
+    "compress": "bash scripts/compress.sh",
+    "compress:openclaw": "bash scripts/compress-openclaw.sh"
+  }
+}

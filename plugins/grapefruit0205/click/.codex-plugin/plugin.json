@@ -1,0 +1,41 @@
+{
+  "name": "click",
+  "version": "0.96.1",
+  "description": "Incremental verification for coding agents: propose complete test shards, rerun affected checks, and reuse authoritative passing evidence with optional Guarded approval boundaries.",
+  "author": {
+    "name": "Junseok Pak",
+    "url": "https://github.com/grapefruit0205"
+  },
+  "homepage": "https://github.com/grapefruit0205/click",
+  "repository": "https://github.com/grapefruit0205/click",
+  "license": "MIT",
+  "keywords": [
+    "natural-language",
+    "intent-compiler",
+    "design-language",
+    "software-design",
+    "engineering-directives",
+    "one-shot",
+    "anti-loop",
+    "verification",
+    "vibe-coding"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Click",
+    "shortDescription": "Rerun affected checks; safely reuse the rest.",
+    "composerIcon": "./assets/icon.svg",
+    "longDescription": "Click provides incremental verification for coding agents. Evidence mode records mutation revisions and exact verification receipts, then deterministically plans which sources must run and which passing results remain reusable. Authority precedence is exact same-revision evidence, complete runtime dependency observation, then an unchanged committed safe-change policy; ambiguous bindings always rerun. Supported JavaScript checks can also use separately attested conditional receipts, with unproven input completeness disclosed and known dynamic inputs excluded. Evidence Shards split a broad suite only when their inventory exactly covers parent discovery. An opt-in setup flow analyzes supported unittest, pytest, Vitest 5, and Jest 30 commands, skips uneconomic small suites, emits reviewable complete policies, and falls back to the parent command when a complete partition cannot be verified. Node, npm, Go, and content profiles retain parent execution with exact runtime and input bindings. Input-fingerprinted cat, sed, and rg caching can reduce repeated inspection but never creates verification authority. A resident Hook worker reduces repeated Python startup while preserving per-event isolation and one-use claims. Actual execution and authoritative reuse stay separate from Shadow telemetry and estimated avoided time. Native observation remains fail-closed when a backend, companion, input, or process tree is incomplete. For higher-risk work, optional Guarded mode binds execution to one plain-language approval contract. Click prevents runner replay, tampering, stale evidence, verification-time repository mutation, and incompatible cache reuse without claiming code correctness or test sufficiency.",
+    "developerName": "Junseok Pak",
+    "category": "Productivity",
+    "capabilities": [
+      "Lifecycle hooks"
+    ],
+    "websiteURL": "https://github.com/grapefruit0205/click",
+    "defaultPrompt": [
+      "Use Click Evidence mode to work normally and return a revision-aware evidence receipt.",
+      "Use Click Guarded mode for a human-readable approval boundary on higher-risk work.",
+      "Show Click's technical contract JSON only when I ask for details."
+    ]
+  }
+}

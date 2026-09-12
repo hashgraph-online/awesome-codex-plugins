@@ -1,0 +1,4 @@
+interface:
+  display_name: "KERNEL Marketing Site"
+  short_description: "Shape honest, focused marketing websites"
+  default_prompt: "Use $marketing-site to shape an honest, focused marketing website."

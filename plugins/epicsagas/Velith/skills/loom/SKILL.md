@@ -1,174 +1,118 @@
 ---
 name: loom
-description: "AI-native publishing system: autonomous multi-phase workflows from ideation to export. Fiction, non-fiction, and technical books. Trigger: /velith or book-related requests."
+description: "Velith router. Detects book project state and runs the next phase of the 6-phase pipeline (onboarding → ideation → outlining → drafting → editing → publishing) to the human-quality bar. Trigger: /loom, /velith, or any book-writing request."
+argument-hint: "[onboard|ideate|outline|draft|edit|publish|status] [--force]"
 ---
 
-# Velith — AI-Native Publishing System
+# Velith — Books to the Human-Quality Bar
 
-## Overview
+Velith produces books a cold reader cannot distinguish from a competent human author's work. Six phases, ten agents, one standard: `quality-bar.md` in this directory. Read it once per session before doing any writing or editing work.
 
-Build books like software. 6-phase pipeline from blank page to published book, with dedicated skills, agents, and quality gates at every stage.
+`${CLAUDE_PLUGIN_ROOT}` is this plugin's install directory. On hosts that do not substitute it, use the directory that contains `velith.mjs`.
 
-```
-Phase 0: Onboarding → Phase 1: Ideation → Phase 2: Outlining → Phase 3: Drafting → Phase 4: Editing → Phase 5: Publishing
-```
+## Operating principles (supersede earlier Velith conventions)
 
-## Genre Support
+1. **Full-manuscript context.** Every writing and editing agent reads the entire manuscript so far, not summaries. Frontier models carry 1M tokens; a novel is under 200K. Voice drift and contradictions come from partial context. `bible.md` is an index and ledger, not a substitute for reading.
+2. **Sequential drafting for narrative work.** Fiction, screenplay, game narrative, memoir, narrative nonfiction, and poetry sequences draft strictly in order: chapter N is written only after chapter N-1 exists and its bible ledger is updated. Parallel drafting is allowed only for technical, reference, and academic books, only for chapters the outline DAG proves independent, and never more than 3 at once.
+3. **Voice lock before volume.** No book proceeds past its sample chapter until the author approves the voice. Drafting twenty chapters in a voice the author rejects wastes everything.
+4. **Draft, critique, revise.** No chapter is saved after a single pass. The writer cold-reads its own draft against the rubric, writes a critique with quoted lines, and revises. Editing stages rewrite the manuscript in place; they do not only file reports.
+5. **Grounded claims.** Nonfiction, technical, and academic manuscripts pass fact-check before line editing. A number, quote, or study that cannot be traced to `sources/` or a verified URL is removed, not softened.
+6. **Reader gate.** Phase 4 ends with a cold read by simulated target readers. Publishing requires a PASS verdict or an explicit author override.
+7. **One look per book.** Images follow `art-bible.md` the way prose follows `STYLE.md`. Prompts are compiled from it, diagrams and drawings are code-rendered, every image passes vision QA, and a look lock precedes volume. See `book-visuals`.
+8. **Author checkpoints.** The pipeline stops for the author at six points: concept selection, outline approval, voice lock, look lock (if the book has images), developmental restructures, and readiness verdict. Everything else runs without asking.
 
-| Genre | Key Differences | Reference File |
-|-------|----------------|----------------|
-| Fiction | Plot structure (Save the Cat!/Snowflake), character bible, scene beats | `book-fiction` |
-| Non-Fiction | Problem-solution structure, persona-driven, evidence hierarchy | `book-nonfiction` |
-| Technical | Concept progression (novice→expert), code examples, diagrams, API docs | `book-technical` |
-| Screenplay | 3-act + sequence method, dialogue/action, A/B story | `book-screenplay` |
-| Poetry | Form-driven (sonnet/haiku/free verse), imagery systems, collection arc | `book-poetry` |
-| Game | Quest trees, branching dialogue, lore bible, flag system | `book-game` |
-| Academic | IMRAD, literature review, argument chains, citation practices | `book-academic` |
-| Custom | Compose patterns from any genre via `book-genre-creator` | `book-genre-creator` |
+## Phase router
 
-## Phase Router
+Run `node ${CLAUDE_PLUGIN_ROOT}/velith.mjs scan <project-dir>` to get project state, then route:
 
-When `/velith` is invoked without arguments, detect current project state and route:
+| State | Route |
+|-------|-------|
+| No `PRD.md` | Phase 0 `/book-init` |
+| `PRD.md` but no `ideation.md` and no `outline.md` | Phase 1 `/book-ideation` |
+| `ideation.md` but no `outline.md` (or outline lacks `## Approval`) | Phase 2 `/book-outline` |
+| `outline.md` + `bible.md`, no drafts | Phase 3 `/book-draft` (starts with voice lock) |
+| Drafts exist, `STYLE.md` lacks `## Voice Lock` | Phase 3 voice lock step, then continue drafting |
+| Drafts incomplete | Phase 3 `/book-draft` (resume) |
+| All chapters drafted, no `edits/readiness-report.md` with `verdict: PASS` | Phase 4 `/book-edit` |
+| Readiness PASS, no `publish/book.epub` | Phase 5 `/book-publish` |
+| Everything present | Report status; offer `/book-illustrate`, re-edit, or new project |
 
-1. **No project exists** → Run Phase 0 (Onboarding)
-2. **Project exists, no outline** → Run Phase 1 (Ideation)
-3. **Outline exists, no drafts** → Run Phase 2 (Outlining) validation, then Phase 3
-4. **Drafts exist, incomplete** → Continue Phase 3 (Drafting)
-5. **All drafts complete** → Run Phase 4 (Editing)
-6. **Editing complete** → Run Phase 5 (Publishing)
+With an explicit argument (`/loom draft`), run that phase regardless of detection, but still enforce the gates: drafting refuses to run without an approved outline; publishing refuses without readiness PASS unless `--force`.
 
-Detection: check for `drafts/` directory, `outline.md`, `STYLE.md`, `PRD.md` in current project.
+## Phases at a glance
 
-## Phase Details
+| Phase | Skill | Agents | Author checkpoint | Exit artifact |
+|-------|-------|--------|-------------------|---------------|
+| 0 Onboarding | `book-init` | — | — | `PRD.md`, `STYLE.md` (with voice fingerprint), `sources/INDEX.md` |
+| 1 Ideation | `book-ideation` | — | Concept selection | `ideation.md` with chosen concept + reader promise |
+| 2 Outlining | `book-outline` | `book-architect` | Outline approval | `outline.md` (approved), `bible.md` |
+| 3 Drafting | `book-draft` | `scene-generator` (fiction), `chapter-writer`, `continuity-editor` | Voice lock | `drafts/ch*.md`, `bible.md` ledger, `.velith/critiques/` |
+| 4 Editing | `book-edit` | `fact-checker` (nonfiction), `continuity-editor`, `style-doctor`, `beta-reader` | Developmental restructures, readiness verdict | `edits/01-06*.md`, revised `drafts/`, `edits/readiness-report.md`, `edits/editorial-report.md` |
+| 3-5 Visuals | `book-visuals` | `art-director`, `figure-engineer`, `illustrator`, `cover-designer` | Look lock | `art-bible.md`, `visuals/` |
+| 5 Publishing | `book-publish` | `cover-designer`, `marketing-expert` | — | `publish/` bundle |
 
-### Phase 0: Onboarding (`/velith onboard`)
-- Genre selection (fiction/non-fiction/technical/screenplay/poetry/game/academic/custom)
-- Target audience definition
-- Language selection
-- Project directory setup
-- Source material scan (existing notes, articles, code)
-- Generate `STYLE.md` (voice, tone, conventions)
-- Generate `PRD.md` (book requirements)
+## Genre support
 
-### Phase 1: Ideation (`/velith ideate`)
-- Market research (competing titles, gaps)
-- Core concept distillation (elevator pitch)
-- Unique value proposition
-- Scope definition (chapters, word count, timeline)
-- Save to `ideation.md`
+| Genre | Skill | What it adds |
+|-------|-------|--------------|
+| Fiction (all subgenres) | `book-fiction` | Structure options, scene craft, character depth, the fiction-specific tells |
+| Nonfiction | `book-nonfiction` | Argument architecture, evidence discipline, the nonfiction tells |
+| Technical | `book-technical` | Concept gradient, runnable code, failure-first teaching |
+| Screenplay | `book-screenplay` | Format, sequence method, dialogue subtext |
+| Poetry | `book-poetry` | Form, line, collection architecture |
+| Game narrative | `book-game` | Branching, quest design, lore bible |
+| Academic | `book-academic` | IMRAD, citation integrity, argument chains |
+| Custom | `book-genre-creator` | Compose a genre spec from the above |
 
-### Phase 2: Outlining (`/velith outline`)
-- Generate full chapter outline with dependencies
-- Per-chapter specs: title, hook, key concepts, word target, difficulty level
-- Cross-chapter reference map
-- Save to `outline.md`
-- Agent: `book-architect` validates structure
-
-### Phase 3: Drafting (`/velith draft`)
-- Plan-Then-Execute pattern: chapter-by-chapter generation
-- Each chapter gets: outline context + previous chapter summary + style guide
-- Parallel chapter generation via subagents (max 4 concurrent)
-- Agent: `scene-generator` decomposes chapters into scenes first (fiction only)
-- Agent: `chapter-writer` generates each chapter (from scenes if available)
-- Agent: `continuity-editor` checks cross-chapter consistency
-- Quality gate: line count, frontmatter, style compliance
-
-### Phase 4: Editing (`/velith edit`)
-- 5-stage editing pipeline:
-  1. Editorial Assessment (macro structure)
-  2. Developmental Edit (flow, pacing, gaps)
-  3. Line Edit (sentence-level clarity)
-  4. Copy Edit (grammar, consistency)
-  5. Proofread (final typos)
-- Agent: `style-doctor` enforces voice consistency
-- Generate editing report with severity-ranked issues
-
-### Phase 5: Publishing (`/book-publish`)
-- Format conversion (EPUB/PDF/MOBI/TXT/MD via Pandoc + Calibre)
-- Agent: `cover-designer` → concepts + image prompts
-- Agent: `illustrator` → interior illustration plan (optional, after drafting)
-- Agent: `marketing-expert` → launch strategy
-- Metadata, title candidates, KDP checklist
-
-### Interior Illustrations (`/book-illustrate`)
-- Can run after Phase 3 (Drafting) or during Phase 5 (Publishing)
-- Agent: `illustrator` → scene extraction, style bible, prompts
-- Produces illustration plan with placement metadata
-- Integrates image references into chapter drafts
-
-## Project Structure
-
-```
-{project-dir}/
-├── PRD.md              # Book requirements (Phase 0)
-├── STYLE.md            # Voice, tone, conventions (Phase 0)
-├── ideation.md         # Ideas, market research (Phase 1)
-├── outline.md          # Full chapter outline (Phase 2)
-├── drafts/             # Chapter drafts (Phase 3)
-│   ├── ch00-foreword.md
-│   ├── ch01-xxx.md
-│   └── ...
-├── edits/              # Editing reports (Phase 4)
-│   └── editorial-report.md
-├── publish/            # Final outputs (Phase 5)
-│   ├── book.epub
-│   ├── book.pdf
-│   └── metadata.yaml
-└── sources/            # Source material references
-```
-
-## Sub-Skills
-
-Each phase has a dedicated skill in `skills/book-{name}/SKILL.md`:
-
-| Skill | Phase | Description |
-|-------|-------|-------------|
-| `book-init` | 0 | Project setup, genre selection, STYLE.md + PRD.md |
-| `book-ideation` | 1 | Market research, concept distillation, scope |
-| `book-outline` | 2 | Chapter outline with dependencies and cross-references |
-| `book-draft` | 3 | Plan-Then-Execute chapter generation |
-| `book-edit` | 4 | 5-stage editing pipeline |
-| `book-publish` | 5 | EPUB/PDF/MOBI packaging, cover, marketing |
-| `book-illustrate` | 3-5 | Interior illustrations, scene extraction, prompts |
-| `book-status` | — | Project status dashboard and web UI |
-| `book-fiction` | — | Fiction patterns (Save the Cat!, character bible) |
-| `book-nonfiction` | — | Non-fiction patterns (problem-solution, persona) |
-| `book-technical` | — | Technical book patterns (concept progression, code) |
-| `book-screenplay` | — | Screenplay patterns (3-act + sequence method, dialogue) |
-| `book-poetry` | — | Poetry patterns (form types, imagery systems, collection) |
-| `book-game` | — | Game scenario patterns (quest trees, branching, lore) |
-| `book-academic` | — | Academic patterns (IMRAD, lit review, argument chains) |
-| `book-genre-creator` | — | Meta-skill for genre selection and custom genre creation |
+Agents read the genre skill for the project's genre (`${CLAUDE_PLUGIN_ROOT}/skills/book-{genre}/SKILL.md`) at the start of every task. Custom genres read `genre-custom.md` in the project.
 
 ## Agents
 
-| Agent | Role | When |
-|-------|------|------|
-| `book-architect` | Structure validation, outline generation | Phase 2 |
-| `chapter-writer` | Chapter draft generation | Phase 3 |
-| `continuity-editor` | Cross-chapter consistency check | Phase 3-4 |
-| `style-doctor` | Voice and tone consistency | Phase 4 |
-| `scene-generator` | Scene-level breakdown with GMC+RDD (fiction only) | Phase 3, fiction |
-| `cover-designer` | Cover concepts + image generation prompts | Phase 5 |
-| `illustrator` | Interior illustrations — scene extraction, style, prompts | Phase 3-5 |
-| `marketing-expert` | Reader personas, channel strategy, launch calendar | Phase 5 |
+| Agent | Phase | Job in one line |
+|-------|-------|-----------------|
+| `book-architect` | 2 | Turns concept into an approved outline and a bible; scores structure |
+| `scene-generator` | 3 (fiction) | Plans scenes for one chapter: purpose, turn, subtext, exit. Plans, not prose |
+| `chapter-writer` | 3 | Drafts one chapter in full context, critiques it, revises it, updates the bible |
+| `continuity-editor` | 3-4 | Finds contradictions and repetitions across the whole manuscript against the bible |
+| `fact-checker` | 4 (nonfiction) | Builds a claim ledger, verifies every fact, removes what cannot be verified |
+| `style-doctor` | 4 | Measures and rewrites: AI tells, voice drift, rhythm uniformity |
+| `beta-reader` | 4 | Cold reads as target readers; issues the readiness verdict |
+| `art-director` | 2-5 | Writes the art bible, runs the look lock, reviews every image with vision, signs off the contact sheet |
+| `figure-engineer` | 3-5 | Code-rendered diagrams, charts, technical drawings, maps' base layers, ornaments |
+| `illustrator` | 3-5 | Diffusion illustrations from the art bible with compiled prompts and vision QA |
+| `cover-designer` | 5 | Cover concepts from the art bible, formats, marketing variants |
+| `marketing-expert` | 5 | Positioning, personas, launch calendar |
 
-## Quality Gates
+## Project structure
 
-Each phase has mandatory completion criteria before proceeding:
+```
+{project-dir}/
+├── PRD.md              # Requirements + reader promise (Phase 0-1)
+├── STYLE.md            # Voice fingerprint, rules, voice lock record (Phase 0, 3)
+├── ideation.md         # Concepts, comps, chosen concept (Phase 1)
+├── outline.md          # Approved chapter specs + dependency map (Phase 2)
+├── bible.md            # Characters/concepts, world/term rules, timeline, per-chapter ledger (Phase 2+)
+├── art-bible.md        # Visual identity: look, palette, constants, figure system, look lock (Phase 2+)
+├── sources/            # Reference material + INDEX.md (Phase 0+)
+├── drafts/             # ch{NN}-{slug}.md, ch{NN}-scenes.md (Phase 3); revised in place (Phase 4)
+├── visuals/            # plan.md, manifest.json, figures/, illustrations/, photos/, ref/, prompts/
+├── edits/              # 00-fact-check.md … 06-readiness-report.md, editorial-report.md (Phase 4)
+├── publish/            # EPUB/PDF/etc., metadata, cover/, marketing (Phase 5)
+└── .velith/            # status.json, art-bible.json, critiques/, snapshots/, metrics.json
+```
 
-| Phase | Gate | Evidence |
-|-------|------|----------|
-| 0 | Project initialized | PRD.md + STYLE.md exist |
-| 1 | Concept validated | Elevator pitch + 3 competing titles analyzed |
-| 2 | Outline complete | All chapters specified + cross-reference map |
-| 3 | Drafts complete | All chapters meet word target + frontmatter |
-| 4 | Editing complete | 5-stage pipeline passed + <5 issues remaining |
-| 5 | Publish ready | EPUB/PDF generated + metadata complete |
+## Status and tooling
 
-## Integration with Existing Tools
+- `node ${CLAUDE_PLUGIN_ROOT}/velith.mjs scan <dir> [--ui]` — project state, dashboard data
+- `node ${CLAUDE_PLUGIN_ROOT}/velith.mjs metrics <file|dir>` — sentence/paragraph statistics, repeated phrases, AI-tell counts (JSON)
+- `node ${CLAUDE_PLUGIN_ROOT}/velith.mjs snapshot <dir> <label>` — copy `drafts/` to `.velith/snapshots/` before a rewriting stage
+- `node ${CLAUDE_PLUGIN_ROOT}/velith.mjs images compile|check|render <dir> [id]` — model-agnostic image prompts from the art bible, asset validation, figure rendering
+- `node ${CLAUDE_PLUGIN_ROOT}/velith.mjs agents <id> <running|complete|error> [task]` — agent status for the dashboard
 
-- **alcove**: Search existing project docs as source material
-- **episteme**: Validate technical content against knowledge graph
-- **discover**: Run problem discovery for book concept
-- **council**: Get multi-voice input on structure/outline decisions
+Every skill ends with `scan` so the dashboard stays current.
+
+## Integrations (optional)
+
+- **alcove** — search the author's document vault as source material during `/book-init` and drafting.
+- **humanize-korean** — if installed, style-doctor may run it as a final Korean polish after its own pass.
+- **Image generation MCPs** — `cover-designer` and `illustrator` produce prompts; if an image tool is available they can execute them.

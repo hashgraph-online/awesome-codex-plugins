@@ -632,7 +632,7 @@ def validate_voltage_levels(ctx: AnalysisContext, level_shifters: list[dict] | N
             else:
                 continue
 
-        refs = list(set(p['ref'] for p in ic_pins_on_net))
+        refs = sorted(set(p['ref'] for p in ic_pins_on_net))
         findings.append(make_finding(
             detector='validate_voltage_levels',
             rule_id='VM-001',
@@ -1022,7 +1022,7 @@ def validate_power_sequencing(
                     summary=f'Circular enable dependency: {" -> ".join(cycle)}',
                     description=f'Power regulator enable chain forms a cycle: {" -> ".join(cycle)}. No regulator in the cycle can start.',
                     severity='error', confidence='deterministic', evidence_source='topology',
-                    components=list(set(cycle)),
+                    components=sorted(set(cycle)),
                     recommendation='Break the cycle by connecting one enable pin to an always-on rail.',
                     impact='System fails to power on', report_section='Power Integrity',
                     provenance=make_provenance('ps_sequence_check', 'heuristic'),

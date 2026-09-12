@@ -1,9 +1,9 @@
 {
   "name": "uizze",
-  "version": "1.2.6",
-  "description": "If your UI screams AI, your app is dead. Stop UI slop with 800,000+ real web and iOS screens, a product-specific design contract, and a hard finish gate.",
+  "version": "1.2.16",
+  "description": "UI design that stands out",
   "author": {
-    "name": "UIZZE",
+    "name": "Uizze",
     "email": "business@uizze.com",
     "url": "https://uizze.com"
   },
@@ -18,29 +18,24 @@
     "agent-skill"
   ],
   "skills": "./skills/",
-  "mcpServers": {
-    "uizze-preview": {
-      "type": "http",
-      "url": "https://uizze.com/mcp/preview"
-    }
-  },
   "interface": {
-    "displayName": "UIZZE",
-    "shortDescription": "Stop UI slop before it ships",
-    "longDescription": "If your UI screams AI, your app is dead. Build distinctive UI with 800,000+ real web and iOS screens, a product-specific design contract, and a hard finish gate.",
+    "displayName": "Uizze",
+    "shortDescription": "UI design that stands out",
+    "longDescription": "Uizze gives coding agents a free anti-ui-slop Skill and optional full MCP access to live UI references and license-clear materials. Use the skill to inspect the product and design system, write a design contract, cover required states, and run a bounded finish gate. The MCP answers one concrete unresolved UI question with strong full-screen references and finds license-clear materials for a concrete role.",
     "composerIcon": "./plugins/openai-directory/uizze/assets/uizze-logo.png",
-    "developerName": "UIZZE",
+    "logo": "./plugins/openai-directory/uizze/assets/uizze-logo.png",
+    "developerName": "Uizze",
     "category": "Developer Tools",
     "capabilities": [
       "Read"
     ],
-    "websiteURL": "https://uizze.com",
+    "websiteURL": "https://uizze.com/ai-ui-slop",
     "privacyPolicyURL": "https://uizze.com/privacy",
     "termsOfServiceURL": "https://uizze.com/terms",
     "defaultPrompt": [
-      "Use UIZZE to kill the generic defaults and plan this interface from real product evidence.",
-      "Run the UIZZE finish gate and fix every blocking issue before shipping.",
-      "Use UIZZE to make this interface unmistakably belong to this product."
+      "Help me ground a new interface in Uizze real screens.",
+      "Find strong full-screen UI references for this unresolved interface question.",
+      "Run the bounded UI finish gate on my rendered interface."
     ],
     "brandColor": "#111111"
   }

@@ -482,7 +482,7 @@ def detect_ethernet_interfaces(ctx: AnalysisContext) -> list[dict]:
             visited_refs = {phy["reference"]}
             found_magnetics = []
             found_connectors = []
-            frontier = list(phy_diff_nets)
+            frontier = sorted(phy_diff_nets)
 
             for _ in range(4):  # max 4 hops
                 if not frontier:
@@ -796,7 +796,7 @@ def detect_hdmi_dvi_interfaces(ctx: AnalysisContext) -> list[dict]:
         # Search for termination resistors (80–120Ω) on those nets
         term_resistors: list[dict] = []
         seen_term_refs: set[str] = set()
-        for net_name in tmds_nets:
+        for net_name in sorted(tmds_nets):
             if net_name not in ctx.nets:
                 continue
             for p in ctx.nets[net_name]["pins"]:
@@ -1115,7 +1115,7 @@ def detect_rf_chains(ctx: AnalysisContext) -> list[dict]:
         for i, ref_a in enumerate(rf_ref_list):
             for ref_b in rf_ref_list[i+1:]:
                 shared = rf_nets_map.get(ref_a, set()) & rf_nets_map.get(ref_b, set())
-                signal_shared = [n for n in shared if not n.startswith("__unnamed_")]
+                signal_shared = sorted(n for n in shared if not n.startswith("__unnamed_"))
                 if shared:
                     connections.append({
                         "from": ref_a,
@@ -1381,7 +1381,7 @@ def detect_rf_matching(ctx: AnalysisContext) -> list[dict]:
         visited_nets = set(ant_nets)
         visited_refs = {ant["reference"]}
         matching_components = []
-        frontier = list(ant_nets)
+        frontier = sorted(ant_nets)
         target_ic = None
 
         for _ in range(6):  # Max 6 hops
@@ -1622,7 +1622,7 @@ def detect_bms_systems(ctx: AnalysisContext) -> list[dict]:
 
         balance_resistors = []
         cell_net_names = {cp["net"] for cp in valid_cell_pins}
-        for net_name in cell_net_names:
+        for net_name in sorted(cell_net_names):
             if net_name not in ctx.nets:
                 continue
             for p in ctx.nets[net_name]["pins"]:
@@ -1655,7 +1655,7 @@ def detect_bms_systems(ctx: AnalysisContext) -> list[dict]:
                     seen_fet_refs.add(p["component"])
 
         ntc_sensors = []
-        for net_name in bms_nets:
+        for net_name in sorted(bms_nets):
             if not net_name or net_name not in ctx.nets:
                 continue
             for p in ctx.nets[net_name]["pins"]:
@@ -3861,20 +3861,20 @@ def detect_display_interfaces(ctx: AnalysisContext) -> list[dict]:
 
             # Find control pins
             dc_net = None
-            for pname in _DISPLAY_CONTROL_PINS:
+            for pname in sorted(_DISPLAY_CONTROL_PINS):
                 if pname in pin_nets:
                     dc_net = pin_nets[pname]
                     break
 
             reset_net = None
-            for pname in _DISPLAY_RESET_PINS:
+            for pname in sorted(_DISPLAY_RESET_PINS):
                 if pname in pin_nets:
                     reset_net = pin_nets[pname]
                     break
 
             # Find backlight
             backlight = None
-            for pname in _BACKLIGHT_PINS:
+            for pname in sorted(_BACKLIGHT_PINS):
                 if pname in pin_nets:
                     bl_net = pin_nets[pname]
                     backlight = {"pin": pname, "net": bl_net}
@@ -3934,7 +3934,7 @@ def detect_display_interfaces(ctx: AnalysisContext) -> list[dict]:
                     break
 
             reset_net = None
-            for pname in _DISPLAY_RESET_PINS:
+            for pname in sorted(_DISPLAY_RESET_PINS):
                 if pname in pin_nets:
                     reset_net = pin_nets[pname]
                     break
@@ -4173,11 +4173,11 @@ def detect_level_shifters(ctx: AnalysisContext) -> list[dict]:
         # Find supply pins
         vcca_net = None
         vccb_net = None
-        for pname in _VCCA_PINS:
+        for pname in sorted(_VCCA_PINS):
             if pname in pin_nets:
                 vcca_net = pin_nets[pname]
                 break
-        for pname in _VCCB_PINS:
+        for pname in sorted(_VCCB_PINS):
             if pname in pin_nets:
                 vccb_net = pin_nets[pname]
                 break
@@ -4606,7 +4606,7 @@ def detect_led_driver_ics(ctx: AnalysisContext) -> list[dict]:
 
         # Find current set resistor
         current_set = None
-        for pname in _LED_CURRENT_SET_PINS:
+        for pname in sorted(_LED_CURRENT_SET_PINS):
             if pname in pin_nets:
                 net = pin_nets[pname]
                 if net in ctx.nets:
@@ -4720,7 +4720,7 @@ def detect_rtc_circuits(ctx: AnalysisContext,
         external_crystal = crystal_by_ic.get(ref)
         # Also check by scanning crystal pins on this IC
         if not external_crystal:
-            for pname in all_pins:
+            for pname in sorted(all_pins):
                 if any(k in pname for k in ("XTAL", "OSC", "X1", "X2", "XI", "XO",
                                              "X32K", "XT1", "XT2")):
                     net = pin_nets[pname]
@@ -4737,7 +4737,7 @@ def detect_rtc_circuits(ctx: AnalysisContext,
 
         # Battery backup
         battery_backup = None
-        for pname in _VBAT_PINS:
+        for pname in sorted(_VBAT_PINS):
             if pname in pin_nets:
                 vbat_net = pin_nets[pname]
                 if vbat_net in ctx.nets:
@@ -4759,7 +4759,7 @@ def detect_rtc_circuits(ctx: AnalysisContext,
         # Interrupt pin
         interrupt_net = None
         interrupt_connected = False
-        for pname in _RTC_INT_PINS:
+        for pname in sorted(_RTC_INT_PINS):
             if pname in pin_nets:
                 interrupt_net = pin_nets[pname]
                 if interrupt_net in ctx.nets:
@@ -4774,7 +4774,7 @@ def detect_rtc_circuits(ctx: AnalysisContext,
 
         # SQW/CLKOUT pin
         sqw_net = None
-        for pname in _RTC_SQW_PINS:
+        for pname in sorted(_RTC_SQW_PINS):
             if pname in pin_nets:
                 sqw_net = pin_nets[pname]
                 break
@@ -5205,7 +5205,7 @@ def detect_thermocouple_rtd(ctx: AnalysisContext) -> list[dict]:
             # RTD interface
             # Find reference resistor
             ref_resistor = None
-            for pname in _RTD_REF_PINS:
+            for pname in sorted(_RTD_REF_PINS):
                 if pname in pin_nets:
                     net = pin_nets[pname]
                     if net in ctx.nets:
@@ -5324,8 +5324,10 @@ def validate_power_sequencing(ctx: AnalysisContext,
         Trailing digits are also stripped for base-name matching (e.g.
         ``EN1`` matches if ``"EN"`` is in *names*).
         """
-        # First pass: direct lookup (fast path for exact matches)
-        for pname in names:
+        # First pass: direct lookup (fast path for exact matches). Sorted so
+        # that multi-channel parts (EN1/EN2/EN3 all present) resolve to the
+        # same pin on every run instead of following set hash order.
+        for pname in sorted(names):
             if pname in pin_nets:
                 return pin_nets[pname]
         # Second pass: normalize raw pin names and match against base names
@@ -6147,7 +6149,7 @@ def detect_headphone_jack(ctx: AnalysisContext) -> list[dict]:
             if shared:
                 entry['associated_codec'] = {'ref': codec_ref, 'value': codec.get('value', '')}
                 entry['components'].append(codec_ref)
-                entry['nets'] = list(shared)[:5]
+                entry['nets'] = sorted(shared)[:5]
                 break
         if not det_net and entry['associated_codec']:
             entry['recommendation'] = (

@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "wavespeed": {
+      "title": "WaveSpeed",
+      "description": "Search the live WaveSpeed model catalog, inspect schemas, quote prices, upload files, and run image, video, audio and 3D generation.",
+      "command": "npx",
+      "args": ["-y", "@wavespeed/mcp"]
+    }
+  }
+}

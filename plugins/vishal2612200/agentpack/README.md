@@ -395,7 +395,7 @@ guide.
 
 ## Status
 
-Alpha: `0.4.3`.
+Alpha: `0.4.4`.
 
 Python and JavaScript/TypeScript currently have the strongest support. APIs may
 change before 1.0. Platform targets are macOS, Linux, and Windows PowerShell

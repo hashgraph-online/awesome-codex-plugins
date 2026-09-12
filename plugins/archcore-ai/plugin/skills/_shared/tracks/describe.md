@@ -12,6 +12,14 @@ Decision-shaped requests ("we chose X", standards, proposals) belong to the
 decision track (`skills/_shared/tracks/decision.md`); the `document` skill
 classifies before entering this file.
 
+## Callable mode
+
+WHEN the calling skill pre-fills the scope — the subject, its files, and the
+evidence — `describe.read` runs question-free, and its entry conditions are
+satisfied by the pre-filled scope. The conductor uses this entry on an
+amendment route that finds no covering `spec` (sequencing rule 11 in
+`skills/_shared/delta-routing.md`).
+
 ## Type heuristics
 
 Ported from the v1 capture flow. Applied with the `describe.read` evidence in
@@ -55,14 +63,16 @@ was `adr`, a type the decision track now owns.
   - taxonomy: `Functional Scope & Behavior` from `skills/_shared/coverage-taxonomy.md`. [assumption] The v1 flow named no coverage category for its type question.
   - budget: 1 — the ported type question: "Is this primarily a decision, a contract/behavior spec, reference material, or instructions?"
 - Produces:
-  - type: `spec`, `doc`, or `guide` per the type heuristics; the comprehensive route produces more than one document.
+  - type: `spec`, `doc`, or `guide` per the type heuristics; the comprehensive route produces more than one document, and an over-cap subject one `spec` per separable sub-surface (`skills/_shared/spec-contract.md` "Over the cap").
   - status: draft
   - relations: `related` to the existing subject documents found at `describe.read` — the v1 relate step names the link to existing documents but not the relation type [assumption]; `related` between documents produced together; no relation to a global document per `skills/_shared/globals.md`.
 - Exit checks:
   - blocking: a draft of the chosen type exists, created via `create_document`.
   - blocking: a `spec` draft carries the sections `skills/_shared/spec-contract.md` requires, composed after reading that contract and `skills/_shared/precision-rules.md`.
-  - blocking: a `doc` draft covers Overview, Content, and Examples; a `guide` draft covers Prerequisites, numbered Steps, Verification, and Common Issues — ported v1 composition targets; no shared contract exists for these two types.
-- Next: `describe.clarify`; the decision track (`skills/_shared/tracks/decision.md`) when the type answer is "a decision".
+  - blocking: a `spec` draft over that contract's body cap was decomposed by separable sub-surface, or kept whole with the excess reported, per its "Over the cap" rules. Normative content is never deleted to fit the cap.
+  - blocking: a `doc` draft covers Overview, Content, and Examples — a ported v1 composition target; no shared contract exists for this type.
+  - blocking: a `guide` draft carries every section `skills/_shared/guide-contract.md` requires, composed after reading that contract.
+- Next: `describe.clarify`. WHEN the type answer is "a decision", the executing skill records it via the decision track (`skills/_shared/tracks/decision.md`) instead of continuing on this track.
 
 ### gate: describe.clarify
 

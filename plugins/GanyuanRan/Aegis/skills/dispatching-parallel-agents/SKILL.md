@@ -44,6 +44,22 @@ digraph when_to_use {
 - Need to understand full system state
 - Agents would interfere with each other
 
+### Event-Based Opportunities
+
+Parallel investigation may also be considered after the minimum baseline is
+understood when one of these events occurs:
+
+- evidence or test results conflict and can be checked independently;
+- a high-risk change needs an independent, read-only compatibility or impact review;
+- a blocked attempt can be retried with materially different context or model;
+- separate host/install surfaces can be inspected without shared writes.
+
+These events do not override the safety gates. Unknown dependencies, shared
+transactions or resources, stale workspace state, untrusted input boundaries,
+uncertain host capability, or results that cannot be compactly synthesized
+must stay inline. A parallel child is an investigator, not a second Git owner
+or a completion authority.
+
 ## The Pattern
 
 ### 1. Identify Independent Domains

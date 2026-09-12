@@ -1,6 +1,6 @@
 {
   "name": "langfuse",
-  "version": "0.10.1",
+  "version": "0.11.0",
   "description": "Langfuse observability - query traces, debug exceptions, analyze sessions, manage prompts via MCP tools",
   "author": {
     "name": "Aviv Sinai",

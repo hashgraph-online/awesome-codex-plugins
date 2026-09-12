@@ -1,0 +1,41 @@
+{
+  "name": "centricmem-skill",
+  "version": "0.21.52",
+  "description": "Hosted CentricMem librarian: organise and retrieve Markdown memory via host MCP.",
+  "author": {
+    "name": "Dr. Z",
+    "email": "zeyu@dr.com",
+    "url": "https://github.com/zeyu-j"
+  },
+  "homepage": "https://centricmem.com",
+  "repository": "https://github.com/zeyu-j/centricmem-skill",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "keywords": [
+    "centricmem",
+    "mcp",
+    "memory",
+    "skill",
+    "agent-plugins",
+    "agent-skills"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json",
+  "interface": {
+    "displayName": "CentricMem",
+    "shortDescription": "Hosted librarian for agent memory",
+    "longDescription": "Organise and retrieve Markdown memory on the hosted CentricMem librarian. After install, if cm_* are missing send https://centricmem.com/login?signup=1 (or /connect?device= when centricmem is on PATH); never paste keys in chat.",
+    "developerName": "Dr. Z",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://centricmem.com",
+    "composerIcon": "./assets/icon.svg",
+    "defaultPrompt": [
+      "File this session into CentricMem.",
+      "Search my CentricMem shelves for that decision.",
+      "Connect this agent to the CentricMem librarian."
+    ]
+  }
+}

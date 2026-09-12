@@ -1,0 +1,20 @@
+{
+  "name": "codex-goal-progress-source-runtime",
+  "version": "0.3.7",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "packageManager": "pnpm@11.19.0",
+  "scripts": {
+    "build": "node build-runtime.mjs"
+  },
+  "dependencies": {
+    "@lucide/icons": "1.37.0",
+    "@modelcontextprotocol/sdk": "1.30.0",
+    "esbuild": "0.28.2",
+    "lit": "3.3.3",
+    "zod": "4.4.3"
+  }
+}

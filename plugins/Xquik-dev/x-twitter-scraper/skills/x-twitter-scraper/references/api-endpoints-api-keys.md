@@ -1,14 +1,14 @@
-# Xquik REST API Endpoints: API Keys
+# Xquik REST API endpoints: API keys
 
-Session auth only. These endpoints do not accept API key auth.
+These endpoints require session authentication. They do not accept API keys.
 
-## Agent Boundary
+## Manage API keys in the dashboard
 
 API key lifecycle operations stay in the Xquik dashboard. Never request, copy,
 display, store, rotate, or revoke an API key through this Skill. Direct the
 user to the dashboard account page.
 
-API key lifecycle request and response details are intentionally omitted. Do
-not call lifecycle routes from this Skill. Use the dashboard account page.
+This reference omits API key lifecycle requests and responses. Do not call
+those routes from this Skill. Use the dashboard account page.
 
 ---

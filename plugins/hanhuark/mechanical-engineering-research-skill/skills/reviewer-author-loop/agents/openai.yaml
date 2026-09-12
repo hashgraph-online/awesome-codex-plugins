@@ -1,0 +1,4 @@
+interface:
+  display_name: "Reviewer-Author Loop"
+  short_description: "Iteratively review, revise, verify, and re-review manuscripts until acceptance or human input is needed."
+  default_prompt: "Run a reviewer-author loop on this manuscript: critique it as a reviewer, revise it as the author, verify the changes, and repeat until it is acceptable or pause when additional data, experiments, theory, or author judgment is required."

@@ -2,13 +2,29 @@
 
 Turn Codex from a code generator into a verifiable engineering workflow.
 
-![Codex How To: from scope through evidence](assets/social-preview.svg)
-
 This engineering-first guide takes a task through scoping, implementation,
 testing, review, and evidence—with focused workflows for frontend, backend,
 DevOps, security, and multi-agent orchestration.
 
+## What you get
+
+- Learn Codex progressively, from its mental model and sandbox to advanced
+  engineering workflows.
+- Install focused skills for frontend, backend, DevOps, testing, security,
+  review, and bounded orchestration.
+- Run changes through baseline, implementation, tests, diff review, and an
+  evidence handoff.
+- Limit unnecessary context, agent fan-out, conflicting edits, and retries.
+- Measure whether a skill or multi-agent workflow actually improved the task.
+
+**New to Codex?** Run the dependency-free
+[five-minute playground](labs/engineering-playground/README.md).
+**Already using Codex?** [Install `engineering-loop`](#try-the-engineering-loop).
+
+![Codex How To: from scope through evidence](assets/social-preview.svg)
+
 [![Validate](https://github.com/Phelan164/codex-howto/actions/workflows/validate.yml/badge.svg)](https://github.com/Phelan164/codex-howto/actions/workflows/validate.yml)
+[![Release](https://img.shields.io/github/v/release/Phelan164/codex-howto)](https://github.com/Phelan164/codex-howto/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![skills.sh](https://skills.sh/b/phelan164/codex-howto)](https://skills.sh/phelan164/codex-howto)
 [![Engineering Loop security](https://skillstore.io/badges/skills/phelan164-engineering-loop/security.svg)](https://skillstore.io/skills/phelan164-engineering-loop)
@@ -21,9 +37,26 @@ DevOps, security, and multi-agent orchestration.
 [Fork a tested edition](resources/fork-an-edition.md) ·
 [Contribute](#contributing)
 
-> **Status:** community preview. Content was checked against official Codex
-> documentation on 2026-07-31. Codex changes quickly; verify settings and
-> commands through the links marked **Official source**.
+> **Status:** active. Latest release: [v0.6.0](https://github.com/Phelan164/codex-howto/releases/tag/v0.6.0).
+> Content was checked against official Codex documentation on 2026-07-31.
+> Codex changes quickly; verify settings and commands through the links marked
+> **Official source**.
+
+## Choose the smallest workflow that fits
+
+Do not install every skill by default. Start with the minimum guidance that can
+change the outcome of your task:
+
+| Your task | Start here | Use it when |
+|---|---|---|
+| Learn Codex from first principles | [Mental model](modules/00-mental-model/README.md) | You need the progressive course, sandbox model, prompts, tools, and verification basics |
+| Fix one bounded defect | [Testing and review](modules/07-testing-and-review/README.md) | The scope and acceptance check are already clear; a lifecycle skill may add more context than value |
+| Deliver a multi-surface feature | [`engineering-loop`](skills/engineering-loop/SKILL.md) | Implementation, testing, review, and evidence must stay connected through one verified loop |
+| Split a large task safely | [Orchestration decision matrix](resources/orchestration-decision-matrix.md) | Work has genuinely independent ownership surfaces and integration checks |
+| Preserve team know-how | [Codex Living Wiki](knowledge/README.md) | Repeated research and decisions should become reviewed, source-grounded repository knowledge |
+
+Unsure? Run the [five-minute playground](labs/engineering-playground/README.md)
+before installing anything globally.
 
 ### Use it, verify it, improve it
 
@@ -188,6 +221,10 @@ the [GPT-5.6-sol seed measurement](examples/measurements/gpt-5.6-sol-2048-game-2
 To measure a genuinely partitioned large task, compare one agent with bounded
 backend/frontend ownership in the
 [incident-response orchestration benchmark](labs/incident-response-benchmark/README.md).
+The standalone
+[multi-agent decision article](resources/articles/when-should-codex-use-multiple-agents.md)
+explains the ownership rule, smoke evidence, controller contract, invalid
+claims, and replication protocol in a shareable format.
 Use [PRESENTING.md](PRESENTING.md) for a 15-minute talk track, demo checklist,
 and copy-ready announcement.
 
@@ -494,7 +531,7 @@ step, and official sources.
 If the guide is useful, choose the action that creates the most value:
 
 - try the playground and report a reproducible gap;
-- [contribute anonymized engineering-loop measurements](https://github.com/Phelan164/codex-howto/issues/8);
+- [submit an anonymized benchmark replication](https://github.com/Phelan164/codex-howto/issues/new?template=benchmark-replication.yml);
 - [test the Living Wiki against normal repository search](https://github.com/Phelan164/codex-howto/issues/16);
 - [fork it into a tested stack, team, translation, or benchmark edition](resources/fork-an-edition.md);
 - share it with one relevant developer community; or

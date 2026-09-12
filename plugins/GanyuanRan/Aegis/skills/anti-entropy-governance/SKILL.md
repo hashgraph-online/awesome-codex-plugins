@@ -63,6 +63,13 @@ Load automatically when the task touches owner collapse, fallback removal, or sc
 
 Default to reducing internal entropy, not preserving internal history.
 
+Retirement is responsibility-scoped before it is carrier-scoped. Name the
+obsolete or duplicated authority first. If the same carrier has a separately
+evidenced legitimate role, remove the invalid responsibility and keep only
+that role-scoped capability; this is not a compatibility exception. Apply
+`delete-first` to the carrier once no legitimate responsibility remains.
+Unknown consumers alone still do not justify retaining an internal carrier.
+
 Use this rule:
 
 - internal code retirement -> `delete-first`
@@ -184,6 +191,8 @@ Before deletion, state:
 Anti-Entropy Declaration:
 - Deletion Class:
 - Old Path/Object:
+- Invalid Responsibility / Authority:
+- Legitimate Capability Remaining on Carrier:
 - New Canonical Owner:
 - Expected Preserved Behavior:
 - Expected Retired Behavior:
@@ -234,7 +243,9 @@ Verification Plan:
 Meaning:
 
 - `Main-path check`: new canonical owner still satisfies intended behavior
-- `Lingering-reference check`: old path is no longer referenced on the main path
+- `Lingering-reference check`: the retired responsibility is no longer active;
+  when its carrier was deleted, the old path is no longer referenced on the
+  main path
 - `Negative check`: retired trigger/path really stopped working
 - `Boundary check`: host/API/schema/persistence boundary was not accidentally broken
 
@@ -317,6 +328,8 @@ Do not:
 - confuse migration-file deletion with live database deletion
 - treat source-of-truth data cleanup as ordinary code retirement
 - call a task "cleaned up" when old logic still carries main-path behavior
+- delete a carrier merely because one authority on it was invalid when a
+  separately evidenced legitimate role remains
 - treat a warning or guard card as destructive authorization
 
 ## Minimal Reporting Shape

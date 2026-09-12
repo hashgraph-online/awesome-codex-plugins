@@ -1,6 +1,6 @@
 ---
 name: idea-genie
-description: Generate evidenced opportunities or
+description: 'Generate evidenced options or challenge an idea. Use when: deciding what to build or comparing alternatives; exploration does not authorize implementation.'
 ---
 # Idea Genie
 

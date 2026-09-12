@@ -28,8 +28,9 @@ signals rather than returning an empty pool.
 2. **Build the pool in two tiers, primary first.** The primary tier is
    high-precision and tests-aware; the fallback tier fills remaining slots when the
    primary tier is short, using test-independent signals. Definitions below.
-3. **Rank, take top-N for the mode, filter ineligible candidates** (utility
-   modules, anything failing `spec-contract.md`'s "when NOT to write a spec").
+3. **Rank, filter ineligible candidates** (utility modules, anything failing
+   `spec-contract.md`'s "when NOT to write a spec"), then take the depth's budget
+   from what survives ("Spec budget by coverage rate" below).
 4. Emit a signal only on positive evidence; when no candidate is unambiguous,
    prefer omission over a guess — never invent.
 
@@ -55,16 +56,16 @@ A module enters the **primary pool** only if BOTH:
 Rationale: either the file is substantial on its own, or the team invested ≥ 50
 LOC in testing it — that investment signals the contract matters.
 
-## Fallback tier (test-independent — when the primary pool yields fewer than N)
+## Fallback tier (test-independent — when the primary tier fills fewer slots than the budget)
 
 Many perfectly real repos have few or no tests — a plain script repo, a young
 frontend, an ML notebook tree, a CLI, an agent/plugin repo of Markdown skills. An
 empty hotspot pool there is a false negative, not a true "nothing to document."
-When the primary pool yields **fewer than N** candidates for the mode, widen the
-inputs (never lower the bar to noise) and fill the remaining slots from a fallback
-pool — modules with `LOC > 100` that the primary tier missed *only* for lack of
-tests — ranked by a **test-independent importance score** built from evidence the
-repo actually contains:
+When the primary tier fills **fewer slots than the depth's budget** ("Spec budget by
+coverage rate" below), widen the inputs (never lower the bar to noise) and fill the
+remaining slots from a fallback pool — modules with `LOC > 100` that the primary tier
+missed *only* for lack of tests — ranked by a **test-independent importance score**
+built from evidence the repo actually contains:
 
 1. **Fan-in / centrality (primary signal)** — how many *other* source modules
    import or reference this one through the repo's own mechanism: a language
@@ -92,85 +93,98 @@ all), skip the hotspot step and surface in the closing message:
 > No modules above the hotspot threshold detected. Run `/archcore:document <path>`
 > on demand when you identify a module worth documenting.
 
-## Top-N by mode
+## Spec budget by coverage rate
 
-Day-one init caps the number of **full specs**. For `small`/`medium`/the `--domain`
-re-run the cap is a flat scale baseline. For `large`, the cap **scales with the
-selected-domain count** — a large repo's spec budget must track how many domains the
-day-one dialog is actually focused on, not stay flat whether 1 or 24 domains are in
-play (a flat cap is what produced a 773-module, 24-domain repo with specs for 3
-modules and data-models for 4 domains — see `magic-first-day-init.adr`):
+Day-one init sizes the number of **full specs** from the repo's own evidence, never
+from a constant. The budget is a share of the ranked candidate pool:
 
-| Scale | `light` (opt-down) | `standard` (default) | `deep` (opt-up) |
-|---|---|---|---|
-| small | 3 | 4 | 6 |
-| medium | 4 | 6 | 10 |
-| large | 2 per selected domain — min 6, cap 12 | 3 per selected domain — min 10, cap 24 | 4 per selected domain — min 14, cap 40 |
-| `--domain=<slug>` re-run | 3 | 5 | 8 |
+```
+budget = max(floor(depth), round(rate(depth) × pool_size))
+budget = min(budget, pool_size)
+```
 
-**Large-mode formula:** `cap = clamp(rate(depth) × selected_domain_count, min(depth),
-max(depth))`, where `rate` = 2 / 3 / 4 for light / standard / deep and `(min, max)` =
-`(6,12)` / `(10,24)` / `(14,40)`. On `skip` (Step A.0, no domains selected),
-`selected_domain_count` = 0 and the formula collapses to the flat `min(depth)` — large
-mode is never below 6 / 10 / 14 even with no domain focus. **Every selected domain
-gets a floor of ≥ 1 spec** (so no domain the user said they're working in ends up
-with zero specs); the remaining slots up to the computed cap fill by **repo-wide**
-rank across ALL domains, selected or not — an unselected domain's hotspot can still
-place if it outranks a selected domain's weaker ones. This intentionally reverses the
-prior flat-cap design (a flat 3 at `light`, 8 at `standard`, 16 at `deep` regardless
-of domain count), which made a 24-domain monolith cost the same spec budget as a
-3-domain one and left most domains with zero specs and zero data-models. The one-time
-init pass on a big legacy repo is exactly when spending the extra tokens is justified.
+| Depth | `rate` (share of pool) | `floor` (sparse-repo minimum) |
+|---|---|---|
+| `light` (opt-down) | 0.10 | 3 |
+| `standard` (default) | 0.25 | 4 |
+| `deep` (opt-up) | 0.60 | 6 |
 
-`standard` and `deep` raise both the per-domain rate and the min/max band over
-`light` — they are the same formula at a higher tier, not independent numbers. Rank
-the whole candidate pool once (repo-wide, all domains); the top-N by the formula above
-become `spec` documents, subject to the per-domain floor. **The cap is a ceiling,
-never a quota** — if the combined pool (primary + fallback) has fewer candidates than
-the computed cap, list all and stop; never pad to hit the number (so a sparse repo at
-`deep` yields the same as `light`). The remaining ranked hotspots are NOT dropped —
-they are recorded in the architecture-overview register (`compose-overview.md` Part 3)
-as `→ /archcore:document` rows, so the full map of load-bearing modules is visible at
-~0 token cost while only the top-N pay for synthesis.
+`pool_size` is the count of ranked candidates **after** eligibility filtering — primary
+tier plus fallback tier, with utility modules and anything failing `spec-contract.md`'s
+"when NOT to write a spec" already removed. Slots fill primary-tier-first by score, then
+from the fallback tier by its own score, exactly as before; the two tiers change which
+candidate takes a slot, never how many slots exist.
 
-`/archcore:init`'s Detect phase (`SKILL.md` Step A.3) always collects signal data up
-to the **`deep`-depth ceiling** regardless of the active depth, so a later `depth:`
-toggle in the preview (Phase C/D) can select any column without re-reading source. For
-`small`/`medium` that ceiling is the flat deep number (6 / 10 above); for `large` it
-is the formula's deep-column result for the domains actually selected in Step A.0
-(`clamp(4 × selected_domain_count, 14, 40)`), computed once the domain dialog
-resolves and before Phase A.3 runs. Only *synthesis* (which of the collected
-candidates get a full spec body) is gated by the active depth.
+**The budget carries no absolute maximum.** A pool of 214 load-bearing modules budgets
+54 specs at `standard`; a pool of 12 budgets 4. Scale (`small` / `medium` / `large`) no
+longer sets the spec count — it still sets the other artifacts (top-level map, domain
+dialog, cross-cutting scan). What bounds the count is the pool, and the pool is
+quality-gated: a module enters it only through the primary-tier thresholds above or the
+fallback tier's fan-in / public-surface evidence, so a repo with few load-bearing
+modules cannot produce a large budget however deep the run.
 
-## Flagship specs (size/churn-gated: raised cap or decomposition)
+Change: this replaces the flat `small` / `medium` rows (3/4/6, 4/6/10) and large mode's
+`clamp(rate × selected_domain_count, min, max)` with one formula for every scale. The
+clamp's constant maximum (12 / 24 / 40) is what kept a 773-module repo at 24 specs while
+a 40-module repo took the same ceiling — the same thinness `magic-first-day-init.adr`
+already corrected once at the flat-cap layer.
+
+**Per-selected-domain floor (large mode).** Every domain selected in `SKILL.md` Step A.0
+gets a floor of ≥ 1 spec, so no domain the user named ends with zero. Remaining slots up
+to the budget fill by **repo-wide** rank across ALL domains, selected or not — an
+unselected domain's hotspot still places when it outranks a selected domain's weaker
+one. On `skip` (no domain selected) the whole budget fills by repo-wide rank alone.
+
+**`--domain=<slug>` re-run.** Apply the same formula to the **narrowed** pool — eligible
+candidates under that domain's tree only. A re-run therefore tops up a domain in
+proportion to what that domain holds, at the same rate and floor as a day-one run.
+
+**Ceiling, never a quota.** IF the pool holds fewer candidates than the computed budget,
+THEN take every candidate and stop; never pad to hit a number. A sparse repo at `deep`
+yields the same as at `light`.
+
+`/archcore:init`'s Detect phase (`SKILL.md` Step A.3) collects signal data for the
+**whole eligible pool** — path, LOC, companion-test LOC, fan-in, churn — because
+`pool_size` is an input to every depth's budget and a `depth:` toggle in the preview
+(Phase C/D) must re-slice without re-reading. Signal collection reads no source files;
+only *synthesis* (which candidates get a full spec body) is gated by the active depth.
+
+The ranked hotspots beyond the budget are NOT dropped — they are recorded in the
+architecture-overview register (`compose-overview.md` Part 3) as `→ /archcore:document`
+rows, so the full map of load-bearing modules stays visible at ~0 token cost while only
+the budgeted candidates pay for synthesis.
+
+## Flagship specs (size/churn-gated: decomposition eligibility)
 
 A hotspot module that clears EITHER `LOC > 3000` OR falls in the **top quartile of
 churn** among the ranked candidate pool (its `commits_last_90_days` score, from the
 git-activity bonus below, ranks in the top 25% of candidates that have git history)
-is a **flagship** candidate. `SKILL.md` Phase E gives it one of two treatments, chosen
-by whether its contract is genuinely separable — never both, and never the raised cap
-AND a split just to look thorough:
+is a **flagship** candidate. Flagship status buys one thing: `SKILL.md` Phase E may
+decompose the module instead of composing it as one spec.
 
-- **Default — one spec, raised body cap.** Compose under `_shared/spec-contract.md`'s
-  flagship cap (≤ 120 lines instead of the default ≤ 80) — the extra room goes to
-  Normative Behavior / Constraints & Invariants, never to reproducing source.
+- **Default — one spec.** Compose under `_shared/spec-contract.md`'s ≤ 120-line cap,
+  the same cap every other spec is measured against. Flagship status no longer raises
+  a cap: the contract carries one number for every path, so there is nothing left to
+  raise.
 - **Decomposition — only with genuine separable sub-contracts.** When the module
   exposes ≥ 2 independently-consumable sub-surfaces with distinct external consumers
   (e.g. a 6000-LOC service with a read/query surface and a separate command/mutation
-  surface) — split into **≤ 3 sub-specs**, one per sub-surface, each back at the
-  DEFAULT ≤ 80-line cap: `filename=<module-slug>-<sub-surface-slug>`,
+  surface) — split into **≤ 3 sub-specs**, one per sub-surface, each inside the same
+  ≤ 120-line cap: `filename=<module-slug>-<sub-surface-slug>`,
   `directory=<domain-or-'architecture'>`. Relate the sub-specs to each other
   (`related`) in addition to the standard overview edge.
 
 **Never split to pad.** A large or hot file with one cohesive contract (no separable
-sub-surface) stays a single flagship spec at the raised cap — "prefer omission over a
-guess" governs the split decision exactly as it governs candidate selection in the
-first place: when the sub-surface boundary is not unambiguous, do not split.
+sub-surface) stays a single spec — "prefer omission over a guess" governs the split
+decision exactly as it governs candidate selection in the first place: when the
+sub-surface boundary is not unambiguous, do not split. A body that then runs past the
+cap follows `_shared/spec-contract.md` "Over the cap", whose rule 5 reaches the same
+answer and whose rule 6 makes the excess visible in the closing report.
 
 Flagship status does not change the hotspot's rank or its consumption of the depth's
-spec-count cap (the "Top-N by mode" table above) — a decomposed flagship still
+spec budget ("Spec budget by coverage rate" above) — a decomposed flagship still
 occupies exactly **one** slot in that budget; its ≤ 3 sub-specs share that one slot,
-so the flagship gate never inflates the per-mode cap table.
+so the flagship gate never inflates the computed budget.
 
 ## Suggested doc type (heuristic)
 
@@ -228,19 +242,17 @@ Two different mechanisms apply "per domain," at two different times — do not
 conflate them:
 
 - **Day-one large-mode dialog (Step A.0).** The candidate pool is still ranked
-  **repo-wide** (not restricted to any one domain's file tree); what scales with the
-  selection is the *budget* — the per-domain-scaled cap in the "Top-N by mode" table
-  above guarantees each domain the user selected a floor of ≥ 1 spec, with the rest
-  of the budget filled by repo-wide rank. This is a **budget allocation**, not a
+  **repo-wide** (not restricted to any one domain's file tree), and the budget comes
+  from the repo-wide `pool_size`. What the selection changes is *allocation*: each
+  selected domain is guaranteed a floor of ≥ 1 spec, with the rest of the budget
+  filled by repo-wide rank. This is a **budget allocation**, not a
   candidate-pool restriction, and it also drives how many domains get a data-model
   doc (data-model breadth is decoupled from the dialog entirely — see
   `detect-data-model.md`).
 - **A later `/archcore:init --domain=<slug>` re-run.** This restricts the
-  **candidate pool itself** to files under the one named domain's path, and applies
-  the fixed `--domain=<slug>` re-run row from the table above (`light` 3 /
-  `standard` 5 / `deep` 8) to that narrowed pool — a flat top-up number, since a
-  re-run tops up one already-selected domain rather than distributing a repo-wide
-  budget across several.
+  **candidate pool itself** to files under the one named domain's path, then applies
+  the same `rate` / `floor` formula to that narrowed pool. A dense domain therefore
+  tops up with more specs than a thin one, instead of both receiving one flat number.
 
 The rationale lines for a `--domain` re-run prefix the candidate path with the domain
 tag:
@@ -274,7 +286,7 @@ very similar to one at #3. When the candidate pool has many near-ties at the
 cutoff, the closing message can nudge:
 
 > Other candidates just below the cutoff: <path-1>, <path-2>. Consider
-> `/archcore:document` on these if the top-N list feels incomplete.
+> `/archcore:document` on these if the budgeted list feels incomplete.
 
 These concrete signals and filename patterns are **non-exhaustive examples** to
 orient ranking — absence from a list is NOT absence of signal; fall back to the

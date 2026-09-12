@@ -1,7 +1,7 @@
 # Image Analysis
 
-Analyze first, code second. The goal is to convert the UI image into a structured
-evidence model that can be implemented and verified.
+Use this inventory for dense or multi-state screens. For a simple screen, keep
+only the notes needed to implement and verify it; the template is optional.
 
 ## Evidence Grades
 
@@ -9,7 +9,8 @@ evidence model that can be implemented and verified.
   confirmed in code, or confirmed by the user.
 - `PARTIAL`: likely but incomplete, such as a readable layout with an uncertain
   icon meaning.
-- `GUESS`: plausible inference only. Ask before implementing material guesses.
+- `GUESS`: inference without direct evidence. State reversible visual decisions;
+  resolve consequential business or scope decisions before implementing them.
 
 ## UI_RECON.md Template
 
@@ -107,7 +108,8 @@ Prefer semantic components over raw boxes:
 - Dialog, drawer, popover.
 - Chart, map, media viewer.
 
-If a component's semantic role is unclear, ask.
+If a component's semantic role is unclear, inspect context first; ask when the
+remaining ambiguity changes its behavior or business meaning.
 
 ### Interactive Control Inventory
 
@@ -118,31 +120,33 @@ Classify each element:
 
 - `semantic`: the image clearly shows a known control type.
 - `decorative`: the element is purely visual and not a user control.
-- `unclear`: the element may be a control but its role is ambiguous; ask before
-  implementing.
+- `unclear`: the element may be a control but its role is ambiguous; resolve from
+  context or record the affected behavior as a gap.
 
 Default semantic mappings:
 
 | Visual evidence | Treat as | Minimum behavior |
 |---|---|---|
 | Text field, search field, numeric field | Input | Focusable, value shown, editable unless visibly disabled |
-| Dropdown/select with chevron | Select or combobox | Focusable, opens or exposes options when options are known; otherwise preserve visible value and ask for option list |
+| Dropdown/select with chevron | Select or combobox | Focusable, opens or exposes known options; otherwise preserve visible value and record missing options |
 | Button/CTA/icon button | Button | Focusable/clickable; no-op or mocked handler only when real action is unknown |
-| Tabs/segmented control | Tabs | Active tab state and tab switching; ask before inventing hidden panel content |
+| Tabs/segmented control | Tabs | Active tab state and switching among known panels; record unknown panel content |
 | Checkbox/radio/switch | Form control | Checked/unchecked/disabled state from image |
 | Accordion/collapse row | Disclosure | Expanded/collapsed state; toggle visible content when known |
 | Table with headers/rows | Table | Semantic table; sorting/filtering only when evidenced or confirmed |
-| Pagination/stepper | Navigation control | Current state visible; ask before inventing page data |
+| Pagination/stepper | Navigation control | Current state visible; navigation over known data only |
 
 If options, panels, modal content, destination routes, backend actions, or data
-effects are not visible or known from the project, mark those as `GUESS` and ask
-before implementing them. Do not use uncertainty about hidden behavior as a
-reason to make the visible control non-semantic.
+effects are not visible or known from the project, record the missing behavior.
+Ask if it is needed to fulfill the requested workflow; continue independent
+visible work. Do not fabricate business content or use unknown hidden behavior
+as a reason to make the visible control non-semantic. No-op and mock handlers
+must be reported as incomplete or prototype behavior.
 
 ### Text
 
-Use the exact text only when readable. Mark uncertain text as `PARTIAL` or
-`GUESS`; do not invent labels.
+Preserve readable text exactly. Mark uncertain text as `PARTIAL` or `GUESS`;
+resolve business-critical labels and report any remaining transcription gaps.
 
 ### Visual Tokens
 
@@ -180,7 +184,8 @@ Extract tokens with practical granularity:
 
 ### Interaction And Hidden Behavior
 
-A static image rarely proves hidden behavior. Ask when behavior matters:
+A static image rarely proves hidden behavior. Resolve these from project/user
+evidence when required by the requested workflow:
 
 - Does clicking this open a modal, route, drawer, or dropdown?
 - Are rows selectable?
@@ -190,12 +195,13 @@ A static image rarely proves hidden behavior. Ask when behavior matters:
 
 However, do not ask whether an obvious control should be semantic. If the image
 clearly shows tabs, inputs, selects, buttons, checkboxes, switches, accordions,
-or table rows, implement the visible control semantics by default and ask only
-for the missing hidden behavior.
+or table rows, implement the visible control semantics by default. Ask about
+missing hidden behavior only when that decision blocks the requested outcome.
 
 ## Ambiguity Examples
 
-Ask before coding when:
+Check these ambiguities against context; ask when their meaning matters and
+cannot be inferred, while continuing independent implementation:
 
 - A top-right bell-like glyph might be notification or activity.
 - A blue chip might be selected, focused, or merely highlighted.

@@ -2,12 +2,11 @@
 
 Codex plugin package for OrgX:
 
-- OrgX MCP server wiring via `https://mcp.useorgx.com/mcp?profile=commander`
+- OrgX MCP server wiring via the canonical resource with the commander tool-profile header
 - Operator chronicle reporting for yesterday/week/30-day decisions, PRs,
   artifacts, goals, gaps, and priorities
 - Initiative-aware Codex skills for OrgX execution
-- Runtime reporting guidance and passive hook templates for progress, artifacts,
-  blockers, and completion
+- Native first-turn context hydration plus Wizard-owned session capture
 - Install-surface metadata for Codex plugin directories and local marketplaces
 
 ## Why this plugin exists
@@ -30,11 +29,12 @@ plugin repos.
 .mcp.json                   # OrgX MCP configuration
 skills/orgx-initiative-ops/SKILL.md
 skills/orgx-runtime-reporting/SKILL.md
-hooks/codex/hooks.json
-hooks/scripts/orgx-session-hook.mjs
+hooks/hooks.json
+hooks/scripts/hydrate-context-pack.mjs
 hooks/scripts/orgx-work-graph-reconcile.mjs
 assets/icon.png
 assets/logo.png
+scripts/install-codex-hooks.mjs
 scripts/verify-plugin.mjs
 ```
 
@@ -63,22 +63,58 @@ with `mode: "morning_brief"` and present the same
 preferred when callable; the fallback prevents a stale plugin session from
 blocking the report.
 
-## Runtime hooks
+## Runtime hooks and first-turn context
 
-The plugin now includes Codex hook templates, but the recommended install path is
-through `orgx-wizard hooks install`. The wizard can merge global hook config,
-preserve existing `notify` integrations such as Computer Use, and write a local
-outbox under `~/.config/useorgx/wizard/hooks/events.jsonl`.
+The plugin owns one native `SessionStart` adapter at `hooks/hooks.json`. It
+fetches `/api/v1/context-pack` for the exact configured workspace, initiative,
+workstream, and task hierarchy, writes the bounded result to
+`.codex/orgx-context-pack.json` with mode `0600`, and returns Codex
+`additionalContext` so the accepted state is available in the first model turn.
+
+When the server returns `data.sessionWorkContext`, the adapter forwards that
+exact object to the supported Wizard interface:
+
+```bash
+orgx-wizard sessions context set --file - --cwd "$PWD" --json
+```
+
+The Wizard validates the 4 KiB contract and binds it to the exact project
+directory. If Wizard is unavailable or rejects the object, the adapter keeps
+the unchanged context at
+`.codex/orgx-session-work-context.activation-pending.json`. Codex sees that the
+context is pending and must not treat it as activated authority. Both runtime
+files can contain private organizational context and must stay out of version
+control. A definitive response with no receipt-ready context clears any prior
+exact-directory activation so stale authority does not survive; an offline or
+timed-out request fails open without pretending the server answered.
+
+Project config at `.codex/orgx.local.json` may contain only scope identifiers.
+`ORGX_API_KEY` and an optional `ORGX_BASE_URL` must come from the process
+environment; a repository config cannot supply or redirect credentials.
+
+The Wizard is the sole owner of session collection, WorkEpisode policy, durable
+queueing, acknowledgement, retry, and delivery. Install that capture rail with:
+
+```bash
+orgx-codex-install-hooks
+```
+
+Plugin-initiated setup defaults to `metadata-only`. It honors an explicit
+`ORGX_SESSION_WORK_EPISODE_CAPTURE=bounded` opt-in and passes the selected policy
+to `orgx-wizard hooks install --targets codex --work-capture ...`. If the
+installed Wizard does not support that policy flag, setup reports the exact
+incompatibility; it never retries with bounded capture.
 
 Client hook coverage is tracked in
 [docs/client-hook-coverage.md](./docs/client-hook-coverage.md). Current verdict:
 the Codex package covers Codex skills, MCP setup, stale-client chronicle
-fallback, and passive hook templates, but it is not sufficient proof that every
-AI client exposes the same hooks or direct `get_operator_chronicle` tool. Use
-that matrix before claiming ChatGPT, Claude Code, or Cursor parity.
+fallback, native context hydration, and Wizard delegation, but it is not
+sufficient proof that every AI client exposes the same hooks or direct
+`get_operator_chronicle` tool. Use that matrix before claiming ChatGPT, Claude
+Code, or Cursor parity.
 
-Hook events are a passive backstop. They record compact session metadata and
-safe summaries so Work Graph reconciliation can answer:
+Wizard hook events are a passive backstop. They record compact session metadata
+and safe summaries so Work Graph reconciliation can answer:
 
 - What changed yesterday, this week, and in the past 30 days?
 - Which decisions, PRs, artifacts, goals, and priorities should be surfaced?
@@ -94,16 +130,8 @@ is the bridge between a pre-signup audit/share surface and the user's future
 OrgX workspace: after signup, OrgX can claim the fingerprint, dedupe replays,
 and attach the redacted Work Graph to a kickoff initiative.
 
-The Codex `Stop` hook also invokes `orgx-reconcile-hook.mjs`, which writes the
-latest local Work Graph report to
-`~/.config/useorgx/wizard/hooks/reports/latest-work-graph-report.json`. This is
-non-blocking and exits successfully even when the outbox is missing, credentials
-are absent, or posting fails. To make Stop-hook reconciliation publish to OrgX,
-set `ORGX_HOOK_RECONCILE_POST=true` or
-`ORGX_WIZARD_HOOK_RECONCILE_POST=true` and provide `ORGX_API_KEY`.
-
-Raw transcripts are not sent by the hook template. The reconciler should keep
-transcripts local and write only redacted summaries, hashes, evidence refs,
+Raw transcripts are not sent by the Wizard capture rail. The reconciler keeps
+transcripts local and writes only redacted summaries, hashes, evidence refs,
 Work Graph fingerprints, and approved OrgX activity.
 
 ## Subscription runner autonomy
@@ -207,11 +235,10 @@ To publish the report to OrgX, provide an API key and opt in explicitly:
 ORGX_API_KEY=oxk_... orgx-codex-reconcile-hooks --post
 ```
 
-For automatic publish on Codex session stop:
-
-```bash
-ORGX_HOOK_RECONCILE_POST=true ORGX_API_KEY=oxk_... codex
-```
+Automatic end-of-session capture and delivery are Wizard-owned. Run
+`orgx-codex-install-hooks`; do not add the legacy plugin Stop/reconcile hook.
+The standalone reconciler remains available for an explicit audit or repair,
+but it is not a second capture rail.
 
 ## Local verification
 
@@ -225,10 +252,10 @@ To preview the runtime wiring without editing Codex config:
 orgx-wizard hooks doctor
 ```
 
-To install the passive Codex/Claude Code hook backstop:
+To install the consent-safe Codex capture rail through this plugin:
 
 ```bash
-orgx-wizard hooks install --targets all
+orgx-codex-install-hooks
 ```
 
 ## Install locally in Codex
@@ -300,7 +327,11 @@ The bundled `.mcp.json` config uses the hosted OrgX streamable HTTP endpoint:
   "mcpServers": {
     "orgx": {
       "type": "http",
-      "url": "https://mcp.useorgx.com/mcp?profile=commander"
+      "url": "https://mcp.useorgx.com/mcp",
+      "oauth_resource": "https://mcp.useorgx.com/mcp",
+      "http_headers": {
+        "x-orgx-tool-profile": "commander"
+      }
     }
   }
 }

@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "fantasy-football-manager": {
+      "command": "fantasy-football-manager",
+      "args": []
+    },
+    "fantasy-football-espn": {
+      "command": "fantasy-football-espn",
+      "args": []
+    },
+    "fantasy-football-portfolio": {
+      "command": "fantasy-football-portfolio",
+      "args": []
+    }
+  }
+}

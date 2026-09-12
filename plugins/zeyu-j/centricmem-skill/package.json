@@ -1,0 +1,27 @@
+{
+  "name": "centricmem-skill",
+  "version": "0.21.52",
+  "private": true,
+  "description": "CentricMem agent skill for the hosted librarian. Install with npx skills add zeyu-j/centricmem-skill --skill centricmem-agent -y",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "author": "Dr. Z <zeyu@dr.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zeyu-j/centricmem-skill.git"
+  },
+  "homepage": "https://centricmem.com",
+  "bugs": {
+    "url": "https://github.com/zeyu-j/centricmem-skill/issues"
+  },
+  "keywords": [
+    "skill",
+    "centricmem",
+    "cursor",
+    "claude-code",
+    "codex",
+    "copilot",
+    "kiro",
+    "kilo",
+    "pi"
+  ]
+}

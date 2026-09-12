@@ -1,6 +1,6 @@
 ---
 name: x-profile-optimizer
-description: Audit and rewrite an X (Twitter) profile end-to-end for 2026: bio (160 chars), display name with a searchable keyword, @handle, header image, pinned tweet, link, and location. Triggers on "review my X profile", "fix my bio", "rewrite my Twitter bio", "optimize my header", "pin the right tweet", "X profile audit". Turns a default profile into one that converts visitors into followers. Not for writing tweets (use x-post-writer).
+description: "Audit and rewrite an X (Twitter) profile end-to-end for 2026: bio (160 chars), display name with a searchable keyword, @handle, header image, pinned tweet, link, and location. Triggers on \"review my X profile\", \"fix my bio\", \"rewrite my Twitter bio\", \"optimize my header\", \"pin the right tweet\", \"X profile audit\". Turns a default profile into one that converts visitors into followers. Not for writing tweets (use x-post-writer)."
 ---
 
 # X Profile Optimizer
@@ -61,7 +61,7 @@ Global voice rules: see root `SKILL.md` Voice rules. Additional skill-specific r
 - Lead the bio with the reader's benefit, not the user's job title.
 - One specific or one number in the bio where the account allows it.
 - Keep every rewrite inside the platform character limits (bio 160, name 50). Never ship a truncated bio.
-- No em dashes. No "leverage", "fundamentally", "game-changer".
+- At most one em dash in the bio (a 160-char bio rarely needs one). No "leverage", "fundamentally", "game-changer".
 
 ## Related skills
 

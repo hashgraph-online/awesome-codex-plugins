@@ -34,6 +34,37 @@ path or title (`local-overrides-global.rule`):
 carries them on a current CLI; an older CLI may omit them — when absent, treat
 every result as local (the safe no-op default).
 
+A current CLI (v0.8.0+) wraps `search_documents` output in an envelope:
+`{"results": [...], "coverage": {...}}`. An older CLI returns a bare array.
+Read whichever shape arrives — the result rows are identical in both.
+
+## Searching across sources
+
+`search_documents` and `list_documents` cover local and global documents
+together. Every feature below is opt-in by data, like the rest of this file:
+use it when the response shows it; an older CLI simply never shows it.
+
+- **`coverage` is proof of what was searched.** It maps each source id to its
+  scanned document count, e.g. `{"local": 102, "org": 42}`. An empty `results`
+  next to a `coverage` that names a global source is a verified absence across
+  every listed corpus — never read it as "the globals were skipped".
+- **Word matching.** A current CLI matches every whitespace-separated word of
+  `content`, in any order and at any distance ("plugin compatibility" matches
+  "Plugin / CLI Compatibility"). An older CLI matches the exact substring.
+  Query with the important words, not with a literal sentence.
+- **Retry ladder for an empty result**, when `coverage` names a global source:
+  first broaden to fewer or more general words; then `match: "any"`; then scope
+  with `source: "global"` (or a declared source id) to probe the global corpus
+  alone. After the ladder, report a true absence honestly.
+- **Vocabulary map.** On a current CLI the SessionStart context carries a
+  `GLOBALS` block naming each mounted source with its document counts and
+  top-level directories. Use those directory names as query vocabulary for
+  org-wide topics the local corpus does not cover.
+- **`by_source` in `list_documents`.** A current CLI reports the full filtered
+  count per source and keeps every source represented on the first page.
+  Compare `by_source` with the page to see what a truncation dropped, and pass
+  `source` to scope a listing.
+
 ## Reading convention
 
 - **Local overrides global.** When the same topic is covered by both a local

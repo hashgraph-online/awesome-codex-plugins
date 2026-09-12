@@ -5,8 +5,10 @@ import argparse
 import datetime as _dt
 import hashlib
 import json
+import os
 import re
 import shutil
+import stat
 import subprocess
 import sys
 from pathlib import Path
@@ -43,13 +45,81 @@ def _die(msg: str, code: int = 2) -> None:
     raise SystemExit(code)
 
 
-def _run(cmd: list[str], *, cwd: Path | None = None, check: bool = True) -> subprocess.CompletedProcess:
+def _run(
+    cmd: list[str], *, cwd: Path | None = None, check: bool = True
+) -> subprocess.CompletedProcess:
     return subprocess.run(cmd, cwd=str(cwd) if cwd else None, check=check)
+
+
+def _lexical_absolute(path: Path) -> Path:
+    """Return an absolute normalized path without following filesystem links."""
+
+    return Path(os.path.abspath(os.fspath(path.expanduser())))
+
+
+def _ensure_real_directory(path: Path) -> tuple[int, int]:
+    """Create/traverse *path* one component at a time without following links.
+
+    The returned device/inode pair lets the caller detect replacement of the
+    selected output root after setup.  Every existing component must be a real
+    directory; a symlink or special file is a hard error.
+    """
+
+    absolute = _lexical_absolute(path)
+    flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0)
+    nofollow = getattr(os, "O_NOFOLLOW", 0)
+    current_fd = os.open(absolute.anchor, flags)
+    try:
+        for part in absolute.parts[1:]:
+            try:
+                os.mkdir(part, mode=0o755, dir_fd=current_fd)
+            except FileExistsError:
+                pass
+            try:
+                next_fd = os.open(part, flags | nofollow, dir_fd=current_fd)
+            except OSError as exc:
+                _die(f"directory component is not a real directory: {absolute}: {exc}")
+            os.close(current_fd)
+            current_fd = next_fd
+        info = os.fstat(current_fd)
+        return info.st_dev, info.st_ino
+    finally:
+        os.close(current_fd)
+
+
+def _assert_directory_identity(
+    path: Path, identity: tuple[int, int], label: str
+) -> None:
+    try:
+        info = os.lstat(path)
+    except OSError as exc:
+        _die(f"{label} disappeared during the run: {path}: {exc}")
+    if stat.S_ISLNK(info.st_mode) or not stat.S_ISDIR(info.st_mode):
+        _die(f"{label} is no longer a real directory: {path}")
+    if (info.st_dev, info.st_ino) != identity:
+        _die(f"{label} was replaced during the run: {path}")
+
+
+def _assert_no_symlinks(root: Path) -> None:
+    """Reject pre-existing or concurrently introduced links below *root*."""
+
+    if not root.exists():
+        return
+    root_info = os.lstat(root)
+    if stat.S_ISLNK(root_info.st_mode) or not stat.S_ISDIR(root_info.st_mode):
+        _die(f"output root must be a real directory: {root}")
+    for directory, dirnames, filenames in os.walk(root, followlinks=False):
+        base = Path(directory)
+        for name in [*dirnames, *filenames]:
+            child = base / name
+            info = os.lstat(child)
+            if stat.S_ISLNK(info.st_mode):
+                _die(f"refusing symlink inside managed output tree: {child}")
 
 
 def _ensure_dirs(paths: list[Path]) -> None:
     for p in paths:
-        p.mkdir(parents=True, exist_ok=True)
+        _ensure_real_directory(p)
 
 
 def _today_ymd() -> str:
@@ -181,7 +251,9 @@ def _extract_ts_string_const(src: Path, const_name: str) -> str | None:
     return None
 
 
-def _extract_agents_from_registry_ts(registry_ts: Path) -> tuple[list[str], list[str]] | None:
+def _extract_agents_from_registry_ts(
+    registry_ts: Path,
+) -> tuple[list[str], list[str]] | None:
     """
     Best-effort parser for agent keys + alias flags from a TS registry.
     Intended to resolve help text interpolations like `${agentKeys.join('|')}`.
@@ -227,7 +299,9 @@ def _extract_agents_from_registry_ts(registry_ts: Path) -> tuple[list[str], list
     return agent_keys, sorted(alias_flags)
 
 
-def _find_node_cli_package(repo_root: Path, product_slug: str, product_name: str) -> dict[str, object] | None:
+def _find_node_cli_package(
+    repo_root: Path, product_slug: str, product_name: str
+) -> dict[str, object] | None:
     # Detect Node CLI packages by locating a package.json with a "bin" field and matching name/bin key.
     product_name_lc = product_name.strip().lower()
     candidates: list[tuple[int, Path, dict[str, object]]] = []
@@ -299,7 +373,12 @@ def _find_node_cli_package(repo_root: Path, product_slug: str, product_name: str
 
 def _find_python_cli(repo_root: Path) -> dict[str, object] | None:
     """Detect Python CLI packages via pyproject.toml or setup.cfg entry_points."""
-    result: dict[str, object] = {"language": "python", "bin": {}, "framework": None, "entry_module": None}
+    result: dict[str, object] = {
+        "language": "python",
+        "bin": {},
+        "framework": None,
+        "entry_module": None,
+    }
 
     # Try pyproject.toml first (modern standard).
     for pyproject in sorted(repo_root.rglob("pyproject.toml")):
@@ -307,7 +386,7 @@ def _find_python_cli(repo_root: Path) -> dict[str, object] | None:
             continue
         text = _read_text(pyproject)
         # [project.scripts] section (PEP 621).
-        m = re.search(r'\[project\.scripts\]\s*\n((?:[^\[].+\n)*)', text)
+        m = re.search(r"\[project\.scripts\]\s*\n((?:[^\[].+\n)*)", text)
         if m:
             for line in m.group(1).strip().splitlines():
                 parts = line.split("=", 1)
@@ -316,9 +395,11 @@ def _find_python_cli(repo_root: Path) -> dict[str, object] | None:
                     entry = parts[1].strip().strip('"').strip("'")
                     result["bin"][name] = entry  # type: ignore[index]
                     if not result["entry_module"]:
-                        result["entry_module"] = entry.split(":")[0] if ":" in entry else entry
+                        result["entry_module"] = (
+                            entry.split(":")[0] if ":" in entry else entry
+                        )
         # [tool.poetry.scripts] section.
-        m2 = re.search(r'\[tool\.poetry\.scripts\]\s*\n((?:[^\[].+\n)*)', text)
+        m2 = re.search(r"\[tool\.poetry\.scripts\]\s*\n((?:[^\[].+\n)*)", text)
         if m2:
             for line in m2.group(1).strip().splitlines():
                 parts = line.split("=", 1)
@@ -335,7 +416,10 @@ def _find_python_cli(repo_root: Path) -> dict[str, object] | None:
             if _should_skip_repo_scan_path(setup_cfg, repo_root):
                 continue
             text = _read_text(setup_cfg)
-            m = re.search(r'\[options\.entry_points\]\s*\nconsole_scripts\s*=\s*\n((?:\s+.+\n)*)', text)
+            m = re.search(
+                r"\[options\.entry_points\]\s*\nconsole_scripts\s*=\s*\n((?:\s+.+\n)*)",
+                text,
+            )
             if m:
                 for line in m.group(1).strip().splitlines():
                     parts = line.strip().split("=", 1)
@@ -370,7 +454,12 @@ def _find_python_cli(repo_root: Path) -> dict[str, object] | None:
 
 def _find_go_cli(repo_root: Path) -> dict[str, object] | None:
     """Detect Go CLI packages via go.mod + main.go + flag/cobra usage."""
-    result: dict[str, object] = {"language": "go", "bin": {}, "framework": None, "module": None}
+    result: dict[str, object] = {
+        "language": "go",
+        "bin": {},
+        "framework": None,
+        "module": None,
+    }
 
     # Find go.mod for module name.
     go_mod = repo_root / "go.mod"
@@ -383,7 +472,7 @@ def _find_go_cli(repo_root: Path) -> dict[str, object] | None:
             break
     if go_mod.exists():
         text = _read_text(go_mod)
-        m = re.search(r'^module\s+(.+)$', text, re.MULTILINE)
+        m = re.search(r"^module\s+(.+)$", text, re.MULTILINE)
         if m:
             result["module"] = m.group(1).strip()
 
@@ -416,7 +505,10 @@ def _find_go_cli(repo_root: Path) -> dict[str, object] | None:
     # Detect CLI framework (cobra vs stdlib flag).
     scanned = 0
     for go_file in sorted(repo_root.rglob("*.go")):
-        if _should_skip_repo_scan_path(go_file, repo_root) or "testdata" in go_file.parts:
+        if (
+            _should_skip_repo_scan_path(go_file, repo_root)
+            or "testdata" in go_file.parts
+        ):
             continue
         scanned += 1
         if scanned > 200:
@@ -491,11 +583,20 @@ def _enrich_registry_with_binary_evidence(
         for raw_line in text.splitlines():
             stripped = raw_line.strip()
             if stripped.startswith("docs_features_prefix:"):
-                reg["docs_features_prefix"] = stripped.split(":", 1)[1].strip().strip("'\"")
+                reg["docs_features_prefix"] = (
+                    stripped.split(":", 1)[1].strip().strip("'\"")
+                )
             elif stripped.startswith("docs_features:"):
                 reg.setdefault("docs_features", [])
-            elif raw_line.startswith("  - ") and "docs_features" in reg and "groups" not in text.split(raw_line)[0].rsplit("docs_features:", 1)[-1]:
-                reg.setdefault("docs_features", []).append(stripped[2:].strip().strip("'\""))
+            elif (
+                raw_line.startswith("  - ")
+                and "docs_features" in reg
+                and "groups"
+                not in text.split(raw_line)[0].rsplit("docs_features:", 1)[-1]
+            ):
+                reg.setdefault("docs_features", []).append(
+                    stripped[2:].strip().strip("'\"")
+                )
         # Parse groups using the same logic as the validator
         cur = None
         in_groups = False
@@ -509,7 +610,11 @@ def _enrich_registry_with_binary_evidence(
                 continue
             if not in_groups:
                 continue
-            if line.startswith("  ") and not line.startswith("    ") and line.endswith(":"):
+            if (
+                line.startswith("  ")
+                and not line.startswith("    ")
+                and line.endswith(":")
+            ):
                 name = line.strip()[:-1]
                 cur = {"impl": None, "anchors": [], "notes": ""}
                 reg["groups"][name] = cur
@@ -598,19 +703,29 @@ def _write_binary_cli_surface_spec(
     lines.append(f"# CLI Surface Spec: {product_name}")
     lines.append("")
     lines.append(f"- Date: {date}")
-    lines.append("- Source: binary --help output" if help_tree.exists() else "- Source: binary string extraction")
+    lines.append(
+        "- Source: binary --help output"
+        if help_tree.exists()
+        else "- Source: binary string extraction"
+    )
     lines.append("")
 
     cmd_count = 0
     if commands_file.exists():
-        cmds = [c.strip() for c in commands_file.read_text(encoding="utf-8").splitlines() if c.strip()]
+        cmds = [
+            c.strip()
+            for c in commands_file.read_text(encoding="utf-8").splitlines()
+            if c.strip()
+        ]
         cmd_count = len(cmds)
 
     if help_tree.exists():
         tree_text = help_tree.read_text(encoding="utf-8")
         lines.append("## Command Count")
         lines.append("")
-        lines.append(f"- **{cmd_count} commands** discovered via recursive `--help` execution")
+        lines.append(
+            f"- **{cmd_count} commands** discovered via recursive `--help` execution"
+        )
         lines.append("")
 
         # Extract top-level commands and subcommands
@@ -623,7 +738,9 @@ def _write_binary_cli_surface_spec(
             for top in top_level:
                 subs = [c for c in cmds if c.startswith(top + " ") and c != top]
                 sub_names = [c.split(maxsplit=1)[1] if " " in c else "" for c in subs]
-                sub_str = ", ".join(f"`{s}`" for s in sub_names if s) if sub_names else "—"
+                sub_str = (
+                    ", ".join(f"`{s}`" for s in sub_names if s) if sub_names else "—"
+                )
                 lines.append(f"| `{top}` | {sub_str} |")
             lines.append("")
 
@@ -642,7 +759,11 @@ def _write_binary_cli_surface_spec(
     elif strings_file.exists():
         # Fallback: extract command-like patterns from strings
         raw = strings_file.read_text(encoding="utf-8", errors="replace")
-        usage_lines = [line.strip() for line in raw.splitlines() if "usage" in line.lower() or "Usage" in line]
+        usage_lines = [
+            line.strip()
+            for line in raw.splitlines()
+            if "usage" in line.lower() or "Usage" in line
+        ]
         lines.append("## CLI Surface (from binary strings, best-effort)")
         lines.append("")
         if usage_lines:
@@ -715,18 +836,26 @@ def _write_cli_surface_spec(
         lines.append("")
         lines.append("## Notes For 1:1 Fidelity")
         lines.append("")
-        lines.append("- Run `<binary> --help` to capture the full CLI contract as a golden test fixture.")
+        lines.append(
+            "- Run `<binary> --help` to capture the full CLI contract as a golden test fixture."
+        )
         if lang == "Python":
-            lines.append("- For Click/Typer apps, consider `<binary> --help` per subcommand for full coverage.")
+            lines.append(
+                "- For Click/Typer apps, consider `<binary> --help` per subcommand for full coverage."
+            )
         elif lang == "Go":
-            lines.append("- For Cobra apps, consider `<binary> help <subcommand>` for full coverage.")
+            lines.append(
+                "- For Cobra apps, consider `<binary> help <subcommand>` for full coverage."
+            )
         out.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
         return True
 
     out = output_dir / "spec-cli-surface.md"
     pkg_dir = Path(str(node_cli["package_dir"]))
 
-    pkg_json_rel = Path(str(node_cli["package_json"])).relative_to(analysis_root).as_posix()
+    pkg_json_rel = (
+        Path(str(node_cli["package_json"])).relative_to(analysis_root).as_posix()
+    )
     src_index = pkg_dir / "src" / "index.ts"
     src_cli = pkg_dir / "src" / "cli.ts"
     src_store = pkg_dir / "src" / "cli" / "store.ts"
@@ -741,7 +870,9 @@ def _write_cli_surface_spec(
         if extracted:
             agent_keys, alias_flags = extracted
             if agent_keys:
-                help_text = help_text.replace("${agentKeys.join('|')}", "|".join(agent_keys))
+                help_text = help_text.replace(
+                    "${agentKeys.join('|')}", "|".join(agent_keys)
+                )
             alias_line = ""
             if alias_flags:
                 alias_line = f"  {' | '.join(alias_flags)}  Agent alias flags\n"
@@ -754,7 +885,14 @@ def _write_cli_surface_spec(
         pat = re.compile(r"\bprocess\.env\.([A-Z][A-Z0-9_]*)\b")
         found = set()
         for p in sorted(src_root.rglob("*")):
-            if not p.is_file() or p.suffix.lower() not in (".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"):
+            if not p.is_file() or p.suffix.lower() not in (
+                ".ts",
+                ".tsx",
+                ".js",
+                ".jsx",
+                ".mjs",
+                ".cjs",
+            ):
                 continue
             for m in pat.finditer(_read_text(p)):
                 found.add(m.group(1))
@@ -789,7 +927,9 @@ def _write_cli_surface_spec(
         lines.append("")
         lines.append("### Source Entry (Heuristic)")
         lines.append("")
-        lines.append(f"- `{src_cli.relative_to(analysis_root).as_posix()}` (node shebang entry; typically calls `runCli`)")
+        lines.append(
+            f"- `{src_cli.relative_to(analysis_root).as_posix()}` (node shebang entry; typically calls `runCli`)"
+        )
 
     lines.append("")
     lines.append("## Usage / Help (Code-Proven Where Possible)")
@@ -800,7 +940,9 @@ def _write_cli_surface_spec(
         lines.append("```")
         lines.append("")
         lines.append("Evidence:")
-        lines.append(f"- `{src_index.relative_to(analysis_root).as_posix()}` (`helpText`)")
+        lines.append(
+            f"- `{src_index.relative_to(analysis_root).as_posix()}` (`helpText`)"
+        )
     else:
         lines.append("- _Help text not extracted (pattern not found)._")
         lines.append("Evidence:")
@@ -816,7 +958,9 @@ def _write_cli_surface_spec(
         wrote_any = True
     if env_vars:
         lines.append(f"- Environment variables: `{', '.join(env_vars)}`")
-        lines.append(f"  Evidence: scan of `{src_root.relative_to(analysis_root).as_posix()}` for `process.env.<NAME>`.")
+        lines.append(
+            f"  Evidence: scan of `{src_root.relative_to(analysis_root).as_posix()}` for `process.env.<NAME>`."
+        )
         wrote_any = True
     if not wrote_any:
         lines.append("- _No config/env surface extracted._")
@@ -824,8 +968,12 @@ def _write_cli_surface_spec(
     lines.append("")
     lines.append("## Notes For 1:1 Fidelity")
     lines.append("")
-    lines.append("- Treat `--help` output as the CLI contract; include it as a golden test fixture for regressions.")
-    lines.append("- If the repo does not ship built artifacts (ex: `dist/`), building may be required to execute the CLI directly.")
+    lines.append(
+        "- Treat `--help` output as the CLI contract; include it as a golden test fixture for regressions."
+    )
+    lines.append(
+        "- If the repo does not ship built artifacts (ex: `dist/`), building may be required to execute the CLI directly."
+    )
 
     out.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
     return True
@@ -918,7 +1066,11 @@ def _write_artifact_surface_spec(
                 from_dir = source.get("fromDir")
                 if not isinstance(from_dir, str):
                     continue
-                from_dir_res = _render_placeholders(from_dir, placeholder_vars) if placeholder_vars else from_dir
+                from_dir_res = (
+                    _render_placeholders(from_dir, placeholder_vars)
+                    if placeholder_vars
+                    else from_dir
+                )
                 abs_from = pkg_dir / from_dir_res
                 if abs_from.exists() and abs_from.is_dir():
                     for fp in sorted(abs_from.rglob("*")):
@@ -938,7 +1090,11 @@ def _write_artifact_surface_spec(
                 from_file = source.get("from")
                 if not isinstance(from_file, str):
                     continue
-                from_file_res = _render_placeholders(from_file, placeholder_vars) if placeholder_vars else from_file
+                from_file_res = (
+                    _render_placeholders(from_file, placeholder_vars)
+                    if placeholder_vars
+                    else from_file
+                )
                 abs_from = pkg_dir / from_file_res
                 if abs_from.exists() and abs_from.is_file():
                     resolved_sources.append(
@@ -976,7 +1132,9 @@ def _write_artifact_surface_spec(
     lines.append(f"- Date: {date}")
     lines.append(f"- Analysis root: `{analysis_root}`")
     lines.append(f"- Node package: `{pkg_dir.relative_to(analysis_root).as_posix()}`")
-    lines.append(f"- Manifests dir: `{manifests_dir.relative_to(analysis_root).as_posix()}`")
+    lines.append(
+        f"- Manifests dir: `{manifests_dir.relative_to(analysis_root).as_posix()}`"
+    )
     lines.append(f"- Machine registry: `{out_json.relative_to(output_dir).as_posix()}`")
     lines.append("")
     lines.append("## Manifest Inventory (Code-Proven)")
@@ -998,7 +1156,9 @@ def _write_artifact_surface_spec(
     lines.append("## Template Source File Inventory (Hashed)")
     lines.append("")
     lines.append(f"- Files hashed: `{len(resolved_sources)}`")
-    lines.append("- Use `artifact-registry.json` as the source of truth for 1:1 template content equivalence.")
+    lines.append(
+        "- Use `artifact-registry.json` as the source of truth for 1:1 template content equivalence."
+    )
 
     out_md.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
 
@@ -1033,11 +1193,30 @@ def _collect_env_vars_with_evidence(
     var_files: dict[str, set[str]] = {}
 
     patterns: list[tuple[re.Pattern[str], set[str]]] = [
-        (re.compile(r"\bprocess\.env\.([A-Z][A-Z0-9_]+)\b"), {".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"}),
-        (re.compile(r"""os\.environ(?:\.get)?\s*\(\s*['"]([A-Z][A-Z0-9_]+)['"]\s*\)"""), {".py"}),
-        (re.compile(r"""\bos\.getenv\s*\(\s*['"]([A-Z][A-Z0-9_]+)['"]\s*\)"""), {".py"}),
-        (re.compile(r"""\bos\.(?:Getenv|LookupEnv)\s*\(\s*"([A-Z][A-Z0-9_]+)"\s*\)"""), {".go"}),
-        (re.compile(r'\$\{?([A-Z][A-Z0-9_]{2,})\}?'), {".sh", ".bash", ".env", ".envrc"}),
+        (
+            re.compile(r"\bprocess\.env\.([A-Z][A-Z0-9_]+)\b"),
+            {".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"},
+        ),
+        (
+            re.compile(
+                r"""os\.environ(?:\.get)?\s*\(\s*['"]([A-Z][A-Z0-9_]+)['"]\s*\)"""
+            ),
+            {".py"},
+        ),
+        (
+            re.compile(r"""\bos\.getenv\s*\(\s*['"]([A-Z][A-Z0-9_]+)['"]\s*\)"""),
+            {".py"},
+        ),
+        (
+            re.compile(
+                r"""\bos\.(?:Getenv|LookupEnv)\s*\(\s*"([A-Z][A-Z0-9_]+)"\s*\)"""
+            ),
+            {".go"},
+        ),
+        (
+            re.compile(r"\$\{?([A-Z][A-Z0-9_]{2,})\}?"),
+            {".sh", ".bash", ".env", ".envrc"},
+        ),
     ]
 
     scanned = 0
@@ -1045,7 +1224,14 @@ def _collect_env_vars_with_evidence(
         if not p.is_file():
             continue
         # Skip irrelevant dirs
-        skip_dirs = {"node_modules", ".git", ".venv", "vendor", "testdata", "__pycache__"}
+        skip_dirs = {
+            "node_modules",
+            ".git",
+            ".venv",
+            "vendor",
+            "testdata",
+            "__pycache__",
+        }
         if any(part in skip_dirs for part in p.parts):
             continue
         suffix = p.suffix.lower()
@@ -1067,10 +1253,12 @@ def _collect_env_vars_with_evidence(
 
     result: list[dict[str, object]] = []
     for var_name in sorted(var_files.keys()):
-        result.append({
-            "name": var_name,
-            "files": sorted(var_files[var_name]),
-        })
+        result.append(
+            {
+                "name": var_name,
+                "files": sorted(var_files[var_name]),
+            }
+        )
     return result
 
 
@@ -1174,7 +1362,11 @@ def _write_repo_contract_json(
 
     node_cli = _find_node_cli_package(analysis_root, product_slug, product_name)
     python_cli_info = _find_python_cli(analysis_root) if node_cli is None else None
-    go_cli_info = _find_go_cli(analysis_root) if node_cli is None and python_cli_info is None else None
+    go_cli_info = (
+        _find_go_cli(analysis_root)
+        if node_cli is None and python_cli_info is None
+        else None
+    )
 
     if node_cli:
         pkg_dir = Path(str(node_cli["package_dir"]))
@@ -1185,7 +1377,9 @@ def _write_repo_contract_json(
             for k, v in raw_bin.items():
                 bin_map[k] = v
         cli_surface["language"] = "node"
-        cli_surface["package_json"] = Path(str(node_cli["package_json"])).relative_to(analysis_root).as_posix()
+        cli_surface["package_json"] = (
+            Path(str(node_cli["package_json"])).relative_to(analysis_root).as_posix()
+        )
         cli_surface["package_dir"] = pkg_dir.relative_to(analysis_root).as_posix()
         cli_surface["package_name"] = str(node_cli.get("name") or "")
         cli_surface["bin"] = {k: bin_map[k] for k in sorted(bin_map)}
@@ -1199,35 +1393,53 @@ def _write_repo_contract_json(
             if extracted:
                 agent_keys, alias_flags = extracted
                 if agent_keys:
-                    help_text = help_text.replace("${agentKeys.join('|')}", "|".join(agent_keys))
+                    help_text = help_text.replace(
+                        "${agentKeys.join('|')}", "|".join(agent_keys)
+                    )
                 alias_line = ""
                 if alias_flags:
                     alias_line = f"  {' | '.join(alias_flags)}  Agent alias flags\n"
                 help_text = help_text.replace("${agentAliasLine}", alias_line)
         if help_text is not None:
             cli_surface["help_text"] = help_text
-            cli_surface["help_text_source"] = src_index.relative_to(analysis_root).as_posix() if src_index.exists() else None
+            cli_surface["help_text_source"] = (
+                src_index.relative_to(analysis_root).as_posix()
+                if src_index.exists()
+                else None
+            )
 
         # Config file from store.ts
         src_store = pkg_dir / "src" / "cli" / "store.ts"
         config_file = _extract_ts_string_const(src_store, "CONFIG_FILE")
         if config_file:
             cli_surface["config_file"] = config_file
-            cli_surface["config_file_source"] = src_store.relative_to(analysis_root).as_posix() if src_store.exists() else None
+            cli_surface["config_file_source"] = (
+                src_store.relative_to(analysis_root).as_posix()
+                if src_store.exists()
+                else None
+            )
 
     elif python_cli_info:
         raw_bin_py = python_cli_info.get("bin") or {}
         cli_surface["language"] = "python"
         cli_surface["framework"] = python_cli_info.get("framework")
         cli_surface["entry_module"] = python_cli_info.get("entry_module")
-        cli_surface["bin"] = {k: str(raw_bin_py[k]) for k in sorted(raw_bin_py)} if isinstance(raw_bin_py, dict) else {}
+        cli_surface["bin"] = (
+            {k: str(raw_bin_py[k]) for k in sorted(raw_bin_py)}
+            if isinstance(raw_bin_py, dict)
+            else {}
+        )
 
     elif go_cli_info:
         raw_bin_go = go_cli_info.get("bin") or {}
         cli_surface["language"] = "go"
         cli_surface["framework"] = go_cli_info.get("framework")
         cli_surface["module"] = go_cli_info.get("module")
-        cli_surface["bin"] = {k: str(raw_bin_go[k]) for k in sorted(raw_bin_go)} if isinstance(raw_bin_go, dict) else {}
+        cli_surface["bin"] = (
+            {k: str(raw_bin_go[k]) for k in sorted(raw_bin_go)}
+            if isinstance(raw_bin_go, dict)
+            else {}
+        )
 
     contract["cli"] = cli_surface
 
@@ -1253,15 +1465,21 @@ def _write_repo_contract_json(
             # Template files: keep path, sha256 (no absolute paths; already relative in artifact-registry)
             template_hashes: list[dict[str, object]] = []
             for tf in template_files_raw:
-                template_hashes.append({
-                    "file": tf.get("file"),
-                    "manifest": tf.get("manifest"),
-                    "sha256": tf.get("sha256"),
-                    "source_type": tf.get("source_type"),
-                })
+                template_hashes.append(
+                    {
+                        "file": tf.get("file"),
+                        "manifest": tf.get("manifest"),
+                        "sha256": tf.get("sha256"),
+                        "source_type": tf.get("source_type"),
+                    }
+                )
 
-            contract["manifests"] = sorted(manifests_clean, key=lambda x: str(x.get("path", "")))
-            contract["template_files"] = sorted(template_hashes, key=lambda x: str(x.get("file", "")))
+            contract["manifests"] = sorted(
+                manifests_clean, key=lambda x: str(x.get("path", ""))
+            )
+            contract["template_files"] = sorted(
+                template_hashes, key=lambda x: str(x.get("file", ""))
+            )
         except Exception:
             pass
 
@@ -1293,7 +1511,11 @@ def _write_comparison_report(
     binary_cmds: list[str] = []
     commands_file = tmp_dir / "binary" / "cli-commands.txt"
     if commands_file.exists():
-        binary_cmds = [c.strip() for c in commands_file.read_text(encoding="utf-8").splitlines() if c.strip()]
+        binary_cmds = [
+            c.strip()
+            for c in commands_file.read_text(encoding="utf-8").splitlines()
+            if c.strip()
+        ]
 
     repo_cmds: list[str] = []
     repo_cli_spec = output_dir / "spec-cli-surface.md"
@@ -1326,7 +1548,11 @@ def _write_comparison_report(
             if not in_groups:
                 continue
             # Group entries are 2-space indented, end with ':'
-            if line.startswith("  ") and not line.startswith("    ") and line.rstrip().endswith(":"):
+            if (
+                line.startswith("  ")
+                and not line.startswith("    ")
+                and line.rstrip().endswith(":")
+            ):
                 # Determine source from notes field
                 binary_groups += 1
 
@@ -1344,7 +1570,9 @@ def _write_comparison_report(
     # --- Coverage percentage ---
     if repo_cmds:
         coverage_pct = round(len(binary_set & repo_set) / len(repo_set) * 100)
-        coverage_line = f"Binary analysis found {coverage_pct}% of repo-discovered commands."
+        coverage_line = (
+            f"Binary analysis found {coverage_pct}% of repo-discovered commands."
+        )
     elif binary_cmds:
         coverage_line = f"Binary analysis found {len(binary_cmds)} commands; repo analysis found none (no CLI detected in repo)."
     else:
@@ -1403,7 +1631,9 @@ def _write_comparison_report(
 
 
 def _write_wrapper_validate_feature_registry(output_dir: Path) -> None:
-    skill_validate_path = (SKILL_DIR / "scripts" / "validate_feature_registry.py").resolve()
+    skill_validate_path = (
+        SKILL_DIR / "scripts" / "validate_feature_registry.py"
+    ).resolve()
     wrapper = output_dir / "validate-feature-registry.py"
     wrapper.write_text(
         f"""#!/usr/bin/env python3
@@ -1467,6 +1697,160 @@ def _copy_security_validators(output_dir: Path) -> None:
         dst.chmod(0o755)
 
 
+def _git_text(repo: Path, *args: str) -> str:
+    return subprocess.check_output(
+        ["git", "-C", str(repo), *args], text=True, stderr=subprocess.STDOUT
+    ).strip()
+
+
+def _is_git_checkout(path: Path) -> bool:
+    try:
+        return _git_text(path, "rev-parse", "--is-inside-work-tree") == "true"
+    except (OSError, subprocess.CalledProcessError):
+        return False
+
+
+def _write_source_metadata(
+    output_dir: Path,
+    *,
+    upstream_repo: str | None,
+    upstream_ref: str | None,
+    resolved_commit: str,
+    source_kind: str,
+) -> None:
+    payload = {
+        "upstream_repo": upstream_repo,
+        "upstream_ref": upstream_ref,
+        "resolved_commit": resolved_commit,
+        "source_kind": source_kind,
+        "clone_date": _today_ymd(),
+    }
+    (output_dir / "clone-metadata.json").write_text(
+        json.dumps(payload, indent=2) + "\n", encoding="utf-8"
+    )
+
+
+def _prepare_repo_analysis(
+    *,
+    local_clone_dir: Path,
+    output_dir: Path,
+    explicit_local_dir: bool,
+    upstream_repo: str | None,
+    upstream_ref: str | None,
+) -> Path:
+    """Select one unambiguous repo analysis root and bind its requested ref."""
+
+    exists_before = local_clone_dir.exists() and any(local_clone_dir.iterdir())
+    if upstream_repo and not exists_before:
+        clone_cmd = ["git", "clone"]
+        if not upstream_ref:
+            clone_cmd.append("--depth=1")
+        clone_cmd.extend([upstream_repo, str(local_clone_dir)])
+        _run(clone_cmd, check=True)
+        if upstream_ref:
+            _run(
+                [
+                    "git",
+                    "-C",
+                    str(local_clone_dir),
+                    "fetch",
+                    "--depth=1",
+                    "origin",
+                    upstream_ref,
+                ],
+                check=True,
+            )
+            _run(
+                [
+                    "git",
+                    "-C",
+                    str(local_clone_dir),
+                    "checkout",
+                    "--detach",
+                    "FETCH_HEAD",
+                ],
+                check=True,
+            )
+
+    if explicit_local_dir:
+        analysis_root = local_clone_dir
+    elif upstream_repo:
+        analysis_root = local_clone_dir
+    else:
+        try:
+            top = subprocess.check_output(
+                ["git", "rev-parse", "--show-toplevel"],
+                text=True,
+                stderr=subprocess.DEVNULL,
+            ).strip()
+        except (OSError, subprocess.CalledProcessError):
+            top = ""
+        analysis_root = _lexical_absolute(Path(top)) if top else local_clone_dir
+
+    if upstream_repo and not _is_git_checkout(analysis_root):
+        _die(f"--upstream-repo did not produce a Git checkout: {analysis_root}")
+    if upstream_repo and exists_before:
+        try:
+            origin = _git_text(analysis_root, "config", "--get", "remote.origin.url")
+        except subprocess.CalledProcessError:
+            _die(
+                "existing checkout has no origin URL to verify against --upstream-repo"
+            )
+        if origin != upstream_repo:
+            _die(
+                "existing checkout origin does not match --upstream-repo "
+                f"(origin={origin!r}, requested={upstream_repo!r})"
+            )
+
+    if upstream_ref:
+        if not _is_git_checkout(analysis_root):
+            _die(
+                "--upstream-ref requires the selected analysis root to be a Git checkout"
+            )
+        try:
+            requested = _git_text(
+                analysis_root, "rev-parse", "--verify", f"{upstream_ref}^{{commit}}"
+            )
+        except subprocess.CalledProcessError:
+            if not upstream_repo:
+                _die(
+                    f"requested ref is not present in the selected checkout: {upstream_ref}"
+                )
+            _run(
+                [
+                    "git",
+                    "-C",
+                    str(analysis_root),
+                    "fetch",
+                    "--depth=1",
+                    "origin",
+                    upstream_ref,
+                ],
+                check=True,
+            )
+            requested = _git_text(
+                analysis_root, "rev-parse", "--verify", "FETCH_HEAD^{commit}"
+            )
+        current = _git_text(analysis_root, "rev-parse", "--verify", "HEAD^{commit}")
+        if current != requested:
+            _die(
+                "selected checkout is not at --upstream-ref; refusing to analyze the "
+                f"wrong commit (HEAD={current}, requested={requested})"
+            )
+
+    if _is_git_checkout(analysis_root) and (upstream_repo or upstream_ref):
+        resolved = _git_text(analysis_root, "rev-parse", "--verify", "HEAD^{commit}")
+        _write_source_metadata(
+            output_dir,
+            upstream_repo=upstream_repo,
+            upstream_ref=upstream_ref,
+            resolved_commit=resolved,
+            source_kind="existing-checkout" if exists_before else "clone",
+        )
+
+    return analysis_root
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(prog="reverse_engineer.py")
     ap.add_argument("product_name")
@@ -1483,9 +1867,22 @@ def main() -> int:
         help="Docs slug prefix, e.g. docs/features/. Use 'auto' to detect from repo/sitemap (default).",
     )
     ap.add_argument("--upstream-repo", default=None)
-    ap.add_argument("--upstream-ref", default=None, help="Pin clone to a specific commit, tag, or branch. Records resolved SHA in clone-metadata.json.")
+    ap.add_argument(
+        "--upstream-ref",
+        default=None,
+        help="Pin clone to a specific commit, tag, or branch. Records resolved SHA in clone-metadata.json.",
+    )
     ap.add_argument("--local-clone-dir", default=None)
-    ap.add_argument("--output-dir", default=None)
+    ap.add_argument(
+        "--output-dir",
+        default=None,
+        help=(
+            "Artifact directory. Defaults to "
+            ".agents/scratch/reverse-engineer/<product>/. The earlier "
+            ".agents/research/<product>/ path remains accepted when supplied "
+            "explicitly; existing artifacts are never moved automatically."
+        ),
+    )
     ap.add_argument("--mode", default="repo", choices=["repo", "binary", "both"])
     ap.add_argument("--binary-path", default=None)
 
@@ -1506,70 +1903,59 @@ def main() -> int:
     args = ap.parse_args()
 
     product_slug = _slugify(args.product_name)
-    local_clone_dir = Path(args.local_clone_dir or f".tmp/{product_slug}").resolve()
-    output_dir = Path(args.output_dir or f".agents/scratch/reverse-engineer/{product_slug}/").resolve()
+    explicit_local_dir = args.local_clone_dir is not None
+    local_clone_dir = _lexical_absolute(
+        Path(args.local_clone_dir or f".tmp/{product_slug}")
+    )
+    output_dir = _lexical_absolute(
+        Path(args.output_dir or f".agents/scratch/reverse-engineer/{product_slug}/")
+    )
     analysis_root = local_clone_dir
 
-    tmp_dir = (REPO_ROOT / ".tmp" / f"reverse-engineer-{product_slug}").resolve()
-    _ensure_dirs([local_clone_dir, output_dir, tmp_dir])
+    tmp_dir = _lexical_absolute(REPO_ROOT / ".tmp" / f"reverse-engineer-{product_slug}")
+    _ensure_real_directory(local_clone_dir)
+    output_identity = _ensure_real_directory(output_dir)
+    _ensure_real_directory(tmp_dir)
+    _assert_no_symlinks(output_dir)
 
     docs_features_txt = output_dir / "docs-features.txt"
     effective_docs_prefix = args.docs_features_prefix
 
-    # Acquire code (repo mode): shallow clone if requested.
-    # NOTE: this must happen before docs inventory, otherwise docs/features extraction runs against an empty dir.
     if args.mode in ("repo", "both"):
-        if args.upstream_repo and not (local_clone_dir / ".git").exists():
-            clone_cmd = ["git", "clone"]
-            if not args.upstream_ref:
-                clone_cmd.append("--depth=1")
-            clone_cmd.extend([args.upstream_repo, str(local_clone_dir)])
-            _run(clone_cmd, check=True)
-            if args.upstream_ref:
-                _run(["git", "-C", str(local_clone_dir), "fetch", "--depth=1", "origin", args.upstream_ref], check=True)
-                _run(["git", "-C", str(local_clone_dir), "checkout", "FETCH_HEAD"], check=True)
-            # Record clone metadata for reproducibility.
-            resolved_sha = subprocess.check_output(
-                ["git", "-C", str(local_clone_dir), "rev-parse", "HEAD"], text=True,
-            ).strip()
-            clone_meta = {
-                "upstream_repo": args.upstream_repo,
-                "upstream_ref": args.upstream_ref,
-                "resolved_commit": resolved_sha,
-                "clone_date": _today_ymd(),
-            }
-            (output_dir / "clone-metadata.json").write_text(
-                json.dumps(clone_meta, indent=2) + "\n", encoding="utf-8",
-            )
-            analysis_root = local_clone_dir
-
-    # Determine an analysis root for repo mode.
-    # Priority:
-    # 1) local_clone_dir if it looks like a git checkout already
-    # 2) git toplevel of the current working directory (if inside a repo)
-    # 3) local_clone_dir (created)
-    if args.mode in ("repo", "both"):
-        if (local_clone_dir / ".git").exists():
-            analysis_root = local_clone_dir
-        else:
-            try:
-                top = subprocess.check_output(["git", "rev-parse", "--show-toplevel"], text=True).strip()
-                if top:
-                    analysis_root = Path(top).resolve()
-            except Exception:
-                analysis_root = local_clone_dir
+        # Acquire/select the repo before inventory.  An explicit local path is
+        # always the selected root, including when it is intentionally non-Git;
+        # never replace it with the caller's current checkout.
+        analysis_root = _prepare_repo_analysis(
+            local_clone_dir=local_clone_dir,
+            output_dir=output_dir,
+            explicit_local_dir=explicit_local_dir,
+            upstream_repo=args.upstream_repo,
+            upstream_ref=args.upstream_ref,
+        )
 
     # 1) Mechanical docs inventory (NO heavy crawling).
     if args.docs_sitemap_url:
         sitemap_xml = tmp_dir / f"{product_slug}-sitemap.xml"
-        _run([sys.executable, str(SKILL_DIR / "scripts" / "fetch_url.py"), args.docs_sitemap_url, str(sitemap_xml)])
+        _run(
+            [
+                sys.executable,
+                str(SKILL_DIR / "scripts" / "fetch_url.py"),
+                args.docs_sitemap_url,
+                str(sitemap_xml),
+            ]
+        )
 
         paths_txt = tmp_dir / f"{product_slug}-sitemap-paths.txt"
-        sitemap_paths = subprocess.check_output([str(SKILL_DIR / "scripts" / "extract_sitemap_paths.sh"), str(sitemap_xml)], text=True)
+        sitemap_paths = subprocess.check_output(
+            [str(SKILL_DIR / "scripts" / "extract_sitemap_paths.sh"), str(sitemap_xml)],
+            text=True,
+        )
         paths_txt.write_text(sitemap_paths, encoding="utf-8")
 
         if args.docs_features_prefix in ("", "auto"):
-            effective_docs_prefix = _detect_docs_prefix_from_paths(sitemap_paths.splitlines())
+            effective_docs_prefix = _detect_docs_prefix_from_paths(
+                sitemap_paths.splitlines()
+            )
 
         docs_features = subprocess.check_output(
             [
@@ -1587,7 +1973,10 @@ def main() -> int:
                 effective_docs_prefix = _detect_docs_prefix_for_repo(analysis_root)
             # Backward-compatibility fallback for explicit old default.
             elif args.docs_features_prefix == "docs/features/":
-                if not (analysis_root / "docs" / "features").exists() and (analysis_root / "docs").exists():
+                if (
+                    not (analysis_root / "docs" / "features").exists()
+                    and (analysis_root / "docs").exists()
+                ):
                     effective_docs_prefix = "docs/"
 
             prefix_dir = effective_docs_prefix.strip("/").rstrip("/")
@@ -1602,7 +1991,9 @@ def main() -> int:
                     rel = p.relative_to(analysis_root).as_posix()
                     # Normalize to slug without extension to match sitemap-style slugs.
                     slugs.append(rel[: -len(p.suffix)])
-            docs_features_txt.write_text("\n".join(slugs) + ("\n" if slugs else ""), encoding="utf-8")
+            docs_features_txt.write_text(
+                "\n".join(slugs) + ("\n" if slugs else ""), encoding="utf-8"
+            )
         else:
             docs_features_txt.write_text("", encoding="utf-8")
 
@@ -1634,7 +2025,12 @@ def main() -> int:
         capture_script = SKILL_DIR / "scripts" / "binary" / "capture_cli_help.sh"
         if capture_script.exists():
             _run(
-                ["bash", str(capture_script), str(binary_path), str(tmp_dir / "binary")],
+                [
+                    "bash",
+                    str(capture_script),
+                    str(binary_path),
+                    str(tmp_dir / "binary"),
+                ],
                 check=False,  # best-effort
             )
             # Copy results to output dir if they exist
@@ -1671,7 +2067,12 @@ def main() -> int:
             _run(
                 [
                     sys.executable,
-                    str(SKILL_DIR / "scripts" / "binary" / "extract_embedded_archives.py"),
+                    str(
+                        SKILL_DIR
+                        / "scripts"
+                        / "binary"
+                        / "extract_embedded_archives.py"
+                    ),
                     "--binary",
                     str(binary_path),
                     "--out-dir",
@@ -1798,13 +2199,17 @@ def main() -> int:
 
     # 6c) Comparison report (binary vs repo) when both sources are available.
     if args.mode == "both":
-        _write_comparison_report(output_dir, tmp_dir, product_name=args.product_name, date=_today_ymd())
+        _write_comparison_report(
+            output_dir, tmp_dir, product_name=args.product_name, date=_today_ymd()
+        )
 
     # 7) Validation gate: produce a self-contained validator in the output dir and run it once.
     _write_wrapper_validate_feature_registry(output_dir)
     # Store analysis root pointer for validators (repo clone dir or a placeholder).
     (output_dir / "analysis-root").mkdir(exist_ok=True)
-    (output_dir / "analysis-root-path.txt").write_text(str(analysis_root), encoding="utf-8")
+    (output_dir / "analysis-root-path.txt").write_text(
+        str(analysis_root), encoding="utf-8"
+    )
     # Keep docs-features alongside outputs for deterministic validation.
     # (Already written as output_dir/docs-features.txt)
     _run(
@@ -1816,7 +2221,11 @@ def main() -> int:
             "--docs-features",
             str(docs_features_txt),
             "--local-clone-dir",
-            str(analysis_root if analysis_root.exists() else output_dir / "analysis-root"),
+            str(
+                analysis_root
+                if analysis_root.exists()
+                else output_dir / "analysis-root"
+            ),
         ],
         check=True,
     )
@@ -1834,12 +2243,19 @@ def main() -> int:
             "findings.md.tmpl",
             "reproducibility.md.tmpl",
         ]:
-            _render_template(TEMPLATES_DIR / "security" / name, sec_dir / name.replace(".tmpl", ""), vars)
+            _render_template(
+                TEMPLATES_DIR / "security" / name,
+                sec_dir / name.replace(".tmpl", ""),
+                vars,
+            )
 
         _copy_security_validators(output_dir)
 
         if args.sbom:
-            _run([str(sec_dir / "generate-sbom.sh"), str(analysis_root), str(sec_dir)], check=False)
+            _run(
+                [str(sec_dir / "generate-sbom.sh"), str(analysis_root), str(sec_dir)],
+                check=False,
+            )
 
         # Scaffold-time safety check: scan the generated output for leaked
         # secrets. The full certifying gate (validate-security-audit.sh) is NOT
@@ -1859,8 +2275,37 @@ def main() -> int:
     vibe_path = reports_dir / f"{_today_ymd()}-vibe-{product_slug}.md"
     post_path = reports_dir / f"{_today_ymd()}-postmortem-{product_slug}.md"
 
-    _render_template(TEMPLATES_DIR / "vibe-report.md.tmpl", vibe_path, {**vars, "OUTPUT_DIR": str(output_dir)})
-    _render_template(TEMPLATES_DIR / "postmortem.md.tmpl", post_path, {**vars, "OUTPUT_DIR": str(output_dir)})
+    _render_template(
+        TEMPLATES_DIR / "vibe-report.md.tmpl",
+        vibe_path,
+        {**vars, "OUTPUT_DIR": str(output_dir)},
+    )
+    _render_template(
+        TEMPLATES_DIR / "postmortem.md.tmpl",
+        post_path,
+        {**vars, "OUTPUT_DIR": str(output_dir)},
+    )
+
+    # Phase 1 deliberately stops at a validated teardown.  The evidence-backed
+    # steal-map is a caller-authored Phase-2 judgment over this output and the
+    # live destination repository; the script must not manufacture that choice.
+    _assert_directory_identity(output_dir, output_identity, "output directory")
+    _assert_no_symlinks(output_dir)
+    _run(
+        [
+            "bash",
+            str(SKILL_DIR / "scripts" / "validate-output.sh"),
+            "--output-dir",
+            str(output_dir),
+            "--phase",
+            "teardown",
+            "--upstream-ref-set",
+            "1" if args.upstream_ref else "0",
+        ],
+        check=True,
+    )
+    _assert_directory_identity(output_dir, output_identity, "output directory")
+    _assert_no_symlinks(output_dir)
 
     return 0
 

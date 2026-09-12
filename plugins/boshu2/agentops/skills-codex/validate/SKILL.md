@@ -1,165 +1,113 @@
 ---
 name: validate
-description: Freshly judge exact subject content against
+description: 'Freshly judge a finished change against original acceptance before merge. Use when: independent proof is needed; author tests cannot issue PASS. Triggers: "check this change".'
 ---
 # Validate
 
-Independently judge one exact subject against the acceptance in its existing
-bead or caller source, return one semantic result, and stop. Validate is the
-sole `verdict.v2` writer when persistence is requested. It never asks the model
-to reconstruct Plan or Candidate packets.
+Freshly judge the exact candidate against accepted intent, return
+`PASS`, `FAIL`, or `NOT_PROVEN`, and stop. The author cannot provide binding PASS. Read RPI
+[boundaries](../rpi/references/boundaries.md) before judgment; load helper flags
+and storage details from [mechanics](references/mechanics.md) when needed.
 
-## Preconditions
+## Preconditions and freshness
 
-- The subject is a nonempty implementation candidate: the manifest lists at
-  least one entry, and `store-verdict` refuses an empty one. Plans, audits,
-  reviews, and other control artifacts are not completion subjects unless the
-  caller explicitly requested document review.
-- The intent source is available as a caller-owned artifact or runtime-owned
-  content-addressed snapshot; its acceptance digest is derived automatically.
-- The subject manifest still matches the subject.
-- Author and validator context IDs are explicit.
-- Freshness is explicitly attested with `source: runtime | caller` and an
-  attester identity.
+Final review starts after required checks and known repairs, with the candidate
+held unchanged. Supplied failed-acceptance evidence means FAIL on that subject;
+do not review a moving repair. The subject is a nonempty implementation candidate; plans, audits
+and reviews are subjects only when the caller requested document review.
 
-Missing, colliding, or unattested identities produce `NOT_PROVEN`. This is a
-declared trust fact, not cryptographic proof that contexts were isolated.
+Use exact caller/runtime-owned intent bytes and derived acceptance identity.
+Author and validator context IDs must be explicit and distinct; freshness is
+attested by runtime or caller with the attester's identity. Missing, colliding
+or unattested identity means NOT_PROVEN, not proof of isolation by role name.
 
-## Cross-model fresh validator (caller-elected)
+Default to one fresh reviewer in the author's model family: Codex/OpenAI for
+Codex/OpenAI, Claude/Anthropic for Claude/Anthropic. Use the runtime's configured
+capable model unless pinned. A new role in the author's context is not fresh.
+Supply task-specific intent, scope, exact subject and relevant evidence, without
+full author history, desired verdict or peer conclusions. Retrieve more source
+when a criterion requires it; concise input must not omit necessary evidence.
 
-A caller may request that the fresh validator run on a different model than
-the author. Dispatch via the controller-session recipe in
-the `agent-native` model-dispatch recipe (`codex-exec` and/or `ntm`,
-probed at runtime). Record author and validator `model_identity` in evidence
-refs and freshness attestation notes — do not change `verdict.v2` schema. If
-the requested validator model has no live adapter, disclose the unsatisfied
-diversity request and proceed same-model; never invoke `claude -p` /
-`claude --print`. Single fresh validator remains the default shape.
+Cross-model review is opt-in. `--cross-model [model]` is a skill prompt selection,
+not an AO flag; it adds a fresh other-family reviewer. Required legs remain
+required: unavailable diversity yields `diversity_unsatisfied` and NOT_PROVEN
+for the combined request, even if another leg passed. Preserve delivered FAILs
+and dissent; neither voting nor model preference makes a split PASS. Optional
+unavailable diversity stays disclosed without erasing findings. Exact invocation,
+authorization, runtime identity and independent-input rules live in
+[model-dispatch](../agent-native/references/model-dispatch.md). No fixed
+ten-minute cap applies; respect real caller/native bounds without renewing them.
+A timeout is missing judgment, not FAIL. Shared-family or cross-family agreement
+alone is not truth or proof of freedom from training bias.
 
-## Mutating-check quarantine
+## Judgment
 
-Before running any acceptance-listed command, classify it as read-only or
-subject-mutating. Regen scripts, sync scripts, formatters, and anything with
-`--force` are subject-mutating until proven otherwise. Never run a
-subject-mutating check against an uncommitted subject: on 2026-07-15,
-`scripts/test-ci-deterministic-gates.sh` regenerated `skills-codex/` from HEAD
-mid-validation and destroyed the uncommitted subject, forcing `NOT_PROVEN`
-(verdict `b6e759dd...cb6a`); only restoring the subject and revalidating in a
-fresh context produced the PASS (`e9b6cdb8...37b9`). If a mutating check is
-genuinely required by acceptance, run it against a disposable copy or a
-committed subject, never the judged working tree.
-
-## Scope disclosure
-
-`not_checked` has exactly one meaning: **in-scope acceptance surface this
-validation did not verify**. PASS asserts that the whole declared acceptance
-surface was verified, so a PASS carries no `not_checked` entries; the helper
-refuses one and records a `validate.integrity` finding.
-
-That rule never pays for deleting an honest caveat, because every kind of scope
-limit has a home that survives inside a PASS:
-
-| Scope limit | Home | Example |
-|---|---|---|
-| A criterion proven by a bounded check | `criteria[].reason` on that criterion | "proven by the unit suite; the full integration matrix was not replayed" |
-| A declared non-goal or out-of-scope area | the intent source's non-goals, optionally restated as an evidence-backed boundary criterion in `criteria` | "`cli/**` is a declared non-goal; the diff proves it untouched" |
-| Residual risk or judgment caveat | the caller-facing report | "the migration path is untested against pre-3.0 stores" |
-| Acceptance that genuinely went unverified | `not_checked`, and the result is `NOT_PROVEN` rather than PASS | "criterion 3 needs hardware this context cannot reach" |
-
-Emptying `not_checked` to obtain PASS is a contract violation, not a
-workaround. If acceptance really went unverified, the honest result is
-`NOT_PROVEN`. If the entry was never acceptance in the first place, it belongs
-in one of the other homes, where it stays visible in the stored artifact
-instead of being deleted.
-
-## Helper commands
-
-The helper ships beside this file. Invoke it through this skill's own
-directory rather than a checkout-relative path: `$SKILL_DIR` is the directory
-containing this `SKILL.md` — `skills/validate/` in a repository checkout,
-`.agents/skills/validate/` in an installed runtime.
-
-| Command | Required | Optional |
-|---|---|---|
-| `manifest` | `--root <dir>`, `--include <path>` (repeatable, at least one) | `--exclude <path-or-glob>` (repeatable), `--base-manifest <file>`, `--git-metadata-json <json>`, `--output <file>` |
-| `verify-manifest` | `--root <dir>`, `--manifest <file>` | `--base-manifest <file>` |
-| `snapshot-intent` | `--source <file>` (`-` reads stdin) | `--workspace <dir>`, `--intent-dir <dir>` |
-| `digest` | `<json-file>` positional | none |
-| `store-verdict` | `--draft`, `--intent-source`, `--subject-manifest`, `--author-context-id`, `--validator-context-id`, `--freshness-source <runtime\|caller>`, `--freshness-attester-id`, `--scope-result <PASS\|FAIL\|NOT_PROVEN>` | `--workspace <dir>`, `--verdict-dir <dir>` |
+Use the helper for each changed path (repeat `--include` for complete scope):
 
 ```sh
-python3 "$SKILL_DIR/scripts/validate.py" manifest \
-  --root . --include skills/validate --exclude '**/*.log' --output manifest.json
+ao provenance manifest --root "$REPO_ROOT" --include "$CHANGED_PATH"
 ```
 
-## Workflow
+1. Derive `subject-manifest.v1` using the existing helper at start and end.
+   A mismatch means mutation and NOT_PROVEN. Verify exact intent continuity,
+   cited evidence digests and complete changed-path coverage; missing integrity
+   is NOT_PROVEN. Proven out-of-scope change is FAIL.
+2. Revisit the original accepted behavior examples, including those in the
+   conversation or bead. Check the observable result and its established
+   domain meaning on the exact candidate. A new test or renamed concept cannot
+   replace an unfulfilled scenario; missing scenario evidence is NOT_PROVEN.
+   Inspect the actual diff against every acceptance criterion. Risk determines
+   depth: acceptance, permissions, tests/gates, stopping, disclosure, hooks and
+   executable controls warrant deeper inspection, including prose policy.
+   Unknown risk merits examination, not automatic extra reviewers.
+3. Re-execute discriminating proofs for risk-critical, uncertain or thinly
+   evidenced claims. Valid digest-bound receipts may establish routine facts;
+   do not replay every author command or full suite merely because this is a
+   fresh context. The repository's required integration checks still run on
+   the final subject. A changed subject needs new judgment and affected checks.
+4. Classify commands before executing them. Regeneration, synchronization,
+   formatting and `--force` are subject-mutating until proven otherwise; run
+   them only on a disposable copy or a committed subject, never an uncommitted
+   judged tree. Do not overwrite the candidate while validating it.
+5. Reject green obtained through weaker assertions, tolerances, goldens,
+   suppressions or acceptance edits. Each criterion needs supporting evidence;
+   explanation alone is not proof. A necessary finding cannot become an
+   optional caveat or non-goal. Publication/provenance claims in docs also need
+   verifiable evidence.
+6. Return one result with criterion-level evidence, findings, checked scope,
+   `not_checked`, author/judge identities and contexts, and the freshness
+   attestation. PASS requires all criteria verified, nonempty checked scope and
+   top-level evidence, and empty `not_checked`. An unverified criterion means
+   NOT_PROVEN; proven failed acceptance or scope violation means FAIL.
 
-1. Recompute and compare `subject-manifest.v1` with the `manifest` command
-   above (`--root` plus at least one `--include`). The helper uses only
-   filesystem content; Git commit/tree IDs are optional metadata. Derive the
-   manifest at the start of validation and re-derive it at the end; any
-   mismatch between the two is subject mutation and returns `NOT_PROVEN`.
-2. Confirm the intent-source digest has not changed since implementation. If
-   the subject changed or complete changed-path coverage cannot be derived,
-   return `NOT_PROVEN`.
-3. Adjudicate the actual diff, not a declared path list: compare
-   runtime-derived actual changed paths against the intent's scope classes. A
-   proven out-of-scope path returns `FAIL`; incomplete scope evidence returns
-   `NOT_PROVEN`.
-4. Inspect the exact subject and factual evidence. Reported exit codes are
-   claims, not evidence: re-execute the claimed proofs that bear on acceptance
-   (see the freshness rules below for when a digest-bound receipt suffices).
-   If the subject changes a test, gate, fixture, golden, tolerance, suppression,
-   or acceptance source, determine whether the original intent requires that
-   change and whether green came from implemented behavior rather than a
-   weakened oracle. Green obtained by weakening acceptance is `FAIL`, not
-   evidence of completion.
-   Judge every acceptance criterion and record criterion-level results,
-   findings, evidence references, `checked`, and any acceptance surface that
-   went unverified in `not_checked` (see Scope disclosure).
-5. Choose exactly one semantic result: `PASS`, `FAIL`, or `NOT_PROVEN`. Return
-   it with criterion results, findings, evidence references, `checked`,
-   `not_checked`, the acceptance and subject identities, distinct author and
-   validator context IDs, and the freshness attestation. PASS requires distinct
-   identities, explicit freshness, nonempty checked scope, top-level evidence,
-   evidence for every criterion, and an empty `not_checked`; route bounded
-   proofs, declared non-goals, and residual risk to the homes named in Scope
-   disclosure rather than deleting them or downgrading a proven result.
-6. Only when the caller requests machine-readable evidence or a declared
-   downstream consumer requires it, persist canonical `verdict.v2` with the
-   helper's
-   `store-verdict --draft <draft.json> --intent-source <resolved-intent>
-   --subject-manifest <manifest.json> --author-context-id <id>
-   --validator-context-id <id> --freshness-source <runtime|caller>
-   --freshness-attester-id <id> --scope-result <PASS|FAIL|NOT_PROVEN>`. The
-   helper snapshots the exact resolved intent under
-   `<workspace>/.agents/ao/intents/sha256/<digest>.intent`, then computes and
-   injects intent and subject digests plus author, validator, and freshness
-   facts. Identity and changed-path facts come from runtime-derived inputs and
-   receipts, not model transcription. Storage defaults to
-   `<workspace>/.agents/ao/verdicts/sha256/<digest>.json`; callers may provide
-   `verdict_dir`.
-7. Return the semantic result and, when persisted, the artifact path and digest.
-   Stop.
+## Findings and report
 
-The digest is SHA-256 over canonical JSON with `artifact_digest` omitted. Writes
-use a same-directory temporary file, flush, fsync, and atomic rename. Identical
-existing content is idempotent success; conflicting content is an integrity
-failure represented by `NOT_PROVEN`.
+`not_checked` means in-scope acceptance that was not verified. Other limits
+remain in criterion reasoning, declared non-goals or residual-risk prose; never
+hide or delete them to obtain PASS. Keep prior findings visible. For each new
+finding, name a short stable nonempty `class` describing the defect, reused on
+recurrence, and distinguish pre-existing, introduced or unknown cause using
+before/after or equivalent causal evidence. Counts and timestamps alone do not
+establish cause. Known findings return to direct repair; causal stalls use the
+RPI single-helper rule, not repairs delegated to this validator.
 
-## Freshness without duplication
+Keep the report proportional: cite the exact subject, complete bound manifest
+and existing receipts instead of copying path or digest inventories. Group
+generated companions by source owner and verified equivalence; still verify
+every changed path and cited binding. Include excerpts only to assess a finding.
+Retain every criterion, necessary finding, identity, freshness fact and unchecked
+surface. Complete coverage does not require a second copy of the evidence.
 
-Fresh validation means independent judgment over the exact subject. It does not
-require mechanically replaying every author command. Verify intent identity,
-scope, evidence digests, and every acceptance criterion; independently rerun
-the risk-critical, uncertain, or insufficiently evidenced checks. A
-digest-bound deterministic receipt may prove routine facts. Replay an expensive
-full suite only when acceptance requires that result or the supplied receipt
-cannot establish it.
+Return the candidate verdict promptly when the judgment is complete. When
+delivery is outside the accepted review scope, the caller checks its native facts without
+another semantic review of unchanged content. Delivery inside acceptance stays
+unverified until its evidence exists: do not issue complete PASS early or remove
+the criterion. Use the existing result for any pending delivery update, without
+repeating the investigation or creating another report.
 
-## Boundary
-
-Validate emits no WARN, confidence, disposition, briefing learning, owner,
-next action, repair, retry, replan, helper, escalation, tracker, Git, release,
-closure, or delivery state. Generic provenance may record a verdict later, but
-ledger availability cannot change its validity.
+Validate is the sole semantic author of `verdict.v2`.
+Only when the caller requests machine-readable evidence or a declared consumer
+requires it, persist through `ao provenance store-verdict`. Validate supplies judgment;
+Go verifies structure and storage, not truth. Otherwise return the result
+through the existing caller channel without hidden machine artifacts.
+Validate owns no repair, retry, delivery or tracker transition.

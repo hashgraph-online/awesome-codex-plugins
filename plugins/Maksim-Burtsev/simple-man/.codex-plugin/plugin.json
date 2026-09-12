@@ -1,6 +1,6 @@
 {
   "name": "simple-man",
-  "version": "0.2.0",
+  "version": "0.3.2",
   "description": "Concise, low-noise Agent Skill for Codex without reduced work quality.",
   "author": {
     "name": "Maksim Burtsev",
@@ -23,7 +23,7 @@
   "interface": {
     "displayName": "Simple Man",
     "shortDescription": "Minimum user-facing words; same work quality.",
-    "longDescription": "Always-on professional communication policy for Codex. Removes filler from user-facing responses without reducing repository search, validation, or implementation effort.",
+    "longDescription": "Professional communication skill for Codex. When activated, it removes filler from user-facing responses without reducing repository search, validation, or implementation effort.",
     "developerName": "Maksim Burtsev",
     "category": "Development & Workflow",
     "capabilities": [

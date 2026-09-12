@@ -1,4 +1,4 @@
-# Xquik TypeScript Types: Radar
+# Xquik TypeScript types: radar
 
 ```typescript
 

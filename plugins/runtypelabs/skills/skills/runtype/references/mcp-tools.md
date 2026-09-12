@@ -30,6 +30,14 @@ Prefer live tool discovery and `get_platform_documentation` when available; this
 
 Start here when you need to understand the state of the workspace.
 
+Resource discovery tools with potentially large rows (`list_products`, `list_agents`,
+`list_flows`, `list_tools`, `list_records`, `list_collections`, `list_skills`, and
+`list_schedules`) use a
+compact response by default: string values longer than 100 characters end in `…`. Keep
+that bounded form while browsing, then use the matching `get_*` tool for one resource.
+Pass `view: "full"` only when complete strings are required across the page.
+`list_agents` accepts `agent_type` (`runtype`, `external`, or `claude_managed`).
+
 | Tool                                                | Use for                                       |
 | --------------------------------------------------- | --------------------------------------------- |
 | `get_me`                                            | Confirm auth context — user id, org id, email |
@@ -39,6 +47,8 @@ Start here when you need to understand the state of the workspace.
 | `list_tools`                                        | All tools                                     |
 | `list_surfaces`                                     | Surfaces for a given product                  |
 | `list_records`                                      | Records (filterable by type)                  |
+| `list_collections`                                  | Registered record types and schemas           |
+| `list_skills`                                       | Agent skills                                  |
 | `list_schedules`                                    | All schedules                                 |
 | `list_secrets`                                      | All secrets (metadata only)                   |
 | `list_conversations`                                | All conversations                             |
@@ -103,24 +113,25 @@ Schema feedback here is far more useful than waiting for create errors.
 
 ## Products, surfaces, capabilities
 
-| Tool                                        | Use                                                                      |
-| ------------------------------------------- | ------------------------------------------------------------------------ |
-| `create_product`                            | New product                                                              |
-| `get_product`                               | Product details                                                          |
-| `update_product`                            | Modify                                                                   |
-| `delete_product`                            | Remove                                                                   |
-| `get_product_configuration`                 | Secret config status + dashboard URL                                     |
-| `add_product_capability`                    | Attach a flow or agent as a capability                                   |
-| `remove_product_capability`                 | Detach                                                                   |
-| `create_surface`                            | New surface on a product                                                 |
-| `get_surface`                               | Surface details                                                          |
-| `update_surface`                            | Modify                                                                   |
-| `delete_surface`                            | Remove                                                                   |
-| `add_surface_item`                          | Wire a capability into a surface                                         |
-| `remove_surface_item`                       | Unwire                                                                   |
-| `create_surface_key` / `delete_surface_key` | Surface API keys                                                         |
-| `install_slack_integration`                 | Slack OAuth + bot install (preferred over manual surface keys for Slack) |
-| `create_integration`                        | Reserve a pending integration                                            |
+| Tool                                        | Use                                                                                                  |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `create_product`                            | New product                                                                                          |
+| `get_product`                               | Product details                                                                                      |
+| `update_product`                            | Modify                                                                                               |
+| `delete_product`                            | Remove                                                                                               |
+| `get_product_configuration`                 | Secret config status + dashboard URL                                                                 |
+| `add_product_capability`                    | Attach a flow or agent as a capability                                                               |
+| `remove_product_capability`                 | Detach                                                                                               |
+| `create_surface`                            | New surface on a product                                                                             |
+| `get_surface`                               | Surface details                                                                                      |
+| `update_surface`                            | Modify                                                                                               |
+| `delete_surface`                            | Remove                                                                                               |
+| `add_surface_item`                          | Wire a capability into a surface                                                                     |
+| `remove_surface_item`                       | Unwire                                                                                               |
+| `create_surface_key` / `delete_surface_key` | Surface API keys                                                                                     |
+| `get_slack_app_manifest`                    | Slack app manifest + connect handoff — the from-zero Slack entry point (see the `slack-setup` topic) |
+| `install_slack_integration`                 | Slack install for a caller who already holds a bot token and signing secret (migration or rotation)  |
+| `create_integration`                        | Reserve a pending integration                                                                        |
 
 ## Records
 
@@ -186,6 +197,22 @@ Schema feedback here is far more useful than waiting for create errors.
 | `analyze_eval_steps`     | Step-level performance             |
 | `get_eval_group`         | Group of related evals             |
 | `list_eval_batches`      | List eval batches                  |
+
+## Eval suites and the improvement loop
+
+| Tool                           | Use                                                                                 |
+| ------------------------------ | ----------------------------------------------------------------------------------- |
+| `create_eval_suite`            | Saved cases + graders for one flow or agent                                         |
+| `add_eval_cases`               | Author cases by hand                                                                |
+| `get_eval_capture_preview`     | Preview fork points before capturing a real run                                     |
+| `add_eval_case_from_execution` | Capture a real run (hosted or ingested from an external agent) as a regression case |
+| `run_eval_suite`               | Re-run the suite; needs a target Runtype can execute (hosted, or external over A2A) |
+| `get_eval_run_scores`          | Scores for one run                                                                  |
+| `generate_eval_cases`          | Machine-proposed cases                                                              |
+| `get_eval_coverage`            | Coverage gaps                                                                       |
+| `list_eval_proposals`          | Review proposed cases                                                               |
+| `resolve_eval_proposal`        | Accept or reject a proposal                                                         |
+| `review_eval_score`            | Record agreement with a judge verdict                                               |
 
 ## Secrets
 

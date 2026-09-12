@@ -1,5 +1,9 @@
 # GrayMatter Lite
 
+[Retrieval coverage and contribution evidence](docs/contribution-evidence.md)
+explains complete-list discovery, explicit reuse versus write verification, and
+receipt-to-decision-to-artifact-to-test reporting without invented savings.
+
 GrayMatter Lite is a real open-source memory product for one person or one
 workspace. It runs locally or on infrastructure you control and includes the
 same useful product loop from the first launch: sign in, create durable memory,
@@ -83,7 +87,7 @@ compatibility. The public product name is GrayMatter Lite.
 
 `./vaix setup` registers `graymatter-lite-local` without changing an already
 active hosted identity. Profiles store routing metadata in `profiles.json`;
-hosted tokens remain in Keychain and local Basic-auth passwords live in a
+hosted sessions remain in the platform credential vault and local Basic-auth passwords live in a
 mode-`0600` secret file outside the repository.
 
 ```bash
@@ -107,7 +111,10 @@ changing the persistent profile selection.
 GrayMatter is model-neutral. Ollama, LM Studio, llama.cpp, and other local-model
 hosts connect through MCP while the model process remains separate from the H2
 memory and authorization boundary. See [Local models](docs/local-models.md) for
-stdio and HTTP examples.
+stdio and HTTP examples. Local Workflow execution uses two MCP boundaries:
+Valkyr SWARM owns registration and signed Workflow coordination; GrayMatter
+owns memory, context, and durable evidence. Model-only LM Studio/Ollama nodes
+are `signed-workflow-only` inference workers, never general command runners.
 
 ## Imports, exports, and starter knowledge
 
@@ -217,7 +224,7 @@ Files are processed into bounded, provenance-rich semantic material: source file
 
 ### Plugins, skills, and MCP: intelligence everywhere
 
-GrayMatter is packaged as an installable plugin and skill system for Codex/OpenClaw-style agents. It supports secure, Keychain-backed authentication, agent registration, schema awareness, durable memory reads and writes, graph access, retrieval receipts, and operational health checks.
+GrayMatter is packaged as an installable plugin and skill system for Codex/OpenClaw-style agents. It supports secure, platform-vault-backed authentication, agent registration, schema awareness, durable memory reads and writes, graph access, retrieval receipts, and operational health checks.
 
 Its MCP capabilities make GrayMatter available to compatible AI clients through typed tools such as memory write, memory query, memory read, retrieval with receipt, graph inspection, schema discovery, and authorized entity access.
 
@@ -313,18 +320,37 @@ GrayMatter ships as three related but independently usable surfaces:
 - **Codex plugin**: `.codex-plugin/plugin.json` exposes this repo as the `graymatter` plugin with the standalone skill plus `.mcp.json`, so Codex can discover both the instructions and the MCP server.
 - **Standalone OpenClaw skill**: `graymatter.skill` packages `SKILL.md` and the required scripts for OpenClaw install, activation, hosted api-0 use, and GrayMatter Light local mode.
 
-If a GitHub sparse/root install only brings down root files, run `./graymatter-bootstrap` from the installed GrayMatter directory. It restores `scripts/` and `mcp-server/` from the bundled `graymatter.skill` archive so end-user installs do not depend on a full repo clone.
+If a GitHub sparse/root install only brings down root files, run `./graymatter-bootstrap` on macOS/Linux or `.\\graymatter-bootstrap.ps1` on Windows. Both restore `scripts/` and `mcp-server/` from the bundled `graymatter.skill` archive.
 
 ## Quick start
+
+macOS/Linux:
 
 ```bash
 git clone https://github.com/ValkyrLabs/GrayMatter.git
 cd GrayMatter
-brew install jq
-scripts/gm-activate
+./install.sh
 ```
 
-`scripts/gm-activate` is the preferred first-run path. It checks for updates, signs in, stores the session in Keychain when available, validates the install, registers the agent, syncs the OpenAPI schema, and runs the readiness checks needed for normal use.
+Windows PowerShell:
+
+```powershell
+git clone https://github.com/ValkyrLabs/GrayMatter.git
+Set-Location GrayMatter
+.\\install.ps1
+```
+
+The installer automatically connects this checkout to Codex when the Codex CLI is available, installs the plugin, and opens one native GrayMatter sign-in window. macOS uses a single AppKit dialog with username and masked-password fields; Windows uses one WinForms dialog backed by Windows Credential Manager. A rejected login returns to the same flow with the username preserved and a clear correction message. The password is sent only to the HTTPS login endpoint and is never printed or saved. Only the returned session and username are stored.
+
+Returning users sign in immediately. New users choose **Create Free Account**, finish the dedicated GrayMatter Cloud signup page in their browser, then return to the still-open connection window and sign in with the username they created. **Recover Account** opens the dedicated username/password recovery page. Browser redirects, clipboard tokens, and manual JWT handling are never part of normal sign-in: the native window exchanges the credentials directly with `api-0` and reliably captures the returned session from the response body, headers, or secure cookies.
+
+Sign-in identity example:
+
+```text
+Username: your-username
+```
+
+The happy path deliberately has only four visible stages: `downloading plugin`, `performing signup/login`, `authenticating`, and `GrayMatter plugin ready`. It does not require `jq` or manual JWT handling. Advanced OpenClaw operators can run `scripts/gm-activate` afterward for the complete smoke-test, agent-registration, and schema-sync bootstrap.
 
 Before task planning, code edits, production-affecting actions, or answers based on project history, agents must immediately run the invariant preflight for the current workspace/product:
 
@@ -539,14 +565,17 @@ Rule:
 
 For a new GrayMatter account, use:
 
-- Signup and activation: <https://valkyrlabs.com/graymatter/activate?source=graymatter&intent=signup&operation=memory_query>
+- Signup: <https://valkyrlabs.com/graymatter/cloud/signup?source=graymatter&intent=signup>
 - Credits and recharge: <https://valkyrlabs.com/graymatter/credits?source=graymatter&intent=recharge&operation=memory_query>
 
 Commercial model:
 
-- fresh signups should receive **500 starter credits** automatically
+- free-tier accounts receive **500 included credits per monthly cycle**, beginning at signup
 - GrayMatter query and some higher-order operations consume credits
-- after the starter balance is exhausted, account recharge is required for full GrayMatter functionality
+- after included credits are exhausted, users can wait for the next monthly allocation; rollover and carry-forward are not promised
+- ChatGPT uses the free-tier surface only, with no purchase, recharge, or upgrade actions or links
+- Codex, OpenClaw, Claude, and other non-ChatGPT clients may offer credit packs or existing Valkyr Solo, Team, or Enterprise subscriptions
+- credits alone do not authorize hosted instances or workflow execution; an active paid Valkyr subscription and server-side entitlement checks are required
 
 ## First-run auth, the intended OpenClaw flow
 
@@ -554,12 +583,12 @@ The user should **not** have to manually acquire or paste a raw auth token.
 
 The intended first-run OpenClaw auth step is:
 
-1. OpenClaw prompts the user for their `api-0` username
-2. OpenClaw prompts for their password
+1. GrayMatter opens a native macOS or Windows sign-in dialog for the `api-0` username
+2. The password is collected in a masked native field
 3. OpenClaw exchanges those credentials for a session
-4. OpenClaw stores the resulting session securely in macOS/iCloud Keychain
+4. GrayMatter stores only the resulting session and username in macOS Keychain or Windows Credential Manager; the password is discarded
 5. OpenClaw creates or refreshes an Agent record for itself in api-0
-6. Subsequent GrayMatter use reads from Keychain automatically
+6. Subsequent GrayMatter use reads the session from the platform credential vault automatically
 
 That means GrayMatter should feel like:
 
@@ -567,16 +596,13 @@ That means GrayMatter should feel like:
 - store securely
 - use forever after until refresh is needed
 
+Temporary network or server failures do not discard a stored session or reopen a misleading password prompt. Only an explicit `401` or `403` invalidates startup authentication. Windows stores oversized sessions as transparent protected Credential Manager chunks, so long JWTs do not fall through the platform's per-entry size limit.
+
 Manual token handling is a fallback/debug path, not the primary user experience.
 
 ### Repo-based install
 
-```bash
-git clone https://github.com/ValkyrLabs/GrayMatter.git
-cd GrayMatter
-brew install jq
-scripts/gm-activate
-```
+Use `./install.sh` on macOS/Linux or `.\install.ps1` from Windows PowerShell after cloning the repository. When Codex is installed, these commands add the repository marketplace and install `graymatter@graymatter` automatically; otherwise they prepare the standalone runtime and authentication surface.
 
 `scripts/gm-activate` is the intended one-shot bootstrap for OpenClaw installs. It first runs `scripts/gm-self-update force` by default so activation and recovery do not skip the source-of-truth update check just because the weekly startup interval has not elapsed, then authenticates and validates the install. Set `GRAYMATTER_ACTIVATE_SELF_UPDATE_MODE=maybe` only when an operator intentionally wants interval-gated startup behavior. It can use:
 
@@ -588,18 +614,18 @@ Supported env inputs:
 - `GRAYMATTER_USERNAME` or `VALKYR_USERNAME`
 - `GRAYMATTER_PASSWORD` or `VALKYR_PASSWORD`
 - optional `VALKYR_AUTH_TOKEN`
-- optional `VALKYR_KEYCHAIN_SERVICE` if a non-default macOS Keychain service name is required
+- optional `VALKYR_KEYCHAIN_SERVICE` if a non-default platform credential-vault service name is required
 - optional `OPENCLAW_INSTANCE_ID`
 - optional `OPENCLAW_AGENT_NAME`
 - optional `OPENCLAW_AGENT_ROLE`
 
-`scripts/gm-login` should be treated as the standard OpenClaw login step. It prompts for username/password and stores the session in macOS/iCloud Keychain by default.
+`scripts/gm-login` is the standard login step on macOS/Linux; Windows uses `scripts/gm-activate.ps1`. Plugin-managed startup uses `node scripts/gm-mcp-launcher.mjs --stdio` on every platform and automatically opens the native dialog when required.
 
 `scripts/gm-register-agent` is part of the expected startup handshake. When an OpenClaw server connects to api-0, it should create or refresh an Agent record for itself before proceeding with normal work.
 
-`scripts/gm-mcp-launcher` is the normal MCP entrypoint. It runs a bounded `gm-self-update startup`, auth/connectivity check, conditional schema refresh, and replay preflight before handing stdout to Node. `scripts/gm-self-update` accepts only signed stable manifests with content-addressed, signature-verified artifacts; it stages into a versioned installation root, switches state atomically, preserves rollback, and never rewrites a running Codex plugin-cache directory. The Valkyr Labs release key is bundled at `release/graymatter-release-public.pem`; `GRAYMATTER_RELEASE_PUBLIC_KEY_FILE` or `GRAYMATTER_RELEASE_PUBLIC_KEY` may explicitly override it for controlled testing or key migration. Verification failures are recorded and surfaced.
+`node scripts/gm-mcp-launcher.mjs --stdio` is the normal cross-platform MCP entrypoint. It opens native sign-in when required, then preserves the bounded signed-update, schema-refresh, and replay checks on supported Unix installs before starting the MCP server. `scripts/gm-self-update` accepts only signed stable manifests with content-addressed, signature-verified artifacts; it stages into a versioned installation root, switches state atomically, preserves rollback, and never rewrites a running Codex plugin-cache directory. The Valkyr Labs release key is bundled at `release/graymatter-release-public.pem`; `GRAYMATTER_RELEASE_PUBLIC_KEY_FILE` or `GRAYMATTER_RELEASE_PUBLIC_KEY` may explicitly override it for controlled testing or key migration. Verification failures are recorded and surfaced.
 
-`scripts/graymatter_api.sh` and the MCP server perform autonomous auth refresh when the stored token expires or api-0 returns a refreshable auth failure. A schema revision/route failure gets one bounded online schema resync and retry; cached schema is discovery-only during outage. Replay-safe writes blocked by credits, transport, or a temporarily unresolved tenant context are queued locally and replayed automatically, with a bounded limit and process lock, on the first successful authenticated request after authorized tenant context is restored. `scripts/gm-replay-deferred` remains the explicit retry surface.
+`scripts/graymatter_api.sh` and the MCP server detect expired sessions and reopen secure sign-in when needed; they never retain a reusable hosted password. A schema revision/route failure gets one bounded online schema resync and retry; cached schema is discovery-only during outage. Replay-safe writes blocked by credits, transport, or a temporarily unresolved tenant context are queued locally and replayed automatically, with a bounded limit and process lock, on the first successful authenticated request after authorized tenant context is restored. `scripts/gm-replay-deferred` remains the explicit retry surface.
 
 At that point the install should be immediately usable.
 
@@ -753,17 +779,19 @@ scripts/gm-entity Note POST '{"title":"Launch","content":"GrayMatter launch work
 GrayMatter uses:
 
 - `VALKYR_API_BASE`, default `https://api-0.valkyrlabs.com/v1`
-- macOS/iCloud Keychain lookup for `VALKYR_AUTH`
+- macOS Keychain, Windows Credential Manager, or Linux Secret Service lookup for `VALKYR_AUTH`
 - `VALKYR_AUTH_TOKEN` as an advanced debug override, not the normal activation path
 - `VALKYR_JWT_SESSION` as a compatible env fallback for downstream tooling
 
 Preferred auth flow:
 
-- check Keychain for `VALKYR_AUTH` first
+- check the platform credential vault for `VALKYR_AUTH` first
 - if present, reuse it automatically
 - otherwise prompt for username and password once
 - exchange for a `VALKYR_AUTH` token
-- store that token securely in Keychain for future runs
+- store only that token and the username securely in the platform credential vault for future runs
+
+Passwords are never persisted. On macOS and Windows the first plugin launch opens the native sign-in dialog automatically, including when the MCP host has no interactive terminal. Signup and recovery use dedicated website pages, then the user returns to the still-open native connection window. Normal session capture never depends on a browser redirect or clipboard token.
 
 Do not hardcode secrets into the repo or skill.
 Do not print tokens.
@@ -799,13 +827,13 @@ Typical fallback files:
 
 ### `VALKYR_AUTH_TOKEN is required`
 
-No env token is set and no matching macOS Keychain secret was found.
+No env token is set and no matching platform credential-vault session was found.
 
 Fix:
 
 - run `scripts/gm-login` and complete username/password sign-in, or
 - export `VALKYR_AUTH_TOKEN`, or
-- ensure Keychain secret `VALKYR_AUTH` exists
+- ensure the platform credential-vault entry `VALKYR_AUTH` exists
 
 ### `jq: command not found`
 
@@ -833,12 +861,13 @@ If writes and reads succeed but `/MemoryEntry/query` fails with a credit error, 
 Observed requirement:
 
 - query currently consumes credits
-- a fresh signup should auto-provision **500 credits** so GrayMatter query works immediately
-- after starter credits are exhausted, the user must recharge credits to continue full GrayMatter functionality
+- free-tier accounts receive **500 included credits per monthly cycle**, including the first cycle at signup
+- if the current allocation is exhausted, respect the server's credit limit; do not tell ChatGPT users to purchase, recharge, or upgrade
+- non-ChatGPT clients may offer existing Valkyr subscriptions or credit packs for heavier usage
 
 Useful links:
 
-- signup and activation: <https://valkyrlabs.com/graymatter/activate?source=graymatter&intent=signup&operation=memory_query>
+- signup: <https://valkyrlabs.com/graymatter/cloud/signup?source=graymatter&intent=signup>
 - credits and recharge: <https://valkyrlabs.com/graymatter/credits?source=graymatter&intent=recharge&operation=memory_query>
 
 CLI behavior on `INSUFFICIENT_FUNDS`:
@@ -851,6 +880,7 @@ Optional overrides for custom deployments:
 
 - `VALKYR_BUY_CREDITS_URL`
 - `VALKYR_HUMAN_SIGNUP_URL`
+- `VALKYR_HUMAN_RECOVERY_URL`
 
 If a new account has `0.00` balance, activation may still succeed for write/read operations while query fails until credits are provisioned.
 

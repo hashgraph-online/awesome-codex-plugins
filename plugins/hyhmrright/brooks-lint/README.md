@@ -69,7 +69,7 @@ For the full source-to-skill mapping, including exceptions and false-positive gu
 /plugin marketplace add hyhmrright/brooks-lint
 /plugin install brooks-lint@brooks-lint-marketplace
 
-# Any other Agent Skills platform — Cursor · Codex · Gemini · Copilot · Windsurf · OpenCode · Kiro · …
+# Any other Agent Skills platform — Cursor · Codex · Gemini · Copilot · Windsurf · OpenCode · Kiro · Bob …
 curl -fsSL https://raw.githubusercontent.com/hyhmrright/brooks-lint/main/scripts/install.sh | bash -s -- <platform>
 ```
 
@@ -78,7 +78,7 @@ Then just ask ("review this PR", "audit the architecture"), or run one of the si
 ([what each one does](#slash-commands)).
 
 Every finding comes back as **Symptom → Source → Consequence → Remedy** with a book citation and a
-0–100 Health Score. Full install options (9 more platforms) and CI/CD setup are [below](#installation).
+0–100 Health Score. Full install options (10 more platforms) and CI/CD setup are [below](#installation).
 
 ## The Twelve Books
 
@@ -272,7 +272,7 @@ Install the brooks-lint skill from hyhmrright/brooks-lint       # ask inside a C
 
 Or use the installer below: `./scripts/install.sh gemini` / `./scripts/install.sh codex`.
 
-### Every other platform — OpenCode · Cursor · Windsurf · Antigravity · pi · Copilot · Kiro · Factory Droid · DeepSeek Harness
+### Every other platform — OpenCode · Cursor · Windsurf · Antigravity · pi · Copilot · Kiro · Factory Droid · DeepSeek Harness · IBM Bob
 
 brooks-lint ships as standard [Agent Skills](https://agentskills.io). **Any agent that loads Agent
 Skills runs all six modes with no conversion** — one command installs them:
@@ -280,7 +280,7 @@ Skills runs all six modes with no conversion** — one command installs them:
 ```bash
 # pick your platform; --project installs into the current repo instead of your global config
 curl -fsSL https://raw.githubusercontent.com/hyhmrright/brooks-lint/main/scripts/install.sh | bash -s -- <platform>
-#   <platform> = opencode · cursor · windsurf · antigravity · pi · kiro · copilot · droid · dsh · gemini · codex · agents
+#   <platform> = opencode · cursor · windsurf · antigravity · pi · kiro · copilot · droid · dsh · gemini · codex · claude · bob · agents
 ```
 
 The installer copies the skills **flat** into the right folder, so the shared framework
@@ -298,12 +298,13 @@ The installer copies the skills **flat** into the right folder, so the shared fr
 | Kiro (AWS) | `~/.kiro/skills` | `AGENTS.md` | [setup](docs/kiro-setup.md) |
 | Factory Droid | `~/.factory/skills` | `AGENTS.md` | [setup](docs/factory-droid-setup.md) |
 | DeepSeek Harness (`dsh`) | `~/.dsh/skills` | `~/.agents/skills`, `AGENTS.md` | [setup](docs/dsh-setup.md) |
+| IBM Bob (`bob`) | `~/.bob/skills` | `AGENTS.md` | [setup](docs/bob-setup.md) |
 
 Kiro, Factory Droid, and DeepSeek Harness also auto-register `/brooks-review`. New to skills, or
 using an agent not listed? See **[docs/getting-started.md](docs/getting-started.md)**.
 
 > **🧪 Verification status.** Claude Code, Gemini CLI, and Codex CLI are maintainer-verified. The
-> nine platforms above are documented from each tool's official skill spec and verified at the
+> ten platforms above are documented from each tool's official skill spec and verified at the
 > file-layout level (the installer is tested), but not yet run end-to-end by the maintainer on every
 > platform. Tried one — working **or** broken?
 > [Open an issue](https://github.com/hyhmrright/brooks-lint/issues/new) with the platform, version,
@@ -450,6 +451,18 @@ The action posts the review as a PR comment and optionally fails the check if th
 
 `fail-on-regression` reads `.brooks-lint-history.json`, so commit that file to enforce "no new regressions". Setting `sarif-file` makes findings appear inline on the PR's **Files changed** tab and requires `security-events: write` permission on the job.
 
+**Custom API endpoint.** `api-base-url` points the action at any Anthropic-compatible `/v1/messages` endpoint — a self-hosted proxy, an LLM gateway, a regional mirror — instead of `api.anthropic.com`. Pass that endpoint's key as `anthropic-api-key` and the model id it expects as `model`:
+
+```yaml
+        with:
+          mode: review
+          api-base-url: https://your-gateway.example.com
+          anthropic-api-key: ${{ secrets.GATEWAY_API_KEY }}
+          model: gateway-model-id
+```
+
+brooks-lint sends your diff to whatever host you name here, so only point it at one you trust with your source. Running `scripts/ci-review.mjs` yourself needs no flag at all — the Anthropic SDK reads `ANTHROPIC_BASE_URL` directly.
+
 **Cost:** ~$0.05–0.15 per PR run depending on diff size and model. Recommend running on `pull_request` events only.
 
 ## Roadmap
@@ -488,7 +501,7 @@ their ideas, applied to modern code quality assessment.
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=hyhmrright/brooks-lint&type=Date)](https://star-history.com/#hyhmrright/brooks-lint&Date)
+[![Star History](assets/star-history.svg)](https://github.com/hyhmrright/brooks-lint/stargazers)
 
 ---
 

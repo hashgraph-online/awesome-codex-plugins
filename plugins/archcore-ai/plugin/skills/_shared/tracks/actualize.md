@@ -5,7 +5,8 @@ executor — when `/archcore:review --drift` or drift-shaped wording ("are any
 docs out of date?", "check if documentation matches the code") routes here.
 Gate record shape, state rules, and execution rules:
 `skills/_shared/gate-contract.md`. Interview mechanics and question budget:
-`skills/_shared/elicitation-contract.md`. Each `budget` knob is the per-gate
+`skills/_shared/elicitation-contract.md`. Verdict vocabulary:
+`skills/_shared/verdict-contract.md`. Each `budget` knob is the per-gate
 maximum, reached only in expert invocation; in auto mode every question draws
 from the shared per-invocation ceiling in `skills/_shared/elicitation-contract.md`.
 
@@ -19,6 +20,13 @@ answers and confirmations persist only in the running report; the
 draft-artifact write-back in `skills/_shared/elicitation-contract.md` does
 not apply — the executing skill MUST NOT create a draft artifact to hold
 clarifications on this track.
+
+## Callable mode
+
+WHEN the calling skill pre-fills the scope — a zone's documents and paths —
+the executing skill runs `actualize.scope` question-free under its
+skip_when. The conductor (`skills/_shared/delta-routing.md`) uses this mode
+as the staleness precondition on a touched zone.
 
 ## Detection procedure
 
@@ -51,16 +59,12 @@ unavailable, skip the code-drift check and run cascade and temporal only.
    markers; plans whose phase descriptions reference past dates; `rejected`
    documents still targeted by active `implements` or `depends_on` relations.
 
-Label every finding with exactly one verdict:
-
-- `spec-wrong` — the document is stale; the code, or the document's updated
-  upstream, is the newer truth. Cascade and temporal findings that need a
-  document change land here.
-- `code-wrong` — the code violates a document whose content still stands,
-  for example an `accepted` spec or rule. [assumption] The source protocol
-  scored severity (critical / cascade / temporal), not direction; the
-  direction split is this track's mapping.
-- `ok` — the flagged pair matches on inspection; no change needed.
+Label every finding with exactly one verdict — `spec-wrong`, `code-wrong`,
+or `ok` — per the definitions in `skills/_shared/verdict-contract.md`. Track
+mapping: cascade and temporal findings that need a document change land on
+`spec-wrong`. [assumption] The source protocol scored severity (critical /
+cascade / temporal), not direction; the direction split is this track's
+mapping.
 
 ## Fix forms
 

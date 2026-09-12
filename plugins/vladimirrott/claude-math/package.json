@@ -1,6 +1,6 @@
 {
   "name": "claude-math",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Render math legibly in Claude Code and OpenAI Codex CLI. Emits Unicode glyphs instead of unrenderable LaTeX in the terminal. A stopgap until hosts render math natively.",
   "keywords": [
     "claude",

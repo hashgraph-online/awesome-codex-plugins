@@ -45,10 +45,10 @@ alongside it. Locate that folder once, then read the named files from it:
 
 3. **Evaluate each dimension separately** — score in this order:
    - **T — Типографика** (weight 0.15): quotes, dashes, spaces, special characters per `typography.md`
-   - **Ч — Чистота языка** (weight 0.25): stop-words, bureaucratic language, clichés, passive voice per `info-style.md` + `anti-patterns.md`
-   - **Г — Грамотность** (weight 0.20): punctuation, agreement, tautology per `editorial-grammar.md` + `editorial-punctuation.md`
-   - **С — Структура** (weight 0.20): logical flow, paragraphs, transitions, heading use per `info-style.md` structure section + `addenda.md`
-   - **Ц — Точность для читателя** (weight 0.20): facts, evidence, reader benefit, actionability per domain rules
+   - **Ч — Чистота языка** (weight 0.25): stop-words, bureaucratic language, clichés, passive voice per `info-style.md` + `anti-patterns.md`
+   - **Г — Грамотность** (weight 0.20): punctuation, agreement, tautology per `editorial-grammar.md` + `editorial-punctuation.md`
+   - **С — Структура** (weight 0.20): logical flow, paragraphs, transitions, heading use per `info-style.md` structure section + `addenda.md`
+   - **Ц — Точность для читателя** (weight 0.20): facts, evidence, reader benefit, actionability per domain rules
 
 4. **For each dimension** — assign a score (0.0–10.0) using the rubric anchors in scoring.md. List 1–3 specific issues, quoting the problematic text fragment.
 

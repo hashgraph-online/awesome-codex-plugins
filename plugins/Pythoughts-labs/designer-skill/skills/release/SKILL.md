@@ -23,7 +23,7 @@ Rule: `{major}.{minor + 1}.0` — never auto-bump patch. Use an explicit version
 
 1. **Commit and push all feature work first.** The release script only commits version bump files.
 2. Working tree must be clean except intentional release edits.
-3. `npm whoami` must succeed (logged in as a publisher for `designer-skill-mcp`).
+3. `npm whoami` must succeed (logged in as a publisher for `@pymodel/designer-skill-mcp`).
 4. `gh auth status` must succeed (active account: **`elkaix`** — branch protection on `main`).
 5. After release, update doc pins in `README.md` and `commands/designer-setup.md` (`@latest` → `@<new-version>`).
 
@@ -94,7 +94,7 @@ gh release create v0.11.0 --title "designer-skill-mcp v0.11.0" --notes "Release 
 
 ```bash
 git tag -l 'v0.1*'
-npm view designer-skill-mcp version
+npm view @pymodel/designer-skill-mcp version
 gh release view v0.11.0
 cd designer-skill-mcp && npm test
 ```

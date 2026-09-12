@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-labelledby="title">
+  <title id="title">Click</title>
+  <rect width="512" height="512" rx="96" fill="#111827"/>
+  <rect x="96" y="96" width="320" height="320" rx="72" fill="none" stroke="#22C55E" stroke-width="24"/>
+  <path d="M170 154L344 318L278 326L318 398L266 426L226 350L176 394Z" fill="#F9FAFB" stroke="#111827" stroke-width="14" stroke-linejoin="round"/>
+  <g fill="none" stroke="#22C55E" stroke-width="20" stroke-linecap="round">
+    <path d="M350 164v-42"/>
+    <path d="M386 178l30-30"/>
+    <path d="M400 214h42"/>
+  </g>
+</svg>

@@ -1,468 +1,103 @@
 ---
 name: dev-grill-docs
-description: 'Primary intake for fuzzy feature/product requirements before coding; prefer this over dev-spec for requirement alignment. Use when the user says or implies: 需求还不清楚, 先别写代码, 先帮我梳理/收敛/对齐/拆一下需求, 先问我问题, 明确范围/边界/验收标准, 写 PRD/spec/设计文档, 帮我设计, 写个方案, 这个需求怎么做, design this, scope this out. Also trigger on dev-grill-docs, grill-with-docs, 拷问需求, 拷问方案, 压测方案, 术语沉淀. Reads existing docs/code first, asks one focused question at a time, produces .claude/artifacts/designs/<feature>.md, and may update CONTEXT.md or docs/adr/ for durable terms/decisions. Does not implement code, fix bugs, or write implementation plans.'
+description: 'Clarify feature requirements, pressure-test scope and domain terms, and produce a feature spec before implementation. Use for fuzzy requirements, PRD/spec requests, 需求对齐, 拷问需求, or 设计文档. Read existing evidence before asking focused questions. For concrete implementation planning use dev-plan; a generic "do not edit code" instruction alone does not trigger intake. Supports --quick, --deep, and --spec-only.'
 ---
 
 # Dev Grill Docs
 
-Pressure-test the user's idea **before implementation**, produce the feature intent contract, and keep shared domain language from disappearing into chat.
+Turn the user's feature intent into a usable contract. Preserve decisions already made and ask only about gaps that change behavior, scope, acceptance, or substantial cost. This skill does not implement code or replace analysis-only requests with document work.
 
-This is the primary requirement-alignment entry point. It has priority over `dev-spec`; `dev-spec` is only a helper alias for this workflow's spec-only mode.
+Read [references/dev-baseline.md](references/dev-baseline.md). Project artifacts belong in the user's project, not the skill directory.
 
-- Always produce or update `.claude/artifacts/designs/<feature>.md` when the user is aligning a feature.
-- Update `CONTEXT.md` only for stable domain glossary material.
-- Write `docs/adr/<nnnn>-<slug>.md` only for durable decisions that pass the ADR gate.
+## Routing and depth
 
-It does not write production code, debug bugs, review diffs, or create implementation plans.
+- Use this entry point for requirement alignment. `dev-spec` is the compatibility alias for `--spec-only`.
+- When scope is already clear and the user wants implementation steps, use `dev-plan` if available; a particular phrase such as "写个方案" does not override the conversation's actual intent.
+- Broken behavior belongs to `dev-fix`. Persistent visual direction belongs to `dev-design-context`.
+- `--quick` requests a compact contract and minimal questions; zero questions is correct when evidence is sufficient.
+- Default depth covers the material uncertainties. `--deep` adds scrutiny of lifecycle, invariants, compatibility, failures, and reversibility where relevant.
+- `--spec-only` disables glossary and ADR writes. It is independent of interview depth.
 
----
+Explicit analysis-only, chat-only, or no-file instructions govern output. A request to discuss an idea is not permission to write project documents. When the user requests a spec or feature alignment artifact, write `.claude/artifacts/designs/<feature>.md` unless they specify another path.
 
-## Trigger routing
+## Gather evidence before questions
 
-Use this skill when the user wants to align, grill, scope, or pressure-test a feature / requirement / domain model before coding. When a request could match both `dev-grill-docs` and `dev-spec`, choose `dev-grill-docs` unless the user explicitly names `dev-spec` or asks for spec-only compatibility.
+Read the supplied brief and relevant existing spec, `CONTEXT.md`, ADRs, models, APIs, tests, or similar features. Follow the repository's search conventions; inspect enough to ground the decisions, without scanning unrelated modules.
 
-Trigger phrases include:
+Distinguish confirmed requirements, codebase facts, proposed defaults, and unresolved decisions. Do not ask the user for facts the repository can establish. Do not treat an implementation's current behavior as proof of intended behavior.
 
-- `dev-grill-docs`
-- `grill-with-docs`
-- `grill with docs`
-- `需求还不清楚`
-- `先别写代码`
-- `先帮我梳理`
-- `先帮我收敛`
-- `先对齐需求`
-- `先问我问题`
-- `拆一下需求`
-- `明确范围`
-- `明确边界`
-- `验收标准`
-- `写 PRD`
-- `写 spec`
-- `拷问需求`
-- `拷问方案`
-- `压测方案`
-- `术语沉淀`
-- `帮我设计`
-- `写个方案`
-- `这个需求要怎么做`
-- `spec 一下`
-- `设计文档`
-- `design this`
-- `scope this out`
+## Resolve the material gaps
 
-Compatibility:
+Check whether the intended user, desired outcome, in/out boundary, acceptance behavior, and integration surface are clear enough to write a contract. Ask the highest-impact unresolved question first, with concise context and an evidence-backed recommendation when useful. Group tightly related questions only when the answers depend on each other or the user requests a questionnaire.
 
-- `dev-spec` assists this skill as a compatibility alias for the spec-only path; it should not be preferred over `dev-grill-docs` for ordinary fuzzy requirement alignment.
-- If a user explicitly asks for `dev-spec`, follow this workflow with `CONTEXT.md` / ADR writes disabled unless the user also asks to update docs.
+Pay attention to domain identity: conflicting names, the same name for different entities, lifecycle transitions, ownership, and invariants. Use established project terms; surface real conflicts instead of silently renaming concepts. A stable vocabulary does not prove the feature is ready.
 
-Route elsewhere when:
+Use qualitative, evidence-backed gaps rather than invented ambiguity percentages. Do not enforce a minimum interview length, a number of entities, or a quota of acceptance criteria. Stop questioning when the contract is sufficient, the user changes scope, or a concrete external decision blocks progress. If repeated questions produce no new information, name the blocker and preserve useful work instead of cycling.
 
-| User intent | Use instead |
-|---|---|
-| Wants concrete implementation steps and scope/spec is already clear | `dev-plan` |
-| Wants to implement after scope is clear | `dev-tdd` |
-| Reports broken behavior or regression | `dev-fix` |
-| Wants visual product design context | `dev-design-context` |
-| Wants commit review or commit message | `dev-code-review` / `dev-commit-writer` |
+When the user asks to proceed, incorporate that authorization. Resolve low-impact details from existing conventions and record consequential assumptions. Do not silently decide unresolved high-impact product behavior; mark the affected scope blocked while completing independent parts.
 
-Output targets:
+## Write the feature contract
 
-- `.claude/artifacts/designs/<feature>.md` for the feature intent contract.
-- `CONTEXT.md` for stable domain glossary only.
-- `docs/adr/<nnnn>-<slug>.md` for durable decisions only when the ADR gate passes.
-- chat for each focused question, rationale, round report, and handoff.
-
-Optional arguments:
-
-- `--quick`: ask one highest-leverage question, then write a compact spec when the answer is enough.
-- `--deep`: multi-wave grill with challenge modes and stricter ambiguity threshold.
-- `--spec-only`: write only `.claude/artifacts/designs/<feature>.md`; do not update `CONTEXT.md` or ADR.
-- default: mid-depth wave loop, with optional `CONTEXT.md` / ADR writes only when warranted.
-
----
-
-## Step 0 — Load baseline
-
-执行前先加载 `references/dev-baseline.md`。以下行为准则全程生效:**不假设**、**最小代码**、**外科手术式改动**、**可验证成功标准**。
-
-本 skill 对 baseline 的落地:
-
-- **不假设**:先读现有代码 / 文档,再问一个最关键的问题;多解必须显式列出。
-- **最小代码**:spec 只覆盖这次 delivery;`CONTEXT.md` / ADR 只写未来会复用的稳定信息。
-- **外科手术式改动**:只写相关 artifact / glossary / ADR,不顺手改代码或重排文档。
-- **可验证成功标准**:spec 必须以二值、可执行的 acceptance criteria 收尾。
-
----
-
-## Step 1 — Brownfield pre-flight
-
-如果当前目录有源码 / 包文件 / git 历史,且用户请求涉及修改 / 扩展现有系统,Wave 1 之前做轻量探索。
-
-优先只读这些入口,按存在性选择:
-
-```bash
-test -f CONTEXT.md && sed -n '1,220p' CONTEXT.md
-test -d docs && find docs -maxdepth 3 \( -iname '*adr*' -o -path 'docs/adr/*' \)
-find . -maxdepth 3 -type f \( -name 'README*' -o -name '*.md' \) | head -40
-git rev-parse --is-inside-work-tree >/dev/null 2>&1 && git ls-files | head -80
-```
-
-如有明显语言 / 框架入口,再轻量查看相关 model、schema、route、DTO、test 名称。
-
-记录两组事实:
-
-```text
-codebase_facts: framework / modules / likely change surface / existing tests
-project_terms: Term / Existing wording / Evidence / Confidence
-```
-
-之后所有问题必须引用这些证据。不要问代码或文档已经能回答的问题。
-
----
-
-## Step 2 — Choose mode
-
-按 `$ARGUMENTS` 或自动判断:
-
-| 模式 | 触发 | 行为 |
-|---|---|---|
-| `--quick` | 用户加 `--quick`,或请求已经非常具体 | 只问一个最高杠杆问题;若用户回答后信息足够,直接写 compact spec |
-| default | 大多数情况 | 多 wave + 打分,最多 3 wave |
-| `--deep` | 用户加 `--deep`,或检测到高风险 / 大改动 / 跨多个模块 | 多 wave + 打分 + Challenge modes,最多 6 wave |
-| `--spec-only` | 用户显式跑 `dev-spec`,或不希望写持久 docs | 仍按所选深度访谈,但禁用 `CONTEXT.md` / ADR 写入 |
-
-高风险信号:鉴权 / 支付 / 数据迁移 / 不可逆操作 / 公开 API breakage / PII / 高写并发。
-
----
-
-## Step 3 — Grill loop
-
-### 3.1 Score clarity
-
-Wave 2 起,对累计上下文打 4 个维度,各 0-1:
-
-| 维度 | 权重(greenfield) | 权重(brownfield) | 含义 |
-|---|---|---|---|
-| Goal Clarity | 0.43 | 0.40 | 主目标能否一句话说清?核心实体能否命名? |
-| Scope Clarity | 0.28 | 0.25 | in/out boundary 能列出来吗? |
-| AC Clarity | 0.29 | 0.25 | 能写出二值、可验证的 acceptance criteria 吗? |
-| Context Clarity | - | 0.10 | 这次改动落在系统哪里、影响哪些已有部分? |
-
-`ambiguity = 1 - sum(score * weight)`
-
-每个分数必须有具体 anchor。拿不出 anchor 的维度,评分上限 0.6。用户催促时不调高分数,只能提前退出并把风险写进 spec。
-
-### 3.2 Pick one focus
-
-每轮只问一个问题。按最弱维度或术语漂移选择焦点:
-
-| Focus | 问法 | 示例 |
-|---|---|---|
-| Goal | 什么时候算成功 / 什么不算? | 「用户导出」指自助导出,还是后台代导? |
-| Scope | 边界在哪? | 只做 v1,还是兼容旧数据? |
-| AC | 怎么验证? | P95 延迟有数字目标吗? |
-| Context | 现有系统怎么挂? | 我看到 `services/auth/` 已有 JWT,本功能扩展它还是另起? |
-| Term identity | 这东西到底叫什么、是什么? | 你前面叫 Task,现在叫 Item。哪个才是核心实体? |
-| Lifecycle | 状态怎么流转? | ExportJob 失败后是 terminal 还是可重试? |
-| Invariant | 什么必须永远为真? | 一个 Customer 能否有多个 billing account? |
-| Reversibility | 以后改起来贵不贵? | 这个方案是否需要数据迁移才能回退? |
-
-输出格式:
-
-```text
-Wave {n} | Focus:{weakest/focus} | Ambiguity:{pct}%
-Why this matters:<one sentence>
-Recommended answer:<your evidence-backed recommendation>
-
-Question:<exactly one question>
-```
-
-### 3.3 Track ontology and drift
-
-用户回答后,提取核心实体并与上一轮比较:
-
-- stable:同名同概念出现
-- renamed:换名但语义同
-- new:新出现
-
-`stability_ratio = (stable + renamed) / total_entities`
-
-需要立刻指出的 drift:
-
-- 同一概念出现两个名字:`Task` vs `Item`
-- 同一名字指向两个概念:`Account` 既像 billing account 又像 login user
-- 新词绕开已有领域词:用户说 `client`,代码里长期叫 `Customer`
-- 过泛词没有边界:`resource`, `record`, `thing`, `flow`, `job`
-
-### 3.4 Round report
-
-每轮结束输出:
-
-```text
-Wave {n} complete.
-
-| 维度 | 分数 | 权重 | 加权 | gap |
-|---|---|---|---|---|
-| Goal | 0.7 | 0.40 | 0.28 | 主流程步骤未拆 |
-| Scope | 0.4 | 0.25 | 0.10 | in/out 未列出 |
-| AC | 0.5 | 0.25 | 0.125 | 缺数字目标 |
-| Context | 0.6 | 0.10 | 0.06 | clear |
-| Ambiguity | | | 43.5% | |
-
-Ontology: User, Order, ExportJob (vs previous: 1 stable, 1 renamed, 1 new)
-Next focus: Scope, because in/out boundary is still incomplete.
-```
-
-### 3.5 Exit conditions
-
-任一满足即进入 Step 4:
-
-- `--quick`:用户回答最高杠杆问题,且已足够写 compact spec。
-- default: ambiguity <= 0.30。
-- `--deep`: ambiguity <= 0.20。
-- 用户在 Wave 3+ 说「够了 / 直接来」,给 warning 后继续。
-- 达到模式上限(default 3 / deep 6)。
-- Ontology 连续 2 轮 stability >= 90%。
-
----
-
-## Step 4 — STUCK gate
-
-达到 wave 上限时,强制对照以下硬条件。任一满足则 spec status 标 `STUCK`:
-
-- Goal 维度下无法写出至少 2 条 acceptance criteria。
-- Open questions 至少 1 条需要产品 / 设计 / 数据 / stakeholder 决策。
-- `In scope` 或 `Out of scope` 为空。
-- 连续 2 wave ontology stability < 50%。
-
-`STUCK` 不是失败,只是信息不足以继续。仍然写 spec artifact,但 `Open questions` 必须点名具体阻塞项和需要找谁。
-
-不要写「需要更多信息」「细节后续再定」这种空话。
-
----
-
-## Step 5 — Write or update CONTEXT.md
-
-跳过条件:
-
-- 用户显式跑 `dev-spec`。
-- 用户加了 `--spec-only`。
-- 本轮没有稳定领域术语。
-
-`CONTEXT.md` 是领域词汇表,不是 spec、plan、meeting notes 或 implementation diary。
-
-如果没有 `CONTEXT.md`,创建最小文件:
+Use a stable existing slug when it identifies this feature. Otherwise choose a descriptive slug from the request; ask only when there is a real collision or ambiguous work item. Preserve existing content outside this task.
 
 ```markdown
-# Context
-
-## Glossary
-
-| Term | Meaning | Notes |
-|---|---|---|
-```
-
-允许写入:
-
-- stable domain terms
-- meaning / boundary
-- known aliases or rejected names
-- short notes that help future agents avoid drift
-
-不要写入:
-
-- implementation steps
-- task checklist
-- unresolved ideas
-- raw conversation transcript
-- temporary UI copy
-- long architecture rationale
-- guesses not confirmed by user or code
-
-有现有 `Glossary` 表时,只追加或修正相关行。每次更新后在 chat 列出 changed terms。
-
----
-
-## Step 6 — ADR gate
-
-跳过条件:
-
-- 用户显式跑 `dev-spec`。
-- 用户加了 `--spec-only`。
-- 决策只是命名确认、实现细节、可随时回退的小选择,或还没有定论。
-
-只有同时满足以下条件,才写 ADR:
-
-- 决策未来读者会合理疑惑:为什么不是另一个方案?
-- 决策有真实 tradeoff。
-- 决策跨 feature 或跨模块会复用,不是只服务本次 implementation plan。
-- 决策回退成本中等或较高。
-- 用户已经确认或已有 source artifact 支持。
-
-如果 ADR 主要回答「这次功能怎么实现」,不要在这里写,交给 `dev-plan` 的 plan ADR。
-
-ADR 路径:
-
-```text
-docs/adr/0001-short-slug.md
-```
-
-编号取 `docs/adr/` 下最大编号 + 1。格式:
-
-```markdown
-# ADR 0001: <Decision Title>
-
-Status: Accepted
-Date: YYYY-MM-DD
-
-## Context
-<2-4 sentences>
-
-## Decision
-<1-3 sentences>
-
-## Consequences
-- <positive consequence>
-- <negative consequence / tradeoff>
-- <follow-up constraint>
-```
-
----
-
-## Step 7 — Write spec artifact
-
-最终落到 `.claude/artifacts/designs/<feature>.md`。目录不存在则创建。
-
-文件结构:
-
-```markdown
-# <feature name> Spec
+# <feature> Spec
 
 > Status: DRAFT | ALIGNED | IMPLEMENTED | STUCK
-> Author: <user>
+> Source: <request, document, or existing artifact>
 > Last updated: <YYYY-MM-DD>
 
 ## Background
-<2-3 sentences>
+<User, problem, and intended outcome>
 
 ## In scope
-- ...
+<Behavior included in this delivery>
 
 ## Out of scope
-- ...
+<Relevant boundaries; say none identified when that is accurate>
 
 ## Assumptions
-- ...
+<Consequential defaults and their basis; omit if none>
 
 ## Solution
-<minimal viable solution sketch, <= 1 page>
+<Minimal behavior and integration sketch, not an implementation task list>
 
 ## Edge cases & risks
-| Category | Notes |
-|---|---|
-| Boundary conditions | ... |
-| Failure modes | ... |
-| Risks | ... |
-| Mitigation | ... |
+<Relevant boundaries, failures, invariants, and mitigations>
 
 ## Acceptance criteria
-- AC-1 <input / condition> -> <expected behavior>
-- AC-2 ...
+- AC-1 <condition or action> -> <observable expected result>
 
 ## Open questions
-<omit if none>
-
-## Core entities (ontology)
-<omit in --quick mode unless needed>
-
-| Entity | Type | Key fields | Relationship |
-|---|---|---|---|
-
-## Interview metadata
-<omit in --quick mode>
-
-- Mode: --quick | default | --deep | --spec-only
-- Waves: N
-- Final ambiguity: X%
-- Status: PASSED | EARLY_EXIT_BY_USER | CAP_REACHED
-
-### Clarity breakdown
-| Dimension | Score | Weight | Weighted |
-|---|---|---|---|
-
-### Ontology convergence
-<deep mode only>
+<Specific blocker, affected scope, needed evidence or decision owner; omit if none>
 ```
 
-Spec requirements:
+Add core entities, state transitions, compatibility constraints, or data contracts when they help downstream implementation. Omit interview transcripts, artificial clarity scores, and empty template sections. Preserve existing AC identifiers during revisions.
 
-- `In scope` and `Out of scope` must both be non-empty unless status is `STUCK`.
-- `Acceptance criteria` must be binary and executable.
-- `Solution` is a sketch, not an implementation plan.
-- `Open questions` must list concrete blockers, not vague uncertainty.
+Status semantics:
 
----
+- `DRAFT`: proposed requirements remain subject to alignment; specify what remains unresolved.
+- `ALIGNED`: material requirements are supported by user direction or an accepted source, and no implementation-blocking question remains. Routine inferred details may be recorded as assumptions.
+- `STUCK`: a concrete unanswered decision or unavailable evidence blocks the intended scope. Identify it explicitly; do not advance affected implementation on that basis.
+- `IMPLEMENTED`: retain only when actual implementation evidence supports it; this intake skill does not implement the feature. Changed requirements invalidate that status for the affected scope.
 
-## Step 8 — Handoff
+## Durable documentation
 
-输出:
+Only in documentation-authorized work outside `--spec-only`, persist reusable knowledge when it meets these gates. Follow existing project paths and format before creating new ones.
 
-```text
-━━━ Dev Grill Docs ━━━
-Spec
-  - .claude/artifacts/designs/<feature>.md
-  - Status:<DRAFT | ALIGNED | STUCK>
+- `CONTEXT.md`: stable domain terms, boundaries, aliases, and evidence-backed meanings. Update related glossary rows only. Keep task checklists, transient copy, unresolved guesses, and implementation diaries in the task artifact.
+- `docs/adr/<nnnn>-<slug>.md`: an accepted decision with real tradeoffs, reuse across features/modules, meaningful reversal cost, and a rationale future readers need. Naming choices and local implementation details do not qualify. Use the project's numbering convention; otherwise the next unused number. Record Context, Decision, Consequences, status, and date. Do not label an unconfirmed proposal Accepted.
 
-Confirmed terms
-  - <Term>:<meaning>
+Durable notes must not conflict with the spec. A decision local to this feature belongs in its plan when implementation planning is requested.
 
-Updated docs
-  - CONTEXT.md:<what changed, or "not changed">
-  - docs/adr/0001-x.md:<decision, or "not written">
+## Handoff
 
-Still open
-  - <specific unanswered question, or "None">
-
-Recommended next step
-  - <dev-plan / dev-tdd / stop> because <one sentence>
-```
-
-If status is `STUCK`, recommend resolving `Open questions` before `dev-plan`.
-
----
-
-## Hard rules
-
-- Do not bulk-question the user.
-- Do not skip ambiguity surfacing, even in `--quick`.
-- Do not ask questions the repo can answer.
-- Do not silently accept wording that conflicts with project vocabulary.
-- Do not write code.
-- Do not turn `CONTEXT.md` into a dumping ground.
-- Do not create ADRs for every decision.
-- Do not use this skill for bugs; use `dev-fix`.
-- Do not route to `dev-plan` while the spec status is `STUCK`.
-- Do not write unverifiable acceptance criteria such as "works correctly" or "looks good".
-
----
-
-## Multi-Agent Note
-
-`dev-grill-docs` is main-agent-first because it negotiates scope and language with the user.
-
-Explorers may gather codebase facts, existing terminology, ADRs, and similar features, but the main agent owns the grill loop, ambiguity scoring, scope confirmation, and all writes to `.claude/artifacts/designs/`, `CONTEXT.md`, and `docs/adr/`. Follow `../../docs/multi-agent-policy.md` for delegation boundaries.
+Report the artifact path and status, material decisions, remaining blockers, and the next useful action. Mention glossary/ADR changes only if made. If the user requested intake only, stop after the deliverable. If their broader request already authorizes implementation, continue within that scope when requirements are sufficient; do not require a new skill invocation as a permission ceremony.
 
 ## SDD Contract
 
-`dev-grill-docs` produces the feature intent contract for the rest of the workflow.
+The downstream anchors are `In scope`, `Out of scope`, `Assumptions`, `Open questions`, and stable `Acceptance criteria`. Existing glossary and ADR decisions also constrain implementation. Report and reconcile material spec drift before delivery instead of treating the artifact as proof that code complies.
 
-Required downstream anchors:
+## Multi-Agent Note
 
-- `In scope`: what later agents may implement.
-- `Out of scope`: what later agents must not expand into without user approval.
-- `Assumptions`: accepted defaults that must stay visible during implementation and review.
-- `Open questions`: blockers or known uncertainty; do not route to `dev-plan` while status is `STUCK`.
-- `Acceptance criteria`: the checklist consumed by `dev-plan`, `dev-tdd`, `dev-verify`, and `dev-code-review`.
-- `CONTEXT.md` / ADR: durable project language and decisions that later work must respect when present.
-
-If implementation later changes behavior beyond the spec, update the spec or explicitly report spec drift before commit.
+Main-agent-first: one agent owns user questions and contract writes. When delegation is available and authorized, independent explorers may gather bounded facts or challenge a substantial draft. Avoid duplicate interviews; do not invent independent approval from role labels. In the source repository, `docs/multi-agent-policy.md` is optional team guidance, not a standalone dependency.

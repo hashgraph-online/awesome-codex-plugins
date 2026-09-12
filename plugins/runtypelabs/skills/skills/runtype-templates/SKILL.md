@@ -1,10 +1,6 @@
 ---
 name: runtype-templates
-description: >-
-  Use when creating, validating, exporting, importing, or improving Runtype Full Product
-  Object templates. Covers FPO and FPO template structure, template variables, pending
-  secrets, setup-required auth, validate_product and validate_product_* checks,
-  distributable product packaging, import readiness, and avoiding credential leakage.
+description: 'Create, validate, or package distributable Runtype FPO templates and their setup requirements.'
 user-invocable: true
 argument-hint: '[FPO or template task]'
 ---

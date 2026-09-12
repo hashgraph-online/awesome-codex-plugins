@@ -1,0 +1,191 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/orwa-mahmoud/nightshift/main/plugins/nightshift/skills/nightshift/references/schemas/v1/connected-export.json",
+  "title": "Nightshift SEO connected export evidence",
+  "description": "Owner-supplied Search Console and analytics exports with period comparison and segmentation. Wave 1 schema; runtime helper is planned.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "evidenceMode",
+    "searchConsole",
+    "analytics",
+    "periodComparison",
+    "segmentation",
+    "metricsDisclaimer"
+  ],
+  "properties": {
+    "schemaVersion": { "type": "integer", "enum": [1] },
+    "kind": { "type": "string", "enum": ["connected-export"] },
+    "evidenceMode": { "type": "string", "enum": ["connected"] },
+    "generatedAt": { "type": "string" },
+    "searchConsole": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "format", "period", "rows"],
+      "properties": {
+        "source": { "type": "string", "minLength": 1 },
+        "format": { "type": "string", "enum": ["csv", "json"] },
+        "period": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["start", "end"],
+          "properties": {
+            "start": { "type": "string" },
+            "end": { "type": "string" }
+          }
+        },
+        "property": { "type": ["string", "null"] },
+        "rows": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["query", "page", "clicks", "impressions", "ctr", "position"],
+            "properties": {
+              "query": { "type": "string" },
+              "page": { "type": "string" },
+              "clicks": { "type": "integer", "minimum": 0 },
+              "impressions": { "type": "integer", "minimum": 0 },
+              "ctr": { "type": "number", "minimum": 0 },
+              "position": { "type": "number", "minimum": 0 },
+              "device": { "type": ["string", "null"] },
+              "country": { "type": ["string", "null"] },
+              "searchAppearance": { "type": ["string", "null"] }
+            }
+          }
+        }
+      }
+    },
+    "analytics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "format", "period", "rows"],
+      "properties": {
+        "source": { "type": "string", "minLength": 1 },
+        "format": { "type": "string", "enum": ["csv", "json"] },
+        "period": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["start", "end"],
+          "properties": {
+            "start": { "type": "string" },
+            "end": { "type": "string" }
+          }
+        },
+        "property": { "type": ["string", "null"] },
+        "rows": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["page", "sessions", "users", "engagementRate"],
+            "properties": {
+              "page": { "type": "string" },
+              "sessions": { "type": "integer", "minimum": 0 },
+              "users": { "type": "integer", "minimum": 0 },
+              "engagementRate": { "type": "number", "minimum": 0 },
+              "device": { "type": ["string", "null"] },
+              "country": { "type": ["string", "null"] }
+            }
+          }
+        }
+      }
+    },
+    "periodComparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["current", "previous", "deltas"],
+      "properties": {
+        "current": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["start", "end"],
+          "properties": {
+            "start": { "type": "string" },
+            "end": { "type": "string" }
+          }
+        },
+        "previous": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["start", "end"],
+          "properties": {
+            "start": { "type": "string" },
+            "end": { "type": "string" }
+          }
+        },
+        "deltas": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["metric", "current", "previous", "changePct"],
+            "properties": {
+              "metric": { "type": "string" },
+              "current": { "type": "number" },
+              "previous": { "type": "number" },
+              "changePct": { "type": "number" },
+              "source": { "type": "string", "enum": ["search-console", "analytics"] }
+            }
+          }
+        }
+      }
+    },
+    "segmentation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dimensions"],
+      "properties": {
+        "dimensions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "enum": ["query", "page", "device", "country", "searchAppearance"]
+          }
+        },
+        "highlights": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["dimension", "segment", "metric", "value", "source"],
+            "properties": {
+              "dimension": { "type": "string" },
+              "segment": { "type": "string" },
+              "metric": { "type": "string" },
+              "value": { "type": "number" },
+              "source": { "type": "string", "enum": ["search-console", "analytics"] }
+            }
+          }
+        }
+      }
+    },
+    "metricsDisclaimer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["clicksNotSessions", "text"],
+      "properties": {
+        "clicksNotSessions": { "type": "boolean", "enum": [true] },
+        "text": { "type": "string", "minLength": 1 }
+      }
+    },
+    "notMeasured": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["surface", "reason"],
+        "properties": {
+          "surface": { "type": "string" },
+          "reason": { "type": "string" }
+        }
+      }
+    }
+  }
+}

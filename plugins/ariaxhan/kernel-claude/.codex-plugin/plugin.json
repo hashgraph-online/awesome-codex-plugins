@@ -1,0 +1,49 @@
+{
+  "name": "kernel",
+  "version": "9.10.3",
+  "description": "KERNEL is a Claude Code and Codex runtime for direct, decomposed execution with local memory and minimal hooks. Version 9.10.3 pins session state to durable Vaults storage, repairs release installation, and removes retired hook bindings. Skills invoke as /kernel:<name> on Claude Code and $kernel:<name> on Codex; run /kernel:help first. Agent-readable summary: llms.txt.",
+  "author": {
+    "name": "Aria Han",
+    "url": "https://github.com/ariaxhan"
+  },
+  "homepage": "https://github.com/ariaxhan/kernel-claude",
+  "repository": "https://github.com/ariaxhan/kernel-claude",
+  "license": "MIT",
+  "keywords": [
+    "claude-code",
+    "codex",
+    "plugin",
+    "hooks",
+    "guardrails",
+    "agent-memory",
+    "agentdb",
+    "verification",
+    "auto-mode",
+    "safety",
+    "adaptive-execution",
+    "memory",
+    "orchestration",
+    "handoff",
+    "methodology"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "KERNEL",
+    "shortDescription": "Direct, decomposed execution with local memory and minimal cross-host hooks",
+    "longDescription": "KERNEL is a Claude Code and Codex runtime for direct, decomposed execution with local memory and minimal hooks. Version 9.10.3 pins session state to durable Vaults storage, repairs release installation, and removes retired hook bindings. Skills invoke as /kernel:<name> on Claude Code and $kernel:<name> on Codex; run /kernel:help first. Agent-readable summary: llms.txt.",
+    "developerName": "Aria Han",
+    "category": "Engineering",
+    "capabilities": [
+      "Read",
+      "Write",
+      "Interactive"
+    ],
+    "websiteURL": "https://github.com/ariaxhan/kernel-claude",
+    "brandColor": "#111111",
+    "defaultPrompt": [
+      "Fix the failing test in this repo.",
+      "Why did you pick that mode?",
+      "Use less process for this one."
+    ]
+  }
+}

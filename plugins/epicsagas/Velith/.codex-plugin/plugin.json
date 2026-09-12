@@ -1,7 +1,7 @@
 {
   "name": "velith",
-  "version": "0.4.1",
-  "description": "AI-native publishing system — autonomous multi-phase workflows from ideation to EPUB/PDF. Fiction, non-fiction, technical, screenplay, poetry, game, academic, and custom genres.",
+  "version": "0.7.0",
+  "description": "Books to the human-quality bar — 6-phase pipeline (onboarding → ideation → outlining → drafting → editing → publishing), 12 agents, full-manuscript context, voice lock, draft-critique-revise, fact-check, beta-reader readiness gate, art bible and model-agnostic image pipeline. Fiction, non-fiction, technical, screenplay, poetry, game, academic, custom.",
   "author": {
     "name": "epicsagas",
     "url": "https://github.com/epicsagas"
@@ -13,7 +13,7 @@
   "interface": {
     "displayName": "Velith",
     "shortDescription": "AI-native publishing system — from ideation to EPUB/PDF.",
-    "longDescription": "Autonomous multi-phase publishing workflows. Fiction, non-fiction, technical, screenplay, poetry, game, academic, and custom genres.",
+    "longDescription": "Six-phase publishing pipeline with twelve agents: full-manuscript context, voice lock, draft-critique-revise, fact-check, beta-reader readiness gate, art bible and model-agnostic image pipeline. Fiction, non-fiction, technical, screenplay, poetry, game, academic, and custom genres.",
     "developerName": "epicsagas",
     "category": "Development & Workflow",
     "capabilities": [

@@ -102,7 +102,7 @@ Slack bot for team collaboration.
 - `messagesMutable: true` — messages can be edited mid-thread
 - `reasoningVisibility: always_strip`, `maxResponseLength: 4000`
 - **Execution hint**: "Responding in Slack. Be concise and direct — Slack messages should be scannable. Avoid lengthy prose. No reasoning traces or tool call narration."
-- Install via `install_slack_integration`, not `create_surface_key`
+- Connect via the `slack-setup` runbook (`runtype://guide/slack-setup`), not `create_surface_key`. `install_slack_integration` only helps a caller who already holds a bot token and signing secret (migration or rotation)
 
 ### `schedule`
 

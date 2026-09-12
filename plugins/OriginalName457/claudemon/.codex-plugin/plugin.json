@@ -1,0 +1,32 @@
+{
+  "name": "claudemon",
+  "version": "1.0.0",
+  "description": "A friendlier way to run your coding agents — your crew is a bunch of pixel creatures you can watch work, plus Clawland, an .io brawler.",
+  "repository": "https://github.com/OriginalName457/claudemon",
+  "homepage": "https://github.com/OriginalName457/claudemon",
+  "license": "MIT",
+  "author": {
+    "name": "Kiowa WM",
+    "url": "https://github.com/OriginalName457"
+  },
+  "keywords": [
+    "mcp",
+    "game",
+    "pixel-pet",
+    "agents",
+    "clawland"
+  ],
+  "interface": {
+    "displayName": "Claudemon",
+    "shortDescription": "Watch your agents work as pixel creatures — plus a game.",
+    "composerIcon": "./assets/icon.png"
+  },
+  "mcpServers": {
+    "claudemon": {
+      "command": "node",
+      "args": [
+        "${CODEX_PLUGIN_ROOT}/src/server.js"
+      ]
+    }
+  }
+}

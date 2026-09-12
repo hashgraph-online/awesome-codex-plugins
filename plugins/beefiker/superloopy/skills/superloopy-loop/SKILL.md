@@ -34,6 +34,15 @@ When the user opens a message with `loopy <task>`, act as the loop engineer:
 - The user types only `loopy <task>`. You run every Superloopy command and report progress as criteria proven and the next step.
 - `loopy` with no task asks what to build; `loopy` mid-loop resumes from existing state. The Stop hook is packaged with the plugin but stays inert until `SUPERLOOPY_STOP_HOOK=on`; when enabled, it blocks completion until evidence exists.
 
+### Reassurance-copy gate (conditional)
+
+- Decide from the affected artifact: if it creates or changes user-visible Korean product copy about behavior, add a plan criterion for RC-1 through RC-4 and Korean naturalness.
+- State supplied outcomes, fallback, recovery, or next action; preserve verified privacy/legal commitments; never invent behavior.
+- Apply `humanize-korean` semantic review for misplaced modifiers.
+- Ignore internal logs, developer docs, quotations, general/marketing prose, and non-Korean copy.
+
+Read the detailed [reassurance-copy reference](references/reassurance-copy.md) when this condition applies. Artifact ownership decides the condition; prompt wording does not.
+
 ### Two tiers: solo and crew (`loopy team`)
 
 The loop engineer directive is injected for every `loopy` prompt, and it scales to the work:
@@ -41,7 +50,7 @@ The loop engineer directive is injected for every `loopy` prompt, and it scales 
 - **Solo (default).** A plain `loopy <task>` drives one agent through the loop. The directive still permits light delegation: if the work splits into 2+ genuinely independent slices, you may fan them out with the native subagent controls exposed by the current host; keep each assignment self-contained. For a single cohesive change, stay solo.
 - **Crew (`loopy team <task>` / `loopy crew <task>`, the connected one-word `loopycrew <task>`, or the standalone `ultrawork <task>`).** The same engineer escalates into full fan-out: dispatch the crew across independent lanes, collect them with the host's native lifecycle controls, and record only artifact-backed proof. The escalation keyword is stripped from the brief that seeds the loop. This is the active counterpart to "Optional Subagent-Driven Mode" below — same dispatch contract, receipt gate, and mandatory `handoff`/`fleet` tracking.
 
-Each crew dispatch uses the configured name when the host exposes named selection: `franky` to build, `zoro` to review, `usopp` to test, `jinbe` to gate, `robin` to audit, and `nami` to navigate. The assignment also stays self-contained (`TASK: act as <role> ...`). The host-owned stop callback observes the actual role identity; if the host cannot attest that identity or model, report `role_unverified` or `model_unverified`.
+Each crew dispatch uses the configured name when the host exposes named selection: `franky` to build, `zoro` to review, `usopp` to test, `jinbe` to gate, `robin` to audit, and `nami` to navigate. The assignment also stays self-contained (`TASK: act as <role> ...`). The orchestrator itself runs on the model the user selected in the host (`gpt-6-astra` is allowed when selected); crew lanes keep their `model-policy.json` pins and never inherit the orchestrator's model. The host-owned stop callback observes the actual role identity; if the host cannot attest that identity or model, report `role_unverified` or `model_unverified`.
 
 Both tiers are steering, not enforcement: the directive instructs the main agent, and actual spawning depends on the host's native multi-agent tool being available. Superloopy never spawns; it gates the evidence workers deliver. See "Optional Subagent-Driven Mode" for the full dispatch contract and crew roles.
 

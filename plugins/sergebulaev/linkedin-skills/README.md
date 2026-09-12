@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://shared.co.actor/img/linkedin-skills-hero.jpg" alt="10 Claude Code and Codex skills for LinkedIn marketing — open source, MIT licensed" width="900" />
+  <img src="assets/linkedin-skills-hero.png" alt="11 Claude Code and Codex skills for LinkedIn marketing — open source, MIT licensed" width="900" />
 </p>
 
 # LinkedIn Marketing Skills for Claude Code and Codex
@@ -14,7 +14,7 @@
   <img src="https://img.shields.io/badge/PRs-welcome-F59E0B.svg" alt="PRs Welcome">
 </p>
 
-11 skills that help Claude Code and Codex write LinkedIn posts, comments, and replies in your voice. They draft content, strip AI tells, and wait for your approval before anything gets published. No coding required.
+**Claude skills for LinkedIn.** 11 Claude Code and Codex skills that write LinkedIn posts, comments, and replies in your voice. They draft content, strip AI tells, and wait for your approval before anything gets published. No coding required.
 
 > **On another platform too?** The same team ships matching marketing skill bundles for [X (Twitter)](https://github.com/sergebulaev/x-skills) · [Instagram](https://github.com/sergebulaev/instagram-skills) · [YouTube](https://github.com/sergebulaev/youtube-skills) · [TikTok](https://github.com/sergebulaev/tiktok-skills) · [Threads](https://github.com/sergebulaev/threads-skills) · [Facebook](https://github.com/sergebulaev/facebook-skills). Same voice engine, same approve-before-publish flow.
 
@@ -104,6 +104,8 @@ One command that works across Claude Code, Codex, Cursor, and any other agent th
 npx skills add sergebulaev/linkedin-skills
 ```
 
+> **Found this useful? [Star the repo](https://github.com/sergebulaev/linkedin-skills).** Curated Claude Code and Codex directories rank and gate by star count, so a star is what makes these skills findable for the next person. It is the only thing we ask. No signup, no email.
+
 ## What you can do
 
 Once installed, just ask Claude Code or Codex for help with LinkedIn. The right skill activates automatically.
@@ -139,7 +141,7 @@ Every skill shows you a draft first and waits for your OK before doing anything.
 | **Comment Drafter** | Drafts a comment on any LinkedIn post from its URL |
 | **Reply Handler** | Drafts a reply to any comment, correctly handling LinkedIn's 2-level thread flattening |
 | **Post Audit** | Checks your draft against 2026 algorithm rules and AI-detection patterns before you publish |
-| **Humanizer** | Strips em dashes, AI vocabulary ("leverage", "delve", "harness"), rule-of-three lists, and other AI fingerprints. Bundles three sub-tools: AI-emoji density scorer, multi-detector spread tester (GPTZero, Originality.ai, ZeroGPT, Sapling, Copyleaks), and a rule-explainer reference for defending stylistic choices. |
+| **Humanizer** | Removes the AI tells human readers and LinkedIn's slop filter react to: 2026 AI vocabulary scored by paragraph density, reveal bridges, staccato fragment stacks, stacked triads, performed sincerity; caps em dashes instead of banning them. Does not promise to beat detectors (no edit reliably does). Bundles three sub-tools: AI-emoji density scorer, multi-detector spread tester (GPTZero, Originality.ai, ZeroGPT, Sapling, Copyleaks) that documents how much they disagree, and a rule-explainer reference for defending stylistic choices. |
 | **Hook Extractor** | Reverse-engineers the hook formula from any viral post. Returns a blank template you can fill with your own topic |
 | **Content Planner** | Creates a 7-day plan with daily post topics, formats, hooks, posting times, and comment targets |
 | **Engagement Monitor** | Two read-side workflows: (1) tracks your comment threads for author replies and drafts follow-ups in the 6-24h window; (2) pulls likers and commenters on any post and groups them by ICP fit (peer / aspirational / prospect). |
@@ -156,6 +158,14 @@ If you are a founder, the bundle ships a dedicated founder layer. Your real cons
 - **A founders-edition content plan** (Conviction / Building in public / The math / Proof) in the Content Planner.
 
 Just tell the Post Writer you are a founder, or ask the Content Planner for a "founder plan," and the skills reach for these first.
+
+## Community skills
+
+Standalone skills built by other people on this bundle's conventions (same voice rules, same approval-card flow, same `Not for X (use Y)` disambiguation). They live in their authors' repos, so the core stays at 11 skills and one read/write pipeline. Install them next to this bundle the same way.
+
+- [linkedin-outreach](https://github.com/smfardeen7/linkedin-skills/tree/add-linkedin-outreach-skill/skills/linkedin-outreach) by [@smfardeen7](https://github.com/smfardeen7) - drafts 300-character connection-request notes (10 scenario templates) and post-accept follow-up sequences with day offsets and stop rules. Draft-only: LinkedIn has no invite or DM API, you paste and send.
+
+Built one? Open a PR that adds a single line here.
 
 ## Optional: read LinkedIn data with Apify
 
@@ -181,6 +191,8 @@ By default, skills draft content for you to copy-paste into LinkedIn. If you wan
 ### What is Publora?
 
 [Publora](https://publora.com) is a publishing API that handles LinkedIn's quirks (3 different URL formats, reaction type mismatches, thread flattening bugs). The free tier gives you 15 posts/month.
+
+Publora also ships [official MCP skills](https://github.com/publora/skills) (`npx skills add publora/skills`): one skill per platform, covering the publish side only. This bundle is the layer above them, adding the reading, the writing craft and the approval flow.
 
 ### Setup (2 minutes)
 
@@ -219,11 +231,19 @@ pip install requests python-dotenv
 
 If Publora returns a scheduled-post ID, you're set. Cancel the post in the Publora dashboard before the scheduled time. If you get HTTP 401, your API key is wrong. If you get HTTP 400 about a missing platformId, your `LINKEDIN_PLATFORM_ID` isn't set. See [Troubleshooting](#troubleshooting).
 
+## Optional: generate illustrations with Pixfaro
+
+Posts with a visual get more dwell time. The Post Writer can generate an illustration for a draft (a feed image, a carousel slide, or a quote-card of your hook) and attach it automatically when publishing. Without a key it drafts the image prompt and asks you to generate it yourself, so nothing breaks.
+
+[Pixfaro](https://pixfaro.com) is a single image API over multiple models (from `flux-schnell` at $0.004 to `gpt-5-image`). It composites your handle, brand color, or logo onto the image as a **pixel-exact overlay**, so a cheap base model still renders crisp text on a quote-card or thumbnail. Pull those brand fields from your [Voice & Brand Profile](references/voice-profile.md) (section 6) and every asset stays on-brand.
+
+Setup: drop `PIXFARO_TOKEN=pf_live_...` into your `.env`. The thin client at `lib/pixfaro_client.py` and the wrappers `lib.illustrate(prompt, kind=...)` / `lib.refine(image_id, instruction)` return a hosted URL that flows straight into `lib.publish(..., media_urls=[url])`. `refine` edits a prior image by its id (cheaper than regenerating); results carry `cost`, `balance_after`, and a `premium` flag so the skills never quietly spend on a pricey model.
+
 ## Voice rules
 
 Every skill follows these rules automatically:
 
-1. No em dashes. Biggest AI tell in 2026.
+1. Em dashes capped at about 1 per 100 words. The character stopped being a tell in 2026; the density is.
 2. Capitalize names. Always. Lowercase reads as disrespectful.
 3. No AI vocabulary: "leverage", "fundamentally", "streamline", "harness", "delve", "unlock", "foster".
 4. Specific numbers beat adjectives. "$14,200" beats "significant savings".
@@ -302,6 +322,11 @@ engagers = apify.fetch_post_engagers(post_url="https://www.linkedin.com/posts/..
 # Write side (Publora)
 client = PubloraClient()  # reads PUBLORA_API_KEY from env
 client.create_comment(post_urn=parsed["post_urn"], message="draft", platform_id="linkedin-xxx")
+
+# Image side (Pixfaro) — optional, reads PIXFARO_TOKEN from env
+from lib import illustrate
+img = illustrate("Minimal flat-vector lighthouse, calm blue palette", kind="wide")
+# img["url"] -> pass to publish(..., media_urls=[img["url"]])
 ```
 
 ## URL handling
@@ -334,6 +359,16 @@ python lib/url_parser.py "https://www.linkedin.com/posts/<author-handle>_activit
 - [Apify console](https://console.apify.com) — manage actors, tokens, and usage for the read layer
 - [360Brew paper](https://arxiv.org/abs/2501.16450) — LinkedIn's ranking foundation model
 - [AuthoredUp 2026 reach data](https://authoredup.com/) — format-level reach benchmarks
+
+## Who builds this
+
+These skills come out of [Creative Content Crafts](https://cccrafts.ai), an engineering company. We build the machinery underneath a company's public voice: ICP parsing, engagement systems, content guardrails, and posting infrastructure. We do not sell the words themselves.
+
+We call that layer **content engineering**. Writing collapsed to the price of a chat subscription. What stayed valuable is everything below it: pulling every post your market wrote this week, keeping a live list of the people who matter, engaging on it daily with judgment in the loop, and catching the risky drafts before the platform does.
+
+On LinkedIn specifically, that is the whole job. We are engineers of LinkedIn growth, not a ghostwriting agency.
+
+This repo is the thin top layer of that stack, open-sourced. The engine underneath is what we build for clients.
 
 ## License
 

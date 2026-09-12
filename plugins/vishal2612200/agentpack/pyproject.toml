@@ -1,6 +1,6 @@
 [project]
 name = "agentpack-cli"
-version = "0.4.3"
+version = "0.4.4"
 description = "Local context engine for AI coding agents that ranks relevant repo files and builds compact task-focused context packs for Claude Code, Codex, Cursor, Windsurf, MCP, and CI workflows."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -120,7 +120,7 @@ fail_under = 0
 show_missing = true
 
 [build-system]
-requires = ["hatchling==1.26.3"]
+requires = ["hatchling==1.31.0"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]

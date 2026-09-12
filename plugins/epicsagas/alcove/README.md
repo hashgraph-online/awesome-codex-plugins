@@ -161,20 +161,22 @@ No Homebrew? Use the installer script:
 
 ```bash
 curl --proto '=https' --tlsv1.2 -LsSf \
-  https://github.com/epicsagas/alcove/releases/latest/download/install.sh | sh
+  https://github.com/epicsagas/alcove/releases/latest/download/alcove-installer.sh | sh
 ```
 
-### Linux (x86_64 / ARM64)
+### Linux (x86_64)
 
 ```bash
 curl --proto '=https' --tlsv1.2 -LsSf \
-  https://github.com/epicsagas/alcove/releases/latest/download/install.sh | sh
+  https://github.com/epicsagas/alcove/releases/latest/download/alcove-installer.sh | sh
 ```
 
 ### Windows (x86_64 / ARM64)
 
+Pre-built Windows binaries are not currently published. Build from source:
+
 ```powershell
-irm https://github.com/epicsagas/alcove/releases/latest/download/install.ps1 | iex
+cargo install alcove --features full-cross
 ```
 
 ### Antigravity (Gemini CLI)
@@ -905,6 +907,10 @@ Bigger windows don't solve the relevance problem. Even a 200K-token window fille
 ## Contributing
 
 Bug reports, feature requests, and pull requests are welcome. Please open an issue on [GitHub](https://github.com/epicsagas/alcove/issues) to start a discussion.
+
+## Acknowledgments
+
+The temporal validity model (`valid_until` / `last_verified` with query-time expiry exclusion) was informed by the lifecycle schema of [Data Olympus](https://github.com/knaisoma/data-olympus) by [@ajdelaguila](https://github.com/ajdelaguila) (discussion in [#37](https://github.com/epicsagas/alcove/issues/37)).
 
 ## License
 

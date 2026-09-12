@@ -41,7 +41,7 @@ These are sketches, not copy-paste configs — the exact JSON shapes are best di
    - `add_product_capability` to attach the agent to the product.
 5. **Surface**:
    - `create_surface` of type `slack`.
-   - `install_slack_integration` (preferred over manually setting surface keys) — pass the bot token and signing secret. This does the OAuth bookkeeping.
+   - Connect the workspace by following the `slack-setup` topic (`runtype://guide/slack-setup`): `get_slack_app_manifest`, hand the user the two browser moments, then poll `get_surface_setup` until `ready`. Not `install_slack_integration` — that one needs a bot token and signing secret you don't have yet.
    - `add_surface_item` to wire the capability to the Slack surface.
 6. **Test**:
    - `execute_agent` directly with a test message before sending Slack traffic.
@@ -50,7 +50,7 @@ These are sketches, not copy-paste configs — the exact JSON shapes are best di
 **Gotchas:**
 
 - The Slack surface's `executionHint` may already be applied by the platform; don't double up the formatting instructions in the system prompt.
-- Bot token rotation: when the Slack admin rotates the bot token, re-run `install_slack_integration`.
+- Bot token rotation: when the Slack admin rotates the bot token, re-run `install_slack_integration` with the new token and signing secret. Already holding those values is the one case that tool serves; a from-zero connect isn't, and goes through `slack-setup`.
 - `update_agent` is wholesale replacement — when iterating on the system prompt, pass the full agent config every time.
 
 ---

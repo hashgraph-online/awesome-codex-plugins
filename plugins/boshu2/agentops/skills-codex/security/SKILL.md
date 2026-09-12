@@ -1,6 +1,6 @@
 ---
 name: security
-description: Run authorized repository security scans for
+description: 'Review code or scan for security vulnerabilities, secrets, dependencies and prompt risks. Use when: concrete exposure needs assessment; never silently change policy.'
 ---
 # Security Skill
 
@@ -16,6 +16,19 @@ Use this skill for a caller-requested repository scan, authorized binary assuran
 - Use the current agent and local shell; do not start another runtime or orchestration substrate unless explicitly requested. **Why:** repository scanning is a bounded operation, not permission to fan out.
 - Run the selected scan once and report findings plus coverage gaps. Remediation,
   risk acceptance, reruns, and promotion are caller decisions.
+
+## Prompt
+
+```text
+Run a full security scan on cli/ in the fleet-router repo: dependency risk, secrets, and static analysis. Keep collection read-only, treat any missing scanner as a coverage gap, and report findings plus coverage gaps rather than remediating them.
+```
+
+## It's working if
+
+- The report lists which scanners ran, e.g. `gosec ./...`, and marks any missing tool as a coverage gap, never a clean pass.
+- Collection stays read-only throughout: no `curl`, `rm`, or credential read appears in the transcript.
+- Findings cite a file and line, such as `cli/internal/auth/token.go:42`, never a vague category.
+- The response's `findings` and `coverage gaps` stay separate from any remediation step, left as caller decisions.
 
 ## Security Surfaces
 

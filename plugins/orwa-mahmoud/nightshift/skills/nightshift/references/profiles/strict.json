@@ -1,0 +1,11 @@
+{
+  "name": "strict",
+  "version": 2,
+  "risk": "low",
+  "use": "Verification level per-item: the Gates block runs before every tick and once more before clock-out.",
+  "rules": {},
+  "shiftDefaults": {
+    "verificationProfile": "strict"
+  },
+  "gates": null
+}

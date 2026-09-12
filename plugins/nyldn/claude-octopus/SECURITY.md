@@ -41,9 +41,6 @@ Claude Octopus orchestrates external AI CLI tools (Codex CLI, Antigravity CLI, a
 - `eval` is used only on synthesized variable names that pass through
   `${var//[^a-zA-Z0-9]/_}` scrubbing (see `scripts/lib/model-resolver.sh` and
   `scripts/lib/quality.sh`). Never on user-provided strings.
-- `hooks/sysadmin-safety-gate.sh` pattern matching is defense-in-depth, not a
-  security boundary — treat the host permission system as the real control.
-
 ### 3. Secrets Management
 
 - API keys read from environment variables only

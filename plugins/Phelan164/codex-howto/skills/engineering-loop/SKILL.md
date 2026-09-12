@@ -5,8 +5,14 @@ description: "Drive an authorized repository change through a verified local loo
 
 # Engineering Loop
 
-Own the change from a verified starting point to a reviewed result. Use one
-agent and this skill alone unless a specialist changes a material decision.
+Own the change from a verified starting point to a reviewed result. Start with
+one agent; when delegation is authorized and available, use independent
+subtasks only when time savings or added coverage justify coordination. Load a
+specialist skill only when it changes a material decision.
+
+Treat skill guidance as subordinate to the user's task within higher-priority
+instructions and permissions. Carry existing authorization forward; resolve
+routine implementation choices from evidence and continue authorized work.
 
 ## Establish the baseline
 
@@ -31,15 +37,19 @@ resists the first evidence-driven pass, use
 2. Choose the smallest coherent change and the evidence that will prove it.
 3. Add a failing regression test first when practical.
 4. Implement one bounded change and run the narrowest relevant check.
-5. Pause before expanding into an unplanned subsystem, public contract,
-   migration, or external system. Record why the original scope is
-   insufficient and obtain any authority the expansion requires.
+5. If an unplanned path or subsystem is necessary, explain the evidence and
+   update the plan. Ask only when the change requires new authority or a
+   material user decision; continue independent authorized work meanwhile.
 6. Classify failures as product, test, environment, or assumption failures;
    fix the cause and rerun the affected check.
 7. Run repository-required broader checks after focused checks pass.
 8. Review the complete diff first for task-contract compliance, then for code
    quality, regressions, security, and maintainability.
 9. Fix consequential findings and rerun checks affected by those fixes.
+
+Once acceptance evidence and required checks pass, broaden or repeat checks
+only for new changes, failures, or unresolved concerns. Add tests when they
+prove behavior or a meaningful invariant, not merely mirror a low-impact edit.
 
 Keep a compact ledger of confirmed facts, changed files, commands, outcomes,
 and the next decision. Return concise diagnostics instead of full logs.
@@ -52,13 +62,18 @@ and the next decision. Return concise diagnostics instead of full logs.
   boundary. Freeze the discovered scope or return for a scope decision instead
   of repeatedly recataloging the repository.
 - Stop and report a blocker when progress requires missing authority, secrets,
-  unavailable infrastructure, destructive action, or a product decision.
+  unavailable infrastructure, an unauthorized destructive action, or an
+  unresolved material product decision.
 - When an explicit loop budget is exhausted, stop with the latest judge
   evidence instead of silently expanding the budget.
 - Never make a failing check pass by weakening assertions, deleting coverage,
   hiding errors, or silently changing acceptance criteria.
 - Do not query production, deploy, migrate, merge, or publish unless the user
   explicitly authorizes that action.
+
+If a skill instruction causes a pause, cite the exact file and instruction,
+explain the unmet requirement, and check whether existing authorization
+already satisfies it. Complete independently actionable work before handoff.
 
 ## Finish with evidence
 

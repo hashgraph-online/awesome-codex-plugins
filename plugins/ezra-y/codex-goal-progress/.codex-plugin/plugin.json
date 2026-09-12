@@ -1,0 +1,38 @@
+{
+  "name": "codex-goal-progress",
+  "version": "0.3.7",
+  "description": "Explicitly attach deterministic progress tracking to one native Codex Goal.",
+  "author": {
+    "name": "Codex Goal Progress Contributors"
+  },
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "hooks": "./hooks/hooks.json",
+  "interface": {
+    "displayName": "Goal Progress",
+    "shortDescription": "Track one native Goal with verified progress.",
+    "longDescription": "Adds an explicit, checklist-based progress Contract to the current native Codex Goal while local Core code computes every percentage.",
+    "developerName": "Codex Goal Progress Contributors",
+    "category": "Productivity",
+    "logo": "./assets/codex-goal-progress-plugin-logo.png",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "$codex-goal-progress:goal-progress"
+    ],
+    "composerIcon": "./assets/icon.png",
+    "websiteURL": "https://github.com/Ezra-Y/codex-goal-progress"
+  },
+  "repository": "https://github.com/ezra-y/codex-goal-progress",
+  "license": "MIT",
+  "scripts": "./runtime/",
+  "homepage": "https://github.com/Ezra-Y/codex-goal-progress",
+  "keywords": [
+    "codex",
+    "goal",
+    "progress",
+    "checklist"
+  ]
+}

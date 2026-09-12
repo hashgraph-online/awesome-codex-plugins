@@ -1,0 +1,49 @@
+{
+  "name": "burpsuite-mcp-bridge",
+  "version": "2.1.0",
+  "description": "Burp Suite MCP bridge for target-centric traffic triage, marked-flow discovery, time-window search, replay, rewrite automation, selection handoff, and evidence export.",
+  "author": {
+    "name": "BurpSuite MCP Bridge",
+    "email": "6jeffr3y@users.noreply.github.com",
+    "url": "https://github.com/6jeffr3y/burpsuite-mcp-bridge"
+  },
+  "homepage": "https://github.com/6jeffr3y/burpsuite-mcp-bridge",
+  "repository": "https://github.com/6jeffr3y/burpsuite-mcp-bridge",
+  "license": "Proprietary Runtime Distribution",
+  "keywords": [
+    "burp",
+    "mcp",
+    "codex",
+    "wsl",
+    "windows",
+    "montoya",
+    "proxy",
+    "automation",
+    "pentest"
+  ],
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "BurpSuite MCP Bridge",
+    "shortDescription": "通过本地 MCP 接口访问 Burp 流量、重放、规则、拦截和证据导出",
+    "longDescription": "Burp Suite 本地 MCP Bridge。支持按目标聚合 live/history/logger/selection 流量、按 flow ID 读取完整报文、请求与响应双向拦截、受控重放、Rewrite Rule、BCheck/Bambda 导入以及原始证据导出。Burp Suite 保留流量和原生工具状态的事实来源。",
+    "developerName": "BurpSuite MCP Bridge",
+    "category": "Coding",
+    "capabilities": [
+      "Read",
+      "Write",
+      "Interactive"
+    ],
+    "websiteURL": "https://github.com/6jeffr3y/burpsuite-mcp-bridge",
+    "brandColor": "#f97316",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/logo.svg",
+    "defaultPrompt": [
+      "对指定 host 生成 target overview，并优先检查带 comment 或 highlight 的 flow。",
+      "读取 Burp 中捕获的 selection，获取完整请求响应并导出原始证据包。",
+      "创建包含 max_matches 和 ttl 的临时 rewrite rule，完成验证后禁用或删除。",
+      "为指定 host 创建一次性 response intercept，处理一个明确字段后核对后续客户端请求。"
+    ]
+  },
+  "scripts": "./mcp-server/",
+  "skills": "./skills/"
+}

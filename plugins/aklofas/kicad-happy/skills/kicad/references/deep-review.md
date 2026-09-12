@@ -98,7 +98,10 @@ Record findings in `analysis/deep_review.json` per
   `thermal`, `protection`, `required_externals`) — the diff and the
   summary group by it.
 - Datasheet quotes must be verbatim text from the cited page — the
-  gate greps the page via pdftotext; paraphrases quarantine.
+  gate greps the page via pdftotext; paraphrases quarantine. Mid-quote
+  elision (`...` or `…`) is fine for trimming a long quote down to the
+  relevant clauses — each segment on either side must still appear on
+  the page, in order.
 - Page numbers are PDF page indexes (what pdftotext counts), not the
   printed page footer.
 - Computations cite the helper script path and paste its result line.
@@ -109,6 +112,15 @@ Gate, then deal with the fallout:
 
     python3 skills/kicad/review/scripts/deep_review_gate.py \
         analysis/deep_review.json --analysis-dir analysis/
+
+`--project-dir` (for resolving `evidence.computation.script` paths)
+defaults to `--analysis-dir`'s parent — pass it explicitly only when
+the gate runs from outside the normal `<project>/analysis/` layout:
+
+    python3 skills/kicad/review/scripts/deep_review_gate.py \
+        /path/to/project/analysis/deep_review.json \
+        --analysis-dir /path/to/project/analysis/ \
+        --project-dir /path/to/project/
 
 Quarantined entries are visible in the file with reasons. Fix the
 citation (or drop the claim) and re-run — the gate re-evaluates

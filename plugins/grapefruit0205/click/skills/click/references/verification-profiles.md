@@ -1,0 +1,62 @@
+# Verification Profiles
+
+In Guarded mode, recommend one qualitative profile and place it in the contract; approval binds it. In Evidence mode, use the runtime's focused profile marker and choose concrete checks from the repository and current change without a Click approval step. In both modes the Hook binds exact source receipts but does not score sufficiency or turn the profile into a numeric budget.
+
+| Profile | Use when | Typical argv evidence, when declared |
+| --- | --- | --- |
+| `quick` | The change is small, local, reversible, and has a narrow failure surface | The nearest meaningful local check |
+| `focused` | An ordinary feature or repair affects behavior but has a bounded owner | Direct behavior tests and the closest relevant regression checks |
+| `full` | The work changes payments, authentication, authorization, deletion, migration, public contracts, concurrency across boundaries, or another high-impact surface | Available full suite plus relevant integration, migration, security, or end-to-end checks |
+
+Protocol v2 still carries `targeted`, `broad`, or `deep` for compatibility, and the Hook deterministically normalizes obvious underdeclarations. The class and legacy units are not observations of runtime cost, test quality, or evidence strength and produce no permission or advisory decision. Exact argv arrays execute with `shell=False`; shell interpreters, chaining, pipes, redirection, background execution, and command substitution are not part of the protocol.
+
+Use present evidence, not task size alone. `focused` is the normal recommendation. Do not inflate `quick` work into broad testing, and do not reduce high-impact work to `quick` merely to save time.
+
+## One cheapest sufficient primary evidence source per condition
+
+Before staging the contract, declare every source once in `verification.evidence` with a unique id, typed `kind`, and short description. Each `verification.done_when` object references exactly one source id through `primary_evidence`. The source must be the cheapest available evidence that is still strong enough to prove that condition on the final relevant revision. One id may cover several conditions; do not split it merely to create one command per sentence. When repository evidence supports a precise dependency boundary for an argv source, its optional deterministic `dependencies` may be proposed before staging and become approval-bound. Omit them when uncertain.
+
+Use this order as a cost heuristic, not as a substitute for sufficiency:
+
+1. current successful evidence that the relevant mutation did not invalidate;
+2. a narrow static, unit, or existing regression check;
+3. a focused integration or build check;
+4. one representative browser, manual, hosted, or external-system scenario;
+5. a broad suite or timed end-to-end flow only when the condition itself concerns that complete flow.
+
+Do not prove one condition twice by default. In particular, do not pair an automated rule test with a browser replay of the same rule, exhaustively exercise equivalent UI permutations, or play through long timed progression when a deterministic state transition can prove the outcome. Use interactive evidence for integration, input, accessibility, or visual behavior that cheaper checks cannot establish. If a primary source fails, becomes stale after a relevant mutation, or is genuinely insufficient, fix or replace that source; do not retain it and add a second proof path.
+
+Sources with `kind: "argv"` run through `click-gate verify`. Every check names its source through `evidence_id`; one request may cover any nonempty subset and adjacent checks for one id complete together. In Guarded mode ids must resolve to the approved registry. In Evidence mode the first accepted batch dynamically registers its ids and exact check-group digests. Prefer one coalesced request when practical, but do not rerun current evidence merely to include it beside a later source. When a Guarded contract has no argv source, do not invent a ceremonial local batch.
+
+An exact broad source may use committed [Evidence Shards v1](evidence-shards-v1.md). The caller still submits the parent id and argv. Click records valid children independently, retains a passing sibling after a later child fails, and retries unresolved children. The shard declaration proves only the repository owner's chosen decomposition; it never grants cross-revision reuse.
+
+When Browser is assigned, declare one source with `kind: "browser"` and reference its id from every covered condition. Browser work remains serial, and every admitted call requires a stable `tool_use_id` so the matching result can update only that source at the current mutation revision. The Hook normalizes each tool input for advisory context: an input seen after success or repeated failure remains available with reuse or repair guidance. There is no normal call-count or elapsed-session cap. A call timeout above 30 seconds or an obvious wait above five seconds remains available with timing guidance, and after 256 normalized inputs Click compacts the oldest per-input guidance record instead of blocking a new call. Once any current-revision Browser call succeeds, the source remains observed even if a later call fails; `click-gate evidence` explicitly finalizes the source when the assigned proof is sufficient. Use the same completion command once for collected hosted, manual, or existing evidence. Those three kinds are explicit attestations because the Hook does not independently observe arbitrary external systems. Once every declared source is current for the final mutation revision, stop verifying.
+
+Run a nonempty subset of unresolved argv-based primary sources after implementation with `click-gate verify '{"version":2,"checks":[{"evidence_id":"E1","argv":[...],"class":"targeted"}]}'`. Keep checks for the same evidence id adjacent. If an earlier source passes before a later check fails, the Hook retains the successful source and retries only unresolved ids; per-source check-group digests remain exact receipt identity. Python verification accepts explicit pytest, unittest, or coverage module runners, including version-qualified `python3.x -m ...`, their Windows `.exe` names, and `py -3 -m ...`; it rejects lookalike wrapper names, Python `-c`, and direct Python scripts. Common recognized forms include exact-file `node --check` and `node --test`, `uv run pytest`, package-manager lint/build scripts, `ruff check`, `mypy`, `tsc --noEmit`, `cargo check`, `cargo clippy`, and `go vet`. Project-wide `node --test` is broad and Node eval/print is not verification. Routine bounded implementation builds use `click-gate mutate` when they may write. A recognizable long-running development server uses `click-gate service` start/stop so its exact isolated child is supervised rather than holding a foreground mutation open. Ordinary unchanged failures may receive fresh separately authorized retries; after repeated failure the Hook supplies non-blocking repair guidance. Verification that observably changed protected repository content remains blocked until an approved mutation reconciles it.
+
+The Hook skips an exact successful argv check in the same revision only when the intent/contract identity, normalized check group, protected Git tree, canonical environment, executable fingerprint, and host coverage match. A new mutation revision initially makes evidence stale. Guarded mode may promote it through an approval-bound dependency declaration or committed mapping. Evidence mode may promote it only through a committed mapping. Missing receipts, drift, ambiguous inputs, or changed relevant files rerun the check.
+
+Finalize non-argv evidence with `click-gate evidence '{"version":1,"evidence_id":"E2"}'`. For Browser this succeeds only after a successful current-revision call in the tracked session. For `hosted`, `manual`, and `existing`, the command records an explicit completion attestation; do not claim that the Hook proved an unmatched external action. It rejects `argv` ids, which can complete only through their bound runner checks.
+
+## Tool support boundary
+
+Execution and reuse are tool-profile capabilities, not a single language
+checkbox. Real local Hook-to-runner fixtures cover CPython unittest/pytest,
+Node test/check, npm test, Go test, pinned Vitest 5, and pinned Jest 30.
+Automatic inventory and exact file splitting are profile-limited to unittest,
+pytest, Vitest, and Jest. JSON, YAML, Markdown, SVG, and jq validation have real
+local fixtures; other direct content linters remain recognized or untested as
+recorded in `docs/history/multilang-expansion/`.
+
+Cargo, Gradle/Maven, .NET, TypeScript/CMake/CTest, SQL, and XML command profiles
+do not become verified merely because the adapter recognizes their argv. Their
+native toolchain, required offline/no-restore boundary, runtime identity, and CI
+result must be present before claiming actual execution support. Unsupported
+inventory, dynamic configuration, or ambiguous selection preserves the exact
+parent command.
+
+In a Git worktree, the runner snapshots tracked content and pre-existing non-ignored untracked content. If protected content changes, verification fails stale and advances the mutation revision instead of recording success. Every newly created non-ignored untracked path is reported and also fails stale; source, application, library, configuration, or migration classification only makes the warning clearer. Git-ignored paths, external dependencies, and external system state are outside the protected tree digest. Outside Git, this content-change and receipt-reuse boundary is unavailable; command allowlisting, shell-free execution, and revision state still apply.
+
+Accepted capability execution is deterministic for the supplied argv and inferred minimum class, but a custom program can conceal expensive work. Unknown verification-like wrapper names are measured conservatively as `deep`; an executable that cannot be resolved and fingerprinted, or an unrecognized non-check command, is rejected. This guard is not a resource sandbox and does not prove semantic test sufficiency.
+
+Omit `intermediate_gate` normally. Name it only when continuing past a point would make recovery materially harder—for example applying an irreversible migration, deleting data, deploying, or spending money through an external API. A gate is a safety boundary, not a routine checkpoint.

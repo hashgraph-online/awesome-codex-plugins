@@ -1,6 +1,6 @@
 # validate
 
-Freshly judge exact subject content against bead or caller acceptance, optionally persist verdict.v2 for a declared consumer, and stop. Triggers: "validate", "independently validate", "vibe".
+Freshly judge a finished change against original acceptance before merge. Use when: independent proof is needed; author tests cannot issue PASS. Triggers: "check this change".
 
 ## Instructions
 

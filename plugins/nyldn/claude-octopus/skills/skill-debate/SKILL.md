@@ -73,6 +73,15 @@ You are current host model, a **participant and moderator** in a multi-provider 
 
 **CRITICAL: You are NOT just an orchestrator. You are an active participant with your own voice and opinions.**
 
+### Interface-design debates
+
+When the question is an interface design, load
+`skills/blocks/architecture-simplification.md`. Give each initial advisor the same
+requirements and source revision without another advisor's draft. Record source
+access and model family separately from provider transport. A reviewer without
+artifact access contributes questions, not approval. Preserve evidence-backed
+minority findings even when the vote count favors another design.
+
 
 ## How Users Invoke This Skill
 
@@ -184,7 +193,7 @@ This is a **provider debate** with selected advisor voices plus you as moderator
 **Key responsibilities:**
 1. **Set up the debate**: Create folder structure, write context.md
 2. **Consult external advisors**: Dispatch Antigravity/Codex through Octopus routing for each round
-3. **Launch optional host subagent**: Dispatch Sonnet via host subagent tool (background execution) for each round
+3. **Launch allowed Sonnet**: Dispatch Sonnet via host subagent tool only when the provider allowlist permits it
 4. **Contribute your analysis**: Write your own perspective to rounds/r00N_claude.md
 5. **Moderate**: Ensure advisors stay on topic, follow word limits
 6. **Synthesize**: Combine all four perspectives into actionable recommendations
@@ -344,16 +353,19 @@ QUESTION="Should we use Redis or in-memory cache?"
 ROUNDS=3
 STYLE="thorough"
 
-# Dynamic advisor selection — use build-fleet.sh for model family diversity
-DEBATE_FLEET=$("${HOME}/.claude-octopus/plugin/scripts/helpers/build-fleet.sh" debate standard "${QUESTION}" 2>/dev/null)
-# Extract debater agent types (exclude claude-sonnet Moderator)
-ADVISORS=$(echo "$DEBATE_FLEET" | grep '|Debater|' | cut -d'|' -f1 | paste -sd',' -)
-# Fallback if build-fleet.sh unavailable: use installed providers, including agy.
-if [[ -z "$ADVISORS" ]]; then
-  fallback_advisors=()
-  command -v codex >/dev/null 2>&1 && fallback_advisors+=(codex)
-  command -v agy >/dev/null 2>&1 && fallback_advisors+=(agy)
-  ADVISORS=$(IFS=,; echo "${fallback_advisors[*]}")
+# Dynamic advisor selection — the fleet builder remains the admission authority.
+CONSULTATIVE_LIB="${HOME}/.claude-octopus/plugin/scripts/lib/consultative-advisors.sh"
+ADVISOR_SELECTOR="${HOME}/.claude-octopus/plugin/scripts/helpers/select-fleet-advisors.sh"
+source "$CONSULTATIVE_LIB" || exit 1
+HOST_CLAUDE_ALLOWED=false
+HOST_ADVISOR_SUCCESS=0
+if octo_consultative_host_allowed; then
+  HOST_CLAUDE_ALLOWED=true
+fi
+REQUIRED_EXTERNAL_ADVISORS=$(octo_consultative_required_external_count)
+if ! ADVISORS=$("$ADVISOR_SELECTOR" debate standard "$QUESTION"); then
+  echo "No eligible external debate advisors are available." >&2
+  exit 1
 fi
 ```
 
@@ -416,29 +428,28 @@ EOF
 For each round, iterate the runtime advisor list and dispatch through Octopus:
 
 ```bash
-IFS=',' read -r -a ADVISOR_LIST <<< "$ADVISORS"
-for advisor in "${ADVISOR_LIST[@]}"; do
-  case "$advisor" in
-    claude*|codex*|gemini*|agy*|antigravity|copilot*|qwen*|opencode*|ollama*|cursor-agent*|vibe*|grok*) ;;
-    *) echo "Skipping unsupported advisor: $advisor"; continue ;;
-  esac
-  safe_advisor=$(printf '%s' "$advisor" | tr -c '[:alnum:]_-' '_')
-  "${HOME}/.claude-octopus/plugin/scripts/orchestrate.sh" spawn "$advisor" \
-    "You are ${advisor} participating in debate round 1.
+ORCH="${HOME}/.claude-octopus/plugin/scripts/orchestrate.sh"
+DEBATE_PROMPT="You are {{advisor}} participating in debate round 1.
 
 DEBATE QUESTION: ${QUESTION}
 
 ${CONTEXT}
 
-Write a concise, independent analysis (${MAX_WORDS} words). Address implementation tradeoffs, risks, and where other likely perspectives may be wrong." \
-    > "${DEBATE_DIR}/rounds/r001_${safe_advisor}.md" &
-done
-wait
+Write a concise, independent analysis (${MAX_WORDS} words). Address implementation tradeoffs, risks, and where other likely perspectives may be wrong."
+if ! SUCCESSFUL_EXTERNAL_ADVISORS=$(octo_launch_advisors "$ORCH" "$ADVISORS" \
+    "${DEBATE_DIR}/rounds" r001_ "$DEBATE_PROMPT" "$REQUIRED_EXTERNAL_ADVISORS"); then
+  echo "The required external debate advisors did not complete successfully." >&2
+  exit 1
+fi
 ```
 
 #### 5.2: Launch optional host subagent (Pragmatic Implementer)
 
-Dispatch Sonnet via the host subagent tool with `model: "sonnet"` and `background execution: true` when the host exposes subagents. Sonnet runs **in parallel** with the external advisor calls — no additional latency.
+Dispatch Sonnet via the host subagent tool only when `HOST_CLAUDE_ALLOWED=true` and the
+host exposes subagents. If Claude is disallowed, skip this step. Set
+`HOST_ADVISOR_SUCCESS=1` only after the allowed Sonnet task completes with usable
+output; otherwise set it to `0`. Sonnet can run in parallel with the external
+advisor calls.
 
 ```
 Agent(
@@ -456,6 +467,16 @@ Write your analysis (${MAX_WORDS} words) to: ${DEBATE_DIR}/rounds/r001_sonnet.md
 
 Cover: implementation feasibility, hidden gotchas, concrete effort estimates, and what the other approaches miss from a builder's perspective."
 )
+```
+
+After all allowed advisors finish, enforce the two-provider minimum:
+
+```bash
+if ! octo_consultative_provider_count_is_sufficient \
+    "$SUCCESSFUL_EXTERNAL_ADVISORS" "$HOST_ADVISOR_SUCCESS"; then
+  echo "A debate requires two successful, allowlisted providers." >&2
+  exit 1
+fi
 ```
 
 **WHY Sonnet and not just more Opus?** Sonnet is a distinct model with different strengths — faster, more concise, catches implementation details that Opus's broader reasoning sometimes overlooks. Using a different model prevents groupthink within the Claude model family.
@@ -585,7 +606,7 @@ Claude:
 1. Creates debate folder at ~/.claude-octopus/debates/${SESSION_ID}/042-redis-vs-memcached/
 2. Writes context.md with question
 3. Round 1:
-   - Launches Sonnet via Agent(model: sonnet, background execution: true) — pragmatic implementer
+   - Launches Sonnet via Agent(model: sonnet, background execution: true) when the provider allowlist permits it
    - Calls orchestrate.sh spawn for each runtime advisor selected by build-fleet.sh, such as codex and agy
    - Waits for Sonnet completion
    - Writes own analysis (Opus) considering all advisor perspectives

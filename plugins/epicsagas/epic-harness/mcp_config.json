@@ -1,8 +1,11 @@
 {
   "mcpServers": {
     "harness-mem": {
-      "command": "epic",
-      "args": ["mem", "mcp"]
+      "command": "sh",
+      "args": [
+        "-c",
+        "for d in \"${GROK_PLUGIN_ROOT:-}\" \"${CLAUDE_PLUGIN_ROOT:-}\" .; do if [ -n \"$d\" ] && [ -x \"$d/target/release/epic\" ]; then exec \"$d/target/release/epic\" mem mcp; fi; done; exec epic mem mcp"
+      ]
     }
   }
 }

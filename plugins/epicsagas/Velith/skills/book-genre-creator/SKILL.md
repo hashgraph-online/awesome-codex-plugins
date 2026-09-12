@@ -1,111 +1,88 @@
 ---
 name: book-genre-creator
-description: "Meta-skill that references all available genres, agents, and skills to help users define and create any genre — including custom genres not yet supported."
+description: "Meta-skill for genre selection and custom genre creation. Routes a project to the right built-in genre or composes a genre-custom.md spec from existing patterns, including agent behavior and validation rules."
+argument-hint: "[list|custom]"
 ---
 
 # Genre Creator
 
-## Purpose
+Use when the project does not fit a built-in genre cleanly, or when the author is unsure which genre applies. Read `${CLAUDE_PLUGIN_ROOT}/skills/loom/quality-bar.md` and the candidate genre skills.
 
-Help users discover the right genre for their project, or define a completely new genre by composing patterns from existing ones. This is the entry point when the user's project doesn't fit neatly into an existing category.
+## Built-in genres
 
-## Supported Genres (built-in)
+| Genre | Skill | Core shape | Best for |
+|-------|-------|-----------|----------|
+| fiction | `book-fiction` | Three-act / 15-beat / bespoke; scene craft; character depth | Novels, novellas, short stories, web novels |
+| non-fiction | `book-nonfiction` | Problem → principles → practice; evidence discipline | Business, self-help, essays, memoir, narrative nonfiction |
+| technical | `book-technical` | Concept gradient + running project; failure-first | Programming, engineering, data science |
+| screenplay | `book-screenplay` | Three-act + eight sequences; subtext | Film, TV, web series |
+| poetry | `book-poetry` | Form, line, collection arc | Collections, chapbooks |
+| game | `book-game` | Branching, quests, lore bible | Game scenarios, visual novels, interactive fiction |
+| academic | `book-academic` | IMRAD / discipline structures; citation integrity | Theses, dissertations, monographs |
 
-| Genre | Skill | Core Structure | Best For |
-|-------|-------|---------------|----------|
-| fiction | `book-fiction` | Save the Cat! 15-beat, Snowflake, Hero's Journey | Novels, novellas, short stories |
-| non-fiction | `book-nonfiction` | Problem-solution, evidence hierarchy | Business, self-help, essays |
-| technical | `book-technical` | Novice→expert progression, code blocks, labs | Programming, engineering, data science |
-| screenplay | `book-screenplay` | 3-act + sequence method, dialogue/action | Film, TV, web drama scripts |
-| poetry | `book-poetry` | Form-driven (sonnet/haiku/free verse), imagery | Poetry collections, anthologies |
-| game | `book-game` | Quest trees, branching dialogue, lore bible | Game scenarios, visual novels, RPGs |
-| academic | `book-academic` | IMRAD, literature review, argument chains | Thesis, dissertation, research papers |
+## Selection
 
-## Genre Selection Guide
+Three questions, then route:
 
-Ask the user these questions to route to the right genre:
+1. What is the reader doing with it? (living a story / learning to understand / learning to do / watching / playing / reading aloud / examining)
+2. What does the author fear most going wrong? (boring middle / being wrong / being unclear / being obvious / being inconsistent)
+3. What does "done" look like? (a bound book / a script / a build / a submission)
 
-1. **What are you creating?** (novel / textbook / screenplay / game story / poem collection / thesis / other)
-2. **Who is the primary audience?** (readers / players / reviewers / students / viewers)
-3. **What matters most?** (plot & characters / logical argument / visual storytelling / interactive branching / aesthetic form)
+Hybrids are common: a memoir with a practical framework (nonfiction, narrative spine); a technical book with a fictional running story (technical, with fiction scene craft for the story sections); an illustrated poetry-essay (poetry + nonfiction). Most hybrids are a primary genre with a borrowed section from another; write that into `genre-custom.md` rather than inventing a new genre.
 
-Routing:
-- Plot & characters → fiction
-- Logical argument + evidence → non-fiction or academic
-- Visual storytelling → screenplay
-- Interactive branching → game
-- Aesthetic form / rhythm → poetry
-- Code & hands-on practice → technical
+## Custom genre spec
 
-## Custom Genre Creation
-
-When the user's project doesn't match any built-in genre:
-
-1. **Identify the primary pattern** — which built-in genre is closest?
-2. **Identify divergences** — what's different about this project?
-3. **Compose a hybrid structure** — mix patterns from relevant genres
-4. **Define validation rules** — what does "done" look like for this genre?
-5. **Save as genre spec** — write to `genre-custom.md` in the project directory
-
-Custom genre spec template:
+Write `genre-custom.md` in the project root. Agents read it in place of a built-in genre skill.
 
 ```markdown
 # Genre: {name}
 
-## Parent Genre
-{closest built-in genre}
+## Parent genre
+{closest built-in; agents read that skill first, then this file}
 
-## Structural Template
-{chapter/section/scene structure with percentages}
+## Reader and what they are doing with it
+...
 
-## Key Patterns (from built-in genres)
-- From {genre}: {specific pattern}
-- From {genre}: {specific pattern}
+## Structure
+{shape with proportions; which chapters borrow which genre's craft}
 
-## Unique Elements
-{what makes this genre different}
+## Borrowed craft
+- From book-fiction: scene design for the narrative interludes
+- From book-nonfiction: evidence discipline for the argument chapters
 
-## Validation Rules
-- {rule 1}
-- {rule 2}
+## Unique elements
+{what no built-in genre covers}
 
-## Agents Used
-{which agents from the pool are relevant, and any genre-specific adjustments}
+## Tells to watch
+{genre-specific failure modes, in addition to quality-bar.md}
+
+## Validation
+{what the architect scores; what beta-reader's personas are}
+
+## Agent notes
+| Agent | Behavior override |
+|-------|-------------------|
+| scene-generator | runs only on chapters tagged `narrative: true` in the outline |
+| fact-checker | runs on argument chapters only |
 ```
 
-## Agent Mapping by Genre
-
-All genres can use these agents. This table shows genre-specific behavior:
+## Agent behavior by genre
 
 | Agent | fiction | non-fiction | technical | screenplay | poetry | game | academic |
 |-------|---------|-------------|-----------|------------|--------|------|----------|
-| book-architect | 15-beat validation | problem-solution check | progression gradient | sequence validation | collection arc | branch map check | argument chain |
-| chapter-writer | hook-conflict-turn-cliffhanger | hook-problem-evidence-framework-summary | hook-concept-code-explain-pitfalls-summary | slug-action-dialogue-beat | image-turn-resonance | quest steps + dialogue nodes | topic-evidence-analysis-link |
-| scene-generator | GMC+RDD scenes | — | — | beat sheets | — | quest breakdown | — |
-| continuity-editor | character/timeline | term consistency | prerequisite order | prop/location/time | imagery consistency | lore/flag consistency | citation/terminology |
-| style-doctor | voice/tone (STYLE.md) | voice/tone | voice/tone | voice/tone | meter/voice | voice/tone | academic tone |
-| cover-designer | fiction trends | non-fiction trends | tech trends | film poster style | artistic/poetic | game art style | academic press |
-| marketing-expert | Goodreads/BookTok | LinkedIn/podcasts | Dev.to/HN | festivals/competitions | readings/literary mags | gaming communities | conferences/journals |
-
-## Phase Adaptation by Genre
-
-Not all genres use the same phase flow:
-
-| Phase | fiction | non-fiction | technical | screenplay | poetry | game | academic |
-|-------|---------|-------------|-----------|------------|--------|------|----------|
-| 0. Onboarding | genre + audience + language | same | same | same | form selection | platform + engine | discipline + citation style |
-| 1. Ideation | concept + market | same | same | logline + comps | theme + forms | core loop + hook | research gap + questions |
-| 2. Outlining | chapter-by-chapter | same | same | sequence outline | collection arc | quest map + branch chart | chapter outline + lit review plan |
-| 3. Drafting | scenes → chapters | chapters | chapters + code | sequences → scenes | poems (parallel) | quests + dialogues | sections (lit review → methodology → findings) |
-| 4. Editing | 5-stage pipeline | same | same | dialogue polish + format check | line-level craft | playtest notes + branch verification | peer review + citation check |
-| 5. Publishing | EPUB/PDF/KDP | same | same | PDF + Final Draft export | chapbook/EPUB | game doc bundle | PDF + journal submission |
+| book-architect | arc, midpoint, setup/payoff | promise map, evidence map | DAG, running project | beat pages, sequences | collection arc | branch map, flags | thesis chain, synthesis matrix |
+| scene-generator | scene plans | — | — | beat sheets | — | quest/dialogue plans | — |
+| chapter-writer | scenes in one voice | claim + evidence + story | build + break + explain | slug/action/dialogue | poems | quests + nodes | sections with citations |
+| continuity-editor | characters, timeline, motifs | terms, recurring example, claims | prerequisites, code state | props, locations, time | imagery, form adjacency | flags, lore | terminology, citations |
+| fact-checker | real-world claims only | full | full + runs code | real-world claims only | — | — | full + citation existence |
+| style-doctor | voice, distance, tells | register, hedging, tells | clarity, jargon, tells | action-line economy | sound, compression | line length, barks | register, hedging |
+| beta-reader | genre readers + one editor | target readers + one skeptic | target devs + one senior | reader + one producer | readers + one poet | players + one designer | peers + one examiner |
+| art-director | character/setting constants, 0-4 ill./ch | figure system, photo policy | diagram grammar, screenshot policy | pitch tone board | narrowest palette, spot art only | map, sheets, branching maps | discipline figure conventions |
+| figure-engineer | maps (fantasy) | charts, concept diagrams | architecture/sequence/state diagrams | season-arc diagram | — | maps, branching flowcharts | data figures |
+| illustrator | scenes, headers, sheets | rarely | never | key art | section spots | key art, sheets | never |
+| cover-designer | genre visual language | category conventions | tech aesthetic | poster | literary | key art | press style |
+| marketing-expert | Goodreads, BookTok, 리디 | LinkedIn, newsletters, 브런치 | Dev.to, HN, GitHub | festivals, competitions | readings, 문예지 | Steam, itch, communities | conferences, journals |
 
 ## Usage
 
-```
-/book-genre-creator          → Interactive genre selection and setup
-/book-genre-creator list     → Show all supported genres with descriptions
-/book-genre-creator custom   → Start custom genre creation wizard
-```
-
-When invoked, read the project's PRD.md if it exists. If genre is already set, show the genre-specific workflow. If not, run the selection guide.
+`/book-genre-creator` runs selection. `/book-genre-creator list` shows the table. `/book-genre-creator custom` starts the spec. If `PRD.md` already has a genre, show that genre's workflow and offer to customize.

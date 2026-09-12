@@ -35,7 +35,7 @@ One MCP endpoint, registered once. Decks scope it per job; playbooks make it com
 
 > **⚠️ macOS required.** API key secrets, OAuth client secrets, and OAuth tokens are stored in **macOS Keychain**. Linux and Windows are not supported for production use yet ([dev file fallback only](docs/SETUP.md#secrets--oauth-storage)).
 
-**Requirements:** Node.js 20+ · npm · Dashboard `http://127.0.0.1:1111` · Agent Deck MCP `http://127.0.0.1:1110/mcp`
+**Requirements:** Node.js 20+ · npm · Dashboard via `agent-deck start` / `agent-deck open` (listens on `127.0.0.1:1111`) · Agent Deck MCP `http://127.0.0.1:1110/mcp`
 
 ### 1. Install and launch
 
@@ -50,7 +50,7 @@ agent-deck start --daemon
 
 Compat: `npm install -g @agent-deck/cli` still works; `agent-deck install` switches only the CLI binary (no data migration).
 
-Open `http://127.0.0.1:1111`. Day to day: `agent-deck start --daemon` / `agent-deck stop` · `agent-deck status` if something fails. Use plain `agent-deck start` only when you want a foreground process in an open terminal (logs go to stdout).
+`start` opens the dashboard with a one-shot bootstrap cookie (do **not** type bare `http://127.0.0.1:1111` — that shows a dashboard login error). Day to day: `agent-deck start --daemon` / `agent-deck open` / `agent-deck stop` · `agent-deck status` if something fails. Use plain `agent-deck start` when you want a foreground process (logs to stdout). Headless: `--no-open` or `AGENT_DECK_NO_OPEN=1`.
 
 ### 2. Register Agent Deck in your agent
 
@@ -145,10 +145,13 @@ Your collection and decks live as files under `~/.agent-deck/` (playbooks as `.m
 After first-time [Quick Start](#quick-start):
 
 ```bash
-agent-deck start --open
+agent-deck start
+agent-deck open          # re-open dashboard with a fresh auth cookie
 agent-deck upgrade
 agent-deck stop
 ```
+
+`start` opens the dashboard with a one-shot bootstrap cookie by default (`--no-open` for CI / headless). Bare `http://127.0.0.1:1111` without bootstrap shows the dashboard cookie error (**Error Loading Data / No valid workspace grant**) — that is **not** the MCP `GRANT_REQUIRED` case (which needs `agent-deck use <deck>` in the workspace). Re-open anytime with `agent-deck open`.
 
 Port conflicts: `agent-deck status` · `agent-deck start --force`
 
