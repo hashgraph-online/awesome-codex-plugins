@@ -13,7 +13,7 @@ Plan the work. Run it in checked waves. Pick up where you left off. Session Orch
 
 ![One work item passes an automatic check; the one that fails is sent back](site/video/gate-readme.webp)
 
-[34-second film](site/video/session-orchestrator-film.mp4) · [22-second camera preview](site/video/session-orchestrator-4.3-preview.mp4) · [How the film is made](marketing/vidlab/README.md)
+[34-second film](site/video/session-orchestrator-film.mp4) · [watch it embedded on the site](https://session-orchestrator.com/#loop) · [22-second camera preview](site/video/session-orchestrator-4.3-preview.mp4) · [How the film is made](marketing/vidlab/README.md)
 
 The film shows the workflow: read first, then build in parallel lanes, check every step, send back what fails, and step in where it matters. Illustrations are generated with AI. The 22-second preview covers the planned 4.3 campaign; the current published release is 4.2.0.
 
@@ -184,8 +184,8 @@ The system is markdown-driven config plus a thin Node runtime. Skills, commands,
 
 Counts measured on 2026-09-07 with the command in brackets:
 
-- **43 skills** for the session lifecycle (start, plan, execute, close, evolve), discovery, vault sync, MCP authoring, debugging, brainstorming, plan grilling, persona panels, cross-repo dispatch, learning→rule reconciliation, session-process eval, and audits (`ls -d skills/*/ | grep -v _shared | wc -l`)
-- **25 slash commands** (`/session`, `/go`, `/close`, `/discovery`, `/plan`, `/grill`, `/evolve`, `/autopilot`, `/dispatcher`, `/reconcile`, `/eval`, `/test`, `/debug`, …) (`ls commands/*.md | wc -l`)
+- **44 skills** for the session lifecycle (start, plan, execute, close, evolve), discovery, vault sync, MCP authoring, debugging, brainstorming, plan grilling, UX grilling, persona panels, cross-repo dispatch, learning→rule reconciliation, session-process eval, and audits (`ls -d skills/*/ | grep -v _shared | wc -l`)
+- **26 slash commands** (`/session`, `/go`, `/close`, `/discovery`, `/plan`, `/grill`, `/ux-grill`, `/evolve`, `/autopilot`, `/dispatcher`, `/reconcile`, `/eval`, `/test`, `/debug`, …) (`ls commands/*.md | wc -l`)
 - **14 typed subagents** (code-implementer, test-writer, security-reviewer, session-reviewer, qa-strategist, architect-reviewer, …) (`ls agents/*.md | wc -l`)
 - **27 hook files across 10 event types** for scope checks, destructive-command policy, templates-first gates and telemetry. Claude Code runs the guard hooks directly; Cursor and Pi bridge supported calls. Codex does not enforce the destructive-command or file-scope guard ([Platform support](#platform-support)) (`ls hooks/*.mjs | wc -l`)
 - **26 rule files** and **18 ADRs** carrying the reasoning behind the mechanisms (`ls .claude/rules/*.md | wc -l`, `ls docs/adr/*.md | wc -l`)
@@ -221,7 +221,7 @@ If upgrading from before 4.0, read [the v4 migration guide](docs/migration-v4.md
 
 | Feature | Claude Code | Codex CLI | Cursor IDE | Pi |
 |---|---|---|---|---|
-| All 25 commands | Native slash commands | Generated skills (`$session-orchestrator:<name>`) | Native `.cursor/commands` slash commands | Prompt templates |
+| All 26 commands | Native slash commands | Generated skills (`$session-orchestrator:<name>`) | Native `.cursor/commands` slash commands | Prompt templates |
 | Parallel agents | Agent tool | Multi-agent roles | Sequential only | Sequential (parallel planned) |
 | Session persistence | `.claude/STATE.md` | `.codex/STATE.md` | `.cursor/STATE.md` | `.pi/STATE.md` |
 | Scope enforcement | Active PreToolUse hook; blocking in `strict`, reporting in `warn` | Instructions only; no compatible `apply_patch` handler | `preToolUse` + `beforeShellExecution` bridge; scope blocking requires `strict`; `afterFileEdit` is post-hoc | `tool_call` bridge; scope blocking requires `strict` |

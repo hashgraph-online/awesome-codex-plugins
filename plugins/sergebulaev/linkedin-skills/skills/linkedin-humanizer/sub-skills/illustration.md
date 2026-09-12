@@ -43,8 +43,9 @@ media. Runs on any agent (Claude Code, Codex, OpenClaw).
        overlay={"text": "@yourhandle", "position": "bottom-right", "color": "#0A66C2"},
    )
    ```
-   For a **quote-card**, put the pulled hook line in the overlay `text` (not the
-   prompt) so it renders sharp: `kind="quote"`, `overlay={"text": "<hook>", ...}`.
+   For a **quote-card**, do NOT use `illustrate` at all — use the typeset
+   template instead (see "Quote-cards" below): the line is HTML-typeset
+   server-side, so it wraps and stays sharp at any length.
 4. **Model choice.** Default `nano-banana-2` (balanced, ~$0.08). The overlay
    handles text, so a cheap base model is fine. Only reach for `gemini-pro-image`
    when the user wants premium art. Never silently upgrade the tier.
@@ -79,6 +80,53 @@ generation. Chain it as many times as needed.
   flag is True when a premium-priced model was used - confirm that was intended.
 - `lib.available_models()` returns live pricing/latency when you need to show it.
 
+## Quote-cards: use the template, not the model
+
+A quote-card is text-led, and image models draw text unreliably. Pixfaro's
+design templates typeset the card as HTML server-side (`POST /v1/renders`), so
+the hook line is crisp every time — and the result flows into `publish` exactly
+like an illustration:
+
+```python
+from lib import quote_card, publish
+r = quote_card(
+    "<the pulled hook line, up to 280 chars>",
+    handle="@yourhandle",      # or "default" to pull from the brand identity
+    avatar="default",          # optional; brand-kit avatar
+    size="1:1",                # 1:1 | 4:5 | 16:9 | og
+    style="brand",             # or "auto" to rotate looks between cards
+)
+publish("post", draft_text, target_url, media_urls=[r["url"]])
+```
+
+- `style="auto"` deliberately varies palette/layout between consecutive cards
+  so a series doesn't look copy-pasted; `style="brand"` locks to the account's
+  brand palette (needs a brand identity configured in Pixfaro).
+- `lib.available_templates()` lists all templates with slots, sizes and live
+  prices (`quote-card`, `post-card`, ...); `lib.card(template, slots, ...)` is
+  the generic call when you need one beyond quote-cards.
+- Manual mode (no token) returns the card content as a spec for the user, same
+  as `illustrate`.
+
+## Brand logo (one-time setup)
+
+If the Voice & Brand Profile §6 names a logo *file path* but no `logo_id`,
+offer to upload it once — after that every overlay can stamp the real logo
+instead of a text handle:
+
+```python
+from lib import brand_logo
+r = brand_logo("path/to/logo.png", name="acme-mark")
+# -> {"backend": "pixfaro", "logo": {"id": "logo_...", ...}}
+```
+
+- Save the returned `logo_id` under "Logo" in the Voice & Brand Profile §6,
+  then use `overlay={"logo_id": "<id>", "position": "bottom-right"}`.
+- Constraints: transparent PNG, ≤1MB, ≤2048px per side, ≤10 per account.
+- Upload needs a **full-scope** key. On a generate-scope key the call returns
+  `error: "insufficient_scope"` with instructions (upload once in the Pixfaro
+  dashboard instead) — relay that message, don't retry.
+
 ## Multi-image grid (LinkedIn, up to 10)
 
 LinkedIn posts can carry up to 10 images in a grid layout (not a swipeable
@@ -99,6 +147,7 @@ in order. LinkedIn cannot mix images with video in one post.
 
 - One image per request (`n>1` is unsupported); for a multi-image grid, use
   `illustrate_set` (it generates one prompt at a time under the hood).
-- Keep real words in the `overlay`, not baked into the prompt art.
+- Keep real words in the `overlay` or a template slot (`quote_card`/`card`),
+  never baked into the prompt art.
 - Respect the user's cost: default to the cheap model + 1K resolution unless asked.
 - Never attach an image the user has not seen and approved.

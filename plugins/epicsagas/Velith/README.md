@@ -104,19 +104,17 @@ Velith provides 18 skills and 12 custom subagents (`.codex-plugin/agents/*.toml`
 ### Grok Build (xAI)
 
 ```bash
+grok plugin marketplace add epicsagas/plugins
+grok plugin install velith@epicsagas --trust
+```
+
+Or install directly from this repository without registering the marketplace:
+
+```bash
 grok plugin install epicsagas/Velith --trust
 ```
 
-Grok reads skills from `skills/` and agents from `agents/` at the plugin root. No extra configuration needed. Agents spawn as `velith:<name>` (for example `velith:chapter-writer`).
-
-Alternatively, add this repository as a marketplace:
-
-```bash
-grok plugin marketplace add epicsagas/Velith
-grok plugin install velith --trust
-```
-
-Updates with `grok plugin update velith`.
+Grok reads skills from `skills/` and agents from `agents/` at the plugin root. No extra configuration needed. Agents spawn as `velith:<name>` (for example `velith:chapter-writer`). Updates with `grok plugin update velith@epicsagas`.
 
 **Prerequisites:** [Grok Build](https://x.ai/cli) installed and authenticated.
 

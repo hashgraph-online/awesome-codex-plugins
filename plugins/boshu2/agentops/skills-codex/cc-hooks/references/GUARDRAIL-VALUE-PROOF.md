@@ -143,3 +143,44 @@ jq -r 'select(.token_class=="installed-skill-edit") | .path_sha256' \
 
 No raw path is ever available in the ledger — only hashes — so the read is
 privacy-preserving by construction.
+
+## Read-budget guard (core.context:unbounded-read)
+
+The opt-in read-budget guard (`skills/cc-hooks/hooks/read-budget-guard.sh`,
+recipe [READ-BUDGET-GUARD.md](READ-BUDGET-GUARD.md)) reuses this sensor and
+this decision rule. Its `token_class` is the policy id
+`core.context:unbounded-read`; each line carries five extra fields:
+
+```json
+{"ts":"…","session":"…","token_class":"core.context:unbounded-read","path_sha256":"<64-hex>","mode":"deny","decision":"deny","tool":"Read","lines":412,"budget":350}
+```
+
+- `mode` / `decision` — the dispatcher's pair: `mode` is always `deny` (this
+  guard never routes); `decision` is `deny` (a fire) or `waived` (an
+  `AOP_WAIVE` waiver let the call through: one line, no fire).
+- `tool` — `Read` or `Bash`.
+- `lines` / `budget` — JSON numbers: the effective line count of the offending
+  read and the budget it exceeded. `path_sha256` hashes the RESOLVED path; the
+  raw path and the raw command are never written.
+
+**Metric:** the same declining fire-attempt rate per session. Secondary,
+stated-denominator estimate: `sum(lines)` over `decision == "deny"` lines is an
+upper bound on lines kept out of context (denominator = fires the guard saw; it
+says nothing about pipes, redirects, globs, `sed`, `awk`, `less` — silent by design).
+
+**Countermetric:** waiver rate = `waived / (deny + waived)` per session.
+
+**CUT signals (any one):** a fire on a `limit`-bounded Read or on a file at or
+below budget — a false positive the predicate is built to make impossible, so
+one such line is a defect, not noise; or a waiver rate above 50% at N ≥ 30 —
+the budget is wrong for this repository, not the agent (retune
+`AOP_READ_BUDGET_LINES`; do not keep a guard everyone waives).
+
+Same **N ≥ 30** minimum and **null-is-acceptable** rule as above: a flat attempt
+rate with zero false fires and zero happy-path output is KEEP. Ships INERT —
+zero lines until installed; ADR-0002 l.58 is not cleared at landing here either.
+
+```bash
+jq -r 'select(.token_class=="core.context:unbounded-read") | [.session,.decision,.tool,.lines] | @tsv' \
+  "${AGENTOPS_GUARDRAIL_TELEMETRY:-$HOME/.agents/ao/guardrail-telemetry.jsonl}"
+```

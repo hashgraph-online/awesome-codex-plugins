@@ -9,7 +9,7 @@ Click is an incremental-verification runtime. In **Evidence** mode, the default,
 
 ## What Click records on its own
 
-- The user prompt becomes the intent lineage of the Evidence session. An in-scope or narrowing follow-up continues it; the next request after a completed session starts a fresh one.
+- The user prompt becomes the intent lineage of the Evidence session. An in-scope or narrowing follow-up continues it; the next request after a completed session starts a fresh one. A fresh session, including a new Claude Code session of the same repository, starts from the archived receipts of the last completed one; Click requalifies them, so do not re-run a check only because the session is new.
 - Every recognized file edit and every `click-gate mutate` advances the mutation revision, which invalidates earlier receipts.
 - Every check submitted through `click-gate verify` gets an exact receipt bound to its argv, revision, protected tree, environment, executable, and host coverage. Supported checks also capture their inputs automatically.
 
@@ -17,14 +17,20 @@ None of this needs a contract, an approval, or a dependency declaration from you
 
 ## Run checks through `click-gate verify`
 
-Choose concrete checks from repository evidence while you work and submit them with stable ids. Evidence registers an argv id on its first accepted use:
+Choose concrete checks from repository evidence while you work. The plain form names one check after its exact command:
+
+```text
+click-gate verify -- python3 -m pytest -q
+```
+
+Its evidence id is derived from the argv, so resubmitting the same command resubmits the same check; its class is the command's own minimum; its working directory is the tool call's. Several checks in one request, an explicit id, a `reporting` block, or a different `workdir` use the JSON form:
 
 ```text
 click-gate verify '{"version":2,"workdir":"/absolute/path/to/repository","checks":[{"evidence_id":"E1","argv":["python3","-m","pytest","-q"],"class":"broad"}]}'
 ```
 
 - `class` is `targeted`, `broad`, or `deep`. Include the absolute `workdir` whenever the execution tool runs outside the Hook session directory.
-- After a change, resubmit the same id and argv. For a sharded broad suite, always submit the parent id and argv, never an internal shard id.
+- After a change, resubmit the same command (or the same id and argv). For a sharded broad suite, always submit the parent id and argv, never an internal shard id. In Evidence mode a supported `unittest`, `pytest`, Vitest or Jest suite is sharded automatically: Click collects it and keeps the plan in its own state, so no `.click/evidence-shards.json` is needed; `click-gate sharding init` writes a reviewable copy into the repository when you want one.
 - Use `click-gate inspect` for tracked read-only argv and `click-gate mutate` for structured mutations; ordinary file edits go through the host's editors directly. Exact forms, limits, observer, dashboard, and receipt-export controls are in the [capability protocol](references/capability-protocol.md).
 - Stop when every registered check is current for the final revision and no managed service remains active.
 - A request that omits `reporting` uses the `actionable` format for unittest/pytest checks: a failure arrives as a bounded summary with a local log reference, not the raw stream. Pass `reporting.format: "raw"` when you need the full output.

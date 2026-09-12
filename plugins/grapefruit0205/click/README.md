@@ -51,6 +51,10 @@ Click fits projects with **slow checks, repeated edit/test cycles, and separable
 test groups**. If your entire suite takes two seconds, setup and bookkeeping may
 cost more than rerunning it. The goal is less time spent completing the same work;
 production minutes and token savings still need representative measurement.
+One measured data point exists: [eight paired Opus 5 sessions](docs/history/agent-ab-2026-09-12/README.md)
+on a 40 s fixture finished the same bug-fix task in 123 s with Click versus
+381 s without (−68%, test executions −50%) at +6–11% cost — a fixture
+record, not a production result.
 
 ## Install and update
 
@@ -93,9 +97,9 @@ claude plugin marketplace update click
 claude plugin update click@click
 ```
 
-Current release: **v0.96.1**. Restart and start a new task after updating.
+Current release: **v1.1.0**. Restart and start a new task after updating.
 
-This README also describes the **unreleased v0.97 candidate** source on `main`: automatic observation, conditional JS reuse and recovery. The published release remains **v0.96.1**; updating it does not install candidate changes. See [release notes](RELEASE_NOTES.md).
+v1.0.0 published what `main` carried as the v0.97 candidate: automatic input observation with signed receipts, conditional JS reuse, recovery after capture loss, automatic sharding in Evidence mode, concurrent shard execution and receipts that survive a new host session. v1.0.1 keeps receipts valid when Claude Code offers other installed plugins' commands on the search path. v1.1.0 accepts the plain `click-gate verify -- <check argv>` form and directs the agent to it, which in two further measured sessions brought the Click-on cost to the Click-off level. Both marketplaces pin `v1.1.0`. See [release notes](RELEASE_NOTES.md).
 
 ## Try it on your next change
 

@@ -141,13 +141,18 @@ Account and agents: `list_agents`, `get_agent`, `create_agent`
 (name; the Plori Router chooses the model per task), `delete_agent`, `get_credits`,
 `get_usage`, `get_disk`.
 
-Runs: `invoke_agent` sends a message and waits up to 25 seconds by default.
-If the result is still running, keep calling `get_run_result` with `wait=true`
-until it completes or needs human input. Pass `wait=false` to invoke when you need
-the run ID immediately; that still requires continued polling. Use
-`max_turn_tokens` to cap the turn. `cancel_run` requests cancellation;
-`list_runs` lists recent runs. Default task outputs to the agent's persistent
-`/workspace`; use its `TMPDIR` only for temporary files.
+Runs: `invoke_agent` sends a message and holds your call open until the run
+finishes, pauses for input, or the hold ends. The hold is about 25 seconds for a
+client the server does not recognize, and longer for Claude Code and Codex. Pass
+`wait_seconds` to set it yourself, up to 1800. A result that is still running
+carries `run_id` and `poll_after_seconds`, the suggested delay before you check
+again. It also carries `elapsed_seconds` and, once tool-progress telemetry
+exists, `last_tool_step`. Keep calling `get_run_result` with `wait=true` until
+the run completes or needs human input. Pass `wait=false` to invoke when you plan
+to poll instead of holding the call open (see "Run agents in the background"
+below). Use `max_turn_tokens` to cap the turn. `cancel_run` requests
+cancellation, and `list_runs` lists recent runs. Default task outputs go to the
+agent's persistent `/workspace`. Use `TMPDIR` only for temporary files.
 
 Human input: `awaiting_input` can mean an approval or a question. Show the pending
 request to the human and use `answer_pending_input` for their answer. Never approve
@@ -185,6 +190,24 @@ returning the execution, terminal or still `running`), `list_workflow_executions
 its full per-step input/output payloads.
 A workflow's steps are built by an agent; these tools manage and run the result.
 
+## Run agents in the background
+
+A run can outlast the call that started it. Pick the option below that fits your
+client, instead of holding a call open for a job that takes minutes.
+
+- **Claude Code**: a tool call running past about two minutes becomes a background
+  task in the client. A long `invoke_agent` or `get_run_result` call then does not
+  block the rest of the conversation. To watch every run on the account instead, use
+  `Monitor` on `wss://api.plori.ai/v1/events` with the WebSocket protocols
+  `["plori", "plori.bearer.<API key>"]`. Running `plori watch` in a background shell
+  works too.
+- **Codex**: set `tool_timeout_sec` on the plori server entry in `config.toml` to at
+  least as long as the work you expect. Another option: run `plori watch` in a
+  background shell, then check `plori inbox` for what finished.
+- **Any other client**: pass `wait=false` to `invoke_agent`. Call
+  `get_run_result` again after `poll_after_seconds`. Repeat until the status is
+  terminal or `awaiting_input`.
+
 ## CLI commands
 
 The CLI mirrors the tools above; an agent is addressable by name or id, and every command
@@ -199,10 +222,15 @@ accepts `--json`.
   existing agent). `plori agents`, `plori agent <name>`, `plori set-model <name> <model>`,
   `plori delete <name> --yes`.
 - `plori run <name> "message"`: send a message and, by default, wait for the reply and
-  print it. Add `--follow` to stream the turn live, or `--no-wait` to get a run id back
-  immediately. Pass `-` as the message to read it from stdin.
-- `plori result <name> <run-id>` (add `--wait` to block) and `plori runs <name>` read
-  run status and history.
+  print it. Add `--follow` to stream the turn live, `--jsonl` for a machine-readable
+  event stream, or `--no-wait` to get a run id back immediately. Pass `-` as the
+  message to read it from stdin.
+- `plori result <name> <run-id>` (add `--wait`, bounded by `--wait-seconds`, to
+  block) and `plori runs <name>` read run status and history.
+- `plori watch [--agent <name|id>]...`: stream run endings and human-input requests as
+  JSON lines until stopped. Run it in a background shell alongside a `--no-wait` run.
+- `plori inbox [--ack <run-id>]`: one-shot summary of what ended since your last
+  acknowledgement, plus everything waiting on you.
 - `plori inputs <name>` lists runs paused on a human request; `plori answer <run-id>
   <tool-call-id> --approve|--deny|--value <v>` replies. Add `--always-allow` to an
   `--approve` (only on the human's explicit instruction) to also grant the standing
@@ -213,6 +241,21 @@ accepts `--json`.
   `plori workflows create <name> [--trigger cron --cron <expr>]`,
   `plori workflows run <name|id>` (run it now), `plori workflows execution <name|id> <exec-id>`.
 - `plori credits`, `plori usage`, `plori disk` read account state.
+
+`plori run`, `plori result --wait` (bounded by `--wait-seconds`), and `plori watch`
+report the run's outcome as an exit code:
+
+| code | meaning |
+| ---- | ------- |
+| 0 | succeeded |
+| 1 | API or runtime failure |
+| 2 | usage error |
+| 3 | missing, rejected, or expired credentials |
+| 4 | could not reach the control plane |
+| 10 | the run is awaiting human input |
+| 20 | the run ended in error |
+| 30 | the run was cancelled |
+| 40 | a wait ran out with the run still going |
 
 ## Costs and limits
 

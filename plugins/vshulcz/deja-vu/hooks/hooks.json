@@ -2,7 +2,6 @@
   "hooks": {
     "SessionStart": [
       {
-        "matcher": "startup|resume",
         "hooks": [
           {
             "type": "command",
@@ -21,6 +20,19 @@
             "command": "${PLUGIN_ROOT}/hooks/deja.sh hook-prompt",
             "timeout": 10,
             "statusMessage": "Searching past sessions…"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash|apply_patch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${PLUGIN_ROOT}/hooks/deja.sh hook-tool",
+            "timeout": 10,
+            "statusMessage": "Checking relevant history…"
           }
         ]
       }

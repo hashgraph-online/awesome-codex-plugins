@@ -24,7 +24,7 @@ agent (Claude Code, Codex, OpenClaw).
 
 1. **Pick the kind.** Default for X (Twitter) is `square` (aspect 1:1). Override
    with `aspect_ratio="w:h"` when needed. Other kinds: thumbnail 16:9, carousel/
-   quote/portrait 4:5, story/cover 9:16, wide/link 1200:628, square 1:1.
+   quote/portrait 4:5, story/cover 9:16, wide/link 16:9, square 1:1.
 2. **Craft the prompt.** Describe subject, composition, style, palette. Default
    to a clean professional look unless Voice & Brand Profile §6 sets a visual
    style. Do NOT bake the post's words into the art (use overlay).
@@ -38,7 +38,7 @@ agent (Claude Code, Codex, OpenClaw).
    ```
    For a **quote-card**, put the pulled hook line in overlay `text` (not the prompt),
    `kind="quote"`.
-4. **Model choice.** Default `gemini-flash-lite`. The overlay handles text, so a cheap base
+4. **Model choice.** Default `nano-banana-2`, which is what `illustrate` uses when no model is passed. The overlay handles text, so a cheap base
    model is fine; only reach for gemini-pro-image on premium art. Never silently
    upgrade the tier.
 5. **Show + confirm.** Present the returned `url` and `cost`. On approval, attach

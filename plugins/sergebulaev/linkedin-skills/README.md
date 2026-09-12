@@ -40,11 +40,15 @@ codex plugin add linkedin-skills@linkedin-skills
 
 ### claude.ai (web)
 
-1. Open https://claude.ai/code
-2. Go to **Skills** in the sidebar
-3. Click **Add from GitHub**
-4. Paste: `sergebulaev/linkedin-skills`
-5. Done. The skills activate automatically when you ask about LinkedIn.
+1. Open [claude.ai](https://claude.ai) and click **Customize** in the sidebar
+2. Open the **Plugins** tab
+3. Click **Add**
+4. Choose **Add marketplace** → **Add from a repository**
+5. Paste `sergebulaev/linkedin-skills` there and sync
+6. Find the plugin under **Discover**, then click **Add**
+7. Done. The skills activate automatically when you ask about LinkedIn.
+
+> Note: Skills/Plugins require a paid Claude plan (Pro, Max, Team, or Enterprise) with code execution enabled.
 
 ### Claude Desktop (Mac / Windows)
 
@@ -79,12 +83,14 @@ codex plugin add linkedin-skills@linkedin-skills
 /plugin install linkedin-skills@linkedin-skills
 ```
 
-Or clone the repo and open it as your working directory:
+Or clone the repo and open it as your working directory — the skills activate with no plugin install, which is the route to use where `/plugin` is unavailable:
 
 ```bash
 git clone https://github.com/sergebulaev/linkedin-skills.git
 cd linkedin-skills
 ```
+
+The repo ships a `.claude/skills/` mirror of symlinks, so Claude Code finds all 11 skills on its own.
 
 ### Hermes Agent
 
@@ -139,7 +145,7 @@ Every skill shows you a draft first and waits for your OK before doing anything.
 |---|---|
 | **Post Writer** | Drafts viral-ready posts using 20 proven 2026 hook formulas (anaphora, R.I.P. obituary, year-over-year pivot, curiosity gap, emotional cold-open, controlled A/B, false-binary, and 13 more) plus a founders-edition angle library, picked by engagement goal |
 | **Comment Drafter** | Drafts a comment on any LinkedIn post from its URL |
-| **Reply Handler** | Drafts a reply to any comment, correctly handling LinkedIn's 2-level thread flattening |
+| **Reply Handler** | Drafts a reply to any comment, correctly handling LinkedIn's 2-level thread flattening. Or give it just a post URL and it sweeps the whole thread — every top-level comment and reply — filters out low-value ones, and drafts the rest in one batch |
 | **Post Audit** | Checks your draft against 2026 algorithm rules and AI-detection patterns before you publish |
 | **Humanizer** | Removes the AI tells human readers and LinkedIn's slop filter react to: 2026 AI vocabulary scored by paragraph density, reveal bridges, staccato fragment stacks, stacked triads, performed sincerity; caps em dashes instead of banning them. Does not promise to beat detectors (no edit reliably does). Bundles three sub-tools: AI-emoji density scorer, multi-detector spread tester (GPTZero, Originality.ai, ZeroGPT, Sapling, Copyleaks) that documents how much they disagree, and a rule-explainer reference for defending stylistic choices. |
 | **Hook Extractor** | Reverse-engineers the hook formula from any viral post. Returns a blank template you can fill with your own topic |
@@ -238,6 +244,8 @@ Posts with a visual get more dwell time. The Post Writer can generate an illustr
 [Pixfaro](https://pixfaro.com) is a single image API over multiple models (from `flux-schnell` at $0.004 to `gpt-5-image`). It composites your handle, brand color, or logo onto the image as a **pixel-exact overlay**, so a cheap base model still renders crisp text on a quote-card or thumbnail. Pull those brand fields from your [Voice & Brand Profile](references/voice-profile.md) (section 6) and every asset stays on-brand.
 
 Setup: drop `PIXFARO_TOKEN=pf_live_...` into your `.env`. The thin client at `lib/pixfaro_client.py` and the wrappers `lib.illustrate(prompt, kind=...)` / `lib.refine(image_id, instruction)` return a hosted URL that flows straight into `lib.publish(..., media_urls=[url])`. `refine` edits a prior image by its id (cheaper than regenerating); results carry `cost`, `balance_after`, and a `premium` flag so the skills never quietly spend on a pricey model.
+
+For **text-led visuals** (a quote-card of your hook), the skills skip the image model entirely and use Pixfaro's design templates: `lib.quote_card("<hook>", handle="@you", style="brand")` typesets the card server-side (`POST /v1/renders`), so the line is crisp at any length — same hosted-URL flow. `lib.available_templates()` lists templates and live prices. A brand logo can be uploaded once with `lib.brand_logo("logo.png")` (full-scope key); the returned `logo_id` goes into Voice & Brand Profile §6 and every overlay from then on stamps the real mark.
 
 ## Voice rules
 

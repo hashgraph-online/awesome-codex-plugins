@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-09-11",
+  "last_updated": "2026-09-12",
   "total": 224,
   "categories": [
     "Development & Workflow",

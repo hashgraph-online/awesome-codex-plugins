@@ -255,8 +255,8 @@
     {
       "name": "agent-native",
       "source_skill": "skills/agent-native",
-      "source_hash": "794ac660b8caa18e9f0145d099257974f51188fa65190b894a94f7c78b6deb4d",
-      "generated_hash": "82f92f1f70af1bc0bc68a42c78fc8ee90ced72a3b518d5d828cc53a0f7ace16a"
+      "source_hash": "82f389223bdab8db77e7b0c02dd3501a8bfdcf89ae32b3f7ebe24ac79413ee5b",
+      "generated_hash": "dabc8fc0fba6ebdf14c491403094907abfbd395a944f46ba41ef767d603c88b9"
     },
     {
       "name": "agy-native",
@@ -273,8 +273,8 @@
     {
       "name": "cc-hooks",
       "source_skill": "skills/cc-hooks",
-      "source_hash": "e0463f769d405243764116a9cb56d9a386184dbf88b2c2fc24da33ae0e738c76",
-      "generated_hash": "5dcce46d5e70055346048df97da6a18d8ba6d9ec0a9aca9440888ea7ce3853e4"
+      "source_hash": "feb6977ea11a5f08ef94f9af5f4fb71119c716d92e98ed88241b8615159712b8",
+      "generated_hash": "8c7dc20c1a36f2993ef6bc8502661ff339c7b6c262de4bbf3efc2cc3611a0e8c"
     },
     {
       "name": "codex-exec",
@@ -291,8 +291,8 @@
     {
       "name": "craft-goal",
       "source_skill": "skills/craft-goal",
-      "source_hash": "1b14aa1d1de32a6406ada1f57b4bf88bf5432f0f8b8a74f3be98b3af33143355",
-      "generated_hash": "e19a2a9d80110b8f1e57e21285c7bb04cea5640563de6a691ba7b18b5ea2ee64"
+      "source_hash": "a7bf1d672f03f789d282bd886a807100d38d67b254c736374cade28ac74b4bac",
+      "generated_hash": "48c2aa4970a442eaf13be1e57b2a96b484bb6d6c149755f02c50f19e6954b762"
     },
     {
       "name": "dcg",
@@ -309,8 +309,8 @@
     {
       "name": "domain",
       "source_skill": "skills/domain",
-      "source_hash": "17cf1fed0fc75cf99d51b74564ea66b86870613af9f7aa9f29f101b5c4070361",
-      "generated_hash": "3a8ab250ef588a8bf989c1553550a145d74f00969751d7508ca4f427b39cba0a"
+      "source_hash": "3a40c3d2bb61fe1bc09060f695bff2291b8f3a530267073225d7b70288281d78",
+      "generated_hash": "3e6d2676aa3238ce9bbbca971f15daed09f74ad10cd9dec1a8398386429484df"
     },
     {
       "name": "idea-genie",
@@ -321,8 +321,8 @@
     {
       "name": "implement",
       "source_skill": "skills/implement",
-      "source_hash": "7e37fb379de17fbd31e16cf93511713765d070413515720c5636584698d0bc62",
-      "generated_hash": "6c2f4e4f63a32a23eedf61753d588aeac84cd86b033a3b441fc4bae7fa582fe2"
+      "source_hash": "d7e3b51ffba9f38d16635d27baeab03c461d4b84be3e3b1d1b6b669bbb87a070",
+      "generated_hash": "31639aeac2011bb96525021afb59a608c5948b49b1458cbc15160b5d6b5a25b6"
     },
     {
       "name": "memory",
@@ -345,14 +345,14 @@
     {
       "name": "plan",
       "source_skill": "skills/plan",
-      "source_hash": "1841d6f87c2fb54a13f2dc10c9d63ee87f5a38805cc3aa8bbc89e7477c954abc",
-      "generated_hash": "e2281ff61a4af9d2d2fb5ad88c02e7af1ccad5f233be737802ee385ba6a5db5a"
+      "source_hash": "0a489ea32d18f7104ea12608b74d242fcd7e6ce85c22a73c5c19d3f7da787c9c",
+      "generated_hash": "04058340641faef641d15e9b0ec1c19ea7324c3c5421b50b0fb5b80995ae3877"
     },
     {
       "name": "postmortem",
       "source_skill": "skills/postmortem",
-      "source_hash": "92f7b2e76704eac10e9099f18400faf2d430101c85ad2c031045929e70995644",
-      "generated_hash": "cedb3c17ddf726729b3c43521fba546f0fda3003e14c06b78216b548e9a29480"
+      "source_hash": "f73dce09ab863a1c1878429e0393b9c4cc5cc4e04e6260bda4534866a7f9275f",
+      "generated_hash": "725c2860d1b9e6e2ba95a9ddbedff98efa6761eae4fe35a3b9fc614ade029da3"
     },
     {
       "name": "premortem",
@@ -417,8 +417,8 @@
     {
       "name": "skill-eval",
       "source_skill": "skills/skill-eval",
-      "source_hash": "fb34e823e0292dac89db76a0e0edf92324f0d72a08d2c007429f512437dab95c",
-      "generated_hash": "aceca58535c352659adbdf8e29899bbd5d62cca19d654c0f11386948b1d3a41e"
+      "source_hash": "7f4956eeb7b364e5e0ab72b6c949ce9488f64f106bb185ea1fb527ce2d7b9ef8",
+      "generated_hash": "9ebc52f8ababe9c5be8825b260b0f89529834350dcf85ac99a55c98bc6162739"
     },
     {
       "name": "test",
@@ -441,8 +441,8 @@
     {
       "name": "validate",
       "source_skill": "skills/validate",
-      "source_hash": "e1d3b5342adacc7dd094eba80cf90f39f7a8e31cc8f6b95604aa45280cc2130c",
-      "generated_hash": "91247144a6f17f96ba18ec58dc745055aab85badc5887e1f52e79cce0a723486"
+      "source_hash": "8def3596efe18975392bc0ce3cac0402ffc0b9202e2d7dd988401e6f442905b2",
+      "generated_hash": "c88209fb2cca50df76edb8395b6b2ccaa038b6d6cc4c5bba81dd4c8ee917bd09"
     }
   ],
   "package_count": 34

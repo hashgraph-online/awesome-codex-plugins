@@ -1,5 +1,17 @@
 # Automatic sharding setup
 
+In Evidence mode, sharding needs no setup: when a broad `unittest`, `pytest`,
+Vitest or Jest parent check has no committed plan, Click collects the suite with
+the adapters below, generates the same shard policy `init` would propose, keeps
+it in its own state (`<plugin data>/automatic-shards/`, per repository root and
+parent check set) and expands the parent into shard children immediately. The
+stored plan is validated like a committed one on every request, so a new or
+removed test file drops it and the next preparation regenerates it. A committed
+`.click/evidence-shards.json` always takes precedence, and Guarded mode keeps
+the reviewed flow below. `CLICK_AUTOMATIC_SHARDS_BUDGET_SECONDS` (default 20)
+bounds the collection time per attempt; `CLICK_AUTOMATIC_SHARDS=off` turns
+automatic plans off and keeps the committed-manifest behaviour.
+
 Click exposes one JSON-free setup surface for supported unittest, pytest, Vitest 5, and Jest 30 profiles:
 
 ```text

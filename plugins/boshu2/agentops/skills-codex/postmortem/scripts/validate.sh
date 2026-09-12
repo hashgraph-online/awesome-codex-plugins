@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# Static package/contract checks only; no report or causal claim is evaluated.
 
 skill_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
@@ -15,4 +16,4 @@ if grep -Eiq 'ao (pawl|land)|git (commit|push)|br (close|update)' "$skill_dir/SK
   exit 1
 fi
 
-echo 'postmortem skill contract: PASS'
+echo 'postmortem static package contract: PASS (report truth not checked)'

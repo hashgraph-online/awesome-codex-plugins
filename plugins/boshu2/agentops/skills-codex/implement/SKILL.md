@@ -10,37 +10,43 @@ owns source changes and factual checks; the runtime derives identity and receipt
 
 ## Workflow
 
-1. Read intent, acceptance, scope and the RPI [boundaries](../rpi/references/boundaries.md)
-   before the first write; reuse contracts already loaded in this context.
-   When the caller selected episode tracking, obtain permitted work/source
-   references before execution and return observed runtime/context identity at
-   startup through the native recording channel. Unknowns and recording failures
-   stay explicit; do not invent parentage or a second tracker. The optional
+1. Read intent, acceptance, scope and repository boundaries before the first
+   write; reuse loaded contracts. RPI [boundaries](../rpi/references/boundaries.md)
+   apply when that workflow is explicitly selected.
+   For caller-selected episode tracking, obtain permitted work/source references
+   and return observed runtime/context identity at startup through the native
+   recording channel. Keep unknowns and failures explicit; invent no parentage
+   or second tracker. The
    [session association reference](../cass/references/SESSION_FORMATS.md#work-to-session-associations)
    supplies mechanics for that selected workflow.
 2. Carry the accepted behavior examples forward unchanged. Use repository
    domain names in symbols and tests; check observable outcomes through the
-   relevant interface. Find nearby validation scripts and tests that consume the edited paths or
-   contract wording. Keep their exact commands and the required integration
-   recipe in one short check list in the existing handoff; reuse it, updating
-   only when inputs or scope change. Run the smallest applicable check before
-   editing and after the change. Behavioral changes preserve RED for
-   the expected missing behavior; a pure refactor, relocation or documentation
-   change may have an honest green baseline. Avoid building elaborate fixtures
-   when an existing test or small discriminating probe answers the question.
+   relevant interface. Find actual consumers of edited paths or wording and
+   their checks. For retirement, inspect live code, tests, schemas, instructions,
+   installations and lookups as relevant; verify new guidance and old-name
+   lookup behavior, preserving historical provenance. Keep exact check commands
+   and the required integration recipe in the existing handoff. Run the smallest
+   applicable check before and after editing. Behavioral changes preserve RED
+   for the expected missing behavior; pure refactors, relocations or docs may
+   have an honest green baseline. Prefer existing tests or small discriminating probes.
 3. Make the smallest in-scope change. When repairing discovery or checks,
    preserve the consumer's existing input selection; fixing an error path does
    not authorize a wider scan. Use a negative control when exclusion matters.
-   Fix known failures directly and rerun the affected check. A disproved
-   assumption may change the approach within accepted scope; use Plan only
-   for consequential uncertainty.
+   Check a representative change against existing constraints before bulk
+   propagation; check the authored source set before broad regeneration.
+   Repair known failures directly and verify the exact result (such as a cited
+   file, assertion or returned record) before another review. A disproved assumption
+   may change the approach within scope; use Plan only for consequential uncertainty.
 4. Use targeted tests and applicable repository lint/static checks before
    broad integration. Read the repository's actual check recipe, including
    instrumentation and environment, rather than reconstructing it from memory.
-   Run required full checks at integration, not after each small edit. Reuse
+   Run required full checks at integration. Reuse
    exact-input receipts only while source, tool and relevant environment match.
    Distinguish repository-mandated hook checks from discretionary repeats;
    neither bypass required hooks nor replay a check just to rename its receipt.
+   A required CI job's known failure is actionable before the whole run ends.
+   Inspect and repair it within scope; preserve the failed subject's evidence
+   and rerun affected checks on the repair. Pending jobs do not imply success.
 5. Refactor while acceptance remains green. Inspect changed tests, fixtures,
    goldens, tolerances, suppressions and specification text against original
    intent. Mocks, placeholders or weakened oracles cannot substitute for the
@@ -56,8 +62,8 @@ owns source changes and factual checks; the runtime derives identity and receipt
    <path>` per derived path and retain its actual output. Refresh affected
    bindings after repairs; never invent or suppress the orphan list.
 7. Return identity, check commands/results, useful failures and accessible
-   evidence references through the native handoff, then stop. Full logs stay
-   at their source; do not copy them into another inventory or status document.
+   evidence references through the native handoff, then stop. Keep full logs
+   at their source, without duplicating inventories or status documents.
    Missing or truncated evidence stays explicit.
 
 ## Diagnosis, scaffolding and delegated work
@@ -76,11 +82,13 @@ framework for a one-off operation.
 
 Prefer current-session execution. If delegation is authorized and useful,
 partition independent writes in isolated workspaces; shared generators and
-integration serialize. Supply each lane its intent, acceptance and scope, then
-integrate its exact content and check facts. A selected wave ends with the
+integration serialize. Supply each lane its intent, acceptance, scope and review
+owner, then integrate its exact content and check facts. A selected wave ends with the
 caller-requested wave result; do not invent another wave. One fresh review of
-the integrated candidate can cover unjudged increments. Preserve any separately
-required lane judgments; a successful process exit is not semantic PASS.
+the integrated candidate can cover unjudged increments; when the integrator
+owns that review, workers return their handoff without commissioning another.
+Preserve any separately required lane judgments; a successful process exit is
+not semantic PASS.
 [Agent Native](../agent-native/SKILL.md) supplies optional dispatch mechanics.
 
 An explicitly requested one-shot adapter dispatches each supplied operation
@@ -95,13 +103,14 @@ continue independent authorized work. Generated companions already included as
 scope require no new approval. Acceptance changes always require caller authority.
 
 Specialists advise only. Known defects stay implementation work; a genuine
-causal stall follows RPI's at-most-one bounded helper rule. Respect remaining
-caller/native bounds and reserve finishing capacity. No retry resets them.
+causal stall permits at most one bounded fresh helper within caller authority.
+Respect remaining caller/native bounds and reserve finishing capacity; retries reset neither.
 
 Return facts, not semantic PASS. An implement-only handoff does not authorize
 Git, tracker or delivery transitions; existing caller authority remains usable.
-A full outcome request uses RPI through fresh final judgment. Success is working
-behavior with usable evidence, not volume of logs or process artifacts.
+A full outcome request continues through fresh independent final judgment;
+RPI is optional and explicitly selected. Success is working behavior with usable
+evidence, not volume of logs or process artifacts.
 
 [Generic scaffold examples](references/scaffold/generic-templates.md) are
 optional starting points when the repository has no suitable existing pattern.

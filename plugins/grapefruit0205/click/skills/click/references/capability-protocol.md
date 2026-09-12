@@ -131,7 +131,13 @@ prediction, map, and ROI semantics.
 
 ## Verification
 
-Submit a nonempty set of argv checks with stable evidence ids. Guarded ids are declared in the contract; Evidence ids register dynamically on first accepted use:
+Submit a nonempty set of argv checks with stable evidence ids. Guarded ids are declared in the contract; Evidence ids register dynamically on first accepted use. The plain form submits one check named after its exact argv:
+
+```text
+click-gate verify -- python3 -m unittest discover -s tests -q
+```
+
+It expands to a protocol-v2 batch whose evidence id is `E_` plus the first twelve hex digits of the SHA-256 of the JSON-encoded argv, whose class is the command's minimum verification class (`broad` when the command is not recognized), and whose working directory is the tool call's. The same argv therefore always names the same check. Batches of several checks, explicit ids, `reporting`, or a different `workdir` use the JSON form:
 
 ```text
 click-gate verify '{"version":2,"workdir":"/absolute/path/to/repository","checks":[{"evidence_id":"E1","argv":["python3","-m","unittest","discover","-s","tests","-q"],"class":"broad"},{"evidence_id":"E2","argv":["git","diff","--check"],"class":"targeted"}]}'

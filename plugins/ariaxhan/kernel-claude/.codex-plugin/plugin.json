@@ -1,7 +1,7 @@
 {
   "name": "kernel",
-  "version": "9.10.3",
-  "description": "KERNEL is a Claude Code and Codex runtime for direct, decomposed execution with local memory and minimal hooks. Version 9.10.3 pins session state to durable Vaults storage, repairs release installation, and removes retired hook bindings. Skills invoke as /kernel:<name> on Claude Code and $kernel:<name> on Codex; run /kernel:help first. Agent-readable summary: llms.txt.",
+  "version": "9.10.4",
+  "description": "KERNEL is a Claude Code and Codex runtime for direct, decomposed execution with local memory and minimal hooks. Version 9.10.4 deploys the simplify deletion doctrine, preflight and verifier contract. Skills invoke as /kernel:<name> on Claude Code and $kernel:<name> on Codex; run /kernel:help first. Agent-readable summary: llms.txt.",
   "author": {
     "name": "Aria Han",
     "url": "https://github.com/ariaxhan"
@@ -30,7 +30,7 @@
   "interface": {
     "displayName": "KERNEL",
     "shortDescription": "Direct, decomposed execution with local memory and minimal cross-host hooks",
-    "longDescription": "KERNEL is a Claude Code and Codex runtime for direct, decomposed execution with local memory and minimal hooks. Version 9.10.3 pins session state to durable Vaults storage, repairs release installation, and removes retired hook bindings. Skills invoke as /kernel:<name> on Claude Code and $kernel:<name> on Codex; run /kernel:help first. Agent-readable summary: llms.txt.",
+    "longDescription": "KERNEL is a Claude Code and Codex runtime for direct, decomposed execution with local memory and minimal hooks. Version 9.10.4 deploys the simplify deletion doctrine, preflight and verifier contract. Skills invoke as /kernel:<name> on Claude Code and $kernel:<name> on Codex; run /kernel:help first. Agent-readable summary: llms.txt.",
     "developerName": "Aria Han",
     "category": "Engineering",
     "capabilities": [

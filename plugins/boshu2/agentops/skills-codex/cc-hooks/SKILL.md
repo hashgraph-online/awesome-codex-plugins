@@ -165,6 +165,28 @@ positive value"), the criterion whose absence killed 2.x hooks (#511).
 
 Methodology: [GUARDRAIL-VALUE-PROOF.md](references/GUARDRAIL-VALUE-PROOF.md)
 
+## Read-Budget Guard (opt-in)
+
+A PreToolUse `Read|Bash` guard that DENIES an **unbounded read over the line
+budget** (`AOP_READ_BUDGET_LINES`, default 350): a `Read` with no `limit`, or a
+`cat`/`head`/`tail` whose effective line count exceeds it. The Spotify finding:
+the same rule in CLAUDE.md was advisory and ignored, and an over-budget read
+re-sends its lines on every later turn. The predicate is a LOOKUP (`wc -l` on
+the exact argument), so it is a standalone guard, never a registry policy. A
+`limit`-bounded slice, a file at/below budget, a pipe, a redirect or quoted text
+that merely mentions `cat` never fires. Nothing un-reads bytes once in context → every
+attempt blocks (exit 2 + stderr): full message once per session naming the two
+correct moves (slice it, or delegate to the `bulk-reader` subagent /
+`bulk-read` workflow), one short line after. Waive once with
+`AOP_WAIVE=core.context:unbounded-read`; hashed telemetry adds `tool`, `lines`,
+`budget` plus the dispatcher's `mode`/`decision` pair. Ships INERT — opt-in installer:
+
+```bash
+scripts/install-read-budget-guard.sh   # user scope; --project for project
+```
+
+Recipe: [READ-BUDGET-GUARD.md](references/READ-BUDGET-GUARD.md)
+
 ## Policy Dispatch Engine (ships by default)
 
 The admission-control layer (epic age-4qw1): **one** PreToolUse dispatcher —
@@ -296,7 +318,7 @@ claude --debug  # Hook execution details
 
 ## Output Specification
 
-- **Path:** user `~/.claude/settings.json` or project `.claude/settings.json`, plus explicitly named hook scripts. The PreToolUse policy dispatcher ships by default (every install path wires it — see "Policy Dispatch Engine"); the additional guard recipes (skill-first coordination, standalone installed-skill-edit) stay inert until opted in.
+- **Path:** user `~/.claude/settings.json` or project `.claude/settings.json`, plus explicitly named hook scripts. The PreToolUse policy dispatcher ships by default (every install path wires it — see "Policy Dispatch Engine"); the additional guard recipes (skill-first coordination, standalone installed-skill-edit, read-budget) stay inert until opted in.
 - **Filename:** preserve `settings.json`; give scripts descriptive executable filenames rather than embedding large shell programs in JSON.
 - **Format:** valid Claude hook JSON using event arrays, matchers, and command objects; hook stdout/stderr and exit codes follow the selected event schema.
 - **Exit code:** validate with `jq -e '.hooks | type=="object"' <settings.json>` and a representative silent/fire test for each matcher; any parse error, noisy happy path, or recursion risk blocks activation.
@@ -313,6 +335,7 @@ claude --debug  # Hook execution details
 - [HOOK-EVENTS.md](references/HOOK-EVENTS.md) - All events with full schemas
 - [DCG-RCH.md](references/DCG-RCH.md) - Production examples (dcg, rch)
 - [INSTALLED-SKILL-EDIT-GUARD.md](references/INSTALLED-SKILL-EDIT-GUARD.md) - Opt-in guard routing installed-skill edits to repo skills/ (keystone)
+- [READ-BUDGET-GUARD.md](references/READ-BUDGET-GUARD.md) - Opt-in guard denying unbounded reads over the line budget; pairs with bulk-read / code-write delegation
 - [GUARDRAIL-VALUE-PROOF.md](references/GUARDRAIL-VALUE-PROOF.md) - Pre-registered value-proof methodology + per-fire telemetry contract (ADR-0002 l.58)
 - [PATTERNS.md](references/PATTERNS.md) - Auto-format, logging, notifications
 - [JSON-OUTPUT.md](references/JSON-OUTPUT.md) - Response schemas

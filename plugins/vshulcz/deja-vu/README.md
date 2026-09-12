@@ -11,7 +11,7 @@ recall at session start and on each prompt, and what a compaction threw away
 served again once.
 
 [deja](https://github.com/vshulcz/deja-vu) indexes the session transcripts
-twenty-four coding agents already write to disk, including sessions from before it
+twenty-five coding agents already write to disk, including sessions from before it
 was installed, and answers from them locally: BM25 over the transcripts, no
 model and no embeddings, credentials redacted as the index is built.
 

@@ -22,6 +22,11 @@ meanings or boundaries are genuinely unclear.
    observable result. One example often suffices; use Given/When/Then for
    branching behavior and consequential boundaries. Include non-goals only
    where they prevent a plausible scope mistake in that existing source.
+   If the caller requests both code and a retrospective, distinguish code
+   acceptance, delivery facts and the later analysis in that same intent.
+   Code judgment consumes acceptance and checks; the retrospective consumes
+   the known outcome and judgment. Keep both requested deliverables required
+   for the overall goal without making either depend on its own conclusion.
    Scope includes the hand-edited owners, affected tests/live consumers and
    generator-owned companions as a class; it is authority, not a predicted
    file count. A consequential assumption deserves an early discriminating
@@ -35,8 +40,11 @@ meanings or boundaries are genuinely unclear.
    or scope expansion requires caller authority. Never relabel a failed
    acceptance condition as a caveat to obtain green.
 5. Give another context exact intent references and the evidence it needs to
-   act. Keep approach notes separate from frozen acceptance. Do not transmit
-   the entire research history when a focused source reference will suffice.
+   act, its write scope and who owns integration and final review. Keep approach
+   notes separate from frozen acceptance. Pass the next decision and relevant
+   source references, not the entire research history. A new goal does not
+   clear an existing conversation, and a fresh context can still have large
+   startup instructions, tool catalogs and retrieved inputs.
 
 Stop planning once the implementer can act and the validator can judge. More
 research, decomposition or review must resolve a named remaining uncertainty.

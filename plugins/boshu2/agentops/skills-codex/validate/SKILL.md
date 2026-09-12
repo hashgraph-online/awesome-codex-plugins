@@ -16,6 +16,13 @@ held unchanged. Supplied failed-acceptance evidence means FAIL on that subject;
 do not review a moving repair. The subject is a nonempty implementation candidate; plans, audits
 and reviews are subjects only when the caller requested document review.
 
+A requested retrospective normally follows the code judgment; do not demand
+a provisional postmortem as evidence for code acceptance. If supplied intent
+bundles both, identify the code criteria and report their judgment separately
+while keeping the overall request incomplete until its other deliverables
+exist. Do not drop criteria or issue an overall PASS early. An explicitly
+requested review of the retrospective judges that document on its own scope.
+
 Use exact caller/runtime-owned intent bytes and derived acceptance identity.
 Author and validator context IDs must be explicit and distinct; freshness is
 attested by runtime or caller with the attester's identity. Missing, colliding

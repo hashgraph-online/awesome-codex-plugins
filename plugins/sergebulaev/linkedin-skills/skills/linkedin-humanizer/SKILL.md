@@ -166,7 +166,8 @@ See `references/examples.md` for worked examples.
 - `sub-skills/detector-tester.md` — run text through 5 AI detectors in parallel and report disagreement
 - `sub-skills/voice-profile.md` — build/update the user's Voice & Brand Profile (`--mode profile`); the filled `../../references/voice-profile.md` is then read by every writing skill so drafts match the user's real voice
 - `scripts/test_detectors.py` — runs the parallel detector test (supports `--demo` for offline mode)
-- `scripts/requirements.txt` — Python deps for the detector script (`requests`, `python-dotenv`)
+- Detector-script deps (`requests`, `python-dotenv`) come from the bundle's root `requirements.txt` / `requirements-lock.txt`, not a manifest of their own
+- `scripts/test_detectors.py` is the only code in this bundle that sends your text to third parties: it uploads the draft to each hosted detector you hold a key for. See the disclosure at the top of `sub-skills/detector-tester.md` before running it.
 - `scripts/detectors.env.example` — template for the 5 detector API keys
 
 ## Related skills

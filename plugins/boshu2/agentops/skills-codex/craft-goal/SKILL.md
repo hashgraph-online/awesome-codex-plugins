@@ -113,6 +113,10 @@ Use graph semantics deliberately:
 - `related` for alternatives or correlated observations;
 - `discovered-from` for provenance of newly exposed work.
 
+Code and its requested retrospective can share a goal without the retrospective
+blocking code judgment. The analysis consumes the known outcome and judgment;
+both deliverables remain required before the overall goal is achieved.
+
 Use the caller's actual tracker as the authority for work and dependencies.
 In this repository that is BD (`bd`); verify `bd context --json` before mutation.
 BR (`br`) is a different implementation, never a fallback or alias for BD.
