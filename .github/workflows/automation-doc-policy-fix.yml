@@ -1,0 +1,120 @@
+name: Temporary scanner policy doc fix
+
+on:
+  push:
+    branches:
+      - automation/centralized-scanner-policy
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: automation/centralized-scanner-policy
+      - name: Align contributor docs with centralized scanner policy
+        shell: python
+        run: |
+          from pathlib import Path
+
+          replacements = {
+              "README.md": [
+                  (
+                      "3. **Gate PRs with the [HOL scanner GitHub Action](https://github.com/hashgraph-online/ai-plugin-scanner-action)** — **Required for listing**",
+                      "3. **Optionally gate your source repo with the [HOL scanner GitHub Action](https://github.com/hashgraph-online/ai-plugin-scanner-action)**. Catalog admission uses the centralized scan; source-repo scanner CI is recommended but not required.",
+                  ),
+              ],
+              "CONTRIBUTING.md": [
+                  (
+                      "### Step 1: Set up scanner CI in your plugin repo (required)",
+                      "### Step 1: Set up scanner CI in your plugin repo (optional, recommended)",
+                  ),
+                  (
+                      "Your plugin repo must have the **HOL AI Plugin Scanner** running in CI before you submit. This is not optional. We verify this during review.",
+                      "Source-repository scanner CI is optional. The catalog runs its own centralized HOL AI Plugin Scanner against every contribution. Adding the scanner to your source repo is still recommended because it catches problems before submission.",
+                  ),
+                  (
+                      "Wait for the CI to pass on your repo's main branch, then copy the workflow run URL.",
+                      "If you add source-repository scanner CI, keep the workflow run URL for local debugging and remediation.",
+                  ),
+                  (
+                      "   - Your scanner score (or link to the passing CI run on your plugin repo)",
+                      "   - Your local or source-CI scanner score when available (optional; the catalog-owned centralized score is authoritative)",
+                  ),
+                  (
+                      "## Scanner Requirements (Mandatory)",
+                      "## Scanner requirements",
+                  ),
+                  (
+                      "- **Severity:** No critical or high findings\n- **CI:** Scanner workflow must be running in your plugin repo's GitHub Actions (see Step 1 above)\n- **PR description:** Must include scanner score or a link to the passing CI run",
+                      "- **Centralized score:** The catalog-owned scan must report ≥ 80/130\n- **Source CI:** Optional; a scanner workflow in the source repo is recommended for faster feedback\n- **PR description:** A local or source-CI score is useful context but is not a merge prerequisite",
+                  ),
+                  (
+                      "- **Must have scanner running in CI** (GitHub Action or equivalent)",
+                      "- Source-repository scanner CI is optional; the catalog runs the centralized scanner",
+                  ),
+                  (
+                      "- [ ] `.github/workflows/hol-plugin-scanner.yml` exists and CI passes on main",
+                      "- [ ] Optional: source-repository HOL Plugin Scanner CI is configured for pre-submission feedback",
+                  ),
+                  (
+                      "- [ ] Plugin Scanner score ≥ 80/130 (paste score or link CI run in PR description)",
+                      "- [ ] The catalog-owned centralized Plugin Scanner score reaches ≥ 80/130 before merge",
+                  ),
+                  (
+                      "It checks the source repository and publishes one status check on\nthe PR head. When a requirement is missing, the gate updates one idempotent\ncomment, tags the PR author, and includes the exact scanner workflow and\nremediation steps. The check is re-run on every push, reopen, and daily sweep.",
+                      "It validates the catalog change and public source repository, then queues the source for the catalog-owned centralized scanner. Source-repository scanner CI is optional. The check is re-run on every push, reopen, and daily sweep.",
+                  ),
+                  (
+                      "3. **Scanner verification** - The source repo must invoke `hashgraph-online/ai-plugin-scanner-action` on `push` or `pull_request`, and the gate runs the scanner at the documented score/severity thresholds",
+                      "3. **Scanner verification** - The catalog runs the centralized scanner for every valid contribution; the numeric centralized score must be at least 80",
+                  ),
+                  (
+                      "If the gate comments on your PR, fix the linked source repository first, push\nthe change there, then update the README PR if needed. The status check and\ncomment will refresh automatically; do not post duplicate remediation comments.",
+                      "If the gate reports a catalog validation or source-repository problem, fix that defect and push the correction. Scanner findings should be remediated in the source repository before requesting another centralized scan. The status check and comment refresh automatically; do not post duplicate remediation comments.",
+                  ),
+                  (
+                      "- Issues: Open an issue in this repo with the `[scanner]` label",
+                      "- Scanner questions: use the existing contribution PR thread",
+                  ),
+              ],
+              "SCANNER_GUIDE.md": [
+                  (
+                      "| **Severity** | No critical or high findings |\n| **CI Gate** | Scanner must run in your repo's GitHub Actions |",
+                      "| **Centralized Scan** | Numeric score ≥ 80 / 130 is the catalog admission threshold |\n| **Source CI** | Optional; recommended for pre-submission feedback |",
+                  ),
+                  (
+                      "## CI Integration (Required)",
+                      "## CI integration (optional, recommended)",
+                  ),
+                  (
+                      "Your plugin repo must have the scanner running in CI. Add this to `.github/workflows/hol-scanner.yml`:",
+                      "You can run the scanner in your source repository for continuous feedback. Catalog admission does not require this workflow because the catalog runs its own centralized scan. Add this to `.github/workflows/hol-scanner.yml` if you want source-repository CI:",
+                  ),
+                  (
+                      "- **Issues:** Open an issue in this repo with the `[scanner]` label",
+                      "- **Scanner questions:** use the existing contribution PR thread",
+                  ),
+              ],
+          }
+
+          for path_str, pairs in replacements.items():
+              path = Path(path_str)
+              text = path.read_text(encoding="utf-8")
+              for old, new in pairs:
+                  if old not in text:
+                      raise SystemExit(f"missing expected text in {path}: {old[:80]!r}")
+                  text = text.replace(old, new, 1)
+              path.write_text(text, encoding="utf-8")
+      - name: Commit policy documentation
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md CONTRIBUTING.md SCANNER_GUIDE.md
+          git diff --cached --quiet && exit 0
+          git commit -m "docs: align centralized scanner policy"
+          git push origin HEAD:automation/centralized-scanner-policy
