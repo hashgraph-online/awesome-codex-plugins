@@ -6,6 +6,7 @@
     { "pattern": "^https://awesome.re" },
     { "pattern": "^https://community.openai.com" },
     { "pattern": "^https://hol.org" },
+    { "pattern": "^https://hostdefi\\.com" },
     { "pattern": "^https://cr\\.yp\\.to" },
     { "pattern": "^https://www\\.arrow\\.com" },
     { "pattern": "^https://www\\.latticesemi\\.com" }
