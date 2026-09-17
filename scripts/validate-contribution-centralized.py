@@ -24,6 +24,26 @@ sys.modules[SPEC.name] = VALIDATOR
 SPEC.loader.exec_module(VALIDATOR)
 
 
+def ensure_public_repository(entry) -> None:
+    """Require the contributed GitHub repository to exist and remain public."""
+
+    url = f"https://api.github.com/repos/{entry.owner}/{entry.repo}"
+    try:
+        payload = VALIDATOR.github_json(url)
+    except Exception as error:
+        raise VALIDATOR.ValidationError(
+            f"source repository {entry.owner}/{entry.repo} is not publicly accessible: {error}"
+        ) from error
+    if not isinstance(payload, dict) or payload.get("private") is True:
+        raise VALIDATOR.ValidationError(
+            f"source repository {entry.owner}/{entry.repo} is not publicly accessible"
+        )
+    if payload.get("archived") is True:
+        raise VALIDATOR.ValidationError(
+            f"source repository {entry.owner}/{entry.repo} is archived"
+        )
+
+
 def scan_open_pull_requests(
     repository: str,
     pull_request_number: int | None,
@@ -31,7 +51,7 @@ def scan_open_pull_requests(
     report_output: Path | None,
     status_output: Path | None,
 ) -> int:
-    """Parse open catalog PRs and queue every new contribution for central scan."""
+    """Parse open catalog PRs and queue every valid contribution for central scan."""
 
     pull_requests = VALIDATOR.list_open_pull_requests(repository, pull_request_number)
     matrix: list[dict[str, object]] = []
@@ -82,8 +102,16 @@ def scan_open_pull_requests(
             continue
 
         contributions: list[dict[str, str]] = []
+        catalog_failures: list[str] = []
         report_lines.append(f"- **{prefix}**")
         for entry in entries:
+            try:
+                ensure_public_repository(entry)
+            except VALIDATOR.ValidationError as error:
+                reason = str(error)
+                catalog_failures.append(reason)
+                report_lines.append(f"  - `{entry.owner}/{entry.repo}`: **FAIL** - {reason}")
+                continue
             contribution = {"owner": entry.owner, "repo": entry.repo}
             contributions.append(contribution)
             matrix.append({"pr_number": pull_request.number, **contribution})
@@ -91,15 +119,20 @@ def scan_open_pull_requests(
                 f"  - `{entry.owner}/{entry.repo}`: queued for centralized scanner"
             )
 
+        if catalog_failures:
+            failures.extend(
+                {"pr_number": pull_request.number, "error": item}
+                for item in catalog_failures
+            )
         results.append(
             {
                 "pr_number": pull_request.number,
                 "title": pull_request.title,
                 "head_sha": pull_request.head_sha,
                 "author_login": pull_request.author_login,
-                "state": "scan",
+                "state": "failure" if catalog_failures else "scan",
                 "contributions": contributions,
-                "failure_reasons": [],
+                "failure_reasons": catalog_failures,
             }
         )
 
@@ -110,7 +143,7 @@ def scan_open_pull_requests(
             [
                 "",
                 f"Catalog validation failures: {len(failures)}",
-                "Malformed catalog changes or PR discovery failures still block merge.",
+                "Malformed catalog changes, inaccessible sources, and PR discovery failures still block merge.",
             ]
         )
     else:
@@ -166,6 +199,8 @@ def main() -> int:
 
     try:
         entries = VALIDATOR.get_new_readme_entries(args.base_ref)
+        for entry in entries:
+            ensure_public_repository(entry)
     except VALIDATOR.ValidationError as error:
         print(f"Contribution validation failed: {error}", file=sys.stderr)
         if args.matrix_output:
