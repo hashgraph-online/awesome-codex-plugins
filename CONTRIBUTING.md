@@ -73,7 +73,7 @@ python3 -m pip download --only-binary=:all: --no-deps --dest .hol-plugin-scanner
 python3 -m pip hash .hol-plugin-scanner-dist/*.whl
 ```
 
-You need a score of **80/130** or higher with **no critical or high severity findings**. Save the output to include in your PR description.
+Use local scanner output to fix problems before submission. For catalog admission, the numeric score from the catalog-owned centralized scan is authoritative and must be at least **80/130**.
 
 ### Step 3: Verify your plugin repo has the required files
 
@@ -325,7 +325,7 @@ Must be valid JSON at `.codex-plugin/plugin.json` with at minimum:
 - Plugin must have a **public GitHub repository**
 - Must be **functional** with a valid `.codex-plugin/plugin.json` manifest
 - Must include an **icon** as described above
-- **Must pass the HOL Plugin Scanner** (score ≥ 80, no critical/high findings)
+- **Must reach a centralized HOL Plugin Scanner score ≥ 80**
 - Source-repository scanner CI is optional; the catalog runs the centralized scanner
 - **One plugin per PR**
 
@@ -347,7 +347,7 @@ Before submitting, verify:
 
 **In your PR:**
 - [ ] README.md entry is alphabetically sorted within its category
-- [ ] PR description includes your scanner score or CI link
+- [ ] Optional: PR description includes a local or source-CI scanner score for context
 - [ ] PR description includes the public GitHub URL of your plugin repo
 - [ ] All links in the README entry are valid
 - [ ] **No manually-committed plugin bundles, `plugins.json`, or `marketplace.json`** — the generator handles these

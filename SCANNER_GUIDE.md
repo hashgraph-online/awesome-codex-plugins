@@ -10,6 +10,8 @@ All plugins submitted to **Awesome Codex Plugins** must pass the HOL AI Plugin S
 | **Centralized Scan** | Numeric score ≥ 80 / 130 is the catalog admission threshold |
 | **Source CI** | Optional; recommended for pre-submission feedback |
 
+Catalog admission uses the numeric score from the catalog-owned centralized scan. A score of **80/130 or higher** is scanner-clear even when the scanner action reports advisory findings or exits nonzero for a non-gating reason. Separate catalog-format, source-availability, or repository-integrity defects can still block merge.
+
 ## Quick Start
 
 ### Install the Scanner
