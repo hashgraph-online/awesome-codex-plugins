@@ -17,9 +17,9 @@ Generator (CI):  plugins/<owner>/<repo>/  ←  fetched from your GitHub repo
 
 > **Important: Read this entire guide before opening a PR. Submissions missing required items will be asked to fix them.**
 
-### Step 1: Set up scanner CI in your plugin repo (required)
+### Step 1: Set up scanner CI in your plugin repo (optional, recommended)
 
-Your plugin repo must have the **HOL AI Plugin Scanner** running in CI before you submit. This is not optional. We verify this during review.
+Source-repository scanner CI is optional. The catalog runs its own centralized HOL AI Plugin Scanner against every contribution. Adding the scanner to your source repo is still recommended because it catches problems before submission.
 
 Add this file to your plugin repo at `.github/workflows/hol-plugin-scanner.yml`:
 
@@ -52,7 +52,7 @@ jobs:
           upload_sarif: true
 ```
 
-Wait for the CI to pass on your repo's main branch, then copy the workflow run URL.
+If you add source-repository scanner CI, keep the workflow run URL for local debugging and remediation.
 
 ### Step 2: Run the scanner locally and check your score
 
@@ -91,7 +91,7 @@ Your plugin repo must contain:
 1. **Fork** this repository
 2. **Add your entry** to the appropriate section in `README.md` (alphabetical order by display name)
 3. **Submit a PR** with:
-   - Your scanner score (or link to the passing CI run on your plugin repo)
+   - Your local or source-CI scanner score when available (optional; the catalog-owned centralized score is authoritative)
    - The public GitHub URL of your plugin repo
 
 **Do not copy plugin files, `plugins/` directories, `plugins.json`, or `marketplace.json` into your PR.** The generator pulls your bundle from your source repo and regenerates all catalog files automatically. PRs that include manually-committed bundles will have those files stripped before merge.
@@ -110,16 +110,16 @@ Rules:
 - Description must be a single sentence
 - Link must point to the GitHub repository root
 
-## Scanner Requirements (Mandatory)
+## Scanner requirements
 
 All plugins submitted to this list **must pass the HOL AI Plugin Scanner**.
 
 ### Minimum Requirements
 
 - **Score:** ≥ 80/130
-- **Severity:** No critical or high findings
-- **CI:** Scanner workflow must be running in your plugin repo's GitHub Actions (see Step 1 above)
-- **PR description:** Must include scanner score or a link to the passing CI run
+- **Centralized score:** The catalog-owned scan must report ≥ 80/130
+- **Source CI:** Optional; a scanner workflow in the source repo is recommended for faster feedback
+- **PR description:** A local or source-CI score is useful context but is not a merge prerequisite
 
 ### Run the Scanner Locally
 
@@ -326,7 +326,7 @@ Must be valid JSON at `.codex-plugin/plugin.json` with at minimum:
 - Must be **functional** with a valid `.codex-plugin/plugin.json` manifest
 - Must include an **icon** as described above
 - **Must pass the HOL Plugin Scanner** (score ≥ 80, no critical/high findings)
-- **Must have scanner running in CI** (GitHub Action or equivalent)
+- Source-repository scanner CI is optional; the catalog runs the centralized scanner
 - **One plugin per PR**
 
 ## Categories
@@ -339,11 +339,11 @@ Must be valid JSON at `.codex-plugin/plugin.json` with at minimum:
 Before submitting, verify:
 
 **In your plugin repo:**
-- [ ] `.github/workflows/hol-plugin-scanner.yml` exists and CI passes on main
+- [ ] Optional: source-repository HOL Plugin Scanner CI is configured for pre-submission feedback
 - [ ] `SECURITY.md` exists in your plugin repo
 - [ ] `LICENSE` exists in your plugin repo
 - [ ] `.codex-plugin/plugin.json` exists and is valid JSON
-- [ ] Plugin Scanner score ≥ 80/130 (paste score or link CI run in PR description)
+- [ ] The catalog-owned centralized Plugin Scanner score reaches ≥ 80/130 before merge
 
 **In your PR:**
 - [ ] README.md entry is alphabetically sorted within its category
@@ -356,25 +356,20 @@ Before submitting, verify:
 
 All PRs to this repo are automatically validated. The contribution gate runs
 on the PR target event, so fork PRs do not wait for first-time workflow
-approval. It checks the source repository and publishes one status check on
-the PR head. When a requirement is missing, the gate updates one idempotent
-comment, tags the PR author, and includes the exact scanner workflow and
-remediation steps. The check is re-run on every push, reopen, and daily sweep.
+approval. It validates the catalog change and public source repository, then queues the source for the catalog-owned centralized scanner. Source-repository scanner CI is optional. The check is re-run on every push, reopen, and daily sweep.
 
 The CI will check:
 
 1. **Alphabetical order** - README entries must be sorted within each section
 2. **Plugin manifest** - For new README entries, the generator fetches your source repo and validates `plugin.json`, required fields, and icon presence
-3. **Scanner verification** - The source repo must invoke `hashgraph-online/ai-plugin-scanner-action` on `push` or `pull_request`, and the gate runs the scanner at the documented score/severity thresholds
+3. **Scanner verification** - The catalog runs the centralized scanner for every valid contribution; the numeric centralized score must be at least 80
 4. **Markdown links** - All URLs in README must be reachable
 
-If the gate comments on your PR, fix the linked source repository first, push
-the change there, then update the README PR if needed. The status check and
-comment will refresh automatically; do not post duplicate remediation comments.
+If the gate reports a catalog validation or source-repository problem, fix that defect and push the correction. Scanner findings should be remediated in the source repository before requesting another centralized scan. The status check and comment refresh automatically; do not post duplicate remediation comments.
 
 ## Getting Help
 
 - Scanner docs: [HOL Guard](https://github.com/hashgraph-online/hol-guard)
 - Scanner action: [ai-plugin-scanner-action](https://github.com/hashgraph-online/ai-plugin-scanner-action)
 - Registry: [hol.org/registry/plugins](https://hol.org/registry/plugins)
-- Issues: Open an issue in this repo with the `[scanner]` label
+- Scanner questions: use the existing contribution PR thread
