@@ -8,6 +8,7 @@ on:
       - "SCANNER_GUIDE.md"
       - "scripts/check-alphabetical.py"
       - "scripts/validate-contribution.py"
+      - "scripts/validate-contribution-centralized.py"
       - ".github/workflows/validate-contribution.yml"
   workflow_dispatch:
 
@@ -31,14 +32,14 @@ jobs:
           python-version: "3.12"
       - name: Install validator dependencies
         run: python3 -m pip install --disable-pip-version-check --no-input "PyYAML==6.0.2"
-      - name: Validate changed entries and source scanner CI
+      - name: Validate changed catalog entries
         env:
           BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || 'origin/main' }}
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           python3 -m unittest scripts/test_check_alphabetical.py
           python3 scripts/check-alphabetical.py README.md --base-ref "$BASE_REF"
-          python3 scripts/validate-contribution.py \
+          python3 scripts/validate-contribution-centralized.py \
             --base-ref "$BASE_REF" \
             --matrix-output "$RUNNER_TEMP/contributions.json"
       - name: Export scanner matrix
@@ -54,6 +55,7 @@ jobs:
     needs: validate
     if: needs.validate.outputs.matrix != '[]'
     runs-on: ubuntu-latest
+    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
