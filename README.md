@@ -538,8 +538,8 @@ Contributions welcome! Please read the [contribution guidelines](CONTRIBUTING.md
 
 To add a plugin:
 
-1. Set up the HOL Plugin Scanner in your plugin repo (see [CONTRIBUTING.md](CONTRIBUTING.md))
+1. Optionally set up the HOL Plugin Scanner in your plugin repo for source-side feedback (see [CONTRIBUTING.md](CONTRIBUTING.md)); the catalog-owned centralized scan is authoritative for admission
 2. Fork this repo and add a single line to the appropriate section in `README.md` (alphabetical order)
-3. Submit a PR with your scanner score and plugin repo URL
+3. Submit a PR with the plugin repo URL; include a local or source-CI scanner score when available
 
 **You do not need to copy plugin files into this repo.** A generator fetches your bundle from your source repo and regenerates catalog files automatically.
