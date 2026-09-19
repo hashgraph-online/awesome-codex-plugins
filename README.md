@@ -244,6 +244,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [Praxis](https://github.com/ouonet/praxis) - Intent-driven workflow skills for coding agents: describe what done looks like, not the steps. Triage-first design keeps token costs low across design, TDD, debug, review, and release.
 - [Project Autopilot](https://github.com/AlexMi64/codex-project-autopilot) - Turn an idea into a structured project workflow with planning, execution, verification, and handoff.
 - [Quality Engineering Skills](https://github.com/RBraga01/Quality-Engineering-Skills) - 22 structured quality engineering skills for automotive and manufacturing: ISO 9001, IATF 16949, AIAG-VDA FMEA, VDA 6.3, PPAP, APQP, SPC, MSA.
+- [Quiver](https://github.com/yagizdo/quiver) - 21 development lifecycle skills and 20 review and debug agents for Codex, Claude Code, Cursor, and OpenCode, where every step writes its output to disk instead of leaving it in the chat.
 - [RAG Reviewer](https://github.com/mimfort/rag_for_git) - Agentic PR review: hybrid RAG + code graph via MCP, review skills for Codex.
 - [Red-Green Proof](https://github.com/RooAGI/red-green-proof) - Prove suspected bugs with a red-green-red test loop: verify the cause, watch the test fail, apply the fix, and confirm the test fails again when the fix is reverted.
 - [Registry Broker](https://github.com/hashgraph-online/registry-broker-codex-plugin) - Delegate tasks to specialist AI agents via the HOL Registry, plan, find, summon, and recover sessions.
