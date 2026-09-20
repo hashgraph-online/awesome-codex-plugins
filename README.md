@@ -186,6 +186,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [Codex How To](https://github.com/Phelan164/codex-howto) - Engineering-first Codex curriculum and plugin with 9 skills, measured token-efficiency experiments, bounded orchestration, testing, review, and living knowledge maintenance.
 - [Codex Multi Auth](https://github.com/ndycode/codex-multi-auth) - Multi-account OAuth manager for the official Codex CLI with switching, health checks, and recovery tools.
 - [Codex Process Jobs](https://github.com/joelfarthing/codex-process-jobs) - Run long local builds, tests, benchmarks, and inference jobs as durable detached processes with tracked status, bounded results, and completion delivery across Codex surfaces.
+- [Codex Quota Optimizer](https://github.com/ctdaniel/codex-quota-optimizer) - Reduces avoidable Codex usage with task-aware model routing, focused context, minimal change surfaces, and layered verification.
 - [Codex Quota Title](https://github.com/nokisenpai/CodexQuotaTitle) - Shows live Codex quota usage and reset time directly in the Codex Desktop window title on Windows.
 - [Codex Reviewer](https://github.com/schuettc/codex-reviewer) - Second-pass review of Claude-driven plans and implementations.
 - [Codex rg Guard](https://github.com/Rycen7822/codex-rg-guard) - Budgeted `rg`/`grep` replacement for Codex that narrows broad searches before they waste model context.
