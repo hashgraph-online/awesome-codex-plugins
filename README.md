@@ -474,6 +474,7 @@ The score is best used as a quick trust signal and triage summary (not the only 
 
 ## Related Projects
 
+- [Astra Flash Orchestrator](https://github.com/ethanplusai/astra-flash-orchestrator) - Codex skill that keeps Astra on planning and review while DeepSeek V4.1 Flash handles implementation.
 - [awesome-ai-plugins](https://github.com/hashgraph-online/awesome-ai-plugins) - Umbrella list covering Codex, Claude Code, Gemini CLI, and MCP servers.
 - [codex-patch-overlay](https://github.com/salty-flower/codex-patch-overlay) - Patched Codex CLI builds carrying community-requested features upstream has not merged yet (live TUI reasoning streaming, completion sound, WebP image input, timed CLI queueing). Ready-to-run macOS/Linux binaries plus a Nix overlay, refreshed each upstream release.
 - [Tura](https://github.com/Tura-AI/tura) - A local, open-source coding agent for developers who are tired of vague skill claims, token-saving extensions with no evidence, and agents that change a repository before understanding it.
