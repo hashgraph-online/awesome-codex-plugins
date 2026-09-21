@@ -548,3 +548,4 @@ To add a plugin:
 3. Submit a PR with the plugin repo URL; include a local or source-CI scanner score when available
 
 **You do not need to copy plugin files into this repo.** A generator fetches your bundle from your source repo and regenerates catalog files automatically.
+ 
