@@ -49,8 +49,12 @@ def main():
         )
         if not pr.get("mergedAt") or not changes_plugin_files(repo, number):
             continue
+        author = (pr.get("author") or {}).get("login")
+        if not author:
+            print(f"PR #{number}: author account unavailable; skipping claim notice")
+            continue
         env = {**os.environ, "PENDING_RETRY": "1", "PR_NUMBER": str(number),
-               "PR_TITLE": pr["title"], "PR_AUTHOR": pr["author"]["login"]}
+               "PR_TITLE": pr["title"], "PR_AUTHOR": author}
         outcome = subprocess.run([sys.executable, "scripts/post-claim-notice.py"], env=env)
         if outcome.returncode != 0:
             failures += 1

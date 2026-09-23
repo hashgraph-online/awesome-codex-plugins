@@ -29,7 +29,8 @@ class BackfillClaimNoticeTests(unittest.TestCase):
                 seen_second_page = True
                 return [{"number": 101, "pull_request": {}}]
             if args[0] == "pr":
-                return {"mergedAt": "2026-09-01T00:00:00Z", "title": "Add plugin", "author": {"login": "author"}}
+                author = None if args[2] == "1" else {"login": "author"}
+                return {"mergedAt": "2026-09-01T00:00:00Z", "title": "Add plugin", "author": author}
             return [{"filename": "README.md"}]
 
         def fake_run(*args, **kwargs):
@@ -40,7 +41,8 @@ class BackfillClaimNoticeTests(unittest.TestCase):
             MODULE, "gh_json", side_effect=fake_gh
         ), patch.object(MODULE.subprocess, "run", side_effect=fake_run) as run:
             self.assertEqual(MODULE.main(), 0)
-            self.assertEqual(run.call_count, 101)
+            self.assertEqual(run.call_count, 100)
+            self.assertNotIn("1", [call.kwargs["env"]["PR_NUMBER"] for call in run.call_args_list])
 
 
 if __name__ == "__main__":
