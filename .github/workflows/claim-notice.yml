@@ -48,7 +48,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if [ "$(gh label list --repo "$GITHUB_REPOSITORY" --search registry-claim-pending --json name --jq 'any(.[]; .name == "registry-claim-pending")')" != true ]; then
-            gh label create registry-claim-pending --repo "$GITHUB_REPOSITORY" --color D4C5F9 --description "Claim notice awaits registry ingestion"
+            gh label create registry-claim-pending --repo "$GITHUB_REPOSITORY" --color D4C5F9 --description "Claim notice awaits registry ingestion" --force
           fi
 
       - name: Post claim notice
