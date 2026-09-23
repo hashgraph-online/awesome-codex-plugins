@@ -1,11 +1,17 @@
 #!/usr/bin/env python3
-"""Retry claim notices for recent merges after registry ingestion completes."""
+"""Retry pending claim notices until their registry entries are live."""
 
-import datetime as dt
 import json
 import os
 import subprocess
 import sys
+
+PENDING_LABEL = "registry-claim-pending"
+
+
+def gh_json(*args):
+    result = subprocess.run(["gh", *args], check=True, capture_output=True, text=True)
+    return json.loads(result.stdout)
 
 
 def main():
@@ -13,22 +19,32 @@ def main():
     if not repo:
         print("GITHUB_REPOSITORY is required", file=sys.stderr)
         return 1
-    cutoff = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=7)
-    result = subprocess.run(
-        ["gh", "pr", "list", "--repo", repo, "--state", "merged", "--limit", "100",
-         "--json", "number,title,author,mergedAt"],
-        check=True, capture_output=True, text=True,
-    )
     failures = 0
-    for pr in json.loads(result.stdout):
-        merged_at = dt.datetime.fromisoformat(pr["mergedAt"].replace("Z", "+00:00"))
-        if merged_at < cutoff:
-            continue
-        env = {**os.environ, "PR_NUMBER": str(pr["number"]),
-               "PR_TITLE": pr["title"], "PR_AUTHOR": pr["author"]["login"]}
-        outcome = subprocess.run([sys.executable, "scripts/post-claim-notice.py"], env=env)
-        if outcome.returncode != 0:
-            failures += 1
+    page = 1
+    while True:
+        issues = gh_json(
+            "api", f"repos/{repo}/issues?labels={PENDING_LABEL}&state=closed&per_page=100&page={page}"
+        )
+        for issue in issues:
+            if "pull_request" not in issue:
+                continue
+            pr = gh_json(
+                "pr", "view", str(issue["number"]), "--repo", repo,
+                "--json", "mergedAt,title,author,files",
+            )
+            if not pr.get("mergedAt"):
+                continue
+            paths = {item["path"] for item in pr.get("files", [])}
+            if "README.md" not in paths and not any(path.startswith("plugins/") for path in paths):
+                continue
+            env = {**os.environ, "PENDING_RETRY": "1", "PR_NUMBER": str(issue["number"]),
+                   "PR_TITLE": pr["title"], "PR_AUTHOR": pr["author"]["login"]}
+            outcome = subprocess.run([sys.executable, "scripts/post-claim-notice.py"], env=env)
+            if outcome.returncode != 0:
+                failures += 1
+        if len(issues) < 100:
+            break
+        page += 1
     return 1 if failures else 0
 
 

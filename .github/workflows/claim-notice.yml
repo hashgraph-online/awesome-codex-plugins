@@ -26,6 +26,7 @@ on:
 
 permissions:
   pull-requests: write
+  issues: write
   contents: read
 
 jobs:
@@ -37,6 +38,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Ensure retry label exists
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "$(gh label list --repo "$GITHUB_REPOSITORY" --search registry-claim-pending --json name --jq 'any(.[]; .name == "registry-claim-pending")')" != true ]; then
+            gh label create registry-claim-pending --repo "$GITHUB_REPOSITORY" --color D4C5F9 --description "Claim notice awaits registry ingestion"
+          fi
 
       - name: Post claim notice
         if: github.event_name != 'schedule'
