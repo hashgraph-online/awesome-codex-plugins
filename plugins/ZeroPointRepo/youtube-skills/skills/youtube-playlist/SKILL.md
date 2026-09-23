@@ -1,7 +1,7 @@
 ---
 name: youtube-playlist
 description: "Use when a YouTube playlist is involved: pasted playlist links or IDs, requests to list playlist videos, browse playlist contents, or work through a playlist for transcripts or research. Also use when the user wants all videos from a series, course, or collection. Not for creating playlists or account management."
-version: "1.5.0"
+version: "1.6.0"
 user-invocable: true
 compatibility: Requires internet access to reach transcriptapi.com. No additional runtimes or dependencies needed.
 required_environment_variables:
@@ -107,6 +107,22 @@ User-Agent: YourAgent/1.0
 
 # 2. Get transcript from a video in the playlist
 GET https://transcriptapi.com/api/v2/youtube/transcript?video_url=VIDEO_ID&format=text&include_timestamp=true&send_metadata=true
+Authorization: Bearer $TRANSCRIPT_API_KEY
+User-Agent: YourAgent/1.0
+```
+
+## Don't know a playlist ID? Find it from the channel
+
+To browse a channel's playlists first (1 credit/page), then list videos in one of them:
+
+```http
+# 1. List the channel's playlists
+GET https://transcriptapi.com/api/v2/youtube/channel/playlists?channel=@TED
+Authorization: Bearer $TRANSCRIPT_API_KEY
+User-Agent: YourAgent/1.0
+
+# 2. List videos in the chosen playlist (playlistId from step 1)
+GET https://transcriptapi.com/api/v2/youtube/playlist/videos?playlist=PLAYLIST_ID
 Authorization: Bearer $TRANSCRIPT_API_KEY
 User-Agent: YourAgent/1.0
 ```

@@ -6,14 +6,29 @@ This plugin packages one Codex skill that teaches agents when to recall, write,
 audit, consolidate, and forget project memory using the open-source
 [Tree Ring Memory](https://github.com/TerminallyLazy/Tree-Ring-Memory) CLI.
 
-Plugin `0.3.3` requires Tree Ring Memory CLI **>= 0.15.0**. The minimum adds
+Plugin `0.3.10` requires Tree Ring Memory CLI **>= 0.15.0**. The minimum adds
 verified project-local bootstrap and scope-preserving CLI updates on top of the
 receipt-backed harness, schema-v3, coordinated-write, and idempotency contracts
 used by this guidance.
 
-The public ZIP is a skills-only package. It intentionally omits
-`interface.screenshots`, which OpenAI's ZIP ingestion does not accept for this
-package type; the logo and composer icon remain available.
+The repository plugin includes native lifecycle hooks and requires CLI `0.15.6`
+or newer for automatic recall. Build the separate public-directory ZIP with
+`python3 packaging/build-codex-skills-only.py tree-ring-memory-codex-skills-only-0.3.10.zip`.
+That generated ZIP includes skills and native Codex lifecycle hooks. The portal
+calls the route "Skills only" because this plugin has no MCP server. The upload
+preserves executable hook scripts and excludes Claude metadata and commands.
+Hooks require Codex or ChatGPT Work, an available CLI, and host trust; ordinary
+Chat remains guidance-only. See [OpenAI's current compatibility guidance](https://developers.openai.com/plugins/guides/submit-claude-plugin).
+
+For the public directory, upload `tree-ring-memory-codex-skills-only-0.3.10.zip`.
+The full repository archive is intended for native distribution. The public
+profile puts skill display settings in `skills/tree-ring-memory/agents/openai.yaml`
+and omits the native skill's legacy frontmatter `metadata` block, preserving the
+instructions exactly. Its listing short description meets the directory's
+30-character limit. The native skill and all lifecycle hook bytes are unchanged.
+The `skill_metadata_ignored` message is an advisory warning; package validation
+does not prove portal acceptance or completion of its review and identity checks.
+See the [submission error reference](https://developers.openai.com/plugins/deploy/submission-errors).
 
 It does not run a background service, scrape chats, or capture transcripts.
 The active agent chooses when a memory action is useful, source-linked, and
@@ -89,6 +104,13 @@ CLI commands documented in the main framework repository.
 For DOX projects, it reads the applicable `AGENTS.md` chain before edits and
 keeps the live contracts authoritative. DOX sync is dry-run-first, persists only
 concise source-linked summaries, and never rewrites the source contracts.
+
+Before any DOX write, verify the selected project-local or PATH binary with
+`--version` and require CLI **0.15.11 or newer**. Older compatible runtimes may
+preview with `--dry-run`, but must not persist DOX summaries. After an authorized
+upgrade, rerun and review the preview. This DOX-only minimum adds atomic
+source-root collision checks so a conflicting batch cannot overwrite another
+project's guidance; general CLI and lifecycle-hook compatibility is unchanged.
 
 For installed-runtime evidence, use `tree-ring integrations certify` or
 `tree-ring recall-quality`. The full `scripts/certify-tree-ring.sh` release suite
@@ -189,8 +211,8 @@ backup.
 ## Canonical Project
 
 - Framework repo: <https://github.com/TerminallyLazy/Tree-Ring-Memory>
-- Canonical v0.15 skill: <https://github.com/TerminallyLazy/Tree-Ring-Memory/blob/v0.15.1/skills/tree-ring-memory/SKILL.md>
-- v0.15 release: <https://github.com/TerminallyLazy/Tree-Ring-Memory/releases/tag/v0.15.1>
+- Canonical v0.15 skill: <https://github.com/TerminallyLazy/Tree-Ring-Memory/blob/v0.15.11/skills/tree-ring-memory/SKILL.md>
+- v0.15 release: <https://github.com/TerminallyLazy/Tree-Ring-Memory/releases/tag/v0.15.11>
 - Launch page: <https://terminallylazy.github.io/Tree-Ring-Memory/>
 - Homebrew tap: <https://github.com/TerminallyLazy/homebrew-tree-ring>
 
@@ -201,3 +223,81 @@ webhooks, analytics, credentials, or networked runtime code.
 
 See [PRIVACY.md](PRIVACY.md), [TERMS.md](TERMS.md), and
 [SECURITY.md](SECURITY.md) for data handling, use terms, and disclosures.
+
+## Install The Hook-Capable Plugin
+
+```bash
+codex plugin marketplace add TerminallyLazy/tree-ring-memory-codex-plugin
+codex plugin add tree-ring-memory@tree-ring-memory
+```
+
+Review and trust the Tree Ring hook definitions in Codex, then start a new session.
+
+
+## Automatic Lifecycle Hooks
+
+The repository plugin registers exactly `SessionStart`, `SubagentStart`,
+`Stop`, and `SubagentStop`. Each hook forwards its event JSON directly to the
+local CLI and waits synchronously for at most 10 seconds. It does not register
+prompt, tool, compaction, or `SessionEnd` hooks; run a background service;
+scrape chats; or ship an MCP server.
+
+Session start covers startup, resume, and compaction rehydration when the host
+reports those sources. Subagent start gives each worker an independent,
+receipt-backed preflight. Codex requires review and trust of the installed hook
+definition before it runs. Claude Code loads the hook with the enabled plugin.
+
+Startup recall loads a bounded brief of shared project guidance and this
+agent's durable memories, including captures from earlier sessions. Workflow
+and session memories remain limited to their matching scope. It does not
+depend on memories containing special startup keywords. Use targeted recall
+when the task changes; the startup brief is not an exhaustive search.
+
+Stop and subagent-stop enforce one agent-mediated memory checkpoint. The
+lifecycle parser uses only stable harness identity and project fields; it never
+inspects or persists `transcript_path`, `last_assistant_message`, prompts, or
+transcript content. The checkpoint asks the active agent to evaluate its
+already-grounded work. If and only if that evaluation yields a concise,
+durable, normal-sensitivity candidate, the agent automatically runs the exact
+strict `tree-ring capture` command template returned by the lifecycle handler.
+Strict capture fixes agent scope, requires identity and provenance, adds an
+automatic-capture tag, and rejects sensitive candidates. No candidate means no
+memory write. This is one bounded checkpoint, not a recorder or automatic
+summary of every turn.
+
+The hook wrapper resolves the Git project root when available, prefers that
+project's `.tree-ring/bin/tree-ring`, and otherwise uses `tree-ring` from
+`PATH`. It then invokes the shared lifecycle entry point with the project-local
+`.tree-ring` root. A project or linked worktree with no local `.tree-ring` entry
+is skipped quietly without creating memory or using the primary checkout's
+store. Existing roots, including dangling symlinks and roots with missing or
+invalid activation metadata, still reach runtime diagnostics. An unavailable
+or incompatible CLI is not active-harness proof and cannot be reported as a
+successful checkpoint or capture.
+
+When the host's effective project hook contains the managed lifecycle definition,
+that definition owns recall and stop checkpoints. The marketplace wrapper
+detects the exact managed marker and exits without invoking the CLI, preventing
+duplicate context, receipts, checkpoint continuations, or capture attempts.
+
+For Codex's root `.codex` layer in a validated linked worktree, the wrapper
+checks the corresponding primary-checkout `.codex/hooks.json` exclusively;
+Codex ignores the worktree-local hook file in that case. The worktree must have
+its own `.codex` directory for that layer to exist. Git metadata must prove the
+reciprocal worktree and primary ownership; uncertain layouts dispatch normally.
+This deduplication covers the root layer generated by Tree Ring, not custom
+nested hook layers. Claude continues to check the local `.claude/settings.json`;
+the wrapper does not assume that every Claude worktree inherits primary hooks.
+Hook source selection never changes the current worktree's memory root.
+
+`integrations status --verbose` reports the last validated recall's result
+count and query class. A zero-result receipt proves the check ran; it does not
+prove that useful context was found. Older skills-only packages omitted
+automatic lifecycle hooks. Current Git and public upload packages include them. A newly configured Codex hook still needs
+the host's trust flow and a new session before automatic execution can be
+verified.
+
+Installer onboarding requires CLI 0.15.7 or newer to create the activation
+manifest and native project hooks in the same install action. On earlier 0.15
+CLIs, run `tree-ring init` explicitly after the installer. Onboarding readiness
+is configuration; a fresh host receipt is required to prove automatic recall.

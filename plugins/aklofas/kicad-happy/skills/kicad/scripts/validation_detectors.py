@@ -481,7 +481,7 @@ def _estimate_rail_voltage_for_ic(ctx: AnalysisContext, ref: str) -> float | Non
     """Estimate IC supply rail voltage. Regulators use VIN pin; others use first power net."""
     comp = ctx.comp_lookup.get(ref, {})
     mpn = comp.get('mpn') or comp.get('value', '')
-    feat = get_regulator_features(mpn) if mpn else None
+    feat = get_regulator_features(mpn, project_dir=ctx.project_dir) if mpn else None
     if feat and not feat.get('quality', {}).get('trusted', True):
         feat = None   # deterministic detectors keep the v1.4 trust gate (v2.0 §3.A.1)
     if feat and feat.get('vin_pin'):
@@ -577,7 +577,7 @@ def validate_voltage_levels(ctx: AnalysisContext, level_shifters: list[dict] | N
             comp = ctx.comp_lookup.get(p['ref'], {})
             p_mpn = comp.get('mpn') or comp.get('value', '')
             # Datasheet-backed path: check EN pin threshold
-            ds_feat = get_regulator_features(p_mpn) if p_mpn else None
+            ds_feat = get_regulator_features(p_mpn, project_dir=ctx.project_dir) if p_mpn else None
             if ds_feat and not ds_feat.get('quality', {}).get('trusted', True):
                 ds_feat = None   # deterministic detectors keep the v1.4 trust gate (v2.0 §3.A.1)
             if ds_feat and ds_feat.get('en_pin'):
@@ -919,7 +919,7 @@ def validate_usb_bus(ctx: AnalysisContext) -> list[dict]:
                 c = ctx.comp_lookup.get(p['component'], {})
                 if c.get('type') not in ('connector',) and match_ic_keywords(c, ('esp32', 'stm32', 'rp2040', 'rp2350', 'nrf52', 'samd', 'lpc', 'atm')):
                     mcu_mpn = c.get('mpn') or c.get('value', '')
-                    mcu_feat = get_mcu_features(mcu_mpn) if mcu_mpn else None
+                    mcu_feat = get_mcu_features(mcu_mpn, project_dir=ctx.project_dir) if mcu_mpn else None
                     if mcu_feat and not mcu_feat.get('quality', {}).get('trusted', True):
                         mcu_feat = None   # deterministic detectors keep the v1.4 trust gate (v2.0 §3.A.1)
                     if mcu_feat and mcu_feat.get('has_native_usb_phy') is True and mcu_feat.get('usb_series_r_required') is False:
@@ -1046,7 +1046,7 @@ def validate_power_sequencing(
             continue
         comp = ctx.comp_lookup.get(ref, {})
         mpn = comp.get('mpn') or comp.get('value', '')
-        ds_feat = get_regulator_features(mpn) if mpn else None
+        ds_feat = get_regulator_features(mpn, project_dir=ctx.project_dir) if mpn else None
         if ds_feat and not ds_feat.get('quality', {}).get('trusted', True):
             ds_feat = None   # deterministic detectors keep the v1.4 trust gate (v2.0 §3.A.1)
         if ds_feat and ds_feat.get('has_pg') is False:

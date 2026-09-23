@@ -12,6 +12,19 @@ disable-model-invocation: true
 
 # Skill Authoring
 
+Load `skills/blocks/engineering-method-selection.md` from the installed plugin
+and apply only the methods relevant to this task. Preserve this entry point's
+execution contract and output format. Read referenced skills as instructions;
+do not invoke the current command recursively or add provider calls from a seat.
+
+## Domain language
+
+Load `skills/blocks/domain-modeling.md` when a skill discusses providers, models,
+access, billing, reviewers, or votes. Reuse the shared definitions instead of
+inventing local synonyms. State the source and time of observations. Never infer
+authentication, entitlement, billing mode, quota, or model-family independence
+from a binary or transport name alone.
+
 A skill exists to get determinism out of a stochastic system. **Predictability**
 is the goal, and it means the agent takes the same *process* every run — not that
 it produces the same output. Every rule below serves that.

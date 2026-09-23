@@ -121,10 +121,10 @@ preset format (see `references/presets.md` for schema details).
 
 ## Creating Custom Presets
 
-Users can create their own presets:
-```bash
-python3 ~/.claude/skills/seo-image-gen/scripts/presets.py create my-brand
-```
+Users can create their own presets with the installed Banana MCP preset tool.
+If the standalone Banana extension is not installed, configure it before using
+custom presets. The core claude-seo skill does not assume a local fallback
+script or a fixed personal configuration directory.
 
 This creates `~/.banana/presets/my-brand.json` with the full schema.
 Custom presets override SEO defaults when specified.

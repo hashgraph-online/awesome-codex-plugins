@@ -206,7 +206,7 @@ Every design decision maps to patterns above:
 ## max_budget_usd Invariant (moved from SKILL.md 2026-05-28)
 
 `max_budget_usd` is mandatory infrastructure, not optional config. Treat it like a circuit
-breaker, not a preference. One stuck retry loop at $0.40-0.60/query × hundreds of retries
+breaker, not a preference. One stuck retry loop at $0.40-0.60/query times hundreds of retries
 becomes a silent four-figure invoice. The cap is the only thing standing between you and that.
 
 Required for:

@@ -1,0 +1,8 @@
+version: 2
+updates:
+  # The workflow pins actions by SHA, so a new release is invisible without this.
+  # Dependabot opens the bump PR; CI decides whether it lands.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

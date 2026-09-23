@@ -1,6 +1,6 @@
-# Doctor & Autonomous Recovery
+# Doctor & Bounded Authorized Recovery
 
-> **The contract:** `cass doctor --fix --json` is **safe by default**. It rebuilds derived data (Tantivy index, FTS table) from source SQLite — it never deletes source session files. Use it without asking the user.
+> **The contract:** Select recovery only when needed and authorized for its sources, model, destination and derived-state writes. Healthy and stale-but-usable indexes can be searched immediately. A search-only request does not authorize refresh/rebuild; unknown status is not proof of corruption. Preserve source sessions and bound recovery commands with a wall-clock cap.
 
 ## Contents
 
@@ -9,7 +9,7 @@
 - [Real-World Recovery Recipes](#real-world-recovery-recipes)
 - [What `--fix` Does NOT Do](#what---fix-does-not-do)
 - [Disk Cleanup (ALWAYS ask first)](#disk-cleanup-always-ask-first)
-- [Pre-Flight Hook Pattern](#pre-flight-hook-pattern)
+- [Optional Recovery Invocation](#optional-recovery-invocation)
 
 ---
 
@@ -18,8 +18,8 @@
 ```bash
 cass doctor --json                       # Read-only diagnosis
 cass doctor --json --verbose             # Show passed checks too
-cass doctor --fix --json                 # Apply safe rebuilds (USE THIS)
-cass doctor --fix --force-rebuild --json # Same + force index rebuild even if healthy
+timeout 600 cass doctor --fix --json     # Apply selected authorized repairs
+timeout 600 cass doctor --fix --force-rebuild --json # Force only for a diagnosed need
 ```
 
 `--fix` runs a 7-step protocol:
@@ -64,7 +64,7 @@ Backup format: `agent_search.db.corrupt.20260315_154822_759` (sortable timestamp
 Parse `failures[]` (top-level array of failed check names) for blocking issues. Anything in `auto_fix_actions` happened automatically. **Do not look for a `.summary` key — it doesn't exist.**
 
 ```bash
-cass doctor --fix --json | jq '{
+timeout 600 cass doctor --fix --json | jq '{
   ok: .healthy,
   issues_found, issues_fixed,
   applied: .auto_fix_actions,
@@ -84,7 +84,7 @@ cass status --json | jq '.database.messages, .index.documents'
 # 664027  0
 
 # Fix
-cass doctor --fix --json | jq '.auto_fix_actions'
+timeout 600 cass doctor --fix --json | jq '.auto_fix_actions'
 # ["Rebuilt search index from database"]
 ```
 
@@ -96,7 +96,7 @@ cass status --json | jq '.database.open_error'
 # "database disk image is malformed"
 
 # Fix
-cass doctor --fix --json
+timeout 600 cass doctor --fix --json
 # Backs up bad DB to .corrupt.<ts>, then rebuilds index from corrupt-salvage if possible
 ```
 
@@ -108,7 +108,7 @@ ps -p $(cass status --json | jq -r '.active_index.pid // empty')
 # (no such process)
 
 # Fix (doctor handles >1h-old locks; for fresher locks, force it)
-cass doctor --fix --force-rebuild --json
+timeout 600 cass doctor --fix --force-rebuild --json
 ```
 
 ### Incremental index hangs at current:0 (OPEN issue #196)
@@ -116,7 +116,7 @@ cass doctor --fix --force-rebuild --json
 ```bash
 # Workaround until fixed upstream
 pkill -f "cass index"
-cass index --full --force-rebuild --json
+timeout 600 cass index --full --force-rebuild --json
 ```
 
 `cass status` keeps showing `rebuilding` after the kill? `cass doctor --fix` clears the run lock.
@@ -151,7 +151,7 @@ cass search "common-term-from-your-corpus" --limit 1 --json --robot-meta \
 # Wait for any concurrent cass processes to settle
 sleep 30
 # A trivial incremental run is usually enough to land the timestamp
-cass index --json
+timeout 600 cass index --json
 ```
 
 If a concurrent rebuild is still active (`cass status --json | jq '.rebuild.active'`), the timestamp will be written when it completes. Don't fight it.
@@ -168,7 +168,7 @@ If a concurrent rebuild is still active (`cass status --json | jq '.rebuild.acti
 - **Re-download semantic models** — that requires `cass models install`
 - **Cross network boundaries** — only operates on local data dir
 
-So you can run `cass doctor --fix` autonomously without permission. Document the action in your response, but don't ask first.
+When recovery is already authorized, run the selected bounded repair and report the result without asking again. Source preservation alone does not grant recovery scope or permission to read additional sources.
 
 ---
 
@@ -196,41 +196,19 @@ Surface the disk usage, list candidates with sizes/ages, and let the user decide
 
 ---
 
-## Pre-Flight Hook Pattern
+## Optional Recovery Invocation
 
-For agents that should never run against a broken index:
+Do not install a search hook or start an index watcher as part of retrieval.
+When recovery is needed and its full derived-state scope is already authorized,
+inspect and invoke the existing helper:
 
 ```bash
-#!/usr/bin/env bash
-# pre-cass-search.sh
-# Decision tree: fresh → ok, stale-but-usable → bg refresh + ok, broken → doctor
-set -uo pipefail
-
-# 50ms preflight: exit 0 means already-fresh
-if cass health --json >/dev/null 2>&1; then
-  exit 0
-fi
-
-# Health failed — read full status to differentiate stale vs broken
-state=$(cass status --json 2>/dev/null \
-  | jq -r '"\(.index.stale // false),\(.database.exists // false),\(.database.messages // 0),\(.index.documents // 0)"')
-
-case "$state" in
-  true,true,*)
-    # stale index, DB present — usable; refresh in background
-    cass index --json >/tmp/cass-bg.log 2>&1 &
-    disown || true
-    exit 0
-    ;;
-  *)
-    # broken / uninitialized / DB missing — try to repair (doctor never deletes sources)
-    if cass doctor --fix --json >&2; then
-      cass health --json >/dev/null 2>&1 && exit 0 || exit 1
-    else
-      exit 1
-    fi
-    ;;
-esac
+# This may refresh a stale index or repair/rebuild derived state.
+CASS_STATUS_TIMEOUT=15 CASS_REBUILD_TIMEOUT=600 ./scripts/recover.sh
 ```
 
-Wire into Claude Code as a `PreToolUse` hook scoped to `cass search`. Use the same shape as `scripts/recover.sh` for the inline decision tree.
+The helper's individual index calls are capped. A stale usable index is still
+searchable; refreshing is an optional selected operation, not a prerequisite.
+If a status read is unavailable or an existing rebuild is progressing, retain
+that uncertainty rather than stacking another repair. See
+[OBSERVABILITY.md](OBSERVABILITY.md#authoritative-fallback-and-concurrent-read-latency).

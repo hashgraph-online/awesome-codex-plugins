@@ -43,8 +43,8 @@ Write the absolute path. Keep the first three sections. Include the later sectio
 
 ## Files and existing work
 - `path/to/file.ext` — [what it contains and why it matters]
-- Plan: `docs/plans/NNNN__...md` — [what it settles]
-- Chronicle: `docs/chronicles/NNNN__...md` — [what it records]
+- Plan: `docs/plans/YYYY-MM-DD__slug.md` - [what it settles]
+- Chronicle: `docs/chronicles/YYYY-MM-DD__slug.md` - [what it records]
 - Other: [PRD, ADR, issue, pull request, commit, or URL]
 
 ## Questions still open

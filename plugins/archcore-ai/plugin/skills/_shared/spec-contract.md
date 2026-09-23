@@ -51,7 +51,8 @@ If it answers *"what behavior can consumers rely on right now"*, it is a spec.
 6. **Conformance** — what makes an implementation correct: satisfies all MUST
    requirements, all invariants, and all failure rules. MAY close with ONE
    non-normative example block (≤ 5 lines, Given/When/Then) anchoring the most
-   load-bearing behavior.
+   load-bearing behavior; an example past that allowance belongs in a linked `scenario`
+   (`skills/_shared/scenario-contract.md`, `scenario depends_on spec`).
 
 ## Notation
 
@@ -118,8 +119,9 @@ below that the evidence supports.
 3. WHEN the subject exposes two or more independently consumable sub-surfaces, the
    skill MUST compose one spec per sub-surface, each inside the default cap
    (`filename=<subject-slug>-<sub-surface-slug>`).
-4. The skill MUST link sub-specs to each other with `related` via
-   `mcp__archcore__add_relation`.
+4. The skill MUST evaluate links between sub-specs through
+   `skills/_shared/relation-authoring.md`: a shared boundary or a reading sequence
+   that requires both parts justifies `related`; splitting alone creates no edge.
 5. IF no sub-surface boundary is unambiguous, THEN the skill MUST keep the subject as
    one spec — a cohesive contract is not split to satisfy a line count.
 6. WHEN a spec stays over the cap under rule 5, the skill MUST name the excess and its

@@ -497,9 +497,9 @@ function hueWord(H) {
 
 // ---------------------------------------------------------------
 
-const args = parseArgs(process.argv.slice(2));
-const seed = pickSeed(SEEDS, args);
-const [L, C, H] = seed.oklch;
+export function renderPalette(options = {}) {
+  const seed = pickSeed(SEEDS, options);
+  const [L, C, H] = seed.oklch;
 
 // The mood + strategy on each seed were derived by the model that
 // originally judged it. We surface them as *hints*, not commands —
@@ -511,7 +511,7 @@ const strategyHint = seed.strategy ? `\n  - one example strategy: ${seed.strateg
 // Fat tool-exit response — what the model sees on stdout.
 // ---------------------------------------------------------------
 
-process.stdout.write(`BRAND SEED · ${seed.id}
+  return `BRAND SEED · ${seed.id}
 
 Seed color (anchor for your primary brand color):
   ${fmtOklch(seed.oklch)} — ${hueWord(H)}${moodHint}
@@ -630,4 +630,12 @@ Dark text is correct only on PALE fills (L > 0.85) or PURE-NEUTRAL fills
 
 Return your composed palette in CSS custom properties using OKLCH, then
 build with it. The seed is the start, not the recipe.
-`);
+`;
+}
+
+// CLI entry — unchanged behavior for `node palette.mjs --id seed-021`.
+const invokedAsScript =
+  process.argv[1] && (process.argv[1].endsWith('palette.mjs') || process.argv[1].endsWith('palette.mjs/'));
+if (invokedAsScript) {
+  process.stdout.write(renderPalette(parseArgs(process.argv.slice(2))));
+}

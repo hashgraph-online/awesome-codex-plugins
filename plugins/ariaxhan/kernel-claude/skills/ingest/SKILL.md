@@ -287,7 +287,7 @@ rule: you do NOT write code
 
 <branch after="execute">
   IF adversary rejects (tier 3) → return to execute with adversary feedback, max 3 retries
-  IF tests fail → /kernel:diagnose, fix, re-execute
+  IF tests fail → /kernel:debug, fix, re-execute
   IF blocked → checkpoint and STOP, ask human
 </branch>
 

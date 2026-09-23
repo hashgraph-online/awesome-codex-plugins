@@ -143,7 +143,7 @@ Every skill shows you a draft first and waits for your OK. Nothing gets posted w
 |---|---|
 | **Post Writer** | Drafts a single tweet (or short auto-thread) using a 2026 X hook formula picked by goal: replies, reposts, likes, or bookmarks. Respects the 280-char limit (25,000 on Premium) |
 | **Thread Builder** | Builds long-form tweetstorms (listicle, story, curiosity-gap, how-I teardown). Structures tweet 1 as a promise plus open loop, front-loads value, closes for the repost |
-| **Humanizer** | Strips em dashes, AI vocabulary ("leverage", "delve", "harness"), rule-of-three lists, and uniform tweet rhythm. Bundles a `--mode audit` pre-publish check (280-char fit, hook, hashtags, link placement) |
+| **Humanizer** | Removes the AI tells human readers react to: 2026 AI vocabulary scored by density per tweet, reveal bridges, staccato fragment stacks, stacked triads, performed sincerity; caps em dashes at one per tweet instead of banning them, and never forces rhythm on a single tweet (uniform rhythm wins on short posts). Does not promise to beat detectors (no edit reliably does). Bundles a `--mode audit` pre-publish check (280-char fit, hook, hashtags, link placement) |
 | **Hook Extractor** | Reverse-engineers the hook from any viral tweet or thread. Maps it to one of the 11 X formulas and returns a blank template you can fill |
 | **Reply Drafter** | Drafts a reply or a value-add quote tweet for any tweet URL. Decides reply vs quote tweet. X has no LinkedIn-style thread flattening, so a reply is just a tweet |
 | **Content Planner** | Creates a weekly plan with a single-to-thread mix, per-day hooks, posting times, daily reply targets, and a goal-mix balance check |
@@ -164,6 +164,8 @@ By default, the skills draft content for you to copy-paste into X. If you want C
 ### What is Publora?
 
 [Publora](https://publora.com) is a publishing API that turns one `create-post` call into a full X thread (and can cross-post the same content to LinkedIn, Threads, and more).
+
+Publora also ships [official MCP skills](https://github.com/publora/skills) (`npx skills add publora/skills`): one skill per platform, covering the publish side only. This bundle is the layer above them, adding the reading, the writing craft and the approval flow.
 
 ### Setup (2 minutes)
 
@@ -216,9 +218,9 @@ Setup: drop `PIXFARO_TOKEN=pf_live_...` into your `.env`. The thin client at `li
 
 Every skill follows these rules automatically:
 
-1. No em dashes. Biggest AI tell in 2026.
+1. Em dashes capped at one per tweet. The character stopped being a tell in 2026; the density is.
 2. Capitalize names. Always. Lowercase a brand reads as careless.
-3. No AI vocabulary: "leverage", "fundamentally", "streamline", "harness", "delve", "unlock", "foster".
+3. No AI vocabulary clusters. One 2026 marker ("leverage", "significant", "streamline", "foster") in a tweet is English; three in one tweet reads as AI and gets the tweet rewritten.
 4. Specific numbers beat adjectives. "2.4x" beats "way better".
 5. One idea per tweet. The first line carries everything (no "see more" fold on X).
 6. 280 chars per tweet on a standard account (emoji = 2 each). 0-1 hashtag, 0-1 emoji.

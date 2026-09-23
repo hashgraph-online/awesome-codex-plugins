@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-labelledby="t">
+  <title id="t">Command Code Usage</title>
+  <!-- 输入框旁边那个小图标：同一个标记，去掉底和轨道，缩小尺寸下只留三条。
+       这里不能画轨道——宿主底色未必是深色，轨道会整条糊掉或整条留白。 -->
+  <rect x="3" y="5" width="9" height="6" rx="3" fill="#4ec97a"/>
+  <rect x="3" y="13" width="18" height="6" rx="3" fill="#e6b445"/>
+  <rect x="3" y="21" width="24" height="6" rx="3" fill="#e5534b"/>
+</svg>

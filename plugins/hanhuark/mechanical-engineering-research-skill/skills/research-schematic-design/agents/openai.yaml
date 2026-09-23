@@ -1,0 +1,4 @@
+interface:
+  display_name: "Research Schematic Design"
+  short_description: "Create editable, publication-quality scientific schematics."
+  default_prompt: "Create a publication-ready engineering schematic from this technical brief. Keep all labels, arrows, units, and geometry editable and verify that the visual claims match the available evidence."

@@ -1,0 +1,11 @@
+.git/
+.github/
+.pytest_cache/
+.ruff_cache/
+.venv/
+tests/
+docs/
+coverage.xml
+htmlcov/
+*.py[cod]
+*.egg-info/

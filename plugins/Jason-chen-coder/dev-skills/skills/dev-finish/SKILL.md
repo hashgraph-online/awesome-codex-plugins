@@ -1,175 +1,52 @@
 ---
 name: dev-finish
-description: Use when implementation and verification are complete and the user needs to finish a development branch by merging locally, creating a PR, keeping the branch, or discarding work. Applies after tests pass and code review is ready.
+description: Complete an implemented development branch through an authorized local commit/merge, push and PR, preservation, or discard. Inspect scope and applicable verification before delivery; respect an already selected action without repeating a menu. Does not replace implementation or review.
 ---
 
 # Dev Finish
 
-Branch completion workflow. The goal is to make the last mile explicit: verify, inspect git state, present safe choices, then execute only what the user selects.
+Complete the delivery action the user requested, using the actual Git state and evidence. Permission for one action does not imply permission for unrelated publication or cleanup.
 
-This skill does not implement code, write tests, or review code. Run `dev-verify` and `dev-code-review` first unless the user explicitly overrides.
+## Load baseline
 
----
+Read [references/dev-baseline.md](references/dev-baseline.md) before execution. Resolve paths relative to this skill directory.
 
-## Step 0 — Load baseline
+## Preflight
 
-执行前先加载 `references/dev-baseline.md`。**不假设**、**最小代码**、**外科手术式改动**、**可验证成功标准** 全程生效。
+Inspect the repository root, branch or detached HEAD, current commit, working-tree/index status, remotes, upstream, and worktrees as relevant. Preserve unrelated changes and partial staging. Do not stash, reset, or discard user work to obtain a clean tree.
 
-baseline 与本 skill 的关联:
-- **不假设** —— 不替用户决定 merge / PR / keep / discard。
-- **可验证成功标准** —— 完成分支前必须有 fresh verification evidence。
-- **外科手术式改动** —— 不顺手清理未被确认的分支、stash、worktree。
+Verify the files or commit to be delivered have appropriate passing checks and any required review. Existing evidence is usable when it still covers the exact relevant state; rerun affected checks after changes. `dev-verify` and `dev-code-review` may provide evidence when installed, but equivalent checks work without them.
 
----
+Read the user's requested destination and existing authorization. If the action is already clear, prepare and execute it without another menu. If no finish action is specified, finish preflight first and ask for the single missing decision. Missing destination or ambiguous destructive scope requires clarification; a dirty tree alone does not.
 
-## Step 1 — Preflight verification
+Failures block claims of verified delivery and any repository-required gate. Resolve failures within authorized scope where possible. Preserving a branch or making an explicitly requested draft PR with disclosed failures may still be appropriate; do not label that state ready to merge.
 
-先确认:
-1. `dev-verify` 已给出当前回合的 PASS 证据,或你现在运行等价验证。
-2. `dev-code-review` verdict 是 READY,或用户明确接受跳过 review 的风险。
-3. `git status --short` 已读取,知道是否有未提交改动。
+## Commit and merge
 
-如果测试或 review 未通过,停止:
+For a requested local commit, inspect the exact intended staged diff and use a message based on those changes. Stage only authorized files or hunks; preserve unrelated index entries. When an unrelated staged change prevents forming the requested commit safely, clarify scope or use a safe isolated approach. A request for a commit does not authorize a push.
 
-```
-不能 finish: <tests/review/status> 未通过。
-下一步: 修复后重跑 dev-verify / dev-code-review。
-```
+For a local merge, determine the target from the user's request, upstream/default-branch metadata, and repository conventions. A successful `merge-base` against `main` does not identify the intended destination by itself. Verify the target checkout/worktree is suitable, perform the authorized merge, and check the merged result. Resolve conflicts within scope; do not choose away another contributor's changes without understanding them.
 
----
+Do not automatically `pull` or push the target as a hidden merge substep. Fetch when remote freshness is needed and permitted, then integrate only the intended changes. A merge alone does not authorize deleting branches or worktrees.
 
-## Step 2 — Detect workspace state
+## Push and PR
 
-运行只读命令:
+Confirm the requested remote, source branch, and PR base from observed repository state. Check for an existing PR before creating a duplicate. Review the exact commits to be published, then push and create/update the PR when that action is authorized. Never force-push by default.
 
-```bash
-git status --short
-git branch --show-current
-git rev-parse --show-toplevel
-git rev-parse --git-dir
-git rev-parse --git-common-dir
-```
+A requested PR normally authorizes the push needed to publish its branch; prior authorization remains valid. Use the repository's PR template, or a concise problem/change/validation description. Disclose unresolved test or review failures and use draft status when warranted. Keep the worktree available for follow-up review.
 
-判断:
-- 普通 checkout:`git-dir == git-common-dir`
-- linked worktree:`git-dir != git-common-dir`
-- detached HEAD:`git branch --show-current` 为空
+## Preserve or discard
 
-如果工作区有未提交改动,先问用户是否要 commit / stash / keep uncommitted。不要继续 merge / PR。
+For preservation, report branch/commit and path without changing them.
 
----
+Before destructive cleanup, establish the exact branch, commits, path, uncommitted contents, and ownership. A vague "finish" request does not authorize deletion. If the user has already explicitly authorized discarding that exact work, do not require a magic confirmation word; otherwise present the concrete loss and request confirmation before deletion.
 
-## Step 3 — Determine base branch
+Clean up only task-owned branches/worktrees covered by authorization, after confirming required work is merged or intentionally discarded. Directory name alone does not prove ownership. Never remove a platform-managed workspace as routine cleanup; preserve it if ownership or external lifecycle requirements are unclear.
 
-优先探测:
+## Completion
 
-```bash
-git merge-base HEAD main
-git merge-base HEAD master
-git remote -v
-```
-
-如果无法判断 base branch,问用户确认。不要默认推送到未知目标。
-
----
-
-## Step 4 — Present choices
-
-普通分支输出四选一:
-
-```
-分支已验证。请选择:
-
-1. 本地 merge 回 <base-branch>
-2. push 当前分支并创建 PR
-3. 保留当前分支,我稍后自己处理
-4. 丢弃这个分支的工作
-
-你选哪一个?
-```
-
-Detached HEAD 输出三选一:
-
-```
-当前是 detached HEAD。请选择:
-
-1. 新建分支后 push 并创建 PR
-2. 保留当前 workspace,我稍后自己处理
-3. 丢弃这个 workspace 的工作
-
-你选哪一个?
-```
-
-不要在同一步执行动作。等用户选择。
-
----
-
-## Step 5 — Execute selected option
-
-### Option 1: merge locally
-
-1. 切到 base branch。
-2. pull 最新 base。
-3. merge feature branch。
-4. 在 merge 后结果上重新运行关键验证。
-5. merge 成功且验证通过后,再考虑删除分支 / 清理 worktree。
-
-禁止在 merge 成功前删除任何东西。
-
-### Option 2: push and create PR
-
-1. `git push -u origin <branch>`
-2. 用仓库现有 PR 工具创建 PR。
-3. PR body 必须包含 Summary 和 Test Plan。
-4. 不清理 worktree,因为后续可能要处理 review。
-
-### Option 3: keep as-is
-
-报告 branch 和 path。不要清理。
-
-### Option 4: discard
-
-必须要求用户输入精确确认:
-
-```
-这会删除:
-- branch: <branch>
-- commits: <commit list>
-- worktree: <path, if owned>
-
-请输入 discard 确认。
-```
-
-没有精确 `discard` 就停止。
-
----
-
-## Step 6 — Worktree cleanup rules
-
-只在用户选择 merge 后清理或 discard 后清理。
-
-只能清理明确由项目拥有的 worktree:
-- `.worktrees/`
-- `worktrees/`
-- `~/.config/dev-skills/worktrees/`
-
-不清理平台 / harness 拥有的 workspace。无法判断归属时保留并报告。
-
----
-
-## Hard rules
-
-- 测试或 review 未过,不 finish。
-- 不替用户选择 merge / PR / keep / discard。
-- 丢弃必须有精确确认。
-- 不在 merge 成功前删除 branch 或 worktree。
-- PR 路径不清理 worktree。
-- 无法判断 base branch 或 workspace 归属时,先问。
-
----
+Report the result appropriate to the action: commit hash, merge target, PR link, retained path, or exact discarded scope. Include relevant verification and any unfinished step. A tool command being launched or a PR existing is not evidence that merge or CI completed.
 
 ## Multi-Agent Note
 
-`dev-finish` is main-agent-controlled because it can merge, push, create PRs, keep branches, or discard work.
-
-Sub-agents may provide verification or review evidence before this phase, but final branch decisions and destructive operations stay with the main agent and the user. Follow `../../docs/multi-agent-policy.md` before relying on any delegated verifier or reviewer output.
+The main agent controls Git mutations and user-facing delivery. Independent agents may review diffs or verify snapshots when delegation is permitted, but they do not independently push, merge, or delete shared work. Use `docs/multi-agent-policy.md` when this repository is available; standalone installations use the same ownership and authorization rules above.

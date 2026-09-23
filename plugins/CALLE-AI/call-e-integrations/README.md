@@ -44,13 +44,14 @@ Keep those paths exactly as shown so the marketplace entry can resolve
 
 ## Authentication
 
-The plugin uses the repository-local CLI when available, then a global `calle`
-command when available, then falls back to `npx -y @call-e/cli`.
+The plugin uses a verified absolute `@call-e/cli` entry point. Follow
+[CLI entry point selection](../../cli/docs/cli-reference.md#selecting-the-cli-entry-point)
+to prepare the bundled launcher and a JSON request before running CLI commands.
 
 To authenticate before using the plugin:
 
-```bash
-npx -y @call-e/cli auth login
+```json
+["auth", "login"]
 ```
 
 When `$calle` is invoked, the skill checks authorization first. If login is

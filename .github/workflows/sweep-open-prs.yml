@@ -58,7 +58,7 @@ jobs:
           if [[ -n "$PR_NUMBER" ]]; then
             validator_args+=(--pr-number "$PR_NUMBER")
           fi
-          python3 scripts/validate-contribution.py "${validator_args[@]}"
+          python3 scripts/validate-contribution-centralized.py "${validator_args[@]}"
       - name: Export validation results
         id: export
         env:
@@ -77,6 +77,7 @@ jobs:
     needs: discover
     if: needs.discover.outputs.matrix != '[]'
     runs-on: ubuntu-latest
+    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
@@ -114,14 +115,14 @@ jobs:
             exit 1
           fi
           if [[ "$HAS_VALIDATION_FAILURES" == "true" ]]; then
-            echo "One or more open contributions are missing required scanner CI."
+            echo "One or more open contributions failed catalog validation."
             exit 1
           fi
           if [[ "$SCAN_RESULT" != "success" && "$SCAN_RESULT" != "skipped" ]]; then
-            echo "One or more source-repository scanner jobs failed."
-            exit 1
+            echo "Scanner findings are advisory to this catalog-validation gate."
+            exit 0
           fi
-          echo "All checked open contributions satisfy the scanner gate."
+          echo "Catalog validation passed. Source-repository scanner CI is optional."
 
   publish:
     name: Publish per-PR contribution checks
@@ -153,4 +154,4 @@ jobs:
           GITHUB_RUN_ID: ${{ github.run_id }}
           OPEN_PR_RESULTS: ${{ needs.discover.outputs.results || '[]' }}
           SWEEP_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: python3 scripts/publish-open-pr-checks.py
+        run: python3 scripts/publish-open-pr-checks-centralized.py

@@ -30,15 +30,27 @@ hand; settled at `describe.draft`.
 | Behavior others rely on — an API, interface, schema, or protocol boundary, or a feature/subsystem with states, field-driven rules, and invariants | `spec` |
 | Reference material — a registry, glossary, or lookup | `doc` |
 | How-to instructions or procedures | `guide` |
+| An actor-subject flow of existing behavior with examples that illustrate a covering `spec` | `scenario` beside the `spec`, `depends_on` → that `spec` |
+| The subject text names a type this track produces — `spec`, `doc`, `guide`, or `scenario` | that type; the type question does not fire |
 | A module described comprehensively ("document everything about X") | `guide`, plus `spec` when others rely on the module's behavior, plus `doc` when the evidence includes reference material (a registry, glossary, or lookup). [assumption] The v1 flow also created an `adr` on this route; a settled decision surfaced by the evidence now routes to the decision track. |
 
 Default after the one type question at `describe.draft`: `spec` when others
 rely on the subject's behavior; `doc` otherwise. [assumption] The v1 default
 was `adr`, a type the decision track now owns.
 
+The `scenario` row binds only when `skills/_shared/actor-subject-compatibility.md`
+returned `yes`; the executing skill composes it per
+`skills/_shared/scenario-contract.md`. `describe.read` reads a feature file as
+evidence and never copies a feature file into `.archcore/` — a copy is a second
+canon; the scenario cites the file in its `Anchors:` line instead.
+
+This track never produces a `journey`. An intended path of a user type with no
+covering `spec` belongs to `/archcore:plan`; the executing skill names that command
+in the closing report and creates nothing.
+
 ### gate: describe.read
 
-- Purpose: Gather the evidence base — files, entry points, observed behavior — and rule out duplicate documents.
+- Purpose: Gather the evidence base — files, entry points, observed behavior, and, when present, `features/*.feature` files for the subject as evidence for Failure Behavior and Conformance — and rule out duplicate documents.
 - Entry conditions:
   - skip_when: the request already carries the evidence — file paths, entry points, and a behavior description.
   - The request names a code subject locatable in the repository.
@@ -63,15 +75,16 @@ was `adr`, a type the decision track now owns.
   - taxonomy: `Functional Scope & Behavior` from `skills/_shared/coverage-taxonomy.md`. [assumption] The v1 flow named no coverage category for its type question.
   - budget: 1 — the ported type question: "Is this primarily a decision, a contract/behavior spec, reference material, or instructions?"
 - Produces:
-  - type: `spec`, `doc`, or `guide` per the type heuristics; the comprehensive route produces more than one document, and an over-cap subject one `spec` per separable sub-surface (`skills/_shared/spec-contract.md` "Over the cap").
+  - type: `spec`, `doc`, `guide`, or `scenario` per the type heuristics; the comprehensive route produces more than one document, and an over-cap subject one `spec` per separable sub-surface (`skills/_shared/spec-contract.md` "Over the cap"); a `scenario` with no covering `spec` produces that `spec` first.
   - status: draft
-  - relations: `related` to the existing subject documents found at `describe.read` — the v1 relate step names the link to existing documents but not the relation type [assumption]; `related` between documents produced together; no relation to a global document per `skills/_shared/globals.md`.
+  - relations: evaluate existing subject documents and documents produced together through `skills/_shared/relation-authoring.md`; add only supported claims, using their justified type and direction; none when no claim exists. A produced `scenario` requires `depends_on` → its covering `spec`. Global endpoints remain excluded per `skills/_shared/globals.md`.
 - Exit checks:
   - blocking: a draft of the chosen type exists, created via `create_document`.
   - blocking: a `spec` draft carries the sections `skills/_shared/spec-contract.md` requires, composed after reading that contract and `skills/_shared/precision-rules.md`.
   - blocking: a `spec` draft over that contract's body cap was decomposed by separable sub-surface, or kept whole with the excess reported, per its "Over the cap" rules. Normative content is never deleted to fit the cap.
   - blocking: a `doc` draft covers Overview, Content, and Examples — a ported v1 composition target; no shared contract exists for this type.
   - blocking: a `guide` draft carries every section `skills/_shared/guide-contract.md` requires, composed after reading that contract.
+  - blocking: a `scenario` draft carries the sections `skills/_shared/scenario-contract.md` requires, cites the feature files read at `describe.read` in its `Anchors:` lines, and carries `depends_on` → the covering `spec`.
 - Next: `describe.clarify`. WHEN the type answer is "a decision", the executing skill records it via the decision track (`skills/_shared/tracks/decision.md`) instead of continuing on this track.
 
 ### gate: describe.clarify

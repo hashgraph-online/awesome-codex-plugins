@@ -1,12 +1,12 @@
 ---
 name: seo
-description: "Comprehensive SEO analysis for any website or business type. Full site audits, single-page analysis, technical SEO (crawlability, indexability, Core Web Vitals with INP), schema markup, content quality (E-E-A-T), image optimization, sitemap analysis, and GEO for AI Overviews/ChatGPT/Perplexity. Industry detection for SaaS, e-commerce, local, publishers, agencies. Triggers on: SEO, audit, schema, Core Web Vitals, sitemap, E-E-A-T, AI Overviews, GEO, technical SEO, content quality, page speed, structured data."
+description: "Comprehensive SEO analysis for any website or business type. Full site audits, single-page analysis, technical SEO (crawlability, indexability, Core Web Vitals with INP), schema markup, content quality (E-E-A-T), image optimization, sitemap analysis, and GEO for AI Overviews/ChatGPT/Perplexity. Industry detection for SaaS, e-commerce, local, publishers, agencies. Triggers on: SEO, audit, schema, Core Web Vitals, sitemap, E-E-A-T, AI Overviews, GEO, technical SEO, content quality, page speed."
 user-invocable: true
 argument-hint: "[command] [url]"
 license: MIT
 metadata:
   author: AgriciDaniel
-  version: "2.2.16"
+  version: "2.2.5"
   category: seo
 ---
 
@@ -14,7 +14,12 @@ metadata:
 
 **Invocation:** `/seo $1 $2` where `$1` is the command and `$2` is the URL or argument.
 
-**Scripts:** Located at the plugin root `scripts/` directory.
+**Runtime:** Run bundled Python tools through `claude-seo run <script.py>`. Plugin
+installs expose this command automatically. Repository users run
+`./bin/claude-seo`; manual installers rewrite the command to the isolated
+launcher path. In Dungeon, `python <absolute-engine-root>/scripts/runtime.py`
+with the same arguments is the cross-platform launcher equivalent. Never invoke
+the analysis scripts themselves with a bare Python interpreter.
 
 Comprehensive SEO analysis across all industries (SaaS, local services,
 e-commerce, publishers, agencies). Orchestrates 24 sub-skills (21 core + 1 framework
@@ -51,7 +56,23 @@ extension is also installable (see "Optional Extensions" below).
 | `/seo firecrawl [command] <url>` | Full-site crawling and site mapping (extension) |
 | `/seo dataforseo [command]` | Live SEO data via DataForSEO (extension) |
 | `/seo image-gen [use-case] <description>` | AI image generation for SEO assets (extension) |
+| `/seo ahrefs [command] <target>` | Ahrefs backlink and keyword data (extension) |
+| `/seo bing [command] <url>` | Bing Webmaster data and IndexNow (extension) |
+| `/seo profound [command]` | LLM brand-citation tracking (extension) |
+| `/seo seranking [command]` | AI share-of-voice tracking (extension) |
+| `/seo unlighthouse <url>` | Multi-page Lighthouse audits (extension) |
 | `/seo flow [stage] [url\|topic]` | FLOW framework: evidence-led prompts for Find, Leverage, Optimize, Win, or Local stages |
+| `/seo setup` | Explicitly create or refresh the isolated Python runtime and Chromium |
+| `/seo doctor` | Check runtime readiness without changing the system |
+
+## Runtime Setup
+
+Run setup only when the user explicitly invokes `/seo setup` or explicitly asks
+to repair dependencies. Execute `claude-seo setup`, report core and Chromium
+status separately, and do not fall back to global or user package installation.
+For diagnosis, execute `claude-seo doctor --json`; its output intentionally omits
+absolute paths and environment values. If any `claude-seo run` command reports
+that setup is required, suggest `/seo setup` and do not improvise a `pip install`.
 
 ## Orchestration Logic
 
@@ -68,25 +89,26 @@ selected profile.
 When the user invokes `/seo audit`, delegate to subagents in parallel:
 1. Detect business type (SaaS, local, ecommerce, publisher, agency, other)
 2. Spawn always-on subagents: seo-technical, seo-content, seo-schema, seo-sitemap, seo-performance, seo-visual, seo-geo, seo-sxo
-3. If Google API credentials detected (`python3 scripts/google_auth.py --check`), also spawn seo-google agent
+3. If Google API credentials detected (`claude-seo run google_auth.py --check`), also spawn seo-google agent
 4. If local business detected, also spawn seo-local agent
 5. If local business detected AND DataForSEO credentials or optional tools are available, also spawn seo-maps agent
-6. If backlink APIs detected (`python3 scripts/backlinks_auth.py --check`), also spawn seo-backlinks agent
+6. If backlink APIs detected (`claude-seo run backlinks_auth.py --check`), also spawn seo-backlinks agent
 7. If `FIRECRAWL_API_KEY` or an optional Firecrawl adapter is available, use Firecrawl to discover site URLs before analysis; otherwise fall back to sitemap and page-discovery scripts
 8. If content strategy signals detected (blog, pillar pages, topic clusters), also spawn seo-cluster agent
 9. If e-commerce detected, also spawn seo-ecommerce agent
-10. If drift baseline exists for this URL (`python3 scripts/drift_history.py <url>`), also spawn seo-drift agent
-11. Collect results and generate unified report with SEO Health Score (0-100)
-12. **Synthesize via the 10-principle framework** (see "Synthesis Methodology" below): walk PERCEIVE -> ANALYZE -> VALIDATE -> ACT before bucketing findings into Critical / High / Medium / Low
-13. Create prioritized action plan with dependency sequencing + falsifiability per recommendation
-14. **Offer PDF report**: "Generate a professional PDF report? Use `/seo google report full`"
+10. If drift baseline exists for this URL (`claude-seo run drift_history.py <url>`), also spawn seo-drift agent
+11. Always include seo-sxo in full audits (search experience applies to all sites)
+12. Collect results and generate unified report with SEO Health Score (0-100)
+13. **Synthesize via the 10-principle framework** (see "Synthesis Methodology" below), walk PERCEIVE → ANALYZE → VALIDATE → ACT before bucketing findings into Critical / High / Medium / Low
+14. Create prioritized action plan with dependency sequencing + falsifiability per recommendation
+15. **Offer PDF report**: "Generate a professional PDF report? Use `/seo google report full`"
 
 For individual commands, load the relevant sub-skill directly.
-After any analysis command completes, offer to generate a PDF report via `scripts/google_report.py`.
+After any analysis command completes, offer to generate a PDF report via `claude-seo run google_report.py`.
 
 ## Synthesis Methodology
 
-Audits are not just findings — they are findings synthesized into a coherent
+Audits are not just findings, they are findings synthesized into a coherent
 strategy. claude-seo uses a 10-principle thinking framework grouped into four
 phases: **PERCEIVE** (observe-external · observe-internal · listen),
 **ANALYZE** (think · connect-lateral · connect-system), **VALIDATE** (feel ·
@@ -122,7 +144,7 @@ Hard rules:
 - WARNING at 30+ location pages (enforce 60%+ unique content)
 - HARD STOP at 50+ location pages (require user justification)
 - Never recommend HowTo schema (deprecated Sept 2023)
-- FAQ schema: Google retired FAQ rich results for ALL sites on May 7, 2026 (no SERP feature anymore; supersedes the Aug 2023 gov/health restriction). Flag existing FAQPage at Info (not Critical) for its AI/LLM citation benefit; do not recommend removal; do not recommend new FAQPage for Google SERP benefit; use QAPage for genuine user Q&A
+- FAQ schema: Google retired FAQ rich results for ALL sites on May 7, 2026 (no SERP feature anymore; supersedes the Aug 2023 gov/health restriction). Flag existing FAQPage at Info (not Critical); do not claim confirmed AI/LLM citation benefit; do not recommend removal; do not recommend new FAQPage for Google SERP benefit; use QAPage for genuine user Q&A
 - All Core Web Vitals references use INP, never FID
 
 ## Reference Files
@@ -196,10 +218,11 @@ The following ship in `extensions/` rather than `skills/`. DataForSEO and
 Firecrawl should use selected-project `.env` credentials by default; their
 installers are optional for users who want adapter setup:
 
-Of the optional extensions, firecrawl, dataforseo, and image-gen are reachable
-through `/seo` subcommands. Ahrefs, Bing, Profound, SE Ranking, and Unlighthouse
-install as standalone skills invoked by their own descriptions. The model
-auto-routes to those triggers, not through `/seo <name>`.
+All optional extensions are reachable through `/seo` subcommands once
+installed: firecrawl, dataforseo, and image-gen, plus `/seo ahrefs`,
+`/seo bing`, `/seo profound`, `/seo seranking`, and `/seo unlighthouse`.
+Each installs as its own sub-skill, so the model also auto-routes to their
+descriptions without the `/seo` prefix.
 
 - **seo-firecrawl** -- Full-site crawling and site mapping via Firecrawl
   credentials. Add `FIRECRAWL_API_KEY` to the selected project `.env`; install

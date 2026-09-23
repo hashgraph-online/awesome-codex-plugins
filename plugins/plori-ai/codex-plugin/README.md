@@ -36,6 +36,43 @@ codex mcp add plori --url https://api.plori.ai/mcp
 codex mcp login plori
 ```
 
+## Background runs
+
+A plori run often takes longer than the tool call that started it. Codex gives an MCP
+tool 60 seconds by default, and the plori server returns within that: `invoke_agent`
+holds your call for about 50 seconds, then answers with a `run_id` and a
+`poll_after_seconds` delay. Call `get_run_result` again after that delay until the run
+completes or reports `awaiting_input`.
+
+For work that runs for minutes, use the plori CLI, version 0.4.0 or later:
+
+```sh
+curl -fsSL https://plori.ai/install.sh | sh
+plori login
+plori watch --events terminal,input &   # one JSON line per run that ends or pauses
+plori inbox                             # the same information, one shot
+```
+
+Each `plori watch` line names the run. Read the reply with `plori result <agent>
+<run-id>`, and answer a paused run with `plori answer <run-id> <tool-call-id>
+--approve`.
+
+To let a single tool call run longer instead, add the plori server to
+`~/.codex/config.toml` yourself, as in
+[Or connect the MCP server directly](#or-connect-the-mcp-server-directly-no-plugin),
+and set `tool_timeout_sec` on that entry:
+
+```toml
+[mcp_servers.plori]
+url = "https://api.plori.ai/mcp"
+tool_timeout_sec = 900
+```
+
+This plugin does not ship that value. The documented fields for a plugin-bundled
+remote MCP server are `type`, `url`, and `headers`; none of them set a timeout. The
+plugin-scoped config keys (`plugins."plori".mcp_servers.plori.*`) cover enabling a
+server, its tool allowlists, and tool approval, not timeouts.
+
 ## What is inside
 
 ```

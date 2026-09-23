@@ -98,7 +98,7 @@ ls -la .claude/skills/cass/scripts/
 ```bash
 # Verify cass is working
 cass status --json | jq '.index.fresh'
-# Should return: true
+# Fresh or stale-but-usable permits search; retain the observed state.
 
 # Test the core workflow
 cass search "*" --workspace /data/projects/YOUR_PROJECT --aggregate agent,date --limit 1 --json
@@ -110,11 +110,11 @@ cass search "*" --workspace /data/projects/YOUR_PROJECT --aggregate agent,date -
 
 When triggered, the skill should:
 
-1. **Bootstrap** — Check health, refresh index
-2. **Provide THE EXACT PROMPT** — The discovery workflow
+1. **Check readiness when needed** — Search a healthy or stale-but-usable index without routine refresh
+2. **Bound the question** — History retrieval resolves a concrete uncertainty; ordinary work needs no history step
 3. **Use token-efficient flags** — `--fields minimal`, `--limit N`
-4. **Filter user prompts** — `jq select(.line_number <= 3)`
-5. **Follow the loop** — Search → Follow source_path → Expand/Export
+4. **Verify native roles** — Early metadata/assistant records are excluded; late user records remain candidates
+5. **Follow evidence** — Search → Pack → View/Expand; verify returned locations, report omissions, and treat recurrence as a candidate signal
 
 ---
 
@@ -124,5 +124,5 @@ When triggered, the skill should:
 |---------|-------|-----|
 | Skill doesn't trigger | Vague user query | Use explicit phrases like "search sessions", "mine prompts" |
 | 0 results | Workspace path mismatch | Use `--aggregate workspace` to discover exact path |
-| Stale results | Index not refreshed | Run `cass index --json` |
+| Stale results | Recent records may be absent | Search usable state now; refresh only if needed and authorized, within a cap |
 | Export panics | Piped output | Always use `-o /tmp/out.json` |

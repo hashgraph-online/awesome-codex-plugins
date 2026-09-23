@@ -2,19 +2,24 @@
 
 ## Security Model
 
-AMQ is designed for **local inter-process communication** on a single machine. It assumes all agents operate under the same user account and share filesystem access.
+AMQ's core queue is for local communication between agents that run under
+the same user account and share filesystem access. It is not an isolation
+boundary between mutually untrusted agents or users. Optional cross-host
+delivery uses the [bridge's separate authentication and routing contract](docs/adr-bridge-protocol.md).
 
 ### Threat Model
 
-AMQ protects against:
-- **Partial writes**: Maildir atomic delivery prevents corrupt messages from appearing in inboxes
-- **Path traversal**: Agent handles and message IDs are strictly validated to prevent directory escape
-- **Permission leakage**: Directories use 0700, files use 0600 (owner-only access)
-- **Log injection**: User input is never interpolated into format strings
+The queue uses these controls:
 
-AMQ does **not** protect against:
-- **Malicious agents with same-user access**: If an attacker has shell access as the same user, they can read/write queue files directly
-- **Multi-user scenarios**: AMQ is not designed for use across user accounts
+- Writers sync a temporary file before publishing it into an inbox. Readers
+  do not read a partially written message from that publication path.
+- Handle and message-ID validation rejects path separators and invalid names.
+- Queue directories use mode `0700` and files use mode `0600` on Unix.
+- Session and root checks reject conflicting routing contexts before mutation.
+
+A process with the same user's filesystem access can read or change queue
+files directly. AMQ does not defend against that process or provide a
+multi-user access-control service.
 
 ### Rooted Delivery Boundary
 
@@ -30,15 +35,9 @@ already opened root, including privileged bind mounts, or against writing to
 pre-existing device files. Those cases require separate mount and file-type
 hardening and remain outside the rooted-delivery guarantee.
 
-### Threat model and accepted residuals
+### Accepted limits
 
-AMQ is a **personal, single-user, on-machine** tool: each engineer runs it under
-their own account on their own machine. The security bar reflects that. An
-attacker who already has the ability to run code as your user, or to swap
-symlinks in your home/ancestor directories mid-command, has full control of your
-environment; defending the message queue against them would not meaningfully
-improve your posture. Accordingly, the following are **accepted residuals**, not
-defended against:
+The local trust model does not defend against:
 
 - **Untrusted-ancestor / TOCTOU alias swaps.** A different-euid local attacker
   who can retarget an ancestor symlink between commands (cross-command alias
@@ -46,47 +45,35 @@ defended against:
   files) is out of scope. Legitimate in-tree symlinks continue to work.
 - **Bind mounts and device files below an opened root** (as noted above).
 
-What AMQ **does** defend correctness for, because these bite without any
-attacker: no duplicate message injection or delivery, no cross-tree leakage from
-ordinary misconfiguration, owner-only `0700`/`0600` permissions, and handle/ID
-validation. Bugs and reliability are the priority; same-machine security
-hardening beyond the above is intentionally out of scope.
+Native Windows does not provide the Unix cross-tree identity and `.amqrc`
+authority-hardening guarantees; those checks use legacy lexical behavior.
+See the [platform limits](INSTALL.md#platform-capability-matrix).
 
 ### Known Risks
 
 #### TIOCSTI Terminal Injection (`amq wake`)
 
-The `amq wake` command uses TIOCSTI (terminal input character stuffing) to inject notification text into the terminal. TIOCSTI has inherent security considerations:
+`amq wake` can inject terminal input through TIOCSTI or an explicitly configured
+transport. Hardened Linux kernels can disable TIOCSTI.
 
-- TIOCSTI allows a process to inject input characters as if they were typed
-- On some systems (hardened Linux kernels), TIOCSTI is disabled for security reasons
-- The injected text is user-controlled notification content, not arbitrary commands
-- `amq wake` only operates on terminals it owns (verified via session ID check)
+Input injection can activate an approval dialog or submit a partially typed
+prompt. Removing Enter is not a safety boundary: some dialogs accept a single
+key. Input-quiet checks reduce typing collisions but do not detect modal dialogs.
+The input doorbell is fixed text, not a message body; that does not remove the
+dialog risk. External injectors are operator-selected local executables and
+can have their own side effects.
 
-If you're concerned about TIOCSTI, use the notify hook fallback instead:
-```toml
-# ~/.codex/config.toml
-notify = ["python3", "/path/to/scripts/codex-amq-notify.py"]
-```
-
-### File Permissions
-
-AMQ enforces strict permissions:
-- **Directories**: 0700 (owner read/write/execute only)
-- **Files**: 0600 (owner read/write only)
-- **Handles**: Validated as `[a-z0-9_-]+` (no path separators)
-- **Message IDs**: Cannot start with `.`, cannot contain path separators
+Use `amq wake --inject-mode none` when zero synthetic terminal input is
+required, or `amq coop exec --require-wake --wake-inject-mode none <agent>`
+for a managed launch. This mode refuses external injectors. See
+[wake operations](docs/wake-operations.md) before changing an existing wake.
 
 ## Reporting a Vulnerability
 
-Windows runtime is out of scope for cross-tree identity and `.amqrc` authority hardening; it degrades to legacy lexical behavior.
-
-Please report security issues by opening a GitHub Security Advisory for this repository. If that is not available, open a regular issue and label it `security`.
+Use private vulnerability reporting from the repository's
+[Security tab](https://github.com/avivsinai/agent-message-queue/security)
+when it is available. Otherwise, open an issue asking for a private contact
+channel without disclosing the vulnerability. Do not include credentials,
+private messages, or exploit details in a public issue.
 
 We will acknowledge receipt as soon as possible and work to provide a fix or mitigation.
-
-## Security Updates
-
-- **2026-01-04**: Fixed AppleScript injection in `codex-amq-notify.py` (message titles with quotes could break notification script)
-- **2026-01-04**: Fixed `read` command to parse before moving to `cur` (prevents stuck corrupt messages)
-- **2026-01-04**: Fixed `setup-coop.sh` to avoid config overwrite when `jq` unavailable

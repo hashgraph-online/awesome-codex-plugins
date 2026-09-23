@@ -1,0 +1,35 @@
+{
+  "name": "jev-use",
+  "version": "0.8.0",
+  "description": "Hands the agent steps that need no text output to Jev, TypeSafe's judgment model: typed yes/no, pick-one and score questions about one state answered in a single batched call, with typed escalation back to the LLM for anything it cannot or should not decide.",
+  "repository": "https://github.com/shitianfang/jev-use",
+  "license": "MIT",
+  "interface": {
+    "displayName": "jev-use",
+    "shortDescription": "Route the no-text-output steps to a judgment model",
+    "composerIcon": "./assets/icon.svg"
+  },
+  "author": {
+    "name": "shitianfang",
+    "url": "https://github.com/shitianfang"
+  },
+  "homepage": "https://github.com/shitianfang/jev-use",
+  "keywords": [
+    "jev",
+    "typesafe-ai",
+    "judgment",
+    "router",
+    "codex",
+    "mcp"
+  ],
+  "mcpServers": {
+    "jev": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "jev-use@0.8.0",
+        "serve"
+      ]
+    }
+  }
+}

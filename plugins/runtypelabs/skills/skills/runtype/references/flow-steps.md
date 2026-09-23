@@ -1,302 +1,69 @@
-# Flow Step Types
-
-Every step in a flow has a `type` and a config blob specific to that type. This is the catalog, grouped by category, with the config hints that matter.
-
-Inside a flow, step results become variables. Reference them with `{{stepName.field}}` in templates (`prompt`, `template`, `api-call`, `send-email`) or via the `input` object in `transform-data` JS code.
-Prefer live `flow-step-types` and `types-flow-steps` when available.
-
-## Contents
-
-- [AI steps](#ai-steps)
-- [Document steps](#document-steps)
-- [Integration steps](#integration-steps)
-- [Data steps](#data-steps)
-- [Vector steps](#vector-steps)
-- [Memory steps](#memory-steps)
-- [Communication steps](#communication-steps)
-- [Control flow steps](#control-flow-steps)
-- [Step composition notes](#step-composition-notes)
-
-## AI steps
-
-### `prompt`
-
-AI model call. Generates text or JSON via an LLM. Supports tool use, streaming, and agent mode for multi-turn tool loops.
-
-Config: `model`, `systemPrompt`, `userPrompt`, `responseFormat` (`text` | `json`), `outputVariable`, `tools`
-
-When to use: any LLM call inside a flow. For agent loops with tool use, register tools here rather than as separate `tool-call` steps.
-
-### `execute-agent`
-
-Run an existing agent with a message and capture the response.
-
-Config: `agentId`, `message`, `outputVariable`
-
-When to use: when a flow's reasoning step is more naturally an existing agent than an inline prompt. Common in multi-agent orchestration.
-
-## Document steps
-
-### `template`
-
-Render a Liquid template into HTML, email-html, markdown, PDF, or text.
-
-Config: `template` (Liquid body), `outputFormat`, `outputVariable`, optional `inputs` map, optional `partials`, optional `pdfOptions`, optional `asArtifact`, optional `streamOutput`, optional `sampleData`
-
-**Prefer over `prompt` when output is a structured document** (invoice, receipt, email body, report) and the data is already available. Templates are deterministic, fast, and cheap. Use a prompt when you need the LLM to write the prose; use a template when you need it formatted.
-
-### `generate-pdf`
-
-Render HTML or markdown to a PDF, store it in asset storage, return a sharable URL.
-
-Config: `html` OR `markdown`, `filename`, `visibility` (`public` | `private`), `pdfOptions` (format, landscape, margin), `outputVariable`
-
-For **inline PDF bytes** (no asset storage), use `template` with `outputFormat: "pdf"` instead.
-
-### `store-asset`
-
-Save a file to asset storage from a URL download or inline base64 content.
-
-Config: `url` OR `content` (base64), `filename`, `contentType`, `visibility`, `outputVariable`
-
-Returns a public URL or signed private URL.
-
-## Integration steps
-
-### `fetch-url`
-
-Make an HTTP request and capture the response.
-
-Config: `http` (url, method, headers, body), `responseType` (`json` | `text` | `xml`), `outputVariable`
-
-Lightweight HTTP. For anything more complex (auth, request templates, response mapping), use `api-call`.
-
-Requests originate from datacenter IPs and are identified as automated, non-human traffic, so some sites block, rate-limit, or serve a challenge/CAPTCHA page (a 403 or empty body where a browser would succeed). For research/scraping against sites that block bots, prefer the `firecrawl` fetch method / built-in tool or the `search` step (Exa), or use a mixed approach: try `fetch-url` first and fall back to Firecrawl/Exa on a block.
-
-### `api-call`
-
-Structured API call with auth, request templates, and response mapping.
-
-Config: `http`, `auth`, `requestTemplate`, `responseMapping`, `outputVariable`
-
-When to use: when the same API will be called multiple ways in the flow, or when response shape needs explicit mapping. Otherwise `fetch-url` is simpler.
-
-### `paginate-api`
-
-Fetch paginated data from an API endpoint across multiple pages.
-
-Config: `url`, `paginationType`, `entityPath`, `outputVariable`
-
-### `crawl`
-
-Crawl a website and extract content from pages.
-
-Config: `url`, `limit`, `depth`, `outputVariable`
-
-Requires browser-rendering credentials configured in the workspace. Like `fetch-url`, crawl traffic egresses from Runtype's datacenter IPs identified as non-human, so sites behind a WAF or anti-bot service may block or rate-limit it. For research against sites that block bots, prefer the `firecrawl` or `exa` built-in tools — these reach the content through the vendor's own retrieval infrastructure rather than crawling the site directly from Runtype's IPs. A mixed approach (crawl where allowed, Firecrawl/Exa where blocked) is often most reliable.
-
-### `search`
-
-Web or AI-powered search.
-
-Config: `provider`, `query`, `maxResults`, `outputVariable`
-
-### `fetch-github`
-
-Fetch files or data from a GitHub repository.
-
-Config: `repo`, `path`, `outputVariable`
-
-### `tool-call`
-
-Invoke a specific tool deterministically at a fixed point in the flow.
-
-Config: `toolId`, `parameters`, `outputVariable`
-
-**Prefer registering tools on `prompt` steps over `tool-call`** unless you need a deterministic invocation. Tool-call is for "always run this exact tool here"; prompt-with-tools is for "let the LLM decide".
-
-## Data steps
-
-### `transform-data`
-
-Execute JavaScript code in a sandboxed environment.
-
-Config: `script`, `outputVariable`, `sandboxProvider` (`cloudflare-worker` default | `quickjs` | `runtype-sandbox` | `daytona`; legacy `cloudflare-sandbox` input remaps to `runtype-sandbox`), optional `language` (`javascript` | `typescript` | `python`, defaults to `javascript` for `runtype-sandbox`)
-
-Access flow variables via the `input` object. Return value becomes the step output. Use this for any data shaping that isn't worth a tool — schema conversion, filtering, aggregation, math.
-
-### `get-record` / `list-records`
-
-Load records from the Runtype record store. `get-record` returns a SINGLE
-record object (most-recently-updated match wins; fails on zero match) —
-use it when downstream templates read `{{var.field}}`. `list-records`
-returns an ARRAY newest-first (optional `limit`, default 50, and
-`onEmpty: "succeed" | "fail"`) — index it (`{{var.0.field}}`) or loop.
-(The legacy `retrieve-record` type is deprecated; the engine aliases it
-onto these two.)
-
-Config: `recordId` or `recordType`, `recordName`, `recordFilter` (`{ type, where: { field, op, value } }`), `outputVariable`
-
-Lookup by id, by `type + name`, or via a chip-style `recordFilter` over metadata and top-level columns (`id`, `name`, `createdAt`, `updatedAt`).
-
-### `upsert-record`
-
-Create or update a record.
-
-Config: `recordType`, `sourceVariable` (**must point to a JSON object**), `outputVariable`
-
-### `update-record`
-
-Update specific fields on an existing record.
-
-Config: `recordId`, `recordFilter` (`{ type, where }`), `updates`, `mergeStrategy` (`merge` | `replace` | `deep-merge`), `outputVariable`
-
-Finds the record by id, by `type+name`, or by chip filter (first match wins, ordered by `updatedAt` desc).
-
-## Vector steps
-
-### `generate-embedding`
-
-Create a vector embedding from text.
-
-Config: `inputSource`, `text`, `embeddingModel`, `outputVariable`
-
-### `vector-search`
-
-Search a vector store for semantically similar documents.
-
-Config: `query`, `limit`, `threshold`, `outputVariable`
-
-### `store-vector`
-
-Store vector embeddings in a vector database.
-
-Config: `vectorsSource`, `destination`, `outputVariable`
-
-Typical RAG flow: `crawl` → `transform-data` (chunk) → `generate-embedding` → `store-vector`. At query time: `generate-embedding` → `vector-search` → `prompt` (with retrieved context in the user prompt).
-
-## Memory steps
-
-Long-term agent memory steps — the flow-level equivalent of the auto-injected agent memory tools. Each addresses a memory profile via a `profileTemplate` (supports variables, e.g. `{{_agent.id}}`, `{{_user.id}}`).
-
-### `save-memory`
-
-Ingest text from a variable into a Cloudflare Agent Memory profile.
-
-Config: `profileTemplate`, `contentVariable`, optional `sessionId`, optional `outputVariable`, optional `errorHandling`, optional `defaultValue`
-
-### `recall-memory`
-
-Recall a synthesized answer from a Cloudflare Agent Memory profile for a query.
-
-Config: `profileTemplate`, `queryTemplate`, `outputVariable`, optional `thinkingLevel` (`low` | `medium` | `high`), optional `responseLength` (`short` | `medium` | `long`), optional `errorHandling`, optional `defaultValue`
-
-### `memory-summary`
-
-Fetch a markdown summary of a Cloudflare Agent Memory profile.
-
-Config: `profileTemplate`, `outputVariable`, optional `sessionId`, optional `errorHandling`, optional `defaultValue`
-
-## Communication steps
-
-### `send-email`
-
-Send an email message.
-
-Config: `from`, `to`, `subject`, `html`, `outputVariable`
-
-### `send-event`
-
-Emit a custom event for downstream consumers or integrations.
-
-Config: `eventType`, `payload`, `outputVariable`
-
-### `send-stream`
-
-Stream a response back to the caller via SSE. Used for `chat` and other streaming surfaces.
-
-Config: `sourceVariable`, `streamType`
-
-## Control flow steps
-
-### `conditional`
-
-Branch the flow based on a JavaScript expression.
-
-Config: `condition` (JS expression), `trueSteps`, `falseSteps`
-
-The condition runs in a sandbox with access to flow variables. Each branch is its own array of steps.
-
-### `set-variable`
-
-Set a flow variable to a static or computed value.
-
-Config: `variableName`, `value`
-
-Lightweight scratchpad — use for constants, derived values you'll reference in templates.
-
-### `wait-until`
-
-Pause flow execution until a condition is met or a timeout occurs.
-
-Config: `condition`, `timeoutMs`, `pollIntervalMs`
-
-Useful for waiting on external state (e.g., a webhook to fire, a record to update).
-
-## Step composition notes
-
-**Variables and templating.** Most config fields that accept text support template syntax: `{{variable.path}}`. This works in `prompt`, `template`, `api-call`, `send-email`, etc. Inside `transform-data`, access the same data via JS: `input.variable.path`.
-
-**Secrets in config.** Use `{{secret:KEY}}` (singular `secret`, colon, UPPER_CASE) inside tool config when a step needs a secret. Don't inline values. `{{secrets:KEY}}` (plural) is invalid; `{{secrets.key}}` (plural with dot) is a legacy agent/external-tool dispatch namespace that hosted FLOW execution ignores.
-
-**Step ordering.** Steps run in declaration order. There's no native parallelism primitive — if you need parallel API calls, do them in a single `transform-data` step with `Promise.all`.
-
-### Per-step `when` conditions
-
-**Every step has an optional `when` condition** — a JS expression that decides whether the step runs at all. If `when` evaluates falsy, the step is skipped.
-
-This is what most "only do this if X" needs. Reach for `when` before reaching for a `conditional` step.
-
-- Use `when` when: "skip this step unless something is true."
-- Use `conditional` when: "branch into one of two distinct sequences of multiple steps."
-- Use sandbox `transform-data` for complex branching as a last resort.
-
-### Per-step error handling
-
-Default: **on failure, continue to the next step.** This is intentional because downstream LLMs often handle gaps gracefully (e.g. "I couldn't look up X, but here's what I can tell you anyway").
-
-Configurable per step:
-
-- **Retry count** — how many times to retry on transient failure.
-- **Retry backoff** — wait time between retries.
-- **Retry with fallback model** — for `prompt` steps, retry with a different model on failure.
-- **Hard fail** — stop the whole flow.
-
-Set this intentionally. Critical steps (the final `send-email`, the only `upsert-record`) should usually hard-fail rather than continue. LLM steps that produce text the next step massages can usually continue.
-
-### Per-step streaming visibility
-
-Runtype is streaming-native. Every step can be configured to either expose its output in the user-visible stream or hide it.
-
-Defaults: long-running steps usually expose progress; pure computation steps usually don't.
-
-For explicit user-visible messages mid-flow, use `send-stream` steps ("Looking up your order...", "Generating the report..."). These are different from automatic step output — they're intentional user-facing communications during execution.
-
-### Code execution is the last line of defense
-
-Common anti-pattern: pre-processing JSON to clean it up before passing to a `prompt` step. The LLM almost always handles the raw JSON fine. Skip the transform.
-
-Use `transform-data` for:
-
-- Genuine fan-out (parallel API calls via `Promise.all`)
-- Complex branching that's clearer in code than in `conditional` blocks
-- Sensitive-data shielding (compute something the LLM shouldn't see)
-- Math, aggregation, schema reshaping where determinism matters
-
-Don't use `transform-data` to:
-
-- Replicate business logic that lives in your internal system — register an API call as a tool instead
-- Clean up JSON for an LLM — the LLM can read it as is
-- Sequence things that could be sequenced declaratively as separate steps
-
-**Keep flows focused.** When a flow grows large, consider splitting it into sub-flows (call them via `dispatch` from inside `transform-data`, or via `execute-agent` if the sub-step is more naturally an agent). The one enforced structural limit is nested `conditional` depth, capped at 10.
+# Flow Steps: Selection and Pitfalls
+
+Use `get_build_instructions(task="generate-flow")` for design and
+`get_platform_documentation(topic="flow-step-types")` for the current catalog.
+Fetch `types-flow-steps` for exact config types. This reference is a decision guide,
+not a second schema registry; validate the complete `name` + `steps` before saving.
+
+## Pick the smallest suitable step
+
+| Need                                       | Step                                                  |
+| ------------------------------------------ | ----------------------------------------------------- |
+| Generate prose, classify, or extract JSON  | `prompt`                                              |
+| Invoke a saved agent                       | `execute-agent`                                       |
+| Format existing data into a document       | `template`; `generate-pdf` for a hosted PDF           |
+| Host a file                                | `store-asset`                                         |
+| HTTP retrieval / structured API call       | `fetch-url` / `api-call`                              |
+| Fetch multiple pages / crawl a site        | `paginate-api` / `crawl`                              |
+| Search the web                             | `search` or a provider-compatible search tool         |
+| Invoke one exact tool without model choice | `tool-call`                                           |
+| Deterministic shaping, filtering, or math  | `transform-data`                                      |
+| Read one record / an array of records      | `get-record` / `list-records`                         |
+| Write metadata / update a known record     | `upsert-record` / `update-record`                     |
+| Embed, retrieve, or store vectors          | `generate-embedding`, `vector-search`, `store-vector` |
+| Durable memory                             | `save-memory`, `recall-memory`, `memory-summary`      |
+| Communicate                                | `send-email`, `send-event`, `send-stream`             |
+| Choose a branch / bounded repetition       | `conditional` / `loop`                                |
+| Set a value / poll an external endpoint    | `set-variable` / `wait-until`                         |
+
+`retrieve-record` is deprecated: use the explicit object/array readers instead.
+For GitHub retrieval, use a supported HTTP or catalog tool; there is no `fetch-github`
+step. Do not infer a step type from a tool's name.
+
+## Variables and inputs
+
+- Outputs use `config.outputVariable`, not the display name of the step. Reference
+  them as `{{variable.field}}`; read them as `input.variable.field` in transform JS.
+- `get-record` returns one object; `list-records` returns an array, even for one match.
+- `upsert-record.sourceVariable` must resolve to a JSON object containing metadata,
+  not a string or `{ name, type, metadata }` wrapper. A stable `recordName` is required
+  for repeatable upserts; omitting it creates a new timestamp-named record each run.
+- Use `{{secret:KEY}}` for credentials. Do not inline values or use legacy dispatch
+  `secrets` maps. Secret values belong in secure intake, not templates or chat.
+
+## Control flow and code
+
+Steps run in order. Use `when` for an optional step, `conditional` for mutually exclusive
+sequences (binary or named branches), and `loop` for bounded repetition. Exact enum or
+permission rules belong in deterministic code, not an LLM router. Skipped steps leave
+existing variables untouched; prefer explicit branch outputs over shared-variable writes.
+
+There is no `parallel` step type. Use a supported code-mode tool chain for independent
+tool calls or a batch for many records. Do not assume every sandbox can fetch, access
+credentials, or invoke other flows; check its provider and tool-pool capabilities first.
+
+`wait-until` polls through `config.poll` (`http`, `success`, optional `intervalMs` and
+`maxAttempts`); it is not a generic `condition` + `timeoutMs` step. Read
+`operational-design` before configuring durable waits, retries, or long-running crawls.
+
+## Failure and delivery
+
+For a load-bearing output, explicitly set `config.errorHandling: { onError: "fail" }`.
+Many context-step operation failures otherwise continue with a default/null output.
+Input-contract failures are different: an invalid `upsert-record` source or unresolved
+`update-record` target reports failure without writing output by default.
+
+Isolate side effects and use idempotency keys where supported. A separate step or approval
+gate does not guarantee exactly-once delivery; inspect status before retrying an ambiguous
+send/payment timeout. Use safe test targets and verify the user-facing surface, not only
+the underlying flow.

@@ -56,6 +56,7 @@ Document metadata. Consumed by analyzers for report context.
 | `ambient_temperature_c` | number | Ambient temperature for thermal analysis (default: `25`) |
 | `emc_standard` | string | EMC standard: `"fcc-class-b"`, `"fcc-class-a"`, `"cispr-class-a"`, `"cispr-class-b"` |
 | `compliance_market` | string | Same as `market`; used by the EMC analyzer |
+| `pdn_transient_current_a` | number | Transient load current in Amps for PD-001 PDN target-impedance calculation; overrides the power-budget-derived estimate and the 0.5A default |
 
 ---
 
@@ -330,6 +331,7 @@ Production consumer electronics board targeting the EU market. LCSC primary supp
 | `project.ambient_temperature_c` | number | — | 25 | — |
 | `project.emc_standard` | string | — | — | — |
 | `project.compliance_market` | string | — | — | — |
+| `project.pdn_transient_current_a` | number | — | — | — |
 | `suppressions` | array | — | [] | — |
 | `preferred_suppliers` | array | Yes | [] | — |
 | `bom.field_priority` | array | Yes | — | — |

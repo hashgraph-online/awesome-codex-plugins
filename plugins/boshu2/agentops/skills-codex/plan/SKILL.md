@@ -1,90 +1,160 @@
 ---
 name: plan
-description: 'Shape or refine the existing bead or caller Triggers: "plan", "discover and plan", "shape this goal".'
+description: 'Define intended behavior, review write scope and assess reversible decisions. Use when: discovery needs clarification or resumption before one complete slice; stop once actionable.'
 ---
 # Plan
 
-Turn the caller's intent into one bounded, testable behavior in the place that
-already owns the work. Prefer the caller's tracker, if any. When no durable
-tracker or issue reference is available, use the caller's conversation or
-supplied text; the runtime snapshots those resolved intent bytes so later
-contexts can read and hash the same source. Do not make the model restate those
-facts in a packet.
+Own discovery from the caller's question to one actionable slice. Shape only
+missing intent. Prefer the caller's tracker, if any; otherwise use
+the conversation or supplied text. Planning produces no AgentOps packet.
+A clear change can proceed directly. Use established domain names throughout
+intent, examples, code and validation. Load a specialist only for the question
+it can answer; none is a required planning stage.
 
 ## Workflow
 
-1. Resolve the intent source and choose one active behavior. When that source
-   is not already durable, have the runtime pass its exact bytes to the
-   validate skill's `scripts/validate.py snapshot-intent --source -`, resolved
-   relative to wherever that skill package is installed (a repo checkout:
-   `skills/validate/scripts/validate.py`; an installed skill package:
-   `.agents/skills/validate/scripts/validate.py`), and use the returned
-   `intent_ref` for later phases.
-2. Route the work by type (see **Ground-truth routing**) and name its ground
-   truth first. Then inspect only enough real context to make paths, interfaces,
-   and evidence concrete: hydrate only the context sources this decision needs
-   and carry their citations forward. Existing research and specialist skills
-   are advisory inputs, never a merged context store.
-3. Ensure the source contains acceptance examples, important non-goals, and the
-   allowed write scope. Use lightweight prose or Given/When/Then only where it
-   removes ambiguity; do not require both normal and edge ceremony for every
-   change.
-4. Name the first useful acceptance check.
-5. If authorized and the source is writable, update that bead or issue in
-   place. Otherwise return a concise proposed amendment to the caller.
+1. Read accepted intent, the compact existing plan or native handoff, and the
+   relevant source owners and active constraints. On replacement or resumption,
+   use [Resume discovery](#resume-discovery) before choosing a next action.
+   Identify the caller-visible outcome and classify only uncertainty that could
+   change the next slice using [Route uncertainty](#route-uncertainty).
+2. Describe the intended observable behavior before implementation. Reuse
+   acceptance already supplied in the conversation or bead; clarify only what
+   prevents action or judgment. Name the actor or caller, the event and the
+   observable result. One example often suffices; use Given/When/Then for
+   branching behavior and consequential boundaries. Include non-goals only
+   where they prevent a plausible scope mistake in that existing source.
+   If the caller requests both code and a retrospective, distinguish code
+   acceptance, delivery facts and the later analysis in that same intent.
+   Code judgment consumes acceptance and checks; the retrospective consumes
+   the known outcome and judgment. Keep both requested deliverables required
+   for the overall goal without making either depend on its own conclusion.
+   Scope includes the hand-edited owners, affected tests/live consumers and
+   generator-owned companions as a class; it is authority, not a predicted
+   file count. A consequential assumption deserves an early discriminating
+   check, not a general checklist or exhaustive survey.
+3. Refine one narrow but complete vertical slice, including its affected layers,
+   live consumers and useful check. It must produce an independently observable
+   result, not just a schema, interface or plan for another layer. Keep later
+   work coarse in the existing intent; sharpen it only when new evidence makes
+   the next slice actionable. For a mechanical cross-cutting migration that
+   cannot stay working slice by slice, preserve compatibility with an
+   expand/migrate/contract approach and state where integration is required.
+   Include recapture of affected bound evidence where necessary; use
+   `ao provenance evidence-orphans` when applicable, not a mandatory ledger.
+4. When evidence disproves an approach, briefly retain the failed assumption,
+   evidence and revised check in the existing intent or handoff. Approach
+   changes within accepted outcome and scope need no new permission; acceptance
+   or scope expansion requires caller authority. Never relabel a failed
+   acceptance condition as a caveat to obtain green.
+5. Give another context exact intent references and the evidence it needs to
+   act, its write scope and who owns integration and final review. Keep approach
+   notes separate from frozen acceptance. Pass the next decision and relevant
+   source references, not the entire research history. A new goal does not
+   clear an existing conversation, and a fresh context can still have large
+   startup instructions, tool catalogs and retrieved inputs.
 
-Planning produces no AgentOps packet. A durable caller-owned source stays in
-place; the runtime carries its reference and the digest of its exact resolved
-bytes to detect later acceptance drift. Only when no durable source exists does
-the runtime store those bytes under their digest as a content-addressed
-snapshot. That fallback is derived automatically and is not another
-model-authored planning artifact.
+Stop planning once the implementer can act and the validator can judge. More
+research, decomposition or review must resolve a named remaining uncertainty.
+An optional [probe or prototype](references/ground-truth-routing.md) can test a
+named assumption. An optional [challenge](references/challenge.md) can examine
+consequential uncertainty that survives source checks and relevant observations.
+[Memory recall](../memory/references/recall.md) is useful only when
+prior evidence could change the next action.
 
-Bound the work around the caller-visible outcome, not individual files, gates,
-or reviewer comments. Decomposition is useful only when it reduces reasoning
-cost; it must not multiply invocations or proof artifacts.
+## Route uncertainty
 
-## Scope admission
+Keep these distinctions in the existing intent only where they affect action;
+they are not four required worksheets or successive stages.
 
-In a repository with generated projections, write scope names generator-owned
-outputs as a class — the hand-edited sources plus all outputs of the owning
-regen commands — never as a hand-enumerated path list. Hand enumeration is
-falsified the first time a regen command rewrites a companion the author did
-not list: the 2026-07-15 heal-skill fold burned two implement lanes and three
-intent revisions (`.agents/ao/intents/sha256/d1db59d4...2b81` superseded by
-`f5fd7c3c...af75` superseded by `26a4f2be...eb48`) before scope was restated
-as a class.
+| Uncertainty | Next action |
+|---|---|
+| Source-answerable fact | Inspect the smallest authoritative source and cite it. [Research](../research/SKILL.md) owns deeper tracing and evidence synthesis; [Domain](../domain/SKILL.md) owns ambiguous vocabulary and rule boundaries. Do not ask the caller to recite a retrievable fact. |
+| Consequential caller choice | Recover existing authorization first. Ask one focused question only when goal, behavior, preference or authority still needs the caller. Include the concrete tradeoff; an agent cannot supply the caller's answer. |
+| Assumption requiring a probe | State the competing predictions and smallest observation that distinguishes them. Use the optional probe method; a persuasive design or agent vote cannot settle unobserved behavior. |
+| Safely deferred decision | State why it does not block this slice and the event or evidence that would make it relevant. Keep it coarse; deferral cannot hide an unanswered acceptance condition. |
 
-Before freezing acceptance, run a complexity admission: enumerate the
-generated companions, parity twins (for example a `skills-codex/` mirror), and
-test files that assert on the paths being changed. Anything this pass finds
-that the scope does not admit will surface later as an out-of-scope diff or a
-broken gate.
+Resolve reversible implementation details within accepted scope. Mark inference
+and missing evidence explicitly; do not promote either into a source fact or a
+settled caller choice. An optional challenge returns advice or a next
+discriminator, never permission or acceptance.
 
-## Ground-truth routing
+## Resume discovery
 
-Every plan needs a ground truth outside the planner's own reasoning. Before
-freezing acceptance, classify the work and name its ground truth, its control
-experiment, and its deviation ledger from the row below.
+Recover the current outcome, accepted examples and source identity from the
+existing plan or native handoff. Reuse settled domain terms and caller choices
+with their source pointers; do not repeat an interview or load the full transcript.
+Read details on demand only if a missing fact or new contradiction can change
+the next decision.
+Before reusing inherited prototype evidence, follow
+[Reuse after source drift](references/ground-truth-routing.md#reuse-after-source-drift).
 
-| Work type | Ground truth | Control experiment | Deviation ledger |
-|---|---|---|---|
-| Integrate an external substrate, runtime, tracker, or service | the vendor's own docs plus stock behavior | run their vanilla quickstart on pinned versions with zero local code, before designing | each deviation from the documented flow, each justified; and every component you write that has a native counterpart in the substrate |
-| Extend this project | the repo's existing patterns and behavior spec | the simplest version that satisfies acceptance, and why it is insufficient | each novelty introduced — new abstraction, dependency, or pattern |
-| Greenfield | reference experience and domain prior art | a walking skeleton | each deviation from the boring default, ~one novelty per change |
+Check active assignments, write scopes and integration/review ownership against
+the native tracker or runtime before suggesting more work. Handoff facts are
+recovery pointers, not a second authoritative assignment or status ledger. If
+the native source is unavailable or contradicts the handoff, report that gap
+and resolve it before dependent dispatch or overlapping writes; independently
+safe discovery can continue.
 
-The Extend row is already the repo's default discipline: behavior-first
-acceptance, RED -> GREEN, the smallest real change. The Integrate row is the one
-that is cheap to skip and expensive to have skipped — run the stock control
-experiment *before* you design, or you will re-plumb what the substrate already
-documents and inherit bugs you built yourself.
+Leave a compact update in that same source when interruption or replacement
+would otherwise lose a decision: accepted outcome/reference; settled choices
+and evidence; active assignment references and scopes; the one open question
+and next discriminator; deferred decisions and their revisit triggers. Include
+known failed assumptions and relevant contrary evidence. An unchanged recovery
+needs no duplicate artifact. Preserve native ownership and original evidence;
+new observations amend the approach within scope, while changed acceptance
+still needs the caller.
 
-Trigger: the Integrate-row mechanics — the stock-quickstart control run and the
-deviation ledger from the documented flow — apply only to integration-class work
-(adopting or wiring in an external substrate, runtime, tracker, or service).
-Routine feature work on this project uses the Extend row and does not incur them.
+## Behavior and naming
 
-A plan is done only when it passes the fresh-context test: a cold context,
-given the intent source alone, could execute it without the author's
-conversation. If execution needs facts that live only in the planning
-conversation, move them into the source before freezing.
+An example can be plain text; BDD does not require a `.feature` file or an
+interview. For example, in a repository that calls queued work a **Job**:
+
+> Given a Job has already completed, when the worker receives it again,
+> then its completed result is returned and its side effect is not repeated.
+
+Use the actual domain term instead of inventing a parallel label such as
+"task item." Identify what the caller can observe and the smallest check that
+distinguishes the desired behavior from the current failure. Keep the accepted
+example available to Implement and Validate. Tests added after coding may
+supplement it; they cannot redefine what was promised.
+
+For uncertain designs, probe the assumption that could change the approach.
+For product planning, distinguish demonstrated behavior from aspiration and
+refine the existing product owner only within the request. A product document
+is not required for an ordinary feature.
+
+## Decision cost and stopping
+
+Use real undo cost, affected users and existing authority when choosing who
+must decide. Resolve reversible implementation details within accepted scope.
+A material irreversible choice outside that authority needs the caller; prior
+authorization remains valid. Reviewer agreement is evidence, not permission
+to replace the caller's intent. Explain a consequential disagreement and its
+support rather than silently changing acceptance.
+
+A proposed process artifact earns its cost only with a concrete consumer,
+subject or release decision, observed defect and retirement condition. If the
+next action adds only ceremony or repeats settled evidence, omit it. Stop when
+the implementer can act and the validator can judge, reserving capacity for
+implementation, integration and repair.
+
+Decision pointers and coarse future work adapt ideas from Matt Pocock's
+[Wayfinder](https://github.com/mattpocock/skills/blob/main/skills/engineering/wayfinder/SKILL.md);
+complete slices and compatibility migrations adapt
+[To Tickets](https://github.com/mattpocock/skills/blob/main/skills/engineering/to-tickets/SKILL.md).
+AgentOps keeps the caller's existing intent and native work authority.
+
+## Identity and scope
+
+Use runtime-derived source identity and digest. If conversation intent needs
+an exact snapshot, existing `ao provenance snapshot-intent --source -
+--evidence-root <explicit-root>` uses caller-selected protected external
+non-Git storage. Missing routing permits neither workspace fallback nor a
+second planning artifact. Preserve legacy proof.
+
+Use normalized repository-relative scope patterns. An uncovered live consumer
+needs a concise exact-file amendment to the caller; continue independent
+in-scope work meanwhile. Generated companions already in scope need no extra
+permission. [Boundaries](../rpi/references/boundaries.md) keep work/status in
+the caller's tracker and delivery under repository policy.

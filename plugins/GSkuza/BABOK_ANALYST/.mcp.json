@@ -3,7 +3,11 @@
     "babok": {
       "command": "node",
       "args": ["hooks/babok-mcp-launcher.cjs"],
-      "cwd": "."
+      "cwd": ".",
+      "env": {
+        "BABOK_PROJECTS_DIR": "projects",
+        "BABOK_AGENT_DIR": "BABOK_AGENT/stages"
+      }
     }
   }
 }

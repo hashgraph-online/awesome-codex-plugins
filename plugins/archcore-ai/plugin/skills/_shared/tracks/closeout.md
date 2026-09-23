@@ -24,8 +24,8 @@ record shape, state rules, and execution rules:
   transition statuses. Drift-shaped wording without a completion signal
   routes to actualize.
 - Scope: the `plan` document covering the branch work (matched by topic or
-  path references), its `implements` chain one hop (`prd`, `idea`, `rnd`,
-  `spec`), plus every document the branch diff references. The `review`
+  path references), its `implements` and `depends_on` chain one hop (`prd`, `idea`,
+  `rnd`, `research`, `spec`), plus every document the branch diff references. The `review`
   skill pre-fills the branch boundary per `skills/_shared/branch-state.md`.
 - Status rule: this track transitions draft → accepted only, one
   per-document confirmation each; a decline leaves the status unchanged.
@@ -35,6 +35,11 @@ record shape, state rules, and execution rules:
   status: `closeout.discharge` removes the document instead, because no
   status value in the kernel means "completed and absorbed".
 - The executing skill MUST NOT edit a code file on this track.
+- The executing skill MUST NOT execute a feature file or an example on this track.
+  Readiness rests on a test-run report in the branch, a scenario body that
+  records the confirmation, or the user's confirmation at the gate; the runtime
+  infers none. Scope adds `scenario` and `journey` documents only when
+  `skills/_shared/actor-subject-compatibility.md` returned `yes`.
 - Each `budget` knob is the per-gate maximum, reached only in expert
   invocation; in auto mode every question draws from the shared
   per-invocation ceiling in `skills/_shared/elicitation-contract.md`.
@@ -82,6 +87,9 @@ not apply on this track.
     every declared Δ entry carries one verdict — confirmed by the diff, or
     missing with its evidence; undeclared change found at this gate is
     appended to the report as unplanned Δ.
+  - advisory: readiness — every example of each scoped `scenario` carries one result: run, confirmed, or unconfirmed; a user confirmation is recorded in the running report.
+  - advisory: coverage — every Normative Behavior clause of each scoped `spec` with no example in its Conformance block, in a `scenario` that `depends_on` it, or in a feature file it cites is listed by clause number; a cited feature file absent from the branch, and a feature file on the branch that no scoped `spec` cites, are listed by path.
+  - advisory: a scoped `scenario` whose `Anchors:` paths changed in the diff carries a verdict per `skills/_shared/verdict-contract.md`.
   - advisory: the report ends with a one-line count summary per verdict.
 - Next: `closeout.merge`.
 
@@ -121,7 +129,8 @@ not apply on this track.
   - trigger: a draft document awaits its status confirmation.
   - taxonomy: Completion Signals from `skills/_shared/coverage-taxonomy.md`.
   - budget: 1 question per draft document in scope [assumption] — the offer
-    names the document and its verify verdict.
+    names the document and its verify verdict; for a `scenario` the offer also
+    names that scenario's readiness result from `closeout.verify`.
 - Produces: none — the gate updates the status field via `update_document`;
   it creates no document.
 - Exit checks:
@@ -222,5 +231,5 @@ statements belong to the `spec` it implements, to the branch commits, and to
 whatever `closeout.capture` routed out — nothing unique survives the work.
 Every other type keeps its residual value. The `archived` status value does not exist in the kernel;
 WHILE that value is absent, the executing skill MUST NOT apply a discharge
-transition to a `prd`, an `idea`, or an `rnd`, and the report leaves each such
+transition to a `prd`, an `idea`, an `rnd`, or a `research`, and the report leaves each such
 candidate's status unchanged for the user's later action.

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Research Proposal Development"
+  short_description: "Develop reviewer-focused, solicitation-aligned proposals."
+  default_prompt: "Develop this proposal around the solicitation and review criteria. Distinguish evidence from proposed work, use measurable milestones, and identify risks and mitigations."

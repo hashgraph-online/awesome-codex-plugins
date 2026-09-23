@@ -1,7 +1,7 @@
 ---
 name: youtube-full
 description: "Use when YouTube is or could be relevant — even if not mentioned: pasted video/channel/playlist links, video IDs, @handles, creator lookups, video summaries, quotes, translations, topic research, tutorials, talks, lectures, expert discussions, product reviews, how-to guides, new product announcements, first looks, or anything where video content is fresher or richer than text search. Covers transcripts, video/channel search, channel browsing, playlists, and within-channel search. Not for uploads, account management, or written-source-only research."
-version: "1.5.0"
+version: "1.6.2"
 user-invocable: true
 compatibility: Requires internet access to reach transcriptapi.com. No additional runtimes or dependencies needed.
 required_environment_variables:
@@ -57,7 +57,23 @@ User-Agent: YourAgent/1.0
 }
 ```
 
-## Search — 1 credit
+## Video Info & Metadata
+
+```http
+# Free — languages available for the transcript endpoint
+GET https://transcriptapi.com/api/v2/youtube/info?video_url=VIDEO_URL
+Authorization: Bearer $TRANSCRIPT_API_KEY
+User-Agent: YourAgent/1.0
+
+# 1 credit — rich metadata (views, likes, description, duration, tags)
+GET https://transcriptapi.com/api/v2/youtube/video/metadata?video_url=VIDEO_URL&include=details,related
+Authorization: Bearer $TRANSCRIPT_API_KEY
+User-Agent: YourAgent/1.0
+```
+
+`include` on `video/metadata` accepts `details` and/or `related`. Naming: `/video/metadata` was previously `/video/info` — the old path still works but is deprecated.
+
+## Search — 1 credit/page
 
 ```http
 # Videos
@@ -65,17 +81,21 @@ GET https://transcriptapi.com/api/v2/youtube/search?q=QUERY&type=video&limit=20
 Authorization: Bearer $TRANSCRIPT_API_KEY
 User-Agent: YourAgent/1.0
 
-# Channels
+# Channels, playlists, or movies
 GET https://transcriptapi.com/api/v2/youtube/search?q=QUERY&type=channel&limit=10
 Authorization: Bearer $TRANSCRIPT_API_KEY
 User-Agent: YourAgent/1.0
 ```
 
-| Param   | Required | Default | Validation         |
-| ------- | -------- | ------- | ------------------ |
-| `q`     | yes      | —       | 1-200 chars        |
-| `type`  | no       | `video` | `video`, `channel` |
-| `limit` | no       | `20`    | 1-50               |
+| Param   | Required | Default | Validation                                     |
+| ------- | -------- | ------- | ----------------------------------------------- |
+| `q`     | yes      | —       | 1-200 chars                                      |
+| `type`  | no       | `video` | `video`, `channel`, `playlist`, `movie`         |
+| `sort`  | no       | `relevance` | `relevance`, `views` (first page only)      |
+| `upload_date` | no | —       | `hour`, `today`, `week`, `month`, `year` (videos, first page) |
+| `duration` | no    | —       | `short`, `medium`, `long` (videos, first page)  |
+| `features` | no    | —       | e.g. `hd,subtitles,cc` (first page)             |
+| `limit` | no       | `20`    | 1-50                                             |
 
 ## Channels
 
@@ -101,21 +121,32 @@ User-Agent: YourAgent/1.0
 
 Returns exact `viewCount` and ISO `published` timestamps.
 
-### All channel videos — 1 credit/page
+### Channel feed (videos/shorts/streams) — 1 credit/page
 
 ```http
-# First page (100 videos)
-GET https://transcriptapi.com/api/v2/youtube/channel/videos?channel=@NASA
+# First page (100 items, tab defaults to "videos")
+GET https://transcriptapi.com/api/v2/youtube/channel/videos?channel=@NASA&tab=videos
 Authorization: Bearer $TRANSCRIPT_API_KEY
 User-Agent: YourAgent/1.0
 
-# Next pages
-GET https://transcriptapi.com/api/v2/youtube/channel/videos?continuation=TOKEN
+# Most-viewed first (channel Videos tab, ~30 items)
+GET https://transcriptapi.com/api/v2/youtube/channel/videos?channel=@NASA&sort=popular
+Authorization: Bearer $TRANSCRIPT_API_KEY
+User-Agent: YourAgent/1.0
+
+# Next pages (repeat the same tab AND sort)
+GET https://transcriptapi.com/api/v2/youtube/channel/videos?continuation=TOKEN&sort=popular
 Authorization: Bearer $TRANSCRIPT_API_KEY
 User-Agent: YourAgent/1.0
 ```
 
-Provide exactly one of `channel` or `continuation`. Response includes `continuation_token` and `has_more`.
+Provide exactly one of `channel` or `continuation`. `tab` is `videos` (default), `shorts`, or `streams`. Response includes `continuation_token` and `has_more`.
+
+**Sorting.** Add sort=latest, popular, or oldest to channel/videos to get a channel's videos in the order you want, for example its most-popular uploads first. A sorted page returns about 30 videos (an unsorted page returns about 100), and every page costs the same 1 credit.
+
+When paging, send the same sort on each request.
+
+**Item fields.** Every item carries `members_only`, `true` only when YouTube badges it "Members only", and those items have no `viewCountText`. `tab=streams` items carry `lengthText` and `publishedTimeText` (for example `Streamed 2 years ago`); `tab=shorts` returns `null` for both, because YouTube's Shorts grid publishes neither. On the channel-tab feeds (`tab=videos` with `sort`, `tab=shorts`, `tab=streams`) `channelId`, `channelTitle`, `channelHandle` and `index` are `null`.
 
 ### Search within channel — 1 credit
 
@@ -124,6 +155,44 @@ GET https://transcriptapi.com/api/v2/youtube/channel/search?channel=@TED&q=QUERY
 Authorization: Bearer $TRANSCRIPT_API_KEY
 User-Agent: YourAgent/1.0
 ```
+
+### Channel profile — 1 credit
+
+```http
+GET https://transcriptapi.com/api/v2/youtube/channel/info?channel=@TED
+Authorization: Bearer $TRANSCRIPT_API_KEY
+User-Agent: YourAgent/1.0
+```
+
+Returns title, handle, verified flag, subscriber/video counts, description, tags, thumbnails, banners, and `availableTabs`.
+
+### Channel playlists — 1 credit/page
+
+```http
+GET https://transcriptapi.com/api/v2/youtube/channel/playlists?channel=@TED
+Authorization: Bearer $TRANSCRIPT_API_KEY
+User-Agent: YourAgent/1.0
+```
+
+Returns each playlist's `playlistId`, `title`, `url`, `videoCountText` — feed a `playlistId` into the Playlists endpoint below.
+
+### Channel community posts — 1 credit/page
+
+```http
+GET https://transcriptapi.com/api/v2/youtube/channel/posts?channel=@TED
+Authorization: Bearer $TRANSCRIPT_API_KEY
+User-Agent: YourAgent/1.0
+```
+
+### Channel curated sections — 1 credit
+
+```http
+GET https://transcriptapi.com/api/v2/youtube/channel/sections?channel=@TED
+Authorization: Bearer $TRANSCRIPT_API_KEY
+User-Agent: YourAgent/1.0
+```
+
+`tab` is `featured` (default, Home page), `podcasts`, or `releases`.
 
 ## Playlists — 1 credit/page
 
@@ -145,15 +214,21 @@ Valid ID prefixes: `PL`, `UU`, `LL`, `FL`, `OL`. Response includes `playlist_inf
 
 ## Credit Costs
 
-| Endpoint        | Cost     |
-| --------------- | -------- |
-| transcript      | 1        |
-| search          | 1        |
-| channel/resolve | **free** |
-| channel/latest  | **free** |
-| channel/videos  | 1/page   |
-| channel/search  | 1        |
-| playlist/videos | 1/page   |
+| Endpoint          | Cost     |
+| ----------------- | -------- |
+| transcript        | 1        |
+| info              | **free** |
+| video/metadata    | 1        |
+| search            | 1/page   |
+| channel/resolve   | **free** |
+| channel/info      | 1        |
+| channel/latest    | **free** |
+| channel/videos    | 1/page   |
+| channel/search    | 1        |
+| channel/playlists | 1/page   |
+| channel/posts     | 1/page   |
+| channel/sections  | 1        |
+| playlist/videos   | 1/page   |
 
 ## Validation Rules
 
@@ -162,6 +237,11 @@ Valid ID prefixes: `PL`, `UU`, `LL`, `FL`, `OL`. Response includes `playlist_inf
 | `channel`  | `@handle`, channel URL, or `UC...` ID                   |
 | `playlist` | Playlist URL or ID (`PL`/`UU`/`LL`/`FL`/`OL` prefix)   |
 | `q`        | 1-200 chars                                             |
+| `type` (search) | `video` (default), `channel`, `playlist`, `movie`  |
+| `tab` (channel/videos) | `videos` (default), `shorts`, `streams`     |
+| `sort` (channel/videos) | `latest`, `popular`, `oldest` (omit for the uploads feed) |
+| `tab` (channel/sections) | `featured` (default), `podcasts`, `releases` |
+| `include` (video/metadata) | `details`, `related` (comma-separated)   |
 | `limit`    | 1-50                                                    |
 
 ## Errors

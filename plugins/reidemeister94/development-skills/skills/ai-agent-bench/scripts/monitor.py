@@ -123,10 +123,10 @@ def main() -> int:
             phase, _ = _phase_and_age(run_dir / "status.txt")
             if phase == "done":
                 return 0
-        except Exception as e:
+        except Exception as error:  # noqa: BLE001 - monitoring errors must not stop the trial
             # Best-effort: never crash the sidecar; log and continue.
             (run_dir / "monitor.errors.log").open("a").write(
-                f"{datetime.now(UTC).isoformat()}\t{type(e).__name__}\t{e}\n"
+                f"{datetime.now(UTC).isoformat()}\t{type(error).__name__}\t{error}\n"
             )
         time.sleep(args.interval)
 

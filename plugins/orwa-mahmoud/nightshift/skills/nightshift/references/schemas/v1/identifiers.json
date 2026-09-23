@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "hosts": ["claude", "codex", "cursor"],
+  "workModes": ["repository", "artifact"],
+  "authority": ["owner-approved", "untrusted", "unsafe", "none"],
+  "endings": ["finite", "open-ended"],
+  "interruption": ["none", "crash", "stop", "deadline", "revive"],
+  "capabilityStatus": [
+    "available-and-verified",
+    "available-but-failing",
+    "provisionable",
+    "fallback-only",
+    "unavailable"
+  ],
+  "evidenceLadder": [
+    "declared",
+    "observed",
+    "reproduced",
+    "measured",
+    "verified-after-change",
+    "human-accepted"
+  ],
+  "evidenceSurfaces": ["unavailable", "human-only", "unsupported", "unmeasured"],
+  "priorityContracts": [
+    "hunt",
+    "quality",
+    "seo-audit",
+    "coverage-hunt",
+    "defect-hunt",
+    "research-synthesis",
+    "documentation-writing"
+  ]
+}

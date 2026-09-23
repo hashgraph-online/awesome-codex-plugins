@@ -13,7 +13,7 @@ license: MIT
 metadata:
   author: AgriciDaniel
   original_author: "Florian Schmitz (Pro Hub Challenge)"
-  version: "2.2.16"
+  version: "2.2.5"
   category: seo
 ---
 
@@ -43,8 +43,8 @@ well-optimized it is.
 
 ### Step 1: Target Acquisition
 
-1. Fetch the target URL via `scripts/render_page.py --mode auto` (SPA-aware and SSRF-safe)
-2. Parse with `scripts/parse_html.py` to extract: title, H1, meta description,
+1. Fetch the target URL via `claude-seo run render_page.py <URL> --mode auto` (SPA-aware and SSRF-safe)
+2. Parse with `claude-seo run parse_html.py <URL>` to extract: title, H1, meta description,
    headings hierarchy, word count, schema markup, CTAs, media elements
 3. If no keyword provided, extract primary keyword from title tag + H1 overlap
 4. Validate keyword is non-empty before proceeding
@@ -59,7 +59,7 @@ Read `references/page-type-taxonomy.md` for classification rules.
    - Page type (classify using taxonomy)
    - Content format (long-form, listicle, how-to, comparison, tool, video)
    - Word count estimate (from snippet length and page structure)
-   - Schema types present (from SERP features: ratings, FAQ, HowTo)
+   - Schema types present (from currently supported SERP features; exclude FAQ/HowTo)
    - Media signals (video carousel, image pack, thumbnail presence)
 3. Record SERP features present:
    - Featured snippet (paragraph / list / table / video)
@@ -170,8 +170,8 @@ Read `references/wireframe-templates.md` for templates.
 If DataForSEO credentials or optional tools are available:
 
 1. **Before any API call**, run cost estimate and confirm with user
-2. Use `google_organic_serp` for precise SERP data (positions, features, snippets)
-3. Use `keyword_data` for search volume and competition metrics
+2. Use `serp_organic_live_advanced` for precise SERP data (positions, features, snippets)
+3. Use `kw_data_google_ads_search_volume` for search volume and competition metrics
 4. Fall back to WebSearch if DataForSEO unavailable -- note reduced precision in output
 
 ## SXO Score vs SEO Health Score
@@ -244,7 +244,7 @@ The SXO score is **separate** from the main SEO Health Score.
 ## Quality Checklist
 
 Before delivering results, verify:
-- [ ] Target URL was fetched via `scripts/render_page.py --mode auto` (not raw curl/fetch)
+- [ ] Target URL was fetched via `claude-seo run render_page.py <URL> --mode auto` (not raw curl/fetch)
 - [ ] Page type classification uses taxonomy from references
 - [ ] At least 5 SERP results were analyzed
 - [ ] User stories cite specific SERP signals as evidence

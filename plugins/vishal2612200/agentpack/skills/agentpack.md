@@ -1,6 +1,6 @@
 ---
 name: agentpack
-description: Route normal development through AgentPack's work, learn, finish, and doctor loop.
+description: Route normal development through AgentPack's work, finish, and doctor loop, with optional learning.
 license: AGPL-3.0-only
 ---
 
@@ -13,9 +13,9 @@ AgentPack is not a coding agent. AgentPack is a local context engine that helps 
 ## Product Loop
 
 1. Start concrete work with `agentpack work "<task>"`.
-2. During or after work, use `agentpack learn --json` to present the next three evidence-backed topics.
-3. Finish with `agentpack finish` so checks and task memory are recorded.
-4. Use `agentpack doctor` when integration or context health is unclear.
+2. Finish with `agentpack finish` so checks and task memory are recorded.
+3. Use `agentpack doctor` when integration or context health is unclear.
+4. Use `agentpack learn --json` after delivery when learning output is useful.
 
 Use `$agentpack-review`, `$agentpack-resolve`, `$agentpack-pack`, `$agentpack-route`, and `$agentpack-handoff` for those specialized workflows. Treat selected files as a starting map, not proof of correctness, and use normal repository search when AgentPack context is incomplete.
 
@@ -24,7 +24,6 @@ Use `$agentpack-review`, `$agentpack-resolve`, `$agentpack-pack`, `$agentpack-ro
 ```bash
 agentpack status
 agentpack work "<task>"
-agentpack learn --json
 agentpack finish
 agentpack doctor
 ```

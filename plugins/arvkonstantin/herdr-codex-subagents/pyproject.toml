@@ -1,0 +1,37 @@
+[project]
+name = "herdr-codex-subagents"
+version = "0.1.5"
+description = "Disposable Herdr panes for Codex subagents"
+requires-python = ">=3.10"
+license = "MIT"
+
+[project.optional-dependencies]
+dev = [
+  "coverage[toml]>=7.10,<8",
+  "pytest>=9.0.3,<10",
+  "pytest-cov>=6.2,<8",
+  "ruff>=0.12,<1",
+]
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-config --strict-markers"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+branch = true
+source = ["scripts"]
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true
+skip_covered = true
+exclude_also = [
+  "if __name__ == .__main__.:",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]

@@ -1,7 +1,7 @@
 ---
 name: youtube-channels
 description: "Use when a YouTube channel is the focus: pasted @handles or channel URLs, requests to browse a creator's uploads, see what a channel has posted recently, search within a channel, or resolve a handle to a channel ID. Also use when the user names a creator and wants to explore their content or monitor their uploads. Not for creating channels or account management."
-version: "1.5.0"
+version: "1.6.3"
 user-invocable: true
 compatibility: Requires internet access to reach transcriptapi.com. No additional runtimes or dependencies needed.
 required_environment_variables:
@@ -108,16 +108,21 @@ Great for monitoring channels — free and gives exact view counts + ISO timesta
 
 ## GET /api/v2/youtube/channel/videos — 1 credit/page
 
-Paginated list of ALL channel uploads (100 per page).
+Paginated list of a channel's feed (~100 per page). Use `tab` to pick uploads (default), Shorts, or live streams, and the optional `sort` to order the Videos tab by latest, popular, or oldest.
 
 ```http
 # First page
-GET https://transcriptapi.com/api/v2/youtube/channel/videos?channel=@NASA
+GET https://transcriptapi.com/api/v2/youtube/channel/videos?channel=@NASA&tab=videos
 Authorization: Bearer $TRANSCRIPT_API_KEY
 User-Agent: YourAgent/1.0
 
-# Next pages
-GET https://transcriptapi.com/api/v2/youtube/channel/videos?continuation=TOKEN
+# Most-viewed first (channel Videos tab, ~30 per page)
+GET https://transcriptapi.com/api/v2/youtube/channel/videos?channel=@NASA&sort=popular
+Authorization: Bearer $TRANSCRIPT_API_KEY
+User-Agent: YourAgent/1.0
+
+# Next pages (repeat the same tab AND sort)
+GET https://transcriptapi.com/api/v2/youtube/channel/videos?continuation=TOKEN&sort=popular
 Authorization: Bearer $TRANSCRIPT_API_KEY
 User-Agent: YourAgent/1.0
 ```
@@ -125,9 +130,27 @@ User-Agent: YourAgent/1.0
 | Param          | Required    | Validation                                    |
 | -------------- | ----------- | --------------------------------------------- |
 | `channel`      | conditional | `@handle`, channel URL, or `UC...` ID         |
+| `tab`          | no          | `videos` (default), `shorts`, or `streams`     |
+| `sort`         | no          | `latest`, `popular`, or `oldest` (omit for the uploads feed) |
 | `continuation` | conditional | non-empty (next pages)                        |
 
-Provide exactly one of `channel` or `continuation`, not both.
+Provide exactly one of `channel` or `continuation`, not both. When paginating, pass the same `tab` **and** `sort` on every page.
+
+**Sorting.** Add sort=latest, popular, or oldest to channel/videos to get a channel's videos in the order you want, for example its most-popular uploads first. A sorted page returns about 30 videos (an unsorted page returns about 100), and every page costs the same 1 credit.
+
+When paging, send the same sort on each request.
+
+**Per-item fields by feed:**
+
+| Field | uploads (no `sort`) | `tab=videos` + `sort` | `tab=streams` | `tab=shorts` |
+| --- | --- | --- | --- | --- |
+| `lengthText` | populated | populated | populated (`LIVE` while live) | `null` |
+| `publishedTimeText` | populated | populated | populated (`Streamed 2 years ago`) | `null` |
+| `viewCountText` | populated | populated | populated (`null` while live) | populated |
+| `channelId` / `channelTitle` / `channelHandle` / `index` | populated | `null` | `null` | `null` |
+| `members_only` | always `false` | `true` on membership videos | `true` on membership streams | always `false` |
+
+`members_only` is `true` only when YouTube badges the item "Members only". Such items carry **no `viewCountText`**, because YouTube does not publish view counts for membership content.
 
 **Response:**
 
@@ -141,8 +164,10 @@ Provide exactly one of `channel` or `continuation`, not both.
     "channelHandle": "@TED",
     "lengthText": "15:22",
     "viewCountText": "3.2M views",
+    "publishedTimeText": "2 years ago",
     "thumbnails": [...],
-    "index": "0"
+    "index": "0",
+    "members_only": false
   }],
   "playlist_info": {"title": "Uploads from TED", "numVideos": "5000", "ownerName": "TED"},
   "continuation_token": "4qmFsgKlARIYVVV1...",
@@ -167,6 +192,91 @@ User-Agent: YourAgent/1.0
 | `channel` | yes      | `@handle`, channel URL, or `UC...` ID     |
 | `q`       | yes      | 1-200 chars                               |
 | `limit`   | no       | 1-50 (default 30)                         |
+
+## GET /api/v2/youtube/channel/info — 1 credit
+
+A channel's profile: title, handle, verified flag, subscriber/video counts, description, tags, thumbnails, banners, and the tabs it exposes.
+
+```http
+GET https://transcriptapi.com/api/v2/youtube/channel/info?channel=@TED
+Authorization: Bearer $TRANSCRIPT_API_KEY
+User-Agent: YourAgent/1.0
+```
+
+| Param     | Required | Validation                            |
+| --------- | -------- | -------------------------------------- |
+| `channel` | yes      | `@handle`, channel URL, or `UC...` ID |
+
+**Response:**
+
+```json
+{
+  "channelId": "UCAuUUnT6oDeKwE6v1NGQxug",
+  "title": "TED",
+  "handle": "@TED",
+  "verified": true,
+  "subscriberCountText": "23.8M subscribers",
+  "videoCountText": "4,300 videos",
+  "description": "The TED Talks channel features ...",
+  "tags": ["TED", "TED Talks"],
+  "thumbnails": [...],
+  "banners": [...],
+  "availableTabs": ["videos", "shorts", "playlists", "community"]
+}
+```
+
+Counts are display strings and `null` when YouTube hides them — never `0`. Check `availableTabs` before calling `channel/sections` or `channel/videos` with a `tab`.
+
+## GET /api/v2/youtube/channel/playlists — 1 credit/page
+
+List the playlists shown on a channel — useful for finding a playlist ID to feed into `playlist/videos`.
+
+```http
+GET https://transcriptapi.com/api/v2/youtube/channel/playlists?channel=@TED
+Authorization: Bearer $TRANSCRIPT_API_KEY
+User-Agent: YourAgent/1.0
+```
+
+| Param          | Required    | Validation                             |
+| -------------- | ----------- | --------------------------------------- |
+| `channel`      | conditional | `@handle`, channel URL, or `UC...` ID  |
+| `continuation` | conditional | non-empty (next pages)                 |
+
+Provide exactly one of `channel` or `continuation`, not both. Returns `results` (`playlistId`, `title`, `url`, `videoCountText`, `thumbnails`), `continuation_token`, `has_more`.
+
+## GET /api/v2/youtube/channel/posts — 1 credit/page
+
+List a channel's community (Posts tab) content — text, publish time, like counts, and any attachment (image, video, playlist, or poll).
+
+```http
+GET https://transcriptapi.com/api/v2/youtube/channel/posts?channel=@TED
+Authorization: Bearer $TRANSCRIPT_API_KEY
+User-Agent: YourAgent/1.0
+```
+
+| Param          | Required    | Validation                             |
+| -------------- | ----------- | --------------------------------------- |
+| `channel`      | conditional | `@handle`, channel URL, or `UC...` ID  |
+| `continuation` | conditional | non-empty (next pages)                 |
+
+Provide exactly one of `channel` or `continuation`, not both. Channels with no community tab return an empty `results` list (not an error).
+
+## GET /api/v2/youtube/channel/sections — 1 credit
+
+The curated shelves on a channel's Home page (or its `podcasts`/`releases` pages) — each shelf holds videos, playlists, shorts, or featured channels, in the channel's own order. Not paginated.
+
+```http
+GET https://transcriptapi.com/api/v2/youtube/channel/sections?channel=@TED
+Authorization: Bearer $TRANSCRIPT_API_KEY
+User-Agent: YourAgent/1.0
+```
+
+| Param     | Required | Default      | Validation                              |
+| --------- | -------- | ------------ | ---------------------------------------- |
+| `channel` | yes      | —            | `@handle`, channel URL, or `UC...` ID   |
+| `tab`     | no       | `featured`   | `featured` (Home), `podcasts`, `releases` |
+
+`podcasts` and `releases` only exist on channels that have them (empty `results` otherwise — check `availableTabs` from `channel/info` first).
 
 ## Typical workflow
 

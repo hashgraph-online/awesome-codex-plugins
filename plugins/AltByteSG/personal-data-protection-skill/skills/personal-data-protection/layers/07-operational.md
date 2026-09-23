@@ -27,7 +27,46 @@ Most PDP-family statutes treat as notifiable:
 
 - A breach affecting at least N individuals (the "significant scale" threshold; varies by jurisdiction)
 - A breach involving sensitive categories at any scale (auth credentials, health, location-with-identity, children's data, financial info, private communications)
-- An internal-only access (e.g. curious admin) is typically NOT notifiable as a breach but IS a personal offence under the individual-criminal-liability provisions
+- An internal-only access (e.g. curious admin) is **not universally carved out — check the active jurisdiction before closing one without notifying.** SG has an explicit exclusion (s26B(4)); **TH does not** — under s37(1) it remains a breach and notifiability falls to the risk assessment. ID / MY / PH carry no explicit carve-out either, so treat the assessment as required. In every jurisdiction it IS a personal offence under the individual-criminal-liability provisions
+
+### Sub-processor / vendor breaches
+
+When a processor you use has a breach affecting your data, the procedure is the same
+everywhere; only the provision that puts the reporting duty on the processor differs.
+
+- Your DPA should require the processor to notify you **without undue delay**. Best
+  practice is to contractually require **≤ 24 hours**, so you retain time to assess
+  before your own clock expires.
+- Your regulatory clock starts when **you** become aware — in practice, when the
+  processor notifies you. Their delay consumes your window, which is why the
+  contractual ceiling matters.
+- Record the chain in the incident log: when the processor became aware → when they
+  notified you → when you assessed.
+
+The statutory hook is per-jurisdiction — see the active
+`jurisdictions/<code>/obligations/06-breach-notification.md`.
+
+### Post-incident records
+
+After any breach, add the post-incident remediation to your processing / security
+records. This is the demonstrable-accountability principle in practice, and it is the
+first thing a regulator asks for if they investigate. Each jurisdiction's obligation
+file names the record-keeping provision that applies.
+
+### Runbook readiness checklist
+
+Verify before an incident, not during one:
+
+- [ ] Regulator notification form pre-filled and saved, with the current submission
+      method confirmed
+- [ ] DPO **and** a backup contact both hold credentials to submit
+- [ ] Data-subject notification template pre-staged **in the languages your users
+      read** — several jurisdictions expect or require the local language
+- [ ] Incident log location documented, using the awareness-timestamp pattern
+- [ ] Vendor DPAs carry a breach-notification clause with a time ceiling
+- [ ] Annual review of the runbook scheduled
+
+Starting point: `templates/INCIDENT_RESPONSE.md.template`.
 
 ## Retention sweeps
 

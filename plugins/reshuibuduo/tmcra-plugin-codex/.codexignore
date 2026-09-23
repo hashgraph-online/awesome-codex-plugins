@@ -1,0 +1,15 @@
+.git
+.git/
+.github/
+node_modules/
+tests/
+packaging/
+release/
+*.log
+*.tmp
+*.key
+*.pem
+.env
+.env.*
+.tmcra/
+scanner-report.*

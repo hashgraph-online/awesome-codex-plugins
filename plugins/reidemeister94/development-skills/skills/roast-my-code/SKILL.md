@@ -3,7 +3,7 @@ name: roast-my-code
 description: "Roast code with aggressive humor while preserving a factual staff review; --fix can apply selected CRITICAL/HIGH fixes."
 user-invocable: true
 allowed-tools: Skill, AskUserQuestion
-effort: max
+effort: xhigh
 ---
 
 # Roast My Code

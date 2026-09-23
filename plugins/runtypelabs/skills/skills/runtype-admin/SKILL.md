@@ -1,11 +1,6 @@
 ---
 name: runtype-admin
-description: >-
-  Use when operating a live Runtype account through MCP or Code Mode MCP: inspect resources,
-  debug failed flows or agents, read logs and traces, manage products, surfaces, records,
-  schedules, secrets, models, evals, batches, conversations, client tokens, or make safe
-  account mutations. Includes search/execute patterns, read-before-write, validation,
-  pagination, and conservative destructive-change policy.
+description: 'Inspect, debug, or manage a live Runtype account through MCP or CLI; mutate only within the requested scope.'
 user-invocable: true
 argument-hint: '[live account operation or debugging task]'
 ---
@@ -30,8 +25,8 @@ workspace unless explicitly run against a disposable test account.
 For direct MCP tools, discover before acting:
 
 - Identity and inventory: `get_me`, `list_products`, `list_agents`, `list_flows`,
-  `list_tools`, `list_records`, `list_schedules`, `list_secrets`,
-  `list_model_configs`, `list_conversations`.
+  `list_tools`, `list_records`, `list_collections`, `list_skills`, `list_schedules`,
+  `list_secrets`, `list_model_configs`, `list_conversations`.
 - Debugging: `list_logs`, `get_log_stats`, `trace_execution`, `trace_conversation`,
   `list_agent_executions`, `get_record_results`, `get_record_step_results`,
   `get_record_costs`.
@@ -43,6 +38,13 @@ For direct MCP tools, discover before acting:
   `get_batch_status`, `get_batch_summary`, `cancel_batch`.
 
 Surfaces are product-scoped. List or mutate them with the product id in hand.
+
+Large resource inventories (`list_products`, `list_agents`, `list_flows`, `list_tools`,
+`list_records`, `list_collections`, `list_skills`, and `list_schedules`) return compact string previews by
+default. Prefer that discovery shape, then call the matching `get_*` tool for one
+resource. Pass `view: "full"` only when complete strings are necessary across the whole
+page. `list_agents` also accepts `agent_type` (`runtype`, `external`, or
+`claude_managed`) when the type is known.
 
 ## Code Mode MCP
 

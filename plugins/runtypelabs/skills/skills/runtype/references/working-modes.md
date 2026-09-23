@@ -71,12 +71,12 @@ Useful for:
 
 ### Virtual
 
-Not persisted in Runtype at all. The flow or agent definition is sent over the wire on each execution.
+The flow or agent definition is supplied on each execution without creating a saved entity. Execution logs, traces, and retention policies still apply; virtual execution is not a zero-retention guarantee.
 
 Useful for:
 
 - Tests and one-offs that shouldn't pollute the dashboard.
-- Hard privacy or compliance requirements where the definition itself shouldn't be stored.
+- Temporary generated definitions that do not need a saved entity. For privacy requirements, verify logging and retention separately.
 - Per-tenant customization in a multi-tenant product where each tenant gets a slightly different agent.
 
 ## What the SDK unlocks beyond authoring
@@ -94,7 +94,7 @@ Two flavors:
   surface's `behavior.webmcp` policy, and executed in the user's page when
   widget `config.webmcp.enabled` is set. Use for browser APIs, page HTML,
   navigation, and front-end state.
-- **Server-side** (Python/TS SDK on your server). Tools run on your infrastructure. Useful for: calling internal services without exposing them via Runtype, hitting local AI models, working with sensitive data you don't want passing through Runtype.
+- **Server-side** (Python/TS SDK on your server). Tools run on your infrastructure. Useful for: calling internal services without exposing them via Runtype, hitting local AI models, keeping sensitive dependencies local. Any tool result you return to the model still passes through the hosted execution path; redact or minimize it before returning.
 
 ### Hidden parameters
 

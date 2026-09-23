@@ -1,6 +1,6 @@
 # research
 
-Answer a bounded question with current cited evidence. Triggers: "research", "investigate this question", "find evidence". (Investigating a repository routes to codebase-recon.)
+Trace code or test a recurring pattern to answer one cited question. Use when: uncertainty needs evidence. Not for external feature teardowns; use reverse-engineer.
 
 ## Instructions
 

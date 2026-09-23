@@ -1,12 +1,36 @@
 ---
 name: reverse-engineer
-description: 'Reverse-engineer an authorized repo, binary Triggers: "reverse-engineer X", "tear down Y", "what should we steal from Z", "evaluate competitor/upstream", "should we fork/adopt/build-native".'
+description: 'Tear down an authorized competitor repo, binary or product into a feature inventory and adoption choices. Use when: comparing an external system; local questions go to Research.'
 ---
 # Reverse Engineer
 
 Reverse-engineer an external system into two things: a **mechanically-verifiable teardown** (feature inventory + registry + specs, optionally a security audit) and a **steal-map** — what to adopt into our surfaces, what to leave behind. The teardown is the evidence; the steal-map is the decision. Separating them works because a decision row that must cite a registry entry can be re-checked by anyone, while a decision made from impressions cannot be re-checked by its own author. The original failure mode this skill exists to prevent: reading a competitor's README and "deciding" from vibes.
 
 **Triggers:** "reverse-engineer X", "tear down Y", "what should we steal from Z", "evaluate competitor/upstream", "should we fork/adopt/build-native".
+
+## Prompt
+
+```text
+Reverse-engineer the beads CLI (github.com/steveyegge/beads, tag v2.1.0)
+in repo mode, then author steal-map.md comparing its dependency-graph
+reconciler against our cli/internal/gates/ package. I own this analysis
+and have authorization for the clone.
+```
+
+## It's working if
+
+Observable in the trace, without reading the prose:
+
+- `feature-registry.yaml` and `clone-metadata.json` land under
+  `.agents/scratch/reverse-engineer/<product>/` with the resolved
+  upstream commit recorded.
+- Every `steal-map.md` row cites a teardown registry entry and our
+  matching surface, using the full `have`/`gap`/`steal`/`park`/`reject`
+  set.
+- `bash skills/reverse-engineer/scripts/validate-output.sh --output-dir
+  "$output_dir" --phase complete` exits 0 before handoff.
+- A one-way-door adoption row is routed to Plan instead of decided
+  inside `steal-map.md`.
 
 ## ⚠️ Constraints — Hard Guardrails (MANDATORY)
 

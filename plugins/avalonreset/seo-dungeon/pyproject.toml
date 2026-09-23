@@ -1,23 +1,41 @@
 [project]
-name = "seo-dungeon"
-version = "2.2.0"
-description = "Gamified SEO Dungeon skill suite with local AI CLI compatibility"
+name = "legends-seo-dungeon"
+version = "2.2.5"
+description = "Open-source Legends SEO Dungeon skill suite"
 requires-python = ">=3.10"
 license = "MIT"
 readme = "README.md"
 authors = [
-  {name = "Avalon Reset", email = "avalonreset@users.noreply.github.com"},
-  {name = "Daniel Agrici", email = "agricidaniel@gmail.com"}
+  { name = "Avalon Reset", email = "avalonreset@users.noreply.github.com" },
 ]
-keywords = ["seo", "codex", "claude-code", "gemini-cli", "schema-markup", "core-web-vitals", "ai-search", "geo"]
+keywords = [
+  "codex",
+  "seo",
+  "technical-seo",
+  "schema",
+  "schema-markup",
+  "core-web-vitals",
+  "google-search-console",
+  "dataforseo",
+  "ai-search",
+]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Topic :: Internet :: WWW/HTTP :: Indexing/Search",
+]
+dependencies = []
 
 [project.urls]
-Homepage = "https://github.com/avalonreset/seo-dungeon"
-Repository = "https://github.com/avalonreset/seo-dungeon"
+Homepage = "https://seodungeon.com"
+Repository = "https://github.com/avalonreset/legends-seo-dungeon"
 
 [tool.ruff]
-target-version = "py310"
 line-length = 100
+target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]

@@ -7,8 +7,10 @@ All plugins submitted to **Awesome Codex Plugins** must pass the HOL AI Plugin S
 | Requirement | Threshold |
 |-------------|-----------|
 | **Scanner Score** | ≥ 80 / 130 |
-| **Severity** | No critical or high findings |
-| **CI Gate** | Scanner must run in your repo's GitHub Actions |
+| **Centralized Scan** | Numeric score ≥ 80 / 130 is the catalog admission threshold |
+| **Source CI** | Optional; recommended for pre-submission feedback |
+
+Catalog admission uses the numeric score from the catalog-owned centralized scan. A score of **80/130 or higher** is scanner-clear even when the scanner action reports advisory findings or exits nonzero for a non-gating reason. Separate catalog-format, source-availability, or repository-integrity defects can still block merge.
 
 ## Quick Start
 
@@ -68,9 +70,9 @@ Score: 119 / 130 (91.5%)
 ✅ PASSED: Score ≥ 80, no high/critical findings
 ```
 
-## CI Integration (Required)
+## CI integration (optional, recommended)
 
-Your plugin repo must have the scanner running in CI. Add this to `.github/workflows/hol-scanner.yml`:
+You can run the scanner in your source repository for continuous feedback. Catalog admission does not require this workflow because the catalog runs its own centralized scan. Add this to `.github/workflows/hol-scanner.yml` if you want source-repository CI:
 
 ### Standard Gate (Recommended)
 
@@ -458,7 +460,7 @@ permissions:
 - **Scanner repo:** [hashgraph-online/hol-guard](https://github.com/hashgraph-online/hol-guard)
 - **GitHub Action:** [hashgraph-online/ai-plugin-scanner-action](https://github.com/hashgraph-online/ai-plugin-scanner-action)
 - **Registry:** [hol.org/registry/plugins](https://hol.org/registry/plugins)
-- **Issues:** Open an issue in this repo with the `[scanner]` label
+- **Scanner questions:** use the existing contribution PR thread
 - **Security issues:** Email security@hol.org
 
 ## Badges

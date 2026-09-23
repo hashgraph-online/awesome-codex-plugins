@@ -1,7 +1,7 @@
 # Actualize Track — Diff-Scoped Drift Detection and Confirmed Fixes
 
 Plugin runtime asset. Loaded by the `review` skill — this track's primary
-executor — when `/archcore:review --drift` or drift-shaped wording ("are any
+executor — when the `/archcore:review drift` or `deep` mode or drift-shaped wording ("are any
 docs out of date?", "check if documentation matches the code") routes here.
 Gate record shape, state rules, and execution rules:
 `skills/_shared/gate-contract.md`. Interview mechanics and question budget:

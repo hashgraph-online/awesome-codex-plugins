@@ -1,0 +1,39 @@
+{
+  "name": "devrecap",
+  "version": "0.3.0",
+  "private": true,
+  "description": "Local-first, evidence-based developer activity intelligence: turns AI coding sessions + Git into presentation-ready work recaps.",
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "setup": "node scripts/link-workspaces.mjs",
+    "predev": "node scripts/link-workspaces.mjs",
+    "dev": "node apps/server/src/index.ts",
+    "prestart": "node scripts/link-workspaces.mjs",
+    "start": "node apps/server/src/index.ts",
+    "prerecap": "node scripts/link-workspaces.mjs",
+    "recap": "node apps/cli/src/index.ts",
+    "preseed": "node scripts/link-workspaces.mjs",
+    "seed": "node apps/server/src/seed-cli.ts",
+    "pretest": "node scripts/link-workspaces.mjs",
+    "test": "node --test tests/*.test.ts",
+    "presmoke": "node scripts/link-workspaces.mjs",
+    "smoke": "node scripts/smoke.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "bin": { "devrecap": "apps/cli/src/index.ts" },
+  "comments": {
+    "runtime": "Runs on Node.js built-ins only (node:sqlite, node:http, node:test, node:zlib, fetch) with zero third-party installs. Node 24 LTS is the recommended runtime: it runs the project's .ts files directly via native type stripping WITHOUT extra flags, and ships node:sqlite. Node 24 is therefore the minimum supported version (see engines.node).",
+    "stack": "This project targets React + Vite + Tailwind + shadcn/ui + Prisma + Zod as its canonical stack. The canonical dependencies below document the intended stack and are installed when running in an environment with npm access; the code is structured so migration is incremental. See .kiro/specs/devrecap/design.md section 2."
+  },
+  "dependencies": {},
+  "devDependencies": {},
+  "canonicalDependencies": { "react": "^18.3.1", "react-dom": "^18.3.1", "@prisma/client": "^5.19.0", "zod": "^3.23.8", "express": "^4.19.2" },
+  "canonicalDevDependencies": { "vite": "^5.4.0", "@vitejs/plugin-react": "^4.3.1", "typescript": "^5.5.4", "tailwindcss": "^3.4.10", "prisma": "^5.19.0", "vitest": "^2.0.5" }
+}

@@ -1,16 +1,19 @@
 ---
 name: simplify-stuff
-description: Deep simplification pass over a target's files. Use when the user invokes /simplify-stuff or asks to simplify files, docs, skills, or plugins (simplify, semplifica).
+description: Remove unnecessary content and simplify files while preserving useful behavior and project knowledge.
 argument-hint: [files, directories, or plugin to simplify]
 disable-model-invocation: true
 ---
 
-# simplify-stuff
+# Simplify stuff
 
-The argument is the target scope. Run a deep pass that applies the [writing contract](../../shared/writing.md) to existing files:
+Use the argument or request as the scope. Apply the [writing contract](../../shared/writing.md).
+Inspect the target, relevant references, and inbound callers before deleting or moving content.
 
-1. Read every file in the scope, plus the files each one references or shares content with — judge a file inside its ecosystem, never alone. Check what points at the scope from outside before restructuring, so no link or section reference breaks.
-2. Rewrite each file to the contract, deduplicating across the whole scope: each fact lands in its one right home and the other files link to it.
-3. Verify before finishing: grep that load-bearing specific tokens (names, paths, commands, conventions) survived; confirm nothing active links to removed content; and check the result is both shorter and clearer — when a cut would lose real capability, relocate the content instead of deleting it.
+Delete what carries no useful behavior, fact, constraint, or decision.
+Merge repeated information into its owner, then simplify what remains.
+Keep project conventions and non-obvious operational knowledge. A shorter file that loses these facts is a regression.
 
-Record what was removed and why in the project's usual decision record, so cuts stay recoverable.
+Check names, paths, commands, conventions, links, and relevant behavior after the change.
+Record material removals and their reasons in an existing decision record when useful.
+Do not create a new process or file merely to document a routine wording edit.

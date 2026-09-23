@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# recover.sh — autonomous cass recovery, no user prompt required
+# recover.sh — selected authorized cass recovery
 #
 # Decision tree:
 #   1) If healthy: exit 0
@@ -7,9 +7,10 @@
 #   3) If broken: doctor --fix, then verify
 #   4) If still broken after fix: print actionable diagnostic and exit 1
 #
-# Used by: PreToolUse hooks before cass search; cron pre-flight; agent loops.
+# Invoke only for a diagnosed recovery/refresh need with indexing authorized.
+# Search-only requests do not need this helper.
 #
-# Safe by default. Never touches source session files.
+# Preserves source session files; may refresh or rebuild derived index state.
 
 set -uo pipefail
 # NOT -e: a non-zero exit from cass/jq is informational, not fatal — we want
@@ -39,26 +40,33 @@ if ! command -v jq >/dev/null 2>&1; then
 fi
 
 cass_state() {
-  # Always emits 5 tab-separated values, even when cass times out or returns garbage.
+  # Unobserved state must not be converted into an empty/corrupt database.
   local out
-  out=$(timeout "$STATUS_TIMEOUT" cass status --json 2>/dev/null) || out=""
+  out=$(timeout "$STATUS_TIMEOUT" cass status --json 2>/dev/null) || return 2
   if [ -z "$out" ]; then
-    printf 'false\tfalse\t0\t0\t\n'
-    return
+    return 2
   fi
   printf '%s' "$out" \
-    | jq -r '[
-        (.index.fresh // false),
-        (.database.exists // false),
-        (.index.documents // 0),
-        (.database.messages // 0),
+    | jq -er 'select(
+        type == "object"
+        and (.index | type == "object")
+        and (.database | type == "object")
+        and (.index.fresh | type == "boolean")
+        and (.database.exists | type == "boolean")
+        and (.index.documents | type == "number" and . >= 0 and floor == .)
+        and (.database.messages | type == "number" and . >= 0 and floor == .)
+      ) | [
+        .index.fresh,
+        .database.exists,
+        .index.documents,
+        .database.messages,
         (.recommended_action // "")
       ] | @tsv' 2>/dev/null \
-    || printf 'false\tfalse\t0\t0\t\n'
+    || return 2
 }
 
 # Read state once. Use || true so an empty stream doesn't trip downstream.
-state_line=$(cass_state)
+state_line=$(cass_state) || { echo "UNAVAILABLE: index state not observed; no repair attempted" >&2; exit 2; }
 IFS=$'\t' read -r FRESH DB_EXISTS DOCS MSGS REC <<< "$state_line" || true
 FRESH=${FRESH:-false}
 DB_EXISTS=${DB_EXISTS:-false}
@@ -102,7 +110,7 @@ else
 fi
 
 # Verify
-state_line=$(cass_state)
+state_line=$(cass_state) || { echo "UNAVAILABLE: state after doctor not observed; no further repair attempted" >&2; exit 2; }
 IFS=$'\t' read -r FRESH DB_EXISTS DOCS MSGS REC <<< "$state_line" || true
 
 if [ "${DB_EXISTS:-false}" = "true" ] && [ "${DOCS:-0}" != "0" ]; then
@@ -124,7 +132,7 @@ esac
 
 # Even on exit 0 the JSON may report success:false (the last_indexed_at race
 # documented in coding_agent_session_search-zz8ni). Always verify by re-reading state.
-state_line=$(cass_state)
+state_line=$(cass_state) || { echo "UNAVAILABLE: state after rebuild not observed" >&2; exit 2; }
 IFS=$'\t' read -r FRESH DB_EXISTS DOCS MSGS REC <<< "$state_line" || true
 if [ "${DB_EXISTS:-false}" = "true" ] && [ "${DOCS:-0}" != "0" ]; then
   echo "RECOVERED: index is queryable (fresh marker may still be stale; that's harmless)" >&2

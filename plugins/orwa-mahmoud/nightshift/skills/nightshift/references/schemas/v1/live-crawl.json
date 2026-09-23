@@ -1,0 +1,199 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/orwa-mahmoud/nightshift/main/plugins/nightshift/skills/nightshift/references/schemas/v1/live-crawl.json",
+  "title": "Nightshift SEO live crawl evidence",
+  "description": "Bounded crawl snapshot from owner-approved origins only. Wave 1 schema; runtime helper is planned.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "evidenceMode",
+    "approvedOrigins",
+    "crawlBudget",
+    "crawler",
+    "pages"
+  ],
+  "properties": {
+    "schemaVersion": { "type": "integer", "enum": [1] },
+    "kind": { "type": "string", "enum": ["live-crawl"] },
+    "evidenceMode": { "type": "string", "enum": ["live"] },
+    "approvedOrigins": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "crawlBudget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maxUrls", "maxDepth", "maxPages", "maxSeconds"],
+      "properties": {
+        "maxUrls": { "type": "integer", "minimum": 1 },
+        "maxDepth": { "type": "integer", "minimum": 0 },
+        "maxPages": { "type": "integer", "minimum": 1 },
+        "maxSeconds": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "crawler": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identity", "startedAt", "finishedAt"],
+      "properties": {
+        "identity": { "type": "string", "minLength": 1 },
+        "startedAt": { "type": "string", "minLength": 1 },
+        "finishedAt": { "type": "string", "minLength": 1 },
+        "urlsAttempted": { "type": "integer", "minimum": 0 },
+        "urlsSucceeded": { "type": "integer", "minimum": 0 },
+        "urlsFailed": { "type": "integer", "minimum": 0 },
+        "urlsBlocked": { "type": "integer", "minimum": 0 },
+        "budgetExhausted": { "type": "boolean" }
+      }
+    },
+    "redirectPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "followInternal": { "type": "boolean" },
+        "followExternal": { "type": "boolean" },
+        "maxHops": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "externalLinkPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "recordOnly": { "type": "boolean" },
+        "fetchExternal": { "type": "boolean" }
+      }
+    },
+    "sitemapHealth": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sitemapUrl": { "type": ["string", "null"] },
+        "status": {
+          "type": "string",
+          "enum": ["ok", "missing", "unavailable", "invalid"]
+        },
+        "declaredUrls": { "type": "integer", "minimum": 0 },
+        "crawledUrls": { "type": "integer", "minimum": 0 },
+        "missingFromSitemap": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "sitemapOnlyUrls": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "pages": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["url", "finalUrl", "status"],
+        "properties": {
+          "url": { "type": "string", "minLength": 1 },
+          "finalUrl": { "type": "string", "minLength": 1 },
+          "status": { "type": "integer", "minimum": 0 },
+          "redirectChain": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["url", "status"],
+              "properties": {
+                "url": { "type": "string" },
+                "status": { "type": "integer" }
+              }
+            }
+          },
+          "canonical": { "type": ["string", "null"] },
+          "robotsMeta": { "type": ["string", "null"] },
+          "robotsTxt": { "type": ["string", "null"] },
+          "headings": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "language": { "type": ["string", "null"] },
+          "internalLinks": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "externalLinks": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "structuredData": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["type"],
+              "properties": {
+                "type": { "type": "string" },
+                "valid": { "type": "boolean" },
+                "errors": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                }
+              }
+            }
+          },
+          "contentFingerprint": { "type": ["string", "null"] },
+          "sourceVsRendered": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "compared": { "type": "boolean" },
+              "differences": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            }
+          },
+          "blockedReason": { "type": ["string", "null"] },
+          "maliciousPageInstructions": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "detected": { "type": "boolean" },
+              "samples": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "disposition": { "type": ["string", "null"] }
+            }
+          },
+          "fetchError": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "failures": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["url", "reason"],
+        "properties": {
+          "url": { "type": "string" },
+          "reason": { "type": "string" }
+        }
+      }
+    },
+    "notMeasured": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["surface", "reason"],
+        "properties": {
+          "surface": { "type": "string" },
+          "reason": { "type": "string" }
+        }
+      }
+    }
+  }
+}

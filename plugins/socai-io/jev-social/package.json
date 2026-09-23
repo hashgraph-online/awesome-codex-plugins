@@ -1,0 +1,55 @@
+{
+  "name": "jev-social",
+  "version": "0.1.4",
+  "description": "Jev-directed Instagram, TikTok, and LinkedIn browser operations through the socai CLI",
+  "type": "module",
+  "bin": {
+    "jev-social": "bin/jev-social.js"
+  },
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/socai-io/jev-social.git"
+  },
+  "homepage": "https://socai-io.github.io/jev-social/",
+  "bugs": {
+    "url": "https://github.com/socai-io/jev-social/issues"
+  },
+  "files": [
+    "bin",
+    "docs/troubleshooting.md",
+    "public",
+    "skills",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "start": "node ./bin/jev-social.js",
+    "dev": "node --watch ./bin/jev-social.js serve --no-open",
+    "check": "node --check ./bin/jev-social.js && node --check ./src/server.js && node --check ./public/app.js && node --check ./public/evidence-preview.js && node --check ./public/run-route.js && node --check ./public/report-download.js && node --check ./public/prompts.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "jev",
+    "socai",
+    "instagram",
+    "tiktok",
+    "linkedin",
+    "research",
+    "ai-agent",
+    "browser-automation",
+    "openrouter",
+    "social-media-research"
+  ],
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}

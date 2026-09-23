@@ -1,6 +1,6 @@
 # Sub-skill: Build / update the Voice & Brand Profile
 
-Builds or refreshes `../../references/voice-profile.md` so every writing skill in
+Builds or refreshes `../../../references/voice-profile.md` so every writing skill in
 this bundle drafts in the user's real voice instead of a generic "human" voice.
 Runs on any agent (Claude Code, Codex, OpenClaw): the core path needs only the
 user's own writing pasted in. A read token (Apify) is an optional accelerator,
@@ -28,7 +28,7 @@ never required.
    avoid, emoji/hashtag behavior.
 3. Infer niche, ICP, and pillars from the sample topics; confirm rather than guess.
 4. Capture hard rules and CTA/link style the samples reveal or the user states.
-5. Write `../../references/voice-profile.md`: fill sections 1-5, copy the 2-4
+5. Write `../../../references/voice-profile.md`: fill sections 1-5, copy the 2-4
    strongest lines verbatim into "Signature examples", and set the Status block to
    `filled: yes`, `source: <pasted|read-layer|manual>`, `updated: <today>`.
 6. Show the filled profile for approval before saving; tell the user every writing

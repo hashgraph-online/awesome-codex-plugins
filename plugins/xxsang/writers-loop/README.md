@@ -6,6 +6,7 @@ English | [简体中文](README_zh.md) | [日本語](README_ja.md) | [Español](
 **让 AI 写作根据你的风格、认可与修改持续改进。**
 
 [![Validate](https://github.com/xxsang/writers-loop/actions/workflows/validate.yml/badge.svg)](https://github.com/xxsang/writers-loop/actions/workflows/validate.yml)
+[![HOL Guard](https://img.shields.io/endpoint?url=https%3A%2F%2Fhol.org%2Fapi%2Fregistry%2Fbadges%2Fplugin%3Fslug%3Dwriter-s-loop-contributors%252Fwriters-loop%26metric%3Dtrust)](https://hol.org/registry/plugins/writer-s-loop-contributors%2Fwriters-loop)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![No npm install](https://img.shields.io/badge/npm%20install-not%20required-brightgreen)](package.json)
 [![Memory](https://img.shields.io/badge/memory-local%20opt--in-blue)](PRIVACY.md)

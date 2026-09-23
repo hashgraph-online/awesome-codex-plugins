@@ -13,7 +13,7 @@ kernel:
 <skill id="help">
 
 <purpose>
-Quick reference for KERNEL v9.8.1.
+Quick reference for KERNEL v9.11.0.
 One primitive: skills (methodology, workflows, state transitions, validators,
 operators). Agents, manifests, philosophy, and current plugin status.
 </purpose>
@@ -43,7 +43,7 @@ agentdb recall "<feature> <subsystem> <files/symbols> <error/outcome>" --global
 | Start working on anything | `/kernel:ingest` + describe task |
 | Run autonomously overnight | `/kernel:forge` + describe goal |
 | Explore approaches creatively | `/kernel:dream` + describe problem |
-| Debug something broken | `/kernel:diagnose` + describe symptom |
+| Debug something broken | `/kernel:debug` + describe symptom |
 | Save progress before stopping | `/kernel:handoff` |
 </getting_started>
 
@@ -55,7 +55,7 @@ agentdb recall "<feature> <subsystem> <files/symbols> <error/outcome>" --global
 | `/kernel:ingest` | Guided entry, classify, scope, execute | Default for any task. Human confirms each phase. |
 | `/kernel:forge` | Autonomous engine, heat/hammer/quench/anneal | Run overnight. Iterates until antifragile or reports why not. |
 | `/kernel:dream` | Creative exploration, 3 perspectives + stress test | When you need competing approaches before committing. |
-| `/kernel:diagnose` | Systematic debugging + refactor analysis | Bugs, regressions, or before refactoring. Diagnosis before prescription. |
+| `/kernel:debug` | Diagnosis before prescription | Bugs, regressions, or mapping a refactor. Bug mode and refactor mode. |
 | `/kernel:simplify` | Cut cyclomatic complexity with AST-aware budgets, regression diffs, and a project gate | Jungle code, god functions, after any AI-written branchy function. A number, not an opinion. |
 
 ## Quality & Review (kind: validator)

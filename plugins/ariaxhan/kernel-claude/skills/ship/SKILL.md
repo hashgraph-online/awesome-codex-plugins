@@ -64,6 +64,11 @@ kernel:
      session exits 127 until it restarts. Name the live sessions in the handoff and say
      they need a restart; never report "upgraded" as if it covered them
      (docs/upgrading.md, 2026-08-27).
+   - After publishing the GitHub release, install it into Claude's own cache and verify a
+     fresh headless Claude process: `scripts/install-release.sh X.Y.Z`. The script updates
+     only Claude's marketplace/cache, atomically advances Claude's `current` selector, and
+     fails unless both the installed manifest and the fresh process report `X.Y.Z`. Codex
+     installation remains a separate operation.
 
 6. **Human pass** *(any user-facing release: app build, deploy, anything a person will touch)*
    - Load `skills/human-pass/SKILL.md` and write the guide for THIS build: literal

@@ -17,7 +17,7 @@
 | **Backlinks** | `backlinks_*` | $0.02 | Per sub-call |
 | **Content** | `content_analysis_*` | $0.02 | Search, summary, trends |
 | **Business** | `business_data_*` | $0.05 | Listings search |
-| **AI/GEO** | `ai_optimization_*` | $0.05 | ChatGPT scraper, LLM mentions |
+| **AI/GEO** | `ai_optimization_chat_gpt_scraper`, `ai_opt_llm_ment_*` | $0.05 | ChatGPT scraper, LLM mentions |
 | **Merchant** | `merchant_*` | $0.02 | Google Shopping, Amazon |
 | **Domain** | `domain_analytics_whois_*` | $0.005 | WHOIS data |
 | **Domain** | `domain_analytics_technologies_*` | $0.01 | Tech stack |
@@ -31,24 +31,24 @@
 | **Aggressive** | $50.00 | $2.00 | threshold | Agency bulk work |
 | **Unlimited** | $999.00 | -- | none | Trusted pipelines |
 
-Configure with: `python3 scripts/dataforseo_costs.py config --mode threshold --threshold 0.50 --daily-limit 10.00`
+Configure with: `claude-seo run dataforseo_costs.py config --mode threshold --threshold 0.50 --daily-limit 10.00`
 
 ## Cost Reduction Tips
 
-- Use `live_regular` instead of `live_advanced` when full SERP features aren't needed (50% savings)
-- Batch keywords into single `search_volume` calls instead of individual SERP lookups
-- Use `standard` task queue instead of `live` for non-urgent analysis (60-80% savings)
-- Avoid `site:` and `filetype:` operators in image SERP queries (5x cost multiplier)
-- Cache session results — don't re-fetch the same keyword/domain within a session
+- Use `live_regular` instead of `live_advanced` when full SERP features are not needed.
+- Batch keywords into single `search_volume` calls instead of individual SERP lookups.
+- Use the standard task queue instead of live for non-urgent analysis where available.
+- Avoid `site:` and `filetype:` operators in image SERP queries unless needed.
+- Cache session results; do not re-fetch the same keyword/domain within a session.
 
 ## Approval Flow
 
-Before any DataForSEO MCP call:
-1. Run `python3 scripts/dataforseo_costs.py check <endpoint> [--count N]`
-2. If `status: "approved"` → proceed
-3. If `status: "needs_approval"` → show cost to user, ask to confirm
-4. If `status: "blocked"` → inform user daily limit would be exceeded
-5. After call completes, log: `python3 scripts/dataforseo_costs.py log <endpoint> <cost>`
+Before any DataForSEO API call:
+1. Run `claude-seo run dataforseo_costs.py check <endpoint> [--count N]`.
+2. If `status: "approved"`, proceed.
+3. If `status: "needs_approval"`, show cost to the user and ask for confirmation.
+4. If `status: "blocked"`, inform the user the daily limit would be exceeded.
+5. After the call completes, log: `claude-seo run dataforseo_costs.py log <endpoint> <cost>`.
 
 ## Warn Endpoints
 

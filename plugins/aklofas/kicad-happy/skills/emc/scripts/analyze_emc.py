@@ -428,6 +428,15 @@ def main():
         args.standard = project['emc_standard']
     if args.market is None and project.get('compliance_market'):
         args.market = project['compliance_market']
+    pdn_transient_a = None
+    _pdn_a_raw = project.get('pdn_transient_current_a')
+    if _pdn_a_raw is not None:
+        try:
+            _pdn_a_val = float(_pdn_a_raw)
+            if _pdn_a_val > 0:
+                pdn_transient_a = _pdn_a_val
+        except (TypeError, ValueError):
+            pass
 
     # Build inputs provenance block (Track 1.3).
     from pathlib import Path as _Path
@@ -469,7 +478,8 @@ def main():
     findings = run_all_checks(schematic, pcb,
                               standard=args.standard,
                               severity_threshold=severity,
-                              spice_backend=spice_backend)
+                              spice_backend=spice_backend,
+                              pdn_transient_a=pdn_transient_a)
     elapsed = time.time() - t0
 
     # Apply suppressions

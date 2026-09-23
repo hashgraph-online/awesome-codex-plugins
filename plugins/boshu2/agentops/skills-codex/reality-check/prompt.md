@@ -1,6 +1,6 @@
 # reality-check
 
-Compare a claimed state with observable repository evidence and report concrete gaps. Requires a claim or expected state to test. Triggers: "reality check", "is this claim actually done", "compare claim to repo".
+Audit claimed state, goals or native status. Use when: a claim audit or snapshot is requested. Clarify advice versus acceptance for ambiguous checking or readiness requests.
 
 ## Instructions
 

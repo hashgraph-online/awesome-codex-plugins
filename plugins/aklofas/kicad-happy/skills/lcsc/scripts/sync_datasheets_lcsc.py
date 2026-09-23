@@ -51,6 +51,7 @@ from fetch_datasheet_lcsc import (
     try_alternative_sources,
     verify_datasheet,
     search_lcsc,
+    enrich_with_wmsc,
     _get_datasheet_url,
     _get_mpn,
     _get_lcsc_code,
@@ -370,12 +371,14 @@ def sync_one_part(
     time.sleep(delay)
     print(f"  Searching LCSC for '{search_term}'...", file=sys.stderr)
     component = search_lcsc(search_term)
+    component = enrich_with_wmsc(component)
 
     # If LCSC code search failed but we have an MPN, try that
     if component is None and lcsc_pn and mpn:
         time.sleep(delay)
         print(f"  LCSC code not found, trying MPN '{mpn}'...", file=sys.stderr)
         component = search_lcsc(mpn)
+        component = enrich_with_wmsc(component)
 
     if component is not None:
         ds_url = _get_datasheet_url(component)

@@ -11,6 +11,7 @@ the Pre-Claim Gate, causal topology proof, falsifier proof, and layer ceiling.
 - Residual-symptom and compound-root procedure
 - Architecture escalation after repeated fixes
 - Expanded H/T/D governance gate
+- Pre-edit gate detail (Change Necessity, Minimality, Pre-Edit checks)
 
 ## Layer-stop procedure
 
@@ -154,3 +155,47 @@ Then rerun `Goal | DeeperCause | Evidence | Risk/Unknown | Decision`, confirm
 the source rather than the sample was fixed, state retirement delta, and assign
 confidence A/B/C. H/T/D output is advisory method-pack evidence, never a
 `GateDecision`, `PolicySnapshot`, or completion authority.
+
+## Pre-edit gate detail
+
+Enter only via a `SKILL.md` trigger (new source-code path, new branch /
+fallback / adapter / compat path / owner, or editing an overloaded owner).
+
+```text
+Change Necessity:
+- User-visible need:
+- No-change / non-code option:
+- Why code change is necessary:
+- Minimum change boundary:
+- Decision: no-change | docs/config-only | code-change | needs-clarification
+```
+
+`no-change` blocks source edits; `docs/config-only` narrows them;
+`needs-clarification` pauses; `code-change` carries the minimum boundary into
+repair and verification.
+
+```text
+Minimality Check:
+- Existing owner / reuse path:
+- Correct owner and bug class:
+- New path and existence proof:
+- Invalid responsibility retired or scheduled:
+- Legitimate capability on the same carrier retained, if any:
+- Verdict: sufficient repair | local patch | needs first-principles review
+```
+
+For a new non-ordinary repair surface, run the `Existence Check` in
+`docs/current/AEGIS_MINIMALITY_REFERENCE.md`.
+
+```text
+Pre-Edit Complexity Check:
+- Target edit file:
+- Existing pressure signal:
+- Owner fit and safer boundary:
+- Decision: edit-in-place | extract helper | add owner file | split task | pause for plan update
+
+Pre-Edit Owner-Fit Decision:
+- Edit intent: wiring-only | move-out / extract-first | local-fix-without-new-responsibility | new-responsibility | emergency / compatibility patch
+- Owner fit and safer boundary:
+- Decision: edit-in-place | extract helper | add owner file | split task | pause for plan update
+```

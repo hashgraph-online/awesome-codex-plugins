@@ -18,7 +18,9 @@ epic team
 - Recommends team type and agent composition
 - Shows diff if team already exists in `~/.harness/orgs/`
 - Applies merge strategy (no silent overwrites)
-- Copies agents to `.claude/agents/{team}/` with `## Team Context` injected
+- Copies agents to the host's agent dir with `## Team Context` injected —
+  `.claude/agents/{team}/` for Claude Code, and `.codex/agents/{team}/` as
+  Codex TOML when the project has a `.codex/` directory
 
 For the full spec see `docs/research/team-spec.md`.
 
@@ -28,8 +30,8 @@ For the full spec see `docs/research/team-spec.md`.
 epic team list                     # list teams in current org
 epic team show {team}              # config + agents + mission
 epic team show {team} --playbook   # full accumulated playbook
-epic team sync {team}              # re-copy agents to .claude/agents/
+epic team sync {team}              # re-copy agents to the host agent dir(s)
 epic team link {team}              # attach existing team (skip design)
-epic team unlink {team}            # remove .claude/agents/{team}/
+epic team unlink {team}            # remove the team from this project's agent dir(s)
 epic team history {team} {agent}   # show .history/ entries
 ```

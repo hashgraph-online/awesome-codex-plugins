@@ -1,21 +1,19 @@
 {
-  "name": "seo-dungeon",
-  "version": "2.2.16",
-  "description": "SEO Dungeon skill suite with a gamified local audit UI. 25 sub-skills (21 core + 1 orchestrator + 1 framework integration + 2 extension mirrors), 18 sub-agents, and 23 Codex agent profiles backed by the v2.2 SEO engine.",
+  "name": "legends-seo-dungeon",
+  "version": "2.2.5",
+  "description": "Legends SEO Dungeon is a Codex-first SEO game and portable skill suite with a structured local CLI bridge. 25 sub-skills (21 core + 1 orchestrator + 1 framework integration + 2 extension mirrors), 18 sub-agents, and 23 Codex profiles backed by the v2.2.5 SEO engine.",
   "author": {
     "name": "Avalon Reset",
     "email": "avalonreset@users.noreply.github.com",
     "url": "https://github.com/avalonreset"
   },
-  "homepage": "https://github.com/avalonreset/seo-dungeon",
-  "repository": "https://github.com/avalonreset/seo-dungeon",
+  "homepage": "https://seodungeon.com",
+  "repository": "https://github.com/avalonreset/legends-seo-dungeon",
   "license": "MIT",
   "keywords": [
     "codex",
     "codex-cli",
     "codex-skills",
-    "claude",
-    "gemini",
     "seo",
     "ai-seo",
     "technical-seo",
@@ -43,22 +41,21 @@
   "skills": "./skills/",
   "hooks": "./hooks/hooks.json",
   "interface": {
-    "displayName": "SEO Dungeon",
-    "shortDescription": "Run SEO Dungeon audits and SEO workflows in Codex.",
-    "longDescription": "SEO Dungeon is a gamified SEO analysis suite with Codex-compatible skills, Codex agent profiles, portable agent prompts, shared cache artifacts, optional SEO data integrations, and a dungeon crawler UI.",
+    "displayName": "Legends SEO Dungeon",
+    "shortDescription": "Run Legends SEO Dungeon audits and SEO workflows in Codex.",
+    "longDescription": "Legends SEO Dungeon is an open-source Codex-first gamified SEO analysis suite with portable skill prompts, shared cache artifacts, optional SEO data integrations, and a dungeon crawler UI.",
     "developerName": "Avalon Reset",
     "category": "Productivity",
     "capabilities": [
       "Interactive",
       "Write"
     ],
-    "websiteURL": "https://github.com/avalonreset/seo-dungeon",
+    "websiteURL": "https://seodungeon.com",
     "defaultPrompt": [
       "Audit this website for SEO issues.",
       "Check schema and Core Web Vitals for this URL.",
       "Build an SEO action plan for this business."
     ],
-    "brandColor": "#D4AF37",
-    "composerIcon": "./assets/icon.svg"
+    "brandColor": "#D4AF37"
   }
 }

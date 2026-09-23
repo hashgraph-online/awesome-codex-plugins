@@ -67,29 +67,16 @@ UU PDP doesn't prescribe channels. Practical sequence:
 2. **In-app banner** on next launch
 3. **Push notification** (only if email + in-app aren't reaching them)
 
-## Sample notification template (drop-in to your runbook)
+## Subject notification content
 
-```
-Subject: Important: a security incident affecting your account
+Pasal 46(2) fixes the minimum content; the drop-in email body lives once in
+[`templates/INCIDENT_RESPONSE.md.template`](../../../templates/INCIDENT_RESPONSE.md.template)
+section 5, so it does not drift per jurisdiction. Two ID-specific points when filling it:
 
-Hi [first name],
-
-On [date], we discovered that [one-line description of what happened].
-We notified the Indonesian regulator on [date].
-
-What data was involved: [bullet list — types of Personal Data]
-What we have done: [containment + remediation steps]
-What you should do: [specific user actions, e.g. reset password, log out everywhere]
-
-We are sorry this happened. Reply to this email for any questions
-and it will reach me directly.
-
-[DPO name]
-Data Protection Officer, [Legal Entity]
-[DPO email]
-```
-
-Save the send log (recipient count, send timestamp) in the incident log.
+- Name **the Indonesian regulator** in the "we notified" line — under Pasal 46(1) the
+  same 72-hour clock covers both the regulator and the Data Subject.
+- ID is the only regime here with **no harm threshold**: every breach notifies the
+  subject, so the template is sent on all incidents, not just significant-harm ones.
 
 ## Public notification (Pasal 46(3))
 
@@ -99,17 +86,17 @@ Common channels: a notice on your public website, a press release, posts on offi
 
 ## Vendor / sub-processor breaches
 
-When a Processor (your sub-processor) experiences a breach affecting your data:
+**Pasal 51** establishes the Processor's obligation to act on the Controller's
+instructions and report issues. The 72-hour clock runs from **your** awareness as
+Controller — typically the moment the Processor notifies you.
 
-- Pasal 51 establishes the Processor's obligation to act on Controller's instructions and report issues
-- Your DPA with the processor should require notification of breaches **without undue delay** — best practice: contractually require ≤24 hours so you have time to assess
-- The 72-hour clock starts when **you (as Controller) become aware** — typically when the processor notifies you
-
-Document this chain in your incident log: when the processor became aware → when they notified you → when you assessed.
+Procedure, DPA time ceiling, and incident-log chain: [layer 07 Operational](../../../layers/07-operational.md#sub-processor--vendor-breaches).
 
 ## Records and audit
 
-Pasal 31 requires the Controller to keep records of all Personal Data processing activities. After a breach, **add the post-incident remediation** to those records — this is part of the demonstrable accountability principle (Pasal 47) and likely to be reviewed by the regulator if they investigate.
+**Pasal 31** requires the Controller to keep records of all Personal Data processing
+activities, and **Pasal 47** makes accountability demonstrable — so post-incident
+remediation belongs in those records. See [layer 07 Operational](../../../layers/07-operational.md#post-incident-records).
 
 ## Penalty exposure
 
@@ -126,14 +113,10 @@ Plus potential criminal liability (Pasal 67) if the breach involved unauthorised
 
 ## Operational checklist (incorporate into the runbook)
 
-- [ ] Pre-stage the notification template in **Bahasa Indonesia** for Indonesian Data Subjects
-- [ ] Pre-fill the regulator notification (verify current submission method — Komdigi / appointed regulator)
-- [ ] DPO + backup contact both have submission access
-- [ ] Documented incident log location with awareness-timestamp pattern
-- [ ] Annual review of the runbook
-- [ ] Vendor DPAs require breach notification ≤24 hours
+General readiness items: [layer 07 Operational](../../../layers/07-operational.md#runbook-readiness-checklist). ID-specific:
 
-See `templates/INCIDENT_RESPONSE.md.template` for a starting runbook.
+- [ ] Data-subject notification template pre-staged in **Bahasa Indonesia**
+- [ ] Regulator submission method verified (Komdigi / the appointed regulator under Pasal 58)
 
 ## Quick reference
 

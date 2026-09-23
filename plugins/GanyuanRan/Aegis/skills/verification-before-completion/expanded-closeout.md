@@ -47,11 +47,12 @@ and action. For `unchanged`, verify no context write occurred. Compose
 
 ## Workspace Integrity
 
-Use only after the main-file helper hot path when the target project's
-configured Aegis workspace was created or changed. Report the work record,
-bundle/check results, target root, and structural-only boundary. A successful
-structure check does not prove evidence quality, semantic correctness, or
-completion.
+Use only when the target project's configured Aegis workspace was created or
+changed, or a work record exists. For a work record, run `python <aegis-workspace-helper> bundle
+--root <target-project-root> --work YYYY-MM-DD-<slug>`, then `python
+<aegis-workspace-helper> check --root <target-project-root>`. Report work record,
+results, target root, and the structural-only boundary: these commands prove
+structure, not evidence sufficiency, semantic correctness, or completion.
 
 ## Baseline and ADR Closure
 

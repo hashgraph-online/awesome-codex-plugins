@@ -447,6 +447,12 @@ flowchart TD
 
 Parallel agents often improve elapsed time and protect the main thread from noisy logs, but they normally use **more total tokens**. The efficiency target is fewer failed loops and cleaner context, not the maximum number of agents.
 
+Want configurable models for delegated work? Try the experimental
+[subagent model-routing hooks](examples/hooks/model-routing/README.md): personal
+easy/medium/difficult tiers, preserved explicit choices, reviewer minimums, and
+bounded escalation. Setup and runtime verification are required; this does not
+switch the main app model or establish token savings.
+
 ## Repository map
 
 ```text

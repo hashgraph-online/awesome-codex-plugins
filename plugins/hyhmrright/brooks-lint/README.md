@@ -27,7 +27,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.5.0-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.7.0-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="MIT License">
   <img src="https://img.shields.io/badge/Claude_Code-Plugin-blueviolet.svg" alt="Claude Code Plugin">
   <img src="https://img.shields.io/badge/Codex_CLI-Skill-orange.svg" alt="Codex CLI Skill">
@@ -300,8 +300,8 @@ The installer copies the skills **flat** into the right folder, so the shared fr
 | DeepSeek Harness (`dsh`) | `~/.dsh/skills` | `~/.agents/skills`, `AGENTS.md` | [setup](docs/dsh-setup.md) |
 | IBM Bob (`bob`) | `~/.bob/skills` | `AGENTS.md` | [setup](docs/bob-setup.md) |
 
-Kiro, Factory Droid, and DeepSeek Harness also auto-register `/brooks-review`. New to skills, or
-using an agent not listed? See **[docs/getting-started.md](docs/getting-started.md)**.
+OpenCode v2, Kiro, Factory Droid, and DeepSeek Harness also auto-register `/brooks-review`. New to
+skills, or using an agent not listed? See **[docs/getting-started.md](docs/getting-started.md)**.
 
 > **🧪 Verification status.** Claude Code, Gemini CLI, and Codex CLI are maintainer-verified. The
 > ten platforms above are documented from each tool's official skill spec and verified at the
@@ -324,8 +324,8 @@ using an agent not listed? See **[docs/getting-started.md](docs/getting-started.
 
 **Syntax by platform.** Claude Code also accepts the namespaced form
 `/brooks-lint:brooks-review` — short forms are auto-installed on first session start by the
-session-start hook. Codex CLI uses `$brooks-review`. Gemini CLI uses the table as written.
-OpenCode, Cursor, Antigravity, pi, and DeepSeek Harness invoke Agent Skills from each skill's
+session-start hook. Codex CLI uses `$brooks-review`. Gemini CLI and OpenCode v2 use the table as
+written. Cursor, Antigravity, pi, and DeepSeek Harness invoke Agent Skills from each skill's
 `description`, so just ask ("review this PR", "where's our worst tech debt?"); for explicit
 invocation use the platform's own syntax (pi registers each skill as `/skill:brooks-review`; dsh
 takes the table as written, from its `/` menu or typed inline). On every platform the

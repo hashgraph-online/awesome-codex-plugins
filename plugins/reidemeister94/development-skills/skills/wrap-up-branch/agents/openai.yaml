@@ -1,0 +1,5 @@
+interface:
+  display_name: "Wrap up branch"
+  short_description: "Test, review, document, and merge a finished feature branch"
+policy:
+  allow_implicit_invocation: false

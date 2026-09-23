@@ -1,41 +1,29 @@
-# dev-finish · Examples
+# Dev Finish Examples
 
-## 例 1 — 正常 PR 收尾
+## 已明确创建 PR
 
-前置:
-- `dev-verify` 通过
-- `dev-code-review` READY
-- 当前分支 `feat/user-export`
+用户:「验证完 push 当前分支,开个 draft PR 到 develop。」
 
-期望输出:
+完成当前分支和 diff 检查,核对远程、目标分支、验证证据及现有 PR,按授权 push 并创建 draft PR。报告 PR 链接与验证结果,保留 worktree。无需再展示 merge/PR/keep/discard 菜单。
 
-```
-分支已验证。请选择:
+## 保留失败现场
 
-1. 本地 merge 回 main
-2. push 当前分支并创建 PR
-3. 保留当前分支,我稍后自己处理
-4. 丢弃这个分支的工作
+用户:「测试还没过,先保留这个分支,稍后再修。」
 
-你选哪一个?
-```
+报告分支、commit、目录及未提交状态即可。失败不阻止保留工作,但不能声称验证通过。
 
-用户选 2 后:
-- push branch
-- 创建 PR
-- 保留 worktree
+## 精确丢弃授权
 
-## 例 2 — tests failed
+用户已查看待删除分支、提交列表和 worktree 路径,随后明确说“确认丢弃刚才列出的全部工作”。
 
-如果 preflight 里测试失败:
+核对状态未发生变化,按授权清理任务拥有的对象;无需再要求输入英文 discard。若新增未提交文件导致损失范围变化,先查明并仅针对新缺口确认。不要删除平台管理的 workspace。
 
-```
-不能 finish: npm test 失败(2 failures)。
-下一步: 修复失败测试后重跑 dev-verify / dev-code-review。
-```
+## 只提交本地
 
-不要展示 merge / PR 选项。
+用户:「只提交本次登录修复,不要 push,保留其他暂存。」
 
-## 例 3 — discard
+检查准确 diff 和 index,审查并验证登录修复,采用能保留其他暂存内容的方法提交指定范围。完成后确认 commit 内容与 index 状态。若无法安全分离,说明具体冲突,不要把其他暂存一并提交。
 
-用户选 discard 时必须要求精确输入 `discard`。`yes`、`确认`、`ok` 都不够。
+## 仅说“收尾”
+
+先完成只读 preflight,确认检查证据、分支状态和可能目标。因为用户尚未决定本地合并、PR 或保留,再询问缺少的交付决定;不要在收集基本状态之前把用户挡在菜单前。

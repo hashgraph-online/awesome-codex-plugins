@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
 # Domain skill contract validator.
 #
-# Domain is a read-only lookup: it returns the exact definition of an AgentOps
-# term from the two cited contract files and stops. The failure this guards is
-# a citation that has silently decayed — a contract path that moved, or a term
-# the skill promises to resolve that is no longer present in its cited source.
-# Both are the "floating citation" failure the skill's own prose warns about,
-# made checkable. This is the entry point audit.sh looks for.
+# Domain's AgentOps lookup returns definitions from the two cited contract
+# files. This check covers that lookup's source integrity, not the semantic
+# quality of caller-domain modeling. It detects a moved contract path or a
+# definition that no longer resolves. This is the entry point audit.sh looks for.
 set -euo pipefail
 
 # pwd -P: this skill is invoked through a symlink (~/.claude/skills/domain ->

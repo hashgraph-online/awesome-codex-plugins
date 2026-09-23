@@ -247,7 +247,7 @@ MOV, HEVC/H.265, AV1, VP9, ProRes, HDR, 10-bit, variable-frame-rate video, 24/25
 
 ### Upload retention
 
-Uploaded videos are stored for **24 hours** and are only available inside the session they were uploaded to. After 24 hours they are deleted, and another session — even on the same host or the same account — cannot reach them. Keep your own copy of every source file, and start a new upload if you come back to a project later.
+Uploaded videos and plugin-managed previews, job state, and exports share one immutable **24-hour** deadline measured from the session's first ingest. After that deadline the plugin removes its local copies and the service removes its media; another session — even on the same host or the same account — cannot reach them. Keep your own copy of every source file, and move any export you want to retain outside the plugin-managed data directory before the deadline.
 
 Install system tools:
 

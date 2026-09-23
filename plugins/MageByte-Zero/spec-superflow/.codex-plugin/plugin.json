@@ -1,7 +1,7 @@
 {
   "name": "spec-superflow",
-  "version": "1.2.0",
-  "description": "Spec-first workflow that bridges OpenSpec-style planning and Superpowers-style execution discipline.",
+  "version": "2.0.1",
+  "description": "Lean spec workflow with direct or planned execution and evidence-based completion.",
   "author": {
     "name": "MageByte",
     "url": "https://github.com/MageByte-Zero"
@@ -25,8 +25,8 @@
   "hooks": {},
   "interface": {
     "displayName": "spec-superflow",
-    "shortDescription": "Spec-first workflow with guarded execution.",
-    "longDescription": "A self-contained Codex workflow plugin with nine skills for intent exploration, planning artifacts, execution contracts, TDD execution, review gates, systematic debugging, closure, and delta spec sync.",
+    "shortDescription": "Lean workflow with guarded completion.",
+    "longDescription": "A self-contained Codex workflow with direct or planned execution, optional specifications, one final review by default, recoverable state, and delta spec sync.",
     "developerName": "MageByte",
     "category": "Developer Tools",
     "composerIcon": "./assets/icon.svg",
@@ -36,9 +36,9 @@
     ],
     "websiteURL": "https://github.com/MageByte-Zero/spec-superflow",
     "defaultPrompt": [
-      "Use workflow-start to start a new change.",
-      "Review the current spec-superflow stage.",
-      "Bridge the approved plan into an execution contract."
+      "Start this change with the direct path.",
+      "Create a short proposal and task list, then start planned execution.",
+      "Recover the current spec-superflow change."
     ],
     "brandColor": "#2563EB"
   }

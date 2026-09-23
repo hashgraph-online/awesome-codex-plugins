@@ -1,0 +1,11 @@
+# Local Codex scanner ignore list
+node_modules/
+.git/
+.venv/
+venv/
+__pycache__/
+*.pyc
+.turbo/
+dist/
+build/
+reports/

@@ -1,99 +1,52 @@
 # Input Contract
 
-Use this contract before analyzing or implementing a UI image.
+Use this reference when dimensions, the target, assets, or business meaning are
+unclear. Ordinary reconstruction does not require a separate intake document.
 
-## Required Inputs
+## Establish The Baseline
 
-- `ui_image`: a screenshot, exported design image, app screen, or mockup.
-- `design_size`: the original design canvas size when known, such as `1440x900`
-  or `375x812`.
+The `ui_image` is required. Use `design_size` from the user when supplied and
+record its source as `user-provided`. Otherwise run `scripts/image-metadata.mjs`
+or inspect metadata, use the image pixel dimensions provisionally, and record
+`inferred-from-image-pixels`. Do not stop merely to ask whether a size is known.
 
-If the user supplies only an image, ask:
+Image pixels may differ from CSS pixels because of device pixel ratio, cropping,
+or resizing. Check the image proportions against the target project and user
+notes. Ask when the mismatch changes a material layout decision, especially for
+an exact-fidelity request. Do not label a provisional baseline as measured CSS
+dimensions.
 
-```text
-Please provide the design size for this UI image, for example 1440x900 or
-375x812. If you do not have it, I can use the image pixel size as the fallback.
-```
+Infer the stack and component library from the target app. Ask about the target
+when multiple plausible apps remain and choosing one would change scope. In an
+empty directory, a standalone HTML/CSS/JS page is a reasonable default.
 
-If the user says they do not have a design size, use the image pixel dimensions
-as the design size and record:
+## Decide What Needs Clarification
 
-```markdown
-- Design size: <width>x<height>
-- Design size source: inferred-from-image-pixels
-```
+Use existing source, assets, or notes before asking. Distinguish:
 
-If the user gives a design size, record:
+| Missing detail | Response |
+|---|---|
+| Exact spacing, font weight, or radius | Choose the closest measured/local value and verify visually |
+| Unshown mobile layout | Apply conservative responsive constraints; disclose inferred behavior |
+| Unknown brand font or key asset | Search supplied/local assets; disclose substitution, ask if exact fidelity depends on it |
+| Unreadable business-critical label | Ask or leave that label explicitly unresolved; continue other regions |
+| Unknown tab panel, options, or route | Reuse documented content; otherwise report the gap without inventing business data |
+| Backend action, permissions, payment, or destructive effect | Resolve the contract and authorization before wiring the action |
+| Decorative glyph or ambiguous visual state | Use context and visual evidence; ask only if its meaning changes behavior |
 
-```markdown
-- Design size: <width>x<height>
-- Design size source: user-provided
-```
+Batch related blocking questions concisely. State the specific decision and
+why it matters. A question about one region does not block unrelated layout work.
 
-## Stop-And-Ask Rule
+## Optional Intake Notes
 
-Ask the user whenever a material detail cannot be confirmed from one of these:
-
-- The UI image.
-- Image metadata.
-- Existing project code and design system.
-- User-provided notes.
-
-Do not continue implementation with unresolved material `GUESS` items.
-
-## What Counts As Material Uncertainty
-
-- Text is unreadable, cropped, or OCR is uncertain.
-- Icon meaning is unclear.
-- A visual block could be multiple component types.
-- A state is unclear: selected, disabled, error, hover, loading, active.
-- The screen's target platform or framework is unclear and cannot be inferred
-  from the project.
-- The user wants responsive behavior but only one breakpoint is provided.
-- A chart, map, table, or data visualization needs real data semantics.
-- A static screenshot implies hidden interactions or workflow rules.
-- The image shows brand assets, fonts, or icons that are not available locally.
-
-## How To Ask
-
-Ask short, concrete questions. Prefer one to three questions at a time.
-
-Good:
-
-```text
-I need two confirmations before coding:
-1. Is the right-side block a real table or a static summary list?
-2. Should this screen only target 1440x900, or should I also adapt it for mobile?
-```
-
-Bad:
-
-```text
-Please clarify the design.
-```
-
-## Fallback Rules
-
-- If the image dimensions are used as the design size, treat exact pixel matching
-  as less certain and note the fallback in `UI_RECON.md`.
-- If the target stack is not specified but the current directory is an app, infer
-  the stack from the repo. If multiple plausible apps exist, ask.
-- If the current directory is not an app and no stack is specified, default to a
-  standalone HTML/CSS/JS implementation.
-- If the user asks for exact fidelity but key assets are missing, ask for the
-  assets or document which parts must be approximated.
-
-## Intake Checklist
+For a complex screen, record this information in existing task notes or a small
+`UI_RECON.md`; omit fields that do not help implementation or verification:
 
 ```markdown
-## Input
-- UI image:
-- Design size:
-- Design size source: user-provided / inferred-from-image-pixels
-- Target project or output:
-- Target platform:
-- Known constraints:
-
-## Open Questions
-- [ ] ...
+- Source image:
+- Design size and source:
+- Target route/platform:
+- Required fidelity and viewports:
+- Missing assets or business details:
+- Provisional decisions:
 ```

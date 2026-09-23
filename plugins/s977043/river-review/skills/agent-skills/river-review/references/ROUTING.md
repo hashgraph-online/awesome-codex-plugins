@@ -6,6 +6,13 @@ River Review のルーティングロジックの詳細です。
 
 以下のキーワードに基づいて専門スキルを選択します：
 
+### セキュリティ監査 (river-review-security-audit)
+
+- 日本語: セキュリティ監査, リポジトリ全体の監査, サブシステム監査, 脆弱性監査
+- 英語: security audit, repository-wide security audit, subsystem security audit, full security audit
+- 条件: 現在の diff を越える repository / subsystem / bounded source surface が明示されている
+- `security audit` という語だけで `full-audit` を推測しない
+
 ### 設計・アーキテクチャ (river-review-architecture)
 
 - 日本語: 設計, アーキテクチャ, ADR, 構成, モジュール, 依存関係
@@ -47,7 +54,14 @@ River Review のルーティングロジックの詳細です。
 
 ## 優先度解決ルール
 
-### 1. 明示指定（最優先）
+### 0. 明示的な security audit（最優先）
+
+repository / subsystem / bounded source surface を対象にした security audit が明示されている場合、`river-review-security-audit` を選択する。
+
+通常の PR / diff security review は `river-review-security` のまま維持する。
+対象範囲が曖昧な場合は full audit に昇格させない。
+
+### 1. 明示指定
 
 ユーザーが観点名を直接指定した場合、そのカテゴリを最優先で選択する。
 

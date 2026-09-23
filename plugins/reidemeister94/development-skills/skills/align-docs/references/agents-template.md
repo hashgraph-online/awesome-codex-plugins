@@ -1,14 +1,18 @@
-# {Name of the project}
+# {Project name}
 
-## Principles to always follow
+[State the project's purpose and the few facts needed before work starts.]
 
-Reason from first principles. Keep the smallest clear solution that preserves the requested result, maintainability, and quality.
-Remove and simplify everything a model knows by its training, keep everything is team/company-specific, conventions and non-obvious facts.
+Use `development-skills` for project work when available.
+Use `development-skills:bro` for plain natural-language text, with necessary context and facts preserved.
+Follow project conventions. Load references only when their subject applies.
 
-- Use the `development-skills` plugin for project work. If it is unavailable, tell the user how to install it.
-- Inspect before deciding. For consequential work, agree on the result and its proof, then record the plan and decision chronicle before implementation.
-- Follow this project's established patterns. Add a dependency, abstraction, file, or rule only when removing it would cause a real failure.
-- Fix root causes and verify with fresh evidence. Never hide a failure with skipped checks, swallowed errors, or unsupported claims; state what remains unobserved.
-- Store durable discoveries in the repository: brief critical facts here, deeper topic rules in `.agents/rules/`, decisions in `docs/chronicles/`, and procedures in `docs/plans/`.
-- Keep `AGENTS.md` under 70 lines, shared artifacts in English, and personal machine facts in ignored local files.
-- Explain the work in simple, clear words without assuming project knowledge or omitting relevant facts.
+## Commands and limits
+
+[Keep verified run and check commands, required setup, and project-specific permission limits.]
+
+## Scoped knowledge
+
+[Link each `.agents/rules/` owner and state when to read it.]
+[Link the repository's existing documentation entry point and any required reference project.]
+
+Shared artifacts use English. Keep this file under 70 lines. Keep machine-specific facts in ignored local files.

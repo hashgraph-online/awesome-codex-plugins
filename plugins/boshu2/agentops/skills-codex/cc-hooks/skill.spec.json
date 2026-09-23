@@ -23,6 +23,7 @@
     { "file": "references/HOOK-EVENTS.md", "topic": "all hook events with full input/output schemas" },
     { "file": "references/DCG-RCH.md",     "topic": "production examples (dcg, rch) wired as PreToolUse hooks" },
     { "file": "references/SKILL-FIRST-COORDINATION-GUARD.md", "topic": "opt-in skill-first coordination guard recipe + hook context-budget doctrine" },
+    { "file": "references/READ-BUDGET-GUARD.md", "topic": "opt-in read-budget guard: blocks unbounded reads over the line budget and routes to slices or cheap-model bulk-read delegation" },
     { "file": "references/PATTERNS.md",    "topic": "auto-format, logging, notification hook patterns" },
     { "file": "references/JSON-OUTPUT.md", "topic": "hook response JSON schemas" }
   ],

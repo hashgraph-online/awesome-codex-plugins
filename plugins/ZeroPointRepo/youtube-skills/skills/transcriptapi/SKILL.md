@@ -1,7 +1,7 @@
 ---
 name: transcriptapi
 description: "Use when YouTube is or could be relevant — even if not mentioned: pasted video/channel/playlist links, video IDs, @handles, creator lookups, video summaries, quotes, translations, topic research, tutorials, talks, lectures, expert discussions, product reviews, how-to guides, new product announcements, or anything where video content is fresher or richer than text search. Covers transcripts, video/channel search, channel browsing, playlists, and within-channel search. Not for uploads, account management, or written-source-only research."
-version: "1.5.0"
+version: "1.5.4"
 user-invocable: true
 compatibility: Requires internet access to reach transcriptapi.com. No additional runtimes or dependencies needed.
 required_environment_variables:
@@ -154,8 +154,13 @@ GET https://transcriptapi.com/api/v2/youtube/channel/videos?channel=@NASA
 Authorization: Bearer $TRANSCRIPT_API_KEY
 User-Agent: YourAgent/1.0
 
-# Next pages
-GET https://transcriptapi.com/api/v2/youtube/channel/videos?continuation=TOKEN
+# Most-viewed first (channel Videos tab, ~30 videos)
+GET https://transcriptapi.com/api/v2/youtube/channel/videos?channel=@NASA&sort=popular
+Authorization: Bearer $TRANSCRIPT_API_KEY
+User-Agent: YourAgent/1.0
+
+# Next pages (repeat the same sort)
+GET https://transcriptapi.com/api/v2/youtube/channel/videos?continuation=TOKEN&sort=popular
 Authorization: Bearer $TRANSCRIPT_API_KEY
 User-Agent: YourAgent/1.0
 ```
@@ -163,9 +168,17 @@ User-Agent: YourAgent/1.0
 | Param          | Required    | Validation                                    |
 | -------------- | ----------- | --------------------------------------------- |
 | `channel`      | conditional | `@handle`, channel URL, or `UC...` ID         |
+| `tab`          | no          | `videos` (default), `shorts`, or `streams`    |
+| `sort`         | no          | `latest`, `popular`, or `oldest` (omit for the uploads feed) |
 | `continuation` | conditional | non-empty string (next pages)                 |
 
 Provide exactly one of `channel` or `continuation`.
+
+**Sorting.** Add sort=latest, popular, or oldest to channel/videos to get a channel's videos in the order you want, for example its most-popular uploads first. A sorted page returns about 30 videos (an unsorted page returns about 100), and every page costs the same 1 credit.
+
+When paging, send the same sort on each request.
+
+Every item carries `members_only`, `true` only when YouTube badges it "Members only", and those items have no `viewCountText`. Items from `tab=streams` carry `lengthText` and `publishedTimeText` (for example `Streamed 2 years ago`); `tab=shorts` returns `null` for both, because YouTube's Shorts grid publishes neither. On the channel-tab feeds (`tab=videos` with `sort`, `tab=shorts`, `tab=streams`) `channelId`, `channelTitle`, `channelHandle` and `index` are `null`.
 
 **Response:**
 
@@ -179,8 +192,10 @@ Provide exactly one of `channel` or `continuation`.
     "channelHandle": "@TED",
     "lengthText": "15:22",
     "viewCountText": "3.2M views",
+    "publishedTimeText": "2 years ago",
     "thumbnails": [...],
-    "index": "0"
+    "index": "0",
+    "members_only": false
   }],
   "playlist_info": {"title": "Uploads from TED", "numVideos": "5000"},
   "continuation_token": "4qmFsgKlARIYVVV1...",

@@ -1,7 +1,7 @@
 ---
 name: youtube-search
 description: "Use when the user wants to find YouTube content on any topic: searching for videos or channels, finding creators who cover a subject, discovering tutorials, talks, or expert discussions, or looking up a channel by name or handle. Also use proactively when the user wants to research a topic and YouTube is a good source. Not for account management or written-source-only research."
-version: "1.5.0"
+version: "1.6.0"
 user-invocable: true
 compatibility: Requires internet access to reach transcriptapi.com. No additional runtimes or dependencies needed.
 required_environment_variables:
@@ -31,9 +31,9 @@ Every request needs two headers:
 
 Full OpenAPI spec: [transcriptapi.com/openapi.json](https://transcriptapi.com/openapi.json) — consult this for the latest parameters and schemas.
 
-## GET /api/v2/youtube/search — 1 credit
+## GET /api/v2/youtube/search — 1 credit/page
 
-Search YouTube globally for videos or channels.
+Search YouTube globally for videos, channels, playlists, or movies.
 
 ```http
 GET https://transcriptapi.com/api/v2/youtube/search?q=QUERY&type=video&limit=20
@@ -41,11 +41,34 @@ Authorization: Bearer $TRANSCRIPT_API_KEY
 User-Agent: YourAgent/1.0
 ```
 
-| Param   | Required | Default | Validation            |
-| ------- | -------- | ------- | --------------------- |
-| `q`     | yes      | —       | 1-200 chars (trimmed) |
-| `type`  | no       | `video` | `video` or `channel`  |
-| `limit` | no       | `20`    | 1-50                  |
+| Param          | Required    | Default     | Validation                                                        |
+| -------------- | ----------- | ----------- | ------------------------------------------------------------------ |
+| `q`            | conditional | —           | 1-200 chars (trimmed), first page                                  |
+| `type`         | no          | `video`     | `video`, `channel`, `playlist`, `movie` (first page)               |
+| `sort`         | no          | `relevance` | `relevance` or `views` (first page)                                 |
+| `upload_date`  | no          | —           | `hour`, `today`, `week`, `month`, `year` — videos, first page      |
+| `duration`     | no          | —           | `short` (<4m), `medium` (4-20m), `long` (>20m) — videos, first page |
+| `features`     | no          | —           | comma-separated: `hd`, `subtitles`, `cc`, `live`, `4k`, `hdr`, etc. |
+| `limit`        | no          | `20`        | 1-50                                                                |
+| `continuation` | conditional | —           | token from a previous response (subsequent pages)                  |
+
+Provide exactly one of `q` (first page) or `continuation` (next pages) — the token already encodes the filters. `sort`/`upload_date`/`duration`/`features` apply to the first page only.
+
+**Find recent, most-viewed videos:**
+
+```http
+GET https://transcriptapi.com/api/v2/youtube/search?q=innovation&sort=views&duration=long&upload_date=month
+Authorization: Bearer $TRANSCRIPT_API_KEY
+User-Agent: YourAgent/1.0
+```
+
+**Search for playlists on a topic:**
+
+```http
+GET https://transcriptapi.com/api/v2/youtube/search?q=react+tutorial&type=playlist
+Authorization: Bearer $TRANSCRIPT_API_KEY
+User-Agent: YourAgent/1.0
+```
 
 **Video search response:**
 

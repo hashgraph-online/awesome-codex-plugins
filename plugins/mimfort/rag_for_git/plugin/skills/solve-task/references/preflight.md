@@ -44,16 +44,23 @@
       panel, before any preflight check runs — the answers govern the preflight
       questions below, so a late answer governs nothing.
 
-   0a. **Storage reachability — check this before anything else.** Scan `payload.gaps` for an
-       entry whose `cause` is `storage_unavailable`. Present it: **never build the brief on a
-       gutted context silently.** The gaps list also carries `cause_detail` and `remedy`.
-       `remedy` is the command that fixes it (`reviewer start`), or `null` when no command
-       applies. `cause_detail` says WHY it does not apply: `auth_failed` — the storage rejected
-       the credentials; `missing_database` — the database does not exist; `null` — the cause was
-       not named, and only then does a `null` `remedy` mean the storages are remote, where a
-       local docker stack fixes nothing.
+   0a. **Storage/embedder reachability — check this before anything else.** Scan `payload.gaps`
+       for any entry whose `cause` is not `unknown` — branch on the **class**, not on equality to
+       one value: today that means `storage_unavailable` or `embedder_unavailable`, and any class
+       added later must land in this same branch without a further edit here. Present it: **never
+       build the brief on a gutted context silently.** The gaps list also carries `cause_detail`
+       and `remedy`. `remedy` is the command that fixes it (`reviewer start`), or `null` when no
+       command applies — both `embedder_unavailable` and a `storage_unavailable` gap with
+       `cause_detail: pool_exhausted` carry `remedy: null` by construction: Voyage is not a local
+       container, and an exhausted pool is not a stopped one, so offering «Поднять сейчас» there
+       would be the very lie this step exists to remove. `cause_detail` only refines
+       `storage_unavailable` — `embedder_unavailable` never carries one.
 
-       Tell the user (in Russian) which sections were lost, then present **three options**:
+       Tell the user (in Russian) which sections were lost and name the class: `storage_unavailable`
+       → «хранилище не отвечает», `embedder_unavailable` → «эмбеддер не отвечает». A class this
+       table does not list is still presented — quote its `cause` verbatim and pass its `reason`
+       through; an unfamiliar class is a reason to say more, never to fall silent. Then present
+       **three options**:
        1. «Поднять сейчас» — offered **only** when the gap carries a `remedy`. Run that command
           (`reviewer start`), wait for it to finish, then re-run `prepare_task_context(...)` once
           and continue with the fresh payload.
@@ -61,23 +68,38 @@
           «done» or any confirmation. Once confirmed, re-run `prepare_task_context(...)` and
           continue.
        3. «Продолжить без контекста» → note under **Constraints / open questions** in the brief:
-          «хранилище не отвечает (`cause: storage_unavailable`); секции <перечислить> собраны не
-          были», and continue.
+          «<название класса> не отвечает (`cause: <cause>`[, `cause_detail: <detail>`]); секции
+          <перечислить> собраны не были», and continue.
 
-       When `remedy` is `null`, option 1 is not shown at all, and what you say depends on
-       `cause_detail`: `auth_failed` → the containers ARE up and the storage rejected the
-       credentials, so the password in `.env` is what to check; `missing_database` → the
-       containers ARE up but the database does not exist, so the database name in `PG_DSN` is
-       what to check; `null` → the storages are remote and `reviewer start` does not apply here.
-       Never say «хранилища удалённые» on a named `cause_detail`: the containers are running and
-       the claim is false.
+       When `remedy` is `null`, option 1 is not shown at all, and what you say depends on `cause`
+       and `cause_detail`. For `storage_unavailable`: `auth_failed` → «хранилище отвергло учётные
+       данные» — the containers ARE up, so the password in `.env` is what to check;
+       `missing_database` → «базы данных не существует» — the containers ARE up but the database
+       does not exist, so the database name in `PG_DSN` is what to check; `pool_exhausted` →
+       «свободных соединений в пуле не осталось: поднять `PG_POOL_MAX_SIZE` или снизить
+       параллелизм; `reviewer start` здесь не поможет» — the containers ARE up and busy, not down
+       (the server confirmed this by connecting to them, so do not hedge it);
+       `null` `cause_detail` → the storages are remote and `reviewer start` does not apply here.
+       For `embedder_unavailable`, say «эмбеддер не отвечает» and that no local command fixes it —
+       Voyage is a remote service regardless of what runs on this machine. Never say «хранилища
+       удалённые» on a named `cause_detail`, and never say or imply the containers are down for
+       `embedder_unavailable` or for a `pool_exhausted` `storage_unavailable`: in both, the
+       containers are running.
+
+       **Several classes at once are several problems.** Sources fail independently, so
+       `gaps` can carry `storage_unavailable` and `embedder_unavailable` together. Group the
+       entries by `cause`, name every class with its own lost sections and its own
+       `cause_detail`/`remedy`, and offer option 1 only for the classes that actually carry a
+       `remedy` — saying which ones it fixes. Curing one class leaves the others standing: after
+       re-running `prepare_task_context(...)`, scan the fresh `gaps` again from the top of this
+       step.
 
        **The server never starts containers.** It only classifies the failure and names the cure;
        bringing the infrastructure up is the user's call, made here. In `full-auto` do not ask:
        take option 1, or option 3 when there is no `remedy`, and record it in the run-state file's
        decisions section.
 
-       If no gap carries `cause: storage_unavailable`, say nothing and go straight to Step 0.1.
+       If no gap carries a `cause` other than `unknown`, say nothing and go straight to Step 0.1.
 
    1. **Base-index freshness.** Read `drift` from `preflight.drift` in the `prepare_task_context`
       payload fetched above — the same field `uvx --from rag-reviewer reviewer status <path>

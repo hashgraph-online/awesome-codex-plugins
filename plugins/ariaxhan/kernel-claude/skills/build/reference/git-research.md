@@ -85,26 +85,12 @@ search methodology applied to git history.
 
 ---
 
-## Git Worktrees for Parallel AI Agents (2026)
+## No git worktrees
 
-Git worktrees are now essential for running multiple AI coding agents:
-- Two agents editing the same working directory corrupts state.
-- Each worktree is an isolated checkout sharing the same .git history.
-- Enables 5-10+ agents working on different features simultaneously.
-
-Commands:
-```bash
-git worktree add ../project-feature-a -b feature/auth
-git worktree list
-git worktree remove ../project-feature-a
-```
-
-Limitations:
-- Disk space: 20-min session with 2GB codebase can use 9.82GB.
-- Code is isolated but runtime (ports, databases) is shared.
-- Human review becomes the bottleneck.
-
-Tooling: Superset IDE (Mar 2026), Emdash, @johnlindquist/worktree CLI.
+Never create a git worktree (git worktree add, agent isolation: worktree). In this operator's
+repos they have never produced merged work: 60 worktree branches, 949 commits, zero merged, 33GB,
+and every cleanup sweep found more. Parallel lanes stay file-disjoint on the live checkout and
+commit explicit paths. A throwaway build of an exact SHA uses `git clone --shared` into a temp dir.
 
 ---
 
@@ -141,7 +127,7 @@ Surgeon agent:
 - Commit after each working state, not at the end.
 - Include contract ID in commit body for traceability.
 - Push to remote before checkpoint.
-- **2026**: Use worktree for parallel work with other agents.
+- **2026**: Parallel work with other agents stays on the live checkout, file-disjoint; never a worktree.
 
 Adversary agent:
 - git diff {base_commit}..HEAD --name-only to verify scope compliance.

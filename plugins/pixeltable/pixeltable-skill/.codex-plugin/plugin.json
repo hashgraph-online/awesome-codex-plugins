@@ -1,0 +1,46 @@
+{
+  "name": "pixeltable",
+  "version": "2.11.2",
+  "description": "Build multimodal AI applications with Pixeltable.",
+  "author": {
+    "name": "Pixeltable",
+    "url": "https://github.com/pixeltable"
+  },
+  "homepage": "https://docs.pixeltable.com/",
+  "repository": "https://github.com/pixeltable/pixeltable-skill",
+  "license": "Apache-2.0",
+  "keywords": [
+    "pixeltable",
+    "multimodal",
+    "rag",
+    "embeddings",
+    "agents",
+    "computed-columns"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png",
+    "screenshots": [
+      "./assets/icon.png"
+    ],
+    "displayName": "Pixeltable",
+    "shortDescription": "Build Pixeltable apps with declarative tables, pxt CLI, RAG, agents, and serving",
+    "longDescription": "Use Pixeltable to build multimodal AI applications with declarative tables, computed columns, embeddings, retrieval, provider integrations, the pxt CLI (schema, service, inspect), and production workflow patterns.",
+    "developerName": "Pixeltable",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://docs.pixeltable.com/",
+    "privacyPolicyURL": "https://github.com/pixeltable/pixeltable-skill/blob/main/SECURITY.md",
+    "termsOfServiceURL": "https://github.com/pixeltable/pixeltable-skill/blob/main/LICENSE",
+    "brandColor": "#2563EB",
+    "defaultPrompt": [
+      "Start a Pixeltable project with pxt service example",
+      "Build a RAG pipeline with the pixeltable skill",
+      "Debug this Pixeltable workflow with pxt errors"
+    ]
+  }
+}

@@ -1,6 +1,6 @@
 ---
 name: architecture
-description: "System architecture and design patterns. Modular design, interface stability, dependency management, AI-code health nexus. Triggers: architecture, design, structure, modules, dependencies, coupling, system design."
+description: "Modular design, interface stability, dependency management, AI-code health. Triggers: architecture, design, structure, modules, dependencies, coupling, system design."
 allowed-tools: Read, Grep, Glob, Task
 kernel:
   kind: methodology

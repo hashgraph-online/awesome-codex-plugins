@@ -128,13 +128,9 @@ For admin sessions: shorter session lifetimes than user sessions, plus periodic 
 
 ## Backwards compatibility for personal-data changes
 
-When modifying any function that user clients call:
+The rules are in [layer 02](02-architecture.md#backwards-compatibility-when-changing-personal-data-handling) — they apply unchanged to any function user clients call. Two additions specific to this layer:
 
-- Adding new fields to a JSON return shape: safe (older clients ignore them).
-- Adding new optional parameters with defaults: safe.
-- Removing or renaming fields: breaking. Coordinate with client version pinning / force-update.
-- Tightening validation: silently breaks older clients. Coordinate.
-
-For internal admin functions: backwards compatibility doesn't apply to client versions, but admin console must be redeployed in the same release.
+- Adding new **optional parameters with defaults** is safe, same as adding return-shape fields.
+- For internal admin functions, client version compatibility doesn't apply, but the admin console must be redeployed in the same release.
 
 See also CLAUDE.md golden rule #12 in your project (or whatever its equivalent is) for project-specific backwards-compat policy.

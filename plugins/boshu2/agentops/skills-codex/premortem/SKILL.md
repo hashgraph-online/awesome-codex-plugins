@@ -1,12 +1,15 @@
 ---
 name: premortem
-description: 'Optionally challenge a frozen plan with one Triggers: "premortem", "challenge this plan", "what could make this plan fail".'
+description: 'Challenge a rollout plan with one fresh judge before implementation; identify what could make it fail. Not for finished-code judgment. Triggers: "one judge", "challenge this plan".'
 ---
 # Premortem
 
 Premortem is an optional plan-challenge strategy. It asks one fresh context to
 identify concrete ways the resolved bead or caller intent could fail before implementation.
 It is not part of the required RPI sequence and does not authorize readiness.
+[Plan's shared challenge method](../plan/references/challenge.md) owns optional
+exchange, independence and stopping rules. Premortem owns the failure checks
+below; invoke it when that broader examination is requested.
 
 ## The first check: who verifies, and are they fresh?
 
@@ -39,10 +42,10 @@ catches the plan shape that no single-step review sees: nineteen reversible step
 followed by an irreversible one, where the reflex trained by the first nineteen
 answers the twentieth.
 
-A plan that crosses a one-way door with no caller checkpoint at the crossing is a
-finding, stated as such, whatever else the plan gets right. Classify with
-[`one-way-door`](../one-way-door/SKILL.md); its registry and patterns are the
-declared source, and an unclassifiable step is treated as one-way.
+A material irreversible action outside existing caller authority is a finding.
+Trace actual undo cost and authorization using [Plan](../plan/SKILL.md). Prior
+authorization remains valid; do not demand repeated approval at the crossing
+or classify every uncertain implementation detail as irreversible.
 
 The named failure mode here is **reversibility asserted, not traced**: a plan
 that says "fully reversible" in its rollback section while one step revokes a
@@ -53,7 +56,8 @@ mark, and every one-way mark carries its undo cost.
 
 1. Resolve the existing intent source and derive its digest; inspect acceptance,
    non-goals, evidence requirements, and declared write scope there.
-2. Use one fresh judge with a context ID distinct from the plan author.
+2. Use one fresh judge distinct from the plan author, following the shared
+   challenge method for identity, model selection, authorization and bounds.
 3. Test acceptance completeness, edge behavior, scope, dependencies,
    reversibility, and evidence shape against cited repository facts.
 4. Return one complete set of concrete findings and checked/not-checked scope.
@@ -79,14 +83,14 @@ not softened.
 
 ## Derivation-diff challenge
 
-A challenger that critiques the handed plan is a yes-man with extra steps: it
-anchors on the author's design and rationalizes it. Derive independently, then
-diff. Give one fresh context ONLY the intent source and the plan's declared
+When anchoring on the working plan is the consequential risk, select an
+independent derivation using the shared challenge method, then compare. Give
+one fresh context only the intent source and the relevant
 ground truth — the vendor docs and stock behavior for integration work, the
 repo's patterns and behavior spec for extension — and never the author's design.
-Have it sketch its own design from that ground truth alone. The diff between that
-independent design and the working plan is the challenge artifact; each
-divergence is a finding to defend or adopt. Convergence is weak evidence the plan
+Have it sketch its own design from that ground truth alone. Compare that
+independent design with the working plan in the advisory findings; each supported
+divergence is a question to resolve. Convergence is weak evidence the plan
 follows the ground truth; divergence names where it may not.
 
 Two questions the challenger answers with an artifact, not an opinion:
@@ -102,6 +106,15 @@ Two questions the challenger answers with an artifact, not an opinion:
 These are integration- and extension-class checks. The Grain question's
 native-counterpart list applies only to integration-class work; do not impose it
 on routine feature work.
+
+## Prompt
+
+```text
+Premortem this plan before I implement: bead ag-4f21 proposes rewriting
+`scripts/regen-all.sh` to call `ao gate check` instead of shelling out to
+the Python generators, touching cli/internal/gates/regen.go. Plan and
+acceptance are in the bead. Find concrete ways it fails.
+```
 
 ## It's working if
 

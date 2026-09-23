@@ -114,13 +114,13 @@ fetch_trace(trace_id="abc-123", include_observations=true, output_mode="full_jso
 
 ### fetch_observations
 
-Search and filter observations (spans, generations, events).
+Search and filter observations (spans, generations, events, tool calls, agent steps, and more).
 
 **Parameters:**
 | Name | Type | Required | Default | Description |
 |------|------|----------|---------|-------------|
 | `age` | int | Yes | - | Look back window in minutes from now. Max 10080 (7 days). |
-| `type` | string | No | null | Filter by type: "SPAN", "GENERATION", or "EVENT" |
+| `type` | string | No | null | Filter by type: `SPAN`, `GENERATION`, `EVENT`, `AGENT`, `TOOL`, `CHAIN`, `RETRIEVER`, `EVALUATOR`, `EMBEDDING`, or `GUARDRAIL` |
 | `name` | string | No | null | Name filter (passed to API) |
 | `user_id` | string | No | null | User ID filter (exact match) |
 | `trace_id` | string | No | null | Trace ID filter (exact match) |
@@ -205,17 +205,17 @@ Get all sessions for a user.
 
 ### find_exceptions
 
-Find exceptions grouped by file, function, or type.
+Find error-level observations grouped by file, function, type, observation name, or observation type.
 
 **Parameters:**
 | Name | Type | Required | Default | Description |
 |------|------|----------|---------|-------------|
 | `age` | int | Yes | - | Look back window in minutes from now. Max 10080 (7 days). |
-| `group_by` | string | No | "file" | How to group: "file", "function", or "type" |
+| `group_by` | string | No | "file" | How to group: "file", "function", "type", "name", or "observation_type" |
 
-**Returns:** List of `{group: string, count: int}` objects, sorted by count descending (top 50).
+**Returns:** List of `{group: string, count: int, observation_id: string|null, trace_id: string|null}` objects, sorted by count descending (top 50). Each group carries a representative observation/trace ID.
 
-**Note:** Does not support `output_mode` parameter.
+**Note:** Does not support `output_mode` parameter. Counts describe error-level observations (`level=ERROR`), NOT individual exception events — the standard observation listing does not expose events. Missing recorded metadata groups as `"unknown"`.
 
 **Example:**
 ```
@@ -226,7 +226,7 @@ find_exceptions(age=1440, group_by="type")
 
 ### find_exceptions_in_file
 
-Find exceptions in a specific file.
+Find error-level observations recorded against a specific file.
 
 **Parameters:**
 | Name | Type | Required | Default | Description |
@@ -235,10 +235,14 @@ Find exceptions in a specific file.
 | `age` | int | Yes | - | Look back window in minutes from now. Max 10080 (7 days). |
 | `output_mode` | string | No | "compact" | Output format |
 
-**Returns:** List of exception details (top 10, newest first):
+**Returns:** List of error records (top 10, newest first):
 - `observation_id`, `trace_id`, `timestamp`
-- `exception_type`, `exception_message`, `exception_stacktrace`
+- `exception_type`, `exception_message`, `exception_stacktrace` (null when not recorded)
 - `function`, `line_number`
+- `level`, `observation_type`, `status_message`
+- `event_id`, `event_name` (always null — events are not retrievable via the API)
+
+**Note:** Only matches observations whose recorded `code.filepath` equals the argument; an empty result means no matching ERROR observations were found, not that the file is error-free.
 
 **Example:**
 ```
@@ -249,22 +253,22 @@ find_exceptions_in_file(filepath="src/ai/chat.py", age=1440)
 
 ### get_exception_details
 
-Get detailed exception info for a trace/span.
+Get detailed error info for a trace/span.
 
 **Parameters:**
 | Name | Type | Required | Default | Description |
 |------|------|----------|---------|-------------|
 | `trace_id` | string | Yes | - | The trace ID to analyze |
-| `span_id` | string | No | null | Optional span ID to filter by |
+| `span_id` | string | No | null | Optional observation ID to filter by (across all observation types) |
 | `output_mode` | string | No | "compact" | Output format |
 
-**Returns:** List of exceptions with full context including observation details.
+**Returns:** List of error records with full context including observation details. Fields as in `find_exceptions_in_file` plus `filepath` and `observation_name`.
 
 ---
 
 ### get_error_count
 
-Get total error count.
+Get counts of error-level observations in the lookback window.
 
 **Parameters:**
 | Name | Type | Required | Default | Description |
@@ -280,13 +284,13 @@ Get total error count.
     "to_timestamp": "2024-01-15T10:30:00Z",
     "trace_count": 5,
     "observation_count": 12,
-    "exception_count": 18
+    "exception_count": null
   },
-  "metadata": {...}
+  "metadata": {"count_basis": "error_level_observations", "note": "..."}
 }
 ```
 
-**Note:** Does not support `output_mode` parameter.
+**Note:** Does not support `output_mode` parameter. `exception_count` is always null — individual exception events are not retrievable from the standard observation listing; `observation_count` counts error-level observations.
 
 ---
 

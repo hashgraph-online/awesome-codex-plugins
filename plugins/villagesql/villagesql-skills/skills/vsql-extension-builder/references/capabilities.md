@@ -93,10 +93,12 @@ the first time, and record results in `.claude/tracking/limitations.md`.
      If the extension returns large payloads, size the buffer to match
      and test with a result longer than 255 bytes to confirm the running
      server does not truncate.
-  2. **JSON functions reject the result without CONVERT.** Even where
-     `CHARSET(<func>(...))` reports `utf8mb4`, MySQL JSON functions
-     (`JSON_EXTRACT`, `JSON_TABLE`, etc.) reject a VDF STRING result
-     with `ERROR 3144: Cannot create a JSON value from a string with
-     CHARACTER SET 'binary'`. Wrap the argument in
+  2. **JSON functions reject the result without CONVERT, on VillageSQL 0.0.6
+     and earlier.** There, even where `CHARSET(<func>(...))` reports
+     `utf8mb4`, MySQL JSON functions (`JSON_EXTRACT`, `JSON_TABLE`, etc.)
+     reject a VDF STRING result with `ERROR 3144: Cannot create a JSON
+     value from a string with CHARACTER SET 'binary'`. Wrap the argument in
      `CONVERT(... USING utf8mb4)` and document that step in the README
-     if users will consume the output as JSON.
+     if users will consume the output as JSON. Fixed in VillageSQL 0.0.7 —
+     check `SELECT VERSION()` against the target server rather than
+     assuming either behavior.

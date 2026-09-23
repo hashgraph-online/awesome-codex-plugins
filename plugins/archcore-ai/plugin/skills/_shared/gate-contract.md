@@ -5,10 +5,32 @@ executing a track gate. Also the authoring contract for track files under
 `skills/_shared/tracks/`. Routing-signal order and track selection live in the
 executing skills, not in this file.
 
+Before a gate writes documents or reviews relations, load
+`skills/_shared/relation-authoring.md`. Apply its claim check to relation
+candidates and its incident-relation review after meaningful document changes.
+Required traceability remains part of the gate's checks.
+
 ## Track files
 
 - A track file lives at `skills/_shared/tracks/<track-id>.md`.
 - Each gate is one section with the heading `### gate: <track>.<stage>`.
+
+## Entry terms
+
+Gates and executing skills use these terms with one meaning:
+
+- **Expert invocation** — the first word of the command arguments is a mode that
+  the command's argument hint lists. A gate budget rises to that gate's maximum
+  only under an expert invocation.
+- **The request names a type** — the subject text contains a document type slug
+  (`adr`, `rfc`, `rule`, `spec`, `doc`, `guide`, `scenario`, `research`, `rnd`,
+  `evidence`, and the other registry slugs) as a whole word, in any letter case.
+  A description of a document's shape without the slug ("a proposal for review")
+  does not name a type.
+- **Investigation versus one external material** — supplied text that carries
+  findings, a synthesis, or a recommendation is an investigation. A source
+  excerpt, a measurement, a transcript, or a vendor document without them is
+  one external material.
 
 ## Gate record template
 
@@ -82,6 +104,22 @@ computed route omits both fields. A `plan`-skill resume that finds them
 absent follows the conductor's resume rules; every other skill resumes per
 this file alone.
 
+The research track may append `artifact_type: research|rnd|evidence` after
+`deferred`. The field is optional on older artifacts and absent on other tracks.
+On resume, the filename type supplies a missing value. A recorded value that
+contradicts the filename is a blocking state error; do not convert the document.
+
+### Evidence operations inside a gate
+
+The research gather gate may create evidence and relation edges before its
+single gate-close update. Before creating dependent evidence, it may persist
+pending paths and edges in the parent draft's `deferred` field. This checkpoint
+is an exception to gate-close-only persistence, not an extra gate close.
+Standalone evidence carries its own state and needs no parent draft. Its request
+satisfies frame, so the missing-upstream resume rule does not create an
+investigation. Failure recovery and edge ordering belong to
+`skills/_shared/tracks/research.md`.
+
 ### State lifecycle
 
 1. The draft artifact is the only carrier of track state.
@@ -89,6 +127,11 @@ this file alone.
 3. WHEN a gate closes, the executing skill MUST persist accepted answers and the state block in one `update_document` call.
 4. WHEN all blocking exit checks pass, the executing skill MUST advance the `gate` field to the next stage.
 5. WHEN the track exits, the executing skill MUST remove the state block from the artifact.
+
+Import exception: before the confirmed plan exists, keep preview rows in the
+session. Tier `S` keeps its row results in the session through closing and
+restarts assessment after interruption. Do not create a plan, state block, or
+side file for this bookkeeping. Plan-backed imports follow the lifecycle above.
 
 ## Execution rules at a gate
 

@@ -22,25 +22,41 @@ Bead graph:
 Experiment policy:
 - One bead is one RPI experiment.
 - Select only work tied to an unmet criterion or named blocking uncertainty.
-- Consume each verdict unchanged and apply the ratchet definition.
+- Consume each verdict unchanged; useful progress needs evidence tied to an
+  unmet criterion or a blocking uncertainty, not digest/count movement alone.
+- Distinguish pre-existing discovery from introduced regression using causal
+  evidence; unknown cause and recurrence require HOLD, not a design diagnosis.
 - Classify discoveries as necessary-now, linked-follow-up, or HOLD/rescope.
+  Never downgrade a necessary finding to optional to obtain completion.
+- Retain evidence/provenance; revise or withdraw beliefs when evidence changes.
 
 Wave envelope:
 - <numeric RPI/concurrency/time/token/live-attempt limits>
 
 Hard goal envelope:
 - <numeric total RPI/time/token/live-attempt/compaction/surface limits>
-- No artifact, repair, helper, subject, or wave resets a total.
+- No artifact, repair, helper, subject, compaction, or wave resets a total.
+- Include helper and validation costs inside the allowance.
+- Enforcing native controls and observable remaining allowance: <actual controls
+  and measurements; explicitly identify any unmeasured aggregate>.
+- Objective text alone does not enforce a budget or a native pause.
 
 Breaker and andon:
 - Ordinary informative red may produce a materially different next experiment.
-- <threshold> non-ratcheting results, oscillation, scope pressure, or exhaustion:
-  HOLD and consult exactly one bounded fresh helper.
-- UNSTUCK resumes with a different experiment; ESCALATE reports NEEDS_OPERATOR.
+- <threshold> non-ratcheting results, oscillation, regression, unknown defect
+  cause, recurrence, or scope pressure: HOLD implementation for causal review.
+- Consult exactly one bounded fresh helper per HOLD incident inside the existing
+  allowance; repeated continuation of that incident does not reset the helper.
+- UNSTUCK names a different admissible experiment and discriminating check;
+  ESCALATE or no useful admissible experiment reports NEEDS_OPERATOR.
+- Cancellation, explicit refusal/judgment, or spent hard time/cost/quota skips
+  the helper and stops work; a retry threshold alone is not a spent budget.
 
 Wave checkpoint:
 - acceptance matrix; graph frontier; verdict/evidence summary;
-- ratchets versus non-progress; remaining budgets; next thesis.
+- ratchets versus non-progress; measured remaining budgets; next thesis;
+- observed native continuation/stop state, outstanding gaps, and helper use.
+  Never claim a native pause or aggregate enforcement based only on this text.
 
 Terminal reports:
 - ACHIEVED: every terminal criterion is proven.

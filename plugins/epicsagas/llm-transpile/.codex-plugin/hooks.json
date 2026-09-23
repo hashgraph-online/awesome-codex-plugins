@@ -17,7 +17,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ${PLUGIN_ROOT}/registry/scripts/pre-read.js"
+            "command": "node ${PLUGIN_ROOT}/registry/scripts/read-hook.mjs",
+            "timeout": 30
           }
         ]
       }

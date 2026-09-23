@@ -199,7 +199,7 @@ The output is one line per agent: `agent_type|label|perspective_prompt`
 - `agent_type`: the provider to dispatch (codex, agy, copilot, qwen, opencode, claude-sonnet, perplexity, etc.)
 - `label`: human-readable name (e.g., "Problem Analysis", "Ecosystem Overview", "Contrarian Analysis")
 - `perspective_prompt`: the angle-specific prompt to send to that provider
-- `task_id`: generate as `probe-<timestamp>-<index>` for each entry
+- `task_id`: generate as `probe-${RUN_TIMESTAMP}-${RUN_NONCE}-<index>` for each entry
 
 **Fleet sizes by intensity:**
 
@@ -215,10 +215,20 @@ The output is one line per agent: `agent_type|label|perspective_prompt`
 
 **DO NOT PROCEED TO STEP 4 until the fleet is built.**
 
+Create one durable run identity after building the fleet and before generating task IDs:
+
+```bash
+RUN_TIMESTAMP="$(date +%s)"
+RUN_NONCE="$(od -An -N16 -tx1 /dev/urandom | tr -d '[:space:]')"
+RUN_ID="flow-${RUN_TIMESTAMP}-${RUN_NONCE}"
+```
+
+Use `probe-${RUN_TIMESTAMP}-${RUN_NONCE}-<index>` for every probe task ID. Do not call `date` again for this run; every probe artifact, the synthesis file, and verification must carry this same identity.
+
 
 ### STEP 4: Launch Parallel Agent Subagents (MANDATORY - Use Agent Tool)
 
-**Launch each perspective as a background Agent subagent.** Each agent calls `orchestrate.sh probe-single` which handles persona application, credential isolation, and result file writing.
+**Launch each perspective as a background Agent subagent.** Each agent calls `orchestrate.sh probe-single` which handles persona application, credential isolation, result file writing, and durable evidence-run recording. Pass the nonce-bearing `$RUN_ID` to every child and include `$RUN_NONCE` in every task ID so parallel runs cannot share result filenames.
 
 **CRITICAL: You MUST use the host subagent tool with `background execution: true` for each perspective.** Launch providers strictly in the runtime FLEET_OUTPUT sequence.
 
@@ -230,11 +240,13 @@ Agent(
   description: "<label> (<agent_type>)",
   prompt: "Run this command and return its COMPLETE stdout output, including the result file path on the last line:
 
-${HOME}/.claude-octopus/plugin/scripts/orchestrate.sh probe-single <agent_type> '<perspective_prompt>' <task_id> '<original_prompt>'
+${HOME}/.claude-octopus/plugin/scripts/orchestrate.sh probe-single <agent_type> '<perspective_prompt>' <task_id> '<original_prompt>' --research-run '<run_id>'
 
 After the command completes, read the result file path that was printed and return the full file contents."
 )
 ```
+
+Replace `<run_id>` with the current nonce-bearing `$RUN_ID` value when creating each Agent prompt.
 
 **Launch order:** Iterate the parsed `FLEET_OUTPUT` order from `build-fleet.sh`. Launch all entries from that runtime fleet in parallel when possible; do not reorder by hardcoded provider names.
 
@@ -292,11 +304,23 @@ Only cite providers with usable output (`ok`, `degraded`, or timeout with partia
 **Write synthesis to file:**
 
 ```bash
-SYNTHESIS_FILE="${HOME}/.claude-octopus/results/probe-synthesis-$(date +%s).md"
+SYNTHESIS_FILE="${HOME}/.claude-octopus/results/probe-synthesis-${RUN_ID}.md"
 mkdir -p "$(dirname "$SYNTHESIS_FILE")"
 ```
 
 Write the synthesis content to `$SYNTHESIS_FILE`. The file MUST exist for the validation gate.
+
+Before presenting the synthesis, run the mechanical evidence gate when the durable run is available:
+
+```bash
+if ! "$HOME/.claude-octopus/plugin/scripts/orchestrate.sh" research-verify \
+    "$RUN_ID" "$SYNTHESIS_FILE"; then
+  echo "VALIDATION FAILED: Research evidence verification failed"
+  exit 1
+fi
+```
+
+If verification reports an unfetched source, retain the warning in the report; do not present that claim as independently verified.
 
 
 ### STEP 7: Verify, Update State & Present (Only After Steps 1-6 Complete)

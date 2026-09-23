@@ -2,11 +2,17 @@
 
 [![npm version](https://img.shields.io/npm/v/@blade-ai/boss-skill)](https://www.npmjs.com/package/@blade-ai/boss-skill)
 [![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/echoVic/boss-skill?utm_source=oss&utm_medium=github&utm_campaign=echoVic%2Fboss-skill&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)](https://coderabbit.ai)
+[![G-Star Incubation](https://img.shields.io/badge/G--Star-Incubation-C71D23)](https://atomgit.com/echoVic/boss-skill)
+[![AtomGit Mirror](https://img.shields.io/badge/AtomGit-Mirror-1F6FEB)](https://atomgit.com/echoVic/boss-skill)
 [![Boss trust badge](https://img.shields.io/endpoint?url=https%3A%2F%2Fhol.org%2Fapi%2Fregistry%2Fbadges%2Fplugin%3Fslug%3Dechovic%252Fboss%26metric%3Dtrust%26style%3Dflat)](https://hol.org/registry/plugins/echovic%2Fboss)
 
 **Languages / 语言 / 言語 / 언어 / Idiomas / Langues:** [English](./README.md) · [中文](./README.zh-CN.md) · [日本語](./README.ja.md) · [한국어](./README.ko.md) · [Español](./README.es.md) · [Français](./README.fr.md) · [Português](./README.pt-BR.md)
 
 ![boss-skill promo](https://raw.githubusercontent.com/echoVic/boss-skill/main/boss-skill-promo.png)
+
+> This project is part of the AtomGit G-Star Incubation Program. GitHub is the canonical repository; AtomGit provides an automatically synchronized mirror for faster access in China. Please submit issues and pull requests on [GitHub](https://github.com/echoVic/boss-skill).
+>
+> GitHub: <https://github.com/echoVic/boss-skill> · AtomGit mirror: <https://atomgit.com/echoVic/boss-skill>
 
 **Boss is an auditable agent-team workflow for coding agents.** It turns one coding agent into a structured engineering team: PM, Architect, UI Designer, Tech Lead, Scrum Master, Frontend, Backend, QA, and DevOps. Unlike prompt-only agent teams, Boss adds runtime state, append-only events, quality gates, deterministic evals, hooks, and replayable artifacts.
 
@@ -17,7 +23,7 @@ Boss works with Claude Code, Codex, OpenClaw, Antigravity, and Hermes.
 Prompt-only orchestration can sound organized, but it usually cannot prove that the plan was followed, tests were run, gates passed, or state was not hallucinated. Boss is built around evidence:
 
 - **Event-sourced runtime**: pipeline state is appended to `.boss/<feature>/.meta/events.jsonl` and projected into read-only execution state.
-- **Non-bypassable gates**: QA, deployment, and final checks are modeled as runtime stages instead of loose instructions.
+- **Verifiable gates**: QA, deployment, and final checks run as real commands whose verdicts are recorded as events. `boss gate final` and `boss doctor` fail when a completed stage carries a failed gate. Enforcement still relies on the orchestrating agent honoring the protocol; the CLI makes the verdict checkable, not unavoidable.
 - **Replayable artifacts**: PRDs, architecture docs, task lists, QA reports, deploy reports, and summaries live under `.boss/<feature>/`.
 - **Deterministic evals**: captured transcripts can be scored without calling a real LLM.
 - **Agent-friendly CLI**: commands support JSON output, `--describe`, dry runs, bounded fields, and structured errors.
@@ -35,23 +41,6 @@ Boss is not a single monolithic command. You can run one role against an existin
 | `/boss:ship` | DevOps build and deployment checks | You are ready to ship |
 | `/boss:extend` | Custom agent, pack, or gate | You want to adapt Boss for your team |
 | `/boss:upgrade` | Upgrade Boss Skill and reinstall hooks | You want the latest npm package and hook config |
-
-## When To Use Boss
-
-| Good fit | Poor fit |
-| --- | --- |
-| New features that need requirements, design, implementation, tests, and delivery evidence | One-line fixes or tiny local edits |
-| API, full-stack, UI, or medium-sized product work | Pure code reading or explanation |
-| Work where `.boss/<feature>/` artifacts are valuable | Tasks with a complete existing spec where you only need a quick patch |
-| Teams that want repeatable gates and audit trails | Work that does not need coordination or review evidence |
-
-Rule of thumb: if you do not need a traceable `.boss/` folder, you probably do not need the full `/boss` pipeline. Use a single role or let your coding agent edit directly.
-
-## No CLI? Still Works
-
-Boss detects the `boss` CLI at runtime. Without it, the workflow can degrade to Markdown artifacts under `.boss/<feature>/` instead of the event stream. The CLI is the auditability upgrade: event sourcing, replayable resume, deterministic evals, runtime gates, and structured diagnostics.
-
-Boss does not mean "install once and get guaranteed autonomous delivery." It provides a runtime workflow and evidence gates; the active coding agent still has to follow the Boss protocol.
 
 ## Quick Start
 
@@ -84,7 +73,19 @@ For Claude Code plugin mode:
 claude --plugin-dir "$(boss-skill path)"
 ```
 
-### 2. Run A Lightweight Pipeline
+### 2. Try It On A Project You Already Have
+
+The lowest-cost first run is a single role against existing code. It reads, it does not write:
+
+```
+/boss:review
+```
+
+You get `tech-review.md` under `.boss/<feature>/` with risks, findings and severity. Nothing else in your repo is touched.
+
+Want verifiable test evidence instead? `/boss:qa` runs the tests and the gates, and writes `qa-report.md`.
+
+### 3. Run The Full Pipeline
 
 Inside your coding agent:
 
@@ -95,7 +96,7 @@ Inside your coding agent:
 - `--roles core` uses PM, Architect, Dev, and QA.
 - `--skip-deploy` stops after implementation and test evidence.
 
-### 3. Inspect Results
+### 4. Inspect Results
 
 ```bash
 boss status todo-app --json
@@ -116,6 +117,23 @@ Expected artifact layout:
     ├── execution.json
     └── workflow-plan.json
 ```
+
+## When To Use Boss
+
+| Good fit | Poor fit |
+| --- | --- |
+| New features that need requirements, design, implementation, tests, and delivery evidence | One-line fixes or tiny local edits |
+| API, full-stack, UI, or medium-sized product work | Pure code reading or explanation |
+| Work where `.boss/<feature>/` artifacts are valuable | Tasks with a complete existing spec where you only need a quick patch |
+| Teams that want repeatable gates and audit trails | Work that does not need coordination or review evidence |
+
+Rule of thumb: if you do not need a traceable `.boss/` folder, you probably do not need the full `/boss` pipeline. Use a single role or let your coding agent edit directly.
+
+## No CLI? Still Works
+
+Boss detects the `boss` CLI at runtime. Without it, the workflow can degrade to Markdown artifacts under `.boss/<feature>/` instead of the event stream. The CLI is the auditability upgrade: event sourcing, replayable resume, deterministic evals, runtime gates, and structured diagnostics.
+
+Boss does not mean "install once and get guaranteed autonomous delivery." It provides a runtime workflow and evidence gates; the active coding agent still has to follow the Boss protocol.
 
 ## Installation Details
 
@@ -192,16 +210,21 @@ Boss CLI commands:
 
 ```bash
 boss --help
+boss doctor                              # install, runtime and per-feature health
 boss status FEATURE
 boss continue FEATURE
-boss gate FEATURE
+boss gate FEATURE                        # one quality gate
+boss gate final FEATURE                  # release gate (subcommand comes first)
 boss qa attack FEATURE
 boss project init FEATURE
 boss design preview FEATURE
 boss packs detect
 boss runtime inspect-pipeline FEATURE
 boss runtime generate-summary FEATURE
+boss runtime rebuild-state FEATURE       # rebuild execution.json from events.jsonl
 ```
+
+`execution.json` is a projection, not a source of truth: if it is ever unreadable, `boss runtime rebuild-state` regenerates it from the event stream.
 
 Agent-facing `boss` commands use these common options where applicable; run `--describe` on a command for its exact JSON schema:
 
@@ -212,7 +235,7 @@ Agent-facing `boss` commands use these common options where applicable; run `--d
 - `--fields=<a,b>` and `--limit=<n>`: bounded output
 - `--yes`: required only for high-risk non-interactive commands that need an extra confirmation
 
-Structured errors are written to stderr as `{"error":{...}}` and include `code`, `message`, `input`, `retryable`, and `suggestion`.
+Structured errors are written to stderr as `{"error":{...}}` and include `code`, `message`, `input`, `retryable`, and `suggestion`. Domain conditions carry their own codes rather than a generic failure — `retry_budget_exhausted`, `invalid_state_transition`, `run_id_mismatch`, `feedback_budget_exhausted`, `gate_not_found`, `workflow_plan_mismatch`, `state_unreadable`, `pipeline_not_initialized`, `invalid_usage` — and each `suggestion` names the next command to run.
 
 ## Workflow
 
@@ -315,6 +338,8 @@ Run this in an interactive environment to preview a generated UI design:
 ```bash
 boss design preview <feature>
 ```
+
+Artifacts are grouped by lifetime rather than listed flat. The summary report and `boss status` separate **product assets** (`prd.md`, `architecture.md`, `ui-spec.md`, `ui-design.json` — maintained across iterations) from **run records** (`tech-review.md`, `tasks.md`, `qa-report.md`, `deploy-report.md` — superseded by the next round) and **derived views** (the `.html` companions). When an upstream product asset is regenerated, `boss status` names the run records that no longer match it.
 
 ## Evals
 

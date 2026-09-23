@@ -1,19 +1,12 @@
-# Split spec format
+# Split Spec
 
-Each `NN-name/spec.md` names its source and owned `REQ-*` IDs, then gives:
-
-- outcome and measurable acceptance
-- scope and non-goals
-- dependencies and owned system/data/interface boundary
-- test expectations
-- material risks, assumptions, rollback, and stop conditions
-
-Near the top, copy its manifest declarations exactly:
+Name the source and owned `REQ-*` IDs. State outcome/acceptance, scope/non-goals,
+dependencies, owned contracts, verification, and material risks/assumptions/rollback.
+Copy these manifest declarations exactly:
 
 ```text
 Dependencies: <split IDs or none>
 Boundary: <exact Owns/boundary cell>
 ```
 
-Carry only planning facts. Do not copy background, other specs, interview prose,
-or a full implementation design.
+Link shared facts; omit background, sibling prose, and implementation design.

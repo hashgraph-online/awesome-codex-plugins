@@ -12,6 +12,11 @@ disable-model-invocation: true
 
 # Writing Plans
 
+Load `skills/blocks/engineering-method-selection.md` from the installed plugin
+and apply only the methods relevant to this task. Preserve this entry point's
+execution contract and output format. Read referenced skills as instructions;
+do not invoke the current command recursively or add provider calls from a seat.
+
 ## MANDATORY COMPLIANCE — DO NOT SKIP
 
 **When this skill is invoked, you MUST produce a full implementation plan following the structure below. You are PROHIBITED from:**
@@ -32,6 +37,25 @@ Write comprehensive implementation plans assuming the engineer has **zero contex
 Document everything: which files to touch, complete code, how to test, how to verify.
 
 **Principles:** DRY. YAGNI. TDD. Frequent commits.
+
+## Decisions before tasks
+
+Build a dependency graph for unresolved decisions before writing implementation
+tasks. A decision record contains its question, evidence required, dependencies,
+owner, resolution, and the implementation it unblocks. Use the repository's
+configured tracker. Beads is not an end-user requirement.
+
+Decision states are `open`, `claimed`, `resolved`, `superseded`, and `blocked`,
+mapped to native tracker states or labels. Resolve only from evidence or a
+recorded human decision. If new evidence invalidates a decision, reopen its
+dependent work and explain why. A cycle means the work is not ready; recut the
+decisions rather than marking tasks ready.
+
+Claim through the tracker's atomic operation and read ownership back before
+writing. If atomic claiming is unavailable, appoint one integrator. Never
+overwrite another claim. When the tracker fails, save an explicitly unfiled
+proposal in existing plan storage, stop tracker writes, and never fabricate IDs
+or migrate a database.
 
 
 ## Plan Document Structure

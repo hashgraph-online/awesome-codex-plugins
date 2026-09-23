@@ -52,13 +52,13 @@ find_exceptions_in_file(filepath="<file from the grouping>", age=1440)
 get_exception_details(trace_id="<trace_id from the file results>")
 ```
 
-`find_exceptions` returns `{group, count}` only. `find_exceptions_in_file` is what yields `trace_id`. Then optionally:
+`find_exceptions` returns `{group, count, observation_id, trace_id}` (top 50 groups) — each group carries a representative observation/trace ID, and `find_exceptions_in_file` also yields full error records. Then optionally:
 
 ```text
 fetch_trace(trace_id="<trace_id>", include_observations=true)
 ```
 
-Exceptions are read from SPAN observation events with `exception.type`. If none appear, `get_error_count(age=1440)` and `fetch_traces(age=1440)` still confirm the project has recent telemetry.
+The exception tools detect errors by observation `level == "ERROR"` (strict; a non-empty `status_message` alone does not count). Counts describe error-level observations, not individual exception events — `get_error_count` returns `exception_count: null` for that reason. Exception details come from recorded metadata (`exception.type` / `exception.message` / `exception.stacktrace`, top-level or under `metadata.attributes`); absent values are null. Results are not a point-in-time snapshot.
 
 ## Project Links
 

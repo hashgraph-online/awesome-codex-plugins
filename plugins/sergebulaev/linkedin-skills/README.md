@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/linkedin-skills-hero.png" alt="11 Claude Code and Codex skills for LinkedIn marketing — open source, MIT licensed" width="900" />
+  <img src="assets/linkedin-skills-hero.png" alt="12 Claude Code and Codex skills for LinkedIn marketing — open source, MIT licensed" width="900" />
 </p>
 
 # LinkedIn Marketing Skills for Claude Code and Codex
@@ -14,7 +14,7 @@
   <img src="https://img.shields.io/badge/PRs-welcome-F59E0B.svg" alt="PRs Welcome">
 </p>
 
-**Claude skills for LinkedIn.** 11 Claude Code and Codex skills that write LinkedIn posts, comments, and replies in your voice. They draft content, strip AI tells, and wait for your approval before anything gets published. No coding required.
+**Claude skills for LinkedIn.** 12 Claude Code and Codex skills that write LinkedIn posts, comments, and replies in your voice. They draft content, strip AI tells, and wait for your approval before anything gets published. No coding required.
 
 > **On another platform too?** The same team ships matching marketing skill bundles for [X (Twitter)](https://github.com/sergebulaev/x-skills) · [Instagram](https://github.com/sergebulaev/instagram-skills) · [YouTube](https://github.com/sergebulaev/youtube-skills) · [TikTok](https://github.com/sergebulaev/tiktok-skills) · [Threads](https://github.com/sergebulaev/threads-skills) · [Facebook](https://github.com/sergebulaev/facebook-skills). Same voice engine, same approve-before-publish flow.
 
@@ -40,20 +40,28 @@ codex plugin add linkedin-skills@linkedin-skills
 
 ### claude.ai (web)
 
-1. Open https://claude.ai/code
-2. Go to **Skills** in the sidebar
-3. Click **Add from GitHub**
-4. Paste: `sergebulaev/linkedin-skills`
-5. Done. The skills activate automatically when you ask about LinkedIn.
+1. Open [claude.ai](https://claude.ai) and click **Customize** in the sidebar
+2. Open the **Plugins** tab
+3. Click **Add**
+4. Choose **Add marketplace** → **Add from a repository**
+5. Paste `sergebulaev/linkedin-skills` there and sync
+6. Find the plugin under **Discover**, then click **Add**
+7. Done. The skills activate automatically when you ask about LinkedIn.
+
+> Note: Skills/Plugins require a paid Claude plan (Pro, Max, Team, or Enterprise) with code execution enabled.
 
 ### Claude Desktop (Mac / Windows)
 
 1. Open Claude Desktop
-2. Click **Customize**
-3. Click the **+** next to **Personal plugins** → **Create plugin** → **Add marketplace**
-4. Choose **Add from a repository** and paste: `sergebulaev/linkedin-skills`
-5. Install the plugin
-6. Done. Start a new conversation and ask Claude to write a LinkedIn post.
+2. Click **Customize** in the left sidebar, then open the **Plugins** tab
+3. Click the **Add** dropdown at the top right and choose **Add marketplace**
+4. Select **Add from a repository**, paste `sergebulaev/linkedin-skills`, and sync
+5. Switch to the **Discover** tab and find the plugin in the list
+6. Click the **+** on the plugin card to install it
+7. Switch back to **Yours** to confirm it is listed and enabled
+8. Done. Start a new conversation and ask Claude to write a LinkedIn post.
+
+> The tab switch in steps 5 and 7 is the part that trips people: syncing a marketplace puts the plugin in the catalog (**Discover**), not in your installed list (**Yours**). The **+** in step 6 sits on the plugin card itself, not beside a section heading.
 
 ### OpenClaw
 
@@ -79,12 +87,14 @@ codex plugin add linkedin-skills@linkedin-skills
 /plugin install linkedin-skills@linkedin-skills
 ```
 
-Or clone the repo and open it as your working directory:
+Or clone the repo and open it as your working directory — the skills activate with no plugin install, which is the route to use where `/plugin` is unavailable:
 
 ```bash
 git clone https://github.com/sergebulaev/linkedin-skills.git
 cd linkedin-skills
 ```
+
+The repo ships a `.claude/skills/` mirror of symlinks, so Claude Code finds all 12 skills on its own.
 
 ### Hermes Agent
 
@@ -133,21 +143,22 @@ Once installed, just ask Claude Code or Codex for help with LinkedIn. The right 
 
 Every skill shows you a draft first and waits for your OK before doing anything. Nothing gets posted without your approval.
 
-## The 11 skills
+## The 12 skills
 
 | Skill | What it does |
 |---|---|
 | **Post Writer** | Drafts viral-ready posts using 20 proven 2026 hook formulas (anaphora, R.I.P. obituary, year-over-year pivot, curiosity gap, emotional cold-open, controlled A/B, false-binary, and 13 more) plus a founders-edition angle library, picked by engagement goal |
 | **Comment Drafter** | Drafts a comment on any LinkedIn post from its URL |
-| **Reply Handler** | Drafts a reply to any comment, correctly handling LinkedIn's 2-level thread flattening |
+| **Reply Handler** | Drafts a reply to any comment, correctly handling LinkedIn's 2-level thread flattening. Or give it just a post URL and it sweeps the whole thread — every top-level comment and reply — filters out low-value ones, and drafts the rest in one batch |
 | **Post Audit** | Checks your draft against 2026 algorithm rules and AI-detection patterns before you publish |
-| **Humanizer** | Strips em dashes, AI vocabulary ("leverage", "delve", "harness"), rule-of-three lists, and other AI fingerprints. Bundles three sub-tools: AI-emoji density scorer, multi-detector spread tester (GPTZero, Originality.ai, ZeroGPT, Sapling, Copyleaks), and a rule-explainer reference for defending stylistic choices. |
+| **Humanizer** | Removes the AI tells human readers and LinkedIn's slop filter react to: 2026 AI vocabulary scored by paragraph density, reveal bridges, staccato fragment stacks, stacked triads, performed sincerity; caps em dashes instead of banning them. Does not promise to beat detectors (no edit reliably does). Bundles three sub-tools: AI-emoji density scorer, multi-detector spread tester (GPTZero, Originality.ai, ZeroGPT, Sapling, Copyleaks) that documents how much they disagree, and a rule-explainer reference for defending stylistic choices. |
 | **Hook Extractor** | Reverse-engineers the hook formula from any viral post. Returns a blank template you can fill with your own topic |
 | **Content Planner** | Creates a 7-day plan with daily post topics, formats, hooks, posting times, and comment targets |
 | **Engagement Monitor** | Two read-side workflows: (1) tracks your comment threads for author replies and drafts follow-ups in the 6-24h window; (2) pulls likers and commenters on any post and groups them by ICP fit (peer / aspirational / prospect). |
 | **Profile Optimizer** | Rewrites your headline, About section, Featured section, and Experience for 2026 conversion patterns |
 | **Employee Advocacy** | Plans a team LinkedIn program: 14-day launch, posting cadence, brand governance, ROI tracking |
 | **Repurposer** | Turns content from another platform (tweet, thread, YouTube video, blog, newsletter) into a native LinkedIn post: re-hooks for the fold, expands to the 900-1300 char sweet spot, moves links to the first comment, runs the humanizer |
+| **Interviewer** | Interviews you and keeps the answers in a Story Bank: roles, receipts with real numbers, turning points, scars, positions you would defend. Every other skill reads it, so drafts stop asking you for a specific number mid-request. Also runs a focused interview that turns one topic into a post spine. The only skill that works when you have never posted before, since it needs a career rather than an archive |
 
 ## Built for founders
 
@@ -158,6 +169,14 @@ If you are a founder, the bundle ships a dedicated founder layer. Your real cons
 - **A founders-edition content plan** (Conviction / Building in public / The math / Proof) in the Content Planner.
 
 Just tell the Post Writer you are a founder, or ask the Content Planner for a "founder plan," and the skills reach for these first.
+
+## Community skills
+
+Standalone skills built by other people on this bundle's conventions (same voice rules, same approval-card flow, same `Not for X (use Y)` disambiguation). They live in their authors' repos, so the core stays at 12 skills and one read/write pipeline. Install them next to this bundle the same way.
+
+- [linkedin-outreach](https://github.com/smfardeen7/linkedin-skills/tree/add-linkedin-outreach-skill/skills/linkedin-outreach) by [@smfardeen7](https://github.com/smfardeen7) - drafts 300-character connection-request notes (10 scenario templates) and post-accept follow-up sequences with day offsets and stop rules. Draft-only: LinkedIn has no invite or DM API, you paste and send.
+
+Built one? Open a PR that adds a single line here.
 
 ## Optional: read LinkedIn data with Apify
 
@@ -184,7 +203,27 @@ By default, skills draft content for you to copy-paste into LinkedIn. If you wan
 
 [Publora](https://publora.com) is a publishing API that handles LinkedIn's quirks (3 different URL formats, reaction type mismatches, thread flattening bugs). The free tier gives you 15 posts/month.
 
+Publora also ships [official MCP skills](https://github.com/publora/skills) (`npx skills add publora/skills`): one skill per platform, covering the publish side only. This bundle is the layer above them, adding the reading, the writing craft and the approval flow.
+
 ### Setup (2 minutes)
+
+Before or after any of it, one command tells you where you stand:
+
+```bash
+python3 scripts/selftest.py          # install, accounts, tests, and which skills work right now
+python3 scripts/selftest.py --fresh  # clone to a temp dir and check a genuinely clean install
+```
+
+It reports each of Apify, Publora and Pixfaro separately, using free endpoints that verify a key without doing any work, and it names what is missing rather than only that something is. Skills that need a layer you have not connected still work, by drafting for you to paste, and the report says which ones those are.
+
+### Two ways to connect, pick either
+
+**A connector, if you are on claude.ai or Claude Code.** Publora and Pixfaro both publish one. Authorize it once in your connector settings and the skills use it: no key on disk, no `.env`, nothing to rotate. Publora's connector also carries `post_stats` and `profile_stats`, which the REST path below does not have.
+
+**An API key, if you are anywhere else** — a plain terminal, CI, a script, or you would rather the credential lived in a file you control. That is the seven steps below.
+
+They are not exclusive and neither is second-class. One caveat worth knowing: `scripts/check_config.py` and `scripts/selftest.py` read `.env` and the shell, so a connector is invisible to them. If they say "manual" while your posts are going out, the connector is doing the work and nothing is wrong.
+
 
 **Step 1.** Sign up at https://app.publora.com/signup (free)
 
@@ -227,13 +266,15 @@ Posts with a visual get more dwell time. The Post Writer can generate an illustr
 
 [Pixfaro](https://pixfaro.com) is a single image API over multiple models (from `flux-schnell` at $0.004 to `gpt-5-image`). It composites your handle, brand color, or logo onto the image as a **pixel-exact overlay**, so a cheap base model still renders crisp text on a quote-card or thumbnail. Pull those brand fields from your [Voice & Brand Profile](references/voice-profile.md) (section 6) and every asset stays on-brand.
 
-Setup: drop `PIXFARO_TOKEN=pf_live_...` into your `.env`. The thin client at `lib/pixfaro_client.py` and the wrappers `lib.illustrate(prompt, kind=...)` / `lib.refine(image_id, instruction)` return a hosted URL that flows straight into `lib.publish(..., media_urls=[url])`. `refine` edits a prior image by its id (cheaper than regenerating); results carry `cost`, `balance_after`, and a `premium` flag so the skills never quietly spend on a pricey model.
+Setup: sign up at [api.pixfaro.com/signup](https://api.pixfaro.com/signup?ref=linkedin-skills), create a key (name it `linkedin`, scope **Generate**), and put `PIXFARO_TOKEN=pf_live_...` in `.env` **at the root of the `linkedin-skills` folder** (next to this README; keys are shown once). Then `python3 scripts/check_config.py` calls Pixfaro's `GET /v1/key` and prints the key's name and scope when it is right. The thin client at `lib/pixfaro_client.py` and the wrappers `lib.illustrate(prompt, kind=...)` / `lib.refine(image_id, instruction)` return a hosted URL that flows straight into `lib.publish(..., media_urls=[url])`. `refine` edits a prior image by its id (cheaper than regenerating); results carry `cost`, `balance_after`, and a `premium` flag so the skills never quietly spend on a pricey model.
+
+For **text-led visuals** (a quote-card of your hook), the skills skip the image model entirely and use Pixfaro's design templates: `lib.quote_card("<hook>", handle="@you", style="brand")` typesets the card server-side (`POST /v1/renders`), so the line is crisp at any length — same hosted-URL flow. `lib.available_templates()` lists templates and live prices. A brand logo can be uploaded once with `lib.brand_logo("logo.png")` (full-scope key); the returned `logo_id` goes into Voice & Brand Profile §6 and every overlay from then on stamps the real mark.
 
 ## Voice rules
 
 Every skill follows these rules automatically:
 
-1. No em dashes. Biggest AI tell in 2026.
+1. Em dashes capped at about 1 per 100 words. The character stopped being a tell in 2026; the density is.
 2. Capitalize names. Always. Lowercase reads as disrespectful.
 3. No AI vocabulary: "leverage", "fundamentally", "streamline", "harness", "delve", "unlock", "foster".
 4. Specific numbers beat adjectives. "$14,200" beats "significant savings".
@@ -247,6 +288,8 @@ Every skill follows these rules automatically:
 | Skills don't activate when I ask about LinkedIn | Make sure you installed via the Skills panel, `/plugin install`, or `codex plugin add`. Try starting a new conversation. |
 | "Publora API key not provided" | Your `.env` file is missing or in the wrong folder. It should be in the `linkedin-skills/` root. |
 | "401 Unauthorized" from Publora | Your API key expired. Go to Publora Settings > API > Create a new key. |
+| Image skills keep saying "No Pixfaro key set" although you added one | The key was not loaded: `.env` must be at the `linkedin-skills/` root and `python-dotenv` installed. `python3 scripts/check_config.py` now says exactly which — and, with a key, whether Pixfaro accepts it (`GET /v1/key`). |
+| "401" from Pixfaro | The key was copied short or revoked. Keys are shown once — mint a new one in the Pixfaro dashboard and paste the whole `pf_live_...` string. |
 | "404 on comment/post" | Your `LINKEDIN_PLATFORM_ID` is wrong. Go to Publora Channels and copy the full `linkedin-...` string. |
 | "400 reactionType" error | Known Publora quirk. The skills handle this automatically. If you're calling the API manually, use PRAISE (not CELEBRATE), INTEREST (not INSIGHTFUL). |
 | `pip install` fails | Use a virtual environment: `python -m venv venv && source venv/bin/activate && pip install requests python-dotenv` |

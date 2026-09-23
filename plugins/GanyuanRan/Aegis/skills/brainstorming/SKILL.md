@@ -393,46 +393,25 @@ create accepted architecture memory from unexecuted ideas.
 
 **Existing codebases:** Follow existing patterns. Include targeted improvements only when they serve the current goal. If the design touches contracts, compat, fallbacks, or duplicated owners → call it out directly.
 
-## Design Probe
+## Conditional Detailed Guidance
 
-A probe is allowed only when it can change the design direction and existing
-repository evidence is insufficient:
+Conditional design probe, scenario profile, and workspace/spec documentation
+detail maps to explicit headings below.
 
-```text
-Design Probe
-- Question
-- Expected decision impact
-- Target and effect boundary
-- Why existing evidence is insufficient
-- Stop condition
-- Evidence produced
-- Cleanup
-```
+Read only the evidence-matched section of `expanded-design-guidance.md`:
 
-Prefer read-only execution. A disposable probe must not create a maintained
-owner, public contract, compatibility promise, or hidden persistence path. It
-is design evidence, not delivered implementation.
+- `## Design Probe` only when existing evidence is insufficient and a bounded
+  probe can change the design direction;
+- `## Software Scenario Profiles` only after the work is classified as one of
+  its named scenario classes and profile-specific state/risk coverage is useful;
+- `## Documentation And Workspace Bootstrap` only after the Doc Necessity Gate
+  selects a spec or workspace artifact;
+- `## Spec Self-Review` only for a written Design Spec; and
+- a named baseline template section only when initializing that exact file.
 
-## Software Scenario Profiles
-
-Apply only the relevant profile instead of loading every lens for every task:
-
-- `greenfield-feature`: value, smallest deliverable behavior, minimum owner,
-  acceptance, explicit future non-goals;
-- `existing-system-change`: current state, target state, the delta between
-  them, preserved invariants, callers, migration, and retirement;
-- `refactor`: preserved observable behavior, owner/coupling defect, dependency
-  direction, old-path retirement, behavior-preservation evidence;
-- `public-contract`: consumers, versioning, precedence, errors, compatibility,
-  migration, negative cases;
-- `persistence-migration`: data owner, schema evolution, partial migration,
-  crash recovery, backup/rollback, read/write cutover;
-- `ui-workflow`: user journey and loading/empty/error/partial/success/cancel/
-  retry states, accessibility, irreversible actions, recovery;
-- `security-permission`: trust boundary, attacker capability, authority owner,
-  sensitive data, downgrade/revocation, safe failure, auditability;
-- `operational-release`: deployment boundary, observability, partial rollout,
-  rollback, compatibility window, operator recovery.
+Do not load the reference for route selection, first-turn clarification,
+route-away cases, or an active Grilling Mode interview. The reference supplies
+detail; this main skill continues to own routing, design approval, and handoff.
 
 ## Design Ready And Design Complete
 
@@ -466,77 +445,19 @@ decision-changing unknowns into the plan.
 
 ## After the Design
 
-**Documentation:**
+After approval, **Write the validated spec artifact when needed**. If the Doc
+Necessity Gate selects workspace or spec documentation, read the applicable
+sections of `expanded-design-guidance.md`; otherwise keep the accepted design
+in-session. When workspace support is selected, its helper remains outside the
+target project and is invoked as `<aegis-workspace-helper>`.
 
-1. **Aegis Project Workspace initialization (first creation only):**
-   If `docs/aegis/` does not exist and configured Aegis workspace support is
-   available, initialize the target project:
-   `python <aegis-workspace-helper> init --root <target-project-root>`.
-   If installed Aegis workspace support is unavailable, create it manually:
-   a. Create `docs/aegis/README.md` — describes workspace purpose and structure
-   b. Create `docs/aegis/INDEX.md` — empty index, will be appended below
-   c. Create `docs/aegis/BASELINE-GOVERNANCE.md` from the template in
-      "BASELINE-GOVERNANCE.md Template" section below
-   d. If the project has existing code, create an initial baseline snapshot:
-      `docs/aegis/baseline/YYYY-MM-DD-initial-baseline.md` using the
-      "Initial Baseline Snapshot Template" below
-   If `docs/aegis/` already exists, use it — do not recreate.
+**Aegis Project Workspace:** workspace creation and spec persistence remain
+conditional on the Doc Necessity Gate and project authority.
 
-2. **Write the validated spec artifact when needed:**
-   Use the smallest artifact that stabilizes the task:
-   - Spec Brief: `docs/aegis/specs/YYYY-MM-DD-<topic>-brief.md` for medium
-     tasks that need what/why/acceptance pinned before planning.
-   - Design Spec: `docs/aegis/specs/YYYY-MM-DD-<topic>-design.md` for high
-     complexity, architecture, contract, migration, cross-module, or ambiguous
-     behavior requiring user review.
-   Specs always go to `specs/` — never to `work/`. `docs/aegis/work/`
-   holds session-level drafts, not project documents; only promote a draft to
-   `specs/` or `plans/` when the Doc Necessity Gate passes.
-
-3. **Update INDEX.md:**
-   Prefer configured Aegis workspace support: `python <aegis-workspace-helper> append-index --root
-   <target-project-root> --path docs/aegis/specs/<filename>.md --kind spec
-   --title "<title>"`. If workspace support is unavailable, append the new spec entry
-   to `docs/aegis/INDEX.md` manually.
-   After the append, run `python <aegis-workspace-helper> check --root
-   <target-project-root>` when configured workspace support is available. This validates
-   structure and index coverage only; it does not grant completion authority.
-   INDEX bookkeeping: creating a document registers it; updating an existing
-   document does not change the index; superseding or deleting a document
-   updates the index.
-
-4. Commit the design document to git.
-
-5. Include the latest `TaskIntentDraft`, `BaselineReadSetHint`,
-   `BaselineUsageDraft`, and `ImpactStatementDraft` inline or in an appendix
-   when they materially shaped the design.
-
-6. Record explicit non-goals and compatibility boundaries so the later implementation plan does not drift.
-7. Cross-repo changes: decide per change surface per repo; a durable
-   cross-repo contract is recorded as an ADR in the owning repo, with the other
-   side carrying only its local impact (mirror relationship, no duplication).
-
-**Spec Self-Review:**
-After writing the spec document, look at it with fresh eyes:
-
-1. **Placeholder scan:** Any "TBD", "TODO", incomplete sections, or vague requirements? Fix them.
-2. **Internal consistency:** Do any sections contradict each other? Does the architecture match the feature descriptions?
-3. **Scope check:** Is this focused enough for a single implementation plan, or does it need decomposition?
-4. **Ambiguity check:** Could any requirement be interpreted two different ways? If so, pick one and make it explicit.
-5. **Boundary check:** Did you clearly mark invariants, compatibility
-   boundaries, owners, non-goals, and any ADR signals for later completion
-   backfill? If the spec endorses a risky approach, confirm the
-   `first-principles-review` `Decision Hygiene Review` or `Architecture
-   Integrity Lens` result is reflected or explicitly marked unnecessary.
-
-Fix any issues inline. No need to re-review — just fix and move on.
-
-**User Review Gate:**
-After a Design Spec review loop passes, ask the user to review the written spec before proceeding:
-
-> "Spec written and committed to `<path>`. Please review it and let me know if you want to make any changes before we start writing out the implementation plan."
-
-Wait for the user's response when this workflow requires review. If they request changes, make them and re-run the spec review loop. Only proceed once the user approves. For a small Spec Brief created only to pin medium-task acceptance, user review may be concise unless project rules require a formal approval step.
+For a Design Spec, complete its self-review and obtain explicit user review
+before planning. Apply requested changes and review again. A small Spec Brief
+that only pins medium-task acceptance may use concise review unless project
+authority requires a formal gate.
 
 **Implementation:**
 
@@ -551,141 +472,3 @@ Wait for the user's response when this workflow requires review. If they request
 - **Explore alternatives** - Always propose 2-3 approaches before settling
 - **Incremental validation** - Present design, get approval before moving on
 - **Be flexible** - Go back and clarify when something doesn't make sense
-
-## BASELINE-GOVERNANCE.md Template
-
-When creating `docs/aegis/BASELINE-GOVERNANCE.md` for the first time, use this template:
-
-```markdown
-# Baseline Governance
-
-## 1. Baseline Roles
-- Product / Requirement Baseline: confirmed requirement sources, target state,
-  goals and scope, users / scenarios, requirement items, acceptance /
-  verification criteria, non-goals, workflow constraints, open questions,
-  change records, and approved requirement/spec intent.
-- Architecture / Runtime Boundary Baseline: canonical owner, contract,
-  source-of-truth boundary, dependency direction, compatibility, runtime-ready
-  boundary, and retirement state.
-
-## 2. Design Defect
-A confirmed error, gap, contradiction, or wrong abstraction IN the relevant
-requirement, design, or baseline.
-- Fix the defective requirement/design/baseline first.
-- Then align implementation to the corrected baseline.
-- Do NOT patch implementation around a defective baseline.
-
-## 3. Implementation Drift
-Implementation, plan, review, or documentation has deviated from a confirmed,
-correct, unchanged requirement or architecture baseline.
-- Return to baseline via the simplest stable path.
-- Do NOT "update baseline to match drift" without explicit review.
-
-## 4. Compatibility Aliases
-- Architecture Defect = architecture-scoped Design Defect.
-- Architecture Drift = architecture-scoped Implementation Drift.
-- New findings should report Design Defect / Implementation Drift plus
-  `scope: requirements | architecture | both`.
-
-## 5. Baseline Check Protocol
-Before non-trivial changes:
-1. Read the latest Product / Requirement Baseline candidate.
-2. Read the latest Architecture / Runtime Boundary Baseline candidate.
-3. Compare current work against requirement acceptance and architecture owner /
-   contract boundaries.
-4. Check for new anti-patterns not recorded in known list.
-5. Report: aligned / Design Defect / Implementation Drift /
-   missing-authority / needs-clarification, with
-   `scope: requirements | architecture | both`.
-
-## 6. Architecture Review — 7 Dimensions
-After each non-trivial change:
-1. **Ownership integrity** — every component has exactly one canonical owner
-2. **Module boundaries** — no unauthorized cross-module coupling
-3. **Contract changes** — all API/signature/behavior contract changes documented
-4. **Cascade proliferation** — no new cascading dependency chains
-5. **Dependency direction** — dependencies flow toward stability
-6. **Retirement completeness** — old owners/fallbacks/paths removed or scheduled
-7. **Entropy flow** — net complexity decreased or stayed; no unjustified new entities
-
-## 7. Hard Boundaries
-- BASELINE-GOVERNANCE.md is the constitution for THIS project's Aegis workspace
-- Baseline snapshots in `baseline/` are evidence, not authority
-- ADRs in `adr/` record decisions; they do not replace baseline governance
-- This file is NEVER auto-updated — changes require explicit user review
-```
-
-## Initial Baseline Snapshot Template
-
-When creating the first `docs/aegis/baseline/YYYY-MM-DD-initial-baseline.md`:
-
-Bootstrap the project's dual baselines instead of writing a flat repo inventory.
-The first baseline should make later `Baseline Role Alignment` checks possible
-even when the repo is still early or partially defined.
-
-Minimum shape:
-
-```markdown
-# <Project> Initial Baseline
-
-Date: `YYYY-MM-DD`
-Status: `initial dual-baseline snapshot`
-
-## 1. Purpose
-- why this baseline exists
-- what later alignment checks should use it for
-
-## 2. Workspace Structure
-- top-level directories, entry points, substrate roots, or seams worth tracking
-
-## 3. Current Authority Surfaces
-- README / AGENTS / ADR / spec / baseline / external reference roots
-- current authority gaps or missing documents
-
-## 4. Product / Requirement Baseline
-### 4.1 Current Truth
-- confirmed requirement sources or current authority gaps
-- target state, goals, and scope
-- target users, roles, usage scenarios, or system scenarios
-- functional, quality, constraint, and delivery / transition requirement items
-- acceptance / verification criteria and evidence expectations
-- success evidence, value claim, or phase focus already fixed
-
-### 4.2 Non-negotiables
-1. ...
-
-### 4.3 Product Non-goals
-- ...
-
-## 5. Architecture / Runtime Boundary Baseline
-### 5.1 Current Truth
-- canonical owner or substrate split
-- contract / source-of-truth boundary
-- dependency direction or owner layering already fixed
-
-### 5.2 Architecture Non-negotiables
-1. ...
-
-### 5.3 Architecture Non-goals
-- ...
-
-## 6. Ownership / Contract Snapshot
-- important surface -> current owner
-- contract seams, missing seam inventory, or boundary gaps
-
-## 7. Current State and Risks
-- current stage
-- known risks, unknowns, or missing evidence
-
-## 8. Alignment Use
-- when to read the Product / Requirement Baseline
-- when to read the Architecture / Runtime Boundary Baseline
-- when to report `scope: both`
-
-## 9. Compatibility Boundary
-- what must NOT break during early work
-```
-
-Do not collapse the first bootstrap baseline into a generic 10-field checklist.
-If the project is sparse, keep sections short and mark authority gaps explicitly
-instead of guessing.

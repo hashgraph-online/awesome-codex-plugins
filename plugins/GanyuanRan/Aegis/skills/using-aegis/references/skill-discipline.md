@@ -51,10 +51,11 @@ load a full skill only when the trigger fits.
 ## Context Pressure Re-entry
 
 Long sessions, heavy tool output, resume, and context compaction can weaken the
-initial startup route. Treat those moments as a re-entry point, not as proof
-that Aegis is unavailable.
+initial startup route. A meaningful change in the current work type can also
+invalidate that route even without context pressure. Treat either kind of
+transition as a re-entry point, not as proof that Aegis is unavailable.
 
-Before continuing non-trivial work under context pressure, run a compact
+Before continuing non-trivial work after either transition, run a compact
 re-entry check:
 
 1. What is the current task type?

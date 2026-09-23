@@ -76,6 +76,7 @@ class AnalysisContext:
     hierarchy_context: dict | None = field(default=None, repr=False)
     cache_dir: Path | None = field(default=None, repr=False)
     design_context: dict | None = field(default=None, repr=False)
+    project_dir: str | None = field(default=None, repr=False)
 
     def __post_init__(self) -> None:
         if not self.comp_lookup:

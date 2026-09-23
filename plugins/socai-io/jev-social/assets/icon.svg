@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Jev Social</title>
+  <desc id="desc">A routing node splitting into two social research evidence nodes.</desc>
+  <rect x="12" y="12" width="488" height="488" rx="96" fill="#fffdf7" stroke="#0b0b0d" stroke-width="24"/>
+  <path d="M178 256h62c44 0 51-90 100-90h24" fill="none" stroke="#ff4fb3" stroke-width="32" stroke-linecap="round"/>
+  <path d="M178 256h62c44 0 51 90 100 90h24" fill="none" stroke="#8edcf4" stroke-width="32" stroke-linecap="round"/>
+  <circle cx="150" cy="256" r="66" fill="#0b0b0d"/>
+  <rect x="350" y="112" width="108" height="108" rx="32" fill="#0b0b0d"/>
+  <rect x="350" y="292" width="108" height="108" rx="32" fill="#0b0b0d"/>
+  <circle cx="150" cy="256" r="20" fill="#fffdf7"/>
+  <circle cx="404" cy="166" r="18" fill="#ff4fb3"/>
+  <circle cx="404" cy="346" r="18" fill="#8edcf4"/>
+</svg>

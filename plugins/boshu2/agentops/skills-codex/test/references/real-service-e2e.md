@@ -19,8 +19,10 @@ If any safety check is unknown, stop and ask for an explicit test environment.
 1. Create test-owned resources with unique names.
 2. Exercise the full boundary through the public interface.
 3. Assert durable state, emitted events, logs, and API responses.
-4. Clean up in `defer`, fixture teardown, or transaction rollback.
-5. Capture enough evidence to debug failures without rerunning blindly.
+4. Preserve failure evidence before cleanup can erase it, then clean up in
+   `defer`, fixture teardown, or a verified transaction rollback.
+5. Verify cleanup and retain enough evidence to debug failures without rerunning
+   blindly; a failed teardown is an unresolved result.
 
 ## What To Avoid
 
@@ -32,17 +34,14 @@ If any safety check is unknown, stop and ask for an explicit test environment.
 
 ## Output
 
-Record real-service test safety in `.agents/scratch/tests/summary.md`:
-
-```markdown
-## Real-Service Safety
-
-| Check | Result |
-|---|---|
-| Non-production credentials | PASS/FAIL |
-| Isolated namespace | PASS/FAIL |
-| Cleanup verified | PASS/FAIL |
-```
+Return the environment and isolation checks, command/results, cleanup outcome
+and material gaps through the existing handoff, following
+[Test's output contract](../SKILL.md#output-specification). Persist reports only
+when requested or required by a declared consumer, at the caller's explicitly
+selected destination. This reference creates no `.agents/` output requirement.
+Local instructions and authorized write scope outrank any optional template.
+Preserve necessary failure and recovery evidence at its authorized source;
+cleanup of test resources does not authorize deleting unique evidence.
 
 ---
 

@@ -5,8 +5,8 @@
   "quality_score": 0.95,
   "sections": [
     { "id": "title",       "title": "cass Session Search",                  "type": "intro",     "priority": "required" },
-    { "id": "goldmine",    "title": "The Goldmine Principle",               "type": "overview",  "priority": "required" },
-    { "id": "discovery",   "title": "THE EXACT PROMPT — Discovery Workflow", "type": "procedure", "priority": "required" },
+    { "id": "history",     "title": "History as Evidence",               "type": "overview",  "priority": "required" },
+    { "id": "discovery",   "title": "Discovery Workflow", "type": "procedure", "priority": "required" },
     { "id": "versionpin",  "title": "Version Pinning Caveat",               "type": "constraints", "priority": "required" },
     { "id": "bootstrap",   "title": "Two-Step Bootstrap",                   "type": "procedure", "priority": "required" },
     { "id": "recovery",    "title": "Stuck-Index & Recovery Decision Tree", "type": "procedure", "priority": "required" },
@@ -25,7 +25,7 @@
   ],
   "references": [
     { "file": "references/COMMANDS.md",            "topic": "complete cass command reference" },
-    { "file": "references/RECOVERY.md",            "topic": "stuck-index recovery and no-permission repair moves" },
+    { "file": "references/RECOVERY.md",            "topic": "bounded authorized recovery for diagnosed index problems" },
     { "file": "references/SEMANTIC_AND_HYBRID.md", "topic": "enabling semantic / hybrid search modes" },
     { "file": "references/REMOTE_SOURCES.md",      "topic": "cross-machine corpus and configured sources" },
     { "file": "references/ANTI_PATTERNS.md",       "topic": "search anti-patterns to avoid" },
@@ -65,7 +65,7 @@
       "full": 5200
     }
   },
-  "output_contract": "Search hits over past agent sessions (prompts, decisions, patterns) via `cass search`, a `cass status`/index-health report, JSON/aggregation output for parsing, or a resume command for a matched session. Index operations are wall-clock-capped so the bootstrap never blocks.",
+  "output_contract": "Search hits over past agent sessions (prompts, decisions, patterns) via `cass search`, a `cass status`/index-health report, JSON/aggregation output for parsing, or a resume command for a matched session. Retrieval is bounded; index recovery is optional, selected and authorized.",
   "evidence": {
     "sources": [
       "skills/cass/SKILL.md",

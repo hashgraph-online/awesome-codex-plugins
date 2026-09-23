@@ -1,0 +1,50 @@
+{
+  "name": "wavespeed-cli",
+  "version": "0.1.2",
+  "description": "Generate and edit AI media (image, video, audio, 3D) on the WaveSpeed platform from Codex: live catalog search, per-model schema, local-file upload, price quotes before running.",
+  "author": {
+    "name": "WaveSpeedAI",
+    "email": "support@wavespeed.ai",
+    "url": "https://wavespeed.ai"
+  },
+  "homepage": "https://github.com/WaveSpeedAI/codex-plugin-wavespeed-cli",
+  "repository": "https://github.com/WaveSpeedAI/codex-plugin-wavespeed-cli",
+  "license": "MIT",
+  "keywords": [
+    "wavespeed",
+    "image-generation",
+    "video-generation",
+    "audio-generation",
+    "3d-generation",
+    "mcp",
+    "cli"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "WaveSpeed",
+    "shortDescription": "AI image, video, audio and 3D generation from Codex — every model on WaveSpeed is one call.",
+    "longDescription": "Adds the WaveSpeed platform to Codex. The bundled MCP server exposes search_models, get_model_schema, get_price, upload_file, run_model, get_prediction and get_balance, and the bundled skill teaches the agent the find → inspect → run workflow on the open-source wavespeed CLI, including uploading local files with the @path marker and quoting prices before spending credits. One `wavespeed login` (or WAVESPEED_API_KEY) authenticates both.",
+    "developerName": "WaveSpeedAI",
+    "category": "Creativity",
+    "capabilities": [
+      "Generate images",
+      "Generate videos",
+      "Generate audio",
+      "Generate 3D assets",
+      "Upload files",
+      "Download outputs"
+    ],
+    "websiteURL": "https://wavespeed.ai",
+    "privacyPolicyURL": "https://wavespeed.ai/static/privacy",
+    "termsOfServiceURL": "https://wavespeed.ai/static/terms",
+    "defaultPrompt": [
+      "Generate a 16:9 hero image of a cyberpunk skyline at golden hour.",
+      "Animate ./hero.jpg into a 5-second clip with subtle parallax.",
+      "Replace the background of ./product.png with a sunlit kitchen, then quote the cost first."
+    ],
+    "brandColor": "#7C5CFF",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/logo.png"
+  }
+}

@@ -1,7 +1,7 @@
 {
   "name": "development-skills",
-  "version": "0.10.0",
-  "description": "Development workflow for AI coding agents: a direct/full loop that keeps the plan and chronicle on disk, plus a named staff-reviewer subagent. Language-agnostic.",
+  "version": "0.11.1",
+  "description": "Language-agnostic development workflows with risk-based paths, persistent decisions, focused proof, and independent review.",
   "repository": "https://github.com/reidemeister94/development-skills",
   "homepage": "https://github.com/reidemeister94/development-skills",
   "license": "MIT",
@@ -18,7 +18,7 @@
   "interface": {
     "displayName": "Development Skills",
     "shortDescription": "Disciplined development workflows for AI coding agents",
-    "longDescription": "Use Development Skills for coding, debugging, refactoring, test design, code review, documentation alignment, and cross-agent workflow discipline. A two-path development loop (direct for clear, reversible changes; full for everything else) that keeps the plan and chronicle on disk, with a named staff-reviewer subagent. Language-agnostic.",
+    "longDescription": "Use Development Skills for coding, debugging, refactoring, test design, code review, documentation alignment, and research. The loop chooses direct, bounded, or full work based on scope, risk, proof, and the need for persistent decisions.",
     "developerName": "reidemeister",
     "category": "Coding",
     "capabilities": [

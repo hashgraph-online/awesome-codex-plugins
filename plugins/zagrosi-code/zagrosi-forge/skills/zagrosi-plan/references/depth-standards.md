@@ -1,34 +1,15 @@
-# Depth modes
+# Depth
 
-Depth changes analysis, never prose volume.
+Depth changes investigation, not artifact count or prose volume. Compact embedded
+contracts work in every mode; no word minimums or obligatory duplicate documents.
 
-## Lean (default)
+| Mode | Evidence and scrutiny |
+|---|---|
+| `lean` (default) | Resolve bounded behavior using relevant code/docs and one focused review. |
+| `standard` | Verify integration paths, alternatives, edge cases, compatibility, and test layers. |
+| `deep` | Investigate consequential uncertainty; record researched evidence, decisions/tradeoffs, failure modes, test mapping, and relevant independent review perspectives. |
 
-Use only the core artifact set. Consolidate requirements, evidence, design,
-tests, risks, and ownership. Inspect enough code and docs to remove material
-ambiguity. One Codex review. Short sections reference plan IDs instead of
-repeating context.
-
-## Standard (explicit only)
-
-Use when the user requests broader analysis. Verify more integration paths,
-alternatives, edge cases, migration behavior, and test layers. Add a research,
-normalized-spec, TDD, or governance artifact only when separation improves
-implementation or review.
-
-## Deep (explicit only)
-
-Use when the user requests maximum scrutiny. Add independent review
-perspectives for relevant risks: architecture, security/privacy, data/migration,
-operations, product ambiguity, and test feasibility. Record evidence and
-tradeoffs for high-impact decisions. Still remove duplication and empty
-ceremony.
-
-All modes require:
-
-- stable requirement IDs and measurable acceptance
-- exact file and contract ownership
-- tests-first section work with runnable commands
-- dependency order and shared-file sequencing
-- risk mitigation, rollback, and stop conditions where relevant
-- source-to-plan-to-section-to-test traceability
+Honor requested depth. All modes retain stable requirements, measurable acceptance,
+exact ownership, dependency order, runnable verification, and material risk/rollback.
+Deep review covers actual risks; never require six ceremonial passes. Keep facts
+canonical, label assumptions, and resolve gaps rather than padding text.

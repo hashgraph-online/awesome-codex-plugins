@@ -31,7 +31,7 @@ One term per concept. Do not introduce synonyms.
   `amendment`, `capability`, `umbrella`.
 - **size label** — `S`, `M`, `L`, `XL`; derived from the route table, never
   asked.
-- **expert invocation** — the user names a path; computation is bypassed.
+- **expert invocation** — the first word of the arguments is a mode (definition in `skills/_shared/gate-contract.md`, Entry terms); computation is bypassed.
 
 ## Derivation
 
@@ -71,6 +71,7 @@ of the matching contributions.
 | `intent_gap: yes` | one `prd` through the intent instrument WHEN the gap names goals or metrics beyond one capability's purpose; a gap that fits one capability's purpose records in that capability's `spec` instead; a product-scale gap engages the acquisition instrument (sequencing rule 3) |
 | `creates` = 1 capability | one `spec` + one `plan` |
 | `creates` ≥ 2 capabilities | one umbrella `prd` + one `spec` per capability + one `plan` |
+| a capability meets the illustrate condition | one `scenario` for that capability through the illustrate instrument, after its `spec`; the intent instrument additionally produces one `journey` beside the `prd` |
 | implementation spanning two or more tasks, on a `decision` or `amendment` route | one `plan` through the decompose instrument |
 
 Route name and base size label come from the highest matching line:
@@ -99,6 +100,15 @@ Escalators, applied after the row match:
 - Report `retires` entries for closeout discharge; the conductor performs no
   status transition.
 
+**Illustrate condition.** A capability meets it when its Δ names a user-facing
+surface — a UI, a conversational skill, an operator-facing flow — or when
+grounding finds `features/*.feature` or a BDD runner in the test-runner slot of
+`skills/_shared/grounding/detect-stack.md`. The conductor reads Δ and grounding
+only; it never asks the user whether to illustrate. IF grounding cannot decide
+the condition, THEN record it as a `user`-source Π need. The condition binds only
+when `skills/_shared/actor-subject-compatibility.md` returned `yes`; otherwise the
+conductor drops the instrument and reports the required version once.
+
 ## Π engagement
 
 | Source | Action |
@@ -119,21 +129,31 @@ then formal document.
 | Instrument | Produces | Entry |
 |---|---|---|
 | concept | `idea` | `skills/_shared/tracks/sdd.md`, gate `sdd.frame` |
-| intent | `prd` | `skills/_shared/tracks/sdd.md`, gate `sdd.require` |
+| intent | `prd`; `journey` under the illustrate condition | `skills/_shared/tracks/sdd.md`, gate `sdd.require` |
 | contract | `spec` | `skills/_shared/tracks/sdd.md`, gate `sdd.design` — once per capability |
+| illustrate | `scenario` | `skills/_shared/tracks/sdd.md`, gate `sdd.illustrate` — once per capability, after that capability's `sdd.design` |
 | decompose | `plan` | `skills/_shared/tracks/sdd.md`, gate `sdd.decompose` |
 | runbook | `guide` | `skills/_shared/tracks/sdd.md`, gate `sdd.runbook` |
 | decision | `adr`, `rfc` | `skills/_shared/tracks/decision.md`, gate `decision.classify` |
-| research | `rnd` | `skills/_shared/tracks/research.md`, gate `research.frame` |
+| research | `research`, `rnd`; optional `evidence` | `skills/_shared/tracks/research.md`, gate `research.frame` |
 | spike | timeboxed `rnd` | `skills/_shared/tracks/research.md`, gate `research.spike` |
 | describe | `spec`, `doc`, `guide` | `skills/_shared/tracks/describe.md`, gate `describe.read` |
 | acquisition | `mrd`, `brd`, `urd` | `skills/_shared/tracks/requirements-cascade.md`, gate `requirements-cascade.mrd` |
 | iso links | `brs`, `strs`, `syrs`, `srs` | `skills/_shared/tracks/requirements-cascade.md`, gate `requirements-cascade.brs` |
 
+The research instrument fixes its product by the closing test: a named pending
+decision or candidate set closes on a recommendation (`rnd`); any other
+investigation closes on scope coverage (`research`). Its gather gate may also
+produce evidence; one external material supplied to `/archcore:document research`
+enters gather directly. This is an exception to single-type production. Apply
+`skills/_shared/research-compatibility.md` before using new vocabulary.
+
 The decision instrument's `decision.cascade` gate additionally creates its
 cascade documents (`rule`, `guide`, `spec`, `plan`, `cpat`) inside the
 instrument per its own gate record — a recorded exception to single-type
-production, not a `Next:` chain.
+production, not a `Next:` chain. The intent instrument's `journey` beside the
+`prd` under the illustrate condition is a second recorded exception of the same
+kind.
 
 Sequencing rules:
 
@@ -160,6 +180,11 @@ Sequencing rules:
     describe instrument in callable mode to create the covering `spec` first.
 12. IF an instrument's upstream product is missing, THEN invoke the producing
     instrument first.
+13. WHEN a capability meets the illustrate condition, sequence `sdd.illustrate`
+    directly after that capability's `sdd.design` and before `sdd.decompose`.
+14. WHEN a `journey` on the topic exists and no `spec` covers the interaction,
+    produce no `scenario`; the routing test between the pair is the covering
+    `spec`, not the presence of any `spec`.
 
 ## Route announcement
 
@@ -177,9 +202,14 @@ replaces the announcement with the named path.
 | `sdd` | full package: intent → contract (per capability) → decompose, at per-gate maxima |
 | `sources` | acquisition instrument, entry `requirements-cascade.mrd` |
 | `iso` | iso links, entry `requirements-cascade.brs` |
-| `research` | research instrument, entry `research.frame` |
-| a route name — `null`, `decision`, `amendment`, `capability`, `umbrella` | that route — Derivation still runs to fill Δ; the name fixes the route and the label only |
-| a document type the registry lists | the producing instrument's entry gate |
+| `research` | research instrument, entry `research.frame`; the instrument selects `research` or `rnd` by its closing test |
+
+The four modes are the whole expert surface of `/archcore:plan`.
+A route name is not an entry: the conductor always computes the route.
+A document type name is not an entry: `rnd` is produced only by the research
+instrument's closing test, the spike, or the compatibility fallback; a standalone
+`evidence` material enters through `/archcore:document research`. Any other
+leading word is topic text and goes through route computation.
 
 ## State carrier
 

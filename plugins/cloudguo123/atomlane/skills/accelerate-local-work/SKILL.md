@@ -49,7 +49,9 @@ atomic_task_plan -> immutable compiled_plan + plan_hash -> atomic_exec
    project, task intent, and concrete entrypoints or candidate operations known
    at that point. Use `scenario_plan` first only when an unfamiliar multi-stage
    project, preset optimization profile, or explicitly requested trace evidence
-   would materially improve planning.
+   would materially improve planning. For one concrete pytest suite, prefer
+   `test_suite_plan`; it is a thin frontend that returns the same standard
+   immutable plan and does not create a separate execution path.
 2. Inspect the returned blockers, diagnostics, effect certainty, native
    delegates, resource plan, estimated benefit, and `plan_hash`. Do not execute
    a plan that reports an unresolved safety blocker.
@@ -67,7 +69,9 @@ atomic_task_plan -> immutable compiled_plan + plan_hash -> atomic_exec
 4. Do not reconstruct, trim, reorder, or edit the compiled object. Do not
    change argv, cwd, environment, effects, edges, resources, executor choice,
    or retry policy between planning and execution. Optional execution-only
-   output caps and `serial_baseline_seconds` may be supplied outside the plan.
+   output caps and, for ordinary work, `serial_baseline_seconds` may be supplied
+   outside the plan. Native pytest pools reject bare seconds and use only the
+   attested baseline protocol below.
 5. If the task, entrypoint, project evidence, resource assumptions, or desired
    behavior changes, discard the old result and call `atomic_task_plan` again.
    A hash mismatch or stale precondition must fail rather than fall back to an
@@ -128,6 +132,101 @@ Vitest, BLAS, BuildKit, compiler, or GPU worker pools until the host is
 oversubscribed. Repeated tiny atoms should be fused or delegated to a native
 batch when doing so preserves control flow and reporting.
 
+### Compile pytest through its native owner
+
+When a pytest suite contains many independent cases—for example, 100 decoupled
+tests—use `test_suite_plan` to create one resource-bounded pytest-xdist pool.
+Do not translate testcases into 100 external atoms. Supply an exact pytest
+runner prefix using Python's module form (for example,
+`[python, -m, pytest]`), selectors/arguments, the intended worker count or `auto`, and
+complete declared file and non-file effects. Set `independence_declared=true`
+only after checking fixture, ordering, database, port, and shared-resource
+semantics; it is required for a multi-worker plan. Add project-local
+`snapshot_paths` that cover every semantically relevant selected test, source,
+helper, project-local plugin, and `conftest`; AtomLane separately binds the effective pytest
+config snapshot. Set `baseline_source_closure_declared=true` only after checking
+that closure. Both the declaration and AtomLane's bounded static coverage check
+are required before a serial run can issue baseline evidence. The static check
+cannot discover every dynamic import or dynamically loaded plugin, so treat the
+declaration as a caller assertion, not proof of complete semantic closure.
+Installed pytest/xdist distributions and plugins outside the project are not
+content-attested; keep that caller-trusted environment unchanged between a
+serial baseline and its parallel comparison.
+
+The planner must not run `pytest --collect-only`, import test modules, install
+pytest-xdist, infer independence from a case-count hint, or guess missing
+effects. AtomLane owns `-n`/`--numprocesses`,
+`--dist`, `--basetemp`, and JUnit output; remove conflicting caller or
+`PYTEST_ADDOPTS` copies and replan rather than overriding the compiled argv. It
+binds and snapshots the effective project-local pytest config with `-c`, while
+preserving and hash-binding valid config `addopts` and `PYTEST_ADDOPTS`. Supply
+`config_path` when discovery is ambiguous. Preserve a plain `pyproject.toml`
+chosen only by pytest 8.4's rootdir fallback as the distinct, hash-bound
+`fallback_pyproject` selection kind, and require runtime revalidation to prove
+that it remains free of pytest configuration. On Python 3.10, parsing
+`pyproject.toml` requires importable `tomli`. JUnit and base-temp paths must not
+overlap source/config snapshots, the runner executable, or each other. Keep an
+explicit JUnit path outside all selected collection directories across every
+suite in the plan, or omit it for the unique system-temp default. Apply the same
+case-folded, Unicode-NFC overlap identity at compilation and runtime in both
+cross-suite directions, together with physical ancestor/file identities that
+collapse firmlink and mount aliases. On Windows, reject report paths with trailing
+spaces/dots, alternate streams, reserved device components, drive/root-relative
+spellings, or device namespaces before filesystem resolution. Use the independent-case `worksteal` default;
+choose file/scope/group affinity only when fixtures require it.
+Execution holds sorted, non-blocking cross-process leases for every JUnit and
+base-temp path through report parsing. If another run owns one, fail fast and
+recompile for fresh generated paths or choose a distinct `junit_path`; do not
+wait and include queue time in a savings comparison. Lease the normalized path,
+physical parent-plus-basename, and existing target; recompute the complete key
+set while held. On native Windows, derive the lease root from the profile
+directory bound to the current process token rather than profile environment variables.
+Positional selectors, config `testpaths`/`pythonpath`, and explicit
+`snapshot_paths` must already resolve directly inside the project without a
+symbolic-link/reparse alias and are revalidated before launch. Any link found
+inside an audited collection tree makes that run ineligible to issue serial
+baseline evidence. AtomLane injects
+`--confcutdir=<project_root>` so parent-directory `conftest.py` files outside
+the declared project cannot execute. AtomLane explicitly loads
+xdist even when plugin autoloading is disabled; it disables the shared pytest
+cache provider and rejects cache-dependent selection flags. Write unknown
+third-party pytest options that take values as `--option=value`; a separated
+value is ambiguous with a positional selector and must not be used.
+Direct `pytest`/`py.test` console scripts are not accepted. AtomLane
+hash-attests and revalidates the selected Python interpreter, clears
+`PYTHONPATH`/`PYTHONHOME`/`PYTHONOPTIMIZE`, and rejects
+project/config-pythonpath candidates that could shadow `pytest` or `xdist` or
+inherited optimization settings that could remove ordinary assertions; the caller remains responsible for
+trusting the selected environment and its installed packages.
+pytest-xdist is required for both the serial-baseline and multi-worker routes.
+If it is unavailable at execution, report the dependency failure;
+do not install it unless the user separately authorizes dependency changes.
+Version 0.16 release evidence covers `macos-14` and `windows-2025`, CPython
+3.10–3.13, pytest 8.4.2, and pytest-xdist 3.8.0. Treat other versions as
+unverified by this release rather than silently broadening the claim.
+
+Treat the chosen worker count as a CPU-capacity claim, not affinity.
+pytest-xdist and the OS schedule workers; AtomLane does not pin them to cores.
+Report `native_workers_configured` as configured evidence and
+`outer_peak_concurrency` as observed outer scheduling. Never convert either
+into `native_workers_observed`; leave that unavailable without compatible
+runtime instrumentation, and leave native-pool parallel efficiency unavailable
+for the same reason. A case-count hint is also not collection evidence. It may
+cap `worker_count=auto`, but it never proves case independence.
+
+For a measured native-pool comparison, execute the exact same selection first
+with `worker_count=1`. Only a successful, non-skipped run with fresh,
+non-empty, passing, counter-consistent JUnit evidence and the required explicit
+source closure, `baseline_source_closure_declared=true`, and a passing bounded
+static coverage check may return session-bound `serial_baseline_evidence`; pass
+that object unchanged to the multi-worker `atomic_exec`. This attests execution
+over the caller-declared closure, not independently proved semantic closure. The
+parallel JUnit must be fresh and match the attested testcase identities and
+outcomes. If no compatible attestation is available, only complete and
+runtime-plausible testcase timings from that fresh JUnit may be used as an
+explicitly labeled estimate. Display it for the current run and record it only
+in the estimated bucket; never credit it to the primary cumulative total.
+
 ## Respect resources and evidence fences
 
 The plan must account for file access modes and sidecars, Git state, database
@@ -151,6 +250,23 @@ Use `host_resource_plan` and the fresh resource observations embedded by the pla
 concurrency value is a ceiling, not an override of safety limits. Interactive
 mode should retain CPU and memory headroom and reduce work under existing load,
 battery use, Low Power Mode, memory pressure, or thermal pressure.
+
+For `atomic_exec`, ready atoms are evaluated as a batch, not as unrelated
+one-at-a-time decisions. The executor registers the invocation in the shared
+host scheduler and admits native-host worker, CPU, memory, and accelerator
+tokens across concurrent Codex tasks. One session may borrow unused capacity;
+competing sessions receive a soft fair share. Use `throughput` when the user
+explicitly prioritizes full-machine background throughput, `balanced` for a
+mixed foreground/background run, and the default `interactive` mode while the
+user is actively working. Throughput may use the complete detected CPU pool,
+but thermal, power, memory, external-load, and immutable-plan ceilings still
+apply. Docker/WSL resources remain separate daemon/VM realms and are not charged
+as if they were directly contained native-host processes.
+
+Runtime capacity is refreshed while a long plan runs. It may contract or recover
+inside the compiled ceiling; it may never exceed that ceiling. A corrupt or
+foreign shared scheduler ledger is an execution blocker, not permission to fall
+back to uncoordinated fan-out.
 
 On native Windows, every target runs below a kill-on-close Job Object. Optional
 `cpu_rate_percent` and `memory_limit_mb` limits apply Job-wide.
@@ -205,7 +321,12 @@ Do not await `atomic_exec` as one blocking MCP call in Codex Desktop.
    second.
 3. Poll the session with `write_stdin` about every five seconds. After each
    poll, send a short user-visible update with elapsed time,
-   running/ready/completed/failed counts, and current estimated time saved.
+   running/ready/completed/failed counts, and current estimated time saved. For
+   a native pytest pool, also show configured workers and any case-count hint,
+   while describing savings as pending until a baseline or fresh JUnit timing
+   report is available. When present, retain the live host-session count and
+   globally reserved worker-slot evidence rather than hiding cross-task
+   contention.
 4. Continue until `LIVE_RESULT_JSON=` and the process exit code arrive. Do not
    substitute a hand-built legacy exec/map/DAG payload for the compiled atomic
    plan.
@@ -220,15 +341,28 @@ Inspect every atom's status, return code, stderr, timeout, skip reason, and
 truncation flags. Downstream work whose typed dependency failed must not run.
 
 Start the final execution report with the returned compact indicator, such as
-`⚡ 并行｜峰值 8 路｜估算 5.42×` or
-`→ 串行｜峰值 1 路｜估算 0.98×`. Then report:
+`⚡ 并行｜峰值 8 路｜估算 5.42×`,
+`→ 串行｜峰值 1 路｜估算 0.98×`, or the native-pool form
+`⚙️ 原生并行｜配置 8 workers｜外层峰值 1 路｜本次节约待基线`. Then report:
 
 - elapsed time and observed peak concurrency;
 - failed and skipped atom IDs and output locations;
-- `time_saved_seconds` for this invocation;
-- `cumulative_saved_seconds` across completed invocations.
+- `time_saved_seconds` plus its measured/estimated provenance for this
+  invocation;
+- `ledger_credit_eligible`, `ledger_credit_recorded`, and
+  `credited_time_saved_seconds`; and
+- primary `cumulative_saved_seconds` (measured plus retained legacy
+  unclassified values) separately from `cumulative_estimated_saved_seconds`.
 
-When `serial_baseline_seconds` is supplied, label the comparison measured.
-Otherwise label multiplier and savings estimated from observed non-skipped atom
-durations. Never rerun side-effecting work merely to benchmark it, and never
-present an estimate as a controlled benchmark.
+For ordinary work, label a supplied `serial_baseline_seconds` comparison
+measured; otherwise label multiplier and savings estimated from observed
+non-skipped atom durations. Native pytest pools reject that bare value and use
+only a matching, closure-declared, statically checked, session-attested
+`worker_count=1` baseline for a measured comparison. They may use the sum of
+complete, runtime-plausible timings from a fresh, passing, counter-consistent
+JUnit report only as an explicitly labeled estimate. Without either, keep
+per-run savings pending and do not credit cumulative savings. Never rerun
+side-effecting work merely to benchmark it, and never present an estimate as a
+controlled benchmark. Ledger v2 retains pre-v2 totals as
+`legacy_unclassified`, never relabels them as measured, and must not overwrite
+an invalid existing ledger.

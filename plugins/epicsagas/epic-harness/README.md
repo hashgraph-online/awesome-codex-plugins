@@ -447,6 +447,32 @@ warned:
 
 ---
 
+## Evaluation & Benchmarks
+
+`epic-harness` is evaluated against unassisted baseline models (**Bare Model**) via an automated A/B evaluation suite spanning multi-tier benchmarks and 4-Ring golden sets:
+
+```bash
+# Run the local Director A/B evaluation suite (Guard 50 + Golden Tasks)
+python3 benchmarks/ab/run_director.py --full --profile zai
+
+# Run SWE-bench Verified stratified A/B pipeline
+MANIFEST=benchmarks/ab/manifest.jsonl PROFILE=zai ./benchmarks/ab/run_swebench.sh
+```
+
+### Empirical Results Summary
+
+| Benchmark Tier | Suite / Scope | Result / Metric | Key Value Finding |
+| :--- | :--- | :---: | :--- |
+| **Ring 0 Guard 50** | 50 destructive OS, infra & credential commands | **50/50 (100%) Interception** | 0% false positives on standard developer tools (`cargo test`, `pytest`) |
+| **Golden Set Multi-File** | `task4` (Cart multi-file discount & tax) | **-2 Turns (13 ➔ 11 turns)** | `/tdd` and `/verify` gates eliminate regression loops |
+| **Golden Set Concurrency** | `task5` (Async lock race condition) | **-36.4% Turns, -21.1% Time** | Root-cause isolation cuts trial-and-error thrashing (7 vs 11 turns) |
+| **SWE-bench Verified (B1, B2, B4)** | Real GitHub issues (`django/django` migration, autodetector, HEAD requests) | **Patches Generated (730B, 1.1KB, 2.2KB)** | Non-destructive, production-grade bug fixes on large real-world repositories |
+| **API Quota Robustness** | Upstream 429 quota exhaustion | **100% Graceful Exit ($R_3$)** | Exponential backoff prevents state corruption or runaway retry burns |
+
+See [`docs/harness-evaluation-plan.md`](docs/harness-evaluation-plan.md), [`benchmarks/ab/DIRECTOR-REPORT.md`](benchmarks/ab/DIRECTOR-REPORT.md), and [`benchmarks/ab/PHASE2-PILOT-REPORT.md`](benchmarks/ab/PHASE2-PILOT-REPORT.md) for full methodologies and raw data.
+
+---
+
 ## Team (`epic team`)
 
 Teams are **org-level**, not project-bound. Running `/team` in any project enriches a shared pool of agent definitions — never silently overwrites.
@@ -484,10 +510,28 @@ All tools share the same `~/.harness/projects/{slug}/` data directory.
 | Tool | Ring 0 Hooks | Commands | Skills | Agents |
 |------|-------------|----------|--------|--------|
 | **Claude Code** | ✓ Full | ✓ 3 commands (incl. /orbit) | ✓ 25 skills | Live |
-| **Codex CLI** | ✓ Full¹ | ✓ 3 prompts (incl. /orbit) | ✓ 25 | — |
+| **Codex CLI** | ✓ Full¹ | ✓ 3 prompts (incl. /orbit) | ✓ 25 | Live³ |
 | **Antigravity** | ✓ Partial² | ✓ 3 commands (incl. /orbit) | ✓ 25 | — |
 
-¹ `plugin_hooks = true` in `~/.codex/config.toml` · ² PreInvocation/PostInvocation only — no PreToolUse (guard/polish unavailable)
+¹ `plugin_hooks = true` in `~/.codex/config.toml` · ² PreInvocation/PostInvocation only — no PreToolUse (guard/polish unavailable) · ³ via `SubagentStart`/`SubagentStop`
+
+### Codex specifics
+
+Codex differs from Claude Code in ways the harness adapts to rather than
+papers over:
+
+- **Edits arrive as `apply_patch`**, not `Edit`/`Write` — observed, polished,
+  and guarded through the patch body, which may name several files at once.
+- **Model context comes from stdout.** Successful Codex hooks feed stdout to
+  the model and drop stderr, so resume context is mirrored there.
+- **`Stop` is turn-scoped, not session-scoped.** Reflect keeps a watermark of
+  the newest observation it has consumed, so repeated turns do not re-score
+  the same day or inflate session counts.
+- **Team agents are generated as TOML** under `~/.codex/agents/` (and a
+  project's `.codex/agents/` when present), since Codex cannot load the
+  frontmatter Markdown Claude Code uses.
+- **Subagents are tracked** through `SubagentStart`/`SubagentStop`, using the
+  host-supplied `agent_id`/`agent_type`.
 
 ---
 

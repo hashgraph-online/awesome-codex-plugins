@@ -1,0 +1,40 @@
+{
+  "name": "jev-social",
+  "version": "0.1.2",
+  "description": "Run read-only Instagram, TikTok, and LinkedIn research through Jev-directed socai CLI operations in the user's local browser.",
+  "author": {
+    "name": "socai-io",
+    "url": "https://github.com/socai-io"
+  },
+  "homepage": "https://socai-io.github.io/jev-social/",
+  "repository": "https://github.com/socai-io/jev-social",
+  "license": "MIT",
+  "keywords": [
+    "jev",
+    "socai",
+    "social-research",
+    "instagram",
+    "tiktok",
+    "linkedin",
+    "codex"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Jev Social",
+    "shortDescription": "Browser-grounded social research with Jev and socai",
+    "longDescription": "Route a social research goal with Jev, capture read-only evidence from Instagram, TikTok, or LinkedIn through the local socai CLI, and return source-linked findings without publishing or engagement actions.",
+    "developerName": "socai-io",
+    "category": "Research",
+    "capabilities": [
+      "Read"
+    ],
+    "websiteURL": "https://socai.io/",
+    "defaultPrompt": [
+      "Research this topic across supported social platforms.",
+      "Compare the strongest captured posts and comments.",
+      "Build a source-linked report from social evidence."
+    ],
+    "brandColor": "#FF4FB3",
+    "composerIcon": "./assets/icon.svg"
+  }
+}

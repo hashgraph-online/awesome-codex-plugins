@@ -88,17 +88,17 @@ Thai PDPA does **not** have an explicit "tech measure renders harm unlikely" exc
 
 ## Vendor / sub-processor breaches
 
-When a Data Processor (your sub-processor) experiences a breach affecting your data:
+**s40(2)** requires the Data Processor to notify the Data Controller of the breach.
+The 72-hour clock runs from **your** awareness as Controller — typically the moment
+the Processor notifies you.
 
-- s40(2) requires the Data Processor to **notify the Data Controller** of the breach
-- Your DPA with the processor should require this without undue delay (best practice: contractually require ≤24 hours so you have time to assess)
-- The 72-hour clock starts when **you (as Data Controller) become aware** — typically when the processor notifies you
-
-Document this chain in your incident log (when the processor became aware → when they notified you → when you assessed).
+Procedure, DPA time ceiling, and incident-log chain: [layer 07 Operational](../../../layers/07-operational.md#sub-processor--vendor-breaches).
 
 ## Records and audit
 
-s39(8) requires the Data Controller to maintain records of security measures. After any breach, **add the post-incident remediation** to those records — this is part of the demonstrable accountability principle and likely to be reviewed by PDPC if they investigate.
+**s39(8)** requires the Data Controller to maintain records of security measures;
+post-incident remediation belongs in them, and PDPC will review them on investigation.
+See [layer 07 Operational](../../../layers/07-operational.md#post-incident-records).
 
 ## Penalty exposure
 
@@ -111,11 +111,8 @@ Plus s81 personal liability for directors / managers responsible — and potenti
 
 ## Operational checklist (incorporate into the runbook)
 
-- [ ] Pre-fill the PDPC breach notification form (latest version) before any incident occurs
-- [ ] DPO + backup contact both have access to submit
-- [ ] Pre-staged data-subject notification email template in Thai (and English if applicable)
-- [ ] Documented incident log location with the awareness-timestamp pattern
-- [ ] Annual review of the runbook
-- [ ] Vendor DPAs include breach-notification clauses requiring notice without undue delay
+General readiness items: [layer 07 Operational](../../../layers/07-operational.md#runbook-readiness-checklist). TH-specific:
 
-See `templates/INCIDENT_RESPONSE.md.template` for a starting runbook.
+- [ ] PDPC breach notification form (latest version) pre-filled
+- [ ] Data-subject notification template pre-staged in **Thai** (and English if applicable)
+

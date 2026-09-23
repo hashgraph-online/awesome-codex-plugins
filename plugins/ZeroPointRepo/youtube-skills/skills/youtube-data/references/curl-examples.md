@@ -41,6 +41,16 @@ curl -s "https://transcriptapi.com/api/v2/youtube/channel/latest?channel=@TED" \
 curl -s "https://transcriptapi.com/api/v2/youtube/channel/videos?channel=@NASA" \
   -H "Authorization: Bearer $TRANSCRIPT_API_KEY" \
   -H "User-Agent: YourAgent/1.0"
+
+# Most-viewed first (channel Videos tab, ~30 per page)
+curl -s "https://transcriptapi.com/api/v2/youtube/channel/videos?channel=@NASA&sort=popular" \
+  -H "Authorization: Bearer $TRANSCRIPT_API_KEY" \
+  -H "User-Agent: YourAgent/1.0"
+
+# Oldest first
+curl -s "https://transcriptapi.com/api/v2/youtube/channel/videos?channel=@NASA&sort=oldest" \
+  -H "Authorization: Bearer $TRANSCRIPT_API_KEY" \
+  -H "User-Agent: YourAgent/1.0"
 ```
 
 ## Channel Data

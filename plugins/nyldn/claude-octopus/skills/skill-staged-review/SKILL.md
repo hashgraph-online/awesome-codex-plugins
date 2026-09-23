@@ -33,12 +33,14 @@ Validates the implementation against the intent contract.
 ### Step 1: Load Intent Contract
 
 ```bash
-INTENT_FILE=".claude/session-intent.md"
+PLAN_STORAGE="${CLAUDE_PLUGIN_ROOT:-${HOME}/.claude-octopus/plugin}/scripts/plan-storage.sh"
+OCTO_PLAN_DIR="$("$PLAN_STORAGE" current "$PWD" 2>/dev/null || true)"
+INTENT_FILE="${OCTO_PLAN_DIR:+${OCTO_PLAN_DIR}/session-intent.md}"
 if [[ -f "$INTENT_FILE" ]]; then
   echo "Intent contract found: $INTENT_FILE"
   cat "$INTENT_FILE"
 else
-  echo "WARNING: No intent contract found at $INTENT_FILE"
+  echo "WARNING: No current resolved intent contract found for this workspace"
   echo "Skipping Stage 1 — proceeding to Stage 2 (code quality) only."
 fi
 ```

@@ -1,6 +1,6 @@
 # validate
 
-Freshly judge whether a finished change is actually proven against bead or caller acceptance — the independent verdict before merge; optionally persist verdict.v2 for a declared consumer, and stop. Triggers: "validate", "independently validate", "is this proven", "vibe".
+Freshly judge a finished change and its claims against original acceptance. Use when: acceptance verdict or independent proof is sought. Clarify generic checks or readiness first.
 
 ## Instructions
 

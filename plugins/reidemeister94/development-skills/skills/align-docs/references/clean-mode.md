@@ -1,6 +1,6 @@
 # `align-docs --clean`
 
-Clean mode reconciles every existing first-party document, applies the shared format, and removes proven noise. Reuse normal inspection, but change nothing before the proposal is approved.
+Clean mode reconciles every existing first-party document, applies the shared format, and removes proven noise. Reuse normal inspection, but apply the development loop's scope and authorization rules.
 
 ## Inspect and classify
 
@@ -8,7 +8,7 @@ Read every first-party documentation file and enough reliable evidence to verify
 
 Use the authority rules in `align-docs`. Code is not the source for every promise or past decision.
 
-Keep uncertain content active and report the uncertainty. List duplicate `NNNN` prefixes without renumbering them; `resolve-merge` owns that work.
+Keep uncertain content active and report the uncertainty. List duplicate `NNNN` prefixes without renumbering them. `resolve-merge` renumbers legacy files only during an active conflict. Date-and-slug files need no counter.
 
 ## Put each fact in the right place
 
@@ -24,7 +24,7 @@ Delete only approved documents that contain no unique fact, decision, or useful 
 
 For a large migration, apply the approved structure to a small representative batch, verify it, then continue. A failed pilot stops the migration.
 
-## Propose, then stop
+## Present the change
 
 Present one exact proposal containing:
 
@@ -35,7 +35,8 @@ Present one exact proposal containing:
 - the resulting ATLAS sections and entries;
 - unresolved conflicts or evidence gaps left unchanged.
 
-Ask **Apply (Recommended) / Modify / Cancel**, then stop. Approval must follow this exact proposal; earlier general permission does not replace it.
+Use existing approval when it covers the listed operations.
+Ask before additional deletions, changed authority, or unresolved ownership decisions.
 
 ## Apply and verify
 

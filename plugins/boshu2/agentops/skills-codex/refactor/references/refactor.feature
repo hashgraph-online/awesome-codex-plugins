@@ -30,3 +30,17 @@ Feature: Refactor executes one behavior-preserving transformation and reports ev
     When more than one candidate seam exists for the transformation
     Then refactor probes at most two seams in disposable isolation and keeps only the knowledge
     And it reports both findings to the caller rather than trying a third
+
+  Scenario: extraction is justified by a caller responsibility
+    Given callers repeat the same domain rule and its error handling
+    When refactor considers an extraction
+    Then the proposed owner keeps that rule together
+    And callers can request the outcome without reproducing the rule
+    And a wrapper that leaves callers coordinating those rules is not an improvement
+
+  Scenario: a naming cleanup cannot silently alter compatibility
+    Given a domain term appears in a persisted field name
+    And the accepted scope preserves that storage contract
+    When refactor improves internal names using the domain term
+    Then the persisted field remains compatible
+    And the accepted behavioral examples still describe the result

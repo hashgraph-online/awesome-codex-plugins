@@ -32,7 +32,9 @@ An implementation agent may change low-level tactics, dependencies, tools, files
 
 ## Present the complete Guarded contract plainly
 
-Keep the easy explanation in the canonical `plain_language` field so it remains digest-bound. At presentation time show Goal, Changes, Unchanged, and Completion checks. Keep raw JSON behind optional Technical contract details. The human view must faithfully project every material boundary, safeguard, and completion commitment.
+Keep the easy explanation in the canonical `plain_language` field so it remains digest-bound. Make it a complete narrative in the user's language: begin with a concrete example when that clarifies the result, explain what will change or be recorded, state the important safeguards, name the excluded work, translate completion checks into ordinary language, and finish with a one-sentence summary. It must faithfully carry every material boundary, safeguard, and completion commitment.
+
+At presentation time show that exact easy explanation once as the default contract, with the emitted contract id. Do not expose developer field lists or raw JSON unless the user asks for the original contract. Viewing the original is not approval and does not create a new contract; show the exact staged canonical object under the same id and continue waiting for approval, requested changes, or cancellation.
 
 ## Execute one shot
 

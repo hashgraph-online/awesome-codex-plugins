@@ -42,11 +42,14 @@ so you always get the current release:
 https://cdn.runtype.com/persona/latest
 ```
 
-Use `cdn.runtype.com` everywhere. It is **required** when the widget is embedded on a page
-deployed through Runtype (a `static` app or any Runtype-hosted page): those pages ship a
-strict Content Security Policy that only allows scripts and styles from the page's own
-origin and `https://cdn.runtype.com`. Third-party CDNs (jsdelivr, unpkg, esm.sh) are
-blocked and fail silently — the `<script>` tag never loads and no widget appears.
+Use `cdn.runtype.com` everywhere. It is the recommended source on every surface
+(first-party, immutable, no third-party trust), and it is **required** on `publish_page`
+preview pages: their strict Content Security Policy allows no other script source, so
+third-party CDNs (jsdelivr, unpkg, esm.sh) are blocked there and fail silently. Deployed
+`static` apps allow scripts and styles from any https origin by default (an author can
+re-tighten via the manifest `csp` field), so third-party CDNs load on apps — but a remote
+script can change underneath an immutable deployed bundle, which is why the first-party
+CDN remains the right choice for Persona.
 
 **Pin an exact version on Runtype-deployed pages.** A deployed app bundle is immutable and
 cached, so on a `static` app (or any Runtype-hosted page) replace `latest` with a pinned
@@ -88,18 +91,21 @@ To mount in a specific container:
 ></script>
 ```
 
-### Option 2: ESM / manual
+### Option 2: manual global bundle
 
-Full control. Requires loading `widget.css` separately.
+Full control in the browser. Requires loading `widget.css` separately. Do NOT
+`import` from `/index.js` in a browser — the ESM build keeps bare import
+specifiers (`marked`) and fails with `Failed to resolve module specifier`,
+leaving an empty mount; ESM is for bundlers (npm, Option 3) only. Use the
+self-contained `index.global.js` instead (or set the full config, functions
+included, on `window.siteAgentConfig` and load the installer):
 
 ```html
 <link rel="stylesheet" href="https://cdn.runtype.com/persona/latest/widget.css" />
 <div id="chat"></div>
-<script type="module">
-  import {
-    initAgentWidget,
-    markdownPostprocessor,
-  } from 'https://cdn.runtype.com/persona/latest/index.js'
+<script src="https://cdn.runtype.com/persona/latest/index.global.js"></script>
+<script>
+  const { initAgentWidget, markdownPostprocessor } = window.AgentWidget
 
   initAgentWidget({
     target: '#chat',

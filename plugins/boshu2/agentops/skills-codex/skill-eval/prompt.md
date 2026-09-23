@@ -1,6 +1,6 @@
 # skill-eval
 
-Author and tier behavioral probes for a skill, including seeded-defect probes that escape ceiling saturation. Triggers: "measure this skill", "the probe came back INERT", "the control arm aces it", "harden this scenario", "is this skill actually doing anything".
+Measure whether a skill helps a named task or needs revision or removal. Use when: a bounded routing or coding evaluation is requested; conformance alone cannot show benefit.
 
 ## Instructions
 

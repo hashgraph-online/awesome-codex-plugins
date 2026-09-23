@@ -64,6 +64,13 @@ EOF
 )"
 ```
 
+Register the PR in the merge-outcome ledger (orbit pipelines are picked up
+automatically; standalone ships need this one-liner):
+
+```bash
+epic-harness evolve record-pr <PR_URL> [--goal <goal_slug>] [--branch <branch>]
+```
+
 ### Step 4: CI Verification
 
 ```bash

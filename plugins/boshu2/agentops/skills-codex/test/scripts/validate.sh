@@ -25,7 +25,9 @@ done
 
 # Every referenced local doc must resolve on disk.
 while IFS= read -r ref; do
+  case "$ref" in *://*|\#*) continue ;; esac
+  ref="${ref%%#*}"
   [[ -f "$SKILL_DIR/$ref" ]] || { echo "test contract: dangling reference $ref" >&2; exit 1; }
-done < <(grep -oE 'references/[A-Za-z0-9._-]+' "$SKILL" | sort -u)
+done < <(grep -oE '\]\([^) ]+' "$SKILL" | cut -c3- | sort -u)
 
 echo "test contract: PASS"

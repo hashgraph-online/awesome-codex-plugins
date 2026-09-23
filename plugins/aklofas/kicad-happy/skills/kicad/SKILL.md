@@ -372,8 +372,7 @@ All fields are optional. Missing fields use defaults.
 analyzer_type, schema_version, summary, findings, trust_summary,
 file, kicad_version, file_version, title_block, statistics,
 bom, components, nets, subcircuits, ic_pin_analysis, transistor_pin_analysis,
-design_analysis, connectivity_issues, hierarchy_context, hierarchy_warning,
-net_classifications, rail_voltages
+design_analysis, connectivity_issues, hierarchy_context, hierarchy_warning, net_classifications, rail_voltages
 ```
 Optional (present when non-empty): `pdn_impedance`, `sleep_current_audit`, `power_budget`, `power_sequencing`, `bom_optimization`, `test_coverage`, `assembly_complexity`, `usb_compliance`, `inrush_analysis`, `sheets` (multi-sheet only), `missing_info`, `bom_lock`, `project_settings`
 
@@ -665,6 +664,7 @@ All schematic rule findings appear in `findings[]`. The following rule IDs are p
 | RS-003 | `audit_rail_sources` | Rail sourced indirectly via a bridged-by-default solder jumper or ferrite — functional but consider adding PWR_FLAG | info |
 | LB-001 | `detect_label_aliases` | Net has >= 2 distinct global/hierarchical labels (power nets excluded) | info |
 | PP-001 | `audit_power_pin_dc_paths` | IC power_in pin reaches a rail only through a capacitor (2-hop BFS) | high |
+| SP-001 | `detect_shorted_two_pin_components` | Two-pin passive or diode with both pins on one net (jumpers, net ties, 0R, DNP excluded); >= 5 on one net collapse into one net-level finding | warning |
 
 SS-001 is a pre-fab blocker — a `high` finding that should be resolved before ordering. NT-001 severity depends on pin type: signal pins (digital I/O, bidirectional) are `warning`; power_out and passive pins are `info`. RS-001 is reserved for the "no source at all" case (warning); the softer "sourced via bridged jumper / ferrite" case has its own rule_id RS-003 (info) so reviewers and CI gates can filter the two independently. PP-001 uses a 2-hop BFS over the net graph, rejecting capacitor edges, to confirm a direct DC path from a power rail to each IC power_in pin. PP-001 demotes to `info` on module-internal LDO rails (`VDDPLL_*`, `VDDA_INT_*`, `VDDCORE_*`, `VCAP`, `VDDREG`) where decoupling-only is the correct topology.
 

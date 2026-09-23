@@ -542,6 +542,7 @@ class Det:
     PWM_LED_DIMMING = 'detect_pwm_led_dimming'
     HEADPHONE_JACK = 'detect_headphone_jack'
     SOLDER_JUMPERS = 'detect_solder_jumpers'
+    SHORTED_TWO_PIN = 'detect_shorted_two_pin_components'
     LABEL_ALIASES = 'detect_label_aliases'
     POWER_PIN_DC_PATH = 'audit_power_pin_dc_paths'
     # Audit detectors

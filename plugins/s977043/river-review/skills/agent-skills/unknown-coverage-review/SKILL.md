@@ -5,10 +5,9 @@ description: |
   完成した差分・PR・検証証拠に残る Unknown（未確認の前提・調査されていない影響・
   不足している証拠）を横断合成する evidence-sufficiency のメタ観点。個別 defect の
   検出は既存 skill へ委譲し、本 skill は「そのリスク種別を調査した証拠が残っているか」
-  の meta 評価のみを行う。finding verification 後の合成ステップとして report-only で
-  実行し、残存 Unknown を output-format §4「Unverified / Residual Risk」の Unknown
-  Coverage 下位構造へ、判定を既存 verdict 語彙（GO/ESCALATE/NO_GO）へ写像する。
-  新しい語彙・schema は作らない。
+  の meta 評価のみを行う。通常は finding verification 後の generic 合成ステップとして、
+  明示的 Security Audit では SecurityAuditCoverage 専用 profile として report-only で実行する。
+  残存 Unknown は既存 Unknown Coverage 構造へ出力し、新しい語彙・schema は作らない。
 category: midstream
 phase: [upstream, midstream, downstream]
 severity: major
@@ -30,8 +29,9 @@ tags:
     map-territory,
     meta,
     synthesis,
+    security-audit-coverage,
   ]
-version: '0.1.0'
+version: '0.2.0'
 license: MIT
 ---
 
@@ -40,23 +40,41 @@ license: MIT
 > **由来 / Inspired by**: Thariq「[A Field Guide to Finding Your Unknowns](https://claude.com/blog/a-field-guide-to-claude-fable-finding-your-unknowns)」（The map is not the territory: Plan やプロンプトは現実のコードベースを圧縮した地図であり、地図と土地の差分に Unknown が潜む）と Matt Pocock「[`/grill-me`](https://www.aihero.dev/skills-grill-me)」（実装前に質問を重ね共有理解を作る）から着想した概念の再実装。原著者を名指しする nominative fair use に留め、endorsement は主張しない。
 
 通常のレビューは「壊れている箇所（defect）」を指す。
-本観点は **「そのリスク種別を調査した証拠が残っているか（evidence-sufficiency）」** を、完成した差分を横断して合成する。問いが直交するため、defect 検出とは混載しない。
+本観点は **「そのリスク種別を調査した証拠が残っているか（evidence-sufficiency）」** を横断合成する。問いが直交するため、defect 検出とは混載しない。
 
 ## 背景 / Background
 
 AI coding agent の実行能力が上がるほど、見逃しは単純なコード品質から **要件・暗黙知・影響範囲・運用条件・移行条件などの「未確認の未知（Unknown）」** へ移る。
-チェックリストを満たしても、レビュー対象外の前提や未確認領域が残れば誤ったマージ判断につながる。
-本観点は大量の質問を生成しない。差分・PR 本文・Plan・テスト・設定・履歴を調査し、以下を構造化して出力する。
+チェックリストを満たしても、レビュー対象外の前提や未確認領域が残れば誤った判断につながる。
+本観点は大量の質問を生成しない。利用 profile が許可した evidence を調査し、以下を構造化して出力する。
 
 1. 何が未確認か
 2. なぜ危険か
 3. どの証拠が不足しているか
 4. 何を確認すれば解消できるか
-5. マージを止めるべきか（既存 verdict 語彙への写像で表現）
+5. caller が判断するためにどの residual risk を残すべきか
 
-## Pre-execution Gate / 発火条件
+## Execution profiles
 
-**最初に判定する**。満たさない場合は以降の観点を実行せず `NO_REVIEW` を返す。
+Select exactly one profile before reviewing.
+
+### `generic`
+
+Default profile for the existing diff / PR review flow.
+It preserves the current post-finding-verification pre-execution gate, diff requirement, delegation rules, and verdict mapping.
+
+### `security-audit`
+
+Use only when `river-review-security-audit` explicitly invokes this skill for a focused or full repository/subsystem security audit.
+This profile evaluates Phase 3 `SecurityAuditCoverage` evidence sufficiency and may run without a current diff.
+Its contract is defined in [SECURITY-AUDIT-PROFILE.md](./references/SECURITY-AUDIT-PROFILE.md).
+
+Do not infer this profile from security-looking files or keywords.
+Do not relax the `generic` profile's diff requirement to make Security Audit work.
+
+## Pre-execution Gate — generic profile
+
+**最初に判定する**。満たさない場合は以降の generic 観点を実行せず `NO_REVIEW` を返す。
 
 - finding verification 後の **合成ステップ**として呼ばれている（orchestrator の Execution Flow から。keyword routing では呼ばない）。
 - 入力に少なくとも `diff` があり、差分が **リポジトリ内で実行されるコード・migration・schema・公開 API・設定**のいずれかに触れる。docs・コメントのみの差分は対象外とする。
@@ -65,9 +83,24 @@ AI coding agent の実行能力が上がるほど、見逃しは単純なコー�
 - **観点6 の plan 代替 evidence**: 観点6（Plan / Assumption）は `plan` artifact 欠損時、**PR 本文へ前提・open question が inline 列挙されていれば列挙分のみ部分評価**する（外部 issue は取得・推測しない）。**計画 issue の bare 参照（`#NNNN`）のみなら skip** し `skippedSkills` に記録する。この分岐は registry skill `assumption-resolution-trace` と同一ルールに揃える。
 - **PlanGate #810 ledger**: PlanGate #810 が assumption/unknown ledger を出力する場合も、専用 artifact を新設しない。`plan` artifact 経由で受け取る同一の artifact-driven パターンに従う（[artifact-input-contract.md](../../../pages/reference/artifact-input-contract.md)）。欠損時は上記と同じデグレード（`skippedSkills`）を適用する。PlanGate への依存は必須にしない。
 
-## 6 Unknown 観点 / Perspectives
+## Pre-execution Gate — security-audit profile
+
+Run only when all are true:
+
+- caller is an explicit `river-review-security-audit` focused or full-audit flow
+- frozen audit scope and reconnaissance evidence are present
+- a Phase 3 `SecurityAuditCoverage` ledger is available
+- deterministic Phase 3 validation has run, or equivalent validation evidence is present
+
+A current diff is not required for this profile.
+That exception is profile-local and must not alter generic routing or generic pre-execution behavior.
+If the audit context is implicit, the ledger is absent, or the caller is a normal PR review, return `NO_REVIEW` for this profile.
+
+## 6 Unknown 観点 / Perspectives — generic profile
 
 Issue #1470 の 6 カテゴリを、defect ではなく **evidence-sufficiency の meta 質問**として扱う。各観点の defect 検出は既存 skill へ委譲する（[DELEGATION.md](./references/DELEGATION.md)）。本観点は委譲先が扱わない **残余（証拠が足りているかの合成）のみ**を検出する。
+
+The `security-audit` profile does not mechanically apply all six generic perspectives; use the four checks and false-positive guards in `SECURITY-AUDIT-PROFILE.md`.
 
 | #   | 観点                           | 核心の meta 問い                                                         |
 | --- | ------------------------------ | ------------------------------------------------------------------------ |
@@ -88,13 +121,16 @@ Issue #1470 の 6 カテゴリを、defect ではなく **evidence-sufficiency �
 
 重複指摘を避けるため、個別 defect の検出は既存 registry skill に委譲し、本観点は **証拠充足の meta 評価のみ**を行う。委譲表・証拠要件・分界は [DELEGATION.md](./references/DELEGATION.md) を SSoT とする。委譲先が finding を出す領域を本観点は重複指摘しない。
 
+Security Audit では Phase 3 schema/runtime validator も既存 owner である。shape、taxonomy、duplicate、summary drift を本 skill で再実装しない。
+
 ## Output / 出力
 
-report-only 契約に従う。**本観点はマージを止めない**。判定素材を返すだけで、反復・停止・エスカレは caller の責務である。
+report-only 契約に従う。**本観点はマージを止めない**。判定素材を返すだけで、反復・停止・エスカレーションは caller の責務である。
 
 - 残存 Unknown は [output-format.md](../../../docs/review/output-format.md) §4「Unverified / Residual Risk」の **Unknown Coverage（残存 Unknown / evidence_missing / resolution）** 下位構造へ出力する。各 Unknown は category・severity・blocking・evidence_missing・resolution を持つ。
 - 解消済み Unknown は Good Points 節に根拠（リンク済み受入条件・テスト等）を添えて記録する。分量目安は**観点ごとに代表 1 件・1 行に要約**する（低リスク PR では解消済み記録が出力の大半を占めやすいため）。
 - verdict は新語彙を作らず既存 `gate.decision` へ写像する（loop-convergence-contract.md「Unknown Coverage verdict の写像」表が SSoT）。
+- Security Audit profile で同じ語彙を使う場合も **advisory / report-only** であり、Phase 4 は deterministic Gate へ自動接続しない。
 
 | verdict        | 既存語彙                     | 条件                                                                                                                              |
 | -------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
@@ -116,12 +152,20 @@ report-only 契約に従う。**本観点はマージを止めない**。判定�
 
 ## False-positive guards
 
+### Generic profile
+
 - 指摘の `file:line` は差分内にあること（VERIFICATION の evidence 規則）。差分外の推測に基づく Unknown は finding にせず question として返す。
 - 委譲表に該当する defect は出さない（委譲先 skill の実行に委ねる）。
 - 「証拠が repo 内・別ファイル・PR 本文に存在する可能性」を Grep / artifact 参照で棄却できない場合は、finding ではなく question にする。
 - 低リスク PR（小さな明確なバグ修正・既存パターン踏襲）では過剰な Unknown を出さない。観点ごとに **finding と question の合算で** 最大 5 件とする。question は severity を持たないため **`info` 相当として扱い、保持の優先順は findings（severity 降順）→ questions とし、上限超過分は優先度の低い側（questions → 低 severity findings）から切り捨てる**。
 - correctness bug・セキュリティ欠陥そのものは対象外（defect 系観点の責務）。
 
+### Security-audit profile
+
+Use the profile-local guards in [SECURITY-AUDIT-PROFILE.md](./references/SECURITY-AUDIT-PROFILE.md).
+In particular, do not require every attack class, do not treat a valid exclusion as a gap, do not treat low evidence volume as insufficient by itself, and do not flag zero findings unless the report makes an unsupported safety inference.
+
 ## References
 
 - [DELEGATION.md](./references/DELEGATION.md) — 既存 skill への委譲表・証拠要件・分界
+- [SECURITY-AUDIT-PROFILE.md](./references/SECURITY-AUDIT-PROFILE.md) — #2267 Phase 4 SecurityAuditCoverage evidence-sufficiency profile

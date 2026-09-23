@@ -21,8 +21,8 @@
 
 ```bash
 cass status --json              # Health check — is index current?
-cass index --json               # Incremental refresh (fast, use first)
-cass index --full --json        # Full rebuild (when stale)
+timeout 600 cass index --json   # Optional authorized refresh when needed
+timeout 600 cass index --full --json # Selected recovery only; staleness is not enough
 cass capabilities --json        # What this install supports
 cass diag --json                # Detailed diagnostics
 cass doctor                     # Repair (safe, won't delete sources)

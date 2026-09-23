@@ -83,8 +83,9 @@ plan and execute from chat.
 npx sysknife-setup
 ```
 
-Needs **Node 18 or newer**. On Ubuntu 22.04 `apt install nodejs` gives Node 12,
-which is too old; the installer says so and how to get a current Node. No Rust
+Needs **Node 22 or newer**; older Node releases no longer receive security fixes.
+On Ubuntu 22.04 `apt install nodejs` gives Node 12, which is too old; the installer
+says so and how to get a current Node. No Rust
 toolchain and no compile: it downloads verified prebuilt binaries.
 
 [![npm version](https://img.shields.io/npm/v/sysknife-setup?style=flat-square&logo=npm)](https://www.npmjs.com/package/sysknife-setup)
@@ -105,7 +106,8 @@ What this does:
 4. **Writes the integration-specific MCP config** (merging into any existing
    file, never clobbering) so the next chat session sees the `sysknife_*` tools —
    `sysknife_plan`, `sysknife_execute`, `sysknife_history`, `sysknife_doctor`,
-   `sysknife_audit_verify` — as first-class tools.
+   `sysknife_audit_verify`, and distro-compatible direct read-only queries such
+   as `sysknife_get_disk_usage` — as first-class tools.
 5. **Installs and starts the daemon as a service** (last step) — a systemd
    *user* service by default (no sudo; kept alive across logout via linger).
    That service runs as you, so read-only actions work but **mutating ones do
@@ -302,7 +304,7 @@ milestone.
 | Component | State |
 |---|---|
 | `sysknife-brain` — LLM planner, tool loop, safety fence | ✅ |
-| `sysknife-daemon` — 190 typed actions, auth, preview, transactions | ✅ |
+| `sysknife-daemon` — 192 typed actions, auth, preview, transactions | ✅ |
 | Live IPC + streaming + atomic-host rollback (rpm-ostree) | ✅ |
 | Terminal approval gate — one-time, TTL-bounded receipts | ✅ |
 | MCP server (Claude Code / Cursor / any MCP client) | ✅ |
@@ -313,7 +315,7 @@ milestone.
 | **Every Ubuntu LTS validated** — 22.04, 24.04 and 26.04 all at 79/79, each with a replay twin that reproduces it | ✅ |
 | Telegram approval interface | 📋 roadmap |
 
-**1,831 Rust tests and 72 frontend tests** form the current deterministic
+**1,873 Rust tests and 72 frontend tests** form the current deterministic
 release baseline.
 
 ## Configure your LLM
@@ -426,7 +428,7 @@ helps other people find the project.
 
 | Channel | Install | Notes |
 |---------|---------|-------|
-| **npm** | `npx sysknife-setup` | [npmjs.com/package/sysknife-setup](https://www.npmjs.com/package/sysknife-setup) — setup wizard; needs Node 18+, no compile |
+| **npm** | `npx sysknife-setup` | [npmjs.com/package/sysknife-setup](https://www.npmjs.com/package/sysknife-setup) — setup wizard; needs Node 22+, no compile |
 | **crates.io** | `cargo install sysknife-cli` / `cargo install sysknife-daemon` | Needs `build-essential`; ~7-12 min build. Published by reviewed version tags; see [docs/release.md](docs/release.md) |
 | **MCP Registry** | `io.github.lacs-project/sysknife` | [registry.modelcontextprotocol.io](https://registry.modelcontextprotocol.io) — resolves to the crates.io install above. Directory pages that sandbox a server list every tool but cannot call the ones needing the daemon; [docs/mcp-registry.md](docs/mcp-registry.md#what-a-directory-sandbox-can-and-cannot-tell-you) explains the split |
 | **GitHub Releases** | Download from [Releases](https://github.com/lacs-project/sysknife/releases) | Prebuilt x86_64 + aarch64 binaries with SHA-256 checksums on every tag |

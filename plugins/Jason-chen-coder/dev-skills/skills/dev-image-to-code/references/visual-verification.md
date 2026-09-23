@@ -12,22 +12,23 @@ without rendering the implementation when the target can be rendered locally.
 5. Compare the implementation screenshot to the source image.
 6. Fix visible drift or document accepted gaps.
 
-Use:
+Resolve `<skill-dir>` to the absolute installed skill directory. The example
+evidence folder is optional; use existing task output paths when available.
 
 ```bash
-node skills/dev-image-to-code/scripts/screenshot-page.mjs \
+node "<skill-dir>/scripts/screenshot-page.mjs" \
   --url http://127.0.0.1:5173/ \
   --out UI_RECON/<screen>/screenshots/actual.png \
   --width 1440 \
   --height 900
 
-node skills/dev-image-to-code/scripts/visual-diff.mjs \
+node "<skill-dir>/scripts/visual-diff.mjs" \
   --expected UI_RECON/<screen>/screenshots/source.png \
   --actual UI_RECON/<screen>/screenshots/actual.png \
   --out UI_RECON/<screen>/visual-diff.json \
   --diff UI_RECON/<screen>/screenshots/diff.png
 
-node skills/dev-image-to-code/scripts/interaction-smoke.mjs \
+node "<skill-dir>/scripts/interaction-smoke.mjs" \
   --url http://127.0.0.1:5173/ \
   --spec UI_RECON/<screen>/interaction-smoke.json \
   --width 1440 \
@@ -35,12 +36,13 @@ node skills/dev-image-to-code/scripts/interaction-smoke.mjs \
   --out UI_RECON/<screen>/interaction-smoke-report.json
 ```
 
-Paths may differ when the skill is installed globally; adjust script paths to
-the installed skill location.
+Image diffs are diagnostic evidence, not a universal acceptance threshold.
+Match viewport and image dimensions before comparing; inspect font rendering,
+anti-aliasing, and dynamic content differences visually.
 
 ## Interaction Smoke Test
 
-For every visible semantic control listed in `UI_RECON.md`, verify at least the
+For the visible semantic controls identified during analysis, verify at least the
 minimal visible behavior in a real renderer:
 
 - Inputs/selects/comboboxes can receive focus and keep their visible value.
@@ -48,13 +50,22 @@ minimal visible behavior in a real renderer:
 - Tabs can change active state, or inactive panels are explicitly documented as
   unknown when only one state was provided.
 - Accordions/collapse rows expose `aria-expanded` and toggle known content.
-- Disabled controls are not clickable/focusable when that state is visible.
+- Disabled controls reject activation; focus behavior follows the native/project
+  component's accessibility convention.
 
-Record this as an `Interaction Smoke Test` section in `VISUAL_REPORT.md`. If a
-control is intentionally no-op because hidden behavior is unknown, record the
-question or gap instead of marking interaction fidelity complete.
+Use `expectFocused`, `expectValue`, or `expectAttribute` assertions with the
+bundled smoke helper; a successful click alone does not verify a state change.
+Inspect its per-check `ok` values and runtime errors, not just process exit status.
+Use project/browser assertions when the helper cannot observe the required result.
 
-## VISUAL_REPORT.md Template
+Record results in task notes or an `Interaction Smoke Test` section in an optional
+`VISUAL_REPORT.md`. If a control is intentionally no-op because hidden behavior
+is unknown, record the gap instead of marking interaction fidelity complete.
+
+## Optional VISUAL_REPORT.md Template
+
+Use for substantial reconstructions or requested audit trails. Omit irrelevant
+sections and numerical scores unless they help comparison across iterations.
 
 ```markdown
 # <screen-name> Visual Report

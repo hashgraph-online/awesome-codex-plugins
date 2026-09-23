@@ -11,7 +11,7 @@ argument-hint: "[business-type]"
 license: MIT
 metadata:
   author: AgriciDaniel
-  version: "2.2.16"
+  version: "2.2.5"
   category: seo
 ---
 

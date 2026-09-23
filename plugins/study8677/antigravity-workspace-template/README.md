@@ -63,8 +63,8 @@
 /repobrain:rb-ask "How does auth work?"
 ```
 
-> **99% factual · 2.1× faster than Codex CLI · works in any AI IDE.**
-> [Head-to-head benchmark ↓](#head-to-head-eval-repobrain-vs-codex-cli-vs-claude-code-2026-05-09)
+> **95.83% weighted semantic accuracy · 4.04× faster scored queries than CodeGraph + Trae on the main track.**
+> [Benchmark results ↓](#repobrain-vs-codegraph--trae-2026-09-09)
 > Codex CLI users — drop the `repobrain:` prefix; the same four slash commands ship there too.
 
 ### 🧠 Fastest start — let your AI install it for you (no API key)
@@ -110,52 +110,22 @@ Architecture is **files + a live Q&A engine**, not plugins. Portable across any 
 
 ---
 
-## Head-to-Head Eval: RepoBrain vs Codex CLI vs Claude Code (2026-05-09)
+## RepoBrain vs CodeGraph + Trae (2026-09-09)
 
-Asymmetric benchmark on three real-world Python codebases — `fastapi/fastapi`,
-`psf/requests`, `fastapi/sqlmodel` — asking each tool **the same 36 questions**
-across three difficulty bands. All three tools used `gpt-5.5` with high
-reasoning effort; Codex and Claude had full read access to the workspace.
-Codex was the grader (4-axis 0–3 rubric, scores verified against actual source).
+Flask, ripgrep, Vite, Prometheus · 20 questions × 3 repeats per product · same source access and model route (`Seed-2.1-Turbo → seed-code-pro`).
 
-| Question type | RepoBrain | Codex CLI | Claude Code |
-|:---|:---:|:---:|:---:|
-| 15 factual lookups | **179/180 (99%)** | 179/180 (99%) | 178/180 (99%) |
-| 12 synthesis (project / arch tour) | 116/144 (81%) | **144/144 (100%)** | 136/144 (94%) |
-| 9 audit / security | **105/108 (97%)** | 104/108 (96%) | 98/108 (91%) |
+| Main-track metric | RepoBrain | CodeGraph + Trae |
+|:---|---:|---:|
+| Weighted semantic accuracy | **95.83%** | 84.17% |
+| Successful queries | **60/60** | 53/60 |
+| Scored query time | **5,106.67 s** | 20,621.14 s |
+| Query tokens | **22,326,315** | 86,027,974 |
+| Cold build time | 7,420.63 s | **9.58 s** |
+| Cold build + scored queries | **12,527.30 s** | 20,630.72 s |
 
-**Combined factual + audit (24 cells): RepoBrain 284/288, Codex 283/288,
-Claude 276/288.** RepoBrain edges out both — at lower latency than Codex on
-every single question.
+Failures count as incorrect. Cold builds compare full AI knowledge generation with static code-graph indexing, not equivalent workloads. Results apply to this locked experiment only.
 
-**Latency** (mean wall-clock per question, same proxy):
-
-| Question type | RepoBrain | Codex | Claude |
-|:---|:---:|:---:|:---:|
-| Factual | **56s** | 119s | 42s |
-| Audit | 160s | 177s | **100s** |
-
-RepoBrain is **2.1× faster than Codex on factual** and on par with Codex on
-audit, while matching or beating it on correctness. Claude is fastest on
-audit but loses 7 percentage points of correctness.
-
-<details>
-<summary><b>What changed in this repo to get there</b> — engine fixes that drove the numbers</summary>
-
-Two engine fixes landed during the benchmark, both committed in this branch:
-
-1. `_ask_with_agent_md` now surfaces project-level docs (`conventions.md`,
-   `module_registry.md`, `map.md`, `structure.md`) into its answer prompts.
-   Removes the "module knowledge does not include project-wide conventions"
-   refusal pattern.
-2. The structured-facts answer agents now have `search_code`, `read_file`,
-   `list_directory`, `read_file_metadata`, `search_by_type` bound at runtime,
-   so the LLM can grep and read actual source instead of paraphrasing the KG.
-
-Full report (data, methodology, per-cell tables, caveats):
-[`artifacts/benchmark-2026-05-09/REPORT.md`](artifacts/benchmark-2026-05-09/REPORT.md).
-
-</details>
+[Full results and methodology](benchmarks/codegraph-comparison/results/latest-v2-full-report.md)
 
 ---
 

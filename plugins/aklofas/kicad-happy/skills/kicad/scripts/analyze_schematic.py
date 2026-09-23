@@ -71,6 +71,7 @@ from signal_detectors import (
     detect_power_regulators,
     detect_protection_devices,
     detect_rc_filters,
+    detect_shorted_two_pin_components,
     detect_solder_jumpers,
     detect_transistor_circuits,
     detect_voltage_dividers,
@@ -862,6 +863,7 @@ def analyze_signal_paths(ctx: AnalysisContext) -> dict:
     pwm_led_dimming = detect_pwm_led_dimming(ctx, transistor_circuits)
     headphone_jacks = detect_headphone_jack(ctx)
     solder_jumpers = detect_solder_jumpers(ctx)
+    shorted_two_pin_components = detect_shorted_two_pin_components(ctx)
     rail_source_audit = audit_rail_sources(
         ctx, power_regulators=power_regulators, solder_jumpers=solder_jumpers)
     label_aliases = detect_label_aliases(ctx)
@@ -1065,6 +1067,7 @@ def analyze_signal_paths(ctx: AnalysisContext) -> dict:
         "pwm_led_dimming": pwm_led_dimming,
         "headphone_jacks": headphone_jacks,
         "solder_jumpers": solder_jumpers,
+        "shorted_two_pin_components": shorted_two_pin_components,
         "rail_source_audit": rail_source_audit,
         "label_aliases": label_aliases,
         "power_pin_dc_paths": power_pin_dc_paths,
@@ -3459,6 +3462,7 @@ def parse_legacy_schematic(path: str, analysis_dir: str | Path | None = None) ->
         no_connects=all_no_connects,
         cache_dir=_cache_dir,
         design_context=_design_context,
+        project_dir=str(Path(path).parent),
     )
     ctx.source = ANALYZER_SOURCE
     from netlist_queries import NetlistQueries
@@ -4871,7 +4875,7 @@ def _detect_differential_pairs(ctx: AnalysisContext) -> list:
                         entry["shared_ics"] = sorted(shared)
 
                     # Check for ESD protection
-                    esd_chips = [c for c in shared
+                    esd_chips = [c for c in sorted(shared)
                                  if comp_lookup.get(c, {}).get("type") == "ic"]
                     entry["has_esd"] = len(esd_chips) > 0
                     if esd_chips:
@@ -6589,8 +6593,15 @@ def analyze_pdn_impedance(ctx: AnalysisContext, signal_analysis: dict | None = N
     return result
 
 
+# KH-374: below this, a resistor bridging a rail to ground/a signal net is a
+# current-shunt/sense element, not a pull or bleeder -- a 5 mOhm shunt on
+# VBAT computed a nonsensical 740 A "worst-case" pull-up current pre-floor.
+SLEEP_PULL_MIN_OHM = 100.0
+
+
 def analyze_sleep_current(ctx: AnalysisContext,
-                          signal_analysis: dict | None = None) -> dict:
+                          signal_analysis: dict | None = None,
+                          power_sequencing: dict | None = None) -> dict:
     """Sleep/quiescent current audit.
 
     Finds all always-on current paths: resistive dividers between power and
@@ -6606,6 +6617,33 @@ def analyze_sleep_current(ctx: AnalysisContext,
     is_ground = ctx.is_ground
     rail_currents: dict[str, list[dict]] = {}
     _get_two_pin_nets = ctx.get_two_pin_nets
+
+    # KH-374: rail voltage resolution that also knows about battery rails
+    # (VBAT/+BATT) and regulator estimated_vout, not just names
+    # _estimate_rail_voltage() can parse a number out of.
+    _battery_rail_re = re.compile(r'^\+?(BATT?|VBATT?|BATTERY|BAT\+)$', re.IGNORECASE)
+    _reg_vout_by_rail: dict[str, float] = {}
+    if signal_analysis:
+        for _reg in signal_analysis.get("power_regulators", []):
+            _out_rail = _reg.get("output_rail", "")
+            _vout = _reg.get("estimated_vout")
+            if _out_rail and _vout:
+                _reg_vout_by_rail.setdefault(_out_rail, _vout)
+
+    def _rail_voltage(name: str) -> float | None:
+        v = _estimate_rail_voltage(name)
+        if v is not None:
+            return v
+        if signal_analysis:
+            v = signal_analysis.get("rail_voltages", {}).get(_clean_hierarchical_name(name))
+            if v is not None:
+                return v
+        v = _reg_vout_by_rail.get(name)
+        if v is not None:
+            return v
+        if name and _battery_rail_re.match(name):
+            return 3.7
+        return None
 
     # --- Resistors between power and ground ---
     _seen_refs = set()
@@ -6631,7 +6669,12 @@ def analyze_sleep_current(ctx: AnalysisContext,
             pwr_net, gnd_net = n2, n1
 
         if pwr_net and gnd_net:
-            v_rail = _estimate_rail_voltage(pwr_net)
+            if r_val < SLEEP_PULL_MIN_OHM:
+                # KH-374: a sub-100 Ohm resistor bridging a rail straight
+                # to ground is a shunt/sense element, not a bleeder --
+                # don't guess a current for it.
+                continue
+            v_rail = _rail_voltage(pwr_net)
             if v_rail and v_rail > 0:
                 current_a = v_rail / r_val
                 entry = {
@@ -6662,7 +6705,7 @@ def analyze_sleep_current(ctx: AnalysisContext,
         else:
             continue
 
-        v_rail = _estimate_rail_voltage(pwr_net)
+        v_rail = _rail_voltage(pwr_net)
         if not v_rail or v_rail <= 0:
             continue
 
@@ -6722,6 +6765,10 @@ def analyze_sleep_current(ctx: AnalysisContext,
                 "current_uA": 0.0,
                 "note": "series-R + shunt-C, no DC load — steady-state ~ 0",
             })
+        elif r_val < SLEEP_PULL_MIN_OHM:
+            # KH-374: a sub-100 Ohm resistor here is a shunt/sense
+            # element, not a pull -- don't guess a current for it.
+            pass
         else:
             # Pull-up: worst case current is V/R (pin driven low)
             current_a = v_rail / r_val
@@ -6764,7 +6811,7 @@ def analyze_sleep_current(ctx: AnalysisContext,
                 r_n1, r_n2 = _get_two_pin_nets(r_comp["reference"])
                 for rn in (r_n1, r_n2):
                     if rn and rn != net_name and is_power_net(rn) and not is_ground(rn):
-                        v_rail = _estimate_rail_voltage(rn)
+                        v_rail = _rail_voltage(rn)
                         if v_rail and v_rail > 0:
                             # LED forward voltage ~2V typical
                             v_led = 2.0
@@ -6867,20 +6914,36 @@ def analyze_sleep_current(ctx: AnalysisContext,
     if not rail_currents:
         return {}
 
-    # Build set of disableable rails (output of regulators with EN pins)
-    _disableable_rails: set[str] = set()
-    if signal_analysis:
-        for reg in signal_analysis.get("power_regulators", []):
-            out_rail = reg.get("output_rail", "")
-            if not out_rail:
-                continue
-            for comp in components:
-                if comp["reference"] == reg.get("ref", ""):
-                    for pin in comp.get("pins", []):
-                        if pin.get("name", "").upper() in (
-                                "EN", "ENABLE", "ON/OFF", "ON", "SHDN", "CE"):
-                            _disableable_rails.add(out_rail)
-                    break
+    # Build set of disableable rails. KH-374: when power_sequencing (real EN
+    # connectivity from analyze_power_sequencing) is available, a rail is
+    # only disableable if its regulator's EN pin is actually driven by
+    # something (en_source == "controlled") — not merely because the part
+    # happens to have an EN-named pin. Falls back to the old EN-pin-NAME
+    # heuristic when power_sequencing wasn't supplied (back-compat).
+    _controlled_rails: set[str] = set()
+    _controlled_regs: set[str] = set()
+    if power_sequencing:
+        for d in power_sequencing.get("dependencies", []):
+            if d.get("en_source") == "controlled":
+                _controlled_rails.add(d.get("output_rail", ""))
+                _controlled_regs.add(d.get("regulator", ""))
+
+    if power_sequencing:
+        _disableable_rails: set[str] = _controlled_rails
+    else:
+        _disableable_rails = set()
+        if signal_analysis:
+            for reg in signal_analysis.get("power_regulators", []):
+                out_rail = reg.get("output_rail", "")
+                if not out_rail:
+                    continue
+                for comp in components:
+                    if comp["reference"] == reg.get("ref", ""):
+                        for pin in comp.get("pins", []):
+                            if pin.get("name", "").upper() in (
+                                    "EN", "ENABLE", "ON/OFF", "ON", "SHDN", "CE"):
+                                _disableable_rails.add(out_rail)
+                        break
 
     # Add realistic state estimation to each entry
     for rail, entries in rail_currents.items():
@@ -6896,7 +6959,15 @@ def analyze_sleep_current(ctx: AnalysisContext,
                 e["likely_state"] = "GPIO off during sleep"
                 e["realistic_uA"] = 0.0
             elif etype == "regulator_iq":
-                if e.get("has_enable_pin"):
+                # KH-374: with real EN connectivity available, only a
+                # regulator whose EN is actually driven (en_source ==
+                # "controlled") counts as disableable — having an
+                # EN-named pin isn't enough on its own.
+                if power_sequencing:
+                    can_disable = e["ref"] in _controlled_regs
+                else:
+                    can_disable = bool(e.get("has_enable_pin"))
+                if can_disable:
                     e["likely_state"] = "can be disabled via EN"
                     e["realistic_uA"] = 0.0
                 else:
@@ -7619,6 +7690,18 @@ def analyze_power_budget(ctx: AnalysisContext,
         "usb": 50, "uart": 5, "spi": 5, "i2c": 5,
     }
 
+    # Map regulators to output rails (built first: candidate_rails below
+    # needs it so a regulator's output rail counts even when its name
+    # doesn't look power-y and carries no #PWR symbol -- KH-375).
+    reg_by_rail: dict[str, dict] = {}
+    for reg in signal_analysis.get("power_regulators", []):
+        out_rail = reg.get("output_rail")
+        if out_rail:
+            reg_by_rail[out_rail] = reg
+
+    # Rails of interest: power-named nets, plus regulator output rails.
+    candidate_rails = {n for n in nets if is_power_net(n) and not is_ground(n)} | set(reg_by_rail)
+
     # Build power domain mapping: rail -> list of ICs
     rail_ics: dict[str, list[dict]] = {}
     for comp in components:
@@ -7626,33 +7709,36 @@ def analyze_power_budget(ctx: AnalysisContext,
             continue
         ref = comp["reference"]
         for pnum, (net_name, _) in ref_pins.get(ref, {}).items():
-            if net_name and is_power_net(net_name) and not is_ground(net_name):
-                # Check if this is a power pin (by pin type or name)
-                if net_name in nets:
-                    for p in nets[net_name]["pins"]:
-                        if p["component"] == ref:
-                            ptype = p.get("pin_type", "")
-                            pname = p.get("pin_name", "").upper()
-                            if ptype == "power_in" or pname in (
-                                "VCC", "VDD", "AVCC", "AVDD", "VDDIO", "DVDD",
-                                "VIN", "VCCA", "VCCB", "VDDQ", "VBUS"
-                            ):
-                                ic_entry = {
-                                    "ref": ref,
-                                    "value": comp["value"],
-                                }
-                                # Estimate current
-                                val_lower = comp.get("value", "").lower()
-                                lib_lower = comp.get("lib_id", "").lower()
-                                search_str = val_lower + " " + lib_lower
-                                est_ma = 10  # default
-                                for kw, ma in ic_current_estimates.items():
-                                    if kw in search_str:
-                                        est_ma = ma
-                                        break
-                                ic_entry["estimated_mA"] = est_ma
-                                rail_ics.setdefault(net_name, []).append(ic_entry)
-                            break
+            if net_name and net_name in candidate_rails:
+                # Look up THE ITERATED PIN specifically -- KH-375: this used
+                # to check the first pin `nets[net_name]["pins"]` listed for
+                # this component and `break`, which could be a non-power pin
+                # that happened to sort first (e.g. ~{SRCLR} before VCC).
+                pin = next((p for p in nets[net_name]["pins"]
+                           if p["component"] == ref
+                           and str(p.get("pin_number")) == str(pnum)), None)
+                if pin:
+                    ptype = pin.get("pin_type", "")
+                    pname = pin.get("pin_name", "").upper()
+                    if ptype == "power_in" or pname in (
+                        "VCC", "VDD", "AVCC", "AVDD", "VDDIO", "DVDD",
+                        "VIN", "VCCA", "VCCB", "VDDQ", "VBUS"
+                    ):
+                        ic_entry = {
+                            "ref": ref,
+                            "value": comp["value"],
+                        }
+                        # Estimate current
+                        val_lower = comp.get("value", "").lower()
+                        lib_lower = comp.get("lib_id", "").lower()
+                        search_str = val_lower + " " + lib_lower
+                        est_ma = 10  # default
+                        for kw, ma in ic_current_estimates.items():
+                            if kw in search_str:
+                                est_ma = ma
+                                break
+                        ic_entry["estimated_mA"] = est_ma
+                        rail_ics.setdefault(net_name, []).append(ic_entry)
 
     # Deduplicate ICs per rail (an IC may have multiple power pins on same rail)
     for rail in rail_ics:
@@ -7664,18 +7750,63 @@ def analyze_power_budget(ctx: AnalysisContext,
                 deduped.append(ic)
         rail_ics[rail] = deduped
 
-    # Map regulators to output rails
-    reg_by_rail: dict[str, dict] = {}
-    for reg in signal_analysis.get("power_regulators", []):
-        out_rail = reg.get("output_rail")
-        if out_rail:
-            reg_by_rail[out_rail] = reg
+    # Resistor net index (built once): net -> [resistor refs with a pin
+    # there]. Used below so an LED one hop behind a series resistor
+    # (rail -> R -> LED -> GND, the common wiring on real boards) still
+    # gets attributed to its rail.
+    resistor_nets: dict[str, tuple[str | None, str | None]] = {}
+    net_to_resistors: dict[str, list[str]] = {}
+    for comp in components:
+        if comp["type"] != "resistor":
+            continue
+        rref = comp["reference"]
+        rn1, rn2 = ctx.get_two_pin_nets(rref)
+        resistor_nets[rref] = (rn1, rn2)
+        for n in (rn1, rn2):
+            if n:
+                net_to_resistors.setdefault(n, []).append(rref)
 
-    if not rail_ics and not reg_by_rail:
+    # Non-IC loads (KH-375): LEDs draw real current; 5 mA nominal each.
+    rail_other: dict[str, list[dict]] = {}
+    for comp in components:
+        if comp["type"] != "led":
+            continue
+        n1, n2 = ctx.get_two_pin_nets(comp["reference"])
+        direct_rail = next((n for n in (n1, n2)
+                            if n in candidate_rails and not is_ground(n)), None)
+        if direct_rail:
+            rail_other.setdefault(direct_rail, []).append(
+                {"ref": comp["reference"], "type": "led", "estimated_mA": 5})
+            continue
+        # One resistor hop away: rail -> R -> LED (or LED -> R -> rail).
+        # Neither LED pin sits on a candidate rail directly, so look past
+        # the series resistor(s) tied to either LED pin for one that lands
+        # on a candidate rail on its far end. The anchor net (the LED's own
+        # pin) must NOT be ground or a candidate rail itself -- ground is a
+        # shared bus, not a series element, so anchoring through it would
+        # attribute the LED to any unrelated resistor that happens to sit
+        # between GND and some rail (e.g. a bleeder resistor) even when the
+        # LED has no series resistor of its own.
+        reachable_via: dict[str, str] = {}
+        for n in (n1, n2):
+            if not n or is_ground(n) or n in candidate_rails:
+                continue
+            for rref in net_to_resistors.get(n, []):
+                rn1, rn2 = resistor_nets[rref]
+                other_net = rn2 if rn1 == n else rn1
+                if other_net and other_net in candidate_rails and not is_ground(other_net):
+                    reachable_via.setdefault(other_net, rref)
+        if reachable_via:
+            rail = sorted(reachable_via)[0]
+            rail_other.setdefault(rail, []).append(
+                {"ref": comp["reference"], "type": "led", "estimated_mA": 5,
+                 "via": reachable_via[rail]})
+
+    if not rail_ics and not reg_by_rail and not rail_other:
         return {}
 
     # All rails of interest
-    all_rails = set(rail_ics.keys()) | set(reg_by_rail.keys())
+    all_rails = set(rail_ics.keys()) | set(reg_by_rail.keys()) | set(rail_other.keys())
 
     rails_result = {}
     observations = []
@@ -7683,12 +7814,15 @@ def analyze_power_budget(ctx: AnalysisContext,
     for rail in sorted(all_rails):
         ics = rail_ics.get(rail, [])
         total_ic_mA = sum(ic["estimated_mA"] for ic in ics)
+        other = rail_other.get(rail, [])
 
         rail_info: dict = {
             "ic_count": len(ics),
             "ics": ics,
-            "estimated_load_mA": total_ic_mA,
+            "estimated_load_mA": total_ic_mA + sum(o["estimated_mA"] for o in other),
         }
+        if other:
+            rail_info["other_loads"] = other
 
         reg = reg_by_rail.get(rail)
         if reg:
@@ -7702,12 +7836,14 @@ def analyze_power_budget(ctx: AnalysisContext,
             if v_out:
                 rail_info["regulator"]["output_voltage"] = v_out
 
-            # LDO thermal dissipation
+            # LDO thermal dissipation: uses the rail's total load (ICs +
+            # other loads like LEDs) -- KH-375/KH-386 need the same number.
             if reg.get("topology") == "LDO" and v_in_rail and v_out:
                 v_in = _estimate_rail_voltage(v_in_rail)
                 if v_in and v_in > v_out:
+                    total_load_mA = rail_info["estimated_load_mA"]
                     v_drop = v_in - v_out
-                    power_w = v_drop * (total_ic_mA / 1000.0)
+                    power_w = v_drop * (total_load_mA / 1000.0)
                     rail_info["ldo_dissipation"] = {
                         "input_voltage": v_in,
                         "dropout": round(v_drop, 2),
@@ -7716,7 +7852,7 @@ def analyze_power_budget(ctx: AnalysisContext,
                     if power_w > 0.5:
                         observations.append(
                             f"{rail}: LDO {reg['ref']} dissipates ~{power_w * 1000:.0f} mW "
-                            f"({v_drop:.1f}V drop x {total_ic_mA} mA) — verify thermal rating"
+                            f"({v_drop:.1f}V drop x {total_load_mA} mA) — verify thermal rating"
                         )
 
         rails_result[rail] = rail_info
@@ -9522,6 +9658,7 @@ def analyze_schematic(path: str, project_root: str | None = None,
         hierarchy_context=hierarchy_ctx,
         cache_dir=_cache_dir,
         design_context=_design_context,
+        project_dir=str(Path(path).parent),
     )
     ctx.source = ANALYZER_SOURCE
     from netlist_queries import NetlistQueries
@@ -9577,11 +9714,14 @@ def analyze_schematic(path: str, project_root: str | None = None,
 
     # ---- Tier 3: High-level design analyses ----
     pdn_analysis = analyze_pdn_impedance(ctx, signal_analysis)
-    sleep_current = analyze_sleep_current(ctx, signal_analysis)
+    # KH-374: power_sequencing must run before sleep_current so the sleep
+    # audit can consult real EN connectivity (en_source) instead of just
+    # EN-pin-name presence.
+    power_sequencing = analyze_power_sequencing(ctx, signal_analysis)
+    sleep_current = analyze_sleep_current(ctx, signal_analysis, power_sequencing)
     voltage_derating = analyze_voltage_derating(ctx, signal_analysis,
                                                  project_dir=str(Path(path).parent))
     power_budget = analyze_power_budget(ctx, signal_analysis)
-    power_sequencing = analyze_power_sequencing(ctx, signal_analysis)
     bom_optimization = analyze_bom_optimization(all_components)
     test_coverage = analyze_test_coverage(ctx)
     assembly_complexity = analyze_assembly_complexity(all_components)

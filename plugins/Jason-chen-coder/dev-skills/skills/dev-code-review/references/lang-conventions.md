@@ -6,6 +6,8 @@
 1. **项目本地 lint 配置**(`.eslintrc*`、`analysis_options.yaml`、`pyproject.toml` 等)优先于本文件
 2. 本文件作为 fallback,代表该语言的官方/社区主流实践
 
+以下条目是按需检查提示,不是自动 finding。检查可达风险和项目约定;CLI 输出、刻意的后台任务、已证明不变量下的断言等可能合理。不要仅凭 API 名字、代码长度或风格差异提升严重度。
+
 ---
 
 ## Dart / Flutter
@@ -15,9 +17,9 @@
 **关键检查点**:
 - `lowerCamelCase` 变量/方法、`UpperCamelCase` 类型、`snake_case.dart` 文件名
 - `final` / `const` 优先于 `var`
-- `async` / `await` 配对,Future 必须 await 或显式 `unawaited()`
+- Future 应被 await、返回或显式交给后台任务管理;`unawaited()` 本身不处理异步异常
 - `BuildContext` 跨 async gap 需检查 `mounted`
-- StatefulWidget / Stream / AnimationController / TextEditingController 必须 `dispose()`
+- 在拥有资源的 State 生命周期中释放 controller/subscription 等;StatefulWidget 本身不提供 `dispose()`,外部拥有的资源不要重复释放
 - 不在 `build()` 里做副作用(网络、状态修改)
 
 ---
@@ -29,10 +31,10 @@
 **关键检查点**:
 - `camelCase` 变量、`PascalCase` 类型/组件/类
 - 不滥用 `any`(优先 `unknown` + narrow);不用 `// @ts-ignore` 不带原因
-- 无残留 `console.log` / `debugger`
-- Promise 必须 `await` 或显式 `void promise`
+- 移除非预期调试输出和 `debugger`,保留有用途的日志及 CLI 输出
+- Promise 应被 await、返回或交给后台任务管理;`void promise` 本身不处理 rejection
 - React hooks 依赖数组完整,无 stale closure
-- 无 `==`(用 `===`),无未处理的 `null` / `undefined` 路径
+- 检查隐式类型转换和 nullish 路径是否符合契约;遵守项目允许的比较惯例
 
 ---
 
@@ -46,7 +48,7 @@
 - 不写 bare `except:`(指定异常类型);不用 `except: pass` 静默吞掉错误
 - 不用 mutable default args(`def f(x=[])` ✗)
 - 文件 I/O / 锁 / DB 连接用 `with` context manager
-- 无残留 `print()`(应用 logging)
+- 区分残留调试 `print()` 与 CLI 正常输出,日志遵守项目策略
 
 ---
 
@@ -56,11 +58,11 @@
 
 **关键检查点**:
 - exported `PascalCase` / unexported `camelCase`
-- 每个 `err` 都被处理,不写 `_ = err`
+- 检查错误是否被有意处理或传播;有证据可忽略的错误应说明原因
 - 长函数避免 naked returns
 - `defer` 顺序正确(后进先出),不在循环里 defer 资源关闭
 - goroutine 必须有退出路径(context / channel close),无泄漏
-- 无残留 `fmt.Println`(应用 `log` 或结构化日志)
+- 区分调试输出与 CLI 正常输出,服务日志遵守项目策略
 
 ---
 
@@ -70,11 +72,11 @@
 
 **关键检查点**:
 - `snake_case` 函数/变量、`PascalCase` 类型/trait、`SCREAMING_SNAKE` 常量
-- 库代码无 `unwrap()` / `expect()`(应返回 `Result` / `Option`)
+- 对可恢复/外部输入失败优先返回 `Result` / `Option`;检查 `unwrap()` / `expect()` 的不变量是否成立
 - ownership / borrow 正确;`clone()` 不滥用
 - 无 unused `mut`、无 unused imports(`cargo check` 会报)
 - `?` 操作符传播错误优于手写 `match`
-- 无残留 `dbg!()` / `println!()`(应用 `tracing` / `log`)
+- 区分非预期调试输出与 CLI 正常输出,服务日志遵守项目策略
 
 ---
 
@@ -97,11 +99,11 @@
 **参考**:Google C++ Style、clang-tidy、cppcoreguidelines
 
 **关键检查点**:
-- RAII 管理资源,不直接 `new` / `delete`(用 smart pointer)
+- C++ 资源优先使用 RAII;手动分配和 C API 交互需检查所有权及释放路径
 - C++ 用 `nullptr`,不用 `NULL` / `0`
 - const-correctness(参数、方法、返回值)
 - 头文件保护:`#pragma once` 或 include guard
-- 无 raw array(用 `std::array` / `std::vector`)
+- 检查数组边界与生命周期;根据接口/布局需求选择 raw array、`std::array` 或 `std::vector`
 - 注意 integer overflow / signed-unsigned 比较
 
 ---
@@ -112,11 +114,11 @@
 
 **关键检查点**:
 - `lowerCamelCase` 函数/变量、`UpperCamelCase` 类型
-- closure 内捕获 `self` 用 `[weak self]` 防止循环引用
+- 检查 closure 所有权是否形成循环引用,必要时 weak capture;不要无条件削弱任务所需的生命周期
 - `guard let` early return 优于深嵌套 `if let`
-- 生产代码无 force unwrap `!`、无 force cast `as!`、无 `try!`
+- 检查 force unwrap/cast/try 的不变量;外部输入和可恢复失败应走明确错误路径
 - `Codable` / `Equatable` / `Hashable` 优先合成
-- 异步代码用 `async/await`,不混用 completion handler
+- 新异步逻辑遵守项目约定;与 completion handler 桥接时检查恢复次数、错误与取消传播
 
 ---
 
@@ -125,7 +127,7 @@
 **参考**:ShellCheck、Google Shell Style
 
 **关键检查点**:
-- 脚本头 `set -euo pipefail`(bash)
+- 检查脚本失败传播与 shell 兼容性;`set -euo pipefail` 可用但不能代替关键命令的显式状态处理
 - 变量永远加引号:`"$var"` 不是 `$var`
 - 用 `[[ ]]` 不用 `[ ]`(bash);test 文件存在用 `-f`
 - 不解析 `ls` 输出(用 glob 或 `find`)
@@ -142,9 +144,9 @@
 - 关键字大小写一致(全大写 OR 全小写,不要混用)
 - 必须参数化查询,严禁字符串拼接 user input
 - 生产代码不用 `SELECT *`(明确列名,防止 schema 漂移)
-- JOIN 必须有 ON 条件(防止笛卡尔积)
-- 索引列上不要包裹函数(`WHERE LOWER(email) = ...` 会让索引失效)
-- 迁移脚本必须可幂等 + 可回滚
+- 检查 JOIN 的连接语义与基数;`ON`、`USING` 和明确需要的 `CROSS JOIN` 均可能合理
+- 检查谓词是否能利用目标数据库的索引;函数/表达式索引可能支持 `LOWER(email)` 等条件
+- 按迁移框架约定检查重复执行保护、事务边界和失败恢复;不可逆迁移需要明确备份/前向修复方案,不伪造无损 rollback
 
 ---
 
@@ -154,5 +156,5 @@
 
 1. 优先查项目本地 lint / formatter 配置
 2. 退回到该语言的官方 style guide(通常 Google 或语言官方维护)
-3. 应用主 SKILL.md 中的"通用项"(命名一致、无调试输出、错误处理、无未用导入等)
-4. 在 Findings 中明确标注"未找到 <语言> 专属配置,按通用规范评审"
+3. 按主 SKILL.md 追溯行为、边界和集成路径,只报告有实际影响的问题
+4. 缺少语言专属配置本身不是 finding;仅在影响评审可信度时说明限制

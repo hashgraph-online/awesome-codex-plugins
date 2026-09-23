@@ -13,20 +13,24 @@ Exit codes:
     0 — trial completed (outer_check post may have failed; inspect outer_post.json)
     2 — bad arguments / preflight failure (missing CLI, dirty repo, invalid config)
     3 — outer_check failed before the agent session, so no valid baseline exists
+    124 — agent killed at --agent-timeout-seconds (diff, session, and post check preserved)
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
+import shlex
 import shutil
 import signal
 import subprocess
 import sys
 import time
-import tomllib
 from datetime import UTC, datetime
 from pathlib import Path
+
+import tomllib
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 ANOMALY_FILE_NAME = "ai-agent-bench-anomalies.md"
@@ -40,7 +44,12 @@ ANOMALY_HEADER = (
 def run_capture(cmd: list[str] | str, *, cwd: Path | None = None) -> tuple[int, str, str]:
     shell = isinstance(cmd, str)
     p = subprocess.run(
-        cmd, cwd=str(cwd) if cwd else None, shell=shell, capture_output=True, text=True
+        cmd,
+        cwd=str(cwd) if cwd else None,
+        shell=shell,
+        capture_output=True,
+        text=True,
+        check=False,
     )
     return p.returncode, p.stdout, p.stderr
 
@@ -141,12 +150,14 @@ def run_outer_check(cmd: str, *, cwd: Path, log_path: Path) -> dict:
     """Run outer_check, time it, capture stdout/stderr to log_path. Returns {exit, wall_s}."""
     t0 = time.perf_counter()
     with log_path.open("w") as log:
-        p = subprocess.run(cmd, shell=True, cwd=str(cwd), stdout=log, stderr=log)
+        p = subprocess.run(cmd, shell=True, cwd=str(cwd), stdout=log, stderr=log, check=False)
     wall_s = time.perf_counter() - t0
     return {"exit_code": p.returncode, "wall_s": round(wall_s, 3), "log": log_path.name}
 
 
-def build_agent_command(agent: str, prompt: str, worktree: Path, run_dir: Path) -> list[str]:
+def build_agent_command(
+    agent: str, prompt: str, worktree: Path, run_dir: Path, extra_args: list[str]
+) -> list[str]:
     if agent == "claude":
         return [
             "claude",
@@ -160,6 +171,7 @@ def build_agent_command(agent: str, prompt: str, worktree: Path, run_dir: Path) 
             "--dangerously-skip-permissions",
             "--add-dir",
             str(worktree),
+            *extra_args,
         ]
     if agent == "codex":
         return [
@@ -174,18 +186,75 @@ def build_agent_command(agent: str, prompt: str, worktree: Path, run_dir: Path) 
             "--cd",
             str(worktree),
             prompt,
+            *extra_args,
         ]
     raise ValueError(f"unknown agent: {agent}")
 
 
-def run_agent(agent: str, prompt: str, worktree: Path, run_dir: Path) -> tuple[int, int]:
-    cmd = build_agent_command(agent, prompt, worktree, run_dir)
+def run_agent(
+    agent: str,
+    prompt: str,
+    worktree: Path,
+    run_dir: Path,
+    extra_args: list[str],
+    timeout_s: int | None = None,
+) -> tuple[int, int, bool]:
+    """Run the agent and preserve trial evidence after a timeout."""
+    cmd = build_agent_command(agent, prompt, worktree, run_dir, extra_args)
     session = run_dir / "session.jsonl"
     stderr = run_dir / "stderr.log"
     t0 = time.time()
+    timed_out = False
     with session.open("w") as out, stderr.open("w") as err:
-        p = subprocess.run(cmd, cwd=str(worktree), stdout=out, stderr=err)
-    return p.returncode, int(time.time() - t0)
+        p = subprocess.Popen(
+            cmd,
+            cwd=str(worktree),
+            stdout=out,
+            stderr=err,
+            start_new_session=os.name == "posix",
+            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0,
+        )
+        try:
+            p.wait(timeout=timeout_s)
+        except subprocess.TimeoutExpired:
+            timed_out = True
+            terminate_process_tree(p)
+        except BaseException:
+            terminate_process_tree(p)
+            raise
+    return p.returncode, int(time.time() - t0), timed_out
+
+
+def terminate_process_tree(process: subprocess.Popen, grace_seconds: int = 10) -> None:
+    """Terminate an agent and its subprocesses before snapshotting trial evidence."""
+    if process.poll() is not None:
+        return
+    if os.name == "posix":
+        try:
+            os.killpg(process.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            return
+        deadline = time.monotonic() + grace_seconds
+        while time.monotonic() < deadline:
+            process.poll()
+            try:
+                os.killpg(process.pid, 0)
+            except ProcessLookupError:
+                return
+            time.sleep(0.05)
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        process.wait()
+        return
+    subprocess.run(
+        ["taskkill", "/PID", str(process.pid), "/T", "/F"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    process.wait()
 
 
 def spawn_monitor(run_dir: Path) -> subprocess.Popen | None:
@@ -212,6 +281,17 @@ def main() -> int:
     ap.add_argument("--agent", choices=["claude", "codex"], required=True)
     ap.add_argument("--run", required=True)
     ap.add_argument("--output-base", type=Path)
+    ap.add_argument(
+        "--agent-args",
+        type=shlex.split,
+        default=[],
+        help="extra tokens appended to the agent command",
+    )
+    ap.add_argument(
+        "--agent-timeout-seconds",
+        type=int,
+        help="kill the agent after this many seconds, preserve evidence, and exit 124",
+    )
     ap.add_argument("--skip-pre", action="store_true")
     ap.add_argument("--skip-post", action="store_true")
     ap.add_argument("--skip-agent", action="store_true", help="harness dry-run only")
@@ -311,9 +391,7 @@ def main() -> int:
         )
         die(f"{args.agent} CLI not found in PATH")
 
-    # Preflight: clean repo. Exclude bench artifacts (`eval-results/` and the
-    # `.worktree-eval-*` checkouts) so sequential multi-agent runs don't abort
-    # after the first agent leaves its results behind.
+    # Exclude harness artifacts so prior results do not abort the next trial.
     rc, stdout, _ = run_capture(
         [
             "git",
@@ -322,6 +400,7 @@ def main() -> int:
             "--",
             ":(exclude)eval-results",
             ":(exclude).worktree-eval-*",
+            f":(exclude){ANOMALY_FILE_NAME}",
         ],
         cwd=repo,
     )
@@ -342,7 +421,7 @@ def main() -> int:
 
     # Layout
     output_base = (args.output_base or (repo / "eval-results")).resolve()
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
     run_dir = output_base / task_name / args.agent / f"run-{args.run}-{timestamp}"
     branch = f"eval-{args.agent}-run{args.run}-{timestamp}"
     worktree = repo / f".worktree-eval-{args.agent}-run{args.run}"
@@ -378,6 +457,8 @@ def main() -> int:
                 "inner_check": inner_check,
                 "start_ref": start_ref,
                 "start_sha": start_sha,
+                "agent_args": args.agent_args,
+                "agent_timeout_seconds": args.agent_timeout_seconds,
             },
             indent=2,
         )
@@ -433,8 +514,7 @@ def main() -> int:
                 shutil.rmtree(worktree, ignore_errors=True)
 
     def handle_signal(signum, _frame):
-        cleanup()
-        sys.exit(128 + signum)
+        raise SystemExit(128 + signum)
 
     signal.signal(signal.SIGINT, handle_signal)
     signal.signal(signal.SIGTERM, handle_signal)
@@ -485,13 +565,28 @@ def main() -> int:
 
         # Agent
         agent_exit = 0
+        agent_timed_out = False
         if not args.skip_agent:
             update_status(run_dir, "agent:running")
             print(f"\n[3/5] agent: {args.agent}...")
-            agent_exit, agent_wall = run_agent(args.agent, resolved, worktree, run_dir)
+            agent_exit, agent_wall, agent_timed_out = run_agent(
+                args.agent,
+                resolved,
+                worktree,
+                run_dir,
+                args.agent_args,
+                timeout_s=args.agent_timeout_seconds,
+            )
             (run_dir / "agent_exit_code.txt").write_text(str(agent_exit) + "\n")
             (run_dir / "agent_wall_seconds.txt").write_text(str(agent_wall) + "\n")
-            print(f"  exit={agent_exit}, wall={agent_wall}s")
+            if agent_timed_out:
+                update_status(run_dir, "agent_timeout")
+                (run_dir / "agent_timed_out.txt").write_text(
+                    f"agent killed after --agent-timeout-seconds={args.agent_timeout_seconds}\n"
+                )
+                print(f"  timed out after {args.agent_timeout_seconds}s; agent killed")
+            else:
+                print(f"  exit={agent_exit}, wall={agent_wall}s")
         else:
             (run_dir / "session.jsonl").write_text("")
 
@@ -527,8 +622,27 @@ def main() -> int:
         else:
             print("  - no changes; no snapshot")
 
-        # Skip post if agent failed
-        if agent_exit != 0:
+        if agent_timed_out:
+            (run_dir / "run_status.txt").write_text("failed_agent_timeout\n")
+            append_anomaly(
+                repo,
+                title="agent session timed out",
+                step="agent",
+                severity="high",
+                symptom="The inner AI agent exceeded the trial time limit and was killed.",
+                evidence=(
+                    f"agent={args.agent}; timeout_s={args.agent_timeout_seconds}; "
+                    f"session={run_dir / 'session.jsonl'}"
+                ),
+                expected="The agent completes within --agent-timeout-seconds.",
+                observed="The harness terminated the agent process at the limit.",
+                implication="The trial is inconclusive; its diff and transcript are preserved.",
+                disposition="logged and continuing",
+                run_context=run_context,
+            )
+            exit_code = 124
+        # Skip post if the agent failed for another reason.
+        elif agent_exit != 0:
             update_status(run_dir, "agent_failed")
             print(f"\n  agent exit {agent_exit} — skipping outer_check post")
             (run_dir / "run_status.txt").write_text("failed_agent_session\n")
@@ -595,6 +709,7 @@ def main() -> int:
             ],
             capture_output=True,
             text=True,
+            check=False,
         )
         if p.returncode != 0:
             print(f"  ✗ parse failed: {p.stderr.strip()}")

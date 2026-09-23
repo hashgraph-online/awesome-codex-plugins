@@ -196,13 +196,19 @@ def _get_datasheet_thermal(mpn: str, extract_dir: str) -> dict:
 # Power dissipation estimators
 # ---------------------------------------------------------------------------
 
-def _estimate_all_power_dissipation(schematic: dict) -> list:
+def _estimate_all_power_dissipation(schematic: dict) -> tuple:
     """Build list of all components with estimated power dissipation.
 
-    Returns list of dicts with ref, value, type, pdiss_w, pdiss_source, etc.
-    Only includes components with P > MIN_PDISS_W.
+    Returns (results, skipped): results is a list of dicts with ref, value,
+    type, pdiss_w, pdiss_source, etc. (only components with P > MIN_PDISS_W);
+    skipped is a list of {"ref", "value", "reason"} dicts for power
+    components (regulators) that could not be assessed, with reason drawn
+    from a fixed vocabulary: "no_load_estimate", "no_vout",
+    "below_min_pdiss" (KH-386 — a dropped component previously vanished
+    from the report with no trace).
     """
     results = []
+    skipped = []
     regulators = [f for f in schematic.get("findings", [])
                   if f.get("detector") == "detect_power_regulators"]
     power_budget = schematic.get("power_budget", {})
@@ -231,6 +237,10 @@ def _estimate_all_power_dissipation(schematic: dict) -> list:
                     "iout_a": pdiss.get("estimated_iout_A"),
                 })
                 seen_refs.add(ref)
+            else:
+                skipped.append({"ref": ref, "value": reg.get("value", ""),
+                                 "reason": "below_min_pdiss"})
+                seen_refs.add(ref)
 
     # 2. Switching regulators — estimate from efficiency
     for reg in regulators:
@@ -250,7 +260,13 @@ def _estimate_all_power_dissipation(schematic: dict) -> list:
                 break
 
         vout = reg.get("estimated_vout")
-        if not vout or not iout_a or iout_a <= 0:
+        if not vout:
+            skipped.append({"ref": ref, "value": reg.get("value", ""),
+                             "reason": "no_vout"})
+            continue
+        if not iout_a or iout_a <= 0:
+            skipped.append({"ref": ref, "value": reg.get("value", ""),
+                             "reason": "no_load_estimate"})
             continue
 
         eta = SWITCHING_EFFICIENCY.get(topology, 0.85)
@@ -270,6 +286,9 @@ def _estimate_all_power_dissipation(schematic: dict) -> list:
                 "iout_a": iout_a,
             })
             seen_refs.add(ref)
+        else:
+            skipped.append({"ref": ref, "value": reg.get("value", ""),
+                             "reason": "below_min_pdiss"})
 
     # 3. Current sense shunt resistors — P = I²R
     current_sense = [f for f in schematic.get("findings", [])
@@ -298,7 +317,7 @@ def _estimate_all_power_dissipation(schematic: dict) -> list:
             })
             seen_refs.add(ref)
 
-    return results
+    return results, skipped
 
 
 # ---------------------------------------------------------------------------
@@ -441,10 +460,11 @@ def _compute_junction_temps(power_comps: list, pcb: dict,
             "rule_id": "TH-DET",
             "category": "thermal",
             "severity": "info",
-            "confidence": "heuristic" if rtheta_source == "default" else "deterministic",
+            "confidence": "heuristic" if rtheta_source in ("default", "package_table") else "deterministic",
             # rtheta_source is only ever "package_table" (footprint regex matched the
             # generic PACKAGE_THERMAL_RESISTANCE average) or "default" — neither is
             # per-MPN datasheet data, so neither may claim datasheet provenance.
+            # (KH-398: assessment-level twin of KH-387)
             "evidence_source": "heuristic_rule",
             "summary": f"Thermal: {ref} Tj={round(tj, 1)}C (margin {round(margin, 1)}C)",
             "description": f"Component {ref} in {pkg_name} package: Tj={round(tj, 1)}C, margin {round(margin, 1)}C to Tj_max ({tj_max}C).",
@@ -1030,7 +1050,7 @@ def main():
     t0 = time.monotonic()
 
     # Estimate power dissipation
-    power_comps = _estimate_all_power_dissipation(schematic)
+    power_comps, skipped_components = _estimate_all_power_dissipation(schematic)
 
     # Compute junction temperatures
     assessments = _compute_junction_temps(
@@ -1108,6 +1128,7 @@ def main():
         "summary": {
             "total_findings": len(findings),
             "components_assessed": len(assessments),
+            "components_skipped": len(skipped_components),
             "active": len(findings) - suppressed_count,
             "suppressed": suppressed_count,
             # Standardized severity rollup (single source — raw
@@ -1123,6 +1144,8 @@ def main():
     }
     if missing_info:
         result["missing_info"] = missing_info
+    if skipped_components:
+        result["skipped_components"] = skipped_components
 
     from finding_schema import compute_trust_summary
     result["trust_summary"] = compute_trust_summary(result["findings"])

@@ -24,6 +24,8 @@ Open-source AI marketing plugin — **163 skills, 24 specialist agents, EU AI Ac
 
 ```bash
 # Install — one line
+
+[![HOL Guard](https://img.shields.io/endpoint?url=https%3A%2F%2Fhol.org%2Fapi%2Fregistry%2Fbadges%2Fplugin%3Fslug%3Dindranil-banerjee%252Fdigital-marketing-pro%26metric%3Dtrust)](https://hol.org/go/guard/indranilbanerjee21?dest=%2Fguard%2Fbilling%3Fpromo%3DGUARD20-INDRANILBANERJEE21%23upgrade&link_id=fc4b1025-e6eb-40bd-b3d7-24a8508c2fd9&utm_source=insights_share&utm_medium=affiliate_cta&utm_campaign=share20)
 /plugin marketplace add indranilbanerjee/neels-plugins
 /plugin install digital-marketing-pro@neels-plugins
 ```

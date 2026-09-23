@@ -55,6 +55,7 @@ Initialize pipeline state at `$HARNESS_DIR/orbit/PIPELINE-{timestamp}.json`:
   "audit_fail_count": 0,
   "max_retries": 3,
   "audit_report": null,
+  "pr_url": null,
   "deadline": "{ISO-8601, now + 30 minutes}",
   "started_at": "{ISO-8601}",
   "updated_at": "{ISO-8601}",
@@ -124,9 +125,11 @@ Initialize pipeline state at `$HARNESS_DIR/orbit/PIPELINE-{timestamp}.json`:
    ```
 3. **Worktree isolation**: Create an isolated git worktree:
    ```bash
-   git worktree add .claude/worktrees/orbit-{goal_slug} -b orbit-{goal_slug} origin/{default-branch}
-   cd .claude/worktrees/orbit-{goal_slug}
+   git worktree add .harness/worktrees/orbit-{goal_slug} -b orbit-{goal_slug} origin/{default-branch}
+   cd .harness/worktrees/orbit-{goal_slug}
    ```
+   - `.harness/worktrees/` is host-neutral. Do NOT use `.claude/worktrees/` —
+     it is meaningless on Codex and Antigravity.
    - Record `worktree_name` and `original_cwd` in pipeline state
 4. Plan tasks from Requirements (R1, R2...)
 5. Execute with sub-agents — TDD, debug on failure, verify before done
@@ -171,7 +174,18 @@ Initialize pipeline state at `$HARNESS_DIR/orbit/PIPELINE-{timestamp}.json`:
    - Fail → STOP. Do NOT create PR.
 3. **Git hygiene**: conventional commits, rebase, squash fixups
 4. **Create PR** via `gh pr create` with spec + audit report in body
-5. **CI watch** via `gh pr checks --watch`, auto-fix failures
+   - Record the URL in pipeline state as `pr_url`. `epic orbit unlock` warns
+     when a pipeline reaches `complete` without it.
+5. **CI watch** — probe first, then watch:
+   ```bash
+   gh pr checks <PR_NUMBER> --json name,state
+   ```
+   - Checks exist → run `gh pr checks <PR_NUMBER> --watch`, auto-fix failures.
+   - Empty result (no CI configured on the repo) → **skip the watch**. Log
+     "No CI configured, skipping CI watch", append a `phase_history` entry
+     recording `"ci_watch": "skipped"`, and proceed to Step 7 (evolve runs
+     regardless of CI outcome, so the pipeline must never wait on checks
+     that will never appear).
 6. **Exit worktree**: Return to original directory and keep the worktree
 
 ## Step 7: Evolve
@@ -184,7 +198,7 @@ Run the evolution engine to analyze this session and generate/improve skills.
    ```
    This triggers the Ring 3 loop: observe → analyze → seed evolved skills → update metrics.
 
-   If `$HARNESS_DIR/pending_synth.jsonl` has records with `status: "pending"`,
+   If `$HARNESS_DIR/projects/{slug}/pending_synth.jsonl` has records with `status: "pending"`,
    synthesize each — launch one subagent per manifest (use your host's subagent
    mechanism; do NOT name a model or CLI), then apply the body it produced:
    ```bash

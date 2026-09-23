@@ -14,77 +14,59 @@ user explicitly named Aegis or this skill, proceed normally.
 
 # Execute
 
-→ Have an existing parent plan/spec and a tiny execution slice? → **Use Planless Slice Lane.**
-  1. Emit a compact Slice Card: goal, parent plan/spec, files, boundary, verification, stop
-  2. Update the parent workstream checkpoint/evidence/drift state if persistent state is needed
-  3. Do not save a new plan for the micro-slice
+→ Existing parent plan/spec and a tiny execution slice? → **Use Planless Slice Lane.**
 → Mechanical or bounded change with no durable boundary (no new owner,
   contract, schema, public API, migration, or compat surface)? → **Use
-  Planless Slice Lane without a parent document.** Emit the compact Slice Card,
-  skip the plan file, and record the change in the commit message.
-→ Have approved spec/requirements for a new workstream or an escalation trigger? → **Write implementation plan. Assume engineer has zero context.**
-  1. Scope check: fact/assumption/unknown, baseline, Requirement Ready Check, Ripple Signal Triage, compatibility boundary, dual-track needs
-  2. File map: what files created/modified, clear boundaries, follow existing patterns
-  3. Bite-sized tasks (2-5 min each): exact file paths, complete code, exact commands, expected output
-  4. Self-review: spec coverage, placeholders, type consistency, compatibility, verification, dual-track
-  5. Save → select and announce the execution route; proceed unless a real authorization or safety boundary requires the user
-→ Plan must answer: problem, baseline, files, compat, verification, risks, retirement.
-→ Escalate from Planless Slice Lane to a durable plan when the slice adds a new owner, contract, schema, public API, architecture boundary, migration, persistence, security/permission, distribution/release surface, or unclear verification boundary.
+  Planless Slice Lane without a parent document.**
+→ Approved spec/requirements for a new workstream or an escalation trigger? →
+  **Write an implementation plan for an engineer with no prior task context.**
+
+For a durable plan: confirm scope and acceptance, map current owners/files,
+record the TDD route, decompose into executable tasks, define verification and
+retirement, self-review, save, then select the execution route. Proceed unless
+a real authorization or safety boundary requires the user.
+
+Escalate from Planless Slice Lane when the work adds a new owner, contract,
+schema, public API, architecture boundary, migration, persistence,
+security/permission, distribution/release surface, or an unclear verification
+boundary.
 
 # Writing Plans
 
-## Overview
+This skill turns approved requirements into a bounded, executable plan. The
+plan must answer: what changes, why code is necessary, which existing owner and
+files change, what stays compatible, what verifies the result, what risk
+remains, and what old path is retired or deliberately retained. A plan is
+method-pack guidance; it cannot grant authoritative completion.
 
-Write comprehensive implementation plans assuming the engineer has zero context for our codebase and questionable taste. Document everything they need to know: which files to touch for each task, code, testing, docs they might need to check, how to test it. Give them the whole plan as bite-sized tasks. DRY. YAGNI. Chosen TDD route. One verified commit per coherent Task or slice.
+## TDD Route Guard
 
-Assume they are a skilled developer, but know almost nothing about our toolset or problem domain. Assume they don't know good test design very well.
-
-This skill is the canonical planning workflow for multi-step implementation work. Use it to convert approved specs or requirements into plans that are executable, testable, impact-aware, and bounded by compatibility and authority constraints.
+Before task decomposition, record `TDD Route` with mode (`off | auto`), decision
+(`strict | light | skipped`), authority, test posture, reason, and verification.
 
 Strict RED / GREEN steps belong only to an explicit user/project TDD request or
-`TDD Route: strict`. With TDD mode `off` and no strict route, plan the minimum
-implementation and proportional regression/verification steps; do not prescribe
-a TDD cycle from risk alone.
+`TDD Route: strict`. In `off`, use `skipped` unless explicit strict authority
+overrides it. An approved plan or a risk label alone is not strict authority.
 
-### TDD Route Guard
-
-Before task decomposition, every plan that includes implementation work must
-record:
-
-```text
-TDD Route:
-- Mode: off | auto
-- Decision: strict | light | skipped
-- Strict authority: explicit user/project request | recorded auto decision | not applicable
-- Strict signals:
-- Light eligibility:
-- TDD-fit exception:
-- Test posture: diagnostic reproduction | post-change regression | strict RED test
-- Reason:
-- Verification:
-```
-
-In `off`, record `Decision: skipped` unless an explicit user/project strict
-request overrides it. The record makes the boundary reviewable; it does not
-load `test-driven-development`. An approved plan or a risk label alone is not
-strict authority; matching risk is a signal that requires this owner to record
-`recorded auto decision` as the authority.
-
-In `auto`, select `strict` when any behavior, bugfix, shared/core, contract,
+In `auto`, select `strict` for behavior, bugfix, shared/core, contract,
 persistence, permission, migration, producer/consumer, or meaningful
-regression signal applies. Select `light` only when tiny, low-risk,
-single-owner, no behavior change or strict signal, and an obvious focused check
-all apply. Absence of an explicit user TDD request is never evidence for
-`light`. Unknown risk returns to requirement, debugging, or plan review.
+regression signals. Select `light` only when the work is tiny, low-risk,
+single-owner, has no behavior change or strict signal, and has an obvious
+focused check. Absence of an explicit user TDD request is never evidence for
+`light`; the auto decision itself must be recorded.
 
-Only `Decision: strict` with stated strict authority may prescribe `Write
-failing test`, `Verify RED`, `GREEN`, or `REFACTOR` as task steps. Otherwise,
-write the minimum change plus diagnostic reproduction or post-change regression
-as appropriate. In `auto`, if the plan lacks a recorded decision, return to
-route selection before writing implementation tasks; never infer `strict`
-during decomposition.
+If risk remains unknown, return to requirements, debugging, or plan review
+before task decomposition; do not infer a TDD route from uncertainty.
 
-**Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
+Only a `strict` decision with stated authority may prescribe failing-test,
+RED, GREEN, and REFACTOR steps. Otherwise plan the minimum change plus
+diagnostic reproduction or post-change regression. A missing auto decision
+returns to route selection before implementation tasks.
+
+## Entry And Artifact Choice
+
+**Announce at start:** on the plan-writing route, say that this skill is
+creating the implementation plan. On `Planless Slice Lane`, announce the lane instead and do not claim a plan is being created.
 
 **Execution context:** Reuse the current branch/workspace by default. A branch
 needs independent history; a worktree needs concurrent checkout, blocking
@@ -92,14 +74,13 @@ unrelated dirty state, or explicit user/repository authority.
 
 **Input:** approved requirements, a Spec Brief, or a Design Spec.
 
-**Save plans to:** `docs/aegis/plans/YYYY-MM-DD-<feature-name>.md`
-Plan always goes to `plans/` — never to `work/`.
-(User preferences for plan location override this default.)
+**Default plan path:** `docs/aegis/plans/YYYY-MM-DD-<feature-name>.md`. Plans do
+not go in `work/`; user and repository authority override the default.
 
-Exception: if an existing parent plan/spec already owns the current tiny
-execution slice, use `Planless Slice Lane`. Do not save a new plan. Emit a
-compact `Slice Card` in the conversation or the active long-task checkpoint
-instead:
+Exception: use `Planless Slice Lane` when an existing parent plan/spec already
+owns the current tiny execution slice, or when the change is mechanical or
+bounded and needs no parent document. Do not save a new plan. Emit a compact
+`Slice Card`:
 
 ```text
 Slice Card:
@@ -111,379 +92,161 @@ Slice Card:
 - Stop:
 ```
 
-If `docs/aegis/` does not exist and configured Aegis workspace support is
-available, initialize the target project first:
+On the no-parent branch, `Parent plan/spec:` is `none — direct bounded request`.
 
-```bash
-python <aegis-workspace-helper> init --root <target-project-root>
-```
+## Aegis Project Workspace
 
-Project authority overrides workspace initialization. In particular, the
-Aegis Method Pack repository must not create or ship a live `docs/aegis/`
-workspace; use its formal `docs/adr/`, `docs/current/`, and active session plan.
+Workspace creation is lazy and follows project authority. The Aegis Method
+Pack repository must not create or ship a live `docs/aegis/` workspace. When a
+durable plan must initialize or update another project's workspace, read the
+workspace section of `expanded-planning-guidance.md`. It owns the
+`<aegis-workspace-helper>` and `INDEX.md` command detail, not the decision to
+create a plan.
 
-If installed Aegis workspace support is unavailable, initialize the workspace manually:
-  1. Create `docs/aegis/README.md` and `docs/aegis/INDEX.md`
-  2. Create `docs/aegis/BASELINE-GOVERNANCE.md` from template
-  3. If the project has code, create `docs/aegis/baseline/YYYY-MM-DD-initial-baseline.md`
-Then save the plan and append to `docs/aegis/INDEX.md`. Prefer:
+## Default Plan Surface
 
-```bash
-python <aegis-workspace-helper> append-index --root <target-project-root> --path docs/aegis/plans/<filename>.md --kind plan --title "<title>"
-python <aegis-workspace-helper> check --root <target-project-root>
-```
+Compact output contract: express these as natural plan content, not a stack of
+cards: `Aegis Visibility`, approved scope and plan basis, required baseline
+refs, files/owners, compatibility boundary, `Change Necessity`, TDD route,
+tasks, verification, risks, and retirement. Keep conditional structures silent unless their trigger below fires.
 
-## Scope Check
+`Aegis Visibility` is normally one sentence explaining which owner, contract,
+retirement, compatibility, or verification pressure makes a durable plan
+useful. Structured trace belongs only to audit, debug, release, long-task
+review, or explicit request.
 
-If the input is a Spec Brief, keep the plan scoped to the pinned
-what/why/acceptance and do not expand into a formal design unless new
-architecture, contract, migration, or cross-module uncertainty appears.
+Before tasks, perform a `Requirement Ready Check`: identify the approved source,
+scope, scenarios, and acceptance evidence. If any decision-changing item is
+missing, do not create implementation tasks; return the smallest gap to the
+requirement/spec owner.
 
-Compact output contract before writing the plan: `Aegis Visibility`, `Plan Basis`,
-`BaselineUsageDraft`, `Requirement Ready Check`, `Files`, `Compatibility`,
-`Change Necessity`, `Existence Check`, `Architecture Integrity Lens`,
-`Plan Pressure Test`, `Plan-Time Complexity Check`,
-`Execution Readiness View`, `Tasks`, `Risks`, and `Retirement`. Expand only
-where the approved scope, risk, or verification surface requires it.
+Perform `Change Necessity` before any non-trivial source edit or any new source-code path. This is behavior-triggered, not prompt-triggered. State
+naturally why no-change/docs/config is insufficient and name the minimum code
+boundary. A tiny helper, guard, branch, fallback, adapter, or owner is not
+exempt. A `no-change`, `docs/config-only`, or `needs-clarification` result
+narrows or stops the code plan.
 
-`Aegis Visibility` for this workflow states which owner, contract, retirement,
-compatibility, or verification pressure makes planning useful before execution.
-Use one natural sentence for ordinary plans; reserve structured trace for audit,
-debug, release, long-task review, or explicit user request.
+Run `Ripple Signal Triage` before tasks when the change touches shared/core or
+cross-module behavior; a public API, schema, contract, compatibility,
+persistence, cache, export/readback, fallback, adapter, duplicate/legacy owner,
+retirement path, or both producer and consumer. If no signal fires, add no
+output. If one fires, identify the canonical owner and affected downstream consumers,
+state source-of-truth/contract/fallback/retirement risk, and carry expanded verification
+into the relevant task. A required owner/public-contract/source-of-truth change,
+retaining two owners, or adding a fallback, adapter, or compatibility branch
+returns to design or requires explicit prior alignment before implementation.
 
-Use a compact `BaselineUsageDraft` whenever the plan depends on specific
-baseline docs or current-authority refs:
+Run a compact `Plan Pressure Test` before task decomposition: test owner / contract / retirement fit, higher-level architecture path, verification scope,
+and task executability. It may proceed, revise the plan, or return to design;
+it is not an approval authority.
 
-```text
-BaselineUsageDraft:
-- Required baseline refs:
-- Delivered context refs:
-- Acknowledged before plan refs:
-- Cited in plan refs:
-- Missing refs:
-- Decision: continue | needs-baseline-readback | needs-verification | pause-for-user | blocked
-```
+## Conditional Detailed Guidance
 
-`Delivered context refs` is optional host-projected bookkeeping only. It is not
-authoritative proof that a host injected or the model internally consumed a
-context payload. The artifact exists to make baseline/context attention drift
-visible before and during planning.
+Read only the trigger-matched section of `expanded-planning-guidance.md`:
 
-Use a compact `Requirement Ready Check` before task decomposition unless the
-input is already an approved plan/spec whose acceptance boundary is explicit:
+- `## Baseline And Requirement Detail` when specific baseline acknowledgement
+  needs structure or requirement readiness is incomplete/disputed;
+- `## New-Surface And Architecture Detail` when a new surface or new owner needs
+  `Existence Check`, `AEGIS_MINIMALITY_REFERENCE`, `Architecture Integrity Lens`,
+  or `first-principles-review` detail before task decomposition;
+- `## Complexity Detail` when material file-size, mixed-owner, add-in-place,
+  adapter, fallback, or shared-core pressure appears;
+- `## Execution Readiness Detail` for a long-running, handoff-prone,
+  subagent-driven, high-risk architecture/contract/compatibility/retirement handoff;
+- `## Workspace Save Detail` only when saving requires workspace initialization
+  or `INDEX.md` updates;
+- `## Execution Route Detail` only when route evidence needs a structured
+  handoff; and
+- `## Expanded Plan Review` only for an independent high-risk or handoff-heavy
+  review.
 
-```text
-Requirement Ready Check:
-- Requirement source refs:
-- Goals and scope refs:
-- User / scenario refs:
-- Requirement item refs:
-- Acceptance / verification criteria refs:
-- Open blocker questions:
-- Decision: ready | needs-source | needs-goal-alignment | needs-scenario | needs-acceptance-criteria | needs-clarification | needs-user-decision | blocked
-```
+The direct triggers cover baseline readiness, new surface or new owner,
+complexity pressure, workspace persistence, and execution handoff. The
+reference supplies detail only. This main file owns routing, plan versus
+Planless selection, task blocking, and execution handoff.
 
-If the decision is not `ready`, do not create implementation tasks. Return to
-the requirement/spec owner with the smallest missing evidence or decision. A
-task intent, conversation, or agent inference can be cited as a candidate
-source, but it is not durable requirement authority by itself.
-
-Use a compact `Change Necessity` before task decomposition when the plan would
-endorse any new source-code path or non-trivial source edits. This is the
-"should code change at all?" check; it is not a new artifact or a
-`using-aegis` hot-path expansion.
-
-This is behavior-triggered, not prompt-triggered. If the plan is about to add
-any new source-code path or create non-trivial source-edit tasks, expose a
-natural readback even when the user did not ask for it. A tiny helper, small
-guard, new branch, fallback, adapter, or owner is not exempt. Example: "Code
-necessity check: a non-code path is insufficient because <reason>; the minimum
-change boundary is <owner/files>, so the decision is code-change."
-
-```text
-Change Necessity:
-- User-visible need:
-- No-change / non-code option:
-- Why code change is necessary:
-- Minimum change boundary:
-- Decision: no-change | docs/config-only | code-change | needs-clarification
-```
-
-If the decision is `no-change`, do not write code-edit tasks. If the decision
-is `docs/config-only`, narrow the plan to that surface. If the decision is
-`needs-clarification`, return to the requirement/spec owner. If the decision is
-`code-change`, carry the minimum boundary into `Files`, task steps, and
-verification. Approved requirements do not by themselves prove that a new
-source-code path is necessary.
-
-Use a compact `Existence Check` before task decomposition when a plan would add
-a new owner, skill, artifact, host adapter, fallback, compatibility path,
-workflow step, or benchmark metric. Use
-`docs/current/AEGIS_MINIMALITY_REFERENCE.md` as the reference and keep the check
-advisory. Do not force it onto plans that only reuse existing owners and
-surfaces.
-
-```text
-Existence Check:
-- Proposed new surface:
-- Existing owner / reuse candidate:
-- Why existing surface is insufficient:
-- Creation proof:
-- Entropy / retirement impact:
-- Decision: reuse-existing | add-with-proof | defer | reject | needs-first-principles-review
-```
-
-If the decision is `reuse-existing`, write tasks against the existing owner
-instead of creating a new surface. If the decision is `add-with-proof`, carry
-the proof, verification signal, and any retirement trigger into the relevant
-task.
-
-Use the `Architecture Integrity Lens` before task decomposition when an
-executable plan may still encode responsibility overlap, a wrong canonical
-owner, a caller-side fallback, a stale path carrying real logic, or a missed
-higher-level owner / contract / source-of-truth simplification. Keep it compact:
-invariant, canonical owner / contract, responsibility overlap, higher-level
-simplification, retirement / falsifier, and verdict.
-
-Use a compact `Plan Pressure Test` before task decomposition:
-
-```text
-Plan Pressure Test:
-- Owner / contract / retirement:
-- Architecture integrity / higher-level path:
-- Verification scope:
-- Task executability:
-- Pressure result: proceed | revise plan | return to design
-```
-
-The pressure test is not an approval gate and should not redesign an approved
-spec without cause. It exists to catch owner / contract / retirement risk,
-missing verification, and tasks that are too vague to execute safely.
-
-Render an `Execution Readiness View` before handing a medium/high,
-subagent-driven, handoff-prone, long-running, architecture, contract,
-compatibility, or retirement-sensitive plan to execution. This view is a
-human-readable projection of existing runtime-ready drafts and plan content. It
-is not a new JSON artifact type, approval gate, authoritative `GateDecision`,
-`PolicySnapshot`, or completion authority.
-The view must expose Intent Lock, Scope Fence, and Baseline Lock before any
-task batch is handed to execution.
-
-```text
-Execution Readiness View:
-- Intent Lock:
-- Scope Fence:
-- Baseline Lock:
-- Approved Behavior:
-- Owner / Contract Constraints:
-- Compatibility Boundary:
-- Retirement Boundary:
-- Task Batches:
-- Test Obligations:
-- Review Gates:
-- Drift / Rewind Rules:
-- Evidence Required Before Completion:
-- Advisory Boundary: method-pack execution guidance only; not GateDecision, PolicySnapshot, or completion authority
-```
-
-Use existing inputs for the view: `TaskIntentDraft`, `BaselineUsageDraft`,
-`ImpactStatementDraft`, `GateInputPack`, the plan's task batches,
-compatibility / retirement sections, and verification commands. Skip the view
-for tiny fast-path tasks unless the user asks for an execution handoff readback.
-
-Use a compact `Plan-Time Complexity Check` before writing task steps when the
-plan changes maintained source files, core owners, handlers, routers, managers,
-shared utilities, adapters, or fallback paths:
-
-Use `using-aegis/references/complexity-governance.md` for the shared artifact
-classes, pressure signals, and over-budget handling rules.
-
-```text
-Complexity Budget:
-- Artifact class:
-- Target files / artifacts:
-- Current pressure:
-- Projected post-change pressure:
-- Budget result: within-budget | at-risk | over-budget
-- Planned governance:
-
-Plan-Time Complexity Check:
-- Target files:
-- Existing size / shape signals:
-- Owner fit:
-- Add-in-place risk:
-- Better file boundary:
-- Recommendation: edit-in-place | extract helper | add owner file | split task | defer refactor
-```
-
-If the projected budget result is `over-budget`, do not write an atomic task
-that silently assumes add-in-place growth. Revise the task boundary, add
-governance work, or explicitly mark the slice as requiring follow-up before
-implementation begins.
-
-If the spec covers multiple independent subsystems, suggest breaking into
-separate plans. Before writing tasks, check: fact/assumption/unknown, baseline
-docs, compatibility boundary, whether dual-track (repair + retirement) applies.
-If approved requirements or the design carried an ADR signal, preserve the ADR
-signal, source refs, real alternatives, compatibility boundary, and expected
-baseline-sync questions for completion so ADR Auto Backfill can run without
-rediscovering the decision from scratch.
-
-If task decomposition would encode a new owner, duplicate owner, fallback,
-adapter, compat-only carrier, delete-first question, unverified assumption, or
-long-term stability claim that the spec did not already settle, use
-`Existence Check` first. If the new surface is still justified but the owner,
-contract, or retirement decision remains risky, use `first-principles-review`
-and its `Decision Hygiene Review` or `Architecture Integrity Lens` before task
+For a new surface, use `Existence Check` and
+`docs/current/AEGIS_MINIMALITY_REFERENCE.md` before tasks. Reuse an existing
+owner when it is sufficient. If owner, contract, responsibility overlap,
+higher-level simplification, fallback, or retirement remains risky, use the
+`Architecture Integrity Lens` and `first-principles-review` before task
 decomposition.
 
-When the plan must decide between deleting old internal paths, retaining compat
-for a proven external boundary, or stopping for persistent-state confirmation,
-compose `anti-entropy-governance`. Keep it as a narrow classification and
-guardrail owner; it does not authorize destructive execution.
+For maintained source, screen file shape, owner fit, add-in-place risk, and a
+better boundary. With no pressure signal, a compact edit-in-place decision is
+enough. When pressure exists, load the expanded `Plan-Time Complexity Check`
+and `Complexity Budget`. An over-budget result must change the task boundary,
+add governance work, or stop for follow-up.
 
-Use `Planless Slice Lane` before writing or saving a plan when all of these are
-true:
+For an ordinary medium/high handoff, state Intent Lock, Scope Fence, Baseline Lock, tests, and drift stop naturally. Load the expanded `Execution Readiness View` only for the auditable handoff triggers above. Neither form is a
+`GateDecision`, `PolicySnapshot`, approval gate, or completion authority.
 
-- a parent spec or parent plan already defines the workstream
-- the current request is executing or refining one bounded task from that
-  parent
+If the plan must choose among deleting an old internal path, retaining a proven
+external compatibility boundary, or stopping for persistent-state
+confirmation, compose `anti-entropy-governance`. It does not authorize
+destructive execution.
+
+Preserve approved ADR signal preservation, source refs, alternatives,
+compatibility, and baseline-sync questions for completion; do not create
+accepted architecture memory from an unexecuted plan.
+
+## Planless Slice Lane
+
+Use `Planless Slice Lane` before writing or saving a plan when one of these
+entry conditions holds:
+
+- a parent spec or parent plan already defines the workstream, and the current
+  request is executing or refining one bounded task from that parent
+- the change is mechanical or bounded and needs no parent document (the
+  no-parent branch under `# Execute`)
+
+and both of these are true:
+
 - no new owner, contract, schema, public API, architecture boundary, migration,
   persistence, security/permission, distribution/release surface, or unclear
   verification boundary appears
 - the slice can be described by a `Slice Card`
 
 The lane preserves long-task continuity without turning execution bookkeeping
-into durable planning artifacts.
+into durable planning artifacts. A parent scope or acceptance mismatch returns
+to the parent plan/spec instead of spawning a micro-plan.
 
-## Aegis Project Workspace
+## Plan And Task Quality
 
-Workspace creation is triggered by the plan save step. See the workspace support
-rule in `using-aegis/SKILL.md` for the hard binary rule. If the project already
-has docs/adr/ or architecture docs, reference them — do not duplicate authority.
+Map files before tasks. Follow existing ownership and naming. For non-trivial
+plans, passively use relevant current terms from `CONTEXT-MAP.md` or `CONTEXT.md`;
+route a real semantic conflict to `establishing-project-context`.
 
-## File Structure
+Every durable plan starts with Goal, Architecture, Tech Stack,
+Baseline/Authority Refs, Compatibility Boundary, TDD Route, and Verification.
+Then define small, ordered tasks with exact files, purpose, minimum necessary
+change, compatibility impact, and commands/outcomes that prove the task.
+Include code excerpts only when a signature, contract, or transformation would
+otherwise remain ambiguous; do not duplicate the implementation inside the
+plan.
 
-Map files before defining tasks. Design units with clear boundaries and single responsibilities. Files that change together should live together. Follow existing codebase patterns. Each task should produce self-contained, independently reviewable changes.
+For bug fixes, refactors, contract changes, or governance cleanup, keep Repair
+Track and Retirement Track explicit in the affected task. A retained old owner
+or fallback needs a reason and retirement trigger.
 
-For non-trivial project plans, passively read the relevant active language from
-`CONTEXT-MAP.md`/`CONTEXT.md` when present. Use canonical terms consistently in
-the plan title, tasks, acceptance language, and owner references. If planning
-discovers a resolved semantic change, ambiguity, or conflict, compose
-`establishing-project-context` instead of recording a glossary decision only in
-the plan. Passive reads alone do not load active modeling.
-
-## Required Planning Outputs
-
-Before you leave this workflow, the written plan must make these items answerable:
-
-1. **What problem or approved scope this plan is implementing**
-2. **Which baseline docs, ADRs, or requirements shaped the plan**
-3. **Whether the Requirement Ready Check is ready, or which requirement source,
-   scenario, acceptance, clarification, or user decision is still missing**
-4. **Which required baseline refs were explicitly acknowledged before planning and which were actually cited in the plan**
-5. **What files own the change**
-6. **What compatibility boundary must hold**
-7. **Why a code change is necessary, or why the plan is narrowed to no-change,
-   docs/config-only, or clarification**
-8. **Whether any new surface passed an Existence Check or was routed to an
-   existing owner**
-9. **Whether the architecture integrity check found a higher-level owner /
-   contract path before task decomposition**
-10. **What plan-time complexity pressure exists and which edit boundary is safer**
-11. **Whether an `Execution Readiness View` is needed for this handoff, and if
-   needed, which intent, scope, baseline, compatibility, retirement, testing,
-   review, and drift boundaries it renders**
-12. **What verification proves each major slice**
-13. **What risks, rollback surface, old owner/fallback handling, ADR signal preservation, and baseline-sync signals remain**
-
-## Bite-Sized Task Granularity
-
-**Each step is one action (2-5 minutes):**
-- Under `TDD Route: strict`: write the failing test → verify RED → implement minimal code → verify GREEN.
-- Otherwise: make the minimum change → run the focused regression or verification that proves it.
-
-Steps are execution units, not Git history units. Commit once after every
-coherent Task is complete and freshly verified, or after an independently
-verifiable/revertible long-task slice. Do not commit each 2-5 minute step.
-
-## Plan Document Header
-
-Every plan MUST start with: Goal, Architecture, Tech Stack, Baseline/Authority Refs, Compatibility Boundary, TDD Route, Verification. See template in this directory.
-
-## Task Structure
-
-Each task: Files (create/modify/test paths), Why (user/business value), Change Necessity (why source edits are needed and the minimum boundary), Impact/Compatibility, Verification (exact commands), then steps matching the TDD route. Strict routes use Write test → Verify RED → Minimal code → Verify GREEN; `off`, light, and skipped routes use the minimum change plus proportional regression/verification. The executing coordinator captures `TaskStartSnapshot` before the first write and creates one scoped commit only after the whole Task passes review and verification. Every step must include complete code and exact commands.
-
-For bug fixes, refactors, contract changes, or governance cleanup, add Repair
-Track (root cause, canonical owner, minimal sufficient stable repair, compat
-boundary, verification) and Retirement Track (old owner/fallback, active status,
-keep reason or deletion trigger) inside the relevant task. If Ripple Signal
-Triage fired, include the affected downstream consumers and expanded
-verification path in the same task.
-
-## No Placeholders
-
-Never write: "TBD", "TODO", "implement later", "fill in details", "Add appropriate error handling", "Write tests for the above" without actual test code, "Similar to Task N" without repeating code. Every step must contain complete, copy-paste-ready content.
-
-## Self-Review
-
-Check plan against spec: 1) Spec coverage — can you point to a task for each
-requirement? 2) Placeholder scan — any TBD/TODO/vague instructions? 3) Type
-consistency — do signatures match across tasks? 4) Compatibility — invariants,
-non-goals, stable interfaces marked? 5) Change necessity — any code-edit task
-states why no-change or docs/config-only is insufficient and names the minimum
-boundary? 6) Existence check — any new owner,
-artifact, adapter, fallback, workflow step, or benchmark metric has proof and a
-reuse decision? 7) Plan-time complexity and minimality —
-lowest-entropy owner/file boundary that fixes the bug class, not just the
-smallest textual diff? 8) Architecture integrity — any higher-level owner /
-contract / source-of-truth simplification skipped? 9) Verification — exact
-commands? 10) Dual-track, decision hygiene, and ADR/baseline-sync signals
-preserved where needed?
-
-Fix issues inline. Re-review is not needed — just fix and move on.
+Self-review once for approved-scope coverage, placeholders, owner/type
+consistency, minimum change boundary, compatibility, exact verification,
+conditional trigger handling, and retirement. Fix defects inline. Tasks are
+execution units, not Git history units: the coordinator captures
+`TaskStartSnapshot` and creates one scoped commit only after the whole Task is
+reviewed and freshly verified.
 
 ## Execution Handoff
 
-After saving the plan, render the `Execution Readiness View` when the handoff
-criteria above apply. The agent owns the execution-route decision; do not ask
-the user to choose merely because both routes are viable.
+The agent owns the execution-route decision. Select `subagent-driven` only for
+genuinely independent tasks with bounded ownership when coordination pays for
+it; otherwise select `inline`. Unavailable subagents falls back to inline execution. A dirty workspace alone does not select either route.
 
-Select `subagent-driven` when subagents are available, the plan has
-genuinely independent tasks with bounded ownership, and the
-review/context benefit justifies the coordination. Otherwise select `inline`.
-Lack or denial of subagent support falls back to inline execution instead of blocking the task.
-A dirty workspace alone does not select either route; apply the Git ownership,
-overlap, and isolation rules separately.
+Ask the user only for unresolved authorization, privacy, paid-resource,
+external-action, irreversible-action, scope, acceptance, or workspace-ownership
+boundaries. Otherwise proceed immediately. State the decision, evidence,
+fallback, and `User confirmation required: no | yes — <boundary>` compactly;
+load the reference only when the full `Execution Route` schema is useful.
 
-Ask the user only when route selection crosses an unresolved authorization,
-privacy, paid-resource, external-action, or irreversible boundary; changes the
-approved scope or acceptance contract; or no safe route can preserve existing
-workspace ownership. When no such boundary exists, proceed immediately.
-
-State the decision compactly:
-
-```text
-Execution Route:
-- Decision: subagent-driven | inline
-- Evidence:
-- Fallback:
-- User confirmation required: no | yes — <specific unresolved boundary>
-```
-
-**If `subagent-driven`:**
-- **REQUIRED SUB-SKILL:** Use aegis:subagent-driven-development
-- Fresh subagent per task + two-stage review
-
-**If `inline`:**
-- **REQUIRED SUB-SKILL:** Use aegis:executing-plans
-- Batch execution with checkpoints for review
-
-## Planning Boundaries
-
-- A plan can define implementation slices, verification, rollback surface, and retirement expectations
-- `Execution Readiness View` can make implementation start conditions,
-  verification obligations, and drift / rewind rules visible before execution
-- A plan cannot grant authoritative completion
-- A plan should prepare runtime-ready execution, not pretend to be runtime authority
+For `subagent-driven`, use `aegis:subagent-driven-development`. For `inline`,
+use `aegis:executing-plans`.

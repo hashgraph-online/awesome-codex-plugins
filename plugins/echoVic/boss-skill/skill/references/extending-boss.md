@@ -21,13 +21,14 @@
 | `type` | 固定 `"pipeline-pack"` |
 | `when.fileExists` / `when.noFileExists` | 自动匹配条件（探测项目文件） |
 | `priority` | 多 pack 匹配时的优先级（数字越大越优先） |
-| `config.stages` | 启用的阶段数组，如 `[1,2,3,4]` |
 | `config.roles` | `full` / `core` / `custom` |
-| `config.agents` | 参与的 agent 列表（`boss-pm` 等） |
-| `config.gates` | 启用门禁，如 `["gate0","gate1","gate2"]` |
-| `config.agentStages` | agent → stage 映射 |
-| `config.skipUI` / `skipFrontend` | 可选跳过标记 |
+| `config.agents` | 参与的 agent 列表（`boss-pm` 等）；未列出的 agent 不会被派发任务 |
+| `config.gates` | 启用门禁，如 `["gate0","gate1","gate2"]`；未列出的门禁按跳过处理 |
+| `config.skipUI` / `skipDeploy` / `skipReview` | 跳过对应产物 |
+| `config.skipFrontend` | 不把前端 agent 派发到任何产物（`code` 仍由后端产出） |
 | `enabled` | 是否启用 |
+
+> 阶段由 `config.artifactDag` 决定，不由 pack 单独声明。
 
 参考内置：`packages/boss-cli/assets/pipeline-packs/api-only/`（后端专用）、`web-app/`、`solana-contract/`。
 
@@ -49,6 +50,8 @@ export default async function gate(ctx) {
 - `passed: false` 时，Boss **不得宣布交付完成**（不变量 4）。
 - 门禁执行进事件流：`PluginHookExecuted` / `PluginHookFailed`（降级模式写 STATE.md Gates 表）。
 - `config` 来自 `plugin.json` 的 `config` 字段。
+
+> 阶段由 `config.artifactDag` 决定，不由 pack 单独声明。
 
 参考内置：`packages/boss-cli/assets/plugins/llm-judge/`（LLM-as-Judge）、`owasp-scan/`、`security-audit/`。
 

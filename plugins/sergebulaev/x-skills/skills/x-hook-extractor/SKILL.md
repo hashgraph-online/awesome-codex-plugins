@@ -1,6 +1,6 @@
 ---
 name: x-hook-extractor
-description: Reverse-engineer the hook from a viral X (Twitter) tweet or thread URL. Identifies which of the 10 canonical 2026 X formulas it uses (one-liner contrarian, data-point, build-in-public, quote-tweet, mini-list, relatable cold-open, listicle-thread, story thread, curiosity-gap, how-I teardown), explains why it worked, and returns a blank template mapped to your topic with its primary goal. Use to learn from a tweet you admire. Not for writing your own (use x-post-writer or x-thread-builder).
+description: "Reverse-engineer the hook from a viral X (Twitter) tweet or thread URL. Identifies which of the 10 canonical 2026 X formulas it uses (one-liner contrarian, data-point, build-in-public, quote-tweet, mini-list, relatable cold-open, listicle-thread, story thread, curiosity-gap, how-I teardown), explains why it worked, and returns a blank template mapped to your topic with its primary goal. Use to learn from a tweet you admire. Not for writing your own (use x-post-writer or x-thread-builder)."
 ---
 
 # X Hook Extractor
@@ -34,8 +34,8 @@ the URL of the first tweet is best.
 - **Why it worked** psychologically and algorithmically
 - **Blank template** with `{slot}` markers matched to the original, ready for the
   user's topic
-- **Cautions:** anything in the original that would fail a 2026 audit (em dashes,
-  AI vocab, 3+ hashtags, link in tweet 1)
+- **Cautions:** anything in the original that would fail a 2026 audit (more
+  than one em dash in a tweet, an AI-vocab cluster, 3+ hashtags, link in tweet 1)
 
 ## Steps
 

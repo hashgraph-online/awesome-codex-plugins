@@ -26,7 +26,7 @@ once a fix or mitigation is available.
 
 Agent Guard is a deterministic, thin guardrail — not a DLP system, EDR, or
 vault. It has documented blind spots by design (see
-[Known Limitations](https://github.com/JeongJaeSoon/agent-guard#known-limitations)):
+[Known Limitations](https://github.com/JeongJaeSoon/agent-guard/blob/main/docs/integrations.md#limits-and-backstops)):
 gitignored files are not scanned, only the git work tree is covered,
 path/command blocking uses fixed lists, tool-output masking is best-effort,
 Bash detection is pattern-based, and commands a user runs through the host's

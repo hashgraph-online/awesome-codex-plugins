@@ -1,216 +1,33 @@
-# dev-code-review · Examples
+# Dev Code Review Examples
 
-具体反例集。SKILL.md 描述了规则,本文件给真实的 before/after,让实际报告对齐这里的笔法。
+示例中的位置与结果为场景说明,实际评审必须核对真实代码、快照和输出。
 
-每个例子结构:**[场景] → [Diff 节选] → [关键检查] → [期望报告]**。
+## 搜索不到调用方
 
----
+新增库导出函数没有仓库内调用者,但入口文件明确将其作为外部 SDK API 导出。检查签名、导出路径与行为测试;不能仅凭零搜索命中报告未接入。
 
-## 例 1 — 未闭环(P0 BLOCK)
+相反,用户要求 checkout 点击后发起下单,新增 service 以后按钮仍绑定旧的空回调。追溯按钮绑定、service 注册和调用后可报告:
 
-**场景**:Dart 项目里新增了 `OrderService.placeOrder()`,但没有任何 UI / route / test 调用它。
+> [P1] checkout.ts:42 点击下单仍执行空回调,新 service 没有进入用户路径,订单不会提交。将该回调连接到已实现的下单流程,并覆盖提交及失败恢复。
 
-**Diff 节选**
+严重度来自下单流程失效,不是零搜索命中。
 
-```dart
-// lib/services/order_service.dart  (新文件)
-class OrderService {
-  Future<Order> placeOrder(Cart cart) async {
-    return await _api.post('/orders', cart.toJson());
-  }
-}
-```
+## 部分暂存
 
-**关键检查**
+同一个文件 index 中仍有错误条件,working tree 已修复。用户要求“只看 staged”。
 
-```bash
-git grep -n "OrderService" -- ':!lib/services/order_service.dart'
-# 0 条匹配
-```
+读取 index 内容,从 staged 版本引用行号。working tree 测试通过不能为将要提交的错误版本背书;使用隔离的 index 快照验证,或明确仅完成静态评审且测试的是不同内容。不要擅自 stage 修复或调整用户 index。
 
-`OrderService` 不在框架豁免清单(不是 test、不是 lifecycle override、不是注解 DI),应判 P0 未闭环。
+## 无关格式化
 
-**期望报告**
+修复提交中包含 import 重排。确认是否是项目 formatter 必然产物,是否违反用户明确范围,以及是否造成实际风险。可以建议缩小 diff;没有具体影响时不自动记作高严重度缺陷。
 
-```
-━━━ Dev Code Review ━━━
-Verdict   : ❌ BLOCK
-Scope     : 1 file · +18 / −0 · staged
-Intent    : 新增下单服务
-Languages : Dart                    Lint config : analysis_options.yaml
+## 已授权修复
 
-Axis Check
-  规范   ✓
-  功能   ✓
-  闭环   ✗   OrderService 无任何 caller,且不在框架豁免清单
-  注释   ✓
-  废码   ✓
+用户:「review 这次修改,发现问题就修好并提交,不要 push。」
 
-Findings
-  [P0] lib/services/order_service.dart:3   闭环   OrderService 无 caller(grep 0 匹配),非框架豁免
-       → 在 checkout 流程接入,或本次 commit 暂不引入该 service
-```
+独立 reviewer 只读报告问题。主执行者随后按已有授权修复、验证并让独立 reviewer 复查当前结果,最终提交确切范围。无需再问“要不要帮你修”,也不能由 reviewer 一边审一边修改或擅自 push。
 
----
+## 无发现但存在验证缺口
 
-## 例 2 — Scope creep(P1 FIX)
-
-**场景**:用户说「修复 cart 计算总价 off-by-one」,diff 里却顺手把整个文件的 import 顺序重排了。
-
-**Diff 节选(主改动)**
-
-```dart
-// lib/cart/cart.dart  line 84
-- total += items.length - 1;
-+ total += items.length;
-```
-
-**Diff 节选(夹带的改动)**
-
-```dart
-// lib/cart/cart.dart  line 1-12
-- import 'package:flutter/foundation.dart';
-- import '../models/item.dart';
-- import 'cart_item.dart';
-+ import 'cart_item.dart';
-+ import '../models/item.dart';
-+ import 'package:flutter/foundation.dart';
-```
-
-**关键检查**
-
-应用 baseline「外科手术式改动」原则:import 排序与 off-by-one 修复无因果关系,应拆。
-
-**期望报告**
-
-```
-━━━ Dev Code Review ━━━
-Verdict   : ⚠ FIX P1
-Scope     : 1 file · +14 / −13 · staged
-Intent    : 修复 cart 总价 off-by-one
-Languages : Dart                    Lint config : analysis_options.yaml
-
-Axis Check
-  规范   ⚠   import 重排夹带在 bug fix commit 中,违反 surgical 原则
-  功能   ✓
-  闭环   ✓
-  注释   ✓
-  废码   ✓
-
-Findings
-  [P1] lib/cart/cart.dart:1-12   规范   import 重排与 off-by-one 修复无关,应拆 commit
-       → 本 commit 仅保留 line 84 的修改;import 重排单独成一个 chore commit
-```
-
----
-
-## 例 3 — 意图存疑(显式标出歧义)
-
-**场景**:diff 同时改了 `auth.service.ts` 和 `payment.service.ts`,各自都是大改。仅看代码无法判断本次 commit 的「主轴」是哪一个。
-
-**关键检查**
-
-应用 baseline「不假设」原则:不替用户决定 commit 的主题,在报告里点名歧义。
-
-**期望报告(节选)**
-
-```
-━━━ Dev Code Review ━━━
-Verdict   : ⚠ FIX P1
-Scope     : 2 files · +120 / −34 · both
-Intent    : ⚠ 意图不明 —— 同时改了 auth 和 payment,二者无明显耦合
-            可能是 (a) 一次性补两块的鉴权链路,或 (b) 应拆成两个 commit
-Languages : TypeScript              Lint config : .eslintrc.cjs
-
-Axis Check
-  规范   ✓
-  功能   ✓
-  闭环   ✓
-  注释   ✓
-  废码   ✓
-
-Findings
-  [P1] (跨文件)   规范   两个无耦合模块同 commit,违反 surgical 原则
-       → 请确认意图:(a) 同一改动两面 → 给一个统一的 subject;(b) 两件事 → 拆 commit
-```
-
-注意 Verdict 在 Intent 不明时**不出 Commit message** —— 等用户在下一轮明确意图。
-
----
-
-## 例 4 — 调试输出残留(P1 FIX)
-
-**场景**:小改动,只新增了一个 helper。但 helper 里残留了 `console.log` 调试输出。
-
-**Diff 节选**
-
-```ts
-// src/utils/format.ts
-export function formatCurrency(n: number): string {
-  console.log('[formatCurrency]', n);   // ← 残留
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
-}
-```
-
-**期望报告**
-
-```
-━━━ Dev Code Review ━━━
-Verdict   : ⚠ FIX P1
-Scope     : 1 file · +3 / −0 · staged
-Intent    : 新增 formatCurrency 工具函数
-Languages : TypeScript              Lint config : .eslintrc.cjs
-
-Axis Check
-  规范   ⚠   含 console.log
-  功能   ✓
-  闭环   ✓
-  注释   ✓
-  废码   ⚠   见规范
-
-Findings
-  [P1] src/utils/format.ts:3   规范   残留 console.log 调试输出
-       → 删除该行;若需日志请用项目统一 logger
-
-Cleanup
-  - src/utils/format.ts:3  console.log  — 调试输出,提交前删除
-```
-
----
-
-## 例 5 — 全部通过(✅ READY)
-
-**场景**:小修一个 typo + 加一个测试覆盖。所有轴都过。
-
-**期望报告**
-
-```
-━━━ Dev Code Review ━━━
-Verdict   : ✅ READY
-Scope     : 2 files · +14 / −1 · staged
-Intent    : 修复 README 拼写,补一条单测
-Languages : Markdown, Dart          Lint config : analysis_options.yaml
-
-Axis Check
-  规范   ✓
-  功能   ✓
-  闭环   ✓
-  注释   ✓
-  废码   ✓
-
-Findings
-  none
-
-Commit
-  docs: fix typo in README and add coverage for empty cart
-```
-
----
-
-## 反模式备忘(不要这样写报告)
-
-- ❌ 「这是一个不错的改动,建议合并」 —— skill 不输出鼓励语,只输出结构化结论。
-- ❌ 「我猜你是想做 X」 —— 当意图不明时**说出歧义并要求确认**,不要替用户猜。
-- ❌ 「整个文件需要重构」 —— 超出 diff 范围的建议放 Cleanup 段最多一行,不要展开。
-- ❌ 在 Verdict ≠ READY 时输出 Commit message —— 还没到提交时机。
-- ❌ 把每个 ✓ 后面都写「无问题」「检查通过」 —— 留空即可。
+评审没有发现缺陷,但数据库迁移尚未在目标数据库执行。报告“未发现可确认的代码问题”,附范围与该验证缺口。如果这个缺口是合并所需的重要证据,用 INCOMPLETE,不能给无条件 READY。

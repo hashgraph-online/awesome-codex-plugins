@@ -268,6 +268,7 @@ Output of `python3 skills/kicad/scripts/analyze_thermal.py --schematic ... --pcb
 | `trust_summary` | `TrustSummary` | yes | Trust posture rollup. |
 | `elapsed_s` | `float` | yes | Wall-clock analysis time in seconds. |
 | `missing_info` | `ThermalMissingInfo \| null` | no | Emitted when any component used default thermal params. |
+| `skipped_components` | `list[ThermalSkipped] \| null` | no | Power components (regulators) that could not be assessed for power dissipation. Present only when non-empty; see summary.components_skipped for the count. KH-386. |
 | `capability_mode_ref` | `dict \| null` | no | Pointer to canonical analysis/capability_mode.json run-level record. Shape: {source, run_id}. See Phase 4 spec §3.3. |
 
 ## EMCEnvelope

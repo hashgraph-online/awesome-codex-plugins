@@ -38,12 +38,12 @@ These are non-exhaustive examples to orient pattern-matching — absence from th
 **Border cases:**
 
 - **One real app + empty `packages/`**: effective `domain_count` = 1 — don't let an empty workspace bump the tier.
-- **Giant single-domain library** (one `src/`, 60 modules): module-count triggers `large`; team may `--mode=medium` if large-mode noise is unhelpful.
+- **Giant single-domain library** (one `src/`, 60 modules): module-count triggers `large`; team may toggle `scale:medium` in the preview if large-mode noise is unhelpful.
 - **Only stubs** (subdirs of < 50 LOC files): `domain_count` = 0, low `module_count` → small.
 - **Flat repo, no conventional root**: enumerate top-level source files directly; `domain_count` = 0, classify by `module_count` alone.
 
 ## Override
 
-User may force a mode with `--mode=small|medium|large` on the bootstrap invocation. When overridden, Step 0.5 announces both the detected mode and the forced mode, e.g.:
+User may force a mode with the `scale:small|medium|large` toggle in the init preview. When overridden, Step 0.5 announces both the detected mode and the forced mode, e.g.:
 
-> Mode: medium (forced, detected=small). Override with `--mode=X` or drop the flag to auto-detect.
+> Mode: medium (forced, detected=small). Toggle `scale:X` again, or confirm without it, to return to the detected mode.

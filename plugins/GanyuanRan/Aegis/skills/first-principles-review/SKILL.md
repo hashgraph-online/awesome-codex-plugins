@@ -114,10 +114,31 @@ Owner / retirement matrix:
 - Compat-only carrier:
 - Delete-first / retirement trigger:
 
-Falsification matrix:
-- Dependency-removal test:
-- Counterexample scenario:
-- Must fail / degrade / remain correct cases:
+Falsification matrix (evaluate in order; stop at the first failing gate):
+- Gate 0 - Premise evidence (stage-graded): design stage accepts spec/logic
+  refs; implementation/runtime stage requires log, telemetry, or test
+  evidence. No evidence -> park as watch-listed, do not enter value
+  evaluation.
+- Gate 1 - Decidability: no obtainable evidence to judge it -> park as a
+  watched falsifier, do not act.
+- Gate 2 - Value (any one): lowers future fix probability / shrinks the
+  solution set / exposes a missing actionable acceptance criterion / the same
+  broken assumption is reused elsewhere. Passing here still requires
+  gates 3-5.
+- Gate 3 - Cost match: change cost vs business priority, costed at the
+  current stage; a valid but deferred counterexample is recorded in the owner
+  doc, never parked orally.
+- Gate 4 - Goal regression: the constrained solution still meets the original
+  goal; re-read the accepted-constraint list at existing checkpoints (design
+  review, plan approval, pre-completion verification).
+- Gate 5 - Minimize then classify: boundary-shaped destructive claims must be
+  minimized first; premise attacks classify as destructive directly.
+  Classes: destructive (refactor/retirement track) | supplementary (boundary
+  constraint) | watch-listed (falsifier). Conflicting counterexamples are
+  decided by business-goal ranking, never by stacking constraints.
+- Gate 6 - Adoption trace: the cheapest checkable form (regression test for
+  destructive; contract, assertion, or checklist line for supplementary),
+  written into the existing owner doc.
 
 Verdict:
 - Adopt / revise / reject / needs evidence:

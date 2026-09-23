@@ -1,0 +1,37 @@
+figure_job: ""
+figure_class: "facility | mechanism | workflow | system architecture | graphical abstract | comparison"
+audience_and_venue: ""
+target_size: ""
+evidence_boundary:
+  measured: []
+  simulated: []
+  proposed: []
+  conceptual_or_illustrative: []
+  not_to_scale: false
+system_definition:
+  materials_or_fluid: ""
+  geometry_and_boundaries: ""
+  operating_regime: ""
+required_objects: []
+connections:
+  fluid_or_mass_paths: []
+  heat_paths: []
+  electrical_or_signal_paths: []
+  data_paths: []
+exact_text:
+  labels: []
+  units_and_symbols: []
+  legend_entries: []
+visual_hierarchy:
+  primary_takeaway: ""
+  supporting_information: []
+style_constraints:
+  editable_source_format: "svg"
+  palette_and_font: ""
+  existing_figure_to_match: ""
+  accessibility_requirements: ""
+exclusions: []
+provenance:
+  source_materials: []
+  generated_illustrative_elements: []
+  final_source_path: ""

@@ -1,0 +1,167 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/orwa-mahmoud/nightshift/main/plugins/nightshift/skills/nightshift/references/schemas/v1/shift-plan.json",
+  "title": "Nightshift shift plan",
+  "description": "Deterministic ordered plan for Automatic or Guided composition. Review-first and run-direct twins share identical ordering; launch mode affects only metadata and whether composition may write after approval.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "selectionMode",
+    "launchMode",
+    "hours",
+    "workMode",
+    "workTarget",
+    "orderedItems",
+    "rejected",
+    "verificationReserveMinutes",
+    "stoppingRule"
+  ],
+  "properties": {
+    "schemaVersion": { "type": "integer", "enum": [1] },
+    "selectionMode": { "type": "string", "enum": ["automatic", "guided"] },
+    "launchMode": { "type": "string", "enum": ["review-first", "run-direct"] },
+    "hours": { "type": "number", "minimum": 0 },
+    "deadlineEpoch": { "type": ["integer", "null"] },
+    "workMode": { "type": "string", "enum": ["repository", "artifact"] },
+    "workTarget": { "type": "string", "minLength": 1 },
+    "branch": { "type": ["string", "null"] },
+    "workspace": { "type": ["string", "null"] },
+    "authority": { "type": ["string", "null"] },
+    "shiftPolicy": { "type": ["object", "null"] },
+    "resourceBudgets": {
+      "type": "object",
+      "additionalProperties": { "type": "integer", "minimum": 0 }
+    },
+    "learningApplied": { "type": "boolean" },
+    "verificationReserveMinutes": { "type": "integer", "minimum": 0 },
+    "workBudgetMinutes": { "type": "integer", "minimum": 0 },
+    "estimateTotalMinutes": { "type": "integer", "minimum": 0 },
+    "stoppingRule": { "type": "string", "minLength": 1 },
+    "orderedItems": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/plannedItem" }
+    },
+    "rejected": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/rejectedItem" }
+    },
+    "overlapsRemoved": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/overlapRemoved" }
+    },
+    "clusters": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/cluster" }
+    },
+    "provisioningPlan": { "type": ["object", "null"] },
+    "risks": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "unsupportedSurfaces": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "definitions": {
+    "scoring": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "impact",
+        "evidenceStrength",
+        "confidence",
+        "effortMinutes",
+        "timeFit",
+        "reversibility"
+      ],
+      "properties": {
+        "impact": { "type": "integer" },
+        "evidenceStrength": { "type": "integer" },
+        "confidence": { "type": "integer" },
+        "effortMinutes": { "type": "integer" },
+        "timeFit": { "type": "integer" },
+        "reversibility": { "type": "integer" },
+        "dependencyValue": { "type": "integer" },
+        "recurrence": { "type": "integer" },
+        "priorResult": { "type": ["string", "null"] },
+        "learningAdjusted": { "type": "boolean" }
+      }
+    },
+    "plannedItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contractId", "title", "ending", "estimateMinutes", "scoring"],
+      "properties": {
+        "contractId": { "type": "string" },
+        "title": { "type": "string" },
+        "ending": { "type": "string", "enum": ["finite", "open-ended"] },
+        "estimateMinutes": { "type": "integer", "minimum": 0 },
+        "scoring": { "$ref": "#/definitions/scoring" },
+        "evidence": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "prerequisites": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "sharedRoots": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "clusterId": { "type": ["string", "null"] },
+        "capabilityStatus": { "type": ["string", "null"] },
+        "fallback": { "type": ["string", "null"] },
+        "resourceNeeds": { "type": "object" },
+        "risks": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "rejectedItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contractId", "title", "reason", "scoring"],
+      "properties": {
+        "contractId": { "type": "string" },
+        "title": { "type": "string" },
+        "reason": { "type": "string" },
+        "detail": { "type": ["string", "null"] },
+        "scoring": { "$ref": "#/definitions/scoring" }
+      }
+    },
+    "overlapRemoved": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["group", "finding", "kept", "removed"],
+      "properties": {
+        "group": { "type": "string" },
+        "finding": { "type": "string" },
+        "kept": { "type": "string" },
+        "removed": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "cluster": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["clusterId", "contractIds", "sharedRoots"],
+      "properties": {
+        "clusterId": { "type": "string" },
+        "contractIds": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "sharedRoots": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}

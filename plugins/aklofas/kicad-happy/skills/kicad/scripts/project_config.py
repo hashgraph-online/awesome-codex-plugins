@@ -29,7 +29,6 @@ from typing import Any, Dict, List, Optional
 # JSONC loader (JSON with // and /* */ comments, trailing commas)
 # ---------------------------------------------------------------------------
 
-_TRAILING_COMMA = re.compile(r',\s*([}\]])')
 
 
 def _strip_jsonc(text: str) -> str:
@@ -73,7 +72,34 @@ def _strip_jsonc(text: str) -> str:
                 state = 'normal'
                 i += 1
         i += 1
-    return _TRAILING_COMMA.sub(r'\1', ''.join(out))
+    stripped = ''.join(out)
+    # Second pass: drop a comma that is followed only by whitespace and then
+    # `}` or `]`, but never inside a string literal (KH-400).
+    res = []
+    in_str = False
+    i, n = 0, len(stripped)
+    while i < n:
+        c = stripped[i]
+        if in_str:
+            res.append(c)
+            if c == '\\' and i + 1 < n:
+                res.append(stripped[i + 1])
+                i += 1
+            elif c == '"':
+                in_str = False
+        elif c == '"':
+            in_str = True
+            res.append(c)
+        elif c == ',':
+            j = i + 1
+            while j < n and stripped[j] in ' \t\r\n':
+                j += 1
+            if not (j < n and stripped[j] in '}]'):
+                res.append(c)
+        else:
+            res.append(c)
+        i += 1
+    return ''.join(res)
 
 
 def load_jsonc(path: str) -> dict:

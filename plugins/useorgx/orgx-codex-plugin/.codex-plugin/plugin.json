@@ -1,6 +1,6 @@
 {
   "name": "orgx-codex-plugin",
-  "version": "0.1.19",
+  "version": "0.1.20",
   "description": "OrgX MCP access and initiative-aware Codex skills for operating inside OrgX workstreams.",
   "author": {
     "name": "OrgX Team",

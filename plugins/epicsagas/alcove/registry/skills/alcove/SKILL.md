@@ -1,6 +1,6 @@
 ---
 name: alcove
-description: "HTTP API-based documentation server (always running). Questions about project architecture, conventions, decisions, code structure, tech debt, env config, progress, or doc health. Also: init project, audit docs, lint, validate, promote note, rebuild index, search vaults."
+description: "HTTP API-based documentation server (always running). Questions about project architecture, conventions, decisions, code structure, tech debt, env config, progress, or doc health. Also: store and recall agent memory (global memory/ + per-project <project>/memory/ inside the docs vault), init project, audit docs, lint, validate, promote note, update index, search vaults."
 ---
 
 # Alcove
@@ -176,6 +176,8 @@ curl -s '$ALCOVE_URL/lint?project=PROJECT'
 
 **Rule**: Default to `/index` (global). Use `/projects/{name}/index` only when task specifies a single project.
 
+**⚠️ NEVER run `alcove rebuild` / `alcove vault rebuild` (CLI) to make new docs searchable** — they DELETE the entire index and vectors, then re-embed everything, leaving search on grep fallback until done. `/index` above is incremental (unchanged files are skipped) and is the only update path agents ever need. The rebuild CLI only runs in an interactive terminal (y/N approval, no flag bypass) — agents cannot run it at all.
+
 | Action | Method | Endpoint |
 |--------|--------|----------|
 | Update index (all projects) | POST | `/index` |
@@ -212,25 +214,33 @@ curl -s -X POST $ALCOVE_URL/promote \
 
 ### Agent Memory (#37)
 
-Durable cross-session memory backed by the `memory` vault. Store facts/decisions/preferences; recall them before acting. `valid_until` (ISO 8601) makes time-sensitive facts drop out of recall automatically.
+Durable cross-session memory stored INSIDE the docs vault — global notes in `<docs_root>/memory/`, project notes in `<docs_root>/<project>/memory/`. Plain markdown, git-versioned with the vault, indexed on store. `valid_until` (ISO 8601) makes time-sensitive facts drop out of recall automatically.
+
+Scope routing:
+- Facts about the user, tools, or environment → global (omit `project`)
+- Facts tied to one project → include `"project": "<name>"` (folder must exist under docs_root)
 
 ```bash
-# Store a memory (title defaults to first line)
+# Store global memory (title defaults to first line)
 curl -s -X POST $ALCOVE_URL/memory/store \
   -H 'Content-Type: application/json' \
-  -d '{"content": "user prefers turbofish syntax", "project": "alcove", "valid_until": "2027-01-01T00:00:00Z"}'
+  -d '{"content": "user prefers turbofish syntax", "valid_until": "2027-01-01T00:00:00Z"}'
 
-# Recall memories (hybrid BM25 + vector)
-curl -s '$ALCOVE_URL/memory/recall?q= syntax  preference&limit=10'
+# Store project-scoped memory
+curl -s -X POST $ALCOVE_URL/memory/store \
+  -H 'Content-Type: application/json' \
+  -d '{"content": "uses rustls, never openssl", "project": "alcove"}'
+
+# Recall — global + merged project scope, one ranked list (hybrid BM25 + vector)
+curl -s '$ALCOVE_URL/memory/recall?q=syntax+preference&project=alcove&limit=10'
 ```
 
 | Action | Method | Endpoint |
 |--------|--------|----------|
 | Store memory | POST | `/memory/store` |
-| Recall memories | GET | `/memory/recall?q=...` |
+| Recall memories | GET | `/memory/recall?q=...&project=...` |
 
-Memory files live in `~/.alcove/vaults/memory/` — editable/removable directly; changes are picked up on next store (which re-indexes).
-
+Notes are editable/removable directly in those folders; changes are picked up on next store (which re-indexes). `memory/` folders are excluded from the main project index — `/memory/recall` is the only search path for them. The former separate `~/.alcove/vaults/memory` vault is superseded.
 ### Doc Graph (backlinks/related) — requires `doc-graph` feature
 
 ```bash

@@ -601,6 +601,12 @@ def classify_component(ref: str, lib_id: str, value: str, is_power: bool = False
                 return "switch"
             if any(x in val_low for x in ("mx-", "cherry", "kailh", "gateron")):
                 return "switch"
+        # An F-prefixed logic/analog IC (74LS32 as F1, seen in the corpus) is
+        # an IC, not a fuse — PP-001 must not bridge it.
+        if result == "fuse":
+            if (lib_low.startswith(("74xx", "4xxx", "logic", "amplifier", "interface"))
+                    or re.match(r'^(sn|mc|cd|hef|hc|hd|m)?(74|40|45)[a-z]{0,3}\d{2,}(?!\s*m?a\b)', val_low)):
+                return "ic"
         return result
 
     # --- No full-prefix match.  Try lib_id / value before single-char fallback ---
@@ -760,6 +766,11 @@ def classify_component(ref: str, lib_id: str, value: str, is_power: bool = False
                     return "filter"
                 if "ferrite" in lib_lower or "bead" in lib_lower:
                     return "ferrite_bead"
+                # An F-prefixed logic/analog IC (74LS32 as F1, seen in the
+                # corpus) is an IC, not a fuse — PP-001 must not bridge it.
+                if (lib_lower.startswith(("74xx", "4xxx", "logic", "amplifier", "interface"))
+                        or re.match(r'^(sn|mc|cd|hef|hc|hd|m)?(74|40|45)[a-z]{0,3}\d{2,}(?!\s*m?a\b)', val_lower)):
+                    return "ic"
             if result == "capacitor":
                 if "shield" in lib_lower or "clip" in lib_lower:
                     return "mechanical"
@@ -1003,6 +1014,34 @@ def classify_jumper_default_state(value: str, lib_id: str = "",
 # they're signal nets, not rails.
 USB_DATA_NET_MARKERS = ("USB_D", "USBDP", "USBDM", "USBDN", "DPLUS", "DMINUS")
 
+# is_power_net_name() vocabulary for descriptive rail names (PR #44).
+# Control / monitor prefixes: <prefix>_<voltage> is a signal about a rail
+# (PWM_5V, EN_5V, SENSE_12V), not the rail itself.
+_SIGNAL_PREFIXES = frozenset({
+    "PWM", "EN", "ENABLE", "GATE", "SENSE", "SNS", "LEVEL", "TX", "RX",
+    "SDA", "SCL", "SCK", "MOSI", "MISO", "CS", "SS", "INT", "IRQ",
+    "RST", "RESET", "DIR", "STEP", "CLK", "CLOCK", "ALERT", "FAULT",
+    "FLAG", "IO", "GPIO", "INTR", "TRIG", "SYNC", "CTRL", "DATA", "SIG",
+    "DRV", "FB", "COMP", "ADC", "DAC",
+})
+# Prefixes that make <prefix>_<voltage> / <prefix>_VOUT a rail
+# (RAW_5V, USB_5V, ISO_3V3, SYS_VOUT, BOOST_VOUT).
+_POWER_PREFIXES = frozenset({
+    "RAW", "FUSED", "SW", "SWITCHED", "FILT", "FILTERED", "USB", "SYS",
+    "MAIN", "AUX", "BAT", "BATT", "DC", "EXT", "VREG", "REG", "CLEAN",
+    "ISO", "BACKUP", "PWR", "BOARD", "MCU", "BOOST", "BUCK", "LDO",
+})
+# <anything>_<tail> is a supply regardless of prefix (SERVO_VCC, ADC_AVDD).
+_SUPPLY_TAILS = frozenset({"VCC", "VDD", "AVCC", "AVDD", "DVCC", "DVDD",
+                           "VCCIO", "VDDIO"})
+# <tail>s that can also name a sense tap (ADC_VBUS, SNS_VIN) — gated on the
+# prefix not being a signal prefix.
+_RAIL_TAILS_GATED = frozenset({"VBUS", "VIN", "VBAT", "VBATT", "VSYS", "VREG"})
+# <voltage><suffix> with these suffixes is a control/monitor line (5VEN,
+# 12VPG, 5VOK), not a rail.
+_VOLTAGE_SIGNAL_SUFFIXES = frozenset({"EN", "ENABLE", "ON", "OFF", "FB", "PG",
+                                      "OK", "DET", "SENSE"})
+
 
 def is_usb_data_net_name(name_upper: str) -> bool:
     """True if an upper-cased net name looks like a USB data line."""
@@ -1025,6 +1064,12 @@ def is_power_net_name(net_name: str | None, power_rails: set[str] | None = None)
     if "/" in net_name:
         net_name = net_name.rsplit("/", 1)[-1]
     nu = net_name.upper()
+    # Zero-volt ground spellings (0V, 0VA, 0VANA, 0VCC, 0V_A, +0V, ...) are
+    # never rails, no matter what pattern rule below would otherwise match
+    # (KH-407). Excludes 0V<digit> (0V9, 0V85, 0V95, 0V5) — those are
+    # sub-1V rails under the nnVn convention, not ground.
+    if re.match(r'^\+?0+V(?!\d)', nu):
+        return False
     # Explicit known names
     if nu in ("GND", "VSS", "AGND", "DGND", "PGND", "GNDPWR", "GNDA", "GNDD",
               "VCC", "VDD", "AVCC", "AVDD", "DVCC", "DVDD", "VBUS",
@@ -1041,6 +1086,12 @@ def is_power_net_name(net_name: str | None, power_rails: set[str] | None = None)
         return True
     # nnVn patterns (3V3, 5V0, 12V0, 1V8) — industry-standard voltage naming
     if re.match(r'^\d+V\d', nu):
+        return True
+    # Plain and letter-suffixed voltages (5V, 12V, 24V, 5VSB, 12VIN, 5VUSB).
+    # 0V is a ground name (is_ground_name); a control suffix (5VEN, 12VPG,
+    # 5VOK) names a signal about the rail, not the rail.
+    m = re.match(r'^(\d+)V([A-Z][0-9A-Z]*)?$', nu)
+    if m and int(m.group(1)) != 0 and (m.group(2) or "") not in _VOLTAGE_SIGNAL_SUFFIXES:
         return True
     # Negative voltage rails (Neg6v, NEG12V)
     if re.match(r'^NEG\d+V', nu):
@@ -1062,6 +1113,22 @@ def is_power_net_name(net_name: str | None, power_rails: set[str] | None = None)
                       "VDDIO", "VCCIO", "VIN", "VOUT", "VREG", "POW",
                       "PWR", "VMOT", "VHEAT", "REGIN", "REGOUT"):
         return True
+    # Descriptive rails: <power-prefix>_<voltage> (RAW_5V, USB_5V, ISO_3V3),
+    # <anything>_<supply-tail> (USB_VBUS, SERVO_VCC, LED_VIN) and
+    # <power-prefix>_VOUT (SYS_VOUT, BOOST_VOUT). Signal prefixes (PWM_5V,
+    # EN_5V, SENSE_12V, ADC_VBUS) stay signals so PU-001 & co. still see them;
+    # _VOUT needs the power prefix because about half the corpus's *_VOUT nets
+    # are op-amp / sensor outputs (OPAMP1_VOUT, MIC_VOUT, CURRENTSENSE_VOUT).
+    if first_seg:
+        last_seg = nu.rsplit("_", 1)[-1]
+        if last_seg in _SUPPLY_TAILS:
+            return True
+        if first_seg not in _SIGNAL_PREFIXES:
+            if last_seg in _RAIL_TAILS_GATED:
+                return True
+            if first_seg in _POWER_PREFIXES and (
+                    last_seg == "VOUT" or re.match(r'^\d+V[0-9A-Z]*$', last_seg)):
+                return True
     return False
 
 
@@ -1076,6 +1143,11 @@ def is_ground_name(net_name: str | None) -> bool:
     # Exact matches
     if nu in ("GND", "VSS", "AGND", "DGND", "PGND", "GNDPWR", "GNDA", "GNDD",
               "SGND", "COM", "0V"):
+        return True
+    # Any zero-volt spelling (0VA, 0Vo, 0VANA, 0VCC, 0V_A, +0V, ...) is
+    # ground, not just the literal "0V" — but 0V<digit> (0V9, 0V85, 0V95,
+    # 0V5) is a sub-1V rail under the nnVn convention, not ground (KH-407).
+    if re.match(r'^\+?0+V(?!\d)([A-Z_][A-Z0-9_]*)?$', nu):
         return True
     # Battery-negative rails used as circuit ground in single-supply designs.
     # Narrow exact-match set — deliberately excludes V-/VEE which are

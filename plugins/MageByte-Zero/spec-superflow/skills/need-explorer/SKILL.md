@@ -5,6 +5,10 @@ description: Clarify intent, scope, constraints, and success criteria before art
 
 # Need Explorer
 
+## Bundled runtime
+
+Before executing a CLI line below, replace its leading `SSF` with `node "<plugin-root>/scripts/spec-superflow.mjs"`; `<plugin-root>` is the absolute directory two levels above this file. Never run `SSF` literally or call an `ssf` from `PATH`.
+
 Turn a rough idea into a stable change definition before writing artifacts.
 
 ## Primary Goal
@@ -37,8 +41,8 @@ Restate what you heard: "Here's what I'm hearing: [problem, scope, non-goals, su
 
 After user confirms the summary:
 ```bash
-ssf state set <change-dir> dp_1_result "confirmed: <one-line summary>"
-ssf state set <change-dir> dp_1_timestamp $(date -u +%Y-%m-%dT%H:%M:%SZ)
+SSF state set <change-dir> dp_1_result "confirmed: <one-line summary>"
+SSF state set <change-dir> dp_1_timestamp now
 ```
 DP-1 confirms scope, non-goals, and success criteria before artifact creation.
 
@@ -71,36 +75,3 @@ Do not produce implementation code. This skill stabilizes intent, not builds.
 - **Parse failures**: Report the specific file, proceed with available information
 - **Missing files**: Note absent essential files as constraints, continue
 - **User interruption**: Exploration is stateless — on resume, re-ask the current question
-
-## Standard User-Facing Handoff
-
-End every user-facing phase report with this concise handoff. Only a successfully
-persisted `closing` state and `abandoned` are terminal.
-
-### Normal report
-
-- Current stage: `<detected workflow stage>`.
-- Completed / blocker: `<completed work>`.
-- Next stage: `<next workflow stage or skill>`.
-- Entry condition: `<what must be true to enter it>`.
-
-### Blocked report
-
-- Current stage: `<detected workflow stage>`.
-- Completed / blocker: `<blocking fact or missing evidence>`.
-- Next stage: `<stage that resumes after the blocker>`.
-- Entry condition: `<the approval, artifact, validation, or fix required>`.
-
-### Approval-wait report
-
-- Current stage: `<detected workflow stage>`.
-- Completed / blocker: `<work ready for the named decision>`.
-- Next stage: `<stage that follows approval>`.
-- Entry condition: `<explicit user approval or recorded decision>`.
-
-### Successful terminal report
-
-- Current stage: successfully persisted `closing` or `abandoned`.
-- Completed / blocker: `<persisted terminal outcome>`.
-- Next stage: `none`.
-- Entry condition: no further transition exists.

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Research Mentor Review"
+  short_description: "Give actionable, evidence-based research feedback."
+  default_prompt: "Review this research work as a constructive mentor. Prioritize validity and evidence, distinguish required revisions from recommendations, and provide concrete next actions."

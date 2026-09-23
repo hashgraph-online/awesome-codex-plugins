@@ -33,7 +33,7 @@ A single-record breach involving these categories is mandatorily notifiable.
 
 **Operationalisation:**
 - Breach assessment matrix in the runbook: data category × affected count → notifiable yes/no
-- High-risk PaoPao-style categories: phone, email, location, photos, private chat content (chat content is borderline — disclosure to a third party is significant; internal-only access is not a notifiable breach per s26B(4))
+- High-risk categories for a typical consumer app: phone, email, location, photos, private chat content (chat content is borderline — disclosure to a third party is significant; internal-only access is not a notifiable breach per s26B(4))
 
 ## s26B(4) — Internal-only breach not notifiable
 

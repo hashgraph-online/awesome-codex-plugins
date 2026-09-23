@@ -1,30 +1,10 @@
-# Domain Pack: AI Product Features
+# AI Products
 
-Use this when a plan touches LLM workflows, prompt chains, retrieval, agents,
-tool use, evaluations, model selection, safety filters, or generated content.
+Inspect prompts/tools, schemas, retrieval, evaluations, latency/cost, limits,
+retention, and fallbacks. Decide model/tool authority, validation, quality thresholds,
+bounded context/retries, versions, failure behavior, and observability. Prefer a
+direct model call when sufficient.
 
-## Evidence To Gather
-
-- Existing prompt templates, model calls, tools, and retrieval stores.
-- Evaluation datasets, golden outputs, and quality metrics.
-- Latency, cost, and rate-limit constraints.
-- Safety, privacy, logging, and retention policy.
-- Human review or escalation workflows.
-- Current failure modes and fallback behavior.
-
-## Plan Must Decide
-
-- Model and tool boundary.
-- Input/output schemas and validation.
-- Evaluation criteria and regression suite.
-- Fallback behavior for model errors, bad outputs, and blocked content.
-- Prompt/version management.
-- Observability for quality, cost, latency, and safety.
-
-## Tests First
-
-- Schema validation for model inputs and outputs.
-- Deterministic unit tests for prompt assembly and tool selection.
-- Golden evals for representative tasks.
-- Safety and privacy redaction tests.
-- Fallback tests for provider failure, malformed output, and low confidence.
+Verify prompt assembly, tool authorization, malformed outputs, representative
+evals, privacy redaction, and provider failure. Measure quality, latency, and
+usage together; prompt length alone proves none.

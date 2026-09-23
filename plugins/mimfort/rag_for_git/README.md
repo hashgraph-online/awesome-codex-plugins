@@ -685,20 +685,36 @@ namespaced skills with `$rag-reviewer:...`.
   empty search) is reported per-section in `gaps` instead of aborting the skill. Graph expansions
   (`get_related_symbols`, `callers`, `implementations`, `family`, …) and `get_pr_diff` stay
   separate calls made at the LLM's discretion, since they depend on what the brief turns up.
-- **A storage outage is a signal, not silence:** when Postgres or Neo4j is unreachable, the first
-  failing section short-circuits the rest: every remaining section gets its default plus a `gaps`
-  entry, instead of each paying its own 30-second pool timeout. The *class* of unavailability is
-  decided by exception type (`is_storage_unavailable`), but the cause *within* that class — a wrong
-  password or a missing database, as opposed to stopped containers — is decided by text
+- **An unavailable source is a signal, not silence:** when a source is unreachable, the first
+  failing section short-circuits the rest *of that source*: every remaining section gets its default
+  plus a `gaps` entry, instead of each paying its own 30-second pool timeout. The breaker is keyed
+  by source — `postgres`, `graph`, `embedder` — so a dead embedder never cancels sections that only
+  need Postgres, and vice versa. The *class* of unavailability is decided by exception type
+  (`is_storage_unavailable`, `is_embedder_unavailable`), but the cause *within* the storage class —
+  a wrong password or a missing database, as opposed to stopped containers — is decided by text
   (`classify_storage_failure`): a failure during connection setup gives libpq nothing to return, so
-  SQLSTATE is empty and there is no code to branch on. Raw text only ever reaches the caller when
-  the cause couldn't be named, and even then only redacted (`reviewer/storage_health.py`). Every
-  `gaps` entry carries `cause` (`storage_unavailable` | `unknown`), `cause_detail` (`auth_failed` |
-  `missing_database` | `null`), and `remedy` — empty not only for remote storages but also once a
+  SQLSTATE is empty and there is no code to branch on. The one detail decided by type instead is an
+  exhausted connection pool: `PoolTimeout` stays inside the storage class (removing it would cost
+  the breaker its ability to trip on the first failure) but may carry `cause_detail: pool_exhausted`,
+  because the containers are up and the real cure is a bigger pool or less concurrency. The type
+  alone is not enough there: production only reaches Postgres through the pool, and a stopped
+  container surfaces as the very same `PoolTimeout`, so the branch adds one observation — a single
+  direct `psycopg.connect(dsn, connect_timeout=2)` outside the pool. Connected means the pool really
+  is busy; failed means the *probe's* exception is classified instead, so a stopped container keeps
+  its `reviewer start` and a stale password still reads as `auth_failed`. Raw text only
+  ever reaches the caller when the cause couldn't be named, and even then only redacted
+  (`reviewer/storage_health.py`). Every `gaps` entry carries `cause` (`storage_unavailable` |
+  `embedder_unavailable` | `unknown`), `cause_detail` (`auth_failed` | `missing_database` |
+  `pool_exhausted` | `null`), and `remedy` — empty not only for remote storages but also once a
   cause is named, since the containers are already up and the cure doesn't apply — so the skill
-  branches on machine-readable fields rather than on prose. The server never starts containers — it
-  names the cure, and `solve-task` asks the user whether to run it. The same flag stops `index_batch`
-  from walking a dead pool task by task and from spending Voyage quota it has nowhere to store.
+  branches on machine-readable fields rather than on prose. A dead embedder is its own class, not a
+  detail of the storage one: Voyage is not a storage, and `reviewer start` does not fix it. Voyage
+  throttling (`RateLimitError`) is deliberately excluded — on the free tier it is a normal state
+  that `with_voyage_retry` already handles — and so are request-validation failures
+  (`InvalidRequestError` 400, `MalformedRequestError` 422, `VideoProcessingError`): a rejected
+  request is not a dead service, and treating it as one would silently gut half the task context. The server never starts containers — it names the cure,
+  and `solve-task` asks the user whether to run it. The same flag stops `index_batch` from walking a
+  dead pool task by task and from spending Voyage quota it has nowhere to store.
 - **Multi-query retrieval for `code`:** the `code` and `test_exemplars` sections are searched with a
   *set* of subqueries, not one query over the whole task text. Subqueries are extracted
   deterministically (`reviewer/mcp/subqueries.py`: list items under "what to do"/"acceptance"

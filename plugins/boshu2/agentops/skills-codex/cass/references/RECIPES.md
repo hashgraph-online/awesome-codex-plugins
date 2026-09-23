@@ -1,13 +1,13 @@
 # Workflow Recipes
 
-> **Priority:** Your prompts first. They're replicable. Agent execution varies.
+> **Priority:** Resolve a concrete uncertainty with cited intent, action and outcome evidence.
 
 ## Contents
 
 | Recipe | When |
 |--------|------|
-| [Session Bootstrap](#session-bootstrap) | Start of every cass session |
-| [Ritual Discovery](#ritual-discovery) | Find reusable prompts |
+| [Search Readiness](#search-readiness) | Observe state when needed |
+| [Recurring Candidates](#recurring-candidates) | Investigate repeated prompts |
 | [User Prompt Extraction](#user-prompt-extraction) | What did I ask? |
 | [Subagent Mining](#subagent-mining) | Find extraction prompts |
 | [Scope Archaeology](#scope-archaeology) | When did we decide X? |
@@ -21,92 +21,72 @@
 
 ---
 
-## Session Bootstrap
+## Search Readiness
 
-**Always start here:**
+After source, task, model and destination authorization, search a healthy or
+stale-but-usable index immediately. Record freshness; do not automatically
+refresh, rebuild or add `--refresh`. If unavailable, report that state or use
+[bounded recovery](RECOVERY.md) only when needed and authorized.
 
 ```bash
-# 1. Health check
-cass status --json
-
-# 2. Refresh index
-cass index --json
-
-# 3. Project overview
-cass search "*" --workspace /data/projects/PROJECT --aggregate agent,date --limit 1 --json
+timeout 15 cass status --json
+# Optional overview when useful to the question
+timeout 30 cass search "*" --workspace /data/projects/PROJECT --mode lexical \
+  --aggregate agent,date --fields minimal --limit 1 --json
 ```
 
 ---
 
-## Ritual Discovery
+## Recurring Candidates
 
-**Goal:** Find prompts you used repeatedly (these work).
+**Goal:** Investigate a recurring prompt without assuming that repetition means
+it worked. Search for a task-relevant phrase, then review selected episodes.
 
 ```bash
-# Count suspected ritual
-cass search "First read ALL" --workspace /path --json --limit 100 | jq '.total_matches'
-# > 10 = RITUAL — document it
-
-# Find most repeated prompts
-cass search "*" --workspace /path --json --limit 500 \
-  | jq '[.hits[] | select(.line_number <= 3) | .title[0:80]] | group_by(.) | map({prompt: .[0], count: length}) | sort_by(-.count) | .[0:20]'
+timeout 30 cass search "TASK PHRASE" --workspace /path --mode lexical \
+  --json --fields summary --limit 20
+timeout 30 cass pack "TASK PHRASE" --workspace /path --mode lexical --json \
+  --limit 20 --max-sessions 3 --max-evidence 6 --max-tokens 4000
 ```
 
-### Common Rituals to Search
-
-| Pattern | Purpose |
-|---------|---------|
-| `"First read ALL"` | Context loading |
-| `"read AGENTS.md"` | Project rules |
-| `"comprehensive deep dive"` | Thorough analysis |
-| `"think super hard"` | Quality mode |
-| `"ultrathink"` | Quality mode |
-| `"extract all"` | Data extraction |
+Compare the user intent, action, result and later corrections. Recurrence may
+come from copied instructions, repeated failure or retries. Check a competing
+explanation or counterexample before reuse; later task evidence is needed to
+show usefulness. No count threshold promotes a prompt into a rule.
 
 ---
 
 ## User Prompt Extraction
 
-**Goal:** Find what you asked, in what order.
+**Goal:** Find what the user asked and preserve its actual source identity.
 
 ```bash
-# User prompts mention keyword (lines 1-3)
-cass search "KEYWORD" --workspace /path --json --limit 100 \
-  | jq '[.hits[] | select(.line_number <= 3)] | .[] | {path: .source_path, line: .line_number, title: .title[0:80]}'
-
-# Count user prompts with term
-cass search "KEYWORD" --workspace /path --json --limit 100 \
-  | jq '[.hits[] | select(.line_number <= 3)] | length'
-
-# View actual prompt
-cass view /path/from/hit.jsonl -n 1 -C 5
+cass search "KEYWORD" --workspace /path --mode lexical --json --fields minimal --limit 20
+# Use the selected hit's path and line, not a presumed session opener.
+cass view /path/from/hit.jsonl -n LINE -C 3 --json
+cass expand /path/from/hit.jsonl --line LINE --context 3 --json
 ```
+
+User roles come from native message records, including nested harness fields.
+Line numbers and titles are not role evidence. Confirm that the returned
+locator matches the request; unknown roles, absent sources and clamped windows
+remain gaps. Selected excerpts do not establish all prompts or chronology for
+unread parts of a session.
 
 ---
 
 ## Subagent Mining
 
-**Goal:** Extract deep dive prompts — line 2 of subagent logs is THE prompt.
+**Goal:** Inspect a relevant subagent prompt and its observed outcome.
 
 ```bash
-# Find subagent sessions
-cass search "deep dive" --workspace /path --json --fields minimal \
-  | jq '[.hits[] | select(.source_path | contains("subagent"))] | .[].source_path' -r | sort -u
-
-# View the prompt (line 2)
-cass view /path/to/subagents/agent-XXXXX.jsonl -n 2 -C 1
-
-# Extract just the text
-sed -n '2p' /path/to/subagents/agent-XXXXX.jsonl | jq '.message.content'
+cass search "TASK PHRASE" --workspace /path --json --fields minimal --limit 20 \
+  | jq '[.hits[] | select(.source_path | contains("subagent")) | {source_path, line_number}]'
+cass expand /path/from/selected-hit.jsonl --line LINE --context 3 --json
 ```
 
-### Subagent Structure
-
-```
-Line 1: Metadata
-Line 2: THE PROMPT (gold — copy-paste ready)
-Line 3+: Execution
-```
+The filename is only a candidate filter. Verify the actual record role and
+native parent/child metadata; the prompt is not guaranteed to occupy line 2.
 
 ---
 
@@ -199,7 +179,7 @@ cass search "*" --workspace /path --json --limit 200 \
 
 ## Session Clustering
 
-**Goal:** Find all related work from one good hit.
+**Goal:** Discover candidate related work from one relevant hit.
 
 ```bash
 # 1. Find one relevant session
@@ -212,7 +192,7 @@ cass context /path/from/hit.jsonl --json
 # 3. Iterate over related_sessions
 ```
 
-**Why:** Work happens in clusters. One good session → whole cluster.
+Related-session output is not a complete cluster or proof of native parentage.
 
 ---
 
@@ -261,30 +241,26 @@ cass search "cass search" --workspace /path --json --fields minimal
 cass search "aggregate" --workspace /path --json --fields minimal
 ```
 
-**Insight:** Queries that appear multiple times = queries that worked.
+Repeated queries are candidates. Inspect the resulting hits and the task outcome; repetition alone may indicate failed searches.
 
 ---
 
 ## Full Example
 
 ```bash
-# 1. Health
-cass status --json
+# 1. Discover within a selected authorized workspace and bounded query family.
+timeout 30 cass search "scope decision" --workspace /data/projects/PROJECT \
+  --mode lexical --json --fields minimal --limit 20
 
-# 2. Overview (925 sessions)
-cass search "*" --workspace /data/projects/beads_rust --aggregate agent --limit 1 --json
+# 2. Ask CASS for a small cited selection.
+timeout 30 cass pack "scope decision" --workspace /data/projects/PROJECT \
+  --mode lexical --json --limit 20 --max-sessions 3 --max-evidence 6 --max-tokens 4000
 
-# 3. Find ritual opener
-cass search "First read ALL of AGENTS.md" --workspace /data/projects/beads_rust --json --limit 100 \
-  | jq '.total_matches'
-# Result: 50+ = RITUAL
-
-# 4. Extract ritual
-cass view $(cass search "First read ALL" --workspace /data/projects/beads_rust --json --limit 1 | jq -r '.hits[0].source_path') -n 1 -C 5
-
-# 5. Find scope decisions
-cass search "EXCLUDE" --workspace /data/projects/beads_rust --json --limit 50
-
-# 6. Discover related
-cass context /path/to/interesting/session.jsonl --json
+# 3. Follow a relevant returned locator and check native role/intent/outcome.
+timeout 15 cass expand /path/from/selected-hit.jsonl --line LINE --context 3 --json
 ```
+
+Retain query, filters, limit, freshness, selected locators and omissions. Missing
+sources or mismatched returned locations are not repaired by assuming an indexed
+snippet is the original record. Reuse only what the observed evidence supports;
+a justified no-change or insufficient-evidence result is valid.

@@ -1,0 +1,19 @@
+{
+  "name": "quiver",
+  "version": "1.25.0",
+  "description": "Composable development lifecycle -- brainstorm, plan, execute, review, and hand over from idea to merged PR",
+  "author": {
+    "name": "Yilmaz Yagiz Dokumaci"
+  },
+  "homepage": "https://github.com/yagizdo/quiver",
+  "repository": "https://github.com/yagizdo/quiver",
+  "license": "MIT",
+  "skills": "./skills/",
+  "rules": "./.codex-plugin/rules/",
+  "mcpServers": "./.codex-plugin/mcp.json",
+  "interface": {
+    "displayName": "Quiver",
+    "shortDescription": "Composable development lifecycle -- brainstorm, plan, execute, review, and hand over",
+    "category": "Productivity"
+  }
+}

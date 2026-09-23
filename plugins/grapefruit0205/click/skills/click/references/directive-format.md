@@ -34,7 +34,7 @@ Stage one JSON object with exactly these fields:
       }
     ]
   },
-  "plain_language": "Faithful easy explanation of the compact contract and verification scale."
+  "plain_language": "Self-contained easy narrative that faithfully covers the result, changes, safeguards, exclusions, and completion checks."
 }
 ```
 
@@ -58,26 +58,25 @@ Do not split the build approach into phases, steps, tasks, or another mirrored p
 
 ## Human approval surface
 
-Keep `plain_language` inside the canonical digest-bound object, but do not show raw JSON by default. Render one faithful four-section view in the user's language:
+Keep `plain_language` inside the canonical digest-bound object. It is the default approval body and must read as a self-contained explanation rather than a technical field list. It must preserve the material meaning of the result, in-scope changes, exclusions, must-hold safeguards, implementation consequences, and completion evidence. Prefer a concrete example when useful, followed by what changes, safeguards, exclusions, and a one-sentence summary. Describe the qualitative verification profile in ordinary language.
 
-1. **Goal** — the concrete result and visible behavior;
-2. **Changes** — the in-scope boundary and broad implementation route;
-3. **Unchanged** — out-of-scope behavior plus every must-hold promise;
-4. **Completion checks** — the qualitative scale and human-readable evidence conditions.
+Render the exact Hook-provided easy body once in the user's language with the emitted `contract_id`. Do not independently summarize, expand, or repeat it. Keep the canonical JSON hidden unless the user asks for the **original contract**. The easy body is a projection of the exact staged object, not a second or weaker contract.
 
-Offer the canonical JSON only as optional **Technical contract** details. The human view is a projection of the exact staged object, not a second or weaker contract. Use the projection supplied by the successful stage Hook response instead of independently reconstructing it.
+If the user requests the original contract, show the exact canonical JSON supplied to the successful stage call and the same `contract_id`. Do not pass, change, or restage it merely to disclose it. The request itself is not approval. Because the original object contains `plain_language`, an explicitly requested disclosure may show that field again; this is not a duplicate default summary.
 
 ## Single approval
 
-Run `click-gate stage '<Execution Contract JSON>'` once. The Hook validates and binds the canonical contract digest, creates a fresh opaque lifecycle handle, emits the ID marker below, and injects the exact four-section projection into the successful stage Hook context:
+Run `click-gate stage '<Execution Contract JSON>'` once. The Hook validates and binds the canonical contract digest, creates a fresh opaque lifecycle handle, emits the ID marker below, and injects the exact easy approval body plus presentation instructions into the successful stage Hook context:
 
 ```text
 CLICK_CONTRACT_ID=ctr_<32 lowercase hex characters>
 ```
 
-`contract_id` is not a contract field and does not replace the stored digest. Show the emitted id with the Hook-generated four human sections, then end with one compact question equivalent to:
+`contract_id` is not a contract field and does not replace the stored digest. Show the emitted id with the Hook-generated easy body, then end with one compact question in the user's language equivalent to:
 
-> Do you approve contract `ctr_...` and its verification scale? If approved, I will implement it in one shot and run the completion checks once.
+> The contract above is explained in plain language. Do you approve it as written, or would you like to see the original contract first?
+
+Make four responses available: approve, request changes, cancel, or view the original contract.
 
 Stop without mutation. The original request is not approval of an unseen contract. Staging records `staged_turn_id`; the Hook rejects pass and a replacement stage in that same `UserPromptSubmit` turn. A materially revised proposal receives a new id. An in-scope detail or narrowing follow-up is digest-recorded on the existing contract and does not require reapproval. That digest proves the request was recorded; the runtime does not semantically prove that it was in scope.
 

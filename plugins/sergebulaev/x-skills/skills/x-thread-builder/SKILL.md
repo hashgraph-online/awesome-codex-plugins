@@ -1,6 +1,6 @@
 ---
 name: x-thread-builder
-description: Build a long-form X (Twitter) thread (tweetstorm) using a 2026 thread formula (listicle-thread, story thread, curiosity-gap opener, how-I teardown), picked by goal (bookmarks, likes, reposts, replies). Structures tweet 1 as a promise plus open loop, paces one beat per tweet, and closes for the repost. Publishes via Publora, which auto-splits long content into a numbered (1/N) thread. Not for single tweets (use x-post-writer) or auditing a draft (use x-humanizer --mode audit).
+description: "Build a long-form X (Twitter) thread (tweetstorm) using a 2026 thread formula (listicle-thread, story thread, curiosity-gap opener, how-I teardown), picked by goal (bookmarks, likes, reposts, replies). Structures tweet 1 as a promise plus open loop, paces one beat per tweet, and closes for the repost. Publishes via Publora, which auto-splits long content into a numbered (1/N) thread. Not for single tweets (use x-post-writer) or auditing a draft (use x-humanizer --mode audit)."
 ---
 
 # X Thread Builder
@@ -71,8 +71,12 @@ so the user sees exactly how the thread will land before approving.
 6. **Write the closer.** The last tweet earns the repost and the follow. End on
    the most quotable line, then one clear ask (bookmark, follow, or "reply with
    yours"), not both.
-7. **Humanizer pass** on every tweet. Strip em dashes, AI vocab, uniform rhythm.
-   Vary tweet length across the thread.
+7. **Humanizer pass** on every tweet. Scrub 2026 AI vocab by density, cap em
+   dashes (at most one per tweet, never swap one for a period), break stacked
+   triads and reveal bridges. Let tweet length vary only as the material
+   varies: never insert a 3-word punch tweet for rhythm, never alternate
+   long/short, and touch rhythm only if the whole thread reads machine-flat.
+   Canonical rules: `x-humanizer` V3.
 8. **Optional audit.** Run `x-humanizer --mode audit` on the assembled thread.
 9. **Approval card.** Show the thread tweet-by-tweet with per-tweet char counts,
    total tweet count, the formula, and the goal. Confirm any `---` breaks.
@@ -91,7 +95,10 @@ rules:
 - Keep each tweet under 280 chars on a standard account (emoji = 2 chars).
 - Front-load value. Never bury the best item at the end of a teaching thread.
 - No external link in tweet 1. Put links in a later tweet or a reply.
-- Vary tweet length. A thread of identical-length tweets reads as AI.
+- Natural rhythm, not manufactured variance. A long thread where every tweet
+  is the same length and none carries a real clause reads machine-flat; fix
+  that one thing. Never pad or chop tweets to create variance, and never
+  insert a punch tweet: the inserted punch is the humanizer fingerprint.
 - Only ship a Story Thread (X8) built on a true story. Readers punish
   manufactured stakes.
 
@@ -101,7 +108,9 @@ rules:
 - Over-promising in tweet 1 and under-delivering in the body.
 - Vague how-to steps ("be consistent", "add value") in an X10 teardown.
 - Padding to hit a round number of tweets.
-- Em dashes, AI vocab, ALL CAPS openers.
+- Em dashes above the cap (more than one in a tweet), AI vocab clusters, ALL CAPS openers.
+- "The result?" reveals, "No X. No Y. Just Z." staccato stacks, one-word tweets for drama.
+- Announced candor ("Let me be honest", "not gonna lie") with no dated fact behind it.
 - Engagement-bait closers ("RT if this helped").
 
 ## Resources

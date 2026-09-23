@@ -36,12 +36,12 @@ or the execution strategy chosen in the startup survey (inline / subagent / lite
    the manual round trips below into one deterministic call and returns a single payload:
    `preflight` (branch, indexed_sha, drift, summaries, chunks, graph_nodes — feeds Step 0.1/0.4
    below), `task_board`/`task` (feeds Step 2), `related`/`subsystems`/`code`/`test_exemplars`
-   (feeds Step 3), `gaps` (a list of `{section, reason, cause, cause_detail, remedy}` — branch on `cause`, the
-   machine-readable class, not the prose `reason`; `cause_detail` refines it INSIDE the class
-   (`auth_failed` | `missing_database` | `null`) and decides the wording of Step 0a; copy every
-   entry into **Constraints / open questions** in the Step 4 brief verbatim) and `warnings`
-   (surface to the user). No source
-   failure raises — a failed section just adds a `gaps` entry, so the steps below stay fail-open.
+   (feeds Step 3), `gaps` (a list of `{section, reason, cause, cause_detail, remedy}` — branch on whether
+   `cause` is `unknown`, not on one non-`unknown` value; the classes are `storage_unavailable` |
+   `embedder_unavailable`, and `cause_detail` refines `storage_unavailable` only (`auth_failed` |
+   `missing_database` | `pool_exhausted` | `null`); copy every entry into **Constraints / open questions**
+   in the Step 4 brief verbatim) and `warnings` (surface to the user). No source failure raises — a failed
+   section just adds a `gaps` entry, so the steps below stay fail-open.
 
 <!-- include: solve-task/references/preflight.md -->
 

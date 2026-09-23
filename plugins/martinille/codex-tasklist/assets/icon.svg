@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Task list">
+  <rect width="512" height="512" rx="112" fill="#142b2b"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="28">
+    <path d="m100 145 25 25 47-52" stroke="#6ee7b7"/>
+    <path d="M226 147h176M226 256h176M226 365h126" stroke="#f0fdfa"/>
+    <path d="m112 233 27 23-27 23" stroke="#fbbf24"/>
+    <rect x="104" y="342" width="46" height="46" rx="8" stroke="#94a3b8"/>
+  </g>
+</svg>

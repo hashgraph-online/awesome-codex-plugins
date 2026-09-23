@@ -54,7 +54,7 @@ If your application uses outbound voice / SMS marketing to Singapore users, you'
 If you've worked with GDPR or another framework, the things to recalibrate:
 
 - **Lawful bases are simpler.** Consent is the default; the "legitimate interest"-style alternatives (s17 + 1st/2nd Schedule) are an enumerated list of cases, not a balancing test.
-- **Breach notification is faster and stricter** than most jurisdictions: 3 calendar days vs the 72-hour business standard elsewhere.
+- **Breach notification looks tighter than it is.** The s26D(1) window is 3 calendar days, but the clock starts at **assessment**, not awareness — and the assessment itself only has to be "reasonable and expeditious". Against the awareness-based 72-hour clocks in MY / TH / ID, SG is therefore operationally *looser*, not stricter. If you run multiple jurisdictions, do not treat the SG clock as the binding one.
 - **Individual criminal liability** (s48D/E/F) is unusual — not just civil penalties on the org, but personal criminal exposure for staff who knowingly misuse data. Reflect this in the staff AUP (see [layer 01](../../layers/01-non-technical.md)).
 - **Accountability ("demonstrable compliance")** is structural: regulators expect the org to show its work — DPO, policies, training records, audit logs, breach assessments.
 

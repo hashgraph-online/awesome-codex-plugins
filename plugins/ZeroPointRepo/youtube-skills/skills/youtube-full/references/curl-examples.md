@@ -49,11 +49,25 @@ curl -s "https://transcriptapi.com/api/v2/youtube/channel/videos?channel=@NASA" 
   -H "Authorization: Bearer $TRANSCRIPT_API_KEY" \
   -H "User-Agent: YourAgent/1.0"
 
-# Next pages
-curl -s "https://transcriptapi.com/api/v2/youtube/channel/videos?continuation=TOKEN" \
+
+# Most-viewed first (channel Videos tab, ~30 per page)
+curl -s "https://transcriptapi.com/api/v2/youtube/channel/videos?channel=@NASA&sort=popular" \
+  -H "Authorization: Bearer $TRANSCRIPT_API_KEY" \
+  -H "User-Agent: YourAgent/1.0"
+
+# Oldest first
+curl -s "https://transcriptapi.com/api/v2/youtube/channel/videos?channel=@NASA&sort=oldest" \
+  -H "Authorization: Bearer $TRANSCRIPT_API_KEY" \
+  -H "User-Agent: YourAgent/1.0"
+
+# Next pages (repeat the same tab AND sort)
+curl -s "https://transcriptapi.com/api/v2/youtube/channel/videos?continuation=TOKEN&sort=popular" \
   -H "Authorization: Bearer $TRANSCRIPT_API_KEY" \
   -H "User-Agent: YourAgent/1.0"
 ```
+
+Sort a channel's videos by latest, popular, or oldest, for example most-popular first. Sorted pages return about 30 videos (unsorted about 100); each page costs 1 credit.
+
 
 ## Search within channel — 1 credit
 

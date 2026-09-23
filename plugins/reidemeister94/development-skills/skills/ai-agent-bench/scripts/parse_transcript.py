@@ -98,7 +98,8 @@ def _extract_command_basenames(cmd: str | None) -> set[str]:
     """Extract executable/script basenames from the simple shell command in `outer_check`."""
     if not cmd:
         return set()
-    interpreters = {"python", "python3", "bash", "sh", "uv", "poetry", "pipenv", "node"}
+    interpreters = {"python", "python3", "bash", "sh", "node"}
+    run_wrappers = {"uv", "poetry", "pipenv"}
     separators = {"&&", "||", ";", "|"}
     # shlex.split honors quotes, so `echo "a && b"` does NOT split on the quoted &&.
     # Fallback only on unbalanced quotes — `cmd.split()` keeps the operator coalesced
@@ -113,27 +114,39 @@ def _extract_command_basenames(cmd: str | None) -> set[str]:
             segments.append([])
         else:
             segments[-1].append(tok)
-    basenames: set[str] = set()
-    for tokens in segments:
-        primary_idx = None
-        for i, token in enumerate(tokens):
+
+    def next_command(tokens: list[str], start: int) -> int | None:
+        """Return the next token that can name a command."""
+        for i in range(start, len(tokens)):
+            token = tokens[i]
             if token.startswith("-"):
                 continue
             if "=" in token and not token.startswith(("./", "/")):
                 continue
-            primary_idx = i
-            break
-        if primary_idx is None:
-            continue
-        primary = Path(tokens[primary_idx]).name
-        if primary in interpreters:
-            for token in tokens[primary_idx + 1 :]:
-                if token.startswith("-"):
-                    continue
-                if "=" in token and not token.startswith(("./", "/")):
-                    continue
-                basenames.add(Path(token).name)
+            return i
+        return None
+
+    basenames: set[str] = set()
+    for tokens in segments:
+        idx = next_command(tokens, 0)
+        while idx is not None:
+            name = Path(tokens[idx]).name
+            if name == "uvx":
+                idx = next_command(tokens, idx + 1)
+            elif name in run_wrappers:
+                sub_idx = next_command(tokens, idx + 1)
+                if sub_idx is None or tokens[sub_idx] != "run":
+                    break
+                idx = next_command(tokens, sub_idx + 1)
+            else:
                 break
+        if idx is None:
+            continue
+        primary = Path(tokens[idx]).name
+        if primary in interpreters:
+            script_idx = next_command(tokens, idx + 1)
+            if script_idx is not None:
+                basenames.add(Path(tokens[script_idx]).name)
         else:
             basenames.add(primary)
     return {b for b in basenames if b}
@@ -151,12 +164,16 @@ def parse_claude_session(path: Path, harness_basenames: set[str] | None = None) 
 
     # Cumulative token tallies. Claude Opus 4.6+ splits cache_creation into 5m/1h TTL buckets
     # (different per-token prices: 5m = 1.25x input, 1h = 2.0x input).
+    # Count each main-chain usage snapshot once. Subagent totals arrive through
+    # task notifications and are tracked separately.
     input_tokens = 0
     output_tokens = 0
     cache_read_tokens = 0
     cache_creation_tokens = 0
     cache_creation_5m = 0
     cache_creation_1h = 0
+    seen_message_ids: set[str] = set()
+    subagent_tokens_by_task: dict[str, int] = {}
 
     # Thinking tokens: Claude stream-json exposes thinking blocks in message.content with
     # type="thinking". There is no separate token count — the thinking content is charged as
@@ -177,18 +194,30 @@ def parse_claude_session(path: Path, harness_basenames: set[str] | None = None) 
         et = ev.get("type")
         if et == "system" and ev.get("subtype") == "init":
             init_block = ev
+        elif et == "system" and ev.get("subtype") == "task_notification":
+            task_id = ev.get("task_id") or f"task-{len(subagent_tokens_by_task)}"
+            usage = ev.get("usage") or {}
+            subagent_tokens_by_task[task_id] = int(usage.get("total_tokens") or 0)
         elif et == "assistant":
             n_assistant += 1
             msg = ev.get("message", {}) or {}
             model = model or msg.get("model")
-            usage = msg.get("usage", {}) or {}
-            input_tokens += int(usage.get("input_tokens") or 0)
-            output_tokens += int(usage.get("output_tokens") or 0)
-            cache_read_tokens += int(usage.get("cache_read_input_tokens") or 0)
-            cache_creation_tokens += int(usage.get("cache_creation_input_tokens") or 0)
-            cache_creation_nested = usage.get("cache_creation") or {}
-            cache_creation_5m += int(cache_creation_nested.get("ephemeral_5m_input_tokens") or 0)
-            cache_creation_1h += int(cache_creation_nested.get("ephemeral_1h_input_tokens") or 0)
+            msg_id = msg.get("id")
+            if not ev.get("parent_tool_use_id") and not (msg_id and msg_id in seen_message_ids):
+                if msg_id:
+                    seen_message_ids.add(msg_id)
+                usage = msg.get("usage", {}) or {}
+                input_tokens += int(usage.get("input_tokens") or 0)
+                output_tokens += int(usage.get("output_tokens") or 0)
+                cache_read_tokens += int(usage.get("cache_read_input_tokens") or 0)
+                cache_creation_tokens += int(usage.get("cache_creation_input_tokens") or 0)
+                cache_creation_nested = usage.get("cache_creation") or {}
+                cache_creation_5m += int(
+                    cache_creation_nested.get("ephemeral_5m_input_tokens") or 0
+                )
+                cache_creation_1h += int(
+                    cache_creation_nested.get("ephemeral_1h_input_tokens") or 0
+                )
 
             content = msg.get("content") or []
             tool_uses_in_msg = 0
@@ -224,11 +253,16 @@ def parse_claude_session(path: Path, harness_basenames: set[str] | None = None) 
         duration_ms = result_block.get("duration_ms")
         num_turns = result_block.get("num_turns")
         final_usage = result_block.get("usage") or {}
-        # Fall back to final tally if per-assistant accumulation yielded zero.
-        if input_tokens == 0 and final_usage.get("input_tokens"):
-            input_tokens = int(final_usage["input_tokens"])
-        if output_tokens == 0 and final_usage.get("output_tokens"):
-            output_tokens = int(final_usage["output_tokens"])
+        input_tokens = int(final_usage.get("input_tokens") or input_tokens)
+        output_tokens = int(final_usage.get("output_tokens") or output_tokens)
+        cache_read_tokens = int(final_usage.get("cache_read_input_tokens") or cache_read_tokens)
+        cache_creation_tokens = int(
+            final_usage.get("cache_creation_input_tokens") or cache_creation_tokens
+        )
+        final_nested = final_usage.get("cache_creation") or {}
+        if final_nested:
+            cache_creation_5m = int(final_nested.get("ephemeral_5m_input_tokens") or 0)
+            cache_creation_1h = int(final_nested.get("ephemeral_1h_input_tokens") or 0)
 
     # Trajectory + tool-usage derived metrics.
     by_tool = Counter(tc["name"] or "<unknown>" for tc in tool_calls)
@@ -238,6 +272,7 @@ def parse_claude_session(path: Path, harness_basenames: set[str] | None = None) 
     avg_parallel = (
         sum(tool_use_per_assistant) / len(tool_use_per_assistant) if tool_use_per_assistant else 0.0
     )
+    subagent_total = sum(subagent_tokens_by_task.values())
 
     return {
         "agent": "claude",
@@ -251,7 +286,12 @@ def parse_claude_session(path: Path, harness_basenames: set[str] | None = None) 
             "cache_creation": cache_creation_tokens,
             "cache_creation_5m_ttl": cache_creation_5m,
             "cache_creation_1h_ttl": cache_creation_1h,
-            "total": input_tokens + output_tokens + cache_read_tokens + cache_creation_tokens,
+            "subagent_total": subagent_total,
+            "total": input_tokens
+            + output_tokens
+            + cache_read_tokens
+            + cache_creation_tokens
+            + subagent_total,
         },
         "thinking": {
             "blocks": thinking_blocks,
@@ -917,7 +957,7 @@ def _merge_measure_runs(runs: list[dict]) -> dict:
     if any_variants:
         variant_names: list[str] = []
         for r in valid:
-            for name in (r.get("variants") or {}).keys():
+            for name in r.get("variants") or {}:
                 if name not in variant_names:
                     variant_names.append(name)
         merged_variants: dict = {}
@@ -954,9 +994,13 @@ def aggregate_run_dir(agent: str, run_dir: Path, pricing: dict) -> dict:
             out["config"] = cfg
         except json.JSONDecodeError, OSError:
             pass
-    harness_basenames = _extract_command_basenames(cfg.get("outer_check"))
-    if harness_basenames:
-        out["harness_commands"] = {"outer_check_basenames": sorted(harness_basenames)}
+    outer_basenames = _extract_command_basenames(cfg.get("outer_check"))
+    harness_basenames = outer_basenames - _extract_command_basenames(cfg.get("inner_check"))
+    if outer_basenames:
+        out["harness_commands"] = {
+            "outer_check_basenames": sorted(outer_basenames),
+            "detection_basenames": sorted(harness_basenames),
+        }
 
     # Session transcript
     session_path = run_dir / "session.jsonl"

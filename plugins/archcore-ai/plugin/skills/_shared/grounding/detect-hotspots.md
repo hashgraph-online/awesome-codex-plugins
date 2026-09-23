@@ -135,7 +135,7 @@ to the budget fill by **repo-wide** rank across ALL domains, selected or not —
 unselected domain's hotspot still places when it outranks a selected domain's weaker
 one. On `skip` (no domain selected) the whole budget fills by repo-wide rank alone.
 
-**`--domain=<slug>` re-run.** Apply the same formula to the **narrowed** pool — eligible
+**`refresh <domain>` re-run.** Apply the same formula to the **narrowed** pool — eligible
 candidates under that domain's tree only. A re-run therefore tops up a domain in
 proportion to what that domain holds, at the same rate and floor as a day-one run.
 
@@ -171,8 +171,9 @@ decompose the module instead of composing it as one spec.
   (e.g. a 6000-LOC service with a read/query surface and a separate command/mutation
   surface) — split into **≤ 3 sub-specs**, one per sub-surface, each inside the same
   ≤ 120-line cap: `filename=<module-slug>-<sub-surface-slug>`,
-  `directory=<domain-or-'architecture'>`. Relate the sub-specs to each other
-  (`related`) in addition to the standard overview edge.
+  `directory=<domain-or-'architecture'>`. Evaluate links between the sub-specs
+  through `skills/_shared/relation-authoring.md`; splitting alone creates no edge.
+  The overview's index edge to each sub-spec still applies.
 
 **Never split to pad.** A large or hot file with one cohesive contract (no separable
 sub-surface) stays a single spec — "prefer omission over a guess" governs the split
@@ -236,7 +237,7 @@ Show candidates as a numbered list. At the end, a single hint:
 
 Do NOT auto-invoke those skills — let the user walk through on their own pace.
 
-## Day-one per-domain floor vs. `--domain` re-run scoping
+## Day-one per-domain floor vs. `domain` re-run scoping
 
 Two different mechanisms apply "per domain," at two different times — do not
 conflate them:
@@ -249,12 +250,12 @@ conflate them:
   candidate-pool restriction, and it also drives how many domains get a data-model
   doc (data-model breadth is decoupled from the dialog entirely — see
   `detect-data-model.md`).
-- **A later `/archcore:init --domain=<slug>` re-run.** This restricts the
+- **A later `/archcore:init refresh <domain>` re-run.** This restricts the
   **candidate pool itself** to files under the one named domain's path, then applies
   the same `rate` / `floor` formula to that narrowed pool. A dense domain therefore
   tops up with more specs than a thin one, instead of both receiving one flat number.
 
-The rationale lines for a `--domain` re-run prefix the candidate path with the domain
+The rationale lines for a `domain` re-run prefix the candidate path with the domain
 tag:
 
 ```

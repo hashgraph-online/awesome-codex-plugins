@@ -47,16 +47,29 @@ Never stack all three asks. Never end on "that's it" or "hope this helps".
 ## Per-tweet scrub (apply to every tweet)
 
 - [ ] Under 280 chars on a standard account (emoji = 2 chars each).
-- [ ] No em dashes, en dashes, or double dashes. Use `..`.
-- [ ] No AI vocab (leverage, fundamentally, delve, harness, etc.).
+- [ ] At most one em dash per tweet (replace the excess with a comma, colon
+      or `..`, never a period). No en dashes between clauses, no double dashes.
+- [ ] No cluster of 2026 AI vocab (3+ markers in one tweet = rewrite it; one
+      is fine): significant, crucial, notably, comprehensive, insights,
+      robust, leverage, foster, landscape, nuanced, streamline, elevate,
+      fundamentally, essentially; "-ing" clause openers; nominalisations.
+- [ ] No reveal bridge ("The result?", "Here's what"), no "It's not X, it's
+      Y", no sincerity opener ("not gonna lie", "let me be honest").
 - [ ] Stands alone if read in isolation.
-- [ ] At least one concrete detail (number, name, example) in the body tweets.
+- [ ] At least one concrete detail (a number with a referent, a name, an
+      example) in the body tweets.
 
-## Length variation
+## Rhythm across the thread
 
-A thread where every tweet is the same length reads as machine-made. Mix it:
-a 3-word punch tweet next to a fuller 240-char teaching tweet. The variation is
-itself a human signal.
+Let tweet length follow the material. A teaching tweet runs long because it
+teaches; a transition runs short because it transitions. That natural variance
+is fine on a long thread (our X corpus: variance helps at about 430 words and
+is neutral at 200). What reads as machine-made is the opposite in both
+directions: every tweet the same length with no clause doing work, or a
+manufactured seesaw with a 3-word "punch tweet" dropped in for rhythm. The
+inserted punch is the humanizer fingerprint; do not add one. If the thread
+reads flat, let the tweet carrying the most content take one real clause, and
+stop there.
 
 ## Hand-splitting with `---`
 

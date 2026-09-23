@@ -1,0 +1,27 @@
+{
+  "name": "pixeltable-skill",
+  "version": "2.11.2",
+  "description": "Build multimodal AI applications with Pixeltable: declarative tables, computed columns, embedding search, UDFs, and 25+ AI provider integrations.",
+  "keywords": [
+    "pi-package",
+    "pixeltable",
+    "multimodal",
+    "ai",
+    "rag",
+    "embeddings",
+    "computed-columns",
+    "vector-search",
+    "agent-skill"
+  ],
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pixeltable/pixeltable-skill.git"
+  },
+  "homepage": "https://docs.pixeltable.com/",
+  "pi": {
+    "skills": [
+      "./skills"
+    ]
+  }
+}

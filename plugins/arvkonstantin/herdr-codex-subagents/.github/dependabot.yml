@@ -1,0 +1,25 @@
+version: 2
+updates:
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "05:00"
+      timezone: Asia/Yekaterinburg
+    open-pull-requests-limit: 5
+    groups:
+      python-development:
+        dependency-type: development
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "05:15"
+      timezone: Asia/Yekaterinburg
+    open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns: ["*"]

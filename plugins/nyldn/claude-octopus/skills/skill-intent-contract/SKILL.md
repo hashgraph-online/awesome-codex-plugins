@@ -26,7 +26,7 @@ This closes the loop between intention and delivery.
 
 ## Intent Contract Structure
 
-The intent contract is stored in `.claude/session-intent.md` and follows this format:
+The intent contract is stored in the current resolved plan run directory as `session-intent.md`. Use `scripts/plan-storage.sh` to create or recover that directory; never write a loose intent file into `.claude/`.
 
 ```markdown
 # Intent Contract
@@ -237,10 +237,12 @@ If user selects "Let me describe it", follow up with a text prompt for their cus
 
 ### Step 2: Write Intent Contract File
 
-Use the Write tool to create `.claude/session-intent.md`:
+Resolve a unique run directory, then use the Write tool to create its `session-intent.md`:
 
 ```bash
-cat > .claude/session-intent.md <<EOF
+PLAN_STORAGE="${CLAUDE_PLUGIN_ROOT:-${HOME}/.claude-octopus/plugin}/scripts/plan-storage.sh"
+OCTO_PLAN_DIR="$("$PLAN_STORAGE" current "$PWD" 2>/dev/null || "$PLAN_STORAGE" create "$PWD")"
+cat > "${OCTO_PLAN_DIR}/session-intent.md" <<EOF
 # Intent Contract
 
 **Created**: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -279,7 +281,7 @@ EOF
 
 ### Step 3: Reference During Execution
 
-Throughout the workflow, periodically read `.claude/session-intent.md` to:
+Throughout the workflow, recover the current plan directory with `plan-storage.sh current "$PWD"` and periodically read its `session-intent.md` to:
 - Stay aligned with user goals
 - Make decisions consistent with boundaries
 - Keep stakeholders in mind
@@ -291,7 +293,7 @@ Checking against intent contract: [reference specific criterion]
 
 ### Step 4: Validate at End
 
-When the workflow completes, read `.claude/session-intent.md` and validate:
+When the workflow completes, read the resolved plan directory's `session-intent.md` and validate:
 
 **Validation Process:**
 
@@ -337,7 +339,7 @@ All boundaries respected: [Yes/No]
 
 ### Step 5: Update Intent Contract Status
 
-Update the `Status` field in `.claude/session-intent.md`:
+Update the `Status` field in the resolved plan directory's `session-intent.md`:
 - `active` → workflow in progress
 - `validating` → checking against criteria
 - `completed` → all criteria met, boundaries respected

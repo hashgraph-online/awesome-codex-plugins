@@ -22,7 +22,7 @@ from kicad_utils import (
     parse_voltage_from_net_name as _parse_voltage_from_net_name,
 )
 from kicad_types import AnalysisContext
-from finding_schema import make_provenance
+from finding_schema import make_provenance, make_finding, Det
 from detector_helpers import index_two_pin_components, get_components_by_type, get_unique_ics
 
 from lookup_helpers import get_facts, has_data, best
@@ -2026,6 +2026,12 @@ def detect_power_regulators(ctx: AnalysisContext, voltage_dividers: list[dict]) 
                 comp = ctx.comp_lookup.get(cref)
                 if not comp or comp["type"] != "capacitor":
                     continue
+                # KH-377: the cap's other pin must be ground -- a
+                # feedforward cap wired rail->FB (or similar) isn't a
+                # decoupler and shouldn't be modeled as one.
+                other = [n for n in ctx.get_two_pin_nets(cref) if n != output_rail]
+                if not other or not ctx.is_ground(other[0]):
+                    continue
                 c_val = ctx.parsed_values.get(cref)
                 if not c_val or c_val <= 0:
                     continue
@@ -2061,6 +2067,10 @@ def detect_power_regulators(ctx: AnalysisContext, voltage_dividers: list[dict]) 
                     continue
                 comp = ctx.comp_lookup.get(cref)
                 if not comp or comp["type"] != "capacitor":
+                    continue
+                # KH-377: same shunt-only guard as the output-cap collector.
+                other = [n for n in ctx.get_two_pin_nets(cref) if n != input_rail]
+                if not other or not ctx.is_ground(other[0]):
                     continue
                 c_val = ctx.parsed_values.get(cref)
                 if not c_val or c_val <= 0:
@@ -3845,6 +3855,178 @@ def detect_design_observations(ctx: AnalysisContext, results: dict) -> list[dict
 # Solder Jumper Inventory (SJ-DET)
 # ---------------------------------------------------------------------------
 
+def detect_shorted_two_pin_components(ctx: AnalysisContext) -> list[dict]:
+    """SP-001: Report two-pin components with both pins on the same net.
+
+    A resistor, capacitor, inductor or diode whose two pins land on one net
+    does nothing. It is almost always a wiring mistake, and the mistake is
+    invisible to ERC and DRC: the board is internally consistent, every pin is
+    connected, and the netlist is legal. Only the intent is wrong.
+
+    This condition was already being computed and thrown away.
+    ``index_two_pin_components()`` (detector_helpers.py) skips these parts so
+    downstream detectors do not divide by a degenerate topology, which is
+    correct for those detectors but meant a shorted part vanished from the
+    analysis instead of being reported. It is dropped from divider, RC,
+    pull-up and termination analysis at every call site, and nothing tells the
+    user why.
+
+    Deliberate shorts are excluded rather than reported: jumpers and net ties
+    exist to bridge a net, DNP parts are not fitted, and a zero-ohm link with
+    both ends on one net is a net tie by another name.
+
+    Parts with more than two pins are excluded too. ``get_two_pin_nets()``
+    reads pins "1" and "2" without checking the pin count, so without a guard
+    this fires on rheostat-wired potentiometers, dual-anode diode symbols, ESD
+    arrays, passive packs and misclassified connectors. Unannotated references
+    ("R?") are skipped because they collide with each other in the pin-net map,
+    and findings are deduplicated by reference so a hierarchical sheet
+    instanced n times reports once rather than n times.
+
+    Five or more hits on one net collapse into one net-level finding (same
+    rule_id, confidence ``heuristic``): on the corpus that pattern is almost
+    always the net map having merged two rails, not N real shorts.
+
+    Severity is ``warning`` rather than ``error`` deliberately. A netlist-
+    building bug that over-unions two nets would surface here as a false
+    positive, so the finding should prompt a look rather than block a build
+    until its false-positive rate is measured across the corpus.
+    """
+    findings: list[dict] = []
+
+    # Types where one net across both pins is never useful. Jumpers and net
+    # ties are absent by design -- bridging is what they are for. The type
+    # strings must match what classify_component() emits: it produces
+    # "ferrite_bead", never bare "ferrite", so the latter silently matched
+    # nothing.
+    SHORTABLE = ("resistor", "capacitor", "inductor", "ferrite_bead", "diode")
+    # Five or more hits on one net collapse into a single net-level finding
+    # (see the end of this function).
+    MASS_SHORT_THRESHOLD = 5
+
+    # One finding per reference. A hierarchical sheet instanced more than once
+    # puts the same reference in ctx.components once per instance, which would
+    # otherwise emit a duplicate finding per instance.
+    seen: set[str] = set()
+
+    for comp in ctx.components:
+        if comp.get("type") not in SHORTABLE:
+            continue
+        if comp.get("dnp"):
+            continue
+
+        ref = comp.get("reference")
+        if not ref:
+            continue
+
+        # Unannotated parts share a reference ("R?", "D?"), so they collide in
+        # the pin-net map and report each other's nets. Nothing useful can be
+        # said about them until the schematic is annotated.
+        if "?" in ref:
+            continue
+
+        # get_two_pin_nets() reads pins "1" and "2" without checking that the
+        # part only HAS two pins, so any multi-pin component whose first two
+        # pins share a net would fire: pots wired as rheostats (wiper tied to
+        # one end), dual-anode Schottky symbols, ESD arrays, resistor and
+        # capacitor packs, and connectors that the reference prefix
+        # misclassifies as a passive.
+        if len(ctx.ref_pins.get(ref, {})) != 2:
+            continue
+
+        n1, n2 = ctx.get_two_pin_nets(ref)
+        if not n1 or not n2 or n1 != n2:
+            continue
+
+        lib_id = (comp.get("lib_id") or "").lower()
+        if "nettie" in lib_id or "net_tie" in lib_id or "jumper" in lib_id:
+            continue
+
+        # A 0R link shorted to one net is a net tie spelled differently.
+        parsed = ctx.parsed_values.get(ref)
+        if comp.get("type") == "resistor" and parsed == 0:
+            continue
+
+        if ref in seen:
+            continue
+        seen.add(ref)
+
+        value = comp.get("value") or "?"
+        findings.append(make_finding(
+            detector=Det.SHORTED_TWO_PIN,
+            rule_id="SP-001",
+            category="signal",
+            severity="warning",
+            confidence="deterministic",
+            evidence_source="topology",
+            summary=(f"{ref} ({value}) has both pins on net '{n1}' -- the "
+                     f"component is shorted out and has no effect"),
+            description=(
+                f"{ref} is a {comp.get('type')} with pin 1 and pin 2 both "
+                f"connected to '{n1}'. Current bypasses the part entirely, so "
+                f"it contributes nothing to the circuit. ERC and DRC pass on "
+                f"this: every pin is connected and the netlist is internally "
+                f"consistent, so only intent distinguishes it from a "
+                f"deliberate link. Jumpers, net ties, zero-ohm links and DNP "
+                f"parts are excluded from this check."),
+            components=[ref],
+            nets=[n1],
+            recommendation=(
+                f"Confirm {ref} is meant to bridge '{n1}'. If not, one pin is "
+                f"on the wrong net -- check which node it should reach."),
+            net=n1,
+            component_type=comp.get("type"),
+            value=value,
+        ))
+
+    # Collapse mass hits per net. When the net map has merged two rails
+    # (analyzer connectivity defect -- KH-403/404 class) every decoupling cap
+    # on the merged net reads as "shorted": the kicad-cli oracle refuted 205
+    # of 243 corpus findings for exactly that reason, essentially all on nets
+    # with five or more hits, while genuine shorts come one to four per net.
+    # One net-level finding keeps the signal (a tripwire for the net map, or a
+    # genuinely unfinished schematic) without N misleading per-part warnings.
+    by_net: dict[str, list[dict]] = {}
+    for f in findings:
+        by_net.setdefault(f["net"], []).append(f)
+    collapsed: list[dict] = []
+    for net, group in by_net.items():
+        if len(group) < MASS_SHORT_THRESHOLD:
+            collapsed.extend(group)
+            continue
+        refs = [f["components"][0] for f in group]
+        collapsed.append(make_finding(
+            detector=Det.SHORTED_TWO_PIN,
+            rule_id="SP-001",
+            category="signal",
+            severity="warning",
+            confidence="heuristic",
+            evidence_source="topology",
+            summary=(f"{len(group)} two-pin components have both pins on net "
+                     f"'{net}' ({refs[0]} .. {refs[-1]}) -- mass short or "
+                     f"net-map problem"),
+            description=(
+                f"{len(group)} two-pin parts ({', '.join(refs)}) each have pin "
+                f"1 and pin 2 on '{net}'. Either the schematic is unfinished "
+                f"(parts placed but not yet wired to their second node) or "
+                f"the extracted net map has merged two rails -- typically a "
+                f"power rail and ground -- so every decoupling capacitor "
+                f"between them reads as shorted. In the second case the "
+                f"other net-based findings on this net are suspect too."),
+            components=refs,
+            nets=[net],
+            recommendation=(
+                f"Check '{net}' in KiCad first: if it carries both a supply "
+                f"and ground, or far more pins than expected, the net map is "
+                f"wrong and the parts are fine (report the board). Otherwise "
+                f"wire each listed part to its second node."),
+            net=net,
+            component_count=len(group),
+        ))
+
+    return collapsed
+
+
 def detect_solder_jumpers(ctx: AnalysisContext) -> list[dict]:
     """Enumerate every solder jumper in the design and report its default state.
 
@@ -4298,6 +4480,7 @@ def audit_power_pin_dc_paths(ctx: AnalysisContext,
       - wires on the same net                           (free)
       - resistors with parsed value <= 1 Ω              (bridge)
       - inductors / ferrite beads                       (bridge)
+      - fuses / polyfuses                               (bridge)
       - solder jumpers with default_state='bridged'    (bridge)
     and REJECT crossing capacitors. If no named power rail is reachable
     within 2 hops, emit PP-001 at severity=high.
@@ -4321,7 +4504,7 @@ def audit_power_pin_dc_paths(ctx: AnalysisContext,
     def _bridges_dc(ref: str) -> bool:
         c = components.get(ref) or {}
         t = (c.get("type") or c.get("category") or "").lower()
-        if t in ("inductor", "ferrite_bead"):
+        if t in ("inductor", "ferrite_bead", "fuse"):
             return True
         if t == "resistor":
             # Small value resistors count as DC-conductive.
@@ -4428,8 +4611,9 @@ def audit_power_pin_dc_paths(ctx: AnalysisContext,
                                 continue
                             visited.add(other_net)
                             next_frontier.add(other_net)
-                            if (ctx.is_power_net(other_net)
-                                    and not ctx.is_ground(other_net)):
+                            if ((ctx.is_power_net(other_net)
+                                    and not ctx.is_ground(other_net))
+                                    or other_net in nets_with_connector):
                                 reached_rail = True
                 frontier = next_frontier
                 if not frontier:

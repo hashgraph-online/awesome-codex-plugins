@@ -12,14 +12,14 @@ therefore the mode; the state block carries no mode field.
 - `mode: sources` — the acquisition instrument; peer documents in recommended
   order: `requirements-cascade.mrd` → `requirements-cascade.brd` →
   `requirements-cascade.urd`. The conductor engages it on a product-scale
-  `intent_gap` per `skills/_shared/delta-routing.md`; the user engages it via
-  expert invocation.
+  `intent_gap` per `skills/_shared/delta-routing.md`; the user engages it with
+  the `plan sources` mode.
 - `mode: iso` — iso links, ISO 29148 decomposition with traceability:
   `requirements-cascade.brs` → `requirements-cascade.strs` →
   `requirements-cascade.syrs` → `requirements-cascade.srs`. The conductor
   engages the links per `security-compliance`-flagged capability, and the
   chain then scopes to the flagged capabilities only — partial formality; the
-  user invokes the full chain via expert invocation.
+  user invokes the full chain with the `plan iso` mode.
 
 ### Mode selection
 
@@ -29,7 +29,7 @@ signals — never by asking the user — in this order: explicit expert
 invocation, document-graph state. Branch state contributes no mode signal in
 this track.
 
-1. Explicit expert invocation naming a document type: `mrd`, `brd`, or `urd` selects sources; `brs`, `strs`, `syrs`, or `srs` selects iso.
+1. Explicit expert invocation: the `plan sources` mode selects sources; the `plan iso` mode selects iso. A document type name is not a mode.
 2. Document-graph state: a `brs`, `strs`, `syrs`, or `srs` on the topic selects
    iso; an incomplete `mrd`/`brd`/`urd` set on the topic with no iso-mode document
    selects sources; a complete `mrd`, `brd`, and `urd` set on the topic with no
@@ -39,7 +39,7 @@ this track.
    `skills/_shared/delta-routing.md`.
 
 Sources mode enters at `requirements-cascade.mrd`; iso mode enters at
-`requirements-cascade.brs`. WHEN an explicit expert invocation names `brd` or
+`requirements-cascade.brs`. WHEN the topic text of the `plan sources` mode names `brd` or
 `urd`, sources mode enters at that document's gate instead — the three source
 documents are peers (the source flow fixed no order among them). Before the first gate, the `plan` skill calls
 `list_documents` for this track's document types plus `prd` and checks the topic for duplicates.

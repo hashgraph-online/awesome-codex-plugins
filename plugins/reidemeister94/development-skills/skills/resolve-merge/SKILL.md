@@ -14,7 +14,7 @@ allowed-tools: Glob, Grep, Read, Bash, Edit, Write, AskUserQuestion
    - AU → `git add`, but `git rm` if its slug already exists in theirs at another number (duplicate).
    - Lock file → checkout one side, regenerate via the package manager.
    - `CHANGELOG.md` → merge unique entries, dedupe, keep category order.
-4. For numbered plans/chronicles, keep THEIRS numbers. Renumber colliding OURS-only files from the next free number without gaps or duplicates; fix self, research, and cross-references.
+4. For legacy `NNNN__` plans and chronicles in the conflict, keep THEIRS numbers. Renumber colliding OURS-only files and repair their references. Date-and-slug files use no counter. Reconcile the same task or use distinct slugs for different tasks.
 5. Show every conflict with file, code, action, and classification. Ask once: Approve / Modify / Abort. Abort writes nothing.
 6. Apply approved AUTO actions; report only counts and failures.
 7. For each JUDGMENT file, show exact OURS and THEIRS hunks plus the proposed merge. Ask Approve / Edit / Skip; Skip leaves it conflicted.

@@ -52,7 +52,7 @@ mkdir -p "$(dirname "$settings")"
 [[ -f "$settings" ]] || echo '{}' > "$settings"
 
 if [[ -s "$settings" ]]; then
-  backup="${settings}.bak.$(date +%Y%m%d%H%M%S)"
+  backup="$(mktemp "${settings}.bak.$(date +%Y%m%d%H%M%S).XXXXXX")"
   cp -p "$settings" "$backup"
   echo "✓ backed up settings → ${backup}"
 fi

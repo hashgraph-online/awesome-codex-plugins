@@ -33,8 +33,9 @@ remote or SSH host a local `file://` cannot resolve; say the sheet is not viewab
 offer an editor link as a substitute — it is a bearer capability any signed-in account that sees
 it can act on.
 
-Preview files are swept after about 30 days (`CASSETTE_ARTIFACT_TTL_DAYS`). Exports are never
-auto-deleted.
+Preview files and exports inherit the session's immutable first-ingest +24-hour deadline. The
+plugin removes them at that deadline; move an export outside the plugin-managed data directory
+before then if the user wants to keep it.
 
 ## Plan review
 

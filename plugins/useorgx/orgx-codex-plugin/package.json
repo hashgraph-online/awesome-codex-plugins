@@ -1,6 +1,6 @@
 {
   "name": "@useorgx/codex-plugin",
-  "version": "0.1.19",
+  "version": "0.1.20",
   "description": "OrgX Codex plugin with MCP access, initiative-aware skills, and a Sovereign Execution peer sidecar.",
   "type": "module",
   "private": false,
@@ -34,6 +34,7 @@
     "hooks/hooks.json",
     "hooks/scripts/hydrate-context-pack.mjs",
     "hooks/scripts/orgx-work-graph-reconcile.mjs",
+    "hooks/scripts/emit-execution-graph.mjs",
     "docs/client-hook-coverage.md",
     "docs/operator-reporting-gates.json",
     "lib/peer/cli.mjs",
@@ -42,6 +43,7 @@
     "lib/peer/childProcessEnv.mjs",
     "lib/peer/CodexMcpPolicy.mjs",
     "lib/peer/DurableReceiptOutbox.mjs",
+    "lib/peer/deliveryAck.mjs",
     "lib/peer/autonomousCodexExecution.mjs",
     "lib/peer/autonomousReadiness.mjs",
     "lib/peer/autonomousDispatch.mjs",
@@ -67,7 +69,7 @@
   "scripts": {
     "check": "node scripts/verify-plugin.mjs",
     "test:security": "node --test lib/peer/transportLog.test.mjs lib/peer/cli.test.mjs",
-    "test": "node --test lib/peer/peer.test.mjs lib/peer/CodexAppServerClient.test.mjs lib/peer/CodexMcpPolicy.test.mjs lib/peer/DurableReceiptOutbox.test.mjs lib/peer/autonomousCodexExecution.test.mjs lib/peer/autonomousReadiness.test.mjs lib/peer/autonomousDispatch.test.mjs lib/peer/autonomousTerminalEvidence.test.mjs lib/peer/childProcessEnv.test.mjs lib/peer/cli.test.mjs lib/peer/transportLog.test.mjs lib/peer/hookSpoolReplay.test.mjs lib/peer/runtimeConfig.test.mjs lib/peer/runnerInstanceIdentity.test.mjs hooks/scripts/hydrate-context-pack.test.mjs hooks/scripts/orgx-session-hook.test.mjs hooks/scripts/orgx-reconcile-hook.test.mjs hooks/scripts/orgx-work-graph-reconcile.test.mjs scripts/diagnose-reporting-gates.test.mjs scripts/install-codex-hooks.test.mjs tests/continuity-health.test.mjs",
+    "test": "node --test lib/peer/peer.test.mjs lib/peer/CodexAppServerClient.test.mjs lib/peer/CodexMcpPolicy.test.mjs lib/peer/DurableReceiptOutbox.test.mjs lib/peer/autonomousCodexExecution.test.mjs lib/peer/autonomousReadiness.test.mjs lib/peer/autonomousDispatch.test.mjs lib/peer/autonomousTerminalEvidence.test.mjs lib/peer/childProcessEnv.test.mjs lib/peer/cli.test.mjs lib/peer/transportLog.test.mjs lib/peer/hookSpoolReplay.test.mjs lib/peer/runtimeConfig.test.mjs lib/peer/runnerInstanceIdentity.test.mjs hooks/scripts/hydrate-context-pack.test.mjs hooks/scripts/orgx-session-hook.test.mjs hooks/scripts/orgx-reconcile-hook.test.mjs hooks/scripts/orgx-work-graph-reconcile.test.mjs scripts/diagnose-reporting-gates.test.mjs scripts/install-codex-hooks.test.mjs tests/continuity-health.test.mjs scripts/stamp-manifest.test.mjs",
     "prepublishOnly": "npm run check && npm test",
     "peer:start": "node lib/peer/cli.mjs"
   },

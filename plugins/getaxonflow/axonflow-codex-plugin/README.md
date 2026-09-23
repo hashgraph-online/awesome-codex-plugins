@@ -226,7 +226,7 @@ cd axonflow-codex-plugin
 
 #### 2.2 Point Codex at the AxonFlow MCP server
 
-Codex reads MCP config from `~/.codex/config.toml` (TOML), **not** from `.mcp.json` in the plugin directory:
+Codex reads MCP servers from `~/.codex/config.toml` (TOML). A plugin installed through `/plugins` also brings its own `.mcp.json`, which `.codex-plugin/plugin.json` points at. For this manual setup, add the server to `config.toml`:
 
 ```bash
 cat >> ~/.codex/config.toml << 'EOF'
@@ -272,7 +272,7 @@ codex   # then install via /plugins
 
 ### Step 3: point the plugin at the platform
 
-Without this step the plugin auto-registers with Community SaaS regardless of whether you ran Step 1 — it does not auto-detect a locally-running AxonFlow. Set `AXONFLOW_ENDPOINT` (and `AXONFLOW_AUTH` if you have credentials):
+Without this step the plugin auto-registers with Community SaaS regardless of whether you ran Step 1 — it does not auto-detect a locally-running AxonFlow. Set `AXONFLOW_ENDPOINT`, and if you have credentials, `AXONFLOW_AUTH` and `AXONFLOW_MCP_AUTHORIZATION`:
 
 ```bash
 # Self-hosted local agent — that alone flips mode to self-hosted, no other env var needed
@@ -281,7 +281,10 @@ export AXONFLOW_ENDPOINT=http://localhost:8080
 # Self-hosted remote agent with credentials
 export AXONFLOW_ENDPOINT=https://axonflow.your-company.com
 export AXONFLOW_AUTH=$(echo -n "your-client-id:your-client-secret" | base64)
+export AXONFLOW_MCP_AUTHORIZATION="Basic $AXONFLOW_AUTH"
 ```
+
+The hooks add `Basic ` to `AXONFLOW_AUTH` themselves. Codex sends an MCP header's variable exactly as it is set and adds no scheme, so the MCP session reads `AXONFLOW_MCP_AUTHORIZATION`, which carries it. With only `AXONFLOW_AUTH` set, the MCP session sends no `Authorization` header: plain Community admits that, and a platform that checks credentials (Community SaaS, Enterprise) refuses it until you export `AXONFLOW_MCP_AUTHORIZATION`. Versions up to 1.8.0 sent the bare value, which such a platform refused as well.
 
 Every hook invocation logs a one-line canary on stderr confirming the active mode:
 
@@ -295,7 +298,7 @@ If the canary says `mode=community-saas` after you ran Step 1, the plugin is sti
 
 ## Configure
 
-[Step 3](#step-3-point-the-plugin-at-the-platform) above covers `AXONFLOW_ENDPOINT` and `AXONFLOW_AUTH`. Two more environment variables worth knowing about:
+[Step 3](#step-3-point-the-plugin-at-the-platform) above covers `AXONFLOW_ENDPOINT`, `AXONFLOW_AUTH` and `AXONFLOW_MCP_AUTHORIZATION`. Two more environment variables worth knowing about:
 
 ```bash
 # Optional: longer request timeout for remote / VPN deployments
@@ -419,7 +422,7 @@ Per-call hooks (terminal command governance) carry your Pro-tier token automatic
 bash scripts/install-mcp-with-headers.sh
 ```
 
-This registers AxonFlow as a codex MCP server AND patches your `~/.codex/config.toml` to inject `X-Axonflow-Client: codex-plugin/<version>` (static) plus `X-License-Token`, `Authorization`, and `X-User-Token` resolved from the `AXONFLOW_LICENSE_TOKEN`, `AXONFLOW_AUTH`, and `AXONFLOW_USER_TOKEN` env vars at MCP-session time (Codex omits any header whose env var is unset). The script is idempotent — safe to re-run after a plugin upgrade or token rotation.
+This registers AxonFlow as a codex MCP server AND patches your `~/.codex/config.toml` to inject `X-Axonflow-Client: codex-plugin/<version>` (static) plus `X-License-Token`, `Authorization`, and `X-User-Token` resolved from the `AXONFLOW_LICENSE_TOKEN`, `AXONFLOW_MCP_AUTHORIZATION`, and `AXONFLOW_USER_TOKEN` env vars at MCP-session time (Codex omits any header whose env var is unset). The script is idempotent — safe to re-run after a plugin upgrade or token rotation.
 
 Verify with:
 
@@ -619,7 +622,7 @@ For the broader validation story — explain-decision, override lifecycle, audit
 
 ## Troubleshooting
 
-**MCP server connection failed?** Codex reads MCP config from `~/.codex/config.toml` (TOML format), not from `.mcp.json` in the plugin directory. Add `[mcp_servers.axonflow]` with `url = "http://localhost:8080/api/v1/mcp-server"`.
+**MCP server connection failed?** Codex reads MCP servers from `~/.codex/config.toml` (TOML), and from the `.mcp.json` of a plugin installed through `/plugins`. For a manual setup, add `[mcp_servers.axonflow]` with `url = "http://localhost:8080/api/v1/mcp-server"`. **Refused with 401 on Community SaaS or Enterprise?** Export `AXONFLOW_MCP_AUTHORIZATION="Basic $AXONFLOW_AUTH"` ([Step 3](#step-3-point-the-plugin-at-the-platform)) and re-run `scripts/install-mcp-with-headers.sh`.
 
 **Hooks not firing on bash?** Hooks must be at `~/.codex/hooks.json` (not inside the plugin directory). Enable hooks with `[features] codex_hooks = true` in `~/.codex/config.toml`. The hook matcher should include `exec_command` — Codex uses this name for terminal commands, not `Bash`.
 
@@ -638,6 +641,10 @@ More troubleshooting in the [integration guide](https://docs.getaxonflow.com/doc
 Anonymous heartbeat at most once every 7 days per machine: plugin version, OS, architecture, bash version, AxonFlow platform version, the licence tier that platform reports about itself, deployment mode (`community_saas` / `self_hosted` / `unknown`), and endpoint type (`localhost` / `private_network` / `remote` / `unknown`). **Never** tool arguments, message contents, or policy data. The stamp file mtime advances only after the HTTP POST returns 2xx, so a transient network failure does not silence telemetry until the next window.
 
 The licence tier sent is whatever the platform reported about itself, relayed verbatim. The plugin does not normalise, map, or restrict the value, so a transient state such as `starting`, or a tier name introduced after this plugin shipped, reaches the wire unchanged rather than being flattened into a fixed list. What is never read or sent: **no licence key, no expiry date, no seat count, and no customer or organisation name**. It is read from the `tier` field of the `/health` response the heartbeat already fetches to detect the platform version, so it costs no additional request, and it is omitted entirely whenever that probe does not answer with one.
+
+Two further values are relayed on the same terms, from the same response: the platform's **edition** and the deployment mode the **platform reports about itself**. The second is deliberately separate from the `deployment_mode` above, which is this plugin's own classification of the endpoint it was pointed at — they answer different questions and routinely differ, so neither is written over the other. Both are omitted entirely whenever the platform does not report them, which is the case for every platform released before they existed. Any relayed value longer than 64 bytes — measured in bytes, not characters — is dropped whole rather than truncated, since a truncated value would be something the platform never said, and a value containing a NUL is dropped for the same reason.
+
+The heartbeat does not follow HTTP redirects on either leg, and only a **2xx** counts on either leg. A redirected or erroring `/health` teaches the plugin nothing — its body is not read at all, even when it carries one — rather than relaying values from a response your platform never meant as an answer. A redirected or rejected checkpoint POST is not treated as a delivery: the 7-day stamp advances only on a 2xx, so neither can silence telemetry for a week on a ping that was never received.
 
 Opt out: set `AXONFLOW_TELEMETRY=off` in the environment Codex runs in.
 

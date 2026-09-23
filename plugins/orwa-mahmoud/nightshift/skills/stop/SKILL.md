@@ -1,53 +1,34 @@
 ---
 name: stop
-description: Issue a stop-work order — pause the shift immediately, leaving unfinished items open.
+description: Issue a stop-work order: pause the shift now, leaving unfinished items open.
+license: MIT
 ---
 
 Pause the host-opened project immediately so the owner can edit the punch list and resume later.
 
-Resolve the host-opened project folder to an absolute `$TASK_ROOT`: use `${CLAUDE_PROJECT_DIR}` on
-Claude Code; on Codex honor Nightshift's `${CODEX_PROJECT_DIR}` recovery override when present,
-otherwise capture `pwd -P` before any other shell call. Resolve `$TASK_ROOT/.nightshift-link` when
-present and call the validated absolute target `$NIGHTSHIFT_WORKSPACE`; otherwise set
-`NIGHTSHIFT_WORKSPACE="$TASK_ROOT"`.
-
-Bind the Nightshift directory once: `NS="$NIGHTSHIFT_WORKSPACE/.nightshift"`. On native Windows,
-`$NS = Join-Path $NIGHTSHIFT_WORKSPACE '.nightshift'`. After this bind, Nightshift files are
-`$NS/<name>` for every read, write, and shell command. Catalog and owner-facing prose may use the
-short names (`punch-list.md`, `parking-lot.md`, `STOP`). Never re-resolve. Helpers that take
-`--project` or `-Project` still receive `"$NIGHTSHIFT_WORKSPACE"`.
-Never search or guess. The shell's working directory persists
-between Bash calls, so never use a bare path.
-
-Resolve the installed plugin root to an absolute `$NIGHTSHIFT_PLUGIN_ROOT`: use
-`${CLAUDE_PLUGIN_ROOT}` on Claude Code; on Codex use `$PLUGIN_ROOT` when available, otherwise derive
-it from the absolute path attached to this skill (`skills/stop/SKILL.md`). Substitute that
-absolute path below; never search for the plugin.
-
-On native Windows, use the PowerShell tool and native paths throughout. Resolve the same values
-from `$env:CLAUDE_PROJECT_DIR`, `$env:CODEX_PROJECT_DIR`, and `$env:PLUGIN_ROOT`, with
-`[Environment]::CurrentDirectory` as the Codex cwd fallback. Do not route Stop through WSL or Git
-Bash.
+Resolve the installed plugin root to an absolute `$NIGHTSHIFT_PLUGIN_ROOT` — `${CLAUDE_PLUGIN_ROOT}`
+on Claude Code, `$PLUGIN_ROOT` on Codex when set, otherwise the absolute path this skill was
+attached from (`skills/stop/SKILL.md`). Run every command below through
+`"$NIGHTSHIFT_PLUGIN_ROOT/runtime/ns"` — native Windows: `& "$NIGHTSHIFT_PLUGIN_ROOT\runtime\windows\ns.ps1"`
+in the PowerShell tool, same verbs — which resolves the host and the workspace; `ns help` lists the
+verbs, and `ns bind` prints the six resolved facts (`TASK_ROOT`, `NIGHTSHIFT_WORKSPACE`, `NS`,
+`NIGHTSHIFT_PLUGIN_ROOT`, `HOST`, `SOURCE`); `$NS` below is that `NS`. Never a bare relative path: the working
+directory persists between calls.
 
 Run the trusted helper. Do not write `$NS/STOP` by hand, do not delete `$NS/.shift-armed`, and do
 not kill `$NS/.watchman` yourself — the helper performs the safe teardown:
 
 ```bash
-"$NIGHTSHIFT_PLUGIN_ROOT/runtime/stop-shift.sh" --project "$NIGHTSHIFT_WORKSPACE"
-```
-
-On native Windows:
-
-```powershell
-& "$NIGHTSHIFT_PLUGIN_ROOT\runtime\windows\stop-shift.ps1" -Project "$NIGHTSHIFT_WORKSPACE"
+"$NIGHTSHIFT_PLUGIN_ROOT/runtime/ns" stop-shift
 ```
 
 The helper writes `$NS/STOP` with a reason and UTC timestamp, appends `stopped by owner` to
-`$NS/shift-log.md`, kills only a verified live Nightshift watchman, removes `$NS/.shift-armed`,
-releases the process lease, and drops runtime ownership markers. Open boxes stay open. The
-deadline, punch list, rules, parking lot, work orders, receipts, archives, research, opportunities,
-and shift history stay on disk. Hooks remain installed; without `.shift-armed` they are inert. Do
-not wait for a later Stop event.
+`$NS/shift-log.md`, and kills only a verified live Nightshift watchman. It does not remove
+`$NS/.shift-armed`. It drops `$NS/.shift-session` so the same conversation is not a second
+agent on the next Start. Open boxes stay open as the record. Hardhat stays until clock-out writes
+`$NS/.ended`. Reset is the manual escape. The deadline, punch list, rules, parking lot, work
+orders, receipts, archives, research, opportunities, and shift history stay on disk. Do not wait
+for a later Stop event to write the marker — the helper writes it now.
 
 Report the helper's `open-items` count and that the deadline was preserved. A second Stop is safe.
 

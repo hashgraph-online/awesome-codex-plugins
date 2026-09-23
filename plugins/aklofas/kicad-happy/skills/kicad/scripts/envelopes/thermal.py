@@ -61,6 +61,29 @@ class ThermalSummary:
                        "None). Present only when no components could be "
                        "assessed — e.g., missing MPNs or no datasheet "
                        "extraction cache. F3."})
+    components_skipped: int = field(default=0, metadata={
+        "description": "Count of power components (regulators) that could "
+                       "not be assessed and were dropped from power-"
+                       "dissipation estimation — e.g. a switching regulator "
+                       "whose rail has no load estimate. See top-level "
+                       "skipped_components for the per-component detail "
+                       "(KH-386)."})
+
+
+@dataclass
+class ThermalSkipped:
+    ref: str = field(metadata={
+        "description": "Reference designator of the power component that "
+                       "could not be assessed."})
+    value: str = field(metadata={
+        "description": "Component value/MPN string."})
+    reason: str = field(metadata={
+        "description": "Why the component was skipped: 'no_load_estimate' "
+                       "(switching regulator with zero/absent "
+                       "estimated_load_mA on its output rail), 'no_vout' "
+                       "(no estimated output voltage), or "
+                       "'below_min_pdiss' (estimated dissipation at or "
+                       "below the reporting threshold). KH-386."})
 
 
 @dataclass
@@ -108,6 +131,11 @@ class ThermalEnvelope:
         "description": "Wall-clock analysis time in seconds."})
     missing_info: Optional[ThermalMissingInfo] = field(default=None, metadata={
         "description": "Emitted when any component used default thermal params."})
+    skipped_components: Optional[list[ThermalSkipped]] = field(default=None, metadata={
+        "description": "Power components (regulators) that could not be "
+                       "assessed for power dissipation. Present only when "
+                       "non-empty; see summary.components_skipped for the "
+                       "count. KH-386."})
 
     # --- Phase 4 capability pointer ---
     capability_mode_ref: Optional[dict] = field(default=None, metadata={

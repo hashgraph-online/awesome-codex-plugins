@@ -20,7 +20,7 @@ Boss Harness Gate Engine 提供三层程序化门禁，由 `boss runtime evaluat
 
 入口：`boss runtime evaluate-gates <feature> gate1`
 
-阶段 3 完成后，必须全部通过才能进入阶段 4。
+阶段 3 完成后必须全部通过。运行时不会阻止阶段推进，但未通过的门禁会被记录，并让 `boss gate final` 与 `boss doctor` 判定失败——编排器据此不得宣布交付完成。
 
 - [ ] 单元测试全部通过
 - [ ] 测试覆盖率 ≥ 70%

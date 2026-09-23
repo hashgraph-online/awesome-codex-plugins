@@ -1,6 +1,6 @@
 ---
 name: personal-data-protection
-description: Personal-data-protection compliance reference for engineers building applications subject to Singapore PDPA, Indonesia UU PDP 27/2022, Thailand PDPA B.E. 2562 (2019), Malaysia PDPA 2010 (with the 2024 Amendments), or Philippines DPA (RA 10173). Use when reviewing or modifying code that touches personal data — signup/auth/consent, data export, account deletion, retention/purging, admin access controls, third-party processors, breach response, or privacy/T&C documents. On first use in a new project, asks which jurisdiction(s) apply and loads only those.
+description: Personal-data-protection compliance reference for engineers building applications subject to Singapore PDPA, Indonesia UU PDP, Thailand PDPA, Malaysia PDPA, or Philippines DPA (RA 10173). Use when reviewing or modifying code that touches personal data — signup/auth/consent, data export, account deletion, retention/purging, admin access to personal-data stores, third-party processors, breach response, or privacy/T&C documents.
 ---
 
 # Personal Data Protection Compliance — Layered Reference
@@ -21,7 +21,7 @@ This skill helps engineers ship features that comply with personal-data-protecti
 
 **On first use in a project, check for `.pdp-compliance.json` at the project root.** If present, use `personalDataProtection.jurisdictions` and load only the matching `jurisdictions/<code>/README.md` files. If absent, ask the user which jurisdiction(s) apply. The answer depends on where the application's users are located, not where the company is registered.
 
-> *"Which personal-data-protection regimes does this application need to comply with? Pick all that apply: Singapore (PDPA 2012), Indonesia (UU PDP 27/2022), Thailand (PDPA B.E. 2562), Malaysia (PDPA 2010 with 2024 Amendments), Philippines (DPA / RA 10173). If users span multiple jurisdictions, pick all relevant — the strictest rule will usually win."*
+> *"Which personal-data-protection regimes does this application need to comply with? Pick all that apply: Singapore (PDPA 2012), Indonesia (UU PDP 27/2022), Thailand (PDPA B.E. 2562), Malaysia (PDPA 2010 with 2024 Amendments), Philippines (DPA / RA 10173), Vietnam (PDPL 91/2025/QH15). If users span multiple jurisdictions — **and note Vietnam applies to Vietnamese citizens wherever they are** —, pick all relevant — the strictest rule will usually win."*
 
 Once selected, suggest creating `.pdp-compliance.json` in the project root so future sessions and local guardrails do not need to re-ask:
 
@@ -37,14 +37,7 @@ Once selected, suggest creating `.pdp-compliance.json` in the project root so fu
 
 Then load only the relevant `jurisdictions/<code>/README.md` files. Cross-jurisdiction comparison lives in [`jurisdictions/_index.md`](jurisdictions/_index.md).
 
-| Code | Jurisdiction | Status |
-|---|---|---|
-| `sg-pdpa` | Singapore PDPA 2012 (post-2020 Amendments) | ✅ populated |
-| `th-pdpa` | Thailand PDPA B.E. 2562 (2019) | ✅ populated |
-| `id-pdp` | Indonesia UU PDP No. 27/2022 | ✅ populated |
-| `my-pdpa` | Malaysia PDPA 2010 (with 2024 Amendments — Act A1727) | ✅ populated |
-| `ph-dpa` | Philippines Data Privacy Act 2012 (RA 10173) | ✅ populated |
-| `vn-pdpd` | Vietnam PDP Decree 13/2023/ND-CP | 🚧 planned for v0.5 (deferred — full PDP Law in draft) |
+Codes: `sg-pdpa`, `th-pdpa`, `id-pdp`, `my-pdpa`, `ph-dpa`, `vn-pdpl` — all populated. Per-jurisdiction status and the full comparison grid live in [`jurisdictions/_index.md`](jurisdictions/_index.md).
 
 Once the user has chosen, persist that choice in `.pdp-compliance.json` when the project allows file changes. If the project cannot accept that file, persist the choice somewhere project-specific (a comment in the project's `AGENTS.md`, `CLAUDE.md`, or equivalent project-instruction file) so subsequent sessions don't need to re-ask.
 
@@ -77,12 +70,12 @@ Layer files are **universal across all populated jurisdictions** — implementat
 
 These vary by jurisdiction — the active one(s) determine which apply.
 
-| | Singapore PDPA | Thailand PDPA | Indonesia UU PDP | Malaysia PDPA | Philippines DPA |
-|---|---|---|---|---|---|
-| Breach notification window to authority | **3 calendar days** after assessing as notifiable (s26D(1)) | **72 hours** from awareness (s37(4)) | **72 hours** from awareness — to **both** subject AND regulator (Pasal 46(1)) | **72 hours** from discovery to Commissioner (s12B(1) + JPDP Guideline 25 Feb 2025); **7 days** post-Commissioner to affected subject | **72 hours** from knowledge / reasonable belief — to **both** NPC AND affected subject (§ 38 IRR + NPC Circular 16-03 § 12) |
-| Significant-scale / risk threshold | ≥ 500 affected individuals | "Risk to rights and freedoms"; "high risk" triggers individual notification | Always notify subject; "certain circumstances" trigger public notification (Pasal 46(3)) | "Significant harm" triggers subject notification (s12B(2)) — no fixed scale threshold | Information-type-driven: SPI or identity-fraud-enabling info, acquired by unauthorised person, real risk of serious harm (NPC Circular 16-03 § 11); ≥ 100 persons triggers § 35 penalty aggravation |
-| Maximum financial penalty cap | SGD 1M / 10% SG turnover (s48J(3)) | THB 1M / 3M / 5M tiered (s82–84); plus criminal up to 1 year + THB 1M (s79) | **2% of annual revenue per violation** (Pasal 57(3)); plus corporate criminal — fines up to 10× + suspension / **dissolution** (Pasal 70) | **RM 1M / 3 years per principle breach** (s5(2), raised by A1727 from RM 300k / 2y); per-offence not turnover-based; offences stack | **₱5M / 6 years** for combination or series (§ 33); **₱4M / 6 years** for SPI offences (§§ 25(b), 26(b)); ≥ 100 persons triggers maximum-period aggravation (§ 35) |
-| Individual criminal liability | Yes (s48D/E/F) — SGD 5,000 / 2 years | Yes (s79–81); s81 catches director / manager **omissions**, broader than SG | Yes (Pasal 67–68): up to 6 years + IDR 6B; corporate liability extends to dissolution (Pasal 70(4)) | Yes (s130 unlawful collecting RM 500k / 3y); **s133 deeming liability** for directors / managers unless they prove no-knowledge + due-diligence defence | Yes — **§ 34 makes responsible officers personally liable** for the prison terms of corporate offences (in addition to the corporate fine); **§ 30 concealment is its own offence** (1.5–5 years + ₱500k–₱1M) |
+| | Singapore PDPA | Thailand PDPA | Indonesia UU PDP | Malaysia PDPA | Philippines DPA |---|
+|---|---|---|---|---|---|---|
+| Breach notification window to authority | **3 calendar days** after assessing as notifiable (s26D(1)) | **72 hours** from awareness (s37(4)) | **72 hours** from awareness — to **both** subject AND regulator (Pasal 46(1)) | **72 hours** from discovery to Commissioner (s12B(1) + JPDP Guideline 25 Feb 2025); **7 days** post-Commissioner to affected subject | **72 hours** from knowledge / reasonable belief — to **both** NPC AND affected subject (§ 38 IRR + NPC Circular 16-03 § 12) | **72 hours from detection of the act** (Điều 23(1)) — no assessment step |
+| Significant-scale / risk threshold | ≥ 500 affected individuals | "Risk to rights and freedoms"; "high risk" triggers individual notification | Always notify subject; "certain circumstances" trigger public notification (Pasal 46(3)) | "Significant harm" triggers subject notification (s12B(2)) — no fixed scale threshold | Information-type-driven: SPI or identity-fraud-enabling info, acquired by unauthorised person, real risk of serious harm (NPC Circular 16-03 § 11); ≥ 100 persons triggers § 35 penalty aggravation | **None** — harm-based trigger covering national defence/security and the subject's life, health, **honour, dignity**, property (Điều 23(1)); Điều 23(3) also covers purpose-creep and rights failures |
+| Maximum financial penalty cap | SGD 1M / 10% SG turnover (s48J(3)) | THB 1M / 3M / 5M tiered (s82–84); plus criminal up to 1 year + THB 1M (s79) | **2% of annual revenue per violation** (Pasal 57(3)); plus corporate criminal — fines up to 10× + suspension / **dissolution** (Pasal 70) | **RM 1M / 3 years per principle breach** (s5(2), raised by A1727 from RM 300k / 2y); per-offence not turnover-based; offences stack | **₱5M / 6 years** for combination or series (§ 33); **₱4M / 6 years** for SPI offences (§§ 25(b), 26(b)); ≥ 100 persons triggers maximum-period aggravation (§ 35) | **5% of revenue** for cross-border violations (Điều 8(4)) — highest here; **10× the gain** for buying/selling data (Điều 8(3)) |
+| Individual criminal liability | Yes (s48D/E/F) — SGD 5,000 / 2 years | Yes (s79–81); s81 catches director / manager **omissions**, broader than SG | Yes (Pasal 67–68): up to 6 years + IDR 6B; corporate liability extends to dissolution (Pasal 70(4)) | Yes (s130 unlawful collecting RM 500k / 3y); **s133 deeming liability** for directors / managers unless they prove no-knowledge + due-diligence defence | Yes — **§ 34 makes responsible officers personally liable** for the prison terms of corporate offences (in addition to the corporate fine); **§ 30 concealment is its own offence** (1.5–5 years + ₱500k–₱1M) | Yes — Điều 8(1) routes to criminal prosecution; Điều 7 prohibits appropriating, intentionally disclosing or losing data, and buying/selling it |
 
 ## How to use the layer ↔ obligation split
 
@@ -97,6 +90,7 @@ A new-feature checklist run looks like:
 ## Statute version
 
 Each jurisdiction's `README.md` records:
+
 - Which version of the statute the obligation files reflect
 - When the content was last verified against official sources
 - Pending amendments to watch for

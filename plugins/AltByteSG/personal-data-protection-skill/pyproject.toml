@@ -1,0 +1,12 @@
+# Tool configuration only. This repo is a skill/plugin, not a Python package —
+# the release version lives in .claude-plugin/plugin.json and .codex-plugin/
+# plugin.json, and is deliberately not duplicated here where it would drift.
+
+[tool.ruff]
+# scripts/pdp-check-changed-files.py uses PEP 585 builtin generics in
+# annotations under `from __future__ import annotations`.
+target-version = "py39"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]

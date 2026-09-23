@@ -13,52 +13,12 @@ List **every** data category the feature reads or writes. Be specific (`profiles
 If ANY entry is new (not already in your privacy policy's data categories section):
 → Run [`new-data-field.md`](new-data-field.md) for the new field.
 
-## 2. Architecture review ([layer 02](../layers/02-architecture.md))
+## 2. Jurisdiction-specific review
 
-- [ ] No raw queries bypass per-user data isolation. Every read filters by current-user identity, enforced at the platform level (RLS or equivalent), not just at the application level.
-- [ ] Any new privileged function follows the privileged-function discipline: documented, tightened search path / namespace, audit-logged.
-- [ ] Any new external-domain call goes to a vendor that's already in the privacy policy sub-processor list — if not, run [`new-vendor.md`](new-vendor.md).
-- [ ] No new place ships service / admin credentials to the client.
-
-## 3. Data model review ([layer 03](../layers/03-data-model.md))
-
-- [ ] If new tables added: per-user isolation enabled (RLS on the table, or equivalent platform mechanism, or RPC-only access).
-- [ ] If new tables hold personal data: explicit access policies OR no policies at all (deny-by-default + RPC-only).
-- [ ] If new foreign keys to the users table: chosen CASCADE vs SET NULL deliberately (CASCADE for owned data, SET NULL for shared).
-- [ ] If new column holds a retention-bound value: documented retention rule + sweep job.
-- [ ] If new column is personal data: added to the PII inventory.
-
-## 4. Controls / processes review ([layer 04](../layers/04-controls-and-processes.md))
-
-- [ ] If new admin endpoint added: role check at top + audit log call at end (mutation logger always; throttled read logger for personal-data reads).
-- [ ] If new server-side function added that logs: uses sanitised logging helpers (`safeError` / `redactPII` / `redactId`) at every variable interpolation.
-- [ ] If new retention rule introduced: cleanup function added to the canonical sweep.
-- [ ] If new column in scope of the data-export endpoint: export updated in this PR (don't leave it as a TODO — the export must remain complete).
-
-## 5. Feature / UX review ([layer 05](../layers/05-feature-ux.md))
-
-- [ ] If new OS-level permission required: just-in-time request, soft-prompt before the OS dialog.
-- [ ] If new opt-in / consent toggle introduced: settings UI to revoke is symmetric (same effort as granting).
-- [ ] If photos uploaded: goes through re-encoding pipeline (EXIF stripped).
-- [ ] If new account-data field added: included in delete-account cascade or SET NULL pattern.
-- [ ] If new consent collected: writes to consent record with accurate timestamp (not pre-seeded before the user actually consented).
-
-## 6. Disclosure review ([layer 06](../layers/06-disclosure.md))
-
-- [ ] If new personal-data field collected: privacy policy data-categories section updated.
-- [ ] If new purpose for existing data: privacy policy purposes table updated.
-- [ ] If new retention rule: privacy policy retention table updated AND T&C mirror updated where applicable.
-- [ ] If new permission: OS usage string + Android rationale updated.
-- [ ] If T&C materially changes: bump T&C version in user-record column; decide on re-acceptance prompt.
-- [ ] "Last updated" date bumped on any privacy policy or T&C change.
-
-## 7. Operational review ([layer 07](../layers/07-operational.md))
-
-- [ ] If new cron-relevant cleanup: hooked into the canonical sweep (don't create a new schedule).
-- [ ] If feature creates new high-PII surface: consider whether breach-detection signals are needed.
-- [ ] If feature touches admin tooling: confirm AUP applies to any new role / permission.
-
-## 8. Jurisdiction-specific review
+**Do this before the layer reviews below.** Several obligations change what you build
+rather than what you check afterwards — MY s7(3) needs bilingual notice copy, PH § 13
+needs written consent captured before processing, ID Pasal 34 can make a DPIA a launch
+gate. Finding those after the architecture and disclosure work means redoing it.
 
 For each active jurisdiction (see SKILL.md Step 1), walk the relevant obligation files:
 
@@ -89,6 +49,65 @@ For each active jurisdiction (see SKILL.md Step 1), walk the relevant obligation
 - s9 / s5(1A) — if this feature changes who-processes-what, recall that data processors are now directly liable under s9 (post-1 April 2025).
 - s12B breach notification — 72h Commissioner / 7d subject (per JPDP Guideline 25 Feb 2025). Confirm the runbook has the MY lane.
 - s43A data portability — if the feature creates a new export surface, satisfy s43A by exposing a structured machine-readable format and a direct-transmission path.
+
+**Philippines DPA** (if active): walk `../jurisdictions/ph-dpa/obligations/01–07`. Particular attention:
+- § 13 sensitive personal information is a **closed statutory list**, not a harm test — if the feature touches any listed category, consent must be written or electronically signed and captured **before** processing.
+- § 16(b) right to object covers **automated processing and profiling** explicitly — any new scoring, ranking, or recommendation surface needs an objection path.
+- § 16(e) right to **erasure or blocking** — the feature must be able to suspend further processing of a record, not only delete it.
+- § 20(f) + NPC Circular 16-03 breach notification — 72h to **NPC and subjects in parallel**. Does this feature widen the breach surface? Add the PH lane to the runbook.
+- § 34 personal liability for responsible officers and **§ 30 concealment as its own offence** — escalation paths must not allow an incident to be quietly closed.
+
+**Vietnam PDPL** (if active): walk `../jurisdictions/vn-pdpl/obligations/01–08`. Particular attention:
+- **Điều 21 / Điều 20 — the assessments are *filed*, not just held.** One original of the processing-impact dossier to the authority within **60 days of first processing**, and a separate cross-border dossier within **60 days of first transfer**. The clock starts from your own first action, silently.
+- **Điều 20(1)(c) — using any platform outside Vietnam** to process data collected in Vietnam is a cross-border transfer. A foreign-region database, analytics SaaS or model API puts the feature in scope on day one.
+- **Decree Điều 4(1)(l)** — behaviour-tracking data on online services is **sensitive**. If the feature adds analytics events, it is a sensitive-data feature.
+- **Điều 37(1)(h)** — you must prevent unauthorised collection from your own systems, so rate limiting and enumeration defence on endpoints exposing personal data are compliance measures here.
+- **Điều 24–32 + Decree Điều 8–12** — check the sector overlay: children, employment, health, finance, advertising, social media, big data / AI / blockchain, cloud, location and biometrics, public recording.
+
+## 3. Architecture review ([layer 02](../layers/02-architecture.md))
+
+- [ ] No raw queries bypass per-user data isolation. Every read filters by current-user identity, enforced at the platform level (RLS or equivalent), not just at the application level.
+- [ ] Any new privileged function follows the privileged-function discipline: documented, tightened search path / namespace, audit-logged.
+- [ ] Any new external-domain call goes to a vendor that's already in the privacy policy sub-processor list — if not, run [`new-vendor.md`](new-vendor.md).
+- [ ] No new place ships service / admin credentials to the client.
+
+## 4. Data model review ([layer 03](../layers/03-data-model.md))
+
+- [ ] If new tables added: per-user isolation enabled (RLS on the table, or equivalent platform mechanism, or RPC-only access).
+- [ ] If new tables hold personal data: explicit access policies OR no policies at all (deny-by-default + RPC-only).
+- [ ] If new foreign keys to the users table: chosen CASCADE vs SET NULL deliberately (CASCADE for owned data, SET NULL for shared).
+- [ ] If new column holds a retention-bound value: documented retention rule + sweep job.
+- [ ] If new column is personal data: added to the PII inventory.
+
+## 5. Controls / processes review ([layer 04](../layers/04-controls-and-processes.md))
+
+- [ ] If new admin endpoint added: role check at top + audit log call at end (mutation logger always; throttled read logger for personal-data reads).
+- [ ] If new server-side function added that logs: uses sanitised logging helpers (`safeError` / `redactPII` / `redactId`) at every variable interpolation.
+- [ ] If new retention rule introduced: cleanup function added to the canonical sweep.
+- [ ] If new column in scope of the data-export endpoint: export updated in this PR (don't leave it as a TODO — the export must remain complete).
+
+## 6. Feature / UX review ([layer 05](../layers/05-feature-ux.md))
+
+- [ ] If new OS-level permission required: just-in-time request, soft-prompt before the OS dialog.
+- [ ] If new opt-in / consent toggle introduced: settings UI to revoke is symmetric (same effort as granting).
+- [ ] If photos uploaded: goes through re-encoding pipeline (EXIF stripped).
+- [ ] If new account-data field added: included in delete-account cascade or SET NULL pattern.
+- [ ] If new consent collected: writes to consent record with accurate timestamp (not pre-seeded before the user actually consented).
+
+## 7. Disclosure review ([layer 06](../layers/06-disclosure.md))
+
+- [ ] If new personal-data field collected: privacy policy data-categories section updated.
+- [ ] If new purpose for existing data: privacy policy purposes table updated.
+- [ ] If new retention rule: privacy policy retention table updated AND T&C mirror updated where applicable.
+- [ ] If new permission: OS usage string + Android rationale updated.
+- [ ] If T&C materially changes: bump T&C version in user-record column; decide on re-acceptance prompt.
+- [ ] "Last updated" date bumped on any privacy policy or T&C change.
+
+## 8. Operational review ([layer 07](../layers/07-operational.md))
+
+- [ ] If new cron-relevant cleanup: hooked into the canonical sweep (don't create a new schedule).
+- [ ] If feature creates new high-PII surface: consider whether breach-detection signals are needed.
+- [ ] If feature touches admin tooling: confirm AUP applies to any new role / permission.
 
 ## 9. Backwards compatibility
 

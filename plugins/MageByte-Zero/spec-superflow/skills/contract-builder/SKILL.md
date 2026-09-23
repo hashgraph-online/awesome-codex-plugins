@@ -1,15 +1,23 @@
 ---
 name: contract-builder
-description: Convert approved planning artifacts into an execution contract. Invoke when the user wants to start building, asks to move from planning to implementation, or when execution-contract.md is missing or stale.
+description: Maintain an execution contract only for an existing legacy change that requires one. New direct/planned changes do not invoke this skill when a contract is absent.
 ---
 
 # Contract Builder
 
-Converts planning artifacts into a single execution handshake: `execution-contract.md`. Load the baseline with `ssf runtime asset read templates/execution-contract.md`.
+## Bundled runtime
+
+Before executing a CLI line below, replace its leading `SSF` with `node "<plugin-root>/scripts/spec-superflow.mjs"`; `<plugin-root>` is the absolute directory two levels above this file. Never run `SSF` literally or call an `ssf` from `PATH`.
+
+Legacy compatibility only: new planned changes use proposal.md + tasks.md and `SSF workflow start --path planned`. Do not generate a contract or request a second approval for them. Read the remaining instructions only for an existing legacy change.
+
+Converts planning artifacts into a single execution handshake: `execution-contract.md`. Load the baseline with `SSF runtime asset read templates/execution-contract.md`.
 
 Read before generating: `.spec-superflow.yaml` (especially `dp_0_decisions`),
 `proposal.md`, `specs/`, `design.md`, `tasks.md`, then load
-`docs/artifact-contract.md` with `ssf runtime asset read docs/artifact-contract.md`.
+`docs/artifact-contract.md` with `SSF runtime asset read docs/artifact-contract.md`.
+
+Enter `bridging` before writing the contract; skip the transition if already there. Honor configured specs/design omissions. Reference requirement IDs and task IDs instead of copying their full text; preserve scope, obligations, tests, and review policy.
 
 ## Artifact Language
 
@@ -45,16 +53,16 @@ Must make obvious: approved behavior, out-of-scope, constraints, batches, test o
 
 ## Approval Model (DP-3)
 
-After drafting: summarize handoff rules, identify ambiguity, flag unmapped requirements, ask user to approve explicitly. After approval:
+After drafting: summarize handoff rules, identify ambiguity and flag unmapped requirements. Reuse explicit approval already covering this exact contract; otherwise request it once, together with any still-pending planning decisions and the default Native execution choice. Approval of scope alone does not approve a contract that has not been shown. Never ask the user to approve the same unchanged contract twice. After approval:
 ```bash
-ssf state set <change-dir> dp_3_result "approved: <summary>"
-ssf state set <change-dir> dp_3_timestamp $(date -u +%Y-%m-%dT%H:%M:%SZ)
+SSF state set <change-dir> dp_3_result "approved: <summary>"
+SSF state set <change-dir> dp_3_timestamp now
+SSF state rebuild <change-dir>
 ```
 
 Advance the state after approval:
 ```bash
-ssf state transition <change-dir> bridging
-ssf state transition <change-dir> approved-for-build
+SSF state transition <change-dir> approved-for-build
 ```
 
 DP-3 is a hard gate — no implementation without this record.
@@ -76,9 +84,7 @@ Generate a minimal contract only for a legacy Hotfix: Intent Lock (one sentence)
 
 ## Post-Generation
 
-Run `ssf state init <change-dir>` to create `.spec-superflow.yaml` with hashes.
-
-For a legacy Hotfix, after writing the minimal contract, run `ssf state init <change-dir>` or `ssf state rebuild <change-dir>` so `contract_hash` is recorded. DP-3 remains mandatory before build.
+The approved contract is recorded by `state rebuild` in the DP-3 sequence above, before the guarded transition. This applies to Full and legacy Hotfix. Do not refresh hashes merely to suppress an unapproved content change.
 
 ## Exception Handling
 
@@ -86,36 +92,3 @@ For a legacy Hotfix, after writing the minimal contract, run `ssf state init <ch
 - **Missing files**: List every missing artifact. Route back to `spec-writer`.
 - **User interruption**: Re-read all artifacts on resume; check contract staleness via content comparison.
 - **Validation failure**: Flag unmapped requirements in Escalation Rules and approval summary.
-
-## Standard User-Facing Handoff
-
-End every user-facing phase report with this concise handoff. Only a successfully
-persisted `closing` state and `abandoned` are terminal.
-
-### Normal report
-
-- Current stage: `<detected workflow stage>`.
-- Completed / blocker: `<completed work>`.
-- Next stage: `<next workflow stage or skill>`.
-- Entry condition: `<what must be true to enter it>`.
-
-### Blocked report
-
-- Current stage: `<detected workflow stage>`.
-- Completed / blocker: `<blocking fact or missing evidence>`.
-- Next stage: `<stage that resumes after the blocker>`.
-- Entry condition: `<the approval, artifact, validation, or fix required>`.
-
-### Approval-wait report
-
-- Current stage: `<detected workflow stage>`.
-- Completed / blocker: `<work ready for the named decision>`.
-- Next stage: `<stage that follows approval>`.
-- Entry condition: `<explicit user approval or recorded decision>`.
-
-### Successful terminal report
-
-- Current stage: successfully persisted `closing` or `abandoned`.
-- Completed / blocker: `<persisted terminal outcome>`.
-- Next stage: `none`.
-- Entry condition: no further transition exists.

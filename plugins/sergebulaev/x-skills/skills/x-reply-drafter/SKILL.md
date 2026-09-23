@@ -1,6 +1,6 @@
 ---
 name: x-reply-drafter
-description: Draft a reply or a value-add quote tweet for a specific X (Twitter) tweet from its URL. Use to reply in a thread, answer a creator, or quote-tweet with added value. Parses the tweet URL, reads pasted context, decides reply vs quote tweet, and drafts 1-3 variants in your voice. X has no LinkedIn-style 2-level thread flattening, so a reply is just a tweet. Publora has no reply endpoint, so the draft is returned as a copy-paste block to post yourself. Not for top-level posts (use x-post-writer).
+description: "Draft a reply or a value-add quote tweet for a specific X (Twitter) tweet from its URL. Use to reply in a thread, answer a creator, or quote-tweet with added value. Parses the tweet URL, reads pasted context, decides reply vs quote tweet, and drafts 1-3 variants in your voice. X has no LinkedIn-style 2-level thread flattening, so a reply is just a tweet. Publora has no reply endpoint, so the draft is returned as a copy-paste block to post yourself. Not for top-level posts (use x-post-writer)."
 ---
 
 # X Reply Drafter
@@ -54,8 +54,11 @@ small account; add value or skip it.
 4. **Draft 1-3 variants** using `references/reply-templates.md`. If the
    counterpart asked a question, answer it plainly with one real detail. If they
    pushed back, concede then sharpen.
-5. **Humanizer pass.** Strip em dashes, AI vocab. Keep each variant under 280
-   chars (emoji = 2). One idea per reply.
+5. **Humanizer pass.** Scrub 2026 AI vocab by density, cap em dashes (at
+   most one per reply, never swap one for a period), strip reveal bridges and
+   sincerity openers ("not gonna lie", "let me be honest"). Leave the rhythm
+   alone; never insert a fragment for punch. Keep each variant under 280
+   chars (emoji = 2). One idea per reply. Canonical rules: `x-humanizer` V3.
 6. **Approval card.** Show the thread context, the variants, the reply-vs-quote
    recommendation, and the target URL.
 7. **On approval.** Call `lib.publish(kind="reply", draft_text=<approved>,

@@ -35,7 +35,7 @@ One MCP endpoint, registered once. Decks scope it per job; playbooks make it com
 
 > **⚠️ macOS required.** API key secrets, OAuth client secrets, and OAuth tokens are stored in **macOS Keychain**. Linux and Windows are not supported for production use yet ([dev file fallback only](docs/SETUP.md#secrets--oauth-storage)).
 
-**Requirements:** Node.js 20+ · npm · Dashboard `http://127.0.0.1:1111` · Agent Deck MCP `http://127.0.0.1:1110/mcp`
+**Requirements:** Node.js 20+ · npm · Dashboard via `agent-deck start` / `agent-deck open` (listens on `127.0.0.1:1111`) · Agent Deck MCP `http://127.0.0.1:1110/mcp`
 
 ### 1. Install and launch
 
@@ -50,22 +50,32 @@ agent-deck start --daemon
 
 Compat: `npm install -g @agent-deck/cli` still works; `agent-deck install` switches only the CLI binary (no data migration).
 
-Open `http://127.0.0.1:1111`. Day to day: `agent-deck start --daemon` / `agent-deck stop` · `agent-deck status` if something fails. Use plain `agent-deck start` only when you want a foreground process in an open terminal (logs go to stdout).
+`start` opens the dashboard with a one-shot bootstrap cookie (do **not** type bare `http://127.0.0.1:1111` — that shows a dashboard login error). Day to day: `agent-deck start --daemon` / `agent-deck open` / `agent-deck stop` · `agent-deck status` if something fails. Use plain `agent-deck start` when you want a foreground process (logs to stdout). Headless: `--no-open` or `AGENT_DECK_NO_OPEN=1`.
 
 ### 2. Register Agent Deck in your agent
 
-Your host must know **`http://127.0.0.1:1110/mcp`** — not Linear, Notion, or other services. Without this, chat cannot reach your decks or collection.
+Your host needs an Agent Deck MCP transport—not direct registrations for Linear, Notion, or other downstream services. The Codex plugin supplies `agent-deck mcp-launch`; Cursor and Claude setup write their host configuration. Without that transport, chat cannot reach your decks or collection.
 
-**Two layers** (one-time machine setup, then operate from the agent):
+**Three layers** (one-time host setup, optional folder assignment, then session bootstrap):
 
 | Command | When | What it does |
 |---------|------|----------------|
-| **`setup`** | **Once** per machine | MCP URL + [agent harness](docs/AGENT_HARNESS.md) — teaches the agent `get_decks`, `bind_workspace`, `switch_bound_deck`, playbooks, proposals |
-| **`use <deck>`** | **Optional**, once per repo | Default deck hint (`.agent-deck/use.json`) + thin **trigger stubs** for better implicit playbook matching — bodies still live on the deck |
+| **`setup`** | **Once** per machine | Host MCP configuration where applicable + [agent harness](docs/AGENT_HARNESS.md). For Codex, marker-merges `~/.codex/AGENTS.md`; the plugin owns MCP transport. |
+| **`use <deck>`** | Once per IDE repo unless the launcher selects a deck | Folder assignment (`.agent-deck/use.json`) + thin **trigger stubs** for better implicit playbook matching — bodies still live on the deck |
 
-Day to day you **do not** need `use`. Say *“use the dev deck”* (or *“switch to work deck”*) in chat; the agent binds via MCP. `use` is for repos where you want a stable default deck and host-native trigger discovery without repeating the deck name every session.
+Use `agent-deck use <deck>` for ordinary IDE folders so `mcp-launch` can select the deck before MCP initializes. Launch-selected unattended sessions may supply the deck header directly and intentionally omit the assignment file.
 
 `setup` also installs the terminal status line by default (`--no-statusline` to skip).
+
+#### Codex
+
+Install and enable the Agent Deck plugin, then install the global bootstrap guidance:
+
+```bash
+agent-deck setup --client codex    # merges ~/.codex/AGENTS.md; does not install the plugin
+```
+
+Optional per repo: `agent-deck use my-deck` writes `.agent-deck/use.json`. Start a new Codex task after setup so Codex rebuilds its instruction chain and reloads the plugin connection.
 
 #### Cursor
 
@@ -118,7 +128,7 @@ Drag cards onto your deck in the dashboard, or ask the agent when building the d
 
 ### 6. Pick a deck each session
 
-**Default (agent-operated):** no repo config required. Tell the agent which deck — *“use the dev deck”*, *“work deck for this project”*, or mid-session *“switch to my personal deck”*. It calls `bind_workspace` / `switch_bound_deck` over MCP.
+**Default (agent-operated):** no repo config required. Tell the agent which deck — *“use the dev deck”*, *“work deck for this project”*, or mid-session *“switch to my personal deck”*. It calls `switch_deck` over MCP and waits for you to approve the switch as This session only or This workspace by default.
 
 **Optional `agent-deck use`:** writes `.agent-deck/use.json` so the agent can bind that deck on session open without you naming it; trigger stubs improve playbook matching.
 
@@ -145,10 +155,13 @@ Your collection and decks live as files under `~/.agent-deck/` (playbooks as `.m
 After first-time [Quick Start](#quick-start):
 
 ```bash
-agent-deck start --open
+agent-deck start
+agent-deck open          # re-open dashboard with a fresh auth cookie
 agent-deck upgrade
 agent-deck stop
 ```
+
+`start` opens the dashboard with a one-shot bootstrap cookie by default (`--no-open` for CI / headless). Bare `http://127.0.0.1:1111` without bootstrap shows the dashboard cookie error (**Error Loading Data / Dashboard Access Expired**) — that is **not** the MCP `GRANT_REQUIRED` case (**No deck selected for this connection**; fix with `agent-deck use <deck>` in the workspace so the launcher can send the deck header). Re-open anytime with `agent-deck open`.
 
 Port conflicts: `agent-deck status` · `agent-deck start --force`
 
@@ -178,6 +191,7 @@ Port conflicts: `agent-deck status` · `agent-deck start --force`
 | **npm** | `npm install -g @agent-deck/cli` |
 | **MCP Registry** | `server.json` — [Publishing](docs/PUBLISHING.md) |
 | **Codex marketplace** | `.codex-plugin/` + HOL listing (pending awesome-codex-plugins PR after green CI) — [CODEX_PLUGIN.md](docs/CODEX_PLUGIN.md) |
+| **Codex AGENTS.md** | `agent-deck setup --client codex` marker-merges global guidance; `--scope project` targets the current repo |
 | **Claude Code** | `/plugin marketplace add` via `.claude-plugin/` |
 | **Cursor** | `agent-deck setup --client cursor` |
 

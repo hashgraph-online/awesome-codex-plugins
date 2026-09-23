@@ -17,7 +17,7 @@
 <br />
 
 [![agents](https://img.shields.io/badge/agents-8-7c3aed?style=flat-square)](#setup)
-[![references](https://img.shields.io/badge/references-15-e11d48?style=flat-square)](#reference)
+[![references](https://img.shields.io/badge/references-41-e11d48?style=flat-square)](#reference)
 [![tools](https://img.shields.io/badge/MCP_tools-10-0ea5e9?style=flat-square)](#tools)
 [![detector](https://img.shields.io/badge/detector-44_rules-f59e0b?style=flat-square)](#tools)
 
@@ -46,7 +46,7 @@ npm i @pymodel/designer-skill-mcp
 
 ### Know
 
-15 reference files cover type, color, motion, a11y, anti-slop, and redesign loops. Your agent reads the right file before writing UI code.
+15 reference files cover type, color, motion, a11y, anti-slop, and redesign loops — plus the 26-file `ux-designer` module for a11y, forms, collaboration, canvas, AI, i18n, and more. Your agent reads the right file before writing UI code.
 
 </td>
 <td width="33%" valign="top" bgcolor="#faf5ff">
@@ -89,6 +89,7 @@ Add the server. Ask in plain language. The agent handles the rest.
 <div align="center">
 
 [![skill](https://img.shields.io/badge/design_skill-15_refs-7c3aed?style=flat-square)](skills/designer-skill/)
+[![skill](https://img.shields.io/badge/ux_designer-26_refs-7c3aed?style=flat-square)](skills/ux-designer/)
 [![mcp](https://img.shields.io/badge/MCP-10_tools-0ea5e9?style=flat-square)](designer-skill-mcp/)
 
 **Built with it:** [pythinker.com](https://pythinker.com) — a live production site designed end-to-end with this skill.

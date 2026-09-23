@@ -141,15 +141,41 @@ alcove setup   # run once after plugin install
 
 Updates with `claude plugin update alcove@epicsagas`.
 
-### Codex CLI
+### Codex
 
 ```bash
 codex plugin marketplace add epicsagas/plugins
+codex plugin add alcove@epicsagas
 ```
 
-Auto-installs the skill and starts the API server. Available immediately — no further steps needed.
+Auto-installs the skill and starts the API server (the plugin is enabled automatically). Available immediately — no further steps needed.
 
-Updates with `codex plugin update alcove@epicsagas`.
+Updates with `codex plugin marketplace upgrade && codex plugin add alcove@epicsagas`.
+
+### Antigravity (Gemini CLI)
+
+```bash
+agy plugin install https://github.com/epicsagas/alcove
+```
+
+Auto-installs the plugin (API server, skill, hooks) and starts it on next session start.
+
+```bash
+alcove setup   # run once after plugin install
+```
+
+### Grok Build (xAI)
+
+```bash
+grok plugin marketplace add epicsagas/plugins
+grok plugin install alcove@epicsagas --trust
+```
+
+Auto-installs the binary and starts the API server on next session start.
+
+```bash
+alcove setup   # run once after plugin install
+```
 
 ### macOS (Apple Silicon only)
 
@@ -161,32 +187,22 @@ No Homebrew? Use the installer script:
 
 ```bash
 curl --proto '=https' --tlsv1.2 -LsSf \
-  https://github.com/epicsagas/alcove/releases/latest/download/install.sh | sh
+  https://github.com/epicsagas/alcove/releases/latest/download/alcove-installer.sh | sh
 ```
 
-### Linux (x86_64 / ARM64)
+### Linux (x86_64)
 
 ```bash
 curl --proto '=https' --tlsv1.2 -LsSf \
-  https://github.com/epicsagas/alcove/releases/latest/download/install.sh | sh
+  https://github.com/epicsagas/alcove/releases/latest/download/alcove-installer.sh | sh
 ```
 
 ### Windows (x86_64 / ARM64)
 
+Pre-built Windows binaries are not currently published. Build from source:
+
 ```powershell
-irm https://github.com/epicsagas/alcove/releases/latest/download/install.ps1 | iex
-```
-
-### Antigravity (Gemini CLI)
-
-```bash
-agy plugins install https://github.com/epicsagas/alcove
-```
-
-Auto-installs the plugin (API server, skill, hooks) and starts it on next session start.
-
-```bash
-alcove setup   # run once after plugin install
+cargo install alcove --features full-cross
 ```
 
 ### Via Rust toolchain
@@ -744,9 +760,10 @@ files = ["README.md", "CHANGELOG.md", "PRD.md"]  # PRD exposed as public for thi
 | Claude Desktop | platform config | — |
 | Cline (VS Code) | VS Code globalStorage | `~/.cline/skills/alcove/` |
 | OpenCode | `~/.config/opencode/opencode.json` | `~/.opencode/skills/alcove/` |
-| Codex CLI | `~/.codex/config.toml` | `~/.codex/skills/alcove/` |
+| Codex | `~/.codex/config.toml` | `~/.codex/skills/alcove/` |
 | Copilot CLI | `~/.copilot/mcp-config.json` | `~/.copilot/skills/alcove/` |
-| Antigravity | `agy plugins install` | — |
+| Antigravity | `agy plugin install` | — |
+| Grok Build | `grok plugin install` | — |
 
 ```
 /alcove                          Summarize current project docs and status

@@ -1,6 +1,6 @@
 # Security, Reliability, and Performance Checklist
 
-主 `SKILL.md` 只在 diff 命中风险触发条件时加载本文件。把问题映射回既有轴线:多数风险属于 `功能`;只有纯 unused/dead code 才归 `废码`。
+主 `SKILL.md` 只在 diff 命中相关风险时加载本文件。以下条目是调查提示,不是自动报错规则;先证明触发路径和影响,再按主文件的严重度标准报告。项目明确需要的日志、公开数据、信任边界内的操作和有边界的任务应结合具体上下文判断。
 
 ## Security
 

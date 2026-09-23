@@ -1,0 +1,7 @@
+interface:
+  display_name: 'Tool Design'
+  short_description: 'Design and review tools for AI agents'
+  brand_color: '#6D5EF7'
+  default_prompt: 'Use $tool-design to classify, design, or review the tools my agent calls.'
+policy:
+  allow_implicit_invocation: true

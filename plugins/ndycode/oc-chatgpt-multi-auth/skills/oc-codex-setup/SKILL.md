@@ -21,7 +21,7 @@ This is the default. It registers the OpenCode and TUI plugin entries without ch
 npx -y oc-codex-multi-auth@latest --modern
 ```
 
-Use this when the shipped 12 base OAuth model families and 53 OpenCode variant presets are required.
+Use this when the shipped 10 base OAuth model families and 53 OpenCode variant presets are required.
 
 ## Config-safe update
 
@@ -45,7 +45,7 @@ Use this when the user already manages `provider.openai`. It registers the OpenC
 npx -y oc-codex-multi-auth@latest --full
 ```
 
-Use this when the user needs direct selector IDs such as `openai/gpt-5.5-medium` or `openai/gpt-5.6-sol-high` in addition to the compact bases.
+Use this when the user needs direct selector IDs such as `openai/gpt-5.5-medium`, `openai/gpt-6-astra-high`, `openai/gpt-6-sol-high`, or `openai/gpt-5.6-sol-high` in addition to the compact bases.
 
 ## Legacy install (older OpenCode)
 
@@ -54,6 +54,16 @@ npx -y oc-codex-multi-auth@latest --legacy
 ```
 
 Use this on older OpenCode versions that do not support variant-based model entries. Installs 53 explicit model IDs only.
+
+## When OpenCode already loads a local checkout
+
+Check the existing `plugin` array before installing. An entry pointing at a
+clone of this repository means the user is running their own build on purpose.
+
+Every installer mode keeps that entry as written and adds nothing beside it, so
+running the installer is safe; it registers the published package only when no
+entry resolves to this plugin. Prefer `update` anyway when the goal is just to
+refresh a stale package cache, since it never opens either config file.
 
 ## Other installer flags
 
@@ -84,16 +94,17 @@ opencode run "Explain this repository" --model=openai/gpt-5.5 --variant=medium
 
 Do **not** use `openai/gpt-5.5-medium` unless the user installed with `--full` or `--legacy`.
 
-3. Optional GPT-5.6 smoke:
+3. Optional GPT-6 Astra / GPT-5.6 smoke:
 
 ```bash
+opencode run "Explain this repository" --model=openai/gpt-6-astra --variant=medium
 opencode run "Explain this repository" --model=openai/gpt-5.6-sol --variant=medium
 ```
 
 4. For a Codex-focused workflow, try:
 
 ```bash
-opencode run "Refactor the retry logic and update the tests" --model=openai/gpt-5-codex --variant=high
+opencode run "Refactor the retry logic and update the tests" --model=openai/gpt-6-sol --variant=high
 ```
 
 5. After `--full`, explicit IDs are valid:
@@ -104,7 +115,7 @@ opencode run "Explain this repository" --model=openai/gpt-5.5-medium
 
 ## Troubleshooting
 
-- Confirm `"plugin": ["oc-codex-multi-auth"]` is present in the OpenCode config.
+- Confirm the OpenCode config registers the plugin, as `"plugin": ["oc-codex-multi-auth"]` or as a path to the user's own checkout.
 - Re-run `opencode auth login` if tokens expired or the wrong workspace was selected.
 - Inspect `~/.opencode/logs/codex-plugin/` after a failed request.
 - Set `ENABLE_PLUGIN_REQUEST_LOGGING=1` for deeper request logging.

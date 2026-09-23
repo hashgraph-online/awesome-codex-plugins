@@ -1,6 +1,6 @@
 ---
 name: x-audience-insights
-description: Read your X (Twitter) audience and niche from real data. Pull a handle's recent tweets (yours or a competitor's) with likes, replies, and views, see which formats and hooks are working, read the repliers on a tweet (X gates likers, so repliers are the signal), and scan a niche query for top tweets. Powered by Apify, no login. Triggers on "analyze my tweets", "what is working on X", "read the replies", "competitor tweets", "who is engaging". Not for writing a tweet (use x-post-writer).
+description: "Read your X (Twitter) audience and niche from real data. Pull a handle's recent tweets (yours or a competitor's) with likes, replies, and views, see which formats and hooks are working, read the repliers on a tweet (X gates likers, so repliers are the signal), and scan a niche query for top tweets. Powered by Apify, no login. Triggers on \"analyze my tweets\", \"what is working on X\", \"read the replies\", \"competitor tweets\", \"who is engaging\". Not for writing a tweet (use x-post-writer)."
 ---
 
 # X Audience Insights

@@ -1,25 +1,31 @@
 ---
 name: init
-argument-hint: "[--depth=light|standard|deep] [--mode=small|medium|large] [--domain=<slug>] [--refresh]"
-description: "First-time Archcore setup. Detects repo scale and shape, then composes a full first-day seed — stack rule, run guide, data-model, integrations, config, entry points, public surface, a linked architecture overview, and specs for the top hotspot modules — shown in ONE preview and created on a single confirm, plus host wiring (MCP config, hooks, CLAUDE.md/AGENTS.md managed block). Imports agent-instruction files — aggregate files (CLAUDE.md/AGENTS.md/.cursorrules) as link stubs, modular rule files (.cursor/rules/*.mdc and equivalents) as rule docs by default. Use on a fresh clone, empty `.archcore/`, 'set up archcore', or to wire host configs (MCP/hooks/CLAUDE.md+AGENTS.md). Not for individual docs or planning."
+argument-hint: "[import|refresh] [path or domain]"
+description: "First-time Archcore setup. Wires the host (MCP config, hooks, CLAUDE.md/AGENTS.md managed block), measures the authored context the repo already holds, then composes a first-day seed — stack rule, run guide, data-model, integrations, config, entry points, public surface, a linked architecture overview, and specs for the top hotspot modules — shown in ONE preview and created on a single confirm. Modes, named as the first word: init import converts the repo's authored context — CLAUDE.md, AGENTS.md, .cursor/rules and other agent instructions, ADR and RFC folders, contributor docs, internal pages of a published docs site, recoverable git history — into native typed documents with no import marks, staged by a plan when the volume is large; init refresh adds facts that appeared since, or drills into one domain with init refresh <domain>. Use on a fresh clone, empty `.archcore/`, 'set up archcore', 'migrate our CLAUDE.md to archcore', 'import our docs and ADRs', or to wire host configs. Not for individual docs or planning."
 ---
 
 # /archcore:init
 
-First-time onboarding. Detects repo scale (small / medium / large) and shape, composes a scale-appropriate seed of `.archcore/` documents, shows them in **one preview**, and creates them on a **single `confirm`** — so the code-alignment hook injection and per-command grounding have substance and the relation graph is live from day one. The same confirm also installs **host wiring** (project MCP config, SessionStart hook, usage hint — the same files `archcore init` writes), so the repo works for CLI-only teammates. Per `magic-first-day-init.adr`: extractive facts are composed in full; the top hotspot modules get real `spec`s (synthesized only after confirm); the overview is an index, never a prose blob. **Nothing is written before `confirm`.** Exact per-mode output is in the Routing Table below.
+First-time onboarding. Wires the host, measures the authored context the repository already holds, and fills `.archcore/` from two sources — what people wrote and what the code shows — so the code-alignment hook and per-command grounding have substance from day one. Per `magic-first-day-init.adr` and `init-import-mode.adr`: extractive facts are composed in full; authored content wins over synthesized content on the same subject; the overview is an index, never a prose blob. **Nothing is written before `confirm`.**
+
+Before planning or writing relations, load `skills/_shared/relation-authoring.md`.
+Apply its claim check to seed and import wiring after reading the endpoint content.
 
 ## Arguments
 
-- `--depth=light|standard|deep` — synthesis budget (default `standard`), orthogonal to `--mode`. See the Depth axis section below. Also settable via the `depth:<tier>` toggle in the preview.
-- `--mode=small|medium|large` — force a mode, overriding auto-detection.
-- `--domain=<slug>` — re-run focused on one domain (large repos): scopes data-model + hotspot specs to that domain's tree, tops up only its docs. Bypasses the "already seeded" early-exit.
-- `--refresh` — re-run on an already-seeded repo to add facts that appeared since the first init (a new schema, config, or modules) — and to retrofit host wiring on repos seeded before wiring existed. Bypasses the early-exit; existing docs are skipped, missing ones composed.
+The first word selects the run: `import` or `refresh`. These two words are the command's modes in the sense of `command-surface-v2.spec`. The rest of the arguments is the subject. No arguments, or any other first word, start a plain init.
+
+- `import [path]` — convert the repository's authored context into native documents, at all five discovery levels of `lib/sources.md`; a path limits the run to that path. Resumes an open import plan when one exists.
+- `refresh [path or domain]` — re-run on a seeded repo to add facts that appeared since (a new schema, config, or modules) and to retrofit host wiring. A subject scopes the top-up: an existing path wins; otherwise a detected domain slug runs the single-domain pass. Bypasses the "already seeded" early-exit.
+- Depth and scale are not arguments. The preview offers the toggles `depth:light|standard|deep` (default `standard`) and `scale:small|medium|large`, where the user already sees each choice's cost (`lib/seed-compose.md`). Import has no depth.
+- A retired form as the first word — `domain`, or a flag such as `--refresh`, `--depth=deep`, `--scale=large` — starts a plain init; name the current form once: *"`/archcore:init [import|refresh] [path or domain]`; depth and scale are toggles in the preview."*
 
 ## When to use
 
 - Empty `.archcore/` — the SessionStart nudge points here.
 - First session on a fresh clone / fresh install.
 - User says: "initialize archcore", "set up archcore", "seed archcore", "first-time setup", "what should I do first".
+- User says: "migrate our CLAUDE.md / AGENTS.md / cursor rules to archcore", "import our ADRs and docs", "move our docs into archcore" → `import`.
 
 **Not init** (route elsewhere):
 
@@ -27,414 +33,126 @@ First-time onboarding. Detects repo scale (small / medium / large) and shape, co
 - Planning a feature → `/archcore:plan`.
 - Documenting one module → `/archcore:document`.
 - Codifying a team standard → `/archcore:document` (offers rule + guide continuation).
+- Filing one external material or a finished report → `/archcore:document research`.
 - Reading applicable context before coding → automatic; the code-alignment hook injects it on file edits.
 - Docs health audit → `/archcore:review`.
 
 ## Routing table
 
-**Mode routing** — Step 0.5 classifier, evaluated top-to-bottom, first match wins. The **empty** route is decided earlier in Step 0(b). Precise conditions in `_shared/grounding/detect-scale.md`.
+**Mode routing** — evaluated top-to-bottom, first match wins.
 
-| Signal | Route | Seeded (composed when detected) |
+| Signal | Route | Flow files |
 |---|---|---|
-| No manifest AND no top-level source (Step 0b) | → **empty** | no content docs — host wiring only, behind its own mini-confirm |
-| `--mode=X` flag | → forced `X` (detected mode still reported) | per row below |
-| `domain_count ≤ 1` AND `module_count ≤ 15` | → **small** | stack rule, run guide, data-model, integrations, config, entry points, public surface, overview + hotspot specs (coverage rate × ranked pool — see Depth axis) |
-| `domain_count ≤ 2` AND `module_count ≤ 40` | → **medium** | small set + cross-cutting rules (every depth, every candidate clearing the recurrence threshold) + hotspot specs (coverage rate × ranked pool — see Depth axis) |
-| `domain_count ≥ 3` OR `module_count > 40` | → **large** | medium set + top-level map + domain dialog + data-model per schema-bearing domain (all, not only selected) + hotspot specs (coverage rate × ranked pool, plus a floor of ≥ 1 spec per selected domain — see Depth axis) |
+| First word `import`, and the assessment gate (step 5) finds no authored source | → **no-source**: the no-source report; no gated operation, no confirm, no code seed | `lib/sources.md` "No authored source" |
+| First word `import` | → **import**: the whole import track, levels L1–L5; no code seed | `skills/_shared/tracks/import.md`, `lib/sources.md` |
+| First word `refresh` | → **refresh**: plain-init flow with the early-exit bypassed; existing artifacts are **skip (exists)** | as the plain rows below |
+| Open import plan found (step 3) on a plain init | → report the plan, name `/archcore:init import`, then continue the plain init without new conversion targets | — |
+| No manifest, no source, no authored source (step 4) | → **empty**: host wiring only, behind its own mini-confirm | `lib/host-wiring.md` "Empty route" |
+| No manifest and no source, authored sources found | → **import-only**: host wiring + the import track in one preview; no code seed | `skills/_shared/tracks/import.md` |
+| Anything else | → **plain init**: host wiring + facts + the fill the assessment gate divides | `lib/seed-detect.md`, `lib/seed-compose.md` |
 
-Every non-empty mode also composes the architecture-overview capstone, plans relation wiring, and offers agent-file import — aggregate files (CLAUDE.md / AGENTS.md / .cursorrules) as link stubs and modular rule files (`.cursor/rules/*.mdc`, `.github/instructions/*.md`, `.windsurf/rules/*.md`) as rule docs by default, per `lib/agent-files.md` — inside the preview. Tier-1 facts (data-model, integrations, config, entry points, public surface) are seeded in any mode **when detected** — breadth scales with the repo, presence does not. The public-surface fact is what carries the seed for library / SPA / multi-command-CLI / agent-plugin repos, where there is no server to enumerate as entry points. The empty route exits after Step 0.
+**Fill routing** — what the assessment gate (step 5) decides on a plain init or a refresh. The extractive facts are composed in **every** row.
+
+| Assessment result | Authored sources | Hotspot specs |
+|---|---|---|
+| no authored source — nothing found, or every source found is `skip` | none; the announce line names what was checked, and names `/archcore:init import` when deeper levels hold files | the depth's budget over the unchanged ranked pool |
+| tier `S` (≤ 8 targets) | every target listed in the init preview; converted on the init confirm | budget over the pool **minus** the `coverage_set` |
+| tier `M` (9–40) or `L` (> 40) | the init confirm creates the import plan and runs wave 1; the closing message names `/archcore:init import` | budget over the pool **minus** the `coverage_set` |
+
+Scale routing (small / medium / large, and what each seeds) lives in `_shared/grounding/detect-scale.md` and `lib/seed-compose.md`. Tier-1 facts are seeded in any scale **when detected** — breadth scales with the repo, presence does not.
 
 **Follow-up routing** — closing-message hand-offs. Init surfaces these as todos; MUST NOT auto-invoke.
 
 | User wants to... | → Invoke |
 |---|---|
-| Capture another module | `/archcore:document <path>` |
-| Record a decision | `/archcore:document` |
-| Codify a convention as a rule | `/archcore:document` |
+| Continue an open import, or import beyond agent files and ADR folders | `/archcore:init import` |
+| Import one folder only | `/archcore:init import <path>` |
+| Add facts that appeared since first init | `/archcore:init refresh` |
+| Drill into another domain (large) | `/archcore:init refresh <domain>` |
+| Capture another module, record a decision, codify a convention | `/archcore:document` |
 | Plan a feature | `/archcore:plan` |
-| Drill into another domain (large) | `/archcore:init --domain=<slug>` |
-| Add facts that appeared since first init | `/archcore:init --refresh` |
 | Scope queries to a domain (large) | `mcp__archcore__search_documents` with the domain tag |
 | See what's loaded | `/archcore:review` |
-
-## Depth axis (`--depth=light|standard|deep`)
-
-Orthogonal to scale (`--mode`, which measures repo *size*). Depth sets the **synthesis budget**, not the artifact checklist. **Extraction is always on** in every depth — Tier-1 facts, imported authored rules, and the hotspot register are cheap and the highest-value / most-durable layer. Depth scales only the **expensive, staleness-prone synthesis**: spec bodies, cross-cutting rules, and big-file / aggregate extraction. Default: **`standard`** — a good first-day seed, not merely the cheapest one. Init is fully gated (nothing is written before `confirm`, and the preview shows all three depths' costs side by side before the user commits to any of them), so there is no reason to default to the thin tier just to be safe — `light` is the explicit **opt-down** for a cost-conscious user (still never empty — Universality invariant 3); `deep` is the explicit **opt-up** for a max plan.
-
-| Depth | Hotspot specs (`rate` × pool, `floor`) | Cross-cutting synth (medium/large) | Big authored (>200) & CLAUDE.md/AGENTS.md | Authored decisions → ADR | Relations |
-|---|---|---|---|---|---|
-| **light** (opt-down) | 10% of the ranked pool, floor 3 | every candidate clearing the recurrence threshold — MAY narrow scan toward guard + shared-indirection primitives for cost, but MUST still surface any high-confidence hit | link | — | basic |
-| **standard** (default) | 25% of the ranked pool, floor 4 | every candidate clearing the recurrence threshold | link | — | basic |
-| **deep** (opt-up) | 60% of the ranked pool, floor 6 | every candidate clearing the recurrence threshold | **extract + split** | **extract from files** (Route 2), never invent from code | enriched (spec↔rule, spec↔spec) |
-
-**The spec budget scales with the repo and carries no absolute maximum** — `budget = max(floor(depth), round(rate(depth) × pool_size))`, clipped to `pool_size`, where `pool_size` is the eligible ranked hotspot pool (`detect-hotspots.md` "Spec budget by coverage rate"). A 214-module pool budgets ~54 specs at `standard`; a 12-module pool budgets 4. Large mode adds a floor of ≥ 1 spec per domain selected in Step A.0, filling the rest by repo-wide rank; a later `--domain=<slug>` re-run applies the same formula to that domain's narrowed pool. **Cross-cutting synthesis is on at every depth** — it is the highest value-per-token artifact init seeds; depth changes only its scan cost at `light`, never whether it runs and no longer how many candidates survive. A very large or hot hotspot (`LOC > 3000` OR top-quartile churn) may compose as a **flagship** at any depth, which makes it eligible for decomposition into ≤ 3 sub-specs by separable sub-surface instead of one spec (`detect-hotspots.md` "Flagship specs"). Every spec, flagship or not, is composed under the one ≤ 120-line cap in `_shared/spec-contract.md`.
-
-Cost scales with depth AND with the repo — the preview shows the computed total per depth, never a constant. On a large repo `deep` can budget hundreds of specs; that is the intended behavior, and the preview's per-depth estimate is where the user sees the price before confirming. Treat any fixed multiplier as illustrative only.
-
-### Universality invariants — hold in EVERY depth and for ANY codebase
-
-1. **Ceiling, not quota.** A depth raises the budget; it NEVER fabricates to hit a number. If the ranked hotspot pool has 5 modules, `deep` produces at most those 5 specs, never a padded count; on a sparse repo `deep` ≈ `light`. Same for cross-cutting: if only 1 candidate clears the "surface nothing over a false rule" bar, that is the output at any depth. "Prefer omission over a guess" holds in every depth. The budget is a share of real evidence — an empty pool yields an empty seed, whatever the rate.
-2. **"When detected", never "always."** No depth has a fixed artifact checklist. data-model / integrations / config / entry-points / imports / cross-cutting appear only on positive evidence, identically across depths — a depth is defined by synthesis budget, not by mandatory docs.
-3. **`light` is never empty.** Its floor rests on the universal spine — stack rule + run guide + public-surface (a library's exports, a CLI's commands, a plugin's skills, a SPA's routes) + register + the budgeted specs via the **test-independent fallback** ranking. At least one fires for any base (library, SPA, ML, CLI, embedded, data/IaC, agent-plugin/markdown, polyglot, monorepo); `light` never degrades to nothing for lack of schema/tests/authored files.
-4. **Depth lives in Phase B (compose), not detection.** No depth branch adds a stack-specific detection heuristic; detection stays high-level, evidence-first, non-exhaustive (guarded by the detect-catalog universality test).
-5. **`deep`'s extra budget flows to whatever the repo affords.** No authored files → nothing to extract, so the budget goes to specs/relations that DO have evidence. `deep` is "more of what this repo actually has," not a fixed feature list assuming a stack shape.
-
-Selection: the `--depth` flag, or the `depth:<tier>` toggle in the preview (Phase C) — the user can flip depth after seeing the plan and its per-depth cost, then still `edit` individual items.
 
 ## Execution
 
 Content voice: default to architectural prose — decisions, rationale, intent. See `skills/_shared/precision-rules.md` Rule 6. Code blocks only where the document type requires it (`rule`, `guide`, `cpat`, and `spec` examples) or the user asks.
 
-### Pre-flight: CLI availability check
+**Gating (write boundary).** `init_project()` and the read-only MCP calls (`list_documents`, `get_document`, `search_documents`) are infrastructure — they run **before** the preview. Three groups of operations are gated:
 
-Before any init step, verify that the Archcore CLI is available on PATH. The canonical installer is documented at https://docs.archcore.ai/cli/install/ — use it as the single source of truth; do **not** suggest other channels (`brew`, `go install`, etc.) even if the user mentions them.
+- document writes: `create_document`, `update_document`, `remove_document`, `add_relation`;
+- host-wiring writes: `install_host_config` / `archcore init --agent` — they touch files outside `.archcore/`, like `.mcp.json` and `.claude/settings.json`;
+- the source-file edits of the import track's retire gate.
 
-1. Run: `archcore --version` (via Bash tool)
-2. If it **succeeds** → check the host-wiring version gate with the deterministic helper (never compare versions yourself — lexical comparison breaks on double-digit fields). Resolve `$d` **in this same Bash call** (each Bash invocation is a fresh shell — nothing persists from a later step), exactly as the Step -1 probe below does: run `d="${CLAUDE_SKILL_DIR:-<absolute dir of this SKILL.md>}"; "$d/../../bin/cli-gte" 0.7.0`. It prints exactly one token:
-   - `yes` → proceed immediately to Step -1 (host wiring enabled).
-   - `__NO_CLI__` (unexpected here — `--version` just succeeded) → treat as `no`.
-   - `no` → the seed still works, but the host-wiring step (see "Host wiring" below) needs a newer CLI. Ask the user once:
-     > Archcore CLI `<version>` is older than v0.7.0 — host wiring (project MCP config, SessionStart hook, usage hint) will be skipped. Update now via `archcore update`? (y/N)
-     - On `y` → run `archcore update` (Bash), re-run the `cli-gte 0.7.0` check, and proceed to Step -1 (host wiring enabled on `yes`, disabled otherwise).
-     - On `N` / silence → proceed to Step -1 with host wiring **disabled**: omit the Host wiring line from the preview, skip Phase E step 0 entirely (the cascade never runs — its manual-fallback leg is NOT a substitute for this note), and in the closing message note: *"Host wiring skipped (CLI < v0.7.0) — update with `archcore update`, then run `archcore init --agent <host> --project "<root>"` in a terminal to make this repo self-contained for CLI-only teammates."* (`<host>`/`<root>` come from the Step -1 probe, which runs regardless of the gate.)
-3. If it **fails** (command not found):
-   - Detect the platform via `uname -s` (Bash). `Darwin`/`Linux` → POSIX path. Anything else (Windows native) → instruct-only path.
-   - **POSIX path** — ask the user once:
-     > Archcore CLI not found. The official installer runs:
-     >
-     > ```
-     > curl -fsSL https://archcore.ai/install.sh | bash
-     > ```
-     >
-     > Run it now? (y/N)
-   - On `y` → execute the command exactly as shown (Bash tool). After it returns, re-run `archcore --version`.
-     - Success → print: *"Archcore CLI installed (`<version>`). Proceeding with init."* → apply the same v0.7.0 comparison from item 2 (a fresh install is normally current, so host wiring is enabled) → go to Step -1.
-     - Still failing → print the install message below and **stop**.
-   - On `N` / silence / **instruct-only path** → print and stop:
-     > Archcore CLI required. Install it, then re-run `/archcore:init`:
-     >
-     > - macOS / Linux / WSL: `curl -fsSL https://archcore.ai/install.sh | bash`
-     > - Windows (PowerShell 5.1+): `irm https://archcore.ai/install.ps1 | iex`
-     > - Verify: `archcore --version`
-     > - Full docs: https://docs.archcore.ai/cli/install/
+**No gated operation fires before the user types `confirm`.** Absence of an answer is never `confirm`: IF this invocation cannot receive further user input in this turn (a print-mode run, a sub-agent call), THEN print the preview and stop. `cancel` therefore leaves `.archcore/` content-empty and the repo's files untouched (the directory and `settings.json` may exist from `init_project`, which is harmless and idempotent).
 
-Do **not** attempt `brew install`, `go install`, package-manager wrappers, or any other install command — they are not the supported path and will produce a CLI that is not version-compatible with the plugin.
+**Lazy reading.** Load a flow file only when its step starts: `lib/host-wiring.md` at step 1, `lib/sources.md` at step 5, `lib/seed-detect.md` then `lib/seed-compose.md` at step 6, `skills/_shared/tracks/import.md` when a route reaches it. Never load them all at once.
 
-### Pre-flight: gating and lazy reading
+### 1. Pre-flight — CLI and host-wiring gate
 
-Two disciplines bind the whole run:
+Run the CLI availability check and the `cli-gte 0.7.0` host-wiring version gate per `lib/host-wiring.md` "Pre-flight". The canonical installer is documented at https://docs.archcore.ai/start/install/; never suggest another install channel. A missing CLI that the user declines to install stops the run. A CLI older than v0.7.0 continues with host wiring **disabled**.
 
-- **Gating (write boundary).** `init_project()` and the read-only MCP calls (`list_documents`, `get_document`) are infrastructure — they run **before** the preview. The gated operations are `create_document`, `add_relation`, and the **host-wiring writes** (`install_host_config` / `archcore init --agent` — they touch files outside `.archcore/`, like `.mcp.json` and `.claude/settings.json`): none fire before the user types `confirm`. `cancel` therefore leaves `.archcore/` content-empty and the repo's host configs untouched (the directory and `settings.json` may exist from `init_project`, which is harmless and idempotent).
-- **Lazy reading (two sub-phases).** The detection/extraction catalogs at `_shared/grounding/*.md` and the composition files at `lib/*.md` are heavy (≥ 1000 lines combined) — read them in two ordered batches, never all at once. The **Detect** sub-phase (Phase A) loads the *detection* catalogs and, for each detector it runs, captures into working memory both the signals AND the small `## Output` create-fields + body template it will reuse later. The **Compose** sub-phase (Phase B) loads the *composition* contracts (`_shared/precision-rules.md`, `_shared/spec-contract.md`, `_shared/rule-contract.md`, `lib/compose-overview.md`, `_shared/grounding/extract-routing.md`) and **reuses the Output fields/templates already captured during Detect** — it does not re-read the bulky detection heuristics. "Release the detection catalogs" at the end of Phase A means dropping their heuristic prose from focus, not the captured Output specs.
+### 2. Initialize and probe the host
 
-### Step -1: Initialize, detect host, and acknowledge (fast)
+Call `mcp__archcore__init_project()` exactly once (pre-gate infrastructure — idempotent, safe on an already-initialized project). It creates `.archcore/` and `settings.json` if missing. On `initialized: true` print *"Archcore initialized at `.archcore/`."*; on `already_initialized: true` print nothing.
 
-Call `mcp__archcore__init_project()` exactly once (pre-gate infrastructure — idempotent, safe on an already-initialized project). It creates `.archcore/` and `settings.json` if missing.
+Then run the host and project-root probe per `lib/host-wiring.md` "Host and project root probe" — always, even when host wiring is disabled. It prints one token: `claude-code` | `cursor` | `codex-cli` | `__UNKNOWN__`. On `__UNKNOWN__`, or anything else than the three host tokens, ask one `AskUserQuestion` — "Which AI host is this session running in?" with options Claude Code / Cursor / Codex (CLI or desktop app) / GitHub Copilot CLI — and map the answer to the agent id (`claude-code` / `cursor` / `codex-cli` / `copilot`); there is no `codex-desktop` id. A GitHub Copilot CLI session always lands on `__UNKNOWN__`. Do not run `archcore init` yourself at this step; if the archcore MCP tools are unavailable in this session, the terminal command `archcore init --agent <host> --project "<root>"` is the user's recovery path.
 
-Immediately after, give the user a one-line confirmation:
+Host wiring is planned **first** in every preview: when the probe finds the host configs absent, the Host wiring line leads the preview, and its writes lead the create phase.
 
-- Response includes `initialized: true` (created now) — print: *"Archcore initialized at `.archcore/`."*
-- `already_initialized: true` — print nothing here; the existing knowledge base speaks for itself in Step 0(a).
+### 3. Check state
 
-**Host + project root for wiring** — always run this probe, even when host wiring is disabled by the pre-flight version gate (it is one cheap Bash call, and the disabled-path closing message still needs `<host>`/`<root>`). One Bash call:
+Call `mcp__archcore__list_documents()` once. **Derive every flag below from local documents only** — skip any result carrying `global: true` / `read_only: true` / `source_kind: "global"`. A mounted global source must not satisfy the already-seeded early-exit: init seeds THIS repo's documents. If any global results appear, load `skills/_shared/globals.md`; never modify a global document and never target one with `add_relation`. Derive:
 
-```sh
-d="${CLAUDE_SKILL_DIR:-<absolute dir of this SKILL.md>}"; host=$("$d/../../bin/detect-host"); root=$(git rev-parse --show-toplevel 2>/dev/null || pwd); printf '%s\n%s\n' "$host" "$root"
-```
+- `has_stack_rule` — a `rule` whose title contains "stack" in `conventions/`; `has_run_guide` — a `guide` whose title contains "run"/"running" in `onboarding/`.
+- `has_data_model`, `has_integrations`, `has_config`, `has_entry_points`, `has_surface`, `has_top_level_map`, `has_overview` — any `doc` tagged `data-model`, `integrations`, `config`, `entry-points`, `surface`, `top-level-map`, `architecture-overview`.
+- `open_import_plan` — a local `plan` tagged `import-plan`.
 
-`${CLAUDE_SKILL_DIR}` is set by Claude Code only. On other hosts (Cursor, Codex, GitHub Copilot CLI) substitute the absolute directory of this skill file — you know it from having read this file; `bin/detect-host` is two directories up from it (`<plugin-root>/bin/detect-host`).
+**Open import plan.** On `import`, resume it (`skills/_shared/tracks/import.md`, "Track state and the import plan") and skip steps 4–5. On a plain init or a refresh, report it — rows done, rows open — and name `/archcore:init import`; plan no new conversion targets in this run.
 
-`bin/detect-host` resolves the current host from environment only (never cwd or stdin — Cursor guarantees neither) and prints exactly one token: `claude-code` | `cursor` | `codex-cli` | `__UNKNOWN__`. **A GitHub Copilot CLI session always lands on `__UNKNOWN__`** — Copilot sets no environment marker in the shell commands it runs, so it is resolved by the question below rather than by the probe (rationale in `bin/detect-host`). If the probe returns `__UNKNOWN__` **or anything else than the three host tokens** (empty output, a path error — treat all the same), ask one `AskUserQuestion` — "Which AI host is this session running in?" with options Claude Code / Cursor / Codex (CLI or desktop app) / GitHub Copilot CLI — and map the answer to the agent id (`claude-code` / `cursor` / `codex-cli` / `copilot`). The Codex option names both surfaces on purpose: they share one binary, one `~/.codex/config.toml` and one plugin install, so `codex-cli` is the agent id for the desktop app too and there is no `codex-desktop` (`codex-adapter.spec`). Remember `host` and `root` for the Host wiring preview line and Phase E; do not re-run the probe.
+**Already-seeded early-exit.** If `has_stack_rule` AND `has_run_guide` AND `has_overview` are all true AND the first word is neither `refresh` nor `import`, reply:
 
-`init_project` initializes only `.archcore/` — host wiring (MCP config, hook, usage hint) is planned in the preview and executed in Phase E, never here. Do not run `archcore init` yourself at this step; the terminal path is the Phase E fallback for the user, not a pre-flight action.
+> Init already seeded this repo. Applicable context auto-injects on file edits via the code-alignment hook; use `/archcore:review` for the dashboard. To add facts that appeared since (a new schema, config, or modules), re-run `/archcore:init refresh`; to drill into one domain, `/archcore:init refresh <domain>`; to convert the repo's authored docs and agent instructions, `/archcore:init import`. (Seeded before host wiring existed, or missing the host configs? `refresh` also adds host wiring — MCP config, SessionStart hook, usage hint.)
 
-### Step 0: Check state and source signal
+Then stop. On a `refresh` run, skip this early-exit — every already-present artifact is marked **skip (exists)** in the preview and only missing ones are composed. Resolve a `refresh` subject here: an existing path → path scope; else a detected domain slug → single-domain pass; else ask one question that lists the detected domains.
 
-Two cheap probes, in order. Each can short-circuit the whole skill. Neither reads anything under `_shared/grounding/` or `lib/`.
+### 4. Source-signal gate
 
-#### Step 0(a) — Existing documents
+Single filesystem probe — one shell call, no catalog reads:
 
-Call `mcp__archcore__list_documents()` once. **Derive every flag below from local documents only** — skip any result carrying `global: true` / `read_only: true` / `source_kind: "global"`. A mounted global source may already provide a stack rule or an overview, but it must not satisfy the already-seeded early-exit: init seeds THIS repo's documents, and a repo with globals mounted but no local seed is still unseeded. If any global results appear, load `skills/_shared/globals.md`; never modify a global document and never target one with `add_relation`. Derive:
+- **`has_manifest`** — at least one project-defining manifest or build file at the project root (depth ≤ 2 for monorepo workspaces): `package.json`, `pyproject.toml`, `requirements.txt`, `Cargo.toml`, `go.mod`, `Gemfile`, `composer.json`, `*.csproj`, `pom.xml`, `build.gradle*`, `mix.exs`, `Package.swift`. **Seed examples, not exhaustive** — also `CMakeLists.txt`, `Makefile`, `deps.edn`, `pubspec.yaml`, `build.sbt`, `*.cabal`, `*.tf`, `Chart.yaml`, `*.sln`, and agent/LLM-plugin manifests such as `marketplace.json` / `plugin.json` / `.claude-plugin/*`.
+- **`has_top_level_source`** — at least one file with a recognizable source extension under the project root, capped at depth 3, excluding `.archcore/`, `.git/`, `node_modules/`, `vendor/`, `dist/`, `build/`, `out/`, `target/`, `coverage/`, `.venv/`, `__pycache__/`, `.next/`, `.turbo/`. The extension list is **not exhaustive** — count any file whose contents are plainly source (a shebang, or import/include/package/module/def/func/class constructs).
 
-- `has_stack_rule` — a `rule` whose title contains "stack" in `conventions/`.
-- `has_run_guide` — a `guide` whose title contains "run"/"running" in `onboarding/`.
-- `has_data_model` — any `doc` tagged `data-model`.
-- `has_integrations` — any `doc` tagged `integrations`.
-- `has_config` — any `doc` tagged `config`.
-- `has_entry_points` — any `doc` tagged `entry-points`.
-- `has_surface` — any `doc` tagged `surface`.
-- `has_top_level_map` — any `doc` tagged `top-level-map`.
-- `has_overview` — any `doc` tagged `architecture-overview`.
-- `has_imports` — any document tagged `imported`.
+If BOTH are false, do not decide yet — step 5 tells whether authored sources exist. Both false and no authored source → the **empty** route of `lib/host-wiring.md` (no placeholder documents, ever). Both false with authored sources → the **import-only** route.
 
-**Already-seeded early-exit.** If `has_stack_rule` AND `has_run_guide` AND `has_overview` are all true AND **neither `--refresh` nor `--domain` was passed**, reply:
+### 5. Assessment gate
 
-> Init already seeded this repo. Applicable context auto-injects on file edits via the code-alignment hook; use `/archcore:review` for the dashboard. To add facts that appeared since (a new schema, config, or modules), re-run `/archcore:init --refresh`; to drill into another domain, `/archcore:init --domain=<slug>`. (Seeded before host wiring existed, or missing the host configs? `--refresh` also adds host wiring — MCP config, SessionStart hook, usage hint.)
+Skip on the `import` mode when step 3 resumed a plan. Otherwise read `lib/sources.md` and run the assess gate of `skills/_shared/tracks/import.md` in callable mode: list authored sources from paths, byte sizes, heading counts, and path mentions — never a full file body — with sizes computed only **after stripping any archcore managed block** (a file whose only content is the managed block is not a source). A plain init and a refresh assess levels L1–L2 — agent instructions (`CLAUDE.md`, `AGENTS.md`, `.cursor/rules/*.mdc`, `.github/instructions/*.md`, and the other L1 paths) and decision records; `import` assesses L1–L5. A plain init and a refresh also record `deeper_present` — a presence-only path listing of L3–L4 that feeds no measure.
 
-Then stop. **With `--refresh` or `--domain`, skip this early-exit and proceed** — every already-present artifact is marked **skip (exists)** in the preview and only missing ones are composed; the Host wiring line appears as usual (its writes are idempotent — already-wired hosts show as skip/converge). (`--domain` additionally scopes the run to one domain; see Step A.0.)
+The gate returns `targets_est`, `tier`, `coverage_set`, and `levels_found`. Announce them in one line, e.g.:
 
-#### Step 0(b) — Source-signal gate (empty-repo early exit)
+> Authored context: 9 sources at L1–L2 (CLAUDE.md 6 KB, 6 .cursor/rules files, docs/adr × 2) → ~14 target documents, tier M. 2 hotspot modules look covered (estimate).
 
-Single filesystem probe — one shell call, no catalog reads. Detect whether the repository has any executable shape yet:
+Print the line in every run, including the run that finds nothing. WHEN the gate returns no authored source (`levels_found` is empty), follow `lib/sources.md` "No authored source": a plain init or a refresh prints the "none" announce line and goes on to step 6 with the pool unchanged; the `import` mode prints the no-source report and stops — it MUST NOT fall back to the code seed, because the user asked for a conversion and the seed is a separate, costlier run.
 
-- **`has_manifest`** — at least one of these exists at the project root (depth ≤ 2 for monorepo workspaces): `package.json`, `pyproject.toml`, `Pipfile`, `requirements.txt`, `Cargo.toml`, `go.mod`, `Gemfile`, `composer.json`, `*.csproj`, `*.fsproj`, `*.vbproj`, `pom.xml`, `build.gradle`, `build.gradle.kts`, `mix.exs`, `Package.swift`. **This list is seed examples, not exhaustive** — also treat ANY project-defining manifest or build file as a manifest (e.g. `CMakeLists.txt`, `Makefile`, `dune-project`/`*.opam`, `deps.edn`/`project.clj`, `pubspec.yaml`, `build.sbt`, `stack.yaml`/`*.cabal`, `*.tf`/`*.tfvars`, `Chart.yaml`, `project.godot`, `*.sln`, `Project.toml`, and agent/LLM-plugin manifests such as `marketplace.json` / `plugin.json` / `.claude-plugin/*`).
-- **`has_top_level_source`** — at least one file with a recognizable source extension exists anywhere under the project root, capped at depth 3, excluding `.archcore/`, `.git/`, `node_modules/`, `vendor/`, `dist/`, `build/`, `out/`, `target/`, `coverage/`, `.venv/`, `__pycache__/`, `.next/`, `.turbo/`. Extensions: `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.py`, `.rs`, `.go`, `.rb`, `.php`, `.java`, `.kt`, `.kts`, `.swift`, `.cs`, `.fs`, `.ex`, `.exs`, `.scala`, `.clj`, `.cljs`. **The extension list is seed examples, not exhaustive** — also count any file whose contents are plainly source (a shebang, or import/include/package/module/def/func/class/use constructs), and recognize other common code extensions (e.g. `.vue`, `.svelte`, `.astro`, `.dart`, `.c`, `.cc`, `.cpp`, `.h`, `.hpp`, `.m`, `.mm`, `.ipynb`, `.hs`, `.ml`, `.mli`, `.tf`, `.sol`, `.lua`, `.jl`, `.r`, `.zig`, `.nim`, `.gd`).
+### 6. Run the route
 
-If BOTH are false, take the **empty** route. No content seed — but host wiring still applies (an empty repo is exactly where a teammate going CLI-only needs the configs).
+- **Plain init / refresh** — run `lib/seed-detect.md` (Phase A — DETECT), then `lib/seed-compose.md` (Phase B compose → Phase C preview → Phase D confirm → Phase E — CREATE + WIRE). The `coverage_set` narrows the hotspot pool in Phase A; the authored block of the preview follows the Fill routing table. One preview, one confirm.
+- **Import / import-only** — run `skills/_shared/tracks/import.md` from its discover gate (or from the resumed row). Its plan preview carries the Host wiring line when wiring is absent. One confirm per wave when the plan grew; a separate confirm before any source file is edited.
 
-When host wiring is **disabled** by the pre-flight version gate, reply with exactly this and stop (no writes):
+### 7. Close
 
-> Archcore is ready at `.archcore/`. No source code detected yet — no content to seed. Host wiring skipped (CLI < v0.7.0) — update with `archcore update`, then re-run `/archcore:init`. The SessionStart empty-state nudge will keep pointing here until then.
+Seed runs close per `lib/seed-compose.md` "Closing message"; host-wiring outcome lines per `lib/host-wiring.md`. Import runs close with: documents created by type, the conflicts list, fidelity departures, rows still open with `/archcore:init import` as the continuation, and — after the last row — the retire offer and the removal of the import plan. Always end with:
 
-
-Otherwise show a mini-preview:
-
-> Archcore is ready at `.archcore/`. No source code detected yet — no content to seed.
->
-> One thing worth doing now — host wiring, same files `archcore init` writes (makes the repo work for teammates using the CLI without this plugin):
->
-> ```
-> Host wiring (<host>) → <root>
->   • <per-host file list — e.g. for claude-code: .mcp.json · .claude/settings.json (SessionStart hook) · CLAUDE.md + AGENTS.md (managed block)>
-> ```
->
-> `confirm` to write these, `cancel` to leave the repo untouched. Re-run `/archcore:init` after the first manifest or source file lands — the SessionStart empty-state nudge will keep pointing here until then.
-
-On `confirm` → execute the Host wiring cascade (Phase E step 0) and stop. On `cancel` → stop with no writes. Either way, **do NOT** create placeholder documents — they have no practical value, cost roundtrips and tokens, and suppress the SessionStart empty-state nudge that is the user's breadcrumb back here.
-
-Otherwise (`has_manifest` OR `has_top_level_source`), proceed to Phase A.
-
----
-
-## Phase A — DETECT (no writes; detection catalogs only)
-
-Compute everything the seed needs in one detection pass. No documents are created here, and no composition contract is opened. For each detector, capture its signals AND its `## Output` create-fields for reuse in Phase B/E.
-
-**Detect high-level, for ANY stack.** Each `detect-*` catalog leads with *what* it detects (the concept) and a universal, evidence-first method; its concrete lists of frameworks / ORMs / SDKs / extensions / conventional roots are **non-exhaustive examples**, not a checklist. When a project's language, framework, or layout is unfamiliar or highly specific, reason from first principles per the catalog — the entry file's imports, the dominant file types, the manifest / build system, and what the code actually does — and emit a fact only on **positive evidence** (prefer omission over a guess). Never return empty / `small` / "no entry points" merely because nothing matched a list.
-
-### Step 0.5: Scale
-
-Read `_shared/grounding/detect-scale.md`, `_shared/grounding/detect-domains.md`, `_shared/grounding/detect-modules.md`.
-
-1. **Parse arguments** — `--depth=light|standard|deep` (synthesis budget, default `standard`; see the Depth axis section), `--mode=X` (force the mode), `--domain=<slug>` (force a large-mode single-domain pass; see Step A.0), `--refresh` (already consumed in Step 0a). Depth does NOT affect detection — Phase A ranks hotspots up to the `deep`-depth ceiling (see Step A.3) and detects ALL facts/imports regardless of the active depth; depth only governs how much is synthesized in Phase B.
-2. **Compute signals:** `domain_count` (per `detect-domains.md`), `module_count` (source files > 100 LOC, excluding tests/generated), `entry_point_count` (per `detect-entry-points.md`, informational).
-3. **Classify** per `detect-scale.md` — apply its evidence-based fallback when the language/layout is unlisted (recompute counts from the dominant code extension and tracked-file breadth; do not default to `small` just because the extension/root lists miss). A forced `--mode` wins but remember the auto-detected one; `--domain` forces large-mode behavior scoped to the named domain.
-
-### Step A.0: Domain selection (large mode only)
-
-Skip unless mode is `large`.
-
-1. **`--domain=<slug>` given** — that domain is the sole selection; skip the dialog. (Tier-1 facts already present are skipped; the run tops up this domain's data-model + hotspot specs by applying the depth's `rate` / `floor` to the pool **narrowed to that domain's tree**, per `detect-hotspots.md`.)
-2. **Otherwise** — present the top 5 ranked domains (per `detect-domains.md` ranking) and ask: *"Which domains are you working on now? (pick 1–3 by name or number, or `skip` to defer.)"* Accept a single name, a comma list, or `skip`.
-3. **Allocate the hotspot budget.** Hotspots (A.3) are ranked **repo-wide** (candidate selection is never restricted to a domain's tree in the day-one dialog), and the budget itself comes from the repo-wide pool: `max(floor(depth), round(rate(depth) × pool_size))` per `detect-hotspots.md` "Spec budget by coverage rate". The selection changes **allocation, not size**: every selected domain is guaranteed a floor of ≥ 1 spec; remaining slots fill by repo-wide rank across all domains, selected or not. On `skip`, no domain gets a floor and the whole budget fills by repo-wide rank alone.
-4. **Data-model breadth is decoupled from the dialog.** Seed a data-model doc for **every domain with a detectable schema** (`detect-data-model.md`, names-only — cheap regardless of repo size), not only the domains selected here. The dialog focuses hotspot-spec priority, not data-model breadth. A domain without a schema still appears as a row in the top-level map (`detect-domains.md`).
-
-Remember the unselected domains for the closing message.
-
-### Step A.1: Shape — single manifest batch
-
-Read `_shared/grounding/detect-stack.md`, `_shared/grounding/detect-data-model.md`, `_shared/grounding/detect-integrations.md`, `_shared/grounding/detect-config.md`. **Read each manifest file once** (`package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `schema.prisma`, `.env.example`, …) and feed all four detectors from that shared parse — never re-read a manifest per detector. Collect:
-
-- **Stack signals** (≤ 5) — per `detect-stack.md`.
-- **Data model** — entities + key relations, NAMES ONLY, per `detect-data-model.md` (large mode: one doc per domain, seeded for EVERY domain with a detectable schema — not scoped to the Step A.0 selection; see Step A.0.4). Skip if no schema anywhere.
-- **Integrations** — external services from allowlisted SDK deps, per `detect-integrations.md`. Skip if none.
-- **Config surface** — env-var NAMES + purpose, **never values**, per `detect-config.md`. Skip if no env contract.
-
-### Step A.2: Run commands, entry points & surface
-
-- **Run commands** — per `_shared/grounding/extract-run-instructions.md` (README section → scripts → ask the user once if neither yields anything).
-- **Entry points** — per `_shared/grounding/detect-entry-points.md`, bucketed HTTP / CLI / Worker / Cron / Other. Seed the entry-point `doc` in any mode when ≥ 1 entry point exists; in large mode group by domain.
-- **Public surface** — per `_shared/grounding/detect-surface.md`. The role-based outward shape the entry-point inventory does NOT cover: web routes/pages, a library's exported API, a multi-command CLI's command catalog, an agent-plugin's skills/commands, mobile screens. Seed the public-surface `doc` when such a surface exists and is not already fully enumerated as entry points; in large mode group by domain. This is the fact that gives library / SPA / plugin / markdown-tooling repos a substantive seed.
-
-### Step A.3: Hotspots & cross-cutting (candidates only — NO source reads)
-
-- **Hotspot candidates** — rank per `_shared/grounding/detect-hotspots.md` and collect signal data (path + LOC + companion-test LOC + suggested type) for the **whole eligible ranked pool**, not a per-depth slice of it. The pool size is itself an input to every depth's budget, and signal collection reads **no source files**, so one Detect pass serves any `--depth`, including a later `depth:` toggle in Phase D, with no re-read. Phase B then keeps the *active depth's* budget as spec stubs — `max(floor(depth), round(rate(depth) × pool_size))`, clipped to the pool (`detect-hotspots.md` "Spec budget by coverage rate") — subject to large mode's per-selected-domain floor of ≥ 1 spec; ranked candidates beyond the budget go to the overview register (`compose-overview.md` Part 3) as `→ /archcore:document` rows. The catalog ranks in two tiers: a tests-aware **primary** tier, and — when it fills fewer slots than the budget — a **test-independent fallback** (fan-in / public surface / size / churn) so repos with no tests (scripts, SPAs, ML, CLIs, agent-plugin/markdown tooling) still surface real specs instead of an empty pool. Mark fallback-tier stubs with their qualifying signal. A candidate clearing the **flagship** gate (`LOC > 3000` OR top-quartile churn) is flagged as such in the stub, for Phase E's one-spec/decomposition choice (`detect-hotspots.md` "Flagship specs"). **Tier-2 artifacts are always composed as `spec`** — use the `adr`/`task-type` hints in `detect-hotspots.md` only to *filter out* ineligible candidates (e.g. a `utils`/`helpers` module, or one failing `spec-contract.md`'s "when NOT to write a spec"), never to switch the document type. **Do not read source files yet** — that read is deferred to Phase E for kept specs only.
-- **Cross-cutting candidates** (medium and large, whole-repo, **every depth**) — per `_shared/grounding/detect-cross-cutting.md`, every candidate that clears the recurrence threshold, with no per-depth count cap (Change: the `light` ≤2 / `standard` ≤3 / `deep` ≤4 caps are removed — the conservative "surface nothing over a false rule" bar is the only gate). init uses that catalog for **detection only** and overrides its standalone y/n "Output" flow: each candidate becomes a Tier-2 `rule` stub here and is created in Phase E, not handed to `/archcore:document`.
-
-### Step A.4: Agent files
-
-Detect **all** agent-instruction candidates per `lib/agent-files.md` (paths + byte sizes + **class**) — do not stop at CLAUDE.md/AGENTS.md; enumerate the modular directories (`.cursor/rules/*.mdc`, `.github/instructions/*.md`, `.windsurf/rules/*.md`) too. **Sizing exception for CLAUDE.md / AGENTS.md**: compute their size and non-emptiness only **after stripping any archcore managed block** (`<!-- archcore:start -->` … `<!-- archcore:end -->`) — never from a raw file-size probe; a file whose only content is the managed block is not a candidate at all and must not appear in the preview (`lib/agent-files.md` → Probe paths). `lib/agent-files.md` assigns each file a class that sets its default import mode:
-
-- **`aggregate`** (CLAUDE.md, AGENTS.md, .cursorrules, …) — default **link** (one pointer `doc`). Extract is opt-in.
-- **`modular-rule`** (`.cursor/rules/*.mdc` and equivalents) — default **extract**: one `rule`/`doc` per file, classified by content (genuine conventions → `conventions/`), reproduced verbatim. A file > 200 lines degrades to `link`.
-
-Estimate extract **yield** without loading `extract-routing.md`: aggregate → count H1/H2/H3 headings, capped at 10; modular-rule → 1 per file (they are one rule each). Compute the cost tier **per class**: **aggregate HIGH** if combined aggregate size > 50 KB OR estimated aggregate yield > 8 docs; **modular-rule HIGH** if combined modular-rule size > 50 KB (**file count is NOT a signal** — many small rule files are cheap). HIGH gates only whether extract needs an explicit opt-in.
-
-### Step A.5: Announce
-
-Print one detection line, e.g.:
-
-> Mode: medium (28 modules, 1 domain). Detected: Prisma (6 entities), Stripe + AWS, 12 env vars, 5 entry points, 5 hotspot candidates, 1 cross-cutting pattern, CLAUDE.md (4 KB) + 6 .cursor/rules files (18 KB, modular). Composing the plan…
-
-In large mode, report the figures for the **selected** domains (selection already happened in Step A.0). Detection done — release the detection catalogs (heuristic prose), keeping the captured Output specs.
-
----
-
-## Phase B — COMPOSE (in memory; composition contracts only)
-
-Load the composition contracts and compose every planned artifact **without writing**. Honor each catalog's line cap. Mark any artifact whose `has_*` flag is already true as **skip (exists)**. Exception: in large / `--domain` mode the per-domain data-model doc (`<domain-slug>-data-model`) dedupes by its own filename, not the repo-wide `has_data_model` tag — so a newly-selected domain's data-model is still composed when other domains' already exist.
-
-**Apply the active depth** (`## Depth axis`, default `standard`) to this compose pass — it sets only these levers, and everything else is depth-independent:
-- Hotspot spec count = the depth's computed budget (`detect-hotspots.md` "Spec budget by coverage rate"), large mode subject to the per-selected-domain floor; ranked hotspots beyond it go to the register regardless of depth. A flagship candidate (Change: size/churn-gated) composes as one spec or, only with genuine separable sub-contracts, decomposes into ≤ 3 sub-specs — at every depth, not gated by depth.
-- Cross-cutting synthesis runs at **every** depth now (medium/large), and every candidate clearing the recurrence threshold becomes a stub — depth no longer trims the count. `light` MAY narrow the scan toward the guard + shared-indirection primitives for cost control but MUST still surface any high-confidence candidate it finds.
-- Import mode: `light`/`standard` → aggregate link, big (>200) modular link; `deep` → aggregate extract, big modular extract + split.
-- ADR-from-authored-decisions and enriched relations: `deep` only.
-Depth is a budget **ceiling, never a quota** — compose only what the repo affords on positive evidence (Universality invariant 1); a sparse repo at `deep` yields the same as `light`.
-
-- **Tier-1 facts (full bodies, cheap/extractive):**
-  - stack rule — `detect-stack.md` template (≤ 6 lines).
-  - run guide — `extract-run-instructions.md` (single-app ≤ 15 lines; monorepo per-app ≤ 6).
-  - data-model doc — `detect-data-model.md` Output (≤ 40 lines), when detected; large mode: one per domain, for every schema-bearing domain.
-  - integrations doc — `detect-integrations.md` Output (≤ 15 lines), when detected.
-  - config doc — `detect-config.md` Output (≤ 20 lines, **NAMES ONLY**), when detected.
-  - entry-point inventory — `detect-entry-points.md` Output, when ≥ 1 entry point.
-  - public-surface doc — `detect-surface.md` Output (≤ 25 lines, **NAMES + purpose only**), when a surface exists that entry points don't already cover.
-  - top-level map — `detect-domains.md` Output (large mode).
-- **Tier-2 stubs (NO source reads):**
-  - hotspot specs — one stub each for the **active depth's budget** (`detect-hotspots.md`), large mode subject to the per-selected-domain floor: suggested spec title, the qualifying `LOC / test-ratio`, target filename + directory, a `flagship` marker when the size/churn gate is cleared, and an estimated synthesis cost ≈ `(source_LOC + test_LOC) × 6` tokens. The full body is composed only after confirm. Ranked hotspots **beyond** the budget are not stubbed — they go to the overview register (`compose-overview.md` Part 3) at ~0 cost.
-  - cross-cutting rules (medium/large, **every depth**, no count cap) — one stub each: the pattern + the paths it would govern. Full body composed after confirm under `rule-contract.md`. **Drop a stub whose pattern is already covered by an imported authored rule** (dedup per `detect-cross-cutting.md`) and note the skip under that import.
-- **Capstone:** plan the architecture-overview per `lib/compose-overview.md`. Its body indexes the *confirmed* seed, so it is composed in Phase E once the set is final. List it in the preview as "Architecture overview — index of the above".
-- **Agent-file import:** behavior is set by file class from `lib/agent-files.md` (captured in Detect):
-  - **Aggregate** (CLAUDE.md, AGENTS.md, .cursorrules, …): default **link** (one pointer `doc`, ~0 cost). Extract is opt-in via `edit`; the aggregate-HIGH flag gates that opt-in.
-  - **Modular-rule** (`.cursor/rules/*.mdc` and equivalents): default **extract** per `_shared/grounding/extract-routing.md` — one document per file (they are one rule each), classified by content: a genuine convention → `rule` in `conventions/`; a reference/role/meta file → `doc` in `imported/`. Title from the frontmatter `description:`, body verbatim, `status: draft`. A file > 200 lines degrades to **link** (opt-in extract to split). No synthesis.
-  - **Dedup:** after both sets are assembled, drop any cross-cutting stub whose constraint is already covered by a modular-rule file imported as a `rule` (same symbol/module) — prefer the authored rule; never create both.
-  Reuse the `agent-files.md` encoding (`imported` + `source:<slug>` tags, pointer first line) for all modes.
-- **Planned relations:** per the `compose-overview.md` "Relation wiring" table.
-
-No `create_document` / `add_relation` has run yet.
-
----
-
-## Phase C — PREVIEW (one manifest)
-
-Present the entire plan as a single grouped manifest, then wait. Example:
-
-```
-Init plan — scale: medium · depth: standard (default).   confirm / edit / depth:light / depth:deep / cancel
-Coverage: 4 specs / 11 load-bearing modules (36%) · 1 cross-cutting rule
-
-Facts (created in full):
-  • Project stack — rule                                      [new]
-  • Running the project — guide                               [new]
-  • Data model — doc (6 entities)                             [new]
-  • External integrations — doc (Stripe, AWS)                 [new]
-  • Configuration — doc (12 vars)                             [new]
-  • Entry points — doc (5)                                    [new]
-  • Public surface — doc (8 routes)                           [new]
-Synthesis (bodies composed only if kept):
-  • spec: token-rotation   — 235 LOC src / 968 LOC tests   ~7k   [new]
-  • spec: auth-client      — 52 LOC src / 0 tests          ~1k   [new]
-  • rule: request-context  — cross-cutting; src/**/handlers ~1k  [new]
-Capstone:
-  • Architecture overview — doc (index of the above)          [new]
-Imports (aggregate — link by default):
-  • CLAUDE.md (4 KB) — link, 1 doc                         ~0   (edit → extract)
-Imports (modular rules — extract → rule by default):
-  • .cursor/rules/app-router-only.mdc — rule, 1 doc        ~0   (edit → link)
-  • .cursor/rules/error-handling.mdc (240 ln) — link       ~0   (large; edit → extract)
-Host wiring (as `archcore init`, host: claude-code) → /Users/x/myrepo
-  • .mcp.json · .claude/settings.json (SessionStart hook) · CLAUDE.md + AGENTS.md (managed block)   (edit → hosts: all / skip)
-Relations: ~14 edges.
-Estimated: ~22k (standard, shown) · ~7k (light) · ~50k (deep).
-Already present (skipped): <list, or "none">.
-```
-
-- The **Coverage line** always follows the header and surfaces sparseness explicitly:
-  `Coverage: <N> specs / <M> load-bearing modules (<P>%) · <D>/<T> domains seeded · <C> cross-cutting rules`.
-  `N` = kept hotspot specs at the active depth; `M` = the full ranked hotspot pool size (`detect-hotspots.md` primary + fallback, not just the budgeted slice); `P` = `N`/`M` as a percentage — the realized coverage rate, which lands on the depth's `rate` except where the sparse-repo `floor` or the per-domain floor raised it; `D`/`T` = domains with ≥ 1 seeded doc (data-model or spec) out of total detected domains — **large mode only**, omit the `· D/T domains seeded` clause in small/medium; `C` = kept cross-cutting rule stubs — omit that clause when `C` = 0 in small mode (cross-cutting never runs there). Every number is computed from the plan, never a constant.
-- **Large mode**, any depth: append one recommendation line directly under Coverage showing the concrete jump to the adjacent tiers, computed from the plan's actual pool and per-depth rates — never constants:
-  ```
-  Init plan — scale: large · depth: standard (default).   confirm / edit / depth:light / depth:deep / cancel
-  Coverage: 54 specs / 214 load-bearing modules (25%) · 18/24 domains seeded · 3 cross-cutting rules
-  Large repo: standard covers 25% of load-bearing modules. depth:light → ~21 specs, cheaper; depth:deep → ~128 specs + big-file extraction + enriched relations. Toggle depth: below before confirm.
-  ```
-  On a `light`-toggled re-plan the line instead points only upward (`depth:standard → …`, `depth:deep → …`); on `deep` it points only downward, since there is nowhere higher to go.
-- **High-volume notice.** IF the budget exceeds **25** hotspot specs, THEN add one line under the recommendation line naming the spec count, the estimated token cost, and the cheaper depth — e.g. `54 spec bodies ≈ ~180k tokens in one run; depth:light → ~21 specs ≈ ~72k. edit drops individual specs.` The run stays a **single** confirm and a single pass (no second gate, no staging); this line is what keeps a large budget an informed choice rather than a surprise.
-- For each **Tier-2 stub** show the qualifying `LOC / test-ratio` and the per-item synthesis cost, so `edit` is an informed budget lever. A flagship stub (`detect-hotspots.md` "Flagship specs") shows its treatment inline, e.g. `spec: order-service — 6400 LOC src / 1100 LOC tests ~24k [flagship: one spec]` or `[flagship: split → 2 sub-specs]`.
-- For **aggregate imports**, show as **link** by default with `(edit → extract)`; if a file's cost tier is **HIGH**, prefix `⚠️ HIGH COST` on the extract option — extract is only entered when the user explicitly opts in.
-- For **modular-rule imports**, show as **extract → rule** by default with `(edit → link)`; a file > 200 lines shows as **link** with `(large; edit → extract)`. If a cross-cutting stub was dropped because an imported rule covers it, show `↳ synthesis skipped` under that stub.
-- The **Host wiring line** (omit when disabled by the pre-flight version gate) names the detected host, the resolved project root **explicitly** (the user must see WHERE files will land — Cursor can misroute cwd, and this line is the check against it), and the per-host file list: claude-code → `.mcp.json` + `.claude/settings.json` (SessionStart hook) + `CLAUDE.md` + `AGENTS.md` managed blocks (CLAUDE.md is what Claude Code actually reads; AGENTS.md is the shared standard block — one write, both files; the CLI also deletes the legacy nudge file under `.claude/rules/` left by pre-v0.6.1 CLIs); cursor → `.cursor/mcp.json` + `.cursor/hooks.json` + `AGENTS.md` managed block; codex-cli → `.codex/config.toml` + `AGENTS.md` managed block; copilot → `.mcp.json` + `.github/hooks/archcore.json` (sessionStart) + `AGENTS.md` managed block. **On copilot the Host wiring line is never optional** — the plugin ships no MCP server for that host (Copilot launches a plugin's MCP in the plugin's own directory, github/copilot-cli#4234), so without wiring the session has skills and hooks but no document tools at all. If the version gate disabled wiring, say so plainly in the closing message rather than seeding silently. `edit → hosts: all` widens the install to every agent auto-detected in the repo; `edit → skip wiring` drops the line. These files live **outside** `.archcore/` — they are written only after `confirm`, like everything else.
-
-## Phase D — CONFIRM
-
-Wait for the user.
-
-- **`cancel`** → stop. Fire zero `create_document` / `add_relation` calls. No partial state.
-- **`edit`** → accept deselections by name/number ("drop spec:auth-client", "skip import", "rules only"), opt-ins ("extract CLAUDE.md"), batch answers ("link all"), and the host-wiring toggles from Phase C ("hosts: all" widens to every detected agent, "skip wiring" drops the line). Re-show the trimmed total, then proceed.
-- **`depth:light|standard|deep`** → re-plan at that depth: recompute the spec count, the cross-cutting cap, import modes, and per-depth cost, re-show the whole preview (Coverage line and, in large mode, the depth-nudge line included), then wait again (edits on top are still accepted).
-- **`confirm`** → Phase E with the surviving set.
-
-A deselected Tier-2 spec's source file is **never read** — the read happens in Phase E only for kept specs.
-
-## Phase E — CREATE + WIRE (gated; runs only after confirm)
-
-For the confirmed set only, in order:
-
-0. **Host wiring** (when the preview carried the line and it survived `edit`) — deterministic cascade, first available path wins:
-   1. **MCP tool** — if `install_host_config` is among the available archcore MCP tools, call `install_host_config(host=<host>)` (add `all_detected=true` on `hosts: all`). The server's project root is correct by construction; relay the returned report (files ensured / errors) in the closing message.
-   2. **CLI fallback** — tool absent (older server still running, or a Cursor day-one session where no archcore MCP is connected yet): run via Bash `archcore init --agent <host> --project "<root>"` (repeat `--agent` per host on `hosts: all`), with `<root>` exactly the path shown in the preview. Non-interactive by contract: no prompts, artifacts land under `--project` regardless of cwd.
-   3. **Manual fallback** — the CLI turns out too old for `--agent` at execution time (reachable only when the version check passed at pre-flight but the CLI is stale/broken by Phase E — e.g. a concurrent downgrade; a user who declined the update never reaches this cascade, their channel is the closing-message note from the pre-flight gate): print the ready-to-run command *`archcore update && archcore init --agent <host> --project "<root>"`* for the user's terminal and continue with the content seed — wiring failure never aborts the seed.
-   On partial failure inside a path (e.g. one host errored), report per-artifact results and continue; do not retry a different path for artifacts that succeeded.
-
-   **On `copilot`, verify the result instead of assuming it.** Everywhere else a failed wiring costs convenience — the plugin's own MCP server still answers. On this host it costs the entire document surface (`copilot-mcp-architecture.adr`), and the user discovers that a session later, as "the plugin is broken". So after the cascade, check the artifact that carries the tools, in one Bash call: `grep -q '"archcore"' "<root>/.mcp.json"`. On a match, report wiring as done. On no match — including a zero-exit CLI that wrote nothing — report it as **failed**, name `<root>/.mcp.json` as the missing file, and give the user the ready-to-run `archcore init --agent copilot --project "<root>"`. Either way continue with the content seed: wiring failure never aborts it.
-
-1. **Tier-1 facts** — `create_document` per the fields in each catalog's `## Output` section (type / directory / filename / title / status / tags). Skip any marked exists.
-2. **Hotspot specs** — for each kept stub: **now** read its source + companion tests, compose the full body under `_shared/spec-contract.md` (≤ 120-line cap, the same for every spec). If the stub is marked **flagship** (`detect-hotspots.md` "Flagship specs" — `LOC > 3000` OR top-quartile churn): compose one spec (default treatment), or — only when the module has ≥ 2 genuinely separable, independently-consumable sub-surfaces — decompose into ≤ 3 sub-specs (`filename=<module-slug>-<sub-surface-slug>` each), each under the same cap. Then `create_document(type='spec', filename=<module-slug>[-<sub-surface-slug>], directory=<domain-or 'architecture'>, status='draft', tags=['spec', <area>])` — `status='draft'` in every case: the spec is heuristic-derived from code, not authored/reviewed, so the user confirms it before it is canon (same rationale as the cross-cutting rules below). Skip if a doc with that filename already exists (dedupe). For a decomposed flagship, also `add_relation('related')` between its sub-specs (Step 6 wiring, `compose-overview.md`).
-3. **Cross-cutting rules** (medium/large, **every depth**, no count cap — per Phase B) — for each kept stub: compose under `_shared/rule-contract.md`, `create_document(type='rule', filename=<concern-slug>, directory='conventions', status='draft', tags=['conventions', <concern>])`. `status='draft'` because the rule is heuristic-derived and the user should confirm phrasing before it is canon. Skip if that filename already exists, or if the stub was deduplicated against an imported authored rule in Phase B.
-4. **Agent-file import** — execute kept items per class (`lib/agent-files.md`) at the modes Phase B set for the active depth: aggregate → link (`light`/`standard`) or extract (`deep`/opt-in); modular-rule → extract one `rule`/`doc` per file, classified by content (genuine conventions to `conventions/`), with big (>200) files linked at `light`/`standard` and extract+split at `deep`. At `deep`, authored decision blocks become `adr` docs via `_shared/grounding/extract-routing.md` Route 2 (extracted from the file, never invented from code). Route content via `_shared/grounding/extract-routing.md`; dedupe against existing `source:<slug>` tags first.
-5. **Architecture overview** — skip if `has_overview`. Otherwise, now that the seed is final, compose its body per `compose-overview.md` (structural-facts line + type/topic index of the *created* docs) and `create_document`.
-6. **Relations** — `add_relation` per the planned wiring table; skip any edge whose endpoints were not both created. Roll forward on individual failure (surface the error, keep successful edges; do not delete prior creates). At `deep` depth also add the enriched edges (each hotspot spec → the convention rule(s) it must honor, and → sibling specs in the same tree) from the relation-wiring plan.
-7. **Report** one line per created document plus the total edge count.
-
-### Closing message: outlook
-
-Summarize what was created, then make the value-loop visible and list the over-time targets. When host wiring ran, lead with its one-line outcome — e.g. *"Host wiring (claude-code): .mcp.json, SessionStart hook, CLAUDE.md + AGENTS.md managed block — repo now works for CLI-only teammates."* — or the per-artifact errors if any failed. Per-mode template.
-
-**On `copilot` the outcome line MUST end with the restart requirement**, e.g. *"Host wiring (copilot): .mcp.json, .github/hooks/archcore.json, AGENTS.md — now restart the Copilot session to connect the Archcore MCP document tools. This host reads .mcp.json at session start, so they are not available in this one."* Copilot is the only host where wiring is the sole route to those tools, and they do not appear in the session that wrote the file. A user who is not told this sees a green report followed by an agent that cannot read or create a single document — which reads as a broken plugin, not as a pending restart. `bin/session-start` gives the same instruction in its own Copilot messages; keep the two in step.
-
-**On `codex-cli` the outcome line MUST name the two consents the wiring waits on.** Codex loads a project `.codex/` layer — `.codex/config.toml` and `.codex/hooks.json` alike — only for a project marked `trust_level = "trusted"`, and runs a non-managed command hook only after the user reviews and trusts it under `/hooks`. Neither is granted by writing the files. So the line reads e.g. *"Host wiring (codex-cli): .codex/config.toml, .codex/hooks.json, AGENTS.md — Codex applies them once you trust this project and approve the hooks in `/hooks`; both surfaces (CLI and desktop app) read the same files."* Without that sentence a teammate sees green wiring and a session with no Archcore MCP and no hooks, and `codex exec` skips untrusted hooks without printing why. **Conditionalize the "Try it now" line:** if ≥ 1 hotspot spec was created, point at the top hotspot path; if none (empty pool or all deselected), point at a file in a seeded fact's area instead — the code-alignment hook injects that fact on edit.
-
-**Small:**
-
-> Done. Seeded: stack rule, run guide[, data-model, integrations, config, entry points], architecture overview, and N hotspot specs.
->
-> Try it now: edit a file under `<top hotspot path>` — its spec auto-injects via the code-alignment hook. (No hotspot specs? Edit a file in a seeded area — the hook injects what applies.) Over time: ADRs for non-trivial dependency choices (`/archcore:document`), more specs (`/archcore:document <path>`), a task-type for any repeating extension pattern (`/archcore:review`'s experience offer).
-
-**Medium:**
-
-> Done. Seeded: stack rule, run guide, data-model, integrations, config, entry points, architecture overview, N hotspot specs[, M cross-cutting rules].
->
-> Try it now: edit a file under `<top hotspot path>` — its spec auto-injects. The hook injects what applies to any path you edit. Over time: ADRs for architectural decisions (persistence, auth, observability), more specs, rules per cross-cutting concern — via `/archcore:document`, `/archcore:plan`; task-types surface via `/archcore:review`'s experience offer when branch changes repeat a pattern.
-
-**Large:**
-
-> Done. Seeded: workspace stack rule, monorepo run guide, top-level map (T domains), entry points, data-model + integrations + config. Data-model seeded for D of T domains (every domain with a detectable schema, not only the ones you picked below). Architecture overview. Created M hotspot specs — a floor of ≥ 1 per domain you're working in now, the rest by repo-wide rank[, imported K authored rules from the repo's modular rule files], and registered the remaining hotspots in the overview[ plus J cross-cutting rules].
->
-> Try it now: edit a file under `<a selected-domain hotspot path>` — its spec auto-injects via the code-alignment hook. Other domains: <list>. Run `/archcore:init --domain=<slug>` later to drill into any of them, and `mcp__archcore__search_documents` with the domain tag to scope queries. Over time each domain needs its own ADRs and specs via `/archcore:document`, and task-types via `/archcore:review`'s experience offer when branch changes repeat a pattern; repo-wide cross-cutting rules (logging, errors, auth, transactions, telemetry) accrue via `/archcore:document`.
-
-Depth-nudge, keyed off whichever depth actually ran (never assume `standard` ran just because it is the default):
-
-- Ran at **`light`** (opted down):
-
-  > Ran at `light` depth (cheapest seed). `depth:standard` (the default) raises the spec and cross-cutting budget; `depth:deep` additionally adds big-file/CLAUDE.md extraction, extracted ADRs, enriched relations, and flagship-spec decomposition for the largest hotspots. Re-run with `--depth=standard` or `--depth=deep` — the preview shows each depth's cost before anything is created.
-
-- Ran at **`standard`** (the default — most runs):
-
-  > Ran at `standard` depth. `depth:deep` additionally extracts big authored files (CLAUDE.md/AGENTS.md, oversized rule files) into typed docs, extracts ADRs from authored decisions, enriches the relation graph (spec↔rule, spec↔spec), and raises the spec/cross-cutting caps. Re-run with `--depth=deep` for the max plan, or `--depth=light` for a cheaper one.
-
-- Ran at **`deep`**: no nudge — this is the max tier.
-
-Always end with:
-
-> Use `/archcore:review` for the dashboard, `/archcore:review --deep` for a health audit.
+> Use `/archcore:review` for the dashboard, `/archcore:review deep` for a health audit.
 
 ## Result
 
-Mode-appropriate, single-confirm `.archcore/` seed (created only on `confirm`; existing artifacts skipped). Document counts are **computed from the repo**, not fixed per mode: the spec count is the depth's coverage rate applied to the ranked hotspot pool (`light` 10% / `standard` 25% / `deep` 60%, floors 3 / 4 / 6, no maximum), so a bigger repo yields a bigger seed. **`standard` (the default)** is a good first-day seed with hotspot specs AND cross-cutting rules; **`light`** (opt-down) is the cheaper tier, never zero; **`deep`** (opt-up) additionally brings big-file/CLAUDE.md extraction, extracted ADRs, enriched relations, and flagship-spec decomposition:
+A `.archcore/` filled from two sources, created only on `confirm`; existing artifacts skipped.
 
 - **Empty**: 0 content docs — `.archcore/` and `settings.json`, plus host wiring behind its own mini-confirm. No catalog files read.
-- **Small** (pool ~8–12): ~6–10 docs at `standard` (stack rule, run guide, detected Tier-1 facts, overview + 4 specs — the sparse-repo floor, since 25% of a small pool falls under it; the fallback tier keeps specs non-zero even in test-less repos); ~5–9 at `light` (3 specs); `deep` ≈ 6–7 specs plus big-file extraction.
-- **Medium** (pool ~20–30): ~8–16 docs at `standard` (small set + ~5–8 specs + cross-cutting rules + imported authored rules); ~6–10 at `light` (~3 specs); ~16–24 at `deep` (~12–18 specs + extraction).
-- **Large** (pool ~200+): the seed scales with the pool — a 214-module pool yields ~54 specs at `standard`, ~21 at `light`, ~128 at `deep`, plus top-level map, domain dialog, data-model for every schema-bearing domain, cross-cutting rules, and imported authored rules. Every selected domain is guaranteed ≥ 1 spec; the preview's Coverage line and high-volume notice show the count and cost before `confirm`.
+- **Plain init**: host wiring, the detected Tier-1 facts, the architecture overview, hotspot specs for the depth's budget over the pool that authored sources do not cover (the spec budget has no absolute maximum — `standard` 25% of the ranked pool, `light` 10%, `deep` 60%; `lib/seed-compose.md`), cross-cutting rules (medium/large), and — tier `S` — the converted authored documents, or — tier `M`/`L` — the import plan with wave 1 done. Every synthesized or converted document is `status='draft'`.
+- **No-source** (`import` found nothing to convert): 0 documents, 0 file writes — a per-level report of what was checked, each `skip` with its class, and the next command.
+- **Import**: native typed documents (`rule`, `adr`, `rfc`, `guide`, `spec`, `doc`, `idea`) clustered by topic across sources, linked to each other and to the seed facts where their claims support a relation; a conflicts list instead of silent choices; no `imported` tag, no `source:` tag, no pointer line, no `imported-` prefix. After the last wave: the retire offer for agent-instruction files, then the import plan is removed, so the corpus holds no record of the import.
 
-Idempotency: the flagged Tier-1 facts, the overview, and imports are skip-on-exists; Tier-2 specs/rules dedupe by filename before create. Host wiring is idempotent end-to-end (existing archcore entries are kept, or updated in place when written by an older CLI; foreign config content is never touched), so re-running init never duplicates hooks or MCP entries. A second `/archcore:init` on a fully-seeded repo early-exits (Step 0a) unless `--refresh` (top up newly-detectable facts) or `--domain` (scoped domain pass) is passed. Tier-2 spec bodies and the overview are composed only after `confirm`, so a `cancel` or deselect spends no source-read cost. The empty route never creates placeholder documents, keeping `.archcore/` functionally empty so the SessionStart nudge keeps pointing here.
+Idempotency: the flagged Tier-1 facts and the overview are skip-on-exists; Tier-2 specs and rules dedupe by filename before create; conversion targets dedupe by a topic search before create and, for tiers `M`/`L`, by the import plan's row states. Host wiring is idempotent end-to-end. A second `/archcore:init` on a fully-seeded repo early-exits (step 3) unless `refresh` or `import` is the first word. The empty route never creates placeholder documents, so the SessionStart nudge keeps pointing here.

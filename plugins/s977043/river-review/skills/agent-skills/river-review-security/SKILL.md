@@ -2,8 +2,9 @@
 id: river-review-security
 name: river-review-security
 description: |
-  セキュリティ観点のレビューエージェント。
+  セキュリティ観点の通常レビューエージェント。
   基本的なセキュリティチェック、認証・認可設計、プライバシー設計の個別スキルへルーティングする。
+  repository / subsystem の明示的な security audit は river-review-security-audit へ委譲する。
 category: midstream
 phase: [midstream]
 severity: critical
@@ -15,7 +16,7 @@ applyTo:
 inputContext: [diff, fullFile]
 outputKind: [findings, actions]
 tags: [security, entry, routing]
-version: 0.1.0
+version: 0.2.0
 license: MIT
 ---
 
@@ -29,6 +30,23 @@ license: MIT
 - 外部入力の処理ロジック変更時
 - 機密データの取り扱い変更時
 - セキュリティ関連の設定変更時
+- 通常の PR / diff に対するセキュリティレビュー時
+
+## Security Audit Handoff
+
+この skill は通常の diff-oriented security review を担当する。
+ユーザーが repository-wide audit、subsystem audit、full security audit など、現在の diff を越える明示的な監査を要求した場合は `river-review-security-audit` へ委譲する。
+
+```text
+PR / diff security review
+  -> river-review-security
+
+repository / subsystem security audit
+  -> river-review-security-audit
+```
+
+単に「セキュリティ観点でレビュー」と指定された場合は本 skill を継続する。
+`security audit` という語だけで full repository audit を推測しない。対象範囲が repository / subsystem / bounded source surface として明示されている場合だけ handoff する。
 
 ## Routing / ルーティング
 
@@ -46,6 +64,10 @@ license: MIT
 ## Execution Flow / 実行フロー
 
 ```text
+0. 監査要求の判定
+   ├─ 明示的な repository/subsystem audit → river-review-security-audit へ委譲
+   └─ 通常 PR/diff review → 以下を継続
+
 1. 変更内容の分類
    ├─ 認証・認可コード → trust-boundaries-authz を優先
    ├─ データ処理コード → security-privacy-design を優先
@@ -71,6 +93,8 @@ license: MIT
 - **Fix**: 次の一手（最小の修正案）
 
 ## 他スキルとの関係
+
+`river-review-security-audit` は通常 diff review ではなく、明示的な repository / subsystem audit を担当する委譲先である。
 
 | スキル                          | 関係 | 棲み分け                                                   |
 | ------------------------------- | ---- | ---------------------------------------------------------- |

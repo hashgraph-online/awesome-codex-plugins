@@ -109,8 +109,10 @@ file is corrected — one canon with two owners is two canons.
    requests them or when the format itself is normative (wire protocol,
    config schema, CLI interface).
 
-   This default applies to: `adr`, `rfc`, `doc`, `prd`, `idea`, `plan`, `mrd`,
-   `brd`, `urd`, `brs`, `strs`, `syrs`, `srs`.
+   This default applies to: `adr`, `rfc`, `doc`, `prd`, `idea`, `plan`, `scenario`, `journey`, `mrd`,
+   `brd`, `urd`, `brs`, `strs`, `syrs`, `srs`. A scenario's Examples section holds
+   unfenced Given/When/Then lines; the code-block allowance above does not admit a
+   fenced example or a fenced feature file.
 
 7. **Line form follows the document type.** Two profiles cover every type: one
    constrains the sentence, one constrains the structure. Both apply everywhere;
@@ -125,10 +127,18 @@ file is corrected — one canon with two owners is two canons.
    step is an action to take rather than an obligation that holds.
 
    **Claim-recording types** — `adr`, `rfc`, `doc`, `prd`, `plan`, `idea`, `rnd`,
-   `cpat`, `mrd`, `brd`, `urd`. A numbered clause MUST NOT carry a BCP 14 modal.
+   `research`, `evidence`, `cpat`, `scenario`, `journey`, `mrd`, `brd`, `urd`. A numbered clause MUST NOT carry a BCP 14 modal.
    State the claim with its evidence — `@path/to/file`, a measurement, a commit —
    or mark it `[assumption]`. An obligation that belongs to one of these
    documents belongs in a linked `spec` or `rule` instead.
+
+   **Actor-subject steps** — `scenario` (Flows and Examples) and `journey`
+   (Journeys). Line format F6: the actor from the Actors table opens every step,
+   `<Actor> <action>; <system> <observable response>.` or
+   `Given|When|Then|And|But <observation>.`; one action or observation per step,
+   20 words or fewer, no modal; every Flows subsection opens with `Anchors: @path`.
+   Both types stay under the 120-line body cap and split by actor past it
+   (`skills/_shared/scenario-contract.md`, `skills/_shared/journey-contract.md`).
 
 8. **No open-ended list and no ambiguous alternative in a requirement.** `etc.`,
    `и т.д.`, and `and/or` leave the reader to guess where the obligation ends or

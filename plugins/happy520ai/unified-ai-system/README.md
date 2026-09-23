@@ -21,7 +21,7 @@
     <img alt="Release" src="https://img.shields.io/github/v/release/happy520ai/unified-ai-system?style=flat-square" />
   </a>
   <img alt="Maturity: hardened Public Preview" src="https://img.shields.io/badge/maturity-hardened_Public_Preview-f59e0b?style=flat-square" />
-  <a href="https://registry.modelcontextprotocol.io/v0.1/servers/io.github.happy520ai%2Funified-ai-system/versions/0.6.0">
+  <a href="https://registry.modelcontextprotocol.io/v0.1/servers/io.github.happy520ai%2Funified-ai-system/versions/0.7.0">
     <img alt="Official MCP Registry: active" src="https://img.shields.io/badge/Official_MCP_Registry-active-1f883d?style=flat-square" />
   </a>
   <a href="LICENSE">
@@ -32,12 +32,12 @@
 <p align="center">
   <img
     src="docs/assets/readme-hero.png"
-    alt="Unified AI System — self-hosted AI gateway with 12 governed MCP tools, four release gates, 23 defended attack cases, and zero credentials to start"
+    alt="Unified AI System — self-hosted AI gateway with 12 bounded MCP tools, four release gates, 23 defended attack cases, and zero credentials to start"
     width="100%"
   />
 </p>
 
-Unified AI System turns a rough request into a structured, reviewable prompt before execution. It gives teams one self-hosted surface for OpenAI-compatible SDKs, MCP, A2A, CLI, and HTTP while keeping provider calls explicit — with virtual keys and token budgets, exact + semantic response caching, reverse MCP governance with REST→MCP generation, and operations-focused observability.
+Unified AI System turns a rough request into a structured, reviewable prompt before execution. It gives teams one self-hosted surface for OpenAI-compatible SDKs, MCP, A2A, CLI, and HTTP while keeping provider calls explicit — with virtual keys and token budgets, exact response caching plus an opt-in lexical-approximate similarity layer, reverse MCP governance with REST→MCP generation, a terminal-first JSON operations overview, and operations-focused observability.
 
 > **Current maturity:** hardened **Public Preview**. The credential-free path is
 > reproducible and CI-gated; production deployment still requires your own
@@ -65,13 +65,14 @@ account, API key, or provider call is required.
 Run the same proof against the published container:
 
 ```bash
-docker run --rm ghcr.io/happy520ai/unified-ai-system/ai-gateway-service:0.6.0 pnpm gateway demo "Build a small API for my team" --enhance --profile coding --evidence
+docker run --rm ghcr.io/happy520ai/unified-ai-system/ai-gateway-service:0.7.0 pnpm gateway demo "Build a small API for my team" --enhance --profile coding --evidence
 ```
 
 The evidence confirms that the original request was preserved, the result is
 deterministic, and `providerCalled=false`. Codex, VS Code, Claude Code, Gemini
 CLI, OpenCode, Cursor, Cline, Continue, and generic stdio clients can reach the
-same gateway through twelve governed MCP tools. The source build also provides a
+same gateway through authenticated, permission-scoped MCP tools (15 in the current source build;
+inspect the tool list of your installed image). The source build also provides a
 protocol-tested MCP Streamable HTTP endpoint for clients that connect by URL.
 
 Useful in a real workflow? [Star the repository](https://github.com/happy520ai/unified-ai-system) or [share one reproducible result](https://github.com/happy520ai/unified-ai-system/issues/new?template=usage-verification-report.yml&title=%5BUsage%20Report%5D%20Quickstart).
@@ -85,7 +86,7 @@ Useful in a real workflow? [Star the repository](https://github.com/happy520ai/u
     width="100%"
   />
   <br />
-  <sub>Clients keep their native protocols; the gateway adds keys, budgets, cache, and audit. Twelve governed MCP tools are inspectable from any MCP client.</sub>
+  <sub>Clients keep their native protocols; the gateway adds keys, budgets, cache, and audit. Twelve bounded MCP tools are inspectable; controlled writes additionally require Agent Governance when enabled.</sub>
 </p>
 
 ## Choose Your First Path
@@ -94,7 +95,7 @@ Useful in a real workflow? [Star the repository](https://github.com/happy520ai/u
 | --- | --- | --- |
 | Try it before installing | [Browser Prompt Lab](https://happy520ai.github.io/unified-ai-system/#enhance) | A local, deterministic preview with no account or API key. |
 | Verify the published runtime | [60-second Docker demo](#try-it-in-60-seconds) | A disposable fake-provider run with visible evidence and cleanup. |
-| Connect an agent client | [Codex and MCP quickstart](https://happy520ai.github.io/unified-ai-system/codex-mcp-docker-quickstart.html) | A pinned MCP container and twelve inspectable tools. |
+| Connect an agent client | [Codex and MCP quickstart](https://happy520ai.github.io/unified-ai-system/codex-mcp-docker-quickstart.html) | A pinned MCP container with an inspectable tool list. |
 | Choose a client path | [MCP compatibility matrix](docs/mcp-client-compatibility.md) | Install commands, first checks, and honest evidence boundaries. |
 | Integrate with an application | [Prompt enhancement guide](https://happy520ai.github.io/unified-ai-system/prompt-enhancement.html) | CLI, HTTP, SDK, curl, Python, and JavaScript paths. |
 | Keep an existing OpenAI client | [OpenAI-compatible API](docs/openai-compatible-api.md) | Point `baseURL` at `/v1` for Chat Completions, function tools, Responses, streaming, and model discovery. |
@@ -125,12 +126,14 @@ fake-provider-first, so you can try every feature with zero credentials:
 | --- | --- | --- |
 | OpenAI + Anthropic + Gemini compatible APIs | `/v1/chat/completions` (SSE streaming, tools, image/audio input, n>1), `/v1/messages` with **native Anthropic streaming and prompt-caching passthrough**, **native Gemini inbound** `:generateContent/:streamGenerateContent/:batchGenerateContent`, the Responses API, and model discovery — keep your existing SDK, change only the base URL. | [OpenAI-compatible API](docs/openai-compatible-api.md) · [Gemini](docs/gemini-provider.md) |
 | Virtual keys + budgets | Issue `uai-` keys with periodic token budgets (daily/monthly windows), per-key request limits, soft-budget alerts, spend attribution, and instant revocation. Consumers never hold provider keys. | [Virtual keys](docs/virtual-keys.md) · [Spend reporting](docs/spend-reporting.md) |
-| Response cache — exact + semantic | Tenant-scoped hot-path caching with byte-identical JSON/SSE replay, an opt-in semantic layer for paraphrased requests, TTL and size caps, and a full audit trail. | [Response cache](docs/response-cache-hot-path.md) |
+| Response cache — exact + lexical-approximate | Tenant-scoped hot-path caching with byte-identical JSON/SSE replay, plus an opt-in similarity layer for near-duplicate requests. The default layer is deterministic lexical approximation, not a semantic model; attach a real embedding endpoint via the HTTP embedding hook for semantic-grade matching. | [Response cache](docs/response-cache-hot-path.md) |
+| Operations overview API (terminal-first) | `GET /api/overview` returns a compact JSON snapshot (provider mode, health, readiness, request stats, circuit state) behind `dashboard:read` — a lightweight companion to `/metrics` for CLI and dashboard tooling. The gateway serves no browser page; the public-clone gate keeps it terminal-first. | [Observability](docs/observability-export.md) |
 | Guardrails — deterministic & local | Input/output scans: pasted secrets block, PII redacts, injection phrasings warn, banned terms and size limits enforce — no cloud tier, no extra credentials, <0.2 ms measured overhead, runtime-configurable per rule. | [Guardrails](docs/guardrails.md) |
 | Reverse MCP governance | Aggregate upstream MCP servers (Streamable HTTP and stdio) behind one authenticated, audited, allow-listed surface — plus **REST→MCP**: any OpenAPI 3 spec becomes governed MCP tools. | [Reverse MCP governance](docs/reverse-mcp-governance.md) |
+| Agent governance control plane | Explicit opt-in for server-bound `/agent-exec`, reverse-MCP, controlled `/workforce/execute`, and per-action `/forge/orchestrate`, with deterministic policies, signed state, reviewable top-level approvals, dual fences, rollback detection and cascade revocation. Forge action decisions are currently allow/deny-only; Workforce `run-local`/A2A and standalone Forge remain explicit boundaries. | [Agent governance](docs/agent-governance.md) |
 | Observability | Chat-specific Prometheus metrics on `/metrics` — tokens per model, cache hit rates, TTFT histograms, virtual-key rejections, guardrail findings — plus an opt-in Langfuse export and a per-key spend report API/CLI. | [Observability](docs/observability-export.md) |
 | Vector retrieval | A credential-free deterministic embedding provider and the SQLite vector store activate `mode: "vector"` RAG with strict tenant isolation. | [Providers & knowledge](docs/providers.md) |
-| Provider governance | A three-gate whitelist matrix for real providers, a runtime credential store (locally permissioned file; virtual keys and user tokens are stored SHA-256-hashed, provider runtime credentials in cleartext for local execution — see the honest-boundaries note), request cost guards, circuit breakers, and fallback chains. | [Provider enablement](docs/real-provider-enablement.md) |
+| Provider governance | A three-gate whitelist matrix for real providers; memory-only runtime credentials by default, with opt-in AES-256-GCM encrypted file/SQLite persistence and a separately protected master key; hashed virtual keys and user tokens; request cost guards, circuit breakers, and fallback chains. | [Provider enablement](docs/real-provider-enablement.md) |
 | Local-client intelligence gateway | Tenant-scoped inventory; server-bound per-client PoP with optional durable single-host replay protection; policy-pinned fake-provider dispatch for OpenAI, Anthropic, Gemini, and native chat; dry-run autonomous management; governed execution with durable dispatch/receipt reconciliation, a receipt-feedback outbox, and exactly-once aggregate learning; irreversible revocation; and transactional MCP onboarding for Claude-compatible, Cursor, and VS Code JSON profiles. Credential-free fixture flows are proven; real-client atomic-receipt certification, real-provider certification, distributed state, external rollback anchors, and a deployed protected Windows authority remain release gates. | [Design and evidence boundary](docs/local-client-intelligence-gateway.md) |
 | Enterprise governance + security drills | JWT auth, RBAC, tenant isolation with audit hash chains — verified by a repeatable 23-attack live security regression. | [Security drill](tools/security-attack-regression.mjs) |
 | Enterprise identity & provisioning | **OIDC SSO** (authorization code + PKCE + JWKS signature verification, issues an API token on login) and **SCIM 2.0** user provisioning (bearer-auth create/get/list/patch/deactivate). | [Security drill](tools/security-attack-regression.mjs) · [Enterprise SSO & SCIM](docs/enterprise-sso.md) |
@@ -164,7 +167,7 @@ Published infrastructure benchmark (fake provider, single node): chat JSON p50 *
 Verify the project without signing in:
 
 ```bash
-docker run --rm ghcr.io/happy520ai/unified-ai-system/ai-gateway-service:0.6.0 pnpm gateway demo
+docker run --rm ghcr.io/happy520ai/unified-ai-system/ai-gateway-service:0.7.0 pnpm gateway demo
 ```
 
 Expected behavior:
@@ -178,7 +181,7 @@ Expected behavior:
 One-command natural-language enhancement preview:
 
 ```bash
-docker run --rm ghcr.io/happy520ai/unified-ai-system/ai-gateway-service:0.6.0 \
+docker run --rm ghcr.io/happy520ai/unified-ai-system/ai-gateway-service:0.7.0 \
   pnpm gateway demo "Build a small API for my team" --enhance --profile coding --evidence
 ```
 
@@ -190,7 +193,7 @@ the repository:
 
 ```bash
 printf '%s' "Plan a launch for a small API" \
-  | docker run --rm -i ghcr.io/happy520ai/unified-ai-system/ai-gateway-service:0.6.0 \
+  | docker run --rm -i ghcr.io/happy520ai/unified-ai-system/ai-gateway-service:0.7.0 \
       pnpm --silent gateway demo --enhance --profile planning --language en --json
 ```
 
@@ -198,7 +201,7 @@ PowerShell equivalent for a request file:
 
 ```powershell
 Get-Content .\request.txt -Raw |
-  docker run --rm -i ghcr.io/happy520ai/unified-ai-system/ai-gateway-service:0.6.0 `
+  docker run --rm -i ghcr.io/happy520ai/unified-ai-system/ai-gateway-service:0.7.0 `
     pnpm --silent gateway demo --enhance --profile planning --language en --json
 ```
 
@@ -294,7 +297,7 @@ docker run --rm --publish 127.0.0.1:3100:3100 \
   --env AI_GATEWAY_REAL_PROVIDER_ENABLED=false \
   --env PME_ENTERPRISE_AUTH_ENABLED=true \
   --env PME_AUTH_TOKEN \
-  ghcr.io/happy520ai/unified-ai-system/ai-gateway-service:0.6.0
+  ghcr.io/happy520ai/unified-ai-system/ai-gateway-service:0.7.0
 ```
 
 Keep that process running while you send the curl request. The response
@@ -339,10 +342,10 @@ for the adapter and evidence boundary.
 Published MCP command:
 
 ```bash
-codex mcp add unified-ai-system -- docker run --rm -i ghcr.io/happy520ai/unified-ai-system/mcp-server:0.6.0
+codex mcp add unified-ai-system -- docker run --rm -i ghcr.io/happy520ai/unified-ai-system/mcp-server:0.7.0
 ```
 
-Restart Codex, run `/mcp verbose` to verify the twelve tools, then follow the
+Restart Codex, run `/mcp verbose` to inspect the installed tool list, then follow the
 [60-second Codex MCP quickstart](https://happy520ai.github.io/unified-ai-system/codex-mcp-docker-quickstart.html) for a safe first
 prompt-enhancement call and removal command.
 
@@ -472,8 +475,8 @@ CI on `master` runs Linux checks, container startup smoke tests, MCP discovery, 
 
 ## Project Links
 
-- [Official MCP Registry entry](https://registry.modelcontextprotocol.io/v0.1/servers/io.github.happy520ai%2Funified-ai-system/versions/0.6.0)
-- [Release v0.5.0](https://github.com/happy520ai/unified-ai-system/releases/tag/v0.6.0)
+- [Official MCP Registry entry](https://registry.modelcontextprotocol.io/v0.1/servers/io.github.happy520ai%2Funified-ai-system/versions/0.7.0)
+- [Release v0.5.0](https://github.com/happy520ai/unified-ai-system/releases/tag/v0.7.0)
 - [Codex MCP server README](packages/mcp-server/README.md)
 - [Roadmap](ROADMAP.md)
 - [Vision](VISION.md)

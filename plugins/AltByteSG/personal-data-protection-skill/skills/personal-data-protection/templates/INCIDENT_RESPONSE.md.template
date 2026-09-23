@@ -8,7 +8,7 @@ Solo / small-team operator runbook for responding to a personal data incident un
 
 **DPO / responder:** {{DPO_NAME}} — {{DPO_EMAIL}}
 **Backup contact:** {{BACKUP_NAME}} — {{BACKUP_EMAIL}}
-**Active jurisdictions:** {{JURISDICTIONS — e.g. Singapore PDPA / Indonesia UU PDP / Thailand PDPA / Malaysia PDPA}}
+**Active jurisdictions:** {{JURISDICTIONS — e.g. Singapore PDPA / Indonesia UU PDP / Thailand PDPA / Malaysia PDPA / Philippines DPA}} / Vietnam PDPL
 
 ## Statutory clocks
 
@@ -20,8 +20,10 @@ For each active jurisdiction, the deadline to notify the regulator after assessi
 | Indonesia UU PDP | (appointed authority) | 72 hours from awareness (Pasal 46(1)) — verify against current regs | **All breaches** notify subject; "certain circumstances" trigger public notification | (verify) |
 | Thailand PDPA | PDPC Thailand | 72 hours from awareness (s37(4)) — verify against current regs | If "high risk to rights and freedoms" | https://www.pdpc.or.th |
 | Malaysia PDPA | Commissioner / JPDP | **72 hours** from discovery (s12B(1) + JPDP Guideline 25 Feb 2025) | **Within 7 days** of Commissioner notification, where significant harm (s12B(2)) | JPDP Personal Data Protection System (https://www.pdp.gov.my) |
+| Philippines DPA | NPC | **72 hours** from knowledge / reasonable belief (NPC Circular 16-03 § 12(a)); **annual** Security Incident Report due 31 March | **Same 72-hour window**, in parallel with the NPC (§ 20(f)). Concealment is an offence (§ 30) | NPC online incident reporting portal (https://www.privacy.gov.ph) |
+| Vietnam PDPL | Specialised authority, Ministry of Public Security (A05) | **72 hours** from **detection of the act** (Điều 23(1)); harm-based trigger, no scale threshold | No fixed clock; Điều 23(3) makes purpose-creep and rights failures separately notifiable | Specialised authority or the national personal-data-protection portal — **Form No. 08** (Decree Điều 28(2)) |
 
-For SG the clock starts at **assessment**; for TH / ID / MY it starts at **awareness / discovery** of the breach. If multiple jurisdictions are active, the strictest clock controls — typically MY/TH/ID's awareness-based 72h beats SG's assessment-based 3-day window.
+For SG the clock starts at **assessment**; for TH / ID / MY / PH it starts at **awareness / discovery / knowledge** of the breach. If multiple jurisdictions are active, the strictest clock controls — typically MY / TH / ID / PH's awareness-based 72h beats SG's assessment-based 3-day window. PH is tightest in practice: the same 72 hours covers **both** the regulator and the data subjects, and concealment is a separate criminal offence (§ 30).
 
 ---
 

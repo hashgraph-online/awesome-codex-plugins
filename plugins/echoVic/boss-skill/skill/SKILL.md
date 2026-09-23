@@ -3,7 +3,13 @@ name: boss
 description: |
   可审计的 agent 团队：BMAD 全自动研发流水线编排器。编排 9 个专业 Agent（PM、架构师、UI Designer、Tech Lead、Scrum Master、Frontend、Backend、QA、DevOps）从需求到部署，每一步都有事件溯源 + 不可绕过门禁 + 确定性 eval——可验证测试真跑、门禁真过。支持单环节切片命令（/boss:plan /review /qa /ship）与无 CLI 纯 Markdown 降级。
 
-  Triggers: 'boss mode', '/boss', '全自动开发', '从需求到部署', '帮我做一个', 'build this', 'ship it', '全流程', '自动化开发', '一键开发', 'start a project', 'new feature'
+  Triggers（全流水线）: 'boss mode', '/boss', '全自动开发', '从需求到部署', '帮我做一个', 'build this', 'ship it', '全流程', '自动化开发', '一键开发', 'start a project', 'new feature'
+
+  Triggers（单环节切片，对存量项目最常用）:
+  - /boss:review — '帮我评审', '代码评审', '技术评审', '看看这段代码有什么问题', '风险评估', 'review this', 'review my PR', 'code review'
+  - /boss:qa — '跑一下测试', '补测试', '检查质量', '测试覆盖够不够', '门禁过了吗', 'run the tests', 'check quality', 'add tests'
+  - /boss:plan — '先出个方案', '写个 PRD', '设计一下架构', 'write a spec', 'plan this feature'
+  - /boss:ship — '可以发布了吗', '部署检查', 'ready to ship', 'deploy checks'
 
   Does NOT trigger:
   - 单文件修改或简单 bug 修复（直接编辑即可）

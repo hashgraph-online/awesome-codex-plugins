@@ -15,7 +15,7 @@ boss --version 2>/dev/null
 
 在降级模式下必须**明确告知用户**：
 
-> ⚠️ 未检测到 boss CLI，进入纯 Markdown 降级模式。流水线仍会运行，但状态记录在 `.boss/<feature>/STATE.md` 而非可审计事件流；门禁为「协议约束」而非「CLI 强制」。安装 `npm i -g @blade-ai/boss-skill` 可启用事件溯源 + 不可绕过门禁 + 确定性 eval。
+> ⚠️ 未检测到 boss CLI，进入纯 Markdown 降级模式。流水线仍会运行，但状态记录在 `.boss/<feature>/STATE.md` 而非可审计事件流；门禁判定不落进可审计事件流。安装 `npm i -g @blade-ai/boss-skill` 可启用事件溯源 + 门禁结果记录与最终门禁判定 + 确定性 eval；门禁的执行始终依赖编排器遵守协议，CLI 提供的是可验证的判定与记录，而非阻止越过门禁的机制。
 
 ## 状态承载：STATE.md 取代事件流
 
@@ -78,7 +78,7 @@ STATE.md 结构：
 
 1. **编排职责不变**：Boss 仍只编排，不替专业 Agent 写正式产物。
 2. **产物驱动不变**：文档写入 `.boss/<feature>/`，完成后在 STATE.md 的 Artifacts 表登记。
-3. **门禁不可绕过（协议级）**：测试/门禁失败时不得宣布交付完成。降级只是让门禁从「CLI 强制」变为「协议约束」，判定标准不变（见 `references/quality-gate.md`）。
+3. **门禁判定标准不变（协议级）**：测试/门禁失败时不得宣布交付完成。降级只是让判定结果不再落进事件流、也不再被 `boss gate final` 与 `boss doctor` 复核；判定标准本身不变（见 `references/quality-gate.md`）。
 4. **渐进式披露不变**：仍按需读取 reference / prompt / template。
 5. **append-only**：STATE.md 的 Event Log 段只追加不回改，保留最低限度可审计性。
 

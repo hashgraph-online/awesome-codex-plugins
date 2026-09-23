@@ -1,11 +1,14 @@
-# Plan review
+# Review
 
-Find material failures: missed/conflicting requirements; unclear file, data, or
-test ownership; unsafe security, migration, compatibility, concurrency, retry,
-or rollback; untestable behavior; cycles, collisions, invalid parallelism; and
-release/recovery gaps.
+Review material requirement/ownership gaps, security, data integrity, compatibility,
+concurrency/retry, recovery, test adequacy, and unnecessary complexity. Match
+scrutiny to [depth](depth-standards.md); independent perspectives need a concrete risk.
 
-Write one `reviews/codex.md` with findings (`severity: problem -> fix`), applied
-plan edits, and residual risk with owner or accepted boundary. `Verdict: pass.`
-is enough. Apply accepted fixes to the plan. Merge optional external or
-delegated review here unless the user requests separate records.
+Write `## Review` in the canonical artifact with literal
+`Reviewed: <concrete scope, evidence, and result>`, findings
+(`severity: problem -> fix`), resolutions, and residual risks. Finish with
+`Verdict: pass.` or `Verdict: fixed.`; a verdict alone is insufficient. Blocked
+findings prevent admission. Apply fixes to their owning contracts.
+
+Legacy `reviews/codex.md` and separate reviews remain supported; never duplicate
+them merely to satisfy artifact count. Re-review changed risks only.

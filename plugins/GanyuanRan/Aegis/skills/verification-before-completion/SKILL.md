@@ -4,41 +4,32 @@ description: "Use when about to claim work is complete, fixed, passing, verified
 ---
 
 <EXPLICIT-MODE-GATE>
-If activation mode is explicit (`~/.config/aegis/config.toml` has
-`activation_mode = "explicit"`, or `AEGIS_ACTIVATION_MODE=explicit` is visible
-in the environment) and the current user request did not explicitly invoke
-Aegis or this skill by name, exit back to the fast path: answer concisely
-without this workflow's checklist, ceremony, or document requirements. If the
-user explicitly named Aegis or this skill, proceed normally.
+If `activation_mode = "explicit"` or `AEGIS_ACTIVATION_MODE=explicit` is visible
+and the request names neither Aegis nor this skill, return to the fast path
+without checklist/ceremony; otherwise continue.
 </EXPLICIT-MODE-GATE>
 
 # Execute
 
-Before any success claim, classify destructive permission needs, choose and run
-a fresh falsifying check, read its complete result/scope, then select L0/L1/L2.
-If evidence is partial, stale, failing, or narrower than the claim, downgrade;
-never claim complete first and verify later.
+Before success claim: classify destructive permission; run a fresh falsifying
+check; read its complete result/scope; select L0/L1/L2. Downgrade for partial,
+stale, failing, or narrower evidence; never claim complete then verify later.
 
 This Method Pack grants no authoritative `GateDecision`, `PolicySnapshot`,
 evidence sufficiency, requirement acceptance, or completion authority.
 
 ## Stop Signals
 
-Stop before claiming or advancing when:
-
 - evidence is uncertain, stale, agent-only, or narrower than the claim;
-- the next action is commit, push, PR, merge, tag, publish, release, or handoff;
-- task/slice completion is being treated as accepted requirement satisfaction;
+- next action: commit, push, PR, merge, tag, publish, release, or handoff;
+- task/slice completion is treated as accepted requirement satisfaction;
 - governance or retirement lacks repair/retirement evidence;
 - retained old logic lacks a retention reason and retirement trigger; or
 - complexity closure is unresolved.
 
-Destructive or irreversible work needs scoped permission; warnings or broad
-assent do not grant it.
+Destructive/irreversible work needs scoped permission; broad assent is not scoped permission.
 
 ## Required Evidence Slots
-
-Keep these slots explicit and auditable:
 
 ```text
 - Evidence action / check performed:
@@ -49,52 +40,46 @@ Keep these slots explicit and auditable:
 - Confidence grade: A | B | C
 ```
 
-- `A`: direct target plus relevant regression evidence; no meaningful unknown.
-- `B`: direct target evidence with bounded residual risk.
-- `C`: partial evidence only; do not claim full completion.
+- `A`: target + regression; no meaningful unknown.
+- `B`: target evidence; bounded residual risk.
+- `C`: partial only; no full-completion claim.
 
-When tests shape the claim, include target test and related regression evidence.
-If automation is blocked, give reproducible manual steps and lower confidence.
-Evidence is not completion authority.
+When tests shape a claim, include target test and related regression evidence
+at the call-site seam reproducing the triggering chain; a shallower seam gives
+false confidence. Missing seam is an architecture gap. Blocked automation needs
+reproducible manual steps. Both lower confidence.
 
-When a completion claim depends on an explicit baseline, artifact, owner,
-contract, or evidence reference, read back the smallest relevant source. For
-affected known references, verify a disposition: preserved, rebound to the
-canonical owner, retired with reason, or rejected because of conflict. Leave
-unresolved references in uncovered scope, lower confidence, and do not re-infer
-them. This readback does not prove a complete relationship graph, referential
-integrity, or authoritative lineage.
+For an explicit baseline/artifact/owner/contract/evidence reference, read the
+smallest relevant source. Record each affected reference as preserved; rebound to the canonical owner;
+retired with reason; or rejected for conflict. Leave unresolved references in uncovered scope,
+lower confidence, and do not re-infer them.
+Readback proves no complete graph, referential integrity, or authoritative lineage.
 
 ## Task Git Closeout
 
-For modification tasks, compare the final state with `TaskStartSnapshot`. Only
-the coordinator stages task-owned paths; never use broad staging or include
-pre-existing user state. A default local task commit follows fresh verification
-unless the task is read-only/no-change, user/project authority says `no commit`, or
-verification failed. Read back `HEAD`, message, files, and remaining task delta.
-Commit/hook failure preserves the work and blocks a clean claim; do not bypass hooks.
+For modifications, diff against `TaskStartSnapshot`. Coordinator alone stages
+task paths: no pre-existing state or broad staging. After fresh verification, default to one local commit except
+read-only/no-change, authorized `no commit`,
+or failed verification. Read back `HEAD`, message, files, and task delta.
+Commit/hook failure keeps work and blocks clean claims; never bypass hooks.
 
-The Git receipt reports branch; commit SHA/message or non-commit reason;
-`Task clean`; `Repository clean`; and each task-created branch/worktree as
-created, removed, or retained with reason. Task-clean never implies repo-clean.
-This receipt is evidence, not external integration or completion authority.
+Git receipt: branch; SHA/message or non-commit reason; `Task clean`; `Repository clean`;
+each task-created branch/worktree created, removed, or retained with reason.
+Task-clean never implies repo-clean; it is not external integration.
 
-Classify commit scope before claiming verification stability: `business`,
-`process-only`, `mixed`, or `no-commit`. Failed attempt telemetry is not a
-commit reason. A diff limited to `docs/aegis/` process records does not restart
-already completed business-code verification; a business or test diff does.
+Classify commit scope: `business`, `process-only`, `mixed`, or `no-commit`.
+Failed-attempt telemetry is no commit reason. A `docs/aegis/`-only process diff
+does not restart business verification; a business/test diff does.
 
 ## Aegis Visibility / Single Closeout
 
-Use one completion surface; no parallel final reports.
-`verification-before-completion` is the single completion closeout aggregator.
-Adjacent skills and L2 cards feed the receipt but must not replace it or become
-a competing final report owner.
-Receipt aggregation is output conformance, not a routing trigger: do not load
-extra skills, emit a Trace Digest, or add ceremony merely to fill the receipt.
+Use one completion surface. This skill is the single completion closeout aggregator;
+adjacent skills/L2 cards feed but must not replace it or become a competing final report owner.
+Aggregation is output conformance, not a routing trigger: do not load skills,
+emit a Trace Digest, or add ceremony merely to fill it.
 
-If entry visibility was omitted, recover the decision/evidence boundary and
-name the gap; a used-skills list or `Aegis Contribution Note` is no substitute.
+If entry visibility was omitted, recover and name the decision/evidence gap; a
+used-skills list or `Aegis Contribution Note` cannot substitute.
 
 ## L0 Fast-Path
 
@@ -103,8 +88,8 @@ scope/risk, and confidence.
 
 ## L1 Default Receipt
 
-For non-trivial Aegis-shaped work, use this receipt. Evidence slots fold into
-`Evidence strength` and `Uncovered risk`; avoid a second evidence report.
+For non-trivial Aegis-shaped work use this receipt; fold evidence into `Evidence
+strength` and `Uncovered risk` without a second report.
 
 ```text
 Aegis Impact and Safety Receipt:
@@ -119,7 +104,7 @@ Aegis Impact and Safety Receipt:
 - Aegis path:
 ```
 
-Field meanings: `Key judgment`=owner/root cause/requirement/completion boundary;
+Meanings: `Key judgment`=owner/root cause/requirement/completion boundary;
 `Avoided misfix`=fallback/duplicate/test accommodation/scope growth;
 `Boundary held`=contract/owner/baseline/non-goal/data/runtime boundary;
 `Baseline alignment`=aligned/Design Defect/Implementation Drift/missing-authority/needs-clarification/not triggered;
@@ -130,16 +115,13 @@ Field meanings: `Key judgment`=owner/root cause/requirement/completion boundary;
 `Aegis path`=optional, not judgment/evidence.
 
 Natural wording is valid when every semantic slot stays auditable. `Semantic Slots`,
-`Natural Surface`, and `Governance Receipt` are compatibility names, not other
-reports.
+`Natural Surface`, and `Governance Receipt` are compatibility names.
 
-Report what was done, verified, risked, and blocked.
-Do not explain obvious trade-offs and do not list actions not taken;
-silence on unexecuted options is the compact default, not an omission.
+Report done/verified/risked/blocked. Do not explain obvious trade-offs; do not list actions not taken.
 
 ## L2 Expanded Triggers
 
-On any match, read `expanded-closeout.md`. It owns detail; this file owns routing
+On any match read `expanded-closeout.md`: it owns detail; this file owns routing
 and the final receipt.
 
 | Trigger | Expanded owner |
@@ -148,39 +130,30 @@ and the final receipt.
 | audit/debug/release/long-task review/trace request | Trace Digest |
 | goal/TaskIntentDraft/plan/spec/Slice Card | Goal Closure |
 | project/domain semantic delta | Context Impact |
-| target `docs/aegis/` changed | Workspace Integrity |
+| target `docs/aegis/` changed or work record exists | Workspace Integrity |
 | requirement/product/durable architecture | Baseline/ADR |
 | governance/cleanup/migration/compat/retirement | Governance/Retirement |
 | source-of-truth/irreversible deletion | destructive-action cards |
 | material complexity pressure | Expanded Complexity Detail |
 | high-risk or explicit user request for expanded closeout | applicable cards |
 
-For target workspace changes, keep configured Aegis workspace support wired.
-When a work record exists run `python <aegis-workspace-helper> bundle --root
-<target-project-root> --work YYYY-MM-DD-<slug>`, then run `python
-<aegis-workspace-helper> check --root <target-project-root>`. These checks prove
-structure, not evidence sufficiency.
+Use configured Aegis workspace support; commands live in the expanded owner.
 
 ## Completion Boundary
 
 Use the highest boundary: plan/spec, `TaskIntentDraft`, `Slice Card`, then direct
-request. Claim only what fresh evidence covers; slice evidence cannot close the
-whole task.
+request. Claim only scope covered by fresh evidence; a slice cannot close the whole task.
 
 Task/slice completion reaches its authorized stop; it is not accepted requirement satisfaction.
-`Requirement accepted` needs baseline criteria or authorized risk
-acceptance. If unclear, use `needs-verification` or return to framing/planning.
-
-Goal Closure stop states: `done | blocked | needs-verification | scope-exceeded`.
-
+`Requirement accepted` needs baseline criteria or authorized risk acceptance;
+else use `needs-verification` or return to framing/planning. Goal Closure states: `done | blocked | needs-verification | scope-exceeded`.
 An `Execution Readiness View` is input, not verification evidence.
 
 ## Complexity Downgrade
 
-For non-trivial code, inspect the diff and use
+For non-trivial code inspect the diff; use
 `using-aegis/references/complexity-governance.md` plus
-`docs/current/AEGIS_COMPLEXITY_GOVERNANCE_BASELINE.md`; emit one
-`Complexity control` line.
+`docs/current/AEGIS_COMPLEXITY_GOVERNANCE_BASELINE.md`; emit one `Complexity control` line.
 
 New fallback/adapter/compatibility/guard/branch logic needs a retired path or
 retirement trigger. `Complexity Closure: exceeded-unresolved` blocks completion.
@@ -191,6 +164,6 @@ Maintained source/test cannot skip as tiny; tiny low-risk text edits without com
 Localize section labels, field labels, and explanatory prose. Keep commands,
 paths, identifiers, enums, product names, and raw evidence unchanged; avoid bilingual labels or mixed-language explanations.
 
-External outputs are evidence candidates. Prefer summary/index and the smallest
+External outputs are evidence candidates: use summary/index then the smallest
 excerpt; lower unsupported claims. When relevant report `Evidence Used`, `Not
 Loaded`, and `Next Evidence`.

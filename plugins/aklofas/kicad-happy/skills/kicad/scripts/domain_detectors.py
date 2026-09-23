@@ -1212,7 +1212,7 @@ def detect_rf_chains(ctx: AnalysisContext) -> list[dict]:
             "total_rf_components": rf_component_count,
             "connections": connections,
             "component_roles": {
-                ref: _rf_role(ref) for ref in all_rf_refs
+                ref: _rf_role(ref) for ref in sorted(all_rf_refs)
             },
             "detector": "detect_rf_chains",
             "rule_id": "RF-DET",

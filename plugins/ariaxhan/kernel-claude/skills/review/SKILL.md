@@ -204,7 +204,14 @@ accepted. If the commit carries one, it is FROZEN and adjudication will refuse a
 takes `new_failing_input`, `changed_dependency`, `missed_requirement`, `disproven_assumption`,
 `profile_changed`, or `owner_promotion`. A new reviewer is not a reopen event.
 Never ask a reviewer whether criticism is complete; it cannot answer and will always say no.
+
+An acceptance-profile review never ships ALONE. Pair it with one outcome-shaped discovery pass
+(`DISCOVERY AXIS: outcome`) that never receives the profile, invariants, or ACCEPT WHEN list.
+Measured (EXP-RTP1 variant M, #206): on a real defect the contract never names, the bounded
+reviewer caught it 0/20 and returned PASS 18/20, while the open reviewer caught it 18/19. The
+contract terminates review; alone it certifies what it was never told to see.
 </verdict_rules>
+
 
 <on_complete>
 Emit findings as a `kernel.verdict/v1` document and let the acceptance function decide. The

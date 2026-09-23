@@ -1,0 +1,44 @@
+{
+  "name": "commandcode-usage",
+  "version": "1.0.0",
+  "description": "Show your Command Code plan usage inside Codex: a per-turn quota line, plus a /quota command for the full panel.",
+  "keywords": [
+    "command-code",
+    "commandcode",
+    "usage",
+    "quota",
+    "credits",
+    "billing",
+    "statusline",
+    "codex"
+  ],
+  "author": {
+    "name": "Jovan1666",
+    "url": "https://github.com/Jovan1666"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/Jovan1666/commandcode-usage",
+  "repository": "https://github.com/Jovan1666/commandcode-usage",
+  "commands": "./commands",
+  "hooks": "./hooks/hooks.json",
+  "interface": {
+    "displayName": "Command Code Usage",
+    "shortDescription": "Command Code plan usage (5-hour / weekly / monthly) in Codex.",
+    "longDescription": "Keeps your Command Code plan spend in view while you work. A UserPromptSubmit hook appends one quota line to every turn - the 5-hour window, the week, the month, each with its reset countdown - and /quota prints the full panel on demand. It reads the Command Code credential you already configured and nothing else: no account to create, no telemetry, and no network call beyond the Command Code API the plan itself uses.",
+    "developerName": "Jovan1666",
+    "category": "Utilities",
+    "capabilities": [
+      "Read",
+      "Hooks"
+    ],
+    "brandColor": "#4ec97a",
+    "websiteURL": "https://github.com/Jovan1666/commandcode-usage",
+    "privacyPolicyURL": "https://github.com/Jovan1666/commandcode-usage/blob/main/SECURITY.md",
+    "termsOfServiceURL": "https://github.com/Jovan1666/commandcode-usage/blob/main/LICENSE",
+    "logo": "./assets/logo.svg",
+    "composerIcon": "./assets/composer-icon.svg",
+    "screenshots": [
+      "./assets/screenshot.png"
+    ]
+  }
+}

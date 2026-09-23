@@ -1,0 +1,14 @@
+{
+  "goal_progress": {
+    "command": "/bin/sh",
+    "args": [
+      "./runtime/run-bootstrap.sh",
+      "mcp-server"
+    ],
+    "cwd": ".",
+    "startup_timeout_sec": 300,
+    "env": {
+      "GOAL_PROGRESS_PLUGIN_DATA": "${PLUGIN_DATA}"
+    }
+  }
+}

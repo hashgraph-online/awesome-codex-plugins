@@ -17,7 +17,7 @@
   reposting it signals the reader's own taste.
 - **Why it worked:** no setup, no thread, lands in the first line, and the claim
   is true enough to defend in the replies.
-- **Source audit:** clean. No em dashes, no AI vocab, no hashtags.
+- **Source audit:** clean. Em dashes under the cap, no AI vocab cluster, no hashtags.
 
 **Blank template for your topic:**
 ```

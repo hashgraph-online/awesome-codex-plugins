@@ -7,31 +7,12 @@
 #
 # Output:
 #     - Index health
-#     - Session counts by agent
+#     - Indexed hits by agent
 #     - Activity by date
-#     - Top 5 ritual opener candidates
 #
-# Requires: cass, jq
+# Read-only. Requires: cass, jq, GNU timeout (or gtimeout).
 
 set -euo pipefail
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROMPT_MINER="$SCRIPT_DIR/prompt_miner.py"
-
-# Bound `cass index` so a hung or contended rebuild can't stall this overview
-# (SKILL.md doctrine: cass index can hang; always wall-clock cap it). Prefer GNU
-# timeout, fall back to gtimeout (macOS coreutils), else run uncapped with a
-# warning rather than failing outright.
-run_cass_index() {
-  if command -v timeout >/dev/null 2>&1; then
-    timeout 600 cass index --json
-  elif command -v gtimeout >/dev/null 2>&1; then
-    gtimeout 600 cass index --json
-  else
-    echo "warning: 'timeout' not found; running cass index uncapped" >&2
-    cass index --json
-  fi
-}
 
 WORKSPACE="${1:-}"
 
@@ -57,6 +38,25 @@ if ! command -v jq >/dev/null 2>&1; then
     exit 1
 fi
 
+if command -v timeout >/dev/null 2>&1; then
+    CASS_TIMEOUT=timeout
+elif command -v gtimeout >/dev/null 2>&1; then
+    CASS_TIMEOUT=gtimeout
+else
+    echo "Error: GNU timeout or gtimeout is required for bounded reads" >&2
+    exit 1
+fi
+
+failed=0
+read_cass() {
+    local rc
+    "$CASS_TIMEOUT" 15 cass "$@" || {
+        rc=$?
+        echo "CASS observation unavailable (exit $rc): $1" >&2
+        return "$rc"
+    }
+}
+
 echo "=============================================="
 echo "CASS QUICK ANALYSIS: $WORKSPACE"
 echo "=============================================="
@@ -64,54 +64,35 @@ echo ""
 
 # 1. Health check
 echo "--- Index Health ---"
-cass status --robot-format json 2>/dev/null | jq '{
+read_cass status --robot-format json | jq -e '{
     conversations: .database.conversations,
     messages: .database.messages,
     index_fresh: .index.fresh,
     rebuilding: (.index.rebuilding // .rebuild.active // false),
     recommended: .recommended_action
-}' 2>/dev/null || echo "Error: Could not get cass status"
+}' || { echo "Index state unavailable; no recovery attempted" >&2; failed=1; }
 echo ""
 
-# 2. Refresh index (quick, incremental)
-echo "--- Refreshing Index ---"
-run_cass_index 2>/dev/null | jq '.indexed // "Index refreshed"' -r 2>/dev/null || echo "Index refresh attempted"
+# 2. Agent breakdown (aggregation counts are hits, not distinct sessions)
+echo "--- Indexed Hits by Agent ---"
+read_cass search "*" --workspace "$WORKSPACE" --mode lexical --aggregate agent --limit 1 --fields minimal --json \
+    | jq -r '.aggregations.agent.buckets[] | "\(.key): \(.count) hits"' \
+    || { echo "Agent counts unavailable" >&2; failed=1; }
 echo ""
 
-# 3. Agent breakdown
-echo "--- Sessions by Agent ---"
-cass search "*" --workspace "$WORKSPACE" --aggregate agent --limit 1 --json 2>/dev/null \
-    | jq '.aggregations.agent.buckets[] | "\(.key): \(.count) sessions"' -r 2>/dev/null \
-    || echo "No sessions found for this workspace"
-echo ""
-
-# 4. Date breakdown (last 7 days of activity)
+# 3. Date breakdown (last 7 days of activity)
 echo "--- Recent Activity (by date) ---"
-cass search "*" --workspace "$WORKSPACE" --aggregate date --limit 1 --json 2>/dev/null \
-    | jq '.aggregations.date.buckets | sort_by(.key) | reverse | .[0:7] | .[] | "\(.key): \(.count) hits"' -r 2>/dev/null \
-    || echo "No date information available"
+read_cass search "*" --workspace "$WORKSPACE" --mode lexical --aggregate date --limit 1 --fields minimal --json \
+    | jq -r '.aggregations.date.buckets | sort_by(.key) | reverse | .[0:7] | .[] | "\(.key): \(.count) hits"' \
+    || { echo "Date counts unavailable" >&2; failed=1; }
 echo ""
 
-# 5. Ritual opener candidates (prompts at lines 1-3 that appear multiple times)
-echo "--- Ritual Opener Candidates ---"
-echo "(Prompts appearing at session start, sorted by frequency)"
-echo ""
-
-# Search for common ritual opener patterns
-for pattern in "First read ALL" "AGENTS.md" "comprehensive deep dive" "ultrathink" "think super hard"; do
-    count=$(cass search "$pattern" --workspace "$WORKSPACE" --json --limit 100 2>/dev/null \
-        | jq '.total_matches // 0' 2>/dev/null || echo "0")
-    if [ "$count" -gt 2 ]; then
-        printf "  %3dx: \"%s\"\n" "$count" "$pattern"
-    fi
-done
-echo ""
-
-# 6. Quick tips
+# 4. Quick tips
 echo "--- Next Steps ---"
-echo "1. Find ritual opener:    cass search \"First read ALL\" --workspace $WORKSPACE --json --limit 5"
-echo "2. View a session:        cass view /path/to/session.jsonl -n 1 -C 10"
-echo "3. Find user prompts:     cass search \"KEYWORD\" --workspace $WORKSPACE --json | jq '[.hits[] | select(.line_number <= 3)]'"
-echo "4. Mine all prompts:      python \"$PROMPT_MINER\" --workspace $WORKSPACE"
+echo "Search a task-relevant keyword with an explicit workspace, limit and time cap."
+echo "Use cass pack/view/expand for cited excerpts; verify user roles in native records."
+echo "Repetition is a candidate signal, not evidence that an approach worked."
+echo "Empty aggregates describe this indexed workspace only; failed reads are unavailable."
 echo ""
 echo "=============================================="
+exit "$failed"

@@ -238,6 +238,18 @@ rejects shell metacharacters as defense-in-depth. Full trust model in
    low-false-positive line/regex heuristic, not an exhaustive AST gate, and fails
    open by design so a guard bug never blocks legitimate work.
 
+6. **A standalone single-file copy of `check-owner-leakage.mjs` cannot resolve
+   its sibling helper modules** (`../config/host-paths.mjs`,
+   `./confidential-names.mjs`, `../owner-yaml.mjs`) — the documented vendoring
+   shape (see [Supply Chain](#supply-chain) above). A CP11 confidential-names
+   guard configured only via `owner.yaml` `paths.confidential-names-file`
+   therefore degrades to an inert WARN with exit 0 in that copy (CP1–CP10 keep
+   running); configured instead via the `SO_CONFIDENTIAL_NAMES_FILE`
+   environment variable, the same standalone copy fails **closed** (a counted
+   FAIL, exit 1), because the raw env var is still readable without the
+   helpers. Prefer the environment variable over `owner.yaml` when vendoring
+   this scanner as a single file.
+
 ## Credential Safety
 
 - Secrets are read from the environment or a gitignored `.env.local`, never written

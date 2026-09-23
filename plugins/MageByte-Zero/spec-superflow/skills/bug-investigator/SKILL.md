@@ -5,7 +5,15 @@ description: Use when encountering any bug, test failure, or unexpected behavior
 
 # Bug Investigator
 
+## Bundled runtime
+
+Before executing a CLI line below, replace its leading `SSF` with `node "<plugin-root>/scripts/spec-superflow.mjs"`; `<plugin-root>` is the absolute directory two levels above this file. Never run `SSF` literally or call an `ssf` from `PATH`.
+
 **Core principle:** Find root cause before attempting fixes. Symptom fixes are failure.
+
+## New direct/planned changes
+
+Investigate in executing without a phase transition or a separate debug ledger: reproduce, trace the root cause, make one focused repair and verify. Keep useful failure evidence in the existing progress entry. Three failures for the same unresolved issue warrant a decision; unrelated findings do not accumulate a shared budget. No task book or subagent is required. The detailed legacy protocol below is for an existing debugging state or an investigation that needs it.
 
 ## The Iron Law
 
@@ -53,27 +61,27 @@ Scientific method: form a single hypothesis ("I think X is the root cause becaus
 
 After every failed fix, preserve its failure output in a physical file inside the change directory, then record the distinct attempt:
 
-Before this command, every workflow path (including Quick/direct Hotfix/Tweak) must have a current, valid execution plan. If it does not, establish and confirm one with `ssf execution recommend` and `ssf execution plan` before recording the attempt; the debug command rejects a missing or stale plan.
+Full and legacy Hotfix require a current, valid execution plan before this command; establish one with `SSF execution recommend` and `SSF execution plan` if needed. Quick, Tweak, lightweight, and direct Hotfix keep their planless contract: their valid workflow receipt authorizes debugging, and the ledger binds attempts to that receipt plus the current workflow, artifact, and contract hashes. The debug command rejects a missing or replaced receipt or a stale required plan.
 
 ```bash
-ssf debug attempt record <change-dir> \
+SSF debug attempt record <change-dir> \
   --id <unique-attempt-id> \
   --summary "<what was tried and why it failed>" \
   --evidence <change-local-failure-log>
 ```
 
-Use `ssf debug attempt show <change-dir> --json` to present the complete attempt ledger. Wave Review repair failures are separate evidence and never count as debugging attempts.
+Use `SSF debug attempt show <change-dir> --json` to present the complete attempt ledger. Wave Review repair failures are separate evidence and never count as debugging attempts.
 
 After at least three distinct evidence-backed attempts, stop and discuss the architectural decision with the user. Only after the user explicitly chooses may DP-5 be recorded:
 
 ```bash
-ssf debug escalate <change-dir> \
+SSF debug escalate <change-dir> \
   --decision <continue|abandon> \
   --reason "<user-confirmed decision>" \
   --confirm
 ```
 
-Never write `dp_5_*` through raw `ssf state set`; those fields are guarded by the debug ledger. If the user chooses `abandon`, transition to `abandoned` only after the guarded DP-5 receipt is recorded.
+Never write `dp_5_*` through raw `SSF state set`; those fields are guarded by the debug ledger. If the user chooses `abandon`, transition to `abandoned` only after the guarded DP-5 receipt is recorded.
 
 ## Red Flags — Return to Phase 1
 
@@ -99,36 +107,3 @@ If truly environmental/timing-dependent/external: document what you investigated
 - **Parse failures**: Report raw output, ask for clarification — don't guess
 - **Missing files**: Escalate immediately — not a normal debugging scenario
 - **User interruption**: Re-read investigation report on resume, continue from last completed phase
-
-## Standard User-Facing Handoff
-
-End every user-facing phase report with this concise handoff. Only a successfully
-persisted `closing` state and `abandoned` are terminal.
-
-### Normal report
-
-- Current stage: `<detected workflow stage>`.
-- Completed / blocker: `<completed work>`.
-- Next stage: `<next workflow stage or skill>`.
-- Entry condition: `<what must be true to enter it>`.
-
-### Blocked report
-
-- Current stage: `<detected workflow stage>`.
-- Completed / blocker: `<blocking fact or missing evidence>`.
-- Next stage: `<stage that resumes after the blocker>`.
-- Entry condition: `<the approval, artifact, validation, or fix required>`.
-
-### Approval-wait report
-
-- Current stage: `<detected workflow stage>`.
-- Completed / blocker: `<work ready for the named decision>`.
-- Next stage: `<stage that follows approval>`.
-- Entry condition: `<explicit user approval or recorded decision>`.
-
-### Successful terminal report
-
-- Current stage: successfully persisted `closing` or `abandoned`.
-- Completed / blocker: `<persisted terminal outcome>`.
-- Next stage: `none`.
-- Entry condition: no further transition exists.

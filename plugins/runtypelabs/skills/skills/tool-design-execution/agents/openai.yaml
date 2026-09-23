@@ -1,0 +1,7 @@
+interface:
+  display_name: 'Tool Execution Design'
+  short_description: 'Sync, async, idempotent, and transactional tools'
+  brand_color: '#6D5EF7'
+  default_prompt: 'Use $tool-design-execution to decide whether this tool is sync or an async job and how retries stay safe.'
+policy:
+  allow_implicit_invocation: true

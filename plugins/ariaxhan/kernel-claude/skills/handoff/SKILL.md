@@ -38,8 +38,9 @@ agentdb read-start
 Capture (these become manifest sections, not prose):
 - objective: goal, success_conditions (observable), non_goals
 - contract: governing _meta/contracts/ file if one exists, invariants, assumptions,
-  decisions_accepted (+rationale), alternatives_rejected (+reason) — rejected paths are
-  as valuable as accepted ones; they stop re-exploration
+  decisions_accepted (+rationale), alternatives_rejected (+reason, REQUIRED by the schema even
+  when empty) — every idea the user or you ruled out this session, so the next session never
+  re-proposes it
 - workflow.phases: name each phase of the work; status inherited (done, with evidence)
   | required (still to do). Add invalidation_rules: what live-state change would flip an
   inherited phase back to required. Rules use typed `when.event` plus optional

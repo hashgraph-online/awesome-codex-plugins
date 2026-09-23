@@ -102,10 +102,10 @@ Reload (next session resume reports metrics + loads evolved skills)
 ## Skill Synthesis (host-agent)
 
 When `epic-harness reflect` seeds a skill, it emits a pending-synthesis manifest
-to `$HARNESS_DIR/pending_synth.jsonl` (failure evidence + template body). To
+to `$HARNESS_DIR/projects/{slug}/pending_synth.jsonl` (failure evidence + template body). To
 synthesize a better body:
 
-1. Read `$HARNESS_DIR/pending_synth.jsonl`; for each record with `status: "pending"`:
+1. Read `$HARNESS_DIR/projects/{slug}/pending_synth.jsonl`; for each record with `status: "pending"`:
 2. Launch a subagent (use your host's subagent mechanism — do not name a specific
    tool or model) with the manifest's `prompt_guidance` + `evidence`, instructing
    it to write a markdown skill body with the required sections (`## Process`,

@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/orwa-mahmoud/nightshift/main/plugins/nightshift/skills/nightshift/references/schemas/v1/shift-defaults.json",
+  "title": "Nightshift shift defaults",
+  "description": "Remembered convenience choices in .nightshift/shift-defaults.json. They prefill the one question a composition step asks and nothing else: the resolver never reports them as the source of an effective value, and they never carry elevation. A missing or malformed file means the built-in defaults (fast, no hours, existing-tools, review-first).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion"],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "enum": [1],
+      "description": "Defaults schema version. Only 1 is supported."
+    },
+    "verificationProfile": {
+      "type": "string",
+      "enum": ["fast", "balanced", "strict", "custom"],
+      "description": "Last verification profile. The resolver maps it to a level only when a composition step or Start copies it into the shift policy: fast to none, balanced to final, strict to per-item, custom to custom."
+    },
+    "hours": {
+      "type": ["integer", "null"],
+      "description": "Typical shift length in whole hours, or null for a finite shift with no clock."
+    },
+    "toolingPolicy": {
+      "type": "string",
+      "enum": ["existing-tools", "review-missing", "auto-add"],
+      "description": "Last tooling policy. Artifact mode still refuses the repository-tool policies."
+    },
+    "execution": {
+      "type": "string",
+      "enum": ["review-first", "run-direct"],
+      "description": "Whether the last composition reviewed the plan before arming or armed straight away."
+    },
+    "updatedAt": {
+      "type": "string",
+      "minLength": 1,
+      "description": "UTC timestamp of the last write, ISO 8601 (YYYY-MM-DDTHH:MM:SSZ)."
+    }
+  }
+}

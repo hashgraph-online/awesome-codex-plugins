@@ -1,0 +1,55 @@
+{
+  "description": "Load bounded Tree Ring context at startup and enforce one agent-mediated memory checkpoint at stop.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${PLUGIN_ROOT}/hooks/codex-hook.sh\"",
+            "timeout": 10,
+            "statusMessage": "Loading Tree Ring context",
+            "additionalContextLimit": 6000
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${PLUGIN_ROOT}/hooks/codex-hook.sh\"",
+            "timeout": 10,
+            "statusMessage": "Loading Tree Ring worker context",
+            "additionalContextLimit": 6000
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${PLUGIN_ROOT}/hooks/codex-hook.sh\"",
+            "timeout": 10,
+            "statusMessage": "Checking Tree Ring memory"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${PLUGIN_ROOT}/hooks/codex-hook.sh\"",
+            "timeout": 10,
+            "statusMessage": "Checking Tree Ring worker memory"
+          }
+        ]
+      }
+    ]
+  }
+}

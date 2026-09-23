@@ -1,26 +1,48 @@
 ---
 name: brainstorming
-description: "Use when the user wants to do brainstorming, choose an approach, design something or clarify an ambiguous or consequential change before planning or implementation."
+description: "Use when the user wants to brainstorm, choose an approach, design something, or clarify an ambiguous or consequential change."
 user-invocable: true
 allowed-tools: Glob, Grep, Read, Bash, Task, AskUserQuestion, Skill
 ---
 
 # Brainstorming
 
-Interview the user relentlessly about every aspect of this until we reach a shared understanding. Walk down each branch of the decision tree, resolving dependencies between decisions one-by-one. For each question, provide your recommended answer.
+Interview until you and the user share the same understanding.
+Walk every branch of the decision tree and resolve dependent decisions in order.
+Attach a recommended answer and its trade-off to every question.
+Group only independent questions, as the [development loop](../../shared/development-loop.md) Reach agreement section requires.
+The number of questions follows the ambiguity: stop when every branch is settled, not at a fixed count.
+This rule applies on every path, whether or not the task needs a plan and chronicle.
 
-Ask the questions one at a time with a recommendation and trade-off, waiting for feedback on each question before continuing. Asking multiple questions at once is bewildering.
+<HARD-GATE>
+Do not write code before the presented design or plan is approved.
+Do not write the plan while purpose, scope, solved state, proof, or a contested design remains unresolved.
+Once these points are settled, return them to the development loop.
+The loop presents the complete design or plan before asking for approval.
+Do not ask for separate approval before the plan.
 
-If a *fact* can be found by exploring the environment (filesystem, tools, etc.), look it up rather than asking the user. The *decisions*, though, are mine — put each one to me and wait for my answer.
+If the user asks for no questions, remove ceremony but keep open decisions.
+Present the open decisions with recommendations in one pass instead of choosing silently.
+</HARD-GATE>
 
-Do not act on it until I confirm we have reached a shared understanding, an agree on purpose, scope, solved state, and what evidence would show the proposed answer is wrong.
+## Who decides what
+
+- **Facts**: inspect the filesystem, tools, and code. Never ask for discoverable facts.
+- **Required outcomes and business trade-offs**: ask the user and apply the answer.
+- **Implementation**: recommend and defend an approach with evidence.
+
+The [development loop](../../shared/development-loop.md) Design authority section owns the remaining boundaries.
+
+## Interview for the design
+
+Judge data shape against the [engineering contract](../../shared/engineering.md).
+Use concrete cases to expose conflicting meanings and missing boundaries.
+Cover errors, edge cases, and assumptions that would invalidate the solution.
+
+Offer genuinely different alternatives and recommend the simplest one that meets the constraints.
+Use `best-practices` when current evidence can change the choice.
+Persist research only when it remains useful after the task.
 
 If `$ARGUMENTS` is empty, ask what to explore and stop.
-
-Use `best-practices` when current evidence can change the choice. Persist research only when it remains useful after the task.
-
-Offer genuinely different alternatives and recommend the simplest that meets the result and constraints.
-
-When finished, return to the full [development loop](../../shared/development-loop.md) if you were already there.
-
-Use `AskUserQuestion` for decisions.
+Use `AskUserQuestion` for decisions when that tool is available and permitted.
+When finished, return to the development loop if you were already there.

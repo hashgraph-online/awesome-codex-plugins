@@ -11,10 +11,18 @@ hosts. Gate execution, state block, and resume rules:
 
 ## Track notes
 
-- This file hosts five instruments the conductor invokes individually:
+- This file hosts six instruments the conductor invokes individually:
   concept → `idea` at `sdd.frame`, intent → `prd` at `sdd.require`,
-  contract → `spec` at `sdd.design`, decompose → `plan` at `sdd.decompose`,
+  contract → `spec` at `sdd.design`, illustrate → `scenario` at
+  `sdd.illustrate`, decompose → `plan` at `sdd.decompose`,
   runbook → `guide` at `sdd.runbook`.
+- Under the illustrate condition of `skills/_shared/delta-routing.md`,
+  `sdd.require` also produces a `journey` beside the `prd` — a recorded
+  exception to single-type production, on the pattern of `decision.cascade`.
+  No `/archcore:document` mode reaches `sdd.require`.
+- Both actor-subject types are gated on
+  `skills/_shared/actor-subject-compatibility.md`; the conductor runs the probe
+  before invoking either production.
 - `skills/_shared/delta-routing.md` owns the sequence between instruments; no
   gate here chains into another instrument — each gate exits to the conductor.
 - Each `budget` knob states this track's per-gate maximum, reached only in
@@ -23,8 +31,9 @@ hosts. Gate execution, state block, and resume rules:
 - Content voice for produced documents: `skills/_shared/precision-rules.md`
   Rule 6.
 - Before the first gate, the `plan` skill calls `list_documents` for the types
-  `idea`, `prd`, `rnd`, `mrd`, `brd`, `urd`, `spec`, `plan`, and `guide` and
-  checks the topic for duplicates and recorded discovery.
+  `idea`, `prd`, `rnd`, `mrd`, `brd`, `urd`, `spec`, `plan`, and `guide` —
+  plus `research` when `skills/_shared/research-compatibility.md` returned
+  `yes` — and checks the topic for duplicates and recorded discovery.
 - WHEN a `brd` or `urd` covers the topic, `sdd.require` composes Goals and
   Success Metrics from the `brd`'s success metrics and Requirements from the
   `urd`'s acceptance criteria — recorded requirements are never re-asked.
@@ -42,15 +51,18 @@ hosts. Gate execution, state block, and resume rules:
 - [assumption] Taxonomy knob values are mapped from each source step's
   composed sections; the source flows predate
   `skills/_shared/coverage-taxonomy.md`.
+- Per-type content contracts for the actor-subject types:
+  `skills/_shared/scenario-contract.md` (`scenario`) and
+  `skills/_shared/journey-contract.md` (`journey`).
 
 ### gate: sdd.frame
 
 - Purpose: Establish the core concept, its beneficiary, and known risks — the
   framing the later gates implement.
 - Entry conditions:
-  - skip_when: an `idea`, `prd`, or `rnd` covering the topic exists in
-    `.archcore/` — an `rnd`'s Recommendation frames the topic the way an
-    `idea` does; a complete sources set (`mrd`, `brd`, `urd`) on the topic
+  - skip_when: an `idea`, `prd`, `rnd`, or `research` covering the topic
+    exists in `.archcore/` — an `rnd`'s Recommendation or a `research`'s
+    Synthesis frames the topic the way an `idea` does; a complete sources set (`mrd`, `brd`, `urd`) on the topic
     also closes this gate — the `urd` records the concept's beneficiary.
   - The conductor invokes this gate per sequencing rule 2 of
     `skills/_shared/delta-routing.md` (the high-uncertainty portfolio).
@@ -77,11 +89,11 @@ hosts. Gate execution, state block, and resume rules:
   single feature; size never changes the type.
 - Entry conditions:
   - skip_when: a `prd` covering the topic exists in `.archcore/`; or the
-    request is feature-scoped and an `idea`, `rnd`, or `adr` covering the
-    topic already records the problem and the goals — the compression path in
+    request is feature-scoped and an `idea`, `rnd`, `research`, or `adr`
+    covering the topic already records the problem and the goals — the compression path in
     `skills/_shared/prd-contract.md`.
-  - The concept and beneficiary are recorded — in an `idea` or `rnd`
-    document, in a `urd` or `srs` covering the topic (recorded requirement
+  - The concept and beneficiary are recorded — in an `idea`, `rnd`, or
+    `research` document, in a `urd` or `srs` covering the topic (recorded requirement
     sources), under `## Clarifications`, or in the request text.
 - Elicitation knobs:
   - trigger: the problem statement or the success metrics are not recorded.
@@ -90,15 +102,20 @@ hosts. Gate execution, state block, and resume rules:
     `skills/_shared/coverage-taxonomy.md`.
   - budget: 5
 - Produces:
-  - type: prd
+  - type: prd; additionally journey under the illustrate condition of
+    `skills/_shared/delta-routing.md`, composed per
+    `skills/_shared/journey-contract.md`
   - status: draft
   - relations: `implements` → the `idea` from `sdd.frame`; none when no
     `idea` exists. `related` → the `mrd`, `brd`, and `urd` on the topic, when
     they exist. A product-level `prd` additionally links each feature-scoped
-    `prd` it covers.
+    `prd` it covers. `related` from the journey → the `prd`, when both are
+    produced.
 - Exit checks:
   - blocking: the prd draft contains every mandatory section defined in
     `skills/_shared/prd-contract.md`.
+  - blocking: WHEN a journey is produced, it contains the sections Intent,
+    Actors, Journeys, and Open Questions per `skills/_shared/journey-contract.md`.
   - blocking: every numbered requirement in the prd draft follows the
     requirement form in `skills/_shared/prd-contract.md`.
   - blocking: no statement in the prd draft belongs to another document under
@@ -123,7 +140,7 @@ hosts. Gate execution, state block, and resume rules:
     `skills/_shared/delta-routing.md` — one invocation per capability.
   - A `prd` on the topic exists, or `sdd.require` closed through the
     compression path in `skills/_shared/prd-contract.md` and the `idea`,
-    `rnd`, or `adr` that closed it records the problem and the goals.
+    `rnd`, `research`, or `adr` that closed it records the problem and the goals.
 - Elicitation knobs:
   - trigger: the dependents, the surface, the constraints and invariants, or
     the failure behaviors are not recorded.
@@ -134,9 +151,11 @@ hosts. Gate execution, state block, and resume rules:
 - Produces:
   - type: spec
   - status: draft
-  - relations: `implements` → the `prd` from `sdd.require`; `implements` →
-    the `idea`, `rnd`, or `adr` that closed `sdd.require`'s compression path
-    when no `prd` exists.
+  - relations: `implements` → the `prd` from `sdd.require`. When no `prd`
+    exists, use `implements` → the `idea` or `adr` whose requirements the spec
+    fulfils, or `depends_on` → the `rnd` or `research` whose findings the spec
+    relies on. Check the compression-path claim through
+    `skills/_shared/relation-authoring.md`; research is not an implementation target.
 - Exit checks:
   - blocking: the spec draft contains every mandatory section defined in
     `skills/_shared/spec-contract.md`.
@@ -146,10 +165,55 @@ hosts. Gate execution, state block, and resume rules:
   - blocking: WHEN this spec took over a prd statement, the executing skill
     edited that statement in the prd per ownership rule 2 of
     `skills/_shared/prd-contract.md`, in one `update_document` call.
+  - advisory: each Normative Behavior clause of the spec draft is illustrated by
+    one example — in its Conformance block, in a `scenario` that `depends_on`
+    it, or in a feature file it cites by `@path`; the closing report lists the
+    clauses with none.
 - Next: exit — the conductor names the next instrument per
   `skills/_shared/delta-routing.md`. WHEN an answer at this gate settles a
   choice between technical alternatives, record it via the decision track
   (`skills/_shared/tracks/decision.md`).
+
+### gate: sdd.illustrate
+
+- Purpose: Illustrate the clauses of the `spec` designed at `sdd.design` with
+  the actor's flows and concrete examples, as a `scenario` composed per
+  `skills/_shared/scenario-contract.md`.
+- Entry conditions:
+  - skip_when: a `scenario` that `depends_on` the designed `spec` exists in
+    `.archcore/`, or the capability does not meet the illustrate condition of
+    `skills/_shared/delta-routing.md`, or
+    `skills/_shared/actor-subject-compatibility.md` did not return `yes`.
+  - The conductor invokes this gate per its instrument-registry entry in
+    `skills/_shared/delta-routing.md` — one invocation per capability, after
+    that capability's `sdd.design`.
+  - The designed `spec` carries numbered Normative Behavior clauses.
+- Elicitation knobs:
+  - trigger: the actors, one concrete example per illustrated clause, or the
+    anchoring files are not recorded in the `spec`, the `prd`, the `journey`,
+    or `## Clarifications`.
+  - taxonomy: Interaction & UX Flow, Edge Cases & Failure Handling from
+    `skills/_shared/coverage-taxonomy.md`.
+  - budget: 2
+- Produces:
+  - type: scenario
+  - status: draft
+  - relations: `depends_on` → the `spec` from `sdd.design`; `implements` → the
+    `journey` on the topic, when one exists; between the parts of a split by actor,
+    `related` only where `skills/_shared/relation-authoring.md` supports the claim.
+- Exit checks:
+  - blocking: the scenario draft contains the sections Subject, Actors, Flows,
+    Examples, and Open Questions per `skills/_shared/scenario-contract.md`.
+  - blocking: every clause number cited in Subject exists in the designed `spec`.
+  - blocking: every Flows subsection opens with an `Anchors:` line.
+  - blocking: the draft is within the body cap of
+    `skills/_shared/scenario-contract.md`, or was split by actor with the
+    remainder reported.
+  - advisory: WHEN a `journey` on the topic exists, the journey was edited down
+    to intent for the flows this scenario took over, per ownership rule 2 of
+    `skills/_shared/prd-contract.md`.
+- Next: exit — the conductor names the next instrument per
+  `skills/_shared/delta-routing.md`.
 
 ### gate: sdd.decompose
 

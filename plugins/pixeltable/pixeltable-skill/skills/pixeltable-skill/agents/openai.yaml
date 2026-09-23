@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pixeltable"
+  short_description: "Build multimodal apps with declarative Pixeltable tables"
+  default_prompt: "Use $pixeltable to build or debug this Pixeltable application."

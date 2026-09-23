@@ -21,8 +21,8 @@
 
 | Goal | Pattern |
 |------|---------|
-| User prompts (lines 1-5) | `select(.line_number <= 3)` |
-| Subagent sessions | `contains("subagent")` |
+| User prompts | Inspect source record roles; line positions and titles are not roles |
+| Candidate subagent paths | `contains("subagent")`; verify native parent/child metadata |
 | Total match count | `.total_matches` |
 | Safe access with default | `// []` or `// "default"` |
 | Sort descending | `sort_by(-.field)` |
@@ -51,23 +51,24 @@
 | jq '.total_matches'
 ```
 
-### User Prompt Extraction (The Most Important Pattern)
+### User Prompt Extraction
 
-User prompts appear at lines 1-5. Filter by `line_number`:
+Search hits locate candidates; they are not a role filter. Use the returned
+path and line with bounded `cass pack`, `view` or `expand`, then identify the
+role from the actual record. Early lines can be metadata or assistant content,
+and user messages can occur anywhere. Verify that the returned path/line
+matches the requested hit; missing files, absent roles and clamped windows
+remain retrieval gaps.
 
 ```bash
-# Get user prompts only
-| jq '[.hits[] | select(.line_number <= 3)]'
-
-# With formatted output
-| jq '[.hits[] | select(.line_number <= 3)] | .[] | {path: .source_path, line: .line_number, title: .title[0:80]}'
-
-# Just titles (for scanning)
-| jq '[.hits[] | select(.line_number <= 3) | .title]'
-
-# Count user prompts
-| jq '[.hits[] | select(.line_number <= 3)] | length'
+cass search "KEYWORD" --workspace /path --mode lexical --json --fields minimal --limit 20
+cass view /path/from/hit.jsonl -n LINE -C 3 --json
+cass expand /path/from/hit.jsonl --line LINE --context 3 --json
 ```
+
+See [Raw Session File Parsing](#raw-session-file-parsing) for role-based
+examples over an already selected, authorized excerpt. A title count is not a
+count of user prompts.
 
 ### Subagent Session Extraction
 
@@ -78,8 +79,8 @@ User prompts appear at lines 1-5. Filter by `line_number`:
 # Just paths (unique)
 | jq '[.hits[] | select(.source_path | contains("subagent"))] | .[].source_path' -r | sort -u
 
-# User prompts in subagent sessions
-| jq '[.hits[] | select(.source_path | contains("subagent")) | select(.line_number <= 3)]'
+# Candidate locations to inspect for native roles
+| jq '[.hits[] | select(.source_path | contains("subagent")) | {source_path, line_number}]'
 ```
 
 ### Aggregation Parsing
@@ -104,72 +105,74 @@ cass search "*" --workspace /path --aggregate date --limit 1 --json \
 
 ## Pattern Detection
 
-### Find Repeated Prompts (Ritual Detection)
+### Find Recurring Candidate Titles
 
 ```bash
-# Group prompts by title, count, sort by frequency
-cass search "*" --workspace /path --json --limit 500 \
-  | jq '[.hits[] | select(.line_number <= 3) | .title[0:80]] | group_by(.) | map({prompt: .[0], count: length}) | sort_by(-.count) | .[0:20]'
+# Count titles within this limited hit set; retain locations for review.
+cass search "KEYWORD" --workspace /path --json --fields summary --limit 50 \
+  | jq '[.hits[] | {title, source_path, line_number}]
+    | group_by(.title)
+    | map({title: .[0].title, hit_count: length, locations: .})
+    | sort_by(-.hit_count) | .[0:20]'
 ```
 
-### Filter by Count Threshold
-
-```bash
-# Only patterns appearing 5+ times
-| jq '[.hits[] | select(.line_number <= 3) | .title[0:80]] | group_by(.) | map({prompt: .[0], count: length}) | map(select(.count >= 5)) | sort_by(-.count)'
-```
-
-### Check Total Matches (Is It a Ritual?)
-
-```bash
-cass search "First read ALL" --workspace /path --json --limit 100 | jq '.total_matches'
-# > 10 = ritual, document it
-# < 3 = one-off, ignore
-```
+Repeated titles can represent multiple hits in one session, copied text or
+retries. They do not establish distinct prompt counts, user roles or success.
+Inspect a selected candidate's intent, outcome and corrections before reuse.
+Rare failures and scope decisions can matter even when the count is one.
 
 ---
 
 ## Raw Session File Parsing
 
+Prefer CASS pack/view/expand. These examples apply only to an already selected,
+authorized and bounded native excerpt named `excerpt.jsonl`, when a demonstrated
+precision gap requires raw records. Never run them over an entire session by
+default. The [source-format reference](SESSION_FORMATS.md) owns harness details;
+unknown formats remain unknown.
+
 ### Claude Code Format
 
 ```bash
 # Extract user messages
-jq 'select(.type == "user") | .message.content' session.jsonl
+jq 'select(.type == "user") | .message.content' excerpt.jsonl
 
 # Handle content arrays (common)
-jq 'select(.type == "user") | .message.content | if type == "array" then [.[] | select(.type == "text") | .text] | join(" ") else . end' session.jsonl
+jq 'select(.type == "user") | .message.content | if type == "array" then [.[] | select(.type == "text") | .text] | join(" ") else . end' excerpt.jsonl
 
 # With timestamps
-jq 'select(.type == "user") | {ts: .timestamp, content: .message.content}' session.jsonl
+jq 'select(.type == "user") | {ts: .timestamp, content: .message.content}' excerpt.jsonl
 
-# First user prompt only (the ritual opener)
-jq -s '[.[] | select(.type == "user")][0] | .message.content' session.jsonl
+# First user record in this excerpt (not necessarily the session opener)
+jq -s '[.[] | select(.type == "user")][0] | .message.content' excerpt.jsonl
 
 # All user messages sorted
-jq -s '[.[] | select(.type == "user")] | sort_by(.timestamp)' session.jsonl
+jq -s '[.[] | select(.type == "user")] | sort_by(.timestamp)' excerpt.jsonl
 ```
 
-### Codex/Gemini Format
+### Flat Codex/Gemini Format
 
 ```bash
 # Extract user messages
-jq 'select(.role == "user") | .content' session.jsonl
+jq 'select(.role == "user") | .content' excerpt.jsonl
 
 # With timestamp
-jq 'select(.role == "user") | {ts: (.timestamp // .created_at), content}' session.jsonl
+jq 'select(.role == "user") | {ts: (.timestamp // .created_at), content}' excerpt.jsonl
 
 # First user prompt
-jq -s '[.[] | select(.role == "user")][0] | .content' session.jsonl
+jq -s '[.[] | select(.role == "user")][0] | .content' excerpt.jsonl
 ```
 
-### Detect Format and Extract
+### Current Codex Records
 
 ```bash
-# Check format
-head -1 session.jsonl | jq -e '.type == "user"' && echo "claude_code"
-head -1 session.jsonl | jq -e '.role == "user"' && echo "codex"
+jq 'select(.type == "response_item" and .payload.type == "message" and .payload.role == "user")
+  | {ts: .timestamp, content: .payload.content}' excerpt.jsonl
 ```
+
+Inspect record shape before selecting a parser. A metadata record at the start
+cannot determine the role of subsequent messages. Avoid counting both a native
+message and a duplicated event representation as separate user turns.
 
 ---
 
@@ -179,34 +182,32 @@ head -1 session.jsonl | jq -e '.role == "user"' && echo "codex"
 
 ```bash
 # All tool calls
-jq 'select(.type == "assistant") | .message.content[] | select(.type == "tool_use") | {name, input}' session.jsonl
+jq 'select(.type == "assistant") | .message.content[] | select(.type == "tool_use") | {name, input}' excerpt.jsonl
 
 # Specific tool (e.g., Write)
-jq 'select(.type == "assistant") | .message.content[] | select(.type == "tool_use" and .name == "Write")' session.jsonl
+jq 'select(.type == "assistant") | .message.content[] | select(.type == "tool_use" and .name == "Write")' excerpt.jsonl
 
 # Tool results
-jq 'select(.type == "tool_result")' session.jsonl
+jq 'select(.type == "tool_result")' excerpt.jsonl
 
 # Count tool calls by type
-jq -s '[.[] | select(.type == "assistant") | .message.content[]? | select(.type == "tool_use") | .name] | group_by(.) | map({tool: .[0], count: length}) | sort_by(-.count)' session.jsonl
+jq -s '[.[] | select(.type == "assistant") | .message.content[]? | select(.type == "tool_use") | .name] | group_by(.) | map({tool: .[0], count: length}) | sort_by(-.count)' excerpt.jsonl
 ```
 
 ---
 
 ## Subagent Prompt Extraction
 
-Subagent logs have THE prompt at line 2:
+Use the selected hit's locator, not a fixed line number. A subagent filename is
+a discovery clue; confirm native identity and relationships before attribution.
 
 ```bash
-# View line 2 via cass
-cass view /path/to/subagents/agent-XXXXX.jsonl -n 2 -C 1
-
-# Extract with sed + jq
-sed -n '2p' /path/to/subagents/agent-XXXXX.jsonl | jq '.message.content'
-
-# Extract with jq slurp
-jq -s '.[1].message.content' /path/to/subagents/agent-XXXXX.jsonl
+cass view /path/to/subagents/agent-XXXXX.jsonl -n LINE -C 3 --json
+cass expand /path/to/subagents/agent-XXXXX.jsonl --line LINE --context 3 --json
 ```
+
+Verify the record role and returned locator. Then apply the appropriate
+role-based parser to a selected authorized excerpt if necessary.
 
 ---
 
@@ -244,20 +245,16 @@ jq -s '.[1].message.content' /path/to/subagents/agent-XXXXX.jsonl
 
 ## Composite Recipes
 
-### Full Prompt Mining Pipeline
+### Bounded Evidence Pack
 
 ```bash
-# 1. Search all sessions
-cass search "*" --workspace /path --json --limit 500 \
-  | jq '
-    [.hits[] | select(.line_number <= 3) | .title[0:80]]
-    | group_by(.)
-    | map({prompt: .[0], count: length})
-    | sort_by(-.count)
-    | map(select(.count >= 2))
-    | .[0:30]
-  '
+timeout 30 cass pack "KEYWORD" --workspace /path --mode lexical --json \
+  --limit 20 --max-sessions 3 --max-evidence 6 --max-tokens 4000
 ```
+
+Inspect selection and omission markers and actual returned locators. A citation
+verification flag is not proof that the source still exists, that a requested
+record was returned or that the excerpt establishes an outcome.
 
 ### Extract Conversation Flow from Session
 
@@ -266,7 +263,7 @@ jq -s '[.[] | {
   type: (.type // .role),
   ts: (.timestamp // .created_at),
   preview: (if .message then .message.content else .content end | tostring[0:100])
-}]' session.jsonl
+}]' excerpt.jsonl
 ```
 
 ### Find Sessions with Specific Tool Usage
@@ -276,19 +273,16 @@ cass search "Write" --workspace /path --json --fields minimal --limit 50 \
   | jq '[.hits[] | .source_path] | unique'
 ```
 
-### Complete Source Path → First Prompt Pipeline
+### Follow a Selected Hit
 
 ```bash
-# 1. Get source paths
-cass search "KEYWORD" --workspace /path --json --fields minimal --limit 20 \
-  | jq '.hits[].source_path' -r > /tmp/paths.txt
-
-# 2. Extract first prompt from each
-while read path; do
-  echo "=== $path ==="
-  jq -s '[.[] | select(.type == "user")][0] | .message.content[0:200]' "$path" 2>/dev/null
-done < /tmp/paths.txt
+cass search "KEYWORD" --workspace /path --json --fields minimal --limit 20
+# Select a relevant hit within the authorized source scope, then inspect it.
+cass expand /path/from/selected-hit.jsonl --line LINE --context 3 --json
 ```
+
+Do not bulk-open every returned path or assume the first user message is the
+relevant prompt. Report missing or mismatched source records explicitly.
 
 ---
 
@@ -303,7 +297,7 @@ When a complex jq command fails silently or returns nothing:
 
 ```bash
 # Complex filter fails silently:
-| jq '[.hits[] | select(.line_number <= 3 and .source_path | contains("subagent"))] | ...'
+| jq '[.hits[] | select(.source_path | contains("subagent"))] | ...'
 # No output, no error. Now what?
 
 # SIMPLIFY FIRST:
@@ -325,18 +319,14 @@ When a complex jq command fails silently or returns nothing:
 # Add projection
 | jq '[.hits[] | {path: .source_path, line: .line_number}]'
 
-# Add filter
-| jq '[.hits[] | select(.line_number <= 3)]'
-
-# Combine (last)
-| jq '[.hits[] | select(.line_number <= 3) | select(.source_path | contains("subagent"))]'
+# Add a candidate path filter
+| jq '[.hits[] | select(.source_path | contains("subagent"))]'
 ```
 
 ### Check Intermediate Counts
 
 ```bash
 | jq '.hits | length'                        # Total hits
-| jq '[.hits[] | select(.line_number <= 3)] | length'   # After line filter
 | jq '[.hits[] | select(.source_path | contains("subagent"))] | length'  # After path filter
 ```
 
@@ -346,7 +336,7 @@ When a complex jq command fails silently or returns nothing:
 
 | Task | One-Liner |
 |------|-----------|
-| User prompt titles | `jq '[.hits[] \| select(.line_number <= 3) \| .title]'` |
+| Candidate titles | `jq '[.hits[].title]'`; not role or outcome evidence |
 | Source paths only | `jq '.hits[].source_path' -r` |
 | Agent counts | `jq '.aggregations.agent.buckets'` |
 | Date counts | `jq '.aggregations.date.buckets'` |

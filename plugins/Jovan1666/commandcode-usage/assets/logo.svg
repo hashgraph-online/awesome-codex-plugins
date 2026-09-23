@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-labelledby="t">
+  <title id="t">Command Code Usage</title>
+  <!-- 插件自己的标记：三条窗口占用条，用 core 里那三个阈值色。
+       不画任何宿主或 Command Code 的商标，否则等于冒用别人的标识。 -->
+  <rect width="512" height="512" rx="112" fill="#0b0d12"/>
+  <g fill="#3d4456">
+    <rect x="96" y="152" width="320" height="56" rx="28"/>
+    <rect x="96" y="228" width="320" height="56" rx="28"/>
+    <rect x="96" y="304" width="320" height="56" rx="28"/>
+  </g>
+  <rect x="96" y="152" width="109" height="56" rx="28" fill="#4ec97a"/>
+  <rect x="96" y="228" width="218" height="56" rx="28" fill="#e6b445"/>
+  <rect x="96" y="304" width="294" height="56" rx="28" fill="#e5534b"/>
+</svg>

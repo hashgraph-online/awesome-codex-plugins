@@ -1,30 +1,12 @@
-# Domain Pack: Frontend Product Work
+# Frontend
 
-Use this when a plan touches React, Next.js, Vue, Svelte, routing, forms,
-client state, UI workflows, accessibility, or browser behavior.
+Follow repository design-skill requirements. Inspect routes, components/tokens,
+forms, API/state/cache patterns, accessibility, and tests.
 
-## Evidence To Gather
+Decide flow, server/client ownership, loading/empty/error/permission/optimistic
+states, keyboard/focus/labels, and responsive layout. Reuse native HTML/CSS and
+existing components.
 
-- Existing routing model and page/component structure.
-- Design system, component library, icon library, and styling conventions.
-- Form validation patterns and API client patterns.
-- State management and cache invalidation conventions.
-- Existing unit, integration, browser, and visual tests.
-- Responsive layouts and accessibility patterns already present.
-
-## Plan Must Decide
-
-- User workflow and entry/exit paths.
-- Server/client ownership for data loading and mutations.
-- Error, empty, loading, disabled, optimistic, and permission states.
-- Accessibility requirements for keyboard, focus, labels, and announcements.
-- Responsive behavior for narrow, standard, and wide viewports.
-- Test strategy across unit, integration, and browser checks.
-
-## Tests First
-
-- Form validation and mutation behavior.
-- Permission and auth state behavior.
-- Loading, empty, and error states.
-- Route transitions and cache updates.
-- Browser or component tests for critical workflows.
+Verify critical forms, mutations, permissions, route/cache transitions, keyboard
+use, and relevant viewports. Cosmetic edits need visual inspection or existing
+build checks, not tests mirroring styling details.

@@ -127,6 +127,35 @@ Finding は以下のフィールドを満たすこと。詳細条件は [VERIFIC
   Severity: <severity> / Confidence: <confidence> / Skill: <skill-id>
 ```
 
+## Flow Entry / Flow 入口（#2016 / #2017, observe）
+
+以下 8 つの入口名は **Flow Entry** であり、専門 skill ではない。
+入口名から Flow id を引くだけの薄い配線であり、判断ロジックはここに持たせない。
+
+| 入口名                | Flow id                  | 問い                                                    | 起動 trigger                      |
+| --------------------- | ------------------------ | ------------------------------------------------------- | --------------------------------- |
+| `review-plan`         | `plan-review`            | この計画で安全に実行を開始できるか                      | `artifact-ready`                  |
+| `review-replan`       | `replan-review`          | 計画変更は合理的で、上流の契約を壊していないか          | `artifact-ready`                  |
+| `review-task`         | `task-completion-review` | この Task を DONE と宣言できる Evidence があるか        | `task-checkpoint`                 |
+| `review-final`        | `final-review`           | 全 Task の終了ではなく、Goal / Requirement を満たしたか | `before-publish` / `before-merge` |
+| `review-research`     | `research-review`        | この調査結果を要件・設計・計画の根拠として使ってよいか  | `artifact-ready`                  |
+| `review-requirements` | `requirements-review`    | この要件から設計・実装へ進んでよいか                    | `artifact-ready`                  |
+| `review-design`       | `design-review`          | この設計から実装へ進んでよいか                          | `artifact-ready`                  |
+| `review-technical`    | `technical-review`       | 宣言された技術的前提は Evidence 上成立するか            | `artifact-ready`                  |
+
+- 入口名と Flow id / version の正本は `flows/entry-map.json` であり、上表はその写しにあたる
+- 起動 trigger 列の正本は同じ `flows/entry-map.json` の `triggers` である（#2054 PR-1）。trigger は host 名を持たない中立の工程イベント名であり、`after-change` は入口を起動しない（`entries: []`）ため上表に行を持たない
+- Flow 定義は `flows/*.flow.json`、Review Intent は `flows/intents/*.intent.json` を読む
+- Claude Code と Codex は入口の表面化だけが異なり、解決先の Flow id と version は同一とする
+- artifact 欠損時の stop / degrade / skip は、8 本すべてで Review Intent の `evidence[].onMissing` に従う
+- 同じ判断は Flow の `inputs[].required` と step の `onUnsatisfied` にも現れる。両者の一致はテストが検査する
+- `stage` はレビューの局面、`phase` は skill 選択の段階であり別軸とする。上流 4 本は `stage` が 4 種類で `phase` は `upstream` に揃う
+- どの skill を選ぶかは従来どおり本 skill の Routing 節と `selectSkills` が決める。Flow は skill を名指ししない
+- 現時点では observe であり、Flow は既存の gate / decision / finding を変更しない
+
+詳細はリポジトリ本体の `docs/development/flow-contract.md`（#2016）と `docs/development/upstream-review-flows.md`（#2017）にある。
+どちらもこの skill の配布パッケージには同梱されないため、リンクではなくパス名で示す。
+
 ## How to Invoke / 呼び出し方
 
 ### Claude Code エージェントとして（`agents/river-review.md`）

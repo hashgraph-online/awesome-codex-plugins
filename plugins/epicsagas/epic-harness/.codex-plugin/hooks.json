@@ -22,6 +22,16 @@
           }
         ],
         "description": "Block dangerous commands (force push, prod DB drop, rm -rf /)"
+      },
+      {
+        "matcher": "apply_patch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "EH=$(command -v epic 2>/dev/null); test -n \"$EH\" && \"$EH\" guard || echo '[harness] epic not found'"
+          }
+        ],
+        "description": "Multi-agent pause directives and concurrent write-conflict warnings"
       }
     ],
     "PostToolUse": [
@@ -33,27 +43,57 @@
             "command": "EH=$(command -v epic 2>/dev/null); test -n \"$EH\" && \"$EH\" observe || echo '[harness] epic not found'"
           }
         ],
-        "description": "Record Bash tool result for evolution loop (Codex PostToolUse only intercepts Bash)"
+        "description": "Record Bash tool result for evolution loop"
       },
       {
-        "matcher": "Edit",
+        "matcher": "apply_patch|Edit|Write",
         "hooks": [
+          {
+            "type": "command",
+            "command": "EH=$(command -v epic 2>/dev/null); test -n \"$EH\" && \"$EH\" observe || echo '[harness] epic not found'"
+          },
           {
             "type": "command",
             "command": "EH=$(command -v epic 2>/dev/null); test -n \"$EH\" && \"$EH\" polish || echo '[harness] epic not found'"
           }
         ],
-        "description": "Auto-format + typecheck after edits"
-      },
+        "description": "Edits (apply_patch carries Write/Edit as matcher aliases) — observe for evolution loop + auto-format/typecheck"
+      }
+    ],
+    "SubagentStart": [
       {
-        "matcher": "Write",
+        "matcher": "*",
         "hooks": [
           {
             "type": "command",
-            "command": "EH=$(command -v epic 2>/dev/null); test -n \"$EH\" && \"$EH\" polish || echo '[harness] epic not found'"
+            "command": "EH=$(command -v epic 2>/dev/null); test -n \"$EH\" && \"$EH\" observe || echo '[harness] epic not found'"
           }
         ],
-        "description": "Auto-format + typecheck after file writes"
+        "description": "Record subagent start for orchestration state and the dashboard"
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "EH=$(command -v epic 2>/dev/null); test -n \"$EH\" && \"$EH\" observe || echo '[harness] epic not found'"
+          }
+        ],
+        "description": "Record subagent completion for orchestration state and the dashboard"
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "EH=$(command -v epic 2>/dev/null); test -n \"$EH\" && \"$EH\" snapshot || echo '[harness] epic not found'"
+          }
+        ],
+        "description": "Snapshot session state before context compaction so resume can restore it"
       }
     ],
     "Stop": [

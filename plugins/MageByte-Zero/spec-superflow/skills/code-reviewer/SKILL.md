@@ -5,20 +5,26 @@ description: Review completed implementation batches for spec compliance and cod
 
 # Code Reviewer
 
-Two responsibilities: requesting review (dispatching a reviewer subagent) and receiving review (acting on feedback with technical rigor). **Review early, review often. Verify before implementing feedback.**
+## Bundled runtime
+
+Before executing a CLI line below, replace its leading `SSF` with `node "<plugin-root>/scripts/spec-superflow.mjs"`; `<plugin-root>` is the absolute directory two levels above this file. Never run `SSF` literally or call an `ssf` from `PATH`.
+
+Two responsibilities: reviewing the recorded Git range and acting on findings with technical rigor. Review according to the persisted policy; verify feedback before implementing it.
 
 ## Part 1: Requesting Review
 
-**Mandatory after**: each task in SDD, each planned execution wave, each major feature, before merge.
+**Mandatory**: one whole-range review for Native `final`; one review per planned wave for `wave` and legacy plans. Avoid redundant per-task or final reviews of unchanged evidence.
 **Optional**: when stuck, before refactoring, after fixing complex bugs.
 
 ### Procedure
-1. Get SHAs: `BASE_SHA=$(git rev-parse HEAD~1)` and `HEAD_SHA=$(git rev-parse HEAD)`
-2. Dispatch `general-purpose` subagent using template at `skills/code-reviewer/code-reviewer-prompt.md`
-3. Fill placeholders: `[DESCRIPTION]` (what was built), `[PLAN_OR_REQUIREMENTS]` (contract/spec reference), `[BASE_SHA]`, `[HEAD_SHA]`, `[WAVE_ID]`, and a distinct `[REVIEW_REPORT_FILE]`.
-4. Require the reviewer to write a non-empty persisted review report at `.superpowers/sdd/reviews/<wave-id>.md`, then record that exact in-overlay path in the wave receipt with `ssf execution review <change-dir> --wave <wave-id> --base <base-sha> --head <head-sha> --report .superpowers/sdd/reviews/<wave-id>.md --verdict <pass|fail>`. The execution plan initializes this directory; paths outside it are rejected for audit safety.
-5. Act on feedback: Critical/Important findings require a `fail` receipt, focused repair, re-review, and replacement `pass` receipt before a dependent wave or closing can proceed. Note Minor for later, push back with reasoning if reviewer is wrong.
-6. At `adjudication-required`, wait for a human to run `ssf execution adjudicate <change-dir> --wave <id> --decision allow-review --confirm --reason <text>` before another review. It authorizes one review and never substitutes for `pass`.
+1. Get the review range from recorded execution evidence. For final review use the immutable `review_base` in recorded isolation context, or `git merge-base <target-branch> HEAD` for a legacy/manual branch with an unambiguous target; head is `git rev-parse HEAD`. The CLI verifies this complete range. A failed final review retains the same base across fixes; wave repairs use the prior wave head. For a wave review use the recorded wave-start base. Never substitute `HEAD~1`; it misses earlier commits in multi-commit work.
+2. For Native `final`, the current executor reviews the complete diff locally and writes the report; do not dispatch a reviewer subagent. For user-authorized SDD with `wave` review, dispatch at most one reviewer for that wave using `skills/code-reviewer/code-reviewer-prompt.md`. If dispatch is unavailable, review locally.
+3. When dispatching, fill only `[DESCRIPTION]`, `[PLAN_OR_REQUIREMENTS]`, `[BASE_SHA]`, `[HEAD_SHA]`, `[WAVE_ID]`, and `[REVIEW_REPORT_FILE]`. Do not send the whole planning bundle.
+4. Write a non-empty report at `.superpowers/sdd/reviews/<wave-id>.md`, then record that path with `SSF execution review <change-dir> --wave <wave-id> --base <base-sha> --head <head-sha> --report .superpowers/sdd/reviews/<wave-id>.md --verdict <pass|fail>`.
+For schema-2 plans, failed receipts also require `--issue <stable-finding-id>` for the blocking defect being repaired; reuse its ID across retries. Other findings keep their own IDs in the report. Identical failed input cannot consume another attempt.
+
+5. Critical/Important findings require a `fail` receipt, focused repair, one focused re-review, and replacement `pass`. Note Minor for later.
+6. At `adjudication-required`, wait for human authorization before another review.
 
 ### Minimality And Scope
 
@@ -48,7 +54,7 @@ behavior-neutral redundancy; never score by line count.
 Never: performative agreement ("You're right!", "Great point!"), blind implementation before verification, thanking the reviewer. Instead: restate the requirement, ask clarifying questions, push back with reasoning, or just fix it (actions > words).
 
 ### Handling Unclear Feedback
-If any item is unclear → STOP. Do not implement anything yet. Ask for clarification on unclear items. Partial understanding = wrong implementation.
+Ask only about unclear findings that change a material decision; continue independent, already-understood repairs within scope. Do not turn an unclear optional comment into a global stop.
 
 ### Source-Specific Rules
 
@@ -60,7 +66,7 @@ If any item is unclear → STOP. Do not implement anything yet. Ask for clarific
 Suggestion breaks existing functionality, reviewer lacks context, violates YAGNI, technically incorrect for this stack, legacy/compatibility reasons, conflicts with user's architectural decisions. Push back with technical reasoning, not defensiveness.
 
 ### Implementation Order
-1. Clarify unclear items first
+1. Clarify only the material uncertainty that blocks a repair
 2. Fix blocking issues (breaks, security)
 3. Fix simple issues (typos, imports)
 4. Fix complex issues (refactoring, logic)
@@ -73,46 +79,13 @@ Suggestion breaks existing functionality, reviewer lacks context, violates YAGNI
 | Performative agreement | State requirement or just act |
 | Blind implementation | Verify against codebase first |
 | Batch without testing | One at a time, test each |
-| Proceeding without a wave receipt | Record `pass`/`fail` via `ssf execution review` before the next dependent wave |
+| Proceeding without a wave receipt | Record `pass`/`fail` via `SSF execution review` before the next dependent wave |
 | Assuming reviewer is right | Check if breaks things |
 | Avoiding pushback | Technical correctness > comfort |
-| Partial implementation | Clarify all items first |
+| Unclear feedback | Clarify the blocked finding while continuing independent repairs |
 
 ## Exception Handling
 
 - **Parse failures**: Report specific file, request regenerated review package
 - **Missing files**: Regenerate via `scripts/review-package`. Empty diff = nothing to review
 - **User interruption**: Re-read review report on resume, continue from next unreviewed batch
-
-## Standard User-Facing Handoff
-
-End every user-facing phase report with this concise handoff. Only a successfully
-persisted `closing` state and `abandoned` are terminal.
-
-### Normal report
-
-- Current stage: `<detected workflow stage>`.
-- Completed / blocker: `<completed work>`.
-- Next stage: `<next workflow stage or skill>`.
-- Entry condition: `<what must be true to enter it>`.
-
-### Blocked report
-
-- Current stage: `<detected workflow stage>`.
-- Completed / blocker: `<blocking fact or missing evidence>`.
-- Next stage: `<stage that resumes after the blocker>`.
-- Entry condition: `<the approval, artifact, validation, or fix required>`.
-
-### Approval-wait report
-
-- Current stage: `<detected workflow stage>`.
-- Completed / blocker: `<work ready for the named decision>`.
-- Next stage: `<stage that follows approval>`.
-- Entry condition: `<explicit user approval or recorded decision>`.
-
-### Successful terminal report
-
-- Current stage: successfully persisted `closing` or `abandoned`.
-- Completed / blocker: `<persisted terminal outcome>`.
-- Next stage: `none`.
-- Entry condition: no further transition exists.

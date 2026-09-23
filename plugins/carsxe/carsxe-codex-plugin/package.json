@@ -1,6 +1,6 @@
 {
   "name": "carsxe-codex-plugin",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "CarsXE vehicle data APIs for OpenAI Codex",
   "type": "module",
   "license": "MIT",

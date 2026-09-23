@@ -1,39 +1,23 @@
 ---
 name: archive
-description: File the finished part of the run state into a dated archive — shipped items, research, opportunities, the rotated journal, and handled snags. The live files stay lean; the facts stay on disk.
+description: File finished shift state into a dated archive so the live files stay lean.
+license: MIT
 ---
 
 Archive the finished paperwork for the host-opened project. This files records — it never does
 shift work, never ticks a box, never touches the contract.
 
-**State map:** `punch-list.md` → owner-approved work active in this shift;
-`drafting-table.md` → known work staged for a later shift; `parking-lot.md` → unresolved owner
-decisions plus the default chosen so work continues; `work-orders.md` → timed catalog work composed
-only through Hunt. Archive each by its own lifecycle; never reclassify one as another.
+The four state files and what each holds are in
+`$NIGHTSHIFT_PLUGIN_ROOT/skills/nightshift/references/shift/state-map.md`. Archive each by its own lifecycle; never reclassify one as another.
 
-Resolve the host-opened project folder to an absolute `$TASK_ROOT`: use `${CLAUDE_PROJECT_DIR}` on
-Claude Code; on Codex honor Nightshift's `${CODEX_PROJECT_DIR}` recovery override when present,
-otherwise capture `pwd -P` before any other shell call. Resolve `$TASK_ROOT/.nightshift-link` when
-present and call the validated absolute target `$NIGHTSHIFT_WORKSPACE`; otherwise set
-`NIGHTSHIFT_WORKSPACE="$TASK_ROOT"`.
-
-Bind the Nightshift directory once: `NS="$NIGHTSHIFT_WORKSPACE/.nightshift"`. On native Windows,
-`$NS = Join-Path $NIGHTSHIFT_WORKSPACE '.nightshift'`. After this bind, Nightshift files are
-`$NS/<name>` for every read, write, and shell command. Catalog and owner-facing prose may use the
-short names (`punch-list.md`, `parking-lot.md`, `STOP`). Never re-resolve. Helpers that take
-`--project` or `-Project` still receive `"$NIGHTSHIFT_WORKSPACE"`.
-Never search or guess. The shell's working directory persists
-between Bash calls, so never use a bare path.
-
-Resolve the installed plugin root to an absolute `$NIGHTSHIFT_PLUGIN_ROOT`: use
-`${CLAUDE_PLUGIN_ROOT}` on Claude Code; on Codex use `$PLUGIN_ROOT` when available, otherwise derive
-it from the absolute path attached to this skill (`skills/archive/SKILL.md`). Substitute that
-absolute path below; never search for the plugin.
-
-On native Windows, use the PowerShell tool and native paths throughout. Resolve the same values
-from `$env:CLAUDE_PROJECT_DIR`, `$env:CODEX_PROJECT_DIR`, and `$env:PLUGIN_ROOT`, with
-`[Environment]::CurrentDirectory` as the Codex cwd fallback. Do not route Archive through WSL or Git
-Bash.
+Resolve the installed plugin root to an absolute `$NIGHTSHIFT_PLUGIN_ROOT` — `${CLAUDE_PLUGIN_ROOT}`
+on Claude Code, `$PLUGIN_ROOT` on Codex when set, otherwise the absolute path this skill was
+attached from (`skills/archive/SKILL.md`). Run every command below through
+`"$NIGHTSHIFT_PLUGIN_ROOT/runtime/ns"` — native Windows: `& "$NIGHTSHIFT_PLUGIN_ROOT\runtime\windows\ns.ps1"`
+in the PowerShell tool, same verbs — which resolves the host and the workspace; `ns help` lists the
+verbs, and `ns bind` prints the six resolved facts (`TASK_ROOT`, `NIGHTSHIFT_WORKSPACE`, `NS`,
+`NIGHTSHIFT_PLUGIN_ROOT`, `HOST`, `SOURCE`); `$NS` below is that `NS`. Never a bare relative path: the working
+directory persists between calls.
 
 Read `$NS/state-version` first. Legacy (missing) and current (`1`) may be archived.
 A newer or malformed marker fails closed — file nothing, rewrite nothing, and never migrate.
@@ -41,18 +25,48 @@ A newer or malformed marker fails closed — file nothing, rewrite nothing, and 
 
 In artifact mode the work target is a persistent folder, not a Git repository. File the same
 Nightshift records; do not require a work-target commit that cannot exist. Copy live receipts with
-`"$NIGHTSHIFT_PLUGIN_ROOT/runtime/archive-receipts.sh" --project "$NIGHTSHIFT_WORKSPACE"`
-(native Windows: `& "$NIGHTSHIFT_PLUGIN_ROOT\runtime\windows\archive-receipts.ps1" -Project "$NIGHTSHIFT_WORKSPACE"`).
-The helper writes `$NS/archive/<YYYY-MM-DD>/receipts/` when those files exist, and leave the live copies in
-place so stall progress still sees them. Missing or empty receipts create no dated receipts folder.
+`"$NIGHTSHIFT_PLUGIN_ROOT/runtime/ns" archive-receipts`, and pass `--retire <receipt-name>` once
+per ticked item (native Windows: `-Retire` with those names as one comma-separated list).
+Missing or empty receipts create no dated receipts folder.
 A receipts path that is not a usable directory is a refuse, not an empty skip.
-Never delete live receipts as part of Archive.
+
+If `$NS/.pending-filing` exists, a shift asked for filing at clock-out. It carries `date=` and
+`shiftId=` lines naming that shift — use them — and an `asked=1` line once the gate has held the
+session to ask for it. Delete the marker once filing is done, and only then. Nothing else about it
+is special: file the same way you would on any explicit Archive.
+
+`$NS/.ended` names the shift that finished and where it files, in `shiftId=`, `archiveRoot=` and
+`archiveLayout=` lines. Those are what a later Archive follows: clock-out has already archived
+the policy that carried them.
+
+**Filing is a copy.** A ticked item's receipt leaving live storage is a separate step, and the
+agent running Archive takes it from `$NS/punch-list.md` — not later, not the owner, and not by
+guessing. `--retire` with one record name, repeated once per ticked item on POSIX; on native
+Windows, `-Retire` takes those names as a single comma-separated list. Receipts of open items are
+never named. The morning receipt is named only when that shift has ended and no open
+item still needs it. Once the shift has ended, the helper also retires every ticked item's
+receipt it filed, even if a name was missed. It will not retire an open item's receipt.
+
+Before naming anything, read `$NS/punch-list.md` and the records themselves. A shift can end with
+items still open — `STOP` and the deadline both do that — so `.ended` is not a reason to leave a
+ticked receipt live, and it is not a reason to pull an open one. Keep a record live when an open
+item, an unanswered parking decision or work carried into the next shift still needs it, and when
+you cannot tell who owns it. Rejected work is filed with its rejection, never erased. A name the
+helper did not file is refused and told back to you.
 
 ## Where it goes
 
-Everything lands in `$NS/archive/<YYYY-MM-DD>/` — today's date (`date +%Y-%m-%d` on POSIX, or
-`Get-Date -Format yyyy-MM-dd` on native Windows), one folder per archive
-run (create parents; re-running on the same day appends to that day's files).
+Everything lands under the archive root, which is `archive.root` in the resolved policy, in
+`<YYYY-MM-DD>/` or `shift-<id>/` according to `archive.layout`. Left alone those give the default
+`$NS/archive/<YYYY-MM-DD>/`, and receipts land in `archive/<YYYY-MM-DD>/receipts/` under it.
+Today's date is `date +%Y-%m-%d` on POSIX, or `Get-Date -Format yyyy-MM-dd` on native Windows.
+One folder per archive run; create parents, and re-running on the same day appends to that day's
+files.
+
+**The receipts keep working from where they land.** The helper repoints their links: a record that
+travelled with them stays a sibling, a record that stayed live is reached back through the archive.
+That rewriting changes bytes, so the untouched original is preserved beside each rewritten file,
+under the same name with an "original" suffix. Do not hand-edit either one.
 
 ## What moves, what stays
 
@@ -66,16 +80,25 @@ run (create parents; re-running on the same day appends to that day's files).
  composing a new campaign; Archive does not reset them. Skip the note when open work remains,
  when the same sentence is already present, or if adding it would require an open checkbox.
  Never write `- [ ]` here and never edit above `## Items`.
+- **Receipts — the ticked ones.** For each ticked item, pass `--retire <receipt-name>`; receipts
+ of open items are never named. `archive-receipts` rebuilds `receipts/README.md` on both sides of
+ the move so each index lists only the receipts in its own folder.
 - **Shift log → the archive, whole.** Move `$NS/shift-log.md` into
  the folder and start a fresh one
  with the same one-line header. The journal is mechanical; its lines belong to the dates they
  happened.
-- **Snag log — only what's handled.** Move entries that carry a disposition (fixed, ignored,
- answered) from `$NS/snag-log.md` into the archive's `snag-log.md`.
- Entries still awaiting the owner stay live: an
- open question is not history yet.
-- **Parking lot — only what's answered.** Same rule on
- `$NS/parking-lot.md`: answered entries move, unanswered stay.
+- **Snag log — only what's handled.** `archive-receipts` moves entries that carry a disposition
+ (fixed, ignored, answered, rejected-because, accepted-tradeoff) from `$NS/snag-log.md` into the
+ archive dest that `archive.root` and `archive.layout` resolve, then appends one
+ `Filed:` pointer (label: date or shift id; target: relative path to the archived file)
+ on the live file. Filing nothing
+ writes no pointer and creates no empty archive file. Do not hand-copy those entries.
+ Entries still awaiting the owner stay live: an open question is not history yet.
+- **Parking lot — only what's answered.** Same helper, same pointer rule on `$NS/parking-lot.md`.
+ Parking-lot questions unanswered stay. Read live entries first; when checking whether a finding or decision
+ was already handled, follow the pointer and search the linked file by topic or identifier.
+ Historical decisions are evidence, not fresh authorization. A broken pointer is reported in the
+ snag log; never guess or delete history.
 - **Work orders — only what's spent.** Pending orders are open boxes; they stay.
  A `## Work order` heading with no remaining box is leftover shell from a cut — delete it,
  do not file it. File only an order whose box was ticked in place.
@@ -114,13 +137,7 @@ Never add a remote, never push.
 After filing, preview generated history that the owner has opted in to prune. Run:
 
 ```bash
-"$NIGHTSHIFT_PLUGIN_ROOT/runtime/retain-history.sh" --project "$NIGHTSHIFT_WORKSPACE"
-```
-
-On native Windows:
-
-```powershell
-& "$NIGHTSHIFT_PLUGIN_ROOT\runtime\windows\retain-history.ps1" -Project "$NIGHTSHIFT_WORKSPACE"
+"$NIGHTSHIFT_PLUGIN_ROOT/runtime/ns" retain-history
 ```
 
 Print that preview verbatim — every eligible path, its age, and the governing rule
@@ -133,9 +150,19 @@ does not confirm, or either rule is `0`, stop after the preview. `--apply`/`-App
 allowlisted runtime log (`scheduled.log`) and dated `archive/YYYY-MM-DD/` directories that
 are old enough, resolved under `$NS/`, not symlinks, and free of still-open work.
 
-Never call `retain-history.sh` or `retain-history.ps1` from start, hooks, status, Doctor, or recovery. Never call `archive-receipts.sh` or `archive-receipts.ps1` from start, hooks, status, Doctor, or recovery. Never delete
+Never call `ns retain-history` from start, hooks, status, Doctor, or recovery. Never call `ns archive-receipts` from start, hooks, status, Doctor, or recovery. Never delete
 the live punch list, drafting table, parking lot, rules, current shift files, or owner-authored
 files.
+
+## Index
+
+After filing, write a lightweight private index of archived shifts for later comparison
+using the history-context template in
+`$NIGHTSHIFT_PLUGIN_ROOT/skills/nightshift/references/receipts/cycle-specialist-evidence.md`.
+The index lists each archived shift's objective, contracts, host, work target, outcome, evidence
+locators, verification, commits or artifacts, duration, and ending. Corrupt or missing fields are
+recorded — never invented. Compare prior shifts from that index to reuse evidence locators and
+plans only; never replay side effects. Render audience-specific handoffs from one evidence truth.
 
 ## Summarize
 

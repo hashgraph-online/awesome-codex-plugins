@@ -1,0 +1,8 @@
+.git/
+.github/
+node_modules/
+.env
+.env.*
+*.log
+*.tgz
+.DS_Store

@@ -78,7 +78,12 @@ Write the chosen approach + rejected alternatives to `_meta/plans/{feature}.md`,
 
 ## Execute
 
+<!-- Updated 2026-09-19: openhands.dev / axify.io Claude Code best-practices roundups -->
 Smallest viable change, following existing patterns, one commit per logical unit.
+Point at a real example in the repo ("match the pattern in X") instead of describing
+conventions in prose, and name the file, scenario, and check when scoping a task.
+Never edit an existing test or update a snapshot to make it pass unless told to.
+
 Before each unit ask whether fewer lines would do; after it, verify it works and
 commit. Tier 2+: you are working a contract; touch only contract-listed files.
 Keep sessions scoped to one feature or one bug, and if the same mistake happens

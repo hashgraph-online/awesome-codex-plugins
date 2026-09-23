@@ -1,0 +1,391 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/orwa-mahmoud/nightshift/main/plugins/nightshift/skills/nightshift/references/schemas/v1/shift-policy.json",
+  "title": "Nightshift shift policy",
+  "description": "Tonight's authoritative snapshot, written to .nightshift/shift-policy.json before the gate is armed. It carries the deadline, verification level, tooling policy, optional budgets, the elevation allowances the owner granted, and the shift identity those allowances are bound to. Composition (Hunt, Quality) writes it; Start writes safe defaults when it is absent. It is guarded while armed, archived at clock-out, and removed by Reset and Purge. Remembered convenience choices live in shift-defaults.json and decide nothing; permanent boundaries live in rules.json.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "shiftId",
+    "createdAt",
+    "source",
+    "verificationLevel",
+    "toolingPolicy"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "enum": [
+        1
+      ],
+      "description": "Policy schema version. Only 1 is supported; a higher number fails closed."
+    },
+    "shiftId": {
+      "type": "string",
+      "pattern": "^([0-9a-f]{16}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$",
+      "description": "Lowercase 16-hex token or UUID identifying this shift. Start refuses to arm when the id already appears under archive/, so an approved plan cannot be replayed on another night."
+    },
+    "createdAt": {
+      "type": "string",
+      "minLength": 1,
+      "description": "UTC timestamp of the write, ISO 8601 (YYYY-MM-DDTHH:MM:SSZ)."
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "composition",
+        "start-defaults"
+      ],
+      "description": "Who wrote the snapshot: a composition step that asked once, or Start arming with safe defaults."
+    },
+    "deadlineEpoch": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "description": "Quitting time as a UNIX epoch, or null for a finite shift with no clock. The .nightshift/deadline file is a derived projection of this value; the policy is authoritative."
+    },
+    "verificationLevel": {
+      "type": "string",
+      "enum": [
+        "none",
+        "final",
+        "per-item",
+        "custom"
+      ],
+      "description": "Cadence for the ## Gates block: never, once before clock-out, before every tick, or the owner's own cadence. The block itself stays the only list of commands."
+    },
+    "toolingPolicy": {
+      "type": "string",
+      "enum": [
+        "existing-tools",
+        "review-missing",
+        "auto-add"
+      ],
+      "description": "How the shift treats missing development tooling. Artifact mode is always existing-tools."
+    },
+    "launchScope": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The execution scope this shift was started under, in the host's own words — a Codex sandbox mode, or `unknown` where the host exposes no name for one. Recorded when the snapshot is written so a revival can reproduce it instead of guessing. A revival asks for it only where the host can be asked; anything else falls back to the host default. It grants nothing: it is a record of what the session already had."
+    },
+    "launchProvenance": {
+      "type": "string",
+      "enum": [
+        "observed",
+        "unavailable"
+      ],
+      "description": "observed means the host reported that scope to the arming session. unavailable means it did not, and a revival set to inherit falls back to the host's own default and records the limitation rather than assuming the broader scope."
+    },
+    "budgets": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "description": "Optional non-negative resource ceilings for this shift, by name. Contract resources include networkRequests, urls, pages, files, benchmarkReps, apiCalls, artifactBytes, and commandDurationSeconds — never token or pricing accounting."
+    },
+    "completionMode": {
+      "type": "string",
+      "enum": [
+        "clear-all",
+        "no-regression-plus-selected-debt"
+      ],
+      "description": "How the evidence comparison scores tonight against its baselines. clear-all passes only when every measured finding is cleared; no-regression-plus-selected-debt passes when nothing regressed and every id in selectedDebt is cleared. Absent means clear-all. It never weakens the item gate, and a finding of an unavailable source is never cleared."
+    },
+    "selectedDebt": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "Finding ids the owner accepted as tonight's debt. Read by no-regression-plus-selected-debt, which requires every one of them cleared."
+    },
+    "allowances": {
+      "type": "array",
+      "description": "Elevation the owner granted for this shift. Every category is denied without an entry here or an allow in rules.elevation. An allowance authorizes its category within all other boundaries; it never lifts protected paths, never-commit patterns, or the expected commit identity.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "category",
+          "scope",
+          "provenance"
+        ],
+        "properties": {
+          "category": {
+            "type": "string",
+            "enum": [
+              "sudo",
+              "containers",
+              "global-packages",
+              "daemons",
+              "external-services"
+            ],
+            "description": "The elevation category this entry lifts."
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "category",
+              "exact-plan"
+            ],
+            "description": "category permits everything in the category; exact-plan permits only the listed commands. Both present for one category means the category applies."
+          },
+          "provenance": {
+            "type": "string",
+            "enum": [
+              "rules",
+              "one-shift"
+            ],
+            "description": "rules mirrors a permanent allow the owner keeps in rules.json; one-shift expires when this shift ends."
+          },
+          "plan": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "commands",
+              "workTarget",
+              "digest"
+            ],
+            "description": "Required for scope exact-plan and forbidden otherwise. Hardhat matches the normalized command, the resolved work target, the shift, the expiry, and the digest before the command runs.",
+            "properties": {
+              "commands": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "description": "Normalized command vector: leading and trailing whitespace trimmed, runs of whitespace collapsed to one space."
+              },
+              "workTarget": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Absolute path of the resolved work target the plan was approved against."
+              },
+              "digest": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$",
+                "description": "SHA-256 over the approved commands, work target, and shift id."
+              },
+              "writeSurface": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Paths the approved commands may create or change. The provisioning transaction compares the actual diff with this list and rolls back an escape."
+              },
+              "expiry": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "description": "UNIX epoch after which the plan is refused, whatever the shift deadline says. Absent or null leaves the shift deadline as the plan's only clock. It is not part of the digest: shortening an approval the owner already signed does not make it a different approval."
+              }
+            }
+          }
+        }
+      }
+    },
+    "gatesDigest": {
+      "type": "string",
+      "pattern": "^([0-9a-f]{64})?$",
+      "description": "SHA-256 of the ## Gates block text as it stood when the policy was written. An owner edit is logged, re-digested, and re-resolved; it never freezes the night."
+    },
+    "shift": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The owner preference this shift was composed with, frozen so a later edit to rules.json applies to the next shift rather than moving the ground under this one. Every supported field is present: the owner's value where their file states one, the shipped default where it does not.",
+      "properties": {
+        "verificationProfile": {
+          "type": "string",
+          "enum": [
+            "fast",
+            "balanced",
+            "strict",
+            "custom"
+          ],
+          "description": "How often the punch list's ## Gates block runs. fast means never, balanced once before clock-out, strict before every tick and once at the end, and custom is the cadence the owner names in the punch list itself. A fresh workspace is fast, so the gates a new owner has not written yet cannot fail a shift; an explicit choice is kept exactly as written."
+        },
+        "hours": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "description": "Remembered time budget for a composed shift, in whole hours, or null to leave composition to ask. A finite punch list may still end at its last tick with no clock at all."
+        },
+        "execution": {
+          "type": "string",
+          "enum": [
+            "review-first",
+            "run-direct"
+          ],
+          "description": "Whether a composed shift is shown for review before it runs, or started directly. It never widens what the shift may do: the host permission boundary and every rule in this file still apply."
+        },
+        "toolingPolicy": {
+          "type": "string",
+          "enum": [
+            "existing-tools",
+            "review-missing",
+            "auto-add"
+          ],
+          "description": "What a shift does about development tooling the project does not have. existing-tools uses only what is installed, review-missing reports the gap, auto-add may add a tool the project itself selects. Artifact mode is always existing-tools."
+        }
+      }
+    },
+    "recovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The owner preference this shift was composed with, frozen so a later edit to rules.json applies to the next shift rather than moving the ground under this one. Every supported field is present: the owner's value where their file states one, the shipped default where it does not.",
+      "properties": {
+        "launchScope": {
+          "type": "string",
+          "enum": [
+            "inherit-recorded-scope",
+            "host-grant",
+            "host-default"
+          ],
+          "description": "inherit-recorded-scope revives a session with the permissions the shift was started under, as they were recorded when it armed. It is the shipped choice, and it never widens what the original session had: where the scope could not be recorded, revival falls back to the host's own default and says so rather than reaching for more. host-grant starts a revived session with the documented grant for that host — on Codex danger-full-access, on Cursor --trust --yolo — which is broader than a restricted session had and is only ever used because the owner wrote it here. host-default adds no permission argument at all. Claude Code inherits its own launch in every case. The scope in force is named in the shift log on every revival, and a failed revival is retried at the same scope, never a broader one."
+        }
+      }
+    },
+    "handoff": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The owner preference this shift was composed with, frozen so a later edit to rules.json applies to the next shift rather than moving the ground under this one. Every supported field is present: the owner's value where their file states one, the shipped default where it does not.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Render the receipt at clock-out. false leaves the factual records — the ledger, the archive, the shift log — untouched and writes no page."
+        },
+        "view": {
+          "type": "string",
+          "enum": [
+            "owner",
+            "reviewer",
+            "release",
+            "artifact"
+          ],
+          "description": "Which reader the page is written for. owner is every section, reviewer the baseline and the comparison, release the shift line with regressions only, and artifact the sections that make sense for a site rather than a repository."
+        },
+        "language": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Language for the prose the receipt writes. auto follows the language of the conversation that ran the shift. Facts, paths, commands and identifiers are never translated."
+        },
+        "detail": {
+          "type": "string",
+          "enum": [
+            "concise",
+            "detailed"
+          ],
+          "description": "How much each section carries. concise is the shipped page; detailed keeps the longer per-row explanation where a section has one."
+        },
+        "sections": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "shift",
+              "baseline",
+              "changed",
+              "parked",
+              "unsupported",
+              "next"
+            ]
+          },
+          "description": "The documented factual sections to render, in the order given. An empty array means the built-in order for the chosen view. These name sections, not prose: wording belongs in templatePath."
+        },
+        "templatePath": {
+          "type": "string",
+          "description": "Path to a Markdown template for the page, relative to the workspace. Empty means the built-in layout. The file is an asset carrying presentation instructions only — it is never a second place to set policy, and it cannot turn an unavailable check into a passed one."
+        }
+      }
+    },
+    "archive": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The owner preference this shift was composed with, frozen so a later edit to rules.json applies to the next shift rather than moving the ground under this one. Every supported field is present: the owner's value where their file states one, the shipped default where it does not.",
+      "properties": {
+        "automatic": {
+          "type": "boolean",
+          "description": "File the finished shift automatically when it ends. false leaves filing to Nightshift Archive, which the owner runs after reading the night. Enabling it never implies pruning."
+        },
+        "root": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Directory the dated archives live in, relative to .nightshift/. Must stay inside the state directory."
+        },
+        "layout": {
+          "type": "string",
+          "enum": [
+            "date",
+            "shift"
+          ],
+          "description": "How an archive directory is named: date groups a night under YYYY-MM-DD, shift gives each shift its own directory named for its id. Two shifts on one day never collide either way, because the shift id names the files inside."
+        },
+        "templatePath": {
+          "type": "string",
+          "description": "Path to a Markdown template for the archive summary, relative to the workspace. Empty means the built-in summary."
+        }
+      }
+    },
+    "receipts": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The owner preference this shift was composed with, frozen so a later edit to rules.json applies to the next shift rather than moving the ground under this one. Every supported field is present: the owner's value where their file states one, the shipped default where it does not.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Write per-item receipts. false keeps every other record honest — punch status, real outputs, continuity and the verification you selected — and does not invent a receipt the owner turned off."
+        },
+        "progressMode": {
+          "type": "string",
+          "enum": [
+            "completion-only",
+            "time",
+            "tokens",
+            "either"
+          ],
+          "description": "When a receipt is updated while an item is still running. completion-only writes once, at the end. time updates after progressMinutes of work on that item. tokens updates after progressTokens, and falls back to the time cadence when the host exposes no usable counter. either fires at the next safe point after whichever threshold is reached first. A completed item is always finalized when receipts are enabled."
+        },
+        "progressMinutes": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Minutes of work on the current item before a progress update is due. Checked when a tool returns, so it is a best-effort cadence and never interrupts a running command. The interval restarts after each update and is discarded when the item completes."
+        },
+        "progressTokens": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Tokens of work on the current item before a progress update is due, counted once as input plus output when the host's own numbers support that. A starting value to tune, not a host limit and not a saving."
+        },
+        "usage": {
+          "type": "string",
+          "enum": [
+            "off",
+            "when-available"
+          ],
+          "description": "Whether a section records what the item cost. when-available reads only the numbers the host already exposes to the session; where it exposes none, the section says unavailable. Unavailable is never written as zero, and nothing here polls an account, counts tokens itself, or turns a count into a price."
+        },
+        "templatePath": {
+          "type": "string",
+          "description": "A Markdown template for the item receipt, relative to the workspace and inside it. Wording and layout only, on the same terms as the handoff template: never executed, never a source of policy, and never able to describe an unavailable check as a passed one."
+        }
+      }
+    },
+    "contractDigest": {
+      "type": "string",
+      "pattern": "^([0-9a-f]{64})?$",
+      "description": "Digest of the punch list above `## Items` as it stood when the shift armed — the contract the owner wrote. The gate recomputes it on every block and names the repair if it moved. Absent on a policy written before this existed, and then nothing is compared."
+    },
+    "itemsDigest": {
+      "type": "string",
+      "pattern": "^([0-9a-f]{64})?$",
+      "description": "Digest of every item line and sub-bullet with the checkbox state flattened, so ticking a box changes nothing and rewording, deleting or inserting an item changes everything. The `## Gates` block is excluded: the owner may change it mid-shift by design."
+    }
+  }
+}

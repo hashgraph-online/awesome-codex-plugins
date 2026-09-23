@@ -1,12 +1,12 @@
 {
   "name": "agentops",
-  "version": "3.6.0",
-  "description": "The operations layer for agentic engineering: portable skills and evidence contracts connecting intent, coding agents, software factories, and independent judgment.",
+  "version": "3.8.0",
+  "description": "Engineering guidance for coding agents: behavior-driven planning, shared domain language, independent validation, and reusable improvements.",
   "skills": "./skills-codex",
   "interface": {
     "displayName": "AgentOps",
-    "shortDescription": "The operations layer for agentic engineering.",
-    "longDescription": "AgentOps connects intent, coding agents, software factories, context sources, and independent judgment through portable skills and evidence contracts. Codex shapes one behavior, runs one bounded implementation experiment, validates the exact result from fresh context, and can persist a durable verdict. Git, CI, retries, queues, and delivery remain caller-owned.",
+    "shortDescription": "Agent work you can verify and build on.",
+    "longDescription": "AgentOps helps Codex define observable behavior, implement it using your domain's language, and have a fresh reviewer validate the exact change against the original request. Apply established engineering practices through optional skills and CLI tools. Keep reusable code, tests, decisions, and requested evidence in your existing engineering system.",
     "developerName": "AgentOps",
     "category": "Productivity",
     "capabilities": [

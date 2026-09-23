@@ -15,6 +15,7 @@ Zero external dependencies beyond Python 3.8+ stdlib.
 """
 
 import math
+import os
 import re
 from typing import List, Dict, Optional, Any
 
@@ -45,6 +46,15 @@ try:
     from datasheet_features import get_mcu_features as _get_mcu_features
 except ImportError:
     def _get_mcu_features(mpn, **kw): return None
+
+
+def _schematic_project_dir(schematic):
+    """Project directory for datasheet-extraction lookups, from the schematic
+    analyzer's provenance block (the JSON carries no top-level `file` key)."""
+    for p in ((schematic or {}).get('inputs') or {}).get('source_files') or []:
+        if isinstance(p, str) and p.lower().endswith(('.kicad_sch', '.sch')):
+            return os.path.dirname(os.path.abspath(p))
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -88,6 +98,48 @@ def _is_ground_net(name: str) -> bool:
     if low.startswith('vss'):
         return True
     return False
+
+
+def _touch_nets(pcb: Dict) -> set:
+    """Nets belonging to capacitive-touch pads (from CP-003 findings — KH-378).
+
+    The top-level PCB analyzer output always strips the per-pad `pads` list
+    from footprint entries (analyze_pcb.py's compact footprint_summary pass)
+    in favor of `connected_nets` (sorted list of that footprint's pad net
+    names) — that's the fallback source for older pcb JSON where CP-003
+    carries `nets: []`.
+
+    KH-373: a CP-003 finding's component can be a real TestPoint:* library
+    part (bare "TP" refs are not touch-pad evidence) — never let one of
+    those demote GP-001 on its net, whether the net came from the finding's
+    own `nets` field or the `connected_nets` fallback.
+    """
+    fp_by_ref: Dict[str, Dict] = {}
+    testpoint_refs = set()
+    for fp in (pcb or {}).get('footprints') or []:
+        ref = fp.get('reference')
+        if not ref:
+            continue
+        fp_by_ref[ref] = fp
+        lib = (fp.get('library') or '').lower()
+        if 'testpoint' in lib or 'test_point' in lib:
+            testpoint_refs.add(ref)
+
+    nets, refs = set(), set()
+    for f in (pcb or {}).get('findings') or []:
+        if f.get('rule_id') == 'CP-003':
+            components = f.get('components') or []
+            if components and all(c in testpoint_refs for c in components):
+                continue
+            nets.update(n for n in f.get('nets') or [] if n)
+            refs.update(c for c in components if c not in testpoint_refs)
+    if refs:
+        for ref in refs:
+            fp = fp_by_ref.get(ref)
+            if fp:
+                nets.update(n for n in fp.get('connected_nets') or []
+                            if n and not _is_ground_net(n))
+    return nets
 
 
 def _is_clock_net(name: str) -> bool:
@@ -349,12 +401,34 @@ def check_return_path_coverage(pcb: Dict, severity_threshold: str = 'all') -> Li
         ))
         return findings
 
+    touch = _touch_nets(pcb)
+
     for entry in rpc:
         net_name = entry.get('net', '')
         coverage = entry.get('reference_plane_coverage_pct', 100)
         trace_mm = entry.get('total_trace_mm', 0)
 
         if coverage >= 95:
+            continue
+
+        if net_name in touch:
+            findings.append(_make_finding(
+                'ground_plane', 'INFO', 'GP-001',
+                title='Touch/sense net has an intentional plane void',
+                description=(
+                    f'Net {net_name} has {coverage:.0f}% reference plane coverage — '
+                    f'expected: the ground pour is deliberately cleared under a '
+                    f'capacitive touch pad.'
+                ),
+                nets=[net_name],
+                recommendation='Keep the void; route no high-speed signals across it.',
+                confidence='heuristic',
+                signal_net=net_name,
+                coverage_pct=round(coverage, 1),
+                trace_mm=round(trace_mm, 2),
+                is_high_speed_or_clock=False,
+                is_touch_net=True,
+            ))
             continue
 
         is_hs = _is_high_speed_net(net_name) or _is_clock_net(net_name)
@@ -507,27 +581,33 @@ def check_decoupling_distance(pcb: Dict) -> List[Dict]:
             continue
 
         if closest > 8.0:
+            description = (
+                f'Nearest decoupling cap to {ic_ref} ({entry.get("value", "")}) '
+                f'is {closest:.1f}mm away. Each mm of trace adds 0.3-0.8 nH '
+                f'of loop inductance, reducing decoupling effectiveness '
+                f'at high frequencies.'
+            )
+            if nearby:
+                description += f' Shared net: {", ".join(nearby[0].get("shared_nets", []))}.'
             findings.append(_make_finding(
                 'decoupling', 'HIGH', 'DC-001',
                 title=f'Decoupling cap too far from {ic_ref}',
-                description=(
-                    f'Nearest decoupling cap to {ic_ref} ({entry.get("value", "")}) '
-                    f'is {closest:.1f}mm away. Each mm of trace adds 0.3-0.8 nH '
-                    f'of loop inductance, reducing decoupling effectiveness '
-                    f'at high frequencies.'
-                ),
+                description=description,
                 components=[ic_ref] + [c['cap'] for c in nearby[:2]],
                 recommendation=f'Move decoupling cap within 2-3mm of {ic_ref} power pins.',
             ))
         elif closest > 5.0:
+            description = (
+                f'Nearest decoupling cap to {ic_ref} ({entry.get("value", "")}) '
+                f'is {closest:.1f}mm away. Recommended: <3mm for best '
+                f'high-frequency performance.'
+            )
+            if nearby:
+                description += f' Shared net: {", ".join(nearby[0].get("shared_nets", []))}.'
             findings.append(_make_finding(
                 'decoupling', 'MEDIUM', 'DC-001',
                 title=f'Decoupling cap moderately far from {ic_ref}',
-                description=(
-                    f'Nearest decoupling cap to {ic_ref} ({entry.get("value", "")}) '
-                    f'is {closest:.1f}mm away. Recommended: <3mm for best '
-                    f'high-frequency performance.'
-                ),
+                description=description,
                 components=[ic_ref] + [c['cap'] for c in nearby[:2]],
                 recommendation=f'Move decoupling cap closer to {ic_ref} power pins if layout permits.',
             ))
@@ -1060,7 +1140,7 @@ def check_clock_routing(pcb: Dict, schematic: Optional[Dict] = None) -> List[Dic
         if _is_clock_net(net_name):
             clock_nets.add(net_name)
 
-    for net_name in clock_nets:
+    for net_name in sorted(clock_nets):
         nl = net_lengths_map.get(net_name, {})
         length_mm = nl.get('total_length_mm', nl.get('track_length_mm', 0))
         layer_dist = nl.get('layers', nl.get('layer_distribution', {}))
@@ -2046,7 +2126,7 @@ def check_diff_pair_cm_radiation(pcb: Optional[Dict],
                              if c.get('reference') == ic_ref), None)
                 if comp and comp.get('type') not in ('connector',):
                     mcu_mpn = comp.get('mpn') or comp.get('value', '')
-                    mcu_feat = _get_mcu_features(mcu_mpn) if mcu_mpn else None
+                    mcu_feat = _get_mcu_features(mcu_mpn, project_dir=_schematic_project_dir(schematic)) if mcu_mpn else None
                     if mcu_feat and not mcu_feat.get('quality', {}).get('trusted', True):
                         mcu_feat = None   # deterministic detectors keep the v1.4 trust gate (v2.0 §3.A.1)
                     if mcu_feat:
@@ -2286,6 +2366,10 @@ def _point_to_edges_min_distance(px: float, py: float,
             d2 = point_to_segment_distance(px, py, mid[0], mid[1],
                                            end[0], end[1])
             d = min(d1, d2)
+        elif etype == 'circle' and edge.get('center'):
+            cx, cy = edge['center'][0], edge['center'][1]
+            r = math.hypot(end[0] - cx, end[1] - cy)
+            d = abs(math.hypot(px - cx, py - cy) - r)
         else:
             d = point_to_segment_distance(px, py, start[0], start[1],
                                           end[0], end[1])
@@ -3217,9 +3301,39 @@ def check_shielding_advisory(pcb: Dict,
 # PDN Impedance Analysis
 # ---------------------------------------------------------------------------
 
+# KH-377: anti-resonance peaks above this frequency aren't actionable via
+# board-level decoupling caps (self-resonant frequencies of typical MLCCs
+# top out well below this) and shouldn't drive a HIGH PD-001 finding.
+PDN_RELEVANT_FMAX_HZ = 2e8
+
+_CAP_UNIT_SCALES = (
+    (1e-12, 'pF'), (1e-9, 'nF'), (1e-6, 'µF'), (1e-3, 'mF'), (1.0, 'F'),
+)
+
+
+def _fmt_cap(farads: float) -> str:
+    """Format a capacitance in clean engineering notation (3 sig figs).
+
+    KH-377: descriptions previously printed raw floats, e.g.
+    ``str(0.0001 * 1e6) + "uF"`` -> ``"100.00000000000001uF"``.
+    """
+    if not farads or farads <= 0:
+        return "0F"
+    scale, unit = _CAP_UNIT_SCALES[0]
+    for s, u in _CAP_UNIT_SCALES:
+        if farads >= s:
+            scale, unit = s, u
+    val = farads / scale
+    s = f'{val:.3g}'
+    if 'e' in s:
+        s = f'{val:.0f}'
+    return s + unit
+
+
 def check_pdn_impedance(pcb: Optional[Dict],
                         schematic: Optional[Dict],
-                        spice_backend=None) -> List[Dict]:
+                        spice_backend=None,
+                        pdn_transient_a: Optional[float] = None) -> List[Dict]:
     """PD-001/PD-002: Analyze decoupling network impedance per power rail.
 
     For each power regulator with detected output capacitors, model the
@@ -3228,6 +3342,12 @@ def check_pdn_impedance(pcb: Optional[Dict],
 
     When spice_backend is provided, uses SPICE AC analysis for more accurate
     impedance sweep (captures phase interactions). Falls back to analytical.
+
+    Args:
+        pdn_transient_a: Transient current override (Amps), typically from
+            project config (``project.pdn_transient_current_a``). Takes
+            priority over the power-budget-derived estimate and the 0.5A
+            default.
     """
     # EQ-041: Z_pdn(f) vs Z_target = V×ripple%/(0.5×I_transient)
     findings = []
@@ -3306,12 +3426,17 @@ def check_pdn_impedance(pcb: Optional[Dict],
         if not cap_models:
             continue
 
-        # Estimate transient current (heuristic from regulator type)
-        i_transient = 0.5  # default 500mA
+        # Estimate transient current: config override > power-budget-derived
+        # > 0.5A default. KH-377: the old fallback defaulted i_out itself to
+        # 0.5A then doubled it, silently landing on 1.0A with zero real data.
         pdiss = reg.get('power_dissipation', {})
-        i_out = pdiss.get('estimated_iout_A', 0.5)
-        if i_out and i_out > 0:
-            i_transient = min(i_out * 2, 5.0)  # Up to 2× steady-state
+        i_out = pdiss.get('estimated_iout_A')
+        if pdn_transient_a:
+            i_transient, transient_source = pdn_transient_a, 'config'
+        elif i_out and i_out > 0:
+            i_transient, transient_source = min(i_out * 2, 5.0), 'power_budget'
+        else:
+            i_transient, transient_source = 0.5, 'default'
 
         z_target = pdn_target_impedance(vout, ripple_pct=5.0,
                                         i_transient_a=i_transient)
@@ -3339,10 +3464,27 @@ def check_pdn_impedance(pcb: Optional[Dict],
         # Find anti-resonances
         peaks = find_anti_resonances(sweep, z_target=z_target)
         exceeding = [p for p in peaks if p.get('exceeds_target')]
+        # KH-377: peaks above PDN_RELEVANT_FMAX_HZ aren't actionable via
+        # board-level decoupling -- don't let them drive severity.
+        in_band = [p for p in exceeding if p['freq_mhz'] * 1e6 <= PDN_RELEVANT_FMAX_HZ]
+        out_band = [p for p in exceeding if p['freq_mhz'] * 1e6 > PDN_RELEVANT_FMAX_HZ]
+        out_of_band_extra = {}
+        if out_band:
+            out_of_band_extra['out_of_band_peaks'] = [
+                {'freq_mhz': p['freq_mhz'], 'impedance_ohm': round(p['impedance_ohm'], 4)}
+                for p in out_band
+            ]
 
-        if exceeding:
+        cap_list_str = ", ".join(
+            c["ref"] + " " + _fmt_cap(c["farads"]) for c in cap_models[:4])
+
+        if in_band:
+            peaks_total = len(in_band)
+            peaks_shown = min(3, peaks_total)
             peak_strs = [f'{p["freq_mhz"]:.1f} MHz ({p["impedance_ohm"]:.2f}Ω)'
-                         for p in exceeding[:3]]
+                         for p in in_band[:peaks_shown]]
+            truncation_note = (f' (showing {peaks_shown} of {peaks_total})'
+                                if peaks_shown < peaks_total else '')
             findings.append(_make_finding(
                 'pdn', 'HIGH', 'PD-001',
                 title=f'{output_rail or ref} PDN anti-resonance exceeds target',
@@ -3351,30 +3493,65 @@ def check_pdn_impedance(pcb: Optional[Dict],
                     f'{z_target:.3f}Ω (Vout={vout}V, 5% ripple, '
                     f'{i_transient:.1f}A transient). '
                     f'Anti-resonance peak(s) exceed target at: '
-                    f'{", ".join(peak_strs)}. '
+                    f'{", ".join(peak_strs)}{truncation_note}. '
                     f'Decoupling: {len(cap_models)} caps '
-                    f'({", ".join(c["ref"] + " " + str(c["farads"]*1e6) + "µF" for c in cap_models[:4])}).'
+                    f'({cap_list_str}).'
                 ),
                 components=[ref] + [c['ref'] for c in cap_models[:3]],
                 nets=[output_rail] if output_rail else [],
                 recommendation=_suggest_pdn_cap(
-                    exceeding[0], cap_models, plane_cap_f, z_target,
+                    in_band[0], cap_models, plane_cap_f, z_target,
                     spice_backend, sweep_before=sweep),
                 confidence='datasheet-backed' if spice_verified else 'heuristic',
                 spice_verified=spice_verified,
                 rail=output_rail,
                 target_impedance_ohm=round(z_target, 4),
                 vout_v=vout,
-                transient_amps=round(i_transient, 3),
+                transient_a=round(i_transient, 3),
+                transient_source=transient_source,
                 method='spice' if spice_verified else 'analytical',
-                peak_frequency_hz=round(exceeding[0]['freq_mhz'] * 1e6),
-                peak_impedance_ohm=round(exceeding[0]['impedance_ohm'], 4),
+                peak_frequency_hz=round(in_band[0]['freq_mhz'] * 1e6),
+                peak_impedance_ohm=round(in_band[0]['impedance_ohm'], 4),
                 exceeding_peaks=[
                     {'frequency_hz': round(p['freq_mhz'] * 1e6),
                      'impedance_ohm': round(p['impedance_ohm'], 4)}
-                    for p in exceeding
+                    for p in in_band
                 ],
                 decoupling_cap_count=len(cap_models),
+                peaks_total=peaks_total,
+                peaks_shown=peaks_shown,
+                **out_of_band_extra,
+            ))
+        elif out_band:
+            # All exceeding peaks are above the PDN-relevant band -- not
+            # actionable via decoupling, but still worth surfacing.
+            peak_strs = [f'{p["freq_mhz"]:.1f} MHz ({p["impedance_ohm"]:.2f}Ω)'
+                         for p in out_band[:3]]
+            findings.append(_make_finding(
+                'pdn', 'INFO', 'PD-001',
+                title=f'{output_rail or ref} PDN anti-resonance peaks above relevant band',
+                description=(
+                    f'{ref} ({val}) {output_rail} rail{method_note}: target impedance '
+                    f'{z_target:.3f}Ω (Vout={vout}V, 5% ripple, '
+                    f'{i_transient:.1f}A transient). '
+                    f'Peak(s) exceed target only above '
+                    f'{PDN_RELEVANT_FMAX_HZ/1e6:.0f} MHz, outside the range '
+                    f'board-level decoupling addresses: {", ".join(peak_strs)}. '
+                    f'Decoupling: {len(cap_models)} caps ({cap_list_str}).'
+                ),
+                components=[ref],
+                nets=[output_rail] if output_rail else [],
+                recommendation='No decoupling action needed for these peaks.',
+                confidence='datasheet-backed' if spice_verified else 'heuristic',
+                spice_verified=spice_verified,
+                rail=output_rail,
+                target_impedance_ohm=round(z_target, 4),
+                vout_v=vout,
+                transient_a=round(i_transient, 3),
+                transient_source=transient_source,
+                method='spice' if spice_verified else 'analytical',
+                decoupling_cap_count=len(cap_models),
+                **out_of_band_extra,
             ))
         elif peaks:
             # Peaks exist but don't exceed target — INFO
@@ -4279,7 +4456,8 @@ def check_inductor_leakage(pcb: Dict, schematic: Dict) -> List[Dict]:
 def run_all_checks(schematic: Optional[Dict], pcb: Optional[Dict],
                    standard: str = 'fcc-class-b',
                    severity_threshold: str = 'all',
-                   spice_backend=None) -> List[Dict]:
+                   spice_backend=None,
+                   pdn_transient_a: Optional[float] = None) -> List[Dict]:
     """Run all EMC rule checks and return combined findings.
 
     Args:
@@ -4289,6 +4467,8 @@ def run_all_checks(schematic: Optional[Dict], pcb: Optional[Dict],
         severity_threshold: Minimum severity to include.
         spice_backend: SimulatorBackend instance for SPICE-enhanced
                        PDN/filter analysis (optional, None = analytical only).
+        pdn_transient_a: Transient current override (Amps) for PD-001,
+                       typically from project.pdn_transient_current_a.
 
     Returns:
         List of finding dicts, sorted by severity.
@@ -4340,7 +4520,8 @@ def run_all_checks(schematic: Optional[Dict], pcb: Optional[Dict],
         all_findings.extend(check_diff_pair_cm_radiation(pcb, schematic, standard))
         all_findings.extend(check_diff_pair_reference_plane(pcb, schematic))
         all_findings.extend(check_diff_pair_layer(pcb, schematic))
-        all_findings.extend(check_pdn_impedance(pcb, schematic, spice_backend))
+        all_findings.extend(check_pdn_impedance(pcb, schematic, spice_backend,
+                                                pdn_transient_a=pdn_transient_a))
         all_findings.extend(check_pdn_distributed(pcb, schematic, spice_backend))
         all_findings.extend(check_thermal_emc(pcb, schematic))
         all_findings.extend(check_switching_node_area(pcb, schematic, net_id_map))

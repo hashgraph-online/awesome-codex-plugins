@@ -1,0 +1,47 @@
+{
+  "name": "centricmem-skill",
+  "version": "1.0.5",
+  "description": "Hosted CentricMem librarian: organise and retrieve Markdown memory via host MCP.",
+  "author": {
+    "name": "Dr. Z",
+    "email": "zeyu@dr.com",
+    "url": "https://github.com/zeyu-j"
+  },
+  "homepage": "https://centricmem.com",
+  "repository": "https://github.com/zeyu-j/centricmem-skill",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "keywords": [
+    "centricmem",
+    "mcp",
+    "memory",
+    "skill",
+    "agent-plugins",
+    "agent-skills"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json",
+  "interface": {
+    "displayName": "CentricMem",
+    "shortDescription": "Hosted librarian for agent memory",
+    "longDescription": "Organise and retrieve Markdown memory on the hosted CentricMem librarian. After install, this agent (and each client you install into) tries https://centricmem.com/login?signup=1 and a /connect?device= URL. Plugin mcp.json or mcp add with no Bearer is not a completed connect. If minting that URL fails, run centricmem doctor connect and they email zeyu@poppyg.com with that output; then MCP OAuth only if this agent will receive the browser login. Never paste keys in chat. Never download a settings file that contains a key.",
+    "developerName": "Dr. Z",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://centricmem.com",
+    "logo": "./assets/icon.svg",
+    "composerIcon": "./assets/icon.svg",
+    "privacyPolicyURL": "https://centricmem.com/privacy",
+    "termsOfServiceURL": "https://centricmem.com/terms",
+    "screenshots": [
+      "./assets/icon.svg"
+    ],
+    "defaultPrompt": [
+      "File this session into CentricMem.",
+      "Search my CentricMem shelves for that decision.",
+      "Connect this agent to the CentricMem librarian. If cm_* are missing, send signup and a /connect?device= URL this turn."
+    ]
+  }
+}

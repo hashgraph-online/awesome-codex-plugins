@@ -128,7 +128,7 @@ _HIGH_SPEED_TYPES = {'clock', 'usb', 'ethernet', 'memory', 'hdmi', 'lvds', 'rf'}
 
 def _get_net_classification(net_name, schematic):
     if schematic:
-        classifications = schematic.get('net_classifications', {})
+        classifications = schematic.get('net_classifications') or {}
         if net_name in classifications:
             return classifications[net_name]
     for pattern, net_type in _NET_NAME_HEURISTICS:
@@ -208,7 +208,7 @@ def check_connector_current(schematic: dict, pcb: dict | None, recorder=None) ->
     footprints = pcb.get('footprints', [])
     fp_map = {fp.get('reference', ''): fp for fp in footprints}
 
-    segments = pcb.get('tracks', {}).get('segments', [])
+    segments = (pcb.get('tracks') or {}).get('segments') or []
     net_id_map = _build_net_id_map(pcb)
 
     net_min_width: dict[str, float] = {}
@@ -297,7 +297,7 @@ def check_esd_coverage_gaps(schematic: dict, pcb: dict | None, recorder=None) ->
     connectors = [c for c in components if c.get('type') == 'connector']
 
     # Build pin_net lookup from schematic components
-    pin_net_data = schematic.get('pin_net', {})
+    pin_net_data = schematic.get('pin_net') or {}
 
     for conn in connectors:
         val_lib = (conn.get('value', '') + ' ' + conn.get('lib_id', '')).lower()
@@ -540,11 +540,11 @@ def check_critical_net_routing(schematic, pcb, recorder=None):
     if not pcb:
         _record(recorder, 'NR-001', False, 'no PCB data provided', 0, findings)
         return findings
-    segments = pcb.get('tracks', {}).get('segments', [])
+    segments = (pcb.get('tracks') or {}).get('segments') or []
     if not segments:
         _record(recorder, 'NR-001', False, 'no PCB track segments present', 0, findings)
         return findings
-    outline = pcb.get('board_outline', {})
+    outline = pcb.get('board_outline') or {}
     outline_edges = outline.get('edges', [])
     if not outline_edges:
         _record(recorder, 'NR-001', False, 'no board outline edge geometry present', 0, findings)
@@ -594,11 +594,11 @@ def check_return_path_enhanced(schematic, pcb, recorder=None):
     if not pcb:
         _record(recorder, 'RP-002', False, 'no PCB data provided', 0, findings)
         return findings
-    segments = pcb.get('tracks', {}).get('segments', [])
+    segments = (pcb.get('tracks') or {}).get('segments') or []
     if not segments:
         _record(recorder, 'RP-002', False, 'no PCB track segments present', 0, findings)
         return findings
-    conn_graph = pcb.get('connectivity_graph', {})
+    conn_graph = pcb.get('connectivity_graph') or {}
     net_id_map = _build_net_id_map(pcb)
     rpc_flagged = _flagged_return_path_entries(pcb, threshold_pct=95.0)
     has_rpc_data = len(pcb.get('return_path_continuity', []) or []) > 0
@@ -679,7 +679,7 @@ def check_trace_width_power(schematic, pcb, recorder=None):
     if not pcb or not schematic:
         _record(recorder, 'TW-001', False, 'no PCB or schematic data provided', 0, findings)
         return findings
-    segments = pcb.get('tracks', {}).get('segments', [])
+    segments = (pcb.get('tracks') or {}).get('segments') or []
     if not segments:
         _record(recorder, 'TW-001', False, 'no PCB track segments present', 0, findings)
         return findings
@@ -738,11 +738,11 @@ def check_plane_splits(schematic, pcb, recorder=None):
     if not pcb:
         _record(recorder, 'PS-002', False, 'no PCB data provided', 0, findings)
         return findings
-    conn_graph = pcb.get('connectivity_graph', {})
+    conn_graph = pcb.get('connectivity_graph') or {}
     if not conn_graph:
         _record(recorder, 'PS-002', False, 'no connectivity_graph in PCB analysis (--full required)', 0, findings)
         return findings
-    segments = pcb.get('tracks', {}).get('segments', [])
+    segments = (pcb.get('tracks') or {}).get('segments') or []
     net_id_map = _build_net_id_map(pcb)
     rpc_flagged = _flagged_return_path_entries(pcb, threshold_pct=95.0)
     for plane_net, graph in conn_graph.items():
@@ -818,13 +818,13 @@ def check_via_stitching_density(schematic, pcb, recorder=None):
     if not pcb:
         _record(recorder, 'VS-002', False, 'no PCB data provided', 0, findings)
         return findings
-    via_list = pcb.get('vias', {}).get('vias', [])
+    via_list = (pcb.get('vias') or {}).get('vias') or []
     if not via_list:
         _record(recorder, 'VS-002', False, 'no vias in PCB analysis', 0, findings)
         return findings
     net_id_map = _build_net_id_map(pcb)
-    outline = pcb.get('board_outline', {})
-    bbox = outline.get('bounding_box', {})
+    outline = pcb.get('board_outline') or {}
+    bbox = outline.get('bounding_box') or {}
     board_w = bbox.get('width', 0)
     board_h = bbox.get('height', 0)
     if board_w <= 0 or board_h <= 0:
@@ -918,7 +918,7 @@ def _find_diff_pairs(net_names, schematic):
     pairs = []
     if not schematic:
         return pairs
-    classifications = schematic.get('net_classifications', {})
+    classifications = schematic.get('net_classifications') or {}
     diff_nets = [n for n, c in classifications.items() if c.get('differential')]
     if not diff_nets:
         return pairs
@@ -948,8 +948,8 @@ def check_diff_pair_quality(schematic, pcb, recorder=None):
     if not pcb:
         _record(recorder, 'DP-005', False, 'no PCB data provided', 0, findings)
         return findings
-    segments = pcb.get('tracks', {}).get('segments', [])
-    via_list = pcb.get('vias', {}).get('vias', [])
+    segments = (pcb.get('tracks') or {}).get('segments') or []
+    via_list = (pcb.get('vias') or {}).get('vias') or []
     if not segments:
         _record(recorder, 'DP-005', False, 'no PCB track segments present', 0, findings)
         return findings

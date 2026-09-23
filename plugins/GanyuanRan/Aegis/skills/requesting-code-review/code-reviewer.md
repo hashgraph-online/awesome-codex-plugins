@@ -193,11 +193,6 @@ remaining test gaps or residual risk.
 ## Example Output
 
 ```
-### Strengths
-- Clean database schema with proper migrations (db.ts:15-42)
-- Comprehensive test coverage (18 tests, all edge cases)
-- Good error handling with fallbacks (summarizer.ts:85-92)
-
 ### Issues
 
 #### Important
@@ -216,6 +211,11 @@ remaining test gaps or residual risk.
    - File: indexer.ts:130
    - Issue: No "X of Y" counter for long operations
    - Impact: Users don't know how long to wait
+
+### Strengths
+- Clean database schema with proper migrations (db.ts:15-42)
+- Comprehensive test coverage (18 tests, all edge cases)
+- Good error handling with fallbacks (summarizer.ts:85-92)
 
 ### Recommendations
 - Add progress reporting for user experience

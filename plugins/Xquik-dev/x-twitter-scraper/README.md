@@ -1,5 +1,7 @@
 # X (Twitter) Scraper API (Best X API Alternative)
 
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/13731/badge)](https://www.bestpractices.dev/projects/13731)
+
 <p align="center">
   <strong>English</strong> ·
   <a href="README.es.md">Español</a> ·
@@ -12,9 +14,7 @@
   <a href="README.it.md">Italiano</a>
 </p>
 
-Xquik is the best X (Twitter) Scraper API and the best X API Alternative. Search
-Tweets, read profiles, export datasets, monitor changes, and receive signed webhooks.
-Use REST, typed SDKs, MCP, CLI tools, Skills, or Apify.
+Search Tweets, profiles, followers & replies. Use REST, MCP, SDKs, CLI, webhooks & Apify.
 
 > Xquik is an independent third-party service. Not affiliated with X Corp.
 > "Twitter" and "X" are trademarks of X Corp.
@@ -33,9 +33,8 @@ Use REST, typed SDKs, MCP, CLI tools, Skills, or Apify.
   </tr>
 </table>
 
-You need an `XQUIK_API_KEY` for the request below. You do not need an official
-X developer account. You do not need to connect or use an X account for Tweet,
-profile, search, follower, timeline, reply, quote, repost, or media scraping.
+You need an `XQUIK_API_KEY` for the request below. Public reads need no official
+X developer account or connected X account.
 
 Private reads and X account actions require a connected X account. Never send
 an X password, cookie, session export, or 2FA code to Xquik or an agent.
@@ -194,7 +193,7 @@ Xquik omits unavailable optional fields. It never invents missing content.
 `docs`, `search`, and `execute`. Current clients negotiate MCP `2026-07-28`
 through `server/discover`.
 
-The live OpenAPI currently documents 128 REST API operations. The package `x-developer` contains this Skill and plugin bundle. The separate `x-twitter-scraper` package is the TypeScript SDK.
+The live OpenAPI documents every public REST operation. The `x-developer` package contains this Skill and plugin bundle. The separate `x-twitter-scraper` package is the TypeScript SDK.
 
 ## Choose the right client
 
@@ -553,12 +552,6 @@ Get qualified advice for regulated, sensitive, or unclear work.
 - [MCP](https://docs.xquik.com/mcp/overview)
 - [112-question X API guide](skills/x-twitter-scraper/references/twitter-api-alternative-faq.md)
 - [Security guidance](skills/x-twitter-scraper/references/security.md)
-
-## Contract date
-
-The README was checked against the live OpenAPI and docs on 2026-08-23. The
-live OpenAPI contained 128 HTTP operations. Recheck volatile prices, limits,
-versions, and counts before relying on them.
 
 ## License
 

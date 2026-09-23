@@ -7,324 +7,170 @@ description: "Use when a task is multi-step, may span context resets or sessions
 
 ## Overview
 
-Use this skill to keep long tasks checkpointed, resumable, drift-aware, and evidence-gated.
-
-This is a protocol skill. It does not execute plans, dispatch subagents, run tests, or grant completion authority.
+Keep long work checkpointed, resumable, drift-aware, and evidence-gated. This
+protocol does not execute plans, dispatch subagents, run tests, or grant
+completion authority.
 
 ## Authority Boundary
 
-Current owner:
-
-- Method Pack protocol discipline
-
-Not owned here:
-
-- plan execution
-- subagent dispatch
-- host daemon / watchdog / automatic retry
-- authoritative `GateDecision`
-- evidence sufficiency final judgment
-- completion authority
+The Method Pack owns continuation discipline only. It does not own the parent
+plan, host retry/watchdog behavior, authoritative `GateDecision`, evidence
+sufficiency, requirement acceptance, or completion.
 
 ## When To Use
 
-Use this skill when any of these are true:
+Use this skill when the work has meaningful phases, may be compacted/resumed or
+handed off, uses subagents, or explicitly needs continuity and drift control.
+Architecture, contract, shared-workflow, and verification-gate changes also
+benefit from it. Do not force it onto a short answer or one-command check.
 
-- the task has multiple phases or more than one meaningful work slice
-- the task may be interrupted, compacted, resumed, or handed off
-- the task uses subagents
-- the user explicitly asks for long-task continuity, resume safety, or avoiding drift
-- the task changes architecture, contracts, shared workflows, or verification gates
+Choose exactly one state carrier:
 
-For short direct answers or one-command checks, do not force this protocol.
+- use a durable `work/` record for medium+ work that actually crosses sessions,
+  needs handoff, or requires resumable state;
+- otherwise keep one inline checkpoint.
 
-Multi-step, todo-driven, or subagent-using tasks do not force durable records by themselves; keep an inline checkpoint unless the task also crosses sessions, needs handoff, or requires resumable state.
+Multi-step, todo-driven, possible-compaction, and subagent use do not force
+durable records by themselves. Do not create both carriers or a record per
+slice.
 
 ## Required Artifacts
 
-Maintain artifacts under `docs/aegis/work/YYYY-MM-DD-<slug>/`:
+A durable task has one process trail under
+`docs/aegis/work/YYYY-MM-DD-<slug>/`. It keeps logical intent/baseline state,
+the latest todo/checkpoint/resume state, terminal evidence/drift state, and a
+completion reflection when warranted. These are
+`TaskIntentDraft`, `BaselineReadSetHint`, `BaselineUsageDraft`,
+`ImpactStatementDraft`, `TodoCheckpointDraft`, `ResumeStateHint`,
+`DriftCheckDraft`, and `EvidenceBundleDraft` views—not authoritative runtime
+records or separate plan owners.
 
-| Artifact | File | When |
-|----------|------|------|
-| TaskIntentDraft | `10-intent.md` and optional `task-intent-draft.json` | Start protocol |
-| BaselineReadSetHint | `10-intent.md` (inline) | Start protocol |
-| BaselineUsageDraft | `10-intent.md` (inline) and optional `baseline-usage-draft.json` | Start protocol and when baseline usage changes |
-| ImpactStatementDraft | `10-intent.md` (inline) | Start protocol |
-| TodoCheckpointDraft | `20-checkpoint.md` and optional `todo-checkpoint-draft.json` | Each checkpoint |
-| ResumeStateHint | `20-checkpoint.md` (inline) | Each pause/handoff |
-| DriftCheckDraft | `20-checkpoint.md` (inline) and optional `drift-check-draft.json` | Per-slice protocol |
-| EvidenceBundleDraft | `90-evidence.md` and optional `evidence-bundle-draft.json` | Per-slice protocol |
-| Reflection | `99-reflection.md` | Completion candidate |
+Read only the lifecycle-matched section of `durable-work-guidance.md`:
 
-For medium+ complexity tasks only. Low-complexity tasks skip work/.
+- `## Required Artifact Layout` and `## Create A Durable Work Record` for a new durable work record;
+- `## Update A Slice` when an existing helper-backed record needs sidecar updates;
+- `## Retry Convergence Detail` for retry/attempt bookkeeping;
+- `## Pause, Handoff, And Completion Bundle` when preparing a pause, handoff, or completion bundle; and
+- `## Expanded State Fields` only when natural checkpoint prose is ambiguous.
 
-`Execution Readiness View` may be included inline in `10-intent.md` or the
-active checkpoint when the workstream is medium/high, subagent-driven,
-handoff-prone, long-running, architecture / contract sensitive, or
-compatibility / retirement sensitive. It is a human-readable rendering of
-existing drafts and the parent plan, not a new JSON artifact type and not
-completion authority.
+The reference owns artifact layout and `<aegis-workspace-helper>` command
+detail; this file owns carrier selection, resume order, drift decisions, and
+stop conditions.
+
+An `Execution Readiness View` may be kept in the intent or active checkpoint
+for medium/high, handoff-prone, long-running, subagent-driven, architecture,
+contract, compatibility, or retirement-sensitive work. It renders existing
+intent, scope, baseline, owner, test, review, and drift constraints; it is not a
+new JSON artifact or completion authority.
 
 Planless Slice Lane:
 
-- Use this lane when a parent plan or parent spec already owns the long-task
-  workstream and the current micro-slice only executes or refines one bounded
-  parent task.
-- Record a compact Slice Card instead of creating another durable plan/spec:
-
-  ```text
-  Slice Card:
-  - Goal:
-  - Parent plan/spec:
-  - Files:
-  - Boundary:
-  - Verification:
-  - Stop:
-  ```
-
-- Slice Card `Goal` anchors slice-level completeness only.
-- It does not by itself grant whole-task completion.
-- Final completion still requires `verification-before-completion` Goal Closure
-  against the parent plan/spec and any active goal frame, rendered through the
-  unified Aegis impact/safety receipt unless audit detail is requested.
-
-- Do not create new plan/spec files for micro-slices that stay inside the
-  parent plan, existing compatibility boundary, and known verification path.
-- Update the existing checkpoint, evidence, and drift records when persistent
-  state is needed.
-- Escalate out of this lane only when a new owner, contract, schema, public API,
-  architecture boundary, migration, persistence, security/permission,
-  distribution/release surface, or unclear verification boundary appears.
+- When an existing parent plan/spec owns a bounded task, reuse it and the
+  current checkpoint. For a no-parent direct bounded request with no new
+  durable or unclear verification boundary, use an inline checkpoint.
+- State one compact `Slice Card`: Goal, `Parent plan/spec` (or
+  `none — direct bounded request`), Files, Boundary, Verification, and Stop.
+- The slice goal closes only that slice. Final completion returns to the parent
+  or direct bounded request through `verification-before-completion`.
+- Do not create a plan/spec merely to give a micro-slice a parent, and do not
+  create per-slice plans/specs or work records.
+- Escalate when a new owner, contract, schema, public API, architecture,
+  migration, persistence, security/permission, distribution/release surface,
+  unclear verification boundary, or mismatch with parent scope or acceptance
+  appears.
 
 When durable architecture decisions are in scope, these work records are the
-preferred ADR Auto Backfill source. Preserve ADR signals, source refs,
-alternatives, compatibility boundaries, drift checks, retirement notes, and
-baseline-sync questions in the work record instead of relying on memory at
-completion time.
-
-These are draft / hint / projection inputs. They are not authoritative runtime records.
-
-## Workspace Helper Protocol
-
-When configured Aegis workspace support or installed Aegis workspace support is
-available, use it for the target project workspace and lifecycle records:
-
-1. Initialize before writing work records:
-
-   ```bash
-   python <aegis-workspace-helper> init --root <target-project-root>
-   ```
-
-2. For a new medium+ task process trail, prefer helper-backed lifecycle
-   creation over hand-created files:
-
-   ```bash
-   python <aegis-workspace-helper> new-work --root <target-project-root> --date YYYY-MM-DD --slug <slug> --title "<title>" --requested-outcome "<outcome>" --scope "<scope>" --change-kind <kind>
-   ```
-
-3. After each slice, update checkpoint, evidence, and drift through the helper:
-
-   ```bash
-   python <aegis-workspace-helper> add-checkpoint --root <target-project-root> --work YYYY-MM-DD-<slug> ...
-   python <aegis-workspace-helper> add-baseline-usage --root <target-project-root> --work YYYY-MM-DD-<slug> ...
-   python <aegis-workspace-helper> add-attempt --root <target-project-root> --work YYYY-MM-DD-<slug> --slice-id <slice-id> --attempt-id <attempt-id> --attempt-status failed ...
-   python <aegis-workspace-helper> add-evidence --root <target-project-root> --work YYYY-MM-DD-<slug> --slice-id <slice-id> --evidence-status <terminal-status> ...
-   python <aegis-workspace-helper> add-drift-check --root <target-project-root> --work YYYY-MM-DD-<slug> ...
-   ```
-
-   Use `add-attempt` for a failed verification retry inside the current slice.
-   Use `add-evidence` only after the slice reaches `evidence-finalized`,
-   `blocked`, or `abandoned`. Do not let a failed attempt create another slice
-   or a formal evidence sidecar.
-
-4. Before pause, handoff, or completion candidate, assemble a structural proof
-   bundle and check the workspace:
-
-   ```bash
-   python <aegis-workspace-helper> bundle --root <target-project-root> --work YYYY-MM-DD-<slug>
-   python <aegis-workspace-helper> check --root <target-project-root>
-   ```
-
-These helper checks validate workspace structure, index coverage, and JSON
-sidecar shape only. They do not determine evidence sufficiency, do not produce
-authoritative `GateDecision`, and do not grant completion authority.
+preferred ADR Auto Backfill source. Preserve decision signals, source refs,
+alternatives, compatibility, retirement, drift, and baseline-sync questions.
 
 ## Start Protocol
 
-Before long-task execution:
+Before execution:
 
-1. State the requested outcome, scope, non-goals, and risk hints.
-2. If goal framing exists, restate goal, success evidence, stop condition, and
-   non-goals. Stop condition must allow done, blocked, needs-verification, and
-   scope-exceeded outcomes.
-3. Identify baseline refs that must be read before changing files.
-4. Record baseline usage state:
-   - required baseline refs
-   - optionally delivered context refs when the host can project them
-   - acknowledged before plan refs
-   - cited in plan refs
-   - missing refs
-5. Create or update the todo map.
-6. If the parent plan or workstream needs an execution handoff, render or link
-   an `Execution Readiness View`:
-   - intent lock
-   - scope fence
-   - baseline lock
-   - owner / contract constraints
-   - compatibility boundary
-   - retirement boundary
-   - task batches
-   - test obligations
-   - review gates
-   - drift / rewind rules
-   - evidence required before completion
-   - advisory boundary
-7. Create the first checkpoint:
-   - current todo
-   - active slice
-   - completed todos
-   - evidence refs
-   - blocked-on items
-   - next step
-8. If baseline refs are missing, pause in `needs-baseline-readback`.
-9. If the workspace helper is available, use `aegis-workspace.py new-work` to
-   create/index the first `docs/aegis/work/` files and run `check --root
-   <target-project-root>` before continuing.
+1. Capture requested outcome, scope, non-goals, risks, parent plan/goal, success
+   evidence, and stop states (`done | blocked | needs-verification |
+   scope-exceeded`).
+2. Identify required baseline refs and record acknowledged, cited, and missing
+   refs. Missing authority pauses in `needs-baseline-readback`.
+3. Choose inline or durable state once, then record the todo map, active slice,
+   completed slices/evidence, blockers, next step, and current branch/HEAD.
+4. When an `Execution Readiness View` exists, retain its intent lock, scope
+   fence, baseline lock, compatibility/retirement boundary, tests, reviews,
+   evidence, and rewind rules.
+5. For a new helper-backed record, use `durable-work-guidance.md` to create and
+   structurally check it before implementation.
 
 ## Retry Convergence Protocol
 
-A failed verification is another attempt in the current slice, not a new slice.
-
-- Reuse the current `activeSlice` as the `--slice-id`.
-- Record each retry with `add-attempt`, not `add-evidence`.
-- Do not append failed attempts to `90-evidence.md`.
-- Do not create a normal commit for attempt telemetry.
-- A process-only diff under `docs/aegis/` does not restart completed business-code verification.
-- When `add-attempt` reports `process-artifact-pressure`, stop auto-retry and route to `systematic-debugging` or `verification-before-completion`.
-
-Only terminal evidence (`evidence-finalized`, `blocked`, or `abandoned`) is
-eligible for `bundle`.
+A failed verification is another attempt in the current slice, not a new
+slice. Keep failed-attempt telemetry out of terminal evidence and normal
+commits. Only `evidence-finalized`, `blocked`, or `abandoned` is terminal.
+When retry state reaches `process-artifact-pressure`, stop auto-retry and route
+to `systematic-debugging` or `verification-before-completion`. Load the durable
+reference only when the attempt/evidence commands or sidecar rules are needed.
 
 ## Per-Slice Protocol
 
-Before each work slice, restate:
+Before each slice, state the current goal/todo, intended edits, explicit
+non-edits, verification, and readiness alignment. A bounded parent-plan or
+no-parent slice uses the compact Slice Card rather than a new plan/spec.
 
-1. current goal
-2. current todo
-3. intended edits
-4. explicit non-edits
-5. verification command or manual check
-6. `Execution Readiness View` alignment when one exists
-
-For micro-slices under an existing parent plan, use the Planless Slice Lane and
-state the Slice Card instead of opening a new planning/specification artifact.
-
-After each work slice, update:
-
-1. completed todos
-2. evidence refs
-3. baseline usage if newly required refs were acknowledged, cited, or found missing
-4. blockers
-5. next step
-6. drift check
-7. helper-backed JSON sidecars through `aegis-workspace.py add-checkpoint`,
-   `aegis-workspace.py add-baseline-usage`, `aegis-workspace.py add-evidence`, and `aegis-workspace.py add-drift-check`
-   when available
-8. failed verification: `add-attempt` with the current `--slice-id`; do not add
-   terminal evidence or create a process-only commit
+After each slice, update completed todos, evidence refs, newly used baseline
+refs, blockers, next step, and drift decision. When an active helper-backed work record exists, read `durable-work-guidance.md` and update that same record;
+never create another workstream for bookkeeping.
 
 When patch-shape/ripple triage, an H-class finding, or a bounded compatibility
-mitigation fired, a locally green result does not clear that direction. Reuse
-checkpoint prose and evidence refs to retain `PatchShape`, `CanonicalOwner`,
-`UpwardDrillSignal`, decision, latest outcome, and one bounded evidence ref;
-do not copy raw logs or full diffs.
-
-If no fresh evidence exists, the state is `needs-verification` or `partial`.
+mitigation fired, a locally green result does not clear the direction. Retain
+`PatchShape`, `CanonicalOwner`, `UpwardDrillSignal`, latest outcome, and one
+bounded evidence ref; do not copy raw logs or full diffs. If no fresh evidence
+exists, the state is `needs-verification` or `partial`.
 
 ## Resume Protocol
 
-When resuming:
+Resume in this order:
 
-1. Read latest checkpoint.
-2. Read latest resume hint if present.
-3. Re-read original task intent.
-4. Re-read required baseline refs.
-5. Passively re-read relevant active `CONTEXT.md` language for non-trivial work.
-6. Re-read the `Execution Readiness View` if present.
-7. Compare current worktree state with checkpoint claims.
-8. Compare the slice with the view's intent, scope, baseline, compatibility,
-   retirement, test, and review locks.
-9. If any disagreement exists among the checkpoint, baseline, context, view, and
-   worktree, compose `establishing-project-context` for a semantic conflict; for
-   any other disagreement, pause or return to planning.
-10. Before an unplanned repair, read retained invariant, owner seam, patch shape,
-   and causal topology and route comparison to `systematic-debugging`; a new
-   carrier name alone does not prove a new direction.
+1. Read original intent, parent plan/goal, latest checkpoint and resume hint.
+2. Re-read required baseline refs and relevant active `CONTEXT.md` language.
+3. Read the `Execution Readiness View` when present.
+4. Compare checkpoint branch/HEAD, completed commits, evidence refs, and claims
+   with the current worktree.
+5. Compare the active slice against intent lock, scope fence, baseline lock,
+   compatibility/retirement boundary, tests, reviews, and non-goals.
+6. Re-run the drift decision, then name the next smallest authorized action.
 
-Never resume from memory alone.
+Any disagreement among plan, checkpoint, baseline, context, readiness view, or
+worktree pauses execution. A semantic conflict routes to
+`establishing-project-context`; an unplanned repair re-reads the retained
+invariant, owner seam, patch shape, and causal topology, then route comparison to
+`systematic-debugging`. A new carrier name alone does not prove a new direction. Never resume from memory alone.
 
 ## Drift Check
 
-Answer these after each slice:
+Check original intent and stop condition, parent scope/acceptance, compatibility,
+new owners/fallbacks/adapters/branches, retirement, evidence freshness, and any
+readiness locks. Allowed decisions are `continue`, `pause-for-user`,
+`needs-baseline-readback`, `needs-verification`, and `blocked`.
 
-- Does the current work still serve the original task intent?
-- Does the current work still serve the goal and stop condition?
-- Did the slice stay inside the compatibility boundary?
-- Did any new owner, fallback, adapter, or branch appear?
-- Is the retirement track still explicit?
-- Did the evidence bundle grow enough to support the next claim?
-- If an `Execution Readiness View` exists, does the active slice still match
-  its intent lock, scope fence, baseline lock, compatibility boundary,
-  retirement boundary, test obligations, and review gates?
-
-Allowed decisions:
-
-- `continue`
-- `pause-for-user`
-- `needs-baseline-readback`
-- `needs-verification`
-- `blocked`
-
-Forbidden decisions:
-
-- `gate-passed`
-- `completion-granted`
-- `authoritatively-safe`
+Never emit `gate-passed`, `completion-granted`, or `authoritatively-safe`.
 
 ## Completion Candidate Protocol
 
-Before saying work is complete:
+Before a completion claim:
 
-1. Use aegis:verification-before-completion.
-2. Confirm every todo has a status.
-3. Confirm blockers are resolved or externalized.
-4. Confirm evidence refs cover the acceptance criteria.
-5. Confirm drift check has no blocking state.
-6. Run `python <aegis-workspace-helper> bundle --root <target-project-root>
-   --work YYYY-MM-DD-<slug>` if the helper is available and a work record
-   exists.
-7. Run `python <aegis-workspace-helper> check --root <target-project-root>`
-   if the helper is available and the task wrote `docs/aegis/` records.
-8. Treat the generated `GateInputPack` as future-runtime input only.
-9. If durable architecture decisions were in scope, pass the work record,
-   proof bundle, drift checks, evidence refs, and ADR signals into
-   aegis:verification-before-completion for ADR Backfill Check.
+1. Use `aegis:verification-before-completion`.
+2. Confirm every todo has status, blockers are resolved/externalized, evidence
+   covers acceptance, and drift has no blocking state.
+3. If a durable record exists, load `durable-work-guidance.md` for the completion
+   bundle and structural workspace check.
+4. For durable architecture work, pass the work record, proof bundle and ADR signals
+   to verification for ADR Backfill Check.
 
-Method Pack output is verified evidence and advisory judgment only. It is not authoritative completion.
+Generated packs are future-runtime inputs only. Method Pack output remains
+verified evidence and advisory judgment, not authoritative completion.
 
 ## Minimal Reporting Shape
 
-Use this shape for long-task updates:
-
-- `Aegis Visibility`: why checkpoint, resume, drift, handoff, or parent-plan
-  discipline is shaping the next step
-- `TodoCheckpointDraft`: current todo, completed todos, active slice, next step
-- `BaselineUsageDraft`: required refs, acknowledged refs, cited refs, missing refs, decision
-- `Execution Readiness View`: present | absent | refreshed | stale, and the
-  alignment signal when present
-- `Evidence`: commands, files, logs, or manual checks
-- `Process Artifact Pressure`: attempted slices, retry count, terminal state,
-  and whether convergence-stop is active
-- `DriftCheckDraft`: scope, compatibility, retirement, decision
-- `Risk / Unknown`: unresolved blockers or missing evidence
-- `Next`: the next smallest safe action
+Report naturally and omit empty structures. Keep these semantic slots visible:
+`Aegis Visibility`; current todo/active/completed/next; baseline usage decision;
+readiness state when present; fresh evidence; retry/convergence state when
+relevant; drift decision; risk/unknown; and the next smallest safe action.

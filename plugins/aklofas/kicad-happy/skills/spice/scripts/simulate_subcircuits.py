@@ -434,6 +434,15 @@ def _get_components(det):
     return refs
 
 
+def _summary_line(report: dict) -> str:
+    """One-line stderr summary; tolerates reports without total_elapsed_s."""
+    s = report["summary"]
+    elapsed = report.get("total_elapsed_s") or 0.0
+    return (f"Simulation complete: {s['total']} subcircuits — "
+            f"{s['pass']} pass, {s['warn']} warn, {s['fail']} fail, "
+            f"{s['skip']} skip ({elapsed:.1f}s)")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Run SPICE simulations for detected subcircuits"
@@ -671,13 +680,7 @@ def main():
         with open(args.output, "w") as f:
             f.write(output_json)
         # Print summary to stderr
-        s = report["summary"]
-        print(
-            f"Simulation complete: {s['total']} subcircuits — "
-            f"{s['pass']} pass, {s['warn']} warn, {s['fail']} fail, "
-            f"{s['skip']} skip ({report['total_elapsed_s']:.1f}s)",
-            file=sys.stderr,
-        )
+        print(_summary_line(report), file=sys.stderr)
     elif not args.analysis_dir:
         print(output_json)
 

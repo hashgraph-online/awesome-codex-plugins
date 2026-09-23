@@ -1,0 +1,20 @@
+{
+  "name": "pixeltable-skill",
+  "interface": {
+    "displayName": "Pixeltable"
+  },
+  "plugins": [
+    {
+      "name": "pixeltable",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

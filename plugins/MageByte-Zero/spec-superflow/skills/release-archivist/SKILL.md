@@ -5,181 +5,39 @@ description: Close out a spec-superflow change with verification, summary, and a
 
 # Release Archivist
 
-Finish a spec-superflow change cleanly with verification evidence. This skill
-operates while the change state is `executing`; it is not an active skill after
-the final transition to `closing`.
+## Bundled runtime
 
-## Execution-State Guard
+Before executing a CLI line below, replace its leading `SSF` with `node "<plugin-root>/scripts/spec-superflow.mjs"`; `<plugin-root>` is the absolute directory two levels above this file. Never run `SSF` literally or call an `ssf` from `PATH`.
 
-Before verification, `ssf audit`, any DP state write, or delta-spec merge, run
-`ssf state get <change-dir> state`.
-Continue only when the persisted state is exactly `executing`. If it is
-`closing` → STOP: "Closing is terminal; release, audit, and archival work were
-completed before this transition." For any other state, or if the state cannot
-be read → STOP and route through `workflow-start`; do not perform side effects.
+Read `SSF resume <change-dir> --json`. In `executing`, complete verification and logical closure. In `closing`, perform only recorded pending physical finish, if merging is authorized. `abandoned` or a completed finish requires no work. Other states route through workflow-start.
 
-## Direct Short-Path Closure (run before the Full checklist)
+## New direct/planned changes
 
-For Quick, Tweak, or a valid direct incident Hotfix receipt, skip the Full verification, audit, delta merge, DP-6, and DP-7 sections below. Record changed files, the focused verification command and result, then persist `test_result: pass` and transition to closing. Quick requires a targeted test or syntax/static check; direct Hotfix requires an original-symptom regression. A legacy Hotfix stays on the Full checklist.
+Use `SSF workflow complete <dir> --verification-command "<required check command>"`. It runs final verification once; do not run the identical full suite immediately before invoking it. Planned execution additionally checks completed tasks, current full-range/wave review and any delta-spec publication. Direct execution needs no plan or review receipt. Ordinary failures stay in executing for focused repair. Do not add DP-6/DP-7 or another approval to authorized code delivery.
 
-## Full/Legacy Verification Before Completion
+If the user explicitly accepts unfinished work or failed verification, use `SSF workflow complete <dir> --accept-risk --confirm --reason "<decision and remaining issues>"`. Preserve every failure and report accepted-risk, not verified success. This ends code delivery without merging or deleting the branch. A plain closing transition cannot bypass failed checks. For verified work, physical integration remains a separate authorized operation. The remaining closure steps are legacy compatibility.
 
-The Full checklist below applies only to Full and legacy Hotfix. Direct Short-Path Closure above takes precedence for Quick, Tweak, and valid direct Hotfix.
+## Bounded paths
 
-Claiming work is complete without verification is dishonesty, not efficiency. Before claiming any status:
-1. IDENTIFY the command that proves the claim
-2. RUN the full command fresh
-3. READ output, check exit code
-4. VERIFY output confirms the claim
-5. Only THEN make the claim
+Quick/direct Hotfix/Tweak record changed files, focused command and result, persist `test_result: pass`, then transition to closing. Hotfix must prove the original symptom fixed. Lightweight also needs its receipt's focused review and passing verification evidence. These paths require no contract, execution plan, wave reviews, audit, DP-6/DP-7 or `SSF finish`.
 
-**Forbidden before evidence**: "should", "probably", "seems to", expressions of satisfaction without output.
+## Full / legacy Hotfix
 
-| Claim | Requires | Not Sufficient |
-|-------|----------|----------------|
-| Tests pass | Test output: 0 failures | Previous run, "should pass" |
-| Linter clean | Linter output: 0 errors | Partial check |
-| Build succeeds | Build exit 0 | Linter passing |
-| Bug fixed | Original symptom passes | Code changed |
-| Requirements met | Line-by-line checklist | Tests passing |
+1. Verify the final code snapshot with required build/test/validation commands. Reuse fresh results only when the code, environment and command are identical; don't rerun the same full suite just because the skill changed.
+2. Check contract coverage, design consistency, scope and unresolved findings against the actual diff. Cite commands/results; do not infer success from edits or unchecked claims.
+3. Require the current plan's review policy: one final whole-range review for Native `final`, or the required wave receipts for `wave`/legacy plans. Do not request a duplicate review of unchanged evidence.
+4. Synchronize actual delta specs using spec-merger while executing. If specs were explicitly omitted and no delta exists, don't recreate them.
+5. Run `SSF audit <dir>` and record verification outcome (`dp_6_result`, timestamp and `test_result`). Record DP-7 only with the user's archive authorization already obtained or explicitly requested. Do not fabricate missing decisions.
+6. With blockers resolved, run `SSF state transition <dir> closing`. This is logical closure; it does not claim merge or cleanup succeeded.
 
-## Full/Legacy Verification Steps
+Report only the outcome, key verification, unresolved risks and next action. Preserve the approved contract and implementation evidence; don't copy all planning files into a second summary.
 
-### Step 1: Test Suite
-Run full test suite. Record total/passed/failed/skipped. Zero failures = PASS.
+## Physical finish
 
-### Step 2: Completeness
-Compare contract batches against actual diff. Every SHALL/MUST must have implementation evidence. Missing = Critical severity.
+For authorized Full/legacy Hotfix integration, run `SSF finish <dir> [--test-cmd <command>]`. It uses recorded target checkout/branch, merges if necessary, verifies the target, and safely removes isolation. It verifies an archive of ignored change artifacts and preserves the previous target before cleanup. It never force-removes uncommitted work. Branch-only isolation never deletes the checkout.
 
-### Step 3: Coherence
-Compare design decisions against code. Check naming consistency. Inconsistencies = IMPORTANT.
+Verification failure preserves isolation. For recorded `verify-pending`, recovery offers the guarded `closing -> debugging` transition; diagnose, repair within approved scope, reverify and review before closing again. Completed finish and abandoned changes cannot reopen. Cleanup failure remains cleanup-pending. Resume performs the remaining steps; each unfinished finish retry verifies once again because ignored dependencies, local configuration and external services may have changed even at the same HEAD. Completed finish does not rerun verification. Completed finish is idempotent. A missing or ambiguous target is a real blocker: recover provenance before merging, never guess the target from the current directory.
 
-### Step 4: Unintended Scope
-Check for files modified outside scope fence, new dependencies not in design. Unplanned = WARN.
+If the user requested branch delivery without merging, leave the branch/worktree intact and report that status. Do not treat logical closure as permission to merge, push or release.
 
-### Step 5: Report
-
-| Dimension | Status | Findings |
-|-----------|--------|----------|
-| Completeness | PASS/FAIL/WARN | [list] |
-| Correctness | PASS/FAIL/WARN | [list] |
-| Coherence | PASS/FAIL/WARN | [list] |
-
-**Verdict**: PASS (all PASS) / CONDITIONAL (WARN only) / FAIL (any FAIL).
-- FAIL → fix issues or route back to build-executor
-- CONDITIONAL → present WARNs, proceed only with user acceptance
-- PASS → proceed to final checks
-
-## Full/Legacy Final Checks
-
-- Tests passing? (cite command and output)
-- All batches complete? (cite batch status)
-- Scope added without artifact updates?
-- Unresolved blockers or known risks?
-- Delta specs exist that need merging?
-- Run `ssf audit <change-dir>` — include `decision-point-audit.md` in archive
-
-### DP-6 (Verification Outcome, Full/legacy Hotfix)
-```bash
-ssf state set <change-dir> dp_6_result "<pass|conditional|fail>: <summary>"
-ssf state set <change-dir> dp_6_timestamp $(date -u +%Y-%m-%dT%H:%M:%SZ)
-```
-If FAIL, do NOT proceed to DP-7. Route back or ask about abandonment.
-
-After recording a PASS outcome, also record it as the verification gate so the
-`executing → closing` transition is allowed (the guard accepts either
-`test_result: pass` or a `dp_6_result` starting with `pass`):
-```bash
-ssf state set <change-dir> test_result pass
-```
-
-### DP-7 (Archive Confirmation, Full/legacy Hotfix)
-```bash
-ssf state set <change-dir> dp_7_result "confirmed: <archive summary>"
-ssf state set <change-dir> dp_7_timestamp $(date -u +%Y-%m-%dT%H:%M:%SZ)
-```
-Verify DP-0 through DP-6 are recorded before DP-7.
-
-## Archive Rule (Full/legacy Hotfix)
-
-If implementation diverged from the contract, return to `bridging` before closure.
-
-## Finalize While Executing (Full/legacy Hotfix)
-
-Complete every release, delta-spec synchronization, and audit action while the
-state remains `executing`. If delta specs exist, invoke `spec-merger` and
-resolve its outcome before the final `executing → closing` transition. Then
-run `ssf state transition <change-dir> closing`.
-`executing → closing` is the final action: once it succeeds, select no next
-skill and run no recovery scans.
-
-## Physical Archive (Full/legacy Hotfix only)
-
-After the `executing → closing` transition succeeds, complete the physical
-archive with:
-
-```bash
-ssf finish <change-dir> [--test-cmd <command>]
-```
-
-`ssf finish` merges the isolation branch back to the trunk (`--no-ff`),
-verifies the trunk (default `npm test`, `--test-cmd` override, 10-minute
-timeout), then removes the worktree and the isolation branch. For submodule
-projects it auto-falls-back to `--force` worktree removal; if that also
-fails it prints the merge commit and manual cleanup commands. Quick /
-direct Hotfix / tweak / lightweight skip this step — their `closing` is
-already the physical terminal.
-
-## Lightweight Closure (Quick/direct Hotfix/tweak)
-
-Quick and direct Hotfix use a concise verification summary: changed files, focused command, result, and persisted `test_result: pass`. Quick runs targeted tests or syntax/static checks; direct Hotfix proves the original symptom regression. Do not require a contract, execution plan, review receipt, DP-6, or DP-7. A legacy Hotfix remains on the full contract/DP/review closure path. Tweak verifies file integrity and also persists `test_result: pass`. Closing is the physical terminal for lightweight paths — no `ssf finish` step is needed.
-
-## Exception Handling
-
-- **Parse failures**: Report exact file and section
-- **Missing files**: If audit can't generate, run `ssf audit` manually
-- **User interruption**: Re-run verification from the beginning on resume
-- **DP gaps**: Flag missing DPs during DP-6; ask user whether to proceed or return
-
-## Standard User-Facing Handoff
-
-End every user-facing phase report with this concise handoff. Only a successfully
-persisted `closing` state and `abandoned` are terminal.
-
-### Normal report
-
-- Current stage: `<detected workflow stage>`.
-- Completed / blocker: `<completed work>`.
-- Next stage: `<next workflow stage or skill>`.
-- Entry condition: `<what must be true to enter it>`.
-
-### Blocked report
-
-- Current stage: `<detected workflow stage>`.
-- Completed / blocker: `<blocking fact or missing evidence>`.
-- Next stage: `<stage that resumes after the blocker>`.
-- Entry condition: `<the approval, artifact, validation, or fix required>`.
-
-### Approval-wait report
-
-- Current stage: `<detected workflow stage>`.
-- Completed / blocker: `<work ready for the named decision>`.
-- Next stage: `<stage that follows approval>`.
-- Entry condition: `<explicit user approval or recorded decision>`.
-
-### Closing-in-progress report
-
-- Current stage: `executing`; release verification or archive work is still running.
-- Completed / blocker: `<completed release work or remaining release blocker>`.
-- Next stage: complete the remaining release or archive step, then transition to `closing` (not `none`).
-- Entry condition: all release and archive work is complete and the transition succeeds.
-
-### Successful terminal report
-
-- Current stage: successfully persisted `closing` or `abandoned`.
-- Completed / blocker: `<persisted terminal outcome>`.
-- Next stage: for Full/legacy Hotfix, the physical archive via `ssf finish
-  <change-dir>` (worktree merge + cleanup); once it succeeds, next = none.
-  For Quick / direct Hotfix / tweak / lightweight, `none` — closing is the
-  physical terminal.
-- Entry condition: no further state transition exists.
+Use `SSF state set <change-dir> dp_6_timestamp now` and `SSF state set <change-dir> dp_7_timestamp now` when recording those decisions.

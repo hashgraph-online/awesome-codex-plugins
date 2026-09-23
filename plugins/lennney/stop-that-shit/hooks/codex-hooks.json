@@ -1,0 +1,53 @@
+{
+  "description": "Stop That Shit: a small on-demand policy with a few high-confidence Codex gates.",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const p=require('node:path');require(p.join(process.env.PLUGIN_ROOT??process.env.CLAUDE_PLUGIN_ROOT,'hooks','stop-that-shit.cjs'))\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "^(?:spawn_agent|Agent|wait_agent|multi_agent_v1wait_agent|collaborationspawn_agent|collaborationwait_agent)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const p=require('node:path');require(p.join(process.env.PLUGIN_ROOT??process.env.CLAUDE_PLUGIN_ROOT,'hooks','stop-that-shit.cjs'))\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const p=require('node:path');require(p.join(process.env.PLUGIN_ROOT??process.env.CLAUDE_PLUGIN_ROOT,'hooks','stop-that-shit.cjs'))\"",
+            "timeout": 5,
+            "statusMessage": "Checking the Stop Ladder..."
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const p=require('node:path');require(p.join(process.env.PLUGIN_ROOT??process.env.CLAUDE_PLUGIN_ROOT,'hooks','stop-that-shit.cjs'))\"",
+            "timeout": 3
+          }
+        ]
+      }
+    ]
+  }
+}

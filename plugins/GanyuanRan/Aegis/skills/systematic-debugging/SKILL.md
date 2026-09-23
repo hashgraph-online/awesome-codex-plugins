@@ -22,11 +22,8 @@ Bug, failure, or unexpected behavior:
    fallback, adapter, owner, or compatibility path, and Pre-Edit Complexity
    Check for an overloaded owner or complexity growth. After Change Necessity
    selects `code-change` and before the first repair edit, own the TDD Route for
-   the repair slice: `off` skips automatic TDD; `auto` selects `strict` on any
-   behavior, bugfix, shared/core, contract, persistence, permission, migration,
-   producer/consumer, or meaningful regression signal. `light` requires every
-   tiny/low-risk/single-owner/no-behavior-change condition; missing explicit
-   user TDD wording is never auto-light evidence.
+   the repair slice per `test-driven-development` (`off` default; `strict` on
+   behavior/bugfix/shared/contract/persistence/permission/migration risk).
 4. **Prove** — test one hypothesis with the smallest reproduction or
    verification. A failing test first is required only by a recorded
    `TDD Route: strict`; with `TDD Mode: off`, do not require a failing test or
@@ -63,9 +60,11 @@ Pass root cause, avoided misfix, boundary, evidence, complexity, and risk to
 
 1. Read the complete error/stack and record inputs, environment, versions, and
    success criteria.
-2. Reproduce consistently. If reproduction is not stable, read
+2. Reproduce consistently. If unstable, read
    `feedback-loop-construction.md` **only when evidence shows intermittent or
-   timing-dependent reproduction** and build a bounded automated loop.
+   timing-dependent reproduction** and build a bounded loop. Shrink the repro
+   to load-bearing elements as the test input, never the fix scope: still drill
+   upward; test at the correct seam.
 3. Inspect recent changes and compare a working example. Code is evidence; if
    authority, glossary, code, and tests disagree, compose
    `establishing-project-context` rather than silently redefining a term.
@@ -95,8 +94,7 @@ UpwardDrillSignal:
 Decision: fix owner | continue investigation | escalate
 ```
 
-A locally green test does not erase triage. Before unplanned repair, compare
-invariant, owner, patch shape, and topology; a renamed carrier is not a new direction.
+A locally green test does not erase triage; a renamed carrier is not a new direction.
 
 When a repair may reinterpret or retire existing semantics, responsibility,
 contract, or relationship, name the behavior to preserve, highest-risk
@@ -105,8 +103,7 @@ upstream/downstream reference, state its role and disposition: preserve, rebind
 to the canonical owner, retire with reason, or reject because of conflict.
 Leave unresolved relationships unknown; do not re-infer them downstream.
 Bind role before value and retire invalid responsibility, not evidenced carrier
-capability. Identifiers and selectors are examples, not the trigger. This
-bounded reminder is not a behavior matrix, relationship graph,
+capability. This bounded reminder is not a behavior matrix, relationship graph,
 referential-integrity proof, or exhaustive discovery claim. It adds no artifact,
 TDD risk signal, or regression scope; the existing TDD route owner and
 configured/default mode still apply.
@@ -122,56 +119,16 @@ proof, and Causal Topology Gate.
 
 ### Change Necessity
 
-This decision is behavior-triggered, not prompt-triggered. It applies to any new source-code path. Before that path or a non-trivial source edit, expose:
-
-```text
-Change Necessity:
-- User-visible need:
-- No-change / non-code option:
-- Why code change is necessary:
-- Minimum change boundary:
-- Decision: no-change | docs/config-only | code-change | needs-clarification
-```
-
-`no-change` blocks source edits; `docs/config-only` narrows them;
-`needs-clarification` pauses; `code-change` carries the minimum boundary into
-repair and verification.
+This decision is behavior-triggered, not prompt-triggered. It applies to any new source-code path. Before that path or a non-trivial source edit, expose the `Change Necessity` decision (`no-change | docs/config-only | code-change | needs-clarification`); field detail lives in `advanced-debugging-governance.md`.
 
 ### Minimality and owner fit
 
-For any proposed branch, fallback, adapter, compatibility path, or new owner:
-
-```text
-Minimality Check:
-- Existing owner / reuse path:
-- Correct owner and bug class:
-- New path and existence proof:
-- Invalid responsibility retired or scheduled:
-- Legitimate capability on the same carrier retained, if any:
-- Verdict: sufficient repair | local patch | needs first-principles review
-```
-
-A `local patch` needs a retention reason and retirement trigger. For a new
-non-ordinary repair surface, run the `Existence Check` in
-`docs/current/AEGIS_MINIMALITY_REFERENCE.md`. If retirement involves old code,
+For any proposed branch, fallback, adapter, compatibility path, or new owner, run `Minimality Check` (fields in `advanced-debugging-governance.md`) with verdict `sufficient repair | local patch | needs first-principles review`, and retire invalid responsibility: a `local patch` needs a retention reason and retirement trigger. For a new non-ordinary repair surface, run the `Existence Check` in `docs/current/AEGIS_MINIMALITY_REFERENCE.md`. If retirement involves old code,
 external compatibility, or persistent-state risk, compose
 `anti-entropy-governance`; it chooses the retirement path but never grants
 destructive authority.
 
-Before editing an overloaded or mixed-purpose owner:
-
-```text
-Pre-Edit Complexity Check:
-- Target edit file:
-- Existing pressure signal:
-- Owner fit and safer boundary:
-- Decision: edit-in-place | extract helper | add owner file | split task | pause for plan update
-
-Pre-Edit Owner-Fit Decision:
-- Edit intent: wiring-only | move-out / extract-first | local-fix-without-new-responsibility | new-responsibility | emergency / compatibility patch
-- Owner fit and safer boundary:
-- Decision: edit-in-place | extract helper | add owner file | split task | pause for plan update
-```
+Before editing an overloaded or mixed-purpose owner, complete `Pre-Edit Complexity Check` and `Pre-Edit Owner-Fit Decision` (templates in `advanced-debugging-governance.md`).
 
 Use `using-aegis/references/complexity-governance.md` for pressure signals.
 Do not add `new-responsibility` in place by default. If the safer boundary
@@ -231,7 +188,7 @@ Always report:
   disposition, retention reason/trigger, removal check.
 
 Confirm the reproduction, same-pattern handling, authority, complexity, and
-retirement. Confidence: A = direct regression evidence; B = strong evidence
+retirement. Prefix debug logs (e.g. `[DEBUG-a4f2]`); confirm one-grep removal before close. Confidence: A = direct regression evidence; B = strong evidence
 with bounded unknowns; C = partial and not resolved.
 
 `Trace Digest` may summarize audit evidence; never expose chain-of-thought or
