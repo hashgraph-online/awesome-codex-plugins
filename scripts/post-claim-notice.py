@@ -124,14 +124,16 @@ def fetch_catalog_repos(owner_verified: bool = False):
     if owner_verified:
         base_url += "&ownerVerified=true"
     url = base_url
-    for _ in range(10):
+    for _ in range(1000):
         if cursor:
             url = f"{base_url}&cursor={cursor}"
         data = api_request(url)
         if not data or "items" not in data:
-            break
+            raise RuntimeError("Registry catalog is unavailable; claim notice will be retried")
         for plugin in data["items"]:
-            repo = plugin.get("sourceRepo") or plugin.get("repository") or ""
+            # Vendored marketplace plugins have a catalog sourceRepo of
+            # awesome-codex-plugins; ownership belongs to the author repo.
+            repo = plugin.get("repository") or plugin.get("sourceRepo") or ""
             repo = repo.replace("https://github.com/", "").strip()
             if repo:
                 repos.add(repo.lower())
@@ -267,22 +269,8 @@ def main():
     # 5. Check which PR repos are in the registry
     matched = pr_repos & registry_repos
     if not matched:
-        # Fallback: check local README.md — the plugin may have just been merged
-        # and the registry sync hasn't completed yet
-        print("  Not in registry yet, checking local README.md...")
-        readme_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "README.md")
-        if os.path.exists(readme_path):
-            readme_content = open(readme_path, encoding="utf-8").read().lower()
-            readme_matched = {r for r in pr_repos if r.lower() in readme_content}
-            if readme_matched:
-                print(f"  Found in README (pending registry sync): {', '.join(readme_matched)}")
-                matched = readme_matched
-            else:
-                print("  Skipping: none of the PR repos are in the registry or README")
-                return 0
-        else:
-            print("  Skipping: README.md not found and repos not in registry")
-            return 0
+        print("  Pending registry ingestion; claim notice will be retried")
+        return 0
 
     print(f"  Matched in registry: {', '.join(matched)}")
 

@@ -1,6 +1,8 @@
 name: Plugin Claim Notice
 
 on:
+  schedule:
+    - cron: "23 * * * *"
   pull_request_target:
     types:
       - closed
@@ -28,7 +30,7 @@ permissions:
 
 jobs:
   post-claim-notice:
-    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     name: Post claim instructions
     runs-on: ubuntu-latest
     steps:
@@ -37,6 +39,7 @@ jobs:
           fetch-depth: 0
 
       - name: Post claim notice
+        if: github.event_name != 'schedule'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.inputs.pr_number || github.event.pull_request.number }}
@@ -44,3 +47,10 @@ jobs:
           PR_AUTHOR: ${{ github.event.inputs.pr_author || github.event.pull_request.user.login }}
           REGISTRY_API: https://hol.org/registry/api/v1
         run: python3 scripts/post-claim-notice.py
+
+      - name: Retry notices for recently merged plugins
+        if: github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REGISTRY_API: https://hol.org/registry/api/v1
+        run: python3 scripts/backfill-claim-notices.py
