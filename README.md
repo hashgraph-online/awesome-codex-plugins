@@ -485,6 +485,9 @@ The score is best used as a quick trust signal and triage summary (not the only 
 - [Tura](https://github.com/Tura-AI/tura) - A local, open-source coding agent for developers who are tired of vague skill claims, token-saving extensions with no evidence, and agents that change a repository before understanding it.
 - [HOL Plugin Registry](https://hol.org/registry/plugins) - Browse plugins with scanner-backed security analysis and trust scores.
 
+<!-- hol-sponsors:start -->
+<!-- hol-sponsors:end -->
+
 ## Claim Your Plugin
 
 Verify ownership of your plugin on the [HOL Plugin Registry](https://hol.org/registry/plugins) to display a verified badge on your listing.
