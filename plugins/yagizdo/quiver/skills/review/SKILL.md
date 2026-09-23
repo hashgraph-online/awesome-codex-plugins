@@ -40,7 +40,7 @@ Parse `$ARGUMENTS` for the `--deep` and `--plan` flags:
 2. Otherwise, set `review_mode = fast`.
 3. If `$ARGUMENTS` contains `--plan <path>`, set `constraints_plan_path` to the path token that follows the flag, and strip both `--plan` and that path from `$ARGUMENTS` before passing to subsequent steps. Otherwise leave `constraints_plan_path` unset.
 
-`--deep` affects Steps 2 (agent dispatch), 3 (synthesis), 3.5, and 3.75 only. `--plan` affects Step 1.8 only -- it names the plan whose Global Constraints bind this review, and never changes which diff is reviewed. All other steps (diff source detection, manifest building, LSP detection, report saving, PR posting) are identical in both modes.
+`--deep` affects Steps 2 (agent dispatch), 3 (synthesis), 3.5, 3.75, and 3.9 only. `--plan` affects Step 1.8 only -- it names the plan whose Global Constraints bind this review, and never changes which diff is reviewed. All other steps (diff source detection, manifest building, LSP detection, report saving, PR posting) are identical in both modes.
 
 Announce the mode:
 - Fast: `Running review (5 core agents)...`
@@ -246,6 +246,7 @@ Then continue the fast review without Codex.
   > Skipping codex-code-reviewer: diff exceeds 2000 lines ({actual_count} lines). Codex review is skipped for large diffs to avoid excessive token consumption and timeouts.
 - **`report-checker`**: Never dispatched in Step 2. This agent is a post-synthesis quality gate, dispatched only in Step 3.5 after the report is assembled. Skip silently during agent discovery.
 - **`senior-reviewer`**: Never dispatched in Step 2. This agent is a post-quality-check senior review, dispatched only in Step 3.75 after report-checker completes. Skip silently during agent discovery.
+- **`fix-reviewer`**: Never dispatched in Step 2. This agent is a post-senior-review fix-proposal check, dispatched only in Step 3.9 after senior-reviewer completes. It lives under `agents/debug/`, so Step 2a's discovery never sees it. Skip silently during agent discovery.
 - **Future agents**: Add a row to the `## Dispatch Gates` table in `.claude/rules/review-agent-rules.md` before the agent's first review run, then restate that row here. The table row is the gate. Until a row exists, the agent is dispatched on every diff regardless of what changed, and `tests/skills/test-review-dispatch-contract.sh` fails until one is added -- dispatching too much is recoverable, silently reviewing nothing is not.
 
 Spawn qualifying agents simultaneously using multiple Agent tool calls in a single response. Use the `quiver:{name}` identifier format described above as the `subagent_type`.
@@ -290,7 +291,7 @@ After **all** agents return, merge their outputs into a single unified report.
 
 ### Synthesis mode
 
-**If `review_mode = fast`:** Use the simplified synthesis rules below. **If `review_mode = deep`:** Use the full synthesis rules (items 0-8 with subsumption and proportional floor).
+**If `review_mode = fast`:** Use the simplified synthesis rules below. **If `review_mode = deep`:** Use the full synthesis rules (items 0-9 with subsumption and proportional floor).
 
 ### Fast mode synthesis
 
@@ -308,8 +309,9 @@ With 5 agents, the finding volume is low enough to skip the heavy-duty noise red
    - Constraint-blocked (finding carries a `SUPPRESSED` entry, or its recommendation cannot be acted on without violating a Global Constraint) -> DISCARD, recorded as filtered with classification `constraint-blocked` and the constraint named. Same rule as deep mode item 4, so both modes behave identically; never fires when Step 1.8 produced no block.
 5. **Unified verdict.** Same rules as deep mode.
 6. **Identify strengths.** Same rules as deep mode.
-7. **Compute fix order.** Same rules as deep mode.
-8. **Populate findings overview.** Same format as deep mode.
+7. **Assign a disposition to every finding.** Same rules as deep mode item 7, including the rule that a finding whose own body argues against acting now cannot be **Before merge**.
+8. **Compute fix order.** Same rules as deep mode item 8.
+9. **Populate findings overview.** Same format as deep mode.
 
 **Skipped in fast mode:**
 - Subsumption (parent-child merging) -- finding volume too low to need it
@@ -391,12 +393,25 @@ The proportional floor runs AFTER subsumption (Step 3.1) and the 9 filters (Step
    - Proper error handling
    - Clean abstractions or well-chosen framework conventions
    If the diff has no notable strengths, omit the "What's Working Well" section rather than fabricating praise.
-7. **Compute fix order.** Rank non-filtered findings of Medium severity or above into a prioritized action plan:
+7. **Assign a disposition to every finding.** Every finding that survives filtering carries exactly one disposition, Low findings included. Severity says how big the consequence is; disposition says what the reader does about it, and a report that states only the first leaves every Low finding unowned:
+   - **Before merge** -- the change is not safe to ship without this. Critical and High start here.
+   - **Follow-up** -- real, worth an issue, not worth holding the merge.
+   - **Defer** -- correct as an observation, but the cost or the blast radius is wrong for now.
+
+   Severity does not decide the disposition on its own. A High whose fix is a one-word doc correction is still **Before merge**; a Medium that needs a shipped file touched can be **Follow-up**. State the reason in the disposition line when it is not the default for that severity.
+
+   **A finding cannot be assigned Before merge when its own body argues against acting now.** Read the finding's text for a concession -- "eventually rather than now", "not now", "worth doing when", "either answer is defensible", "when the team wants it". A finding carrying one is **Defer**, and it keeps its place in `## Findings` with its severity intact. The reader is told what to skip; the finding is not deleted to achieve that. This check reads the finding's own words, so it does not depend on re-judging the defect.
+
+   Write the disposition on its own line directly under the finding's ID block:
+   ```
+   Disposition: Before merge | Follow-up | Defer -- {reason, only when it is not the default for this severity}
+   ```
+8. **Compute fix order.** Rank every finding whose disposition is **Before merge**, then every finding whose disposition is **Follow-up**, into the `## Recommended Fix Order` table. Within one disposition:
    1. Severity (Critical first)
    2. Dependency (if fix A must happen before fix B, A goes first)
    3. Effort (quick wins before large refactors within same severity)
-   If there are 0-2 findings of Medium+, omit the "Recommended Fix Order" section -- a table with 1-2 rows adds no value.
-8. **Populate findings overview.** After all filtering, deduplication, and severity assignment, count findings per severity tier. Write the totals into the `Findings overview` line in `## Review Context`. Use the format: `X Critical, Y High, Z Medium, W Low (N filtered)`. Omit tiers with zero findings (e.g., `2 High, 1 Medium (3 filtered)` instead of `0 Critical, 2 High, 1 Medium, 0 Low`).
+   **Defer** findings do not enter the table -- their disposition line is the whole instruction. Never omit the table: when no finding is Before merge or Follow-up (every finding deferred, or no findings at all), the table still prints, carrying the single row `| -- | -- | Nothing blocks the merge | -- | -- | -- |`, so a reader learns that from the report rather than from its absence.
+9. **Populate findings overview.** After all filtering, deduplication, and severity assignment, count findings per severity tier. Write the totals into the `Findings overview` line in `## Review Context`. Use the format: `X Critical, Y High, Z Medium, W Low (N filtered)`. Omit tiers with zero findings (e.g., `2 High, 1 Medium (3 filtered)` instead of `0 Critical, 2 High, 1 Medium, 0 Low`).
 
 ### Synthesized report structure
 
@@ -413,6 +428,7 @@ The proportional floor runs AFTER subsumption (Step 3.1) and the 9 filters (Step
 - **HEAD at review**: {output of `git rev-parse --short HEAD`}
 - **Global Constraints**: {plan path the block came from, or "N/A"}
 - **Findings overview**: {X Critical, Y High, Z Medium, W Low} ({N filtered})
+- **Dispositions**: {X before merge, Y follow-up, Z deferred}
 
 ## Summary
 One paragraph: what the PR does, overall risk, top-line recommendation.
@@ -432,6 +448,8 @@ One paragraph: what the PR does, overall risk, top-line recommendation.
 
 Each finding gets a short ID: severity initial + sequence number (C1, C2... for Critical; H1, H2... for High; M1, M2... for Medium; L1, L2... for Low). These IDs are stable within a report and can be used to reference findings concisely (e.g., "except L1", "fix H2 first").
 
+Every finding carries a `Disposition:` line directly under its ID block, from Step 3 item 7. It is not optional and it has no default -- a finding with no disposition line is a finding whose reader has to guess.
+
 ### Critical
 [C1, C2, ... merged critical findings]
 
@@ -450,13 +468,16 @@ Each finding gets a short ID: severity initial + sequence number (C1, C2... for 
 {If senior-reviewer ran: team lead's overall assessment, meta-review observations, and any finding modifications with justification. Omit this section entirely if senior-reviewer did not run or returned no assessment.}
 
 ## Recommended Fix Order
-{Prioritized action plan for findings of Medium severity or above. Omit this section if 0-2 findings qualify.}
+{Every finding whose disposition is Before merge, then every finding whose disposition is Follow-up, at any severity. Deferred findings are listed in the Deferred block below instead. This section is never omitted.}
 
-| Priority | ID | Finding | Severity | Effort |
-|----------|----|---------|----------|--------|
-| 1 | C1 | [Short title with file:line] | Critical | ~X min |
-| 2 | H1 | [Short title with file:line] | High | ~X min |
-| ... | ... | ... | ... | ... |
+| Priority | ID | Finding | Severity | Disposition | Effort |
+|----------|----|---------|----------|-------------|--------|
+| 1 | C1 | [Short title with file:line] | Critical | Before merge | ~X min |
+| 2 | H1 | [Short title with file:line] | High | Before merge | ~X min |
+| 3 | L2 | [Short title with file:line] | Low | Follow-up | ~X min |
+| ... | ... | ... | ... | ... | ... |
+
+**Deferred:** {comma-separated finding IDs with a half-line reason each, e.g. "L3 -- extracting the helpers means touching a shipped file in this PR". Write "None." when nothing was deferred.}
 
 ## Filtered Findings
 
@@ -471,7 +492,7 @@ Each finding gets a short ID: severity initial + sequence number (C1, C2... for 
 [Unified verdict] -- [severity counts] -- [one-line justification]
 ```
 
-<!-- SYNC: This report format is parsed by skills/work/SKILL.md, section `#### 4c -- Review finding verification (review-fix plans only)`. If you change the report structure (section headings, finding format), update the verification parsing logic there. New sections (What's Working Well, Recommended Fix Order, Senior Assessment) are additive and do not affect Phase 4c parsing. Step 3.5 and Step 3.75 below may modify findings (remove, downgrade, rewrite, promote, add) before Step 4 saves the report. -->
+<!-- SYNC: This report format is parsed by skills/work/SKILL.md, section `#### 4c -- Review finding verification (review-fix plans only)`. If you change the report structure (section headings, finding format), update the verification parsing logic there. New sections (What's Working Well, Recommended Fix Order, Senior Assessment) are additive and do not affect Phase 4c parsing. Step 3.5 and Step 3.75 below may modify findings (remove, downgrade, rewrite, promote, add) before Step 4 saves the report; Step 3.9 modifies only the fix block inside a finding and never the finding itself. -->
 
 ## Step 3.5 -- Report Quality Check
 
@@ -493,6 +514,7 @@ After synthesis, dispatch the `report-checker` agent for an independent quality 
      - REWRITE: Replace the finding's recommendation text with the corrected version.
    - After applying fixes, recalculate:
      - Findings overview counts in `## Review Context`
+     - Disposition counts in `## Review Context`, and the `**Deferred:**` line under the fix order table
      - Severity section contents (move downgraded findings, remove deleted ones)
      - Recommended Fix Order table (remove entries for deleted/downgraded findings)
      - Verdict line (recompute based on remaining finding severities)
@@ -524,16 +546,17 @@ After the quality check, dispatch the `senior-reviewer` agent for a pragmatic se
    - Do NOT pass --quick flag in pipeline mode. Always run full analysis (Phase 0-4 + Phase 5).
 
 2. **Handle results:**
-   - **Zero modifications, zero new findings:** Print `Senior review passed -- no changes to report.` Proceed to Step 4.
+   - **Zero modifications, zero new findings:** Print `Senior review passed -- no changes to report.` Proceed to Step 3.9.
    <!-- SYNC: The apply-fixes procedure below (REMOVE/DOWNGRADE/REWRITE/PROMOTE/ADD actions + recalculation steps) is a superset of the procedure in Step 3.5 and skills/report-check/SKILL.md Step 4. PROMOTE and ADD are unique to Step 3.75. Keep the shared actions (REMOVE/DOWNGRADE/REWRITE) and recalculation steps in sync across all three locations. -->
    - **Modifications or new findings:** Apply the recommended actions:
      - REMOVE: Delete the finding from the report.
      - DOWNGRADE: Change the finding's severity and move it to the correct section.
      - REWRITE: Replace the finding's recommendation text with the corrected version.
      - PROMOTE: Upgrade the finding's severity and move it to the correct section. The senior-reviewer must provide justification for promotion.
-     - ADD: Insert a new finding into the appropriate severity section. New findings from senior-reviewer use the prefix SR (SR1, SR2, etc.) to distinguish them from original agent findings. The senior-reviewer must cite the file and line for each added finding.
+     - ADD: Insert a new finding into the appropriate severity section, with a `Disposition:` line assigned by the Step 3 item 7 rules. New findings from senior-reviewer use the prefix SR (SR1, SR2, etc.) to distinguish them from original agent findings. The senior-reviewer must cite the file and line for each added finding.
    - After applying fixes, recalculate:
      - Findings overview counts in `## Review Context`
+     - Disposition counts in `## Review Context`, and the `**Deferred:**` line under the fix order table
      - Severity section contents (move promoted/downgraded findings, remove deleted ones, insert added ones)
      - Recommended Fix Order table (update entries for promoted/downgraded findings, add entries for new findings, remove deleted ones)
      - Verdict line (recompute based on remaining finding severities)
@@ -541,11 +564,55 @@ After the quality check, dispatch the `senior-reviewer` agent for a pragmatic se
 
 3. **Senior Assessment section.** If the senior-reviewer produced an overall assessment, insert a `## Senior Assessment` section in the report after `## Findings` and before `## Recommended Fix Order`. This section contains the team lead's summary and any meta-review observations. Omit this section if the senior-reviewer returned no assessment text.
 
-4. **No retry.** Unlike report-checker, the senior-reviewer does NOT get a retry. One pass only. Proceed to Step 4.
+4. **No retry.** Unlike report-checker, the senior-reviewer does NOT get a retry. One pass only. Proceed to Step 3.9.
 
 **Status messages (plain language, no rule codes):**
 - Before dispatch: `Running senior developer review (independent code review + meta-review of findings)...`
 - After completion: `Senior review complete.` or `Senior review: {N} modifications, {M} new findings.`
+
+## Step 3.9 -- Fix Proposal Check
+
+**If `review_mode = fast`:** Skip this step entirely. Proceed to Step 4.
+
+Every step up to here verifies that a finding describes a real defect. Nothing has yet verified the fix printed under it. A wrong snippet in a High finding is worse than no snippet -- it is the version the reader pastes, and it arrives carrying the authority of a report that was right about the defect.
+
+Run this step only when at least one finding carries a fix: a fenced code block, a patch, or a concrete "replace X with Y" instruction. When no finding carries one, print `No fix proposals to check.` and proceed to Step 4.
+
+1. **Dispatch.** Spawn `quiver:fix-reviewer` with:
+   - Every finding that carries a fix, as a numbered proposal list. Give each one the finding ID, its severity, its `file:line`, the defect description as the root cause, and the fix verbatim.
+   - The original diff from Step 1 and the Diff Manifest from Step 1.5.
+   - This scope context, verbatim:
+
+     ```
+     These are fix proposals from a code review report, not applied changes. Review the
+     fixes only. Do not re-litigate whether the defect is real, do not propose fixes for
+     defects no proposal targets, and do not change any finding's severity.
+
+     Read the file each proposal edits before flagging a convention violation or a side
+     effect. Add one check to your Phase 3: a proposal whose comment, doc comment, or
+     surrounding prose states a behaviour its own code does not produce is a FLAG under
+     CONVENTION_VIOLATION -- quote both halves and say which one is wrong.
+
+     A proposal that cannot be implemented on this project's platform or language as
+     written -- a subclass of a type the platform forbids subclassing, an override on a
+     method the class does not expose, an API unavailable at the declared minimum version
+     -- is a REJECT, naming the specific restriction.
+     ```
+
+2. **Handle results.** Every action lands on the fix, never on the finding:
+   - **APPROVE:** leave the finding untouched.
+   - **FLAG:** replace the fix block with the corrected version, and add a one-line `Fix corrected:` note under it naming what was wrong with the original.
+   - **REJECT:** delete the fix block and put `No verified fix -- {one line naming why the proposed one does not work}` in its place.
+
+   Do not remove a finding, change a severity, or change a disposition at this step. A fix that does not work is not evidence that the defect is not there, and Steps 3.5 and 3.75 have already had their pass at the findings themselves.
+
+3. **Recalculate.** Only the `Effort` column of the Recommended Fix Order table changes, and only for a finding whose fix was corrected or rejected; a rejected fix's effort reads `unknown`. Findings overview counts, dispositions and the verdict are unchanged by this step.
+
+4. **No retry.** One pass only. Proceed to Step 4.
+
+**Status messages (plain language, no rule codes):**
+- Before dispatch: `Checking the fixes the report recommends...`
+- After completion: `Fix check: {N} proposals reviewed, {M} corrected, {K} left without a verified fix.`
 
 ## Step 4 -- Save Review Report
 

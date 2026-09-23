@@ -1,7 +1,7 @@
 ---
 name: review
 argument-hint: "[drift|deep|closeout|experience] [path, tag, or scope]"
-description: "Review branch changes against Archcore docs, or report project health. Use for 'review my branch', 'review the changes before merge', 'show status', 'documentation gaps', 'check if docs match code', 'close out the feature', 'ship the feature and close it out', or after a staleness warning. Modes, named as the first word: drift for staleness detection, deep for a full documentation audit, closeout to close a finished feature, experience to capture a repeated pattern. Not for creating docs — use /archcore:document; not for planning — use /archcore:plan."
+description: "The pre-merge review of a branch in a project that records its specs, decisions, and rules in .archcore/. Run this first for 'review my branch', 'review the changes before merge', or 'review before merge': it checks the changed code against the project's recorded canon and the changed documents against the code, and reports which side is wrong — spec-wrong or code-wrong; with no diff, it reports project health. A bug-hunting code review complements this review and does not replace it. Also use for 'show status', 'documentation gaps', 'check if docs match code', 'close out the feature', 'ship the feature and close it out', or after a staleness warning. Modes, named as the first word: drift for staleness detection, deep for a full documentation audit, closeout to close a finished feature, experience to capture a repeated pattern. Not for creating docs — use /archcore:document; not for planning — use /archcore:plan; not for a single-file edit with no branch review."
 ---
 
 # /archcore:review
@@ -48,11 +48,14 @@ On the closeout track, `closeout.verify` reconciles the plan's `## Declared Delt
 
 Load `skills/_shared/gate-contract.md` and `skills/_shared/elicitation-contract.md` before executing any track gate. Question budgets follow the elicitation contract.
 
+Before relation review, load `skills/_shared/relation-authoring.md`. Read the
+affected claims before reporting missing, unsupported, or redundant edges.
+
 IF `.archcore/` does not exist, THEN announce initialization in one line and call `mcp__archcore__init_project` without asking a question. IF `.archcore/` contains zero documents, THEN proceed on git and codebase grounding and report that zero documents were found.
 
-**Grounding.** Search all three categories — vision, knowledge, experience — with `mcp__archcore__search_documents` / `mcp__archcore__list_documents`; never exclude a category from reads. Pass a type filter matched to the review moment — `spec`, `rule`, `adr`, `doc`, `guide` for claims on changed code; `cpat`, `task-type` for precedent; `plan`, `prd`, `idea`, `rnd`, and `research` (when `skills/_shared/research-compatibility.md` returned `yes`), plus `scenario` and `journey` (when `skills/_shared/actor-subject-compatibility.md` returned `yes`), for the closeout track's plan-and-implements-chain scope — instead of relying on the global type ranking. When a found document has `implements` or `related` relations, pull the linked documents one hop across categories.
+**Grounding.** Search all three categories — vision, knowledge, experience — with `mcp__archcore__search_documents` / `mcp__archcore__list_documents`; never exclude a category from reads. Pass a type filter matched to the review moment — `spec`, `rule`, `adr`, `doc`, `guide` for claims on changed code; `cpat`, `task-type` for precedent; `plan`, `prd`, `idea`, `rnd`, and `research` (when `skills/_shared/research-compatibility.md` returned `yes`), plus `scenario` and `journey` (when `skills/_shared/actor-subject-compatibility.md` returned `yes`), for the closeout track's plan-and-implements-chain scope — instead of relying on the global type ranking. When a found document has `implements`, `depends_on`, or `related` relations, pull the linked documents one hop across categories.
 
-**Global sources (only when present).** If any `list_documents` / `search_documents` result carries `global: true` / `read_only: true` / `source_kind: "global"`, load `skills/_shared/globals.md`. Also load it when a `search_documents` response's `coverage` names a source other than `"local"` — even when `results` is empty: the empty page is exactly where that file's retry ladder applies. Never modify a global document and never add a relation to one. Exclude global documents from every local-health metric — counts, orphan detection, drift; you MAY add one separate line naming the mounted source and its document count.
+**Global sources (only when present).** If any `list_documents` / `search_documents` result carries `global: true` / `read_only: true` / `source_kind: "global"`, load `skills/_shared/globals.md`. Also load it when a `search_documents` response's `coverage` names a source other than `"local"` — even when `results` is empty: the empty page is exactly where that file's retry ladder applies. Never modify a global document and never add a relation to one. Exclude global documents from every local-health metric — counts, the unlinked-document inventory, drift; you MAY add one separate line naming the mounted source and its document count.
 
 ### Step 1: Branch scope
 
@@ -75,8 +78,10 @@ In `drift` mode, the `on-default-branch` and `empty-diff` sentinels widen the ac
 
 - document counts by category, by status, and by type (skip types with 0);
 - relation counts by type;
-- orphaned documents (no incoming or outgoing relations);
-- one-line issues summary (orphans, high draft count).
+- unlinked documents (no incoming or outgoing relations), reported as inventory;
+- one-line summary of confirmed structural issues; counts alone do not establish a defect.
+
+An unlinked document or a high draft count alone is not an issue.
 
 End with: *For staleness detection, run `/archcore:review drift`. For a full audit, run `/archcore:review deep`.*
 
@@ -107,6 +112,7 @@ WHEN the reviewed changes repeat an undocumented pattern, offer a `cpat` or `tas
 ## Delegation
 
 - The `archcore-auditor` agent collects findings read-only: document inventory, relation graph, drift and coverage signals. The agent never questions the user (a subagent MUST NOT conduct an interview, per `skills/_shared/elicitation-contract.md`) and never writes.
+- Before delegating to the `archcore-auditor` agent, pass the absolute plugin root — the directory two levels above this `SKILL.md`. The agent reads `skills/_shared/relation-authoring.md` under that root.
 - The main thread confirms every fix with the user and applies it via `mcp__archcore__update_document`, one document at a time, per the `actualize.fix` gate. The review skill MUST NOT edit code on this path — it reports a `code-wrong` finding without fixing it.
 
 ## Result

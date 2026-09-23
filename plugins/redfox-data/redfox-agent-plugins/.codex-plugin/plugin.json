@@ -4,10 +4,10 @@
   "description": "Batch-download all videos from an account's homepage (YouTube, TikTok, Douyin, Kuaishou, Bilibili)",
   "author": {
     "name": "Redfox Data",
-    "email": "support@redfox.hk",
+    "email": "redfoxdata@proton.me",
     "url": "https://redfox.hk"
   },
-  "homepage": "https://redfox.hk/skills/account-video-downloader?source=agent_plugins",
+  "homepage": "https://redfox.hk/skills",
   "repository": "https://github.com/redfox-data/redfox-agent-plugins",
   "license": "MIT",
   "keywords": [
@@ -40,8 +40,7 @@
       "Batch-download all videos from an account's homepage (YouTube, TikTok, Douyin, Kuaishou, Bilibili)"
     ],
     "websiteURL": "https://redfox.hk/",
-    "privacyPolicyURL": "https://redfox.hk/privacy",
-    "termsOfServiceURL": "https://redfox.hk/terms",
+    "termsOfServiceURL": "https://redfox.hk/enterprise",
     "screenshots": []
   }
 }

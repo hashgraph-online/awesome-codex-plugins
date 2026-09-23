@@ -75,7 +75,7 @@ no-shell rule applies: report `needs-vocabulary-probe` and stop before the first
 MCP call that names either type.
 
 1. Search `.archcore/` with `mcp__archcore__search_documents` and `mcp__archcore__list_documents` across all three categories. Pass a planning-moment type filter — for example `types=["idea", "prd", "plan", "spec", "rnd", "rfc", "adr", "rule", "task-type", "cpat"]` — and add `"scenario"`, `"journey"` when the actor-subject probe returned `yes` — instead of relying on the global type ranking. Do not exclude a category from reads.
-2. WHEN a found document carries `implements` or `related` relations, pull the linked documents one hop via `mcp__archcore__list_relations` and `mcp__archcore__get_document`.
+2. WHEN a found document carries `implements`, `depends_on`, or `related` relations, pull the linked documents one hop via `mcp__archcore__list_relations` and `mcp__archcore__get_document`.
 3. WHEN a found draft on the topic carries an `archcore:track` state block, resume it per the resume rules in `skills/_shared/gate-contract.md` and `skills/_shared/delta-routing.md` instead of opening a new track.
 4. Read git state — current branch, recent commits, working tree — and the code areas the topic names. Record the concrete files and modules for Step 5, and note zone documents whose referenced paths changed after them — the staleness input to Derivation.
 5. IF `.archcore/` exists but contains no documents, THEN proceed on outer-context grounding (git state and the codebase) and report that zero documents were found.
@@ -118,6 +118,9 @@ relation wiring live in the track files — do not restate them.
 Before delegating research or evidence work, pass the current vocabulary probe
 result and absolute plugin root to the assistant. If the assistant returns
 `needs-vocabulary-probe`, run the helper and resume the same task.
+Before delegating any other document write or relation work, pass the absolute
+plugin root to the assistant. The assistant reads
+`skills/_shared/relation-authoring.md` under that root.
 
 ### 5. Map tasks to files
 

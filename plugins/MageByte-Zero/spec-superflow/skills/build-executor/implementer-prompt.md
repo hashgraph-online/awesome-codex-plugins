@@ -1,5 +1,7 @@
 # Implementer Subagent Prompt Template
 
+Before executing a CLI line below, replace its leading `SSF` with `node "<plugin-root>/scripts/spec-superflow.mjs"`; `<plugin-root>` is the absolute directory two levels above this file. Never run `SSF` literally or call an `ssf` from `PATH`.
+
 Use this template when dispatching an implementer subagent.
 
 ```
@@ -21,7 +23,7 @@ Subagent (general-purpose):
     ## Planned Wave
 
     You are assigned to planned wave [WAVE_ID] with strategy [WAVE_STRATEGY].
-    Read `ssf execution show <change-dir> --json` before editing. Do not start
+    Read `SSF execution show <change-dir> --json` before editing. Do not start
     unless all declared dependencies have `pass` review receipts. A `parallel`
     label permits concurrent dispatch only when the controller confirms the
     platform supports it; never change the saved wave strategy yourself.

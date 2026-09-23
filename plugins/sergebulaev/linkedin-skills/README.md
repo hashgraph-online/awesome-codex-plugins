@@ -172,7 +172,7 @@ Just tell the Post Writer you are a founder, or ask the Content Planner for a "f
 
 ## Community skills
 
-Standalone skills built by other people on this bundle's conventions (same voice rules, same approval-card flow, same `Not for X (use Y)` disambiguation). They live in their authors' repos, so the core stays at 11 skills and one read/write pipeline. Install them next to this bundle the same way.
+Standalone skills built by other people on this bundle's conventions (same voice rules, same approval-card flow, same `Not for X (use Y)` disambiguation). They live in their authors' repos, so the core stays at 12 skills and one read/write pipeline. Install them next to this bundle the same way.
 
 - [linkedin-outreach](https://github.com/smfardeen7/linkedin-skills/tree/add-linkedin-outreach-skill/skills/linkedin-outreach) by [@smfardeen7](https://github.com/smfardeen7) - drafts 300-character connection-request notes (10 scenario templates) and post-accept follow-up sequences with day offsets and stop rules. Draft-only: LinkedIn has no invite or DM API, you paste and send.
 

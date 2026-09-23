@@ -8,6 +8,9 @@ Make the caller's domain language precise enough to use consistently in
 acceptance examples, code and conversation. A bounded context is the area in
 which a term has one agreed meaning and an owner for its rules. Different
 contexts may legitimately use the same word differently.
+[Plan](../plan/SKILL.md) owns unified discovery and resumption; Domain resolves
+only the needed vocabulary or rule boundary and returns it to the existing
+intent. Reuse settled definitions rather than reopening the whole interview.
 
 ## Procedure
 

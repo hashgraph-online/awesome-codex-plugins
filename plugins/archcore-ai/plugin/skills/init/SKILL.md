@@ -8,6 +8,9 @@ description: "First-time Archcore setup. Wires the host (MCP config, hooks, CLAU
 
 First-time onboarding. Wires the host, measures the authored context the repository already holds, and fills `.archcore/` from two sources — what people wrote and what the code shows — so the code-alignment hook and per-command grounding have substance from day one. Per `magic-first-day-init.adr` and `init-import-mode.adr`: extractive facts are composed in full; authored content wins over synthesized content on the same subject; the overview is an index, never a prose blob. **Nothing is written before `confirm`.**
 
+Before planning or writing relations, load `skills/_shared/relation-authoring.md`.
+Apply its claim check to seed and import wiring after reading the endpoint content.
+
 ## Arguments
 
 The first word selects the run: `import` or `refresh`. These two words are the command's modes in the sense of `command-surface-v2.spec`. The rest of the arguments is the subject. No arguments, or any other first word, start a plain init.
@@ -150,6 +153,6 @@ A `.archcore/` filled from two sources, created only on `confirm`; existing arti
 - **Empty**: 0 content docs — `.archcore/` and `settings.json`, plus host wiring behind its own mini-confirm. No catalog files read.
 - **Plain init**: host wiring, the detected Tier-1 facts, the architecture overview, hotspot specs for the depth's budget over the pool that authored sources do not cover (the spec budget has no absolute maximum — `standard` 25% of the ranked pool, `light` 10%, `deep` 60%; `lib/seed-compose.md`), cross-cutting rules (medium/large), and — tier `S` — the converted authored documents, or — tier `M`/`L` — the import plan with wave 1 done. Every synthesized or converted document is `status='draft'`.
 - **No-source** (`import` found nothing to convert): 0 documents, 0 file writes — a per-level report of what was checked, each `skip` with its class, and the next command.
-- **Import**: native typed documents (`rule`, `adr`, `rfc`, `guide`, `spec`, `doc`, `idea`) clustered by topic across sources, related to each other and to the seed facts; a conflicts list instead of silent choices; no `imported` tag, no `source:` tag, no pointer line, no `imported-` prefix. After the last wave: the retire offer for agent-instruction files, then the import plan is removed, so the corpus holds no record of the import.
+- **Import**: native typed documents (`rule`, `adr`, `rfc`, `guide`, `spec`, `doc`, `idea`) clustered by topic across sources, linked to each other and to the seed facts where their claims support a relation; a conflicts list instead of silent choices; no `imported` tag, no `source:` tag, no pointer line, no `imported-` prefix. After the last wave: the retire offer for agent-instruction files, then the import plan is removed, so the corpus holds no record of the import.
 
 Idempotency: the flagged Tier-1 facts and the overview are skip-on-exists; Tier-2 specs and rules dedupe by filename before create; conversion targets dedupe by a topic search before create and, for tiers `M`/`L`, by the import plan's row states. Host wiring is idempotent end-to-end. A second `/archcore:init` on a fully-seeded repo early-exits (step 3) unless `refresh` or `import` is the first word. The empty route never creates placeholder documents, so the SessionStart nudge keeps pointing here.

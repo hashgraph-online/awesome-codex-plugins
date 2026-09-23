@@ -1,6 +1,6 @@
 # plan
 
-Define intended behavior, review write scope and assess reversible decisions. Use when: acceptance or approach is unclear before coding; stop once actionable.
+Define intended behavior, review write scope and assess reversible decisions. Use when: discovery needs clarification or resumption before one complete slice; stop once actionable.
 
 ## Instructions
 

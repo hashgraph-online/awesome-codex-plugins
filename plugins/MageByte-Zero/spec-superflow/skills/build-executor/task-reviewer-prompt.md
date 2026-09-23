@@ -1,5 +1,7 @@
 # Task Reviewer Prompt Template
 
+Before executing a CLI line below, replace its leading `SSF` with `node "<plugin-root>/scripts/spec-superflow.mjs"`; `<plugin-root>` is the absolute directory two levels above this file. Never run `SSF` literally or call an `ssf` from `PATH`.
+
 Use this template when dispatching a task reviewer subagent. The reviewer
 reads the task's diff once and returns two verdicts: spec compliance and
 code quality.
@@ -160,7 +162,7 @@ Subagent (general-purpose):
     command for the controller:
 
     ```bash
-    ssf execution review <change-dir> --wave [WAVE_ID] --base [BASE_SHA] --head [HEAD_SHA] --report [REVIEW_REPORT_FILE] --verdict <pass|fail>
+    SSF execution review <change-dir> --wave [WAVE_ID] --base [BASE_SHA] --head [HEAD_SHA] --report [REVIEW_REPORT_FILE] --verdict <pass|fail>
     ```
 
     Use `fail` for any Critical/Important finding. A repair must be re-reviewed

@@ -119,6 +119,13 @@ Authorize (after login) lists live agent keys. They pick an existing key (defaul
 
 After **Approve**, Codex on this machine waits on `http://127.0.0.1:<port>/callback` (some builds append `/<callback_id>`). The authorize page hops through same-origin `/oauth/continue` then 302s to that loopback URL. ChatGPT Apps waits on `https://chatgpt.com/connector/oauth/{id}`. If the agent is still waiting, they click **Open the agent callback**. That hop is the **browser host**. Do not send a loopback link when this agent is not listening there. Do not re-add the MCP URL with no Bearer. Librarian **>=0.21.51**. ChatGPT Apps directory Skill is a Scan Tools snapshot of this folder via host MCP `skills/list` (not a live GitHub pull). After a Skill bump, origin deploy then Scan Tools then a new plugin version. Do not `npx skills add` inside ChatGPT to refresh the listed plugin.
 
+**Approved, but the agent stays "connecting".** A known, common failure - not the human's mistake, and not a wrong key. The browser finished and the agent is still waiting on a callback that never lands. Say it in those words, then:
+
+1. Ask them to copy the **callback URL from the browser address bar** - the address the page tried to jump to - and email it to **zeyu@poppyg.com** so it can be added to the callback allow-list. **Redact `code=` and `state=` first**: those are secrets, and only the shape matters (scheme, host, path, port, e.g. `http://127.0.0.1:PORT/callback` or `https://host/.../callback`).
+2. Unblock them now - do not wait for that email. `/connect?device=` works on every host and is a completed connect.
+3. Before they try OAuth at all, know which shape needs permission: a **loopback** callback (`http://127.0.0.1:<any port>/<any path>` or `localhost`) is accepted as it stands - it is never "unlisted", so do not send the human to email one. Only an **HTTPS/remote** callback that is not a documented host (Cursor, Claude, Codex / ChatGPT connectors) needs verifying first, per host, at /oauth/callbacks. Where that is missing, prefer `/connect?device=`.
+4. Do not guess a callback URL, do not paste a redirect into chat as if it were verified, and do not retry the same OAuth flow in a loop - a retry restarts the wait.
+
 Hermes `~/.hermes/config.yaml` — mint `/connect?device=` first when `cm_*` are missing. OAuth (`auth: oauth`; tokens land in `~/.hermes/mcp-tokens/`) only after that mint fails, and only if this Hermes will receive the browser login:
 
 ```yaml
@@ -159,17 +166,36 @@ Other agents (`mcp.json`) paste-key fallback (same rule — placeholder in share
 | Layer | Rule |
 | --- | --- |
 | Chat, git, deeplink, plugin `mcp.json` in the public repo, install-plan **snippets** | Never a raw agent-key hex. Prefer URL-only (OAuth) or `Bearer ${CENTRICMEM_API_KEY}` (host expands from env / `.env`). |
-| `centricmem connect --claim` (or equivalent off-chat claim) writing **this machine’s** private client MCP file (`.cursor/mcp.json`, `.claude.json`, Codex `config.toml`, Reasonix `%APPDATA%\reasonix\config.toml`, etc.) | May write a literal `Authorization: Bearer …`. That is a completed connect. Do not copy that file into chat or git. |
-| Windows side-copy `%LOCALAPPDATA%\centricmem\centricmem.mcp.json` | Same class as claim-written private MCP: may hold a literal Bearer. It is a **duplicate** of the host’s MCP entry, not a second product. Prefer one canonical client file; if MCP already works from the host config, delete this side-copy. Do not copy into chat or git. |
+| `centricmem connect --claim` (or equivalent off-chat claim) writing **this machine’s** private client MCP file (`.cursor/mcp.json`, `.claude.json`, Codex `config.toml`, a plugin host's `config.toml`, etc.) | May write a literal `Authorization: Bearer …`. That is a completed connect. Do not copy that file into chat or git. |
+| A private MCP side-copy a host may keep beside its own config | Same class as claim-written private MCP: may hold a literal Bearer. It is a **duplicate** of the host’s MCP entry, not a second product. Prefer one canonical client file; if MCP already works from the host config, delete this side-copy. Do not copy into chat or git. |
 | Host install tools that **propose** headers and will probe `https://mem.centricmem.com/mcp` | Prefer `${VAR}` in the plan. If the host marks “sends auth headers” as high risk, that gate is about **sending** Authorization on apply — not a ban on claim-written local files. Confirm with the human before apply when the host requires it. Do not put a raw hex into the proposed plan. |
 
-**Redact.** Some hosts (e.g. Reasonix) **redact** `Authorization` when echoing config or when headers land in card text — you may see `Authorization=[redacted]` (with or without a value). That marker is **not** a usable key and must not be filed, searched as a secret, or treated as “the Bearer changed.” Do not paste Authorization lines into cards. Readback after redact ≠ what you wrote; trust the host’s private MCP file / Keys, not the redacted echo.
+**Redact.** Some hosts **redact** `Authorization` when echoing config or when headers land in card text — you may see `Authorization=[redacted]` (with or without a value). That marker is **not** a usable key and must not be filed, searched as a secret, or treated as “the Bearer changed.” Do not paste Authorization lines into cards. Readback after redact ≠ what you wrote; trust the host’s private MCP file / Keys, not the redacted echo.
+
+**Never echo a credential (agent side).** Reading a key to use it is fine; printing it is not. Tool output becomes transcript text, and the host may also persist it in a session log or database, so a printed key is a leaked key.
+
+- **Do not dump a credential file.** `cat` / `type` / `Get-Content -Raw` / a whole-object `ConvertFrom-Json` on `mcp.json`, `config.toml`, `*.env`, `api.json`, `keys*`, `*.pem` is the most common way a key reaches the transcript. Extract the single field you need and fingerprint it inside the same command.
+- **Do not redact by threshold.** "Mask anything longer than N characters" fails on short keys: a 36-character `x-api-key` UUID and a 32-character local token both survive a 60-character rule. Redact by shape - replace the value, never pass it through.
+- **Do not copy a key into a script, plan, snippet, note, card, or commit.** Read it at runtime from the environment (`CENTRICMEM_API_KEY` / `CENTRICMEM_TOKEN`) or from this machine's private client MCP file.
+- **If you did print one, say so in the same turn and name which key it was.** It is already out; silence only delays rotation.
+
+Fingerprint idioms (confirm which key, never print it):
+
+- PowerShell: `"{0}... len={1} fp={2}" -f $v.Substring(0,4), $v.Length, ([BitConverter]::ToString([Security.Cryptography.SHA256]::Create().ComputeHash([Text.Encoding]::UTF8.GetBytes($v))).Replace('-','')).Substring(0,8)`
+- bash: `printf "%s... len=%s fp=%s\n" "${v:0:4}" "${#v}" "$(printf %s "$v" | sha256sum | cut -c1-8)"`
+- node: `console.log(v.slice(0,4)+"... len="+v.length+" fp="+require("crypto").createHash("sha256").update(v).digest("hex").slice(0,8))`
+
+**Blast radius and rotation.** Treat a printed credential as public and rotate it (Manager -> Keys). To size the spread first, scan the host's own history for the exact value and report file names and counts only, never the match:
+
+- PowerShell: `Select-String -Path <logs> -SimpleMatch -Pattern $token | Group-Object Path | ForEach-Object { "$($_.Name) x$($_.Count)" }`
+
+Scan the session database and transcripts, not only request logs: those rotate, so a zero-hit scan is not proof of containment. Rotation invalidates that key alone; other machines and other keys are unaffected.
 
 `setup --install-skill` on a guest copies Skill files only (CLI >=0.21.46 also writes `~/.claude/skills/` and `~/.pi/agent/skills/`). It must not merge leftover catalog pairing tokens into Cursor `mcp.json`. Host MCP on a guest: every agent tries `/connect?device=` when `cm_*` are missing (`centricmem connect --device` when the CLI works; if the shell works but `centricmem` is missing, fetch POST `/connect/device` and send the JSON `url`). If minting that URL fails, they email zeyu@poppyg.com with the error; then OAuth only if this agent will receive the browser login (add that URL with no Bearer). If the shell is blocked and there is no receivable browser login, the human adds `https://mem.centricmem.com/mcp` in this agent’s settings with Bearer from Keys, never in chat. Local librarian hosts may still merge loopback MCP when `/health` advertises `mcp`. Never ask them to paste a token in chat. Never one-click install. Never a dashboard “connect this computer”. After they connect, retry `cm_health` in this chat; a new chat only if tools still 401. Token failure: say once; connect again (CLI or signup+settings); if still failing they email zeyu@poppyg.com (never a key); **hold the sweep** (this agent’s memory `CentricMem deferred sweep` + transcript path) until `cm_health` works. Only drop the hold if they said don't log or they stopped using this Skill.
 
 ### Client recipes (same MCP URL)
 
-Skill folder name is always `centricmem-agent`. Plugin `mcp.json` is URL-only — not a completed connect. Do not list this Skill on ClawHub.
+Skill folder name is always `centricmem-agent` (Agent Skills `name` = directory). That is **this Skill**, not the CLI (`centricmem`) and not the GitHub package (`centricmem-skill`). Install example: `npx skills add zeyu-j/centricmem-skill --skill centricmem-agent`. Say “CentricMem skill” to humans; keep `centricmem-agent` in paths and `--skill`. Plugin `mcp.json` is URL-only — not a completed connect. Do not list this Skill on ClawHub.
 
 **Pi.** `pi install https://github.com/zeyu-j/centricmem-skill` (discovers `skills/`; also loads `~/.agents/skills/`). MCP is not in the package. Write URL-only `~/.pi/agent/mcp.json`:
 
@@ -192,22 +218,7 @@ If `cm_*` are missing, mint `/connect?device=` this turn. Paste-key fallback may
 
 ### 1Password (optional vault, not a connect path)
 
-Official 1Password Environments MCP lists variable **names** and mounts `.env` / wraps **stdio** MCP with `op run --environment`. It **never returns secret values** to the agent. It cannot mint `/connect?device=`, cannot complete our hosted HTTP MCP OAuth, and must not replace step 0.2.
-
-Do:
-
-- After Keys shows the agent key once, the human may store that backup in 1Password (or any vault). The agent never reads it back into chat.
-- If some **other** local stdio MCP needs a token in `env`, they may wrap that command with `op run` so the value never sits in `mcp.json`. Hosted CentricMem stays `https://mem.centricmem.com/mcp` — device-connect writes the Bearer off-chat; OAuth (no Bearer) only after that mint fails, and only if this agent will receive the browser login.
-- A customer who already runs an MCP aggregator, HashiCorp Vault, or AWS Secrets Manager may keep an extra key there for **their** long-running worker. That is their ops, not a CentricMem connect recipe.
-
-Do not:
-
-- Ask 1Password MCP, or any vault MCP, to reveal the CentricMem key into this chat (`reveal: true`, `item_get` of the password, paste into headers).
-- Treat the 1Password Cursor plugin as a completed CentricMem connect. Plugin `mcp.json` for CentricMem is still URL-only.
-- Document STDIO / `centricmem-host` as an install path in order to wrap us with `op run`.
-- Rely on the official 1Password Cursor plugin on Windows — that plugin is Mac/Linux. Device-connect and OAuth work here.
-
-Do **not** call `/download`, HTTP `/delete` (use `cm_delete`), HTTP `/rename` (use `cm_rename`), billing, account delete, or `/register` `/login`. Humans download originals on the dashboard. Login uniquely owns billing, rotating the default key, and deleting the account (Billing). Never call account delete from MCP. Default key or login may `cm_delete` `{file, shelf}` a card, or `cm_rename` `{file, shelf, title}` (always pass the shelf). Extra keys cannot. The **default** key (`*`) may mint, rename, grant, and revoke extras — that stays HTTP/dashboard/CLI, not these `cm_*` tools, so a new token never lands in chat. Default (and owner login) may `cm_copy` / `cm_delete` leftover shelves (`cm_delete` `{id}` is delete, not archive — no restore), `cm_move` selected cards, and `cm_rename` a card title. Extra keys cannot manage keys, move cards, delete a leftover shelf or card, or rename a card; they may `cm_copy` if both grants. Attachments are metered per plan (Lite 100MB, Education 200MB, Pro 1GB, Lifetime 1 2GB, Ultra 10GB, Lifetime 2 20GB; operator uncapped). Named shelves: Lite/Education 1, Pro 10, Ultra 50, Lifetime 1 20, Lifetime 2 100; operator uncapped. Over attachment quota, `cm_keep` fails — say so; do not drop bytes silently. Over the named-shelf cap, `cm_library` mint is 403 `SHELF_LIMIT`; rename an existing id still works. File on an existing named shelf or they upgrade.
+An optional vault, **not** a connect path. Ask if you need the detail.
 
 ## Search and show
 
@@ -312,46 +323,48 @@ Hard rules:
 
 ### Search fields
 
+- **`q` (not `query`):** `cm_search` takes **`q`**. Passing `query=` returns `Provide q, tags, or a type:/#id prefix.`
 - **`workSiblings`:** when results share a bibliographic `work` id, search keeps the best hit and sets `workSiblings` to how many **other** cards with that work appeared in **this** result set (before collapse). It is `0` when only one card for that work matched. It is **not** the total card count for the work on the shelf, and it **changes with `limit` / query** because only cards that made it into the ranked window are counted.
 
 ### Direct HTTP `/mcp`
 
-Scripts and custom clients that POST to `https://mem.centricmem.com/mcp` (outside Cursor / Claude / Codex MCP clients) **must** send a non-empty **`User-Agent`** header.
+MCP is the interface. Use the MCP tools rather than hand-rolling HTTP.
 
-- Missing or empty User-Agent → Cloudflare **403 error-1010** (“browser signature”). Python `urllib` / many HTTP libs send none by default; set e.g. `User-Agent: centricmem-script/1.0` (any non-empty string works). `curl` usually already sends one.
-- Successful MCP JSON responses use `Content-Type: application/json; charset=utf-8` so clients that default to ISO-8859-1 (e.g. PowerShell `Invoke-WebRequest`) do not mojibake CJK card text.
+### Hosted shelf ≠ local disk
 
-### Hosted shelf ≠ local disk / junction
+A hosted library is not a directory on this machine. Ask if you need the detail.
 
-Guest MCP (`cm_show` / `cm_search` / `cm_import`) talks to the **hosted librarian**, not to a folder on this machine. Editing a local markdown tree (including a Windows **junction** into a hub’s `imported/academic`) does **not** change what `cm_show` returns or what FTS indexes. After local edits meant for the hosted shelf: write back with the correct import shape above (`cm_import`); use `cm_index` only if FTS looks stale. Do not treat “I saved the file locally” as filed.
-
-Guest **CLI** does not write leftover `CENTRICMEM_HOME`. `centricmem import` / `index` on a guest machine POST to the librarian when `CENTRICMEM_TOKEN` (or a claimed mcp.json Bearer) is set; otherwise use `cm_import` on host MCP. `doctor` shows token source (`CENTRICMEM_TOKEN` / mcp.json / catalog); “token failed” for CLI does not mean MCP is broken.
-
-`Curate: today_sessions` counts session files whose names start with today’s **UTC** date (`YYYY-MM-DD`).
 ## Skill refresh (once per chat)
 
-Guests install from GitHub, not from the librarian disk. `cm_health` `min_skill` is the HTTP floor. `skill_latest` is the published Skill (env `CENTRICMEM_SKILL_LATEST` on the librarian) — it is **never** the hub’s `skills/centricmem-agent/SKILL.md`. Host `cm_doctor` `skill_status` is the same hub copy; ignore outdated/missing there.
+1. Compare the version of the copy **this host loads** with `skill_latest` (from `cm_ambient` or `cm_health`).
+2. If it is older, refresh the way **this host** was installed, then tell the human to restart the host or open a new chat so the new copy loads.
+3. After a disk refresh, re-read this file and SKILL.md before the next write - installing newer is not the same as acting on it.
 
-**Refresh path ≠ load path (hosts differ).** `npx skills add … -g` writes `~/.agents/skills/centricmem-agent/` (and Cursor often mirrors `~/.cursor/skills/`). That does **not** update every host’s loaded copy. **Reasonix** loads the **plugin** tree (Windows: `%APPDATA%\reasonix\plugins\centricmem-skill\skills\centricmem-agent\`). Same skill name in both places → two versions on disk; Reasonix may warn and prefer the plugin copy. Updating only via npx/`~/.agents` leaves Reasonix on the old plugin version — that is expected, not a broken `skill_latest` signal.
-
-1. Read the **loaded** copy’s version — not a sibling skills dir you are not running:
-   - Cursor / agents skills: this Skill’s frontmatter `metadata.version` (the file under the skills root this host loads).
-   - **Reasonix:** `%APPDATA%\reasonix\plugins\centricmem-skill\package.json` `version` (macOS/Linux: under Reasonix’s plugins dir). Prefer that over `~/.agents` / `~/.cursor`; those are a different install tree.
-2. `latest` = JSON `skill_latest` if present, else `metadata.version` at `https://raw.githubusercontent.com/zeyu-j/centricmem-skill/main/skills/centricmem-agent/SKILL.md`.
-3. If `latest` is newer: refresh **the copy this agent actually loads**, not only `~/.agents`:
-   - **Cursor / agents skills dir:** if Node/npm exist, `npx --yes skills add zeyu-j/centricmem-skill --skill centricmem-agent -g -y` (omit `-g` when this agent has no user-wide skills dir).
-   - **Reasonix (plugin install, agent-executable):** host tool `install_source` with a **full URL** — `source: "https://github.com/zeyu-j/centricmem-skill"`, `kind: "plugin"`. Slug-only (`zeyu-j/centricmem-skill` / `centricmem-skill`) is rejected. Call once with `apply: false` (inspect plan, `riskLevel`, resolved commit / target under `%APPDATA%\reasonix\plugins\centricmem-skill`), then again with `apply: true` + the returned `planId`. Fallback if that tool is missing: re-add/reinstall in Reasonix’s plugin UI, or replace the whole plugin directory from GitHub so `package.json` / `plugin.json` / `install.json` / `CHANGELOG.md` **and** `skills/centricmem-agent/SKILL.md` all match `skill_latest`. Copying only `SKILL.md` leaves package metadata on the old version. Do **not** assume npx `-g` fixed Reasonix.
-   - **No Node / no npm:** do not invent a CLI install — update via this client’s **plugin UI**, or copy `skills/centricmem-agent/` from `https://github.com/zeyu-j/centricmem-skill` into `<skills-root>/centricmem-agent`.
-   - **DSH:** never that npx (and never `-g`); copy into `$DSH_HOME/skills/centricmem-agent` with `dsh/copy-skill.mjs`, or `dsh plugin` re-add the pinned tag then copy-skill again. Bare npx without `-g` writes `<cwd>/.agents/skills` — skip that in DSH.
-   - If the shell is blocked and no host install tool exists, skip npx; tell them to update via this client’s plugin UI. If this session is a **plugin** install, also update via that client (`/plugin`, Codex plugins UI, Copilot plugin, Kiro Powers re-import, `hermes skills install zeyu-j/centricmem-skill/skills/centricmem-agent`, `pi update --extensions`, re-install `openclaw plugins install git:github.com/zeyu-j/centricmem-skill`).
-   - Say once: on disk now; this chat still uses the loaded copy. If two copies exist, say which path this host loads.
-4. If this file is newer, or the fetch/npx/`install_source` fails or is blocked: continue. Do not `setup --install-skill`.
-
-**Limits (what “auto” means).** The agent may detect a stale loaded copy, run the host refresh path above (`npx` / `install_source` plan+apply / documented client install), and tell the human to **restart** the host (or open a new chat) so the new Skill loads. The agent must **not** silently rewrite host install directories outside those tools, and cannot restart Reasonix (or other hosts) for them. Until restart/new chat, this session still uses the already-loaded Skill body.
+Host-specific install, refresh and failure detail is **not** shipped in this public copy. Ask zeyu@poppyg.com if you need it.
 
 ## Writes (card shapes; trigger is SKILL §4)
 
 Hold half-finished thoughts. **chunk** / **yield** / the numbered sweep batch and gate live in SKILL.md §3–§4 — file **before you yield**. Closing the agent does not run this Skill.
+
+**What the API writes — `items=` and `bundle` are different contracts.** Both live on `cm_import`; picking the wrong one is the single most common source of "I filed it" when nothing was written.
+
+| You want to write | Call | Lands in |
+| --- | --- | --- |
+| A note / lesson | `cm_note` | `lessons.md` |
+| A decision | `cm_log_decision` | `decisions/NNNN-*.md` |
+| A session unit | `cm_done` | `sessions/<stamp>-<writer>-<id>.md` |
+| New cards (daily, bulk) | `cm_import` `{items: […]}` | `imported/kept/<slug>.md` — **cards only** |
+| Corpus / known path upsert | `cm_import` `{bundle: {version: 1, imported: [{title, body, rel_path, external_id?}]}}` | that `rel_path` under `imported/` |
+| **The shelf's current focus** | `cm_import` `{bundle: {version: 1, context: {body}}}` | **`active_context.md`** — overwrites, stamps `updated_by` / `updated_at` |
+| **Global rules** | `cm_import` `{bundle: {version: 1, rules: [{body}]}}` | appended under **`AGENTS.md` → Global Rules** |
+| Bulk decisions / lessons / sessions / research | `cm_import` `{bundle: {version: 1, decisions: […], lessons: […], sessions: […], research: […]}}` | `decisions/`, `lessons.md`, `sessions/`, `imported/` |
+| An original file | `cm_keep` | R2; a keep stub is **not** a card — follow with a note |
+
+- **A key that can open a shelf can write its library files.** `active_context.md` and `AGENTS.md` are not host-only: the `bundle` shape writes them over MCP, and a guest CLI can send the same bundle over HTTP. What is **not** writable through MCP: `config.json`, and *edits* to an existing card (use `cm_delete` + rewrite).
+- `context.body` is the whole body. The writer prepends `# Active Context` and appends `<!-- centricmem:meta updated_at=… updated_by=… -->`; the doctor reads `updated_at` from there, so a hand-edit without that stamp reads as stale.
+- **Unknown top-level slot → `400 BAD_IMPORT_BUNDLE`** naming the offending slot(s) and the allowed list (`version, project, source, decisions, lessons, rules, context, imported, sessions, research`). This used to be dropped silently. Nested row fields are still permissive.
+- Reaching the shelf: MCP `cm_import` uses the client Bearer. Guest CLI `centricmem import` POSTs the same bundle to the librarian when `CENTRICMEM_TOKEN` is set.
+**Who may write (guest vs host).** A CLI that holds a librarian key from *outside* the librarian host is a **guest**: it can write only through `import` / `index` (guest `index` refuses `--embed`). Commands that need a local hub refuse with `Operators write on the librarian host` — `init`, `setup`, `libraries --create/--use`, `migrate`, `serve`, `account bootstrap`, and every other command that needs a local hub. So file cards and decisions with the host MCP tools — `cm_import`, `cm_note`, `cm_log_decision`, `cm_done` — which carry the client Bearer and do not need leftover-hub writes. A guest CLI can still write over HTTP if `CENTRICMEM_TOKEN` is set (or after `connect --claim`), but the hub-write commands stay refused either way. Source: src/guest.ts, src/cli.ts:134.
 
 | Type | When | MCP |
 |------|------|------|
@@ -382,33 +395,7 @@ Claude Code, Codex, Hermes, Pi, OpenClaw, Kiro, Kilo, Copilot, and other Agent S
 
 ## Optional host hooks
 
-**Weak coupling.** CentricMem’s product path is always this Skill + host MCP. Host lifecycle hooks (`AGENTS.md`, Stop remind, session-sweep scripts) are **optional**. Agents without hooks (DSH, some cloud hosts) still use §4 + `cm_*` fully — missing hooks must not block install or filing.
-
-| Layer | Required? | Role |
-| --- | --- | --- |
-| Skill + MCP (`cm_*`) | **Yes (baseline)** | Model files via Skill §4 |
-| L1 `AGENTS.md` / user rule | Optional | One-line gate when Skill is not loaded |
-| L2 Stop remind | Optional | Nudge model to call `cm_*` on close |
-| L3 session-sweep script | Optional | True auto; **session card only** via guest HTTP Bearer |
-| L4 cron / launchd | Optional later | Daily backlog |
-
-Private client recipes live under `skills/centricmem-agent/integrations/` (not shipped in the public Skill repo):
-
-| Recipe | Layer |
-| --- | --- |
-| `agents-md.snippet.md` | L1 |
-| `cursor-hooks.json` + `hooks/remind-stop.mjs` + `hooks/mark-cm-write.mjs` | L2 (Cursor) |
-| `claude-code-settings.snippet.json` / `codex-hooks.json` | L2 |
-| `reasonix-settings.snippet.json` + `hooks/session-sweep.mjs` | L3 (Reasonix Stop is observation-only — cannot force another model turn; use script) |
-| `reasonix-hooks.json` | L3 Claude-shaped plugin hooks (if the host loads them) |
-
-Rules:
-
-- Do **not** install guest hooks that run `centricmem log-session` / CLI writes against a leftover `CENTRICMEM_HOME` hub.
-- L3 requires `CENTRICMEM_TOKEN` (or claimed MCP Bearer usable by CLI) and `centricmem` on PATH; skip on Cloud Agent workers without Bearer.
-- L3 never auto-writes note/decision; knowledge cards stay Skill + model.
-- Public install stays Skill-first (`npx skills add zeyu-j/centricmem-skill …`). Opening hooks is optional copy from the private client or a trusted operator machine.
-- **Reasonix plugin sync:** prefer `install_source` with full URL `https://github.com/zeyu-j/centricmem-skill` (`kind: plugin`, dry-run then apply) so the **whole** plugin package matches `skill_latest` — not only `SKILL.md`, and never assume `~/.agents` is what Reasonix loads. Plugin hooks are optional and separate from Skill text.
+Lifecycle hooks are **optional**. The baseline is this Skill plus the MCP tools: an agent with no hooks still files normally. Ask if you need the hook design.
 
 ## Do not
 

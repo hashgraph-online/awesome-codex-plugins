@@ -1,6 +1,6 @@
 # validate
 
-Freshly judge a finished change against original acceptance before merge. Use when: independent proof is needed; author tests cannot issue PASS. Triggers: "check this change".
+Freshly judge a finished change and its claims against original acceptance. Use when: acceptance verdict or independent proof is sought. Clarify generic checks or readiness first.
 
 ## Instructions
 

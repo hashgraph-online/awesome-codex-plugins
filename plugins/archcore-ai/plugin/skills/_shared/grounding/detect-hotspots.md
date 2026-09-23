@@ -171,8 +171,9 @@ decompose the module instead of composing it as one spec.
   (e.g. a 6000-LOC service with a read/query surface and a separate command/mutation
   surface) — split into **≤ 3 sub-specs**, one per sub-surface, each inside the same
   ≤ 120-line cap: `filename=<module-slug>-<sub-surface-slug>`,
-  `directory=<domain-or-'architecture'>`. Relate the sub-specs to each other
-  (`related`) in addition to the standard overview edge.
+  `directory=<domain-or-'architecture'>`. Evaluate links between the sub-specs
+  through `skills/_shared/relation-authoring.md`; splitting alone creates no edge.
+  The overview's index edge to each sub-spec still applies.
 
 **Never split to pad.** A large or hot file with one cohesive contract (no separable
 sub-surface) stays a single spec — "prefer omission over a guess" governs the split

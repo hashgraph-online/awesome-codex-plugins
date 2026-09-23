@@ -68,7 +68,8 @@ evidence supports:
    to the `prd`, a data-bearing example to a `scenario`. A journey over the cap is a
    signal that the narrative has taken on rules or data; try this remedy first.
 2. Split by the **actor**: one journey per user type (`filename=<subject-slug>-<actor-slug>`),
-   each with its own Intent, linked to its siblings with `related`.
+   each with its own Intent. Evaluate links between the parts through
+   `skills/_shared/relation-authoring.md`; splitting alone creates no edge.
 3. IF no boundary is unambiguous, THEN keep the document whole and report the excess.
 4. The skill MUST NOT delete a journey step to fit the cap.
 

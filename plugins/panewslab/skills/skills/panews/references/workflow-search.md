@@ -23,12 +23,28 @@ Present the hot keywords for the user to choose from.
 ### 2. Execute the search
 
 ```bash
-node cli.mjs search-articles "<keyword>" [--mode SMART|EXACT] [--take 10] --lang <lang>
+node cli.mjs search-articles "<keyword>" --mode hit --take 10 --lang <lang>
 ```
 
-**Search modes**:
-- `SMART` (default) — semantic search, good for natural language descriptions
-- `EXACT` — exact match, good for proper nouns and project names
+Keywords are matched across titles, summaries, and article bodies.
+
+**Sort modes**:
+- `hit` (default) — relevance with freshness weighting
+- `time` — publication time, newest first
+
+Use `--take` for up to 50 results (default: 5). Each invocation reads one page and releases its search snapshot; it does not return a reusable cursor or exhaust all matches.
+
+### Filter by publication time
+
+For a request such as "Bitcoin coverage published on September 21 in Shanghai":
+
+```bash
+node cli.mjs search-articles "比特币" --mode time --take 10 --lang zh \
+  --published-from "2026-09-21T00:00:00+08:00" \
+  --published-to "2026-09-22T00:00:00+08:00"
+```
+
+Both bounds are optional ISO 8601 timestamps with `Z` or a timezone offset. `--published-from` is inclusive; `--published-to` is exclusive and must be later than the start. Use the user's intended timezone and the following midnight for an inclusive calendar end date. A date inside the keyword searches for dates mentioned in the content; it does not filter publication time.
 
 ### 3. Deep dive into an article
 
@@ -36,6 +52,7 @@ Get the article ID from the search results and go to [workflow-read-article](./w
 
 ## Output requirements
 
-- Include title, summary, and publish time with each result
-- If results are sparse or irrelevant, suggest trying different keywords or switching modes
+- Include title, summary, and publish time with each result. When the match comes from the article body, the CLI also returns a plain-text `snippet` as supporting context; it is not the full article.
+- If a translated title or summary is missing, that field falls back to the original article language.
+- If results are sparse or irrelevant, try different keywords or broaden the date range. Changing `--mode` changes ordering, not matching rules.
 - Do not add information beyond the search results

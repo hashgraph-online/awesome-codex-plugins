@@ -1,6 +1,6 @@
 {
   "name": "session-orchestrator",
-  "version": "5.2.0+codex.20260917190217",
+  "version": "5.3.0+codex.20260922063114",
   "description": "A repeatable Plan, Go, Close workflow for AI coding sessions: /session reads your repo and agrees the scope, /go runs the work in waves with a quality gate between each, /close verifies and commits. Runs on Claude Code, Codex CLI, Cursor and Pi.",
   "keywords": [
     "session",
@@ -30,9 +30,9 @@
     "privacyPolicyURL": "https://gotzendorfer.at/en/session-orchestrator/privacy",
     "termsOfServiceURL": "https://gotzendorfer.at/en/session-orchestrator/terms",
     "defaultPrompt": [
-      "Start a structured feature session for this repo",
-      "Plan a feature PRD and turn it into waves",
-      "Close the current session with verification"
+      "$session-orchestrator:session",
+      "$session-orchestrator:go",
+      "$session-orchestrator:close"
     ]
   }
 }

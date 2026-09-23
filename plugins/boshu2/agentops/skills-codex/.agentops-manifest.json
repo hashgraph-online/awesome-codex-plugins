@@ -2,7 +2,7 @@
   "generator": "manual-maintained",
   "source_root": "skills",
   "layout": "modular",
-  "codex_override_catalog_hash": "cfde05a564c19e506c9bf62c8a54c676f802f9b2a63550a25b9590f15a9a65de",
+  "codex_override_catalog_hash": "eab91b163e5db8c036f365ccf4e7520bb0f0a98fb055d68b9fca686aac3613c9",
   "codex_override_catalog": {
     "version": 1,
     "description": "Machine-readable Codex treatment map for the full skill catalog.",
@@ -166,6 +166,12 @@
         "reason": "Live source skill; generate a parity twin and keep runtime-specific behavior in the source contract."
       },
       {
+        "name": "review",
+        "treatment": "parity_only",
+        "wave": "catalog-parity",
+        "reason": "Advisory Review uses the shared source contract; generate its full parity twin without runtime-specific divergence."
+      },
+      {
         "name": "reverse-engineer",
         "treatment": "parity_only",
         "wave": "catalog-parity",
@@ -236,6 +242,12 @@
         "treatment": "parity_only",
         "wave": "catalog-parity",
         "reason": "Auto-generated parity twin (codex-sync): skills/memory is the source of truth; no durable Codex-specific divergence yet."
+      },
+      {
+        "name": "orchestrate",
+        "treatment": "parity_only",
+        "wave": "catalog-parity",
+        "reason": "Native coordination guidance remains canonical in skills/orchestrate; preserve its complete contract and selectively loaded owner references."
       }
     ]
   },
@@ -255,8 +267,8 @@
     {
       "name": "agent-native",
       "source_skill": "skills/agent-native",
-      "source_hash": "6e088eb61cbc3b2fa2d1a6f62bee1f8d72459cf1b6478c150cab47d08174a312",
-      "generated_hash": "d14cf847ce58d120a5cd471a574c58498f797ef6664fe463b9432b3764a61d0f"
+      "source_hash": "14b177aba6fa72e4ce8d3dc44b070da99ceb43e7c9133f98939e6b39f36b4784",
+      "generated_hash": "e811f31a5d266d3b191972418db3c387a6f50d277e955a6936dd65d54a0120e0"
     },
     {
       "name": "agy-native",
@@ -273,8 +285,8 @@
     {
       "name": "cc-hooks",
       "source_skill": "skills/cc-hooks",
-      "source_hash": "cd948b6aa623f12e1c29c12e0fadca55883f2f3573f8dad1744997646ab550f8",
-      "generated_hash": "bfd3f36fc871b810cff58978f3da359a2096c877273a47ae811f505f724ecb81"
+      "source_hash": "7f88206dba2dd7297b9c867b11a951993425fde34de48dbce38e058b5b94e79c",
+      "generated_hash": "4e07db6637d618887e47f0e22026e79be85022e29e1766e3699b167b34cecd3f"
     },
     {
       "name": "codex-exec",
@@ -309,8 +321,8 @@
     {
       "name": "domain",
       "source_skill": "skills/domain",
-      "source_hash": "3a40c3d2bb61fe1bc09060f695bff2291b8f3a530267073225d7b70288281d78",
-      "generated_hash": "3e6d2676aa3238ce9bbbca971f15daed09f74ad10cd9dec1a8398386429484df"
+      "source_hash": "de4b079f3552dca3979e1d86090f1ca8570ffb6bee5f8bc12d97068faa506b37",
+      "generated_hash": "43d42dee5cc665fa96466806d88fa61856627e28b15c81e3634a71b3675c23b0"
     },
     {
       "name": "idea-genie",
@@ -321,14 +333,14 @@
     {
       "name": "implement",
       "source_skill": "skills/implement",
-      "source_hash": "d7e3b51ffba9f38d16635d27baeab03c461d4b84be3e3b1d1b6b669bbb87a070",
-      "generated_hash": "31639aeac2011bb96525021afb59a608c5948b49b1458cbc15160b5d6b5a25b6"
+      "source_hash": "48b0882d337b28e4b3ad975b62700a5d1bcc884ac4b77ce080f6822f0bd25ad0",
+      "generated_hash": "bd0cc7420e5b0db039f1d13c49eea32af3c440f7896ff6fc9fda7a869ed84e93"
     },
     {
       "name": "memory",
       "source_skill": "skills/memory",
-      "source_hash": "7fc59c440a13aba7902c53e4f22a13da1f58a45083aefd76c1b730ddf426eb08",
-      "generated_hash": "878cb503d52b678894644d88cde5921d3376063574bbc23b00d859e1a007ee78"
+      "source_hash": "a828b4c5c344fa4a2f287073768e52077d7d973d7c279a8f0208463f2d28ba61",
+      "generated_hash": "2eb62ee67e78d27908b12c4202707530e22f6ab77a8cae8a065f37eab535874f"
     },
     {
       "name": "ms",
@@ -343,10 +355,16 @@
       "generated_hash": "75cea0aed20a93dbb5cf0fc58a79f2fd5774b25dd9284ebba18072a1c482a972"
     },
     {
+      "name": "orchestrate",
+      "source_skill": "skills/orchestrate",
+      "source_hash": "5a17afab2e2b197c18c1f58e89467a718e00bd33fe3e26fb97aeb18555570d68",
+      "generated_hash": "03b3843471a65413e6c7049fd10b2dc5d8735268f33f4f4e2045de630dc72841"
+    },
+    {
       "name": "plan",
       "source_skill": "skills/plan",
-      "source_hash": "0a489ea32d18f7104ea12608b74d242fcd7e6ce85c22a73c5c19d3f7da787c9c",
-      "generated_hash": "04058340641faef641d15e9b0ec1c19ea7324c3c5421b50b0fb5b80995ae3877"
+      "source_hash": "d73dbe67da983ddfd26ddb4e8d5908816dee281c7ad27a0b6c2892cce9db576d",
+      "generated_hash": "6b14982381e27415c4524616d4d8b6edc484b9d1730a79cbd5d238fce4386b0f"
     },
     {
       "name": "postmortem",
@@ -357,8 +375,8 @@
     {
       "name": "premortem",
       "source_skill": "skills/premortem",
-      "source_hash": "fd5b79400e6b84b76f92d4c3fc16307799b094539e9a401aab6bd51ef7e0156c",
-      "generated_hash": "f507ed17a1d8cd66325d8829320db1a47c384dff7d5f89cdfe5fb971ccbd9ad5"
+      "source_hash": "c82596d325fdf2c71c05533b0b7f78750e691cad4f6f51b94d13ee61a12c05cd",
+      "generated_hash": "6e33483c9520c8324da7ec46964bce4164796a88e129982eea098091052239d3"
     },
     {
       "name": "rch",
@@ -369,8 +387,8 @@
     {
       "name": "reality-check",
       "source_skill": "skills/reality-check",
-      "source_hash": "fc2513285c997851efee47cbd67423bbe535ba5cf0e2af5f8854df902ffbe4ad",
-      "generated_hash": "aba687d3c659d7b393c44d48b417ca096f21f704376cb91cc35a9ef379e6e1ef"
+      "source_hash": "904908f2a92791dbc57f5b34a9eb97d36e170f75850cbd42a5aab9db643780b8",
+      "generated_hash": "c458bbc94638cc8d0d58680a34ba3b17e579b6114ff8a6b2ffdd876fad32e7b8"
     },
     {
       "name": "refactor",
@@ -381,14 +399,20 @@
     {
       "name": "research",
       "source_skill": "skills/research",
-      "source_hash": "a70cf29fc9ea654ea22970ef5db94a2e4b2fe9c0d5f732100c89ea59771420d6",
-      "generated_hash": "74f709c816865d27f2579fe6364477f3bebbcbcdc57c79c46c3d2baa3b9bb8cd"
+      "source_hash": "edbdae3b33a5adfa80296929c4a97a653b41f2d85e6c2207d355bb5513fe3fcb",
+      "generated_hash": "2fb25ae0b9e498cdad99e816feb6910e85d51ed6bae2206ff99c15a50d3034ae"
     },
     {
       "name": "reverse-engineer",
       "source_skill": "skills/reverse-engineer",
       "source_hash": "39ed7c7f7143865a969884a8e012a2e1f0442e7ace232086b5c3df86cdcc8dae",
       "generated_hash": "9c7a338eba1036e2685a28133dbba1299da680823ecae5d9b2b8b81b16a8d0cf"
+    },
+    {
+      "name": "review",
+      "source_skill": "skills/review",
+      "source_hash": "9be19938c1280ceb20ad69a53b31366b6120101fea67d9db4a745a451d1f30f3",
+      "generated_hash": "80cb937b4aabf0297b236a5cfb2722ad8531fe008d5c6b79c65be73d07790f45"
     },
     {
       "name": "rpi",
@@ -423,8 +447,8 @@
     {
       "name": "test",
       "source_skill": "skills/test",
-      "source_hash": "1c822cdd5a6aef9b32849c11e9243c432d6a4152a9deee0a55f3703607c60887",
-      "generated_hash": "8a5b7edfe94e2da6b99846b6b7bbfe6a453d0dc8e98c33c45d7b72dc4e76df81"
+      "source_hash": "a4c4fb02f15031ad337ffdabd1c34aab6c1f7c1ccb9a3339c00446672866b24c",
+      "generated_hash": "c3cc81a7a52430e2ef33acd73e4f0cd385106c181c378db256f94b79bf0c0b89"
     },
     {
       "name": "using-flywheel",
@@ -441,9 +465,9 @@
     {
       "name": "validate",
       "source_skill": "skills/validate",
-      "source_hash": "8def3596efe18975392bc0ce3cac0402ffc0b9202e2d7dd988401e6f442905b2",
-      "generated_hash": "c88209fb2cca50df76edb8395b6b2ccaa038b6d6cc4c5bba81dd4c8ee917bd09"
+      "source_hash": "ebb18339d6e9e959402790efe9a2ddab6f4606327e473bd5200b29dbf14a16fe",
+      "generated_hash": "2b5b93c6d4fa394fe81c4b5ae880f4caa157345fe171bf28f9732de9a11393f9"
     }
   ],
-  "package_count": 34
+  "package_count": 36
 }

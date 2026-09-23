@@ -63,7 +63,7 @@ mechanics follow `skills/_shared/elicitation-contract.md`.
 - Produces:
   - type: adr
   - status: draft
-  - relations: adr `related` existing `rfc`, `spec`, `plan`, `rnd`, or `research` documents on the same topic — the source relate step names the link but not the relation type, and allowed unnamed further document types; narrowed to `rfc`, `spec`, `plan`, `rnd`, and `research` (the research evidence base) to avoid an open-ended list [assumption].
+  - relations: evaluate the decision's inputs and consumers through `skills/_shared/relation-authoring.md`; use `depends_on` for an investigation the decision relies on, and `related` for a justified joint reading task. A shared topic alone creates no edge.
 - Exit checks:
   - blocking: the draft carries every section that `skills/_shared/adr-contract.md` requires.
 - Next: `decision.cascade`.

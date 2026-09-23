@@ -5,13 +5,17 @@ description: Maintain an execution contract only for an existing legacy change t
 
 # Contract Builder
 
-Legacy compatibility only: new planned changes use proposal.md + tasks.md and `ssf workflow start --path planned`. Do not generate a contract or request a second approval for them. Read the remaining instructions only for an existing legacy change.
+## Bundled runtime
 
-Converts planning artifacts into a single execution handshake: `execution-contract.md`. Load the baseline with `ssf runtime asset read templates/execution-contract.md`.
+Before executing a CLI line below, replace its leading `SSF` with `node "<plugin-root>/scripts/spec-superflow.mjs"`; `<plugin-root>` is the absolute directory two levels above this file. Never run `SSF` literally or call an `ssf` from `PATH`.
+
+Legacy compatibility only: new planned changes use proposal.md + tasks.md and `SSF workflow start --path planned`. Do not generate a contract or request a second approval for them. Read the remaining instructions only for an existing legacy change.
+
+Converts planning artifacts into a single execution handshake: `execution-contract.md`. Load the baseline with `SSF runtime asset read templates/execution-contract.md`.
 
 Read before generating: `.spec-superflow.yaml` (especially `dp_0_decisions`),
 `proposal.md`, `specs/`, `design.md`, `tasks.md`, then load
-`docs/artifact-contract.md` with `ssf runtime asset read docs/artifact-contract.md`.
+`docs/artifact-contract.md` with `SSF runtime asset read docs/artifact-contract.md`.
 
 Enter `bridging` before writing the contract; skip the transition if already there. Honor configured specs/design omissions. Reference requirement IDs and task IDs instead of copying their full text; preserve scope, obligations, tests, and review policy.
 
@@ -51,14 +55,14 @@ Must make obvious: approved behavior, out-of-scope, constraints, batches, test o
 
 After drafting: summarize handoff rules, identify ambiguity and flag unmapped requirements. Reuse explicit approval already covering this exact contract; otherwise request it once, together with any still-pending planning decisions and the default Native execution choice. Approval of scope alone does not approve a contract that has not been shown. Never ask the user to approve the same unchanged contract twice. After approval:
 ```bash
-ssf state set <change-dir> dp_3_result "approved: <summary>"
-ssf state set <change-dir> dp_3_timestamp now
-ssf state rebuild <change-dir>
+SSF state set <change-dir> dp_3_result "approved: <summary>"
+SSF state set <change-dir> dp_3_timestamp now
+SSF state rebuild <change-dir>
 ```
 
 Advance the state after approval:
 ```bash
-ssf state transition <change-dir> approved-for-build
+SSF state transition <change-dir> approved-for-build
 ```
 
 DP-3 is a hard gate — no implementation without this record.

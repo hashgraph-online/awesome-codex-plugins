@@ -77,7 +77,7 @@ in the closing report and creates nothing.
 - Produces:
   - type: `spec`, `doc`, `guide`, or `scenario` per the type heuristics; the comprehensive route produces more than one document, and an over-cap subject one `spec` per separable sub-surface (`skills/_shared/spec-contract.md` "Over the cap"); a `scenario` with no covering `spec` produces that `spec` first.
   - status: draft
-  - relations: `related` to the existing subject documents found at `describe.read` — the v1 relate step names the link to existing documents but not the relation type [assumption]; `related` between documents produced together; no relation to a global document per `skills/_shared/globals.md`; `depends_on` from a produced `scenario` → its covering `spec`.
+  - relations: evaluate existing subject documents and documents produced together through `skills/_shared/relation-authoring.md`; add only supported claims, using their justified type and direction; none when no claim exists. A produced `scenario` requires `depends_on` → its covering `spec`. Global endpoints remain excluded per `skills/_shared/globals.md`.
 - Exit checks:
   - blocking: a draft of the chosen type exists, created via `create_document`.
   - blocking: a `spec` draft carries the sections `skills/_shared/spec-contract.md` requires, composed after reading that contract and `skills/_shared/precision-rules.md`.

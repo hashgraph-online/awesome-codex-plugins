@@ -80,7 +80,7 @@ Defaults:
 ```bash
 amq doctor --ops
 amq doctor --ops --json
-amq doctor --root <exact-root> --ops
+amq doctor --root "<exact-root>" --ops
 ```
 
 `doctor --ops` adds queue depth, sibling-session backlog hints, oldest unread

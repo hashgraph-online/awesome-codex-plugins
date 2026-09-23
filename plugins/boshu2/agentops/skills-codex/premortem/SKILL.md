@@ -7,6 +7,9 @@ description: 'Challenge a rollout plan with one fresh judge before implementatio
 Premortem is an optional plan-challenge strategy. It asks one fresh context to
 identify concrete ways the resolved bead or caller intent could fail before implementation.
 It is not part of the required RPI sequence and does not authorize readiness.
+[Plan's shared challenge method](../plan/references/challenge.md) owns optional
+exchange, independence and stopping rules. Premortem owns the failure checks
+below; invoke it when that broader examination is requested.
 
 ## The first check: who verifies, and are they fresh?
 
@@ -53,11 +56,8 @@ mark, and every one-way mark carries its undo cost.
 
 1. Resolve the existing intent source and derive its digest; inspect acceptance,
    non-goals, evidence requirements, and declared write scope there.
-2. Use one fresh judge with a context ID distinct from the plan author, in the
-   author's model family by default (Codex or Claude). A caller may explicitly
-   select a different-family judge. Follow
-   [model-dispatch](../agent-native/references/model-dispatch.md) for model pins,
-   authorization and caller/native time bounds; no fixed ten-minute cap applies.
+2. Use one fresh judge distinct from the plan author, following the shared
+   challenge method for identity, model selection, authorization and bounds.
 3. Test acceptance completeness, edge behavior, scope, dependencies,
    reversibility, and evidence shape against cited repository facts.
 4. Return one complete set of concrete findings and checked/not-checked scope.
@@ -83,14 +83,14 @@ not softened.
 
 ## Derivation-diff challenge
 
-A challenger that critiques the handed plan is a yes-man with extra steps: it
-anchors on the author's design and rationalizes it. Derive independently, then
-diff. Give one fresh context ONLY the intent source and the plan's declared
+When anchoring on the working plan is the consequential risk, select an
+independent derivation using the shared challenge method, then compare. Give
+one fresh context only the intent source and the relevant
 ground truth — the vendor docs and stock behavior for integration work, the
 repo's patterns and behavior spec for extension — and never the author's design.
-Have it sketch its own design from that ground truth alone. The diff between that
-independent design and the working plan is the challenge artifact; each
-divergence is a finding to defend or adopt. Convergence is weak evidence the plan
+Have it sketch its own design from that ground truth alone. Compare that
+independent design with the working plan in the advisory findings; each supported
+divergence is a question to resolve. Convergence is weak evidence the plan
 follows the ground truth; divergence names where it may not.
 
 Two questions the challenger answers with an artifact, not an opinion:

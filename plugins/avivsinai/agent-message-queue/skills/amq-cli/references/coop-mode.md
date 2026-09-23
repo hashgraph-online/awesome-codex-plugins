@@ -6,7 +6,8 @@
 - **Leader/Coordinator** = coordinates phases, merges, and final decisions (often the initiator).
 - **Worker** = executes assigned phases and reports back to the initiator.
 
-**Default pairing note**: Claude is often faster and more decisive, while Codex tends to be deeper but slower. That commonly makes Claude a natural coordinator and Codex a strong worker. This is a default, not a rule — roles are set per task by the initiator. Grok CLI can join as an additional optional peer/worker (e.g. a third `amq coop exec grok` in a three-way session) without changing this default two-engine pairing note.
+The initiator assigns roles for the task. A provider or model name does not
+determine authority or ownership.
 
 ## Phased Flow
 
@@ -35,7 +36,8 @@ Leader prepares commit -> user approves -> push
 ## Key Rules
 
 1. **Initiator rule** — reply to the initiator and ask the initiator for clarifications
-2. **Never branch** — always work on same branch (joined work)
+2. **Workspace ownership** — follow the repository's branch and worktree rules;
+   do not switch, stash, or overwrite another participant's work
 3. **Code phase = split** — divide files/modules to avoid conflicts
 4. **File overlap** — if same file unavoidable, assign one owner; other reviews/proposes via message
 5. **Coordinate between phases** — sync before moving to next phase
@@ -47,11 +49,14 @@ Leader prepares commit -> user approves -> push
 - While waiting, safe to do: review partner's work, run tests, read docs
 - If no assignment comes, ask the initiator (not a third party) for next task
 
-## Progress Protocol (Start / Heartbeat / Done)
+## Progress protocol
 
-- **Start**: send `kind=status` with an ETA to the initiator as soon as you begin.
-- **Heartbeat**: update on phase boundaries or every 10-15 minutes.
-- **Done**: send Summary / Changes / Tests / Notes to the initiator.
+When work starts, reply with `kind=status` and an ETA. Use `urgent` only for
+work that must interrupt the current activity.
+
+Reply to the initiator, preserve the existing thread, send status at start and
+phase boundaries, and finish with changes and verification.
+
 - **Blocked**: send `kind=question` to the initiator with options and a recommendation.
 
 ## Modes of Collaboration (Modus Operandi)
@@ -81,7 +86,8 @@ Leader prepares commit -> user approves -> push
   `amq coop exec --require-wake --wake-inject-mode none <agent>`. This mode
   writes notices to wake stderr, turns urgent interrupts into one bell plus the
   output notice, and rejects `--inject-via`, `--inject-arg`, and `--inject-cmd`.
-  Stderr shares the TUI terminal by default and may remain visible until redraw.
+  A directly started wake uses its configured stderr. `coop exec` sends wake
+  diagnostics to the private `agents/<agent>/.wake.log`, not the TUI composer.
 - When starting a new wake after the agent owns its terminal, pass `amq wake
   --baseline-existing ...`. Existing `inbox/new` messages remain unread and
   emit no receipts; only later arrivals trigger that fresh wake. `coop exec`

@@ -19,6 +19,8 @@
 9. Deep mode (`--deep`) dispatches all qualifying agents and runs full synthesis pipeline including report-checker and senior-reviewer.
 10. `--with-codex` without `--deep` prints a guidance note and continues fast review without Codex.
 11. Skill discovers the plan whose `## Global Constraints` section binds the review (Step 1.8), passes the block to every dispatched agent as context item 10, and names the source plan in the report's `Global Constraints` field. With no block found, the run is silent about it and the field reads `N/A`.
+12. Every non-filtered finding carries a `Disposition:` line (Before merge | Follow-up | Defer) in both modes, and `## Recommended Fix Order` lists every Before-merge and Follow-up finding at any severity -- the section is never omitted, and deferred findings are named in its `**Deferred:**` line instead.
+13. Deep mode dispatches `fix-reviewer` at Step 3.9, after senior-reviewer, when at least one finding carries a fix proposal. Its actions change only the fix block inside a finding; no finding is removed, re-severed, or re-dispositioned at that step.
 
 **Verification checklist:**
 - [ ] Slash menu shows `/quiver:review`.
@@ -40,6 +42,12 @@
 - [ ] `--plan` and its path are stripped from `$ARGUMENTS` in Step 0.5 and never reach the diff-source logic in Step 1.
 - [ ] A finding whose recommendation cannot be acted on without violating a constraint appears in `## Filtered Findings` classified `constraint-blocked` with the constraint named, and is absent from `## Findings`.
 - [ ] A change in the diff that violates a constraint is still reported as a finding -- the block cuts both ways.
+- [ ] Every finding in `## Findings` has a `Disposition:` line; a Low finding is dispositioned like any other and is not left out of the report's action accounting.
+- [ ] A finding whose own body argues against acting now ("worth doing eventually rather than now", "either answer is defensible") is dispositioned `Defer`, keeps its severity, and stays in `## Findings` rather than being deleted.
+- [ ] `## Recommended Fix Order` is present even when nothing blocks the merge, and its `Disposition` column matches each finding's own disposition line.
+- [ ] Deep review of a report carrying at least one fix snippet prints the fix-check line and dispatches `fix-reviewer` exactly once; a report with no fix snippet prints `No fix proposals to check.` instead.
+- [ ] A rejected fix leaves its finding in place with `No verified fix -- {reason}` where the snippet was, at the original severity and disposition.
+- [ ] Fast mode skips Step 3.9 along with Steps 3.5 and 3.75.
 
 **Known gotchas:**
 - Step 1.8 takes the newest plan in `.claude/plans/` with no matching heuristic, so an unrelated plan can supply constraints in branch mode. The `Global Constraints` field names the plan for exactly this reason; re-run with `--plan <path>` when the named plan is wrong.
@@ -47,3 +55,5 @@
 - Bitbucket/Azure DevOps PR URLs fall back to Mode 2 because there is no diff CLI; PR commenting also skips on those platforms with a manual-paste hint.
 - Two-dot `git diff <base>..<head>` is wrong for branch diffs; the skill uses three-dot `git diff <base>...HEAD` instead.
 - The synthesized report SYNC contract pairs with `skills/work/SKILL.md` Phase 4c parsing; changing section headings or finding-ID format requires updating the work skill verification logic.
+- `fix-reviewer` lives under `agents/debug/`, not `agents/review/`, because `/quiver:hypothesis-debugging` dispatches it too. Step 2a's Tier 1 scan never sees it, so its `NEVER` row in `## Dispatch Gates` and its path in the dispatch-scope list of `tests/skills/test-review-dispatch-contract.sh` are what keep it under the contract. Dropping either leaves Step 3.9 dispatching an agent no test covers.
+- Step 3.9 runs after Step 3.75 on purpose: senior-reviewer rewrites fix snippets and adds SR findings with fixes of their own, so a fix check placed before it would not see the pipeline's last author.

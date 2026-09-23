@@ -5,12 +5,16 @@ description: Sync delta specs to main specs before closure. Invoke while an exec
 
 # Spec Merger
 
+## Bundled runtime
+
+Before executing a CLI line below, replace its leading `SSF` with `node "<plugin-root>/scripts/spec-superflow.mjs"`; `<plugin-root>` is the absolute directory two levels above this file. Never run `SSF` literally or call an `ssf` from `PATH`.
+
 Before the final `executing → closing` transition, delta specs (ADDED/MODIFIED/REMOVED/RENAMED) must be published into the main spec base. `changes/<change>/` remains the active workflow source; root `specs/` is only the published baseline. **Specs that aren't synced become lies.** A change already in `closing` must not be routed to `spec-merger`.
 
 ## Execution-State Guard
 
-Before `ssf sync` or any other write, run
-`ssf state get <change-dir> state`.
+Before `SSF sync` or any other write, run
+`SSF state get <change-dir> state`.
 Continue only when the persisted state is exactly `executing`. If it is
 `closing` → STOP: "Closing is terminal. Do not route this change to spec-merger;
 synchronization belongs before the final executing → closing transition." For
@@ -20,7 +24,7 @@ any other state, or if the state cannot be read → STOP and route through
 ## Pre-Flight Checks
 
 ### Conflict Detection
-Run `ssf sync <change-dir>`. If conflicts are detected (same requirement modified by multiple changes), present the conflict list to the user for resolution order.
+Run `SSF sync <change-dir>`. If conflicts are detected (same requirement modified by multiple changes), present the conflict list to the user for resolution order.
 
 ## Sync Process
 
@@ -63,7 +67,7 @@ Output sync report table: Capability, ADDED/MODIFIED/REMOVED/RENAMED counts, Sta
 
 1. Report results. If no conflicts → ready to archive. If conflicts → user resolves before archive.
 2. Change folder (including deltas) remains for traceability.
-3. `ssf sync` automatically writes a publication receipt to the active change state. Do **not** manually set `spec_merged`: that legacy marker is not closing evidence. The closing guard recomputes the delta and published-baseline hashes, so any later edit requires another sync.
+3. `SSF sync` automatically writes a publication receipt to the active change state. Do **not** manually set `spec_merged`: that legacy marker is not closing evidence. The closing guard recomputes the delta and published-baseline hashes, so any later edit requires another sync.
 4. If the change has no delta sections, no publication receipt is required.
 
 ## Exception Handling

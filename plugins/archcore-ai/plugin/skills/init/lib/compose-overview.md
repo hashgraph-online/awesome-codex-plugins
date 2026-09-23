@@ -142,22 +142,23 @@ Ranked hotspots not yet specced (run /archcore:document to document):
 
 ## Relation wiring
 
-After the overview is created, `SKILL.md` adds these edges with
-`mcp__archcore__add_relation`. Edge types are drawn from
-`{related, implements, extends, depends_on}`; the init seed is associative, so
-every planned edge is `related` (the other three are reserved for synthesis the
-SKILL wires elsewhere).
+Use these rows to find candidates. Apply `skills/_shared/relation-authoring.md`
+before `mcp__archcore__add_relation`. The table proposes navigation links;
+when the endpoint claims establish a more specific type, use that type without
+an extra `related` for the same purpose. Preview structural candidates before
+confirm; resolve their claims from composed bodies before writing each edge.
 
 | From | Edge | To | Condition |
 |---|---|---|---|
-| architecture-overview | related | every other seeded doc (stack rule, run guide, entry-points, public-surface, top-level-map, data-model, integrations, config, each hotspot spec, each cross-cutting rule, each document converted from authored sources) | always |
-| data-model doc | related | integrations doc | both seeded |
-| each hotspot spec | related | top-level-map | top-level-map present (large mode) |
-| each hotspot spec | related | entry-points doc | entry-points present (medium / large) |
-| each hotspot spec | related | public-surface doc | public-surface present |
-| converted `rule` | related | project-stack rule | the conversion yielded a `rule` |
-| a decomposed flagship's sub-specs | related | each other (pairwise) | flagship split into ≥ 2 sub-specs (`detect-hotspots.md` "Flagship specs") |
-| each hotspot spec | related | the convention rule(s) it must honor + sibling specs in its tree | **`deep` depth only** (enriched relations) |
+| architecture-overview | related | each seeded document indexed by its area/type/topic row | index navigation, including documents covered by a collapsed row |
+| data-model doc | related | integrations doc | the integration exchanges an entity described by the data model |
+| each hotspot spec | related | top-level-map | the map locates the module whose contract the spec owns |
+| each hotspot spec | related | entry-points doc | a named entry point invokes the specified module |
+| each hotspot spec | related | public-surface doc | the inventory describes the boundary owned by this spec |
+| converted `rule` | related | project-stack rule | the converted rule constrains a named stack choice |
+| a decomposed flagship's sub-spec | related | another sub-spec | their shared boundary requires joint reading; splitting alone creates no edge |
+| each hotspot spec | related | an applicable convention or another spec | **`deep` depth only**; a named constraint or shared contract justifies the link |
 
-Skip any row whose endpoints were not both created. Roll forward on individual
+Skip any row whose endpoints were not both created or whose claim is unsupported.
+Do not build a clique from the confirmed seed. Roll forward on individual
 `add_relation` failure — surface the error, keep the successful edges.

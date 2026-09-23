@@ -161,7 +161,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [Alcove](https://github.com/epicsagas/alcove) - Local-first MCP server for private project docs with hybrid BM25+vector search, tree-sitter code indexing, and automated linting for team-wide documentation standards.
 - [Anchor](https://github.com/biefan/anchor) - Engineering discipline pack for Claude Code & Codex CLI with task-scope locking, anti-drift braking, condition-based codex review, project-CLAUDE.md pitfall writeback, and PreToolUse hooks that block irreversible bash patterns.
 - [Antigravity Workspace Template](https://github.com/study8677/antigravity-workspace-template) - Multi-agent codebase knowledge graph generator with context-aware planning and automatic scope management — turns codebases into coherent agent workspaces.
-- [Archcore](https://github.com/archcore-ai/plugin) - Gives coding agents the architecture, rules, and prior decisions of the repo via skills, hooks, and MCP — so new changes land where the project says they belong across Claude Code, Cursor, and Codex CLI.
+- [Archcore](https://github.com/archcore-ai/plugin) - Spec-driven development and context engineering for Claude Code, Cursor, Codex, and GitHub Copilot — backed by project context in Git.
 - [ArmorCodex](https://github.com/armoriq/armorCodex) - Intent-based security for Codex with MCP plan registration, policy gating, CSRG cryptographic proofs, and audit logging on `bash` and `apply_patch`.
 - [AtomLane](https://github.com/cloudguo123/atomlane) - Parallelizes only work proven safe by compiling resource-aware atomic plans for builds, tests, Make/Compose workflows, and long-running jobs with live progress and measured savings.
 - [BABOK Analyst](https://github.com/GSkuza/BABOK_ANALYST) - BABOK v3 business analysis agent with 16 MCP tools, a 9-stage pipeline, and human-in-the-loop approval gates.
@@ -204,6 +204,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [Designer Skill](https://github.com/Pythoughts-labs/designer-skill) - Plug-and-play MCP that gives your agent UI superpowers. One install: design skill + MCP server, zero config.
 - [Dev Skills](https://github.com/Jason-chen-coder/dev-skills) - Team workflow skills for specs, plans, TDD, debugging, verification, review, branch finishing, and design context.
 - [Development Skills](https://github.com/reidemeister94/development-skills) - Three-tier triage (PASS_THROUGH / LIGHT / FULL 4-phase) development workflow for Codex and Claude Code with language auto-detection (Python, Java, TypeScript, Swift, frontend) and a staff-reviewer subagent for fresh-eyes review on every change.
+- [DevRecap](https://github.com/jquinteiroo/devrecap) - Reconstruct evidence-backed developer work from authorized Codex and Claude history plus read-only Git, then turn it into daily standups, weekly reviews, sprint recaps, and memory reports.
 - [Ditto](https://github.com/ohad6k/ditto) - Mines selected evidence from local coding-agent sessions into private work, design, and writing profiles for Codex, Claude Code, and GitHub Copilot.
 - [Docflow](https://github.com/MedAdemBHA/docflow) - Lightweight documentation memory for AI coding agents that scaffolds a 7-category docs tree, runs readiness checks, validates docs before finishing, and keeps a monthly changelog across Claude Code and Codex.
 - [ejentum-mcp](https://github.com/ejentum/ejentum-mcp) - MCP server exposing reasoning, code, anti-deception, and memory harness tools for Codex.
@@ -261,7 +262,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [Simple Man](https://github.com/Maksim-Burtsev/simple-man) - Strips praise, recaps and filler from agent answers while keeping every fact you act on — findings carry location and one-line fix, refusals carry the safe procedure, tutorials stay long-form — benchmarked on 2,479 preregistered live calls, 266 of them real Claude Code sessions, with all raw records committed.
 - [skill-sync-publisher](https://github.com/liuyewang/skill-sync-publisher) - Safely synchronize this Codex skill across public agent-skill registries.
 - [Spec-Driven Development](https://github.com/Habib0x0/spec-driven-plugin) - Three-phase Requirements → Design → Tasks workflow for Claude Code and Codex — EARS notation acceptance criteria, autonomous execution loop, cross-spec dependencies, and post-implementation acceptance testing.
-- [spec-superflow](https://github.com/MageByte-Zero/spec-superflow) - Spec-first workflow with nine skills, lightweight Quick / Hotfix / Tweak / Full paths, bounded three-attempt repair loops with auditable adjudication recovery, hardened delta-spec sync, and guarded review gates.
+- [spec-superflow](https://github.com/MageByte-Zero/spec-superflow) - Lean spec workflow with direct or planned execution, optional specifications, one final review by default, recoverable state, and a bundled same-version CLI runtime.
 - [Spellbook Skills](https://github.com/yyykf/spellbook-skills) - Practical Claude Code and Codex skills for worktrees, PR/MR automation, review cleanup, YApi lookup, and Java DDD guidance.
 - [Staff Engineer Mode](https://github.com/sirmarkz/staff-engineer-mode) - Routes engineering design, delivery, reliability, security, operations, and maintenance prompts to focused staff-level specialist guidance for AI coding agents.
 - [Standup Generator](./plugins/mturac/standup-gen) - Daily standup notes from git activity across repos.
@@ -478,6 +479,7 @@ The score is best used as a quick trust signal and triage summary (not the only 
 
 ## Related Projects
 
+- [Astra Flash Orchestrator](https://github.com/ethanplusai/astra-flash-orchestrator) - Codex skill that keeps Astra on planning and review while DeepSeek V4.1 Flash handles implementation.
 - [awesome-ai-plugins](https://github.com/hashgraph-online/awesome-ai-plugins) - Umbrella list covering Codex, Claude Code, Gemini CLI, and MCP servers.
 - [codex-patch-overlay](https://github.com/salty-flower/codex-patch-overlay) - Patched Codex CLI builds carrying community-requested features upstream has not merged yet (live TUI reasoning streaming, completion sound, WebP image input, timed CLI queueing). Ready-to-run macOS/Linux binaries plus a Nix overlay, refreshed each upstream release.
 - [Tura](https://github.com/Tura-AI/tura) - A local, open-source coding agent for developers who are tired of vague skill claims, token-saving extensions with no evidence, and agents that change a repository before understanding it.

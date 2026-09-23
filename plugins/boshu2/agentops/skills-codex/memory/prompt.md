@@ -1,6 +1,6 @@
 # memory
 
-Recall reviewed lessons or deliberately mine and curate experience. Use when: prior evidence can change an action, or learning is requested; no mandatory recall or lesson.
+Find reviewed context, capture evidence or curate maintained claims. Use when: prior evidence can change an action, or learning is requested; no mandatory recall or lesson.
 
 ## Instructions
 

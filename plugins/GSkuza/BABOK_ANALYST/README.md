@@ -191,7 +191,8 @@ The bundled Next.js UI provides a lightweight review layer over the shared proje
 
 - **Dashboard**: server-rendered project cards with progress bars and approval counts
 - **Project view**: stage list, overall progress, and ZIP export
-- **Stage view**: rendered deliverables, Mermaid diagrams, quality score badge, and approve/reject controls
+- **Stage view**: AI-guided interview, generated deliverable drafts, Mermaid diagrams, quality score badge, and approve/reject controls
+- **AI settings**: configure an encrypted provider API key and select the provider used by stage interviews
 - **Export endpoint**: project ZIP download via `web/app/api/projects/[id]/export/route.ts`, with Windows-compatible archive creation
 
 Run locally:
@@ -624,6 +625,8 @@ The repository now ships a **Next.js 15 App Router** web interface for teams who
 - **New project form** — name + language selection
 - **Project detail view** — stage pipeline with status indicators
 - **Stage view** — renders deliverable Markdown + Approve / Reject buttons
+- **AI stage interview** — gathers evidence one question at a time and generates a canonical draft
+- **AI settings** — stores provider credentials in the encrypted local BABOK keystore
 - **Export page** — one-click ZIP download of all stage deliverables
 - **Mermaid diagram viewer** — inline rendering of auto-generated process maps
 
@@ -642,6 +645,8 @@ npm run dev        # http://localhost:3000
 | `/api/projects` | GET / POST | List or create projects |
 | `/api/projects/[id]` | GET | Get project detail + stage list |
 | `/api/projects/[id]/stages/[n]` | GET / POST | Read or save a stage deliverable |
+| `/api/projects/[id]/stages/[n]/chat` | GET / POST | Read or continue the stage AI interview |
+| `/api/settings/ai` | GET / POST / DELETE | Inspect, configure, select, or remove an AI provider |
 | `/api/projects/[id]/export` | GET | Download all deliverables as ZIP |
 
 ---
@@ -658,7 +663,7 @@ When multiple analysts work on the **same project directory** (e.g. on a shared 
   ⛔ Stage 3 is currently locked by another user:
      anna@WORKSTATION-02 (PID 14872), locked 12 min ago
   ```
-- Locks older than **15 minutes** are automatically treated as stale and removed
+- Locks older than **2 hours** are automatically treated as stale and removed
 - Lock files are excluded from git (`.gitignore`)
 
 > **Recommendation:** Store the `projects/` directory on a shared network drive or sync folder for team use. Each analyst works on separate stages to avoid contention.

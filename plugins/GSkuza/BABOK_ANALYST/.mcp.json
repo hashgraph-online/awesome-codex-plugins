@@ -2,7 +2,8 @@
   "mcpServers": {
     "babok": {
       "command": "node",
-      "args": ["babok-mcp/bin/babok-mcp.js"],
+      "args": ["hooks/babok-mcp-launcher.cjs"],
+      "cwd": ".",
       "env": {
         "BABOK_PROJECTS_DIR": "projects",
         "BABOK_AGENT_DIR": "BABOK_AGENT/stages"

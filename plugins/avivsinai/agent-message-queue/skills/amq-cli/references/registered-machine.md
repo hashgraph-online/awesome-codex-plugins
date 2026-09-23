@@ -13,9 +13,9 @@ controls and the user's existing action limits.
 ## Select the execution machine first
 
 Inspect the provider's available machine/tool metadata and select the intended
-registered Mac explicitly. Grok Bot's local tools use a machine selector (the
-0.43 client names `Shell`, `Read`, and `AwaitShell` with `machineId`). Verify the
-live schema rather than copying an opaque machine ID from another session.
+registered Mac explicitly. Verify the live tool schema and its machine
+selector rather than copying tool names or an opaque machine ID from another
+session.
 An unqualified cloud shell and a registered Mac shell are different contexts.
 
 On the selected machine, confirm the AMQ executable with `command -v amq` and
@@ -33,7 +33,7 @@ user-selected values; the paths below are examples, not discovery defaults.
 
 ```bash
 set -e
-amq_bin=/opt/homebrew/bin/amq
+amq_bin="$(command -v amq)"
 amq_project=/absolute/path/to/project
 amq_session=session1
 amq_handle=staff
@@ -52,7 +52,7 @@ Inspect recipients and wake state with:
 
 ```bash
 "$amq_bin" who --json
-"$amq_bin" wake check --me codex --json --json-schema=2
+"$amq_bin" wake check --me "$amq_handle" --json --json-schema=2
 ```
 
 `notifier_live` means the notifier process was verified; it is not a receipt
@@ -112,7 +112,7 @@ fallback. The desktop app must remain available for provider shell calls.
 
 The provider can lose an execution result after the Mac already delivered the
 message. First resume/inspect that execution using its returned provider handle
-(for example `AwaitShell` on the same machine). If the result is still unknown,
+on the same machine. If the result is still unknown,
 inspect the AMQ thread in the original Mac context:
 
 ```bash

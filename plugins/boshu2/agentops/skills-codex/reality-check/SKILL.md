@@ -1,12 +1,35 @@
 ---
 name: reality-check
-description: 'Check whether a claimed shipped feature, repo state or goal status holds up in evidence. Use when: comparing a claim with what exists; a gap report is not a verdict.'
+description: 'Audit claimed state, goals or native status. Use when: a claim audit or snapshot is requested. Clarify advice versus acceptance for ambiguous checking or readiness requests.'
 ---
 # Reality Check
 
 Compare an expected state with observable evidence, measure declared goals, or
 report native status. Select the requested question; a snapshot needs no
 invented completion claim. Return facts and gaps without selecting work.
+
+## Establish the requested outcome
+
+Use the caller's request and already settled context. A clear request to compare
+a stated claim with evidence, measure declared goals or report native status
+selects the corresponding procedure below without another intent question.
+Requested engineering advice belongs to [Review](../review/SKILL.md); its
+findings remain advisory.
+
+Generic checking or readiness language does not select a claim audit, advice or
+acceptance. A subject and supplied criteria identify what to inspect, not the
+kind of judgment requested. When context has not settled that purpose, ask one
+question: does the caller want advisory findings or an acceptance judgment?
+Wait for the answer before choosing or completing either interpretation. Do not
+return a gap report, verdict or readiness conclusion while intent is unresolved.
+
+Explicitly selecting [Validate](../validate/SKILL.md), asking to establish that
+original acceptance is met, or requesting independent proof of completion needs
+fresh, author-distinct exact-subject judgment under Validate's contract. Hand
+off the original acceptance, exact subject, complete changed scope and relevant
+evidence; a claim audit cannot substitute for that judgment. Missing fresh
+reviewer capability stays an explicit gap, never a claim that validation occurred.
+Clear native work still needs zero mandatory skills or skill chain.
 
 ## Claim comparison
 

@@ -81,8 +81,9 @@ evidence supports:
    `prd`, a delivery task to the `plan`, a stakeholder need to the `urd`.
 3. Split by the **actor**: Flows is already sectioned per actor, so the document
    becomes one scenario per actor (`filename=<subject-slug>-<actor-slug>`), each with
-   its own Subject, linked to its siblings with `related`, and each still
-   `depends_on` the one `spec` it illustrates.
+   its own Subject, and each still `depends_on` the one `spec` it illustrates.
+   Evaluate links between the parts through
+   `skills/_shared/relation-authoring.md`; splitting alone creates no edge.
 4. WHEN the actor is one and the cap still exceeds, split by the `spec` clause set:
    a `spec` split by sub-surface takes its scenarios with it, one per part.
 5. IF no boundary is unambiguous, THEN keep the document whole and report the excess.

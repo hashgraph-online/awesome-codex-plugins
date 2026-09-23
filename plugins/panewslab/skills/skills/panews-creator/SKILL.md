@@ -6,7 +6,7 @@ description: >
   upload images, search tags, apply for a column, polish or review article content.
 metadata:
   author: Seven Du
-  version: "2026.03.25"
+  version: "2026.09.23"
 ---
 
 This is the PANews creator skill for contributors who need to write, edit, manage, and publish articles on the platform. Use it when the task involves authenticated creator workflows such as validating a session, managing drafts or submissions, uploading images, searching tags, applying for a column, or preparing an article for review.

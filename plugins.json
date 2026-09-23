@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-09-21",
-  "total": 233,
+  "last_updated": "2026-09-23",
+  "total": 234,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -174,7 +174,7 @@
       "url": "https://github.com/archcore-ai/plugin",
       "owner": "archcore-ai",
       "repo": "plugin",
-      "description": "Gives coding agents the architecture, rules, and prior decisions of the repo via skills, hooks, and MCP — so new changes land where the project says they belong across Claude Code, Cursor, and Codex CLI.",
+      "description": "Spec-driven development and context engineering for Claude Code, Cursor, Codex, and GitHub Copilot — backed by project context in Git.",
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/archcore-ai/plugin/HEAD/plugins/archcore/.codex-plugin/plugin.json"
@@ -558,6 +558,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/reidemeister94/development-skills/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "DevRecap",
+      "url": "https://github.com/jquinteiroo/devrecap",
+      "owner": "jquinteiroo",
+      "repo": "devrecap",
+      "description": "Reconstruct evidence-backed developer work from authorized Codex and Claude history plus read-only Git, then turn it into daily standups, weekly reviews, sprint recaps, and memory reports.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/jquinteiroo/devrecap/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Ditto",
@@ -1084,7 +1094,7 @@
       "url": "https://github.com/MageByte-Zero/spec-superflow",
       "owner": "MageByte-Zero",
       "repo": "spec-superflow",
-      "description": "Spec-first workflow with nine skills, lightweight Quick / Hotfix / Tweak / Full paths, bounded three-attempt repair loops with auditable adjudication recovery, hardened delta-spec sync, and guarded review gates.",
+      "description": "Lean spec workflow with direct or planned execution, optional specifications, one final review by default, recoverable state, and a bundled same-version CLI runtime.",
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/MageByte-Zero/spec-superflow/HEAD/.codex-plugin/plugin.json"

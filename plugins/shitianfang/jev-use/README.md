@@ -79,6 +79,7 @@ and a typed reason. Tools, verdict shape, escalation contract, CLI:
 | [src/dispatch.ts](src/dispatch.ts) | Pre-call routing: what never reaches Jev |
 | [src/judge.ts](src/judge.ts) | screen → backend → hand back what is unsure; `gate` |
 | [src/jev.ts](src/jev.ts) | The `Jev` client over that engine |
+| [src/redact.ts](src/redact.ts) | Credentials stripped from a gated action before it is sent |
 | [src/backends/](src/backends) | TypeSafe, OpenRouter, Vercel, mock adapters |
 | [src/server.ts](src/server.ts) | The two MCP tools |
 | [src/cli.ts](src/cli.ts) | `install`, `serve`, `hook gate`, `doctor` |

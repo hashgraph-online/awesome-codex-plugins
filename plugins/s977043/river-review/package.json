@@ -1,6 +1,6 @@
 {
   "name": "river-review",
-  "version": "1.120.0",
+  "version": "1.122.0",
   "private": true,
   "workspaces": [
     "runners/node-api",
@@ -69,8 +69,9 @@
     "check:bilingual": "node scripts/check-bilingual-pairs.mjs",
     "check:doc-placement": "node scripts/check-doc-placement.mjs",
     "build:action": "ncc build runners/github-action/src/index.mjs -o runners/github-action/dist --source-map --license licenses.txt && node scripts/normalize-dist.mjs",
-    "codex:local": "CODEX_HOME=\"$(git rev-parse --show-toplevel)/.codex\" codex -C \"$(git rev-parse --show-toplevel)\"",
-    "codex:exec": "CODEX_HOME=\"$(git rev-parse --show-toplevel)/.codex\" codex exec -C \"$(git rev-parse --show-toplevel)\"",
+    "codex:local": "codex -C \"$(git rev-parse --show-toplevel)\"",
+    "codex:exec": "codex exec -C \"$(git rev-parse --show-toplevel)\"",
+    "codex:verify": "bash scripts/verify-codex.sh",
     "river": "node ./src/cli.mjs",
     "prepare": "husky install",
     "eval:regression": "node scripts/evaluate-regression.mjs",

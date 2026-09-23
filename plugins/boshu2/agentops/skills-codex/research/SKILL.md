@@ -7,6 +7,9 @@ description: 'Trace code or test a recurring pattern to answer one cited questio
 Answer the caller's bounded question with cited evidence. Choose ordinary
 investigation, repository tracing or pattern evidence according to the question;
 these are optional modes, not a sequence. A quick answer needs no report file.
+[Plan](../plan/SKILL.md) owns unified discovery and resumption when the question
+is part of shaping a change; return this cited answer to that existing intent
+without restarting its interview or taking over caller choices.
 
 ## Investigation
 

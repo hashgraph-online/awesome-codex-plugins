@@ -15,13 +15,13 @@ gate also includes launch-selected sessions that deliberately have no assignment
 Complete the opener before reading repository files, running task commands, or answering the
 task. Once per conversation (or after the selected deck changes):
 
-1. `get_session_binding`
-2. `get_bound_deck`
-3. Print **exactly one** line from `display_summary` (e.g. `◆ dev · 2 MCP · 0 keys · 1 playbooks`)
-4. Match the task against the returned playbook triggers. For every match, use the
+1. `get_session_context` — one call returns the workspace, effective deck,
+   `display_summary`, services, credential metadata, and playbook summaries
+2. Print **exactly one** line from `display_summary` (e.g. `◆ dev · 2 MCP · 0 keys · 1 playbooks`)
+3. Match the task against the returned playbook triggers. For every match, use the
    `agent-deck-playbooks` skill and call `get_playbook` before taking task action.
 
-If the Agent Deck tools are unavailable, disconnected, return `GRANT_REQUIRED`, or either
+If the Agent Deck tools are unavailable, disconnected, return `GRANT_REQUIRED`, or the
 required call fails, stop and report the connection problem. Do not inspect the repository,
 improvise from memory, or silently fall back to another route. Before the gate passes,
 checking for the optional assignment signal, checking whether Agent Deck is configured, and

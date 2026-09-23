@@ -9,7 +9,7 @@ description: >
   latest smart money boards, board highlights, and board comparisons.
 metadata:
   author: Seven Du
-  version: "2026.04.09"
+  version: "2026.09.23"
 ---
 
 This is the core PANews reading skill for users who want to follow cryptocurrency and blockchain news through PANews coverage and public Polymarket smart money leaderboard snapshots. Use it for market-moving headlines, project and token updates, rankings, deep dives, topics, columns, series, events, editorial picks, and structured leaderboard discovery.
@@ -29,7 +29,7 @@ It is best suited for structured news discovery, explanation, and leaderboard re
 | Scenario | Trigger intent | Reference |
 |----------|---------------|-----------|
 | Today's briefing | What's the big news today? What's happening in crypto? | [workflow-today-briefing](./references/workflow-today-briefing.md) |
-| Search | Search for XX / find reports about XX | [workflow-search](./references/workflow-search.md) |
+| Search | Search for XX / find reports about XX within a publication date range | [workflow-search](./references/workflow-search.md) |
 | Deep dive | What's going on with Bitcoin / a project / an event lately? | [workflow-topic-research](./references/workflow-topic-research.md) |
 | Read an article | User provides an article URL or ID | [workflow-read-article](./references/workflow-read-article.md) |
 | Discover trending | What is everyone talking about right now? | [workflow-trending](./references/workflow-trending.md) |
@@ -89,7 +89,7 @@ Available commands:
          list-articles    List latest articles by type
   get-daily-must-reads    Get daily must-read articles
           get-rankings    Get article hot rankings (daily: 24h hot | weekly: 7-day search trending)
-       search-articles    Search articles by keyword
+       search-articles    Search articles by keyword and publication date
            get-article    Get full article content by ID
           list-columns    List or search PANews columns
             get-column    Get column details and recent articles

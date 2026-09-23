@@ -126,6 +126,7 @@ Handle each option:
 3. For each issue with action REWRITE: replace the finding's recommendation text with the corrected version.
 4. After applying all fixes, recalculate:
    - Findings overview counts in `## Review Context`
+   - Disposition counts in `## Review Context`, and the `**Deferred:**` line under the fix order table
    - Severity section contents (move downgraded findings, remove deleted ones)
    - Recommended Fix Order table (remove entries for deleted/downgraded findings)
    - Verdict line (recompute based on remaining finding severities)

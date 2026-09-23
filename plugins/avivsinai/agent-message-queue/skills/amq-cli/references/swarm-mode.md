@@ -9,13 +9,17 @@ amq swarm list                                    # Discover teams
 amq swarm join --team my-team --me codex          # Join team
 amq swarm tasks --team my-team                    # View tasks
 amq swarm claim --team my-team --task t1 --me codex  # Claim work
-amq swarm complete --team my-team --task t1 --me codex [--evidence '{"tests_passed":true}']  # Mark done
+amq swarm complete --team my-team --task t1 --me codex  # Mark completed work done
 amq swarm fail --team my-team --task t1 --me codex --reason "tests red"  # Mark failed
 amq swarm block --team my-team --task t1 --me codex --reason "waiting on API"  # Mark blocked
 amq swarm bridge --team my-team --me codex        # Run task notification bridge
 ```
 
 ## Communication
+
+These examples use team `my-team`, task `t1`, and handle `codex`; replace them
+with the assigned values. If you add `--evidence`, include only results you
+observed. Follow the task owner's rules for who may mark work complete.
 
 Communication is asymmetric — bridge delivers task lifecycle notifications only:
 

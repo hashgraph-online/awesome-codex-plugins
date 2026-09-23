@@ -8,15 +8,18 @@ This repository is **one package**: [Agent Skills](https://agentskills.io) `SKIL
 
 ## Install
 
+**Names (read once):** `centricmem` = product / CLI. `centricmem-skill` = this GitHub package (plugins + marketplace). `centricmem-agent` = the Agent Skill folder inside the package (`skills/centricmem-agent/`). Humans can say “CentricMem skill”; keep `--skill centricmem-agent` and that folder name.
+
 Paste this to the agent (one line):
 
 ```
-Install CentricMem from zeyu-j/centricmem-skill. After install, this agent (and each client you install into) sends https://centricmem.com/login?signup=1 and tries a /connect?device= URL — plugin mcp.json or mcp add with no Bearer is not a completed connect. If minting that URL fails, run centricmem doctor connect and they email zeyu@poppyg.com with that output (never a key); then MCP OAuth only if this agent will receive the browser login (Grok Bot and Manus may; a 127.0.0.1 callback does not when this agent is not listening there). If they already have a key or a finished OAuth login in this agent, ask for a new chat — do not strip Bearer, do not mint a new connect URL. Tell them the key appears only once — save a backup; never paste keys. If connect or usage still fails, they email zeyu@poppyg.com (never a key).
+Install CentricMem from zeyu-j/centricmem-skill (GitHub package). The Agent Skill folder name is centricmem-agent — not a second product. After install, this agent (and each client you install into) sends https://centricmem.com/login?signup=1 and tries a /connect?device= URL — plugin mcp.json or mcp add with no Bearer is not a completed connect. If minting that URL fails, run centricmem doctor connect and they email zeyu@poppyg.com with that output (never a key); then MCP OAuth only if this agent will receive the browser login (Grok Bot and Manus may; a 127.0.0.1 callback does not when this agent is not listening there). If they already have a key or a finished OAuth login in this agent, ask for a new chat — do not strip Bearer, do not mint a new connect URL. Tell them the key appears only once — save a backup; never paste keys. If connect or usage still fails, they email zeyu@poppyg.com (never a key).
 ```
 
 If the shell works, a terminal in the project can run:
 
 ```bash
+# package = centricmem-skill; skill folder = centricmem-agent
 npx --yes skills add zeyu-j/centricmem-skill --skill centricmem-agent -y
 ```
 
@@ -47,7 +50,7 @@ Then keep talking. After install, if `cm_*` tools are missing this agent (and ea
 
 Hosted librarian: [centricmem.com](https://centricmem.com). Sign up is open. Host MCP: `https://mem.centricmem.com/mcp`. Never paste keys in chat.
 
-**Baseline = Skill + host MCP.** Reasonix: refresh the loaded plugin with host tool `install_source` (full URL `https://github.com/zeyu-j/centricmem-skill`, `kind: plugin`; see Skill REFERENCE). Lifecycle hooks (`AGENTS.md`, Stop remind, session-sweep scripts) are **optional** — agents without hooks (e.g. DSH) still file via Skill §4. Opening optional hooks is not part of public install; see Skill `REFERENCE.md` → Optional host hooks.
+**Baseline = Skill + host MCP.** Plugin-tree hosts: refresh the loaded plugin with the host's own install tool (`install_source`-style, full URL `https://github.com/zeyu-j/centricmem-skill`, `kind: plugin`; see Skill REFERENCE). Lifecycle hooks (`AGENTS.md`, Stop remind, session-sweep scripts) are **optional** — agents without hooks (e.g. DSH) still file via Skill §4. Opening optional hooks is not part of public install; see Skill `REFERENCE.md` → Optional host hooks.
 
 **Direct HTTP scripts** (not an MCP client): every request to `/mcp` **must** include a non-empty `User-Agent` header, or Cloudflare returns 403 error-1010. Example: `-H "User-Agent: centricmem-script/1.0"`. See Skill `REFERENCE.md` → Direct HTTP `/mcp`.
 
@@ -77,7 +80,7 @@ This repository is the **Skill**: how agents talk to the hosted librarian.
 - [`.kiro/plugins/marketplace.json`](./.kiro/plugins/marketplace.json) — Kiro pin-sync catalog
 - [`dsh/cordis.patch.yml`](./dsh/cordis.patch.yml) — DSH Cordis funnel (MIT glue, URL-only MCP, `failOnStartupError: true`). [`dsh/copy-skill.mjs`](./dsh/copy-skill.mjs) copies the Skill into `$DSH_HOME/skills/`. Skill stays PolyForm. Not ClawHub.
 
-It is not the librarian, not the CLI source, and not a self-hosted kit. One public skill: `centricmem-agent`.
+It is not the librarian, not the CLI source, and not a self-hosted kit. One public Agent Skill: `centricmem-agent` (folder name) inside package `centricmem-skill`.
 
 ## License
 

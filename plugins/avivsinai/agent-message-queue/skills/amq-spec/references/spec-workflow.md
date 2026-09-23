@@ -59,7 +59,7 @@ You MUST follow every phase in order.
 
 ### User Approval Gate (Phase 5)
 - Final plan must be presented to the user in chat.
-- ALSO raise a **structural** gate: send the approval request to the initialized human handle (conventionally `user`) on a stable `gate/<topic>` thread. See the Operator Gates section in /amq-cli for canonical mechanics, seeding, and guardrails. An agent-to-agent `phase:decision` message is NOT the approval.
+- ALSO raise a **structural** gate: send the approval request to the initialized human handle (conventionally `user`) on a stable `gate/<topic>` thread. See the Operator Gates section in the amq-cli operations guide for canonical mechanics, seeding, and guardrails. An agent-to-agent `phase:decision` message is NOT the approval.
 - Wait for explicit user approval (the human's reply on the gate thread) before execution. Partner agents do not implement from a spec decision alone.
 
 ## Thread Convention
@@ -73,9 +73,9 @@ All spec messages use thread `spec/<topic>` (example: `spec/auth-redesign`).
 **Initiating agent (starts the spec):**
 ```bash
 # 1) Send problem statement request (no findings yet)
-amq send --to <partner> --kind question \
+amq send --to "<partner>" --kind question \
   --labels workflow:spec,phase:request \
-  --thread spec/<topic> --subject "Spec: <topic>" \
+  --thread "spec/<topic>" --subject "Spec: <topic>" \
   --body "Problem: <what needs to be designed>"
 
 # 2) Do your own independent research immediately
@@ -83,9 +83,9 @@ amq send --to <partner> --kind question \
 #    - Check external docs if relevant
 
 # 3) Submit your findings
-amq send --to <partner> --kind brainstorm \
+amq send --to "<partner>" --kind brainstorm \
   --labels workflow:spec,phase:research \
-  --thread spec/<topic> --subject "Research: <topic>" \
+  --thread "spec/<topic>" --subject "Research: <topic>" \
   --body "<your findings using template below>"
 
 # 4) With a live injecting wake, yield; drain when its doorbell arrives.
@@ -100,25 +100,25 @@ amq send --to <partner> --kind brainstorm \
 #    - Do not read partner research from the thread yet
 
 # 2) Submit your findings
-amq send --to <partner> --kind brainstorm \
+amq send --to "<partner>" --kind brainstorm \
   --labels workflow:spec,phase:research \
-  --thread spec/<topic> --subject "Research: <topic>" \
+  --thread "spec/<topic>" --subject "Research: <topic>" \
   --body "<your findings>"
 
 # 3) Then read full thread
-amq thread --id spec/<topic> --include-body
+amq thread --id "spec/<topic>" --include-body
 ```
 
 ### Phase 2: Discuss (ping-pong)
 
 ```bash
 # Read both research submissions
-amq thread --id spec/<topic> --include-body
+amq thread --id "spec/<topic>" --include-body
 
 # Discuss differences, trade-offs, and decisions
-amq send --to <partner> --kind brainstorm \
+amq send --to "<partner>" --kind brainstorm \
   --labels workflow:spec,phase:discuss \
-  --thread spec/<topic> --subject "Discussion: <topic>" \
+  --thread "spec/<topic>" --subject "Discussion: <topic>" \
   --body "<analysis + open questions>"
 
 # Continue rounds until aligned
@@ -130,18 +130,18 @@ amq drain --include-body
 ### Phase 3: Draft (main agent)
 
 ```bash
-amq send --to <partner> --kind review_request \
+amq send --to "<partner>" --kind review_request \
   --labels workflow:spec,phase:draft \
-  --thread spec/<topic> --subject "Plan: <topic>" \
+  --thread "spec/<topic>" --subject "Plan: <topic>" \
   --body "<plan using template below>"
 ```
 
 ### Phase 4: Review (partner)
 
 ```bash
-amq send --to <partner> --kind review_response \
+amq send --to "<partner>" --kind review_response \
   --labels workflow:spec,phase:review \
-  --thread spec/<topic> --subject "Review: <topic>" \
+  --thread "spec/<topic>" --subject "Review: <topic>" \
   --body "<review feedback>"
 
 # If needed: main agent revises and re-sends draft
@@ -155,8 +155,8 @@ Main agent must:
 3. Raise a **structural gate**: address the approval request to the initialized
    human handle (conventionally `user`) on a stable `gate/<topic>` thread:
    ```bash
-   # See the Operator Gates section in /amq-cli for human-handle seeding and guardrails.
-   amq send --to user --thread gate/<topic> --kind question \
+   # See the Operator Gates section in the amq-cli operations guide for human-handle seeding and guardrails.
+   amq send --to user --thread "gate/<topic>" --kind question \
      --subject "APPROVAL: <decision>" \
      --body "<final plan summary; what you need the human to approve>"
    ```
@@ -165,14 +165,14 @@ Main agent must:
    agent-to-agent `phase:decision` message alone
 
 The `phase:decision` message below is an **optional partner alignment marker**,
-not the user approval. See /amq-cli's Operator Gates section for the canonical
+not the user approval. See the amq-cli operations guide's Operator Gates section for the canonical
 mechanics and guardrails.
 
 Optional partner notification after alignment:
 ```bash
-amq send --to <partner> --kind decision \
+amq send --to "<partner>" --kind decision \
   --labels workflow:spec,phase:decision \
-  --thread spec/<topic> --subject "Final: <topic>" \
+  --thread "spec/<topic>" --subject "Final: <topic>" \
   --body "<final agreed plan>"
 ```
 
@@ -184,7 +184,7 @@ Only after user approval. Follow user direction on scope and rollout.
 
 Use the thread to inspect current phase:
 ```bash
-amq thread --id spec/<topic> --include-body
+amq thread --id "spec/<topic>" --include-body
 ```
 
 Phase indicators:

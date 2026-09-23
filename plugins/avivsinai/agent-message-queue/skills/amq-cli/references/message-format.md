@@ -28,7 +28,7 @@ AMQ messages are Markdown files with a JSON frontmatter header:
 ```
 
 Field notes:
-- `schema`: integer schema version (currently 1).
+- `schema`: integer message schema version; this document describes version 1.
 - `id`: globally unique message id (also the filename stem on disk).
 - `from`: sender handle.
 - `to`: list of receiver handles.

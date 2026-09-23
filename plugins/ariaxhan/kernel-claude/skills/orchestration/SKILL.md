@@ -97,15 +97,15 @@ and the observed fallback identity separately. Otherwise stop and re-contract. 4
 state to AgentDB at every boundary so a respawn resumes instead of restarting.
 </fault_tolerance>
 
-<worktree_safety>
-Parallel lanes (tier 2+) run in isolated git worktrees (`isolation: "worktree"`),
-never the main worktree; failed work is discarded by deleting the worktree. Pre-spawn:
-working tree clean or stashed; each lane's `constraints.files` disjoint from all
-active lanes. Post-agent validation: read the lane's checkpoint, then
-`git diff --name-only {base}..{lane_branch}`; every changed file MUST appear in
-`constraints.files`, and an out-of-scope file means reject, do not merge, re-contract.
-Tier 1 skips worktrees (unnecessary overhead).
-</worktree_safety>
+<lane_safety>
+NEVER use git worktrees (`isolation: "worktree"`, `git worktree add`): the operator forbids them
+and they have never produced merged work here. Parallel lanes (tier 2+) share the live checkout
+and are made safe by file-disjointness: each lane's `constraints.files` is disjoint from all active
+lanes, and a lane stages only its own paths by name. Post-agent validation: read the lane's
+checkpoint, then `git diff --name-only` over the lane's commits; every changed file MUST appear in
+`constraints.files`, and an out-of-scope file means reject, revert that path, re-contract.
+Work that cannot be made file-disjoint runs sequentially.
+</lane_safety>
 
 <knowledge_injection>
 Inject context BEFORE spawn, never let lanes discover it at runtime: build the slice

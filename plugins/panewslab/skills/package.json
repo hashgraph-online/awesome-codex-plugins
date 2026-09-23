@@ -2,22 +2,24 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/*.test.mjs",
     "build": "tsdown",
     "build:panews": "tsdown --config tsdown.config.ts --filter panews",
     "build:creator": "tsdown --config tsdown.config.ts --filter panews-creator",
     "dev": "tsdown --watch"
   },
   "devDependencies": {
-    "@types/node": "^25.5.0",
+    "@types/node": "^26.6.2",
     "@types/turndown": "^5.0.6",
-    "tsdown": "^0.21.4",
-    "typescript": "^5"
+    "tsdown": "^0.23.0",
+    "typescript": "^7.0.2"
   },
   "dependencies": {
     "@panews/lang": "^1.1.0",
-    "citty": "^0.2.1",
-    "md4x": "^0.0.25",
-    "turndown": "^7.2.2",
-    "zod": "^4.3.6"
+    "citty": "^0.2.2",
+    "md4x": "^0.0.30",
+    "turndown": "^7.2.4",
+    "zod": "^4.6.5"
   }
 }

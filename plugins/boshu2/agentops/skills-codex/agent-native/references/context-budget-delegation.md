@@ -99,8 +99,7 @@ agent directory and registers `agents.<name>.description` and `config_file`
 using the installed Codex config editor. The checkout has equivalent explicit
 registrations in `.codex/config.toml`; standalone file discovery did not work
 in the measured CLI, while registered roles ran successfully. Installation
-requires Node and the installed Codex runtime. They do not add skills to the
-34-skill menu.
+requires Node and the installed Codex runtime. They do not add skills to the menu.
 
 - `bulk-reader` (`agents/bulk-reader.toml`): one question and one file, slices
   of at most 350 lines (or a smaller configured budget), up to 40 paraphrased

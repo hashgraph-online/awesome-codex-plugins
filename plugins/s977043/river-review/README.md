@@ -190,6 +190,8 @@ River Review は **artifact-driven review agent** です。外部から渡され
 
 詳細な仕様は [`river review plan` CLI 仕様](pages/reference/cli-review-plan-spec.md) / [`river review exec` CLI 仕様](pages/reference/cli-review-exec-spec.md) を参照してください。
 
+この CLI は npm へ公開しておらず、リポジトリを clone して `npm install` した開発者向けのサーフェスです。利用者向けの入口は GitHub Action と Claude Code / Codex プラグインになります。
+
 ```bash
 # 設計レビュー: plan 単体を検査
 river review plan --artifact plan=./artifacts/plan.md
@@ -238,7 +240,7 @@ jobs:
 
 <!-- x-release-please-start-version -->
 
-最新リリース: [v1.120.0](https://github.com/s977043/river-review/releases/latest)
+最新リリース: [v1.122.0](https://github.com/s977043/river-review/releases/latest)
 
 <!-- x-release-please-end -->
 
@@ -389,8 +391,8 @@ GitHub Actions では:
 
 ## クイックスタート（ローカル）
 
-1. 環境: Node 22 必須（`package.json` の `engines.node` は `22.x`、CI も Node 22 で運用）
-2. 依存導入: `npm install`
+1. 環境: [`.nvmrc`](.nvmrc) の Node.js を使用。初回は `nvm install`、以降は `nvm use`
+2. 依存導入: `npm ci`（ロックファイルに従ってインストール）
 3. スキル検証: `npm run skills:validate`
 4. Agent Skills 検証（任意）: `npm run agent-skills:validate`
 5. テスト: `npm test`
@@ -398,6 +400,8 @@ GitHub Actions では:
 7. Review fixtures 評価（任意）: `npm run eval:fixtures`（must_include 方式）
 8. リポ全体評価（任意）: `npm run eval:repo-context`（[#688](https://github.com/s977043/river-review/issues/688) の repo-wide fixtures に対し detection / context lift / false positive を測定する）
 9. ドキュメント開発（任意）: `npm run dev`（Docusaurus）
+
+Node.js の切り替えに困った場合は `bash scripts/local-npm.sh test` を使用できる。前提条件と日常の操作は[開発ランブック](docs/runbook/dev.md)を参照。
 
 ### v0.21〜v0.28 で追加された主な機能
 
@@ -490,11 +494,11 @@ Codex（および Cursor）の完全なセットアップは `templates/agent-wo
 
 ### Codex を project-local config で使う
 
-Codex 用の project-local config は [`.codex/config.toml`](./.codex/config.toml) にあり、**opt-in** です。通常の Codex 利用には影響しません。このリポジトリ設定を使うときだけ、以下のいずれかで起動します。
+Codex 用の project-local config は [`.codex/config.toml`](./.codex/config.toml) にあります。プロジェクトを信頼済みにして、以下のいずれかで起動します。`CODEX_HOME` は変更せず、通常の認証とプラグイン設定を引き継ぎます。trusted project ではRiver Review pluginも自動で有効になります。
 
 ```bash
 REPO_ROOT=$(git rev-parse --show-toplevel)
-CODEX_HOME="$REPO_ROOT/.codex" codex -C "$REPO_ROOT"
+codex -C "$REPO_ROOT"
 npm run codex:local -- "AGENTS.md を読んで、このブランチの作業計画を出して"
 ```
 
@@ -503,6 +507,9 @@ npm run codex:local -- "AGENTS.md を読んで、このブランチの作業計�
 ```bash
 npm run codex:exec -- "review this branch"
 ```
+
+`npm run codex:verify` でプラグイン契約と関連テストを検証します。`npm run codex:verify -- --live` は追加で読み取り専用の Codex を起動し、180 秒で打ち切ります。実機検証には Codex の認証が必要です。契約テストの成功だけでは、レビュー全体の動作確認にはなりません。
+実測結果と確認できた範囲は[開発ランブック](docs/runbook/dev.md#codex-連携の検証)を参照してください。
 
 運用上の前提:
 

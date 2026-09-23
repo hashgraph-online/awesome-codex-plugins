@@ -24,8 +24,8 @@ record shape, state rules, and execution rules:
   transition statuses. Drift-shaped wording without a completion signal
   routes to actualize.
 - Scope: the `plan` document covering the branch work (matched by topic or
-  path references), its `implements` chain one hop (`prd`, `idea`, `rnd`,
-  `research`, `spec`), plus every document the branch diff references. The `review`
+  path references), its `implements` and `depends_on` chain one hop (`prd`, `idea`,
+  `rnd`, `research`, `spec`), plus every document the branch diff references. The `review`
   skill pre-fills the branch boundary per `skills/_shared/branch-state.md`.
 - Status rule: this track transitions draft → accepted only, one
   per-document confirmation each; a decline leaves the status unchanged.

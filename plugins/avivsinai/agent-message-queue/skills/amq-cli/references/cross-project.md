@@ -64,7 +64,7 @@ use `--project` or `--session` instead; routed same-handle sends do not require
 Cross-project messages carry `reply_to` (handle@session) and `reply_project` (project name). When you receive a cross-project message:
 
 ```bash
-amq reply --id <msg_id> --body "got it"
+amq reply --id "<msg_id>" --body "got it"
 ```
 
 The CLI reads `reply_project` from the message, resolves the peer, and delivers to the correct project/session. The reply re-stamps `reply_to` and `reply_project` with the replier's own identity for continued round-trip.
@@ -100,23 +100,23 @@ Decentralized decision protocol for cross-project coordination, based on RFC 728
 amq send --to codex --project proj-b --kind decision \
   --labels "decision:proposal,project:proj-a,project:proj-b" \
   --thread "decision/api-v2" \
-  --context '{"proposal_id":"api-v2","question":"Adopt new API?","required_projects":["proj-a","proj-b"],"deadline":"2026-03-25"}' \
-  --body "Proposal: migrate to API v2. All tests green."
+  --context '{"proposal_id":"api-v2","question":"Adopt new API?","required_projects":["proj-a","proj-b"]}' \
+  --body "Proposal: migrate to API v2. Please review the consumer contract."
 
 # Support
-amq reply --id <msg_id> --kind decision \
+amq reply --id "<msg_id>" --kind decision \
   --labels "decision:support" \
-  --body "LGTM. Tests pass on our side."
+  --body "The proposed contract meets our requirements."
 
 # Objection
-amq reply --id <msg_id> --kind decision \
+amq reply --id "<msg_id>" --kind decision \
   --labels "decision:objection,blocking" \
   --body "Breaks backward compat for our consumers."
 
 # Final decision
-amq reply --id <msg_id> --kind decision \
+amq reply --id "<msg_id>" --kind decision \
   --labels "decision:final" \
-  --body "Adopted with backward-compat shim. Shipping in v0.25."
+  --body "Agreed: retain backward compatibility for existing consumers."
 ```
 
 ### Context schema for proposals
@@ -127,8 +127,8 @@ amq reply --id <msg_id> --kind decision \
   "question": "Should we adopt the new API?",
   "options": ["adopt", "defer", "reject"],
   "required_projects": ["proj-a", "proj-b"],
-  "deadline": "2026-03-25",
-  "evidence": ["All CI green", "perf benchmarks attached"]
+  "deadline": "<agreed deadline>",
+  "evidence": ["<path or URL to observed results>"]
 }
 ```
 

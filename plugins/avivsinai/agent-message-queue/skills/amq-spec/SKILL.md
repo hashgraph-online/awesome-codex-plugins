@@ -8,9 +8,10 @@ metadata:
   compatibility: claude-code, codex-cli
 ---
 
-# /amq-spec — Collaborative Specification Workflow
+# AMQ collaborative specification
 
-This skill defines a structured two-agent specification flow.
+Invoke the `amq-spec` skill through your host's skill interface. It defines
+a structured two-agent specification flow; invocation syntax depends on the host.
 
 Use canonical phases in order:
 `Research -> Discuss -> Draft -> Review -> Present -> Execute`
@@ -42,9 +43,9 @@ for the problem statement. That's why the send comes first, even though your
 instinct might be to "research first to give better context."
 
 ```bash
-amq send --to <partner> --kind question \
+amq send --to "<partner>" --kind question \
   --labels workflow:spec,phase:request \
-  --thread spec/<topic> --subject "Spec: <topic>" --body "<problem>"
+  --thread "spec/<topic>" --subject "Spec: <topic>" --body "<problem>"
 ```
 
 Send the user's problem description verbatim — your own analysis goes in the
@@ -69,34 +70,34 @@ Labels are how both agents and the receiver-side protocol table know which phase
 
 ```bash
 # Initiate spec with problem statement
-amq send --to <partner> --kind question \
+amq send --to "<partner>" --kind question \
   --labels workflow:spec,phase:request \
-  --thread spec/<topic> --subject "Spec: <topic>" --body "<problem>"
+  --thread "spec/<topic>" --subject "Spec: <topic>" --body "<problem>"
 
 # Submit independent research
-amq send --to <partner> --kind brainstorm \
+amq send --to "<partner>" --kind brainstorm \
   --labels workflow:spec,phase:research \
-  --thread spec/<topic> --subject "Research: <topic>" --body "<findings>"
+  --thread "spec/<topic>" --subject "Research: <topic>" --body "<findings>"
 
 # Discuss and align
-amq send --to <partner> --kind brainstorm \
+amq send --to "<partner>" --kind brainstorm \
   --labels workflow:spec,phase:discuss \
-  --thread spec/<topic> --subject "Discussion: <topic>" --body "<analysis>"
+  --thread "spec/<topic>" --subject "Discussion: <topic>" --body "<analysis>"
 
 # Draft plan
-amq send --to <partner> --kind review_request \
+amq send --to "<partner>" --kind review_request \
   --labels workflow:spec,phase:draft \
-  --thread spec/<topic> --subject "Plan: <topic>" --body "<plan>"
+  --thread "spec/<topic>" --subject "Plan: <topic>" --body "<plan>"
 
 # Review plan
-amq send --to <partner> --kind review_response \
+amq send --to "<partner>" --kind review_response \
   --labels workflow:spec,phase:review \
-  --thread spec/<topic> --subject "Review: <topic>" --body "<feedback>"
+  --thread "spec/<topic>" --subject "Review: <topic>" --body "<feedback>"
 
 # Optional final decision message
-amq send --to <partner> --kind decision \
+amq send --to "<partner>" --kind decision \
   --labels workflow:spec,phase:decision \
-  --thread spec/<topic> --subject "Final: <topic>" --body "<final plan>"
+  --thread "spec/<topic>" --subject "Final: <topic>" --body "<final plan>"
 ```
 
 ## When You RECEIVE a Spec Message
@@ -110,7 +111,7 @@ If you receive a message labeled `workflow:spec`, your action depends on the pha
 | `phase:discuss` | Reply with your analysis, continue discussion until aligned |
 | `phase:draft` | Review the plan and send feedback as `review_response` + `phase:review`. Your job here is review, not implementation — the plan needs to survive scrutiny before anyone builds it. |
 | `phase:review` | Revise plan if needed, or confirm alignment |
-| `phase:decision` | Stop. A `phase:decision` message is agent-to-agent alignment, **not** user approval, so do **not** implement from a spec decision alone. Only the human authorizes implementation, recorded as a structural gate to the initialized human handle (conventionally `user`; see the Operator Gates section in /amq-cli). Wait until the initiator confirms the human approved on the gate thread and assigns you work. |
+| `phase:decision` | Stop. A `phase:decision` message is agent-to-agent alignment, **not** user approval, so do **not** implement from a spec decision alone. Only the human authorizes implementation, recorded as a structural gate to the initialized human handle (conventionally `user`; see the Operator Gates section in the amq-cli operations guide). Wait until the initiator confirms the human approved on the gate thread and assigns you work. |
 
 **Why the partner doesn't implement**: The spec workflow is a design process.
 The initiator owns the relationship with the user and presents the final plan.
@@ -137,7 +138,7 @@ These rules exist because violations silently break the workflow's value proposi
 - **Don't skip phases** — each phase builds on the previous. Collapsing directly to a finished spec skips the discussion where misunderstandings surface.
 - **Use `spec/<topic>` threads and the label convention** — this is how both agents (and the tooling) know which phase the conversation is in. Without consistent labels, the receiver-side protocol table above breaks.
 - **Don't enter plan mode during research** if it blocks tool usage — you need tools to explore the codebase.
-- **Present the final plan to the user before executing, and raise a structural gate**. The initiator owns the user relationship. After the decision phase, present the plan in chat AND raise a structural human gate using the initialized human handle (conventionally `user`) on a stable `gate/<topic>` thread, then wait for explicit approval on that thread. The agent-to-agent `phase:decision` message is alignment only; partner agents must not implement from it. See the Operator Gates section in /amq-cli for canonical mechanics, seeding, and guardrails.
+- **Present the final plan to the user before executing, and raise a structural gate**. The initiator owns the user relationship. After the decision phase, present the plan in chat AND raise a structural human gate using the initialized human handle (conventionally `user`) on a stable `gate/<topic>` thread, then wait for explicit approval on that thread. The agent-to-agent `phase:decision` message is alignment only; partner agents must not implement from it. See the Operator Gates section in the amq-cli operations guide for canonical mechanics, seeding, and guardrails.
 
 ## Reference
 

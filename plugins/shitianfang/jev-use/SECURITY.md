@@ -15,6 +15,14 @@ means whatever you put in the state: page DOM, command output, transcript
 messages, and, when the gate is enabled, the shell command being proposed
 along with the session context around it.
 
+Credentials inside a **gated action** do not: the hook hands over whatever
+the agent proposed, so `jev_gate` and `jev.gate()` redact the action before
+the call — URL passwords, auth and cookie headers, `-u user:pass`,
+`--token=`/`SECRET=` values, and known key shapes (`sk-`, `ghp_`, `AKIA`,
+JWTs) become `[redacted]`. The rules are a table in
+[src/redact.ts](src/redact.ts). The state you write yourself is sent as
+given — that part is your choice.
+
 - There is no self-hosted path today. Jev is API-only.
 - `JEV_BACKEND=mock` answers locally and makes **no network calls at all**.
   Use it to see exactly which calls a workload would have made.

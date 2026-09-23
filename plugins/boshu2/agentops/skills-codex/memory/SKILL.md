@@ -1,6 +1,6 @@
 ---
 name: memory
-description: 'Recall reviewed lessons or deliberately mine and curate experience. Use when: prior evidence can change an action, or learning is requested; no mandatory recall or lesson.'
+description: 'Find reviewed context, capture evidence or curate maintained claims. Use when: prior evidence can change an action, or learning is requested; no mandatory recall or lesson.'
 ---
 # Memory
 
@@ -12,13 +12,15 @@ background mining. A trivial edit can proceed directly to implementation.
 
 | Need | Read on demand |
 |---|---|
-| An earlier constraint may change the next action | [Recall](references/recall.md) |
-| Learn from a bounded set of episodes, failures or corrections | [Mine / learn](references/mine-learn.md) |
+| An earlier constraint or source map may change the next action | [Find / recall](references/recall.md) |
+| Capture useful evidence from selected sources, episodes or corrections | [Capture / mine / learn](references/mine-learn.md) |
 | Update, qualify, consolidate or retire a supported claim | [Curate / qualify / retire](references/curate.md) |
 | Find repeated operational friction in supplied history | [Toil evidence](#toil-evidence) |
 
-Mine/learn includes bounded verdicts, corrections and failed or harmful reuse;
-it is not a required completion step. The optional
+Memory owns these find, capture and curate operations; other roles link here
+instead of maintaining their own procedures. Capture/mine/learn includes bounded
+source maps, verdicts, corrections and failed or harmful reuse; it is not a
+required completion step. The optional
 [OKF page profile](references/learn/okf-page-profile.md) checks structure only.
 Do not load every operation reference just because Memory was selected.
 
@@ -26,10 +28,24 @@ Do not load every operation reference just because Memory was selected.
 
 BD or the caller's tracker owns work/status/dependencies/handoffs; Git owns
 content and delivery history; native sessions and CASS own episode evidence.
-The caller-selected reviewed external Markdown topic pages hold reusable claims,
-not another work account. Search and update an existing topic page before making
-a new one. Do not make one lesson file per session, copy a transcript lake, or
-silently initialize a memory store. Source evidence is not policy.
+Caller-selected reviewed Markdown topic pages hold reusable claims in a project
+`.context/` or an external bundle. These are evidence, not another work account.
+Existing docs, ADRs and code retain their declared authority; a page points to
+those owners instead of copying their policy. Search and update an existing topic
+page before making a new one. Do not make one lesson file per session, copy a
+transcript lake, or silently initialize a memory store. Source evidence is not
+policy.
+
+For an explicitly selected project `.context/`, start at its small authored
+`README.md` map only when relevant to the task, then read likely pages and their
+current source owners with ordinary filesystem tools such as `rg` and `cat`.
+Portable reading of cleared project pages needs neither BD nor AO. The map
+links topics and source owners; it does not mirror tracker status or inventory
+every source. No directory, index or private import is created automatically.
+The optional `ao config context` route supports external bundles and an explicitly
+bound canonical direct `<consumer>/.context`. It requires native BD and preserves
+the policy and identity bindings; other consumer-overlapping roots remain refused.
+Draft staging and review evidence stay external to Git, consumer and bundle.
 
 A useful entry states **applicability, action, support, limits and invalidation**:
 when it applies, what to do, the evidence, where it may fail, and what would
@@ -51,7 +67,9 @@ remain explicit gaps; do not fetch then redact.
 
 Draft outside Git in caller-selected protected external staging. Obtain fresh
 author-distinct factual-support and destination-disclosure review of the exact
-payload before any Git object/index/stash or import. The caller selects storage;
+payload, destination paths and metadata before any Git object/index/stash or
+import, including admission to project `.context/`. Proof and drafts stay outside
+the project in protected non-Git storage. The caller selects storage;
 missing routing does not authorize a workspace fallback. Preserve requested
 legacy `.agents/` proof and unique evidence under owner policy. No blind TTL or
 delete operation is part of Memory. Use the caller's supported protection and
@@ -94,9 +112,10 @@ evidence alone grants no authority to adopt a rule or schedule a job.
 ## Prompt
 
 ```text
-Use Memory recall for this parser change. Search the caller-selected reviewed
-external topic pages for an applicable constraint. Return only evidence that
-changes the next check, or no-match; do not mine or save a new lesson.
+Use Memory find/recall for this parser change. Search the caller-selected reviewed
+project .context/ or external topic pages for an applicable constraint. Return
+only evidence that changes the next check, or no-match; do not mine or save a
+new lesson.
 ```
 
 ## It's working if

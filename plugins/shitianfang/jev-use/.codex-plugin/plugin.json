@@ -1,6 +1,6 @@
 {
   "name": "jev-use",
-  "version": "0.7.1",
+  "version": "0.8.0",
   "description": "Hands the agent steps that need no text output to Jev, TypeSafe's judgment model: typed yes/no, pick-one and score questions about one state answered in a single batched call, with typed escalation back to the LLM for anything it cannot or should not decide.",
   "repository": "https://github.com/shitianfang/jev-use",
   "license": "MIT",
@@ -27,7 +27,7 @@
       "command": "npx",
       "args": [
         "-y",
-        "jev-use@0.7.1",
+        "jev-use@0.8.0",
         "serve"
       ]
     }

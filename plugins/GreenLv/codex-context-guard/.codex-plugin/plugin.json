@@ -1,6 +1,6 @@
 {
   "name": "context-guard",
-  "version": "0.14.0",
+  "version": "0.14.1",
   "description": "Preserve task requirements and verify evidence, scope, surfaces, and multimodal assets across compaction.",
   "author": {
     "name": "Gerui Lv",
@@ -35,6 +35,7 @@
     ],
     "websiteURL": "https://github.com/GreenLv/codex-context-guard",
     "privacyPolicyURL": "https://github.com/GreenLv/codex-context-guard/blob/main/docs/PRIVACY.md",
+    "termsOfServiceURL": "https://github.com/GreenLv/codex-context-guard/blob/main/LICENSE",
     "defaultPrompt": "Use $context-guard to protect this long-running task from context loss."
   }
 }

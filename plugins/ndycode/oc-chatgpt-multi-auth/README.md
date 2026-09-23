@@ -5,7 +5,7 @@
 [![CI](https://github.com/ndycode/oc-codex-multi-auth/actions/workflows/ci.yml/badge.svg)](https://github.com/ndycode/oc-codex-multi-auth/actions/workflows/ci.yml)
 [![MIT license](https://img.shields.io/npm/l/oc-codex-multi-auth.svg)](LICENSE)
 
-`oc-codex-multi-auth` is an OpenCode plugin for ChatGPT Plus/Pro OAuth, Codex and GPT-5/GPT-6 model routing (including GPT-6 Astra, the Daybreak cyber tiers, and GPT-5.6 Sol/Terra/Luna), multi-account rotation, account switching, health checks, quota visibility, diagnostics, and recovery tools. It installs the OpenCode provider/TUI configuration, registers a 24-tool `codex-*` command toolkit, and routes OpenCode OpenAI SDK requests through the ChatGPT-backed Codex flow with local account state.
+`oc-codex-multi-auth` is an OpenCode plugin for ChatGPT Plus/Pro OAuth, Codex and GPT-5/GPT-6 model routing (including GPT-6 Astra/Sol/Luna, the Daybreak cyber tiers, and GPT-5.6 Sol/Terra/Luna), multi-account rotation, account switching, health checks, quota visibility, diagnostics, and recovery tools. It installs the OpenCode provider/TUI configuration, registers a 24-tool `codex-*` command toolkit, and routes OpenCode OpenAI SDK requests through the ChatGPT-backed Codex flow with local account state.
 
 Use it when you want OpenCode to run Codex-style coding workflows from your own ChatGPT subscription while keeping accounts visible, switchable, health-checked, and recoverable from the terminal.
 
@@ -20,9 +20,9 @@ Use it when you want OpenCode to run Codex-style coding workflows from your own 
 ## What You Get
 
 - OpenCode plugin support for ChatGPT Plus/Pro OAuth and Codex/GPT-5 coding workflows
-- GPT-6 Astra, GPT-5.6 Sol/Terra/Luna, and the Daybreak Blue/Red cyber tiers on the responses-lite request path, plus GPT-5.5, GPT-5.5 Fast, GPT-5.4 Mini, GPT-5.4 Nano, GPT-5.1, and Codex model templates
+- GPT-6 Astra, GPT-6 Sol/Luna, GPT-5.6 Sol/Terra/Luna, and the Daybreak Blue/Red cyber tiers on the responses-lite request path, plus GPT-5.5, GPT-5.5 Fast, GPT-5.4 Nano, and GPT-5.1 templates
 - Routing for the Daybreak-gated cyber tiers (`gpt-daybreak-blue-latest`, `gpt-daybreak-red-latest`, `gpt-5.6-cyber`), deliberately kept out of the shipped templates since they need program approval
-- Compact modern OpenCode config with 13 base families and 59 variant presets; explicit legacy selector IDs when needed
+- Compact modern OpenCode config with 10 base families and 53 variant presets; explicit legacy selector IDs when needed
 - Stateless Codex-compatible request handling with `store: false` and `reasoning.encrypted_content`
 - Multi-account rotation with hybrid health scoring, cooldowns, automatic token refresh, and failover
 - Explicit saved-account listing, account switching, labeling, tagging, notes, health checks, and diagnostics
@@ -90,8 +90,8 @@ Installer flags:
 | Flag | Effect |
 | --- | --- |
 | (default) / `--plugin-only` | Register the plugin and TUI integration without changing `provider.openai` |
-| `--modern` | Install compact modern catalog: 13 bases, 59 variants |
-| `--full` | Compact bases plus 59 explicit selector IDs |
+| `--modern` | Install compact modern catalog: 10 bases, 53 variants |
+| `--full` | Compact bases plus 53 explicit selector IDs |
 | `--legacy` | Explicit-only catalog for older OpenCode |
 | `--dry-run` | Show changed config paths without values or writes |
 | `--no-cache-clear` | Skip clearing the OpenCode plugin cache |
@@ -128,7 +128,28 @@ opencode debug config
 opencode auth login
 ```
 
-The default installer only normalizes the plugin entry in `~/.config/opencode/opencode.json`, enables the TUI status plugin in `~/.config/opencode/tui.json`, and clears the cached plugin copy. Catalog modes also merge their selected `provider.openai` definitions. Changed config files are backed up before writing.
+The default installer only registers the plugin entry in `~/.config/opencode/opencode.json`, enables the TUI status plugin in `~/.config/opencode/tui.json`, and clears the cached plugin copy. Catalog modes also merge their selected `provider.openai` definitions. Changed config files are backed up before writing.
+
+### Running from a local checkout
+
+You can point OpenCode at a clone of this repository instead of the published
+package, which is how the project is developed:
+
+```json
+{ "plugin": ["file:///path/to/oc-codex-multi-auth"] }
+```
+
+The installer leaves that entry exactly as written. It identifies an entry by
+the package it resolves to rather than by how the path is spelled, so a clone
+is recognized under any directory name, whether it is referenced as a path, a
+`file://` URL, or its build output. `oc-codex-multi-auth` is appended only when
+no entry in the config resolves to this plugin, so the installer never replaces
+a checkout with the published package or registers both at once.
+
+Stale references the installer itself produced are still retired: the bare
+package name repeated, version-pinned entries, the former
+`oc-chatgpt-multi-auth` name, and paths into `node_modules` or the OpenCode
+package cache.
 
 ### Standalone CLI (no agent / no token cost)
 
@@ -197,7 +218,7 @@ opencode run "Plan the refactor" --model=openai/gpt-6-astra --variant=high
 Use Codex-focused routing:
 
 ```bash
-opencode run "Refactor the retry logic and update the tests" --model=openai/gpt-5-codex --variant=high
+opencode run "Refactor the retry logic and update the tests" --model=openai/gpt-6-sol --variant=high
 ```
 
 If browser launch is blocked, use the alternate login paths in [docs/getting-started.md](docs/getting-started.md#remote-or-headless-login).
@@ -256,7 +277,7 @@ Most of these also run as a **direct CLI** with no agent or model involvement, s
 
 - stateless request handling forces `store: false`
 - `reasoning.encrypted_content` is preserved for multi-turn continuity
-- GPT-6 Astra, the Daybreak tiers and the GPT-5.6 tiers use the responses-lite request shape and default client identity `opencode`; other models default to `codex_cli_rs`
+- GPT-6 Astra/Sol/Luna, the Daybreak tiers and the GPT-5.6 tiers use the responses-lite request shape and default client identity `opencode`; other models default to `codex_cli_rs`
 - account rotation is health-aware (`rotationStrategy` default `hybrid`) and avoids repeatedly selecting cooling accounts
 - The quota guard checks each enabled account at a bounded interval (30 minutes by default). When it finds a fully spent 5-hour or weekly subscription quota, rotation skips that account until its reported reset instead of drawing from paid Credits. `codex-limits` applies the same guard immediately when run manually. After running standalone `limits`, restart an already-running OpenCode instance or wait for its next quota poll to reload the updated account state.
 - same-host OpenCode processes sharing an account file serialize refresh-token exchange and commit so one current single-use token is exchanged once
@@ -265,7 +286,7 @@ Most of these also run as a **direct CLI** with no agent or model involvement, s
 - unsupported-model handling is strict by default, with opt-in fallback controls
 - TUI quota status follows the account/workspace used by the latest request
 - Business workspace memberships and Personal accounts keep separate usage and quota windows. Business members sharing one workspace are distinguished by their member/seat identity, so their usage is not collapsed into one row.
-- An account identifies itself by its own ChatGPT email and the last 6 characters of its account id, with the email masked when `maskEmail` is on. The OAuth id_token also lists the API-platform organizations the login belongs to; those are not ChatGPT workspaces and are never used to name an account, so logging in clears a label left behind by one. A label you set with `codex-label` is always kept.
+- An account identifies itself by its own ChatGPT email and the last 6 characters of its account id, with the email masked when `maskEmail` is on. An account id names a ChatGPT workspace and every member of a Business workspace shares it, so a record that also carries a member/seat id prints a short excerpt of that as `seat:`. The excerpt is a 6-character tail where that is enough to tell the listed accounts apart. Where it is not, it widens, moves to where those ids first differ, or joins two short excerpts with `..` - real member ids are long, share a leading prefix, and differ in more than one place, so a tail alone often cannot separate them. Where no excerpt that short can separate them, `seat:` is instead an **opaque hash prefix** such as `719f78b5`: it identifies the seat and stays stable, but it is not part of the member id and cannot be matched against anything ChatGPT shows you. Whichever form it takes, two distinct seats never render the same `seat:` and a `seat:` is never longer than 32 characters. A record with no member id renders exactly as before. The OAuth id_token also lists the API-platform organizations the login belongs to; those are not ChatGPT workspaces and are never used to name an account, so logging in clears a label left behind by one. A label you set with `codex-label` is always kept.
 - The ChatGPT plan (`Free`, `Plus`, `Pro`, `Business`, `Business Premium`, `Enterprise`) is read from the access token, refreshed on every token refresh, and shown by `codex-list` and `codex-status`. `codex-limits` and the TUI read the plan live from the usage endpoint and name it the same way. An unrecognized plan is reported verbatim rather than renamed.
 
 ---
@@ -284,6 +305,7 @@ Most of these also run as a **direct CLI** with no agent or model involvement, s
 | Backups | `~/.opencode/backups/` or `~/.opencode/projects/<project-key>/backups/` |
 | Logs | `~/.opencode/logs/codex-plugin/` |
 | TUI quota cache | OpenCode state dir plus `oc-codex-multi-auth-tui-quota.json`, else `$OPENCODE_STATE_DIR/oc-codex-multi-auth-tui-quota.json` or `~/.local/state/opencode/oc-codex-multi-auth-tui-quota.json` |
+| TUI pool quota cache | `oc-codex-multi-auth-tui-quota-overview.json`, in the same directory, written only when `quotaStatus.mode` is `overview` |
 
 Per-project storage is enabled by default. The plugin walks up from the current directory to find a project root, then stores account pools under the project-specific key. If no project root is found, it falls back to global storage.
 
@@ -296,6 +318,132 @@ Primary config files:
 - `~/.config/opencode/opencode.json`
 - `~/.config/opencode/tui.json`
 - `~/.opencode/openai-codex-auth-config.json`
+
+### Quota percentage display
+
+Every quota percentage a person reads is worded as the headroom still left,
+which is how Codex itself reports a quota:
+
+```text
+5h limit: 88% left      # codex-limits, quota details dialog
+5h 88%                  # TUI prompt status line
+```
+
+Set `quotaDisplay` to `"used"` to report consumption instead:
+
+```json
+{
+  "quotaDisplay": "used"
+}
+```
+
+```text
+5h limit: 12% used
+5h 12%
+```
+
+Add it to `~/.opencode/openai-codex-auth-config.json`, or set
+`CODEX_AUTH_QUOTA_DISPLAY=used`, then quit and restart OpenCode. The setting
+covers the TUI prompt status line and quota details dialog, `codex-limits`,
+the standalone `limits` CLI, the interactive account check, and the macOS
+quota notifications below.
+
+It changes wording only. Quota exhaustion, rotation blocks, notification
+thresholds, and the status line's warning/danger colouring all stay keyed on
+the percentage remaining, so a nearly spent account still colours red while
+reading `95%`. The `usedPercent` and `leftPercent` fields in `--json` /
+`format="json"` output are unaffected.
+
+### Pool-wide quota status
+
+The prompt status line describes the account that served the last request. On
+a pool of several accounts that account changes as rotation moves, so the line
+changes identity under you and no single glance shows where the pool stands.
+
+Set `quotaStatus.mode` to `"overview"` to describe the whole pool on one
+constant line instead, which only changes when a quota does:
+
+```json
+{
+  "quotaStatus": {
+    "mode": "overview",
+    "layout": "accounts",
+    "accountNames": "number",
+    "order": "number",
+    "multipliers": false,
+    "allotment": false,
+    "resetTimes": "low",
+    "resetCredits": false,
+    "recovery": false,
+    "rows": 1,
+    "showFor": "always"
+  }
+}
+```
+
+```text
+24%: #1 13%, #2 0% 3d, #3 12%               # defaults
+24%: 3 accounts                             # "layout": "count"
+24%: #1 5x 13%, #2 20x 0% 3d, #3 1x 12%     # "multipliers": true
+24%: #1 5x 13%, #2 20x 0% 3d 1r, #3 1x 12%  # + "resetCredits": true
+24%: 3 accounts, +12% in 3d                 # "layout": "count", "recovery": true
+24% of 26x: #1 13%, #2 0% 3d, #3 12%        # "allotment": true
+24%: #1 13% 2d, #2 0% 3d, #3 12% 5d         # "resetTimes": "always"
+24%: 13%, 0% 3d, 12%                        # "accountNames": "none"
+24%: damian 13%, work 0% 3d, spare 12%      # "accountNames": "label"
+24%: #2 0% 3d, #1 13%, #3 12%               # "order": "most-used"
+24%: 13% 2d, 0% 3d 4d 5d                    # "layout": "aggregate"
+```
+
+Each switch is independent, so any combination works. `#N` is the account
+number `codex-list` and `codex-switch` use. An account is shown by whichever
+of its windows has the least headroom, since that is the one that stops a
+request; a reset time (`3d`) is added for an account at or below 25% by
+default, for every account under `"resetTimes": "always"`, and for none under
+`"never"`. `1r` counts banked rate-limit resets that account can redeem now.
+
+`order` takes `number`, `most-used`, `least-used`, `renewing-earliest`, or
+`renewing-latest`. `layout: "aggregate"` prints a shared percentage once and
+keeps only what differs after it, which matters most on a pool where several
+accounts are spent.
+
+The leading figure is the pool total, and it is a **weighted** mean: a Pro seat
+spent to 50% has given up twenty times the capacity a Business Standard seat
+does at 50%, so an unweighted average would describe a pool nobody has. The
+per-plan ratios are listed in [docs/plan-allotments.md](docs/plan-allotments.md),
+and `"allotment": true` shows what they add up to.
+
+`mode` also accepts a list, and the line then alternates between those screens
+every `rotateMs` (default 5000). The third screen, `resets`, appears only once
+every account is spent and lists the banked reset credits worth redeeming,
+latest reset first - redeeming one on an account that renews by itself tomorrow
+throws it away:
+
+```json
+{
+  "quotaStatus": { "mode": ["overview", "resets"] }
+}
+```
+
+```text
+Free resets: 6d 1r damian@nowaker.net, 4d 2r work@example.com
+```
+
+`"rows"` (1-4, default 1) is a ceiling rather than a height: a rendering that
+fits on one row still takes one, so `"rows": 2` costs nothing on a wide terminal
+and buys the whole line back on a narrow one, where the agent/model label beside
+it has already wrapped to two rows anyway. `"showFor": "codex-models"` hides the
+line unless the session is running a model this plugin routes.
+
+Percentages follow `quotaDisplay`, so the first line above reads
+`76%: #1 87%, #2 100% 3d, #3 88%` under `"used"`. The whole setting is
+presentation only: rotation, quota blocks and the line's warning/danger
+colouring stay keyed on the headroom remaining.
+
+Add the object to `~/.opencode/openai-codex-auth-config.json`. It is read from
+that file only - a display preference belongs to a person, not to a shell - and
+the status line re-reads it while sessions are open, so an edit takes effect
+within a couple of seconds without a restart.
 
 ### Desktop quota notifications
 
@@ -317,6 +465,10 @@ Account identities are omitted for readability and lock-screen privacy:
 5h: 10% | resets 02:00 | another account resets 22:30
 Weekly: 72% | resets 22:30 on Aug 30
 ```
+
+The percentage follows `quotaDisplay`, so the same two lines read `90%` and
+`28%` under `"used"`. `thresholds` are always remaining-percent values
+regardless.
 
 ```json
 {
@@ -420,7 +572,11 @@ Selected runtime/environment overrides:
 | `CODEX_TUI_GLYPHS=ascii\|unicode\|auto` | Force terminal glyph style |
 | `CODEX_TUI_MASK_EMAIL=0/1` | Mask account emails across account-display surfaces (list/status/limits/health/dashboard/menus + TUI quota status) |
 | `CODEX_TUI_MASK_EMAIL_DETAILS=0/1` | Also hide account email in quota details when prompt masking is enabled |
+| `CODEX_AUTH_QUOTA_DISPLAY=free\|used` | Word quota percentages as headroom left (default, matching Codex) or as consumption |
+
 | `CODEX_AUTH_PER_PROJECT_ACCOUNTS=0/1` | Disable/enable per-project account pools |
+| `CODEX_AUTH_CREDENTIAL_SNAPSHOTS=0/1` | Disable/enable pre-write snapshots of the credential store (default on) |
+| `CODEX_AUTH_CREDENTIAL_SNAPSHOTS_MAX_COUNT=<n>` | How many credential snapshots to keep (`0` keeps all of them) |
 | `CODEX_AUTH_AUTO_UPDATE=0/1` | Disable/enable daily npm update check and cache refresh |
 | `CODEX_AUTH_ROTATION_STRATEGY=hybrid\|sticky\|round-robin` | Account selection strategy |
 | `CODEX_AUTH_UNSUPPORTED_MODEL_POLICY=strict\|fallback` | Control unsupported-model retry behavior |
@@ -455,6 +611,8 @@ Modern OpenCode versions use [config/opencode-modern.json](config/opencode-moder
 By default, account pools are stored locally as V3 JSON files. File permissions are restricted where the platform supports them.
 
 Use JSON storage when you want predictable, inspectable local files and easy backup/export behavior.
+
+Before the store is changed in a way that matters, the plugin copies the previous version of the file into `backups/` as `codex-credential-snapshot-*.json`, mode `0600` in a `0700` directory. The snapshot holds the state being replaced, not the state replacing it, which is what makes it useful if the file is ever overwritten wholesale. Token refreshes count as significant, which bounds how stale a restore can be. Refresh tokens are single-use, so a snapshot taken just before a refresh holds the consumed token for the one account that refresh rotated - that account needs a fresh `opencode auth login` - while every other account in the pool comes back with the token that was live at that moment. A snapshot old enough to predate many refreshes restores a pool where most or all accounts can no longer authenticate, which is the failure this bounding exists to avoid. Rotation bookkeeping - `lastUsed`, rate-limit and cooldown state, quota stamps, and the rotation cursor - never triggers one on its own, so the kept snapshots are not churned away by ordinary traffic. The plugin keeps the 10 most recent and prunes strictly by that filename prefix, so nothing else in `backups/` is touched. Set `credentialSnapshots: false` to turn it off, or `credentialSnapshotsMaxCount` to keep a different number (`0` keeps all of them).
 
 </details>
 
@@ -504,7 +662,7 @@ opencode auth login
 <summary><b>Common symptoms</b></summary>
 
 - Plugin does not load: rerun `npx -y oc-codex-multi-auth@latest`, then restart OpenCode
-- Config looks wrong: run `opencode debug config` and confirm `"plugin": ["oc-codex-multi-auth"]`
+- Config looks wrong: run `opencode debug config` and confirm `"plugin": ["oc-codex-multi-auth"]`, or the path to your checkout when running one
 - OAuth callback fails: free port `1455`, then rerun `opencode auth login`
 - Browser launch is blocked: use the remote/headless login path from [docs/getting-started.md](docs/getting-started.md#remote-or-headless-login)
 - Wrong account is selected: run `codex-list`, then `codex-switch`

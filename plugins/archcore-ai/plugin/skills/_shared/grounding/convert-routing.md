@@ -72,10 +72,14 @@ A commit message from L5 may supply the reason of a `decision`; cite the commit 
 5. **No import mark.** A target carries no `imported` tag, no `source:` tag, no pointer line naming a source file, no `imported-` filename prefix, and no `imported/` directory. No umbrella document stands for a source file. The source-to-target map lives only in the import plan.
 6. **Place it as a native document.** Directory by domain or topic, the same directories the code seed uses (`conventions/` for a repo-wide `rule`, the domain directory for a domain topic). Filename from the topic. Tags from the project's existing tags, plus the domain tag when the seed uses one.
 7. **Status `draft`** in every case. An L2 record marked accepted in its source is still created as `draft`; the user accepts it.
-8. **Line caps.** No target exceeds 200 lines; a `spec` stays within the cap of `spec-contract.md`. An over-cap cluster splits by sub-topic into targets joined by `related` — decompose, never truncate (`decompose-over-truncate.adr`).
+8. **Line caps.** No target exceeds 200 lines; a `spec` stays within the cap of `spec-contract.md`. An over-cap cluster splits by sub-topic; evaluate links between the parts in Step 6 — decompose, never truncate (`decompose-over-truncate.adr`).
 9. **Dedupe against the corpus.** Before `create_document`, call `search_documents` on the topic. When a local document already covers the cluster, set the row to `dropped` with the reason, or plan an `update_document` that the row shows as an update.
 
 ## Step 6 — relations
+
+Evaluate these candidates through `skills/_shared/relation-authoring.md` after
+reading the composed targets. Shared source material alone does not justify
+every pair. Preserve the links needed to read a split subject as a whole.
 
 | From | Edge | To | Condition |
 |---|---|---|---|
@@ -83,8 +87,8 @@ A commit message from L5 may supply the reason of a `decision`; cite the commit 
 | `guide` | `related` | `rule` or `spec` | the steps operate what the target governs |
 | `spec` | `implements` | `adr` | the decision fixed the boundary |
 | `rfc` | `extends` | `adr` | the proposal amends that decision |
-| target | `related` | a seed fact (stack rule, data-model, entry points) | same domain or same module |
-| split parts | `related` | each other | one cluster split by sub-topic |
+| target | `related` | a seed fact (stack rule, data-model, entry points) | a named statement in the target uses that fact |
+| split part | `related` | another part | a shared boundary or reading sequence requires both parts |
 
 WHEN a `search_documents` result carries `source_kind: "global"`, load `skills/_shared/globals.md`: a global document never counts as covering a cluster in Step 5.9, and `add_relation` never targets one. WHEN no result is global, proceed as usual. Skip an edge when an endpoint was not created.
 

@@ -135,7 +135,7 @@ Before diving in, match the task to the right workflow — this avoids wasted ef
 
 | Your task | What to do |
 |-----------|-----------|
-| **"spec", "design with", "collaborative spec"** | Use `/amq-spec` instead — it has structured phase-by-phase guidance for parallel-research workflows. |
+| **"spec", "design with", "collaborative spec"** | Use the `amq-spec` skill for the parallel-research workflow. |
 | **Send a message, review request, question** | Use `amq send` (see Messaging below) |
 | **Buzz / ACP / `amq-acp`** | Companion `amq-acp` queues to `AMQ_ACP_TO`; pool workers must not drain. Chat must not pass `--root`, recipients, or argv. `[Context]` is not routing. See [`cmd/amq-acp/README.md`](../../../cmd/amq-acp/README.md). |
 | **Grok Bot runs commands on a registered Mac** | Ordinary local AMQ on that Mac. See [registered-machine execution](registered-machine.md); select the machine before resolving the project/session. |
@@ -293,12 +293,12 @@ amq integration kanban bridge --me codex --workspace-id my-workspace
 # Runtime diagnostics
 amq doctor --ops
 amq doctor --ops --json
-amq doctor --root <exact-root> --ops
-amq wake check --me <agent>
-amq wake check --me <agent> --json
+amq doctor --root "<exact-root>" --ops
+amq wake check --me "<agent>"
+amq wake check --me "<agent>" --json
 
 # Base-config-only session repair outside the current pin
-amq doctor --root <session-root> --base-root <base-root> \
+amq doctor --root "<session-root>" --base-root "<base-root>" \
   --ignore-session-pin --fix-mailboxes
 ```
 
@@ -344,8 +344,8 @@ Use these when you need confirmation rather than just fire-and-forget messaging:
 amq send --to codex --body "please review" --wait-for drained --wait-timeout 60s
 
 # Query receipt history later
-amq receipts list --me codex --msg-id <msg_id>
-amq receipts wait --me codex --msg-id <msg_id> --stage drained --timeout 60s
+amq receipts list --me codex --msg-id "<msg_id>"
+amq receipts wait --me codex --msg-id "<msg_id>" --stage drained --timeout 60s
 ```
 
 `amq read`, `amq drain`, and `amq monitor` all apply the same strict header validation. Messages in `inbox/new` that are corrupt or have malformed headers are moved to DLQ and produce a `dlq` receipt.
@@ -469,7 +469,7 @@ amq send --to codex --project infra-lib --body "delivers to same session"
 
 When you receive a cross-project message, `reply_project` is set in the header. `amq reply` routes back automatically — no `--project` flag needed:
 ```bash
-amq reply --id <msg_id> --body "got it"  # routes back via reply_project
+amq reply --id "<msg_id>" --body "got it"  # routes back via reply_project
 ```
 
 ### Thread naming
@@ -543,7 +543,7 @@ amq send --to codex --project infra-lib --kind decision \
   --labels "decision:proposal,project:my-project,project:infra-lib" \
   --thread "decision/api-v2" \
   --context '{"proposal_id":"api-v2","question":"Adopt new API?","required_projects":["my-project","infra-lib"]}' \
-  --body "Proposal: migrate to API v2. All tests green."
+  --body "Proposal: migrate to API v2. Please review the consumer contract."
 ```
 
 ## Session-Aware Routing
@@ -582,7 +582,7 @@ Note: The `agent@name` inline syntax (e.g., `codex@infra`) is for cross-project 
 amq send --to codex --body "Message"              # Send (uses AM_ROOT/AM_ME from env)
 amq drain --include-body                          # Receive (one-shot, silent when empty)
 amq drain --session auth --include-body           # Deliberate sibling-session receive
-amq reply --id <msg_id> --body "Response"          # Reply in thread
+amq reply --id "<msg_id>" --body "Response"          # Reply in thread
 amq watch --timeout 60s                           # Block until message arrives (only when no wake is live for you)
 amq list --new                                    # Peek without side effects
 amq send --to grok --body "hello"                 # Grok is a normal peer handle, like codex or claude
@@ -596,7 +596,7 @@ For the live-wake receive rule and notify-only supervisor exception, see
 amq send --to codex --subject "Review" --kind review_request --body @file.md
 amq send --to codex --priority urgent --kind question --body "Blocked on API"
 amq send --to codex --labels "bug,parser" --context '{"paths": ["src/"]}' --body "Found issue"
-echo "evidence: tests green" | amq send --to codex --subject "done" --body -   # - reads stdin
+printf '%s\n' "Please review the parser." | amq send --to codex --subject "review" --body -   # - reads stdin
 ```
 
 **Body is fail-closed.** `--body -` (or `--body @-`, or omitting `--body`) reads stdin; a literal string or `@file` is used as-is. A send whose resolved body is empty/whitespace is **rejected** with a usage error instead of delivering a blank message — so `--body -` with nothing piped fails loudly rather than shipping an empty body. Pass `--allow-empty` only when you truly want a blank body (subject carries everything).
@@ -616,7 +616,11 @@ amq list --new --label bug
 
 Almost all coordination is agent-to-agent. Occasionally the **next required actor is a human**: an approval, a manual test, a deploy only a person can run, or sign-off that a goal is complete. AMQ has no separate "gate" feature. You represent this **structurally**: address a message to the human's mailbox instead of describing the wait in prose to another agent.
 
-The single invariant AMQ relies on here is **recipient-as-next-actor**: a message addressed to the human handle means a human is who must act next. Everything else below (the `gate/<topic>` thread name and the `APPROVAL:` / `DONE:` subject prefixes) is a **naming convention** that downstream tools like amq-noc watch for. AMQ routing and message classification do **not** special-case thread names or subject text; those are plain strings, useful only because humans and tooling agree to read them. They are conventions, not core AMQ semantics.
+The single invariant AMQ relies on here is **recipient-as-next-actor**: a
+message addressed to the human handle means a human must act next. The
+`gate/<topic>` thread name and `APPROVAL:` / `DONE:` subject prefixes are
+naming conventions for humans and downstream tools. AMQ routing and message
+classification do not special-case those strings.
 
 ### The human handle is `user`
 
@@ -637,12 +641,12 @@ Use a stable `gate/<topic>` thread so a gate and its resolution stay together:
 
 ```bash
 # Approval / choice / manual test a human must perform
-amq send --to user --thread gate/<topic> --kind question \
+amq send --to user --thread "gate/<topic>" --kind question \
   --subject "APPROVAL: <decision>" \
   --body "<what you need a human to approve or run, and why>"
 
 # Human closeout of a completed goal (sign-off that the goal is done)
-amq send --to user --thread gate/<topic> --kind decision \
+amq send --to user --thread "gate/<topic>" --kind decision \
   --subject "DONE: <goal>" \
   --body "<what was completed; what the human should confirm or close>"
 ```

@@ -135,4 +135,4 @@ MIT © [Redfox Data](https://redfox.hk)
 
 - Docs: <https://redfox.hk/skills/account-video-downloader>
 - Issues: <https://github.com/redfox-data/redfox-agent-plugins/issues>
-- Email: <support@redfox.hk>
+- Email: <redfoxdata@proton.me>

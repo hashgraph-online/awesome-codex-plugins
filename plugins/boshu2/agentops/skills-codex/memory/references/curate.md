@@ -1,8 +1,12 @@
 # Curate / qualify / retire
 
-Maintain the caller-selected reviewed external Markdown topic pages. BD remains
+Maintain caller-selected reviewed Markdown topic pages in project `.context/`
+or an external bundle. BD remains
 the work/status/handoff owner, Git the content-history owner, and native/CASS
-systems the episode owner. Do not build a second tracker or copy raw history.
+systems the episode owner. Existing docs, ADRs and code retain their declared
+authority. Link those owners; do not duplicate policy, build a second tracker
+or copy raw history. A small authored `README.md` topic map is a navigation aid,
+not a work/status index; keep it only as useful to the selected pages.
 This lean operation accepts public or already-cleared inputs only; it supplies
 no native isolation for restricted sources.
 
@@ -10,6 +14,9 @@ no native isolation for restricted sources.
    evidence before editing. Reuse/update it instead of a lesson-per-session
    file. If no relevant page exists and the caller selected a destination,
    create one topic page only for a concrete reusable claim and consumer.
+   Do not scaffold empty directories, import private material or create a store
+   automatically. Ordinary filesystem reads of cleared project pages need
+   neither BD nor AO; native source operations retain their own requirements.
 2. Draft the smallest change in protected external non-Git staging. Each entry
    gives applicability, action, support, limits and invalidation. Cite exact
    source identities sufficient to inspect evidence without copying private
@@ -28,7 +35,11 @@ no native isolation for restricted sources.
    existing Git authority. Read back exact bytes and confirm that citations
    and withdrawal facts remain available. Do not commit/push unless authorized.
    If review, routing or permission is missing, return the supported gap with
-   the protected draft; do not invent an alternate memory destination.
+   the protected draft; do not invent an alternate memory destination. Project
+   placement does not move drafts or review proof into the checkout. The optional
+   `ao config context` route supports an explicitly bound canonical direct
+   `<consumer>/.context` or an external bundle; it requires native BD and retains
+   policy and identity bindings. A resolved route does not approve page admission.
 
 Ordinary Markdown is sufficient. If the caller selects the existing OKF profile,
 use [its profile](learn/okf-page-profile.md) and

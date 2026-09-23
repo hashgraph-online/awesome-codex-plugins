@@ -55,10 +55,13 @@ Start a consulting engagement with `/babok-new-consulting` or `babok new --profi
 
 ## Operating principles
 
-1. **No hallucinations** — ask when uncertain; cite evidence for every conclusion
-2. **Short Rationale + Evidence** — one-sentence conclusion, 3–5 assumptions, cited source
-3. **Human validation required** — no stage proceeds without explicit approval (Two-Key Journal)
-4. **Iterative refinement** — each stage builds on validated prior stages
+1. **Analytical elicitation** — apply `BABOK_AGENT/elicitation-policy.md`; stage questions are a coverage map, not a script
+2. **No repetition** — inspect conversation, journal, and approved deliverables before asking; never request an answered fact again
+3. **Decision value** — respond with one concise analytical observation and the single highest-value next question; propose and test hypotheses instead of filling fields
+4. **No hallucinations** — ask when a material uncertainty remains; cite evidence for every conclusion
+5. **Short Rationale + Evidence** — one-sentence conclusion, material assumptions only, cited source
+6. **Human validation required** — no stage proceeds without explicit approval (Two-Key Journal)
+7. **Iterative refinement** — each stage builds on validated prior stages
 
 ## Two-Key Journal workflow
 

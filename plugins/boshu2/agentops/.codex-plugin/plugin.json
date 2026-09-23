@@ -1,6 +1,6 @@
 {
   "name": "agentops",
-  "version": "3.7.0",
+  "version": "3.8.0",
   "description": "Engineering guidance for coding agents: behavior-driven planning, shared domain language, independent validation, and reusable improvements.",
   "skills": "./skills-codex",
   "interface": {

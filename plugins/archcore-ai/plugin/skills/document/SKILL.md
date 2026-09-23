@@ -80,6 +80,9 @@ stop before the first MCP call that names either type.
 Before delegating research or evidence work, pass the current vocabulary probe
 result and absolute plugin root to the assistant. If the assistant returns
 `needs-vocabulary-probe`, run the helper and resume the same task.
+Before delegating any other document write or relation work, pass the absolute
+plugin root to the assistant. The assistant reads
+`skills/_shared/relation-authoring.md` under that root.
 Apply `skills/_shared/actor-subject-compatibility.md` under its own condition 1 —
 a request whose subject names `scenario` or `journey`, or a grounding result of
 either type. When that probe returns `yes`, add `scenario` and `journey` to the
@@ -93,7 +96,7 @@ Search `.archcore/` on the request topic across all three categories — vision,
 knowledge, experience. Do not exclude a category from reads. Pass a type filter
 matched to this command's moment (`adr`, `rfc`, `spec`, `doc`, `guide`, `rule`,
 plus `rnd` as decision evidence, and `research` and `evidence` when the probe returned `yes`) instead of relying on the global type ranking. When a found document carries
-`implements` or `related` relations, pull the linked documents one hop across
+`implements`, `depends_on`, or `related` relations, pull the linked documents one hop across
 categories. Duplicate handling lives in the tracks' check-existing gates — do
 not resolve duplicates here.
 

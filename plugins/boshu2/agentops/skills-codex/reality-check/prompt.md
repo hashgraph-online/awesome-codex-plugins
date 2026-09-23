@@ -1,6 +1,6 @@
 # reality-check
 
-Check whether a claimed shipped feature, repo state or goal status holds up in evidence. Use when: comparing a claim with what exists; a gap report is not a verdict.
+Audit claimed state, goals or native status. Use when: a claim audit or snapshot is requested. Clarify advice versus acceptance for ambiguous checking or readiness requests.
 
 ## Instructions
 

@@ -1,6 +1,6 @@
 {
   "name": "spec-superflow",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Lean spec workflow with direct or planned execution and evidence-based completion.",
   "author": {
     "name": "MageByte",

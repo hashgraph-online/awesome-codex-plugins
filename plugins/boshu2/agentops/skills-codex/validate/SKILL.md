@@ -1,13 +1,30 @@
 ---
 name: validate
-description: 'Freshly judge a finished change against original acceptance before merge. Use when: independent proof is needed; author tests cannot issue PASS. Triggers: "check this change".'
+description: 'Freshly judge a finished change and its claims against original acceptance. Use when: acceptance verdict or independent proof is sought. Clarify generic checks or readiness first.'
 ---
 # Validate
 
-Freshly judge the exact candidate against accepted intent, return
-`PASS`, `FAIL`, or `NOT_PROVEN`, and stop. The author cannot provide binding PASS. Read RPI
-[boundaries](../rpi/references/boundaries.md) before judgment; load helper flags
-and storage details from [mechanics](references/mechanics.md) when needed.
+## Establish intent before judgment
+
+Resolve advice versus acceptance from the caller's request and already settled
+context first. Explicitly selecting Validate, asking to establish that original
+acceptance is met, or requesting an acceptance verdict or independent proof of
+completion selects this route, even when phrased as "review this". Suggestions
+or a second look belong to [Review](../review/SKILL.md).
+
+Generic checking or readiness questions do not by themselves select acceptance.
+Supplying acceptance criteria identifies what to inspect, not which kind of
+judgment the caller wants. If the purpose remains ambiguous, ask whether the
+caller wants advice or an acceptance judgment and wait for the answer. Do not
+issue a verdict, acceptance conclusion or readiness approval while intent is
+unresolved; missing intent is not a `NOT_PROVEN` verdict.
+
+After acceptance intent is established, freshly judge the exact candidate
+against accepted intent, return `PASS`, `FAIL`, or `NOT_PROVEN`, and stop. The
+author cannot provide binding PASS. Advisory findings cannot substitute for
+this fresh exact-subject judgment. Read RPI [boundaries](../rpi/references/boundaries.md)
+before judgment; load helper flags and storage details from
+[mechanics](references/mechanics.md) when needed.
 
 ## Preconditions and freshness
 

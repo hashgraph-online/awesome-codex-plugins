@@ -1,7 +1,7 @@
 # Session Orchestrator
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-5.2.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-5.3.0-blue.svg)](CHANGELOG.md)
 [![npm](https://img.shields.io/npm/v/session-orchestrator.svg)](https://www.npmjs.com/package/session-orchestrator)
 
 **Give your agents a working rhythm.**
@@ -93,7 +93,7 @@ When you type `/session feature`:
 .claude/STATE.md                    # wave progress and deviations (harness-specific directory)
 ```
 
-The plugin is **50 skills, 28 slash commands, 14 typed subagents and 27 hook files across 10 event types**. A slash command is a skill whose frontmatter says `user-invocable: true` (26 of them) or one of the two remaining `commands/*.md` files (`/session`, `/templates-ack`) — one definition per name, so nothing is listed twice in the `/` picker. Skills, commands and agents are Markdown with YAML frontmatter; the code that dispatches, validates and records runs in `scripts/lib/*.mjs` and `hooks/*.mjs`. There is no build step and no compiled artifact — when a session does something you did not expect, you can open the file that decided it. Full inventory: [`docs/components.md`](docs/components.md).
+The plugin is **50 skills, 26 slash commands, 14 typed subagents and 27 hook files across 10 event types**. A slash command is a skill whose frontmatter says `user-invocable: true` (24 of them) or one of the two remaining `commands/*.md` files (`/session`, `/templates-ack`) — one definition per name, so nothing is listed twice in the `/` picker. Skills, commands and agents are Markdown with YAML frontmatter; the code that dispatches, validates and records runs in `scripts/lib/*.mjs` and `hooks/*.mjs`. There is no build step and no compiled artifact — when a session does something you did not expect, you can open the file that decided it. Full inventory: [`docs/components.md`](docs/components.md).
 
 ## Why it is built this way
 
@@ -111,7 +111,7 @@ How this compares to other orchestrators, with measured results kept separate fr
 
 | Feature | Claude Code | Codex CLI | Cursor IDE | Pi |
 |---|---|---|---|---|
-| All 28 commands | Native slash commands | Generated skills (`$session-orchestrator:<name>`) | Native `.cursor/commands` slash commands | Prompt templates |
+| All 26 commands | Native slash commands | Generated skills (`$session-orchestrator:<name>`) | Native `.cursor/commands` slash commands | Prompt templates |
 | Parallel agents | Agent tool | Multi-agent roles | Sequential only | Sequential (parallel planned) |
 | Session persistence | `.claude/STATE.md` | `.codex/STATE.md` | `.cursor/STATE.md` | `.pi/STATE.md` |
 | Scope enforcement | Active PreToolUse hook; blocking in `strict`, reporting in `warn` | Instructions only; no compatible `apply_patch` handler | `preToolUse` + `beforeShellExecution` bridge; scope blocking requires `strict`; `afterFileEdit` is post-hoc | `tool_call` bridge; scope blocking requires `strict` |
@@ -121,14 +121,14 @@ How this compares to other orchestrators, with measured results kept separate fr
 
 All four platforms share the same skills, commands and scripts; only the hooks differ, because each harness fires different events. Codex leaves its `PreToolUse` handlers empty because these guards do not yet match its tool names and edit payloads ([why](docs/codex-setup.md#why-our-pretooluse-guards-stay-unwired--the-reason-corrected)). Cursor and Pi have known event-coverage limits — see [`docs/cursor-setup.md`](docs/cursor-setup.md) and [`docs/pi-setup.md`](docs/pi-setup.md).
 
-## Recent highlights (v5.2.0)
+## Recent highlights (v5.3.0)
 
-Highlights of the v5.2.0 line:
+Highlights of the v5.3.0 line:
 
-- **One definition per slash command.** 24 `commands/*.md` twins were folded into their `skills/<name>/SKILL.md`; the `/` picker no longer lists duplicates, `/discovery`, `/evolve` and `/plan` are live under `claude -p` again, and the Cursor, Pi and Codex wrappers are generated from one `user-invocable` reading (`scripts/lib/user-invocable-skills.mjs`) instead of four private ones. Operator-only commands (`/close`, `/go`, `/release`, …) keep `disable-model-invocation` on every generated surface.
-- **Expired generated rules can now be swept.** `node scripts/sweep-expired-rules.mjs` (dry-run by default, `--apply` to write) removes the prose of expired entries from the consolidated `.claude/rules/` files while keeping their provenance pairs, so `/reconcile` does not re-propose the learning. It refuses symlinks and paths outside the rules directory, writes atomically, and reports the files it cannot map 1:1 instead of guessing.
-- **Two guard holes closed.** The issue-budget hook enumerates every shell loop, so an exempt first loop no longer lifts the bulk deny for a second one; the entry-guard validator now also censuses the bare `argv[1].endsWith('<file>.mjs')` form. `release.mjs --check` asks both CI platforms about the release commit's sha rather than GitHub's own HEAD.
-
+- **Gate commands die as a group now.** Both quality-gate paths start every command in its own process group and, on timeout, signal the whole group — SIGTERM, a grace period, then SIGKILL — instead of just the shell. The previously uncapped path B carries a 900 s ceiling and reports exit 124. Root cause was measured on 2026-09-20: four orphaned `tsgo --noEmit` processes at up to 8 GB each froze the host after a plain shell kill left them at PPID 1 (#1425, #1427, #1428).
+- **An orphan watchdog, shipped off.** `scripts/lib/orphan-reaper.mjs` decides purely (own ancestry register ∧ PPID 1 ∧ age ∧ read-only allowlist ∧ identity re-checked before every signal) and runs detached from two hooks, throttled to one scan per 30 s. `reaper.enabled` defaults to `false` and `mode` to `report`; arming `kill` waits for a measured false-alarm rate (ADR-0015, HR-107).
+- **Ledgers stop lying by omission.** `readEventsWithRotations` answers `complete: true | false | null`, a hand-placed archive is a notice rather than a gap, and the session-start probe plus the abandoned-session backfill read across rotations. `worktree_base_checked` records every worktree dispatch, including why it could not measure (#1423, #1414, #1424).
+- **Codex entrypoints aligned** (MR !40, #1391): the `session` command reaches the portable `.agents/` surface, modes are parsed independently of the free text that follows, and `go`/`close` stay explicit-only on every generated surface.
 
 Full changes and verification: [CHANGELOG.md](CHANGELOG.md).
 

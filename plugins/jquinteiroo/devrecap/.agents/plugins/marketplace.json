@@ -1,0 +1,20 @@
+{
+  "name": "devrecap-marketplace",
+  "interface": {
+    "displayName": "DevRecap"
+  },
+  "plugins": [
+    {
+      "name": "devrecap",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

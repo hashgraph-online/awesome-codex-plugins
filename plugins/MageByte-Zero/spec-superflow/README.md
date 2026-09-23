@@ -16,9 +16,11 @@
 
 spec-superflow 把 OpenSpec 的结构化规划与 Superpowers 的验证纪律组合成一个自包含插件。v2 将新任务收敛为两个入口：明确的小改动直接执行，需要共同确认范围的改动先形成一份短计划再执行。
 
-当前版本：`v2.0.0`
+当前版本：`v2.0.1`
 
 默认行为偏向低成本：当前会话内执行、最终审查一次、最终验证一次、普通调试留在执行阶段。子代理、逐波审查和 worktree 都需要显式选择。
+
+Marketplace 与各平台安装器会把 Skill 和同版本 CLI runtime 一起升级。Skill 只调用当前安装包内的 runtime，不会误用 `PATH` 中另一份旧 `ssf`。
 
 ## 为什么是 v2
 
@@ -179,7 +181,7 @@ ssf isolate changes/example --worktree
 ### OpenAI Codex CLI / App
 
 ```bash
-codex plugin marketplace add MageByte-Zero/spec-superflow --ref v2.0.0
+codex plugin marketplace add MageByte-Zero/spec-superflow --ref v2.0.1
 codex plugin add spec-superflow@spec-superflow
 ```
 

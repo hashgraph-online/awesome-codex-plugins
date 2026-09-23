@@ -20,8 +20,8 @@ Do not override `--me` or reconstruct the root. Outside it, resolve and export t
 complete context before reading or sending:
 
 ```bash
-eval "$(amq env --me <handle> --export)"
-amq drain --include-body
+amq_context="$(amq env --me "<handle>" --export)" && eval "$amq_context" &&
+  amq drain --include-body
 ```
 
 For a named session, add `--session <name>` to `amq env`. Treat the evaluated
@@ -58,9 +58,21 @@ service is a separate supported setup.
 | Symphony or Kanban adapters | Read [integrations](references/integrations.md). |
 | Message schema details | Read [message format](references/message-format.md). |
 | Multi-round background review | Read [review loop](references/review-loop.md). |
+| Attach to a running harness session | Read the [amq-remote reference](https://github.com/avivsinai/agent-message-queue/blob/main/cmd/amq-remote/README.md). |
 
 Use `amq <command> --help` for current flags. The repository README is the
 canonical setup path.
+
+## Remote
+
+`amq-remote` is a companion binary, not an `amq` subcommand. It attaches to a
+harness session that is already running. Targets are declared in
+`<AM_ROOT>/extensions/remote/manifest.json` (`claude`, `codex`, `amit`, or
+`fake`). `up` supervises the endpoint; `submit`, `status`, `wait`, and
+`cancel` talk to it; `share` mints the session body key. Flags and exit codes
+are in the [amq-remote reference](https://github.com/avivsinai/agent-message-queue/blob/main/cmd/amq-remote/README.md). The design is
+[the remote-control ADR](https://github.com/avivsinai/agent-message-queue/blob/main/docs/adr-remote-control.md). Pinned seams are
+[the compatibility manifest](https://github.com/avivsinai/agent-message-queue/blob/main/docs/remote-compat.md).
 
 ## Safety and delivery rules
 
@@ -69,7 +81,7 @@ canonical setup path.
 - Preserve the existing thread when replying. Drain again after a doorbell;
   the newest complete message body is authoritative.
 - Cleanup is explicit through `amq cleanup`. Do not add automatic deletion.
-- Before any wake mutation, run `amq wake check --me <handle> --json`. Act only
+- Before any wake mutation, run `amq wake check --me "<handle>" --json`. Act only
   when `restart_capability=agent_safe`; otherwise preserve state and report the
   required operator action.
 - Keep cross-host payloads outside privileged inboxes until the configured

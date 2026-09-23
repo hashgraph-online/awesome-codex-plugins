@@ -5,6 +5,11 @@ executing a track gate. Also the authoring contract for track files under
 `skills/_shared/tracks/`. Routing-signal order and track selection live in the
 executing skills, not in this file.
 
+Before a gate writes documents or reviews relations, load
+`skills/_shared/relation-authoring.md`. Apply its claim check to relation
+candidates and its incident-relation review after meaningful document changes.
+Required traceability remains part of the gate's checks.
+
 ## Track files
 
 - A track file lives at `skills/_shared/tracks/<track-id>.md`.

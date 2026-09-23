@@ -101,6 +101,19 @@
 - → UX-SAFEGUARD 観点を本 skill 内で実行（[UX-SAFEGUARD.md](./UX-SAFEGUARD.md) の操作の安全装置2観点）
 - 注意: loading/error/empty state の**表示欠落**は `loading-state`、mutation の**認可**は security 系、DB の破壊的変更は `migration-safety` に割り当て済み（委譲表は UX-SAFEGUARD.md を参照）。本観点は「確認・取り消し手段の欠如」と「回復方法を示さない文言」のみを扱う
 
+## Experience Knowledge owner delegation
+
+通常のキーワードルーティングとは別に、過去レビュー由来の境界判断が必要な場合だけ canonical owner を skill ID で解決する。
+
+- 型検査対象外の `scripts/` 等で JSDoc の `unknown` / `any` 境界を判断する
+  - owner: `existing-pattern-conformance`
+  - owner の False-positive guards / fixtures を読む
+- config / registry などの内部不変条件と、`argv` / `fs` / network など外部 IO の defensive fallback 境界を判断する
+  - owner: `nullability-contract`
+  - owner の False-positive guards / fixtures を読む
+
+owner を解決できない場合は specialist knowledge を推測で再構築せず、その詳細な境界判断をスキップする。entry skill の短い Hard Guard と一般チェックはそのまま適用する。
+
 ## 自動判定ルール
 
 1. `.ts`/`.tsx` ファイル → `typescript-strict` + `typescript-nullcheck`

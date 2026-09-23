@@ -1,5 +1,7 @@
 # Focused Re-review Prompt Template
 
+Before executing a CLI line below, replace its leading `SSF` with `node "<plugin-root>/scripts/spec-superflow.mjs"`; `<plugin-root>` is the absolute directory two levels above this file. Never run `SSF` literally or call an `ssf` from `PATH`.
+
 Use this template after a wave has a current failed receipt. It narrows review
 to the declared repair and preserves the normal review receipt gate.
 
@@ -12,7 +14,7 @@ Subagent (general-purpose):
 
     ## CLI repair evidence
 
-    The controller read `ssf execution show <change-dir> --json` before this
+    The controller read `SSF execution show <change-dir> --json` before this
     dispatch. The current repair status is [REPAIR_STATUS], round is
     [REPAIR_ROUND], and the prior review head is [PREVIOUS_HEAD]. Read the
     previous review report at [PREVIOUS_REVIEW_REPORT] first.
@@ -40,7 +42,7 @@ Subagent (general-purpose):
     Then provide exactly this receipt command to the controller:
 
     ```bash
-    ssf execution review <change-dir> --wave [WAVE_ID] --base [PREVIOUS_HEAD] --head [HEAD_SHA] --report [REVIEW_REPORT_FILE] --verdict <pass|fail>
+    SSF execution review <change-dir> --wave [WAVE_ID] --base [PREVIOUS_HEAD] --head [HEAD_SHA] --report [REVIEW_REPORT_FILE] --verdict <pass|fail>
     ```
 
     Use `fail` for any unresolved Critical or Important finding. The controller

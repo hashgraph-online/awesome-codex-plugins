@@ -143,6 +143,15 @@ AMQ is for local agent coordination, not a distributed broker. The optional
 [bridge companion](cmd/amq-bridge/README.md) exchanges messages between hosts;
 each host keeps control of its own queue.
 
+### Remote
+
+The optional [remote companion](cmd/amq-remote/README.md) attaches to a
+harness session that is already running. It is a separate binary: `amq` gains
+no socket, and Homebrew does not install it. Commands, flags, and exit codes
+are in that README. The design is
+[the remote-control ADR](docs/adr-remote-control.md); pinned seams are
+[the compatibility manifest](docs/remote-compat.md).
+
 ## Documentation
 
 | I want to… | Read |
@@ -151,6 +160,7 @@ each host keeps control of its own queue.
 | Run agent pairs, isolate sessions, or supervise notifications | [Co-op operations](COOP.md) |
 | Look up a command or flag | [CLI reference](docs/cli.md) |
 | Diagnose delivery or wake problems | [Wake operations](docs/wake-operations.md) · [Trace](docs/trace.md) |
+| Attach to a running harness session | [amq-remote](cmd/amq-remote/README.md) |
 | Build an integration or understand the design | [Documentation index](docs/README.md) |
 | Understand the trust model | [Security](SECURITY.md) |
 

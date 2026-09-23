@@ -391,7 +391,7 @@ Updated 2026-04-27 / 2026-05-12.
 
 **Writer/Reviewer session split**: Implementation session and review session use separate contexts to avoid confirmation bias. Session A implements. Session B opens a fresh context, reads only the diff and spec, reviews without memory of implementation choices.
 
-**Worktree isolation for parallel features**: Use `claude --worktree <branch-name>` to create an isolated branch + context per feature. Multiple worktrees run in parallel without file conflicts. Preferred over spawning agents on the same working tree when features touch overlapping files.
+**No worktrees**: never `claude --worktree` or `git worktree add`. Parallel features run on the live checkout with file-disjoint lanes; overlapping features run sequentially.
 
 **Subagent definition files**: Define reusable subagents in `.claude/agents/<name>.md` with their own model, tools, and system prompt. Each agent gets isolated context. Use for: security review, test generation, research tasks that would pollute main session.
 

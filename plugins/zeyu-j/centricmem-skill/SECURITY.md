@@ -21,5 +21,6 @@ Include:
 - Agent keys, owner session cookies, Stripe secrets, R2 credentials
 - Instructions to paste a key into chat
 - `path=` keep of arbitrary librarian-disk files
+- Steps that make an agent print a key value (dumping a credential file to show a key) instead of a fingerprint
 
 Authenticate by asking the agent to send a `/connect?device=` link. Enter the key on that page.

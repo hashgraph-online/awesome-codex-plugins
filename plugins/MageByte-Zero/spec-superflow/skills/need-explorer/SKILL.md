@@ -5,6 +5,10 @@ description: Clarify intent, scope, constraints, and success criteria before art
 
 # Need Explorer
 
+## Bundled runtime
+
+Before executing a CLI line below, replace its leading `SSF` with `node "<plugin-root>/scripts/spec-superflow.mjs"`; `<plugin-root>` is the absolute directory two levels above this file. Never run `SSF` literally or call an `ssf` from `PATH`.
+
 Turn a rough idea into a stable change definition before writing artifacts.
 
 ## Primary Goal
@@ -37,8 +41,8 @@ Restate what you heard: "Here's what I'm hearing: [problem, scope, non-goals, su
 
 After user confirms the summary:
 ```bash
-ssf state set <change-dir> dp_1_result "confirmed: <one-line summary>"
-ssf state set <change-dir> dp_1_timestamp now
+SSF state set <change-dir> dp_1_result "confirmed: <one-line summary>"
+SSF state set <change-dir> dp_1_timestamp now
 ```
 DP-1 confirms scope, non-goals, and success criteria before artifact creation.
 

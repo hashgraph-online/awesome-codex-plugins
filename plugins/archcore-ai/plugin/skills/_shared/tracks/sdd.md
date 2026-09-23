@@ -151,9 +151,11 @@ hosts. Gate execution, state block, and resume rules:
 - Produces:
   - type: spec
   - status: draft
-  - relations: `implements` → the `prd` from `sdd.require`; `implements` →
-    the `idea`, `rnd`, `research`, or `adr` that closed `sdd.require`'s compression path
-    when no `prd` exists.
+  - relations: `implements` → the `prd` from `sdd.require`. When no `prd`
+    exists, use `implements` → the `idea` or `adr` whose requirements the spec
+    fulfils, or `depends_on` → the `rnd` or `research` whose findings the spec
+    relies on. Check the compression-path claim through
+    `skills/_shared/relation-authoring.md`; research is not an implementation target.
 - Exit checks:
   - blocking: the spec draft contains every mandatory section defined in
     `skills/_shared/spec-contract.md`.
@@ -197,8 +199,8 @@ hosts. Gate execution, state block, and resume rules:
   - type: scenario
   - status: draft
   - relations: `depends_on` → the `spec` from `sdd.design`; `implements` → the
-    `journey` on the topic, when one exists; `related` between the parts of a
-    split by actor.
+    `journey` on the topic, when one exists; between the parts of a split by actor,
+    `related` only where `skills/_shared/relation-authoring.md` supports the claim.
 - Exit checks:
   - blocking: the scenario draft contains the sections Subject, Actors, Flows,
     Examples, and Open Questions per `skills/_shared/scenario-contract.md`.

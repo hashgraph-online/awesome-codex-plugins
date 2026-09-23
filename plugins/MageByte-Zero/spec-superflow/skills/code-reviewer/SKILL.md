@@ -5,6 +5,10 @@ description: Review completed implementation batches for spec compliance and cod
 
 # Code Reviewer
 
+## Bundled runtime
+
+Before executing a CLI line below, replace its leading `SSF` with `node "<plugin-root>/scripts/spec-superflow.mjs"`; `<plugin-root>` is the absolute directory two levels above this file. Never run `SSF` literally or call an `ssf` from `PATH`.
+
 Two responsibilities: reviewing the recorded Git range and acting on findings with technical rigor. Review according to the persisted policy; verify feedback before implementing it.
 
 ## Part 1: Requesting Review
@@ -16,7 +20,7 @@ Two responsibilities: reviewing the recorded Git range and acting on findings wi
 1. Get the review range from recorded execution evidence. For final review use the immutable `review_base` in recorded isolation context, or `git merge-base <target-branch> HEAD` for a legacy/manual branch with an unambiguous target; head is `git rev-parse HEAD`. The CLI verifies this complete range. A failed final review retains the same base across fixes; wave repairs use the prior wave head. For a wave review use the recorded wave-start base. Never substitute `HEAD~1`; it misses earlier commits in multi-commit work.
 2. For Native `final`, the current executor reviews the complete diff locally and writes the report; do not dispatch a reviewer subagent. For user-authorized SDD with `wave` review, dispatch at most one reviewer for that wave using `skills/code-reviewer/code-reviewer-prompt.md`. If dispatch is unavailable, review locally.
 3. When dispatching, fill only `[DESCRIPTION]`, `[PLAN_OR_REQUIREMENTS]`, `[BASE_SHA]`, `[HEAD_SHA]`, `[WAVE_ID]`, and `[REVIEW_REPORT_FILE]`. Do not send the whole planning bundle.
-4. Write a non-empty report at `.superpowers/sdd/reviews/<wave-id>.md`, then record that path with `ssf execution review <change-dir> --wave <wave-id> --base <base-sha> --head <head-sha> --report .superpowers/sdd/reviews/<wave-id>.md --verdict <pass|fail>`.
+4. Write a non-empty report at `.superpowers/sdd/reviews/<wave-id>.md`, then record that path with `SSF execution review <change-dir> --wave <wave-id> --base <base-sha> --head <head-sha> --report .superpowers/sdd/reviews/<wave-id>.md --verdict <pass|fail>`.
 For schema-2 plans, failed receipts also require `--issue <stable-finding-id>` for the blocking defect being repaired; reuse its ID across retries. Other findings keep their own IDs in the report. Identical failed input cannot consume another attempt.
 
 5. Critical/Important findings require a `fail` receipt, focused repair, one focused re-review, and replacement `pass`. Note Minor for later.
@@ -75,7 +79,7 @@ Suggestion breaks existing functionality, reviewer lacks context, violates YAGNI
 | Performative agreement | State requirement or just act |
 | Blind implementation | Verify against codebase first |
 | Batch without testing | One at a time, test each |
-| Proceeding without a wave receipt | Record `pass`/`fail` via `ssf execution review` before the next dependent wave |
+| Proceeding without a wave receipt | Record `pass`/`fail` via `SSF execution review` before the next dependent wave |
 | Assuming reviewer is right | Check if breaks things |
 | Avoiding pushback | Technical correctness > comfort |
 | Unclear feedback | Clarify the blocked finding while continuing independent repairs |
