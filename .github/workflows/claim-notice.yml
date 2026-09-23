@@ -58,6 +58,7 @@ jobs:
           PR_NUMBER: ${{ github.event.inputs.pr_number || github.event.pull_request.number }}
           PR_TITLE: ${{ github.event.inputs.pr_title || github.event.pull_request.title }}
           PR_AUTHOR: ${{ github.event.inputs.pr_author || github.event.pull_request.user.login }}
+          PENDING_RETRY: ${{ github.event_name == 'workflow_dispatch' && '1' || '0' }}
           REGISTRY_API: https://hol.org/registry/api/v1
         run: python3 scripts/post-claim-notice.py
 

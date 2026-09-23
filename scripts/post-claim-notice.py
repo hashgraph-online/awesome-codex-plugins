@@ -25,6 +25,7 @@ PR_NUMBER = os.environ.get("PR_NUMBER", "")
 PR_TITLE = os.environ.get("PR_TITLE", "")
 PR_AUTHOR = os.environ.get("PR_AUTHOR", "")
 REPO_FULL = os.environ.get("GITHUB_REPOSITORY", "")
+PENDING_RETRY = os.environ.get("PENDING_RETRY") == "1"
 PENDING_LABEL = "registry-claim-pending"
 
 # Skip titles that aren't new plugin additions
@@ -140,10 +141,9 @@ def fetch_catalog_repos(owner_verified: bool = False):
     base_url = f"{REGISTRY_API}/plugins/catalog?limit=50"
     if owner_verified:
         base_url += "&ownerVerified=true"
-    url = base_url
-    for _ in range(1000):
-        if cursor:
-            url = f"{base_url}&cursor={cursor}"
+    seen_cursors = set()
+    while True:
+        url = f"{base_url}&cursor={cursor}" if cursor else base_url
         data = api_request(url)
         if not data or "items" not in data:
             raise RuntimeError("Registry catalog is unavailable; claim notice will be retried")
@@ -151,12 +151,15 @@ def fetch_catalog_repos(owner_verified: bool = False):
             # Vendored marketplace plugins have a catalog sourceRepo of
             # awesome-codex-plugins; ownership belongs to the author repo.
             repo = plugin.get("repository") or plugin.get("sourceRepo") or ""
-            repo = repo.replace("https://github.com/", "").strip()
+            repo = normalize_repo_url(repo) if repo else ""
             if repo:
                 repos.add(repo.lower())
         cursor = data.get("nextCursor")
         if not cursor:
             break
+        if cursor in seen_cursors:
+            raise RuntimeError("Registry catalog cursor repeated; claim notice will be retried")
+        seen_cursors.add(cursor)
     return repos
 
 
@@ -267,7 +270,7 @@ def main():
     print(f'PR #{PR_NUMBER}: "{PR_TITLE}" by @{PR_AUTHOR}')
 
     # 1. Skip non-plugin PRs
-    if should_skip_title(PR_TITLE):
+    if not PENDING_RETRY and should_skip_title(PR_TITLE):
         print("  Skipping: non-plugin PR title pattern")
         return 0
 
