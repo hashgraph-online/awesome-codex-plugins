@@ -5,7 +5,9 @@ HOL registry but not yet owner-verified.
 
 Triggers via GitHub Actions on pull_request closed (merged).
 Checks the HOL registry catalog API for matching repos, then posts a comment
-with claim instructions if the plugin hasn't been claimed yet.
+with claim instructions. If a newly merged repository is present only in the
+catalog source and has not reached the live Registry yet, the notice says it is
+still syncing and does not send the creator into a claim flow that cannot work.
 """
 
 import json
@@ -56,8 +58,21 @@ SKIP_PATTERNS = [
     r"Add HOL Guard scanner",
 ]
 
-def build_comment_body(author: str) -> str:
-    """Build the claim notice comment body, tagging the PR author."""
+
+def build_comment_body(author: str, registry_ready: bool = True) -> str:
+    """Build the claim notice, distinguishing live Registry state from sync state."""
+    if not registry_ready:
+        return f"""<!-- hol-claim-notice -->
+Hey @{author}, your plugin has been merged into HOL's catalog.
+
+## Registry sync in progress
+
+The listing is not live in the HOL Registry yet, so ownership verification is not available yet.
+
+No action is needed from you right now. Once the listing appears in the [HOL Registry](https://hol.org/registry/plugins), you can verify ownership from the [plugin dashboard](https://hol.org/guard/plugins).
+
+If the listing still has not appeared after the Registry sync completes, feel free to ask here or reach out at [support@hol.org](mailto:support@hol.org)."""
+
     return f"""<!-- hol-claim-notice -->
 🎉 Hey @{author}, your plugin has been merged and is now listed in the [HOL Registry](https://hol.org/registry/plugins)!
 
@@ -80,6 +95,7 @@ As the author, you can verify ownership of your plugin to unlock:
 The whole process takes under 30 seconds. No need to add any secrets or tokens to your repo — verification is done entirely through GitHub OAuth.
 
 If you have any questions, feel free to ask here or reach out at [support@hol.org](mailto:support@hol.org)."""
+
 
 MARKER = "<!-- hol-claim-notice -->"
 
@@ -205,11 +221,11 @@ def has_existing_claim_comment():
     return False
 
 
-def post_comment(author: str):
+def post_comment(author: str, registry_ready: bool = True):
     """Post the claim notice comment on the PR, tagging the author."""
     url = f"https://api.github.com/repos/{REPO_FULL}/issues/{PR_NUMBER}/comments"
     headers = {"Authorization": f"token {GH_TOKEN}"}
-    body = build_comment_body(author)
+    body = build_comment_body(author, registry_ready=registry_ready)
     result = api_request(url, headers=headers, method="POST", data={"body": body})
     return result is not None
 
@@ -264,11 +280,11 @@ def main():
     registry_repos = fetch_catalog_repos(owner_verified=False)
     print(f"  Registry has {len(registry_repos)} plugins")
 
-    # 5. Check which PR repos are in the registry
+    # 5. Check which PR repos are in the live registry. If they only appear in
+    # the merged README source, keep the notice informational until ingestion finishes.
     matched = pr_repos & registry_repos
+    registry_ready = bool(matched)
     if not matched:
-        # Fallback: check local README.md — the plugin may have just been merged
-        # and the registry sync hasn't completed yet
         print("  Not in registry yet, checking local README.md...")
         readme_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "README.md")
         if os.path.exists(readme_path):
@@ -284,22 +300,26 @@ def main():
             print("  Skipping: README.md not found and repos not in registry")
             return 0
 
-    print(f"  Matched in registry: {', '.join(matched)}")
+    if registry_ready:
+        print(f"  Matched in registry: {', '.join(matched)}")
+    else:
+        print(f"  Pending registry sync: {', '.join(matched)}")
 
-    # 6. Check if already owner-verified
-    print("  Checking owner verification status...")
-    verified_repos = fetch_catalog_repos(owner_verified=True)
-    already_verified = matched & verified_repos
-    if already_verified and len(already_verified) == len(matched):
-        print("  Skipping: all matched repos already owner-verified")
-        return 0
+    # 6. Check if already owner-verified only when the repository is actually live.
+    if registry_ready:
+        print("  Checking owner verification status...")
+        verified_repos = fetch_catalog_repos(owner_verified=True)
+        already_verified = matched & verified_repos
+        if already_verified and len(already_verified) == len(matched):
+            print("  Skipping: all matched repos already owner-verified")
+            return 0
 
-    if already_verified:
-        print(f"  Some already verified: {', '.join(already_verified)}")
+        if already_verified:
+            print(f"  Some already verified: {', '.join(already_verified)}")
 
-    # 7. Post the comment
+    # 7. Post the comment. Pending repos get sync-status copy, not a claim-now assertion.
     print("  Posting claim notice comment...")
-    if post_comment(PR_AUTHOR):
+    if post_comment(PR_AUTHOR, registry_ready=registry_ready):
         print("  ✅ Comment posted successfully")
         return 0
     else:
