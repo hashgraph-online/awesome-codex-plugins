@@ -42,7 +42,8 @@ class BackfillClaimNoticeTests(unittest.TestCase):
         ), patch.object(MODULE.subprocess, "run", side_effect=fake_run) as run:
             self.assertEqual(MODULE.main(), 0)
             self.assertEqual(run.call_count, 100)
-            self.assertNotIn("1", [call.kwargs["env"]["PR_NUMBER"] for call in run.call_args_list])
+            self.assertTrue(all(call.args[0][:3] == ["gh", "workflow", "run"] for call in run.call_args_list))
+            self.assertNotIn("pr_number=1", [arg for call in run.call_args_list for arg in call.args[0]])
 
 
 if __name__ == "__main__":

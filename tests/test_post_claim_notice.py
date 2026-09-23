@@ -39,7 +39,6 @@ class ClaimNoticeTests(unittest.TestCase):
             REPO_FULL="owner/catalog",
             PR_AUTHOR="author",
             PR_TITLE="Add plugin",
-            PENDING_RETRY=False,
         ), patch.object(
             MODULE, "has_existing_claim_comment", return_value=False
         ), patch.object(
@@ -61,7 +60,6 @@ class ClaimNoticeTests(unittest.TestCase):
             REPO_FULL="owner/catalog",
             PR_AUTHOR="author",
             PR_TITLE="Add plugin",
-            PENDING_RETRY=False,
         ), patch.object(
             MODULE, "has_existing_claim_comment", return_value=False
         ), patch.object(
@@ -81,7 +79,6 @@ class ClaimNoticeTests(unittest.TestCase):
             REPO_FULL="owner/catalog",
             PR_AUTHOR="author",
             PR_TITLE="Add plugin",
-            PENDING_RETRY=True,
         ), patch.object(
             MODULE, "has_existing_claim_comment", return_value="pending"
         ), patch.object(
@@ -93,7 +90,7 @@ class ClaimNoticeTests(unittest.TestCase):
         ) as post:
             self.assertEqual(MODULE.main(), 0)
             post.assert_called_once_with("author", registry_ready=True)
-            label.assert_called_once_with(False)
+            self.assertEqual([call.args for call in label.call_args_list], [(True,), (False,)])
 
 
 if __name__ == "__main__":

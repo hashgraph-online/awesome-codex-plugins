@@ -25,7 +25,6 @@ PR_NUMBER = os.environ.get("PR_NUMBER", "")
 PR_TITLE = os.environ.get("PR_TITLE", "")
 PR_AUTHOR = os.environ.get("PR_AUTHOR", "")
 REPO_FULL = os.environ.get("GITHUB_REPOSITORY", "")
-PENDING_RETRY = os.environ.get("PENDING_RETRY") == "1"
 PENDING_LABEL = "registry-claim-pending"
 
 # Skip titles that aren't new plugin additions
@@ -292,8 +291,7 @@ def main():
 
     print(f"  Found repos in diff: {', '.join(pr_repos)}")
 
-    if not PENDING_RETRY:
-        set_pending_label(True)
+    set_pending_label(True)
     existing_notice = has_existing_claim_comment()
     if existing_notice and existing_notice != "pending":
         set_pending_label(False)

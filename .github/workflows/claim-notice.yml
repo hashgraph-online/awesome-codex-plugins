@@ -25,6 +25,7 @@ on:
         type: string
 
 permissions:
+  actions: write
   pull-requests: write
   issues: write
   contents: read
@@ -34,6 +35,9 @@ jobs:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     name: Post claim instructions
     runs-on: ubuntu-latest
+    concurrency:
+      group: plugin-claim-${{ github.event.pull_request.number || inputs.pr_number || github.run_id }}
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
         with:

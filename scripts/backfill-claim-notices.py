@@ -53,10 +53,14 @@ def main():
         if not author:
             print(f"PR #{number}: author account unavailable; skipping claim notice")
             continue
-        env = {**os.environ, "PENDING_RETRY": "1", "PR_NUMBER": str(number),
-               "PR_TITLE": pr["title"], "PR_AUTHOR": author}
-        outcome = subprocess.run([sys.executable, "scripts/post-claim-notice.py"], env=env)
-        if outcome.returncode != 0:
+        try:
+            subprocess.run(
+                ["gh", "workflow", "run", "claim-notice.yml", "--repo", repo,
+                 "-f", f"pr_number={number}", "-f", f"pr_title={pr['title']}",
+                 "-f", f"pr_author={author}"],
+                check=True,
+            )
+        except subprocess.CalledProcessError:
             failures += 1
     return 1 if failures else 0
 
