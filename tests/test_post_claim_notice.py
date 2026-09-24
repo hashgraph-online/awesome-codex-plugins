@@ -27,17 +27,18 @@ class ClaimNoticeTests(unittest.TestCase):
         ):
             self.assertEqual(MODULE.has_existing_claim_comment(), "ready")
 
-    def test_pending_repository_notice_does_not_claim_registry_is_ready(self):
-        body = MODULE.build_comment_body("author", registry_ready=False)
-        self.assertIn("Registry sync in progress", body)
-        self.assertIn("No action is needed from you right now", body)
-        self.assertNotIn("is now listed in the", body)
-        self.assertNotIn('click **"Verify ownership"**', body)
+    def test_catalog_repository_is_claimable_before_registry_sync(self):
+        body = MODULE.build_comment_body("author", {"owner/pending"}, registry_ready=False)
+        self.assertIn("ready to claim", body)
+        self.assertIn("claim=owner%2Fpending", body)
+        self.assertNotIn("Registry sync in progress", body)
+        self.assertNotIn("read:org", body)
 
-    def test_live_repository_notice_retains_claim_steps(self):
-        body = MODULE.build_comment_body("author", registry_ready=True)
-        self.assertIn("is now listed in the", body)
-        self.assertIn('click **"Verify ownership"**', body)
+    def test_live_repository_notice_retains_claim_link(self):
+        body = MODULE.build_comment_body("author", {"owner/live"}, registry_ready=True)
+        self.assertIn("ready to claim", body)
+        self.assertIn("claim=owner%2Flive", body)
+        self.assertNotIn("read:org", body)
 
     def test_readme_only_repository_posts_pending_notice(self):
         with patch.multiple(
@@ -57,7 +58,7 @@ class ClaimNoticeTests(unittest.TestCase):
             "builtins.open", mock_open(read_data="https://github.com/owner/pending")
         ), patch.object(MODULE, "set_pending_label") as label, patch.object(MODULE, "post_comment", return_value=True) as post:
             self.assertEqual(MODULE.main(), 0)
-            post.assert_called_once_with("author", registry_ready=False)
+            post.assert_called_once_with("author", {"owner/pending"}, registry_ready=False)
             label.assert_called_once_with(True)
 
     def test_live_repository_posts_claim_ready_notice(self):
@@ -76,7 +77,7 @@ class ClaimNoticeTests(unittest.TestCase):
             MODULE, "fetch_catalog_repos", side_effect=[{"owner/live"}, set()]
         ), patch.object(MODULE, "set_pending_label") as label, patch.object(MODULE, "post_comment", return_value=True) as post:
             self.assertEqual(MODULE.main(), 0)
-            post.assert_called_once_with("author", registry_ready=True)
+            post.assert_called_once_with("author", {"owner/live"}, registry_ready=True)
             self.assertEqual([call.args for call in label.call_args_list], [(True,), (False,)])
 
     def test_pending_notice_gets_claim_ready_followup_after_ingestion(self):
@@ -97,7 +98,7 @@ class ClaimNoticeTests(unittest.TestCase):
             MODULE, "post_comment", return_value=True
         ) as post:
             self.assertEqual(MODULE.main(), 0)
-            post.assert_called_once_with("author", registry_ready=True)
+            post.assert_called_once_with("author", {"owner/live"}, registry_ready=True)
             self.assertEqual([call.args for call in label.call_args_list], [(True,), (False,)])
 
     def test_retry_ignores_later_title_edit_to_skip_pattern(self):
@@ -119,7 +120,7 @@ class ClaimNoticeTests(unittest.TestCase):
             MODULE, "post_comment", return_value=True
         ) as post:
             self.assertEqual(MODULE.main(), 0)
-            post.assert_called_once_with("author", registry_ready=True)
+            post.assert_called_once_with("author", {"owner/live"}, registry_ready=True)
 
 
 if __name__ == "__main__":

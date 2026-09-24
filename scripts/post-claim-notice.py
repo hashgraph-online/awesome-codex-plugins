@@ -61,42 +61,41 @@ SKIP_PATTERNS = [
 ]
 
 
-def build_comment_body(author: str, registry_ready: bool = True) -> str:
-    """Build the claim notice, distinguishing live Registry state from sync state."""
-    if not registry_ready:
-        return f"""<!-- hol-claim-notice -->
-Hey @{author}, your plugin has been merged into HOL's catalog.
+def build_comment_body(author: str, repositories=(), registry_ready: bool = True) -> str:
+    """Invite the author to claim as soon as the catalog pull request merges."""
+    del registry_ready
+    from urllib.parse import urlencode
 
-## Registry sync in progress
-
-The listing is not live in the HOL Registry yet, so ownership verification is not available yet.
-
-No action is needed from you right now. Once the listing appears in the [HOL Registry](https://hol.org/registry/plugins), you can verify ownership from the [plugin dashboard](https://hol.org/guard/plugins).
-
-If the listing still has not appeared after the Registry sync completes, feel free to ask here or reach out at [support@hol.org](mailto:support@hol.org)."""
+    repos = sorted({repo for repo in repositories if repo})
+    if repos:
+        claim_links = "\n".join(
+            "- [Verify ownership of `{repo}`](https://hol.org/guard/plugins?{query})".format(
+                repo=repo,
+                query=urlencode(
+                    {
+                        "claim": repo,
+                        "utm_source": "github",
+                        "utm_medium": "pr_comment",
+                        "utm_campaign": "plugin_claim",
+                        "utm_content": "merge_notice",
+                    }
+                ),
+            )
+            for repo in repos
+        )
+    else:
+        claim_links = "[Open the plugin dashboard](https://hol.org/guard/plugins)"
 
     return f"""<!-- hol-claim-notice -->
-🎉 Hey @{author}, your plugin has been merged and is now listed in the [HOL Registry](https://hol.org/registry/plugins)!
+Hey @{author}, your plugin is merged into the HOL catalog and ready to claim.
 
 ## Claim your plugin
 
-As the author, you can verify ownership of your plugin to unlock:
+{claim_links}
 
-- **Owner-verified badge** on your plugin's registry listing
-- **Trust score** visibility and analytics for your plugin
-- **Direct claim link** to share with your community
-- **Dashboard access** at [hol.org/guard/plugins](https://hol.org/guard/plugins) to track installs, trust, and engagement
+Open the link and choose **"Continue with GitHub"**. Use the GitHub account that maintains the repository. HOL requests only `read:user` and `user:email`. It does not request write access to the repository.
 
-### How to claim
-
-1. Visit **[hol.org/guard/plugins](https://hol.org/guard/plugins)**
-2. Find your plugin and click **"Verify ownership"**
-3. Sign in with GitHub — we only request `read:user`, `user:email`, and `read:org` (no write access to your repos)
-4. We verify you own the repository, and your plugin gets the ✅ owner-verified badge
-
-The whole process takes under 30 seconds. No need to add any secrets or tokens to your repo — verification is done entirely through GitHub OAuth.
-
-If you have any questions, feel free to ask here or reach out at [support@hol.org](mailto:support@hol.org)."""
+After verification, the listing gets an owner-verified badge, and the plugin dashboard shows its trust score, installs, and engagement."""
 
 
 MARKER = "<!-- hol-claim-notice -->"
@@ -223,7 +222,11 @@ def has_existing_claim_comment():
         for comment in comments:
             body = comment.get("body") or ""
             if MARKER in body:
-                if "Registry sync in progress" in body:
+                if (
+                    "Registry sync in progress" in body
+                    or "Still syncing" in body
+                    or "not live in the HOL Registry" in body
+                ):
                     state = "pending"
                 else:
                     return "ready"
@@ -245,11 +248,11 @@ def set_pending_label(pending: bool):
     )
 
 
-def post_comment(author: str, registry_ready: bool = True):
+def post_comment(author: str, repositories=(), registry_ready: bool = True):
     """Post the claim notice comment on the PR, tagging the author."""
     url = f"https://api.github.com/repos/{REPO_FULL}/issues/{PR_NUMBER}/comments"
     headers = {"Authorization": f"token {GH_TOKEN}"}
-    body = build_comment_body(author, registry_ready=registry_ready)
+    body = build_comment_body(author, repositories, registry_ready=registry_ready)
     result = api_request(url, headers=headers, method="POST", data={"body": body})
     return result is not None
 
@@ -346,13 +349,10 @@ def main():
         if already_verified:
             print(f"  Some already verified: {', '.join(already_verified)}")
 
-    if existing_notice == "pending" and not registry_ready:
-        print("  Skipping: registry sync notice already posted; retrying later")
-        return 0
-
-    # 7. Post the claim-ready notice once ingestion completes.
+    # A deferred sync notice is replaced by a claim link. Registry indexing
+    # is not required before the author can verify ownership.
     print("  Posting claim notice comment...")
-    if post_comment(PR_AUTHOR, registry_ready=registry_ready):
+    if post_comment(PR_AUTHOR, matched, registry_ready=registry_ready):
         if registry_ready:
             set_pending_label(False)
         print("  ✅ Comment posted successfully")
