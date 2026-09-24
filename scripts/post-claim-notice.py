@@ -182,6 +182,16 @@ def normalize_repo_url(raw: str) -> str:
     return s.lower()
 
 
+def readme_contains_repo(readme: str, repo: str) -> bool:
+    """Match owner/repo as its own token, not as a prefix of a longer name."""
+    pattern = (
+        r"(?<![A-Za-z0-9_.-])"
+        + re.escape(repo.lower())
+        + r"(?![A-Za-z0-9_.-])"
+    )
+    return re.search(pattern, readme.lower()) is not None
+
+
 def parse_pr_diff_for_repos():
     """Get the PR diff and extract GitHub repo URLs from added lines."""
     result = subprocess.run(
@@ -311,31 +321,31 @@ def main():
 
     # 5. Check which PR repos are in the live registry. If they only appear in
     # the merged README source, keep the notice informational until ingestion finishes.
-    matched = pr_repos & registry_repos
-    registry_ready = bool(matched)
-    if not matched:
-        print("  Not in registry yet, checking local README.md...")
+    matched = set(pr_repos & registry_repos)
+    missing = pr_repos - matched
+    if missing:
+        print("  Checking README for repositories the Registry has not indexed...")
         readme_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "README.md")
         if os.path.exists(readme_path):
             readme_content = open(readme_path, encoding="utf-8").read().lower()
-            readme_matched = {r for r in pr_repos if r.lower() in readme_content}
+            readme_matched = {
+                repo for repo in missing if readme_contains_repo(readme_content, repo)
+            }
             if readme_matched:
-                print(f"  Found in README (pending registry sync): {', '.join(readme_matched)}")
-                matched = readme_matched
-            else:
-                set_pending_label(False)
-                print("  Skipping: none of the PR repos are in the registry or README")
-                return 0
-        else:
-            set_pending_label(False)
-            print("  Skipping: README.md not found and repos not in registry")
-            return 0
+                print(f"  Claimable from catalog source: {', '.join(sorted(readme_matched))}")
+                matched |= readme_matched
+    registry_ready = bool(pr_repos & registry_repos)
+    if not matched:
+        set_pending_label(False)
+        print("  Skipping: none of the PR repos are in the registry or README")
+        return 0
 
     if registry_ready:
         print(f"  Matched in registry: {', '.join(matched)}")
     else:
         print(f"  Pending registry sync: {', '.join(matched)}")
 
+    already_verified = set()
     # 6. Check if already owner-verified only when the repository is actually live.
     if registry_ready:
         print("  Checking owner verification status...")
@@ -351,8 +361,14 @@ def main():
 
     # A deferred sync notice is replaced by a claim link. Registry indexing
     # is not required before the author can verify ownership.
+    claimable = matched - already_verified
+    if not claimable:
+        set_pending_label(False)
+        print("  Skipping: all matched repos already owner-verified")
+        return 0
+
     print("  Posting claim notice comment...")
-    if post_comment(PR_AUTHOR, matched, registry_ready=registry_ready):
+    if post_comment(PR_AUTHOR, claimable, registry_ready=registry_ready):
         if registry_ready:
             set_pending_label(False)
         print("  ✅ Comment posted successfully")
