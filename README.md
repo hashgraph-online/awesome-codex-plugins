@@ -320,6 +320,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [Codex Be Serious](https://github.com/lulucatdev/codex-be-serious) - Enforce formal, textbook-grade written register across all agent output.
 - [Codex Mem](https://github.com/2kDarki/codex-mem) - Automatically capture, compress, and inject session context back into future Codex sessions.
 - [Codex Obsidian](https://github.com/greg-asher/codex-obsidian) - Local Obsidian note and vault workflows through the official desktop `obsidian` CLI.
+- [Codex Reset](https://github.com/suvadadepolo-blip/codex-reset-mcp) - Hosted read-only MCP tools for when Codex usage limits reset: 24/48h reset forecast, verified reset record with sources, and outage-vs-limit service status.
 - [Codex SEO](https://github.com/BestLemoon/codex-seo) - Full-stack SEO audits, Google API workflows, backlinks analysis, reporting, and optional MCP extensions for Codex.
 - [Codex Usage Tracker](https://github.com/douglasmonsky/codex-usage-tracker) - Track aggregate Codex token usage from local session logs with MCP tools for summaries, session detail, CSV export, and dashboard generation.
 - [Command Code Usage](https://github.com/Jovan1666/commandcode-usage) - Show your Command Code plan usage inside Codex: a per-turn quota line, plus a /quota command for the full panel.
