@@ -388,6 +388,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [Talivia Agent Kit](https://github.com/talivia-group/agent) - Install and verify revenue-first website analytics from Codex, connect payment attribution, and identify which traffic sources and customer journeys become revenue.
 - [Task Scheduler](https://github.com/6Delta9/task-scheduler-codex-plugin) - OpenAI Codex plugin and local MCP server for turning task lists into realistic schedules with blocked dates, capacity overrides, overflow tracking, and markdown planning output.
 - [Thermal-Fluid Research Workflow](https://github.com/hanhuark/mechanical-engineering-research-skill) - Thermal-fluid mechanical engineering research workflow for literature review, technical writing, data analysis, presentations, proposals, coding, and AI/ML tools.
+- [ThreadFox Lite](https://github.com/amflimited/threadfox-lite) - Read-only Reddit research tools and the reddit-rules-first skill for Codex.
 - [Token Harbor](https://github.com/NickHOI/Token-Harbor) - Turn Codex token usage into Sail Power for a local-first fishing, fleet, and harbor-building companion game.
 - [TokenChronicle](https://github.com/HuaHuiJian/tokenchronicle-marketplace) - Local-first Codex work journal that automatically archives sessions for private search, audit, usage analytics, and long-term memory continuity without recurring model-token cost.
 - [TokRepo Search](https://github.com/henu-wang/tokrepo-codex-plugin) - Search and install AI assets from TokRepo with a bundled skill and MCP server for Codex.
