@@ -86,7 +86,10 @@ node tools/verify-image-roster.mjs 0.8.0
 It reads `MCP_TOOL_NAMES` out of the container layer over plain HTTPS and verifies every
 blob against the digest its manifest names — no Docker daemon, no registry login. Expected:
 a line reading `tools   15`. The same command against `0.4.0` reports nine, so the number
-tracks the artifact rather than the prose written about it.
+tracks the artifact rather than the prose written about it. The eight-tag history behind
+those counts — including why `latest` and `0.8.0` ship the same interface as different
+bytes — is in the
+[image roster note](https://happy520ai.github.io/unified-ai-system/verify-mcp-docker-image.html).
 
 ## Try Before Installing
 
@@ -178,7 +181,7 @@ fake-provider-first, so you can try every feature with zero credentials:
 | Vector retrieval | A credential-free deterministic embedding provider and the SQLite vector store activate `mode: "vector"` RAG with strict tenant isolation. | [Providers & knowledge](docs/providers.md) |
 | Provider governance | A three-gate whitelist matrix for real providers; memory-only runtime credentials by default, with opt-in AES-256-GCM encrypted file/SQLite persistence and a separately protected master key; hashed virtual keys and user tokens; request cost guards, circuit breakers, and fallback chains. | [Provider enablement](docs/real-provider-enablement.md) |
 | Local-client intelligence gateway | Tenant-scoped inventory, server-bound per-client PoP, policy-pinned fake-provider dispatch, dry-run autonomous management, governed execution with receipt reconciliation and exactly-once aggregate learning, irreversible revocation, and transactional MCP onboarding. Credential-free fixture flows are proven; the open release gates are enumerated in the design doc. | [Design and evidence boundary](docs/local-client-intelligence-gateway.md) |
-| Enterprise governance + security drills | JWT auth, RBAC, tenant isolation with audit hash chains — verified by a repeatable 23-attack live security regression. | [Security drill](tools/security-attack-regression.mjs) |
+| Enterprise governance + security drills | JWT auth, RBAC, tenant isolation with audit hash chains — verified by a repeatable 23-attack live security regression. | [Security drill](tools/security-attack-regression.mjs) · [run output](https://happy520ai.github.io/unified-ai-system/security-drill-evidence.html) |
 | Enterprise identity & provisioning | **OIDC SSO** (authorization code + PKCE + JWKS signature verification, issues an API token on login) and **SCIM 2.0** user provisioning (bearer-auth create/get/list/patch/deactivate). | [Security drill](tools/security-attack-regression.mjs) · [Enterprise SSO & SCIM](docs/enterprise-sso.md) |
 | Operator traffic control | Configurable **weighted routing splits** and **shadow traffic** (`AI_GATEWAY_WEIGHTED_ROUTES_JSON`): shadow calls are separately accounted; real-provider shadowing also requires `AI_GATEWAY_SHADOW_REAL_PROVIDER_ENABLED=true`. | [Multi-process deployment](docs/multi-process-deployment.md) |
 | Hot-path RAG + billing evidence | Opt-in `unified_ai.rag` knowledge injection on `/v1/chat/completions`; central usage evidence and an admin-only exact-attempt USD statement comparison. Local statement previews remain explicitly non-legal and no payment gateway is connected. | [Spend reporting](docs/spend-reporting.md) · [RAG injection](docs/openai-compatible-api.md) |

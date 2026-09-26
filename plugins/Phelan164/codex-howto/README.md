@@ -20,6 +20,8 @@ DevOps, security, and multi-agent orchestration.
 **New to Codex?** Run the dependency-free
 [five-minute playground](labs/engineering-playground/README.md).
 **Already using Codex?** [Install `engineering-loop`](#try-the-engineering-loop).
+**Want a quick improvement?** Try [10 practical Codex tips](resources/codex-tips.md)
+with copy-ready prompts and guidance on when each helps.
 
 ![Codex How To: from scope through evidence](assets/social-preview.svg)
 

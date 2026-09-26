@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-09-26",
-  "total": 239,
+  "total": 240,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -528,6 +528,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/davidmosiah/delx-plugins/HEAD/delx-recovery/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "design-helper",
+      "url": "https://github.com/Dessert99/design-helper",
+      "owner": "Dessert99",
+      "repo": "design-helper",
+      "description": "Settles CSS values, layout, and motion by eye: draws candidates that differ in one property side by side in the browser, then applies the one you pick to your code.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/Dessert99/design-helper/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Designer Skill",

@@ -88,6 +88,7 @@ read it as empty.
 | `archive/` | The clock-out gate, `archive-receipts`, the Archive skill | No | Each clock-out and each Archive | Only `retain-history --apply`, when the owner set `retention.archiveDays` | `archive.root`, `archive.layout` |
 | `archive/history-index.md` | The Archive skill | No | One entry per archived shift, updated when the shift is filed again | Never | The Archive skill's `## Index` |
 | `run/scheduled.log` | Scheduled runs | No | Each scheduled run | Only `retain-history --apply`, when the owner set `retention.runtimeLogDays` | — |
+| `run/watchman.log` | `start-watchman`, from the watchman's own output: why it refused to arm, and any error after | No | Each watchman launch | Never; it holds only the watchman's own messages, not its revival sessions | — |
 | `support/` | `export-support`, on request | Yes | On each export | Never automatically; the owner removes it | — |
 | `run/provision-transaction.json`, `run/provision-baseline/`, `run/provision-surface` | `provision` | No | Around a provisioning step | Removed when the step commits or rolls back | — |
 

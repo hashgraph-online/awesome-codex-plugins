@@ -775,6 +775,21 @@
       "description": "Free recovery and continuity plugin for AI agents: resume prior sessions, capture state, process failures into a recovery plan, and remember across sessions through a hosted MCP server (works in Codex, Claude Code, Cursor, and VS Code)."
     },
     {
+      "name": "design-helper",
+      "displayName": "design-helper",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Dessert99/design-helper"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Settles CSS values, layout, and motion by eye: draws candidates that differ in one property side by side in the browser, then applies the one you pick to your code.",
+      "icon": "./plugins/Dessert99/design-helper/assets/icon.svg"
+    },
+    {
       "name": "designer-skill",
       "displayName": "Designer Skill",
       "source": {

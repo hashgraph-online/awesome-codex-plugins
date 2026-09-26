@@ -7,7 +7,7 @@ requirements:
 license: MIT
 compatibility: "Requires host MCP at https://mem.centricmem.com/mcp. Floors use the pre-1.0 0.21.x numbering; every 1.0.x satisfies them all. librarian >=0.21.50: a card is summary + key points (a keep stub is not a card); a folder is cm_keep card:false then cm_import items; archive zip is optional; share: shelf ids; cm_move takes whole paths (never lessons.md or #); cm_delete {file,shelf} a card, heading= for one ##; cm_rename {file,shelf,title}; omitting the cm_library id lists shelves; skipExisting and copy-aside FTS skip. >=0.21.51 Codex OAuth. >=0.21.55 applicant HTTPS callbacks. >=0.21.56 OAuth key picker and the ChatGPT Approve hop. >=1.0.6 host-ops detail (cm_ops)."
 metadata:
-  version: "1.0.31"
+  version: "1.0.32"
   compatible_cli: ">=0.21.50"
   changelog_url: https://github.com/zeyu-j/centricmem-skill/blob/main/CHANGELOG.md
 ---
@@ -35,7 +35,7 @@ Start or resume; search; file Non-Micro; connect / refresh Skill. Recipes: REFER
 
 ## 0. Reach
 
-1. MCP only `https://mem.centricmem.com/mcp`: `cm_health` `cm_ambient` `cm_doctor` `cm_search` `cm_show` `cm_note` `cm_log_decision` `cm_done` `cm_keep` `cm_library` `cm_copy` `cm_move` `cm_delete` `cm_rename` `cm_import` `cm_index`. No curl / CLI-write / bootstrap.
+1. MCP only `https://mem.centricmem.com/mcp`: `cm_health` `cm_ambient` `cm_doctor` `cm_search` `cm_show` `cm_note` `cm_log_decision` `cm_done` `cm_keep` `cm_library` `cm_copy` `cm_move` `cm_delete` `cm_rename` `cm_import` `cm_index` `cm_ops`. No curl / CLI-write / bootstrap.
 2. Missing tools or short grants → **connect this turn**. REFERENCE **Reach**. Remote/cloud is **not** “paste key only”: OAuth if this agent receives the browser login; paste Bearer only when it cannot. Listed OAuth hosts only: an unlisted callback shape leaves the host stuck on “connecting”, so prefer `/connect?device=` and send that callback shape to zeyu@poppyg.com (REFERENCE “Approved, but the agent stays connecting”).
    Tools that were there and then vanished, or a load-time `discover` failure, mean the MCP **session** died, not the key: probe with `centricmem doctor` (its own request, unaffected by the session), re-handshake (goose: disable then enable centricmem, or restart the host), retry once. While the session is dead, nothing here is loaded either.
 3. `cm_show` = card on the **hosted** shelf (not a local junction file). `grants=["*"]` = default. Extra `mode=read` = view-only (search/show only). `ACADEMIC.md` beside this → follow it. Upsert corpus paths: REFERENCE **Import shapes** (`bundle.imported` + `rel_path`, never bare `items=`). Host-specific install, refresh or failure detail: `cm_ops` - read it when a host detail actually blocks you (librarian >=1.0.6; it is served on request rather than shipped in every copy).

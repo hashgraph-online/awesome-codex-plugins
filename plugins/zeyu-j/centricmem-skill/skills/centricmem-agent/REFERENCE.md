@@ -61,7 +61,7 @@ Decision **#0180**. Mechanism is fixed for every agent; content lives on each sh
 
 ## Reach
 
-MCP tools must be present: `cm_health` `cm_ambient` `cm_doctor` `cm_search` `cm_show` `cm_note` `cm_log_decision` `cm_done` `cm_keep` `cm_library` `cm_copy` `cm_move` `cm_delete` `cm_rename` `cm_import` `cm_index`.
+MCP tools must be present: `cm_health` `cm_ambient` `cm_doctor` `cm_search` `cm_show` `cm_note` `cm_log_decision` `cm_done` `cm_keep` `cm_library` `cm_copy` `cm_move` `cm_delete` `cm_rename` `cm_import` `cm_index` `cm_ops`.
 
 If they are missing: **Already added** a Bearer or finished OAuth login in this agent → new chat, do not strip Bearer (Typical Workflows). URL-only MCP → first connect this turn. Never paste the key in chat. Never copy JSON into chat. Do not curl card/search APIs. Do not CLI-write. Do not bootstrap. Do not send a loopback `/connect` or a bare `/connect` with no `device=`.
 
@@ -87,7 +87,7 @@ Do not tell them “remote can only paste a key.” Do not send a loopback autho
 
 **`centricmem` on PATH:** only if `connect --device` exists. Prefer `centricmem connect --device --url-only` (print URL, exit) then `centricmem connect --claim` after they submit the key. Blocking `centricmem connect --device` still waits up to ten minutes. Send **only** the printed `/connect?device=` URL — never the secret, never the key. Tell them to save a backup — the secret appears only once. They enter **any** agent key on that page (default = every shelf, extra key = granted shelves). Unknown host: `centricmem connect --claim --target <that-host-config.json>` (JSON `mcpServers` map). Do not read another client’s `mcp.json` to copy a key. If the binary has no `connect --device` (leftover npm 0.14.x), ignore it. Do not npm-install the CLI on a guest. Mint failure with CLI present → `centricmem doctor connect` then email zeyu@poppyg.com (never a key).
 
-**Any other Agent Skills host.** Machine-readable recipe: repo-root `install.json`. Copy `skills/centricmem-agent/` so the file is `<skills-root>/centricmem-agent/SKILL.md`. Host MCP is streamable-HTTP at `https://mem.centricmem.com/mcp`. After device claim, merge Bearer with `centricmem connect --claim --target <this-host-config>` (or `CENTRICMEM_MCP_TARGETS`). Confirm with `centricmem connect --verify` (grants/tool count, never the key). Do not scrape a 17-row client table and guess the skills root.
+**Any other Agent Skills host.** Machine-readable recipe: repo-root `install.json`. Copy `skills/centricmem-agent/` so the file is `<skills-root>/centricmem-agent/SKILL.md`. Host MCP is streamable-HTTP at `https://mem.centricmem.com/mcp`. **goose** reads only `name` and `description` from the frontmatter, so `requirements.mcps` is ignored there - §0 Reach is what actually enforces the dependency on that host, not the frontmatter. A goose plugin also cannot declare a remote MCP server at all (its plugin MCP parser is stdio-only), so the endpoint is added as an extension or with `--with-streamable-http-extension`. After device claim, merge Bearer with `centricmem connect --claim --target <this-host-config>` (or `CENTRICMEM_MCP_TARGETS`). Confirm with `centricmem connect --verify` (grants/tool count, never the key). Do not scrape a 17-row client table and guess the skills root.
 
 Config (agent key stays off git). URL-only MCP (not a completed connect). Plugin / Agent Plugins `mcp.json` uses client `type` **`http`** (wire is still streamable HTTP on the librarian):
 
@@ -198,7 +198,7 @@ If `cm_*` are missing, mint `/connect?device=` this turn. Paste-key fallback may
 
 **OpenClaw.** Compatible **bundle** (Agent Plugins / `.claude-plugin` / `.codex-plugin` / `.cursor-plugin`). Not a native in-process plugin — do not add `openclaw.plugin.json`. Not ClawHub. `openclaw plugins install git:github.com/zeyu-j/centricmem-skill` or `openclaw plugins install centricmem-skill --marketplace zeyu-j/centricmem-skill`. Restart the gateway if tools stay missing. Then the same connect as other plugin clients.
 
-**DSH.** Cordis **funnel** only. Needs `pnpm` on PATH (`npm i -g pnpm` if missing; `corepack enable pnpm` fails on Windows Program Files). Pin: `dsh plugin --profile web add github:zeyu-j/centricmem-skill#v0.21.72`. That mounts URL-only `@deepseek-ai/dsh-mcp-client` from `dsh/cordis.patch.yml` (`failOnStartupError: true` — missing Bearer aborts boot, it does not register 0 tools). The Skill is MIT from 1.0.7; the patch is MIT glue. The funnel does **not** load SKILL.md from `node_modules`: from the profile dir run `node node_modules/centricmem-skill/dsh/copy-skill.mjs` so `$DSH_HOME/skills/centricmem-agent/` exists. Never `npx skills add -g` (writes `~/.agents`, not `$DSH_HOME`). Overlay Bearer in `$DSH_HOME/profiles/<profile>/cordis.patch.yml` after `/connect?device=` — **same** `id: mcp-centricmem`, restate the whole `config` (`serverName: centricmem`, `transport`, `url`, `headers`). A typo in `serverName` creates a second namespace. Never commit headers. Tools appear as `mcp__centricmem__cm_*` — call those names, not bare `cm_*`. After overlay: **new chat** (mandatory; this session’s catalog is frozen). DSH does not speak MCP OAuth. `session.v3.jsonl.zstd` is not a keep source — skip `cm_keep`; still file note / decision / done. GitHub topic `dsh-plugin` is discovery.
+**DSH.** Cordis **funnel** only. Needs `pnpm` on PATH (`npm i -g pnpm` if missing; `corepack enable pnpm` fails on Windows Program Files). Pin: `dsh plugin --profile web add github:zeyu-j/centricmem-skill#v1.0.32`. That mounts URL-only `@deepseek-ai/dsh-mcp-client` from `dsh/cordis.patch.yml` (`failOnStartupError: true` — missing Bearer aborts boot, it does not register 0 tools). The Skill is MIT from 1.0.7; the patch is MIT glue. The funnel does **not** load SKILL.md from `node_modules`: from the profile dir run `node node_modules/centricmem-skill/dsh/copy-skill.mjs` so `$DSH_HOME/skills/centricmem-agent/` exists. Never `npx skills add -g` (writes `~/.agents`, not `$DSH_HOME`). Overlay Bearer in `$DSH_HOME/profiles/<profile>/cordis.patch.yml` after `/connect?device=` — **same** `id: mcp-centricmem`, restate the whole `config` (`serverName: centricmem`, `transport`, `url`, `headers`). A typo in `serverName` creates a second namespace. Never commit headers. Tools appear as `mcp__centricmem__cm_*` — call those names, not bare `cm_*`. After overlay: **new chat** (mandatory; this session’s catalog is frozen). DSH does not speak MCP OAuth. `session.v3.jsonl.zstd` is not a keep source — skip `cm_keep`; still file note / decision / done. GitHub topic `dsh-plugin` is discovery.
 
 ### 1Password (optional vault, not a connect path)
 
@@ -324,7 +324,7 @@ A hosted library is not a directory on this machine. Ask if you need the detail.
 2. If it is older, refresh the way **this host** was installed, then tell the human to restart the host or open a new chat so the new copy loads.
 3. After a disk refresh, re-read this file and SKILL.md before the next write - installing newer is not the same as acting on it.
 
-Host-specific install, refresh and failure detail is **not** shipped in this public copy. Ask zeyu@poppyg.com if you need it.
+Host-specific install, refresh and failure detail is **not** shipped in this public copy. Read `cm_ops` when a host detail actually blocks you (librarian >=1.0.6 - it is served on request); ask zeyu@poppyg.com if that does not answer it.
 
 ## Writes (card shapes; trigger is SKILL §4)
 
@@ -392,13 +392,13 @@ Per-host extras live in folders named after the host. Check yours before assumin
 | Folder | Who it is for | What is in it |
 |---|---|---|
 | `hooks/` | Claude Code, Codex | `hooks.json`: a SessionStart hook that puts this shelf's context in front of the model, and a SessionEnd hook that files the unit when the session ends |
-| `.zcode-plugin/` or the Claude Code marketplace | ZCode | its CLI is `zcode plugins marketplace add …` + `zcode plugins install …`; MCP is Settings → MCP Servers (stdio, HTTP, SSE) |
+| `.zcode-plugin/` or the Claude Code marketplace | ZCode | its CLI is `zcode plugins marketplace add …` + `zcode plugins install …`; MCP is Settings → MCP Servers (stdio, HTTP, SSE - pick HTTP, since this service offers no stdio) |
 | `dsh/` | DeepSeek Harness | skills come from `~/.agents/skills`; its Claude Code hooks bridge runs `hooks/hooks.json` with `pluginRoot` |
 | `qwen/` | Qwen Code | hooks in `.qwen/settings.json`; `SessionStart` adds context via `hookSpecificOutput.additionalContext` |
 | `goose/` | goose | recipes for a preflight and a close, plus a MOIM refresher that writes the file goose injects each turn |
 | `openclaw/` | OpenClaw | a hook pack (`HOOK.md` + handler) that contributes the same context |
 | `hermes/` | Hermes | a shell hook that injects the shelf's context on `pre_llm_call` and files the unit on `on_session_end`. It carries its own copy of the fetch: Hermes runs it from `<HERMES_HOME>/agent-hooks`, outside this package |
-| `tools/ambient.mjs` | anything with Node | the one implementation the three wrappers above call — `hermes/` is the exception, and says why |
+| `tools/ambient.mjs` | anything with Node | the one implementation every wrapper calls for the credential and for composing the ambient text. `hermes/` is the exception on the HTTP call itself, and says why |
 
 Hosts not named here need nothing extra: the Skill plus the host MCP tools is the whole integration. Cursor is
 in that position with a twist - `centricmem setup --install-hooks` writes the equivalent pair into a code
@@ -429,7 +429,7 @@ A host that reports a broken MCP connection usually has one of these, and none o
 - **Keep `mcp-remote: Unauthorized` and "the key is wrong" apart.** The first is usually a stale local bridge token: re-authorize, clear `.mcp-auth`, or switch to HTTP.
 - **Per-session MCP bridges need to be resettable.** When an old long-running session stops answering but a fresh probe reaches the server, the fix is "reset this chat's MCP", not a machine update.
 
-What we can report is now in `cm_health` and `cm_doctor`: `auth=oauth|bearer|missing` and `keyFp` (12 hex, the same value the new-network notices show), so a host's fingerprints can be compared with ours instead of guessed. The librarian cannot report a *transport*: stdio is a client-side choice and every hosted call is HTTP.
+What we can report is now in `cm_health` and `cm_doctor`: `auth=oauth|bearer|missing` and `keyFp` (12 hex, the same value the new-network notices show), so a host's fingerprints can be compared with ours instead of guessed. The librarian cannot report a *transport*, because there is only one: the hosted service answers on **streamable HTTP** and offers no stdio transport to select. A client configured for stdio cannot reach it at all - that is not a misconfiguration to diagnose, it is a host declaring a server that does not exist.
 
 ## One core, one source
 

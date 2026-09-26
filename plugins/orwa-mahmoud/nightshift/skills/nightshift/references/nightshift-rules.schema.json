@@ -206,6 +206,10 @@
       "type": "string",
       "description": "Optional owner revival command. Empty keeps the host default resume ladder. A non-empty value is used verbatim on every revival attempt (no resume/--continue/fresh ladder)."
     },
+    "watchAfterUsageLimit": {
+      "type": "boolean",
+      "description": "Whether the watchman revives a shift that stopped on a usage limit. True (default): it waits for the reset the host reported, then revives. False: it records the limit and stands by for the owner. Missing is treated as true."
+    },
     "receiptsAutoCommit": {
       "type": "boolean",
       "description": "When true, clock-out and Archive commit the local receipts repo ($NS/.git) with the headless nightshift identity. Default false: even if Setup created that repo, the owner commits it. Missing or unreadable is treated as false."

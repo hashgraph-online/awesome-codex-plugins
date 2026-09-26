@@ -1,0 +1,44 @@
+{
+  "name": "design-helper",
+  "version": "0.3.1",
+  "description": "Settle CSS values, layout and motion by eye: draws every candidate side by side in the browser, you pick one, and it applies the choice to your code.",
+  "author": {
+    "name": "Dessert99",
+    "url": "https://github.com/Dessert99"
+  },
+  "homepage": "https://github.com/Dessert99/design-helper",
+  "repository": "https://github.com/Dessert99/design-helper",
+  "license": "MIT",
+  "keywords": [
+    "design",
+    "css",
+    "ui",
+    "layout",
+    "motion",
+    "comparison",
+    "frontend"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "design-helper",
+    "shortDescription": "Compare CSS values side by side and pick by eye",
+    "longDescription": "Instead of describing options in prose, design-helper draws every candidate for one property side by side in your browser. You pick a letter in chat, and it applies the chosen value to your code and verifies it. Replies and sheet labels are in Korean by default.",
+    "developerName": "Dessert99",
+    "category": "Design",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Show me 5 versions of the button radius",
+      "Compare the card padding",
+      "Lay out the dashboard"
+    ],
+    "websiteURL": "https://github.com/Dessert99/design-helper",
+    "screenshots": [],
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg",
+    "brandColor": "#F59E0B"
+  }
+}

@@ -37,6 +37,7 @@
   "watchMinutes": 10,
   "watchRetrySeconds": "30 120",
   "watchAgent": "",
+  "watchAfterUsageLimit": true,
   "receiptsAutoCommit": false,
   "notifyCommand": "",
   "revivalPrompt": "You were cut off mid-work by an outage or a crash — not by the owner. Pick up exactly where you left off and continue.",

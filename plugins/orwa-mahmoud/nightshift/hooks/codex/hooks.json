@@ -8,7 +8,7 @@
           {
             "type": "command",
             "command": "\"${PLUGIN_ROOT}/hooks/codex/hardhat.sh\"",
-            "commandWindows": "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"%PLUGIN_ROOT%\\hooks\\windows\\hardhat.ps1\" -HostName codex"
+            "commandWindows": "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -EncodedCommand JABFAHIAcgBvAHIAQQBjAHQAaQBvAG4AUAByAGUAZgBlAHIAZQBuAGMAZQAgAD0AIAAnAFMAdABvAHAAJwA7ACAAJABQAHIAbwBnAHIAZQBzAHMAUAByAGUAZgBlAHIAZQBuAGMAZQAgAD0AIAAnAFMAaQBsAGUAbgB0AGwAeQBDAG8AbgB0AGkAbgB1AGUAJwA7ACAAJABpAG4AcAB1AHQAIAB8ACAAJgAgACgASgBvAGkAbgAtAFAAYQB0AGgAIAAtAFAAYQB0AGgAIAAkAGUAbgB2ADoAUABMAFUARwBJAE4AXwBSAE8ATwBUACAALQBDAGgAaQBsAGQAUABhAHQAaAAgACcAaABvAG8AawBzAC8AdwBpAG4AZABvAHcAcwAvAGgAYQByAGQAaABhAHQALgBwAHMAMQAnACkAIAAtAEgAbwBzAHQATgBhAG0AZQAgAGMAbwBkAGUAeAA7ACAAZQB4AGkAdAAgACQATABBAFMAVABFAFgASQBUAEMATwBEAEUA"
           }
         ]
       }
@@ -19,7 +19,7 @@
           {
             "type": "command",
             "command": "\"${PLUGIN_ROOT}/hooks/codex/pulse.sh\"",
-            "commandWindows": "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"%PLUGIN_ROOT%\\hooks\\windows\\pulse.ps1\" -HostName codex"
+            "commandWindows": "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -EncodedCommand JABFAHIAcgBvAHIAQQBjAHQAaQBvAG4AUAByAGUAZgBlAHIAZQBuAGMAZQAgAD0AIAAnAFMAdABvAHAAJwA7ACAAJABQAHIAbwBnAHIAZQBzAHMAUAByAGUAZgBlAHIAZQBuAGMAZQAgAD0AIAAnAFMAaQBsAGUAbgB0AGwAeQBDAG8AbgB0AGkAbgB1AGUAJwA7ACAAJABpAG4AcAB1AHQAIAB8ACAAJgAgACgASgBvAGkAbgAtAFAAYQB0AGgAIAAtAFAAYQB0AGgAIAAkAGUAbgB2ADoAUABMAFUARwBJAE4AXwBSAE8ATwBUACAALQBDAGgAaQBsAGQAUABhAHQAaAAgACcAaABvAG8AawBzAC8AdwBpAG4AZABvAHcAcwAvAHAAdQBsAHMAZQAuAHAAcwAxACcAKQAgAC0ASABvAHMAdABOAGEAbQBlACAAYwBvAGQAZQB4ADsAIABlAHgAaQB0ACAAJABMAEEAUwBUAEUAWABJAFQAQwBPAEQARQA="
           }
         ]
       }
@@ -30,7 +30,7 @@
           {
             "type": "command",
             "command": "\"${PLUGIN_ROOT}/hooks/codex/session-end.sh\"",
-            "commandWindows": "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"%PLUGIN_ROOT%\\hooks\\windows\\session-end.ps1\" -HostName codex"
+            "commandWindows": "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -EncodedCommand JABFAHIAcgBvAHIAQQBjAHQAaQBvAG4AUAByAGUAZgBlAHIAZQBuAGMAZQAgAD0AIAAnAFMAdABvAHAAJwA7ACAAJABQAHIAbwBnAHIAZQBzAHMAUAByAGUAZgBlAHIAZQBuAGMAZQAgAD0AIAAnAFMAaQBsAGUAbgB0AGwAeQBDAG8AbgB0AGkAbgB1AGUAJwA7ACAAJABpAG4AcAB1AHQAIAB8ACAAJgAgACgASgBvAGkAbgAtAFAAYQB0AGgAIAAtAFAAYQB0AGgAIAAkAGUAbgB2ADoAUABMAFUARwBJAE4AXwBSAE8ATwBUACAALQBDAGgAaQBsAGQAUABhAHQAaAAgACcAaABvAG8AawBzAC8AdwBpAG4AZABvAHcAcwAvAHMAZQBzAHMAaQBvAG4ALQBlAG4AZAAuAHAAcwAxACcAKQAgAC0ASABvAHMAdABOAGEAbQBlACAAYwBvAGQAZQB4ADsAIABlAHgAaQB0ACAAJABMAEEAUwBUAEUAWABJAFQAQwBPAEQARQA="
           }
         ]
       }
@@ -41,7 +41,7 @@
           {
             "type": "command",
             "command": "\"${PLUGIN_ROOT}/hooks/codex/clock-out-gate.sh\"",
-            "commandWindows": "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"%PLUGIN_ROOT%\\hooks\\windows\\clock-out-gate.ps1\" -HostName codex"
+            "commandWindows": "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -EncodedCommand JABFAHIAcgBvAHIAQQBjAHQAaQBvAG4AUAByAGUAZgBlAHIAZQBuAGMAZQAgAD0AIAAnAFMAdABvAHAAJwA7ACAAJABQAHIAbwBnAHIAZQBzAHMAUAByAGUAZgBlAHIAZQBuAGMAZQAgAD0AIAAnAFMAaQBsAGUAbgB0AGwAeQBDAG8AbgB0AGkAbgB1AGUAJwA7ACAAJABpAG4AcAB1AHQAIAB8ACAAJgAgACgASgBvAGkAbgAtAFAAYQB0AGgAIAAtAFAAYQB0AGgAIAAkAGUAbgB2ADoAUABMAFUARwBJAE4AXwBSAE8ATwBUACAALQBDAGgAaQBsAGQAUABhAHQAaAAgACcAaABvAG8AawBzAC8AdwBpAG4AZABvAHcAcwAvAGMAbABvAGMAawAtAG8AdQB0AC0AZwBhAHQAZQAuAHAAcwAxACcAKQAgAC0ASABvAHMAdABOAGEAbQBlACAAYwBvAGQAZQB4ADsAIABlAHgAaQB0ACAAJABMAEEAUwBUAEUAWABJAFQAQwBPAEQARQA="
           }
         ]
       }

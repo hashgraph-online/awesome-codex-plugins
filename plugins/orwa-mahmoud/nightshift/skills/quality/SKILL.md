@@ -173,7 +173,7 @@ on native Windows), classify Codex `$NS/run/.shift-session` line 1 with
 `ns_codex_identity_kind` from `$NIGHTSHIFT_PLUGIN_ROOT/lib/lib.sh` (native
 Windows: `Get-NSCodexIdentityKind` after importing `Nightshift.psm1`) before arming the watchman
 or beginning item work, and arm the watchman exactly as the Start skill requires, with
-`ns watchman`, which resolves to this host's own.
+`ns start-watchman` for this host; never begin item work unless it reports the watchman armed.
 
 Implement and verify the selected entry contracts, and continue
 until the finite work is clear or the shared deadline ends. Record significant decisions and

@@ -210,13 +210,26 @@ are the owner's review material, and Archive files those on the owner's order.
 
 ## 6. Arm the night watchman
 
-Each host has its own watchman and the verb resolves to it; all of them read their cadence from
-the rules file, and each stands down on a shift another host owns. Unless the
-`ok watch-minutes 0 (watchman disarmed)` verdict says otherwise, arm it in the background.
+Each host has its own watchman; all of them read their cadence from the rules file, and each
+stands down on a shift another host owns. Unless the `ok watch-minutes 0 (watchman disarmed)`
+verdict says otherwise, launch it with the host you are on:
 
 ```bash
-nohup "$NIGHTSHIFT_PLUGIN_ROOT/runtime/ns" watchman >/dev/null 2>&1 &
+"$NIGHTSHIFT_PLUGIN_ROOT/runtime/ns" start-watchman --host claude
 ```
+
+Native Windows:
+
+```powershell
+& "$NIGHTSHIFT_PLUGIN_ROOT\runtime\windows\ns.ps1" start-watchman -HostName claude
+```
+
+It hands the watchman the workspace explicitly, keeps the watchman's own output in
+`$NS/run/watchman.log`, and returns only once the watchman holds its pid file and the shift log
+shows it armed: `watchman started (pid N)`, or `watchman already watching (pid N)` when one is
+already running. Any other result means nothing is watching this shift. Do not begin item work:
+relay its output verbatim — it quotes why the watchman did not arm — and stop until the owner has
+fixed the cause and Start has been run again.
 
 It revives a session that DIES mid-shift — an API outage, a crash, a killed terminal — by spawning
 a fresh session that resumes from the punch list. Every host stands down on done, a stop-work

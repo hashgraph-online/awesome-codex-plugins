@@ -42,6 +42,7 @@
     "growth:blast": "pnpm growth:sync-thread && pnpm growth:publish",
     "growth:sync-thread": "node ./tools/star-growth-sync-thread.mjs",
     "growth:publish": "node ./tools/star-growth-publish-kit.mjs --output .tmp/growth/star-growth-publish-output.md",
+    "growth:preflight": "node ./tools/launch-preflight.mjs",
     "quality:score": "node tools/quality-scorecard.mjs",
     "drill:gateway-circuit": "node ./tools/circuit-recovery-drill.mjs --managed-gateway --json",
     "drill:gateway-circuit:dry-run": "node ./tools/circuit-recovery-drill.mjs --dry-run --json",
@@ -68,7 +69,7 @@
     "check:vision-invariants": "node ./tools/check-vision-invariants.mjs",
     "check:critical-js": "node tools/check-critical-js.mjs",
     "verify:windows": "node tools/verify-windows.mjs",
-    "test:verification-tools": "node --test tools/check-critical-js.test.mjs tools/verify-windows.test.mjs tools/check-language-policy.test.mjs tools/render-gateway-service.test.mjs tools/dependency-vulnerability-gate.test.mjs tools/quality-scorecard-runtime.test.mjs tools/quality-ci-runtime.test.mjs tools/star-growth-check.test.mjs tools/verify-image-roster.test.mjs",
+    "test:verification-tools": "node --test tools/check-critical-js.test.mjs tools/verify-windows.test.mjs tools/check-language-policy.test.mjs tools/render-gateway-service.test.mjs tools/dependency-vulnerability-gate.test.mjs tools/quality-scorecard-runtime.test.mjs tools/quality-ci-runtime.test.mjs tools/star-growth-check.test.mjs tools/verify-image-roster.test.mjs tools/launch-preflight.test.mjs",
     "check:dependency-vulnerabilities": "node tools/dependency-vulnerability-gate.mjs"
   },
   "engines": {

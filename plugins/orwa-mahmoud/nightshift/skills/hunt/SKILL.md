@@ -230,8 +230,8 @@ do not leave an empty order heading behind), put only the item under `## Items` 
 - classify Codex `$NS/run/.shift-session` line 1 with `ns_codex_identity_kind` from
   `$NIGHTSHIFT_PLUGIN_ROOT/lib/lib.sh`, or `Get-NSCodexIdentityKind` after importing
   `Nightshift.psm1` on native Windows, before arming the watchman or beginning item work;
-- **arm the watchman** as the Start skill requires, with `ns watchman`, which resolves to this
-  host's own.
+- **arm the watchman** as the Start skill requires, with `ns start-watchman` for this host; never
+  begin item work unless it reports the watchman armed.
 
 An empty `## Items` section still keeps the Shift contract and Gates; they bind the cut item.
 Record leftover campaign rules in `$NS/inbox/parking-lot.md` when they are not this order's.
