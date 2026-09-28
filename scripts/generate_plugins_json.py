@@ -60,6 +60,9 @@ EXTRA_MIRROR_PATHS = {
     # debt-ops's manifest points hooks at hooks/hooks.json; the hook commands
     # invoke sibling Python scripts in the same hooks/ directory at runtime.
     "bcanfield/agentic-tech-debt": ("hooks",),
+    # Codex Attachment Manager's .mcp.json starts ./scripts/launch with
+    # ./src/plugin-server.ts; the MCP server, engine and panel all live in src/.
+    "chipfighter/codex-attachment-manager": ("scripts", "src"),
     # Staff Engineer Mode exposes one router skill and loads routed specialist
     # files from a top-level specialists/ directory at runtime.
     "sirmarkz/staff-engineer-mode": ("specialists",),
