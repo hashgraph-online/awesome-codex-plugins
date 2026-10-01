@@ -57,6 +57,9 @@ METADATA_ONLY_MIRROR_REPOS = {
     "mturac/everything-openai-codex",
 }
 EXTRA_MIRROR_PATHS = {
+    # Workflow MCP bootstrap loads the sibling control-plane runtime; its MCP
+    # App also reads assets/sidebar-icon.svg and Skills reference helper scripts.
+    "TohmaN233/codex-agents-workflow": ("control-plane", "scripts", "assets"),
     # debt-ops's manifest points hooks at hooks/hooks.json; the hook commands
     # invoke sibling Python scripts in the same hooks/ directory at runtime.
     "bcanfield/agentic-tech-debt": ("hooks",),
