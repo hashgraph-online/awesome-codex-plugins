@@ -446,23 +446,28 @@ def prune_unlisted_bundles(root: Path, plugins: list[dict[str, str]]) -> list[st
     """
     if not plugins:
         raise ValueError("Refusing bundle cleanup from an empty parsed README; explicit maintainer retirement is required")
-    retained = {(plugin["owner"], plugin["repo"]) for plugin in plugins}
+    retained = {(plugin["owner"].casefold(), plugin["repo"].casefold()) for plugin in plugins}
     removed: list[str] = []
-    if not root.exists():
-        return removed
     if root.is_symlink():
         raise ValueError("Generated plugins root must not be a symlink")
-    for owner in root.iterdir():
+    if not root.exists():
+        return removed
+    # Preflight the entire tree before retiring anything. A later invalid
+    # directory must not leave an earlier bundle partially retired.
+    retired: list[Path] = []
+    for owner in sorted(root.iterdir()):
         if owner.is_symlink():
             raise ValueError(f"Generated owner directory must not be a symlink: {owner}")
         if not owner.is_dir():
             continue
-        for repo in owner.iterdir():
+        for repo in sorted(owner.iterdir()):
             if repo.is_symlink():
                 raise ValueError(f"Generated repo directory must not be a symlink: {repo}")
-            if repo.is_dir() and (owner.name, repo.name) not in retained:
-                shutil.rmtree(repo)
-                removed.append(f"{owner.name}/{repo.name}")
+            if repo.is_dir() and (owner.name.casefold(), repo.name.casefold()) not in retained:
+                retired.append(repo)
+    for repo in retired:
+        shutil.rmtree(repo)
+        removed.append(f"{repo.parent.name}/{repo.name}")
     return removed
 
 

@@ -14,6 +14,7 @@ Generator (CI):  plugins/<owner>/<repo>/  ←  fetched from your GitHub repo
 ```
 
 The generator removes mirrored `plugins/<owner>/<repo>/` bundles when their repository is no longer listed in the README. Listed repositories are retained even if a fetch fails; a retired owner identity must not remain installable alongside its canonical replacement.
+Repository identity comparisons ignore GitHub owner/repository display case. Cleanup refuses an empty parsed source and preflights the entire two-level tree for symlinks before deleting any bundle; even a dangling root symlink is refused. A truly empty catalog requires explicit maintainer retirement rather than automatic cache deletion.
 
 ## Adding a Plugin
 
