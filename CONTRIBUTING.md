@@ -13,6 +13,8 @@ Generator (CI):  plugins/<owner>/<repo>/  ←  fetched from your GitHub repo
                   marketplace.json        ←  regenerated from README
 ```
 
+The generator removes mirrored `plugins/<owner>/<repo>/` bundles when their repository is no longer listed in the README. Listed repositories are retained even if a fetch fails; a retired owner identity must not remain installable alongside its canonical replacement.
+
 ## Adding a Plugin
 
 > **Important: Read this entire guide before opening a PR. Submissions missing required items will be asked to fix them.**
