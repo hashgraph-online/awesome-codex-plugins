@@ -78,8 +78,8 @@ npx --no-install homie-studio assets lineup <id>         # true scale, silhouett
 - Tripo's models run **on fal** here (`tripo3d/...` endpoints): one account, prices read live, the receipts above.
   Tripo's own CLI and MCP server (`tripo-cli`, `tripo mcp`) bill a separate Tripo account in Tripo credits, outside
   this skill's budget and receipts, and a free Tripo plan makes its outputs public under CC BY 4.0
-  (`references/RIGHTS.md`): keep a game's models on the fal route. In Claude Code the Homie mod holds a `tripo`
-  generating command or a Tripo MCP tool as a call whose cost cannot be read first.
+  (`references/RIGHTS.md`): keep a game's models on the fal route. The Homie mod (Claude Code) and Homie's hooks (Codex)
+  hold a `tripo` generating command or a Tripo MCP tool as a call whose cost cannot be read first.
 - A painted mood image for the style board: `node <models.mjs> mood <id> b --yes` (about US$0.035; a target).
 
 ## Generated characters (paid): an A-pose concept, then a rigged mesh

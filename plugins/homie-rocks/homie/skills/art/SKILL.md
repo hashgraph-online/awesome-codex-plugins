@@ -61,7 +61,7 @@ it, and the person signs in on fal's own page (no key): in Claude Code `claude m
 --scope user fal https://mcp.fal.ai/mcp-relay`, then `/mcp`; in Codex `codex mcp add fal --url
 https://mcp.fal.ai/mcp-relay`, then `codex mcp login fal`. **Paid calls go through `art.mjs gen`,
 never the MCP's `run_model` or `submit_job`**: `gen` prices, caps, receipts and resumes; the MCP's run
-does none of that (in Claude Code the Homie mod holds one, as a call whose cost cannot be read first).
+does none of that (the Homie mod in Claude Code, and Homie's hooks in Codex, hold one as a call whose cost cannot be read first).
 
 ```sh
 node <art.mjs> price --model fal-ai/flux/dev --input art/cover/input.json    # free: fal's unit price x this input

@@ -101,6 +101,18 @@ if it says so, leave theirs. Never turn it on unasked. In Claude Code 2.1.287 or
 of this plugin) already draws the studio's band above the prompt and the Studio pane (`/studio`), so offer
 the status line only to someone who wants the line under the prompt as well.
 
+**Homie's holds in Codex.** In Codex, Homie's hooks hold what the mod holds in Claude Code: an edit to a
+file `studio.json` `"protect"` lists, a production deploy, a change to the studio's Cloudflare account
+outside its deploy, a paid call past the budget or whose cost cannot be read first, and a Clef model
+download; they refuse what the mod refuses, and take secrets out of what you read. Codex runs a plugin's
+hooks only after the person trusts them once: after installing Homie, tell them to open `/hooks` and
+trust Homie's three (until then nothing is held, so ask before each of those yourself). A held call comes
+back refused with a code, and the person sees what it holds: say in a sentence what it would do and ask.
+They answer in their own message, `proceed <code>` (that exact call goes through once) or `cancel
+<code>`; then run exactly the same call again, or not at all. Never write that answer yourself, in a
+command or a file: only the person's own message counts. `node <this plugin's folder>/hooks/codex.mjs check
+-- <command>` (the folder above `skills/`) says what Homie would do with a command, and runs nothing.
+
 ## 1. The studio
 
 Ask for a name if there is none ("What should the studio be called? It's the name on your site.").

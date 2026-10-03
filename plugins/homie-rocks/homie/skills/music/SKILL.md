@@ -51,8 +51,8 @@ Not connected? Offer ElevenLabs' own tools, never a copy of anyone's key or code
   ElevenLabs' page: speech, voices, transcription, agents). Their skills alone: `npx skills add
   elevenlabs/skills`. It is optional here, and their MCP has no music tools: songs, stems and the
   lyric check go through this skill's script, which keeps the budget, the receipts and the rights.
-  Their speech and sound-effect tools spend the same credits: tell the person the cost first, and in
-  Claude Code the Homie mod holds a generating tool (an `estimate_only` call is free).
+  Their speech and sound-effect tools spend the same credits: tell the person the cost first, and the
+  Homie mod (Claude Code) and Homie's hooks (Codex) hold a generating tool (an `estimate_only` call is free).
 
 Prefer the CLI to a raw API call or a pasted key; never call ElevenLabs' API with `curl` for a song
 (the same request twice is twice the bill, and nothing records it).

@@ -98,7 +98,7 @@ on fal's own page (no key): in Claude Code `claude mcp add --transport http --sc
 https://mcp.fal.ai/mcp-relay`, then `/mcp`; in Codex `codex mcp add fal --url
 https://mcp.fal.ai/mcp-relay`, then `codex mcp login fal`. **Paid calls go through `video.mjs gen`,
 never the MCP's `run_model` or `submit_job`**: `gen` prices, caps, receipts and resumes; the MCP call
-does none of that (in Claude Code the Homie mod holds one, as a call whose cost cannot be read first).
+does none of that (the Homie mod in Claude Code, and Homie's hooks in Codex, hold one as a call whose cost cannot be read first).
 
 **The budget, before the first call.** Plan the shots, price one of each kind, add them up, and
 ask the person for a cap in dollars:

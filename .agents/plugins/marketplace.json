@@ -3111,6 +3111,21 @@
       "icon": "./plugins/summer521521/MATLAB_Simulink_plugin/assets/icon.svg"
     },
     {
+      "name": "mnemoverse",
+      "displayName": "Mnemoverse Memory",
+      "source": {
+        "source": "local",
+        "path": "./plugins/mnemoverse/claude-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Hosted AI agent memory that learns from outcomes, over remote MCP with OAuth sign-in: tell it a recalled memory helped or misled and it re-ranks what comes back next, with shared rooms for multi-agent work.",
+      "icon": "./plugins/mnemoverse/claude-plugin/assets/logo-400.png"
+    },
+    {
       "name": "mobazha",
       "displayName": "Mobazha",
       "source": {

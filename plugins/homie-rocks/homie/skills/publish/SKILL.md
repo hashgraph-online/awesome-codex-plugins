@@ -35,9 +35,10 @@ A studio's site runs on the studio's own Cloudflare account; homie.rocks only li
    - **The studio's own Worker, database, storage and secrets change only through `npm run
      deploy` and `homie-studio`**, which record what they create in `studio.json` and never
      touch what they did not create. Never create, change or delete them with Cloudflare's
-     MCP (its `execute`, a bindings or connector tool) or a bare `wrangler` command. In Claude
-     Code the Homie mod holds such a change inside a studio (a delete, a secret, a hand
-     rollout, a write to the live database) until the person says Proceed.
+     MCP (its `execute`, a bindings or connector tool) or a bare `wrangler` command. The Homie
+     mod (Claude Code) and Homie's hooks (Codex) hold such a change inside a studio (a
+     delete, a secret, a hand rollout, a write to the live database) until the person says
+     Proceed.
 
 ## Deploy
 
@@ -58,7 +59,9 @@ then rename it in `studio.json` and `wrangler.jsonc` (an older studio's is
 `site/wrangler.jsonc`). Never
 delete, rename or redeploy anything the studio did not create. When it answers with a
 `needs` step (a new account verifies its email address; an account with no workers.dev
-address picks one), say that step to the person and wait.
+address picks one), say that step to the person and wait. The deploy itself is held for the
+person's Proceed, with where it goes and what changed since the last one: by the Homie mod in
+Claude Code, and by Homie's hooks in Codex (`studio-setup` says how a hold is answered there).
 
 Storage for songs and videos (`npx --no-install homie-studio storage add`, an R2 bucket) is
 separate and optional: Cloudflare asks for a payment method before R2 works, so only

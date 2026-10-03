@@ -10,11 +10,16 @@ on the free plan.
   creator tools only. Nothing in this folder runs a command on install.
 - **The Homie mod** (`hooks/`, `mod/`): a Claude Code mod (Claude Code 2.1.287 or later, the CLI and
   the desktop app's Code tab). Below: what it adds, and everything it does.
+- **Homie's hooks for Codex** (`hooks/codex.json`, `hooks/codex.mjs`): the mod's holds, refusals and
+  secret redaction as Codex lifecycle hooks, decided by the same module (`hooks/lib/holds.mjs`). See
+  "Homie's holds in Codex" below for what Codex can and cannot do.
 - **The providers' own tools** (`providers.json`): see below.
 - **Manifests:** `.claude-plugin/plugin.json` (Claude Code), `.codex-plugin/plugin.json`
   (Codex), and `plugin.json` (the agent-plugins standard). They say the same thing, and
-  `test/manifests.test.mjs` checks that they do. Codex reads the skills and the MCP server and
-  ignores the mod.
+  `test/manifests.test.mjs` checks that they do. Codex reads the skills, the MCP server and Homie's
+  hooks from `.codex-plugin/plugin.json`, and ignores the mod. `plugin.json` declares no `$schema`:
+  Codex (0.156.1 to 0.160.0, tested) reads a root `plugin.json` only when it declares the Agent
+  Plugins schema, and then runs none of the plugin's hooks.
 
 Install it, and read what a studio is and what it costs, in the
 [repository's README](https://github.com/homie-rocks/homie#readme). Report a vulnerability
@@ -143,7 +148,9 @@ Inside a studio (a folder with `studio.json` at or above where Claude Code runs)
     this computer (`/api/tags`) does not have it yet. Other models and Ollama's other commands are not
     held.
   Cancel, a dismissed question, and a run with nobody to ask (`claude -p`) all refuse the call,
-  with a reason Claude can act on. The guards hold even in bypass-permissions mode.
+  with a reason Claude can act on. The guards hold even in bypass-permissions mode. What each guard
+  holds or refuses, and its words, are decided in `hooks/lib/holds.mjs`, which Homie's hooks for Codex
+  share (see "Homie's holds in Codex").
 - **Refused outright** (nobody is asked; the reason says what to do instead):
   - an Edit, Write or MultiEdit to `games/<id>/codex/decisions.json` that changes the value or the
     state of a decision the person locked, or leaves the file unreadable while one is locked: a
@@ -309,5 +316,84 @@ the keys you press. It needs Node 22 and Google Chrome (or `CHROME_PATH`), and n
 Tested with Claude Code 2.1.287: `claude plugin test plugins/homie` (the mod's tests, every hook,
 command and drawing on the terminal and the desktop surface) and
 `node --test plugins/homie/test/mod-lib.test.mjs`.
+
+## Homie's holds in Codex
+
+Codex has no mods, but it runs a plugin's lifecycle hooks. `hooks/codex.json` runs `hooks/codex.mjs` on
+three of them, and every decision comes from `hooks/lib/holds.mjs`, the module the mod asks too, so the
+two apps hold the same calls with the same words:
+
+- **PreToolUse** (shell commands, `apply_patch` edits and MCP tools): holds and refusals.
+- **UserPromptSubmit**: the person's own answer to a hold.
+- **PostToolUse**: secrets out of what the model reads, and the commit a deploy shipped.
+
+**Turning them on.** Codex runs a plugin's hooks only after the person trusts them: after installing Homie,
+open `/hooks` and trust Homie's three. Until then Codex skips them without a word, and so does `codex exec`.
+They need Node 22 (`node` on the path of a login shell), which a studio needs anyway.
+
+**How a hold is answered.** A Codex hook can refuse a call or let it through, but it cannot ask the
+person: Codex refuses `permissionDecision: "ask"` as unsupported, and then runs the call. So a held call is
+refused with a short code, and the person sees in Codex what it holds (the same lines as the mod's Hold
+pane). Then:
+
+1. They answer in their own message: `proceed H7K2` lets exactly that call through once, in that session,
+   within an hour; `cancel H7K2` refuses it. A bare `proceed` or `cancel` answers the one hold waiting, when
+   only one is.
+2. Only a message the person sends reaches the prompt hook, so the model cannot answer for them.
+3. After a `proceed`, Codex runs the same call again.
+4. In `codex exec`, where nobody can answer mid-run, a hold refuses. `codex exec resume <session>
+   "proceed H7K2"` answers it.
+
+Codex's own approval prompts, sandbox and rules still apply on top.
+
+| | Claude Code (the mod) | Codex (Homie's hooks) |
+| --- | --- | --- |
+| An edit to a file `studio.json` `"protect"` lists | Held, with its diff (Edit, Write, MultiEdit, NotebookEdit) | Held, with its diff (`apply_patch`, also through the shell); every protected file in one patch is named |
+| A change to a locked art decision | Refused | Refused (a patch that deletes `decisions.json` too) |
+| A production deploy | Held: where, what it creates, commits and files since the last deploy, uncommitted files, new games, the last checks, licences, who is playing | Held, with the same facts. Commits are counted since the last deploy made through Codex, or since `.studio/local.json`'s deploy time. New games and players come from the live site, read by the hook |
+| An unlicensed asset in a public game's deploy | Refused | Refused |
+| A Cloudflare change outside the deploy (Wrangler, Cloudflare's MCP servers) | Held, naming the studio's own Worker, database or bucket | Held, the same |
+| A paid call (fal, ElevenLabs, Tripo; the skills, the providers' CLIs, MCP servers and APIs) | Held past a budget or when it cannot be priced first; a toast with the price when inside | Held the same; inside the budget, a line with the price for the person |
+| A Clef model download (Ollama) | Held, with its size | Held, with its size |
+| A file over 5 MB under `games/` into git | Refused | Refused |
+| A Stripe MCP write that would hand back a webhook's signing secret | Refused | Refused |
+| Secrets in a tool's result | Taken out before Claude reads it. The transcript keeps the redacted copy. A one-time owner link goes to the Studio pane | Taken out before the model reads it. Codex's own screen and its session file keep the raw output, and a one-time owner link stays there for the person |
+| Asking | Claude Code's question dialog (Proceed / Cancel) and the Hold pane | The person's own `proceed <code>` / `cancel <code>` |
+| Nobody to ask (`claude -p`, `codex exec`) | Refused | Refused, and `codex exec resume` can answer it |
+| Settings | `/config`: `guardFiles`, `guardDeploys`, `guardSpend`, `redactSecrets` | The same names as environment variables set to `off`: `HOMIE_GUARD_FILES`, `HOMIE_GUARD_DEPLOYS`, `HOMIE_GUARD_SPEND`, `HOMIE_REDACT_SECRETS` |
+| When a check itself fails | The call is refused | The call is refused. Codex runs it anyway if the hook cannot start at all (no `node`) or takes longer than its timeout (90 s for a hold, which can wait on a skill's own `--dry-run` price) |
+
+**Not in Codex:**
+
+- The band, the panes, the instant commands, the arcade and the drawn results (Codex has no mods).
+- A question dialog: Codex has no ask from a hook.
+- Redaction of what the person's own screen and Codex's session file keep.
+- Hosted tools such as web search, which no hook sees.
+
+**Where the holds are a net, not a lock.** Hooks are a net, as the mod is:
+
+- They read shell text, so `$(...)`, `bash -c "..."` and scripts are not seen (the same as in Claude Code).
+- A shell command that writes a protected file is not held.
+- A hold's answer lives in the plugin's data folder (`PLUGIN_DATA`). Codex's sandbox keeps the model out of
+  that folder, but under full access a model could forge an answer there.
+
+For a hard block, use Codex's own rules (`prefix_rule(..., decision="forbidden")` in the `rules/` folder of
+Codex's home, `$CODEX_HOME`); a plugin cannot ship those.
+
+`node <this plugin>/hooks/codex.mjs check -- <command>` says what Homie would do with a command, and runs
+nothing.
+
+Tested with Codex 0.156.1 and 0.160.0, each in a throwaway `CODEX_HOME` with a stand-in model and no
+sign-in:
+
+- An `apply_patch` to a protected file was held, then let through by `proceed`.
+- A fal call past a job's cap was held at the skill's own price, then let through by `proceed`.
+- `wrangler d1 delete` of the studio's database was held, then refused by `cancel`. It never ran.
+- `npm run deploy` was held, then let through by `proceed`.
+- A fal key was taken out of a command's output.
+
+`test/codex-hooks.test.mjs` runs the hook script on a real studio folder with the JSON Codex sends, and
+checks every answer against the fields Codex accepts. Codex refuses an answer with a field it does not
+know, and then runs the call.
 
 Apache-2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).

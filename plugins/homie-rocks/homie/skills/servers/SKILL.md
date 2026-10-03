@@ -61,8 +61,8 @@ signed in). Pick one that is not marked Workers Paid; the doctor's Workers AI ro
 later) has `clef-flash` (free, nothing sent to Cloudflare; `dev --no-local-ai` turns it off), else from the script;
 `dev --remote-ai` uses the real Workers AI (billed). The doctor's "Clef on this computer" row says what is there.
 **Ask first.** Nothing downloads a model by itself: before `ollama pull clef-flash`, tell the person it downloads about
-11 GB (`clef`, the 27B, about 18 GB) and wait for their yes. Never pull it to make a test pass; the Homie mod holds the
-pull until they say Proceed.
+11 GB (`clef`, the 27B, about 18 GB) and wait for their yes. Never pull it to make a test pass; the Homie mod (Claude Code) and
+Homie's hooks (Codex) hold the pull until they say Proceed.
 **Adopting guides in an existing RPG** (zones, quests, a party): `node_modules/@homie-rocks/studio/agents/GUIDES.md`
 is the short path, in the game's own repository and with its owner's say.
 

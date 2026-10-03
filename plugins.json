@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-10-03",
-  "total": 259,
+  "total": 260,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -2108,6 +2108,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/summer521521/MATLAB_Simulink_plugin/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Mnemoverse Memory",
+      "url": "https://github.com/mnemoverse/claude-plugin",
+      "owner": "mnemoverse",
+      "repo": "claude-plugin",
+      "description": "Hosted AI agent memory that learns from outcomes, over remote MCP with OAuth sign-in: tell it a recalled memory helped or misled and it re-ranks what comes back next, with shared rooms for multi-agent work.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/mnemoverse/claude-plugin/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Mobazha",

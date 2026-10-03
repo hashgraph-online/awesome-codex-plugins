@@ -54,7 +54,7 @@ only when they say the shop goes live, and then read access is enough for everyt
   command line, a commit or a log. The shop's key goes in only through `homie-studio shop connect` (a page on the
   owner's own computer).
 - **Never make a webhook endpoint or an event destination through Stripe's MCP**: Stripe answers its signing secret
-  in that call, and it would land in the conversation (in Claude Code the Homie mod refuses the call). The connect
+  in that call, and it would land in the conversation (the Homie mod in Claude Code and Homie's hooks in Codex refuse the call). The connect
   page makes the webhook with the shop's key, and the secret goes straight to the Worker. Never make or reveal an API
   key through any tool either: keys are made by the owner in Stripe's Dashboard.
 - Never touch a Stripe account with the Stripe CLI's own login, an `sk_`/`rk_` key in the environment, or any other
