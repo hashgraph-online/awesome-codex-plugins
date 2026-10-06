@@ -218,7 +218,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [Emulo](https://github.com/ohad6k/emulo) - Mines selected evidence from local coding-agent sessions into private work, design, and writing profiles for Codex, Claude Code, and GitHub Copilot.
 - [Env Lint](./plugins/mturac/env-lint) - `.env` vs `.env.example` key parity — never prints values.
 - [Epic Harness](https://github.com/epicsagas/epic-harness) - Auto-trigger quality skills + self-evolving agent harness — orbit (spec-to-ship), evolve (skill mutation), team (multi-agent), TDD, check, ship, simplify, debug, perf, secure.
-- [Espresso](https://github.com/mirkobozzetto/espresso) - Full token-saving stack in one plugin - output compression, global rules, RTK hook, Caveman ultra, GitNexus config. Detects existing setup, installs only what's missing. Works on Claude Code and Codex.
+- [Espresso](https://github.com/mirkobozzetto/espresso) - Concise, evidence-preserving output with bundled Ponytail, for Claude Code, Codex, Pi and OMP.
 - [falsegreen-skill](https://github.com/vinicq/falsegreen-skill) - Finds tests that stay green when the code they cover is broken, applying six ordered judgments over Python, TypeScript, JavaScript, and Robot Framework suites in Codex CLI and Claude Code.
 - [Figma Maxxing](https://github.com/thiagoxikota/figma-maxxing) - Eight Agent Skills for real Figma files, with Plugin API gotchas, a read-only preflight before any write, checks after the write and before handoff, and open comments turned into fixes with evidence.
 - [Flaky Detector](./plugins/mturac/flaky-detector) - Run a test command N times, report per-test flakiness %.

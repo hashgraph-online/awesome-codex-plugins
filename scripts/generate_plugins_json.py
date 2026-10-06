@@ -69,6 +69,9 @@ EXTRA_MIRROR_PATHS = {
     # Cohesivity's .mcp.json starts its local stdio server from
     # ./mcp/project-bootstrap.mjs, which no manifest field references.
     "cohesivity-org/cohesivity-plugin": ("mcp",),
+    # Espresso inline manifest hooks run src/hooks/*.js, which load the
+    # bundled Ponytail runtime from the top-level hooks/ directory.
+    "mirkobozzetto/espresso": ("src", "hooks"),
     # Staff Engineer Mode exposes one router skill and loads routed specialist
     # files from a top-level specialists/ directory at runtime.
     "sirmarkz/staff-engineer-mode": ("specialists",),
