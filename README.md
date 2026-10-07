@@ -358,6 +358,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [Exa Web Search](https://github.com/zlsbksdxl/codex-exa) - Search and fetch current web sources in Codex through the official Exa MCP server with browser OAuth.
 - [Fantasy Football Manager](https://github.com/krmisystems/fantasy-football-manager) - Manage ESPN fantasy drafts and season transactions with configurable approval limits and a multi-team portfolio dashboard.
 - [Feishu to Codex](https://github.com/zlsbksdxl/codex-lark) - Connect Codex to Feishu/Lark workflows for Docs, Messenger, Drive, Sheets, Base, Calendar, Tasks, Meetings, Mail, approvals, and more through the official Lark CLI.
+- [Firecrawl](https://github.com/firecrawl/firecrawl-codex-plugin) - Search, scrape, crawl, and map the web from Codex with Firecrawl CLI skills for live research and extraction.
 - [Flow Studio Power Automate](https://github.com/ninihen1/power-automate-mcp-skills) - Debug, build, and operate Power Automate flows via FlowStudio MCP with action-level inputs and outputs.
 - [FXMacroData](https://github.com/fxmacrodata/claude-plugin-fxmacrodata) - Official-source macro releases, central-bank rates, release calendars and FX rates for 22 currencies through the hosted FXMacroData MCP server.
 - [GH Project](https://github.com/zfifteen/gh-project-plugin) - Create GitHub repositories from Codex with inferred defaults, native menus, explicit confirmation, and deterministic local cloning.
