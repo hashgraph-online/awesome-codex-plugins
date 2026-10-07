@@ -1,11 +1,11 @@
 {
   "name": "espresso-agent-tools",
-  "version": "2.1.0",
+  "version": "2.3.0",
   "description": "Concise, evidence-preserving coding workflows for Claude Code, Codex, OMP and Pi.",
   "license": "MIT",
   "repository": {"type": "git", "url": "git+https://github.com/mirkobozzetto/espresso.git"},
   "keywords": ["pi-package", "claude-code-plugin", "codex", "omp"],
-  "files": ["src", "skills", ".claude-plugin", ".codex-plugin", "INSTALL.md"],
+  "files": ["src", "skills", "hooks", "pi-extension", "PONYTAIL-LICENSE", "ponytail-upstream.json", ".claude-plugin", ".codex-plugin", "INSTALL.md"],
   "pi": {"extensions": ["./src/extension.ts"], "skills": ["./skills"]},
   "scripts": {"install-adapter": "node src/hooks/install.js"}
 }
