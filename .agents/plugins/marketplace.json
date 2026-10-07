@@ -1022,7 +1022,8 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Development & Workflow",
-      "description": "Concise, evidence-preserving output with bundled Ponytail, for Claude Code, Codex, Pi and OMP."
+      "description": "Concise, evidence-preserving output with bundled Ponytail, for Claude Code, Codex, Pi and OMP.",
+      "icon": "./plugins/mirkobozzetto/espresso/assets/icon.svg"
     },
     {
       "name": "falsegreen-skill",

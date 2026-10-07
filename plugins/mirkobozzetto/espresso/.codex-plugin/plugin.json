@@ -16,6 +16,16 @@
     "codex",
     "claude-code"
   ],
+  "interface": {
+    "displayName": "Espresso",
+    "shortDescription": "Concise, evidence-preserving output with bundled Ponytail.",
+    "developerName": "Mirko Bozzetto",
+    "category": "Productivity",
+    "websiteURL": "https://github.com/mirkobozzetto/espresso",
+    "brandColor": "#1f6548",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg"
+  },
   "skills": "./skills",
   "hooks": {
     "hooks": {
