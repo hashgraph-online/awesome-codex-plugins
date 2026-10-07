@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Espresso">
+  <rect width="512" height="512" rx="112" fill="#1f6548"/>
+  <path d="M196 120c-14 22 14 36 0 58M256 104c-16 26 16 42 0 70M316 120c-14 22 14 36 0 58" fill="none" stroke="#f5f1e8" stroke-width="16" stroke-linecap="round"/>
+  <path d="M136 220h240v56c0 66-54 120-120 120s-120-54-120-120z" fill="#f5f1e8"/>
+  <path d="M376 244h20c26 0 46 20 46 44s-20 44-46 44h-30" fill="none" stroke="#f5f1e8" stroke-width="22" stroke-linecap="round"/>
+  <rect x="112" y="408" width="288" height="22" rx="11" fill="#f5f1e8"/>
+</svg>
