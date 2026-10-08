@@ -16,7 +16,7 @@ when-to-use: "user wants to explore ideas, compare approaches, or decide what to
 ```
 
 ```
-!`git log --oneline -5 2>/dev/null || echo "NO_GIT"`
+!`git log --oneline -5 2>/dev/null || echo "NO_COMMITS"`
 ```
 
 ---

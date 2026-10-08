@@ -1,0 +1,40 @@
+{
+  "name": "liendeadline",
+  "version": "1.4.3",
+  "description": "Supplier notice and mechanics lien deadline baselines for Florida and Kansas private projects, plus statute-cited guides for all 50 states and DC. Other supplier calculations require review.",
+  "author": {
+    "name": "LienDeadline",
+    "url": "https://liendeadline.com"
+  },
+  "homepage": "https://liendeadline.com",
+  "repository": "https://github.com/LienDeadline/skills",
+  "license": "MIT",
+  "keywords": [
+    "mechanics-lien",
+    "preliminary-notice",
+    "notice-to-owner",
+    "construction",
+    "lien-deadlines",
+    "mcp"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json",
+  "interface": {
+    "displayName": "LienDeadline",
+    "shortDescription": "Lien and notice deadlines",
+    "longDescription": "A lien deadline playbook for US construction material suppliers. The agent asks for the facts that matter, gets each date from LienDeadline, and cites the statute behind it. Calculated deadlines cover Florida and Kansas private projects today; other cases come back as \"needs review\" with the reason, never a made-up date. Lien guides cover all 50 states and DC. Read-only, with no account or key. Not legal advice.",
+    "developerName": "LienDeadline",
+    "category": "Productivity",
+    "websiteURL": "https://liendeadline.com",
+    "supportURL": "https://liendeadline.com/contact",
+    "privacyPolicyURL": "https://liendeadline.com/privacy",
+    "termsOfServiceURL": "https://liendeadline.com/terms",
+    "defaultPrompt": [
+      "When is my Notice to Owner due on a Florida job?",
+      "Can I still file a lien for my last delivery in Kansas?"
+    ],
+    "brandColor": "#205E4E",
+    "composerIcon": "./.claude-plugin/icon.svg",
+    "logo": "./.claude-plugin/icon.svg"
+  }
+}

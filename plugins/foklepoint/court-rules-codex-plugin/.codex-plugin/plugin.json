@@ -1,0 +1,47 @@
+{
+  "name": "court-rules",
+  "version": "0.1.0",
+  "description": "U.S. court filing rules, judge standing orders, local rules and court holidays from the hosted Court Rules MCP server, plus a skill that tells the agent how to search them, cite the source and flag what to verify.",
+  "author": {
+    "name": "Court Rules",
+    "email": "api@courtrules.app",
+    "url": "https://www.courtrules.app/"
+  },
+  "homepage": "https://www.courtrules.app/",
+  "repository": "https://github.com/foklepoint/court-rules-codex-plugin",
+  "license": "MIT",
+  "keywords": [
+    "legal",
+    "court-rules",
+    "standing-orders",
+    "local-rules",
+    "court-holidays",
+    "litigation",
+    "e-filing",
+    "mcp",
+    "codex"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Court Rules",
+    "shortDescription": "U.S. court filing rules, standing orders and court holidays, with citations.",
+    "longDescription": "Court Rules gives a Codex agent read-only access to judge-level filing rules, standing orders, local rules and court holidays for U.S. federal and state courts through the hosted Court Rules MCP server. The bundled skill covers how to find the right court and judge, search the rules by topic, and answer with the source document cited. Sign in through Codex when it asks, or use an API key from console.courtrules.app.",
+    "developerName": "Court Rules",
+    "category": "Research",
+    "capabilities": [
+      "Read"
+    ],
+    "websiteURL": "https://www.courtrules.app/",
+    "defaultPrompt": [
+      "What are the page limits for a summary judgment brief in EDNY?",
+      "What courtesy copy rules apply to a specific judge in Cook County?",
+      "Which days is the Southern District of New York closed in 2026?"
+    ],
+    "brandColor": "#1F3A5F",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg",
+    "privacyPolicyURL": "https://www.courtrules.app/privacy",
+    "termsOfServiceURL": "https://www.courtrules.app/terms"
+  }
+}

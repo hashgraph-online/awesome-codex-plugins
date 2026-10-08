@@ -29,14 +29,14 @@ Common principle — **an undecided value is a defect; a decided one is not.**
 Every tell fires on a single measurement, never on taste, and every replacement
 is snapped to the corpus rather than invented.
 
-All measurement uses existing `hera` commands (no custom tooling):
-- Enumerate: `hera --ids scene tree` / `hera node find --type <Class>`
-- Read tokens: `hera node get <path> --props "<a>,<b>"`
+All measurement uses existing `hera-godot` commands (no custom tooling):
+- Enumerate: `hera-godot --ids scene tree` / `hera-godot node find --type <Class>`
+- Read tokens: `hera-godot node get <path> --props "<a>,<b>"`
   (**type-aware — see below**)
-- Read effective color: `hera eval "get_node('<path>').get_theme_color('font_color')"`
-- Read geometry (runtime): `hera game ui tree --fields rect,type,path`
-- Enforce (undoable): `hera node set <path> --prop "<token>" --value <v>`
-- Verify render: `hera screenshot --runtime --analyze`
+- Read effective color: `hera-godot eval "get_node('<path>').get_theme_color('font_color')"`
+- Read geometry (runtime): `hera-godot game ui tree --fields rect,type,path`
+- Enforce (undoable): `hera-godot node set <path> --prop "<token>" --value <v>`
+- Verify render: `hera-godot screenshot --runtime --analyze`
 
 Godot theme-token property paths used below:
 `theme_override_constants/separation`, `theme_override_constants/margin_left`
@@ -60,11 +60,11 @@ Godot theme-token property paths used below:
 > | `font_sizes/font_size`, `colors/font_color` | text controls — `Label`, `Button`, `LineEdit`, … |
 >
 > ```bash
-> hera node find --type VBoxContainer     # then --props ".../separation"
-> hera node find --type GridContainer     # then --props ".../h_separation,.../v_separation"
+> hera-godot node find --type VBoxContainer     # then --props ".../separation"
+> hera-godot node find --type GridContainer     # then --props ".../h_separation,.../v_separation"
 > ```
 >
-> A bare `hera node get <path>` (no `--props`) returns every property and is
+> A bare `hera-godot node get <path>` (no `--props`) returns every property and is
 > failure-proof, but costs ~100 properties per node — use it only to discover
 > what a class supports, never for the sweep itself.
 
@@ -96,7 +96,7 @@ Do not scale macro whitespace up; snapping is lateral, not inflation.
 self-consistent. A single off-ladder value that is a deliberate optical tweak on
 one focal element is a proposal, not an automatic fix.
 
-**check:** for each changed node, `hera node get <path> --props
+**check:** for each changed node, `hera-godot node get <path> --props
 "theme_override_constants/separation"` (and `margin_*`) returns a value present
 in the corpus spacing ladder. Predicate = *every distinct spacing token ∈
 ladder*.
@@ -132,7 +132,7 @@ swaps.
 
 **Escape:** sizes already all on the scale with a monotonic hierarchy.
 
-**check:** `hera node get <path> --props
+**check:** `hera-godot node get <path> --props
 "theme_override_font_sizes/font_size"` returns a value in the corpus type scale;
 distinct sizes remain strictly ordered by their prior hierarchy.
 
@@ -161,7 +161,7 @@ close. The trigger is *literal scatter with no single source*, never "uses
 overrides". The plugin's own dock is exactly this case: 8 colours, all named
 constants (`HERA_ICE`, `HERA_WARM_GOLD`, …), each with one role.
 
-**check:** `hera node get <path> --props "theme_override_colors/font_color"`
+**check:** `hera-godot node get <path> --props "theme_override_colors/font_color"`
 returns a value that is either the cluster representative or outside every
 near-duplicate cluster. Predicate = *no two distinct override colours are within
 0.04 per channel*.
@@ -239,10 +239,10 @@ and its background surface color, compute WCAG contrast. Fail if below the
 corpus threshold for that text's size (body 4.5:1; large ≥24px or ≥18.66px bold
 3.0:1).
 
-- Effective font color: `hera eval "get_node('<path>').get_theme_color('font_color')"`
+- Effective font color: `hera-godot eval "get_node('<path>').get_theme_color('font_color')"`
   (the override property alone can be empty while the theme still paints it).
 - Background: the nearest ancestor with a painted `StyleBox` — read via
-  `hera eval "get_node('<panel>').get_theme_stylebox('panel').bg_color"`, else
+  `hera-godot eval "get_node('<panel>').get_theme_stylebox('panel').bg_color"`, else
   the effective panel/root background.
 
 **Fix:** keep the text colour's hue and saturation and **solve** for the
@@ -261,7 +261,7 @@ text size.
 ## Finding schema (all areas)
 
 Each inspector writes `findings-<area>.md`, one entry per finding. The `check`
-is a **re-measurable predicate** (a `hera` command + comparison), never a status
+is a **re-measurable predicate** (a `hera-godot` command + comparison), never a status
 word — enforcers and re-inspectors recompute it from the live editor every time.
 
 ```

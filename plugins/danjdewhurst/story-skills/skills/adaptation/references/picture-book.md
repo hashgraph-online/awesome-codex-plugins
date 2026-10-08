@@ -8,6 +8,10 @@ publisher chooses the illustrator; an author-only manuscript goes out as
 text with sparse art notes. Self-published authors commission art and
 need the full spread briefs.
 
+[`examples/bo-and-the-missing-moon`](../../../examples/bo-and-the-missing-moon/)
+is a 14-spread picture book set up this way, with its pagination plan in
+`adaptations/picture-book/pagination.md`.
+
 ## Pagination
 
 Books are printed in signatures, so 32 pages (sometimes 24 or 40) is
@@ -27,7 +31,32 @@ separate endpapers, or with the title and copyright on one page, gain a
 page or a spread. Front-matter placement varies; confirm the plan with the printer or
 publisher. Keep the text in chapters, one per spread, numbered to match
 (`chapter-01` is spread 1), so `story wordcount` counts the text per
-spread. Art notes and briefs stay in the plan file.
+spread. Art notes and briefs stay in the plan file (see Art Notes below).
+
+## Spreads And The CLI Checks
+
+The CLI treats each spread as a chapter, so give each one what a chapter
+needs rather than ignoring the warnings:
+
+- **One scene record per spread.** Without one, `story validate` warns
+  `has no machine-readable scene records` for every spread and `story next`
+  lists `[P1] Add scene records`. Create it with
+  `story add scene 'Spread 1' --chapter chapter-01 --scene 1 --pov {pov}`
+  (add `--location` and `--character` for who and where the picture
+  shows). The record carries the spread's cast and props for continuity.
+- **`hook` is the page-turn beat.** Set each spread's chapter `hook` to
+  what its turn does (`question`, `reversal`, `revelation`, `cliffhanger`,
+  `decision`, `emotional`; `resolution` for the last spread). This clears
+  `story pacing`'s `has no hook` warnings and records the beat the
+  pagination plan names.
+- **Sequel runs do not apply.** With a scene record per spread, `story
+  pacing` warns `scene units in a row with no sequel`. Picture books run on
+  page turns, not scene and sequel, so leave that warning as it is and do
+  not add `sequel: true` to spreads to silence it.
+- **No spread 15.** Until `story.md` is `revising` or `complete`, `story
+  next` keeps suggesting `Draft chapter 15`. Once all 14 spreads are
+  drafted, set `status: revising` in `story.md`; the suggestion stops and
+  `story next` moves on to revision passes.
 
 ## Page-Turn Beats
 
@@ -53,7 +82,8 @@ reveals:
   emotion. Two spreads in a row with the same scene and pose is a
   problem.
 - Read aloud: rhythm, repetition, and refrains matter because adults read
-  these books to children. Rhyme only if every line scans perfectly.
+  these books to children. Rhyme only if every line scans perfectly;
+  write and scan rhyming text with the `verse-craft` skill.
 - The child character solves the problem; adults do not rescue them.
 
 ## Pagination Plan Template
@@ -94,25 +124,38 @@ One per spread, under `## Spread Briefs`:
 - **Text placement:** where the words sit (clear space left or right,
   top or bottom)
 - **Continuity:** clothing, props, and colors that must match other spreads
+- **Art note:** only if the text misleads without the picture (see Art Notes)
 ```
 
 ## Art Notes
 
-For a manuscript sent without art, add art notes only where the text is
-misleading or incomplete without the picture:
+An art note tells an illustrator (or an editor reading a manuscript sent
+without art) something the text is misleading or incomplete without. Keep
+art notes in the pagination plan, never in chapter prose: text in a
+chapter is counted as words and ships in the narration script, EPUB, and
+print interior. Add an **Art note** line to the spread's brief:
 
-```text
-[Art note: Pip is not a bird. Pip is a pig.]
+```markdown
+- **Art note:** Pip is not a bird. Pip is a pig.
 ```
+
+When the manuscript goes out without art, copy each note into the
+submission copy you build (for example `dist/`, which is disposable) in
+the conventional form `[Art note: Pip is not a bird. Pip is a pig.]`,
+after the spread's text.
 
 Keep them short and rare. A manuscript full of art notes tells the
 publisher the author wants to direct the illustrator.
 
 ## Checks
 
-- [ ] Total words inside the form's range (`story validate` warns when
-      `target-words` is outside it; `story wordcount . --write` for the
-      actual count)
+- [ ] Total words inside the form's range (1-1,000 for `picture-book`).
+      Run `story wordcount . --write` and check the total yourself: while
+      drafting, `story validate` checks only that `target-words` is inside
+      the range, and it warns about the actual manuscript length only once
+      `story.md` has `status: complete`
+- [ ] Each spread has a scene record and a `hook`, and no art notes sit in
+      chapter prose
 - [ ] 14 spreads (or the printer's plan), each with a text and a picture
       moment
 - [ ] Every page turn earns the turn

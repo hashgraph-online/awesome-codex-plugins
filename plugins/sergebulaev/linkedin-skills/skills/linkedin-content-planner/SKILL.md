@@ -19,7 +19,7 @@ Produce a 7-day LinkedIn plan built around the 3-pillar discipline (Authority 40
 - **Audience description:** e.g., "B2B founders, AI ops leaders, marketing VPs"
 - **Pillar mix** (optional): defaults to 40% Authority / 30% Narrative / 20% Community / 10% Product
 - **Posting days** (optional): defaults to Tue/Wed/Thu/Fri (4 posts)
-- **Voice samples** (optional): paths to past posts for voice calibration
+- **Voice samples** (optional): only if `../../references/voice-profile.md` is not filled yet
 
 ## Output
 
@@ -99,13 +99,17 @@ Every formula earns a primary reaction: comments, reposts, likes, or saves (see 
 
 ## Steps
 
+**Story bank first.** If `../../references/story-bank.md` has `filled: yes`, load it before planning anything. The week's angles come from material that already exists: a dated turning point, a number with a named referent, a position the user holds and pays for. Planning a week against an empty bank is how a calendar fills with themes no draft can execute, so if the bank is not filled, say once that `linkedin-interviewer` fills it in 20 to 40 minutes, then plan from the theme the user gave.
+
+**Voice profile.** If `../../references/voice-profile.md` has `filled: yes`, load it and respect the CTA and link style it records when picking CTA types. If it is not filled, mention once that `linkedin-humanizer --mode profile` can learn it from a few posts, then use the generic voice rules.
+
 1. Gather inputs. Ask user for theme, audience, pillar preferences if not provided.
 2. Validate pillar mix sums to 100%; warn if any pillar >60%.
 3. For each posting day, pick:
    - Pillar (rotate to match mix)
    - Formula from that pillar's bank (don't repeat within 7 days)
    - Format (alternating text / carousel / poll per pillar rules)
-   - Specific angle (user provides or skill generates)
+   - Specific angle, taken from the Story Bank where it has material that fits (name the bank section in the plan so the draft knows what to open), otherwise from the user, otherwise generated. Never put a figure in an angle that is not in the bank or supplied by the user.
    - Posting time (audience-timezone aware)
 4. For each posting day, add 3-5 comment targets with suggested pattern.
 5. Run inbound-readiness check; flag anything missing.
@@ -121,9 +125,12 @@ See `references/example-plan-week.md` for a filled-in 7-day plan.
 - `references/example-plan-week.md` — worked example
 - `references/pillars-framework.md` — the 3-pillar discipline explained
 - `../../references/founder-topics.md` — founders-edition angle library (A1-A10) and founder pillar set
+- `../../references/story-bank.md` — the material the week's angles are drawn from
+- `../../references/voice-profile.md` — voice fingerprint and CTA style
 
 ## Related skills
 
+- `linkedin-interviewer` — fills the Story Bank the plan draws its angles from
 - `linkedin-post-writer` — generate each day's draft from the plan
 - `linkedin-comment-drafter` — execute the daily comment targets
 - `linkedin-thread-monitor` — track inbound from the comment strategy

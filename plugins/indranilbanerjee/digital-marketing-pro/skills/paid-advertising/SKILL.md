@@ -1,9 +1,31 @@
 ---
 name: paid-advertising
-description: "Plan, structure, and audit paid media campaigns across Google, Meta, LinkedIn, TikTok, Microsoft, programmatic, retail media, native, and audio — campaign hierarchy, audience architecture, bid strategy, budget allocation and pacing, creative strategy, and current platform API changes (Google Ads v24/v25, Meta v25). Produces campaign plans, platform audit scorecards, budget models, creative briefs, and optimization playbooks. Triggers on \"/digital-marketing-pro:paid-advertising\", \"plan a Google Ads campaign\", \"audit our Meta account\", \"which bid strategy should we use\", \"allocate our paid media budget\". Reads the brand profile, guidelines, and campaign history via campaign-tracker.py; plans and recommends only — launching is handled by /digital-marketing-pro:launch-campaign."
+description: "Plan, structure, and audit paid media campaigns across Google, Meta, LinkedIn, TikTok, Microsoft, ChatGPT, programmatic, retail media, native, and audio — campaign hierarchy, audience architecture, bid strategy, budget allocation and pacing, creative strategy, and current platform API changes (Google Ads v24/v25, Meta v25). Produces campaign plans, platform audit scorecards, budget models, creative briefs, and optimization playbooks. Triggers on \"/digital-marketing-pro:paid-advertising\", \"plan a Google Ads campaign\", \"audit our Meta account\", \"which bid strategy should we use\", \"allocate our paid media budget\". Reads the brand profile, guidelines, and campaign history via campaign-tracker.py; plans and recommends only — launching is handled by /digital-marketing-pro:launch-campaign."
 ---
 
 # Paid Advertising
+
+## Since August 2026 (verified 2026-10-04)
+
+- **Google AI Max auto-upgrade:** Search campaigns using automatically created assets or campaign-level broad match **auto-upgrade to AI Max starting September 2026**; the Dynamic Search Ads (DSA) sunset and its auto-upgrade moved to **February 2027**. Audit every account for campaigns already flipped, and run the `ADOPT_AI_MAX` experiment on the rest before Google does it for you. Source: [blog.google](https://blog.google/products/ads-commerce/dsa-upgrade-to-ai-max-2026/).
+- **Google Ads Limited Ad Serving** now covers every surface (Search, YouTube, Gmail, Play, Discover), rolling out gradually through 2028 — new advertisers can see throttled delivery while trust builds. Source: [Ads policy](https://support.google.com/adspolicy/answer/17344822) (posted 5 Aug 2026).
+- **LinkedIn Marketing API:** `202608` made the Matched Audiences API generally available (cap: 1,000 DMP segments per account), added account-level dynamic UTMs and MQL/SQL conversion types, and **sunset legacy geo on 31 Aug 2026**; `202609` added hashed first/last names in the Conversions API and a 180-day attribution window. Versions `202510` and `202511` sunset on 15 Oct and 16 Nov 2026 — move integrations to `202609`. Source: [recent changes](https://learn.microsoft.com/en-us/linkedin/marketing/integrations/recent-changes).
+- **Amazon Ads (unBoxed, 30 Sep 2026):** an "Amazon Ads Agent" unifying DSP and the Ads Console, Full-Funnel Campaigns, Sponsored Services, and an **Amazon Ads MCP Server (Lite)** — a connector candidate for retail-media workflows. Source: [Amazon Ads news](https://advertising.amazon.com/library/news/unboxed-2026-news-announcements).
+- **ChatGPT Ads — the developer surface is primary-documented (checked 2026-10-04):** [developers.openai.com/ads](https://developers.openai.com/ads) documents:
+  - an Advertiser API and a Bulk API
+  - a **Measurement Pixel** and a server-side **Conversions API**, deduplicated on pixel `event_id` = API `id`
+  - **Custom Audiences** from customer lists only, unavailable in the EEA and Switzerland
+  - **Product Feeds** plus a **Delta Feeds API** for price, availability, and title changes
+  - a **Reporting API**, with a 30-day click / 1-day view default
+  - Hotel Feeds (limited beta)
+
+  The launch dates, the audience (Free/Go users), the country rollout (31 European markets on 18 Aug, Southeast Asia + Taiwan on 23 Sep) and "Sponsored Agents" remain **secondary-sourced**: label them "reported, unverified" and confirm availability in the brand's Ads Manager before planning spend. Do not quote CPMs or auction mechanics. Planning, tracking, reporting and feed detail: [`ads-in-ai-answers.md`](ads-in-ai-answers.md).
+- **Google AI Mode ads (checked 2026-10-04):** there is no separate campaign type. Google says advertisers reach the new AI Mode formats ("Conversational Discovery ads", "Highlighted Answers") by building on **AI Max for Search, AI Max for Shopping, and Performance Max**.
+  - **Direct Offers** (a pilot since January 2026) is expanding to promotion bundling, native checkout for UCP merchants, and travel deals.
+  - **Business Agent for leads** (chat inside the ad instead of a form) is due "in the coming months".
+  - The post gives no AI-Mode-specific measurement, so report at the AI Max / PMax campaign level and don't promise an AI-Mode-only KPI.
+
+  Source: [blog.google](https://blog.google/products/ads-commerce/google-marketing-live-search-ads/) (20 May 2026). Detail: [`ads-in-ai-answers.md`](ads-in-ai-answers.md).
 
 ## Recent platform API changes (as of July 2026)
 
@@ -36,6 +58,7 @@ Activate this skill when the user's request involves any of the following:
 - Running Microsoft Advertising (Bing Ads) campaigns, including Google Ads import and Microsoft Audience Network placements
 - Planning native advertising campaigns on content discovery networks (Taboola, Outbrain, Nativo)
 - Buying audio or podcast advertising across streaming platforms (Spotify, Pandora/SiriusXM, iHeartRadio) or programmatic audio
+- Ads inside AI answers: ChatGPT Ads (planning, Pixel + Conversions API tracking, reporting, product/delta feeds) or reaching Google AI Mode through AI Max and Performance Max
 - Any question about paid media strategy, creative strategy for ads, or paid channel mix decisions
 
 ## Brand Context (Auto-Applied)
@@ -149,6 +172,7 @@ Before executing, gather the following from the user (ask if not provided):
 - `media-planning.md` -- Media planning fundamentals: reach, frequency, GRP/TRP metrics, cross-channel budget allocation, and scheduling strategies
 - `native-advertising.md` -- Native ad network landscape (Taboola, Outbrain, Nativo, and more), content discovery campaigns, and in-feed creative best practices
 - `audio-programmatic.md` -- Digital audio advertising across streaming platforms (Spotify, Pandora/SiriusXM, iHeartRadio) and podcasts, ad models, and buying paths
+- `ads-in-ai-answers.md` -- ChatGPT Ads (Advertiser/Bulk APIs, Pixel + Conversions API dedup, Custom Audiences, Product + Delta Feeds, Reporting API windows) and Google AI Mode ads via AI Max / Performance Max, with primary vs secondary sourcing marked (checked 2026-10-04)
 
 ## Output Formats
 

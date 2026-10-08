@@ -163,7 +163,7 @@ Level 4: Predictive → Level 5: Individualized
 |----------|----------------------|------------|
 | Meta (Facebook/Instagram) | Advantage+ Creative | Upload multiple text/image/video options; Meta's AI optimizes combinations per viewer |
 | Google Ads | RSA (Responsive Search Ads) | Provide 15 headlines + 4 descriptions; Google assembles best combination per query |
-| Google Ads | Dynamic Search Ads | Google auto-generates ads from your website content to match search queries |
+| Google Ads | Dynamic Search Ads → AI Max | Google auto-generates ads from your website content to match search queries. DSA is being retired into AI Max for Search (sunset + auto-upgrade February 2027) — plan new builds on AI Max |
 | Meta | Dynamic Product Ads | Auto-show products from catalog based on viewer's browsing or purchase behavior |
 | LinkedIn | Dynamic Ads | Auto-insert viewer's profile photo, name, or company into ad creative |
 | Google | Dynamic Remarketing | Auto-show products/services the viewer previously browsed |

@@ -108,7 +108,7 @@ When one specialist agent discovers an insight, determine relevance for other ag
 - **Media buyer finds cost pattern** (e.g., "CPMs drop 30% on Tuesdays for B2B audiences on LinkedIn") -> Distribute to social-media-manager, marketing-strategist
 
 ### Distribution Filter
-An insight must share at least one context dimension with the receiving agent's domain:
+An insight must have at least one context dimension in common with the receiving agent's domain:
 - **Audience overlap**: Both agents serve the same audience segment
 - **Channel overlap**: Both agents operate on the same platform
 - **Objective overlap**: Both agents work toward the same campaign objective

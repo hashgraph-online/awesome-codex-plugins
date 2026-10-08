@@ -27,6 +27,7 @@ import {
   discoverCodexCdp,
   evaluateGoalProgressPageBundle,
   type FetchLike,
+  GoalProgressPageError,
   installGoalProgressPageBundle,
   installGoalProgressVisibleThreadWatcher,
   invokeGoalProgressPageApi,
@@ -95,6 +96,11 @@ export interface ConnectedGoalProgressRendererBridge {
 }
 
 export interface GoalProgressRendererBridgeDoctor {
+  readonly displayState?: "rendered" | "pending" | "not-needed" | "unrecognized";
+  readonly displayRequired?: boolean | null;
+  readonly receivedViewModelRevision?: number | null;
+  readonly pageReason?: string | null;
+  readonly retryExhausted?: boolean;
   readonly appPath: string | null;
   readonly appSignatureValid: boolean | null;
   readonly cdpPort: number | null;
@@ -117,13 +123,58 @@ export interface GoalProgressRendererBridgeDoctor {
   readonly lastErrorCode: string | null;
 }
 
-const GoalProgressPageMutationResultSchema = z
+export const GoalProgressPageMutationResultSchema = z
   .object({
     action: z.enum(["mounted", "updated", "unmounted", "none"]),
-    reason: z.string().trim().min(1).max(128),
+    reason: z.enum([
+      "ok",
+      "invalid-input",
+      "not-configured",
+      "platform-unsupported",
+      "anchor-unavailable",
+      "native-goal-changed",
+      "host-missing",
+      "host-ambiguous",
+      "host-unmanaged",
+      "visible-thread-marker-missing",
+      "visible-thread-marker-ambiguous",
+      "visible-thread-id-missing",
+      "visible-thread-mismatch",
+    ]),
     hostCount: z.number().int().nonnegative(),
+    displayMode: z.enum(["native", "fallback", "hidden"]).optional(),
+    nativeAnchorMatched: z.boolean().optional(),
+    visibleThreadStatus: z
+      .enum(["matched", "retained", "unknown", "mismatch"])
+      .nullable()
+      .optional(),
+    componentVisible: z.boolean().optional(),
   })
-  .passthrough();
+  .passthrough()
+  .refine((result) => {
+    const displaying = result.action === "mounted" || result.action === "updated";
+    return (
+      (displaying
+        ? result.reason === "ok" && result.hostCount === 1
+        : result.reason !== "ok" || result.hostCount === 0) &&
+      (result.reason !== "host-ambiguous" || result.hostCount > 1) &&
+      (result.reason !== "host-unmanaged" || result.hostCount === 1) &&
+      (result.reason !== "visible-thread-mismatch" ||
+        ((result.visibleThreadStatus === undefined || result.visibleThreadStatus === "mismatch") &&
+          (result.displayMode === undefined || result.displayMode === "hidden"))) &&
+      (!result.nativeAnchorMatched || result.displayMode === "native") &&
+      (!displaying ||
+        (result.displayMode !== "hidden" &&
+          result.visibleThreadStatus !== "unknown" &&
+          result.visibleThreadStatus !== "mismatch" &&
+          result.visibleThreadStatus !== null)) &&
+      (!result.componentVisible ||
+        (result.reason === "ok" &&
+          result.hostCount === 1 &&
+          result.displayMode !== "hidden" &&
+          (result.visibleThreadStatus === "matched" || result.visibleThreadStatus === "retained")))
+    );
+  });
 
 export class GoalProgressRendererBridge {
   readonly #sender: CdpCommandSender & Partial<CdpEventSource>;
@@ -240,18 +291,15 @@ export class GoalProgressRendererBridge {
       this.#latestViewModel = viewModel;
       await this.#ensureInstalled();
       if (this.#configured) {
-        const result = GoalProgressPageMutationResultSchema.parse(
+        const result = this.#pageResult(
           await invokeGoalProgressPageApi(this.#sender, "update", viewModel),
         );
-        if (result.reason === "ok" && result.hostCount === 1) {
-          return;
-        }
         if (result.reason === "not-configured") {
           this.#configured = false;
           await this.#mount(viewModel);
           return;
         }
-        throw new Error("GOAL_PROGRESS_PAGE_HOST_UPDATE_FAILED");
+        return;
       }
       await this.#mount(viewModel);
     });
@@ -301,6 +349,7 @@ export class GoalProgressRendererBridge {
       const value = await invokeGoalProgressPageApi(this.#sender, "health");
       health =
         value !== null && typeof value === "object" ? (value as Record<string, unknown>) : null;
+      if (health) this.#lastErrorCode = null;
     } catch (error) {
       this.#lastErrorCode = stableBridgeErrorCode(error);
     }
@@ -333,7 +382,26 @@ export class GoalProgressRendererBridge {
         ? health.viewModelRevision
         : null;
     const latest = this.#latestViewModel;
+    const receivedViewModelRevision =
+      typeof health?.receivedViewModelRevision === "number" &&
+      Number.isSafeInteger(health.receivedViewModelRevision)
+        ? health.receivedViewModelRevision
+        : null;
+    const displayState =
+      health?.displayState === "rendered" ||
+      health?.displayState === "not-needed" ||
+      health?.displayState === "unrecognized"
+        ? health.displayState
+        : "pending";
     return {
+      displayState:
+        displayState === "rendered" && latest && receivedViewModelRevision !== latest.revision
+          ? "pending"
+          : displayState,
+      displayRequired: typeof health?.displayRequired === "boolean" ? health.displayRequired : null,
+      receivedViewModelRevision,
+      pageReason: typeof health?.pageReason === "string" ? health.pageReason : reason,
+      retryExhausted: runtime?.retryExhausted === true,
       appPath: this.#environment?.appPath ?? null,
       appSignatureValid: this.#environment?.appSignatureValid ?? null,
       cdpPort: this.#environment?.cdpPort ?? null,
@@ -356,9 +424,9 @@ export class GoalProgressRendererBridge {
       bundleSha256: this.#bundle.manifest.sha256,
       latestViewModelRevision: viewModelRevision,
       currentThreadMatched:
-        expectedThreadId === undefined || !latest || visibleThreadStatus === null
+        !latest || visibleThreadStatus === null
           ? null
-          : latest.sessionId === expectedThreadId &&
+          : (expectedThreadId === undefined || latest.sessionId === expectedThreadId) &&
             (visibleThreadStatus === "matched" || visibleThreadStatus === "retained"),
       lastErrorCode:
         this.#lastErrorCode ??
@@ -377,7 +445,7 @@ export class GoalProgressRendererBridge {
   }
 
   async #mount(viewModel: GoalProgressViewModel): Promise<void> {
-    const result = GoalProgressPageMutationResultSchema.parse(
+    const result = this.#pageResult(
       await invokeGoalProgressPageApi(this.#sender, "mount", {
         platform: this.#platform,
         appVersion: this.#appVersion,
@@ -392,10 +460,7 @@ export class GoalProgressRendererBridge {
           : {}),
       }),
     );
-    if (result.reason !== "ok" || result.hostCount !== 1) {
-      throw new Error("GOAL_PROGRESS_PAGE_HOST_MOUNT_FAILED");
-    }
-    this.#configured = true;
+    this.#configured = result.reason !== "not-configured" && result.reason !== "invalid-input";
   }
 
   async #ensureInstalled(): Promise<void> {
@@ -638,21 +703,29 @@ export class GoalProgressRendererBridge {
       "setUpdateState",
       this.#latestUpdateState,
     );
-    const parsed = GoalProgressPageMutationResultSchema.safeParse(pageResult);
-    if (!parsed.success) {
-      this.#configured = false;
-      throw new Error("GOAL_PROGRESS_PAGE_HOST_UPDATE_STATE_FAILED");
-    }
-    const result = parsed.data;
+    this.#configured = false;
+    const result = this.#pageResult(pageResult, "GOAL_PROGRESS_PAGE_HOST_UPDATE_STATE_FAILED");
     if (result.reason === "ok" && result.hostCount === 1) {
+      this.#configured = true;
       return;
     }
-    this.#configured = false;
     if (result.reason === "not-configured") {
       await this.#mount(viewModel);
       return;
     }
-    throw new Error("GOAL_PROGRESS_PAGE_HOST_UPDATE_STATE_FAILED");
+    throw new GoalProgressPageError("GOAL_PROGRESS_PAGE_HOST_UPDATE_STATE_FAILED");
+  }
+
+  #pageResult(
+    value: unknown,
+    code = "GOAL_PROGRESS_PAGE_RESULT_INVALID",
+  ): z.infer<typeof GoalProgressPageMutationResultSchema> {
+    const result = GoalProgressPageMutationResultSchema.safeParse(value);
+    if (!result.success || result.data.reason === "invalid-input") {
+      throw new GoalProgressPageError(code);
+    }
+    this.#lastErrorCode = null;
+    return result.data;
   }
 
   #enqueue<T>(work: () => Promise<T>): Promise<T> {

@@ -2,4 +2,7 @@ node_modules/
 .next/
 web/
 dist/
+# ZCode Bridge's generated marketplace mirror must include its executable MCP bundle.
+!plugins/Sandyzzx/codex-zcode-bridge/dist/
+!plugins/Sandyzzx/codex-zcode-bridge/dist/**
 .DS_Store

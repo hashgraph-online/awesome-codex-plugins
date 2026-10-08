@@ -16,7 +16,7 @@ when-to-use: "user wants to debug an error, bug, or failure -- '/hypothesis-debu
 ```
 
 ```
-!`git log --oneline -20 2>/dev/null || echo "NO_GIT"`
+!`git log --oneline -20 2>/dev/null || echo "NO_COMMITS"`
 ```
 
 ---
@@ -233,7 +233,7 @@ Present reviewed proposals to user via `AskUserQuestion`:
 - Final button: "None -- keep the diagnosis, skip the fix"
 
 If user selects a proposal:
-1. Resolve the test command by reading `skills/verification/SKILL.md` and following its Command Resolution.
+1. Resolve the test command by reading `skills/verification/SKILL.md` and following its Command Resolution, then print its `test:` and `source:` lines before step 2 -- they are the only sign the command came from the rule and not from a guess, and the `red:` and pass lines below quote that command in their `<command> -> exit <code>` form.
 2. When it resolved, follow the cycle in `skills/tdd/SKILL.md`: write a test that reproduces the root cause from Step 5a in the project's test layout, run the resolved command with the Bash tool, and print its `red:` line -- this run's exit code, the new test's name, and its first error line. When it resolved to `none`, print `skipped: test command none (<reason>)` and write no test.
 3. Apply the code changes using Edit tool.
 4. Read back modified files to verify changes.

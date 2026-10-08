@@ -1,6 +1,6 @@
 {
   "name": "agent-guard",
-  "version": "3.5.3",
+  "version": "3.5.6",
   "description": "Local-by-default, no-telemetry hooks inspect user prompts, supported tool inputs, outputs, and changed files in every enabled Claude Code or Codex session to block or mask secret leaks. Includes opt-in PII filtering and Git/CI backstops.",
   "author": {
     "name": "Agent Guard contributors",
@@ -28,7 +28,7 @@
       "Read"
     ],
     "websiteURL": "https://github.com/JeongJaeSoon/agent-guard",
-    "brandColor": "#14532D",
+    "brandColor": "#183567",
     "composerIcon": "./assets/icon.png",
     "screenshots": []
   }

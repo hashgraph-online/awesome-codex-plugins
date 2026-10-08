@@ -1,8 +1,20 @@
 # Layer 07 — Operational
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 
 Run-time concerns: incidents, retention sweeps, monitoring, vendor reviews. Universal across stacks; specific deadlines vary by jurisdiction (see active `jurisdictions/<code>/obligations/06-breach-notification.md`).
+
+## Contents
+
+- Incident response
+- Retention sweeps
+- Log retention
+- Backups
+- Vendor reviews
+- Monitoring and breach detection
+- Admin audit log review (when multi-admin)
+- Insurance
+- Documentation discipline
 
 ## Incident response
 

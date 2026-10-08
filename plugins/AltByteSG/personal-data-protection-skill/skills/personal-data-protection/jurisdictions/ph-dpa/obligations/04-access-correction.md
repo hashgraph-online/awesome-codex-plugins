@@ -1,8 +1,21 @@
 # Data Subject Rights — § 16 RA 10173 + § 34 IRR + NPC Circular 18-01 + NPC Circular 2022-04
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 
 PH grants the data subject **eight rights**: informed, access, object, rectification, erasure / blocking, damages, complaint (RA 10173 § 16), and **data portability** (NPC Circular 18-01). NPC Circular 2022-04 sets the operational rules — including the **15-day default response window**.
+
+## Contents
+
+- § 16(a) — Right to be informed
+- § 16(b) — Right to object
+- § 16(c) — Right of access
+- § 16(d) — Right to rectification
+- § 16(e) — Right to erasure or blocking
+- § 16(f) — Right to data portability (operative via NPC Circular 18-01)
+- § 16(g) — Right to damages
+- § 16(h) — Right to file a complaint
+- NPC Circular 2022-04 — Operational rules for exercising rights
+- What's at stake
 
 ## § 16(a) — Right to be informed
 

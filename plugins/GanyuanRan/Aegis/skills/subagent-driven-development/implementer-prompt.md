@@ -56,6 +56,11 @@ Task tool (general-purpose):
 
     ## Code Organization
 
+    For interface/interaction changes, compose `ui-ux-governance` and carry
+    the task's applicable experience acceptance into implementation and checks.
+    Include backend changes that affect visible states or recovery; keep the
+    coordinator's plan and completion ownership intact.
+
     You reason best about code you can hold in context at once, and your edits are more
     reliable when files are focused. Keep this in mind:
     - Follow the file structure defined in the plan

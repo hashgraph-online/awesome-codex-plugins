@@ -2,15 +2,6 @@
 name: engagement-workflow
 description: "Orchestrate a full marketing engagement through the 12-Part methodology — Stone vs Opinion intake, external research, Four Core Documents, client validation, Decision Matrix v2 re-runs, growth planning, channel fan-out, and the continuous-improvement loop — with checkpointed, resumable state at every part. Triggers on \"/digital-marketing-pro:engagement-workflow\", \"start a new engagement\", \"what part of the engagement are we on\", \"apply the decision matrix\", \"advance to the next part\". Reads and writes engagement state via engagement-state.py only, and dispatches to /digital-marketing-pro:four-core-documents, growth-plan, yearly-planner, and continuous-improvement-loop."
 user-invocable: true
-triggers:
-  - start a new engagement
-  - run the 12-part methodology
-  - advance engagement to next part
-  - show engagement status
-  - apply the decision matrix
-  - re-run v2 documents
-  - mark engagement part complete
-  - what part of the engagement are we on
 allowed-tools: Read Write Edit Bash Glob Grep Task
 engagement-part: orchestrator
 view-preference: both

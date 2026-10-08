@@ -1,9 +1,11 @@
 ---
 name: deja-history
-description: Search the user's past AI coding sessions. Use when they say things like 'didn't we fix this before', 'what did we decide about X' or 'I already have that', before re-debugging an error that may already be solved, and before telling them something on this machine does not exist.
+description: Search the user's past AI coding sessions. Holds what they already settled and never wrote into the repo (naming rules, banned or already-tried tools, required checks before merge, preferred values, who owns what). Use before your first edit in a task, before you call a change done or ready to merge, before you recommend a tool, library, design or reviewer, before re-debugging an error that may already be solved, when they say 'didn't we fix this before', 'what did we decide about X' or 'I already have that', and before telling them something on this machine does not exist.
 ---
 
 Search deja before re-deriving past work: when the user refers to earlier sessions or decisions, before debugging an error, and before implementing something that may already exist. It searches this machine's own history across every AI coding tool used on it, going back further than deja itself was installed.
+
+Before your first edit in a task, and again before you call a change done, ready or safe to merge, call deja with mode recall and the task's key nouns (file, package, feature, setting). A rule, a rejected option or a check it returns outranks your defaults: follow it and say so in one line.
 
 Two triggers are easy to miss because they are not questions:
 
@@ -21,6 +23,7 @@ These are the modes of the one deja tool, passed as `mode`.
 - blame: before editing, refactoring or deleting a file, the prior sessions that discussed it, so you know why it is shaped the way it is. Session history, not git authorship.
 - fix: paste a failing output verbatim to see the commands that followed that same error before, in sessions where it did not come back.
 - how: the real command with the real flags this machine runs for a build, test, deploy or script, ordered by how many sessions ran it. A guessed invocation is plausible and fails on this setup.
+- orient: at the start of work in a project, the commands past sessions ran there and the files they worked in, before you go reading.
 - remember: store one durable decision after it is settled, as a single self-contained fact. Not transcripts, not anything already obvious from the code.
 
 ## Reading a result
@@ -36,3 +39,13 @@ When recalled history genuinely helps — a reused fix, a skipped re-debug, even
 - Result windows are bounded. Do not report corpus-wide counts, or claim a complete audit, from the number of hits you got back.
 - If deja is unavailable or the index is empty, say that history search is unavailable. Do not invent what it might have found.
 - Vary the wording and try a second query before concluding nothing is there. Exact tokens match best, so an error string beats a paraphrase of it.
+
+## Rules the user keeps repeating
+
+When the user asks you to find or suggest their standing rules — the things they keep having to tell their agents:
+
+1. Run `deja rules candidates` (`--since 90d` for recent ones). It lists turns where the user corrected an agent, across every tool on this machine, each numbered `#n` with the session it came from. It writes nothing.
+2. Find the standing rules in that list: preferences the user would want applied in every future session, stated in at least two different sessions. Ignore one-off corrections about a specific task. For each rule give one imperative sentence, the `#n` that state it, and how many distinct sessions. At most 15, most recurring first.
+3. Show the list and stop. Write nothing until the user picks. Then show the exact lines you will append to the rules file `deja rules` names, append only those, and run `deja rules sync`, which copies the file into every installed agent's global rules file.
+
+This takes a strong model: on one machine's 236 candidates a frontier model found the user's recurring rules with real citations, and a 9B local model invented candidate numbers. On a small model, say so rather than guess.

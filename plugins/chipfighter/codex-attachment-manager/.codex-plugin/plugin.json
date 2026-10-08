@@ -1,0 +1,36 @@
+{
+  "name": "codex-attachment-manager",
+  "version": "0.3.0",
+  "description": "Choose which images from a Codex task's history go out with the next message. Unchecked images become short placeholders; the task and the conversation stay the same.",
+  "author": {
+    "name": "chipfighter"
+  },
+  "homepage": "https://github.com/chipfighter/codex-attachment-manager",
+  "repository": "https://github.com/chipfighter/codex-attachment-manager",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "images",
+    "context",
+    "attachments",
+    "mcp-app",
+    "proxy"
+  ],
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Codex Attachment Manager",
+    "shortDescription": "Choose which past images go to the model with your next message",
+    "longDescription": "In long tasks, images pile up in the context turn after turn. This plugin lists every image in the task's history, in order, in Codex's side panel: checked images are sent as usual, unchecked ones become short placeholders (pointing to an identical image when one is still being sent). The task stays the same and the conversation goes on. When the model needs an image, it replies \"need IMG-xxx\", and you decide whether to send it. All data stays on your machine; nothing is sent anywhere besides the requests Codex already makes to OpenAI. After installing, open the panel (side panel → New tab → Plugins and MCPs → Context Assets), click \"Enable plugin\", then restart Codex. Before removing the plugin, click \"Disable plugin\" in the panel first. The panel follows Codex's language: Simplified Chinese or English.\n\n长任务里的图片会一轮轮累积在上下文里。这个插件在 Codex 右侧的侧边面板里，按时间顺序列出任务历史里的全部图片：勾选的照常发送，取消的换成占位符（有内容相同的图还在发送时，指向那一张）。任务不换，对话连续。模型需要某张图时会回复“需要 IMG-xxx”，给不给由你决定。所有数据只留在本机；除了 Codex 本来就要发给 OpenAI 的请求，不向任何地方发送数据。装好后打开面板（侧边面板 → 新建标签页 → 插件和 MCP → 上下文素材），点“启用插件”，再重启 Codex。移除插件前，请先在面板里点“停用插件”。面板跟随 Codex 的界面语言，支持简体中文和英文。",
+    "developerName": "chipfighter",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/chipfighter/codex-attachment-manager",
+    "brandColor": "#339CFF",
+    "logo": "./assets/logo.png",
+    "composerIcon": "./assets/logo.png"
+  }
+}

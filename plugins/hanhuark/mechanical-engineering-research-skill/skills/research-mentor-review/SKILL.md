@@ -29,7 +29,7 @@ Avoid generic praise, vague requests to "add detail," and invented literature or
 
 ## Formulaic Writing Check
 
-When reviewing a manuscript or proposal, flag prose that reads as automatically assembled rather than technically chosen: detail-heavy abstracts, contrast words without a true contrast, vague `establish` claims, stacked hyphenated modifiers, and em-dash clauses. Describe the reader-facing problem and propose a specific revision. Do not infer or allege AI authorship from style alone.
+When reviewing a manuscript or proposal, flag prose that reads as automatically assembled rather than technically chosen: detail-heavy abstracts, contrast words without a true contrast, unfamiliar or undefined labels, repeated vague forms of `enable` and `establish`, `unusually`, `together`, stacked hyphenated modifiers, catalog-like headings, modifier-heavy sentences, and inappropriate dash clauses. Describe the reader-facing problem and propose a specific revision. Do not infer or allege AI authorship from style alone.
 
 ## Coordination
 

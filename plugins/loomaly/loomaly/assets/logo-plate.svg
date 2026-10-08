@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Loomaly">
+  <title>Loomaly</title>
+  <!-- The pulse mark on a white plate, for marketplace listings (1:1). -->
+  <rect width="512" height="512" rx="112" fill="#FFFFFF"/>
+  <g transform="translate(-43.2 18.8) scale(0.88)">
+    <rect x="137" y="344" width="90" height="130" rx="18" fill="#0B7A6E" fill-opacity="0.38"/>
+    <rect x="261" y="279" width="90" height="195" rx="18" fill="#0B7A6E" fill-opacity="0.69"/>
+    <rect x="385" y="215" width="90" height="259" rx="18" fill="#0B7A6E"/>
+    <polyline points="340,170 430,88 520,170" fill="none" stroke="#0B7A6E" stroke-width="46" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

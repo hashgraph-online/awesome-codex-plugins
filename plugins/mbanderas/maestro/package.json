@@ -1,7 +1,7 @@
 {
   "name": "@maestrofrontier/frontier",
   "version": "1.15.0",
-  "description": "Maestro Frontier is an opt-in, zero-dependency local multi-CLI fusion engine for AI coding agents. Compose an Opus 5 and Codex model panel, set provider-supported effort, judge its one-shot read-only responses, and synthesize one grounded answer. Optional orchestration policy hooks are independent and off by default.",
+  "description": "Maestro Frontier is an opt-in, zero-dependency local multi-CLI fusion engine for AI coding agents. Compose Claude Opus 5.5, Fable 5.1, Sonnet 5, Haiku 4.5, GPT-6 Astra/Sol/Luna, and GPT-5.6 Terra panels, set provider-supported effort, judge one-shot read-only responses, and synthesize one grounded answer. Optional orchestration policy hooks are independent and off by default.",
   "keywords": ["multi-cli-fusion", "fusion-engine", "frontier", "model-panel", "orchestration", "claude-code", "gemini", "codex", "agents"],
   "license": "MIT",
   "repository": {

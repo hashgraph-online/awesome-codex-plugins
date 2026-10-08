@@ -1,54 +1,26 @@
 ---
 name: context-pack
-description: Generate a compact first-pass repository briefing with context-pack. Use when work starts in an unfamiliar repo, when the user asks for orientation or high-signal files, when active changes need a compact summary, or when prompt budget matters.
+description: Get a first-pass briefing of a repository (instructions to follow, build/test/lint commands, entry points, key files, workspace packages, layout, active git work, repo memory) before exploring it. Use at the start of work in an unfamiliar or large repo, before reviewing a branch, or when the user asks where something lives.
 metadata:
   short-description: First-pass repo briefing
 ---
 
 # Context Pack
 
-Use this skill to turn a repository into a small, prioritized briefing before deeper exploration.
-
-If the `context-pack` MCP server is installed through this plugin, prefer the MCP tools over shelling out manually:
-
-- `get_context`
-- `get_changed_context`
-- `get_file_excerpt`
-- `init_memory`
-- `refresh_memory`
+Run the briefing before a manual tree walk. With the MCP server installed, call `get_context` (or `get_changed_context` for review); otherwise run the CLI.
 
 ## Workflow
 
-1. Start with `context-pack --cwd <repo>` or the `get_context` MCP tool before a manual tree walk unless the task is already extremely narrow.
-2. Read the generated briefing first. Prioritize guidance docs, manifests, entrypoints, active work, and caveats before opening large source files.
-3. Pick flags based on the task:
-   - Active work: `context-pack --cwd <repo> --changed-only --no-tree`
-   - Machine-readable output: `context-pack --cwd <repo> --format json`
-   - Tight prompt budget: `context-pack --cwd <repo> --changed-only --no-tree --max-bytes 2000`
-   - Noisy repo tuning: add `--include`, `--exclude`, `--max-files`, or `--max-depth`
-4. If the user wants persistent learned notes, use:
-   - `context-pack --cwd <repo> --init-memory`
-   - `context-pack --cwd <repo> --refresh-memory`
-   - or the matching `init_memory` / `refresh_memory` MCP tools
-5. Only after the briefing is in hand should you move to manual file reads, targeted search, or code changes.
-
-## Output Focus
-
-- Name the repo shape and likely entrypoints.
-- Call out the most useful files to read next.
-- Summarize active work separately from static repo structure.
-- Mention caveats such as missing `AGENTS.md`, missing `README`, disabled git, or truncated output.
-- Quote the exact `context-pack` command you used when it affects the result.
-
-## Patterns
-
-- Orientation: use the default markdown output and summarize what to read first.
-- Reviewing ongoing work: use `--changed-only` to keep the bundle focused on active files and diffs.
-- Automation: prefer `--format json` when another tool or script needs the result.
-- Legacy repos: initialize or refresh `.context-pack/memory.md` when repo-authored docs are weak.
+1. Brief: `context-pack --cwd <repo>`.
+   - Reviewing or resuming work: `context-pack review --cwd <repo>`.
+   - Tight budget: `context-pack compact --cwd <repo>`; more detail: `context-pack deep --cwd <repo>`.
+   - A subsystem the ranking misses: add `--include '<glob>'`; noise: `--exclude '<glob>'`.
+2. Follow every file under **Agent instructions** before editing.
+3. Use **Commands** to verify changes; prefer the ones CI runs.
+4. Start reading at **Entry points** and **Key files**; use **Layout** and **Workspace** to find the right package.
+5. When you learn a durable, non-obvious fact about the repo (setup quirk, invariant, pitfall), record it: `context-pack memory add "<fact>"` or the `add_memory_note` tool. Never store secrets or task-specific state.
 
 ## Guardrails
 
-- Do not substitute a raw `tree`, blind `rg`, or random large-file reads for the first pass when `context-pack` is available.
-- If the generated bundle is too broad or too thin, rerun with tighter budgets or explicit include/exclude globs instead of guessing.
-- Treat repo-type summaries and rankings as heuristics; if the code disagrees, say so explicitly.
+- Rankings are heuristics. If the code disagrees with the briefing, trust the code and say so.
+- The briefing is a starting map; switch to targeted search and file reads once you know where to look.

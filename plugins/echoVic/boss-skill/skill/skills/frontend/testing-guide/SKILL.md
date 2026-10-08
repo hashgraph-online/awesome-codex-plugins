@@ -3,6 +3,8 @@ name: frontend/testing-guide
 description: 前端测试编写指南，包括单元测试、集成测试和E2E测试的编写方法和最佳实践
 type: methodology
 agent: boss-frontend
+metadata:
+  internal: true
 ---
 
 # 前端测试编写指南

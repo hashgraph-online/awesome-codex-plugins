@@ -1,0 +1,16 @@
+{
+  "name": "core",
+  "version": "1.0.0",
+  "type": "pipeline-pack",
+  "description": "轻量核心 Pipeline：PM + Architect + Dev + QA，跳过 UI/评审/拆解层",
+  "author": "Boss Harness Team",
+  "license": "MIT",
+  "config": {
+    "roles": "core",
+    "agents": ["boss-pm", "boss-architect", "boss-frontend", "boss-backend", "boss-qa"],
+    "gates": ["gate0", "gate1"],
+    "skipUI": true,
+    "skipReview": true
+  },
+  "enabled": true
+}

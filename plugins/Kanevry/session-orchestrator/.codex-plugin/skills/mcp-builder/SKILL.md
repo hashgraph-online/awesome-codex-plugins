@@ -2,6 +2,7 @@
 name: mcp-builder
 description: Use when creating a new MCP (Model Context Protocol) server, extending an existing one, or debugging tool discoverability/performance. Guides through research → implementation → test → eval phases with TypeScript-first guidance matching our stack. Trigger on phrases like "build an MCP server", "expose X as an MCP tool", "write MCP tools for Y", "integrate Z via MCP".
 metadata:
+  user-invocable: 'false'
   model: sonnet
 ---
 

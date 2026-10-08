@@ -1,0 +1,10 @@
+# Codex: the provider's own MCP server this skill uses, declared beside the skill so Codex can wire it when the
+# skill is used. Cloudflare's docs server needs no sign-in and only reads. The plugin's providers.json lists every
+# provider's tools.
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "cloudflare-docs"
+      description: "Cloudflare's own docs MCP server: current limits, Wrangler flags and Workers AI models, instead of memory."
+      transport: "streamable_http"
+      url: "https://docs.mcp.cloudflare.com/mcp"

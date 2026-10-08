@@ -1,8 +1,21 @@
 # Layer 03 — Data Model
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 
 Tables, columns, fields, and constraints that exist specifically because PDP-family obligations require them. Universal patterns across stacks.
+
+## Contents
+
+- Consent record
+- Audit record (admin actions on user data)
+- Deletion audit record
+- Terms-of-service version tracking
+- Notification preferences
+- Cascade conventions for account deletion
+- Retention markers
+- File / storage path conventions
+- Personal-data inventory
+- Rules when adding a new column or field that holds personal data
 
 ## Consent record
 

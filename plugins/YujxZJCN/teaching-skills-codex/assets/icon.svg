@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">Teaching Skills — open book</title>
+  <rect width="512" height="512" rx="112" fill="#2563EB"/>
+  <path d="M80 132h100c31 0 57 11 76 31 19-20 45-31 76-31h100v244H332c-31 0-57 11-76 31-19-20-45-31-76-31H80z" fill="#FFFFFF"/>
+  <path d="M256 164v242" fill="none" stroke="#2563EB" stroke-width="16" stroke-linecap="round"/>
+  <path d="M120 200h64m-64 48h72m-72 48h72m128-96h72m-72 48h72m-72 48h64" fill="none" stroke="#93C5FD" stroke-width="16" stroke-linecap="round"/>
+</svg>

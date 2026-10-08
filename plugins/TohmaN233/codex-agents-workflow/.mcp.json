@@ -1,0 +1,23 @@
+{
+  "mcpServers": {
+    "codex-agents-workflow": {
+      "command": "node",
+      "args": [
+        "-e",
+        "const fs = require('node:fs/promises');\nconst path = require('node:path');\nconst os = require('node:os');\nconst {pathToFileURL} = require('node:url');\nconst {execFile} = require('node:child_process');\nconst {promisify} = require('node:util');\n\nfunction installationNamespace(directory) {\n  const root=path.resolve(directory);\n  if(path.basename(root)!=='codex-agents-workflow')throw Error('WORKFLOW_PLUGIN_NAMESPACE: cwd must be the launching plugin cache namespace');\n  const marketplace=path.basename(path.dirname(root));\n  if(!marketplace || marketplace.includes('@'))throw Error('WORKFLOW_PLUGIN_NAMESPACE: invalid marketplace namespace');\n  return {root,marketplace,pluginId:'codex-agents-workflow@'+marketplace};\n}\n\nfunction registeredRoot(registry, namespace) {\n  const identity=installationNamespace(namespace);\n  if(!Array.isArray(registry?.installed))throw Error('WORKFLOW_PLUGIN_REGISTRY: missing installed-plugin inventory');\n  const entries = registry.installed.filter(p => p.pluginId === identity.pluginId && p.installed);\n  if(entries.length !== 1 || !entries[0].enabled || !/^[0-9][A-Za-z0-9.+_-]*$/.test(entries[0].version)) throw Error('WORKFLOW_PLUGIN_REGISTRY: expected one enabled installed version');\n  return {...identity,version:entries[0].version,root:path.join(identity.root,entries[0].version)};\n}\n\nasync function boot() {\n  const home = process.env.CODEX_HOME || path.join(os.homedir(),'.codex');\n  const auditRoot=path.join(home,'codex-agents-workflow');\n  await fs.mkdir(auditRoot,{recursive:true});\n  const audit=event=>fs.appendFile(path.join(auditRoot,'mcp-startup.jsonl'),JSON.stringify({at:new Date().toISOString(),pid:process.pid,...event})+'\\n');\n  const context={};\n  try {\n    const namespace=await fs.realpath(process.cwd());\n    const identity=installationNamespace(namespace);\n    Object.assign(context,{namespace,marketplace:identity.marketplace,pluginId:identity.pluginId});\n    // Ask the installation registry on EVERY handshake. Never choose max(cache dirs)\n    // or use the revision captured by a long-running host's plugin catalog.\n    // The host resolves cwd=\"..\" relative to this installed package. That\n    // stable namespace identifies the source even when another marketplace\n    // installs the same plugin, or a warm host remembers an obsolete version.\n    const {stdout}=await promisify(execFile)(process.env.CODEX_CLI_PATH || 'codex',['plugin','list','--marketplace',identity.marketplace,'--json'],{windowsHide:true,timeout:10000,maxBuffer:1024*1024});\n    const selected=registeredRoot(JSON.parse(stdout),namespace);\n    const manifest=JSON.parse(await fs.readFile(path.join(selected.root,'.codex-plugin/plugin.json'),'utf8'));\n    if(manifest.name!=='codex-agents-workflow'||manifest.version!==selected.version)throw Error('WORKFLOW_PLUGIN_IDENTITY: registered version does not match installed files');\n    // Node resolves imported modules through filesystem aliases. Use that same\n    // physical entry for argv so server.mjs recognizes itself as the main module.\n    const entry=await fs.realpath(path.join(selected.root,'control-plane/server.mjs'));\n    await audit({phase:'resolved',...context,version:selected.version,entry});\n    // Keep the configured stable cwd. Holding a disposable plugin version as\n    // cwd prevents the installer from replacing that directory on Windows.\n    process.argv[1]=entry;\n    await import(pathToFileURL(entry).href);\n  } catch(error) {\n    await audit({phase:'failed',...context,code:error.code??'WORKFLOW_MCP_BOOT_FAILED',message:error.message});\n    throw error;\n  }\n}\nmodule.exports={installationNamespace,registeredRoot,boot};\n\nboot().catch(error=>{console.error('WORKFLOW_MCP_BOOT_FAILED',error.stack||error);process.exitCode=1;});"
+      ],
+      "cwd": "..",
+      "enabled": true,
+      "env_vars": [
+        "CODEX_HOME",
+        "HOME",
+        "USERPROFILE",
+        "LOCALAPPDATA",
+        "PATH",
+        "CODEX_CLI_PATH"
+      ],
+      "default_tools_approval_mode": "approve",
+      "tool_timeout_sec": 3660
+    }
+  }
+}

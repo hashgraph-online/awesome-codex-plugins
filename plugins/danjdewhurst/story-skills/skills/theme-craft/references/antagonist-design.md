@@ -10,11 +10,10 @@ Design the antagonist to deserve that role.
 The antagonist must be stronger than the protagonist in at least one
 dimension — intelligence, resources, position, ruthlessness, or conviction. A
 weaker antagonist makes the protagonist's victory feel unearned and the theme's
-verdict feel rigged. Record the asymmetry explicitly in the character file:
-
-```yaml
-antagonist-edge: "{Where the antagonist outmatches the protagonist}"
-```
+verdict feel rigged. Record the asymmetry explicitly in the body of the
+character file, in one sentence that names where the antagonist outmatches the
+protagonist. Do not add it as a frontmatter key: the schema and the CLI define
+no key for it.
 
 ## The antagonist believes they are right
 

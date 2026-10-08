@@ -1,0 +1,27 @@
+{
+  "name": "repopilot",
+  "version": "0.24.3",
+  "description": "Snapshot each session and review what the agent changed before it stops: tests it skipped, focused, removed, or weakened, new lint/type suppressions, relaxed CI gates, removed auth or error handling, and untrusted input reaching risky sinks. Deterministic and local; requires the repopilot CLI.",
+  "author": {
+    "name": "Mykyta Stelmashenko",
+    "url": "https://github.com/MykytaStel"
+  },
+  "homepage": "https://github.com/MykytaStel/repopilot/blob/main/docs/agent-guardrail.md",
+  "repository": "https://github.com/MykytaStel/repopilot",
+  "license": "MIT OR Apache-2.0",
+  "keywords": [
+    "code-review",
+    "testing",
+    "test-integrity",
+    "security",
+    "git"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "hooks": "./hooks/codex-hooks.json",
+  "interface": {
+    "displayName": "RepoPilot",
+    "shortDescription": "Stops the agent when it weakens tests, suppressions, or CI gates. Local and deterministic.",
+    "composerIcon": "./.claude-plugin/icon.png"
+  }
+}

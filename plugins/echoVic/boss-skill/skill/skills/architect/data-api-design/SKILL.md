@@ -11,6 +11,8 @@ triggers:
   - 架构设计完成后
   - 需要设计数据模型时
   - 需要定义API接口时
+metadata:
+  internal: true
 ---
 
 # 数据模型与API设计方法论

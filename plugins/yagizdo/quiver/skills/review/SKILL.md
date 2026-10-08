@@ -169,13 +169,11 @@ Pass both `codegraph_available` and `lsp_available` to agents that search the br
 
 Find the plan whose Global Constraints bind this review and extract that block verbatim. This step is a read-only lookup. It never edits, extends, paraphrases, or renumbers the block, and it never writes a plan file -- `/plan` is the only skill that decides constraint content.
 
-1. **Explicit plan.** If Step 0.5 set `constraints_plan_path` from `--plan <path>`, use that file. If the path does not exist or cannot be read, set the block to empty and continue with no note.
-2. **PR/MR mode.** Otherwise, if Step 1 resolved to Mode 1 (PR/MR link provided) and did not fall back to Mode 2 or Mode 3, skip discovery entirely and set the block to empty. A PR diff can come from a branch whose plan never existed on this machine, so the newest local plan is more likely wrong than right, and a wrong constraint removes real findings in the suppression direction. A user who knows a local plan applies to a PR passes `--plan <path>`.
-3. **Newest local plan.** Otherwise, list the plans directory with the Bash tool (`ls -1t .claude/plans/*.md 2>/dev/null`) and take the first path it prints -- the newest `.md` file by modification time. Empty output means there is no plans directory and no plan file; go to rule 5.
-4. **Extract the block.** Read the chosen file and take the `## Global Constraints` section: every line after that heading up to the next `## ` heading, with leading and trailing blank lines trimmed. Set `constraints_plan_path` to the chosen file's path -- Step 3's report template prints it in `## Review Context`.
-5. **Degrade cleanly.** If there is no `.claude/plans/` directory, no `.md` file in it, or no `## Global Constraints` heading in the chosen file, set the block to empty and continue with no note, no warning, and no error. An empty block means Step 2 skips per-agent context item 10 entirely, the Step 3 `constraint-blocked` filter never fires, and the report's `Global Constraints` field reads `N/A`. This path must behave exactly as a review did before this step existed.
+1. **Explicit plan only.** If Step 0.5 set `constraints_plan_path` from `--plan <path>`, use that file. Otherwise set the block to empty and go to rule 3, in branch, PR and uncommitted mode alike. Never pick a plan on your own: a plan file is not tied to a branch, so a plan chosen by date or name can belong to another open branch, and a wrong constraint removes real findings in the suppression direction. `/work` and `/ship` print the review command with `--plan` for this reason; a user who knows a plan applies passes `--plan <path>`.
+2. **Extract the block.** Read the file and take the `## Global Constraints` section: every line after that heading up to the next `## ` heading, with leading and trailing blank lines trimmed. Step 3's report template prints `constraints_plan_path` in `## Review Context`.
+3. **Degrade cleanly.** With no `--plan`, a path that does not exist or cannot be read, or a file with no `## Global Constraints` heading, set the block to empty and continue with no note, no warning, and no error. An empty block means Step 2 skips per-agent context item 10 entirely, the Step 3 `constraint-blocked` filter never fires, and the report's `Global Constraints` field reads `N/A`. This path must behave exactly as a review did before this step existed.
 
-Do the listing and the read with the Bash and Read tools at this point in the run, not with a `!` block at the top of this file: the lookup is conditional on the review mode resolved in Step 1, and `!` blocks run before any step logic.
+Do the read with the Read tool at this point in the run, not with a `!` block at the top of this file: it depends on the flag parsed in Step 0.5, and `!` blocks run before any step logic.
 
 Say nothing about this step in the chat stream. The report's `Global Constraints` field and the `constraint-blocked` entries in `## Filtered Findings` are where the block becomes visible.
 
@@ -393,6 +391,7 @@ The proportional floor runs AFTER subsumption (Step 3.1) and the 9 filters (Step
    - Proper error handling
    - Clean abstractions or well-chosen framework conventions
    If the diff has no notable strengths, omit the "What's Working Well" section rather than fabricating praise.
+   A strength that states a fact about the tree -- a count, a test result, a line citation, an absence, or an "every"/"only"/"matches" claim -- meets the same bar as a finding's citation: it rests on a file read or a command run in this review, and says no more than that check showed. Cut it to what was checked, or drop it.
 7. **Assign a disposition to every finding.** Every finding that survives filtering carries exactly one disposition, Low findings included. Severity says how big the consequence is; disposition says what the reader does about it, and a report that states only the first leaves every Low finding unowned:
    - **Before merge** -- the change is not safe to ship without this. Critical and High start here.
    - **Follow-up** -- real, worth an issue, not worth holding the merge.
@@ -506,7 +505,7 @@ After synthesis, dispatch the `report-checker` agent for an independent quality 
    - Do NOT pass individual agent outputs -- the checker evaluates the report as a reader would.
 
 2. **Handle results:**
-   - **Zero issues:** Print `Quality check passed -- report is ready.` Proceed to Step 4.
+   - **Zero issues:** Print `Quality check passed -- report is ready.` Proceed to Step 3.75.
    <!-- SYNC: The apply-fixes procedure below (REMOVE/DOWNGRADE/REWRITE actions + recalculation steps) is duplicated in skills/report-check/SKILL.md Step 4 "Apply fixes" block. Keep both in sync. -->
    - **Issues found:** Apply the recommended actions:
      - REMOVE: Delete the finding from the report.
@@ -521,8 +520,8 @@ After synthesis, dispatch the `report-checker` agent for an independent quality 
    - Print: `Quality check: {N} issues found and fixed.`
 
 3. **Retry (max 1).** Re-dispatch `report-checker` with the corrected report.
-   - **Zero issues on retry:** Proceed to Step 4.
-   - **Issues remain on retry:** Proceed to Step 4 anyway. Do NOT retry again. Append a `## Quality Check Notes` section to the end of the report (before Verdict) listing the unresolved items with their QA IDs and descriptions.
+   - **Zero issues on retry:** Proceed to Step 3.75.
+   - **Issues remain on retry:** Proceed to Step 3.75 anyway. Do NOT retry again. Append a `## Quality Check Notes` section to the end of the report (before Verdict) listing the unresolved items with their QA IDs and descriptions.
    - Print: `Quality check: {N} items remain after correction. Proceeding with the report.`
 
 4. The max iteration count (1 retry after initial check) is a hard limit. This prevents infinite correction loops. The same discipline that applies to the report-checker agent applies here: if the report is good enough after one correction pass, stop.
@@ -601,7 +600,8 @@ Run this step only when at least one finding carries a fix: a fenced code block,
 
 2. **Handle results.** Every action lands on the fix, never on the finding:
    - **APPROVE:** leave the finding untouched.
-   - **FLAG:** replace the fix block with the corrected version, and add a one-line `Fix corrected:` note under it naming what was wrong with the original.
+   - **FLAG with a corrected fix** (its `Suggestion:` gives replacement code or a concrete edit): replace the fix block with the corrected version, and add a one-line `Fix corrected:` note under it naming what was wrong with the original.
+   - **FLAG with no corrected fix:** keep the original fix block, and add a one-line `Fix flagged:` note under it carrying the flag's problem. Never write a replacement the fix-reviewer did not give -- an invented snippet carries the same authority as a checked one.
    - **REJECT:** delete the fix block and put `No verified fix -- {one line naming why the proposed one does not work}` in its place.
 
    Do not remove a finding, change a severity, or change a disposition at this step. A fix that does not work is not evidence that the defect is not there, and Steps 3.5 and 3.75 have already had their pass at the findings themselves.
@@ -612,7 +612,7 @@ Run this step only when at least one finding carries a fix: a fenced code block,
 
 **Status messages (plain language, no rule codes):**
 - Before dispatch: `Checking the fixes the report recommends...`
-- After completion: `Fix check: {N} proposals reviewed, {M} corrected, {K} left without a verified fix.`
+- After completion: `Fix check: {N} proposals reviewed, {M} corrected, {F} kept with a warning, {K} left without a verified fix.`
 
 ## Step 4 -- Save Review Report
 

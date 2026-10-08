@@ -33,11 +33,19 @@ These are two different things and they are not equal today:
   [60-second demo command](https://github.com/happy520ai/unified-ai-system#try-it-in-60-seconds)
   in the README names that version. Read it live with
   `node tools/verify-image-roster.mjs 0.8.0`, which reports the roster from the
-  image bytes rather than from this file.
+  image bytes rather than from this file. That command needs a clone of the
+  repository, run from its root: the script ships with the source, not inside an
+  installed skill bundle. Without a clone, the same roster is published at
+  https://happy520ai.github.io/unified-ai-system/verify-mcp-docker-image.html.
+- **Newest content review: `0.8.0`** ([review](https://github.com/happy520ai/unified-ai-system/blob/master/docs/security/mcp-image-review-0.8.0.md)),
+  read from the published layer tarballs with `node tools/inspect-image-filesystem.mjs 0.8.0` - no Docker
+  engine and nothing executed. It found one thing worth knowing before you pull: the `linux/arm64` tag carries
+  x86-64 native modules, including `better_sqlite3.node`, so request `--platform linux/amd64`.
 - **Reviewed and pinned below: `0.4.9`.** The inspection procedure in this file
-  pins that image's recorded digests because `0.4.9` is the newest version with a
-  completed [content review](https://github.com/happy520ai/unified-ai-system/blob/master/docs/security/mcp-image-review-0.4.9.md).
-  It carries 9 of the fifteen names: the model-backed enhancement, knowledge
+  pins that image's recorded digests because `0.4.9` is the newest version reviewed by that procedure, which
+  exports a container filesystem with Docker. The 0.8.0 review above uses a different method and pins its own
+  digests, so the table below still describes 0.4.9 until it is rewritten against a 0.8.0 export.
+  `0.4.9` carries 9 of the fifteen names: the model-backed enhancement, knowledge
   retrieval and workflow execution tools arrived at 0.5.0, and the three
   governance tools at 0.8.0.
 
@@ -48,7 +56,7 @@ required first, and the pinned identity is only as good as the review that backs
 ## Prerequisites And Setup
 
 1. Confirm that Codex CLI and Docker are installed and Docker is running.
-2. If the 15 tools are already visible, skip setup and do not register a
+2. If the nine tools are already visible, skip setup and do not register a
    duplicate server.
 3. Explain the first stage: it downloads one reviewed platform from the
    immutable `0.4.9` multi-platform index into Docker's cache, inspects its
@@ -139,7 +147,8 @@ codex mcp get unified-ai-system --json
 ```
 
 8. Restart Codex or open a new task, then use `/mcp verbose` to confirm that all
-   15 tools are available. Remove the registration when it is no longer
+   nine tools are available - the pinned `0.4.9` image ships nine of the fifteen
+   names the current release declares. Remove the registration when it is no longer
    wanted:
 
 ```bash

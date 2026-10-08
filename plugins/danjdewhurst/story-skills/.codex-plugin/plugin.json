@@ -1,7 +1,7 @@
 {
   "name": "story-skills",
-  "version": "0.11.0",
-  "description": "A suite of cross-referenced skills and CLI maintenance tools for end-to-end story writing powered by markdown. Covers premise development, story initialization, character management, worldbuilding, plot structure, chapter writing, line editing, revision passes, continuity, pacing and fair-play checks, editorial review, research, publishing and print production, adaptation, validation, reporting, indexing, word counts, and manuscript export.",
+  "version": "0.23.0",
+  "description": "A suite of cross-referenced skills and CLI maintenance tools for end-to-end fiction writing in markdown, in English or any other language. Covers premise development, story initialization, character management, worldbuilding, plot structure, theme, scene craft, outlined and discovery drafting, chapter writing, interactive fiction with branching paths, series and sequels, verse, genre craft, voice and style, line editing, revision passes, continuity, pacing and fair-play checks, beta-reader feedback and simulated reader panels, editorial review, research, query letters and submission tracking, publishing and print production, adaptation, validation, reporting, indexing, word counts, and manuscript export.",
   "author": {
     "name": "Daniel Dewhurst",
     "url": "https://github.com/danjdewhurst"
@@ -22,7 +22,7 @@
   "interface": {
     "displayName": "Story Skills",
     "shortDescription": "Plan stories, manage characters and worlds, and write chapters.",
-    "longDescription": "Story Skills adds end-to-end fiction-writing workflows for Codex: story initialization, character management, worldbuilding, plot structure, chapter writing, revision and continuity audits, and deterministic project maintenance with markdown registries and YAML frontmatter.",
+    "longDescription": "Story Skills adds end-to-end fiction-writing workflows for Codex, in English or any other language: premise development, story initialization, character management, worldbuilding, plot structure, theme, scene craft, outlined and discovery drafting, chapter writing, interactive fiction, series continuity, verse, genre craft, voice and style, line editing, revision passes, continuity, pacing and fair-play checks, beta-reader feedback, simulated reader panels, editorial review, research, query letters and submissions, publishing, and adaptation, plus deterministic project maintenance with markdown registries and YAML frontmatter.",
     "developerName": "Daniel Dewhurst",
     "category": "Productivity",
     "capabilities": [

@@ -1,0 +1,45 @@
+{
+  "name": "clueless",
+  "version": "1.2.0",
+  "description": "Responsibility-flip mode for when the user cannot review the output: irreversible steps first, one verification step, every default named, at most three questions only the user can answer.",
+  "author": {
+    "name": "Danila Katalshov",
+    "url": "https://github.com/ADanMan"
+  },
+  "homepage": "https://github.com/ADanMan/clueless",
+  "repository": "https://github.com/ADanMan/clueless",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "agent-skills",
+    "review",
+    "handoff",
+    "non-expert",
+    "clueless"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Clueless",
+    "shortDescription": "Tell the agent you know nothing. It becomes the only reviewer in the room.",
+    "longDescription": "When the user says they cannot review the output, the agent acts as the only reviewer: it puts irreversible steps first, gives one verification step, names every default it chose with the alternative, and ends with at most three questions only the user can answer, each pre-filled with the assumption. Includes a one-shot /clueless-blindspots review.",
+    "developerName": "Danila Katalshov",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive"
+    ],
+    "websiteURL": "https://github.com/ADanMan/clueless",
+    "privacyPolicyURL": "https://github.com/ADanMan/clueless/blob/main/SECURITY.md",
+    "termsOfServiceURL": "https://github.com/ADanMan/clueless/blob/main/LICENSE",
+    "composerIcon": "./assets/icon.svg",
+    "screenshots": [
+      "./assets/screenshots/signup-example.png"
+    ],
+    "defaultPrompt": [
+      "I know nothing about this, set it up properly for me",
+      "What am I not seeing in this plan?"
+    ],
+    "brandColor": "#111111",
+    "logo": "./assets/icon.svg"
+  },
+  "commit": "338650f5324cd04607ab3e55fea32af56a3dbbbf"
+}

@@ -1,6 +1,6 @@
 ---
 name: raster-logo-svg
-description: Wrap raster logos (webp, png, jpg) in self-contained SVG files via base64 embedding for pixel-perfect matches. Use when creating logo SVGs, converting webp/png to svg, fixing hand-drawn logos that do not match the source, or preparing plugin/README logo assets without a vector source file.
+description: "Turn a raster logo (PNG, JPG, WebP) into a pixel-identical, self-contained SVG by base64 embedding. Use when an .svg logo is needed without a vector source, or a redrawn SVG does not match the original."
 ---
 
 # raster-logo-svg

@@ -14,7 +14,7 @@ initial response within 72 hours.
 
 `.mcp.json` starts `deja mcp` from a `deja` you installed yourself. The bundle
 ships no binary and downloads nothing at run time. With no `deja` on the
-machine, the hook stays silent and the MCP server reports what is missing.
+machine, the hooks stay silent and the MCP server reports what is missing.
 
 Everything deja reads is already on your disk, and the index it builds stays
 there. The hooks and the MCP server make no network calls of their own, and

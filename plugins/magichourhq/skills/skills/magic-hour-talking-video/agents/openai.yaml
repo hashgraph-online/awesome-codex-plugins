@@ -1,0 +1,4 @@
+interface:
+  display_name: "Magic Hour Talking Video"
+  short_description: "Create speech-first portraits and lip sync"
+  default_prompt: "Use $magic-hour-talking-video to turn my approved speech and portrait or footage into a synchronized video, preserving the complete script."

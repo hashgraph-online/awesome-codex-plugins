@@ -51,7 +51,10 @@ Align with the `create_document` `rule` template (`Rule`, `Rationale`, `Examples
    MUST be a realistic violation, not a strawman.
 4. **Enforcement** — how the rule is checked: a named hook, lint rule, CI step, or test
    (with its identifier), or `manual review` if none exists. Name the verifier per
-   directive where they differ.
+   directive where they differ. A named verifier MUST exist in the repository at
+   the time of writing — read its configuration before naming it. An instruction
+   to agents ("AI agents MUST create `errors.ts`") restates the rule and is not a
+   verifier; WHEN no check exists, the author MUST write `manual review`.
 
 ## Forbidden in the body
 

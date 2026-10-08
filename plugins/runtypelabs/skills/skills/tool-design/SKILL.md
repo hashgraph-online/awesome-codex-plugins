@@ -1,6 +1,6 @@
 ---
 name: tool-design
-description: 'Design or audit an AI agent toolset; route naming, schemas, output, errors, execution, and security to focused guides.'
+description: 'Design or audit the tools an AI agent calls (MCP server tools, function calling, Runtype runtime and saved tools), or find out why an agent picks the wrong tool or misuses one. Routes naming, schema, output, error, execution, and security work to focused guides.'
 user-invocable: true
 argument-hint: '[tool or tool set to design or review]'
 ---
@@ -138,36 +138,52 @@ Every tool must pass all of these before it reaches an agent:
 
 ## On Runtype
 
-Everything above is framework-neutral. Building natively on Runtype, the platform
-already implements most of the enforcement, so the job is knowing which mechanism
-carries which pattern.
+The preceding sections are framework-neutral. When you build natively on Runtype, the
+platform enforces most of these patterns, so your job is to know which mechanism
+carries each one.
 
 ### Which tool kind carries which pattern
 
-| Tool kind (`toolType`) | What it is                                                       | Patterns it carries                                                                      |
-| ---------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `external`             | HTTP call defined by `url`, `method`, `headers`, `body` template | Tool Adapter, Secret Injection (`{{secret:KEY}}`), request mapping (the `body` template) |
-| `custom`               | Sandboxed code, 30 s cap, no network egress                      | Parameter Coercion, Response Shaper, Error Classification, Natural Identifier resolution |
-| `flow`                 | A saved flow exposed as one tool, run synchronously              | Task Bundle, Tool Chain, Compensation (per-step `errorHandling`)                         |
-| `subagent`             | Delegation to a saved or inline agent (`agentId` or `agent`)     | Abstraction Ladder (the orchestrated rung), Scatter-Gather, Async Job (detached mode)    |
-| `local`                | Executed by the client (browser widget or SDK caller)            | Confirmation Request, Resource Reference, anything needing the user's environment        |
-| `mcp`                  | A tool discovered from an MCP server                             | Tool Gateway, Tool Registry (`discover_mcp_server_tools`)                                |
-| `builtin` / Orthogonal | Platform catalog tools (attached by id, not created)             | Canonical Tool Model, house style for descriptions                                       |
+| Tool kind (`toolType`) | What it is                                                                            | Patterns it carries                                                                                                                      |
+| ---------------------- | ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `external`             | HTTP call defined by `url`, `method`, `headers`, `body` template                      | Tool Adapter, Secret Injection (`{{secret:KEY}}`), request mapping (the `body` template)                                                 |
+| `custom`               | Sandboxed code (JavaScript by default; TypeScript or Python in a sandbox environment) | Parameter Coercion, Response Shaper, Error Classification, Natural Identifier resolution; Tool Adapter when it opts into `networkAccess` |
+| `flow`                 | A saved flow exposed as one tool, run synchronously                                   | Task Bundle, Tool Chain, Compensation (per-step `errorHandling`), Response Shaper (`outputVariable`)                                     |
+| `subagent`             | Delegation to a saved or inline agent (`agentId` or `agent`)                          | Abstraction Ladder (the orchestrated rung), Scatter-Gather, Async Job (detached mode)                                                    |
+| `local`                | Executed by the client (browser widget or SDK caller)                                 | Confirmation Request, anything needing the user's environment                                                                            |
+| `mcp`                  | A tool discovered from an MCP server                                                  | Tool Gateway, Tool Registry (`discover_mcp_server_tools`)                                                                                |
+| `builtin` / Orthogonal | Platform catalog tools (attached by id, not created)                                  | Canonical Tool Model, house style for descriptions                                                                                       |
 
 An `external` tool returns the upstream response as-is; shape it in a `flow` tool
 (`api-call` step into `transform-data`) or in a downstream `transform-data` step. A
-`custom` tool has no network egress, so it cannot make the call itself. Long-running work is not
+`custom` tool can make the call itself only when it opts in: set `networkAccess` to an
+`allowedHostnames` list, and declare any managed secret in `secrets` so the code sends a
+phantom token that the egress proxy swaps for the real credential. Without
+`networkAccess`, a `custom` tool has no network egress. A `flow` tool returns the flow's terminal step output; set
+`config.outputVariable` to return one shaped variable instead. Long-running work is not
 a `flow` tool either: a `subagent` tool with `config.execution.mode: "detached"` returns
 a run handle, and `run_flow` with `async: true` returns an execution id (see
 `tool-design-execution`).
 
+`create_tool` also accepts `graphql`, but no executor runs that type: a call to a
+`graphql` tool fails with an unsupported-type error. Send a GraphQL query from an
+`external` tool with `method: "POST"` and the query in the `body` template.
+
 The MCP `create_tool` accepts `tool_type` in `flow`, `custom`, `external`, `graphql`,
 `mcp`, `local`, with `name`, `description`, `parameters_schema` (JSON Schema), and
-`config`. The REST API and SDKs (`POST /v1/tools`, spelled `toolType` and
-`parametersSchema`) accept the same set plus `subagent`; over MCP, delegate instead
-through the agent's `config.tools.subagentConfig`. `builtin` tools are never created;
-attach them by id through `config.tools.toolIds`. Iterate with `update_tool` and
-`get_tool`; read `get_platform_documentation(topic="external-tools")` and
+`config`. `name` is at most 100 characters and `description` at most 500 on create, so
+keep the description tight and put detail in parameter descriptions and error text. The
+REST API and SDKs (`POST /v1/tools`, spelled `toolType` and `parametersSchema`) accept
+the same set plus `subagent`. To delegate to agents over MCP, pick the route by need:
+
+- A fixed saved agent as a tool: wrap it in a flow with an `execute-agent` step and
+  register that flow with `tool_type: "flow"`. Agent ids are not valid tool ids.
+- Delegation the agent decides at run time: set the agent's
+  `config.tools.subagentConfig`, which gives it a `spawn_subagent` tool.
+
+`builtin` tools are never created; attach them by id through `config.tools.toolIds`.
+Iterate with `update_tool` and `get_tool`; read
+`get_platform_documentation(topic="external-tools")` and
 `get_platform_documentation(topic="limits")` before designing.
 
 ### What the platform enforces for you
@@ -175,24 +191,58 @@ attach them by id through `config.tools.toolIds`. Iterate with `update_tool` and
 - Credentials: `{{secret:KEY}}` references resolve server-side and are the only
   credential contract. Never collect secret values in chat; hand the user the intake
   URL from `get_secret_intake_manifest`.
-- Context injection: `hiddenParameterNames` strips parameters from the model-facing
-  schema and re-merges them from execution context.
+- Context injection: on runtime tools (an agent's `tools.runtimeTools` or
+  `/v1/dispatch`), `hiddenParameterNames` strips parameters from the model-facing schema
+  and fills them from execution variables. List `_endUser` or `_tenant` there to anchor
+  the verified caller identity so the model never supplies it. Saved tools created with
+  `create_tool` do not take this field. Names under `_internal` are rejected; use
+  `{{secret:KEY}}` for credentials.
+- Human-owned inputs: `config.elicit` on an `external` or `custom` tool pauses the run
+  for a form before approval and dispatch. Use it instead of letting the model invent
+  an argument that belongs to the person.
 - Permission gate: `config.tools.approval.require` pauses the run for a human on the
   listed tools; the agent's `_approvalReason` is display-only, never a control signal.
+  `approval.timeout` (default 5 min), `approval.requestReason`, and `approval.choices`
+  (`alwaysAllow`, `alwaysDeny`) shape the prompt. Approval covers only calls a model
+  chooses in an agent or prompt step. A flow `tool-call` step always runs, unattended.
+- Idempotency: set `idempotent: true` only on runtime tools that are safe to run twice,
+  such as reads or writes keyed by an idempotency key. When a turn is interrupted
+  mid-call, Runtype re-runs only those; any other call returns an "effects unknown,
+  verify before retrying" error instead of running twice. For MCP tools, declare
+  `readOnlyHint` or `idempotentHint` on the server; with neither, the tool is treated
+  as unsafe to re-run.
+- Files and media: a binary media part of 4 KB or more in a tool result is stored and
+  handed to the model as a `runtype-asset://` handle. Declare a parameter as
+  `{ "type": "string", "contentEncoding": "base64" }` to receive those bytes; Runtype
+  substitutes them before dispatch, so the model never re-emits the payload. This is
+  the Resource Reference pattern on Runtype.
 - Audit: every tool call is traced on the run and visible in Runs, Logs, and
   `trace_execution`.
-- Timeouts: a tool call is capped at 30 s; longer work moves to a flow step (5 min
-  step budget) or a subagent.
-- Tool count: 50 runtime tools per request; at 20 the `tool_search` meta-tool
-  activates and only a hot set is loaded each turn.
+- Timeouts: a runtime custom tool is limited to 30 s. A saved custom tool takes its own
+  `timeout` in milliseconds, up to 300 s in the tool editor. MCP tools default to 30 s
+  and can run up to 300 s only in background runs. A subagent tool defaults to 5 min.
+  Longer work belongs in an async flow run or a detached subagent.
+- Tool set controls: `maxToolCalls` bounds tool-call loops, and `toolCallStrategy` is
+  `auto`, `required`, or `none`. Do not set `perToolLimits`: it is retired, and an agent
+  that carries it is rejected. Bound the loop with `loopConfig.maxTurns` or
+  `loopConfig.maxCost`, or enforce a per-tool budget inside the tool. `codeModeConfig`
+  gives the agent a `code_mode` tool that chains a subset of its tools in sandboxed
+  code, an alternative to hand-built bundle and batch tools.
+- Tool count: 50 runtime tools per request. Tool search is on by default for multi-turn
+  agents at 20+ tools (inline tools defer behind `tool_search`, and
+  `tools.toolSearch.enabled: false` opts out). Single-turn agents send every tool on every
+  request, so keep sets small or split them across agents.
 - Save-time checks: `validate_flow` reports several checklist rows as stable codes
   (see `references/checklist.md`, "Checked for you on Runtype").
 
 ### The test loop
 
-1. `execute_tool` with the inputs an agent will plausibly send, including wrong ones,
+1. Read `validation.warnings` and `validation.recommendations` in the `create_tool` or
+   `update_tool` response. The save succeeds even when they are present, so no error
+   tells you to look.
+2. `execute_tool` with the inputs an agent will plausibly send, including wrong ones,
    and read the result and error as the model would.
-2. Wire it into an agent and run a realistic prompt with `execute_agent` or `dispatch`.
-3. When a real run misuses the tool, pin it: `add_eval_case_from_execution`, then
+3. Wire it into an agent and run a realistic prompt with `execute_agent` or `dispatch`.
+4. When a real run misuses the tool, pin it: `add_eval_case_from_execution`, then
    `run_eval_suite` after every description or schema change. Read
    `get_platform_documentation(topic="evals")` for tool-use eval layers.

@@ -142,6 +142,10 @@ it is not an approval authority.
 
 ## Conditional Detailed Guidance
 
+For interface/interaction work, compose `ui-ux-governance` and carry the accepted
+experience criteria and corresponding checks into affected tasks. Include API
+changes that alter visible states or recovery; keep backend-only work scoped.
+
 Read only the trigger-matched section of `expanded-planning-guidance.md`:
 
 - `## Baseline And Requirement Detail` when specific baseline acknowledgement

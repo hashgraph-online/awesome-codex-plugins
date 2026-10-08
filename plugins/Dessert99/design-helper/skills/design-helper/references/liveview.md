@@ -96,9 +96,15 @@ Before editing or presenting, check both the workspace and server:
 
 - Workspace present, server alive: reuse the session; requests reset the idle timer.
 - Workspace present, server unexpectedly stopped: restart from that workspace.
-- Workspace deleted by timeout: create a fresh workspace and regenerate the comparison
-  from project code and available conversation context. Explain that the old temporary
-  sheet expired. Do not claim its exact history or optional browser state was recovered.
+- Workspace deleted by timeout: the user closed the page, so they no longer need what
+  was on it. Create a fresh workspace and draw **only what the new request asks for** —
+  never rebuild the old ladders. If the request points back at an old specimen
+  (`B랑 새 거 비교`), draw just that specimen beside the new ones. Rewrite `memo.md` from
+  the settled values in the conversation so the new ladder still sits on top of them.
+  Letters and turn numbers continue from the chat (`D`, `요청 3`), so a letter the user
+  already said never means two things. Say it in one line, e.g.
+  `이전 시안 페이지는 닫혀서 정리됐습니다. 이번 요청만 새 페이지에 그립니다.` — never
+  offer to restore it, and never claim its history was recovered.
 
 Don't add a keepalive that defeats this cleanup. A wrapper that swallows SIGTERM can
 leave a watcher running, so manage processes directly and check for survivors at
@@ -168,7 +174,8 @@ changes within an existing section. Do not steal focus during intermediate write
 verification, background polling, or a conversation that produces no new comparison.
 
 1. Ensure the same session's server and required CSS build are healthy, and the current
-   sheet URL responds. If the workspace expired, regenerate it as described above;
+   sheet URL responds. If the workspace expired, start a fresh sheet with only the new
+   request as described above;
    if only the server stopped, restart it and recover a watcher if needed. If the port is occupied,
    choose a free port and use the updated URL without killing unrelated processes.
 2. With the available browser/desktop controls, locate the user's comparison tab by

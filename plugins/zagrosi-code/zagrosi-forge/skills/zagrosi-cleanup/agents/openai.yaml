@@ -1,0 +1,5 @@
+interface:
+  display_name: "Forge Cleanup"
+  short_description: "Remove code clutter while preserving behavior"
+  brand_color: "#0F766E"
+  default_prompt: "Use $zagrosi-forge:zagrosi-cleanup to simplify this code, fix mixed responsibilities, and verify that existing behavior still works."

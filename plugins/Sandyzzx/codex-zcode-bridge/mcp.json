@@ -1,0 +1,14 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "zcode_bridge": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["./dist/bridge.mjs"],
+      "cwd": "./",
+      "env": {
+        "ZCODE_BRIDGE_PLUGIN_MODE": "1"
+      }
+    }
+  }
+}

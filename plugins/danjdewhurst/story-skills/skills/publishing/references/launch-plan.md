@@ -53,6 +53,33 @@ A common print setup uses KDP for Amazon and IngramSpark for everywhere
 else, with separate ISBNs or the same author-owned ISBN; check each
 platform's current rules for sharing an ISBN.
 
+### Outside the US and UK
+
+The table above reflects the English-language self-publishing market.
+Where the book's readers live, and what language it is in, change the
+routes:
+
+- **Amazon** publishes to its country stores (Germany, France, Spain,
+  Italy, Japan, Brazil, Mexico, and others) through the same KDP account,
+  but supports only some languages. Check KDP's current list of supported
+  languages for the book's `language` before planning around it.
+- **Kobo Writing Life** reaches Kobo and the partner stores Kobo supplies
+  in several countries.
+- **tolino media** publishes to the tolino stores in German-speaking
+  countries (such as Thalia and Hugendubel).
+- **Subscription services** (Storytel, BookBeat, Nextory) are a large
+  share of ebook and audiobook reading in the Nordic countries and reach
+  other markets; most take books through aggregators.
+- **Regional aggregators and distributors** serve markets the US
+  aggregators reach poorly. Ask the author what authors publishing in
+  their language use, and check each one's current store list.
+
+Some countries fix book prices by law (Germany and France among them,
+for print and ebooks): the publisher sets one price that every retailer
+charges, which changes how launch discounts and price promotions work.
+Check the rules with the distributor or an author organization in that
+market.
+
 ### Exclusivity
 
 - **KDP Select / Kindle Unlimited:** the ebook must be exclusive to Amazon
@@ -84,7 +111,9 @@ There is no formula. Weigh:
 - **Series strategy:** a lower-priced or free first book can feed later
   books; it only pays if read-through is real. Track it.
 - **Territories:** set local prices rather than accepting automatic
-  conversion (a converted price like 4.37 looks odd).
+  conversion (a converted price like 4.37 looks odd). Where the law fixes
+  book prices, one price applies at every retailer; see Outside the US
+  and UK.
 - **Launch pricing:** a discounted launch or preorder price can help
   rank; plan when it ends.
 - Taxes (VAT, sales tax, withholding) affect list prices and income. That

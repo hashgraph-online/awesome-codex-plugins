@@ -10,15 +10,15 @@ argument-hint: "[URL]"
 
 Run a comprehensive technical SEO audit that covers the infrastructure and code-level factors that affect search engine crawling, indexation, and ranking. This audit focuses on the technical foundation rather than content or backlinks. Produces a prioritized report with specific fixes, expected impact, and implementation guidance.
 
-### Important — technical SEO during the May 2026 Core Update
+### Technical SEO and algorithm updates
 
-> **Time-boxed guidance — valid until ~2026-08.** This block is specific to the May 2026 Core Update window. After ~August 2026 it is stale: re-check the [Google Search Status Dashboard](https://status.search.google.com/) for the current/most-recent core update and its dates before applying the timing advice below.
+**Status as of 2026-10-04 (time-boxed — re-check after ~2026-12):** per the [Google Search Status Dashboard](https://status.search.google.com/summary), the most recent **core** update began **21 May 2026** (completed after ~12 days). Since then Google has run only **spam** updates: the **August 2026 spam update** (18–21 Aug) and the **September 2026 spam update** (started 24 Sep; not yet marked complete on 2026-10-04). **There was no September 2026 core update** — several SEO blogs reported one; the dashboard lists none. Attribute only to updates the dashboard lists. Separately, Google's **site reputation abuse** policy has split at the EEA border since 30 Aug 2026: outside the EEA a manual action demotes the affected section; inside the EEA the section is separated and ranks on its own instead ([Search Central](https://developers.google.com/search/blog/2026/08/update-site-reputation-policy)) — word audit findings on third-party/"parasite" sections per region.
 
-The Google **broad core update that started 21 May 2026** is primarily a quality/relevance reweighting, not a technical signal change. If a brand contacts you about ranking volatility in May/June 2026:
+Algorithm updates are quality/policy reweightings, not technical signal changes. When a brand asks about ranking volatility that coincides with a listed update:
 
-- **Run this audit anyway** — Core Updates frequently surface pre-existing technical debt because relative quality matters more during reweighting. Crawl-budget waste on low-quality pages, broken canonical chains, soft-404s, and orphaned JS-rendered routes all amplify Core Update damage.
-- **Resist crawler/rendering "fixes" pitched as Core Update remedies.** No technical change will undo a Core Update hit if the underlying content quality issue isn't addressed. Pair this audit with `/digital-marketing-pro:seo-audit` (content/E-E-A-T side) — both are needed.
-- **Hreflang, structured data, and Core Web Vitals carry their normal weight** — the update did not change technical priorities, only how much E-E-A-T deficits hurt.
+- **Run this audit anyway** — updates surface pre-existing technical debt because relative quality matters more during reweighting. Crawl-budget waste on low-quality pages, broken canonical chains, soft-404s, and orphaned JS-rendered routes all amplify the damage.
+- **Resist crawler/rendering "fixes" pitched as update remedies.** No technical change undoes a quality or spam-policy hit if the underlying issue isn't addressed. Pair this audit with `/digital-marketing-pro:seo-audit` (content/E-E-A-T side) — both are needed.
+- **Hreflang, structured data, and Core Web Vitals carry their normal weight.** Two structured-data notes from Google's docs changelog: `VideoObject` gained a `creator` property (24 Sep 2026), and review snippets got a guideline against fake and undisclosed incentivised reviews (24 Jul 2026) ([Search Central updates](https://developers.google.com/search/updates)).
 
 ## Input Required
 

@@ -25,11 +25,25 @@ updates:
     directory: /integrations/nextjs-starter
     schedule:
       interval: monthly
+    ignore:
+      # Next's TypeScript parser and React lint plugin do not support these majors.
+      - dependency-name: typescript
+        versions: [">=7"]
+      - dependency-name: eslint
+        versions: [">=10"]
     groups:
       npm:
         patterns: ["*"]
   - package-ecosystem: npm
     directory: /integrations/storybook
+    # Retain the validated compiler and React lint-plugin toolchain.
+    ignore:
+      - dependency-name: typescript
+        versions: [">=7"]
+      - dependency-name: eslint
+        versions: [">=10"]
+      - dependency-name: "@eslint/js"
+        versions: [">=10"]
     schedule:
       interval: monthly
     groups:

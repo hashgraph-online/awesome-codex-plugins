@@ -43,7 +43,9 @@ bolt on a second pipeline.
    - [ ] Bundle size: within limits, no large accidental assets
    - [ ] Offline behavior: handles no-network gracefully
 6. **iOS submission** — `fastlane deliver`/`pilot`: TestFlight (internal → external) →
-   App Store review. (gate: metadata complete; privacy manifests present)
+   App Store review. Before external testing, provide TestFlight test information and submit
+   the first build for TestFlight App Review; testing starts after approval. Later builds
+   for the same version may also require review. (gate: metadata complete; privacy manifests present)
 7. **Android submission** — `fastlane supply` with a Play service-account JSON:
    internal → closed/open beta → staged production rollout starting at 5-10%.
    (gate: data safety form complete; crash rate stable)

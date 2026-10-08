@@ -45,7 +45,8 @@ hold only reader feedback files and the synthesis.
 **Book:** {genre, category (adult/YA/MG), form, word count}
 **Logline:** {one sentence}
 **What you are receiving:** {chapters or full manuscript; format: DOCX / HTML review copy}
-**Deadline:** {date}   **Fee:** {agreed fee and payment terms}
+**Deadline:** {date}
+**Fee:** {agreed fee and payment terms}
 
 ## Why I am asking you
 {The portrayal in question and why the author is outside it.}

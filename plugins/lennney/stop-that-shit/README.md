@@ -104,7 +104,7 @@ await writeFile("report.csv", csv);
 <details>
 <summary>Claude Code</summary>
 
-下载并解压 [0.2.3 源码](https://github.com/lennney/stop-that-shit/archive/refs/tags/0.2.3.zip)，在仓库根目录执行：
+下载并解压 [0.2.4 源码](https://github.com/lennney/stop-that-shit/archive/refs/tags/0.2.4.zip)，在仓库根目录执行：
 
 ```bash
 claude plugin validate .
@@ -124,7 +124,7 @@ claude plugin install stop-that-shit@stop-that-shit
 <summary>Codex</summary>
 
 ```bash
-codex plugin marketplace add lennney/stop-that-shit --ref 0.2.3
+codex plugin marketplace add lennney/stop-that-shit --ref 0.2.4
 codex plugin add stop-that-shit@stop-that-shit
 ```
 
@@ -187,6 +187,22 @@ pi install /absolute/path/to/stop-that-shit
 
 </details>
 
+<details>
+<summary>Oh My Pi（未发布候选）</summary>
+
+已在 `@oh-my-pi/pi-coding-agent` `18.4.4` 验证独立 Extension。
+当前公开版 `0.2.4` 尚未包含 OMP；从包含该候选的本地 checkout 启动：
+
+```bash
+omp -e /absolute/path/to/stop-that-shit/omp/stop-that-shit.ts --skills /absolute/path/to/stop-that-shit/skills --sts-contract "review agents=0 -- inspect"
+```
+
+确认扩展加载后，发送 `/sts change -- ...` 切换模式，`/sts status` 查看合同。
+该原生命令也用于 RPC。TUI 还支持首行 `$stop-that-shit` 指令。
+详见 [INSTALL.md](INSTALL.md#oh-my-pi-unreleased-candidate)。
+
+</details>
+
 ## 使用
 
 在 Codex 或支持宿主无关指令的 prompt 中，把一条指令放在消息首个非空行，不要包在引用或代码块里。用 `--` 分隔任务正文：
@@ -234,7 +250,7 @@ Guard 不会看到 `cache`、`retry` 或 `migration` 就替你断定它们多余
 
 ## 可选：Stop That Shit Slop（别再废话）
 
-Agent 活干完了，嘴还没停。STSS 删掉无用辩护、收紧重复犹豫，保留影响决定的条件。这是固定离线案例中的一组：
+Agent 活干完了，嘴还没停。STSS 删掉无用辩护、收紧重复犹豫，保留影响理解与决定的条件。它也用于文章和图注，处理起草时附加的防御性说明。这是固定离线案例中的一组：
 
 ```text
 输入：我们也许大概有可能在六到八周内完成迁移，具体取决于访问审批。
@@ -258,7 +274,7 @@ npx skills add ./skills/stss --global
 | Claude Code 单独 Skill | `/stss rewrite -- ...` | `/stss audit -- ...` |
 | Pi | `/skill:stss rewrite -- ...` | `/skill:stss audit -- ...` |
 
-完整方法见 [STSS Skill](skills/stss/SKILL.md)，六组案例和必须保留的反例见 [STSS examples](skills/stss/references/examples.md)。
+完整方法见 [STSS Skill](skills/stss/SKILL.md)，成对案例和必须保留的反例见 [STSS examples](skills/stss/references/examples.md)。
 
 ## FAQ
 

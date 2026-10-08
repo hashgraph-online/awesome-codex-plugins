@@ -1,0 +1,44 @@
+{
+  "name": "fxmacrodata",
+  "version": "1.0.0",
+  "description": "Official-source FX, macroeconomic and central-bank data: release calendars, indicator histories, policy rates, FX rates, COT positioning and commodities across 22 currencies.",
+  "author": {
+    "name": "FXMacroData",
+    "email": "info@fxmacrodata.com",
+    "url": "https://fxmacrodata.com"
+  },
+  "homepage": "https://fxmacrodata.com/documentation/mcp-server",
+  "repository": "https://github.com/fxmacrodata/claude-plugin-fxmacrodata",
+  "license": "MIT",
+  "keywords": [
+    "fxmacrodata",
+    "forex",
+    "macroeconomics",
+    "central-banks",
+    "economic-calendar",
+    "inflation",
+    "interest-rates",
+    "mcp"
+  ],
+  "mcpServers": "./.mcp.json",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "FXMacroData",
+    "shortDescription": "Official macro releases, central-bank rates, release calendars and FX rates",
+    "longDescription": "Connects Codex to the hosted FXMacroData MCP server: indicator histories and latest prints with release timestamps and source links, scheduled release calendars, policy rates, FX rates, COT positioning and commodities for 22 currencies. USD data works without an API key.",
+    "developerName": "FXMacroData",
+    "category": "Research",
+    "capabilities": [
+      "Read"
+    ],
+    "websiteURL": "https://fxmacrodata.com",
+    "brandColor": "#05131D",
+    "composerIcon": "./assets/composer-icon.png",
+    "logo": "./assets/icon.png",
+    "defaultPrompt": [
+      "What US data is due this week?",
+      "Show the last 12 months of US core CPI with release dates.",
+      "How has the Fed funds rate moved this year?"
+    ]
+  }
+}

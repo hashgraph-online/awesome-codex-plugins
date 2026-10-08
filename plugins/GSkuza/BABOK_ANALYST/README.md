@@ -5,7 +5,7 @@
 
 An AI agent for professional business analysis compliant with **BABOK v3** (International Institute of Business Analysis) standard. Guides the analyst through a structured **9-stage** flow - from Stage 0 project charter to Stage 8 business case and ROI.
 
-**Current version:** 2.2.8 | **Plugin install:** Claude Code, Codex, Copilot CLI
+**Current version:** 2.4.0 | **Plugin install:** Claude Code, Codex, Copilot CLI
 
 ## What is BABOK Analyst?
 
@@ -207,7 +207,7 @@ The bundled Next.js UI provides a lightweight review layer over the shared proje
 
 - **Dashboard**: server-rendered project cards with progress bars and approval counts
 - **Project view**: stage list, overall progress, and ZIP export
-- **Stage view**: AI-guided interview, generated deliverable drafts, Mermaid diagrams, quality score badge, and approve/reject controls
+- **Stage view**: AI-guided interview that starts from the earlier stages' deliverables (it never re-asks what they already establish, and it carries later-stage details forward instead of eliciting them), generated deliverable drafts, Mermaid diagrams, quality score badge, approve/reject controls, and an **Open revision to edit** action that reopens an approved stage (Two-Key Journal `revision_open`) so the interview/regeneration flow can complete or fix an incomplete deliverable without leaving the browser
 - **AI settings**: configure encrypted provider API keys, list the models each key can access, and route models per profile and per stage (temperature, reasoning effort, fallback chains across every configured key)
 - **Export endpoint**: project ZIP download via `web/app/api/projects/[id]/export/route.ts`, with Windows-compatible archive creation
 

@@ -11,6 +11,8 @@ triggers:
   - 需要明确目标用户时
   - 需要理解用户行为和场景时
   - 设计用户体验流程时
+metadata:
+  internal: true
 ---
 
 # 用户研究方法论

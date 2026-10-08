@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">Anime Reaction GIF</title>
+  <rect width="512" height="512" rx="112" fill="#f9dccb"/>
+  <rect x="74" y="94" width="278" height="290" rx="48" fill="#a4bed8" transform="rotate(-9 213 239)"/>
+  <rect x="128" y="116" width="296" height="304" rx="48" fill="#fff8f1" stroke="#507596" stroke-width="16"/>
+  <path d="M171 208 184 149 229 191M323 191 368 149 382 208" fill="#a4bed8" stroke="#507596" stroke-width="12" stroke-linejoin="round"/>
+  <path d="M165 246c0-61 45-84 111-84s111 23 111 84c0 63-49 109-111 109s-111-46-111-109Z" fill="#a4bed8"/>
+  <path d="M186 251c19-7 33-25 41-44 21 28 60 37 107 29l33 13v35c0 45-39 76-91 76s-90-31-90-76Z" fill="#fff1df"/>
+  <path d="M216 277q17-19 34 0M303 277q17-19 34 0M255 307q21 21 42 0" fill="none" stroke="#3e607d" stroke-width="13" stroke-linecap="round"/>
+  <ellipse cx="211" cy="300" rx="18" ry="10" fill="#efaaa1"/>
+  <ellipse cx="343" cy="300" rx="18" ry="10" fill="#efaaa1"/>
+  <circle cx="380" cy="384" r="62" fill="#a7d3bc" stroke="#fff8f1" stroke-width="12"/>
+  <path d="m367 356 38 28-38 28Z" fill="#345a68" stroke="#345a68" stroke-width="7" stroke-linejoin="round"/>
+</svg>

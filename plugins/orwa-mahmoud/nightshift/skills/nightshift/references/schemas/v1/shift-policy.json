@@ -248,7 +248,7 @@
             "host-grant",
             "host-default"
           ],
-          "description": "inherit-recorded-scope revives a session with the permissions the shift was started under, as they were recorded when it armed. It is the shipped choice, and it never widens what the original session had: where the scope could not be recorded, revival falls back to the host's own default and says so rather than reaching for more. host-grant starts a revived session with the documented grant for that host — on Codex danger-full-access, on Cursor --trust --yolo — which is broader than a restricted session had and is only ever used because the owner wrote it here. host-default adds no permission argument at all. Claude Code inherits its own launch in every case. The scope in force is named in the shift log on every revival, and a failed revival is retried at the same scope, never a broader one."
+          "description": "inherit-recorded-scope restores a recorded restricted Codex sandbox (read-only or workspace-write). Missing or unsupported scopes refuse recovery. host-default adds no permission arguments and uses independently configured host permissions, without promising the original session scope. Legacy host-grant is retained for compatibility but refuses recovery. Nightshift never writes host permission settings or adds bypass flags. Each revival logs its scope and retries at the same scope."
         }
       }
     },

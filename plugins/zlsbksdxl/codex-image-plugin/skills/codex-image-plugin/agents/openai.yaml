@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codex Image Plugin"
+  short_description: "Generate and edit images with any compatible image API"
+  default_prompt: "Use $codex-image-plugin with this image API URL and key to list models, generate an image, or edit a reference image."

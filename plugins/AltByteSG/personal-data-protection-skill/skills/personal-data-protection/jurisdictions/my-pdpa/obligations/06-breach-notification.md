@@ -1,6 +1,6 @@
 # Data Breach Notification — s12B (new 2024)
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 
 s12B was inserted by Act A1727 (effective **1 June 2025**) and is the first time MY PDPA has had a statutory breach-notification obligation. The statute sets the standard (*"as soon as practicable"*) and the JPDP **Personal Data Protection Guideline on Data Breach Notification** (issued 25 February 2025, effective 1 June 2025) operationalises it as a **72-hour Commissioner notification** + **7-day affected-individual notification**. The Guideline is binding for compliance assessment.
 

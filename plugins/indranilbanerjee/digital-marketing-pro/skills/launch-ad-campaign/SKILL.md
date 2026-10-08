@@ -18,6 +18,23 @@ Create and launch a paid advertising campaign on the specified ad platform with 
 3. Never proceed on ambiguous input. Never auto-retry a failed execution; a failure needs human review before any re-run.
 4. Record the approval with `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action create-approval --data '{"risk_level":"<tier>","summary":"..."}'` **before** executing, then `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action mark-executed --id {approval_id}` after the platform confirms success.
 
+## Executing through the official ad-platform MCP servers (checked 2026-10-04)
+
+The platforms now publish their own MCP servers (catalog: `.mcp.json.connectors-reference`; details and sources: `CONNECTORS.md` → "Official ad-platform and CRM MCP servers"). None is active by default. They change **how** step 12 runs, never **whether** the gate above runs.
+
+| Server | What DMP may do through it |
+|---|---|
+| `meta-ads` — Meta Ads AI Connectors, `https://mcp.facebook.com/ads` (open beta) | Create campaigns, ad sets and ads, set status, read results; catalogs and signal checks |
+| `amazon-ads-mcp` — Amazon Ads MCP Server (open beta, partners with API credentials) | Create and update campaigns, read reports. **Never delete**, even though the server can |
+| `google-ads-mcp` — Google's open-source server | **Read only.** Use it for step 13 (verify the campaign exists with the right settings) and for pacing reports. Google: it "cannot modify bids, pause campaigns, or create new assets". It cannot create or launch anything |
+
+Rules that apply to every write through these servers:
+1. **The typed approval gate comes first.** Execution Summary → the user types `yes` → `approval-manager.py --action create-approval` → only then the tool call → `approval-manager.py --action mark-executed` after the platform confirms. A tool's own confirmation prompt does not replace this gate.
+2. **Create PAUSED by default.** Every new campaign, ad set/ad group and ad is created with status `PAUSED`, set explicitly in the tool call; don't rely on a server default. Ignore the user preference in step 12 for creation — creation is always PAUSED.
+3. **Going live is a second, separately approved write.** Show a short activation summary (what turns on, daily spend, start time), get a fresh typed `yes`, record a new approval, then switch to ACTIVE (or schedule the start date). `/digital-marketing-pro:doctor` / `connector_resolver.py` reports this as the `launch-ads` action with `create_status: PAUSED`.
+4. **Read-only servers never take writes.** The resolver skips any connector whose registry `access` is `read-only` for write actions. If only `google-ads-mcp` is connected, a Google launch stays manual (or uses a write-capable connector) — say so, don't improvise.
+5. **Log both writes** (creation and activation) with `execution-tracker.py`, including the approval ids.
+
 ## Input Required
 
 The user must provide (or will be prompted for):
@@ -50,7 +67,10 @@ The user must provide (or will be prompted for):
 9. **Apply negative targeting**: Configure negative keywords for Search campaigns, placement exclusions for Display and Video, and audience exclusions to prevent overlap and wasted spend. Include brand safety exclusion lists if defined in brand guidelines.
 10. **Create approval record**: Create the record via `approval-manager.py --action create-approval` with the risk level inside the `--data` JSON — `{"risk_level":"high",...}` (use `"critical"` if daily budget exceeds $1,000). There is no `--risk-level` flag; see the Execution gate above for the exact command. Generate a campaign summary with projected reach, estimated cost per result, targeting details, creative preview, budget safeguard verification, and compliance status.
 11. **Present detailed campaign summary**: Display the complete campaign configuration for user review — platform, objective, budget with safeguard status, audience size estimates per ad group, creative preview with quality scores, bid strategy and caps, projected reach and cost range, and compliance checklist. Wait for explicit approval.
-12. **Execute campaign creation via MCP**: On approval, create the campaign through the connected ad platform MCP server. Set campaign status per user preference — active (launch immediately), paused (review in platform before activating), or scheduled (activate on start date).
+12. **Execute campaign creation via MCP**: On approval, create the campaign through the connected ad platform MCP server **with status PAUSED** (all new campaigns, ad sets/ad groups and ads). Then apply the user's launch preference as a second, separately approved write (see "Executing through the official ad-platform MCP servers"):
+    - **active**: activate now, after a fresh typed `yes`
+    - **paused**: leave it for review in the platform
+    - **scheduled**: activate on the start date
 13. **Verify campaign status**: After creation, query the platform API to confirm the campaign exists with correct settings, is in the requested status, has no policy violations or ad disapprovals, and that conversion tracking is firing correctly on test events.
 14. **Set up monitoring schedule**: Define a post-launch monitoring cadence — check performance at 4 hours, 24 hours, 48 hours, and 7 days. Set alert thresholds for CPC, CPM, CTR, conversion rate, cost per conversion, and daily spend pacing. Define escalation triggers for budget pacing anomalies or sudden performance drops.
 15. **Log execution**: Run `execution-tracker.py` to log the campaign launch with timestamp, platform, campaign ID, budget details, targeting summary, creative asset references, bid strategy, and monitoring schedule.

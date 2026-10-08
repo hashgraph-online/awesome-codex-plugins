@@ -135,6 +135,13 @@ bunx shadcn@4.18.0 view Xquik-dev/x-twitter-scraper/x-twitter-scraper
 bunx shadcn@4.18.0 add Xquik-dev/x-twitter-scraper/x-twitter-scraper
 ```
 
+To move app code off the official X API, add the
+[X API alternative Skill](https://github.com/Xquik-dev/x-api):
+
+```bash
+bunx skills@1.5.3 add Xquik-dev/x-api
+```
+
 ### LobeHub
 
 Use LobeHub CLI 0.0.48 or later. Sign in, install the Skills, then confirm them:
@@ -177,6 +184,7 @@ The command discovers `x-twitter-scraper`, `xquik-mcp`, and `xquik-social-resear
 | Tweets | Lookup, batch lookup, search, timelines, replies, quotes, threads, likes, reposts, and media |
 | Profiles | Lookup, batch lookup, search, followers, following, relationships, account details, and availability |
 | Other X data | Lists, communities, trends, Spaces, articles, bookmarks, notifications, and supported feeds |
+| AI analysis | Sentiment, brand mentions, news classification, market signals, viral score, and your own labels, at 2 credits per analyzed post |
 | Bulk work | 23 extraction types, estimates, result caps, multi-target jobs, cursor pages, and exports |
 | Monitoring | Account monitors, keyword monitors, stored events, and signed webhooks |
 | Delivery | JSON, CSV, Markdown, PDF, TXT, XLSX, API pages, and webhook events |
@@ -452,7 +460,7 @@ Create webhooks with an HTTPS `url` and `eventTypes`. Store the HMAC secret when
 created. Verify `X-Xquik-Timestamp`, `X-Xquik-Nonce`, and
 `X-Xquik-Signature`. Use event cursors to recover after downtime.
 
-Read the [webhook guide](skills/x-twitter-scraper/references/monitor-twitter-webhooks.md).
+Read the [webhook guide](skills/x-twitter-scraper/references/monitors-webhooks.md).
 
 ## Account and agent safety
 
@@ -550,8 +558,8 @@ Get qualified advice for regulated, sensitive, or unclear work.
 - [Billing](https://docs.xquik.com/guides/billing)
 - [Extraction workflow](https://docs.xquik.com/guides/extraction-workflow)
 - [MCP](https://docs.xquik.com/mcp/overview)
-- [112-question X API guide](skills/x-twitter-scraper/references/twitter-api-alternative-faq.md)
-- [Security guidance](skills/x-twitter-scraper/references/security.md)
+- [X API request guide](skills/x-twitter-scraper/references/reads.md)
+- [Security guidance](skills/x-twitter-scraper/SKILL.md#keep-accounts-and-money-safe)
 
 ## License
 

@@ -1,6 +1,6 @@
 # Vietnam PDPL — Jurisdiction Notes
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 
 | | |
 |---|---|
@@ -15,7 +15,7 @@
 
 > **Translation caveat:** the binding texts of Law 91/2025/QH15 and Decree 356/2025/NĐ-CP are the original **Vietnamese** versions. No official English translation was available at the last verification date. For the **Law**, the commercial database thuvienphapluat publishes an English rendering, but the accessible export is partial — 36 passages across 29 of the 39 articles are replaced by a subscription prompt, including every engineering-critical article. For the **Decree**, no English rendering was available at all. The content here is therefore based on the maintainer's reading of the **original Vietnamese text of both instruments**; English phrasing of Decree provisions, and of the redacted parts of the Law, is the maintainer's own unofficial translation. **In any conflict, the Vietnamese original wins.** Load-bearing Vietnamese terms are given in the original alongside the rendering. Use this as a starting framework; verify specific provisions against the Vietnamese text and consult a qualified Vietnamese privacy lawyer for binding interpretation.
 >
-> **Source copyright:** Vietnamese legal instruments are published by the State in Công báo and on government portals. The copies consulted here were exports from the **commercial legal databases** thuvienphapluat.vn and luatvietnam.vn, which apply their own subscription terms to their compilations and translations — a different posture from the government-published sources used for Singapore, Thailand and Indonesia. Verbatim quotations in this skill are short operative phrases in the original Vietnamese, reproduced with attribution for educational and engineering reference under fair-dealing principles — they are **not** licensed under this repository's MIT licence, and the English renderings are the maintainer's own. See [DISCLAIMER.md § Copyright in source materials](../../../../DISCLAIMER.md#copyright-in-source-materials).
+> **Source copyright:** Vietnamese legal instruments are published by the State in Công báo and on government portals. The copies consulted here were exports from the **commercial legal databases** thuvienphapluat.vn and luatvietnam.vn, which apply their own subscription terms to their compilations and translations — a different posture from the government-published sources used for Singapore, Thailand and Indonesia. Verbatim quotations in this skill are short operative phrases in the original Vietnamese, reproduced with attribution for educational and engineering reference under fair-dealing principles — they are **not** licensed under this repository's MIT licence, and the English renderings are the maintainer's own. See [DISCLAIMER.md § Copyright in source materials](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md#copyright-in-source-materials).
 
 ## Critical thresholds
 

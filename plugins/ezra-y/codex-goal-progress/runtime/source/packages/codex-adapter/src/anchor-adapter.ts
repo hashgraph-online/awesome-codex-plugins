@@ -57,8 +57,142 @@ export interface CodexNativeGoalLocator {
   readonly id: string;
   readonly platform: CodexAnchorPlatform;
   readonly verifiedVersions: ReadonlySet<string>;
-  locate(document: Document): NativeGoalLocationResult;
-  findFloatingObstacles?(document: Document): readonly HTMLElement[];
+  locate(document: Document, page?: CurrentCodexPage): NativeGoalLocationResult;
+  findFloatingObstacles?(document: Document, page?: CurrentCodexPage): readonly HTMLElement[];
+}
+
+export interface CurrentCodexPage {
+  readonly surface: ParentNode | null;
+  readonly composer: HTMLElement | null;
+  readonly textbox: HTMLElement | null;
+  readonly composerCount: number;
+  readonly textboxCount: number;
+  readonly rejectionReason: CodexAnchorRejectionReason | null;
+  readonly threadId: string | null;
+  readonly hostId: string | null;
+  readonly threadCandidateCount: number;
+  readonly threadRejectionReason: Exclude<
+    CodexVisibleThreadRejectionReason,
+    "visible-thread-mismatch"
+  > | null;
+}
+
+// 此函数完整携带依赖，CDP 可以直接序列化后在页面执行。
+export function readCurrentCodexPage(document: Document): CurrentCodexPage {
+  const visibility = {
+    exposed(element: HTMLElement): boolean {
+      for (let current: HTMLElement | null = element; current; current = current.parentElement) {
+        const style = document.defaultView?.getComputedStyle(current);
+        if (
+          current.hasAttribute("hidden") ||
+          current.hasAttribute("inert") ||
+          current.getAttribute("aria-hidden") === "true" ||
+          style?.display === "none" ||
+          style?.visibility === "hidden" ||
+          style?.visibility === "collapse"
+        )
+          return false;
+      }
+      return true;
+    },
+  };
+  const surfaces = Array.from(
+    document.querySelectorAll<HTMLElement>("[data-app-shell-page-surface]"),
+  );
+  const exposed = surfaces.filter(visibility.exposed);
+  const active = exposed.filter(
+    (surface) => !exposed.some((other) => other !== surface && surface.contains(other)),
+  );
+  const surface = active.length === 0 ? document : active.length === 1 ? (active[0] ?? null) : null;
+  const composers = Array.from(
+    (surface ?? document).querySelectorAll<HTMLElement>("[data-codex-composer-root]"),
+  ).filter(visibility.exposed);
+  const composer = surface && composers.length === 1 ? (composers[0] ?? null) : null;
+  const textboxes = Array.from(
+    composer?.querySelectorAll<HTMLElement>('[role="textbox"][data-codex-composer]') ?? [],
+  ).filter(visibility.exposed);
+  const textbox = textboxes.length === 1 ? (textboxes[0] ?? null) : null;
+  const rejectionReason =
+    active.length > 1 || composers.length > 1
+      ? "composer-root-ambiguous"
+      : !composer
+        ? "composer-root-missing"
+        : textboxes.length > 1
+          ? "composer-textbox-ambiguous"
+          : !textbox
+            ? "composer-textbox-missing"
+            : null;
+  // 侧栏折叠和离屏仍保留身份；仅排除属于隐藏缓存页面的任务行。
+  const rows = Array.from(
+    document.querySelectorAll<HTMLElement>("[data-app-action-sidebar-thread-row]"),
+  ).filter((row) => {
+    for (let current: HTMLElement | null = row; current; current = current.parentElement) {
+      if (current.hasAttribute("data-app-shell-page-surface") && !visibility.exposed(current))
+        return false;
+    }
+    return (
+      row.getAttribute("aria-current") === "page" &&
+      row.getAttribute("data-app-action-sidebar-thread-active") === "true" &&
+      row.getAttribute("data-app-action-sidebar-thread-selected") === "true"
+    );
+  });
+  const identities = new Map<string, { threadId: string; hostId: string }>();
+  let invalidId = false;
+  for (const row of rows) {
+    const raw = row.getAttribute("data-app-action-sidebar-thread-id");
+    const hostId = row.getAttribute("data-app-action-sidebar-thread-host-id") ?? "";
+    const threadId = hostId && raw?.startsWith(`${hostId}:`) ? raw.slice(hostId.length + 1) : raw;
+    if (!threadId || threadId.length > 256) {
+      invalidId = true;
+      continue;
+    }
+    identities.set(JSON.stringify([hostId, threadId]), { hostId, threadId });
+  }
+  let identity = identities.size === 1 ? identities.values().next().value : undefined;
+  let threadRejectionReason: CurrentCodexPage["threadRejectionReason"] =
+    identities.size > 1
+      ? "visible-thread-marker-ambiguous"
+      : invalidId
+        ? "visible-thread-id-missing"
+        : rows.length === 0
+          ? "visible-thread-marker-missing"
+          : null;
+  if (identity?.threadId.startsWith("client-new-thread:") || rows.length === 0) {
+    const main = Array.from(
+      surface?.querySelectorAll<HTMLElement>(
+        '[data-app-shell-main-content-layout="thread-edge-scroll"]',
+      ) ?? [],
+    ).filter(visibility.exposed);
+    const ids = new Set(
+      Array.from(
+        main.length === 1
+          ? (main[0]?.querySelectorAll<HTMLElement>("[data-response-annotation-conversation]") ??
+              [])
+          : [],
+      )
+        .filter(visibility.exposed)
+        .map((element) => element.getAttribute("data-response-annotation-conversation"))
+        .filter(
+          (id): id is string => !!id && id.length <= 256 && !id.startsWith("client-new-thread:"),
+        ),
+    );
+    const threadId = ids.size === 1 ? ids.values().next().value : undefined;
+    identity = threadId ? { hostId: identity?.hostId ?? "", threadId } : undefined;
+    if (identity) threadRejectionReason = null;
+    else if (rows.length > 0) threadRejectionReason = "visible-thread-id-missing";
+  }
+  return {
+    surface,
+    composer,
+    textbox,
+    composerCount: composers.length,
+    textboxCount: textboxes.length,
+    rejectionReason,
+    threadId: threadRejectionReason === null ? (identity?.threadId ?? null) : null,
+    hostId: threadRejectionReason === null ? (identity?.hostId ?? null) : null,
+    threadCandidateCount: identities.size || (identity ? 1 : rows.length),
+    threadRejectionReason,
+  };
 }
 
 interface LocatedGoalAnchor {
@@ -129,12 +263,17 @@ function readGoalTitleFontWeight(document: Document, goalButton: HTMLElement): n
   return Number.isFinite(fontWeight) && fontWeight >= 1 && fontWeight <= 1_000 ? fontWeight : null;
 }
 
-function findNativeStepSurfaces(document: Document): readonly HTMLElement[] {
+function findNativeStepSurfaces(
+  document: Document,
+  page: CurrentCodexPage,
+): readonly HTMLElement[] {
   const surfaces = new Set<HTMLElement>();
-  const markers = elements<HTMLElement>(document, "span").filter((element) => {
-    const text = (element.textContent ?? "").replace(/\s+/gu, " ").trim();
-    return /^第\s*\d+\s*\/\s*\d+\s*步$/u.test(text) || /^Step\s+\d+\s*\/\s*\d+$/iu.test(text);
-  });
+  const markers = (page.surface ? elements<HTMLElement>(page.surface, "span") : []).filter(
+    (element) => {
+      const text = (element.textContent ?? "").replace(/\s+/gu, " ").trim();
+      return /^第\s*\d+\s*\/\s*\d+\s*步$/u.test(text) || /^Step\s+\d+\s*\/\s*\d+$/iu.test(text);
+    },
+  );
   for (const marker of markers) {
     let ancestor = marker.parentElement;
     for (let depth = 0; ancestor && depth < 6; depth += 1, ancestor = ancestor.parentElement) {
@@ -218,165 +357,50 @@ function result(
 }
 
 export function resolveCurrentMacosVisibleThreadId(document: Document): string | null {
-  const rows = Array.from(
-    document.querySelectorAll<HTMLElement>("[data-app-action-sidebar-thread-row]"),
-  ).filter(
-    (row) =>
-      row.getAttribute("aria-current") === "page" &&
-      row.getAttribute("data-app-action-sidebar-thread-active") === "true" &&
-      row.getAttribute("data-app-action-sidebar-thread-selected") === "true",
-  );
-  if (rows.length !== 1) {
-    return null;
-  }
-  const visibleThreadId = rows[0]?.getAttribute("data-app-action-sidebar-thread-id");
-  if (!visibleThreadId) {
-    return null;
-  }
-  const visibleThreadHostId = rows[0]?.getAttribute("data-app-action-sidebar-thread-host-id");
-  const hostPrefix =
-    typeof visibleThreadHostId === "string" && visibleThreadHostId.length > 0
-      ? `${visibleThreadHostId}:`
-      : "";
-  const normalizedVisibleThreadId =
-    hostPrefix.length > 0 && visibleThreadId.startsWith(hostPrefix)
-      ? visibleThreadId.slice(hostPrefix.length)
-      : visibleThreadId;
-  if (normalizedVisibleThreadId.length < 1 || normalizedVisibleThreadId.length > 256) {
-    return null;
-  }
-  if (!normalizedVisibleThreadId.startsWith("client-new-thread:")) {
-    return normalizedVisibleThreadId;
-  }
-  const mainContent = Array.from(
-    document.querySelectorAll<HTMLElement>(
-      '[data-app-shell-main-content-layout="thread-edge-scroll"]',
-    ),
-  );
-  if (mainContent.length !== 1) {
-    return null;
-  }
-  const conversationThreadIds = new Set(
-    Array.from(
-      mainContent[0]?.querySelectorAll<HTMLElement>("[data-response-annotation-conversation]") ??
-        [],
-    )
-      .map((element) => element.getAttribute("data-response-annotation-conversation"))
-      .filter(
-        (threadId): threadId is string =>
-          typeof threadId === "string" &&
-          threadId.length > 0 &&
-          threadId.length <= 256 &&
-          !threadId.startsWith("client-new-thread:"),
-      ),
-  );
-  if (conversationThreadIds.size !== 1) {
-    return null;
-  }
-  return conversationThreadIds.values().next().value ?? null;
+  return readCurrentCodexPage(document).threadId;
 }
 
 export function matchCurrentVisibleThread(
   document: Document,
   expectedThreadId: string,
+  page: CurrentCodexPage = readCurrentCodexPage(document),
 ): CurrentVisibleThreadMatchResult {
-  const currentRows = elements<HTMLElement>(
-    document,
-    "[data-app-action-sidebar-thread-row]",
-  ).filter(
-    (row) =>
-      row.getAttribute("aria-current") === "page" &&
-      row.getAttribute("data-app-action-sidebar-thread-active") === "true" &&
-      row.getAttribute("data-app-action-sidebar-thread-selected") === "true",
-  );
-  if (currentRows.length === 0) {
-    return {
-      status: "unknown",
-      rejectionReason: "visible-thread-marker-missing",
-      candidateCount: 0,
-    };
-  }
-  if (currentRows.length !== 1) {
-    return {
-      status: "unknown",
-      rejectionReason: "visible-thread-marker-ambiguous",
-      candidateCount: currentRows.length,
-    };
-  }
-  if (!currentRows[0]?.getAttribute("data-app-action-sidebar-thread-id")) {
-    return {
-      status: "unknown",
-      rejectionReason: "visible-thread-id-missing",
-      candidateCount: 1,
-    };
-  }
-  const visibleThreadId = resolveCurrentMacosVisibleThreadId(document);
-  if (visibleThreadId === null) {
-    return {
-      status: "unknown",
-      rejectionReason: "visible-thread-id-missing",
-      candidateCount: 1,
-    };
-  }
-  if (visibleThreadId !== expectedThreadId) {
-    return {
-      status: "mismatch",
-      rejectionReason: "visible-thread-mismatch",
-      candidateCount: 1,
-    };
-  }
   return {
-    status: "matched",
-    rejectionReason: null,
-    candidateCount: 1,
+    status:
+      page.threadId === null
+        ? "unknown"
+        : page.threadId === expectedThreadId
+          ? "matched"
+          : "mismatch",
+    rejectionReason:
+      page.threadRejectionReason ??
+      (page.threadId === expectedThreadId ? null : "visible-thread-mismatch"),
+    candidateCount: page.threadCandidateCount,
   };
 }
 
-function locateCurrentMacosGoalAnchor(adapterId: string, document: Document): AnchorLocationResult {
+function locateCurrentMacosGoalAnchor(
+  adapterId: string,
+  page: CurrentCodexPage,
+): AnchorLocationResult {
   const matchedSignals: CodexAnchorSignal[] = [];
-  const composerRoots = elements<HTMLElement>(document, "[data-codex-composer-root]");
-  if (composerRoots.length === 0) {
-    return {
-      located: null,
-      probe: result(adapterId, false, matchedSignals, "composer-root-missing", 0),
-    };
-  }
-  if (composerRoots.length !== 1) {
+  if (page.composer) matchedSignals.push("composer-root-unique");
+  if (page.textbox) matchedSignals.push("composer-textbox-unique");
+  if (page.rejectionReason || !page.composer || !page.textbox) {
     return {
       located: null,
       probe: result(
         adapterId,
         false,
         matchedSignals,
-        "composer-root-ambiguous",
-        composerRoots.length,
+        page.rejectionReason,
+        page.rejectionReason?.startsWith("composer-root") ? page.composerCount : page.textboxCount,
       ),
     };
   }
-  matchedSignals.push("composer-root-unique");
-  const composerRoot = composerRoots[0] as HTMLElement;
-  const textboxes = elements<HTMLElement>(composerRoot, '[role="textbox"][data-codex-composer]');
-  if (textboxes.length === 0) {
-    return {
-      located: null,
-      probe: result(adapterId, false, matchedSignals, "composer-textbox-missing", 0),
-    };
-  }
-  if (textboxes.length !== 1) {
-    return {
-      located: null,
-      probe: result(
-        adapterId,
-        false,
-        matchedSignals,
-        "composer-textbox-ambiguous",
-        textboxes.length,
-      ),
-    };
-  }
-  matchedSignals.push("composer-textbox-unique");
+  const composerRoot = page.composer;
   const composerRect = composerRoot.getBoundingClientRect();
-  const textboxRect = (textboxes[0] as HTMLElement).getBoundingClientRect();
+  const textboxRect = page.textbox.getBoundingClientRect();
   const managedHosts = elements<HTMLElement>(composerRoot, '[data-codex-goal-progress-host="v1"]');
   const managedAnchor = managedHosts.length === 1 ? managedHosts[0]?.previousElementSibling : null;
   const candidates = elements<HTMLElement>(composerRoot, 'button[type="button"]').flatMap(
@@ -444,8 +468,8 @@ export const macosGoalRowV1Locator: CodexNativeGoalLocator = {
   id: "macos-goal-row-v1",
   platform: "macos",
   verifiedVersions: MACOS_GOAL_ROW_V1_VERIFIED_VERSIONS,
-  locate(document) {
-    const located = locateCurrentMacosGoalAnchor(this.id, document);
+  locate(document, page = readCurrentCodexPage(document)) {
+    const located = locateCurrentMacosGoalAnchor(this.id, page);
     return {
       target: located.located
         ? {
@@ -460,8 +484,8 @@ export const macosGoalRowV1Locator: CodexNativeGoalLocator = {
       matchedSignals: located.probe.matchedSignals,
     };
   },
-  findFloatingObstacles(document) {
-    return findNativeStepSurfaces(document);
+  findFloatingObstacles(document, page = readCurrentCodexPage(document)) {
+    return findNativeStepSurfaces(document, page);
   },
 };
 

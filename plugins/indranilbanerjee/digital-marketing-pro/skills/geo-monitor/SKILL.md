@@ -1,6 +1,6 @@
 ---
 name: geo-monitor
-description: "Track brand visibility in AI answers on a recurring schedule across the 6 canonical surfaces — ChatGPT, Perplexity, Gemini, Google AI Mode, AI Overviews, Copilot — scoring each query on the shared aeo-audit rubric and rolling results into a 0-100 GEO health trend with narrative-drift flags and competitor benchmarks. Triggers on \"/digital-marketing-pro:geo-monitor\", \"is ChatGPT mentioning us\", \"track our AI visibility over time\", \"monitor brand mentions in Perplexity\", \"did our AI Overviews presence change\". Records and diffs runs via geo-tracker.py, reads the brand profile for positioning, and is the recurring mode of /digital-marketing-pro:aeo-audit."
+description: "Track brand visibility in AI answers on a recurring schedule across the 6 canonical surfaces — ChatGPT, Perplexity, Gemini, Google AI Mode, AI Overviews, Copilot — scoring each query on the shared aeo-audit rubric and rolling results into a 0-100 GEO health trend with narrative-drift flags and competitor benchmarks. Triggers on \"/digital-marketing-pro:geo-monitor\", \"is ChatGPT mentioning us\", \"track our AI visibility over time\", \"monitor brand mentions in Perplexity\", \"did our AI Overviews presence change\". Records and diffs runs via geo-tracker.py, keeps probe scores separate from first-party Bing Webmaster AI Performance citations and Search Console AI impressions, reads the brand profile for positioning, and is the recurring mode of /digital-marketing-pro:aeo-audit."
 ---
 
 # /digital-marketing-pro:geo-monitor
@@ -10,6 +10,19 @@ description: "Track brand visibility in AI answers on a recurring schedule acros
 Monitor and track brand visibility across generative AI engines. Systematically test how AI platforms respond to queries relevant to the brand, score visibility using a structured rubric, track changes over time, and identify opportunities to improve AI presence. This command provides a repeatable, quantitative framework for understanding where and how the brand appears (or fails to appear) in AI-generated responses — giving marketers the data they need to optimize for the emerging generative engine optimization (GEO) channel. Supports baselining, trend tracking, competitive benchmarking, and narrative alignment checks across all major AI platforms.
 
 **This skill is the RECURRING mode of the canonical AI-visibility scoring standard defined in `/digital-marketing-pro:aeo-audit`.** It does not introduce a second scoring model: it applies the same per-platform 1-10 rubric + gates on a schedule and tracks it over time. The 0-100 GEO health score + A-F letter grade produced below is the **trend view** of that same data — a longitudinal roll-up for spotting momentum, not a competing scorecard. The 6 canonical surfaces (Google AI Mode, Google AI Overviews, ChatGPT, Perplexity, Gemini, Copilot) are defined once as the `PLATFORMS` constant in `scripts/geo-tracker.py`.
+
+## Probes vs first-party data (checked 2026-10-04)
+
+The rubric scores below come from **probes**: queries we run and read. They show what an engine *can* say. They are not platform-reported numbers. Where a platform publishes its own visibility data, pull it into the same report as a separate, labeled column and never blend the two:
+
+| Surface | First-party data to import alongside the probe score | What it does NOT give you |
+|---|---|---|
+| **Copilot** (plus Bing and select partner AI experiences) | **Bing Webmaster Tools → AI Performance**:<br>• citations for your site, and the grounding queries behind them<br>• **Intents**: grounding queries classed as Informational, Commercial, Navigational, Learn and Solve, Research, Creation, Local, and more<br>• **Topics**: grounding queries clustered into themes<br>• **Citation Share**: your citations as a percentage of all citations shown for the same grounding query<br>• **Compare**: overlay a prior period, such as the current 30 days vs the prior 30<br>The four named features are a preview, available globally. Source: [Bing Webmaster blog](https://blogs.bing.com/search/2026/6/New-AI-Visibility-Insights-in-Bing-Webmaster-Tools-Intents-Topics-Citation-Share-Compare/), 16 Jun 2026 | Clicks or traffic. Competitor domains: Citation Share "does not expose competitor domains, represent traffic share, or assign quality scores to content". For competitor benchmarks, keep using probes |
+| **AI Overviews, AI Mode** | Search Console generative AI performance report: impressions by page, country, date and device (`/digital-marketing-pro:gsc-ai-performance`) | Queries, clicks, CTR |
+| **AI Mode / AI Overviews / Gemini app shopping** | Merchant Center **AI performance insights**: brand share of voice against similar brands across discovery, evaluation and purchase. Google said in May 2026 that it would roll out in the U.S., Canada, Australia, India and New Zealand "in the coming months", so confirm it in the account first. Source: [Merchant Center help](https://support.google.com/merchants/answer/17117204) | Per-query citation detail |
+| **ChatGPT, Perplexity, Gemini app (answers)** | None. No first-party citation report exists | Everything. The probe score is the only signal; say so |
+
+In the trend report, show the probe score and the first-party number in separate columns, each with its own source and date. If Bing Citation Share falls while probe scores rise, or the reverse, flag the divergence as a finding. Do not average it away.
 
 ## Input Required
 

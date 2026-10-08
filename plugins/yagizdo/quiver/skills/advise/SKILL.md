@@ -16,7 +16,7 @@ when-to-use: "user wants a senior-style opinion on code or a plan, no spec artif
 ```
 
 ```
-!`git log --oneline -5 2>/dev/null || echo "NO_GIT"`
+!`git log --oneline -5 2>/dev/null || echo "NO_COMMITS"`
 ```
 
 ---

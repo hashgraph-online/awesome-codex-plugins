@@ -49,10 +49,17 @@ file is corrected — one canon with two owners is two canons.
    `mcp__archcore__list_relations`.
 
    The body MAY cite:
-   - source code via `@path/to/file` notation (`@internal/mcp/server.go`)
+   - source code via `@path/to/file` or `@path/to/dir/` notation
+     (`@internal/mcp/server.go`), never with a line number (Rule 9)
    - commits, PRs, dashboards, metrics, runbooks
    - external authorities (RFCs, papers, vendor docs, blog posts)
    - the document's own enforcement artifacts (lint rules, CI checks)
+
+   WHEN a new or edited passage names another local `.archcore/` document,
+   the author MUST run the claim check in `skills/_shared/relation-authoring.md`
+   for that pair in the same task and state the outcome — `add` or
+   `no_relation` — in the task result. A mounted global document takes `no_relation`; this
+   applies only when a global source is mounted.
 
    Rationale: the relation graph is the single source of truth for
    cross-document links. Duplicating them in body markdown causes drift when
@@ -122,9 +129,15 @@ file is corrected — one canon with two owners is two canons.
    `syrs`, `srs`. One requirement per numbered clause, one uppercase BCP 14
    modal, an active-voice obligated subject, and the trigger before the response
    (`WHEN <trigger>, the <actor> MUST <response>`; unwanted conditions as
-   `IF <condition>, THEN ...`). A graded clause stays at or under **25 words**; a
-   procedure step stays at or under **20 words** and carries no modal, because a
-   step is an action to take rather than an obligation that holds.
+   `IF <condition>, THEN ...`; a state as `WHILE <state>, ...`; a feature
+   variant as `WHERE <feature is enabled>, ...`). A graded clause stays at or
+   under **25 words**; a procedure step stays at or under **20 words** and
+   carries no modal, because a step is an action to take rather than an
+   obligation that holds. A numbered clause in a graded section — `## Rule`,
+   `## Normative Behavior`, `## Failure Behavior` — without a BCP 14 keyword is
+   a defect, whether it describes ("handlers are named `handle*`") or uses a
+   native-language modal ("должен", "muss", "doit"). A procedure step is not a
+   graded clause.
 
    **Claim-recording types** — `adr`, `rfc`, `doc`, `prd`, `plan`, `idea`, `rnd`,
    `research`, `evidence`, `cpat`, `scenario`, `journey`, `mrd`, `brd`, `urd`. A numbered clause MUST NOT carry a BCP 14 modal.
@@ -145,18 +158,54 @@ file is corrected — one canon with two owners is two canons.
    which branch binds. State the last member, or name the property that decides
    membership.
 
+9. **A code reference names a file or a directory, never a line.** In a
+   `.archcore/` document, cite code as `@path/to/file` or `@path/to/dir/`.
+   WHEN a narrower target is needed, the author MUST name the symbol in inline
+   code beside the path (`` `onAuthSuccess` in `@src/auth/AuthProvider.tsx` ``).
+   The author MUST NOT append a line number, a line range, or a `#L` fragment
+   to a code path. A line number moves on every unrelated edit above it
+   (`plugin/code-references-name-a-file-or-directory.adr`).
+
+10. **Structure tokens stay English in every document language.** WHEN the
+    project `language` is not English, the author MUST keep these tokens in
+    English: the `##` section headings of the type template, the BCP 14
+    keywords (`MUST`, `MUST NOT`, `SHOULD`, `SHOULD NOT`, `MAY`), and the EARS
+    keywords (`WHEN`, `WHILE`, `IF`, `THEN`, `WHERE`). The author MUST write
+    the rest of the line, including the actor, in the document language
+    without English articles: `WHEN заказ оплачен, сервис оплаты MUST
+    отправить чек.` — not `The сервис MUST`. Subsections under a template
+    heading (`###`) MAY use the document language
+    (`plugin/language-neutral-structure-tokens.adr`).
+
+11. **A value another file owns is cited, not copied.** This covers a
+    dependency version, a runtime version, and a configuration default: each
+    changes in its owning file without touching the document. WHEN a document
+    needs such a value, the author MUST cite the owning file (`@package.json`,
+    `@.nvmrc`). IF the document also states the value, THEN the author MUST add
+    the date it was read: `Next.js 16.3 (@apps/web/package.json, 2026-10-06)`.
+
+12. **No obligation lives only in hidden markup.** The author MUST NOT place a
+    requirement only in an HTML comment (`<!-- ... -->`) or a collapsed block.
+    A comment block holding `MUST` or `SHOULD` is the detectable form.
+
 ## Enforcement
 
 - The CLI's PostToolUse hook (`archcore hooks <host> post-tool-use`, launched
   via the plugin's `bin/post-tool-use`) reports the mechanical half: the
   forbidden lexicon, the mandatory sections of each type, a heading another type
-  owns, the line form and word metrics of Rule 7, the open-ended lists of Rule 8,
-  and the per-type notation each content contract names. Findings are emitted as
+  owns, the line form and word metrics of Rule 7 (including a graded clause with
+  no BCP 14 keyword, named with the native modal it holds), the open-ended lists
+  of Rule 8, the line anchors of Rule 9, and the per-type notation each content
+  contract names. Findings are emitted as
   `additionalContext`. The hook never blocks (always exits 0), and a CLI that
   predates a check reports nothing for it — this one sentence is the canonical
   statement; the per-type content contracts do not restate it.
 - The hook reads the whole document rather than the added lines, so an edit to an
   older document surfaces that document's existing findings too.
-- Rules 3, 4, and 6 carry no automated check. A program finds a missing marker;
-  it does not decide whether a claim needed one.
+- Rules 3, 4, 6, 11, and 12 carry no automated check, and Rule 10 is checked
+  only through the mandatory-section finding. A program finds a
+  missing marker; it does not decide whether a claim needed one.
+  `/archcore:review deep` reports Rule 12 hits as observations and Rule 11
+  conflicts through its cross-document check; Rules 3, 4, and 6 stay with the
+  author.
 - Skills load this asset and the relevant contract before composition.

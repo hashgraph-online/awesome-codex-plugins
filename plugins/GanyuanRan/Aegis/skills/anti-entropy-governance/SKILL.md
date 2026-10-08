@@ -81,8 +81,10 @@ Use this rule:
 
 Unknown alone neither proves an external dependency nor blocks internal
 `delete-first`. Once distribution is proven, unobservable consumers also do not
-prove deletion safe: inspect read-only and require scoped post-disclosure
-confirmation before editing.
+prove deletion safe: inspect read-only. Before editing, require user-authored,
+scoped authorization that explicitly accepts the concrete external risk.
+An informed instruction may already supply it; otherwise disclose the risk
+and request scoped confirmation.
 
 Mentioning, loading, or discussing destructive-action rules never authorizes
 destructive execution. Without explicit scoped user confirmation:
@@ -201,6 +203,13 @@ Anti-Entropy Declaration:
 - User Confirmation Required: no | yes
 ```
 
+For external-unknown code, fill `User Confirmation Required` with `yes` unless
+the user's own instruction already names the concrete external risk, accepts
+its possible breakage, and authorizes the exact retirement scope, or the user
+later gives scoped confirmation after your disclosure. A generic original
+deletion request does not satisfy this slot. Do not infer acceptance from mere
+awareness of external use or from your own risk summary.
+
 If `User Confirmation Required: yes`, stop normal delete-first flow.
 Persistent-state or irreversible targets enter `Data Destruction Guard`;
 external-unknown code stays in the `Retirement Decision` hold below.
@@ -224,8 +233,11 @@ Rules:
   whose consumers cannot be observed
 
 If `Path = confirmation-first`, no destructive execution may happen until
-scoped confirmation is received. For external-unknown code, earlier generic
-deletion instructions do not count; disclose the risk first.
+scoped confirmation is established. For external-unknown code, earlier generic
+deletion instructions do not count. An informed, scoped user instruction may
+establish confirmation before your disclosure; otherwise disclose the risk
+and directly ask the user to confirm the exact retirement scope before editing.
+Do not only state that confirmation is required or quote the words needed.
 
 ## Verification Plan
 

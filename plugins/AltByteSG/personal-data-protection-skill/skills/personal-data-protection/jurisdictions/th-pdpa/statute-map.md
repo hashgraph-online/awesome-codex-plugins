@@ -1,8 +1,22 @@
 # Thailand PDPA — Statute ↔ Layer Cross-Reference
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 
 Reverse lookup. Use when citing a section in a PR description, audit response, or breach notification. For day-to-day work, use the layer files and obligation files instead.
+
+## Contents
+
+- Chapter I — Personal Data Protection Committee (s8–18)
+- Chapter II Part I — Consent (s19–21)
+- Chapter II Part II — Personal Data Collection (s22–26)
+- Chapter II Part III — Use and Disclosure (s27–29)
+- Chapter III — Rights of the Data Subject (s30–36)
+- Data Controller / Processor / DPO Duties (s37–42)
+- Chapter IV — Office of the PDPC (s43–70)
+- Chapter V — Complaints (s71–76)
+- Chapter VI — Civil Liability (s77–78)
+- Chapter VII — Penalties
+- Transitional Provisions (s91–96)
 
 ## Chapter I — Personal Data Protection Committee (s8–18)
 

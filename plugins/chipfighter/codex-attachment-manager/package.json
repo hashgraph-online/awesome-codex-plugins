@@ -1,0 +1,10 @@
+{
+  "name": "codex-attachment-manager-plugin",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "description": "The Codex plugin itself: the MCP server, the local proxy engine, the panel and the install command. No dependencies; runs on Node 24 with type stripping (Codex ships one).",
+  "engines": {
+    "node": ">=24"
+  }
+}

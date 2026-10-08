@@ -34,13 +34,23 @@ page count. As a rough rule for fiction set in 11-12 point type:
 | `5.5x8.5` | 250-300 |
 | `6x9` | 300-350 |
 
-Add front and back matter and the blank versos that chapter-on-recto
-leaves behind (often 5-10% more pages). Only the rendered PDF gives the
-real count; use it for pricing and the cover.
+The sheet's estimate, and the print build's gutter, already count the
+title page, contents, front and back matter, each chapter rounded up to
+whole pages below its heading sink, and the blank versos that
+chapter-on-recto leaves behind. Only the rendered PDF gives the real
+count; use it for pricing and the cover.
 
 ## Render To PDF
 
-The CLI bundles no PDF engine. Use one the author has installed:
+The CLI bundles no PDF engine, but `story build . --format print --pdf`
+finds one the author has installed and runs it, writing
+`dist/<story-id>.pdf`. It tries Prince, WeasyPrint, `pagedjs-cli`, then
+headless Chrome or Chromium, in that order; `--pdf-engine <name|path>` picks
+one. Chrome is a fallback: it skips the blank pages that start chapters on a
+recto, leaves the contents page without page numbers in every book, and older
+versions drop running heads. When the CLI reports `(chrome)`, tell the author
+and suggest one of the other three for the upload copy. To run an engine by
+hand:
 
 - **Paged.js CLI:** `pagedjs-cli dist/<file>.html -o dist/<file>.pdf`
   (free; Chromium-based).

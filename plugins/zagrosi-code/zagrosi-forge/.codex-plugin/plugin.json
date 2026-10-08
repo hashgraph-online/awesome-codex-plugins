@@ -1,7 +1,7 @@
 {
   "name": "zagrosi-forge",
-  "version": "0.2.0+codex.20260924153132",
-  "description": "Lean project decomposition, planning, and test-first implementation for Codex.",
+  "version": "0.3.5",
+  "description": "Lean project decomposition, planning, and test-first implementation.",
   "author": {
     "name": "Zagrosi",
     "url": "https://github.com/zagrosi-code"
@@ -21,7 +21,7 @@
   "interface": {
     "displayName": "Zagrosi Forge",
     "shortDescription": "Lean plans and test-first delivery",
-    "longDescription": "Three lean workflows: split broad work, create a reviewed implementation plan, and deliver its sections test-first.",
+    "longDescription": "One entry point for compact plans, verified implementation, and behavior-preserving cleanup; shared with Claude Code.",
     "developerName": "Zagrosi",
     "category": "Coding",
     "capabilities": [
@@ -33,9 +33,8 @@
     "privacyPolicyURL": "https://github.com/zagrosi-code/zagrosi-forge",
     "termsOfServiceURL": "https://github.com/zagrosi-code/zagrosi-forge",
     "defaultPrompt": [
-      "Use $zagrosi-forge:zagrosi-project to split this project idea into planning specs",
-      "Use $zagrosi-forge:zagrosi-plan to create a reviewed TDD implementation plan",
-      "Use $zagrosi-forge:zagrosi-implement to build these sections with TDD"
+      "Use $zagrosi-forge:zagrosi-forge to take this task through the appropriate Forge workflow",
+      "Use $zagrosi-forge:zagrosi-cleanup to simplify this code while preserving behavior"
     ],
     "brandColor": "#0F766E",
     "screenshots": [

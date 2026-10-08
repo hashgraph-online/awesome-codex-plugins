@@ -10,16 +10,16 @@ argument-hint: "[URL]"
 
 Perform a comprehensive SEO audit that evaluates a website across all major ranking dimensions. Produces a prioritized action plan with estimated impact and effort for each recommendation.
 
-### May 2026 Core Update context (read before triaging volatility)
+### Algorithm-update context (read before triaging volatility)
 
-> **Time-boxed guidance — valid until ~2026-08.** This block is specific to the May 2026 Core Update window. After ~August 2026 it is stale: re-check the [Google Search Status Dashboard](https://status.search.google.com/) for the current/most-recent core update and its dates before applying any of the timing advice below.
+**Status as of 2026-10-04 (time-boxed — re-check after ~2026-12):** per the [Google Search Status Dashboard](https://status.search.google.com/summary), the most recent **core** update began **21 May 2026** (completed after ~12 days). Since then Google has run only **spam** updates: the **August 2026 spam update** (18–21 Aug) and the **September 2026 spam update** (started 24 Sep; not yet marked complete on 2026-10-04). **There was no September 2026 core update** — several SEO blogs reported one; the dashboard lists none. Attribute only to updates the dashboard lists. Separately, Google's **site reputation abuse** policy has split at the EEA border since 30 Aug 2026: outside the EEA a manual action demotes the affected section; inside the EEA the section is separated and ranks on its own instead ([Search Central](https://developers.google.com/search/blog/2026/08/update-site-reputation-policy)) — word audit findings on third-party/"parasite" sections per region.
 
-Google rolled out a **broad core algorithm update starting 21 May 2026** with the usual ~2-week deployment window. If the audit is being run inside that window (or in the 4 weeks after) and the brand is showing ranking volatility:
+When an audit runs inside a listed update's rollout window (or the 4 weeks after) and the brand shows ranking volatility:
 
-- **Do not make reactive changes during the rollout.** Wait for the update to fully deploy (Google announces completion in the Search Status Dashboard) plus 7–14 days of post-deploy settling before drawing conclusions.
-- **Diagnose direction before scope.** A site-wide drop vs a single-section drop vs a single-template drop have very different root causes. Use Search Console to compare pre-rollout (21 days before May 21) vs in-rollout vs post-rollout impressions and clicks segmented by page-group.
-- **Core updates re-weight existing signals, they don't introduce new ones.** The audit dimensions below remain authoritative; the right response to a Core Update hit is usually to deepen E-E-A-T, improve unique value, fix thin/duplicated content, and reduce low-quality affiliate or AI-spam pages — not to chase rumoured signals.
-- **Flag in the executive summary** whether ranking deltas pre-date the rollout (likely site-specific issues) or coincide with it (likely Core Update reweighting). This determines whether quick wins are appropriate or whether the brand needs a multi-quarter quality program.
+- **Do not make reactive changes during a rollout.** Wait for the dashboard to mark the update complete, plus 7–14 days of settling, before drawing conclusions.
+- **Diagnose direction before scope.** A site-wide drop vs a single-section drop vs a single-template drop have very different root causes. Compare pre-rollout (21 days before the start date) vs in-rollout vs post-rollout impressions and clicks, segmented by page-group.
+- **Match the response to the update type.** Core updates re-weight existing quality signals — the answer is deeper E-E-A-T, unique value, and pruning thin/duplicated/AI-spam pages, not chasing rumoured signals. Spam updates target policy violations — check the affected pages against Google's spam policies (scaled content abuse, site reputation abuse, expired-domain abuse) before touching anything else.
+- **Flag in the executive summary** whether ranking deltas pre-date a listed update (likely site-specific issues) or coincide with one — this decides between quick wins and a multi-quarter quality program.
 
 ## Input Required
 
@@ -48,6 +48,8 @@ The user must provide (or will be prompted for):
 7. Score each dimension on a 1-10 scale
 8. Prioritize findings by impact (high/medium/low) and effort (quick win/medium/major project)
 9. Generate the audit report with actionable recommendations
+
+For the per-dimension checklists (incl. keyword research), the findings and action-plan table layouts, the after-audit follow-up menu, and the parallel-dispatch rules (independent dimensions concurrently; the action plan stays sequential), read `dimension-checklists.md` beside this file.
 
 ## Output
 

@@ -11,6 +11,8 @@ triggers:
   - 开始UI设计时
   - 需要定义视觉规范时
   - 确保设计一致性时
+metadata:
+  internal: true
 ---
 
 # 设计系统规范

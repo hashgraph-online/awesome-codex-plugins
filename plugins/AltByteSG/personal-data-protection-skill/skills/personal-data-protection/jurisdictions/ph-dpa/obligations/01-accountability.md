@@ -1,6 +1,6 @@
 # Accountability — §§ 21, 22 RA 10173 + § 14, §§ 44–45, § 50 IRR
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 
 PH accountability obligations sit mostly in **non-engineering** governance — DPO appointment under § 14 IRR, NPC registration of data processing systems under NPC Circular 17-01, and outsourcing / data-sharing agreements under §§ 44–45 IRR. This file covers the **engineering touch-points only**: the DPO contact channel exposed by your application, and the vendor flow-down clauses that affect what your stack can do with the data.
 

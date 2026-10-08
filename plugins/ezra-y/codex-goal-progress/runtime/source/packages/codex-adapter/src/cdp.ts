@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { GOAL_PROGRESS_RELEASE_VERSION } from "../../contracts/src/index.js";
-import { resolveCurrentMacosVisibleThreadId } from "./anchor-adapter.js";
+import { readCurrentCodexPage } from "./anchor-adapter.js";
 import { GOAL_PROGRESS_PAGE_HOST_VERSION } from "./page-host.js";
 import {
   assertGoalProgressRendererBundle,
@@ -517,6 +517,13 @@ export interface CdpCommandSender {
   send(method: string, params?: unknown): Promise<unknown>;
 }
 
+export class GoalProgressPageError extends Error {
+  constructor(code: string) {
+    super(code);
+    this.name = "GoalProgressPageError";
+  }
+}
+
 export type GoalProgressPageApiMethod =
   | "mount"
   | "update"
@@ -613,13 +620,14 @@ export async function evaluateGoalProgressPageBundle(
     awaitPromise: true,
     returnByValue: true,
   });
-  GoalProgressBundleInstalledSchema.parse(
-    await sender.send("Runtime.evaluate", {
-      expression: `globalThis.__CODEX_GOAL_PROGRESS__?.version === ${GOAL_PROGRESS_PAGE_HOST_VERSION} && globalThis.__CODEX_GOAL_PROGRESS__?.releaseVersion === ${JSON.stringify(GOAL_PROGRESS_RELEASE_VERSION)}`,
-      awaitPromise: true,
-      returnByValue: true,
-    }),
-  );
+  const installed = await sender.send("Runtime.evaluate", {
+    expression: `globalThis.__CODEX_GOAL_PROGRESS__?.version === ${GOAL_PROGRESS_PAGE_HOST_VERSION} && globalThis.__CODEX_GOAL_PROGRESS__?.releaseVersion === ${JSON.stringify(GOAL_PROGRESS_RELEASE_VERSION)}`,
+    awaitPromise: true,
+    returnByValue: true,
+  });
+  if (!GoalProgressBundleInstalledSchema.safeParse(installed).success) {
+    throw new GoalProgressPageError("GOAL_PROGRESS_PAGE_BUNDLE_UNAVAILABLE");
+  }
 }
 
 export async function invokeGoalProgressPageApi(
@@ -627,14 +635,15 @@ export async function invokeGoalProgressPageApi(
   method: GoalProgressPageApiMethod,
   argument?: unknown,
 ): Promise<unknown> {
-  const handle = RuntimeObjectHandleSchema.parse(
-    await sender.send("Runtime.evaluate", {
-      expression: "globalThis.__CODEX_GOAL_PROGRESS__",
-      objectGroup: "codex-goal-progress",
-      returnByValue: false,
-      awaitPromise: true,
-    }),
-  );
+  const evaluated = await sender.send("Runtime.evaluate", {
+    expression: "globalThis.__CODEX_GOAL_PROGRESS__",
+    objectGroup: "codex-goal-progress",
+    returnByValue: false,
+    awaitPromise: true,
+  });
+  const parsedHandle = RuntimeObjectHandleSchema.safeParse(evaluated);
+  if (!parsedHandle.success) throw new GoalProgressPageError("GOAL_PROGRESS_PAGE_API_UNAVAILABLE");
+  const handle = parsedHandle.data;
   try {
     const parameters = {
       objectId: handle.result.objectId,
@@ -643,9 +652,10 @@ export async function invokeGoalProgressPageApi(
       returnByValue: true,
       ...(argument === undefined ? {} : { arguments: [{ value: argument }] }),
     };
-    return RuntimeCallByValueResultSchema.parse(
-      await sender.send("Runtime.callFunctionOn", parameters),
-    ).result.value;
+    const called = await sender.send("Runtime.callFunctionOn", parameters);
+    const result = RuntimeCallByValueResultSchema.safeParse(called);
+    if (!result.success) throw new GoalProgressPageError("GOAL_PROGRESS_PAGE_API_FAILED");
+    return result.data.result.value;
   } finally {
     await sender.send("Runtime.releaseObject", {
       objectId: handle.result.objectId,
@@ -663,7 +673,7 @@ const VisibleGoalProgressThreadResultSchema = z
   })
   .passthrough();
 
-const visibleGoalProgressThreadExpression = `(${resolveCurrentMacosVisibleThreadId.toString()})(document)`;
+const visibleGoalProgressThreadExpression = `(${readCurrentCodexPage.toString()})(document).threadId`;
 
 const GOAL_PROGRESS_VISIBLE_THREAD_WATCHER_KEY = "__CODEX_GOAL_PROGRESS_VISIBLE_THREAD_WATCHER__";
 
@@ -688,14 +698,16 @@ export function createGoalProgressVisibleThreadWatcherSource(
     const bindingName = ${JSON.stringify(bindingName)};
     const bridgeNonce = ${JSON.stringify(bridgeNonce)};
     const watcherId = ${JSON.stringify(watcherId)};
-    const readVisibleThreadId = ${resolveCurrentMacosVisibleThreadId.toString()};
+    const readCurrentPage = ${readCurrentCodexPage.toString()};
+    let active = true;
     let initialized = false;
     let lastThreadId = null;
     let sequence = 0;
     let scheduled = false;
     const report = () => {
       scheduled = false;
-      const threadId = readVisibleThreadId(document);
+      if (!active) return;
+      const threadId = readCurrentPage(document).threadId;
       if (initialized && threadId === lastThreadId) {
         return;
       }
@@ -725,7 +737,8 @@ export function createGoalProgressVisibleThreadWatcherSource(
       ) {
         return true;
       }
-      return Array.from(record.addedNodes || []).some(
+      if (target instanceof Element && target.querySelector("[data-app-shell-page-surface], [data-codex-composer-root]")) return true;
+      return [...record.addedNodes, ...record.removedNodes].some(
         (node) =>
           node instanceof Element &&
           (node.matches("[data-app-action-sidebar-thread-row]") ||
@@ -750,6 +763,7 @@ export function createGoalProgressVisibleThreadWatcherSource(
         attributes: true,
         attributeFilter: [
           "aria-current",
+          "hidden", "inert", "aria-hidden", "style", "class", "data-app-shell-page-surface",
           "data-app-action-sidebar-thread-active",
           "data-app-action-sidebar-thread-host-id",
           "data-app-action-sidebar-thread-id",
@@ -766,6 +780,7 @@ export function createGoalProgressVisibleThreadWatcherSource(
       configurable: true,
       value: Object.freeze({
         disconnect() {
+          active = false;
           removeEventListener("DOMContentLoaded", onReady);
           observer?.disconnect();
         }

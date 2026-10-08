@@ -30,7 +30,7 @@
 - 写入 `.boss/<feature>/design-brief.md`。
 - 若不是 `--continue-from` 且 `.boss/<feature>/` 不存在，调用 `boss project init <feature-name>`；`project init` 已隐式执行 pipeline 初始化，不要随后再调用 `boss runtime init-pipeline <feature>`。
 - 调用 `boss packs detect <project-dir> --json`，读取 `detectedPack.evidence` 和 `matchedPacks`；用户显式 `--roles` 优先。
-- 确认 Artifact DAG 来源：内置 `packages/boss-cli/assets/artifact-dag.json`，或 `.boss/artifact-dag.json`，或 pipeline pack 自定义 DAG。
+- 确认 Artifact DAG 来源：内置 `skill/assets/artifact-dag.json`，或 `.boss/artifact-dag.json`，或 pipeline pack 自定义 DAG。
 - 调用 `boss runtime register-plugins <feature>` 扫描 `.boss/plugins/`。
 - 标记阶段 1 开始：`boss runtime update-stage <feature> 1 running`。
 

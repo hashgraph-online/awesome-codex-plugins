@@ -1,0 +1,19 @@
+{
+  "description": "RepoPilot session review: snapshot at start, review before the agent stops.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/scripts/snapshot.sh", "timeout": 60 }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/scripts/guard.sh", "timeout": 180 }
+        ]
+      }
+    ]
+  }
+}

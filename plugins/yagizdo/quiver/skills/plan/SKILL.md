@@ -16,7 +16,7 @@ when-to-use: "user asks to make a plan, structure work, or plan a feature -- '/p
 ```
 
 ```
-!`git log --oneline -5 2>/dev/null || echo "NO_GIT"`
+!`git log --oneline -5 2>/dev/null || echo "NO_COMMITS"`
 ```
 
 ```

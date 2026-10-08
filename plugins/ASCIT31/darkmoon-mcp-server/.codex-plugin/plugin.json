@@ -1,0 +1,46 @@
+{
+  "name": "darkmoon",
+  "version": "0.1.0",
+  "description": "Drive a self-hosted Darkmoon Pro instance over MCP: start an authorized autonomous AI pentest run, poll its status, list campaigns and read findings. Requires your own Darkmoon Pro dashboard; run_pentest is not read only.",
+  "author": {
+    "name": "ASC-IT",
+    "url": "https://github.com/ASCIT31"
+  },
+  "homepage": "https://github.com/ASCIT31/Dark-Moon",
+  "repository": "https://github.com/ASCIT31/darkmoon-mcp-server",
+  "license": "GPL-3.0-only",
+  "keywords": [
+    "darkmoon",
+    "mcp",
+    "pentest",
+    "security",
+    "vulnerability-scanner",
+    "ai-agent",
+    "codex"
+  ],
+  "skills": "./plugins/darkmoon/skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Darkmoon",
+    "shortDescription": "Run authorized autonomous AI pentests on your self-hosted Darkmoon Pro",
+    "longDescription": "Darkmoon is an open source (GPL-3.0) autonomous AI penetration testing platform. This plugin exposes four MCP tools (run_pentest, get_run_status, list_campaigns, get_findings) that talk to the Dashboard API of your own self-hosted Darkmoon Pro instance. There is no public hosted endpoint: you supply DARKMOON_BASE_URL and dashboard credentials. run_pentest starts a real assessment and is not read only; only target systems you own or are explicitly authorized in writing to test. Findings can include false positives and must be reviewed by a qualified human.",
+    "developerName": "ASC-IT",
+    "category": "Security",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://dark-moon.org",
+    "privacyPolicyURL": "https://github.com/ASCIT31/darkmoon-mcp-server/blob/main/SECURITY.md",
+    "termsOfServiceURL": "https://github.com/ASCIT31/darkmoon-mcp-server/blob/main/LICENSE",
+    "defaultPrompt": [
+      "Start an authorized Darkmoon pentest on my staging host",
+      "Show the status of my latest Darkmoon run",
+      "List the high severity findings of my Darkmoon campaign"
+    ],
+    "brandColor": "#4F46E5",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg"
+  }
+}

@@ -3,15 +3,15 @@
 [![MCP](https://img.shields.io/badge/MCP-compatible-blue)](https://modelcontextprotocol.io)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-**Switch what your agent knows — decks of tools, keys, and self-improving playbooks.**
+A governed way of working that travels with every new agent worker — playbooks, tools, and credentials in a deck; queue the issues and only show up for real decisions.
+
+[![Agent Deck + Agent Dealer](https://img.youtube.com/vi/DVC70PgMY80/maxresdefault.jpg)](https://www.youtube.com/watch?v=DVC70PgMY80)
+
+[Watch the 2-min overview](https://www.youtube.com/watch?v=DVC70PgMY80) — portable decks, then a governed issue queue.
 
 [Why](#why) · [Quick Start](#quick-start) · [Reference](#reference) · [Docs](#documentation)
 
-<!-- DEMO VIDEO/GIF — drop the demo here.
-     On github.com, drag the .mp4 into the README editor to get a user-attachments URL,
-     then paste it on its own line. GIF fallback:
-<img src="misc/demo.gif" alt="Switch decks mid-session; the agent's tools and playbooks follow" width="80%" />
--->
+> **Bringing a friend (or starting cold)?** Follow the [one-page friend path](docs/FRIEND_PATH.md): cold machine → first deck switch → first Dealer issue.
 
 ## Why
 
@@ -50,7 +50,7 @@ agent-deck start --daemon
 
 Compat: `npm install -g @agent-deck/cli` still works; `agent-deck install` switches only the CLI binary (no data migration).
 
-`start` opens the dashboard with a one-shot bootstrap cookie (do **not** type bare `http://127.0.0.1:1111` — that shows a dashboard login error). Day to day: `agent-deck start --daemon` / `agent-deck open` / `agent-deck stop` · `agent-deck status` if something fails. Use plain `agent-deck start` when you want a foreground process (logs to stdout). Headless: `--no-open` or `AGENT_DECK_NO_OPEN=1`.
+`start` opens the dashboard with a one-shot bootstrap cookie (do **not** type bare `http://127.0.0.1:1111` — that shows the dashboard recovery view). Day to day: `agent-deck start --daemon` / `agent-deck open` / `agent-deck stop` · `agent-deck status` if something fails. Use plain `agent-deck start` when you want a foreground process (logs to stdout). Headless: `--no-open` or `AGENT_DECK_NO_OPEN=1`.
 
 ### 2. Register Agent Deck in your agent
 
@@ -161,7 +161,7 @@ agent-deck upgrade
 agent-deck stop
 ```
 
-`start` opens the dashboard with a one-shot bootstrap cookie by default (`--no-open` for CI / headless). Bare `http://127.0.0.1:1111` without bootstrap shows the dashboard cookie error (**Error Loading Data / Dashboard Access Expired**) — that is **not** the MCP `GRANT_REQUIRED` case (**No deck selected for this connection**; fix with `agent-deck use <deck>` in the workspace so the launcher can send the deck header). Re-open anytime with `agent-deck open`.
+`start` opens the dashboard with a one-shot bootstrap cookie by default (`--no-open` for CI / headless). Bare `http://127.0.0.1:1111` without a launch pass shows the dashboard recovery view (**Open your dashboard securely**, with an **Open dashboard** action and the `agent-deck open` fallback) — that is **not** the MCP `GRANT_REQUIRED` case (**No deck selected for this connection**; fix with `agent-deck use <deck>` in the workspace so the launcher can send the deck header). Re-open anytime with `agent-deck open`.
 
 Port conflicts: `agent-deck status` · `agent-deck start --force`
 
@@ -171,6 +171,7 @@ Port conflicts: `agent-deck status` · `agent-deck start --force`
 
 | Guide | Description |
 |-------|-------------|
+| [Friend path](docs/FRIEND_PATH.md) | Cold machine → first deck switch → first Dealer issue |
 | [Direction](docs/DIRECTION.md) | Cross-product direction — agent_deck + agent-dealer |
 | [Setup](docs/SETUP.md) | Ports, env vars, secrets, troubleshooting |
 | [MVP](docs/MVP.md) | Source of truth — decks, vault, playbooks, MCP tools |

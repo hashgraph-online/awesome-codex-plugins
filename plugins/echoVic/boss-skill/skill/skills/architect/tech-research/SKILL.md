@@ -12,6 +12,8 @@ triggers:
   - 开始架构设计前
   - 需要技术选型时
   - 评估新技术方案时
+metadata:
+  internal: true
 ---
 
 # 技术调研方法论

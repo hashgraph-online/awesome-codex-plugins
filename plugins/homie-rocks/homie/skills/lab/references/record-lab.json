@@ -1,0 +1,25 @@
+{
+  "url": "http://127.0.0.1:8790/gem-rush/?speed=1",
+  "device": "computer",
+  "tail": 1.5,
+  "steps": [
+    { "waitFor": { "js": "window.labApp && window.labApp.state().primed" }, "timeout": 60000 },
+    { "wait": 2600, "caption": "New (the working tree) beside Today (the last commit), on one clock" },
+    { "click": "#speeds button:nth-of-type(3)", "caption": "A quarter of the speed" },
+    { "wait": 4500 },
+    { "click": "#overlays button:nth-of-type(1)", "caption": "The onion skin: where it was, every 3 frames" },
+    { "wait": 4500 },
+    { "click": "#play", "caption": "Paused: step through the phases" },
+    { "click": "#to-start" },
+    { "click": "#fwd", "times": 1 },
+    { "key": "ArrowRight", "times": 6 },
+    { "wait": 1200 },
+    { "key": "ArrowRight", "times": 6 },
+    { "wait": 1200 },
+    { "key": "ArrowRight", "times": 8 },
+    { "wait": 1500 },
+    { "click": "#play", "caption": "And at full speed again" },
+    { "click": "#speeds button:nth-of-type(1)" },
+    { "wait": 4000 }
+  ]
+}

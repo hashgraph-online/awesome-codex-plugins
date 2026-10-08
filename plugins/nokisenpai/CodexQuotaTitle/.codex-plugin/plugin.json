@@ -1,6 +1,6 @@
 {
   "name": "codex-quota-title",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "Displays Codex quotas in the correlated Codex Desktop window title on Windows.",
   "author": {
     "name": "NoKi"

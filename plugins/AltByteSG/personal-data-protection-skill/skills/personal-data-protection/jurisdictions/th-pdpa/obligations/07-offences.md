@@ -1,8 +1,16 @@
 # Chapter VII — Penalties (Sections 79–90)
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 
 Thailand PDPA splits penalties into **criminal** (Part I) and **administrative** (Part II). Personal liability for directors and managers under s81 makes the criminal layer especially important.
+
+## Contents
+
+- Part I — Criminal Liability (Sections 79–81)
+- Part II — Administrative Liability (Sections 82–90)
+- Penalty cap calculation in practice
+- Mental model
+- Cross-references
 
 ## Part I — Criminal Liability (Sections 79–81)
 

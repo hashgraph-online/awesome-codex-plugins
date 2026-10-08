@@ -16,7 +16,7 @@ when-to-use: "user wants a quick targeted single-pass senior developer review --
 ```
 
 ```
-!`git log --oneline -10 2>/dev/null || echo "NO_GIT"`
+!`git log --oneline -10 2>/dev/null || echo "NO_COMMITS"`
 ```
 
 ---

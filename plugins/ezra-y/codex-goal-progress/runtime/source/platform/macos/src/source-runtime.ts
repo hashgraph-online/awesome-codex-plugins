@@ -27,7 +27,7 @@ import { requireSingleCodexMacosApp } from "./app-discovery.js";
 import { createCdpController } from "./cdp-controller.js";
 import type { MacosCommandName, MacosCommandResult } from "./command-protocol.js";
 import { GOAL_PROGRESS_LAUNCH_AGENT_LABEL } from "./install-layout.js";
-import { inspectInstalledHelper } from "./installed-inspection.js";
+import { inspectDisplayVerification, inspectInstalledHelper } from "./installed-inspection.js";
 import {
   createLaunchAgentController,
   launchdPlist,
@@ -471,7 +471,7 @@ export async function ensureSourceRuntime(): Promise<SourceRuntimeEnsureResult> 
       ...(configuration.pluginRoot ? { GOAL_PROGRESS_PLUGIN_ROOT: configuration.pluginRoot } : {}),
       GOAL_PROGRESS_RENDERER_BUNDLE_DIR: rendererRoot,
       GOAL_PROGRESS_STARTUP_LISTENER: startupListenerPath,
-      GOAL_PROGRESS_CODEX_COMMAND: resolve(app.realAppPath, "Contents/Resources/codex"),
+      GOAL_PROGRESS_CODEX_APP_PATH: app.realAppPath,
     },
     runAtLoad: true,
     keepAlive: true,
@@ -659,6 +659,7 @@ export interface SourceRuntimeHealthResult {
 
 export async function inspectSourceRuntime(
   command: "doctor" | "verify",
+  installationOnly = false,
 ): Promise<SourceRuntimeHealthResult> {
   const configuration = sourceRuntimeConfiguration();
   const paths = resolveGoalProgressPaths({ root: configuration.pluginDataRoot });
@@ -679,6 +680,8 @@ export async function inspectSourceRuntime(
     helper.startupListenerRunning &&
     helper.startupListenerReady &&
     cdpReady;
+  const verification = inspectDisplayVerification(helper);
+  const displayMissing = !installationOnly && verification.currentDisplay === "fail";
   const code = ok
     ? command === "doctor"
       ? "DOCTOR_OK"
@@ -697,11 +700,12 @@ export async function inspectSourceRuntime(
   return {
     schemaVersion: 1,
     command,
-    ok,
-    code,
+    ok: ok && !displayMissing,
+    code: ok && displayMissing ? `${command.toUpperCase()}_DISPLAY_MISSING` : code,
     changed: false,
     nextStep: ok ? null : "Run the source Plugin again to repair its local runtime.",
     details: {
+      verification: { ...verification, installation: ok ? "pass" : "fail" },
       releaseVersion: GOAL_PROGRESS_RELEASE_VERSION,
       sourceRuntimeRoot: configuration.sourceRuntimeRoot,
       helperLauncherPath: configuration.helperLauncherPath,
@@ -820,7 +824,7 @@ export async function executeSourceRuntimeCommand(
     });
   }
   const ensured = await ensureSourceRuntime();
-  const verified = await inspectSourceRuntime("verify");
+  const verified = await inspectSourceRuntime("verify", true);
   if (!verified.ok) {
     return sourceCommandResult(command, {
       ok: false,

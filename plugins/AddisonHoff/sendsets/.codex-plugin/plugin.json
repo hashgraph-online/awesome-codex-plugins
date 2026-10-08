@@ -1,0 +1,40 @@
+{
+  "name": "sendsets",
+  "version": "1.0.0",
+  "description": "Cold email for AI agents: connect and warm up sending mailboxes, turn a lead list into an outbound sequence, send a test, launch, and read and answer replies.",
+  "author": {
+    "name": "Sendsets",
+    "url": "https://sendsetsapi.com"
+  },
+  "homepage": "https://sendsetsapi.com",
+  "repository": "https://github.com/AddisonHoff/sendsets",
+  "license": "Apache-2.0",
+  "keywords": [
+    "cold-email",
+    "outbound",
+    "email",
+    "sales",
+    "campaigns",
+    "warmup",
+    "mcp"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Sendsets",
+    "shortDescription": "Cold email for AI agents",
+    "longDescription": "Run cold email from Codex. Connect mailboxes, warm them up, build and launch outbound campaigns, add leads, and handle replies. Send actions go through an approval policy.",
+    "developerName": "Sendsets",
+    "category": "Sales",
+    "capabilities": [],
+    "defaultPrompt": [
+      "Send a three-step cold email sequence to the leads in leads.csv, and send me a test first"
+    ],
+    "logo": "./assets/logo.png",
+    "screenshots": [],
+    "websiteURL": "https://sendsetsapi.com",
+    "privacyPolicyURL": "https://sendsetsapi.com/privacy",
+    "termsOfServiceURL": "https://sendsetsapi.com/terms",
+    "supportURL": "https://sendsetsapi.com/contact"
+  }
+}

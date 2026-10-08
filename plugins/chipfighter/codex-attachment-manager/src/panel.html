@@ -1,0 +1,1325 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>上下文素材</title>
+<!--
+  Purpose: P4 — the context-material panel inside Codex Desktop's side panel (an MCP App). It lists the thread's
+  images in history order; the user previews them and checks or unchecks them. Nothing is sent to the model.
+  Input: the MCP Apps bridge (postMessage) — Codex's call of cam_panel, and our own calls of cam_panel, cam_image and
+  cam_set_selection. Output: selection changes through cam_set_selection. Self-contained: no network, no storage.
+  v0.1-5 — 启用插件 / 停用插件 (cam_setup): point Codex at the engine, or back to a direct connection before uninstalling.
+  The state is polled, and also re-read whenever the user moves to or touches the panel, or presses 刷新.
+  v0.1-8 — a panel opened on a new chat before its first message may stay tied to a thread Codex prepared and then
+  replaced. v0.1-10: such a panel switches to the thread the user starts there (cam_bind): the page notes when it is on
+  screen, and only a thread started meanwhile counts; when several did, the user picks one. v0.1-9: the title shows the
+  task's name. v0.1-13: a notice when an earlier part of the history cannot be found (e.g. the task a fork came from
+  was deleted); the images left are listed as usual.
+  v0.1-14: Simplified Chinese or English, following Codex's interface language (the host context's locale; else the
+  system's). Every call tells the plugin the language, so its answers match and the text for the model follows it.
+  v0.1-17: with many images, the ones the model asked for ("需要 IMG-xxx") and the user has not checked are listed in
+  a bar under the request size; clicking one scrolls the list to its row and flashes the row twice.
+  v0.1-18: a checkbox at the end of a turn's line (when it has two or more images that can change) checks or
+  unchecks all of them at once; it shows a dash while only some are checked.
+  v0.1-22 (user 2026-09-28): every check or uncheck, one image or a whole turn, is saved at once; no 确定, no 撤销,
+  and the footer keeps its one line (no "saved" message).
+  v0.1-21: Codex 26.924 gives the page no fixed height, only the most it may take; by MCP Apps the page reports the
+  height it wants (size-changed): it asks for all of it, and fits a smaller frame if that is what it gets.
+  v0.1-23: the panel never scrolls as a whole; only the list does (a turn's hidden checkbox once let it).
+  v0.2 (user 2026-09-29): a filter button next to 刷新 unfolds a bar of the task's sources (uploaded, PDF page, web page,
+  viewed, tool result, generated); picking some shows only their images. It changes what is shown, never what is sent.
+  v0.3 (user 2026-10-06): an automatic selection switch at the end of the footer. While it is on, a tick pins an image
+  (sent every turn; kept apart from the manual ticks), the others are left out unless the model fetches them, the bar
+  lists what the model fetched in the latest turn instead of what it asked for, and those rows say so.
+-->
+<style>
+  /* Fallbacks follow Codex's own widget palette; inside Codex its theme variables (MCP Apps host styles) win. */
+  :root {
+    color-scheme: light;
+    --fb-bg: rgb(255 255 255); --fb-text: rgb(26 28 31);
+    --fb-info: rgb(51 156 255); --fb-warn: rgb(226 85 7); --fb-ok: rgb(0 162 64); --fb-danger: rgb(224 46 42);
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --fb-bg: rgb(24 24 24); --fb-text: rgb(255 255 255);
+    --fb-info: rgb(131 195 255); --fb-warn: rgb(255 133 73); --fb-ok: rgb(64 201 119); --fb-danger: rgb(255 103 100);
+  }
+  :root {
+    --bg: var(--color-background-primary, var(--fb-bg));
+    --text: var(--color-text-primary, var(--fb-text));
+    --text-2: color-mix(in srgb, var(--text) 72%, transparent);
+    --text-3: var(--color-text-secondary, color-mix(in srgb, var(--text) 50%, transparent));
+    --bg-soft: color-mix(in srgb, var(--text) 5%, var(--bg));
+    --bg-hover: color-mix(in srgb, var(--text) 4%, var(--bg));
+    --border: var(--color-border-secondary, color-mix(in srgb, var(--text) 8%, transparent));
+    --border-strong: color-mix(in srgb, var(--text) 24%, transparent);
+    --accent: var(--text); --accent-text: var(--bg);
+    --info: var(--color-text-info, var(--fb-info));
+    --info-bg: color-mix(in srgb, var(--info) 9%, var(--bg));
+    --warn: var(--color-text-warning, var(--fb-warn));
+    --warn-bg: color-mix(in srgb, var(--warn) 11%, var(--bg));
+    --ok: var(--color-text-success, var(--fb-ok));
+    --danger: var(--color-text-danger, var(--fb-danger));
+    --danger-bg: color-mix(in srgb, var(--danger) 9%, var(--bg));
+    --font: var(--font-sans, -apple-system, system-ui, "Segoe UI", "Microsoft YaHei UI", sans-serif);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  /* v0.1-21: the height this page asked Codex for (fitFrame), never less than the frame it was given. */
+  html.asks-height, html.asks-height body { height: max(var(--frame-height), 100vh); }
+  body {
+    display: flex; flex-direction: column; overflow: hidden;
+    background: var(--bg); color: var(--text); font: 13px/1.5 var(--font);
+    -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+  }
+  button { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
+
+  header { flex: none; padding: 16px 18px 14px; }
+  .title { display: flex; align-items: center; gap: 8px; }
+  .title h1 { flex: 0 1 auto; min-width: 0; margin: 0; font-size: 15px; font-weight: 600; letter-spacing: .01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .count { flex: none; padding: 0 7px; border-radius: 999px; background: var(--bg-soft); color: var(--text-2); font-size: 12px; font-weight: 500; line-height: 20px; font-variant-numeric: tabular-nums; }
+  .count:empty { display: none; }
+  .actions { flex: none; margin-left: auto; display: flex; align-items: center; gap: 6px; }
+  .icon-quiet { width: 28px; height: 28px; padding: 0; border: 0; border-radius: 999px; background: transparent; color: var(--text-3); cursor: pointer; display: grid; place-items: center; transition: background .15s, color .15s; }
+  .icon-quiet:hover { background: var(--bg-soft); color: var(--text-2); }
+  .icon-quiet svg { width: 16px; height: 16px; }
+  .icon-quiet.spinning svg { animation: spin .8s linear infinite; }
+  .icon-quiet.stale { color: var(--warn); }
+  /* v0.2: the filter button, and a dot on it while a filter is on and the bar is folded away. */
+  #filter { position: relative; }
+  #filter[aria-expanded="true"] { background: var(--bg-soft); color: var(--text-2); }
+  #filter .dot { position: absolute; top: 4px; right: 4px; width: 7px; height: 7px; border-radius: 50%; background: var(--info); box-shadow: 0 0 0 2px var(--bg); }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .plugin { display: flex; gap: 6px; }
+  .plugin:empty { display: none; }
+  .plugin button { height: 28px; padding: 0 12px; border-radius: 999px; font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background .15s, color .15s, border-color .15s, transform .1s; }
+  .plugin button:active:not(:disabled) { transform: scale(.97); }
+  .plugin button:disabled { opacity: .5; cursor: default; }
+  .plugin .on { border: 1px solid var(--accent); background: var(--accent); color: var(--accent-text); }
+  .plugin .on:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 84%, var(--bg)); }
+  .plugin .off { border: 1px solid color-mix(in srgb, var(--danger) 55%, transparent); background: transparent; color: var(--danger); }
+  .plugin .off:hover:not(:disabled) { background: var(--danger-bg); }
+  .plan { margin-top: 4px; color: var(--text-2); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+  .plan b { font-weight: 600; color: var(--text); }
+  .meter { margin-top: 12px; padding: 10px 12px 11px; border-radius: 12px; background: var(--bg-soft); }
+  .meter-head { display: flex; align-items: baseline; gap: 8px; color: var(--text-2); font-size: 12.5px; }
+  .meter-head b { color: var(--text); font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .meter-full { margin-left: auto; color: var(--text-3); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .meter-full.saved { color: var(--ok); }
+  .bar { margin-top: 8px; height: 6px; border-radius: 999px; background: color-mix(in srgb, var(--text) 9%, transparent); overflow: hidden; }
+  .bar i { display: block; height: 100%; border-radius: inherit; background: var(--info); transition: width .25s ease; }
+  .last { margin-top: 8px; color: var(--text-3); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .last:empty { display: none; }
+  /* v0.1-17: stays in the header, so after jumping to one image the next one is still a click away. */
+  .needs { margin-top: 10px; padding: 6px 8px 6px 12px; border-radius: 10px; background: var(--warn-bg); color: var(--warn); font-size: 12.5px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+  .needs button { height: 22px; padding: 0 9px; border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent); border-radius: 999px; background: var(--bg); color: var(--warn); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; cursor: pointer; transition: border-color .15s, transform .1s; }
+  .needs button:hover { border-color: var(--warn); }
+  .needs button:active { transform: scale(.96); }
+  /* v0.3: what the model fetched itself is news, not a request: the same bar in blue. */
+  .needs.fetched { background: var(--info-bg); color: var(--info); }
+  .needs.fetched button { border-color: color-mix(in srgb, var(--info) 35%, transparent); color: var(--info); }
+  .needs.fetched button:hover { border-color: var(--info); }
+  /* v0.2: rounded source buttons, drawn unlike the rows' square send checkboxes so the two are not confused. */
+  .filters { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { height: 26px; padding: 0 10px; border: 1px solid var(--border-strong); border-radius: 999px; background: transparent; color: var(--text-2); font-size: 12px; font-weight: 500; white-space: nowrap; cursor: pointer; transition: background .15s, border-color .15s, color .15s; }
+  .chip:hover { background: var(--bg-hover); }
+  .chip .n { margin-left: 5px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .chip[aria-pressed="true"] { border-color: color-mix(in srgb, var(--info) 55%, transparent); background: var(--info-bg); color: var(--text); }
+  .chip[aria-pressed="true"] .n { color: var(--text-2); }
+
+  main { flex: 1; min-height: 0; overflow-y: auto; padding: 0 10px 18px; border-top: 1px solid var(--border); scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
+  /* position: the hidden checkbox inside stays in this line. Without it, it hung off the page far down the list, the
+     page could scroll, and checking a turn low in the list scrolled the whole panel away (user 2026-09-28). */
+  .turn { position: relative; display: flex; align-items: center; gap: 10px; margin: 18px 8px 6px; color: var(--text-3); font-size: 12px; font-weight: 500; }
+  .turn::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+  .turn:first-child { margin-top: 14px; }
+  /* v0.1-18: the turn's checkbox sits after the line, in the column of the rows' checkboxes, drawn quieter than them. */
+  .turn::after { order: 1; }
+  .turn .check { flex: none; order: 2; }
+  .turn .check input:checked + .box, .turn .check input:indeterminate + .box { background: transparent; border-color: var(--text-3); }
+  .turn .check:hover .box { border-color: var(--text-2); }
+  .turn .box::after { border-color: var(--text-2); }
+  .check input:indeterminate + .box::after { opacity: 1; width: 8px; height: 0; margin-top: 0; border: 0; border-top: 2px solid var(--text-2); transform: none; }
+
+  .row { position: relative; display: flex; align-items: center; gap: 12px; padding: 8px; border-radius: 12px; transition: background .15s; }
+  .row:hover { background: var(--bg-hover); }
+  /* Two flashes on the row picked in the bar above. */
+  .row.flash { animation: flash 1.2s ease-in-out; }
+  @keyframes flash {
+    0%, 50%, 100% { box-shadow: inset 0 0 0 0 transparent; }
+    20%, 30%, 70%, 80% { box-shadow: inset 0 0 0 2px var(--warn); background: var(--warn-bg); }
+  }
+  @media (prefers-reduced-motion: reduce) { .row.flash { animation: none; box-shadow: inset 0 0 0 2px var(--warn); } }
+  .thumb {
+    position: relative; flex: none; width: 64px; height: 64px; padding: 0; border: 1px solid var(--border);
+    border-radius: 10px; background: var(--bg-soft); overflow: hidden; cursor: zoom-in;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .thumb:hover { border-color: var(--border-strong); box-shadow: 0 2px 8px color-mix(in srgb, var(--text) 10%, transparent); }
+  .thumb img { width: 100%; height: 100%; object-fit: contain; display: block; transition: opacity .15s, filter .15s; }
+  .thumb .none { position: absolute; inset: 0; display: grid; place-items: center; color: var(--text-3); font-size: 11px; }
+  .thumb.loading::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(100deg, transparent 20%, var(--bg-hover) 50%, transparent 80%) var(--bg-soft);
+    background-size: 200% 100%; animation: shimmer 1.2s linear infinite;
+  }
+  @keyframes shimmer { from { background-position: 150% 0; } to { background-position: -50% 0; } }
+  .row.off .thumb img { opacity: .4; filter: grayscale(1); }
+
+  .check { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; cursor: pointer; }
+  .check.locked { cursor: default; }
+  .info { display: block; flex: 1; min-width: 0; }
+  .line1 { display: flex; align-items: baseline; gap: 8px; min-width: 0; font-size: 14px; line-height: 20px; }
+  .id { flex: none; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-2); }
+  .meta { display: block; margin-top: 2px; color: var(--text-3); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .row.off .id, .row.off .name { color: var(--text-3); }
+  .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+  .tags:empty { display: none; }
+  .tag { padding: 0 8px; border-radius: 999px; background: var(--bg-soft); color: var(--text-2); font-size: 11.5px; font-weight: 500; line-height: 20px; white-space: nowrap; }
+  .tag.warn { background: var(--warn-bg); color: var(--warn); }
+  .tag.fetched { background: var(--info-bg); color: var(--info); }
+
+  .check input { position: absolute; opacity: 0; pointer-events: none; }
+  .box {
+    flex: none; width: 18px; height: 18px; border-radius: 6px; border: 1.5px solid var(--border-strong);
+    display: grid; place-items: center; transition: background .15s, border-color .15s;
+  }
+  .check:hover .box { border-color: var(--text-3); }
+  .box::after { content: ""; width: 8px; height: 4.5px; margin-top: -2px; border: 2px solid var(--accent-text); border-top: 0; border-right: 0; transform: rotate(-45deg); opacity: 0; transition: opacity .12s; }
+  .check input:checked + .box { background: var(--accent); border-color: var(--accent); }
+  .check input:checked + .box::after { opacity: 1; }
+  .check input:disabled + .box { opacity: .35; }
+  .check input:focus-visible + .box { outline: 2px solid var(--info); outline-offset: 2px; }
+
+  .notice { margin: 12px 8px 0; padding: 9px 12px; border-radius: 10px; font-size: 12.5px; display: flex; gap: 10px; align-items: flex-start; }
+  .notice.warn { background: var(--warn-bg); color: var(--warn); }
+  .notice.error { background: var(--danger-bg); color: var(--danger); }
+  .notice.info { background: var(--info-bg); color: var(--text); }
+  .notice .grow { flex: 1; }
+  .notice button { flex: none; border: 0; background: none; padding: 0; font-weight: 600; cursor: pointer; color: inherit; font-size: 12.5px; }
+  .notice.chooser { flex-direction: column; align-items: stretch; gap: 6px; }
+  .notice .pick { display: flex; gap: 8px; align-items: baseline; width: 100%; padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); text-align: left; font-weight: 500; transition: border-color .15s; }
+  .notice .pick:hover:not(:disabled) { border-color: var(--border-strong); }
+  .notice .pick:disabled { opacity: .5; cursor: default; }
+  .pick .pick-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pick .pick-time { flex: none; color: var(--text-3); font-variant-numeric: tabular-nums; }
+
+  .empty { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 24px; text-align: center; color: var(--text-3); }
+  .empty svg { width: 36px; height: 36px; margin-bottom: 6px; }
+  .empty strong { color: var(--text-2); font-weight: 500; font-size: 14px; }
+  .empty span { font-size: 12.5px; max-width: 260px; }
+
+  footer { flex: none; display: flex; align-items: center; gap: 10px; padding: 12px 14px 12px 18px; border-top: 1px solid var(--border); background: var(--bg); }
+  .status { flex: 1; min-width: 0; color: var(--text-3); font-size: 12.5px; }
+  /* v0.3: the automatic selection switch, at the end of the footer whose line says what a tick means. */
+  .auto { flex: none; position: relative; display: inline-flex; align-items: center; gap: 7px; color: var(--text-2); font-size: 12.5px; font-weight: 500; cursor: pointer; user-select: none; white-space: nowrap; }
+  .auto input { position: absolute; opacity: 0; pointer-events: none; }
+  .auto .sw { position: relative; flex: none; width: 30px; height: 18px; border-radius: 999px; background: var(--border-strong); transition: background .15s; }
+  .auto .sw::after { content: ""; position: absolute; left: 2px; top: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--bg); box-shadow: 0 1px 2px rgb(0 0 0 / 25%); transition: left .15s; }
+  .auto input:checked + .sw { background: var(--accent); }
+  .auto input:checked + .sw::after { left: 14px; background: var(--accent-text); }
+  .auto input:disabled + .sw { opacity: .5; }
+  .auto input:focus-visible + .sw { outline: 2px solid var(--info); outline-offset: 2px; }
+  [hidden] { display: none !important; }
+
+  .viewer { position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column; background: rgb(19 19 19); color: rgb(245 245 245); }
+  .viewer-top, .viewer-bottom { flex: none; display: flex; align-items: center; gap: 10px; padding: 12px 12px 12px 18px; }
+  .viewer-title { flex: 1; min-width: 0; display: flex; gap: 8px; align-items: baseline; font-size: 14px; }
+  .viewer-title .name { color: rgb(255 255 255 / 62%); }
+  .viewer-stage { position: relative; flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 0 14px; }
+  .viewer-stage img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px; }
+  .viewer-stage .none { color: rgb(255 255 255 / 55%); font-size: 12.5px; }
+  .viewer-stage.loading img { filter: blur(6px); opacity: .7; }
+  .viewer-bottom .meta { flex: 1; color: rgb(255 255 255 / 55%); margin: 0; }
+  .icon-btn { width: 32px; height: 32px; border: 0; border-radius: 999px; background: transparent; color: rgb(255 255 255 / 80%); cursor: pointer; display: grid; place-items: center; transition: background .15s; }
+  .icon-btn:hover { background: rgb(255 255 255 / 12%); }
+  .viewer .check { flex: none; gap: 8px; color: rgb(245 245 245); font-size: 13px; font-weight: 500; }
+  .viewer .box { border-color: rgb(255 255 255 / 45%); }
+  .viewer .check:hover .box { border-color: rgb(255 255 255 / 75%); }
+  .viewer .check input:checked + .box { background: rgb(245 245 245); border-color: rgb(245 245 245); }
+  .viewer .box::after { border-color: rgb(19 19 19); }
+</style>
+</head>
+<body>
+<header>
+  <div class="title"><h1 id="title">上下文素材</h1><span class="count" id="count"></span><div class="actions"><button class="icon-quiet" id="filter" type="button" hidden aria-expanded="false" aria-controls="filters"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M7 12h10"/><path d="M10 18h4"/></svg><span class="dot" hidden></span></button><button class="icon-quiet" id="refresh" type="button" title="刷新" aria-label="刷新"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg></button><span class="plugin" id="plugin"></span></div></div>
+  <div class="plan" id="plan">正在读取…</div>
+  <div class="meter" id="meter" hidden>
+    <div class="meter-head"><span id="meterLabel"></span><b id="meterValue"></b><span class="meter-full" id="meterFull"></span></div>
+    <div class="bar"><i id="meterBar"></i></div>
+  </div>
+  <div class="last" id="last"></div>
+  <div class="needs" id="needs" hidden></div>
+  <div class="filters" id="filters" role="group" hidden></div>
+</header>
+<main id="main"></main>
+<footer>
+  <div class="status" id="status"></div>
+  <label class="auto" id="auto" hidden><span class="auto-label"></span><input type="checkbox" role="switch"><span class="sw"></span></label>
+</footer>
+<div class="viewer" id="viewer" hidden role="dialog" aria-modal="true" aria-label="图片预览">
+  <div class="viewer-top">
+    <div class="viewer-title"><span class="id" id="viewerId"></span><span class="name" id="viewerName"></span></div>
+    <button class="icon-btn" id="viewerClose" aria-label="关闭预览" title="关闭（Esc）">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M2 2l10 10M12 2 2 12"/></svg>
+    </button>
+  </div>
+  <div class="viewer-stage" id="viewerStage"></div>
+  <div class="viewer-bottom">
+    <span class="meta" id="viewerMeta"></span>
+    <label class="check" id="viewerCheck"><input type="checkbox"><span class="box"></span><span class="label">发送这张图</span></label>
+  </div>
+</div>
+<!-- The panel's words (v0.1-14): Simplified Chinese and English, the same keys in both (a unit test checks it);
+  "key_one" is the English text for a count of one. -->
+<script type="application/json" id="messages">
+  {
+    "zh": {
+      "page.title": "上下文素材",
+      "title.loading": "上下文素材",
+      "title.newTask": "新任务",
+      "title.unnamed": "未命名任务",
+      "refresh": "刷新",
+      "refresh.at": "刷新（上次更新 {time}）",
+      "refresh.stale": "刷新（有一会儿没更新了；上次更新 {time}）",
+      "filter.toggle": "按来源筛选",
+      "filter.all": "全部",
+      "count.shown": "显示 {shown} 张，共 {total} 张",
+      "plugin.disable": "停用插件",
+      "plugin.enable": "启用插件",
+      "plan.loading": "正在读取…",
+      "plan.failed": "读取失败",
+      "plan.empty": "还没有图片",
+      "plan.next": "下一条消息：发送 {sent} 张",
+      "plan.nextAuto": "下一条消息：固定发送 {sent} 张",
+      "plan.dropped": " · 占位 {dropped} 张",
+      "plan.duplicates": "（其中重复 {duplicates} 张）",
+      "plan.gone": " · {gone} 张已不在上下文",
+      "meter.request": "预计请求",
+      "meter.requestAuto": "预计请求",
+      "meter.atLeast": "{bytes} 起",
+      "meter.autoNote": "模型这一轮要取回的图不算在内（事先不知道会取哪几张）",
+      "meter.images": "预计图片数据",
+      "meter.full": "全部发送 {full} · 省 {percent}%",
+      "meter.none": "未取消任何图",
+      "last.noBaseline": "还没有记录到经过代理的完整请求，先按图片大小估算",
+      "last.skipped": "上一次请求 {time}：没能替换，原样发出 {bytes}",
+      "last.replaced": "上一次请求 {time}：替换了 {count} 张，少发 {saved}，实际发出 {after}",
+      "last.none": "上一次请求 {time}：没有替换，发出 {bytes}",
+      "kind.upload": "用户上传",
+      "kind.view": "查看的图片",
+      "kind.generated": "生成的图片",
+      "kind.tool": "工具返回",
+      "kind.pdf": "PDF 页面",
+      "kind.browser": "网页截图",
+      "tag.locked": "无法取消",
+      "tag.gone": "已不在上下文",
+      "tag.requested": "模型需要这张",
+      "needs.title": "模型需要 {count} 张没发送的图：",
+      "needs.jump": "在列表里定位到 {id}",
+      "fetched.title": "最近一轮模型取回 {count} 张：",
+      "tag.fetched": "模型取回",
+      "tag.replacedBy": "由 {id} 代替",
+      "tag.notSent": "不发送",
+      "tag.sameAs": "与 {id} 相同",
+      "turn.n": "第 {n} 轮",
+      "turn.earlier": "更早",
+      "turn.all": "发送第 {n} 轮的全部图片",
+      "turn.allEarlier": "发送更早的全部图片",
+      "turn.shown": "发送第 {n} 轮列出的图片",
+      "turn.shownEarlier": "发送更早列出的图片",
+      "turn.pinAll": "第 {n} 轮的全部图片固定发送",
+      "turn.pinAllEarlier": "更早的全部图片固定发送",
+      "turn.pinShown": "第 {n} 轮列出的图片固定发送",
+      "turn.pinShownEarlier": "更早列出的图片固定发送",
+      "row.unnamed": "未命名",
+      "row.pdfPage": "PDF 第 {page} 页",
+      "row.preview": "预览 {id}",
+      "row.send": "发送 {id}",
+      "row.pin": "固定发送 {id}",
+      "thumb.none": "无预览",
+      "empty.title": "这个任务里还没有图片",
+      "empty.text": "上传、查看或生成的图片会按时间顺序出现在这里。",
+      "notice.retry": "重试",
+      "notice.enabled": "已启用。重启 Codex 后生效，取消勾选的图就不再发送了。",
+      "notice.disabled": "已停用。重启 Codex 后恢复直连，取消勾选不再生效。要卸载插件，现在可以去插件页面移除。",
+      "notice.notEnabled": "插件没有启用：Codex 现在直连，取消勾选不会生效。点右上角的“启用插件”，然后重启 Codex。",
+      "notice.waiting": "这个任务还没开始。发出第一条消息后，这里会自动切到这个任务。",
+      "notice.historyMissing": "这个任务前面有一段历史找不到了（它所在的任务记录可能已被删除），那一段里的图片没法在这里列出。",
+      "notice.engineDown": "代理没有在运行，取消勾选暂时不会生效。关掉 Codex 再打开，一般就能恢复。",
+      "notice.skipped": "上一次请求（{time}）没能按勾选替换，图片原样发给了模型。原因：{reason}。",
+      "notice.websocket": "取消勾选时这一轮对话还在进行，这一轮剩下的请求仍带着原图；从下一条消息起生效。",
+      "reason.undecodable": "请求内容无法解压",
+      "reason.unparsable": "请求内容无法解析",
+      "reason.format": "请求的格式和预期不同",
+      "reason.integer": "请求里有超大整数，改写会改变它的值",
+      "reason.index": "读取这个任务的记录失败",
+      "reason.other": "改写时出错",
+      "chooser.title": "刚刚开始了好几个任务，这个面板要显示哪一个？",
+      "chooser.untitled": "新任务",
+      "footer.hint": "勾选的图片会随下一条消息发给模型",
+      "footer.hintAuto": "勾选的图每轮都发，其余由模型按需取回",
+      "auto.label": "自动选图",
+      "auto.title": "打开后，之前各轮的图默认不发，模型需要时自己按编号取回；勾选的图每轮都发",
+      "viewer.label": "图片预览",
+      "viewer.close": "关闭预览",
+      "viewer.closeTitle": "关闭（Esc）",
+      "viewer.send": "发送这张图",
+      "viewer.pin": "固定发送这张图",
+      "viewer.loading": "正在加载…",
+      "viewer.none": "这张图无法预览",
+      "error.load": "读取失败：{message}",
+      "error.save": "保存失败：{message}",
+      "error.switch": "切换失败：{message}",
+      "error.enable": "启用失败：{message}",
+      "error.disable": "停用失败：{message}",
+      "error.noReply": "Codex 没有响应",
+      "error.call": "调用失败"
+    },
+    "en": {
+      "page.title": "Context Assets",
+      "title.loading": "Context Assets",
+      "title.newTask": "New task",
+      "title.unnamed": "Untitled task",
+      "refresh": "Refresh",
+      "refresh.at": "Refresh (last updated {time})",
+      "refresh.stale": "Refresh (not updated for a while; last updated {time})",
+      "filter.toggle": "Filter by source",
+      "filter.all": "All",
+      "count.shown": "Showing {shown} of {total} images",
+      "plugin.disable": "Disable plugin",
+      "plugin.enable": "Enable plugin",
+      "plan.loading": "Loading…",
+      "plan.failed": "Could not load",
+      "plan.empty": "No images yet",
+      "plan.next": "Next message sends {sent} images",
+      "plan.next_one": "Next message sends {sent} image",
+      "plan.nextAuto": "Next message: {sent} pinned images",
+      "plan.nextAuto_one": "Next message: {sent} pinned image",
+      "plan.dropped": " · {dropped} as placeholders",
+      "plan.dropped_one": " · {dropped} as a placeholder",
+      "plan.duplicates": " ({duplicates} of them duplicates)",
+      "plan.duplicates_one": " ({duplicates} of them a duplicate)",
+      "plan.gone": " · {gone} no longer in context",
+      "meter.request": "Estimated request",
+      "meter.requestAuto": "At least",
+      "meter.atLeast": "{bytes}",
+      "meter.autoNote": "Images the model fetches this turn are not counted (they are not known beforehand)",
+      "meter.images": "Estimated image data",
+      "meter.full": "All images {full} · {percent}% saved",
+      "meter.none": "Nothing unchecked",
+      "last.noBaseline": "No full request through the proxy recorded yet; estimated from the image sizes",
+      "last.skipped": "Last request {time}: not rewritten, sent as it was ({bytes})",
+      "last.replaced": "Last request {time}: {count} images replaced, {saved} less, {after} sent",
+      "last.replaced_one": "Last request {time}: {count} image replaced, {saved} less, {after} sent",
+      "last.none": "Last request {time}: nothing replaced, {bytes} sent",
+      "kind.upload": "Uploaded",
+      "kind.view": "Viewed",
+      "kind.generated": "Generated",
+      "kind.tool": "Tool result",
+      "kind.pdf": "PDF page",
+      "kind.browser": "Web page",
+      "tag.locked": "Can't uncheck",
+      "tag.gone": "No longer in context",
+      "tag.requested": "The model needs this",
+      "needs.title": "The model needs {count} unsent images:",
+      "needs.title_one": "The model needs {count} unsent image:",
+      "needs.jump": "Show {id} in the list",
+      "fetched.title": "The model fetched {count} images in the latest turn:",
+      "fetched.title_one": "The model fetched {count} image in the latest turn:",
+      "tag.fetched": "Fetched by the model",
+      "tag.replacedBy": "Replaced by {id}",
+      "tag.notSent": "Not sent",
+      "tag.sameAs": "Same as {id}",
+      "turn.n": "Turn {n}",
+      "turn.earlier": "Earlier",
+      "turn.all": "Send all images from turn {n}",
+      "turn.allEarlier": "Send all earlier images",
+      "turn.shown": "Send the listed images from turn {n}",
+      "turn.shownEarlier": "Send the listed earlier images",
+      "turn.pinAll": "Pin every image of turn {n}",
+      "turn.pinAllEarlier": "Pin every earlier image",
+      "turn.pinShown": "Pin the listed images of turn {n}",
+      "turn.pinShownEarlier": "Pin the listed earlier images",
+      "row.unnamed": "Unnamed",
+      "row.pdfPage": "PDF page {page}",
+      "row.preview": "Preview {id}",
+      "row.send": "Send {id}",
+      "row.pin": "Pin {id}",
+      "thumb.none": "No preview",
+      "empty.title": "No images in this task yet",
+      "empty.text": "Images you upload, and images the model views or generates, show up here in order.",
+      "notice.retry": "Retry",
+      "notice.enabled": "Enabled. After you restart Codex, unchecked images are no longer sent.",
+      "notice.disabled": "Disabled. After you restart Codex it connects directly, and unchecking has no effect. To uninstall, you can now remove the plugin on the plugins page.",
+      "notice.notEnabled": "The plugin is not enabled: Codex connects directly, so unchecking has no effect. Click \"Enable plugin\" at the top right, then restart Codex.",
+      "notice.waiting": "This task has not started yet. Once you send the first message, the panel switches to it.",
+      "notice.historyMissing": "An earlier part of this task's history cannot be found (the task it came from may have been deleted), so the images from that part are not listed here.",
+      "notice.engineDown": "The proxy is not running, so unchecking has no effect for now. Closing and reopening Codex usually brings it back.",
+      "notice.skipped": "The last request ({time}) could not be rewritten as selected; the images went to the model as they were. Reason: {reason}.",
+      "notice.websocket": "This turn was still running when you unchecked images, so its remaining requests still carry the originals; the change applies from the next message.",
+      "reason.undecodable": "the request could not be decompressed",
+      "reason.unparsable": "the request could not be parsed",
+      "reason.format": "the request is not in the expected format",
+      "reason.integer": "the request holds an integer too large to rewrite safely",
+      "reason.index": "this task's records could not be read",
+      "reason.other": "an error occurred while rewriting",
+      "chooser.title": "Several tasks just started. Which one should this panel show?",
+      "chooser.untitled": "New task",
+      "footer.hint": "Checked images go to the model with the next message",
+      "footer.hintAuto": "Checked images go every turn; the model fetches the rest as needed",
+      "auto.label": "Auto-select",
+      "auto.title": "When on, images from earlier turns are left out by default and the model fetches the ones it needs by id; checked images go every turn",
+      "viewer.label": "Image preview",
+      "viewer.close": "Close preview",
+      "viewer.closeTitle": "Close (Esc)",
+      "viewer.send": "Send this image",
+      "viewer.pin": "Pin this image",
+      "viewer.loading": "Loading…",
+      "viewer.none": "This image cannot be previewed",
+      "error.load": "Could not load: {message}",
+      "error.save": "Could not save: {message}",
+      "error.switch": "Could not switch: {message}",
+      "error.enable": "Could not enable: {message}",
+      "error.disable": "Could not disable: {message}",
+      "error.noReply": "Codex did not respond",
+      "error.call": "The call failed"
+    }
+  }
+</script>
+<script>
+(() => {
+  const THUMB_SIDE = 160;
+  const POLL_MS = 3000;
+  const STALE_MS = 30000;          // older than this, the 刷新 button turns orange
+  const $ = (id) => document.getElementById(id);
+  const main = $("main");
+
+  // ---- language (v0.1-14): Codex's interface language when the host context gives one, else the system's ----
+  const MESSAGES = JSON.parse($("messages").textContent);
+  const langOf = (tag) => (typeof tag === "string" && tag.trim() ? (tag.trim().toLowerCase().startsWith("zh") ? "zh" : "en") : null);
+  let lang = langOf(navigator.language) ?? "en";
+  let langSource = "system";
+  const template = (key, count) => {
+    const table = MESSAGES[lang];
+    return (count === 1 && table[`${key}_one`]) || table[key] || MESSAGES.en[key] || key;
+  };
+  const fill = (text, vars) => text.replace(/\{(\w+)\}/g, (all, name) => (name in vars ? String(vars[name]) : all));
+  const t = (key, vars = {}) => fill(template(key, vars.count), vars);
+  // A text with some of its values in bold, e.g. the number of images the next message sends.
+  function rich(key, vars, bold) {
+    return template(key, vars.count).split(/(\{\w+\})/).filter(Boolean).map((part) => {
+      const name = /^\{(\w+)\}$/.exec(part)?.[1];
+      if (!name || !(name in vars)) return part;
+      return name === bold ? Object.assign(document.createElement("b"), { textContent: String(vars[name]) }) : String(vars[name]);
+    });
+  }
+  function setLanguage(tag, source) {
+    const next = langOf(tag);
+    if (!next) return;
+    const changed = next !== lang;
+    lang = next;
+    langSource = source;
+    if (changed) applyLanguage();
+  }
+  // The texts outside what render() draws, and the caches that hold words.
+  function applyLanguage() {
+    document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+    document.title = t("page.title");
+    $("refresh").setAttribute("aria-label", t("refresh"));
+    $("viewer").setAttribute("aria-label", t("viewer.label"));
+    $("viewerClose").setAttribute("aria-label", t("viewer.close"));
+    $("viewerClose").title = t("viewer.closeTitle");
+    $("viewerCheck").querySelector(".label").textContent = t("viewer.send");
+    emptyState.querySelector("strong").textContent = t("empty.title");
+    emptyState.querySelector("span").textContent = t("empty.text");
+    turnLabels.clear();
+    render();
+  }
+
+  // ---- MCP Apps bridge (JSON-RPC over postMessage with Codex) ----
+  let nextId = 1;
+  const waiting = new Map();
+  const post = (message) => window.parent.postMessage({ jsonrpc: "2.0", ...message }, "*");
+  function request(method, params, timeoutMs = 30000) {
+    return new Promise((resolve, reject) => {
+      const id = nextId++;
+      const timer = setTimeout(() => { waiting.delete(id); reject(new Error(t("error.noReply"))); }, timeoutMs);
+      waiting.set(id, { resolve: (value) => { clearTimeout(timer); resolve(value); }, reject: (error) => { clearTimeout(timer); reject(error); } });
+      post({ id, method, params });
+    });
+  }
+  const textOf = (result) => (result?.content ?? []).map((part) => part?.text).filter(Boolean).join("\n");
+  // Every call says which language the panel shows, so the plugin answers in it; the panel's reads also say where the
+  // language came from, and the plugin remembers it for the text it gives the model.
+  async function callTool(name, args) {
+    const result = await request("tools/call", { name, arguments: { ...(args ?? {}), lang, ...(name === "cam_panel" ? { langSource } : {}) } });
+    if (result?.isError) throw new Error(textOf(result) || t("error.call"));
+    return result;
+  }
+  window.addEventListener("message", (event) => {
+    const message = event.data;
+    if (!message || typeof message !== "object") return;
+    if (message.id !== undefined && waiting.has(message.id) && ("result" in message || "error" in message)) {
+      const waiter = waiting.get(message.id);
+      waiting.delete(message.id);
+      if (message.error) waiter.reject(new Error(message.error.message ?? t("error.call"))); else waiter.resolve(message.result);
+      return;
+    }
+    if (message.method === "ui/notifications/tool-result") ingest(message.params?.structuredContent);
+    else if (message.method === "ui/notifications/host-context-changed") { applyHost(message.params); nudge(); }
+    else if (message.id !== undefined && message.method) post({ id: message.id, result: {} });
+  });
+  function applyHost(context) {
+    if (!context) return;
+    if (typeof context.locale === "string") setLanguage(context.locale, "codex");
+    if (context.theme === "dark" || context.theme === "light") document.documentElement.dataset.theme = context.theme;
+    const variables = context.styles?.variables;
+    if (variables && typeof variables === "object") {
+      for (const [name, value] of Object.entries(variables)) if (name.startsWith("--") && typeof value === "string") document.documentElement.style.setProperty(name, value);
+    }
+    if (context.containerDimensions) fitFrame(context.containerDimensions);
+  }
+
+  // ---- v0.1-21: the frame's height ----
+  // Codex 26.924 gives the page no fixed height, only the most it may take (containerDimensions); by MCP Apps, a page
+  // then reports the height it wants (ui/notifications/size-changed). The panel asks for all it may take; if the frame
+  // it then gets is smaller (a host may cap it), it fits that frame, so the footer stays in view. A fixed height is
+  // simply filled. (The strip users saw in 26.924 was the page scrolled away, not a short frame: see .turn above.)
+  const frame = { asked: 0, timer: 0 };
+  function fitFrame(dimensions) {
+    const height = Math.floor(Number(dimensions.height) || Number(dimensions.maxHeight) || 0);
+    if (height > 0) askFrame(height);
+  }
+  function askFrame(height) {
+    document.documentElement.classList.add("asks-height");
+    document.documentElement.style.setProperty("--frame-height", `${height}px`);
+    if (height === frame.asked) return;
+    frame.asked = height;
+    reportFrame();
+    settleLater();
+  }
+  const reportFrame = () => { if (frame.asked) post({ method: "ui/notifications/size-changed", params: { height: frame.asked } }); };
+  // Judged once the frame has stopped changing: a host may resize it in steps.
+  function settleLater() {
+    clearTimeout(frame.timer);
+    frame.timer = setTimeout(() => {
+      const shown = window.innerHeight;
+      if (shown > 0 && shown < frame.asked) askFrame(shown);
+    }, 1500);
+  }
+  window.addEventListener("resize", () => { if (frame.asked) settleLater(); });
+
+  // ---- state ----
+  const S = {
+    data: null, threadId: null,
+    error: null,                   // { key, message }: said in the current language when drawn
+    unsaved: new Map(),            // id -> checked, clicked and shown already, saved by the next call (v0.1-22)
+    thumbs: new Map(),             // id -> data URL or null
+    viewer: null,                  // { id, url, loading, failed }
+    refreshing: false, saving: false,
+    switching: false,              // a 启用插件 / 停用插件 call is under way
+    switchingTask: false,          // a cam_bind call is under way
+    manual: false,                 // the running refresh was asked for with the 刷新 button
+    filter: { open: false, sources: new Set() },   // v0.2: the filter bar, and the sources shown (none picked: all)
+    autoPending: null,             // v0.3: the switch's new state while it is being saved
+  };
+  let lastFresh = 0;               // when the panel last received the thread's state
+  // When this page was on screen (v0.1-10), sent with every read: a panel on a new chat is offered the threads started
+  // meanwhile. [from, to] pairs in ms, newest last; the first reaches back 10 s for a page Codex reloads when the chat
+  // becomes a thread. Once hidden (another chat, another window in front), the page starts a new pair when shown again.
+  const openedAt = Date.now();
+  const shown = [];
+  let screenGap = true;
+  const images = () => S.data?.images ?? [];
+  const byId = (id) => images().find((image) => image.id === id);
+  const isChecked = (image) => (S.unsaved.has(image.id) ? S.unsaved.get(image.id) : image.checked);
+  // v0.3: automatic selection; a tick then pins the image (the plugin keeps the two kinds of ticks apart).
+  const autoOn = () => S.autoPending ?? S.data?.auto ?? false;
+
+  function ingest(state) {
+    if (!state || !Array.isArray(state.images)) return;
+    lastFresh = Date.now();
+    // Polling mostly returns the same state; leave the page alone then.
+    const signature = JSON.stringify(state);
+    if (signature === S.signature && !S.error) return;
+    S.signature = signature;
+    if (S.threadId && state.threadId !== S.threadId) {
+      S.unsaved.clear(); S.thumbs.clear(); thumbQueue.length = 0; thumbsInFlight.clear(); closeViewer();
+      S.filter = { open: false, sources: new Set() };
+    }
+    S.threadId = state.threadId;
+    S.data = state;
+    S.error = null;
+    for (const [id, checked] of S.unsaved) {
+      const image = byId(id);
+      if (!image || !image.replaceable || image.checked === checked) S.unsaved.delete(id);
+    }
+    render();
+  }
+
+  let lastRefresh = 0;
+  async function refresh(manual = false) {
+    if (S.refreshing || S.saving) return;
+    S.refreshing = true;
+    S.manual = manual;
+    lastRefresh = Date.now();
+    renderRefresh();
+    noteScreen();
+    const started = Date.now();
+    try {
+      const state = (await callTool("cam_panel", { shown })).structuredContent;
+      // A save that began meanwhile may be missing from this state; the save's own answer, or the next read, shows it.
+      if (lastSaveStarted <= started) ingest(state);
+      followNewTask();
+    }
+    catch (error) { S.error = { key: "error.load", message: error.message }; render(); }
+    finally { S.refreshing = false; S.manual = false; renderRefresh(); }
+  }
+  // Moving to or touching the panel brings it up to date at once, whatever the host does to a background frame's
+  // timers: after a reply, the user looking over is what counts.
+  let nudged = 0;
+  function nudge() {
+    if (Date.now() - nudged < 1500) return;
+    nudged = Date.now();
+    refresh();
+  }
+
+  // ---- checking and unchecking: saved at once (v0.1-22, user 2026-09-28: no 确定, no 撤销) ----
+  // A click shows at once; clicks made while a save is under way go out together right after it.
+  let lastSaveStarted = 0;
+  const setChecked = (id, checked) => change([id], checked);
+  function change(ids, checked) {
+    const targets = ids.filter((id) => byId(id)?.replaceable);
+    // While the switch is being saved, a tick could land in the wrong record.
+    if (!targets.length || S.autoPending !== null) return;
+    for (const id of targets) S.unsaved.set(id, checked);
+    render();
+    flush();
+  }
+  async function flush() {
+    if (S.saving) return;
+    let failed = false;
+    while (S.unsaved.size && !failed) {
+      const batch = [...S.unsaved];
+      S.saving = true; lastSaveStarted = Date.now();
+      try {
+        const result = await callTool("cam_set_selection", {
+          check: batch.filter(([, checked]) => checked).map(([id]) => id),
+          uncheck: batch.filter(([, checked]) => !checked).map(([id]) => id),
+          mode: autoOn() ? "auto" : "manual",
+        });
+        // An image clicked again meanwhile keeps its newer choice, which the next round saves.
+        for (const [id, checked] of batch) if (S.unsaved.get(id) === checked) S.unsaved.delete(id);
+        ingest(result.structuredContent);
+      } catch (error) {
+        // The list goes back to what is saved, and the error says why.
+        failed = true;
+        S.unsaved.clear();
+        S.error = { key: "error.save", message: error.message };
+      } finally {
+        S.saving = false;
+      }
+    }
+    render();
+  }
+
+  // ---- v0.3: the automatic selection switch, saved at once like a tick ----
+  // Ticks still being saved go first, in the mode they were made in; while the switch saves, no tick is taken.
+  async function setAuto(on) {
+    if (S.autoPending !== null) return;
+    S.autoPending = on;
+    render();
+    try {
+      while (S.saving || S.unsaved.size) { if (!S.saving) await flush(); else await new Promise((resolve) => setTimeout(resolve, 50)); }
+      lastSaveStarted = Date.now();
+      const result = await callTool("cam_set_selection", { auto: on });
+      S.autoPending = null;
+      ingest(result.structuredContent);
+    } catch (error) {
+      S.autoPending = null;
+      S.error = { key: "error.switch", message: error.message };
+    }
+    render();
+  }
+
+  // ---- a panel opened on a new chat follows the thread its first message starts (v0.1-10) ----
+  // The plugin offers only threads started while this page was on screen, so a panel left on another new chat does not
+  // take a task started elsewhere. One: switch to it. Several (e.g. two windows side by side): the user picks one.
+  const onScreen = () => document.visibilityState === "visible" && window.innerWidth > 0 && window.innerHeight > 0;
+  function noteScreen() {
+    const now = Date.now();
+    if (!onScreen()) { screenGap = true; return; }
+    const last = shown[shown.length - 1];
+    if (last && !screenGap) last[1] = now;
+    else {
+      shown.push([shown.length ? now - 2000 : Math.min(openedAt - 10000, now), now]);
+      if (shown.length > 20) shown.shift();
+    }
+    screenGap = false;
+  }
+  const newTasks = () => (S.data?.started === false && !S.data?.switchedFrom ? S.data?.newTasks ?? [] : []);
+  function followNewTask() {
+    const tasks = newTasks();
+    if (tasks.length === 1) switchTo(tasks[0].threadId);
+  }
+  async function switchTo(threadId) {
+    if (S.switchingTask) return;
+    S.switchingTask = true; render();
+    try { ingest((await callTool("cam_bind", { target: threadId })).structuredContent); }
+    catch (error) { S.error = { key: "error.switch", message: error.message }; }
+    finally { S.switchingTask = false; render(); }
+  }
+
+  // 启用 / 停用: Codex reads the setting when it starts, so either one waits for a restart (the notices say so).
+  async function switchEngine(enable) {
+    if (S.switching) return;
+    S.switching = true; render();
+    try {
+      const result = await callTool("cam_setup", { enable });
+      ingest(result.structuredContent);
+    } catch (error) {
+      S.error = { key: enable ? "error.enable" : "error.disable", message: error.message };
+    } finally {
+      S.switching = false; render();
+    }
+  }
+
+  // ---- images: every thumbnail is queued in list order, a few at a time; rows scrolled into view go first ----
+  // (Visibility alone is not enough: a page that is hidden or not painted yet gets no intersection updates.)
+  const thumbQueue = [];
+  const thumbsInFlight = new Set();
+  async function loadImage(id, maxSide) {
+    const result = await callTool("cam_image", { id, maxSide });
+    return result?._meta?.dataUrl ?? null;
+  }
+  function queueThumb(id, first = false) {
+    if (S.thumbs.has(id) || thumbsInFlight.has(id)) return;
+    const at = thumbQueue.indexOf(id);
+    if (at >= 0) { if (!first) return; thumbQueue.splice(at, 1); }
+    if (first) thumbQueue.unshift(id); else thumbQueue.push(id);
+    pumpThumbs();
+  }
+  function pumpThumbs() {
+    while (thumbsInFlight.size < 3 && thumbQueue.length) {
+      const id = thumbQueue.shift();
+      const thread = S.threadId;
+      thumbsInFlight.add(id);
+      loadImage(id, THUMB_SIDE)
+        .then((url) => { if (thread === S.threadId) S.thumbs.set(id, url); })
+        .catch(() => { if (thread === S.threadId) S.thumbs.set(id, null); })
+        .finally(() => { thumbsInFlight.delete(id); const row = rows.get(id); if (row) paintThumb(row, id); pumpThumbs(); });
+    }
+  }
+  const observer = new IntersectionObserver((entries) => {
+    for (const entry of entries) if (entry.isIntersecting) { observer.unobserve(entry.target); queueThumb(entry.target.dataset.id, true); }
+  }, { root: main, rootMargin: "200px 0px" });
+
+  // ---- rendering ----
+  const rows = new Map();
+  const turnLabels = new Map();
+  const emptyState = document.createElement("div");
+  emptyState.className = "empty";
+  emptyState.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="14" height="14" rx="2.5"/><path d="M7 3h10.5A3.5 3.5 0 0 1 21 6.5V16"/><circle cx="8" cy="11" r="1.5"/><path d="m3.5 18 4.5-4.5 3 3 2-2 3.5 3.5"/></svg><strong></strong><span></span>';
+  const formatBytes = (bytes) => bytes < 1024 ? `${bytes} B` : bytes < 1024 * 1024 ? `${Math.round(bytes / 1024)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  // v0.2: an image from a plugin server older than the page has no source; its kind is its source.
+  const sourceOf = (image) => image.source ?? image.kind;
+  const sourceLabel = (image) => (sourceOf(image) === "pdf" && image.pdfPage ? t("row.pdfPage", { page: image.pdfPage }) : MESSAGES[lang][`kind.${sourceOf(image)}`] ? t(`kind.${sourceOf(image)}`) : image.kind);
+  const describe = (image) => [sourceLabel(image), image.width && image.height ? `${image.width}×${image.height}` : null, formatBytes(image.bytes)].filter(Boolean).join(" · ");
+  // A PDF comment screenshot goes by its PDF's name when the comment says which one.
+  const nameOf = (image) => image.pdfName ?? image.name ?? t("row.unnamed");
+
+  // An unchecked image becomes a duplicate placeholder when a copy of the same content is still sent in that request.
+  const sentCopyOf = (image) => image.sameAs.find((id) => { const other = byId(id); return other && other.inNextRequest && isChecked(other); });
+
+  function tagsOf(image) {
+    const tags = [];
+    if (!image.replaceable) tags.push([t("tag.locked"), ""]);
+    // Compacted out of the history: it is not sent either way.
+    if (!image.inNextRequest) { tags.push([t("tag.gone"), ""]); return tags; }
+    const checked = isChecked(image);
+    const sentCopy = sentCopyOf(image);
+    // v0.3: with automatic selection, what the model fetched in the latest turn; an image not pinned is left out by
+    // default, so that needs no word on every row.
+    if (autoOn()) {
+      if (image.fetched) tags.push([t("tag.fetched"), "fetched"]);
+      if (!checked && sentCopy) tags.push([t("tag.replacedBy", { id: sentCopy }), ""]);
+      else if (checked && image.sameAs.length) tags.push([t("tag.sameAs", { id: image.sameAs[0] }), ""]);
+      return tags;
+    }
+    if (!checked && image.requested) tags.push([t("tag.requested"), "warn"]);
+    if (!checked) tags.push([sentCopy ? t("tag.replacedBy", { id: sentCopy }) : t("tag.notSent"), ""]);
+    else if (image.sameAs.length) tags.push([t("tag.sameAs", { id: image.sameAs[0] }), ""]);
+    return tags;
+  }
+
+  // ---- the next message: what goes out, and the request size against sending everything (an estimate) ----
+  const PLACEHOLDER_CHARS = 700;
+  function forecast() {
+    const list = images();
+    const counted = list.filter((image) => image.inNextRequest);
+    const dropped = counted.filter((image) => image.replaceable && !isChecked(image));
+    const saved = dropped.reduce((sum, image) => sum + Math.max(0, image.base64Chars - PLACEHOLDER_CHARS), 0);
+    const baseline = S.data?.send?.baseline ?? null;
+    // With a recorded request: its size plus the images added since. Without one: the images alone.
+    const full = baseline
+      ? baseline.bytes + counted.filter((image) => image.inLastRequest === false).reduce((sum, image) => sum + image.base64Chars, 0)
+      : counted.reduce((sum, image) => sum + image.base64Chars, 0);
+    return { whole: !!baseline, full, after: Math.max(0, full - saved), sent: counted.length - dropped.length, dropped: dropped.length, duplicates: dropped.filter(sentCopyOf).length, gone: list.length - counted.length };
+  }
+  function clockOf(at) {
+    const date = new Date(at);
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+  }
+  // Today: 10:30; another day: 9月25日 10:30 or Sep 25, 10:30.
+  function timeOf(at) {
+    const date = new Date(at);
+    if (Number.isNaN(date.getTime())) return "";
+    const today = date.toDateString() === new Date().toDateString();
+    const time = { hour: "2-digit", minute: "2-digit", hourCycle: "h23" };
+    return new Intl.DateTimeFormat(lang === "zh" ? "zh-CN" : "en-US", today ? time : { month: lang === "zh" ? "long" : "short", day: "numeric", ...time }).format(date);
+  }
+
+  function makeRow(id) {
+    const row = document.createElement("div");
+    row.className = "row";
+    row.dataset.id = id;
+    row.innerHTML = '<button class="thumb" type="button"></button><label class="check"><span class="info"><span class="line1"><span class="id"></span><span class="name"></span></span><span class="meta"></span><span class="tags"></span></span><input type="checkbox"><span class="box"></span></label>';
+    row.querySelector(".thumb").addEventListener("click", () => openViewer(id));
+    row.querySelector("input").addEventListener("change", (event) => setChecked(id, event.target.checked));
+    observer.observe(row);
+    return row;
+  }
+
+  // ---- v0.1-18: a turn's line, with one checkbox for all of its images that can change ----
+  const changeable = (image) => image.replaceable && image.inNextRequest;
+  function makeTurnLabel(turn) {
+    const label = document.createElement("div");
+    label.className = "turn";
+    label.innerHTML = '<span class="turn-name"></span><label class="check"><input type="checkbox"><span class="box"></span></label>';
+    label.querySelector(".turn-name").textContent = turn === null ? t("turn.earlier") : t("turn.n", { n: turn });
+    const input = label.querySelector("input");
+    // A click on a checked box unchecks them all; on a mixed or empty one it checks them all.
+    input.addEventListener("change", () => setTurn(turn, input.checked));
+    return label;
+  }
+  // Hidden below two images: the row's own checkbox does the same. v0.2: it covers the images shown, and says so while
+  // a filter is on.
+  function paintTurn(label, turn, group) {
+    const targets = group.filter(changeable);
+    const checked = targets.filter(isChecked).length;
+    const box = label.querySelector(".check");
+    box.hidden = targets.length < 2;
+    const keys = autoOn() ? ["turn.pinShownEarlier", "turn.pinAllEarlier", "turn.pinShown", "turn.pinAll"] : ["turn.shownEarlier", "turn.allEarlier", "turn.shown", "turn.all"];
+    const all = turn === null ? t(filtering() ? keys[0] : keys[1]) : t(filtering() ? keys[2] : keys[3], { n: turn });
+    box.title = all;
+    const input = box.querySelector("input");
+    input.setAttribute("aria-label", all);
+    input.checked = checked > 0 && checked === targets.length;
+    input.indeterminate = checked > 0 && checked < targets.length;
+  }
+  // Saved at once, like every check (v0.1-21, user 2026-09-27). v0.2: the images shown only.
+  function setTurn(turn, checked) {
+    change(images().filter((image) => image.turn === turn && changeable(image) && inFilter(image)).map((image) => image.id), checked);
+  }
+
+  function paintThumb(row, id) {
+    const button = row.querySelector(".thumb");
+    const url = S.thumbs.get(id);
+    button.classList.toggle("loading", !S.thumbs.has(id));
+    let img = button.querySelector("img");
+    if (url) {
+      if (!img) { img = document.createElement("img"); img.alt = ""; button.replaceChildren(img); }
+      if (img.src !== url) img.src = url;
+    } else if (S.thumbs.has(id)) {
+      button.replaceChildren(Object.assign(document.createElement("span"), { className: "none", textContent: t("thumb.none") }));
+    }
+  }
+
+  function paintRow(row, image) {
+    const checked = isChecked(image);
+    row.classList.toggle("off", !checked);
+    row.querySelector(".thumb").setAttribute("aria-label", t("row.preview", { id: image.id }));
+    row.querySelector(".id").textContent = image.id;
+    row.querySelector(".name").textContent = nameOf(image);
+    row.querySelector(".meta").textContent = describe(image);
+    const input = row.querySelector("input");
+    input.checked = checked;
+    input.disabled = !image.replaceable;
+    input.setAttribute("aria-label", t(autoOn() ? "row.pin" : "row.send", { id: image.id }));
+    row.querySelector(".check").classList.toggle("locked", !image.replaceable);
+    const tags = row.querySelector(".tags");
+    tags.replaceChildren(...tagsOf(image).map(([text, tone]) => {
+      const tag = document.createElement("span");
+      tag.className = `tag ${tone}`.trim();
+      tag.textContent = text;
+      return tag;
+    }));
+    paintThumb(row, image.id);
+  }
+
+  function renderHeader() {
+    const list = images();
+    const plan = $("plan");
+    const title = !S.data ? t("title.loading") : S.data.title ?? (S.data.started === false ? t("title.newTask") : t("title.unnamed"));
+    $("title").textContent = title;
+    $("title").title = title;
+    const listed = list.filter(inFilter).length;
+    $("count").textContent = !list.length ? "" : filtering() ? `${listed}/${list.length}` : String(list.length);
+    $("count").title = filtering() ? t("count.shown", { shown: listed, total: list.length }) : "";
+    if (!S.data || !list.length) {
+      plan.textContent = !S.data ? (S.error ? t("plan.failed") : t("plan.loading")) : t("plan.empty");
+      $("meter").hidden = true;
+      $("last").textContent = "";
+      return;
+    }
+    const f = forecast();
+    plan.replaceChildren(
+      ...rich(autoOn() ? "plan.nextAuto" : "plan.next", { sent: f.sent, count: f.sent }, "sent"),
+      f.dropped ? t("plan.dropped", { dropped: f.dropped, count: f.dropped }) + (f.duplicates ? t("plan.duplicates", { duplicates: f.duplicates, count: f.duplicates }) : "") : "",
+      f.gone ? t("plan.gone", { gone: f.gone, count: f.gone }) : "",
+    );
+    $("meter").hidden = false;
+    // v0.3: with automatic selection, what the model will fetch comes on top, and is not known beforehand.
+    $("meterLabel").textContent = t(!f.whole ? "meter.images" : autoOn() ? "meter.requestAuto" : "meter.request");
+    $("meterValue").textContent = autoOn() ? t("meter.atLeast", { bytes: formatBytes(f.after) }) : formatBytes(f.after);
+    $("meter").title = autoOn() ? t("meter.autoNote") : "";
+    const saving = f.after < f.full;
+    const percent = (1 - f.after / f.full) * 100;
+    $("meterFull").textContent = saving ? t("meter.full", { full: formatBytes(f.full), percent: percent < 1 ? "<1" : Math.round(percent) }) : t("meter.none");
+    $("meterFull").classList.toggle("saved", saving);
+    $("meterBar").style.width = `${f.full > 0 ? Math.max(2, Math.round((f.after / f.full) * 100)) : 100}%`;
+    const last = S.data.send?.last;
+    $("last").textContent = !last ? (f.whole ? "" : t("last.noBaseline"))
+      : last.skipped ? t("last.skipped", { time: timeOf(last.at), bytes: formatBytes(last.bytesBefore) })
+      : last.replaced ? t("last.replaced", { time: timeOf(last.at), count: last.replaced, saved: formatBytes(last.bytesBefore - last.bytesAfter), after: formatBytes(last.bytesAfter) })
+      : t("last.none", { time: timeOf(last.at), bytes: formatBytes(last.bytesBefore) });
+  }
+
+  // Notices are reused while their text stays the same, so re-rendering does not move the list around.
+  const notices = new Map();
+  function notice(tone, text, ...actions) {
+    const key = `${tone}|${text}|${actions.map((action) => action.label).join("|")}`;
+    if (notices.has(key)) return notices.get(key);
+    const box = document.createElement("div");
+    notices.set(key, box);
+    box.className = `notice ${tone}`;
+    const span = document.createElement("span");
+    span.className = "grow";
+    span.textContent = text;
+    box.append(span);
+    for (const action of actions) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = action.label;
+      button.addEventListener("click", action.run);
+      box.append(button);
+    }
+    return box;
+  }
+
+  // Several threads started since the panel was opened: which one is this panel's?
+  function chooser(tasks) {
+    const key = `chooser|${lang}|${tasks.map((task) => `${task.threadId}:${task.title ?? ""}`).join("|")}`;
+    let box = notices.get(key);
+    if (!box) {
+      box = document.createElement("div");
+      box.className = "notice info chooser";
+      const text = document.createElement("span");
+      text.textContent = t("chooser.title");
+      box.append(text);
+      for (const task of tasks) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "pick";
+        const name = Object.assign(document.createElement("span"), { className: "pick-name", textContent: task.title ?? t("chooser.untitled") });
+        const time = Object.assign(document.createElement("span"), { className: "pick-time", textContent: clockOf(task.startedAt) });
+        button.append(name, time);
+        button.addEventListener("click", () => switchTo(task.threadId));
+        box.append(button);
+      }
+      notices.set(key, box);
+    }
+    for (const button of box.querySelectorAll("button")) button.disabled = S.switchingTask;
+    return box;
+  }
+
+  function setupNotices() {
+    const setup = S.data?.setup;
+    if (!setup) return [];
+    if (setup.changed === "enabled") return [notice("info", t("notice.enabled"))];
+    if (setup.changed === "disabled") return [notice("warn", t("notice.disabled"))];
+    if (!setup.usesEngine) return [notice("info", t("notice.notEnabled"))];
+    return [];
+  }
+
+  // 启用插件 / 停用插件 in the header switch at once (user 2026-09-25): the notice says a restart is due, and the
+  // other button undoes it. Rebuilt only when the choice changes, so hover and focus survive the polling.
+  let pluginKey = "";
+  function renderPlugin() {
+    const setup = S.data?.setup;
+    const on = !!setup?.usesEngine;
+    const key = !setup ? "" : `${on ? "on" : "off"}|${lang}`;
+    const box = $("plugin");
+    if (key !== pluginKey) {
+      pluginKey = key;
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = t(on ? "plugin.disable" : "plugin.enable");
+      button.className = on ? "off" : "on";
+      button.addEventListener("click", () => switchEngine(!on));
+      box.replaceChildren(...(key ? [button] : []));
+    }
+    for (const button of box.children) button.disabled = S.switching;
+  }
+
+  // ---- v0.1-17: the images the model asked for that are not checked (the same test as the row's tag) ----
+  // Rebuilt only when that list changes, so hover and focus survive the polling.
+  // v0.3: with automatic selection on, the model fetches what it needs itself; the bar lists what it fetched in the
+  // latest turn instead, in blue, and works the same way.
+  let needsKey = "";
+  function renderNeeds() {
+    const auto = autoOn();
+    const needed = auto
+      ? (S.data?.fetched ?? []).map(byId).filter(Boolean)
+      : images().filter((image) => image.requested && image.inNextRequest && image.replaceable && !isChecked(image));
+    const box = $("needs");
+    const key = needed.length ? `${lang}|${auto}|${needed.map((image) => image.id).join(",")}` : "";
+    box.hidden = !key;
+    if (key === needsKey) return;
+    needsKey = key;
+    box.classList.toggle("fetched", auto);
+    box.replaceChildren(...(key ? [
+      Object.assign(document.createElement("span"), { textContent: t(auto ? "fetched.title" : "needs.title", { count: needed.length }) }),
+      ...needed.map((image) => {
+        const button = Object.assign(document.createElement("button"), { type: "button", textContent: image.id, title: t("needs.jump", { id: image.id }) });
+        button.addEventListener("click", () => jumpTo(image.id));
+        return button;
+      }),
+    ] : []));
+  }
+
+  // Scrolls the row to the middle of the list, then flashes it; the keyboard focus goes to its checkbox (Space checks it).
+  let flashAfterScroll = null;
+  main.addEventListener("scrollend", () => flashAfterScroll?.());
+  function jumpTo(id) {
+    const image = byId(id);
+    // v0.2: an image the filter hides is shown first, with the rest of its source.
+    if (image && !inFilter(image)) { S.filter.sources.add(sourceOf(image)); settleFilter(); render(); }
+    const row = rows.get(id);
+    if (!row) return;
+    row.querySelector("input").focus({ preventScroll: true });
+    const box = row.getBoundingClientRect();
+    const view = main.getBoundingClientRect();
+    const top = Math.max(0, Math.min(main.scrollHeight - main.clientHeight, main.scrollTop + box.top + box.height / 2 - view.top - view.height / 2));
+    if (Math.abs(top - main.scrollTop) < 2) { flash(row); return; }
+    // Flash once the scrolling stops; a later jump replaces this one.
+    const go = () => { if (flashAfterScroll !== go) return; flashAfterScroll = null; flash(row); };
+    flashAfterScroll = go;
+    setTimeout(go, 1000);
+    main.scrollTo({ top, behavior: "smooth" });
+  }
+  const flashTimers = new Map();
+  function flash(row) {
+    clearTimeout(flashTimers.get(row));
+    row.classList.remove("flash");
+    void row.offsetWidth;            // restarts the animation when the same row is picked again
+    row.classList.add("flash");
+    flashTimers.set(row, setTimeout(() => { row.classList.remove("flash"); flashTimers.delete(row); }, 1300));
+  }
+
+  // ---- v0.2: the list filtered by source (user 2026-09-29); it changes what is shown, never what is sent ----
+  const SOURCES = ["upload", "pdf", "browser", "view", "tool", "generated"];
+  const filtering = () => S.filter.sources.size > 0;
+  const inFilter = (image) => !filtering() || S.filter.sources.has(sourceOf(image));
+  // The task's sources in a fixed order, with how many images each has.
+  function sourceCounts() {
+    const counts = new Map();
+    for (const image of images()) counts.set(sourceOf(image), (counts.get(sourceOf(image)) ?? 0) + 1);
+    return SOURCES.filter((source) => counts.has(source)).map((source) => [source, counts.get(source)]);
+  }
+  // Every source picked is the same as none: 全部.
+  function settleFilter() {
+    if (S.filter.sources.size >= sourceCounts().length) S.filter.sources.clear();
+  }
+  function pickSource(source) {
+    if (source === "all") S.filter.sources.clear();
+    else if (!S.filter.sources.delete(source)) S.filter.sources.add(source);
+    settleFilter();
+    render();
+  }
+  function makeChip(source, label, count) {
+    const chip = Object.assign(document.createElement("button"), { type: "button", className: "chip" });
+    chip.dataset.source = source;
+    chip.append(label);
+    if (count !== null) chip.append(Object.assign(document.createElement("span"), { className: "n", textContent: String(count) }));
+    chip.addEventListener("click", () => pickSource(source));
+    return chip;
+  }
+  // Shown for a task with two sources or more. The chips are rebuilt only when the sources or their counts change, so
+  // hover and focus survive the polling and the clicks.
+  let filterKey = "";
+  function renderFilter() {
+    const counts = sourceCounts();
+    const usable = counts.length >= 2;
+    const present = new Set(counts.map(([source]) => source));
+    for (const source of S.filter.sources) if (!usable || !present.has(source)) S.filter.sources.delete(source);
+    if (!usable) S.filter.open = false;
+    const button = $("filter");
+    button.hidden = !usable;
+    button.title = t("filter.toggle");
+    button.setAttribute("aria-label", t("filter.toggle"));
+    button.setAttribute("aria-expanded", String(S.filter.open));
+    button.querySelector(".dot").hidden = S.filter.open || !filtering();
+    const bar = $("filters");
+    bar.hidden = !S.filter.open;
+    bar.setAttribute("aria-label", t("filter.toggle"));
+    const key = `${lang}|${counts.map(([source, count]) => `${source}:${count}`).join(",")}`;
+    if (key !== filterKey) {
+      filterKey = key;
+      bar.replaceChildren(makeChip("all", t("filter.all"), null), ...counts.map(([source, count]) => makeChip(source, t(`kind.${source}`), count)));
+    }
+    for (const chip of bar.children) chip.setAttribute("aria-pressed", String(chip.dataset.source === "all" ? !filtering() : S.filter.sources.has(chip.dataset.source)));
+  }
+
+  function renderRefresh() {
+    const button = $("refresh");
+    const stale = lastFresh > 0 && Date.now() - lastFresh > STALE_MS;
+    button.classList.toggle("spinning", S.refreshing && S.manual);
+    button.classList.toggle("stale", stale && !S.refreshing);
+    button.title = !lastFresh ? t("refresh") : t(stale ? "refresh.stale" : "refresh.at", { time: clockOf(lastFresh) });
+  }
+
+  function renderList() {
+    const nodes = [];
+    if (S.error) nodes.push(notice("error", t(S.error.key, { message: S.error.message }), { label: t("notice.retry"), run: () => { S.error = null; render(); refresh(); } }));
+    nodes.push(...setupNotices());
+    if (S.data?.started === false) {
+      const tasks = newTasks();
+      nodes.push(tasks.length > 1 ? chooser(tasks) : notice("info", t("notice.waiting")));
+    }
+    if (S.data?.historyMissing) nodes.push(notice("warn", t("notice.historyMissing")));
+    if (S.data?.engineRunning === false && S.data?.setup?.usesEngine !== false) nodes.push(notice("warn", t("notice.engineDown")));
+    const sendNotice = S.data?.send?.notice;
+    if (sendNotice?.kind === "skipped") nodes.push(notice("error", t("notice.skipped", { time: timeOf(sendNotice.at), reason: t(MESSAGES[lang][`reason.${sendNotice.reason}`] ? `reason.${sendNotice.reason}` : "reason.other") })));
+    if (sendNotice?.kind === "websocket") nodes.push(notice("warn", t("notice.websocket")));
+    const list = images();
+    if (S.data && !list.length) nodes.push(emptyState);
+    const listed = list.filter(inFilter);
+    let turn;
+    for (const image of listed) {
+      if (image.turn !== turn) {
+        turn = image.turn;
+        if (!turnLabels.has(turn)) turnLabels.set(turn, makeTurnLabel(turn));
+        const label = turnLabels.get(turn);
+        paintTurn(label, turn, listed.filter((other) => other.turn === turn));
+        nodes.push(label);
+      }
+      let row = rows.get(image.id);
+      if (!row) { row = makeRow(image.id); rows.set(image.id, row); }
+      paintRow(row, image);
+      nodes.push(row);
+    }
+    for (const [id, row] of rows) if (!byId(id)) { observer.unobserve(row); rows.delete(id); }
+    for (const [key, box] of notices) if (!nodes.includes(box)) notices.delete(key);
+    // Only touch the list when its items changed, so scrolling and keyboard focus are kept.
+    const current = main.children;
+    if (nodes.length !== current.length || nodes.some((node, index) => node !== current[index])) main.replaceChildren(...nodes);
+    for (const image of listed) queueThumb(image.id);
+  }
+
+  // Always the same line: a check needs no word that it was saved (user 2026-09-28). v0.3: the automatic selection
+  // switch sits next to it, and the line says what a tick means in each mode.
+  function renderFooter() {
+    const auto = autoOn();
+    $("status").textContent = images().length ? t(auto ? "footer.hintAuto" : "footer.hint") : "";
+    const control = $("auto");
+    control.hidden = !images().length && !S.data?.auto;
+    control.title = t("auto.title");
+    control.querySelector(".auto-label").textContent = t("auto.label");
+    const input = control.querySelector("input");
+    input.checked = auto;
+    input.disabled = S.autoPending !== null;
+    input.setAttribute("aria-label", t("auto.label"));
+  }
+
+  function renderViewer() {
+    const viewer = $("viewer");
+    const image = S.viewer && byId(S.viewer.id);
+    if (!image) { viewer.hidden = true; return; }
+    viewer.hidden = false;
+    $("viewerId").textContent = image.id;
+    $("viewerName").textContent = nameOf(image);
+    $("viewerMeta").textContent = [image.turn === null ? null : t("turn.n", { n: image.turn }), describe(image)].filter(Boolean).join(" · ");
+    const input = $("viewerCheck").querySelector("input");
+    input.checked = isChecked(image);
+    input.disabled = !image.replaceable;
+    $("viewerCheck").querySelector(".label").textContent = t(autoOn() ? "viewer.pin" : "viewer.send");
+    const stage = $("viewerStage");
+    const url = S.viewer.url ?? S.thumbs.get(image.id) ?? null;
+    stage.classList.toggle("loading", S.viewer.loading && !!url);
+    if (url) {
+      let img = stage.querySelector("img");
+      if (!img) { img = document.createElement("img"); img.alt = image.name ?? image.id; stage.replaceChildren(img); }
+      if (img.src !== url) img.src = url;
+    } else {
+      stage.replaceChildren(Object.assign(document.createElement("span"), { className: "none", textContent: t(S.viewer.loading ? "viewer.loading" : "viewer.none") }));
+    }
+  }
+
+  function render() { renderFilter(); renderHeader(); renderNeeds(); renderPlugin(); renderRefresh(); renderList(); renderFooter(); renderViewer(); }
+
+  let focusBeforeViewer = null;
+  function openViewer(id) {
+    focusBeforeViewer = document.activeElement;
+    S.viewer = { id, url: null, loading: true };
+    renderViewer();
+    $("viewerClose").focus({ focusVisible: false });
+    const side = Math.min(2048, Math.max(800, Math.round(Math.max(window.innerWidth, window.innerHeight) * (window.devicePixelRatio || 1))));
+    loadImage(id, side)
+      .then((url) => { if (S.viewer?.id === id) S.viewer = { id, url, loading: false }; })
+      .catch(() => { if (S.viewer?.id === id) S.viewer = { id, url: null, loading: false }; })
+      .finally(renderViewer);
+  }
+  function closeViewer() {
+    if (!S.viewer) return;
+    S.viewer = null;
+    renderViewer();
+    focusBeforeViewer?.focus?.();
+  }
+
+  $("viewerClose").addEventListener("click", closeViewer);
+  $("viewerStage").addEventListener("click", (event) => { if (event.target === event.currentTarget) closeViewer(); });
+  $("viewerCheck").querySelector("input").addEventListener("change", (event) => { if (S.viewer) setChecked(S.viewer.id, event.target.checked); });
+  document.addEventListener("keydown", (event) => { if (event.key === "Escape" && S.viewer) closeViewer(); });
+  $("auto").querySelector("input").addEventListener("change", (event) => setAuto(event.target.checked));
+  $("refresh").addEventListener("click", () => refresh(true));
+  $("filter").addEventListener("click", () => { S.filter.open = !S.filter.open; render(); });
+
+  // ---- start: handshake, then Codex sends its own cam_panel result; poll so new images show up ----
+  if (window.matchMedia?.("(prefers-color-scheme: dark)").matches) document.documentElement.dataset.theme = "dark";
+  applyLanguage();
+  request("ui/initialize", { protocolVersion: "2026-01-26", appInfo: { name: "codex-attachment-manager", version: "0.3.0" }, appCapabilities: {} })
+    .then((init) => { applyHost(init?.hostContext); post({ method: "ui/notifications/initialized", params: {} }); reportFrame(); })
+    .catch(() => {})
+    .finally(() => setTimeout(() => { if (!S.data) refresh(); }, 1200));
+  // Slower, not stopped, while the page reports itself hidden: a host frame may report that wrongly.
+  setInterval(() => {
+    noteScreen();
+    if (!document.hidden || Date.now() - lastRefresh > 5 * POLL_MS) refresh();
+    renderRefresh();
+  }, POLL_MS);
+  document.addEventListener("visibilitychange", () => { noteScreen(); if (!document.hidden) refresh(); });
+  window.addEventListener("resize", noteScreen);
+  document.documentElement.addEventListener("pointerenter", nudge);
+  document.addEventListener("pointerdown", nudge, { capture: true });
+  window.addEventListener("focus", nudge);
+  main.addEventListener("wheel", nudge, { passive: true });
+})();
+</script>
+</body>
+</html>

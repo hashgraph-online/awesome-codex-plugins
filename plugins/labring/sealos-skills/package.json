@@ -1,11 +1,11 @@
 {
   "name": "sealos",
-  "version": "1.2.5",
-  "description": "DeepSeek Harness bundle that registers the Sealos skill pack on ctx.skills.",
+  "version": "2.0.0",
+  "description": "DeepSeek Harness bundle that registers the use-sealos skill for deploying and operating apps on Sealos Cloud.",
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "test": "node --test test.js"
+    "test": "node --test test.js test-host-coverage.js"
   },
   "exports": {
     ".": "./index.js",
@@ -14,10 +14,10 @@
   "files": [
     "index.js",
     "cordis.patch.yml",
-    "skills"
+    "plugins/sealos/skills/use-sealos"
   ],
   "license": "MIT",
-  "homepage": "https://github.com/labring/sealos-skills",
+  "homepage": "https://sealos.io",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/labring/sealos-skills.git"

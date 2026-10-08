@@ -1,0 +1,47 @@
+# Course Passport — starter
+# Schema: shared/course_passport_schema.md. Fill what you know; skills ask for the rest.
+# "unknown" is a legitimate value; a guess recorded as fact is not.
+
+passport_version: "1.0"
+course:
+  code: ""
+  title: ""
+  discipline: ""
+  level: ""
+  credits: null
+  modality: ""          # in-person | online-sync | online-async | hybrid | flipped
+  class_size: null
+  contact_hours_per_week: null
+  weeks: null
+  language_of_instruction: ""
+  prerequisites: []
+  institution_constraints: []
+
+learner_profile:
+  prior_knowledge: ""
+  motivation_context: ""
+  known_difficulties: []
+  accessibility_needs: "unknown"
+
+learning_outcomes: []
+assessment_plan: []
+schedule: []
+
+policies:
+  grading_scheme: ""
+  late_policy: ""
+  ai_use_policy: ""
+  integrity_policy: ""
+  attendance_policy: ""
+
+workload_audit:
+  estimated_hours_per_week: null
+  credit_hour_target: null
+  status: not_audited
+
+gates:
+  alignment_gate: { status: not_run, last_run: null, findings: [] }
+  quality_gate: { status: not_run, last_run: null, findings: [] }
+
+artifacts: []
+iteration_history: []

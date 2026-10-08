@@ -1,8 +1,8 @@
-# FPO Templates
+# FPO templates
 
 FPO Templates are Runtype's **distribution format**. A template wraps a `FullProductObject` with import-time variables that get substituted on import, producing a ready-to-run product.
 
-Use templates when you want to ship a Runtype product to someone else's workspace — internal team distribution, customer-shippable starters, marketplace listings.
+Use templates when you want to ship a Runtype product to someone else's workspace: internal team distribution, customer-shippable starters, marketplace listings.
 Prefer live `runtype://types/fpo-template` and `runtype://types/fpo` when available.
 
 ## Contents
@@ -11,7 +11,7 @@ Prefer live `runtype://types/fpo-template` and `runtype://types/fpo` when availa
 - [How import works](#how-import-works)
 - [Validity](#validity)
 - [Secrets: the right pattern](#secrets-the-right-pattern)
-- [Template variables — when to use them](#template-variables--when-to-use-them)
+- [When to use template variables](#when-to-use-template-variables)
 - [Authoring workflow](#authoring-workflow)
 - [Validation tools](#validation-tools)
 - [Anti-patterns](#anti-patterns)
@@ -22,7 +22,7 @@ Prefer live `runtype://types/fpo-template` and `runtype://types/fpo` when availa
 ```ts
 export interface FullProductObjectTemplate {
   version: '1.0' | '1.1'
-  /** A FullProductObject — see runtype://types/fpo */
+  /** A FullProductObject; see runtype://types/fpo */
   productObject: object
   template: {
     variables: FpoTemplateVariable[]
@@ -48,11 +48,11 @@ legacy flat-agent templates.
 
 ## How import works
 
-1. User opens the template in the Runtype UI (or via MCP `import_*` flow).
+1. User opens the template in the Runtype UI, or an agent passes its link to the MCP tool `create_product_from_example` (`url`, plus `variables`).
 2. The platform shows a form generated from `template.variables`.
 3. User fills in the values.
 4. The platform substitutes `{{key}}` references in `productObject` with the user-supplied values.
-5. The result is validated as a `FullProductObject` and materialized — product, agents, flows, tools, surfaces, schedules, all created in the user's workspace.
+5. The result is validated as a `FullProductObject` and materialized: product, agents, flows, tools, surfaces, schedules, all created in the user's workspace.
 
 ## Validity
 
@@ -79,11 +79,11 @@ There are two ways to handle secrets in templates, and one is much better than t
 }
 ```
 
-This renders a password input — but the supplied value is substituted **literally** into the resolved product object. The secret ends up in the DB product record. Not a credential-safe path.
+This renders a password input, but the supplied value is substituted **literally** into the resolved product object. The secret ends up in the DB product record. Not a credential-safe path.
 
 ### Good: pending-secret pattern
 
-Declare the secret on the target tool's `auth.secrets` array in the wrapped `productObject`. Reference it inside tool config with `{{secret:KEY}}` — singular `secret`, colon, UPPER_CASE. Same syntax everywhere: tool config (runtime) and FPO templates use the same form. `{{secrets:KEY}}` (plural with colon) is invalid; `{{secrets.key}}` (plural with dot) is RETIRED, not a managed secret: a non-empty dispatch `secrets` map is refused with 400 `RUNTIME_AGENT_TRANSIENT_SECRETS_UNSUPPORTED` on agent dispatches and 400 `RUNTIME_FLOW_TRANSIENT_SECRETS_UNSUPPORTED` on flow dispatches. Never emit it; `{{secret:KEY}}` is the only credential contract.
+Declare the secret on the target tool's `auth.secrets` array in the wrapped `productObject`. Reference it inside tool config with `{{secret:KEY}}`: singular `secret`, colon, UPPER_CASE. Same syntax everywhere: tool config (runtime) and FPO templates use the same form. `{{secrets:KEY}}` (plural with colon) is invalid; `{{secrets.key}}` (plural with dot) is RETIRED, not a managed secret: a non-empty dispatch `secrets` map is refused with 400 `RUNTIME_AGENT_TRANSIENT_SECRETS_UNSUPPORTED` on agent dispatches and 400 `RUNTIME_FLOW_TRANSIENT_SECRETS_UNSUPPORTED` on flow dispatches. Never emit it; `{{secret:KEY}}` is the only credential contract.
 
 ```json
 {
@@ -116,17 +116,17 @@ On import:
 - Platform sees `setupRequired: true` and the `auth.secrets` declaration.
 - It creates placeholder secret bindings with `status: 'needs_configuration'`.
 - It prompts the user to fill them via the intake flow.
-- Once filled, the secret value lives in the secret store — **never in the product record**.
+- Once filled, the secret value lives in the secret store, **never in the product record**.
 
 This is the pattern to use for every credential.
 
-## Template variables — when to use them
+## When to use template variables
 
 Use `template.variables` for things that are **not credentials**:
 
 - Configuration URLs (webhook destinations, base API URLs)
 - Recipient lists (default email recipients, default Slack channel)
-- Model preferences (which model to use — surface as a `select` with options)
+- Model preferences (which model to use, as a `select` with options)
 - Display names, branding strings
 - Numeric thresholds (max retries, timeout in seconds)
 
@@ -139,19 +139,19 @@ Substitution happens at import time via `{{key}}`. Use these in any text field i
 3. Identify what the next user would need to change:
    - Credentials → pending-secret pattern.
    - Other config → `template.variables`.
-4. Export the product as an FPO Template (the platform has tools for this, or you can assemble it by hand from `get_product`).
+4. Assemble the FPO Template from the tested resources (`get_product`, `get_agent`, `get_flow`, `get_tool`), wrapping the product object with `template.variables`.
 5. Validate: `validate_product` on the resolved object (substitute test values for variables), `validate_product_tool` / `validate_product_flow` for sub-parts.
 6. Ship the JSON.
 
 ## Validation tools
 
-| Tool                       | Purpose                                       |
-| -------------------------- | --------------------------------------------- |
-| `validate_product`         | Full product object — run before distributing |
-| `validate_product_tool`    | A tool definition inside the FPO              |
-| `validate_product_flow`    | A flow definition                             |
-| `validate_product_agent`   | An agent definition                           |
-| `validate_product_surface` | A surface definition                          |
+| Tool                       | Purpose                                      |
+| -------------------------- | -------------------------------------------- |
+| `validate_product`         | Full product object; run before distributing |
+| `validate_product_tool`    | A tool definition inside the FPO             |
+| `validate_product_flow`    | A flow definition                            |
+| `validate_product_agent`   | An agent definition                          |
+| `validate_product_surface` | A surface definition                         |
 
 These catch schema problems before the template lands in someone else's workspace.
 

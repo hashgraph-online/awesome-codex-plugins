@@ -1,6 +1,6 @@
 # General Privacy Principles and Notice — § 11 RA 10173 + § 18 IRR
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 
 § 11 sets the substantive ground rules for processing — **transparency, legitimate purpose, proportionality** — and the data-quality requirements (accurate, kept up to date, not retained longer than necessary). The IRR § 18 operationalises each.
 

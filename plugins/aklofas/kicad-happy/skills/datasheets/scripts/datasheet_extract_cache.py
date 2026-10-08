@@ -225,7 +225,7 @@ def _save_index(extract_dir, index):
     tmp = new_path.with_suffix(".tmp")
     with open(tmp, "w") as f:
         json.dump(index, f, indent=2)
-    tmp.rename(new_path)
+    tmp.replace(new_path)
 
     old_path = extract_dir / LEGACY_MANIFEST_FILENAME
     if old_path.exists() and old_path != new_path:
@@ -497,7 +497,7 @@ def update_datasheets_index(datasheets_dir, mpn, extraction):
     tmp = index_path.with_suffix(".tmp")
     with open(tmp, "w") as f:
         json.dump(index, f, indent=2)
-    tmp.rename(index_path)
+    tmp.replace(index_path)
 
 
 # ---------------------------------------------------------------------------

@@ -1,0 +1,33 @@
+{
+  "name": "anime-reaction-gif",
+  "version": "1.0.0",
+  "description": "Create original anime reaction GIFs from generated pose sheets, expressive key-pose timing, and local FFmpeg assembly with decoded playback proof.",
+  "author": {
+    "name": "LIghtJUNction",
+    "url": "https://github.com/LIghtJUNction"
+  },
+  "homepage": "https://github.com/LIghtJUNction/anime-reaction-gif",
+  "repository": "https://github.com/LIghtJUNction/anime-reaction-gif",
+  "license": "MIT",
+  "keywords": [
+    "anime",
+    "gif",
+    "stickers",
+    "animation",
+    "ffmpeg"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Anime Reaction GIF",
+    "shortDescription": "Original anime reaction GIFs",
+    "longDescription": "Make an original character pose sheet, arrange expressive holds, and export looping GIFs, MP4 previews, and decoded proof. Includes three original examples. The assembler uses Python's standard library and host-installed FFmpeg/ffprobe; creating new poses requires the host's image-generation tool. Key-pose timing is not continuous skeletal animation.",
+    "developerName": "LIghtJUNction",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Skills"
+    ],
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg",
+    "defaultPrompt": "Create an original anime reaction GIF with distinct poses, expressive timing, a clean loop, and an MP4 preview."
+  }
+}

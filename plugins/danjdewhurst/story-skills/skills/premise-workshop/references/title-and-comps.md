@@ -41,7 +41,7 @@ Once the project exists, run candidate titles' key words, and every new
 character, place, or term name, through the collision check:
 
 ```shell
-story names "Maren" "Bellrock" --path .
+story names 'Maren' 'Bellrock' --path .
 ```
 
 Pass each word separately when a title or name has more than one
@@ -53,7 +53,10 @@ clashes.
   term, or its given name (the first word that is not a title or article
   such as `The`, `Lord`, or `Captain`) equals a character's given name,
   so *Lady Sera* clashes with *Sera Voss*. Pick another, or confirm the
-  reuse is deliberate and rename the existing entity with `story rename`.
+  reuse is deliberate and rename the existing entity with
+  `story rename <kind> <id> '<New Name>' --prose`, so its chapter text
+  follows too: run it with `--dry-run` first, show the user the
+  replacements, and run it for real only once they approve.
 - **Look-alike warning:** the same first four letters (*Maren* /
   *Marenna*), or the same initial and one letter apart (two for words of
   five letters or more: *Maren* / *Marek*). Readers confuse these.

@@ -22,5 +22,7 @@ The source plugin requires Node.js 22.12+ and pnpm 11. First use downloads locke
 and builds the runtime locally. Update checks contact GitHub. The plugin does not send checklist
 contents to its maintainers or start a separate model request to calculate progress.
 
-The explicit uninstall command removes this plugin and its progress data. Native Codex Goals,
-chat history, and other plugins remain. Codex manages its own permissions and authentication.
+The source plugin's explicit uninstall tool removes that plugin and its progress data. For the
+prebuilt installation, `uninstall --json --keep-history` preserves plugin progress history;
+`--delete-history` requires the user's explicit request to delete it. Both flows keep native
+Codex Goals, chat history, and other plugins. Codex manages its own permissions and authentication.

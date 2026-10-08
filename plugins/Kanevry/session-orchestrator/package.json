@@ -1,7 +1,7 @@
 {
   "name": "session-orchestrator",
-  "version": "5.3.0",
-  "description": "A repeatable Plan, Go, Close workflow for AI coding sessions: /session reads your repo and agrees the scope, /go runs the work in waves with a quality gate between each, /close verifies and commits. Runs on Claude Code, Codex CLI, Cursor and Pi.",
+  "version": "5.10.0",
+  "description": "Your coding agents get an agreed plan, a check after each round of changes and a handover to the next session. Plan, Go, Close: /session reads your repo and agrees the scope, /go runs the work in waves with your tests and typecheck after each implementation wave, /close runs the full gate, verifies, commits and files the rest as issues. Scope and destructive-command guards, crash-safe resume, learnings you approve. For Claude Code, Codex CLI, Cursor and Pi.",
   "type": "module",
   "homepage": "https://session-orchestrator.com",
   "keywords": [
@@ -16,7 +16,12 @@
     "orchestration",
     "developer-tools",
     "mcp",
-    "llm"
+    "llm",
+    "workflow",
+    "quality-gates",
+    "ai-coding",
+    "gitlab",
+    "github"
   ],
   "engines": {
     "node": ">=24.0.0"
@@ -36,6 +41,8 @@
     "output-styles/",
     "monitors/",
     "assets/",
+    "evals/",
+    "!evals/results/**",
     "!assets/marketing/**",
     ".claude-plugin/",
     ".codex-plugin/",
@@ -54,6 +61,7 @@
     "!**/.DS_Store"
   ],
   "scripts": {
+    "update:local": "node scripts/self-update.mjs",
     "test": "node scripts/check-package-manager.mjs && vitest --run",
     "test:coverage": "node scripts/check-package-manager.mjs && vitest --run --coverage",
     "test:watch": "node scripts/check-package-manager.mjs && vitest",
@@ -88,14 +96,9 @@
     "@vitest/coverage-v8": "^4.1.11",
     "eslint": "^10.2.1",
     "husky": "^9.1.7",
-    "lint-staged": "^15.2.10",
+    "lint-staged": "^16.4.0",
     "prettier": "^3.0.0",
     "vitest": "^4.1.11"
-  },
-  "overrides": {
-    "vite": "^8.0.16",
-    "fast-uri": "^3.1.5",
-    "brace-expansion": "^5.0.9"
   },
   "license": "MIT",
   "repository": {

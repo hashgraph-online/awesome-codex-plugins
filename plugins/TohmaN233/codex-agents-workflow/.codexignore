@@ -1,0 +1,9 @@
+# Exclude development and generated local state from distributed plugin packages.
+**/node_modules/
+control-plane/test/
+control-plane/web-src/
+**/workflow-runs/
+**/.env
+**/.env.*
+**/*.log
+**/__pycache__/

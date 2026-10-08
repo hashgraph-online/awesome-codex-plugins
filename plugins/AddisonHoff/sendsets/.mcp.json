@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "sendsets": {
+      "type": "http",
+      "url": "https://api.sendsetsapi.com/v1/mcp"
+    }
+  }
+}

@@ -31,6 +31,8 @@ The user must provide (or will be prompted for):
 8. Synthesize findings into strategic opportunities and threats
 9. Generate actionable recommendations for competitive advantage
 
+For the per-dimension checklists, report table layouts, the after-analysis follow-up menu, and the parallel-dispatch rules (7 dimensions per competitor in one message; sequence the competitors), read `dimension-checklists.md` beside this file.
+
 ## Output
 
 A structured competitive analysis containing:

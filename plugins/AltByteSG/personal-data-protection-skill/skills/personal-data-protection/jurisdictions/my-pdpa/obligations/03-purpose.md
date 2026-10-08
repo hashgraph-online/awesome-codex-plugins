@@ -1,6 +1,6 @@
 # Purpose — Notice & Choice (s7), Disclosure (s8), s39, s41
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 
 The Notice and Choice Principle (s7) and the Disclosure Principle (s8) together do the work that a "purpose limitation" obligation does in other regimes. The notice has to be in **both** Bahasa Malaysia and English (s7(3)) — this is a hard MY-specific requirement most teams forget on first pass.
 

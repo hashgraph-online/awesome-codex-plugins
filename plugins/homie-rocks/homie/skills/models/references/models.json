@@ -1,0 +1,175 @@
+{
+  "v": 1,
+  "checked": "2026-10-03",
+  "note": "The endpoints the models skill uses, with the prices and schemas read live on the date above (fal's pricing API, its OpenAPI pages, the providers' terms). Endpoints retire and reprice monthly: `models.mjs registry` reads every price again for free and flags what moved; every receipt names the exact endpoint. Never hard-code one of these anywhere else.",
+  "concept": {
+    "withRefs": {
+      "endpoint": "fal-ai/bytedance/seedream/v5/lite/edit",
+      "price": {
+        "usd": 0.035,
+        "per": "image",
+        "read": "2026-10-02"
+      },
+      "input": {
+        "num_images": 1,
+        "image_size": {
+          "width": 2048,
+          "height": 2048
+        }
+      },
+      "refs": "image_urls",
+      "maxRefs": 10,
+      "why": "the cheapest multi-reference editor: the golden images keep every prop in one style"
+    },
+    "noRefs": {
+      "endpoint": "fal-ai/bytedance/seedream/v5/lite/text-to-image",
+      "price": {
+        "usd": 0.035,
+        "per": "image",
+        "read": "2026-10-02"
+      },
+      "input": {
+        "num_images": 1,
+        "image_size": {
+          "width": 2048,
+          "height": 2048
+        }
+      },
+      "why": "before there are golden images; the derived style prompt carries the look"
+    },
+    "minPixels": 3686400
+  },
+  "mesh": {
+    "prop": {
+      "endpoint": "tripo3d/p1/image-to-3d",
+      "price": {
+        "usd": 0.5,
+        "per": "model with textures (0.40 without)",
+        "read": "2026-10-02"
+      },
+      "credits": {
+        "base": 40,
+        "texture": 10,
+        "defaults": {
+          "texture": true
+        }
+      },
+      "input": {
+        "texture": true
+      },
+      "faceLimit": "face_limit",
+      "output": "model_mesh",
+      "why": "Tripo P1: built for low-poly game meshes, a face_limit that reaches a phone budget, $0.50 textured"
+    },
+    "fallbacks": [
+      {
+        "endpoint": "fal-ai/hyper3d/rodin/v2.5",
+        "price": {
+          "usd": 0.4,
+          "per": "generation",
+          "read": "2026-10-02"
+        },
+        "why": "quad presets and texture_delight; not wired by default"
+      },
+      {
+        "endpoint": "fal-ai/trellis",
+        "price": {
+          "usd": 0.02,
+          "per": "generation",
+          "read": "2026-10-02"
+        },
+        "why": "drafts for exploring, then local simplify; not wired by default"
+      }
+    ]
+  },
+  "mood": {
+    "endpoint": "fal-ai/bytedance/seedream/v5/lite/text-to-image",
+    "price": {
+      "usd": 0.035,
+      "per": "image",
+      "read": "2026-10-02"
+    },
+    "input": {
+      "num_images": 1,
+      "image_size": {
+        "width": 2560,
+        "height": 1440
+      }
+    }
+  },
+  "terms": [
+    {
+      "who": "fal",
+      "url": "https://fal.ai/terms",
+      "read": "2026-10-02",
+      "lastUpdated": "2026-09-08",
+      "says": "Customer owns its input; no express assignment of output; output not promised original or non-infringing; no training competing models on third-party outputs."
+    },
+    {
+      "who": "Tripo (developer terms)",
+      "url": "https://developers.tripo3d.ai/en/terms",
+      "read": "2026-10-02",
+      "lastUpdated": "2025-07-11",
+      "says": "\"you may use Outputs for lawful commercial or non-commercial purposes\"."
+    },
+    {
+      "who": "Meshy (through fal)",
+      "url": "https://fal.ai/models/meshy/v7.1/image-to-3d",
+      "read": "2026-10-03",
+      "says": "fal labels the endpoint \"Commercial use\"; calls through fal are paid calls on the person's own fal account (fal's terms apply to the output). Meshy's own free plan (CC BY 4.0, Meshy owns output) does not apply: this skill never uses a Meshy free plan."
+    }
+  ],
+  "character": {
+    "mesh": {
+      "endpoint": "meshy/v7.1/image-to-3d",
+      "price": {
+        "usd": 1.4,
+        "per": "textured model with auto-rigging: US$0.80 base + US$0.40 textures + US$0.20 rigging (+US$0.12 an animation preset, not used)",
+        "read": "2026-10-03",
+        "api": "the pricing API says US$0.80 a generation (the base); the page's add-ons are added on top"
+      },
+      "addons": {
+        "base": 0.8,
+        "should_texture": 0.4,
+        "enable_rigging": 0.2,
+        "enable_animation": 0.12,
+        "defaults": {
+          "should_texture": true
+        }
+      },
+      "input": {
+        "model_type": "standard",
+        "topology": "triangle",
+        "target_polycount": 7000,
+        "should_remesh": true,
+        "should_texture": true,
+        "enable_pbr": false,
+        "pose_mode": "a-pose",
+        "enable_rigging": true,
+        "enable_animation": false,
+        "symmetry_mode": "on"
+      },
+      "polycount": "target_polycount",
+      "height": "rigging_height_meters",
+      "output": "rigged_character_glb",
+      "why": "Meshy 7.1 through fal: a textured mesh, a humanoid auto-rig and basic walk and run clips in one call, on the person's own fal account; the library's clips are retargeted onto its skeleton for free"
+    },
+    "rig": {
+      "endpoint": "fal-ai/meshy/rigging",
+      "price": {
+        "usd": 0.8,
+        "per": "request (the page says US$0.20; the pricing API says US$0.80: quoted at the higher until they agree)",
+        "read": "2026-10-03"
+      },
+      "addons": {
+        "base": 0.2,
+        "enable_animation": 0.12
+      },
+      "input": {
+        "enable_animation": false
+      },
+      "why": "rig a humanoid mesh made elsewhere (a Tripo prop-style mesh, the person's own); humanoids with clear limbs only; not wired by default"
+    },
+    "concept": "uses concept.withRefs or concept.noRefs: one full-body image in an A-pose, front view, plain background"
+  }
+}

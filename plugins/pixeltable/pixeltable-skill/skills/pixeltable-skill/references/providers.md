@@ -50,7 +50,12 @@ embed_fn = embeddings.using(model='text-embedding-3-small')
 # or local: sentence_transformer.using(model_id='sentence-transformers/all-MiniLM-L6-v2')
 ```
 
-OpenAI-compatible chat-completion providers return `.choices[0].message.content`; OpenAI `responses` exposes simple text as `.output_text`. Anthropic returns `.content[0].text`. An image goes in a message as `{'type': 'image_url', 'image_url': t.image}` -- the image column itself, not the HTTP API's `{'url': ...}` envelope; Pixeltable serializes it. `openai.vision` is deprecated. Params the signature lacks (`max_tokens`, `temperature`, `response_format`) go in `model_kwargs={...}`; an unknown top-level kwarg fails signature binding. Tool calling is per provider: pair `pxt.tools(...)` with that module's own `invoke_tools`.
+- **Model argument.** `model=` on most. `model_id=` on `bedrock` and `huggingface`, `model_name=` on `twelvelabs`, `repo_id=` + `repo_filename=` (or `model_path=`) on `llama_cpp`, `app=` on `fal`, `ref=` on `replicate`.
+- **Other request parameters** go in one dict, never as top-level keywords: `model_kwargs={...}` on OpenAI, Anthropic, Groq, Together, Mistral, Nebius, Fireworks, DeepSeek, OpenRouter, Fabric, llama.cpp, and RunwayML (`temperature`, `response_format`, OpenAI's `max_tokens`). Gemini takes `config=`, Bedrock `converse` takes `inference_config=`, Ollama takes `options=`, vLLM takes `sampling_params=`. An unknown top-level keyword fails signature binding.
+- **Anthropic `messages` requires `max_tokens=`** as a top-level argument: `messages(messages=[...], model=..., max_tokens=1024)`.
+- **Images** go in an OpenAI message as `{'type': 'image_url', 'image_url': t.image}`: the image column itself, not the HTTP API's `{'url': ...}` wrapper. Pixeltable serializes it. `openai.vision` is deprecated.
+- **Output.** OpenAI-compatible chat completions return `.choices[0].message.content`; OpenAI `responses` exposes simple text as `.output_text`; Anthropic returns `.content[0].text`.
+- **Tools** are per provider: pair `pxt.tools(...)` with that module's own `invoke_tools`. The full chain is in [core-api.md](core-api.md#tools).
 
 Rerankers (`voyageai.rerank`, `jina.rerank`, `huggingface.cross_encoder`) score query/document pairs; run one over the rows `.similarity()` returned rather than reaching for a framework.
 

@@ -76,7 +76,7 @@ The first guarded release-helper checkpoint is exact `--set v0.1.0-rc.1`; later 
 
 Next: [run an agent](#beginner-agent-workflow), [manage a typed task](#typed-task-and-merge-flow), or [build a managed workflow](#managed-workflows-and-evidence).
 
-### Install agent skills explicitly
+### Install agent skills
 
 YYLO skill content is versioned independently in the public
 [`yylo-dev/yylo-skills`](https://github.com/yylo-dev/yylo-skills) repository and
@@ -92,7 +92,10 @@ yy skills update
 yy skills status
 ```
 
-Only `skills install` and `skills update` access the network. Acquisition is
+Fresh Simple `init` installs skills by default; use `yy init --mode simple --no-skills`
+to opt out. Guided Simple setup accepts the same flag. Previews remain offline and
+saved fresh plans bind the choice. Otherwise use `skills install` or `skills update`
+explicitly. These skill acquisition paths access the network. Acquisition is
 staged through `npx skills add` first and falls back to a shallow exact-tag Git
 clone. The seven user-intent-first skills (`artifact-yylo`, `ledger-tasks-yylo`,
 `plan-ledger-tasks-yylo`, `ralph-loop-yylo`, `understand-project-yylo`,
@@ -110,7 +113,7 @@ never infer cleanup authority from successful installation.
 reports the required range and outdated releases even when their hashes match.
 No compatible published release means installation fails without changing skills;
 it never falls back to an old release or an unsupported future major. Installing
-the CLI alone does not install/update skills, and `scripts update` does not own
+upgrading the CLI alone does not install/update skills, and `scripts update` does not own
 skills. Maintainers must publish the reviewed immutable skill release before
 shipping a CLI that requires it; publication remains separately authorized.
 
@@ -227,8 +230,8 @@ Record relations.
 
 | Shortcut | Resolved model |
 | --- | --- |
-| `:luna` | `openai-codex/gpt-5.6-luna` |
-| `:sol` | `openai-codex/gpt-5.6-sol` |
+| `:luna` | `openai-codex/gpt-6-luna` |
+| `:sol` | `openai-codex/gpt-6.1-sol` |
 | `:gpt` | `openai-codex/gpt-6-astra` (Pi default) |
 | `:astra` | `openai-codex/gpt-6-astra` |
 | `:mini` | `openai-codex/gpt-5.6-terra` |

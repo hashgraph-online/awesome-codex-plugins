@@ -9,6 +9,8 @@ effort: low
 
 The one-time setup that makes Digital Marketing Pro persistent in Cowork by a team. Wires up the Cowork → Drive routing so brand profiles, campaign plans, audit reports, and run records survive past the end of the current Cowork session.
 
+Run it the first time a team installs DMP in Cowork, when brand profiles stop persisting across Cowork sessions, or when switching to a different team's Drive root folder. Examples: `/digital-marketing-pro:cowork-setup`, `... --brand acme`, `... --drive-root "ACME DigitalMarketingPro"`.
+
 ## Why this skill exists
 
 Cowork is the friendliest Anthropic surface for marketers — agency teams, in-house marketers, growth ops — who don't live in a terminal. The natural team workflow is "everyone uses Cowork; brand state and outputs live in our shared Drive". But DMP's filesystem layer was designed for local Claude Code (writes to `~/.claude-marketing/` on the host machine). In Cowork that path is the per-session Linux sandbox — vanishes at session end, invisible to the team.

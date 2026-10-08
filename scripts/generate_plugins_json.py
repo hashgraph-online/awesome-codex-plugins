@@ -57,12 +57,32 @@ METADATA_ONLY_MIRROR_REPOS = {
     "mturac/everything-openai-codex",
 }
 EXTRA_MIRROR_PATHS = {
+    # Workflow MCP bootstrap loads the sibling control-plane runtime; its MCP
+    # App also reads assets/sidebar-icon.svg and Skills reference helper scripts.
+    "TohmaN233/codex-agents-workflow": ("control-plane", "scripts", "assets"),
     # debt-ops's manifest points hooks at hooks/hooks.json; the hook commands
     # invoke sibling Python scripts in the same hooks/ directory at runtime.
     "bcanfield/agentic-tech-debt": ("hooks",),
+    # Codex Attachment Manager's .mcp.json starts ./scripts/launch with
+    # ./src/plugin-server.ts; the MCP server, engine and panel all live in src/.
+    "chipfighter/codex-attachment-manager": ("scripts", "src"),
+    # Cohesivity's .mcp.json starts its local stdio server from
+    # ./mcp/project-bootstrap.mjs, which no manifest field references.
+    "cohesivity-org/cohesivity-plugin": ("mcp",),
     # Staff Engineer Mode exposes one router skill and loads routed specialist
     # files from a top-level specialists/ directory at runtime.
     "sirmarkz/staff-engineer-mode": ("specialists",),
+    # ZCode Bridge's .mcp.json starts dist/bridge.mjs, which launches the worker
+    # and setup hook from sibling directories; preserve the complete runtime.
+    "Sandyzzx/codex-zcode-bridge": (
+        "dist",
+        "hooks",
+        "licenses",
+        "mcp.json",
+        "NOTICE",
+        "plugin.json",
+        "worker",
+    ),
 }
 
 

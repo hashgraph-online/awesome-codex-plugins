@@ -1,8 +1,25 @@
 # Indonesia UU PDP — Statute ↔ Layer Cross-Reference
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 
 Reverse lookup. Use when citing a Pasal in a PR description, audit response, or breach notification. For day-to-day work, use the layer files and obligation files instead.
+
+## Contents
+
+- BAB I — General Provisions (Pasal 1–2)
+- BAB II — Principles (Pasal 3)
+- BAB III — Types of Personal Data (Pasal 4)
+- BAB IV — Data Subject Rights (Pasal 5–15)
+- BAB V — Personal Data Processing (Pasal 16–18)
+- BAB VI Bagian Kedua — Controller Obligations (Pasal 19–50)
+- BAB VI Bagian Ketiga — Processor Obligations (Pasal 51–52)
+- BAB VI Bagian Keempat — DPO (Pasal 53–54)
+- BAB VII — Personal Data Transfer (Pasal 55–56)
+- BAB VIII — Administrative Sanctions (Pasal 57)
+- BAB IX–XII — Authority, International Cooperation, Public Participation, Dispute Resolution
+- BAB XIII — Prohibitions (Pasal 65–66)
+- BAB XIV — Criminal Penalties (Pasal 67–73)
+- BAB XV–XVI — Transitional and Closing Provisions (Pasal 74–76)
 
 ## BAB I — General Provisions (Pasal 1–2)
 

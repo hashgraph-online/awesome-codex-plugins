@@ -1,0 +1,4 @@
+interface:
+  display_name: "Magic Hour Thumbnails"
+  short_description: "Make readable thumbnails from truthful hooks"
+  default_prompt: "Use $magic-hour-thumbnails to create a cover for my video from its real topic and approved references, with exact copy and a readable small preview."

@@ -13,6 +13,8 @@ triggers:
   - 需要配置 Playwright 测试环境时
   - 门禁要求 E2E 测试通过时
   - 需要视觉回归测试时
+metadata:
+  internal: true
 ---
 
 # Playwright E2E 测试方法论

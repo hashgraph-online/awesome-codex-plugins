@@ -1,6 +1,6 @@
 # Philippines DPA — Jurisdiction Notes
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 
 | | |
 |---|---|
@@ -14,7 +14,7 @@
 | **NPC Issuances (Circulars + Advisories)** | [privacy.gov.ph/issuances](https://privacy.gov.ph/npc-issuances/) |
 | **Pending amendments / guidance** | A long-discussed amendment bill has been filed in successive Congresses but has not been enacted as of the last verification date — track updates from the NPC and the Senate / House committees on ICT |
 
-> **Source copyright:** RA 10173 is a public Act of the Congress of the Philippines and the IRR is a public regulation issued by the NPC; both are reproducible for educational and reference purposes. Verbatim quotations in this skill are short operative phrases reproduced with attribution. See [DISCLAIMER.md § Copyright in source materials](../../../../DISCLAIMER.md#copyright-in-source-materials).
+> **Source copyright:** RA 10173 is a public Act of the Congress of the Philippines and the IRR is a public regulation issued by the NPC; both are reproducible for educational and reference purposes. Verbatim quotations in this skill are short operative phrases reproduced with attribution. See [DISCLAIMER.md § Copyright in source materials](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md#copyright-in-source-materials).
 
 ## Critical thresholds
 
@@ -60,7 +60,7 @@ The reverse-lookup index (statute / IRR / Circular section → layer + obligatio
 
 ## What's intentionally not covered
 
-The following are within the regulatory surface but not engineering-relevant; this skill keeps them out to stay engineer-focused (see the [project README](../../../../README.md) on scope):
+The following are within the regulatory surface but not engineering-relevant; this skill keeps them out to stay engineer-focused (see the [project README](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/README.md) on scope):
 
 - **DPO appointment** (§ 14 IRR; NPC Advisory 2017-01) — a mandatory governance task for every PIC and PIP, regardless of size. The engineering touch-point is reduced to "the privacy notice and Data Subject Rights flow must surface a working DPO contact channel" (covered in [01-accountability.md](obligations/01-accountability.md)). Appointment, qualifications, and notification to the NPC are paperwork outside the scope of this skill.
 - **Registration of Data Processing Systems with the NPC** (NPC Circular 17-01 as amended) — required where the PIC / PIP processes the personal information of at least 1,000 individuals OR meets other listed criteria. This is a paperwork obligation that does not change what the application does.

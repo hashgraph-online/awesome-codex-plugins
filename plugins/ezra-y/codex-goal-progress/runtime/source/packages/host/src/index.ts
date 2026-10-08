@@ -2,6 +2,7 @@ import { constants } from "node:fs";
 import { access } from "node:fs/promises";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { inspectCodexMacosApp } from "../../../platform/macos/src/app-discovery.js";
 import {
   checkGoalProgressUpdateManifest,
   type GoalProgressUpdateManifest,
@@ -13,6 +14,7 @@ import {
   type PrepareGoalProgressUpdateOptions,
   requireSingleCodexMacosApp,
 } from "../../../platform/macos/src/index.js";
+import { resolveVerifiedCodexCli } from "../../../platform/macos/src/plugin-controller.js";
 import {
   type CodexAppServerRuntime,
   createCodexAppServerRuntime,
@@ -233,7 +235,11 @@ function requestAuthorization(
 
 export function resolveGoalProgressCodexCommand(
   environment: Readonly<Record<string, string | undefined>> = process.env,
-): string | undefined {
+): string | (() => Promise<string>) | undefined {
+  const appPath = environment.GOAL_PROGRESS_CODEX_APP_PATH?.trim();
+  if (appPath) {
+    return async () => resolveVerifiedCodexCli(await inspectCodexMacosApp(appPath));
+  }
   const command = environment.GOAL_PROGRESS_CODEX_COMMAND?.trim();
   return command ? command : undefined;
 }
@@ -474,6 +480,7 @@ export class GoalProgressHelper {
       pid: event.pid,
     });
     let response: MacosCodexStartupResponse;
+    let failureCause: string | undefined;
     try {
       if (!this.#startupHandoff) {
         response = {
@@ -492,10 +499,22 @@ export class GoalProgressHelper {
           },
         );
         if (response.code === "STARTUP_HANDOFF_COMPLETE") {
-          await this.#recoverAfterStartupHandoff(response);
+          try {
+            await this.#recoverAfterStartupHandoff(response);
+          } catch (error) {
+            await this.#log({
+              level: "warn",
+              event: "startup.recovery",
+              pid: event.pid,
+              code: "STARTUP_RENDERER_RECOVERY_PENDING",
+              causeCode: helperDiagnosticCauseCode(error),
+            });
+            this.#scheduleVisibleThreadRecovery(0);
+          }
         }
       }
-    } catch {
+    } catch (error) {
+      failureCause = helperDiagnosticCauseCode(error);
       response = {
         schemaVersion: 1,
         pid: event.pid,
@@ -508,6 +527,7 @@ export class GoalProgressHelper {
       event: "startup.handoff",
       pid: event.pid,
       code: response.code,
+      ...(failureCause === undefined ? {} : { causeCode: failureCause }),
       durationMs: Date.now() - startedAt,
       ...(response.mainPid === undefined ? {} : { mainPid: response.mainPid }),
       ...(response.port === undefined ? {} : { port: response.port }),
@@ -1266,6 +1286,17 @@ export class GoalProgressHelper {
       return "done";
     }
     await this.#reconcileUpdateState();
+    if (this.#viewModelPublisher.multiTargetAwarenessAvailable) {
+      const targets = await this.#viewModelPublisher.recoverVisibleTargets();
+      let retry = targets.length === 0;
+      for (const target of targets) {
+        await this.#viewModelPublisher.activateTarget(target.targetId, target.threadId);
+        if (target.threadId && (await this.#restoreVisibleThread(target.threadId)) === "retry") {
+          retry = true;
+        }
+      }
+      return retry ? "retry" : "done";
+    }
     const threadId = await this.#viewModelPublisher.recoverVisibleThreadId();
     if (!threadId) {
       return "retry";

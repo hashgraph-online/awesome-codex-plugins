@@ -26,6 +26,7 @@ The user may optionally provide:
    - Show connected connectors with a checkmark indicator and the skills they power
    - Show available-but-not-connected connectors with what they would unlock
    - For available connectors, indicate whether they are HTTP (works everywhere, easy OAuth setup) or npx (Claude Code only, requires API keys)
+   - When an entry carries an `access` field, show it next to the connector. These are the official ad-platform and CRM servers: `meta-ads`, `google-ads-mcp`, `amazon-ads-mcp` and `hubspot` (checked 2026-10-04; see CONNECTORS.md). `google-ads-mcp` is **read-only**. For the read-write ones, say that writes happen only behind `/digital-marketing-pro:launch-ad-campaign`'s typed approval gate, and that new ad objects are created PAUSED
 
 3. **Highlight quick wins**: Identify the top 3 connectors the user should consider connecting based on which would unlock the most additional skill capabilities. Prioritize HTTP connectors (easier to set up) over npx connectors.
 

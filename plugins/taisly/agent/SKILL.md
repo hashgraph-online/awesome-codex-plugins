@@ -1,7 +1,7 @@
 ---
 name: taisly-social-media-posting
 description: Free AI-first short-form video publishing to TikTok, Instagram Reels, YouTube Shorts, X, and Facebook from AI agents through Taisly.
-version: 0.2.8
+version: 0.2.9
 metadata:
   publicName: Taisly Social Media Posting Skill
   requirements:

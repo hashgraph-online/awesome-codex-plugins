@@ -64,7 +64,7 @@ Pre-processing:
 - **Poetry**: add two trailing spaces to every non-empty line inside poem bodies so pandoc preserves line breaks.
 - **Screenplay**: build PDF with a monospace font (Courier Prime) and no TOC; also export Fountain if requested.
 - **Cover guard**: if `cover-image` points to a missing file, remove the key for the build and note it.
-- **Images**: drafts reference `../visuals/figures/...` and `../visuals/illustrations/...`; run pandoc from the project root with `--resource-path=.:visuals:visuals/figures:visuals/illustrations:visuals/photos:publish`. Legacy `publish/illustrations/` still resolves if added to the path.
+- **Images**: drafts reference `../visuals/figures/...` and `../visuals/illustrations/...`; run pandoc from the project root with `--resource-path=.:visuals:visuals/figures:visuals/illustrations:visuals/photos:publish`. On Windows the separator is `;` (`--resource-path=.;visuals;...`), and cmd/PowerShell do not expand `drafts/ch*.md`: list the files explicitly. Legacy `publish/illustrations/` still resolves if added to the path.
 
 Validate: `epubcheck publish/book.epub` if installed. Zero errors required; warnings listed in `PUBLISH-NOTES.md`. Open the PDF page count and confirm chapter starts on new pages.
 

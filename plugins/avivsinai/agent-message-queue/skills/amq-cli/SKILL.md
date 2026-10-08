@@ -1,6 +1,6 @@
 ---
 name: amq-cli
-version: 0.81.0 # x-release-please-version
+version: 0.89.2 # x-release-please-version
 description: Coordinate coding agents through AMQ. Use for agent messages, inboxes, receipts, sessions, wake delivery, cross-project routing, managed launches, or AMQ diagnostics. Use amq-spec for collaborative design; do not use this for general message queues or single-agent work.
 metadata:
   short-description: Inter-agent messaging via AMQ CLI
@@ -67,7 +67,7 @@ canonical setup path.
 
 `amq-remote` is a companion binary, not an `amq` subcommand. It attaches to a
 harness session that is already running. Targets are declared in
-`<AM_ROOT>/extensions/remote/manifest.json` (`claude`, `codex`, `amit`, or
+`<AM_ROOT>/extensions/remote/manifest.json` (`claude`, `codex`, `pi`, or
 `fake`). `up` supervises the endpoint; `submit`, `status`, `wait`, and
 `cancel` talk to it; `share` mints the session body key. A manifest `relay`
 object shares a target with its owner over a Buzz relay. DM commands require

@@ -112,6 +112,11 @@ Anti-Entropy Declaration:
 - User Confirmation Required: no | yes
 ```
 
+For external-unknown code, a generic original deletion request does not satisfy
+scoped confirmation. An existing user instruction counts only if it explicitly
+accepts the concrete external risk and authorizes the exact retirement scope;
+otherwise disclose the risk and request scoped confirmation before editing.
+
 If the target is persistent state or another irreversible source-of-truth
 object, use confirmation-first and stop at:
 

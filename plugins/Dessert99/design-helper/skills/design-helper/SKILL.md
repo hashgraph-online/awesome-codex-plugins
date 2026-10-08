@@ -1,13 +1,13 @@
 ---
 name: design-helper
-description: Use whenever anything visible must be decided — a CSS value, spacing,
-  radius, shadow, border, color, layout, wireframe, state, motion. Never describe
-  the options in prose or a table and ask the user to pick; render them side by side
-  in one HTML file, open it in a browser, let them choose with their eyes, then apply
-  the chosen value to the code yourself. Not a design generator — it does not invent
-  a look, it lays out the range and measures. Read this BEFORE writing or changing
-  any UI code, and whenever the user says "5가지 버전으로 보여줘" · "A 랑 B 중에 뭐가
-  나아" · "어떻게 할까" · "비교해줘".
+description: Use when several visual variants need to be compared side by side —
+  mockups, layouts, or a range of one value (spacing, radius, shadow, color, motion)
+  — or when you are about to ask the user to pick between visual options in prose.
+  Renders every candidate in one HTML file, opens it in a browser, lets the user
+  choose by eye, then applies the choice to the code. Not a design generator — it
+  lays out a range, it does not invent a look. Triggers on "5가지 버전으로 보여줘" ·
+  "A 랑 B 중에 뭐가 나아" · "시안 여러 개 비교해줘" · "나란히 놓고 보자". Do not use
+  for ordinary UI coding, bug fixes, or implementing a design that is already decided.
 ---
 
 # Measure by eye
@@ -196,8 +196,8 @@ mention it's missing.
 - One session = one sheet = one target. A new target gets a new sheet
 - **Everything lives in `$WS`, outside the project** — sheet, server, built CSS, memo,
   screenshots, pid files. Nothing is written into the project until the apply. The
-  server deletes `$WS` after two minutes without requests; an expired sheet is
-  regenerated. `references/liveview.md`
+  server deletes `$WS` after two minutes without requests; after that, a fresh sheet
+  holds only the new request — the old ladders are not rebuilt. `references/liveview.md`
 - **The body is append-only.** Never delete a dropped ladder — it has to stay above to
   compare against
 - **Serve it and reload it myself** — `references/liveview.md`. Never end a turn by

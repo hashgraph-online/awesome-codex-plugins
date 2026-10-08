@@ -48,7 +48,7 @@ Use [paper-writing-style.md](paper-writing-style.md) for paper structure, [liter
 
 When revising a manuscript to match this style, preserve the scientific evidence while strengthening the connection from engineering need to mechanism, method, result, and bounded implication. Revise the section and paragraph structure before making sentence-level edits; generic simplification alone is insufficient.
 
-- Make the abstract evidence-dense. When the data support it, include two to three principal quantitative findings rather than incidental experimental detail, then state what the result enables within its tested scope.
+- Make the abstract evidence-dense. When the data support it, include two to three principal quantitative findings rather than incidental experimental detail, then state the specific capability or implication supported within the tested scope.
 - Build the abstract as a compact story: problem, present method, what the method does with the evidence, principal findings, claim boundary, and practical use. Do not make the abstract a method catalog or a compressed results section.
 - Synthesize the literature by application, architecture, material, diagnostic method, or modeling approach. Distinguish adjacent approaches from the specific remaining gap; do not claim that no prior work exists when relevant neighboring work exists.
 - End an introduction by linking the specific gap and its consequence to the present contribution. Follow with a short road map that tells the reader what the paper examines and why each analysis is needed; do not merely list section contents or variables.

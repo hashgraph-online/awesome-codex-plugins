@@ -3,6 +3,8 @@ name: backend/api-development
 description: 后端API开发方法论，包括RESTful/GraphQL设计、请求验证、错误处理和安全实现
 type: methodology
 agent: boss-backend
+metadata:
+  internal: true
 ---
 
 # 后端 API 开发方法论

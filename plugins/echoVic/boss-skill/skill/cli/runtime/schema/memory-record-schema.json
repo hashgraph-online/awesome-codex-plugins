@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boss-skill.local/schema/memory-record-schema.json",
+  "title": "Boss Memory Record",
+  "type": "object",
+  "required": [
+    "id",
+    "scope",
+    "kind",
+    "category",
+    "summary",
+    "evidence",
+    "source",
+    "tags",
+    "confidence",
+    "createdAt",
+    "lastSeenAt",
+    "expiresAt",
+    "decayScore",
+    "influence"
+  ],
+  "properties": {
+    "id": { "type": "string" },
+    "scope": { "type": "string", "enum": ["global", "feature"] },
+    "kind": { "type": "string", "enum": ["execution", "long_term"] },
+    "category": { "type": "string" },
+    "feature": { "type": ["string", "null"] },
+    "stage": { "type": ["integer", "null"], "minimum": 1 },
+    "agent": { "type": ["string", "null"] },
+    "summary": { "type": "string" },
+    "source": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "type": "string" },
+        "window": { "type": ["string", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "ref"],
+        "properties": {
+          "type": { "type": "string" },
+          "ref": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "createdAt": { "type": "string" },
+    "lastSeenAt": { "type": "string" },
+    "expiresAt": { "type": ["string", "null"] },
+    "decayScore": { "type": "number", "minimum": 0 },
+    "influence": { "type": "string", "enum": ["preference"] }
+  },
+  "additionalProperties": true
+}

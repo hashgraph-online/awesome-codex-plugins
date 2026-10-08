@@ -1,0 +1,4 @@
+interface:
+  display_name: "Magic Hour Brand Kit"
+  short_description: "Build a reusable identity and finished brand assets"
+  default_prompt: "Use $magic-hour-brand-kit to turn my brand brief into a reusable identity, editable source files and a finished application."

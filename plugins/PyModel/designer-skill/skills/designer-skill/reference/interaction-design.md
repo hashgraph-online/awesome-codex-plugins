@@ -74,11 +74,11 @@ Under 400ms → user stays in flow. Over 400ms → they notice the wait; cogniti
 
 **Hard rules:**
 - Button visual state change on press: within 100ms regardless of whether the underlying action completes.
-- Search / filter: results begin appearing before 400ms; if not, show skeleton immediately.
+- Search / filter: results begin appearing before 300ms; if not, show a skeleton.
 - Autocomplete: first suggestions within 300ms of typing.
-- If you cannot meet the threshold: acknowledge within 100ms (button state change), then skeleton/spinner if completion takes 400ms–3s, then progress if 3s+.
+- If you cannot meet the threshold: acknowledge within 100ms (button state change), show a skeleton or spinner once work passes 300ms, and determinate progress past 10s.
 - Optimistic UI: update the interface immediately, reconcile on server response.
-- Never show a loading indicator for actions that complete under 400ms — a flash of spinner is itself disruptive.
+- Never show a loading indicator for actions that complete under 300ms — a flash of spinner is itself disruptive.
 
 ---
 
@@ -262,7 +262,7 @@ Every user action needs acknowledgment. The question is what kind and where.
 | Notification | In-app alerts, badge counts, banners, push |
 
 **Timing:**
-- Toasts: auto-dismiss after 3–5 seconds.
+- Toasts: auto-dismiss after about 4 seconds, or 6–8 seconds when they carry an action.
 - Errors: persist until resolved or dismissed by the user.
 - Confirmations: brief display with an undo window.
 - Status: persist while relevant.
@@ -294,7 +294,8 @@ Every user action needs acknowledgment. The question is what kind and where.
 | Duration | Indicator |
 |---|---|
 | Under 100ms | Nothing — no indicator needed |
-| 100ms–1s | Subtle: skeleton appear, opacity fade |
+| 100–300ms | Acknowledge only: pressed or busy state |
+| 300ms–1s | Subtle: skeleton appear, opacity fade |
 | 1–10s | Clear loading state; determinate progress if measurable |
 | Over 10s | Detailed progress, estimated time, background-continue option |
 
@@ -362,11 +363,11 @@ Technical correctness is the floor. The ceiling is emotional legibility — a pr
 - The loading state sets expectation; match its mood to what's coming.
 
 **Motion as emotional signal:**
-- Ease-in conveys weight and momentum.
+- Ease-in (exits only) conveys an element accelerating away.
 - Ease-out conveys natural deceleration, something landing softly.
 - Stiff spring: snappy and confident.
 - Loose spring: playful and forgiving.
-- Duration for UI response: 150–300ms. For transitions that carry meaning: 400–600ms.
+- Duration for UI response: 150–300ms. Layout changes 300–500ms; entrances up to 500–800ms (see motion-and-interaction).
 
 **Review check — run on every state:**
 - What is the person feeling when they hit this state?

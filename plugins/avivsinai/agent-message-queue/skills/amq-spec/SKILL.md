@@ -1,6 +1,6 @@
 ---
 name: amq-spec
-version: 0.81.0 # x-release-please-version
+version: 0.89.2 # x-release-please-version
 description: Use two agents to research a design independently and converge on one specification through AMQ. Trigger for collaborative design or messages labeled workflow:spec; use amq-cli for ordinary coordination.
 argument-hint: "<description of what to design> [with <partner>]"
 metadata:

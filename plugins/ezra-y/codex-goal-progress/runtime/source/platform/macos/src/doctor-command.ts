@@ -1,6 +1,7 @@
 import type { MacosCommandResult } from "./command-protocol.js";
 import type { MacosCommandResultFactory } from "./install-command.js";
 import type { InstallationState } from "./installation-state.js";
+import { inspectDisplayVerification } from "./installed-inspection.js";
 import { inspectOperationalHealth } from "./operational-health.js";
 
 export interface DoctorCommandDependencies {
@@ -160,12 +161,14 @@ export function createDoctorCommand(dependencies: DoctorCommandDependencies) {
     }
 
     const { facts } = health;
+    const verification = inspectDisplayVerification(facts.helper);
     const cleanupBackups = await state.cleanupBackups().catch(() => []);
     return dependencies.commandResult("doctor", {
-      ok: true,
-      code: "DOCTOR_OK",
+      ok: verification.currentDisplay !== "fail",
+      code: verification.currentDisplay === "fail" ? "DOCTOR_DISPLAY_MISSING" : "DOCTOR_OK",
       changed: false,
       details: {
+        verification,
         releaseVersion: facts.installed.releaseVersion,
         helperJobLoaded: facts.helperJobLoaded,
         helper: facts.helper,

@@ -30,7 +30,7 @@
 
 > 阶段由 `config.artifactDag` 决定，不由 pack 单独声明。
 
-参考内置：`packages/boss-cli/assets/pipeline-packs/api-only/`（后端专用）、`web-app/`、`solana-contract/`。
+参考内置：`skill/assets/pipeline-packs/api-only/`（后端专用）、`web-app/`、`solana-contract/`。
 
 ## Gate 插件契约
 
@@ -53,7 +53,7 @@ export default async function gate(ctx) {
 
 > 阶段由 `config.artifactDag` 决定，不由 pack 单独声明。
 
-参考内置：`packages/boss-cli/assets/plugins/llm-judge/`（LLM-as-Judge）、`owasp-scan/`、`security-audit/`。
+参考内置：`skill/assets/plugins/llm-judge/`（LLM-as-Judge）、`owasp-scan/`、`security-audit/`。
 
 ## 自定义 Agent 契约
 

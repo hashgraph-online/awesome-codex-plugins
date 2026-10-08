@@ -27,9 +27,9 @@ source). Verified independently against a live 4.7 editor.
 **Verify live** (needs any `Control` in the edited scene):
 
 ```bash
-hera eval 'get_node("<some Control>").get_theme_constant("separation","BoxContainer")'   # 4
-hera eval 'get_node("<some Control>").get_theme_constant("separation","HSplitContainer")' # 12
-hera eval 'get_node("<some Control>").get_theme_default_font_size()'                      # 16
+hera-godot eval 'get_node("<some Control>").get_theme_constant("separation","BoxContainer")'   # 4
+hera-godot eval 'get_node("<some Control>").get_theme_constant("separation","HSplitContainer")' # 12
+hera-godot eval 'get_node("<some Control>").get_theme_default_font_size()'                      # 16
 ```
 
 ---
@@ -89,7 +89,7 @@ Instead:
   most-used colours or its project `Theme` — its declared palette, not an
   external one.
 
-**Applying a colour to a Godot token.** In GDScript / `hera eval`,
+**Applying a colour to a Godot token.** In GDScript / `hera-godot eval`,
 `Color("#0090ff")` parses hex directly. The CLI `node set --value` coercion does
 **not**: it rejects both `#0090ff` and `Color("#0090ff")` and accepts only float
 variant text `Color(r, g, b, a)` (0..1). Convert before enforcing — each channel

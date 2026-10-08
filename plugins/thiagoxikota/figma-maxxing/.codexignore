@@ -1,0 +1,18 @@
+# Read by plugin scanners; Codex CLI 0.156.1 copies the whole repo regardless.
+# Lists what is not part of the plugin: development, CI and build output.
+# Paths are anchored to the repository root so skills/*/scripts/ stays in.
+/.git/
+/.github/
+/tests/
+/scripts/
+/dist/
+/lychee/
+/.lycheecache
+/assets/*.html
+/assets/demo/
+__pycache__/
+*.pyc
+.venv/
+.env
+.env.*
+.DS_Store

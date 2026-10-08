@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-labelledby="t">
+  <title id="t">since-cutoff</title>
+  <rect width="64" height="64" rx="14" fill="#bc4c00"/>
+  <path d="M32 13 A19 19 0 0 0 32 51" fill="none" stroke="#ffffff" stroke-width="5.5" stroke-linecap="round"/>
+  <path d="M32 13 A19 19 0 0 1 32 51" fill="none" stroke="#ffffff" stroke-width="5.5" stroke-dasharray="5.4 4.6" stroke-dashoffset="-2.5" opacity="0.6"/>
+  <line x1="22.5" y1="26" x2="32" y2="32" stroke="#ffffff" stroke-width="3.6" stroke-linecap="round"/>
+  <line x1="32" y1="7.5" x2="32" y2="56.5" stroke="#1f2328" stroke-width="3.6" stroke-linecap="round"/>
+  <circle cx="32" cy="32" r="3.6" fill="#1f2328"/>
+</svg>

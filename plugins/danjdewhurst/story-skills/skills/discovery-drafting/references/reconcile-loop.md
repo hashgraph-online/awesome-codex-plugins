@@ -49,8 +49,9 @@ bible:
 
 ### 4. Reconcile
 
-Apply the diff: update bible files, registries, `continuity/state.md`,
-`plot/timeline.md`, and the chapter/scene records. The two legal outcomes
+Apply the diff: update bible files, `continuity/state.md`,
+`plot/timeline.md`, and the chapter/scene records. `story reindex .` then
+rebuilds the registries. The two legal outcomes
 are **update the bible** (the chapter discovered something true) or
 **revise the chapter** (the chapter broke something true). "Leave both"
 is not an outcome — unresolved diffs become continuity bugs.
@@ -94,7 +95,6 @@ project use `mode: outlined` (or omit the field).
 - [ ] Reverse outline written into the chapter file
 - [ ] Scene records created/updated with state changes
 - [ ] Diff run: every contradiction resolved (bible updated OR chapter revised)
-- [ ] `continuity/state.md`, `plot/timeline.md`, registries updated
+- [ ] `continuity/state.md` and `plot/timeline.md` updated
 - [ ] Post-hoc notes appended; `mode: discovered` in frontmatter
-- [ ] `story wordcount . --write`, `story reindex .`, `story links .`,
-      `story validate .`, `story continuity .`
+- [ ] `story reindex .`, `story wordcount . --write`, and `story check .`

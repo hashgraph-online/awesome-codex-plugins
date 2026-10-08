@@ -1,0 +1,8 @@
+benchmarks/
+docs/
+examples/
+tests/
+scripts/
+node_modules/
+.github/
+*.log

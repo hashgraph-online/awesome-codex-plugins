@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boss-skill.local/schema/memory-summary-schema.json",
+  "title": "Boss Memory Summary",
+  "type": "object",
+  "required": ["feature", "generatedAt", "startupSummary", "agentSections"],
+  "properties": {
+    "feature": { "type": "string" },
+    "generatedAt": { "type": "string" },
+    "startupSummary": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["category", "scope", "summary"],
+        "properties": {
+          "category": { "type": "string" },
+          "scope": { "type": "string" },
+          "summary": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "agentSections": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["category", "summary"],
+          "properties": {
+            "category": { "type": "string" },
+            "summary": { "type": "string" }
+          },
+          "additionalProperties": true
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

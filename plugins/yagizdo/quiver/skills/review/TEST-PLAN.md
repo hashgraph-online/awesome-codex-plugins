@@ -18,7 +18,7 @@
 8. Fast mode (default) dispatches exactly 5 agents, runs simplified synthesis, skips Steps 3.5 and 3.75.
 9. Deep mode (`--deep`) dispatches all qualifying agents and runs full synthesis pipeline including report-checker and senior-reviewer.
 10. `--with-codex` without `--deep` prints a guidance note and continues fast review without Codex.
-11. Skill discovers the plan whose `## Global Constraints` section binds the review (Step 1.8), passes the block to every dispatched agent as context item 10, and names the source plan in the report's `Global Constraints` field. With no block found, the run is silent about it and the field reads `N/A`.
+11. Skill reads the `## Global Constraints` section of the plan named by `--plan` (Step 1.8), passes the block to every dispatched agent as context item 10, and names the source plan in the report's `Global Constraints` field. With no `--plan`, or no block in the named plan, the run is silent about it and the field reads `N/A`.
 12. Every non-filtered finding carries a `Disposition:` line (Before merge | Follow-up | Defer) in both modes, and `## Recommended Fix Order` lists every Before-merge and Follow-up finding at any severity -- the section is never omitted, and deferred findings are named in its `**Deferred:**` line instead.
 13. Deep mode dispatches `fix-reviewer` at Step 3.9, after senior-reviewer, when at least one finding carries a fix proposal. Its actions change only the fix block inside a finding; no finding is removed, re-severed, or re-dispositioned at that step.
 
@@ -36,9 +36,9 @@
 - [ ] Fast mode report includes `(fast)` in the Mode line of Review Context.
 - [ ] Fast mode report's Agents Dispatched section does not list deep-mode-only agents as skipped.
 - [ ] Deep mode report includes `(deep)` in the Mode line of Review Context.
-- [ ] Branch-mode review with a plan carrying `## Global Constraints` in `.claude/plans/` names that plan in the report's `Global Constraints` field, and every dispatched agent's prompt carries the block under `## Global Constraints (from {plan path})`.
-- [ ] With no `.claude/plans/` directory, no `.md` file in it, or no `## Global Constraints` section in the newest plan, the field reads `N/A`, no note or warning is printed, and no agent prompt carries context item 10.
-- [ ] Review of a PR URL without `--plan` reads `N/A` (Step 1.8 does not run in PR mode); the same PR URL with `--plan <path>` names that path in the field.
+- [ ] Branch-mode review with `--plan <path>` naming a plan that carries `## Global Constraints` names that plan in the report's `Global Constraints` field, and every dispatched agent's prompt carries the block under `## Global Constraints (from {plan path})`.
+- [ ] Without `--plan`, the field reads `N/A` even when `.claude/plans/` holds a plan with a `## Global Constraints` section; the same holds for `--plan` naming a missing file or a plan with no such section. No note or warning is printed, and no agent prompt carries context item 10.
+- [ ] Review of a PR URL with `--plan <path>` names that path in the field.
 - [ ] `--plan` and its path are stripped from `$ARGUMENTS` in Step 0.5 and never reach the diff-source logic in Step 1.
 - [ ] A finding whose recommendation cannot be acted on without violating a constraint appears in `## Filtered Findings` classified `constraint-blocked` with the constraint named, and is absent from `## Findings`.
 - [ ] A change in the diff that violates a constraint is still reported as a finding -- the block cuts both ways.
@@ -47,10 +47,11 @@
 - [ ] `## Recommended Fix Order` is present even when nothing blocks the merge, and its `Disposition` column matches each finding's own disposition line.
 - [ ] Deep review of a report carrying at least one fix snippet prints the fix-check line and dispatches `fix-reviewer` exactly once; a report with no fix snippet prints `No fix proposals to check.` instead.
 - [ ] A rejected fix leaves its finding in place with `No verified fix -- {reason}` where the snippet was, at the original severity and disposition.
+- [ ] A flagged fix whose flag carries no replacement keeps the original snippet with a `Fix flagged:` note under it, and no replacement code appears that the fix check did not return.
 - [ ] Fast mode skips Step 3.9 along with Steps 3.5 and 3.75.
 
 **Known gotchas:**
-- Step 1.8 takes the newest plan in `.claude/plans/` with no matching heuristic, so an unrelated plan can supply constraints in branch mode. The `Global Constraints` field names the plan for exactly this reason; re-run with `--plan <path>` when the named plan is wrong.
+- Step 1.8 reads constraints from `--plan` alone. It used to take the newest plan in `.claude/plans/`, and on 2026-10-03 that bound a branch to the plan of another open branch, whose rule against editing `/plan` and `/brainstorm` would have reported that branch's two correct edits as violations. A plan file carries no branch, so no rule over the directory can tell the two apart; `/work` and `/ship` print the review command with `--plan` instead.
 - The `## Global Constraints` heading is the whole interface between `/plan`, `/work`, and `/quiver:review`. Renaming it in `skills/plan/SKILL.md` makes extraction here return nothing, silently, on the degrade-cleanly path.
 - Bitbucket/Azure DevOps PR URLs fall back to Mode 2 because there is no diff CLI; PR commenting also skips on those platforms with a manual-paste hint.
 - Two-dot `git diff <base>..<head>` is wrong for branch diffs; the skill uses three-dot `git diff <base>...HEAD` instead.

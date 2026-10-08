@@ -26,7 +26,9 @@ from Phase 2 bootstrap — anything named here is illustrative.
   (...)`. Use function-try-block syntax.
 
 - **Null check first.** Check the null flag before any other field access
-  inside every entry point body.
+  inside every entry point body. Check every argument for NULL before you
+  validate any argument — in a varargs function, loop over all arguments
+  for NULL first.
 
 - **Memory Safety.** Bounds checking before every `memcpy` or `memset`
   against the destination buffer size.

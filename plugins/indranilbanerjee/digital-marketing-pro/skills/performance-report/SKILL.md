@@ -35,6 +35,8 @@ The user must provide (or will be prompted for):
 8. Produce prioritized recommendations for the next period
 9. Format report for the specified audience (executive vs. tactical)
 
+For input detail and default KPIs, anomaly root-cause categories, the report section layout, and the after-report follow-up menu, read `deliverable-layout.md` beside this file.
+
 ## Output
 
 A structured performance report containing:

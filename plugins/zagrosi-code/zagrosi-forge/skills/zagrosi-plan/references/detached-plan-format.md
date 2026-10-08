@@ -3,7 +3,8 @@
 Choose this route before writing when implementation must preserve a frozen
 planning tree. Add `--for-detached` to `plan-setup` to skip its compact scaffold.
 Use physical `codex-plan.md`, `reviews/codex.md`, and sections;
-omit `compact_plan` metadata everywhere. Keep shared evidence/decisions in the
+these compatibility filenames apply in both hosts. Omit `compact_plan` metadata
+everywhere. Keep shared evidence/decisions in the
 plan and link them from sections. Use the requested depth in plan metadata;
 the example below uses `lean`. Replace its requirements and evidence with the
 actual inspected task, preserving the source spec.
@@ -12,7 +13,7 @@ Run normal plan postflight, then this read-only compatibility check **before**
 approval, admission hashes, or freezing:
 
 ```bash
-python3 {plugin_root}/scripts/zagrosi_skills.py lint-plan-artifacts --planning-dir "{planning_dir}" --for-detached --strict
+python3 "{plugin_root}/scripts/zagrosi_skills.py" lint-plan-artifacts --planning-dir "{planning_dir}" --for-detached --strict
 ```
 
 Repair failures while the plan is mutable. A passing check proves artifact

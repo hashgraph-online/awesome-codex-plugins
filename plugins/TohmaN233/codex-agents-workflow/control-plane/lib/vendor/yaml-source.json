@@ -1,0 +1,8 @@
+{
+  "name": "yaml",
+  "version": "2.9.0",
+  "license": "ISC",
+  "repository": "https://github.com/eemeli/yaml",
+  "bundled_sha256": "e08faf1d1f56f3848f45e37dea52c9bb9cd84dd7635356fee6e058d8d33b4a39",
+  "build": "esbuild@0.28.2; node20; esm; minify"
+}

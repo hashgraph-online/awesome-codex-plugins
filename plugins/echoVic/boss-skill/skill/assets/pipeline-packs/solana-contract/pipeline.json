@@ -1,0 +1,25 @@
+{
+  "name": "solana-contract",
+  "version": "0.1.0",
+  "type": "pipeline-pack",
+  "description": "Solana 智能合约开发 Pipeline：Anchor 框架 + 合约审计 + 部署",
+  "author": "Boss Harness Team",
+  "license": "MIT",
+  "when": {
+    "fileExists": ["Anchor.toml"]
+  },
+  "priority": 10,
+  "config": {
+    "roles": "custom",
+    "agents": ["boss-pm", "boss-architect", "boss-backend", "boss-qa", "boss-devops"],
+    "gates": ["gate0", "gate1", "security-audit"],
+    "skipUI": true,
+    "techStack": {
+      "framework": "anchor",
+      "language": "rust",
+      "network": "devnet",
+      "testFramework": "bankrun"
+    }
+  },
+  "enabled": true
+}

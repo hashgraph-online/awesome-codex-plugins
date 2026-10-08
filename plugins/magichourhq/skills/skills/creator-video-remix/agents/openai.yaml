@@ -1,0 +1,4 @@
+interface:
+  display_name: "Creator Video Remix"
+  short_description: "Turn a reference into an original finished short"
+  default_prompt: "Use $creator-video-remix to study this reference and create an original finished short with my media and budget."

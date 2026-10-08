@@ -1,0 +1,8 @@
+.git/
+__pycache__/
+*.py[cod]
+.venv/
+output/
+*-render/
+*.mkv
+*.log

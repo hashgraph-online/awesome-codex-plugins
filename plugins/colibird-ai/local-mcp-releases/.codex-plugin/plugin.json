@@ -1,0 +1,52 @@
+{
+  "name": "local-mcp",
+  "version": "1.0.0",
+  "description": "Give Codex access to your own Mac or Windows apps through LMCP, a local MCP server: Mail, Calendar, Contacts, Messages, Teams, Slack, WhatsApp, OneDrive, Office documents and local files. Tools run on your computer; no API keys to manage.",
+  "author": {
+    "name": "LMCP",
+    "email": "support@local-mcp.com",
+    "url": "https://www.local-mcp.com"
+  },
+  "homepage": "https://www.local-mcp.com",
+  "repository": "https://github.com/colibird-ai/local-mcp-releases",
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "macos",
+    "windows",
+    "mail",
+    "calendar",
+    "slack",
+    "teams",
+    "whatsapp",
+    "onedrive",
+    "office",
+    "productivity"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "LMCP",
+    "shortDescription": "Your Mac or Windows apps, as tools for Codex",
+    "longDescription": "LMCP is a local MCP server that lets Codex work with Mail, Calendar, Contacts, Messages, Teams, Slack, WhatsApp, OneDrive, Office documents and local files on your computer. Install the LMCP app first; the plugin starts its MCP server.",
+    "developerName": "LMCP",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://www.local-mcp.com",
+    "privacyPolicyURL": "https://www.local-mcp.com/en/privacy",
+    "defaultPrompt": [
+      "Search my email for the latest invoice and summarize it"
+    ],
+    "termsOfServiceURL": "https://www.local-mcp.com/en/terms",
+    "composerIcon": "./assets/logo.png",
+    "logo": "./assets/logo.png",
+    "screenshots": [
+      "./assets/claude-tools.png",
+      "./assets/tray-app.png"
+    ]
+  }
+}

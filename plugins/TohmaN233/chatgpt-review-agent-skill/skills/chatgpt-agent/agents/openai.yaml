@@ -1,0 +1,4 @@
+interface:
+  display_name: "ChatGPT Agent"
+  short_description: "Use ChatGPT for local workspace and GitHub tasks"
+  default_prompt: "Use ZIP by default for local files. Use MCP only when I explicitly request the Connector; keep GitHub tasks on the authorized GitHub route."

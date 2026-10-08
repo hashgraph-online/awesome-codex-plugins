@@ -62,7 +62,7 @@ Use custom curves. Built-in CSS easings are too weak; they lack the punch that m
 --ease-out-expo:  cubic-bezier(0.16, 1, 0.3, 1);   /* Confident, decisive */
 ```
 
-**Never use `ease-in` for UI.** It starts slow, delaying the initial movement at the exact moment the user is watching most closely. A dropdown with `ease-in` at 300ms *feels* slower than `ease-out` at the same 300ms.
+**Keep `ease-in` for exits only.** On entrances and responses it starts slow, delaying the initial movement at the exact moment the user is watching most closely; on an exit, accelerating away reads as leaving. A dropdown with `ease-in` at 300ms *feels* slower than `ease-out` at the same 300ms.
 
 ❌ **Banned — feel dated and tacky:**
 ```css
@@ -89,7 +89,7 @@ Timing matters more than easing for "feels right." Match duration to interaction
 
 The 100/300/500 rule: **100–150ms** instant feedback, **200–300ms** state changes, **300–500ms** layout changes, **500–800ms** entrances.
 
-**Hard rule: keep UI animations under 300ms.** A 180ms dropdown feels more responsive than a 400ms one. **Never use durations over 500ms for feedback** — it feels laggy.
+**Hard rule: keep feedback and state-change animations under 300ms;** only layout changes and entrances run longer. A 180ms dropdown feels more responsive than a 400ms one. **Never use durations over 500ms for feedback** — it feels laggy.
 
 **Exit ≈ 75% of enter duration.** Faster exits keep dismissal feeling responsive. More broadly, use **asymmetric timing**: slow where the user decides, fast where the system responds (hold-to-delete press 2s linear, release 200ms ease-out).
 

@@ -11,6 +11,8 @@ triggers:
   - 用户提出新功能需求时
   - 需要理解用户真实意图时
   - 开始PRD编写前的需求分析阶段
+metadata:
+  internal: true
 ---
 
 # 需求穿透方法论

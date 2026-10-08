@@ -1,0 +1,1051 @@
+{
+  "schema_version": "3",
+  "skill_count": 29,
+  "skills": [
+    {
+      "canonical_status": "canonical",
+      "capabilities": [
+        "role_dispatch",
+        "observe_workers",
+        "handoff",
+        "dispatch_once"
+      ],
+      "consumes": [
+        "explicit-role-packets"
+      ],
+      "context_rel": [
+        {
+          "kind": "customer-of",
+          "with": "codex-exec"
+        },
+        {
+          "kind": "customer-of",
+          "with": "claude-exec"
+        }
+      ],
+      "dependencies": [],
+      "description": "Dispatch independent tasks to parallel workers or subagents without write collisions. Use when: running or planning agents in parallel, even two; check scopes before any launch.",
+      "disposition": "keep_optional_adapter",
+      "effects": [
+        "manage_runtime_sessions",
+        "invoke_selected_executor"
+      ],
+      "graph_root": false,
+      "hexagonal_role": "supporting",
+      "name": "agent-native",
+      "practices": [
+        "team-topologies",
+        "design-by-contract"
+      ],
+      "produces": [
+        "runtime-evidence",
+        "worker-handoff",
+        "per-packet-results"
+      ],
+      "references_count": 5,
+      "tier": "meta",
+      "user_invocable": true
+    },
+    {
+      "canonical_status": "canonical",
+      "capabilities": [
+        "dispatch_explicit_packet",
+        "provide_fresh_context"
+      ],
+      "consumes": [
+        "explicit-packet"
+      ],
+      "context_rel": [
+        {
+          "kind": "separate-ways",
+          "with": "codex-exec"
+        }
+      ],
+      "dependencies": [],
+      "description": "Run a supplied task in headless AGY (Antigravity, Gemini) and collect its result. Use when: AGY, Antigravity or Gemini is requested by name; never a fallback.",
+      "disposition": "keep_optional_adapter",
+      "effects": [
+        "start_agy_session"
+      ],
+      "graph_root": false,
+      "hexagonal_role": "driving-adapter",
+      "name": "agy-native",
+      "practices": [
+        "team-topologies",
+        "design-by-contract"
+      ],
+      "produces": [
+        "agy-run-evidence"
+      ],
+      "references_count": 0,
+      "tier": "cross-vendor",
+      "user_invocable": true
+    },
+    {
+      "canonical_status": "canonical",
+      "capabilities": [
+        "claude_exec"
+      ],
+      "consumes": [
+        "claude-command-packet"
+      ],
+      "context_rel": [
+        {
+          "kind": "supplier-to",
+          "with": "validate"
+        },
+        {
+          "kind": "separate-ways",
+          "with": "codex-exec"
+        }
+      ],
+      "dependencies": [],
+      "description": "Run one prompt through headless Claude with scoped permissions and a time bound. Use when: scripting or automating a `claude -p` call, even a simple one.",
+      "disposition": "keep_optional_adapter",
+      "effects": [
+        "run_claude_process",
+        "permission_tiered_workspace_effects"
+      ],
+      "graph_root": false,
+      "hexagonal_role": "driving-adapter",
+      "name": "claude-exec",
+      "practices": [
+        "pragmatic-programmer",
+        "design-by-contract"
+      ],
+      "produces": [
+        "claude-run-output"
+      ],
+      "references_count": 0,
+      "tier": "orchestration",
+      "user_invocable": true
+    },
+    {
+      "canonical_status": "canonical",
+      "capabilities": [
+        "codex_exec"
+      ],
+      "consumes": [
+        "codex-command-packet"
+      ],
+      "context_rel": [
+        {
+          "kind": "supplier-to",
+          "with": "validate"
+        }
+      ],
+      "dependencies": [],
+      "description": "Run one prompt through headless Codex and capture the result. Use when: wanting a one-shot `codex exec` run or CI step. Not for batches or retries.",
+      "disposition": "keep_optional_adapter",
+      "effects": [
+        "run_codex_process",
+        "sandbox_tiered_workspace_and_network_effects"
+      ],
+      "graph_root": false,
+      "hexagonal_role": "driving-adapter",
+      "name": "codex-exec",
+      "practices": [
+        "pragmatic-programmer"
+      ],
+      "produces": [
+        "codex-run-output"
+      ],
+      "references_count": 1,
+      "tier": "orchestration",
+      "user_invocable": true
+    },
+    {
+      "canonical_status": "canonical",
+      "capabilities": [
+        "collect_independent_judgments",
+        "synthesize_disagreement",
+        "bounded_deliberation",
+        "duel_scored_ideas",
+        "answer_interview_panel"
+      ],
+      "consumes": [
+        "explicit-question",
+        "evidence"
+      ],
+      "context_rel": [],
+      "dependencies": [],
+      "description": "Compare independent opinions from several models or contexts without inflating agreement. Use when: wanting a second opinion or debate, or summarizing several reviewers' results.",
+      "disposition": "keep_strategy",
+      "effects": [
+        "write_advisory_council_report"
+      ],
+      "graph_root": true,
+      "hexagonal_role": "domain",
+      "name": "council",
+      "practices": [
+        "llm-eval-harness",
+        "design-by-contract"
+      ],
+      "produces": [
+        "council-report.v1"
+      ],
+      "references_count": 4,
+      "tier": "judgment",
+      "user_invocable": true
+    },
+    {
+      "canonical_status": "canonical",
+      "capabilities": [
+        "goal_prompt_design",
+        "goal_prompt_lint"
+      ],
+      "consumes": [
+        "caller-outcome",
+        "goal-acceptance"
+      ],
+      "context_rel": [
+        {
+          "kind": "supplier-to",
+          "with": "plan"
+        }
+      ],
+      "dependencies": [],
+      "description": "Draft or lint a bounded long-running goal prompt with a finish line and hard limits. Use when: selected by name; one change goes to Plan.",
+      "disposition": "keep_strategy",
+      "effects": [],
+      "graph_root": false,
+      "hexagonal_role": "supporting",
+      "name": "craft-goal",
+      "practices": [
+        "lean-startup",
+        "design-by-contract"
+      ],
+      "produces": [
+        "outer-goal-prompt",
+        "goal-safety-report"
+      ],
+      "references_count": 1,
+      "tier": "judgment",
+      "user_invocable": true
+    },
+    {
+      "canonical_status": "canonical",
+      "capabilities": [
+        "doc",
+        "initialize_missing_docs",
+        "write_session_handoff"
+      ],
+      "consumes": [
+        "repo-context"
+      ],
+      "context_rel": [],
+      "dependencies": [],
+      "description": "Write or update READMEs, docs, repo instructions and handoff notes, checked against source. Use when: documenting something, writing a README or leaving a session handoff.",
+      "disposition": "keep_specialist",
+      "effects": [
+        "write_documentation",
+        "write_requested_handoff",
+        "create_requested_evidence_directory"
+      ],
+      "graph_root": false,
+      "hexagonal_role": "supporting",
+      "name": "doc",
+      "practices": [
+        "wiki-knowledge-surface",
+        "code-complete",
+        "pragmatic-programmer"
+      ],
+      "produces": [
+        "documentation",
+        "session-handoff"
+      ],
+      "references_count": 16,
+      "tier": "product",
+      "user_invocable": true
+    },
+    {
+      "canonical_status": "canonical",
+      "capabilities": [
+        "domain",
+        "clarify_domain_language",
+        "reconcile_domain_names"
+      ],
+      "consumes": [],
+      "context_rel": [],
+      "dependencies": [],
+      "description": "Settle what domain terms mean per context, and which repository conventions or language standards (Go, Python) apply. Use when: names disagree or a rename is proposed.",
+      "disposition": "keep_specialist",
+      "effects": [
+        "update_existing_domain_contracts"
+      ],
+      "graph_root": false,
+      "hexagonal_role": "domain",
+      "name": "domain",
+      "practices": [
+        "ddd-bounded-context",
+        "pragmatic-programmer"
+      ],
+      "produces": [
+        "domain-language-guidance"
+      ],
+      "references_count": 2,
+      "tier": "knowledge",
+      "user_invocable": true
+    },
+    {
+      "canonical_status": "canonical",
+      "capabilities": [
+        "generate_evidenced_options",
+        "dueling_idea_genies"
+      ],
+      "consumes": [
+        "repo-context",
+        "task-question",
+        "idea-portfolio.v1"
+      ],
+      "context_rel": [
+        {
+          "kind": "customer-of",
+          "with": "research"
+        },
+        {
+          "kind": "supplier-to",
+          "with": "plan"
+        }
+      ],
+      "dependencies": [],
+      "description": "Brainstorm evidence-backed options for what to build, or stress-test an idea. Use when: deciding what to build next, comparing options or testing an idea.",
+      "disposition": "keep_strategy",
+      "effects": [
+        "write_idea_portfolio"
+      ],
+      "graph_root": false,
+      "hexagonal_role": "domain",
+      "name": "idea-genie",
+      "practices": [
+        "lean-startup",
+        "bdd-gherkin",
+        "design-by-contract",
+        "llm-eval-harness",
+        "adr"
+      ],
+      "produces": [
+        "idea-portfolio.v1",
+        "idea-challenge.v1"
+      ],
+      "references_count": 2,
+      "tier": "execution",
+      "user_invocable": true
+    },
+    {
+      "canonical_status": "canonical",
+      "capabilities": [
+        "execute_one_experiment",
+        "collect_factual_evidence"
+      ],
+      "consumes": [],
+      "context_rel": [
+        {
+          "kind": "customer-of",
+          "with": "plan"
+        }
+      ],
+      "dependencies": [],
+      "description": "Change or repair code, config or services without weakening tests; report what ran and what did not. Use when: implementing a change or fixing a defect.",
+      "disposition": "keep",
+      "effects": [
+        "modify_declared_subject",
+        "derive_subject_manifest"
+      ],
+      "graph_root": true,
+      "hexagonal_role": "driving-adapter",
+      "name": "implement",
+      "practices": [
+        "tdd",
+        "refactoring",
+        "small-batch-flow"
+      ],
+      "produces": [
+        "subject-manifest.v1"
+      ],
+      "references_count": 3,
+      "tier": "execution",
+      "user_invocable": true
+    },
+    {
+      "canonical_status": "canonical",
+      "capabilities": [
+        "interview_caller",
+        "settle_caller_choices",
+        "write_acceptance_examples",
+        "settle_domain_terms"
+      ],
+      "consumes": [
+        "repo-context",
+        "native-work-state"
+      ],
+      "context_rel": [
+        {
+          "kind": "supplier-to",
+          "with": "craft-goal"
+        }
+      ],
+      "dependencies": [],
+      "description": "Interview you one question at a time, each with a recommendation, to settle a big outcome before agents work alone. Use when: selected by name.",
+      "disposition": "keep_strategy",
+      "effects": [
+        "update_intent_source"
+      ],
+      "graph_root": false,
+      "hexagonal_role": "domain",
+      "name": "interview",
+      "practices": [
+        "bdd-gherkin",
+        "ddd-bounded-context",
+        "design-by-contract"
+      ],
+      "produces": [
+        "caller-outcome",
+        "goal-acceptance"
+      ],
+      "references_count": 0,
+      "tier": "execution",
+      "user_invocable": true
+    },
+    {
+      "canonical_status": "canonical",
+      "capabilities": [
+        "recall_applicable_context",
+        "mine_supported_observations",
+        "curate_topic_pages",
+        "toil_mining"
+      ],
+      "consumes": [],
+      "context_rel": [],
+      "dependencies": [],
+      "description": "Write, find or curate lessons and agent rules with stated evidence and limits. Use when: asked to remember something or write a rule into agent instructions.",
+      "disposition": "keep_off_path",
+      "effects": [
+        "write_protected_drafts",
+        "update_authorized_topic_pages",
+        "write_requested_toil_report"
+      ],
+      "graph_root": true,
+      "hexagonal_role": "supporting",
+      "name": "memory",
+      "practices": [
+        "evidence-based-engineering",
+        "continuous-learning"
+      ],
+      "produces": [
+        "applicable-context",
+        "reviewed-topic-pages",
+        "ranked-toil-evidence"
+      ],
+      "references_count": 5,
+      "tier": "execution",
+      "user_invocable": true
+    },
+    {
+      "canonical_status": "canonical",
+      "capabilities": [
+        "observe_work_graph",
+        "select_next_wave",
+        "ratchet_work_graph",
+        "report_graph_hygiene"
+      ],
+      "consumes": [
+        "outer-goal-prompt",
+        "goal-acceptance",
+        "native-work-state",
+        "validation-result"
+      ],
+      "context_rel": [
+        {
+          "kind": "customer-of",
+          "with": "craft-goal"
+        },
+        {
+          "kind": "supplier-to",
+          "with": "orchestrate"
+        }
+      ],
+      "dependencies": [],
+      "description": "Pick the next work in an epic or bead graph; closed is not proven. Use when: asked what is next or whether an epic is done.",
+      "disposition": "keep_strategy",
+      "effects": [
+        "update_native_graph"
+      ],
+      "graph_root": false,
+      "hexagonal_role": "supporting",
+      "name": "navigate",
+      "practices": [
+        "lean-startup",
+        "bdd-gherkin",
+        "ddd-bounded-context"
+      ],
+      "produces": [
+        "native-handoffs"
+      ],
+      "references_count": 0,
+      "tier": "execution",
+      "user_invocable": true
+    },
+    {
+      "canonical_status": "canonical",
+      "capabilities": [
+        "coordinate_native_work",
+        "recover_assignments",
+        "reconcile_feedback"
+      ],
+      "consumes": [
+        "accepted-intent",
+        "native-work-state",
+        "candidate-evidence"
+      ],
+      "context_rel": [],
+      "dependencies": [],
+      "description": "Coordinate several workers: what idle agents do next, which finished work gets checked first, how to recover a dead one. Use when: managing multiple agents.",
+      "disposition": "keep",
+      "effects": [
+        "dispatch_authorized_workers",
+        "update_native_handoffs"
+      ],
+      "graph_root": true,
+      "hexagonal_role": "supporting",
+      "name": "orchestrate",
+      "practices": [
+        "team-topologies",
+        "evidence-based-engineering"
+      ],
+      "produces": [
+        "native-handoffs",
+        "reconciled-feedback"
+      ],
+      "references_count": 0,
+      "tier": "execution",
+      "user_invocable": true
+    },
+    {
+      "canonical_status": "canonical",
+      "capabilities": [
+        "shape_intent",
+        "define_acceptance",
+        "bound_write_scope",
+        "resume_discovery"
+      ],
+      "consumes": [],
+      "context_rel": [],
+      "dependencies": [],
+      "description": "Shape a request into one end-to-end slice with observable behavior; review write scope and reversible decisions. Use when: planning, breaking down or scoping a change.",
+      "disposition": "keep",
+      "effects": [
+        "update_intent_source"
+      ],
+      "graph_root": true,
+      "hexagonal_role": "domain",
+      "name": "plan",
+      "practices": [
+        "bdd-gherkin",
+        "design-by-contract",
+        "ddd-bounded-context"
+      ],
+      "produces": [],
+      "references_count": 4,
+      "tier": "execution",
+      "user_invocable": true
+    },
+    {
+      "canonical_status": "canonical",
+      "capabilities": [
+        "postmortem"
+      ],
+      "consumes": [],
+      "context_rel": [],
+      "dependencies": [],
+      "description": "Explain why a change, incident or session went as it did, separating proven causes from coincidence. Use when: a postmortem or retro is selected by name.",
+      "disposition": "keep_strategy",
+      "effects": [
+        "write_postmortem_report"
+      ],
+      "graph_root": false,
+      "hexagonal_role": "domain",
+      "name": "postmortem",
+      "practices": [
+        "sre",
+        "lean-startup"
+      ],
+      "produces": [
+        "postmortem-report.md"
+      ],
+      "references_count": 1,
+      "tier": "judgment",
+      "user_invocable": true
+    },
+    {
+      "canonical_status": "canonical",
+      "capabilities": [
+        "challenge_plan"
+      ],
+      "consumes": [],
+      "context_rel": [
+        {
+          "kind": "supplier-to",
+          "with": "plan"
+        }
+      ],
+      "dependencies": [],
+      "description": "Find how a rollout plan could fail before committing to it. Use when: asked what could go wrong or to poke holes in a plan.",
+      "disposition": "keep_strategy",
+      "effects": [
+        "write_advisory_plan_review"
+      ],
+      "graph_root": true,
+      "hexagonal_role": "domain",
+      "name": "premortem",
+      "practices": [
+        "design-by-contract",
+        "adr"
+      ],
+      "produces": [
+        "premortem-plan-review.v1"
+      ],
+      "references_count": 2,
+      "tier": "judgment",
+      "user_invocable": true
+    },
+    {
+      "canonical_status": "canonical",
+      "capabilities": [
+        "compare_claim_to_evidence",
+        "measure_declared_goals",
+        "report_native_status"
+      ],
+      "consumes": [
+        "caller-question",
+        "native-source-evidence"
+      ],
+      "context_rel": [
+        {
+          "kind": "supplier-to",
+          "with": "plan"
+        }
+      ],
+      "dependencies": [],
+      "description": "Audit claims that work is done or shipped against the diff or repo. Use when: asked whether something really got done, even if it looks obvious.",
+      "disposition": "keep_strategy",
+      "effects": [
+        "write_advisory_gap_report",
+        "write_goal_snapshot",
+        "write_requested_rendered_spec"
+      ],
+      "graph_root": false,
+      "hexagonal_role": "domain",
+      "name": "reality-check",
+      "practices": [
+        "design-by-contract",
+        "evidence-based-engineering"
+      ],
+      "produces": [
+        "reality-check-report.v1",
+        "goal-measurement-report",
+        "native-status-snapshot"
+      ],
+      "references_count": 2,
+      "tier": "judgment",
+      "user_invocable": true
+    },
+    {
+      "canonical_status": "canonical",
+      "capabilities": [
+        "refactor"
+      ],
+      "consumes": [
+        "repo-context"
+      ],
+      "context_rel": [],
+      "dependencies": [],
+      "description": "Restructure or clean up code with no behavior change, proved by before-and-after checks. Use when: asked to clean up, extract, dedupe or simplify, even one function.",
+      "disposition": "keep_specialist",
+      "effects": [
+        "modify_source_files"
+      ],
+      "graph_root": false,
+      "hexagonal_role": "supporting",
+      "name": "refactor",
+      "practices": [
+        "refactoring",
+        "legacy-code-seams",
+        "design-patterns"
+      ],
+      "produces": [
+        "code-changes"
+      ],
+      "references_count": 2,
+      "tier": "execution",
+      "user_invocable": true
+    },
+    {
+      "canonical_status": "canonical",
+      "capabilities": [
+        "research",
+        "codebase_recon",
+        "pattern_mining"
+      ],
+      "consumes": [
+        "research-question"
+      ],
+      "context_rel": [],
+      "dependencies": [],
+      "description": "Answer one cited question: how code works, or whether a repeated pattern deserves a rule. Use when: asked how, why, or whether to enforce a pattern.",
+      "disposition": "keep_specialist",
+      "effects": [
+        "write_research_report",
+        "write_recon_pack",
+        "write_pattern_evidence"
+      ],
+      "graph_root": false,
+      "hexagonal_role": "driving-adapter",
+      "name": "research",
+      "practices": [
+        "pragmatic-programmer",
+        "ddd-bounded-context"
+      ],
+      "produces": [
+        "research-report",
+        "codebase-recon.v1",
+        "pattern-mining.v1"
+      ],
+      "references_count": 3,
+      "tier": "execution",
+      "user_invocable": true
+    },
+    {
+      "canonical_status": "canonical",
+      "capabilities": [
+        "reverse_engineer"
+      ],
+      "consumes": [],
+      "context_rel": [],
+      "dependencies": [],
+      "description": "Tear down a competitor's repo or product into a feature inventory and adoption choices. Use when: comparing us to another tool or asking what to steal.",
+      "disposition": "keep_specialist",
+      "effects": [
+        "clone_upstream_repo",
+        "authorized_binary_execution",
+        "write_teardown_artifacts"
+      ],
+      "graph_root": false,
+      "hexagonal_role": "supporting",
+      "name": "reverse-engineer",
+      "practices": [
+        "legacy-code-seams",
+        "ddd-bounded-context",
+        "adr"
+      ],
+      "produces": [
+        ".agents/scratch/reverse-engineer/*/"
+      ],
+      "references_count": 3,
+      "tier": "execution",
+      "user_invocable": true
+    },
+    {
+      "canonical_status": "canonical",
+      "capabilities": [
+        "review_advisory",
+        "identify_supported_findings",
+        "report_review_gaps"
+      ],
+      "consumes": [],
+      "context_rel": [],
+      "dependencies": [],
+      "description": "Give advisory feedback on a plan, design or code change. Use when: asked for an opinion or a look-over, even informally. Not for acceptance; use Validate.",
+      "disposition": "keep",
+      "effects": [],
+      "graph_root": true,
+      "hexagonal_role": "driving-adapter",
+      "name": "review",
+      "practices": [
+        "code-complete"
+      ],
+      "produces": [],
+      "references_count": 1,
+      "tier": "judgment",
+      "user_invocable": true
+    },
+    {
+      "canonical_status": "canonical",
+      "capabilities": [
+        "own_authorized_outcome",
+        "report"
+      ],
+      "consumes": [
+        "plan",
+        "implement",
+        "validate"
+      ],
+      "context_rel": [
+        {
+          "kind": "customer-of",
+          "with": "plan"
+        },
+        {
+          "kind": "customer-of",
+          "with": "implement"
+        },
+        {
+          "kind": "customer-of",
+          "with": "validate"
+        }
+      ],
+      "dependencies": [
+        "plan",
+        "implement",
+        "validate"
+      ],
+      "description": "Drive one accepted change through implementation and checks to done, with one fresh review only where a mistake is costly. Use when: selected by name.",
+      "disposition": "keep_strategy",
+      "effects": [
+        "dispatch_core_phases"
+      ],
+      "graph_root": true,
+      "hexagonal_role": "domain",
+      "name": "rpi",
+      "practices": [
+        "bdd-gherkin",
+        "tdd",
+        "design-by-contract"
+      ],
+      "produces": [
+        "rpi-report.v1"
+      ],
+      "references_count": 2,
+      "tier": "meta",
+      "user_invocable": true
+    },
+    {
+      "canonical_status": "canonical",
+      "capabilities": [
+        "security"
+      ],
+      "consumes": [
+        "repo-context"
+      ],
+      "context_rel": [
+        {
+          "kind": "supplier-to",
+          "with": "validate"
+        }
+      ],
+      "dependencies": [],
+      "description": "Review code for security problems; scan for vulnerabilities, secrets, dependency and prompt risks. Use when: asked whether code is safe to ship, even one small handler.",
+      "disposition": "keep_specialist",
+      "effects": [
+        "write_scan_artifacts"
+      ],
+      "graph_root": true,
+      "hexagonal_role": "driven-adapter",
+      "name": "security",
+      "practices": [
+        "supply-chain-integrity",
+        "design-by-contract",
+        "sre"
+      ],
+      "produces": [
+        "security-gate-summary.json",
+        "suite-summary.json",
+        "redteam-results.json"
+      ],
+      "references_count": 6,
+      "tier": "product",
+      "user_invocable": true
+    },
+    {
+      "canonical_status": "canonical",
+      "capabilities": [
+        "skill_builder",
+        "heal_skill",
+        "export_skill",
+        "distill_expertise"
+      ],
+      "consumes": [],
+      "context_rel": [],
+      "dependencies": [],
+      "description": "Create, repair, audit or consolidate agent skills (SKILL.md packages). Use when: writing or fixing a skill, its description or structure. Not for one-off lessons; use Memory.",
+      "disposition": "keep_specialist",
+      "effects": [
+        "write_skill_source",
+        "write_build_report",
+        "regenerate_skill_projections",
+        "repair_skill_projections",
+        "write_converted_skill_projection",
+        "write_advisory_proposal"
+      ],
+      "graph_root": false,
+      "hexagonal_role": "supporting",
+      "name": "skill-builder",
+      "practices": [
+        "pragmatic-programmer",
+        "refactoring"
+      ],
+      "produces": [
+        "skill-source-package",
+        "skill-hygiene-report",
+        "converted-skill",
+        "operationalization-proposal"
+      ],
+      "references_count": 11,
+      "tier": "meta",
+      "user_invocable": true
+    },
+    {
+      "canonical_status": "canonical",
+      "capabilities": [
+        "author_seeded_probe",
+        "run_probe_tier",
+        "evaluate_skill_decision"
+      ],
+      "consumes": [
+        "skill-source-package"
+      ],
+      "context_rel": [
+        {
+          "kind": "supplier-to",
+          "with": "skill-builder"
+        }
+      ],
+      "dependencies": [],
+      "description": "Measure whether a skill helps by comparing runs with and without it. Use when: reading skill A/B results or deciding to keep, revise or remove one.",
+      "disposition": "keep_specialist",
+      "effects": [
+        "write_probe_package",
+        "dispatch_probe_producer"
+      ],
+      "graph_root": false,
+      "hexagonal_role": "supporting",
+      "name": "skill-eval",
+      "practices": [
+        "measurement-over-assertion",
+        "ab-testing"
+      ],
+      "produces": [
+        "probe-package",
+        "probe-result.v1"
+      ],
+      "references_count": 3,
+      "tier": "meta",
+      "user_invocable": true
+    },
+    {
+      "canonical_status": "canonical",
+      "capabilities": [
+        "test"
+      ],
+      "consumes": [
+        "standards",
+        "repo-context"
+      ],
+      "context_rel": [],
+      "dependencies": [],
+      "description": "Write or assess tests that prove behavior and would fail without the fix. Use when: writing tests, TDD, or asked whether a green test is enough.",
+      "disposition": "keep_specialist",
+      "effects": [
+        "write_test_files",
+        "write_test_evidence",
+        "modify_source_files"
+      ],
+      "graph_root": false,
+      "hexagonal_role": "supporting",
+      "name": "test",
+      "practices": [
+        "tdd",
+        "property-based-testing",
+        "bdd-gherkin"
+      ],
+      "produces": [
+        "test-evidence"
+      ],
+      "references_count": 7,
+      "tier": "execution",
+      "user_invocable": true
+    },
+    {
+      "canonical_status": "canonical",
+      "capabilities": [
+        "dispatch_explicit_packet",
+        "observe_gc_runtime",
+        "inspect_pack_registries",
+        "drive_mayor_door"
+      ],
+      "consumes": [
+        "explicit-packets"
+      ],
+      "context_rel": [
+        {
+          "kind": "partnership",
+          "with": "agent-native"
+        }
+      ],
+      "dependencies": [],
+      "description": "Operate Gas City through its own doors: Mayor, doctor and native run state. Use when: Gas City is selected or a gc run looks stuck.",
+      "disposition": "keep_optional_adapter",
+      "effects": [
+        "operate_gas_city",
+        "configure_codex_trust"
+      ],
+      "graph_root": false,
+      "hexagonal_role": "driving-adapter",
+      "name": "using-gc",
+      "practices": [
+        "team-topologies",
+        "design-by-contract"
+      ],
+      "produces": [
+        "gas-city-runtime-evidence"
+      ],
+      "references_count": 1,
+      "tier": "execution",
+      "user_invocable": true
+    },
+    {
+      "canonical_status": "canonical",
+      "capabilities": [
+        "compute_subject_identity",
+        "judge_acceptance",
+        "return_validation_result",
+        "persist_verdict"
+      ],
+      "consumes": [
+        "subject-manifest.v1"
+      ],
+      "context_rel": [
+        {
+          "kind": "customer-of",
+          "with": "plan"
+        },
+        {
+          "kind": "customer-of",
+          "with": "implement"
+        }
+      ],
+      "dependencies": [],
+      "description": "Freshly judge whether a finished change and its claims meet original acceptance: PASS, FAIL or NOT_PROVEN. Use when: asked for a go/no-go, sign-off or independent verdict.",
+      "disposition": "keep",
+      "effects": [
+        "write_verdict_artifact"
+      ],
+      "graph_root": true,
+      "hexagonal_role": "driving-adapter",
+      "name": "validate",
+      "practices": [
+        "design-by-contract",
+        "llm-eval-harness",
+        "content-addressed-storage"
+      ],
+      "produces": [
+        "subject-manifest.v1",
+        "validation-result",
+        "verdict.v2"
+      ],
+      "references_count": 2,
+      "tier": "judgment",
+      "user_invocable": true
+    }
+  ]
+}

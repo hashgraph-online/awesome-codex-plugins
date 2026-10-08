@@ -1,6 +1,6 @@
 {
   "name": "velith",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "description": "Books to the human-quality bar — 6-phase pipeline (onboarding → ideation → outlining → drafting → editing → publishing), 12 agents, full-manuscript context, voice lock, draft-critique-revise, fact-check, beta-reader readiness gate, art bible and model-agnostic image pipeline. Fiction, non-fiction, technical, screenplay, poetry, game, academic, custom.",
   "author": {
     "name": "epicsagas",

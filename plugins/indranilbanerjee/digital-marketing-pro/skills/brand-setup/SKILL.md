@@ -119,6 +119,21 @@ When user wants to update specific fields:
 3. Write updated profile back
 4. Confirm changes
 
+## Profile Storage and Brand Isolation
+
+Each brand lives under `~/.claude-marketing/brands/{slug}/`: `profile.json` (full brand context), `guidelines/` (imported style guides, restrictions, approved messaging), and `templates/` (custom deliverable templates). Every skill loads these automatically. Agencies keep one profile per client; each brand gets isolated context with no cross-contamination, and `/digital-marketing-pro:switch-brand <name>` (or `--list`) changes the active one.
+
+## After Setup
+
+After creating the profile, ask:
+
+"Brand profile for [name] is ready. Would you like to:
+- Import an existing style guide? (`/digital-marketing-pro:import-guidelines`)
+- Run a competitive analysis? (`/digital-marketing-pro:competitor-analysis`)
+- Plan your first campaign? (`/digital-marketing-pro:campaign-plan`)
+- Audit your SEO? (`/digital-marketing-pro:seo-audit`)
+- Check which connectors are active? (`/digital-marketing-pro:integrations`)"
+
 ## Important Notes
 
 - NEVER skip the brand voice section — it's what makes all content outputs on-brand

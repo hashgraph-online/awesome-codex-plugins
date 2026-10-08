@@ -11,7 +11,7 @@ summarize, weaken, or replace any invariant with the lean mutable workflow.
 regular single-link file that binds the admitted plan input.
 
 ```bash
-python3 {plugin_root}/scripts/zagrosi_skills.py implement-setup \
+python3 "{plugin_root}/scripts/zagrosi_skills.py" implement-setup \
   --sections-dir "{sections_dir}" \
   --target-dir "{target_dir}" \
   --implementation-root "{implementation_root}" \
@@ -272,7 +272,7 @@ full section slugs, aliases, lowercase values, a missing selector or extra
 arguments are silent exit 2 with empty stdout and stderr.
 
 ```bash
-python3 {plugin_root}/scripts/zagrosi_skills.py implement-evidence-handoff \
+python3 "{plugin_root}/scripts/zagrosi_skills.py" implement-evidence-handoff \
   --implementation-root "{implementation_root}" \
   --section S26
 ```
@@ -416,7 +416,7 @@ invalid.
 Before each section, run:
 
 ```bash
-python3 {plugin_root}/scripts/zagrosi_skills.py next-section \
+python3 "{plugin_root}/scripts/zagrosi_skills.py" next-section \
   --planning-dir "{planning_dir}" \
   --implementation-root "{implementation_root}"
 ```
@@ -439,7 +439,7 @@ For Sections 26 or 28, run the privileged handoff above first; Forge derives
 the reserved evidence row. Record all other canonical evidence explicitly:
 
 ```bash
-python3 {plugin_root}/scripts/zagrosi_skills.py implement-record-section \
+python3 "{plugin_root}/scripts/zagrosi_skills.py" implement-record-section \
   --sections-dir "{sections_dir}" \
   --implementation-root "{implementation_root}" \
   --section "{section}" \

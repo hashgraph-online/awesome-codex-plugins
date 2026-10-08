@@ -1,0 +1,45 @@
+{
+  "name": "cohesivity",
+  "version": "5.0.3",
+  "description": "Cohesivity backend infrastructure skill with local project bootstrap and a public remote MCP for documentation and management, with optional account OAuth.",
+  "author": {
+    "name": "Cohesivity",
+    "email": "smj@cohesivity.ai",
+    "url": "https://cohesivity.ai"
+  },
+  "homepage": "https://cohesivity.ai",
+  "repository": "https://github.com/cohesivity-org/cohesivity-plugin",
+  "license": "MIT",
+  "keywords": [
+    "backend",
+    "infrastructure",
+    "database",
+    "hosting",
+    "auth"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Cohesivity",
+    "shortDescription": "Agent-provisioned backend: Postgres, hosting, auth, storage, email and AI APIs",
+    "longDescription": "cohesivity.ai offers free agent native backend services. Anonymous account (no-signup) to get started through MCP or API. Hosting, postgres, email, storage, containers, LLMs, voice and third-party APIs. Includes free tiers and 5 USD/mo in AI and Search credits. Top-ups through x402.",
+    "developerName": "Cohesivity",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://cohesivity.ai",
+    "privacyPolicyURL": "https://cohesivity.ai/privacy",
+    "termsOfServiceURL": "https://cohesivity.ai/terms",
+    "defaultPrompt": [
+      "Use Cohesivity to add a Postgres database to this project",
+      "Use Cohesivity to deploy this app",
+      "Use Cohesivity to add login and an email inbox to this app"
+    ],
+    "brandColor": "#0f0f0f",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg"
+  }
+}

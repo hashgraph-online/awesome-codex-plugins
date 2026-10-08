@@ -118,7 +118,7 @@ fix: /kernel:simplify on the listed functions
 - [ ] Input validation (Zod schema)
 - [ ] No hardcoded secrets
 - [ ] SQL injection prevented (parameterized queries)
-- [ ] XSS prevented (DOMPurify)
+- [ ] XSS prevented (context-aware output encoding / framework auto-escaping first; DOMPurify only where raw HTML is injected, e.g. `dangerouslySetInnerHTML`, `v-html`, `innerHTML`)
 - [ ] Auth tokens in httpOnly cookies
 </section>
 

@@ -11,6 +11,8 @@ dependencies:
 triggers:
   - 需求分析完成，准备输出PRD时
   - 需要标准化PRD格式时
+metadata:
+  internal: true
 ---
 
 # PRD 编写指南

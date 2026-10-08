@@ -1,0 +1,4 @@
+interface:
+  display_name: "Magic Hour Character Replace"
+  short_description: "Transfer a performance or replace the whole character"
+  default_prompt: "Use $magic-hour-character-replace to make my character perform the action in this clip and show me the finished video."

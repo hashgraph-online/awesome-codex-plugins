@@ -1,0 +1,12 @@
+{
+  "fps": 24,
+  "length": 8,
+  "audio": "work/song-cut.wav",
+  "songStart": 0,
+  "palette": { "paper": "#f1ead8", "ink": "#1d1b22", "accent": "#e2462f" },
+  "font": "900 1px ui-sans-serif, system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif",
+  "shots": [
+    { "at": 0, "dur": 4, "base": "work/frames/shot-01", "baseStart": 0, "focus": [0.62, 0.45], "type": "big", "side": "left" },
+    { "at": 4, "dur": 4, "base": "work/frames/shot-02", "baseStart": 0, "focus": [0.4, 0.5], "type": "quiet", "side": "right" }
+  ]
+}

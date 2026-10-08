@@ -1,0 +1,3 @@
+# Paths the plugin scanner can skip (not part of the plugin)
+node_modules/
+test/

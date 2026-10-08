@@ -1,6 +1,6 @@
 ---
 name: tool-design-security
-description: 'Design tool identity, credential injection, authorization, tenant scope, and audit boundaries.'
+description: "Design or audit a tool's trust boundary: keep API keys and tenant ids out of model-visible parameters, resist prompt injection, enforce permissions and approval gates in code, declare scopes, and log calls safely."
 user-invocable: true
 argument-hint: '[tool or toolkit whose trust boundary to design]'
 ---
@@ -39,13 +39,17 @@ Before (the key is in the schema, so it is in the prompt, the trace, and the tra
 }
 ```
 
-After (the key is resolved from server-side context at execution):
+After (the key is resolved from server-side context at execution, and the host is fixed
+in config so the model cannot send the credential anywhere else):
 
 ```json
 {
   "name": "call_api",
-  "parameters": { "endpoint": { "type": "string" } },
-  "config": { "headers": { "Authorization": "Bearer {{secret:SERVICE_API_KEY}}" } }
+  "parameters": { "resource": { "type": "string", "enum": ["orders", "invoices"] } },
+  "config": {
+    "url": "https://api.example.com/{{resource}}",
+    "headers": { "Authorization": "Bearer {{secret:SERVICE_API_KEY}}" }
+  }
 }
 ```
 
@@ -56,8 +60,9 @@ or a trust decision, it is not a parameter.
 ### Access control lives in code (Permission Gate)
 
 Check permissions at the top of execution, on the principal from context, not from any
-argument the model supplied. Check the action and the target. Deny with a clear,
-class-tagged error that names the required role, and log every denial.
+argument the model supplied. Check the action and the target. Deny with a `permanent`
+error that names the required role, and log every denial. Re-authenticating does not
+fix a missing role, so reserve `authRequired` for a missing or expired credential or scope.
 
 ```text
 if "admin" not in principal.roles: deny(required="admin")
@@ -100,12 +105,13 @@ call ran in.
 
 ### Inject what the agent would not think to ask for (Context Injection)
 
-Timezone, locale, region, and feature flags are supplied from context by default and
-may be overridden by explicit parameters. Authorization scope (team, organization,
-tenant) is also injected from context, but it is never overridable by the model: a tool
-that needs to act on another team resolves that through the permission gate, not through
-a parameter. Document what is injected, return the effective values in the response, and
-expand machine ids to names where a human will read the result.
+Presentation context (timezone, locale, region) is supplied from context by default and
+may be overridden by explicit parameters. Feature flags, entitlements, and authorization
+scope (team, organization, tenant) are also injected from context, but the model can
+never override them: a tool that needs to act on another team resolves that through the
+permission gate, not through a parameter. Document what is injected, return the
+effective values in the response, and expand machine ids to names where a human will
+read the result.
 
 ### Boundaries are enforced, not described (Context Boundary)
 
@@ -125,28 +131,92 @@ Violations return a clear, logged error.
 
 ## On Runtype
 
+- **Principal.** Your server passes `tenant: { id }` and `endUser: { id }` on dispatch or
+  agent execute. Tools read them as `{{_tenant.id}}` and `{{_endUser.id}}`, next to
+  `{{_user.id}}` for your own account. A plain `tenant` or `endUser` value is asserted by
+  the caller, so set it only from a trusted server, never from a model argument. From a
+  browser, or to prove who the user is, send `identityProof` instead, and set
+  `config.tenancyStrategy` on the saved agent to require that identity. Use `.id`, not
+  `.projectedId`.
+- **Principal your API can verify.** When your API must check the identity itself, put
+  `Authorization: Bearer {{_identity.token}}` on an `external` tool (or an inline MCP
+  server header). Runtype signs a five-minute ES256 JWT per call with `aud` = the tool's
+  fixed host and `iss` = `https://api.runtype.com/orgs/<organizationId>`; the model never
+  sees it. It is minted only for an agent with `tenancyStrategy` and a resolved identity.
+  The receiver must verify against `https://api.runtype.com/.well-known/jwks.json` and pin
+  `iss` to its own customer's org, because every org shares the signing key.
 - **Secrets.** `{{secret:KEY}}` references resolve from the managed secret store at
-  execution and are the only credential contract. They are honored in HTTP surfaces
-  only: `external` tool `url`, `headers`, `body`, and auth, and the HTTP flow steps
-  (`fetch-url`, `api-call`, `wait-until`, `paginate-api`). Never collect secret values
-  in chat; hand users the dashboard intake URL from `get_secret_intake_manifest`, and
-  create pending secrets with `create_secret` (no `value`) so the reference resolves
-  once the owner fills it in.
-- **Context injection.** `hiddenParameterNames` on a runtime tool (hidden parameters
-  in the SDK) strip auth context and tenant ids from the model-facing schema and
-  re-merge them from the execution context.
-- **Permission gate.** `config.tools.approval.require` lists the tools that pause for
-  a human; `timeout` bounds the wait; `requestReason` asks the model for a
-  justification carried as the reserved `_approvalReason` parameter; `choices`
-  (`alwaysAllow`, `alwaysDeny`) offers persistent decisions at the prompt. The reason
-  is display-only and must never drive the decision. On client-token and Persona
-  surfaces the account owner approves, not the end user.
-- **Session context.** Durable working state belongs in `save_memory` /
-  `recall_memory` (gated by `config.memory.enabled`) or in records, not in an
-  ever-growing message array or a hand-rolled session store.
-- **Audit.** Every tool call is traced on the run (`trace_execution`,
-  `list_logs`), so tools only need to keep secrets out of their parameters and
-  results.
+  execution and are the only credential contract. They resolve in `external` tool
+  `url`, `headers`, `body`, and auth; in the HTTP flow steps (`fetch-url`, `api-call`,
+  `wait-until`, `paginate-api`); and in custom MCP server auth (`token`, `username`,
+  `password`, `headers` values, and OAuth client credentials). They do not resolve in
+  prompts, code, or a saved MCP tool's config. Full list:
+  https://docs.runtype.com/user-guide/settings/managing-secrets
+  - A runtime tool of any other type (`custom`, `flow`, `local`) that contains a secret
+    reference is rejected with 400. Move the credential into an `external` tool.
+  - An API key that dispatches runtime tools with secret references needs `SECRETS:READ`
+    (or `SECRETS:*`), or the request fails with 403.
+  - Before a run, call `check_secrets` with the referenced keys to confirm none is
+    missing or revoked.
+  - Never collect secret values in chat. Hand users the dashboard intake URL from
+    `get_secret_intake_manifest`, and create pending secrets with `create_secret` (no
+    `value`) so the reference resolves once the owner fills it in.
+- **Context injection.** `hiddenParameterNames` on a runtime tool (the same field in the
+  API, SDK, and product definitions) removes those parameters from the schema the model
+  sees and fills them from execution variables or `_record.metadata`. Names that start
+  with `_internal` are rejected.
+- **Least privilege.** Enable only the tools the agent needs in `toolIds`. On a custom
+  MCP server, set `allowedTools` so the model sees only the listed tools, not the
+  server's whole catalog.
+- **Local tools.** A `local` tool runs in the caller's client (SDK or Persona), outside
+  your server. Put no credentials or authorization decisions in it, and treat its result
+  as untrusted input. Enforce permissions in an `external` tool or your own backend.
+- **Boundaries.** Cap calls with `tools.maxToolCalls` (1 to 100 per execution) and bound
+  the loop with `loopConfig.maxTurns` or `loopConfig.maxCost`. For expensive or
+  destructive tools, enforce a per-tool budget inside the tool; do not set
+  `tools.perToolLimits`, which is retired and gets the agent rejected. A request
+  carries at most 50 runtime tools. Pin the host in an external tool's `url` instead of
+  accepting it as a parameter.
+- **Permission gate.** `config.tools.approval` pauses gated tool calls for a human:
+  - `require` takes tool names or patterns (`mcp:*`, `builtin:*`), or `true` for every
+    tool. Prefer the list.
+  - `timeout` is in milliseconds (default 300000, five minutes).
+  - `requestReason` (on by default) asks the model for a justification, carried as the
+    reserved `_approvalReason` parameter. The reason is display-only and must never
+    drive the decision.
+  - `choices` (`alwaysAllow`, `alwaysDeny`, both off by default) offers persistent
+    decisions at the prompt. List remembered grants with
+    `GET /v1/tool-approval-grants?agentId=` and revoke one with
+    `DELETE /v1/tool-approval-grants/{id}`. Review them when you tighten a tool.
+  - The approver answers with `POST /v1/dispatch/approve` (or
+    `POST /v1/agents/{id}/approve` for a saved agent).
+  - Approval needs someone to answer it. API dispatch and agent execute wait for the
+    approve call, and Slack, Telegram, SMS, and iMessage surfaces running a multi-turn
+    agent collect the decision in the conversation. Client-token (Persona) chat and
+    product chat refuse approval-gated agents with 501 `APPROVAL_MODE_UNSUPPORTED`,
+    except a root gate with `tools.approval.approver: "end-user"`, which the Persona
+    visitor approves in the widget. Use `end-user` only when the gate asks for the
+    visitor's own consent (confirming their order, booking, or message). Keep
+    `owner` for gates that enforce your policy or budget (refunds, discounts,
+    credits, spend on your account): the visitor must not grant those to themselves.
+    Email, schedule, webhook, Discord, and WhatsApp surfaces cannot collect a decision,
+    and neither can Slack, Telegram, SMS, or iMessage for a single-pass agent. Watch
+    for the `APPROVAL_UNANSWERABLE_ON_SURFACE` warning when you save an agent or bind it
+    to a surface; on those surfaces, remove the gate and enforce the rule in the tool.
+  - Approval covers only tool calls a model chooses in an agent or a prompt step. A flow
+    Tool Call step has no approval gate and always runs.
+- **Session context.** Keep per-conversation working state (current project, selected
+  account) in the conversation's messages or variables, or in a record keyed by
+  conversation. Use memory (`save_memory` / `recall_memory`, enabled with
+  `config.memory.enabled`) only for facts and preferences that must survive across
+  sessions, and scope it with `config.memory.profileTemplate` (for example
+  `{{_endUser.id}}`) so one end user's state never reaches another. An agent with a
+  `tenancyStrategy` ignores `profileTemplate` and scopes memory to the tenant and end
+  user itself.
+- **Audit.** Every tool call is traced on the run (`trace_execution`, `list_logs`).
+  Values of parameters listed in `hiddenParameterNames` are redacted in tool-input
+  events; every other argument is recorded as sent, so keep PII and secrets out of
+  model-visible parameters and results.
 - Read `get_platform_documentation(topic="agent-design")` for the approval-gate
   contract and `get_platform_documentation(topic="external-tools")` for the secret
   syntax rules.

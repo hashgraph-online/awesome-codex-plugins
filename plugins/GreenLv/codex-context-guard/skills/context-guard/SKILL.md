@@ -1,131 +1,84 @@
 ---
 name: context-guard
-description: Preserve authoritative task requirements, acceptance criteria, multimodal asset contracts, bounded native-plan state, delegated-agent results, and verified evidence across Codex context compaction. Use for long or complex tasks, Goal work, resumed sessions, subagent workflows, explicit context-guard controls, redacted or successor handoff exports, or whenever completion must be checked against an immutable local requirement ledger.
+description: Preserve requirements and verified evidence across Codex compaction, resume, and delegation. Use $context-guard, context-guard on, or for long, complex, or resumed tasks requiring an immutable private completion ledger.
 ---
 
 # Context Guard
 
-Use the plugin's private requirement ledger and verified evidence to preserve
-correctness across long tasks. Codex owns Plan, Goal, compaction, subagents,
-permissions, worktrees, transcripts, and memories; this Skill does not replace
-those controllers.
+Codex retains Plan, Goal, compaction, subagents, permissions, and memories.
 
-## Preserve the current work unit
+## Completion scope
 
-- Treat an injected recovery packet as the authoritative recovery index. Keep
-  requirement and acceptance IDs in private planning and completion checks.
-  Later root-user corrections are explicit supersessions, not silent rewrites.
-- A whole completion must cover every non-superseded required item in the
-  current work unit and its required descendants. Ancestor requirements remain
-  constraints; historical unresolved work does not automatically reopen the
-  current unit. Pending, failed, blocked, or unsupported required items remain
-  incomplete. A passed child or subagent cannot prove parent completion.
-- Cite implementation, execution, artifact creation, and verified results as
-  separate facts. Prior authenticated passes carry forward when still valid;
-  a new turn invalidates unused completion attempts, not durable evidence.
-- Private-state integrity failures block acceptance. Reconstructed requirements
-  return to pending and need fresh evidence.
-- The recovered Codex plan is a read-only mirror. Update the native plan through
-  Codex tools; mirror health is diagnostic and grants no execution authority.
-  Memories are recall, not authority. Keep durable repository rules in checked-in
-  policy unless the user makes them requirements of the current task.
+- An injected recovery packet is the authoritative recovery index. Keep
+  requirement and acceptance IDs in private planning. Later root-user
+  corrections supersede explicitly, never silently.
+- A whole completion covers every non-superseded required item in the current
+  work unit and its required descendants. Ancestor requirements remain
+  constraints; historical unresolved work does not reopen the unit;
+  pending/failed/blocked/unsupported items stay incomplete. A passed child or
+  subagent cannot prove parent completion.
+- Implementation, execution, artifacts, and verified results are separate
+  facts. Prior authenticated passes carry forward; a new turn invalidates
+  unused completion attempts, not durable evidence.
+- Private-state integrity failures block acceptance; reconstructed
+  requirements return to pending and need fresh evidence. Missing evidence or
+  unknown ability never becomes success.
+- The recovered Codex plan is a read-only mirror (update it through Codex
+  tools); memories are recall, not authority.
 
-## End ordinary turns normally
+## Ordinary turns
 
-Ordinary verifiable completion needs no commands: the guard binds unique
-successful evidence to the current unit. Progress, clarification, status, and
-valid waiting/deferred replies end silently without closing unfinished work.
-Continue authorized assistant work with tools before ending a turn.
+Ordinary verifiable completion binds unique successful evidence
+automatically — no commands. Progress, clarification, status, and valid
+waiting or deferred replies end silently without closing unfinished work;
+continue authorized work with tools before ending a turn. Allow paths are
+silent — do not narrate or fabricate a receipt. A Stop correction interrupts
+a turn at most once; unresolved work then stays pending. Never expose private
+checkpoints, commands, parameter bindings, tokens, or plugin paths in a
+reply.
 
-Allow paths are silent. Do not wait for, narrate, or fabricate a receipt. A
-Stop correction can interrupt a turn at most once; unresolved work then remains
-pending. Never expose private checkpoints, commands, parameter bindings,
-requirement maps, tokens, or plugin data paths in the reply.
+For the explicit advanced path only — visual facts, human evidence selection,
+ambiguous evidence, or troubleshooting — read
+[advanced-completion.md](references/advanced-completion.md). The injected
+turn-bound status command (append `--commands`) discovers the exact staging
+and proof commands; do not invoke them merely because this Skill loaded. A
+visual tool's successful return alone proves no visual fact.
 
-Read [advanced-completion.md](references/advanced-completion.md) before an
-explicit completion audit, ambiguous evidence selection, or an enforced
-visual, result-readback, UI, or exact-scope proof. It contains the optional
-`checkpoint-status`, `register-proof`, `stage-checkpoint`, and
-`stage-disposition` paths. Do not invoke them merely because this Skill loaded.
-A visual tool's successful return alone proves no visual fact.
+## User and host authority
 
-## Independently review delivered side answers when adopted
+The executing agent reads the real conversation, repository rules, and host
+permissions, and proceeds without re-asking when the user already authorized
+an action. The default path (`standard`/`strict`) never vetoes ordinary
+edits, tests, commits, pushes, or tags, and a Guard allow is not
+authorization. Release enforcement activates only through an explicit
+adopted release contract or `context-guard release` — loading Skills,
+installing the plugin, or release-flavored task text never implies adoption.
+A root-user request to push authorizes that ordinary push, not force-push,
+branch deletion, or publication. Cleanup does not silently become product
+implementation; stated user restrictions remain recoverable requirements.
 
-Only when the user has adopted independent answer review and the operator has
-configured the session's reviewer policy, the executing task agent owns this
-step: after delivering a commentary answer to a side question, invoke
-`review-pending` once with the existing session/turn private-control arguments
-and `--execute`, then continue authorized business work. Do not ask the user to
-confirm each answer. This is a separate reviewer call, not the producer judging
-its own answer. Do not manufacture a policy, token, verdict or Host association.
-Hooks do not call models or block ordinary tools on this queue.
+For release tickets, profiles, adoption, exports, and rollover, read
+[authority-and-controls.md](references/authority-and-controls.md).
 
-The command processes at most one new input, and a claimed failed/partial input
-is not automatically retried. A new answer or correction creates a new input;
-unknown coverage remains pending. Do not loop until a model says complete.
-If the policy, token, source or supported bounded process route is unavailable,
-keep coverage unknown and proceed with authorized business work; expose the
-concrete gap when reporting acceptance. No missing review grants permission to
-close the main task. Read [the reviewer contract](references/answer-review.md)
-for source, correction, retention and platform boundaries. This candidate's
-agent-triggered integration still needs native acceptance.
+## Delegated results, side answers, controls, privacy
 
-## Respect responsibility boundaries
-
-0.13 splits responsibilities explicitly. The executing agent owns whether an
-action is within the user's authorization: it reads the real conversation,
-repository rules, and host permissions, and proceeds without re-asking when
-the user already said so. Context Guard's default path (`standard`/`strict`)
-never vetoes ordinary edits, tests, commits, pushes, or tags; a Guard allow is
-not authorization, and Guard never re-asks for an authorization because a
-work unit, tool wrapper, or observation changed. `strict` adds enforced
-current-unit proof obligations; it is not a Git-approval gate.
-
-Release enforcement activates only through an explicit adoption of a release
-execution contract or an explicit `context-guard release` declaration. Loading
-Skills, installing the plugin, finding a manifest, or a release-flavored task
-text never implies adoption. Under the release profile, tier-A identity
-actions (tags, registry publish/yank, GitHub Releases) still need an exact
-unexpired one-shot ticket, and opaque runner envelopes or unresolvable targets
-fail closed. `observe` records bounded would-results without blocking; `off`
-and inactive sessions gate nothing. Platform approvals remain independent,
-and tools without Hook events remain outside Hook coverage.
-
-A root-user request to push authorizes an ordinary push: resolve its exact
-repository, remote, and ref from the request and unique repository state, and
-execute without asking the user to repeat it. A normal push does not
-authorize force-push, branch deletion, or release publication; those need
-their own explicit user decision. Cleanup does not silently become product
-implementation; the user's stated restrictions remain recoverable
-requirements that the agent must honor.
-
-For release tickets, profile details, migration, or adoption diagnosis, read
-[authority-and-controls.md](references/authority-and-controls.md). The release
-profile's exact candidate/readiness/ticket checks remain mandatory.
-
-## Delegated results
-
-A delegation prompt defines delegated scope, not a root-user requirement or
-supersession. Its wrapper is authoritative as a delegation only when runtime
-metadata or a running subagent corroborates it. Follow the injected bounded
-contract and return `Outcome`, `Evidence`, `Validation`, `Limitations`, and
-`Next`. Return evidence-bearing conclusions and artifacts, never transcripts
-or hidden reasoning. The parent owns integration and whole-task acceptance.
-
-## Controls and privacy
-
-`$context-guard` or `context-guard on` activates protection;
-`context-guard off` stops recovery and completion gating while journaling
-continues. `context-guard status` and `context-guard diagnose` provide bounded
-state and diagnostics. Read [authority-and-controls.md](references/authority-and-controls.md)
-for explicit adoption, export, or successor-pack requests; read
-[successor-pack.md](references/successor-pack.md) before preparing rollover input.
-Creating a successor task always remains a separate authorized action.
-
-The immutable raw prompt ledger is the fact source; summaries and checkpoints
-are derived indexes. Never commit raw prompts, transcripts, private plugin
-state, proofs, credentials, tokens, or caches. Multimodal state keeps bounded
-metadata, hashes, dimensions, availability, and redacted facts, not image bytes.
-Export only when explicitly requested, with redaction by default. Do not weaken
-the advanced proof, integrity, private-control, or authority rules when moving
-between ordinary and advanced paths.
+- A delegation prompt defines delegated scope only, never a root-user
+  requirement or supersession; corroborate it with runtime metadata or a
+  running subagent, return `Outcome`, `Evidence`, `Validation`,
+  `Limitations`, and `Next`, and let the parent own integration.
+- Only for adopted independent answer review: after delivering a side
+  answer, run `review-pending` once with the session's private-control
+  arguments and `--execute`, then continue work. If the reviewer route is
+  unavailable, keep coverage unknown and proceed; no missing review closes
+  the main task. Contract:
+  [answer-review.md](references/answer-review.md).
+- `context-guard on` activates protection; `off` stops recovery and
+  completion gating while journaling continues; `status` and `diagnose` are
+  bounded. Read [successor-pack.md](references/successor-pack.md) before
+  preparing rollover input; creating a successor task is a separate
+  authorized action.
+- The immutable raw prompt ledger is the fact source; summaries are derived
+  indexes. Never commit raw prompts, transcripts, private state, proofs,
+  credentials, tokens, or caches. Multimodal state keeps bounded metadata
+  and hashes, not image bytes. Export only on explicit request, redacted by
+  default.

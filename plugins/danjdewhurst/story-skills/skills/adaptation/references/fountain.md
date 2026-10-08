@@ -25,9 +25,11 @@ updated: YYYY-MM-DD
 | 2 | chapter-01-scene-02 | INT. ARCHIVE - CONTINUOUS | mara | Memory of her father | externalize |
 ```
 
-- **Slugline:** `INT.` or `EXT.` (decide from the scene), the location
-  record's `name` in capitals, and `DAY`, `NIGHT`, or `CONTINUOUS` from the
-  scene's `time`.
+- **Slugline:** `INT.`, `EXT.`, or `INT./EXT.` from the `setting`
+  (`interior`, `exterior`, or `both`) on the scene, else on its location
+  (set it first; ask the author when the prose does not settle it), the
+  location record's `name` in capitals, and `DAY`, `NIGHT`, or
+  `CONTINUOUS` from the scene's `time`.
 - **Characters:** the scene's `characters`, not `mentions`.
 - **Beat:** what changes in the scene, in one line. Scenes with an
   `outcome` field already record it.
@@ -36,6 +38,26 @@ updated: YYYY-MM-DD
   `new` (a scene the film needs that the book does not have).
 - Use reading order for the default structure; `story timeline .` gives
   story-time order when the film should be told chronologically.
+
+## Starting The Script From The Build
+
+`story build . --format fountain --out adaptations/screenplay/{story-id}.fountain`
+writes the scene skeleton: title page (`Title`, `Credit`, `Author`,
+`Source`), a `##` section per chapter, and per scene record a heading, the
+scene title as a `=` synopsis, and `[[Source: ...]]`, `[[Characters: ...]]`,
+story time, dilemma, and outcome notes. It holds no action or dialogue.
+
+- Headings follow the records: named times become `DAWN`, `MORNING`,
+  `DAY`, `EVENING`, or `NIGHT`, and `HH:MM` becomes `DAY` (06:00-17:59,
+  or the middle half of a calendar's `hours-per-day`) or `NIGHT`. Change
+  a heading to `CONTINUOUS` or a more specific time as the script needs.
+- A forced heading (`.REEF - NIGHT`) has no `setting` behind it, and
+  `LOCATION TBD` has no `location`. Fix the scene or location record, or
+  write the heading by hand.
+- Apply the scene list: delete cut scenes, merge headings, add `new`
+  scenes (with a `[[Source: new]]` note), and add `#` act sections.
+- The CLI refuses to overwrite the file once it exists. To see what
+  changed in the records, build to `dist/` and compare.
 
 ## Novel To Screen
 

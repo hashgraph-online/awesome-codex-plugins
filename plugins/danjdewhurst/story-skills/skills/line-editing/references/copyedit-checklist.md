@@ -9,6 +9,12 @@ Before starting, run `story prose .` and fix every avoided spelling it
 lists. Keep the style sheet open: when the manuscript settles a new
 question, record it there in the same change.
 
+The grammar, usage, and dialogue tables below are for English. For a book
+in another language (`language` in `story.md`), copyedit against that
+language's grammar and the conventions the style sheet records, and use
+`language-conventions.md` for dialogue and punctuation. The consistency
+and proof sections apply in any language.
+
 ## Grammar and usage
 
 - Subject-verb agreement, especially with collective nouns and long
@@ -39,7 +45,7 @@ question, record it there in the same change.
 
 ## Dialogue punctuation
 
-| Case | Pattern (double quotes, US style) |
+| Case | Pattern (English, double quotes, US style) |
 |------|-----------------------------------|
 | Tag after line | `"We leave at dawn," she said.` |
 | Tag before line | `She said, "We leave at dawn."` |
@@ -55,7 +61,9 @@ question, record it there in the same change.
 British house styles often use single quotes and may place punctuation
 outside the quote when it is not part of the speech; follow the style
 sheet's Dialogue And Punctuation section. A new speaker gets a new
-paragraph. Action beats belong in the speaker's paragraph.
+paragraph. Action beats belong in the speaker's paragraph. Other
+languages set dialogue differently (dashes, guillemets, corner brackets):
+see `language-conventions.md`.
 
 ## Consistency
 

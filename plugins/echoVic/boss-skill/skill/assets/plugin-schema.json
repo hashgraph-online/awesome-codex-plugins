@@ -1,0 +1,122 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Boss Harness Plugin Manifest",
+  "description": "Boss Harness 插件清单文件规范（plugin.json）",
+  "type": "object",
+  "required": ["name", "version", "type"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "插件唯一标识符（小写字母 + 连字符）",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "version": {
+      "type": "string",
+      "description": "语义化版本号",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(-[a-z0-9.]+)?$"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["gate", "agent", "pipeline-pack", "reporter"],
+      "description": "插件类型：gate（门禁）、agent（Agent 扩展）、pipeline-pack（流水线模板包）、reporter（报告生成器）"
+    },
+    "description": {
+      "type": "string",
+      "description": "插件简短描述"
+    },
+    "author": {
+      "type": "string",
+      "description": "作者或组织"
+    },
+    "license": {
+      "type": "string",
+      "description": "许可证"
+    },
+    "hooks": {
+      "type": "object",
+      "description": "钩子脚本映射",
+      "properties": {
+        "pre-stage": {
+          "type": "string",
+          "description": "阶段执行前触发的脚本路径"
+        },
+        "post-stage": {
+          "type": "string",
+          "description": "阶段执行后触发的脚本路径"
+        },
+        "pre-gate": {
+          "type": "string",
+          "description": "门禁检查前触发的脚本路径"
+        },
+        "gate": {
+          "type": "string",
+          "description": "门禁检查脚本路径（type=gate 时必需）"
+        },
+        "post-gate": {
+          "type": "string",
+          "description": "门禁检查后触发的脚本路径"
+        },
+        "report": {
+          "type": "string",
+          "description": "报告生成脚本路径（type=reporter 时必需）"
+        }
+      },
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "config": {
+      "type": "object",
+      "description": "插件配置参数（由各插件自行定义 schema）",
+      "additionalProperties": true
+    },
+    "stages": {
+      "type": "array",
+      "description": "插件适用的阶段（空 = 所有阶段）",
+      "items": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 4
+      }
+    },
+    "dependencies": {
+      "type": "array",
+      "description": "依赖的其他插件名称",
+      "items": {
+        "type": "string"
+      }
+    },
+    "enabled": {
+      "type": "boolean",
+      "description": "是否启用",
+      "default": true
+    },
+    "when": {
+      "type": "object",
+      "description": "自动检测条件（用于 pipeline-pack 类型的自动选择）",
+      "properties": {
+        "fileExists": {
+          "type": "array",
+          "description": "项目中必须存在的文件/目录",
+          "items": { "type": "string" }
+        },
+        "noFileExists": {
+          "type": "array",
+          "description": "项目中必须不存在的文件/目录",
+          "items": { "type": "string" }
+        },
+        "packageJsonHas": {
+          "type": "array",
+          "description": "package.json 中必须包含的依赖包",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "priority": {
+      "type": "integer",
+      "description": "自动检测优先级（数字越大优先级越高）",
+      "default": 0
+    }
+  }
+}

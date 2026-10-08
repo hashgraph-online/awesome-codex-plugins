@@ -1,8 +1,20 @@
 # Layer 04 — Controls and Processes
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 
 Server-side and pipeline code that enforces the obligations. Universal patterns across stacks.
+
+## Contents
+
+- User-rights endpoints
+- Admin endpoint pattern
+- Retention sweeps
+- Storage cleanup orchestration
+- Sub-processor dispatch (push / email / webhooks)
+- Logging hygiene patterns
+- Breach detection signals
+- Session and credential rotation
+- Backwards compatibility for personal-data changes
 
 ## User-rights endpoints
 

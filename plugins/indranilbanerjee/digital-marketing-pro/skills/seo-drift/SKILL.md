@@ -1,7 +1,7 @@
 ---
 name: seo-drift
 description: "Compare two SEO snapshots from the same source — GSC, the GSC AI Performance report, a rank-tracker export, or aeo-audit probes — into a drift report: top gainers and losers per metric, growth/decline/reshuffle/stable/new/lost classification, and a four-gate quality scorecard. Triggers on \"/digital-marketing-pro:seo-drift\", \"compare this month's GSC export to last month's\", \"what moved after the core update\", \"did the content refresh work\", \"which queries lost AI Mode impressions\". Runs scripts/seo_drift.py on two CSVs, reads the brand profile for noise thresholds, and branches findings to /digital-marketing-pro:seo-audit, /digital-marketing-pro:aeo-geo, or /digital-marketing-pro:content-engine."
-argument-hint: "[brand-name]"
+argument-hint: "<baseline.csv> <current.csv> [--noise 5]"
 user-invocable: true
 ---
 
@@ -39,7 +39,7 @@ Heavy skill. **Grep before Read** any referenced file, then `Read` only matched 
 | Baseline CSV | Older snapshot | yes |
 | Current CSV | Newer snapshot | yes |
 | Join keys | Auto-detected (`query`, `keyword`, `page`, `url`) or `--join-on` flag | optional |
-| Noise threshold | `--noise` (default 5%) — % below which a metric is "stable" | optional |
+| Noise threshold | `--noise` (default 5%) — % below which a metric is "stable"; YMYL industries should use 10% to filter out Quality Rater Guidelines volatility | optional |
 | Top-N | `--top` (default 20) — gainers/losers per metric | optional |
 
 **Both snapshots must come from the same source.** Mixing a GSC export with an Ahrefs export will produce nonsense — different sources count different things.
@@ -71,6 +71,8 @@ All outputs go to `${CLAUDE_PLUGIN_DATA}/{brand}/seo/seo-drift/{YYYY-MM-DD}/`.
    - growth / decline / reshuffle / stable / new / lost
    - If >40% in decline: likely Core Update or competitor catch-up. Run `/digital-marketing-pro:seo-audit` for diagnosis.
    - If >20% reshuffle: likely intent shift (AI Mode reweighting). Run `/digital-marketing-pro:aeo-geo` to align with new intent patterns.
+   - If >30% growth: find amplification opportunities. Run `/digital-marketing-pro:content-engine` to brief follow-ups.
+   - If >15% new: new SERP coverage — track and validate intent fit.
 10. **`PLAN.md`** — single-page summary: stats + scorecard + top 5 actions ranked by impact × effort, with owner suggestions (SEO lead / content lead / dev team).
 
 ## Output format

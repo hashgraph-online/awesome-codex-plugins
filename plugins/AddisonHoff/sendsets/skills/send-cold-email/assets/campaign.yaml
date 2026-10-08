@@ -1,0 +1,29 @@
+name: Founder outreach
+intent: draft
+csv: leads.csv
+senders:
+  mode: auto
+daily_limit: 20
+schedule:
+  mode: auto
+stop_on_reply: true
+opt_out_enabled: true
+steps:
+  - name: Intro
+    variants:
+      - subject: "{Quick question|Idea} for {{.Company}}"
+        body_plain: |-
+          Hi {{.FirstName | default "there"}},
+
+          One or two sentences on why you are writing to {{.Company}} specifically.
+
+          Worth a short call next week?
+  - name: Wait three days
+    type: wait
+    wait:
+      minutes: 4320
+  - name: Follow up
+    variants:
+      - subject: "Re: {Quick question|Idea} for {{.Company}}"
+        body_plain: |-
+          Hi {{.FirstName | default "there"}}, bumping this in case it got buried.

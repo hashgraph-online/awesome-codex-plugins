@@ -1,6 +1,6 @@
 {
   "name": "aegis",
-  "version": "2.10.8",
+  "version": "2.12.1",
   "type": "module",
   "main": ".opencode/plugins/aegis.js",
   "keywords": [
@@ -30,9 +30,9 @@
     ]
   },
   "peerDependencies": {
-    "@deepseek-ai/dsh-agent": "^0.1.0-rc.6",
-    "@deepseek-ai/dsh-llm": "^0.1.0-rc.6",
-    "@deepseek-ai/dsh-skill-filesystem": "^0.1.0-rc.6"
+    "@deepseek-ai/dsh-agent": ">=0.1.0-rc.6",
+    "@deepseek-ai/dsh-llm": ">=0.1.0-rc.6",
+    "@deepseek-ai/dsh-skill-filesystem": ">=0.1.0-rc.6"
   },
   "peerDependenciesMeta": {
     "@deepseek-ai/dsh-agent": {

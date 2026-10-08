@@ -1,0 +1,12 @@
+{
+  "name": "local-mcp",
+  "interface": { "displayName": "LMCP" },
+  "plugins": [
+    {
+      "name": "local-mcp",
+      "source": { "source": "local", "path": "./" },
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_USE" },
+      "category": "Productivity"
+    }
+  ]
+}

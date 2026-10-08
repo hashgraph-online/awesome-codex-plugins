@@ -1,0 +1,29 @@
+{
+  "name": "codex-agents-workflow-control-plane",
+  "version": "1.1.1",
+  "private": true,
+  "type": "module",
+  "description": "Local versioned Workflow editor and journal-backed execution with pinned Providers and opt-in Strict sessions.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node test/run-tests.mjs",
+    "build:web": "node scripts/build-workflow-web.mjs",
+    "check:web": "tsc -p web-src/tsconfig.json && node scripts/build-workflow-web.mjs --check"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/ext-apps": "1.7.5",
+    "@modelcontextprotocol/sdk": "1.29.0",
+    "@openai/mcp-extensions": "0.1.0",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.7",
+    "@xyflow/react": "12.11.6",
+    "esbuild": "0.28.2",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "typescript": "5.9.3",
+    "yaml": "2.9.0",
+    "zod": "4.4.3"
+  }
+}

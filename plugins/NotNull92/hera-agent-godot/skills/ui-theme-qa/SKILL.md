@@ -1,6 +1,6 @@
 ---
 name: ui-theme-qa
-description: "Use this skill to find and fix undisciplined Control-node UI in a Godot project — spacing that follows no ladder, font sizes with no modular scale, near-duplicate colours, and text that fails WCAG contrast — by measuring the live editor with the `hera` CLI and snapping theme tokens to a reference corpus. It also reports (without changing) inert container wrappers and decorative nodes. Triggers: \"clean up the UI spacing/type/contrast\", \"the UI values look arbitrary\", \"tidy the Godot UI\", \"check UI contrast\", or any request to mechanically remove statistical UI-design defects without a redesign. Reductive only; edits per-node theme overrides (undoable), never copy or layout content."
+description: "Use this skill to find and fix undisciplined Control-node UI in a Godot project — spacing that follows no ladder, font sizes with no modular scale, near-duplicate colours, and text that fails WCAG contrast — by measuring the live editor with the `hera-godot` CLI and snapping theme tokens to a reference corpus. It also reports (without changing) inert container wrappers and decorative nodes. Triggers: \"clean up the UI spacing/type/contrast\", \"the UI values look arbitrary\", \"tidy the Godot UI\", \"check UI contrast\", or any request to mechanically remove statistical UI-design defects without a redesign. Reductive only; edits per-node theme overrides (undoable), never copy or layout content."
 ---
 
 <!-- markdownlint-disable MD013 -->
@@ -36,11 +36,11 @@ context.
 
 ## 0. Prep
 
-1. `hera status` — confirm one live editor (the `live-editor` skill covers
-   setup). If multiple, pass `hera --instance <pid>` to every mutation.
-2. `hera guidance ui` — respect the returned UI mode.
+1. `hera-godot status` — confirm one live editor (the `live-editor` skill covers
+   setup). If multiple, pass `hera-godot --instance <pid>` to every mutation.
+2. `hera-godot guidance ui` — respect the returned UI mode.
 3. Ensure git is clean or on a branch; each area fix is one commit.
-4. Enumerate the target Controls: `hera --ids scene tree` (edited scene) — this
+4. Enumerate the target Controls: `hera-godot --ids scene tree` (edited scene) — this
    is the static surface the checks read.
 
 ## 1. Inspect (parallel, static, read-only)
@@ -73,7 +73,7 @@ here — they enforce nothing. Each enforcing area:
 - loads `findings-<area>.md` + its area section,
 - **re-measures each `check` from the live editor**; applies the fix only where
   the predicate is currently false (never trust the finding text),
-- enforces with `hera node set <path> --prop "<theme_override…>" --value <v>`
+- enforces with `hera-godot node set <path> --prop "<theme_override…>" --value <v>`
   (undoable), snapping to the corpus rung/hex,
 - commits that area before the next runs.
 
@@ -91,9 +91,9 @@ re-verify, and inventing a predicate that always passes would be a lie.
 
 ## 5. Render QA (confirmation only)
 
-`hera run --current --wait`, then `hera screenshot --runtime --analyze` for a
+`hera-godot run --current --wait`, then `hera-godot screenshot --runtime --analyze` for a
 before/after and a clipping/blank sanity gate (`possible_clipping`, `nonblank`).
-`hera stop --wait`. Render is confirmation, not measurement — the design facts
+`hera-godot stop --wait`. Render is confirmation, not measurement — the design facts
 came from steps 1/3. Update the report in place.
 
 ## Contract (why this skill exists)

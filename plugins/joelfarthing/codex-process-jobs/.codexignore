@@ -21,3 +21,4 @@ scripts/install.mjs
 scripts/npm-cli.mjs
 scripts/package-openai-directory.py
 scripts/smoke.mjs
+hooks/

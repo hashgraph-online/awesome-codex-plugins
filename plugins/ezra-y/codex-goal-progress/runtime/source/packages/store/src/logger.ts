@@ -15,6 +15,7 @@ const GoalProgressLogEntrySchema = z
       "startup.listener.stopped",
       "startup.event",
       "startup.handoff",
+      "startup.recovery",
       "update.activation",
       "update.cleanup.failed",
       "store.initialized",

@@ -12,9 +12,11 @@ chapters that end before the reader can put the book down.
 - A promised clock that fizzles ("actually there was plenty of time") is a
   broken promise. Log every deadline in `continuity/promises/` with its
   promised chapter and its payoff chapter.
-- **Clock discipline:** track story-time explicitly in `plot/timeline.md`.
-  The reader does thriller math — if the bomb has "twenty minutes" and the
-  next three chapters take an hour of story time, the contract breaks.
+- **Clock discipline:** give every scene a `date` and `time`, so
+  `story timeline .` shows how much story time each chapter spends and
+  `story continuity .` checks travel against location routes. The reader
+  does thriller math — if the bomb has "twenty minutes" and the next three
+  chapters take an hour of story time, the contract breaks.
 
 ## Power imbalance
 

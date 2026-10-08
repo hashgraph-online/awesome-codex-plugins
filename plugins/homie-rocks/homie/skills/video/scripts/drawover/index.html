@@ -1,0 +1,9 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>film</title>
+<style>html,body{margin:0;background:#000;overflow:hidden}canvas{display:block}</style></head>
+<body><canvas id="c"></canvas>
+<script type="module">
+import { boot } from './film.js';
+boot().then(() => { window.READY = true; }).catch((e) => { window.FAIL = String(e && e.stack || e); });
+</script>
+</body></html>

@@ -25,7 +25,7 @@ Once the workspace and work target are resolved, the bundled mechanical scaffold
 on every other host this skill writes the same templates itself, as below.
 It copies only absent files, writes state version 2 for a new site, persists the work target and
 work mode (`-Mode repository` or `-Mode artifact`), and keeps `$NS/` private. It refuses a notes
-folder under default repository mode: `pass -Mode artifact for a notes folder that is not a Git repository`.
+folder under default repository mode: `use -Mode artifact for a notes folder that is not a Git repository`.
 On an existing site at an older state-version its `migration` field describes the move into the
 current layout, exactly as the preview below would. Read its output back rather than restating it.
 The skill still owns every owner choice below; the
@@ -185,32 +185,22 @@ decides nothing on its own, and either skill may change it for a single shift.
 - **Repository** — ask the full question above (including review-first vs run-direct), then
  persist the answer.
 
-## 4. Permissions — the night cannot click Allow
+## 4. Permissions — configured by the owner
 
-An unattended shift stalls forever on a permission prompt, and a watchman revival runs headless —
-denied means denied. Ask one question:
+An unattended shift cannot answer permission prompts. Explain that the owner must configure
+permissions directly in the host before starting unattended work. Never write permission modes,
+allowlists, or approval settings, and never enable permission bypass on the owner's behalf.
+Nightshift's guards remain active within the permissions the host provides.
 
-> Overnight runs can't answer permission prompts. Enable frictionless permissions for this
-> project's unattended runs? (recommended — Nightshift's guards stay armed in every permission
-> mode)
-
-- **Yes, on Claude Code** → merge `{"permissions": {"defaultMode": "bypassPermissions"}}` into
- `$TASK_ROOT/.claude/settings.local.json` (create the file if absent; never clobber keys
- the owner already has). Write the full path: a copy that lands in a nested code repo grants the
- project nothing, and the first prompt of the night proves it. Settings on disk are what revivals
- inherit — a mode picked at launch dies with the process.
-- **Yes, on Codex** → there is no settings file to write: approvals are per launch. Tell the owner
- that unattended execution and sandbox scope are two separate choices, and say the trade plainly:
- a contract that does not commit runs unattended under `-a never -s workspace-write` — ticks alone
- finish a night, in the gate and the stall guard alike, and the commit rule is theirs to strip
- from the punch list and `clockOutMessage`. Under Codex's `workspace-write` sandbox `.git` is
- protected, so the default contract, which commits once per item, cannot run under it and is
- started with the launch command on the Codex host page,
- `$NIGHTSHIFT_PLUGIN_ROOT/skills/nightshift/references/hosts/codex.md`. The fence around that access is nightshift's
- own guards, which hold in every mode — the same trade `bypassPermissions` makes on Claude Code.
-- **No** → respect it and say the cost plainly: *"a permission prompt mid-shift freezes the night
- until morning — if the shift stalls on one, that was tonight's trade."* Suggest the narrower
- alternative: pre-allow just the punch list's tools (test runner, linter, git) in the same file.
+Recovery uses `recovery.launchScope` in `$NS/rules.json`. The shipped
+`inherit-recorded-scope` choice restores a recorded restricted Codex sandbox when supported;
+missing or unsupported scopes refuse recovery. `host-default` adds no permission arguments and
+uses the owner's independently configured host permissions; it does not promise the same scope
+as the original session. The legacy `host-grant` value is refused. Ask whether to keep the shipped
+choice or use `host-default`, then persist only that recovery preference after creating or validating
+`rules.json` in step 5. Never change the active
+session's permissions. If the owner keeps interactive approvals, explain that a prompt or denial
+can leave unattended work needing their attention.
 
 ## 5. The rules file — every knob in one place
 

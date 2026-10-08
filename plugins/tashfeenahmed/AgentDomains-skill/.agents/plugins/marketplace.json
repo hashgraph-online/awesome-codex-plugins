@@ -1,0 +1,20 @@
+{
+  "name": "agentdomains",
+  "interface": {
+    "displayName": "AgentDomains"
+  },
+  "plugins": [
+    {
+      "name": "agentdomains",
+      "source": {
+        "source": "local",
+        "path": "./plugins/agentdomains"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

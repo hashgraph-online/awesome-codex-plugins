@@ -16,7 +16,7 @@ user's own writing pasted in. Apify is an optional accelerator, never required.
 1. **Pasted samples (portable default).** Ask for 3-6 of the user's own real
    LinkedIn posts or comments. This alone is enough; no token, no history needed.
 2. **Apify-assisted (optional).** If `APIFY_TOKEN` is set and the user gives their
-   profile URL, pull recent activity with `lib.fetch_user_recent_comments(username=...)`
+   profile URL, pull recent activity with `lib.ApifyClient.fetch_user_recent_comments(username=...)`
    (and any post URLs they share via `lib.fetch_post`) to gather more samples.
    Treat as an accelerator on top of, not a replacement for, pasted samples.
 3. **Manual.** The user can also just tell you their niche, rules, and links.

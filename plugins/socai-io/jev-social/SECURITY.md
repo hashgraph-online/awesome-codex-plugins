@@ -26,6 +26,25 @@ Jev Social runs locally, but it is not an offline application.
 - A local decision server has its own model, log, and retention behavior. Jev Social neither starts nor downloads that server automatically. Set `OPENROUTER_REPORT_MODEL=off` if an OpenRouter key remains configured but the report must stay on the deterministic local path.
 - The installed socai CLI and Chrome connect to the selected social platform. Their browser and network behavior is maintained by [socai](https://github.com/socai-io/socai), outside the Jev Social process.
 
+### socai CLI telemetry
+
+Jev Social does not proxy OpenRouter traffic through a Jev Social or socai server and does not operate an analytics endpoint of its own. Its OpenRouter requests go directly to OpenRouter. It launches `socai` with an explicit environment allowlist that excludes `OPENROUTER_API_KEY`, `TYPESAFE_API_KEY`, `SOCAI_API_KEY`, and session-token variables.
+
+The installed `socai CLI` has a separate telemetry contract. Jev Social sets `SOCAI_TELEMETRY=0` when it is absent, so its spawned CLI processes do not emit socai telemetry by default. This privacy default applies to capability probes and browser actions and works when the CLI reuses an existing daemon. Set `SOCAI_TELEMETRY=1` in the launching environment or project `.env` only to opt in explicitly.
+
+For the audited `socai v0.6.1` release, explicitly enabled telemetry has these boundaries:
+
+- Structured CLI events go to `https://socai.io/v1/events`, then the first-party proxy forwards every client-supplied scalar field to the third-party observability provider Axiom. The public client does not contact Axiom directly.
+- Events include a stable install ID, process-session and request IDs, app/platform/device context, command status and timing, and search query text by default. Shared enrichment code can also add the authenticated cloud account's full phone number, point balance, Pro expiry, and subscription status when that account snapshot is available.
+- Every non-`query` command argument is summarized into event metadata. Depending on the selected action, that can include Instagram or LinkedIn profile/company URLs and TikTok author handles or URLs. `SOCAI_TELEMETRY_QUERY_TEXT=off` omits the dedicated search-query text but does not remove those targets or other metadata. Only the master `SOCAI_TELEMETRY=0` setting prevents the CLI event upload.
+- Ordinary tool results do not include captured post/comment bodies, downloaded media, cookies, browser storage, raw output, or model output. A bounded unexpected-page OCR diagnostic is a documented exception. socai applies pattern-based secret scrubbing to event text, but it is not a guarantee for arbitrary secret formats pasted into a query, target, error, or other field. Independently, Jev Social prevents its configured OpenRouter and socai credentials from entering the child environment at all.
+- `SOCAI_TELEMETRY_CHAT_TEXT=off` controls conversation content and note summaries in agent run traces. Jev Social forwards it, but Jev Social invokes plain CLI tool commands, which emit events rather than uploading traces. The TUI may write `trace.json` locally without uploading it. Only the separately launched desktop app uploads content-bearing run traces, and an already-running desktop process is unaffected by Jev Social's child environment; configure or restart that desktop process with its own `SOCAI_TELEMETRY=off` setting.
+- The public `v0.6.1` telemetry contract does not specify a server-side deletion or retention period. Do not assume one. Local Jev Social and socai artifacts still follow the separate manual-retention rules below.
+
+Jev Social does not pin the installed socai executable: onboarding resolves the current official release, and `SOCAI_BIN` can select another build. The statements above are the audited `v0.6.1` behavior, not a promise about another version. Check the version shown by Jev Social and review that release's telemetry contract when it differs.
+
+See the immutable [`socai v0.6.1` telemetry schema](https://github.com/socai-io/socai/blob/v0.6.1/docs/telemetry-schema.md) for the field-level contract and source references.
+
 ### Keys and browser sessions
 
 - A key entered interactively during `onboard` is saved in `config.json` with file mode `0600`. If `OPENROUTER_API_KEY` is already present in the environment, onboarding can use it without writing a second copy to the config file.

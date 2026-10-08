@@ -1,6 +1,6 @@
 ---
 name: theme-craft
-description: This skill should be used when the user asks to "theme", "controlling idea", "thematic argument", "moral argument", "character arc", "flat arc", "negative arc", "the lie", "antagonist design", "motif", "symbolism", "theme audit", or wants to plan, track, or revise the thematic layer of a story. NOT for finding or testing a story premise (use premise-workshop).
+description: This skill should be used when the user asks about "theme", "controlling idea", "thematic argument", "moral argument", "thematic arc", "flat arc", "negative arc", "the lie", "antagonist design", "motif", "symbolism", "theme audit", or wants to plan, track, or revise the thematic layer of a story, including the lie, truth, ghost-wound, and arc-type fields of a character file. NOT for finding or testing a story premise (use premise-workshop), or a character's profile, relationships, or "character arc" record (use character-management).
 ---
 
 # Theme Craft
@@ -39,8 +39,8 @@ Character files (character-management) and a plot structure
    consult `references/lie-truth.md` and add to their character files:
 
    `arc-type` is one of `change-positive`, `change-negative`, or `flat`.
-   Do not put that list in an inline comment. The frontmatter parser keeps
-   the comment as part of the value.
+   Do not put that list in an inline comment: a command that rewrites the
+   field drops the comment.
 
    ```yaml
    arc-type: change-positive
@@ -87,15 +87,15 @@ Character files (character-management) and a plot structure
 
 ## CLI Maintenance
 
-Use the Story CLI when it is available. If `story` is not installed, use `bun run story --` from the Story Skills repository checkout or the bundled fallback `node ../story-maintenance/scripts/story.js` with the same arguments, resolving the path relative to this skill folder. If no CLI is available, perform the registry, backlink, and word-count checks manually.
+Use the Story CLI when it is available. If `story` is not installed, use the bundled fallback `node ../story-maintenance/scripts/story.js` with the same arguments. Use `node <checkout>/bin/story.js` instead only when the user names a Story Skills repository checkout or you are working in one. Write the script as an absolute path (resolve the fallback relative to this skill folder) and run it from the folder you would run `story` from, so `.` and other relative paths keep their meaning. Use Node, not Bun or a package script: Bun would load that folder's `bunfig.toml` (which can run code) and `.env`, and a package script runs from the checkout's root. If no CLI is available, perform the registry, backlink, and word-count checks manually.
 
 After adding or changing premise fields, character arc fields, or the theme
 audit:
 
 ```shell
 story reindex .
-story links .
-story validate .
+story wordcount . --write
+story check .
 ```
 
 The motif ledger (`continuity/motifs.md` or the motif table in an arc file)
@@ -110,3 +110,7 @@ theme verdict manually per `references/theme-audit.md`.
 - **`references/antagonist-design.md`** - Worthy opponent, antagonist as counter-argument, plan-the-antagonist-as-protagonist, personified institutions
 - **`references/motif-symbolism.md`** - Plant-and-vary, object-symbol resonance with the ending, motif ledger
 - **`references/theme-audit.md`** - Revision audit: ending vs. opening value-question, consequence vs. commentary, motif payoff
+
+## Shared Conventions
+
+Every story skill follows the shared conventions in [`../story-maintenance/references/conventions.md`](../story-maintenance/references/conventions.md), resolved relative to this skill folder. Read it before creating, renaming, or linking story files. If that file is missing because this skill was installed without `story-maintenance`, the essentials are: kebab-case ids and filenames, YAML frontmatter on every story-project file, `_index.md` registry tables that `story reindex` rebuilds (never edit them by hand), bidirectional links between entities, `characters` for who is on the page and `mentions` for who is only referred to, `status: deceased` plus `died-in: chapter-{NN}` for deaths, and no project-local generator or build scripts (run only the installed or bundled Story CLI).

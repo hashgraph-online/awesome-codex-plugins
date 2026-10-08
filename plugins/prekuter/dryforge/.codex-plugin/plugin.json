@@ -1,7 +1,7 @@
 {
   "name": "dryforge",
-  "version": "1.3.6",
-  "description": "A bounded-autonomy plugin harness for coding agents. Intent to implementation: ready, then go.",
+  "version": "1.3.7",
+  "description": "Intent to implementation: ready, then go.",
   "author": {
     "name": "prekuter",
     "email": "prekuter@dryforge.dev"
@@ -10,20 +10,27 @@
   "repository": "https://github.com/prekuter/dryforge",
   "license": "Apache-2.0",
   "keywords": [
+    "agent-harness",
+    "harness",
+    "bounded-autonomy",
+    "plugin",
+    "coding-agent",
+    "claude-code",
+    "codex",
+    "copilot",
     "intent",
     "elicitation",
     "spec",
-    "plan",
-    "orchestration",
-    "harness",
-    "bounded-autonomy",
-    "coding-agent"
+    "planning",
+    "brainstorming",
+    "verification",
+    "autonomy"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Dryforge",
     "shortDescription": "Intent to implementation: ready, then go.",
-    "longDescription": "A bounded-autonomy plugin harness for coding agents. Intent to implementation: ready, then go.",
+    "longDescription": "Bounded-autonomy plugin harness for agents. Intent to implementation: ready, then go.",
     "developerName": "prekuter",
     "category": "Productivity",
     "capabilities": [
@@ -34,6 +41,6 @@
       "Use Dryforge ready to turn this goal, doc, or notes into an intent to approve.",
       "Use Dryforge go to carry out the approved intent."
     ],
-    "brandColor": "#2563EB"
+    "brandColor": "#F59E0B"
   }
 }

@@ -1,6 +1,17 @@
 version: 2
 updates:
+  # "/" covers .github/workflows/. The templates users copy into their story
+  # repositories pin the same actions, so Dependabot scans every *.yml in
+  # templates/github/ too. Grouping by dependency name puts one action's bump
+  # for both directories in a single pull request, which keeps the pins equal.
   - package-ecosystem: "github-actions"
-    directory: "/"
+    directories:
+      - "/"
+      - "/templates/github"
     schedule:
       interval: "weekly"
+    groups:
+      github-actions:
+        group-by: dependency-name
+        patterns:
+          - "*"

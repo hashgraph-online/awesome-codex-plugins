@@ -10,7 +10,11 @@
 > [!NOTE]
 > Replies and every string on the comparison sheet are in **Korean**. See [Language](#language) to change that.
 
-<!-- screenshot of a specimen sheet goes here -->
+![Comparison sheet: the card's shadow blur in five versions, A–E](assets/launch-before.png)
+
+*"C 로 갈게" (go with C) — one line changes in your code:*
+
+![After picking C: the card with blur 12px and the tokens.css diff](assets/launch-after.png)
 
 ## Why
 

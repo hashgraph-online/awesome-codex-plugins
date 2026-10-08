@@ -1,0 +1,46 @@
+{
+  "name": "tablejourney",
+  "version": "1.0.0",
+  "description": "Food travel data for Codex through TableJourney's hosted, read-only MCP server: hand-checked restaurants, cafes, markets and street food in 200+ cities, food festivals with resolved dates, signature dishes, itineraries, and bookable tours and stays. Includes the tablejourney-food-travel skill. No account, no API key.",
+  "author": {
+    "name": "TableJourney",
+    "email": "support@tablejourney.com",
+    "url": "https://tablejourney.com/"
+  },
+  "homepage": "https://tablejourney.com/agents/",
+  "repository": "https://github.com/lewismvaughan/tablejourney-codex-plugin",
+  "license": "MIT",
+  "keywords": [
+    "travel",
+    "food",
+    "restaurants",
+    "food-festivals",
+    "itineraries",
+    "mcp"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "TableJourney",
+    "shortDescription": "Where and what to eat in 200+ cities, and when the food festivals are",
+    "longDescription": "Ask where to eat, what to order and which food festivals are on during a trip. Answers come from TableJourney's hosted MCP server: venues checked by hand (each page shows its source, the date it was checked and its open status), festivals with their next resolved dates, signature dishes and day-by-day itineraries, plus bookable tours, tickets, stays and car hire. Read-only; no account, no API key. Booking links are affiliate links and are labelled as such.",
+    "developerName": "TableJourney",
+    "category": "Travel",
+    "capabilities": [
+      "Interactive",
+      "Read"
+    ],
+    "defaultPrompt": [
+      "Which food festivals are on in Italy in the next two months?",
+      "Find vegan places open now near the Pantheon in Rome.",
+      "What should I eat in Oaxaca, and where?"
+    ],
+    "logo": "./assets/icon.svg",
+    "composerIcon": "./assets/icon.svg",
+    "brandColor": "#C84A2E",
+    "websiteURL": "https://tablejourney.com/",
+    "privacyPolicyURL": "https://tablejourney.com/privacy/",
+    "termsOfServiceURL": "https://tablejourney.com/agents/#terms",
+    "supportURL": "https://tablejourney.com/contact/"
+  }
+}

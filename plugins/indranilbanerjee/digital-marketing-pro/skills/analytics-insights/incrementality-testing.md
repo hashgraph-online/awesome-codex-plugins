@@ -243,5 +243,5 @@ Always report confidence intervals, not just point estimates.
 - [ ] Committed to no changes in treatment or control during the test period
 - [ ] Analyzed results with confidence intervals, not just point estimates
 - [ ] Shared findings with stakeholders and documented in a test log
-- [ ] Used results to calibrate MMM or update budget allocation
+- [ ] Used results to calibrate MMM or update budget allocation. On Google Meridian 2.x, feed the result in as an experiment-calibrated prior with a declarative calibration spec naming the channel and test dates; see `mmm-framework.md` → "Google Meridian 2.x"
 - [ ] Scheduled the next round of tests based on the annual roadmap

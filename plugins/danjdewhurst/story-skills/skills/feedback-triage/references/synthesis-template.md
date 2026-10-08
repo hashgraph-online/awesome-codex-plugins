@@ -13,6 +13,7 @@ readers:
   - {reader-1-kebab}
   - {reader-2-kebab}
 readiness: needs-revision
+# source: simulated   # only when the round is a reader-panel round
 ---
 
 # Synthesis — Round {N}
@@ -95,3 +96,6 @@ Hand this plan to the `revision-continuity` skill for execution.
 - [ ] The readiness verdict matches the findings (blocking convergent
       issues cannot coexist with `ready`)
 - [ ] The revision plan lists concrete file targets for each item
+- [ ] A simulated round is labelled `source: simulated`, sorts its
+      findings as single-reader, and does not treat `ready` as ready to
+      submit or publish (see "Simulated rounds" in `SKILL.md`)

@@ -63,6 +63,8 @@ Read only the references needed for the task.
 | --- | --- |
 | Research brief or trade study | [brief-template.md](references/brief-template.md) |
 | Technical analysis, DOE, plotting, or results discussion | [technical-writing-analysis.md](references/technical-writing-analysis.md) |
+| Equation explanations, claim-evidence audit, methods completeness, or figure/equation narrative | [technical-argument-audit.md](../research-writing-literature/references/technical-argument-audit.md) |
+| Reader-focused technical-prose audit | [technical-prose-clarity.md](../research-writing-literature/references/technical-prose-clarity.md) |
 | Abstract, manuscript, proposal, or reviewer-response editorial pass | [anti-formulaic-writing.md](references/anti-formulaic-writing.md) |
 | Paper drafting or structural revision | [paper-writing-style.md](references/paper-writing-style.md) |
 | Review article drafting, revision, or evidence-mapped narrative/scoping review | [review-article-workflow.md](references/review-article-workflow.md) |

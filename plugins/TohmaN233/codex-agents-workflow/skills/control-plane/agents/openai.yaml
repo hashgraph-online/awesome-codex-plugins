@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codex Agents Workflow"
+  short_description: "Run or manage directly applicable Workflows"
+  default_prompt: "Open the Workflow workbench inside Codex with $workflow-control-plane."

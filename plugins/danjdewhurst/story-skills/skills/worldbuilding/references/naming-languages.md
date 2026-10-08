@@ -7,7 +7,7 @@ look-alikes that confuse readers.
 ## Phonology sketch
 
 For each culture or language, write a short sketch in a system file
-(`story add system "Vellish tongue" --type social`) or the culture section
+(`story add system 'Vellish tongue' --type social`) or the culture section
 of a location or faction:
 
 - **Sounds used:** consonants and vowels the language favours
@@ -39,7 +39,7 @@ pattern.
 ## Pronunciation
 
 Give invented names a `pronunciation` field on characters, locations,
-factions, artifacts, and glossary terms:
+systems, factions, artifacts, and glossary terms:
 
 ```yaml
 pronunciation: "SEER-sha"
@@ -55,7 +55,7 @@ every `pronunciation` into a guide table for audiobook narrators (see the
 Before committing to a new name, check it against every existing name:
 
 ```shell
-story names "Mira" "Kelvos" "Oda"
+story names 'Mira' 'Kelvos' 'Oda'
 ```
 
 `story names` compares candidates with character names and aliases,
@@ -68,12 +68,15 @@ with either is a clash: an error (exit 1). It warns about look-alikes
 of 1, or 2 when both words have five letters or more) and about given
 names sharing an initial with a major character. Multi-word names such as
 `Ashen Citadel` are only checked for exact clashes, so pass a distinctive
-word on its own (`story names "Ashen Reach" Ashen`) to catch look-alikes. Readers skim names
+word on its own (`story names 'Ashen Reach' Ashen`) to catch look-alikes. Readers skim names
 by shape: `Mara` and `Mira`, or `Kelvar` and `Kelvoss`, blur together.
 Change the initial or the length unless the resemblance is deliberate
 (siblings, a namesake), and say so in the file.
 
 `story prose .` also warns about similar character first names.
 
-When renaming an existing entity, use `story rename`, then run
-`story reindex .`, `story links .`, and `story validate .`.
+When renaming an existing entity, preview
+`story rename <kind> <id> '<New Name>' --prose --dry-run`, show the user
+the replacements, and run it without `--dry-run` only once they approve,
+so the chapter text follows as well as the references. Then run
+`story reindex .`, `story wordcount . --write`, and `story check .`.

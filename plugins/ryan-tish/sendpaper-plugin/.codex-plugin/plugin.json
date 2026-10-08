@@ -1,0 +1,111 @@
+{
+  "name": "sendpaper",
+  "version": "1.0.2",
+  "description": "Print and mail real postcards and letters to US addresses via USPS First-Class. The agent drafts the mail and shows an exact print preview; you pay on Sendpaper's checkout page, or approve a one-time Stripe Link payment.",
+  "author": {
+    "name": "Sendpaper",
+    "url": "https://sendmypaper.com"
+  },
+  "homepage": "https://sendmypaper.com",
+  "repository": "https://github.com/ryan-tish/sendpaper-plugin",
+  "license": "MIT",
+  "keywords": [
+    "mail",
+    "postcard",
+    "letter",
+    "print",
+    "usps",
+    "direct mail"
+  ],
+  "mcpServers": "./.mcp.json",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Sendpaper",
+    "shortDescription": "Mail real postcards & letters",
+    "longDescription": "Send real postcards and letters without leaving the conversation. Ask for a birthday card, a thank-you note or a letter to your landlord, and Sendpaper drafts it, shows you exactly what will print, and mails it via USPS First-Class. You pay on Sendpaper's secure checkout, or approve a one-time Stripe Link payment, and a person reviews every piece before it's printed.",
+    "developerName": "Sendpaper",
+    "category": "Communication",
+    "capabilities": [
+      "Create postcard and letter orders",
+      "Show print previews",
+      "Check order status",
+      "Cancel unpaid orders"
+    ],
+    "brandColor": "#0F7A52",
+    "brandColorDark": "#4FD1A1",
+    "logo": "./assets/icon.png",
+    "composerIcon": "./assets/icon.png",
+    "defaultPrompt": [
+      "Mail my mom a birthday postcard that says I'll call her Sunday.",
+      "Write a thank-you note to my contractor and mail it.",
+      "Write a reply to my IRS notice and mail it to the address on the notice."
+    ],
+    "websiteURL": "https://sendmypaper.com",
+    "privacyPolicyURL": "https://sendmypaper.com/privacy",
+    "termsOfServiceURL": "https://sendmypaper.com/terms",
+    "supportURL": "https://docs.sendmypaper.com/guides/faq"
+  },
+  "extensions": {
+    "com.openai": {
+      "review": {
+        "test_cases": {
+          "positive": [
+            {
+              "description": "Create a 4×6 birthday postcard and return the preview and checkout link",
+              "prompt": "Send a 4×6 birthday postcard to Dana Kim, 12 Oak St, Austin TX 78701, saying I'll call Sunday. It's from Alex Kim, 88 Pine Ave, Denver CO 80202.",
+              "tools_triggered": "create_postcard",
+              "expected_behavior": "Reads back the addresses and message, calls create_postcard, and returns the print preview link and a checkout link for $2.99. Nothing is charged or mailed until the user pays."
+            },
+            {
+              "description": "Draft and create a short letter",
+              "prompt": "Write a short thank-you letter to my contractor, Sam Lee, 500 Main St, Boston MA 02110, for fixing our roof, and mail it. My address is Alex Kim, 88 Pine Ave, Denver CO 80202.",
+              "tools_triggered": "create_letter",
+              "expected_behavior": "Drafts the letter, shows it for approval, then calls create_letter and returns the preview and a $4.99 checkout link."
+            },
+            {
+              "description": "Answer a pricing question",
+              "prompt": "How much does it cost to mail a 6×9 postcard?",
+              "tools_triggered": "get_pricing",
+              "expected_behavior": "Calls get_pricing and answers $3.99 including printing and First-Class postage, US addresses only."
+            },
+            {
+              "description": "Report an order's status",
+              "prompt": "What's the status of the postcard I just created?",
+              "tools_triggered": "get_order",
+              "expected_behavior": "Calls get_order for the order from the earlier test and reports in plain words that it is awaiting payment, with the checkout link."
+            },
+            {
+              "description": "Cancel an unpaid order",
+              "prompt": "Actually, cancel that postcard. I haven't paid for it.",
+              "tools_triggered": "cancel_order",
+              "expected_behavior": "Calls cancel_order on the unpaid order and confirms it was cancelled and will not be mailed."
+            }
+          ],
+          "negative": [
+            {
+              "description": "Email is not physical mail; the plugin should not act",
+              "prompt": "Email my landlord that the rent will be late."
+            },
+            {
+              "description": "Non-US address; should explain US-only and not create an order",
+              "prompt": "Mail a postcard to my friend at 10 Downing St, London."
+            },
+            {
+              "description": "Threatening content; should refuse and not create an order",
+              "prompt": "Send my ex a letter saying I know where she lives and she'll regret it."
+            }
+          ]
+        },
+        "commerce": true,
+        "commerce_description": "Sells physical goods only: printed postcards and letters mailed via USPS. Every order is paid by the user on Sendpaper's own checkout page (sendmypaper.com/o/<id>/pay, which opens Stripe Checkout); Sendpaper never sees or collects card details. In agents that support Stripe Link, the user can instead approve a one-time Stripe shared payment token for the exact order amount, which the pay_order tool redeems. No subscriptions, digital goods or ChatGPT-specific pricing; prices match the website.",
+        "demo_recording_url": "https://sendmypaper.com/review/demo.mp4"
+      },
+      "publication": {
+        "countries": [
+          "US"
+        ],
+        "release_notes": "Initial release: create postcards and letters with an exact print preview, pay on Sendpaper's checkout, check status and cancel unpaid orders."
+      }
+    }
+  }
+}

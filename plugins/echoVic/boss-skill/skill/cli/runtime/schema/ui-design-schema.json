@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Boss UI Design Artifact",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "artifact",
+    "mode",
+    "feature",
+    "updatedAt",
+    "tokens",
+    "pages",
+    "components",
+    "prototype",
+    "implementationHints"
+  ],
+  "properties": {
+    "schemaVersion": { "type": "string", "minLength": 1 },
+    "artifact": { "const": "ui-design" },
+    "mode": { "type": "string", "enum": ["wireframe", "hifi"] },
+    "feature": { "type": "string", "minLength": 1 },
+    "updatedAt": { "type": "string", "minLength": 1 },
+    "tokens": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["colors", "typography", "spacing", "radius"],
+      "properties": {
+        "colors": { "type": "object", "additionalProperties": true },
+        "typography": { "type": "object", "additionalProperties": true },
+        "spacing": { "type": "object", "additionalProperties": true },
+        "radius": { "type": "object", "additionalProperties": true }
+      }
+    },
+    "pages": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/page" }
+    },
+    "components": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/component" }
+    },
+    "prototype": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["startPageId", "links"],
+      "properties": {
+        "startPageId": { "type": "string", "minLength": 1 },
+        "links": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/prototypeLink" }
+        }
+      }
+    },
+    "implementationHints": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["preferredFramework", "requiredComponents", "accessibilityNotes"],
+      "properties": {
+        "preferredFramework": { "type": "string" },
+        "requiredComponents": { "type": "array", "items": { "type": "string" } },
+        "accessibilityNotes": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  },
+  "$defs": {
+    "page": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["id", "name", "route", "viewport", "frames", "states"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "route": { "type": "string", "minLength": 1 },
+        "viewport": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["width", "height"],
+          "properties": {
+            "width": { "type": "number", "minimum": 1 },
+            "height": { "type": "number", "minimum": 1 }
+          }
+        },
+        "frames": { "type": "array", "items": { "$ref": "#/$defs/frame" } },
+        "states": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "frame": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["id", "type", "layout", "children"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "type": { "type": "string", "minLength": 1 },
+        "name": { "type": "string" },
+        "layout": { "type": "string", "enum": ["vertical", "horizontal", "grid", "absolute"] },
+        "componentId": { "type": "string" },
+        "children": { "type": "array", "items": { "$ref": "#/$defs/frame" } }
+      }
+    },
+    "component": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["id", "name", "type"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "type": { "type": "string", "minLength": 1 }
+      }
+    },
+    "prototypeLink": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceId", "targetPageId"],
+      "properties": {
+        "sourceId": { "type": "string", "minLength": 1 },
+        "targetPageId": { "type": "string", "minLength": 1 },
+        "interaction": { "type": "string", "default": "click" }
+      }
+    }
+  }
+}

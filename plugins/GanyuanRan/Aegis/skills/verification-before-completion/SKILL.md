@@ -31,6 +31,10 @@ Destructive/irreversible work needs scoped permission; broad assent is not scope
 
 ## Required Evidence Slots
 
+For claims about a changed interface/interaction, compose `ui-ux-governance`
+and its relevant verification guidance. Carry actual results and uncovered
+user-facing criteria into the slots below; retain this single closeout owner.
+
 ```text
 - Evidence action / check performed:
 - Result / exit status:
@@ -54,6 +58,19 @@ smallest relevant source. Record each affected reference as preserved; rebound t
 retired with reason; or rejected for conflict. Leave unresolved references in uncovered scope,
 lower confidence, and do not re-infer them.
 Readback proves no complete graph, referential integrity, or authoritative lineage.
+
+## Inherited-Claim Closeout
+
+When evidence contradicts a resumed claim, independently check the active
+record's correction and final disclosure of WHAT was claimed and WHY it was
+inaccurate at resume; current success cannot supply either. Preserve subject,
+scope and time; one explanation may cover related claims. Read both in full
+for example-only, negated, withdrawn or re-scoped corrections. Matching quotes
+do not prove adoption. Keep accurate claims intact. If material disagreement
+about the initial judgment remains unresolved after checking evidence, state
+`needs-verification`; never force agreement with a reviewer. If evidence resolves
+it, retain the supported conclusion and verify normally. Omit this slot when
+no discrepancy exists.
 
 ## Task Git Closeout
 

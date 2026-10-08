@@ -1,0 +1,14 @@
+{
+  "cohesivity": {
+    "type": "http",
+    "url": "https://cohesivity.ai/mcp"
+  },
+  "cohesivity-local": {
+    "type": "stdio",
+    "command": "node",
+    "args": [
+      "./mcp/project-bootstrap.mjs"
+    ],
+    "cwd": "."
+  }
+}

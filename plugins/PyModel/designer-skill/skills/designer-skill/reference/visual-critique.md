@@ -26,7 +26,7 @@ A dimensional critique instrument. Score a screen across seven dimensions, each 
 - Does the flow lead naturally to the primary CTA?
 
 **Weight distribution** — relative visual importance of each element.
-- Size differentials at least 1.5× between hierarchy levels?
+- Size differentials at least 1.25× between hierarchy levels (1.125-1.2 in dense product UI)?
 - Bold and heavy type used sparingly so it retains signal value?
 - Background fill, stroke weight, and iconography adding to hierarchy or fighting it?
 
@@ -81,7 +81,7 @@ A dimensional critique instrument. Score a screen across seven dimensions, each 
 ## 3. Color
 
 **Contrast:**
-- Body text meets WCAG AA (4.5:1)? Large text (18px+ regular, 14px+ bold) meets 3:1?
+- Body text meets WCAG AA (4.5:1)? Large text (18pt ≈ 24px regular, 14pt ≈ 18.66px bold) meets 3:1?
 - Interactive components (buttons, inputs, focus rings) meet 3:1 against adjacent surfaces?
 - Placeholder text and disabled states failing contrast in ways that impede use?
 - Flag every failing pair with its measured ratio and the minimum required.
@@ -121,8 +121,8 @@ A dimensional critique instrument. Score a screen across seven dimensions, each 
 - Sufficient contrast between hierarchy levels (≥1.25× ratio per step recommended)?
 
 **Readability:**
-- Body text ≥ 16px on desktop; ≥ 14px on mobile minimum.
-- Line-height: 1.1–1.3 for headings; 1.4–1.6 for body.
+- Body text ≥ 16px on every viewport; secondary UI text ≥ 14px.
+- Line-height: 1.1–1.2 for headings; 1.5–1.7 for body (never below 1.3 on multi-line body text).
 - Line length (measure): 45–75 characters for body copy.
 - Letter-spacing: not over-tracked or compressed to the point of friction.
 - Text/background contrast: 4.5:1 for body, 3:1 for large text (WCAG AA).

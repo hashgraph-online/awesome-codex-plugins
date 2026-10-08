@@ -1,0 +1,44 @@
+{
+  "name": "maqami-travel",
+  "version": "1.0.9",
+  "description": "Official MCP server for MAQAMI, a hotel and flight booking platform with 3M+ hotels. Search hotels and flights, read hotel details, then send the customer a secure checkout link on book.maqami.co. Remote Streamable HTTP endpoint, no API key required.",
+  "author": {
+    "name": "MAQAMI",
+    "email": "info@maqami.co",
+    "url": "https://maqami.co"
+  },
+  "homepage": "https://mcp.maqami.co/",
+  "repository": "https://github.com/negm17111995/mcp-server",
+  "license": "MIT",
+  "keywords": [
+    "travel",
+    "hotels",
+    "flights",
+    "hotel-search",
+    "flight-search",
+    "booking",
+    "mcp"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "MAQAMI Travel",
+    "shortDescription": "Search hotels and flights, book on MAQAMI",
+    "longDescription": "Search hotels (3M+ hotels) and flights worldwide with live rates, read hotel details, amenities, photos and reviews, then hold the price and send the customer a secure checkout link on book.maqami.co, where they enter their details, pay and get confirmed. The MCP server never takes payment. No account or API key is needed to connect.",
+    "developerName": "MAQAMI LLC",
+    "category": "Travel",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Find 4-star hotels in Lisbon for 2 adults from 12 to 15 May and compare the three best options."
+    ],
+    "logo": "./assets/logo-512.png",
+    "composerIcon": "./assets/logo-512.png",
+    "websiteURL": "https://maqami.co",
+    "privacyPolicyURL": "https://maqami.co/privacy-policy/",
+    "termsOfServiceURL": "https://maqami.co/terms-of-service/",
+    "supportURL": "https://github.com/negm17111995/mcp-server/issues"
+  }
+}

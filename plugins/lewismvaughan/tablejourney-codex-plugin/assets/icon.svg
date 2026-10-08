@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="TableJourney">
+  <title>TableJourney</title>
+  <rect width="32" height="32" rx="7" fill="#C84A2E"/>
+  <g fill="none" stroke="#FAF6F0" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16 28s-8-7.6-8-13.6a8 8 0 0 1 16 0C24 20.4 16 28 16 28z"/><circle cx="16" cy="14.2" r="3.4"/></g>
+</svg>

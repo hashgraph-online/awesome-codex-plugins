@@ -425,7 +425,13 @@ EOF
 
 ### Step 5: Conduct Rounds
 
-For each round, iterate the runtime advisor list and dispatch through Octopus:
+For each round, iterate the runtime advisor list and dispatch through Octopus. The launch
+waits for every advisor to finish, often several minutes, so run the block with
+`background execution: true`; a foreground 600000 ms timeout stops it after 10 minutes, while
+the launcher waits up to `OCTOPUS_ADVISOR_WAIT_SECONDS` (default 3600 s). Each answer lands in
+`${DEBATE_DIR}/rounds/r001_<advisor>.md`, with any character other than a letter, digit,
+`_` or `-` in the advisor name replaced by `_` (`codex:model` gives `r001_codex_model.md`).
+An advisor that fails leaves no file:
 
 ```bash
 ORCH="${HOME}/.claude-octopus/plugin/scripts/orchestrate.sh"
@@ -504,8 +510,8 @@ EOF
 After each advisor responds, evaluate response quality:
 ```bash
 evaluate_response_quality() {
-    local response_file="$1"
-    local advisor="$2"
+    local response_file="${1}"
+    local advisor="${2}"
 
     word_count=$(wc -w < "$response_file")
     has_citations=$(grep -c '\[' "$response_file" || echo 0)
@@ -682,9 +688,9 @@ Score >= 75: proceed. Score 50-74: proceed with warning. Score < 50: re-prompt f
 ## Cost Tracking
 
 Typical costs (default word limits):
-- Quick (1 round): $0.02 - $0.05
-- Thorough (3 rounds): $0.10 - $0.20
-- Adversarial (5 rounds): $0.25 - $0.50
+- Quick (1 round): 0.02 USD - 0.05 USD
+- Thorough (3 rounds): 0.10 USD - 0.20 USD
+- Adversarial (5 rounds): 0.25 USD - 0.50 USD
 
 Cost tracking integrates with `~/.claude-octopus/analytics/` logs.
 

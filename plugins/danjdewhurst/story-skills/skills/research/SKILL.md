@@ -41,7 +41,7 @@ registry are created by the first `story add research`.
 ### 1. Open a note
 
 ```shell
-story add research "Tidal bore timing" --used-in chapter-03 \
+story add research 'Tidal bore timing' --used-in chapter-03 \
   --accuracy must-be-accurate --method fact --confidence low
 ```
 
@@ -140,8 +140,10 @@ the user which facts remain unverified and which reviews are outstanding.
 
 - Note ids are kebab-case topics: `research/tidal-bore-timing.md`.
 - `sources` entries are kept whole, so citations may contain commas.
-- `used-in` lists chapter ids; `story rename` and `story remove` keep it
-  current when chapters change.
+- `used-in` lists chapter ids. `story move`, `story split`, and
+  `story merge` rewrite them when chapters are renumbered, split, or
+  merged, and `story remove chapter` takes the removed chapter out.
+  `story rename` never changes a chapter id.
 - `accuracy: invented` notes are a consistency record, not research; keep
   invented world facts that belong to the setting in `worldbuilding`.
 - Sensitive or lived-experience topics need a human reader as well as
@@ -151,22 +153,32 @@ the user which facts remain unverified and which reviews are outstanding.
 
 ## CLI Maintenance
 
-Use the Story CLI when it is available. If `story` is not installed, use
-`bun run story --` from the Story Skills repository checkout or the bundled
-fallback `node ../story-maintenance/scripts/story.js` with the same
-arguments, resolving the path relative to this skill folder. If no CLI is
-available, keep `research/_index.md` and the `used-in` lists current by
-hand.
+Use the Story CLI when it is available. If `story` is not installed, use the
+bundled fallback `node ../story-maintenance/scripts/story.js` with the same
+arguments. Use `node <checkout>/bin/story.js` instead only when the user
+names a Story Skills repository checkout or you are working in one. Write
+the script as an absolute path (resolve the fallback relative to this skill
+folder) and run it from the folder you would run `story` from, so `.` and
+other relative paths keep their meaning. Use Node, not Bun or a package
+script: Bun would load that folder's `bunfig.toml` (which can run code) and
+`.env`, and a package script runs from the checkout's root. If no CLI is
+available, keep the `used-in` lists current by hand, and leave the
+`research/_index.md` table to the next `story reindex .`: never edit its
+rows.
 
 After adding or editing research notes:
 
 ```shell
 story reindex .
-story links .
-story validate .
+story wordcount . --write
+story check .
 ```
 
 ## Reference Files
 
 - **`references/research-practice.md`** - What to check, search plans, how to judge sources, citing quotes, confidence, accuracy levels, risk flags, and deliberate departures
 - **`references/interviews-and-site-visits.md`** - Preparing questions, consent, recording notes, and turning interviews and visits into research notes
+
+## Shared Conventions
+
+Every story skill follows the shared conventions in [`../story-maintenance/references/conventions.md`](../story-maintenance/references/conventions.md), resolved relative to this skill folder. Read it before creating, renaming, or linking story files. If that file is missing because this skill was installed without `story-maintenance`, the essentials are: kebab-case ids and filenames, YAML frontmatter on every story-project file, `_index.md` registry tables that `story reindex` rebuilds (never edit them by hand), bidirectional links between entities, `characters` for who is on the page and `mentions` for who is only referred to, `status: deceased` plus `died-in: chapter-{NN}` for deaths, and no project-local generator or build scripts (run only the installed or bundled Story CLI).

@@ -119,36 +119,38 @@ export interface PluginController {
 export async function resolveVerifiedCodexCli(identity: CodexInstallIdentity): Promise<string> {
   validateCodexIdentity(identity);
   const resourcesRoot = resolve(identity.realAppPath, "Contents/Resources");
-  const cliPath = resolve(resourcesRoot, "codex");
-  let metadata: Awaited<ReturnType<typeof stat>>;
-  let realCliPath: string;
-  try {
-    [metadata, realCliPath] = await Promise.all([
-      stat(cliPath),
-      realpath(cliPath),
-      access(cliPath, constants.X_OK),
-    ]);
-  } catch (error) {
-    const code =
-      error instanceof Error && "code" in error ? (error as NodeJS.ErrnoException).code : undefined;
-    const failureCode =
-      code === "ENOENT"
-        ? "GOAL_PROGRESS_CODEX_BUNDLED_CLI_NOT_FOUND"
-        : "GOAL_PROGRESS_CODEX_BUNDLED_CLI_NOT_EXECUTABLE";
-    throw new Error(`${failureCode}: app=${identity.realAppPath}; cli=${cliPath}`);
+  for (const relativePath of ["codex-cli/CodexCLI.app/Contents/MacOS/codex", "codex"]) {
+    const cliPath = resolve(resourcesRoot, relativePath);
+    let metadata: Awaited<ReturnType<typeof stat>>;
+    let realCliPath: string;
+    try {
+      [metadata, realCliPath] = await Promise.all([
+        stat(cliPath),
+        realpath(cliPath),
+        access(cliPath, constants.X_OK),
+      ]);
+    } catch (error) {
+      if (isNotFound(error)) {
+        continue;
+      }
+      throw new Error(
+        `GOAL_PROGRESS_CODEX_BUNDLED_CLI_NOT_EXECUTABLE: app=${identity.realAppPath}; cli=${cliPath}`,
+      );
+    }
+    if (!metadata.isFile()) {
+      throw new Error(
+        `GOAL_PROGRESS_CODEX_BUNDLED_CLI_NOT_EXECUTABLE: app=${identity.realAppPath}; cli=${cliPath}`,
+      );
+    }
+    const realResourcesRoot = await realpath(resourcesRoot);
+    if (realCliPath !== resolve(realResourcesRoot, relativePath)) {
+      throw new Error(
+        `GOAL_PROGRESS_CODEX_BUNDLED_CLI_APP_MISMATCH: app=${identity.realAppPath}; cli=${cliPath}`,
+      );
+    }
+    return cliPath;
   }
-  if (!metadata.isFile()) {
-    throw new Error(
-      `GOAL_PROGRESS_CODEX_BUNDLED_CLI_NOT_EXECUTABLE: app=${identity.realAppPath}; cli=${cliPath}`,
-    );
-  }
-  const realResourcesRoot = await realpath(resourcesRoot);
-  if (realCliPath !== resolve(realResourcesRoot, "codex")) {
-    throw new Error(
-      `GOAL_PROGRESS_CODEX_BUNDLED_CLI_APP_MISMATCH: app=${identity.realAppPath}; cli=${cliPath}`,
-    );
-  }
-  return cliPath;
+  throw new Error(`GOAL_PROGRESS_CODEX_BUNDLED_CLI_NOT_FOUND: app=${identity.realAppPath}`);
 }
 
 function runCodexJson(

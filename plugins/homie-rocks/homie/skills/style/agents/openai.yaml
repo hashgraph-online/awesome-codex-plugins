@@ -1,0 +1,9 @@
+# Codex: the provider's own MCP server this skill uses, declared beside the skill so Codex can wire it when the
+# skill is used (the person signs in on fal's own page). The plugin's providers.json lists every provider's tools.
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "fal"
+      description: "fal's own MCP server: find a model, read its input schema and price. Paid runs go through this skill's script, never its run_model or submit_job."
+      transport: "streamable_http"
+      url: "https://mcp.fal.ai/mcp-relay"

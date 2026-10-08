@@ -58,6 +58,10 @@ Pass root cause, avoided misfix, boundary, evidence, complexity, and risk to
 
 ## Diagnose before repair
 
+For UI/interaction defects, compose `ui-ux-governance` for relevant state and
+recovery rules at the user-visible seam. Keep reproduction/root-cause ownership
+here; a proposed manual check is not executed evidence.
+
 1. Read the complete error/stack and record inputs, environment, versions, and
    success criteria.
 2. Reproduce consistently. If unstable, read

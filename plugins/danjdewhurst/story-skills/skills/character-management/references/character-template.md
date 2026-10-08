@@ -7,7 +7,7 @@ Use this template when creating a new character file at `characters/{character-n
 name: "{Full Name}"
 role: {protagonist|antagonist|supporting|minor|narrator|deuteragonist}
 status: {alive|deceased|unknown|missing|cut}
-died-in: {chapter-NN}
+# died-in: {chapter-NN}  (deceased characters only)
 aliases:
   - "{Alias 1}"
 pronunciation: "{optional, e.g. SEER-sha}"
@@ -31,7 +31,7 @@ ghost-wound: "{The past wound that made the lie feel true}"
 ---
 ```
 
-`pronunciation`, `voice-words`, and `voice-avoid` are optional. `pronunciation` feeds the narrator's guide in `story build --format narration`; the voice lists are checked by `story voices`. `died-in` is optional. Set it (with `status: deceased`) when a character dies on the page so `story continuity` can flag appearances in later chapters; leave it out for characters who died before the story begins, and keep them in `mentions` only, since `story continuity` warns when one is listed in a chapter or scene cast. Posthumous appearances in flashbacks, memories, or recordings belong in chapter/scene `mentions`, not `characters`. `status: cut` keeps a removed character's file. `story reindex` still lists that file.
+`pronunciation`, `voice-words`, and `voice-avoid` are optional. `pronunciation` feeds the narrator's guide in `story build --format narration`; the voice lists are checked by `story voices`. `died-in` is optional and applies only to the deceased: the template comments it out, so uncomment it and set a chapter id for a death, and leave it out for a living character. The `lie`, `truth`, `ghost-wound`, and `arc-type` fields belong to the `theme-craft` skill, which sets them. Set `died-in` (with `status: deceased`) when a character dies on the page so `story continuity` can flag appearances in later chapters; leave it out for characters who died before the story begins, and keep them in `mentions` only, since `story continuity` warns when one is listed in a chapter or scene cast. Posthumous appearances in flashbacks, memories, or recordings belong in chapter/scene `mentions`, not `characters`. `status: cut` keeps a removed character's file. `story reindex` still lists that file.
 
 ## Appearance
 

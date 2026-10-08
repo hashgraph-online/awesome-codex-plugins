@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">Codex Tools Bridge</title>
+  <rect width="512" height="512" rx="112" fill="#102A2A"/>
+  <path d="M112 320V232a88 88 0 0 1 88-88h112a88 88 0 0 1 88 88v88" fill="none" stroke="#10B981" stroke-width="40" stroke-linecap="round"/>
+  <path d="M112 280h288" fill="none" stroke="#D1FAE5" stroke-width="24" stroke-linecap="round"/>
+  <rect x="68" y="300" width="88" height="88" rx="24" fill="#D1FAE5"/>
+  <rect x="356" y="300" width="88" height="88" rx="24" fill="#D1FAE5"/>
+</svg>

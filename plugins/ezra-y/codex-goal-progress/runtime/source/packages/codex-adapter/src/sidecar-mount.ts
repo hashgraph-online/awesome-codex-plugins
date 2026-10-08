@@ -23,11 +23,13 @@ import {
   GOAL_PROGRESS_UPDATE_INTENT_EVENT,
   parseGoalProgressUpdateIntent,
 } from "../../contracts/src/update-state-runtime.js";
-import type {
-  CodexAnchorRejectionReason,
-  CodexNativeGoalLocator,
-  CodexVisibleThreadRejectionReason,
-  NativeGoalTarget,
+import {
+  type CodexAnchorRejectionReason,
+  type CodexNativeGoalLocator,
+  type CodexVisibleThreadRejectionReason,
+  type CurrentCodexPage,
+  type NativeGoalTarget,
+  readCurrentCodexPage,
 } from "./anchor-adapter.js";
 import { projectFloatingCenter } from "./floating-placement.js";
 import {
@@ -117,6 +119,7 @@ export interface SidecarMountControllerOptions {
 
 export interface SidecarEnsureMountedOptions {
   readonly displayTarget: GoalProgressDisplayTarget;
+  readonly page?: CurrentCodexPage;
   readonly environmentChanged?: boolean;
   readonly nativeGoalRejectionReason?: CodexAnchorRejectionReason | null;
   readonly updateState?: GoalProgressUpdateState | null;
@@ -304,6 +307,7 @@ export class SidecarMountController {
   readonly #onUpdateIntent:
     | ((intent: GoalProgressUpdateIntent, context: GoalProgressLocalUiIntentContext) => void)
     | undefined;
+  #page: CurrentCodexPage | null = null;
   #host: GoalProgressHostElement | null = null;
   #anchor: HTMLElement | null = null;
   #controlArea: HTMLElement | null = null;
@@ -504,6 +508,7 @@ export class SidecarMountController {
     uiPreference: GoalProgressUiPreference | undefined,
     options: SidecarEnsureMountedOptions,
   ): SidecarMountResult {
+    this.#page = options.page ?? readCurrentCodexPage(this.#document);
     const existingHosts = hosts(this.#document);
     if (existingHosts.length > 1) {
       return this.#result("none", "host-ambiguous", existingHosts.length, false, null);
@@ -661,7 +666,9 @@ export class SidecarMountController {
     viewModel: GoalProgressViewModel,
     uiPreference?: GoalProgressUiPreference,
     updateState?: GoalProgressUpdateState | null,
+    page: CurrentCodexPage = readCurrentCodexPage(this.#document),
   ): SidecarMountResult {
+    this.#page = page;
     const retentionFailure = this.#retentionFailureReason(viewModel.sessionId);
     if (retentionFailure) {
       return this.#result(
@@ -674,7 +681,7 @@ export class SidecarMountController {
     }
     const host = this.#host as GoalProgressHostElement;
     if (this.#displayMode === "native" && this.#anchor) {
-      const location = this.#nativeGoalLocator.locate(this.#document);
+      const location = this.#nativeGoalLocator.locate(this.#document, this.#page ?? undefined);
       if (
         location.target &&
         this.#continuityIdentityFailure(location.target.anchor, location.target.goalIdentity)
@@ -737,7 +744,12 @@ export class SidecarMountController {
     const threadChanged = this.#sessionId !== null && this.#sessionId !== viewModel.sessionId;
     const nativeOriginWasVerified =
       this.#displayMode === "native" || this.#displayMode === "fallback";
-    if (!existingHost || threadChanged || !nativeOriginWasVerified) {
+    const currentSurfaceMatches =
+      this.#page?.composer &&
+      !this.#page.rejectionReason &&
+      (existingHost?.parentElement === this.#document.body ||
+        existingHost?.closest("[data-codex-composer-root]") === this.#page.composer);
+    if (!existingHost || threadChanged || !nativeOriginWasVerified || !currentSurfaceMatches) {
       if (existingHost) {
         this.#adoptHost(existingHost);
       }
@@ -859,7 +871,8 @@ export class SidecarMountController {
     return this.#result("updated", "ok", 1, false, this.#nativeGoalRejectionReason);
   }
 
-  health(): SidecarHealthResult {
+  health(page: CurrentCodexPage = readCurrentCodexPage(this.#document)): SidecarHealthResult {
+    this.#page = page;
     const existingHosts = hosts(this.#document);
     if (existingHosts.length > 1) {
       return this.#healthResult("blocked", "host-ambiguous", existingHosts.length, null);
@@ -884,7 +897,7 @@ export class SidecarMountController {
       }
       return this.#healthResult("mounted", "ok", 1, this.#nativeGoalRejectionReason);
     }
-    const location = this.#nativeGoalLocator.locate(this.#document);
+    const location = this.#nativeGoalLocator.locate(this.#document, page);
     const anchor = location.target?.anchor ?? null;
     if (!anchor?.parentElement) {
       return this.#healthResult(
@@ -914,6 +927,7 @@ export class SidecarMountController {
       host: this.#host,
       anchor: this.#anchor,
       document: this.#document,
+      page: this.#page ?? readCurrentCodexPage(this.#document),
       lastAnchorState: this.#lastAnchorState,
       lastConstraintTransition: this.#lastConstraintTransition,
       lastCollapsedTransition: this.#lastCollapsedTransition,
@@ -1193,8 +1207,7 @@ export class SidecarMountController {
       return;
     }
     const view = this.#document.defaultView;
-    const composers = this.#document.querySelectorAll<HTMLElement>("[data-codex-composer-root]");
-    const composer = composers.length === 1 ? (composers[0] ?? null) : null;
+    const composer = (this.#page ?? readCurrentCodexPage(this.#document)).composer;
     const composerRect =
       composer && typeof composer.getBoundingClientRect === "function"
         ? composer.getBoundingClientRect()
@@ -1447,9 +1460,9 @@ export class SidecarMountController {
   }
 
   #readFloatingObstacles(): readonly HTMLElement[] {
-    return (this.#nativeGoalLocator.findFloatingObstacles?.(this.#document) ?? []).filter(
-      (element) => element.isConnected,
-    );
+    return (
+      this.#nativeGoalLocator.findFloatingObstacles?.(this.#document, this.#page ?? undefined) ?? []
+    ).filter((element) => element.isConnected);
   }
 
   #observeFloatingObstacleChanges(): void {

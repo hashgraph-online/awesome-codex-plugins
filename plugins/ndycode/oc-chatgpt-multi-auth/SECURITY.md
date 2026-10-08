@@ -2,115 +2,66 @@
 
 ## Supported Versions
 
-Security updates target the latest published release only. Upgrade before
-reporting an issue against an older build.
-
 | Version | Supported |
 | ------- | --------- |
-| Latest release on the current major line | ✅ Active support |
-| Any earlier release | ❌ Upgrade to the latest release |
+| Latest release on the current major line (`6.25.2`) | ✅ Active support |
+| Any earlier release | ❌ Upgrade first, then re-test |
 | `oc-chatgpt-multi-auth` (former package name) | ❌ Renamed; migrate to `oc-codex-multi-auth` |
 
-## Security Considerations
+Security fixes ship on the latest published release only.
 
-### OAuth Token Security
+## Reporting a Vulnerability
 
-This plugin handles sensitive OAuth tokens. To protect your security:
+1. **Do not open a public issue.**
+2. Email the maintainer directly (see the GitHub profile for contact).
+3. Include a description, reproduction steps, potential impact, and a suggested fix if you have one.
 
-✅ **What we do:**
-- Store tokens securely via opencode's credential management
-- Use PKCE-secured OAuth 2.0 flows
-- Never transmit tokens to third parties
-- Implement automatic token refresh
-- Use industry-standard authentication practices
+We aim to respond within 48 hours. Fixes land before public disclosure; reporters are credited unless anonymity is requested.
 
-### Credential Storage Backends
+### Out of scope
 
-Two backends are supported. JSON is the default; the keychain backend is opt-in.
+- Violations of OpenAI's Terms of Service
+- Rate limiting or outages on OpenAI's side
+- Auth failures from expired subscriptions
+
+## Credential Storage
+
+Two backends are supported. JSON is the default; the OS keychain is opt-in.
 
 | Backend | Enabled by | Where tokens live | Threat model |
-|---------|-----------|-------------------|--------------|
-| JSON (default) | always on | `~/.opencode/projects/<project-key>/oc-codex-multi-auth-accounts.json`, file mode `0o600`, directory mode `0o700` on POSIX. A `.gitignore` entry is auto-written when the storage path sits inside a git repo. | Plaintext on the local filesystem. Any local user or process that can read the file can read the refresh token. Protect the home directory like you would protect `~/.ssh`. |
-| OS keychain (opt-in) | `CODEX_KEYCHAIN=1` | macOS Keychain / Windows Credential Manager / Linux libsecret, stored under service name `oc-codex-multi-auth` and account key `accounts:<project-storage-key>` (or `accounts:global`). | Token ciphertext is managed by the OS keychain. Unlocked session required to read. Credentials survive loss of the JSON file. Still only as strong as the user's OS login password / keychain unlock. |
+| --- | --- | --- | --- |
+| JSON (default) | always | `~/.opencode/projects/<project-key>/oc-codex-multi-auth-accounts.json` (per-project pools on by default) or `~/.opencode/oc-codex-multi-auth-accounts.json`; files `0o600`, dirs `0o700` on POSIX (Windows uses the profile's ACLs instead). `.opencode/` is added to `.gitignore` when a pool lands inside a git repo. | Plaintext on disk — protect the home directory like `~/.ssh`. |
+| OS keychain (opt-in) | `CODEX_KEYCHAIN=1` | macOS Keychain / Windows Credential Manager / Linux libsecret; service `oc-codex-multi-auth`, account `accounts:<project-key>` (or `accounts:global`) | Ciphertext managed by the OS; only as strong as the login session's keychain unlock. |
 
-Migration and fallback rules:
+- Enabling `CODEX_KEYCHAIN` migrates the JSON pool on the next save, renaming the file `*.migrated-to-keychain.<ts>` for rollback — the original is never auto-deleted.
+- Keychain failures log a warning and fall back to JSON; credentials are never silently deleted. Windows Credential Manager caps blob size below a typical multi-account pool, so on `win32` an oversized write is size-checked up front and the JSON path stays authoritative.
+- To leave the keychain: unset `CODEX_KEYCHAIN` and run `codex-keychain rollback`, which restores the newest migration backup (including the flagged-accounts store).
+- Access, refresh, and id tokens are masked in every log line regardless of backend.
 
-- Switching the env var ON migrates the on-disk JSON into the keychain on the next save and renames the JSON file as `<path>.migrated-to-keychain.<timestamp>` for rollback. The original is never deleted automatically.
-- If a keychain call fails (native module missing, keychain locked, permission denied, unsupported Linux without a secret service), the plugin logs a warning and falls back to the JSON backend for that operation. Credentials are never silently lost.
-- Turn the opt-in OFF by unsetting `CODEX_KEYCHAIN` and running `codex-keychain rollback` to restore the JSON file from the most recent `.migrated-to-keychain.<ts>` backup.
+### What you should do
 
-Log redaction applies uniformly to both backends. Refresh tokens, access tokens, and id tokens are replaced before any log line is written.
+- Never share or commit `~/.opencode/`.
+- Review authorized apps at [ChatGPT Settings → Apps](https://chatgpt.com/settings/apps); run `opencode auth logout` on shared machines.
+- Enable `ENABLE_PLUGIN_REQUEST_LOGGING=1` only while debugging, and `CODEX_PLUGIN_LOG_BODIES=1` never (raw prompt/response bodies land on disk).
+- Keep Node ≥ 22.19 and the plugin on the latest release.
 
-⚠️ **What you should do:**
-- Never share your `~/.opencode/` directory
-- Do not commit OAuth tokens to version control
-- Regularly review authorized apps at [ChatGPT Settings](https://chatgpt.com/settings/apps)
-- Use `opencode auth logout` when done on shared systems
-- Enable debug logging (`ENABLE_PLUGIN_REQUEST_LOGGING=1`) only when troubleshooting
+## Third-Party Dependencies
 
-### Reporting a Vulnerability
-
-If you discover a security vulnerability:
-
-1. **DO NOT open a public issue**
-2. Email the maintainer directly (check GitHub profile for contact)
-3. Include:
-   - Description of the vulnerability
-   - Steps to reproduce
-   - Potential impact
-   - Suggested fix (if any)
-
-We aim to respond to security reports within 48 hours.
-
-### Responsible Disclosure
-
-We follow responsible disclosure practices:
-- Security issues are patched before public disclosure
-- Reporter receives credit (unless anonymity is requested)
-- Timeline for disclosure is coordinated with reporter
-
-### Security Best Practices
-
-When using this plugin:
-
-- **Personal use only:** Do not use for commercial services
-- **Respect rate limits:** Avoid excessive automation
-- **Monitor usage:** Review your ChatGPT usage regularly
-- **Keep updated:** Use the latest version for security patches
-- **Secure your machine:** This plugin is as secure as your development environment
-- **Review permissions:** Understand what the plugin can access via OAuth
-
-### Out of Scope
-
-The following are **not** security vulnerabilities:
-- Issues related to violating OpenAI's Terms of Service
-- Rate limiting by OpenAI's servers
-- Authentication failures due to expired subscriptions
-- OpenAI API or service outages
-
-### Third-Party Dependencies
-
-This plugin keeps its runtime dependency surface small and reviews it regularly.
-The full runtime set (`dependencies` in `package.json`) is:
+Runtime `dependencies` in `package.json`, the full set:
 
 | Dependency | Role |
-|------------|------|
-| `@openauthjs/openauth` | OAuth / PKCE handling |
-| `@opencode-ai/plugin` | OpenCode plugin interface |
-| `@napi-rs/keyring` | Native OS keychain access for the opt-in credential backend |
-| `hono` | Lightweight HTTP routing for the local OAuth callback server |
-| `zod` | Schema validation at every process boundary |
-| `proper-lockfile` | Advisory locking for concurrent config/account writes |
-| `@opentui/core`, `@opentui/solid`, `solid-js` | Terminal UI rendering for the account dashboard |
-| `web-tree-sitter` | Syntax-aware handling in tool output |
+| --- | --- |
+| `@ai-sdk/openai` | AI-SDK client the OpenCode V2 adapter builds around the shared fetch |
+| `@opencode-ai/plugin` | OpenCode V1 plugin interface |
+| `@opencode/plugin` | OpenCode V2 plugin interface |
+| `@opentui/solid`, `solid-js` | Terminal UI for the dashboard |
+| `@napi-rs/keyring` | Native OS keychain access (opt-in backend) |
+| `proper-lockfile` | Advisory locking for concurrent storage writes |
+| `zod` | Schema validation at process boundaries |
 
-`npm run audit:ci` gates production dependencies plus a reviewed dev-advisory
-allowlist. There are no telemetry or analytics dependencies.
+`@opentui/core` and `web-tree-sitter` are **not** direct dependencies; they exist only transitively under the plugin/TUI packages above. `npm run audit:ci` gates production advisories plus a reviewed dev allowlist. No telemetry or analytics dependencies.
 
-## Questions?
+## Notes
 
-For security questions that are not vulnerabilities, open a GitHub issue without sensitive details.
-
----
-
-**Note:** This plugin is not affiliated with OpenAI. For OpenAI security concerns, contact OpenAI directly.
+- This plugin is not affiliated with OpenAI.
+- For non-vulnerability questions, open a [GitHub issue](https://github.com/ndycode/oc-codex-multi-auth/issues) without sensitive details.

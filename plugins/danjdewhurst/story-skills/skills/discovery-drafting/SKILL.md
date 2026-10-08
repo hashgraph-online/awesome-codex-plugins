@@ -1,6 +1,6 @@
 ---
 name: discovery-drafting
-description: This skill should be used when the user asks to "pantsing", "discovery write", "write without an outline", "discovery draft", "write into the dark", "story kernel", "reconcile a chapter", "reverse outline", "cut a subplot", "dead end", "drafting sprint", "writing cadence", or wants to draft a story by discovery with retrospective bible reconciliation.
+description: This skill should be used when the user asks about "pantsing", "discovery write", "write without an outline", "discovery draft", "write into the dark", "story kernel", "reconcile a chapter", "dead end", "drafting sprint", "writing cadence", or wants to draft a story by discovery with retrospective bible reconciliation. NOT for outline-first drafting, or mysteries and other clue-dependent genres where setup must come before payoff (use chapter-writing), or a reverse outline of an existing linear draft, a subplot cut, or another revision pass on existing chapters (use revision-continuity).
 ---
 
 # Discovery Drafting
@@ -28,7 +28,10 @@ start — arcs get built during reconciliation.
 - Starting a project from a situation/character rather than a plot
 - NOT for mysteries or other clue-dependent genres where setup must precede
   payoff (use chapter-writing; see `genre-craft`)
-- NOT for revising existing chapters (use `revision-continuity`)
+- NOT for revising existing chapters, including a reverse outline of an
+  existing linear draft or cutting a subplot as a revision pass (use `revision-continuity`).
+  The reverse outline inside the reconcile loop, and cutting dead ends in a
+  batch review, stay here
 - The user can switch modes per project or per chapter; record the mode so
   audits know which discipline applies
 
@@ -38,17 +41,28 @@ start — arcs get built during reconciliation.
    draft the one-paragraph kernel with the user (character in a situation,
    a want, an obstacle, a tone signal). Store it in `story.md` under
    `## Story Kernel` and set `draft-mode: discovered` in frontmatter.
-2. **Draft forward.** Write the chapter from the kernel using the session
+2. **Draft forward.** Create the chapter with
+   `story add chapter 'Title' --number N --mode discovered` so `story next`
+   flags it until it is reconciled (in a `draft-mode: discovered` project a
+   drafted chapter with no `mode` is flagged too). Write the chapter from the kernel using the session
    shape in `references/drafting-cadence.md` (re-read → write → close with
    a next-session note). Write forward only; park bible questions as
    `[TODO: check bible]` inline rather than stopping. Follow the prose
    craft in `chapter-writing/references/writing-guidelines.md` and the
    scene-grain tools in the `scene-craft` skill as usual, and write in the
    voice and house style recorded in `style-sheet.md` — discovery changes
-   *planning order*, not prose standards.
+   *planning order*, not prose standards. Write in the `language` set in
+   `story.md` (a missing field means `en`); the craft references' word-level
+   advice is English, so in another language keep its aims and follow the
+   style sheet's conventions.
 3. **Run the reconcile loop.** After each chapter, follow
    `references/reconcile-loop.md` exactly:
-   - Extract new entity/promise candidates (import-style, user-approved)
+   - Extract new entity/promise candidates (import-style, user-approved),
+     keeping names as the prose spells them. Ids stay ASCII kebab-case:
+     Cyrillic and Greek names get one automatically (`Пётр` gives
+     `petr`), and a name in a script with no transliteration table
+     (`李明`) needs `story add character '李明' --id li-ming`, with the
+     id agreed with the user
    - Reverse-outline the chapter into the chapter file and `scenes/` records
    - Diff against the bible (new / contradiction / enrichment / dangling)
    - Reconcile: update the bible **or** revise the chapter — never neither
@@ -82,21 +96,19 @@ start — arcs get built during reconciliation.
 - Cut threads are logged, not erased: abandoned promises/questions keep
   `status: abandoned` with a reason; cut characters keep their file with
   `status: cut`.
-- Bidirectional links and kebab-case ids follow the story-init conventions
+- Bidirectional links and kebab-case ids follow the shared story conventions
   exactly — discovery changes when the bible is written, not how.
 
 ## CLI Maintenance
 
-Use the Story CLI when it is available. If `story` is not installed, use `bun run story --` from the Story Skills repository checkout or the bundled fallback `node ../story-maintenance/scripts/story.js` with the same arguments, resolving the path relative to this skill folder. If no CLI is available, perform the registry, backlink, and word-count checks manually.
+Use the Story CLI when it is available. If `story` is not installed, use the bundled fallback `node ../story-maintenance/scripts/story.js` with the same arguments. Use `node <checkout>/bin/story.js` instead only when the user names a Story Skills repository checkout or you are working in one. Write the script as an absolute path (resolve the fallback relative to this skill folder) and run it from the folder you would run `story` from, so `.` and other relative paths keep their meaning. Use Node, not Bun or a package script: Bun would load that folder's `bunfig.toml` (which can run code) and `.env`, and a package script runs from the checkout's root. If no CLI is available, perform the registry, backlink, and word-count checks manually.
 
 After each reconcile loop:
 
 ```shell
-story wordcount . --write
 story reindex .
-story links .
-story validate .
-story continuity .
+story wordcount . --write
+story check .
 ```
 
 ## Reference Files
@@ -105,3 +117,7 @@ story continuity .
 - **`references/reconcile-loop.md`** - The core loop: extract entities/promises → reverse-outline → diff against the bible → reconcile; `mode: discovered` flag
 - **`references/dead-ends.md`** - Recognizing and cutting dead ends: cut/fold/prune, abandoned ledger entries, the darling log
 - **`references/drafting-cadence.md`** - Daily targets, batch reviews, session shape, recovering a broken cadence
+
+## Shared Conventions
+
+Every story skill follows the shared conventions in [`../story-maintenance/references/conventions.md`](../story-maintenance/references/conventions.md), resolved relative to this skill folder. Read it before creating, renaming, or linking story files. If that file is missing because this skill was installed without `story-maintenance`, the essentials are: kebab-case ids and filenames, YAML frontmatter on every story-project file, `_index.md` registry tables that `story reindex` rebuilds (never edit them by hand), bidirectional links between entities, `characters` for who is on the page and `mentions` for who is only referred to, `status: deceased` plus `died-in: chapter-{NN}` for deaths, and no project-local generator or build scripts (run only the installed or bundled Story CLI).

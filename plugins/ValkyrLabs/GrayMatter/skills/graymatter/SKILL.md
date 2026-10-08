@@ -275,7 +275,7 @@ scripts/gm-startup-preflight --workspace-key <current-workspace>
 scripts/gm-openapi-summary
 ```
 
-`scripts/gm-login` is the intended login UX: prompt once with a native dialog, store only the session in the platform credential vault, and let the rest of the skill use it automatically. Account creation may open the activation website, but JWT/session capture must come from the direct API login response rather than a browser redirect or manual paste.
+`scripts/gm-login` is the intended login UX: the native dialog offers GrayMatter Cloud (api-0), local GrayMatter Lite (localhost:8787), local ValkyrAI (localhost:8080), and an editable self-hosted server. Choose the instance before entering its credentials; Cloud signup is optional for self-hosted accounts. The selected server persists through the existing account profiles. ValkyrAI/Cloud sessions remain in the platform credential vault; Lite local accounts use the existing private mode-0600 profile credential file. Account creation may open the activation website, but JWT/session capture must come from the direct API login response rather than a browser redirect or manual paste.
 
 `scripts/gm-register-agent` should run immediately after auth succeeds so the OpenClaw server creates or refreshes an Agent record for itself in api-0 before normal operation.
 

@@ -16,7 +16,7 @@ additions.
 - [AD-4. Unprovoked rebuttal](#ad-4-unprovoked-rebuttal-возражение-без-предпосылок)
 - [AD-5. Subject-predicate semantic mismatch](#ad-5-subject-predicate-semantic-mismatch-семантическое-несоответствие-субъекта-и-предиката)
 - [AD-6. Manufactured antithesis](#ad-6-manufactured-antithesis-ложная-антитеза)
-- [AD-7. Preemptive virtue qualifier](#ad-7-preemptive-virtue-qualifier-непрошенная-оговорка-без-воды)
+- [AD-7. Preemptive virtue qualifier](#ad-7-preemptive-virtue-qualifier-непрошеная-оговорка-без-воды)
 - [AD-8. Assistant-register meta-commentary](#ad-8-assistant-register-meta-commentary-сервисные-реплики-ассистента)
 - [AD-9. Hollow opener](#ad-9-hollow-opener-пустой-зачин)
 - [AD-10. Declared sincerity](#ad-10-declared-sincerity-объявленная-искренность)
@@ -408,7 +408,7 @@ AD-6.8 (the quota is not a finding). AD-6.5 sets how many pairs a text may carry
 
 ---
 
-## AD-7. Preemptive virtue qualifier (непрошенная оговорка «без воды»)
+## AD-7. Preemptive virtue qualifier (непрошеная оговорка «без воды»)
 
 **Problem:** a trailing manner-flourish that asserts the author's virtue by denying a fault the reader never raised — «без воды», «без виляния», «без лишних слов», «начистоту», «честно говоря», «прямо скажем», «не побоюсь этого слова», «и без всякой магии». The statement reassures the reader against a vice nobody suspected, so the qualifier carries no information and only performs sincerity. It is a cousin of AD-4: where AD-4 rebuts an unvoiced external claim, AD-7 denies an unvoiced fault of the author's own delivery. The same flourish also appears in positive polarity — «чётко, по делу», «коротко и ясно», «простыми словами», «разложу по полочкам» — naming a delivery virtue the text should simply demonstrate; it is flagged identically. Virtue is shown by the writing, never announced.
 
@@ -496,7 +496,7 @@ AD-8.1. Flag a flourish that (1) addresses the reader as a conversational interl
 
 AD-8.2. Rewrite by deleting the flourish: open with the answer, end on the last substantive point. «Отличный вопрос! Давайте посмотрим…» → start with the answer.
 
-AD-8.3. Cross-reference, not double-charge. A genuine call to action with a real channel in correspondence — «пишите на support@…», «звоните в будни» — is business-writing territory, and an over-bloated email closing is already covered (cf. `business-writing.md:158`, `anti-patterns.md:90`). AD-8 targets the persona leak into article or documentation prose, not a real email CTA; charge a given fragment once.
+AD-8.3. Cross-reference, not double-charge. A genuine call to action with a real channel in correspondence — «пишите на support@…», «звоните в будни» — is business-writing territory, and an over-bloated email closing is already covered (cf. `business-writing.md:158`, and the email-closing row «Если у вас возникнут дополнительные вопросы…» of the `anti-patterns.md` rewrite table). AD-8 targets the persona leak into article or documentation prose, not a real email CTA; charge a given fragment once.
 
 AD-8.4 (register carve-out). Not flagged in genuine live dialogue, chat-support exchanges, or interview and quoted registers, where the speaker is responding to a real interlocutor: a support reply «Спасибо за обращение! Подскажите номер заказа», or «„Хороший вопрос“, — ответил инженер», is natural discourse (cf. AD-2.3, AD-7.5). A standalone «Готов помочь» in a real contact or footer block is a genuine offer, not meta-commentary. A sincere authorial wish in a book preface, foreword, or acknowledgements («надеюсь, книга окажется полезной») is a conventional register, not a chat-persona leak. The target is the assistant persona injected into monologue or educational prose, not a one-way FAQ that answers anticipated questions.
 

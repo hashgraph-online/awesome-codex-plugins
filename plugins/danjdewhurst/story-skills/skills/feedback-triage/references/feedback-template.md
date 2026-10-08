@@ -10,6 +10,8 @@ reader: "{Reader name or label}"
 round: {N}
 chapters-read: "{e.g. 1-12, or all}"
 overall-verdict: "{loved it | liked it with reservations | mixed | didn't connect}"
+# source: simulated   # only for a reader-panel persona read; omit for a human reader
+# persona: {persona}  # the reader-panel persona's file id, with source: simulated
 ---
 
 # Feedback — {Reader} (Round {N})
@@ -27,7 +29,8 @@ overall-verdict: "{loved it | liked it with reservations | mixed | didn't connec
 ### {Problem title} (Ch {N})
 
 - **What the reader said:** {quote or close paraphrase}
-- **Where:** {paragraph anchor from the HTML review copy, e.g. ch03-p12; or chapter/scene reference}
+- **Where:** {paragraph label in the current build, e.g. ch03-p12, with the reader's original label and build in brackets when they differ; or chapter/scene reference}
+- **Quoted words:** {the paragraph's first few words, as the reader quoted them}
 - **Canon check:** {verified against the bible | contradicts canon — see note |
   outside canon scope}
 - **Severity (reader's):** {blocking | major | minor | nit}
@@ -44,7 +47,7 @@ overall-verdict: "{loved it | liked it with reservations | mixed | didn't connec
 
 ## Review-copy note for readers
 
-Send this with the HTML review copy (`story build . --format html`),
+Send this with the HTML review copy (`story build . --format html --stamp feedback-round-{N}`),
 adjusting the chapters and deadline:
 
 ```markdown
@@ -53,7 +56,8 @@ Thanks for reading! The attached file opens in any web browser.
 - Please read chapters {range} by {date}.
 - Every paragraph has a small label beside it (like
   `ch03-p12`: chapter 3, paragraph 12). Put that label at the start of
-  each note so I can find the exact spot.
+  each note, with the paragraph's first few words, so I can find the exact
+  spot even after I edit the text.
 - Note anything: where you were confused, bored, or pulled out of the
   story; where you couldn't put it down; typos; anything that felt off.
 - Tell me how it made you feel, not how to fix it. Your reactions are the

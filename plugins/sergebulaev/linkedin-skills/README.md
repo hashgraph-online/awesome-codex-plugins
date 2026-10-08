@@ -96,6 +96,15 @@ cd linkedin-skills
 
 The repo ships a `.claude/skills/` mirror of symlinks, so Claude Code finds all 12 skills on its own.
 
+**On Windows** those symlinks check out as twelve one-line text files unless git can create
+them, which needs Developer Mode or an elevated shell plus `git config core.symlinks true`.
+Without that, a plain clone loads no skills at all. Either clone with symlinks enabled, or
+replace the mirror with directory junctions, which need no admin rights:
+
+```cmd
+for /d %s in (skills\*) do mklink /J .claude\skills\%~nxs ..\..\%s
+```
+
 ### Hermes Agent
 
 Hermes Agent (Nous Research) follows the agentskills.io open standard and loads `skills/*/SKILL.md` directly. Clone the bundle into your Hermes skills folder:
@@ -192,6 +201,13 @@ Four of the skills (Comment Drafter, Reply Handler, Hook Extractor, Engagement M
 | Likers + commenters on any post | `scraping_solutions/linkedin-posts-engagers-likers-and-commenters-no-cookies` | $5 / 1,000 |
 
 Setup: drop `APIFY_TOKEN=apify_api_...` into your `.env`. The thin client at `lib/apify_client.py` exposes `fetch_post`, `fetch_post_comments`, `fetch_user_recent_comments`, and `fetch_post_engagers`.
+
+**This tier needs Claude Code, not claude.ai (web).** Publora and Pixfaro each publish a
+connector, so publishing and image generation work on claude.ai with one click. Apify does
+not: the client reads `APIFY_TOKEN` from the environment and runs a Python process, and
+claude.ai gives a skill neither. On claude.ai the reading skills notice the missing token
+and ask you to paste the post or thread instead, which is the same quality of result with
+one more step. For automatic reads, run the bundle in Claude Code with a `.env`.
 
 A typical creator running daily comment ops + a weekly engager-analytics sweep stays under $2/month, well inside the free tier.
 

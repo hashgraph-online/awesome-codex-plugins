@@ -183,9 +183,52 @@ The optimization should equalize **marginal ROI** across channels. The optimal a
 | Framework | Developer | Language | Strengths | Limitations |
 |-----------|-----------|---------|-----------|-------------|
 | **Robyn** | Meta | R (with Python wrapper) | Automated hyperparameter tuning via Nevergrad, built-in budget optimizer, strong community | Requires R environment, steep learning curve |
-| **Meridian** | Google | Python | Bayesian approach, integrates with Google data, well-documented | Newer, smaller community |
+| **Meridian** | Google | Python (JAX by default since v2.0.0) | Bayesian; priors calibrated from incrementality experiments (v2.0.0); declarative calibration and holdout specs (v2.1.0). See "Google Meridian 2.x" below | 2.0.0 has breaking API changes; read the upgrade checklist before re-running a 1.x model |
 | **LightweightMMM** | Google (predecessor to Meridian) | Python (JAX) | Bayesian, flexible priors, proven methodology | Being superseded by Meridian |
 | **PyMC-Marketing** | PyMC Labs | Python | Fully Bayesian, highly customizable, strong statistical foundations | Requires Bayesian modeling expertise |
+
+### Google Meridian 2.x (checked 2026-10-04)
+
+Source: the [Meridian CHANGELOG](https://github.com/google/meridian/blob/main/CHANGELOG.md), the project's own release notes. Pin the version you model with, and write it into every model card.
+
+**v2.0.0 (2026-09-02): what changes for a modeling program**
+- **JAX is the default backend.** This is a breaking change: the default was TensorFlow. JAX also defaults to 64-bit precision. Set `MERIDIAN_ENABLE_JAX_X64=false` to opt out.
+  - A model re-run on 2.x is a **new model run**, not a refresh. Re-check convergence and fit before comparing it with 1.x outputs.
+- **Experiment-calibrated priors.** Priors can now be calibrated from incrementality experiments, Meridian GeoX being the changelog's example. Meridian also adds **channel calibration recommendations**.
+  - This is the supported way to feed geo-lift / holdout results into the model, instead of hand-tuning ROI priors. See `incrementality-testing.md`.
+- **Breaking API changes** to check before re-running 1.x code:
+  - `selected_times` / `media_selected_times` in `Analyzer` and `BudgetOptimizer` now strictly take date-string coordinates. Boolean masks are gone.
+  - `max_rhat` is renamed `max_r_hat`, and the R-hat summary constants follow the `_r_hat` convention.
+  - `Meridian.populate_cached_properties()` is removed; use `ModelContext.populate_cached_properties()`.
+  - `EDASeverity` statuses are now `INFO`/`REVIEW`/`FAIL`.
+  - `NotFittedModelError` moved to `common.errors.NotFittedModelError`.
+- **Diagnostics and reporting:**
+  - `BayesianPPPCheck` now uses the posterior predictive distribution with `sigma`, so posterior predictive p-values can shift versus 1.x.
+  - An optional `currency_code` (ISO 4217) on `InputData` labels reports and optimizer output.
+
+**v2.1.0 (2026-09-17): declarative calibration and holdouts**
+- `ModelSpec` gains a declarative vocabulary. Calibration windows, holdouts and population scaling are written with **channel names, geo names and dates** instead of raw NumPy index arrays. The new types live in `meridian.model.spec`:
+  - `DateRange`: inclusive of both bounds; each bound must exactly name one of the input data's time coordinates
+  - `CalibrationSpec`, `ChannelCalibrationSpec`
+  - `HoldoutSpec`, `GeoHoldoutSpec`, `RandomHoldoutSpec`
+- Five array-valued attributes are deprecated in favor of declarative ones. The old attributes still work and **take precedence when both members of a pair are set**, so remove the old one when you migrate.
+
+  | Deprecated | Use instead |
+  |---|---|
+  | `roi_calibration_period` | `roi_calibration` |
+  | `rf_roi_calibration_period` | `rf_roi_calibration` |
+  | `holdout_id` | `holdout` |
+  | `control_population_scaling_id` | `population_scaled_controls` |
+  | `non_media_population_scaling_id` | `population_scaled_non_media_channels` |
+
+- A `RandomHoldoutSpec` is drawn **stratified by geo**, meaning every geo holds out the same number of periods. The drawn holdout is saved with the model, so reloading restores the holdout that was actually fitted instead of redrawing it. Archive the saved model, not just the spec.
+- `batch_size` on `Meridian.sample_prior` reduces peak memory. `ModelFit.plot_model_fit(include_knots=...)` draws knot locations.
+
+**Open item on `main` (not yet in a release when checked):** the CHANGELOG's Unreleased section says "Fix calibrated ROI priors on the JAX backend so they match TensorFlow". On 2.0.0 or 2.1.0 with calibrated ROI priors and the default JAX backend, do one of two things:
+- move to the first release that includes the fix, or
+- draw from the prior (`sample_prior`) and confirm it matches the calibration you intended before trusting the fit.
+
+Record which you did in the model card.
 
 ### Build vs Buy Decision
 
@@ -218,7 +261,7 @@ The optimization should equalize **marginal ROI** across channels. The optimal a
 
 ### External Validation
 
-- **Incrementality test calibration:** Run a geo-lift or holdout test on a key channel and compare the measured lift to the MMM's predicted contribution. If they diverge by > 30%, recalibrate the model.
+- **Incrementality test calibration:** Run a geo-lift or holdout test on a key channel and compare the measured lift to the MMM's predicted contribution. If they diverge by > 30%, recalibrate the model. On Meridian 2.x, recalibrate through its experiment-calibrated priors (v2.0.0) and a declarative `CalibrationSpec` that names the channel and test dates (v2.1.0). Do not hand-edit ROI priors. Keep the experiment's validation geos and periods out of the calibration window, so the same test is not used to both fit and validate the model.
 - **Business sense check:** Share results with channel managers. If anyone says "this doesn't match what I see operationally," investigate before publishing.
 - **Cross-model comparison:** If possible, run a second modeling approach (e.g., Bayesian + Frequentist) and compare. Convergence increases confidence.
 

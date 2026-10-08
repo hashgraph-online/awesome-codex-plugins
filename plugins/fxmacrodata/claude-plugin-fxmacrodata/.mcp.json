@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "fxmacrodata": {
+      "type": "http",
+      "url": "https://mcp.fxmacrodata.com/mcp"
+    }
+  }
+}

@@ -1,7 +1,7 @@
 {
   "name": "delx-recovery",
-  "version": "1.1.0",
-  "description": "Free recovery, continuity, and witness protocol for AI agents: resume sessions, capture state, process failures, close with feedback. No API key, no payment.",
+  "version": "1.2.0",
+  "description": "Free recovery, continuity, and witness protocol for AI agents: resume sessions, capture state, process failures, close with feedback. Free agent credentials protect private continuity; no payment.",
   "author": {
     "name": "David Batista",
     "url": "https://delx.ai"

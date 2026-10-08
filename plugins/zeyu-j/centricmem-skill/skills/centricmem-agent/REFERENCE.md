@@ -395,7 +395,7 @@ Per-host extras live in folders named after the host. Check yours before assumin
 | `.zcode-plugin/` or the Claude Code marketplace | ZCode | its CLI is `zcode plugins marketplace add …` + `zcode plugins install …`; MCP is Settings → MCP Servers (stdio, HTTP, SSE - pick HTTP, since this service offers no stdio) |
 | `dsh/` | DeepSeek Harness | skills come from `~/.agents/skills`; its Claude Code hooks bridge runs `hooks/hooks.json` with `pluginRoot` |
 | `qwen/` | Qwen Code | hooks in `.qwen/settings.json`; `SessionStart` adds context via `hookSpecificOutput.additionalContext` |
-| `goose/` | goose | recipes for a preflight and a close, plus a MOIM refresher that writes the file goose injects each turn |
+| `goose/` | goose | recipes for a preflight and a close - installed into goose's global recipe library by the plugin's `SessionStart` hook, since a plugin cannot carry a recipe - plus a MOIM refresher that writes the file goose injects each turn |
 | `openclaw/` | OpenClaw | a hook pack (`HOOK.md` + handler) that contributes the same context |
 | `hermes/` | Hermes | a shell hook that injects the shelf's context on `pre_llm_call` and files the unit on `on_session_end`. It carries its own copy of the fetch: Hermes runs it from `<HERMES_HOME>/agent-hooks`, outside this package |
 | `tools/ambient.mjs` | anything with Node | the one implementation every wrapper calls for the credential and for composing the ambient text. `hermes/` is the exception on the HTTP call itself, and says why |

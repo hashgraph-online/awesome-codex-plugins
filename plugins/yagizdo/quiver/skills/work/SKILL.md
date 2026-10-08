@@ -16,7 +16,7 @@ when-to-use: "user wants to execute a saved plan or implement tasks step by step
 ```
 
 ```
-!`git log --oneline -5 2>/dev/null || echo "NO_GIT"`
+!`git log --oneline -5 2>/dev/null || echo "NO_COMMITS"`
 ```
 
 ```
@@ -151,8 +151,9 @@ Verification: test <command | none (<reason>)>, build <command | none (<reason>)
 
 The orchestrator copies the test value into every brief's `Test command:` line. `none` is printed as-is and carried forward -- it is never replaced by a guess.
 
-Then split on the task count:
+Then choose the path; the first line that matches wins:
 
+- **No commit yet** (the `git log` gather block printed `NO_COMMITS`, which it also prints outside a git repository): Sequential, whatever the task count. The Reason line says the repository has no commit yet, or that there is no git repository when Phase 0 detected `NO_GIT`. The working branch does not resolve until a first commit exists, and outside a repository there is no branch at all, so every worktree subagent's first step -- switching to that branch -- would come back BLOCKED. In a repository, the commits Phase 3 makes give the next run a base to orchestrate from.
 - **1-2 tasks:** Sequential. Proceed to Phase 3 with the verification command resolved above. The ledger below is orchestration-path-only; the sequential path keeps TodoWrite unchanged and writes nothing to disk.
 - **3+ tasks:** Parallel orchestration. Resolve the workspace and check for a ledger (below), then follow `skills/work/orchestrator.md`. Skip Phase 3 entirely -- orchestration replaces it.
 
@@ -264,7 +265,7 @@ If Phase 1 identified this as a review-fix plan and the review report was succes
    Review-Fix Cycle Status: Iteration {review_iteration} | Findings {addressed}/{total_in_scope} | Criteria {met}/{total_criteria} | COMPLETE
    ```
 
-<!-- SYNC: This verification parses the report format defined in skills/review/SKILL.md, section `### Synthesized report structure`. If the report structure changes, update the parsing logic here. New sections (What's Working Well, Recommended Fix Order, Senior Assessment) are additive and do not affect this parsing. -->
+<!-- SYNC: This verification parses the report format defined in skills/review/SKILL.md, section `### Synthesized report structure`. If the report structure changes, update the parsing logic here. It reads each finding's severity, file path, title, and text, and nothing else: the What's Working Well, Recommended Fix Order and Senior Assessment sections, each finding's `Disposition:` line, the `Dispositions:` line in Review Context, the `**Deferred:**` line, and the `Fix corrected:`, `Fix flagged:` and `No verified fix` notes are invisible to it. A Critical marked Not addressed blocks in item 5 whatever its disposition. -->
 
 #### 4d -- Optional: Agent-assisted review
 
@@ -331,6 +332,7 @@ Summarize:
 - Link to the PR (if one was created)
 - Any follow-up work needed or remaining tasks, including every task accepted after three failed attempts and every discovered edit the group announcements printed (file and reason), so a change outside the plan's file lists is visible before the PR
 - The test-first tally, one line: `TDD: <n> red-verified, <m> skipped (<distinct reasons>)`. The sequential path counts the lines Phase 3 printed; the orchestration path counts the `TDD` lines the group-completion announcements printed. Include this line whenever the run implemented anything.
+- The Phase 2.5 lines, verbatim: `Strategy:`, `Reason:`, and `Verification:` as resolved. They are the only record of which path ran and whether the test command came from the rule or a guess, and a prose restatement ("no test script") drops the source. Include them whenever the run reached Phase 2.5.
 
 This summary ends `/work`. It does not end the turn when another skill loaded `/work` through the Skill tool -- `/ship` does, and continues into its verification here -- because that skill's instructions are still in this conversation and its next step runs now. Before ending the turn on this summary, check whether a skill invoked `/work` and follow its continuation step.
 

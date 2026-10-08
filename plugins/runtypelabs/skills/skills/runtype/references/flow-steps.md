@@ -1,4 +1,4 @@
-# Flow Steps: Selection and Pitfalls
+# Flow steps: selection and pitfalls
 
 Use `get_build_instructions(task="generate-flow")` for design and
 `get_platform_documentation(topic="flow-step-types")` for the current catalog.

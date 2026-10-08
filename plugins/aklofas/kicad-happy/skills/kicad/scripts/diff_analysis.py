@@ -1230,7 +1230,7 @@ def format_text(output):
     risk = diff.get("risk_score", {})
     if risk:
         lines.append(f"EMC Risk Score: {risk.get('base', '?')} → {risk.get('head', '?')} "
-                      f"(delta {risk.get('delta', 0):+d})")
+                      f"(delta {risk.get('delta', 0):+.1f})")
         lines.append("")
 
     remaining = total - shown

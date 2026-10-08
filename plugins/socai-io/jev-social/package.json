@@ -1,6 +1,6 @@
 {
   "name": "jev-social",
-  "version": "0.1.8",
+  "version": "0.1.13",
   "description": "Jev-directed Instagram, TikTok, and LinkedIn browser operations through the socai CLI",
   "type": "module",
   "bin": {
@@ -43,11 +43,11 @@
     "dev": "node --watch ./bin/jev-social.js serve --no-open",
     "benchmark:run": "node ./benchmark/run.js",
     "benchmark:summarize": "node ./benchmark/summary.js",
-    "check": "node --check ./bin/jev-social.js && node --check ./benchmark/run.js && node --check ./benchmark/schema.js && node --check ./benchmark/summary.js && node --check ./src/server.js && node --check ./src/decision-provider.js && node --check ./src/evidence.js && node --check ./src/report.js && node --check ./public/app.js && node --check ./public/evidence-preview.js && node --check ./public/run-route.js && node --check ./public/report-download.js && node --check ./public/report-stream.js && node --check ./public/prompts.js && node --check ./public/status.js",
+    "check": "node --check ./bin/jev-social.js && node --check ./benchmark/run.js && node --check ./benchmark/schema.js && node --check ./benchmark/summary.js && node --check ./scripts/verify-release.js && node --check ./src/server.js && node --check ./src/decision-provider.js && node --check ./src/evidence.js && node --check ./src/report.js && node --check ./public/app.js && node --check ./public/evidence-items.js && node --check ./public/evidence-preview.js && node --check ./public/run-route.js && node --check ./public/report-download.js && node --check ./public/report-stream.js && node --check ./public/prompts.js && node --check ./public/status.js && node --check ./public/view-focus.js",
     "test": "node --test"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "keywords": [
     "jev",

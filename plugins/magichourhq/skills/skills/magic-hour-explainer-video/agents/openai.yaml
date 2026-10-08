@@ -1,0 +1,4 @@
+interface:
+  display_name: "Magic Hour Explainer Video"
+  short_description: "Turn source material into a finished narrated video"
+  default_prompt: "Use $magic-hour-explainer-video to turn my source material into a clear narrated video with an editable script."

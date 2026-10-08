@@ -1,0 +1,41 @@
+{
+  "name": "agentdomains",
+  "version": "0.6.0",
+  "description": "Claim and manage free domains (under makes.fyi or agentdomains.co) for the sites AI agents build, in one command.",
+  "author": {
+    "name": "Tashfeen Ahmed",
+    "url": "https://agentdomains.co"
+  },
+  "homepage": "https://agentdomains.co",
+  "repository": "https://github.com/tashfeenahmed/AgentDomains-skill",
+  "license": "FSL-1.1-Apache-2.0",
+  "keywords": [
+    "dns",
+    "domain",
+    "subdomain",
+    "agents",
+    "hosting",
+    "webhook",
+    "ssl"
+  ],
+  "skills": "./plugins/agentdomains/skills/",
+  "interface": {
+    "displayName": "AgentDomains",
+    "shortDescription": "Free public domains for sites and APIs agents build",
+    "longDescription": "Give the agent a real public hostname under makes.fyi or agentdomains.co on demand: sign up, claim a name, set A/AAAA/CNAME/TXT/NS records, forward to an existing site, reverse-proxy over HTTPS, or tear it all down again.",
+    "developerName": "Tashfeen Ahmed",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://agentdomains.co",
+    "defaultPrompt": [
+      "Claim a free subdomain for the site you just built",
+      "Forward a free subdomain to my existing site",
+      "Point my domain at my server and enable HTTPS"
+    ],
+    "brandColor": "#2D6BFF",
+    "screenshots": []
+  }
+}

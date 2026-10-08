@@ -55,16 +55,22 @@ the row passes; the remaining rows are still yours to review by hand.
 | Row | Code                                  | What fires it                                                                                                                                            |
 | --- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | `RESERVED_TOOL_NAME`                  | A runtime tool's sanitized name collides with the platform's `runtype_set_state`                                                                         |
-| 4   | `TOOL_PARAM_EMBEDDED_JSON_STRING`     | A string parameter's name or description says it carries a JSON document, so the model nests JSON in a string and drops escapes; model it as an object   |
-| 5   | `OPTIONAL_PARAM_IN_TOOL_TEMPLATE`     | An optional parameter is interpolated into an `external` tool's url, header, or body with no default, so an omitted argument ships a literal placeholder |
-| 10  | `TOOL_CALL_STEP_UNKNOWN_CATALOG_TOOL` | A `tool-call` step names a catalog tool id that nothing answers to                                                                                       |
-| 11  | `UPSERT_RECORD_SOURCE_NOT_JSON`       | A string-producing step feeds `upsert-record`, which needs a JSON object                                                                                 |
-| 17  | `FETCH_CLASS_SWALLOWING_FEED`         | A fetch-class step with unset `errorHandling` feeds a transform or record write, so a dead API reads as an empty result                                  |
 | 3   | `TOOL_STRATEGY_REQUIRED_MULTISTEP`    | Forced tool choice on a multi-step prompt, which returns empty output                                                                                    |
 | 3   | `TOOL_STRATEGY_NONE_WITH_TOOLS`       | Tools attached but `toolCallStrategy: "none"` forbids calling any of them                                                                                |
 | 3   | `PROVIDER_TOOLS_MIXED_OWNERS`         | Provider-native tools from two providers on one step; only the first-listed owner's tools run, the rest go inert                                         |
+| 4   | `TOOL_PARAM_EMBEDDED_JSON_STRING`     | A string parameter's name or description says it carries a JSON document, so the model nests JSON in a string and drops escapes; model it as an object   |
+| 5   | `OPTIONAL_PARAM_IN_TOOL_TEMPLATE`     | An optional parameter is interpolated into an `external` tool's url, header, or body with no default, so an omitted argument ships a literal placeholder |
+| 10  | `TOOL_CALL_STEP_UNKNOWN_CATALOG_TOOL` | A `tool-call` step names a catalog tool id that nothing answers to                                                                                       |
+| 17  | `FETCH_CLASS_SWALLOWING_FEED`         | A fetch-class step with unset `errorHandling` feeds a transform or record write, so a dead API reads as an empty result                                  |
 | 30  | `RUNTIME_TOOLS_INVALID`               | The `runtimeTools` block fails structural validation, including a reserved name                                                                          |
 
-Enforced at runtime rather than at save time: the 30 s tool timeout (row 26), the
-50-tool request cap and `tool_search` activation at 20 (row 39), `{{secret:KEY}}`
-resolution (row 30), `hiddenParameterNames` (row 35), and approval gates (row 37).
+`create_tool` and `update_tool` also return `validation.warnings` and
+`validation.recommendations` (row 4's embedded-JSON advisory among them). The save
+succeeds either way, so read the response.
+
+Enforced at runtime rather than at save time: tool timeouts (row 26; 30 s for runtime
+custom tools, longer for saved custom, MCP, and subagent tools), the `idempotent` flag
+and MCP `idempotentHint` / `readOnlyHint` on interrupted turns (row 28), the 50-tool
+request cap (row 39; multi-turn agents defer inline tools at 20+), `{{secret:KEY}}`
+resolution (row 30), `hiddenParameterNames` with `_endUser` or `_tenant` (rows 34 and
+35), and approval gates (row 37).

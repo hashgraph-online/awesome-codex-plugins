@@ -1,0 +1,44 @@
+{
+  "name": "chatgpt-agent",
+  "version": "1.0.0",
+  "description": "Use ChatGPT as a reviewer, advisor, editor, or implementer in Codex.",
+  "author": {
+    "name": "TohmaN233",
+    "url": "https://github.com/TohmaN233"
+  },
+  "homepage": "https://github.com/TohmaN233/chatgpt-review-agent-skill",
+  "repository": "https://github.com/TohmaN233/chatgpt-review-agent-skill",
+  "license": "MIT",
+  "keywords": [
+    "chatgpt",
+    "codex",
+    "code-review",
+    "planning",
+    "skills"
+  ],
+  "skills": "./skills/",
+  "onboardingSkill": "./skills/chatgpt-agent-setup/SKILL.md",
+  "interface": {
+    "displayName": "ChatGPT Agent",
+    "shortDescription": "Use ChatGPT in Codex",
+    "longDescription": "Use ChatGPT as a reviewer, advisor, editor, or implementer in Codex. ZIP is the default route for local files and needs no Bridge or Connector. MCP is available only when you explicitly choose it for a workspace.",
+    "developerName": "TohmaN233",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Review code and documents",
+      "Plan work",
+      "Edit prose",
+      "Implement software changes"
+    ],
+    "websiteURL": "https://github.com/TohmaN233/chatgpt-review-agent-skill",
+    "supportURL": "https://github.com/TohmaN233/chatgpt-review-agent-skill/issues",
+    "defaultPrompt": [
+      "Review these changes for correctness and regressions.",
+      "Plan an approach to this task.",
+      "Edit this document while preserving its voice."
+    ],
+    "brandColor": "#1D4ED8",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg"
+  }
+}

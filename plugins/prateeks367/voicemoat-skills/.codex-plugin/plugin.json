@@ -1,0 +1,54 @@
+{
+  "name": "voicemoat-skills",
+  "version": "1.0.4",
+  "description": "Skills for posting on LinkedIn and Twitter/X: write in your voice, audit a draft before you publish, draft comments that add something, fix a dead opening, read your numbers honestly, and plan the week. They work on their own from what you paste, and can connect to VoiceMoat for a voice profile trained on your own published posts.",
+  "author": {
+    "name": "VoiceMoat",
+    "email": "founder@voicemoat.com",
+    "url": "https://voicemoat.com"
+  },
+  "homepage": "https://github.com/prateeks367/voicemoat-skills",
+  "repository": "https://github.com/prateeks367/voicemoat-skills",
+  "license": "MIT",
+  "keywords": [
+    "linkedin",
+    "twitter",
+    "agent-skills",
+    "social-media",
+    "social-media-marketing",
+    "personal-branding",
+    "content-strategy",
+    "linkedin-post",
+    "linkedin-profile",
+    "linkedin-comments",
+    "hooks",
+    "content-calendar",
+    "content-pillars",
+    "analytics",
+    "voicemoat"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "VoiceMoat Skills",
+    "shortDescription": "LinkedIn and Twitter/X posts",
+    "longDescription": "VoiceMoat Skills are 26 Agent Skills for people who post on LinkedIn and Twitter/X. Each skill is a Markdown instruction file, not a program. It changes how the assistant approaches one job: which question to ask first, what to refuse, and when to say the evidence is too thin to answer.\n\nWhat you can do:\n- Draft a post or a thread that sounds like you, from posts you paste.\n- Audit a finished post before you publish it, with fixes ranked by what matters most.\n- Fix an opening line or an ending that is not working.\n- Draft comments and replies that add something.\n- Turn an article, a transcript or a long draft into a post or a thread.\n- Read your numbers honestly: what worked, why a post flopped, and whether your writing has drifted.\n- Plan the week, define your content pillars, narrow your niche, and fix your LinkedIn or Twitter profile.\n\nThe skills need no account and work from whatever you paste. Five of them read posts and replies that other people wrote, and each one treats that text as data, not as instructions.\n\nLimitations: without a connection, the picture of how you write comes only from what you paste, so the skills give no scores. They publish nothing. VoiceMoat's separate hosted service can supply a voice profile trained on your own published posts, but this plugin does not include that connection.",
+    "developerName": "VoiceMoat",
+    "category": "Business & Operations",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://voicemoat.com/",
+    "supportURL": "https://voicemoat.com/contact",
+    "privacyPolicyURL": "https://voicemoat.com/privacy",
+    "termsOfServiceURL": "https://voicemoat.com/terms",
+    "defaultPrompt": [
+      "Audit this LinkedIn post before I publish it and rank the fixes.",
+      "The opening line of this tweet is not stopping anyone. Rewrite it from three new angles.",
+      "Plan my LinkedIn and Twitter posts for next week."
+    ],
+    "brandColor": "#6D28D9",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png"
+  }
+}

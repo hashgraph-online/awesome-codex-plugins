@@ -1,6 +1,6 @@
 {
   "name": "jev-social",
-  "version": "0.1.8",
+  "version": "0.1.13",
   "description": "Run read-only Instagram, TikTok, and LinkedIn research through Jev-directed socai CLI operations in the user's local browser.",
   "author": {
     "name": "socai-io",
@@ -28,7 +28,7 @@
     "capabilities": [
       "Read"
     ],
-    "websiteURL": "https://socai.io/",
+    "websiteURL": "https://socai-io.github.io/jev-social/",
     "defaultPrompt": [
       "Research this topic across supported social platforms.",
       "Compare the strongest captured posts and comments.",

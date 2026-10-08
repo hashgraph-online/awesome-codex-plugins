@@ -20,6 +20,7 @@ the [Publora API](https://publora.com) for posting tweets and threads.
 - **Adapting content from another platform into a native X post or thread** -> use `x-repurposer`
 - **Auditing and rewriting your X profile (bio, name, header, pinned tweet)** -> use `x-profile-optimizer`
 - **Reading your X audience and niche from real data (your tweets, repliers, competitors, top tweets)** -> use `x-audience-insights`
+- **Working out what you actually have to say, or having nothing concrete for a draft to use** -> use `x-humanizer --mode interview`. It interviews you and fills the Story Bank every writing skill reads before drafting.
 
 ## Core pattern
 
@@ -125,6 +126,8 @@ choice, not a URL distinction.
 
 - [Publora API docs](https://docs.publora.com) - endpoint reference for the publishing layer
 - `lib/publora_client.py` - thin Python client used by every writing skill
+- `references/story-bank.md` - what you have to say, filled by the interview
+- `references/voice-profile.md` - how you sound, filled by `--mode profile`
 - `lib/url_parser.py` - X URL to handle/tweet-id parser
 
 ## Acknowledgments

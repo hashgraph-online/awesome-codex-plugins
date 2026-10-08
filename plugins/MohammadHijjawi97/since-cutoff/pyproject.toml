@@ -1,0 +1,95 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "since-cutoff"
+dynamic = ["version"]
+description = "Find which dependency APIs your code uses changed after your coding model's training cutoff, and write short AGENTS.md notes from the API diff, each with its source."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+authors = [{ name = "Mohammad Hijjawi", email = "mohammad.hijjawi1997@gmail.com" }]
+keywords = [
+    "llm",
+    "coding-agents",
+    "claude-code",
+    "codex",
+    "agents-md",
+    "knowledge-cutoff",
+    "api-changes",
+    "mcp",
+    "mcp-server",
+    "static-analysis",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "basedpyright>=1.20",
+    "griffe>=1.14",
+    "mcp>=2.0",
+    "packaging>=23.0",
+    "rich>=13.7",
+    "tomli>=2.0; python_version < '3.11'",
+]
+
+[project.urls]
+Homepage = "https://github.com/MohammadHijjawi97/since-cutoff"
+Issues = "https://github.com/MohammadHijjawi97/since-cutoff/issues"
+Changelog = "https://github.com/MohammadHijjawi97/since-cutoff/blob/main/CHANGELOG.md"
+
+[project.scripts]
+since-cutoff = "since_cutoff.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8", "pytest-cov>=5", "hypothesis>=6.100", "ruff>=0.6", "mypy>=1.11"]
+
+[tool.hatch.version]
+path = "src/since_cutoff/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/since_cutoff"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src", "tests", "README.md", "LICENSE", "CHANGELOG.md"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+markers = [
+    "network: needs internet access (PyPI, models.dev)",
+    "pyright: runs the basedpyright type checker",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "tests"]
+# The example project is scanned by since-cutoff, not linted: it keeps its imports as they are.
+extend-exclude = ["examples"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "PTH", "C4"]
+ignore = ["E501", "RUF001", "RUF002", "RUF003"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+warn_unused_ignores = true
+files = ["src/since_cutoff"]
+
+[[tool.mypy.overrides]]
+module = ["griffe.*", "tomli", "basedpyright"]
+ignore_missing_imports = true

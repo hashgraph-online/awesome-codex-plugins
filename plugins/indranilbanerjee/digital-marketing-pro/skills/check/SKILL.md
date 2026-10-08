@@ -2,15 +2,7 @@
 name: check
 description: "Run the unified pre-publish quality gate on marketing content — wraps scripts/eval-runner.py to score hallucination risk, claim substantiation (with --evidence), brand-voice fit (with --brand), structure (with --schema), content quality, and readability, plus a C2PA provenance check for AI assets in EU-targeted campaigns; returns a composite score with a PASS / WARN / BLOCKED decision and per-issue fix suggestions. Reports only — it never edits the content. Triggers on \"/digital-marketing-pro:check\", \"is this safe to publish\", \"run a hallucination check on this draft\", \"validate this copy against the brand voice\", \"pre-publish quality gate\". Resolves the active brand profile automatically; pairs with /digital-marketing-pro:c2pa-metadata to fix missing manifests."
 user-invocable: true
-triggers:
-  - check this content before publishing
-  - run the eval suite on this draft
-  - validate this marketing copy
-  - pre-publish quality gate
-  - hallucination check
-  - dm check
-  - eval my content
-  - is this safe to publish
+argument-hint: "<file-or-content> [--full|--compliance] [--brand <slug>] [--evidence <path>] [--schema <name>]"
 allowed-tools: Read Bash Glob Grep
 ---
 
@@ -143,6 +135,12 @@ Decision: PASS — safe to publish but address WARNINGs first
 ```
 
 If any CRITICAL issue is found, decision = **BLOCKED** and the user is asked to fix before publishing.
+
+### Decision rules
+
+- **PASS** — no CRITICAL issues and the composite score is above the auto-reject threshold (`auto_reject_threshold`, default 40)
+- **WARN** — no CRITICAL issues but at least one WARNING; the user should address it before publishing
+- **BLOCKED** — at least one CRITICAL issue (e.g. placeholder URL, fabricated statistic in a headline, missing required disclaimer for a regulated industry, missing C2PA provenance manifest on an AI-generated asset in an EU-targeted campaign); the content cannot publish until fixed
 
 ## AI-tell scans (advisory section, never scored)
 

@@ -1,8 +1,21 @@
 # Section 37(4) — Breach Notification (72 hours)
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 
 Thailand PDPA's breach notification obligation lives in a single dense paragraph of s37. The 72-hour clock makes preparation in advance non-negotiable.
+
+## Contents
+
+- Section 37(4) — The rule
+- What constitutes a breach
+- Risk-to-rights-and-freedoms assessment
+- What to file with PDPC
+- Notifying affected data subjects (high-risk breach)
+- Tech-measure exception?
+- Vendor / sub-processor breaches
+- Records and audit
+- Penalty exposure
+- Operational checklist (incorporate into the runbook)
 
 ## Section 37(4) — The rule
 

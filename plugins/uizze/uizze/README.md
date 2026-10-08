@@ -12,9 +12,9 @@
 
 ## Watch UIZZE before and after
 
-30-second mobile UI comparison: **No skills** on the left, **MCP + Skills** on the right.
+20-second mobile UI comparison: **Without UIZZE** on the left, **With UIZZE** on the right.
 
-https://github.com/user-attachments/assets/0137638f-d963-4e6b-a1a6-d7e2dce87600
+https://github.com/user-attachments/assets/d7ee2275-8e7f-474c-a2e4-b45759b86996
 
 [**Build your next screen with UIZZE →**](https://uizze.com/?utm_source=github&utm_medium=repository&utm_campaign=discovery&utm_content=readme_video)
 

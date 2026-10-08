@@ -9,46 +9,67 @@ argument-hint: '[Runtype goal or setup question]'
 
 Runtype is a platform for shipping AI products: agents, flows, tools, surfaces, records,
 schedules, evals, and product templates. Use this skill as the entry point when the user
-is asking about Runtype broadly or needs help connecting an agent to the platform.
+asks about Runtype broadly or needs help connecting an agent to the platform.
 
-This skill is intentionally a router. For implementation work, switch to the narrower
-skill that matches the job.
+This skill is a router. For implementation work, switch to the narrower skill that
+matches the job.
 
-## First Move
+## Start with live context
 
-If the Runtype MCP server is available, use it as the live source of truth before giving
-schema, catalog, or creation guidance:
+**If the Runtype MCP tools are available**, use them as the source of truth before you
+give schema, catalog, or creation guidance:
 
 - `get_build_instructions(task="explain-capabilities")` for scoping.
-- `get_build_instructions(task="build-product")` before product construction.
-- `get_build_instructions(task="generate-flow")` before flow construction.
+- `get_build_instructions(task="build-product")` before you build a product.
+- `get_build_instructions(task="generate-flow")` before you build a flow.
 - `get_platform_documentation(topic=...)` for schemas, surface traits, tool catalogs,
   SDK docs, Persona embed docs, dashboard links, and type definitions.
+- `search_documentation(query=...)` for how-to and conceptual questions. It returns an
+  answer with citations to doc pages.
 
-If MCP is not connected, check `runtype auth status` for stored login/signup state.
-If `RUNTYPE_API_KEY` is configured, verify it with `runtype auth whoami --no-tty` instead;
-`status` ignores environment credentials. Reuse valid authentication before resuming
-a stored pending signup using its `next` command. For a new account,
-use `runtype auth register --email <email>` then `runtype auth verify <code>` — both work
-without a TTY or browser. Do not run browser-only `runtype auth login` from a coding harness.
+**If the MCP tools are not available**, check for existing authentication:
 
-Run `runtype install-mcp` for the current harness, follow its action/restart status,
-and keep working through the CLI while MCP is unavailable (`runtype mcp tools` and
-`runtype mcp call <tool>` bridge the hosted tools). Use MCP once its tools actually appear;
-configuration alone does not prove the connection is active.
+- Run `runtype auth status` for a stored login or a pending signup.
+- If `RUNTYPE_API_KEY` is set, verify it with `runtype auth whoami --no-tty`. The
+  `status` command ignores environment credentials.
+- Reuse valid authentication. If a signup is pending, resume it with the `next` command
+  that `status` prints.
+
+Keep working through the CLI while MCP is unavailable: `runtype mcp tools` lists the
+hosted tools and `runtype mcp call <tool>` runs one. Use MCP after its tools appear in
+your session. A written configuration does not prove that the connection is active.
+
+**Only if the user asks for setup**, install or sign up:
+
+- **New account.** Run `runtype auth register --email <email>`, then ask the user for the
+  6-digit code from their email and run `runtype auth verify <code>`. Neither command
+  needs a TTY or a browser. Until the email is verified, the account is temporary, with
+  limited models and quota. If you registered without `--email`, send the code with
+  `runtype auth claim <email>`.
+- **Existing account.** Have the user set `RUNTYPE_API_KEY` in the environment, or run
+  `runtype auth login --api-key <key>` themselves. Credentials must not be pasted into the
+  conversation. Do not start the interactive browser login from a coding assistant.
+- **A narrower key.** Run
+  `runtype api-keys request --name <name> --scopes <list> --reason <text>` with the
+  narrowest scopes the task needs. The user approves the request in the dashboard, and the
+  CLI writes the key to a local key file. From MCP, call `request_api_key`, keep the
+  `codeVerifier` it returns, and redeem the approved request with `claim_api_key`. Its
+  default delivery stores the key as a Runtype secret and returns only a `{{secret:KEY}}`
+  reference, so the key is never shown in the conversation.
+- **MCP.** Run `runtype install-mcp` for the current coding assistant, follow the action
+  or restart it reports, then confirm the account with `runtype auth whoami --no-tty`.
 
 For installation or auth recovery, read the public setup script at
-`https://runtype.ai/.well-known/agent.md`; the raw auth protocol is at
-`https://runtype.com/auth.md`. Existing-account credentials must be configured privately,
-not pasted into the conversation. Only install or sign up when the user requests setup.
+`https://runtype.ai/.well-known/agent.md`. The raw auth protocol is at
+`https://runtype.com/auth.md`.
 
-## Route To Focused Skills
+## Route to a focused skill
 
 Use this routing table instead of loading every Runtype detail into context:
 
 | User intent                                                                                                                                                                                        | Use                       |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
-| Build, deploy, or validate a product with agents, flows, tools, surfaces, records, secrets, schedules, or evals                                                                                    | `runtype-build-product`   |
+| Build, deploy, or validate a product with agents, flows, tools, surfaces, records, secrets, schedules, evals, or Agent Skills                                                                      | `runtype-build-product`   |
 | Inspect or modify a live account, debug failures, read logs/traces, compare evals, manage resources                                                                                                | `runtype-admin`           |
 | Embed or theme a Persona chat widget, build fullscreen assistant layouts, use client tokens, or configure WebMCP/browser-side local tools                                                          | `runtype-persona`         |
 | Package a product as a distributable FPO template, handle pending secrets, validate import readiness                                                                                               | `runtype-templates`       |
@@ -56,7 +77,7 @@ Use this routing table instead of loading every Runtype detail into context:
 | Connect an agent that runs outside Runtype (Flue, Cloudflare Agents SDK, Vercel AI SDK, LangChain, custom): send its traces to Runtype, let Runtype call it, capture and improve it from real runs | `runtype-external-agents` |
 | Design or review the tools an agent calls (names, schemas, results, errors, idempotency, secrets, bundling), on Runtype or any MCP or function-calling runtime                                     | `tool-design`             |
 
-## Mental Model
+## Platform concepts
 
 - Product: the container the user ships.
 - Agent: an LLM with a system prompt and tools. Start here for most interactive products.
@@ -64,20 +85,25 @@ Use this routing table instead of loading every Runtype detail into context:
   paths that should be fast and cheap.
 - Tool: a typed callable, from built-ins, Orthogonal APIs, MCP servers, external HTTP,
   custom code, local SDK tools, flows, or subagents.
-- Surface: where users or machines reach the product, including `chat`, `api`, `mcp`,
+- Agent Skill: a versioned SKILL.md context bundle bound to a Runtype agent, which loads
+  it at run time through a `skill:<slug>` tool. It is a product feature, separate from
+  this coding-assistant skill. Read `get_platform_documentation(topic="agent-skills")`.
+- Surface: where users or machines reach the product, such as `chat`, `api`, `mcp`,
   `mcp_code`, `webhook`, `email`, `slack`, `schedule`, `sms`, `imessage`, `discord`,
-  `whatsapp`, `telegram`, `messaging`, `a2a`, and `hosted-page`.
-- Record: Runtype state and memory. It is not a replacement for the user's business
-  database.
-- Eval: surface-level or capability-level comparison. Prefer surface/product evals when
-  measuring user experience.
+  `whatsapp`, `telegram`, `messaging`, `a2a`, and `hosted-page`. For the current list,
+  read `get_platform_documentation(topic="surface-types")`.
+- Record: Runtype state and agent memory. Keep the source of truth for data that already
+  lives in another system there.
+- Eval: a saved set of test cases and graders that scores a flow or agent (an eval suite),
+  or a one-time batch that compares variants such as models or prompts. Surface evals in
+  the dashboard also cover routing and channel formatting end to end.
 - FPO template: the portable distribution format for a product.
 
 When a product has multiple capabilities on one conversational surface, Runtype can
 provision an orchestrator that routes each incoming message to the right capability.
-Treat surfaces and capabilities as many-to-many.
+Surfaces and capabilities are many-to-many.
 
-## Durable References
+## Reference files
 
 These local references are fallback context only. Prefer live MCP docs when available.
 
@@ -90,13 +116,18 @@ These local references are fallback context only. Prefer live MCP docs when avai
 - `references/working-modes.md` for dashboard, MCP, REST, SDK, and on-prem tradeoffs.
 - `references/recipes.md` for worked product shapes.
 
-## Do Not Do
+## Rules
 
 - Do not invent payload shapes. Fetch live docs or validate first.
-- Do not let this router grow into platform docs. If more detail is needed, fetch
-  `get_platform_documentation(topic="platform-catalog")` or a focused topic, then
-  read the relevant direct MCP resources when the docs point to them.
+- Keep this router short. When you need more detail, fetch
+  `get_platform_documentation(topic="platform-catalog")` or a focused topic, then read
+  the MCP resources that the docs point to.
 - Do not inline secret values. Use `{{secret:KEY}}` and pending-secret intake.
-- Do not store all customer data in records; keep the source of truth where it belongs.
+- Do not copy a whole customer database into records. Store what Runtype needs to
+  correlate and remember.
+- Set an explicit, enabled model on every agent and prompt step. Do not rely on account
+  defaults.
+- Do not report success before you validate (`validate_flow` or `validate_product`) and
+  run a safe test (`execute_agent` or `run_flow`). Say which paths you did not test.
 - Do not use Runtype for generic one-off LLM chat unless the user wants to ship a
   repeatable product or operational workflow.

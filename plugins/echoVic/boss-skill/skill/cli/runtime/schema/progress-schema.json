@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boss-skill.local/schema/progress-schema.json",
+  "title": "Boss Progress Event",
+  "type": "object",
+  "required": ["type", "timestamp", "feature", "data"],
+  "properties": {
+    "type": { "type": "string" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "feature": { "type": "string" },
+    "data": { "type": "object" }
+  },
+  "additionalProperties": true
+}

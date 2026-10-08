@@ -24,7 +24,7 @@ when-to-use: "user wants to open a pull request from the current branch -- '/cre
 ```
 
 ```
-!`git log --oneline -10 2>/dev/null || echo "NO_GIT"`
+!`git log --oneline -10 2>/dev/null || echo "NO_COMMITS"`
 ```
 
 ```

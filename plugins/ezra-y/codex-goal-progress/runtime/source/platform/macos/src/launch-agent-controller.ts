@@ -80,7 +80,7 @@ export function launchAgentPlist(
     programArguments: [helperPath, "serve"],
     environment: {
       GOAL_PROGRESS_ROOT: layout.applicationSupportRoot,
-      GOAL_PROGRESS_CODEX_COMMAND: resolve(codex.realAppPath, "Contents/Resources/codex"),
+      GOAL_PROGRESS_CODEX_APP_PATH: codex.realAppPath,
     },
     runAtLoad: true,
     keepAlive: true,

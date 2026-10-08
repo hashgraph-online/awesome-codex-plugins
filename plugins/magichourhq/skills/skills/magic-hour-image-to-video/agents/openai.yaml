@@ -1,0 +1,4 @@
+interface:
+  display_name: "Magic Hour Image to Video"
+  short_description: "Design a strong frame, then animate it"
+  default_prompt: "Use $magic-hour-image-to-video to turn my source image into a polished short video with controlled motion."

@@ -1,6 +1,6 @@
 ---
 name: unity-agent-workflows
-description: Use for AI-assisted Unity work that needs live repo discovery, project-derived routing, runtime-owner proof, runtime-visible output hard stops, runtime numeric proof for repeated visible-output failures, state-step guards, multi-agent scope ownership, modular C#/asmdef safety, UI/scene/visual asset gates, data-first content changes, validation, cleanup proof, or durable workflow rules. Best when agents must prove the actual folder/module/scene/prefab/runtime owner before editing, especially runtime UI, generated assets, code graphs, tutorial/state flows, guided selection/action flows, overlay/dim source-bound mistakes, coordinate conversions, focus/highlight/marker/HUD alignment, or repeated "fix still not visible" failures.
+description: Use for AI-assisted Unity work that needs live repo discovery, project-derived routing, runtime-owner proof, runtime-visible output hard stops, runtime numeric proof for repeated visible-output failures, state-step guards, multi-agent scope ownership, modular C#/asmdef safety, UI/scene/visual asset gates, data-first content changes, validation, cleanup proof, or durable workflow rules. Best when agents must prove the actual folder/module/scene/prefab/runtime owner before editing, especially runtime UI, generated assets, code graphs, tutorial/state flows, guided selection/action flows, overlay/dim source-bound mistakes, coordinate conversions, focus/highlight/marker/HUD alignment, predictive lead aiming, ballistic trajectories, spatial IoU verification, or repeated "fix still not visible" failures.
 license: MIT
 ---
 
@@ -33,6 +33,11 @@ AI contract for Unity work. Keep answers compact, but never remove exact paths, 
 | Same visible behavior requested across multiple scenes/surfaces, or words like "also", "after transition", "menu and gameplay", "preview and runtime", "scene A and scene B" | Multi-Surface Visible Behavior Lock; prove each surface owner, active caller, asset/factory dependency, and fallback behavior before editing any surface. |
 | Shared factory/helper/style/global method candidate for a scoped visible surface | Shared Caller Blast Radius Gate: prove allowed runtime caller(s), all other callers, and whether the patch is surface-local before editing. |
 | Overlay/dim source-bound mistakes | Prove source target bounds; overlay/dim/mask/blocker rects are destination output unless explicit marker proof exists. |
+| Predictive aim, turret targeting, ballistic trajectory with drag, collision tunneling, CCD, proportional navigation (TPN), physics movement | Kinematic predictive intercept, drag ballistics, and TPN equations in `references/runtime-numeric-proof.md`; solve 2nd-order quadratic intercept with CPA fallback. |
+| 2D game physics, 2D platformer jump apex/gravity, Rigidbody2D drag, Box2D tunneling/Continuous Collision Detection (CCD), 2D predictive lead intercept, 2D steering/TPN, 2D orthographic camera, ScreenToWorldPoint z-plane distance, RectTransform in Canvas 2D (Overlay camera null & World Space 1/PPU scale), 2D pixel-perfect PPU snapping, Tilemap cell-to-world pivot | 2D kinematic equations, Box2D drag damping, 2D parabolic jump kinematics ($g = 2h/t_{\text{apex}}^2$), Orthographic projection, 2D Canvas RectTransform invariants, 2D CCD raycast, and Tilemap half-tile pivot invariants in `references/coordinate-space-conversion.md` and `references/runtime-numeric-proof.md`. |
+| Offscreen pointer, behind-camera target, near-clip singularity, optical axis degeneracy, 3D bounds frustum clipping, CanvasScaler aspect drift, stretch anchor mismatch | Projective geometry, near-clip plane w <= 0 clamping, optical axis guard, Sutherland-Hodgman 3D near-plane clipping, CanvasScaler log formula, and RectTransform invariants in `references/coordinate-space-conversion.md`. |
+| Quaternion rotation flip, gimbal lock, Euler snap, rotational slerp/nlerp, symplectic physics stability | Quaternion antipodal shortest-path condition (q1·q2 < 0), small-angle Nlerp fallback, and Symplectic Euler integration in `references/runtime-numeric-proof.md`. |
+| Focus ring / UI overlay alignment precision, quantitative spatial verification | Intersection over Union (IoU >= 0.95) and sub-pixel tolerance in `references/runtime-numeric-proof.md`. |
 | Repeated visible-output mismatch after patch | Runtime numeric proof before another coordinate/layout/fallback patch. |
 | Multi-agent visible-output or state work | Sub-agent decision and permission gate first; main-agent scope lock before workers patch; checker must review. |
 | New/moved files, expanded C# responsibility, asmdef/module routing, hub deflation | Project-derived routing, no fixed structure, hub stop gate. |
@@ -123,11 +128,14 @@ converted center/size:
 final drawn object:
 final drawn position:
 final drawn size/bounds:
+spatial IoU / threshold:
+center offset delta / tolerance:
+predictive intercept / ballistic roots / drag limit / quaternion antipodal check:
 runtime writer checked:
 validation:
 ```
 
-Missing source bounds, converted rect, or final drawn rect is FAIL; return a runtime probe plan only.
+Missing source bounds, converted rect, final drawn rect, or spatial IoU < 0.95 for UI / < 0.85 for HUD is FAIL; return a runtime probe plan only.
 
 Multi-Surface Visible Behavior Lock for the same visual behavior across scenes/surfaces:
 

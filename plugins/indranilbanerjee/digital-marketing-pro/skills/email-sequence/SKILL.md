@@ -43,6 +43,8 @@ Any brand sending at bulk volume (~5,000+ messages/day to a mailbox provider) mu
 - **Physical mailing address + accurate From/Reply-To identity** in every message (CAN-SPAM), and documented opt-in consent per jurisdiction (GDPR / CASL).
 - **List hygiene**: suppress hard bounces and inactive addresses; never send to purchased lists.
 
+For per-type email counts and cadence, the per-email blueprint, branching/exit/suppression rules, the per-email deliverability checklist, the deliverable layout, and the after-sequence follow-up menu, read `sequence-blueprint.md` beside this file.
+
 ## Output
 
 A complete email sequence containing:

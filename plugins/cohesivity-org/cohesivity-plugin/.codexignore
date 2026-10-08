@@ -1,0 +1,5 @@
+# Files Codex does not need from the Cohesivity plugin package.
+.DS_Store
+*.log
+node_modules/
+.cohesivity

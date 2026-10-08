@@ -1,0 +1,42 @@
+{
+  "name": "codex-agents-workflow",
+  "version": "1.1.1",
+  "description": "A Codex MCP Extension workbench for reusable agent Workflows, Roles, Providers and recoverable Runs.",
+  "author": {
+    "name": "TohmaN233",
+    "url": "https://github.com/TohmaN233"
+  },
+  "homepage": "https://tgy233.top/tgypage/caw/",
+  "repository": "https://github.com/TohmaN233/codex-agents-workflow",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "orchestration",
+    "multi-agent",
+    "control-plane",
+    "external-models",
+    "workflow",
+    "skill-to-workflow"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Codex Agents Workflow",
+    "shortDescription": "Build and run agent workflows",
+    "longDescription": "Manage Workflows, Roles and Providers inside Codex through an MCP Extension workbench, with a separate settings view. Built-in Skill to Workflow and Build Workflow turn instructions into reusable task graphs. The local Host compiles mechanical fields, checks dependencies, schedules steps and records exact recovery state. Agent nodes receive the materials needed for their step; Main retains responsibility for verification and acceptance and waits for events when dependent work is pending. Export and install portable Workflow packages, inspect Run records, and resume interrupted work without automatically resubmitting completed tasks. A standalone browser console uses the same Host and configuration.",
+    "developerName": "TohmaN233",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://tgy233.top/tgypage/caw/",
+    "defaultPrompt": [
+      "Open the Workflow workbench inside Codex.",
+      "Turn this Skill into a reusable Workflow.",
+      "Review this change with my enabled reviewer Role."
+    ],
+    "logo": "./assets/icon.svg",
+    "composerIcon": "./assets/icon.svg"
+  }
+}

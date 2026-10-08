@@ -395,6 +395,10 @@ create accepted architecture memory from unexecuted ideas.
 
 ## Conditional Detailed Guidance
 
+For user-facing interface or interaction design, compose `ui-ux-governance`;
+carry scoped experience rules into the existing acceptance criteria. This skill
+retains design approval and handoff ownership.
+
 Conditional design probe, scenario profile, and workspace/spec documentation
 detail maps to explicit headings below.
 

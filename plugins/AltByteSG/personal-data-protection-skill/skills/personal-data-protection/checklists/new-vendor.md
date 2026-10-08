@@ -1,6 +1,6 @@
 # Checklist — Adding a New Sub-processor / Third-Party Vendor
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 
 Use when wiring up a new external service that will receive, process, or store user personal data (push notifications, email delivery, analytics, error tracking, payments, identity, etc.).
 

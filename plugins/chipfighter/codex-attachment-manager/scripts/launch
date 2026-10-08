@@ -1,0 +1,40 @@
+#!/bin/sh
+# Purpose: v0.1 - start one of the plugin's scripts (the MCP server, the command line) on macOS and Linux with a Node
+# that runs TypeScript directly (Node 24 or newer). Tries the Node runtimes that Codex ships first, then a node on PATH.
+# Codex runs this file for the plugin's MCP server (.mcp.json: ./scripts/launch); on Windows it finds launch.cmd.
+# Input: the script to run and its arguments. Output: whatever the script prints (the MCP stdio stream).
+set -eu
+
+if [ "$#" -lt 1 ]; then
+  printf '%s\n' 'codex-attachment-manager: missing script path' >&2
+  exit 64
+fi
+
+# Apps started from the desktop get a short PATH.
+PATH="${PATH:-/usr/bin:/bin}:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+export PATH
+
+cache_root=${XDG_CACHE_HOME:-${HOME:-}/.cache}
+codex_dir=
+case "${CODEX_CLI_PATH:-}" in
+  */*) codex_dir=${CODEX_CLI_PATH%/*} ;;
+esac
+for candidate in \
+  "${CODEX_MCP_NODE_PATH:-}" \
+  "${CODEX_BROWSER_USE_NODE_PATH:-}" \
+  "${CODEX_ELECTRON_RESOURCES_PATH:+$CODEX_ELECTRON_RESOURCES_PATH/cua_node/bin/node}" \
+  "${codex_dir:+$codex_dir/cua_node/bin/node}" \
+  "$cache_root/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node"
+do
+  if [ -n "$candidate" ] && [ -x "$candidate" ]; then
+    exec "$candidate" "$@"
+  fi
+done
+
+# A node of the user's own must be new enough to run TypeScript directly.
+if node_path=$(command -v node 2>/dev/null) && "$node_path" -e 'process.exit(Number(process.versions.node.split(".")[0]) >= 24 ? 0 : 1)' 2>/dev/null; then
+  exec "$node_path" "$@"
+fi
+
+printf '%s\n' 'codex-attachment-manager: no Node 24 or newer found; update Codex or install Node 24' >&2
+exit 127

@@ -29,6 +29,8 @@ River Review は、こうした問いに答えるためのフレームワーク�
 
 ⭐ AI 支援開発のレビュー運用に役立ちそうなら、[Star](https://github.com/s977043/river-review) で応援してください。更新を追えるほか、同じ課題を持つチームに River Review が届きやすくなります。
 
+River Review が向き合う課題、設計意図、PlanGate および Harness Engineering との関係は、[設計思想](docs/philosophy.md)にまとめています。
+
 ## なぜ River Review か
 
 | 軸               | 既存の AI レビューツール | River Review                                                 |
@@ -85,19 +87,21 @@ River Review には、レビューに特化した 3 つの実行形態があり�
 
 > **配布は 2 チャネル: 同梱プラグイン（Claude Code / Codex）と GitHub Actions**。River Review は npm パッケージを公開しません（プロジェクト方針）。コントリビューターはリポジトリ内で `npm run river -- ...` として CLI を実行できます（ローカルで試すなら `npm run river -- run . --dry-run`）。CLI は GitHub Action の実行エンジンでもあるため維持されます。
 
-| やりたいこと                               | 行き先                                                                                            |
-| ------------------------------------------ | ------------------------------------------------------------------------------------------------- |
-| 5分で試す                                  | [クイックスタート（GitHub Actions）](#クイックスタートgithub-actions)                             |
-| Claude Code / Codex プラグインとして入れる | [プラグインの導入](#river-review-プラグインの導入)                                                |
-| 既存リポジトリに導入する                   | [セットアップガイド](https://river-review.the3396.com/guides/github-actions/)                     |
-| 梱包済み Skill Pack で始める               | [Skill Pack を使う](pages/guides/use-skill-packs.md)                                              |
-| スキルを1個作る                            | [スキル作成チュートリアル](https://river-review.the3396.com/tutorials/creating-your-first-skill/) |
-| コストを見積もる                           | [コスト見積もりガイド](pages/guides/cost-estimation.md)                                           |
-| W チェック（二重レビュー）を使う           | [W チェックガイド](pages/guides/w-check.md)                                                       |
-| AI エージェントから使う                    | [エージェント連携ガイド](pages/guides/agent-workflow.md)                                          |
-| リポジトリ全体を踏まえたレビュー           | [リポジトリ全体レビューガイド](pages/guides/repo-wide-review.md)                                  |
-| コンセプトを理解する                       | [コンセプト解説](https://river-review.the3396.com/explanation/concept/)                           |
-| 設計思想を理解する                         | [アーキテクチャ解説](https://river-review.the3396.com/explanation/river-architecture/)            |
+| やりたいこと                               | 行き先                                                                                                                    |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| 5分で試す                                  | [クイックスタート（plugin-first）](https://river-review.the3396.com/guides/quickstart/)                                   |
+| Claude Code / Codex プラグインとして入れる | [プラグインの導入](#river-review-プラグインの導入)                                                                        |
+| 既存リポジトリに導入する                   | [セットアップガイド](https://river-review.the3396.com/guides/github-actions/)                                             |
+| 梱包済み Skill Pack で始める               | [Skill Pack を使う](pages/guides/use-skill-packs.md)                                                                      |
+| 用途別の定番レビューから始める             | [Starter Cookbook](pages/guides/starter-cookbook.md)                                                                      |
+| スキルを1個作る                            | [スキル作成チュートリアル](https://river-review.the3396.com/tutorials/creating-your-first-skill/)                         |
+| コストを見積もる                           | [コスト見積もりガイド](pages/guides/cost-estimation.md)                                                                   |
+| W チェック（二重レビュー）を使う           | [W チェックガイド](pages/guides/w-check.md)                                                                               |
+| AI エージェントから使う                    | [エージェント連携ガイド](pages/guides/agent-workflow.md)                                                                  |
+| リポジトリ全体を踏まえたレビュー           | [リポジトリ全体レビューガイド](pages/guides/repo-wide-review.md)                                                          |
+| CLI でレビューを計画・実行する             | [review plan 仕様](pages/reference/cli-review-plan-spec.md) / [review exec 仕様](pages/reference/cli-review-exec-spec.md) |
+| コンセプトを理解する                       | [コンセプト解説](https://river-review.the3396.com/explanation/concept/)                                                   |
+| 設計思想を理解する                         | [設計思想](docs/philosophy.md) / [アーキテクチャ解説](https://river-review.the3396.com/explanation/river-architecture/)   |
 
 開発手順は [docs/runbook/dev.md](docs/runbook/dev.md) を参照してください。ライセンスは [本ファイル末尾](#ライセンス) に記載しています。
 
@@ -143,71 +147,6 @@ skill を CI job のように扱ってください。
 
 良い skill には fixture と golden output を必ず付け、レビュー信号が実行コストに見合うかを測定できる状態にします。Anthropic provider 利用時は prompt caching が自動適用され、`RIVER_USAGE_TELEMETRY=1` で使用量を JSONL に永続化できます。
 
-<a id="philosophy"></a>
-
-## 📖 The Philosophy (なぜ作ったのか)
-
-> **We stopped believing "polish the prompt and you win."**
-> **「プロンプトを磨けば勝てる」をやめました。**
-
-AIレビューの実用化における最大の壁は、プロンプトの精度ではなく「レビュー指摘の再現性」と「運用コスト」でした。
-River Review は、単にコードをAIに読ませるツールではありません。
-
-チーム固有の「判断基準」や「手順」といった暗黙知を、**再利用可能な「Agent Skills（マニュアル付きの道具箱）」** として定義し、組織の資産として育てるための実験的フレームワークです。
-
-さらに、レビューの「自由度」をリスク階層で設計します。**リスク階層型の人間監督**（崖＝人間承認必須／丘＝期限付き観測／原っぱ＝自律収束と事後監査）により、実務に耐える再現性を確保します。
-
-要点は次の3つです。
-
-- **Agent Skills**: 暗黙知をレビュー資産として明示化し、継続的に改善できる状態にする。
-- **自由度の設計**: 崖・丘・原っぱのリスク設計で、AIの裁量と検証コストを制御する。
-- **リスク階層型の人間監督**: 崖・丘・原っぱへ監督を配分する（崖＝人間承認必須／丘＝期限付き観測／原っぱ＝自律収束と事後監査）。単体でも従来どおり使え、ループに組み込むとさらに強い。
-
-🔗 **Read the full story (Japanese):**
-[「プロンプトを磨けば勝てる」をやめた：AIレビューを運用に乗せる“Agent Skills”設計](https://note.com/mine_unilabo/n/nd21c3f1df22e)
-
-## フローのストーリー
-
-- **上流（設計）**: ADR を踏まえたチェックでコードのドリフトを防ぎ、アーキテクチャ判断との整合を保つ。
-- **中流（実装）**: スタイルと保守性のガードレールで日々のコーディングを支援する。
-- **下流（テスト/QA）**: テスト指向のスキルがカバレッジ不足や失敗パスを浮かび上がらせる。
-- **フェーズ指向ルーティング**: `phase` とファイルメタデータを見て、開発段階に合ったスキルを選択する。
-
-## ポジション: artifact-driven review agent
-
-River Review は **artifact-driven review agent** です。外部から渡されるアーティファクト（`plan` / `diff` / `test-cases` / `junit` ほか）を入力として読み取り、`findings` を含むレビュー結果を出力します。入力の契約は [Artifact Input Contract](pages/reference/artifact-input-contract.md) で、出力スキーマは [Review Artifact](pages/reference/review-artifact.md) で定義されています。
-
-現在の主な統合例は **PlanGate v6** との連携です。PlanGate が生成した `plan` / `pbi-input` アーティファクトを受け取り、設計整合性・実装適合性を専用スキルで検査します。
-
-### 4 つのユースケース
-
-- **設計レビュー**: `pbi-input` / `plan` を入力に、計画の整合性・網羅性を上流 skill で検査します（例: `skills/upstream/plangate-plan-integrity/`）。
-- **実装レビュー**: `plan` と `diff` を入力に、実装差分が計画と一致しているかを検査します（例: `skills/upstream/plangate-exec-conformance/`）。
-- **QA レビュー**: `test-cases` / `junit` / `coverage` を入力に、テストカバレッジや失敗パスの抜けを下流 skill で浮かび上がらせる。
-- **W チェック（二重レビュー）**: 既存の AI / 人間レビュー結果を `review-self` / `review-external` として渡し、レビューそのものを再点検する。
-
-### CLI 利用例
-
-詳細な仕様は [`river review plan` CLI 仕様](pages/reference/cli-review-plan-spec.md) / [`river review exec` CLI 仕様](pages/reference/cli-review-exec-spec.md) を参照してください。
-
-この CLI は npm へ公開しておらず、リポジトリを clone して `npm install` した開発者向けのサーフェスです。利用者向けの入口は GitHub Action と Claude Code / Codex プラグインになります。
-
-```bash
-# 設計レビュー: plan 単体を検査
-river review plan --artifact plan=./artifacts/plan.md
-
-# 実装レビュー: plan と diff の整合性を検査
-river review exec \
-  --artifact plan=./artifacts/plan.md \
-  --artifact diff=./artifacts/diff.patch
-
-# QA レビュー: テスト観点のアーティファクトを追加
-river review exec \
-  --artifact diff=./artifacts/diff.patch \
-  --artifact test-cases=./artifacts/test-cases.md \
-  --artifact junit=./artifacts/junit.xml
-```
-
 ## クイックスタート（GitHub Actions）
 
 `v1` タグを使った最小構成のワークフロー例です。`phase` は将来拡張を見据えた任意入力で、SDLC のフェーズごとにスキルを振り分けます。Permissions/fetch-depth などを明示して安定動作させます。
@@ -240,7 +179,7 @@ jobs:
 
 <!-- x-release-please-start-version -->
 
-最新リリース: [v1.124.5](https://github.com/s977043/river-review/releases/latest)
+最新リリース: [v1.126.0](https://github.com/s977043/river-review/releases/latest)
 
 <!-- x-release-please-end -->
 
@@ -424,7 +363,7 @@ river-review は同一リポジトリ内のマーケットプレイスから Cla
    /plugin marketplace add s977043/river-review
    ```
 
-   再現可能なインストールが必要ならタグを固定: `/plugin marketplace add s977043/river-review@v1.14.0`。
+   再現可能なインストールが必要なら、利用時点の具体的なリリースタグへ固定してください。
 
 2. プラグインをインストール:
 
@@ -462,7 +401,7 @@ Codex も Claude Code と同じプラグインマーケットプレイスに対�
 codex plugin marketplace add s977043/river-review
 ```
 
-再現可能なインストールが必要ならタグを固定します: `codex plugin marketplace add s977043/river-review@v1.14.0`。
+再現可能なインストールが必要なら、利用時点の具体的なリリースタグへ固定してください。
 
 Codex は skills と interface メタデータをリポジトリ同梱の `.codex-plugin/plugin.json`（Codex ネイティブ manifest）から読み込みます。マーケットプレイス追加時に、専門レビュー skill（`river-review-code` / `-security` / `-performance` / `-architecture` / `-testing` / `adversarial-review` / `-docs`）がネイティブに登録されます。
 

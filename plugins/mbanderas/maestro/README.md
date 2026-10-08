@@ -25,11 +25,10 @@
   <sub>1-8 local model CLIs &middot; catalog-first composition &middot; configurable judge and synthesizer &middot; zero dependencies &middot; plugin + portable installs</sub>
 </p>
 
-> **UPDATED — Opus 5, current Codex models, and effort control.** Run
-> `maestro frontier catalog` to see Claude Opus 5 plus the current
-> OpenAI/Codex selectors (GPT-5.6 Sol, Terra, Luna, GPT-5.5, GPT-5.4,
-> GPT-5.4 Mini, GPT-5.3 Codex Spark, and Codex Auto Review), their supported
-> effort levels, named presets, aliases, and local readiness. Compose a panel
+> **UPDATED — current Claude and Codex models, and effort control.** Run
+> `maestro frontier catalog` to see Opus 5.5, Fable 5.1, Sonnet 5, and Haiku 4.5,
+> plus GPT-6 Astra, Sol, and Luna, GPT-5.6 Terra, and retained Codex selectors;
+> check supported effort, named presets, aliases, and local readiness. Compose a panel
 > with `maestro frontier compose --models ... --effort <level>`; the catalog
 > never prints secret values or optional model overrides. Full walkthrough in
 > [The Frontier Engine](#the-frontier-engine).
@@ -205,7 +204,7 @@ Claude Code examples:
 ```text
 /maestro:frontier status                       # show current mode
 /maestro:frontier single opus                  # arm one-CLI auto-run
-/maestro:frontier fusion opus-gpt              # arm panel auto-run (Opus + GPT-5.5)
+/maestro:frontier fusion opus-gpt              # arm panel auto-run (Opus 5.5 + GPT-6 Sol)
 /maestro:frontier catalog                      # models, presets, aliases, readiness
 /maestro:frontier compose --models <model-a>,<model-b> --dry-run
 /maestro:frontier compose --models opus,sol --effort xhigh
@@ -237,11 +236,11 @@ skills appear in the slash list.
   <img src="assets/frontier-presets.svg" width="820" alt="Maestro Frontier fusion presets reference card">
 </p>
 
-`frontier catalog` is the source of truth for the current model and preset
-set, aliases, and local readiness; it avoids a static documentation inventory
-because configured providers differ by machine. Existing named presets remain
-supported, and custom saved presets still arm and run as before. Use the
-composer when you want a ready, explicit panel:
+`frontier catalog` is the source of truth for exact models, presets, aliases,
+effort, and local readiness; configured providers differ by machine. The
+selector table below summarizes the first-party options. Existing named
+presets remain supported, and custom saved presets still arm and run as before.
+Use the composer when you want a ready, explicit panel:
 
 ```text
 maestro frontier compose --models <model-a>,<model-b> [--judge <model>] [--synth <model>] [--effort <level>] [--save <name>] [--dry-run] [--scope <name>]
@@ -251,14 +250,18 @@ maestro frontier compose --models <model-a>,<model-b> [--judge <model>] [--synth
 `--save` both saves the named preset and arms the resolved custom panel. Without
 those flags, compose arms the resolved custom panel in the chosen scope.
 
-Current Opus and Codex selectors:
+Current Claude and Codex selectors:
 
 | Selector | CLI model ID | Supported effort |
 |---|---|---|
-| `opus` | `claude-opus-5` | `low`, `medium`, `high`, `xhigh`, `max` |
-| `sol` | `gpt-5.6-sol` | `low`, `medium`, `high`, `xhigh`, `max`, `ultra` |
+| `opus` | `claude-opus-5-5` | `low`, `medium`, `high`, `xhigh`, `max` |
+| `fable` | `claude-fable-5-1` | `low`, `medium`, `high`, `xhigh`, `max` |
+| `sonnet-5` | `claude-sonnet-5` | `low`, `medium`, `high`, `xhigh`, `max` |
+| `haiku` | `claude-haiku-4-5-20251001` | — |
+| `astra` | `gpt-6-astra` | `low`, `medium`, `high`, `xhigh`, `max` |
+| `sol` | `gpt-6-sol` | `low`, `medium`, `high`, `xhigh`, `max` |
 | `terra` | `gpt-5.6-terra` | `low`, `medium`, `high`, `xhigh`, `max`, `ultra` |
-| `luna` | `gpt-5.6-luna` | `low`, `medium`, `high`, `xhigh`, `max` |
+| `luna` | `gpt-6-luna` | `low`, `medium`, `high`, `xhigh`, `max` |
 | `auto-review` | `codex-auto-review` | `low`, `medium`, `high`, `xhigh`, `max`, `ultra` |
 | `gpt-5.5` | `gpt-5.5` | `low`, `medium`, `high`, `xhigh` |
 | `gpt-5.4` | `gpt-5.4` | `low`, `medium`, `high`, `xhigh` |
@@ -269,9 +272,11 @@ Frontier passes one persisted effort level to every selected Claude or Codex
 member that supports effort, including judge and synthesizer stages. It rejects
 an effort unsupported by any selected effort-aware model. Use
 `maestro frontier effort auto` to return the armed panel to provider defaults.
-Models without a declared effort interface keep their own defaults.
+Models without a declared effort interface keep their own defaults. Haiku has
+no effort flag, and GPT-6 offers no `none` or `ultra` effort in Maestro’s UI.
+Claude Code v2.1.280+ is required for Opus 5.5 and v2.1.257+ for Fable 5.1.
 
-Sol, Terra, and Luna work without model-ID configuration. Existing
+Astra, Sol, Terra, and Luna work without model-ID configuration. Existing
 `MAESTRO_FRONTIER_MODEL_SOL`, `MAESTRO_FRONTIER_MODEL_TERRA`, and
 `MAESTRO_FRONTIER_MODEL_LUNA` settings remain optional overrides for compatible
 custom Codex backends; the catalog never prints their values.

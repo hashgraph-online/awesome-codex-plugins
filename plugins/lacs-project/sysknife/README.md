@@ -7,7 +7,7 @@
 <h1 align="center">SysKnife</h1>
 
 <p align="center">
-  <em>Your sysadmin co-pilot. Plan. Approve. Audit.</em>
+  <em>The Linux sysadmin MCP server. Plan. Approve. Audit.</em>
 </p>
 
 <p align="center">
@@ -28,6 +28,7 @@
 </p>
 
 <p align="center">
+  <a href="#mcp-server">MCP server</a> ·
   <a href="#install">Install</a> ·
   <a href="#how-it-works">How it works</a> ·
   <a href="#why-not-just-x">Why not <em>X</em>?</a> ·
@@ -70,6 +71,39 @@ or regex is filtering a language rich enough to hide intent. SysKnife removes
 the shell string entirely: the model emits
 [typed actions](docs/typed-actions.md), and a
 [public-key-verifiable audit chain](docs/the-audit-chain.md) records every one.
+
+---
+
+## MCP server
+
+SysKnife is an MCP server first. Point Claude Code, Cursor or Codex CLI at it and
+your assistant gets typed, risk-classified sysadmin tools in place of a shell:
+
+| Tool | What it does |
+|---|---|
+| `sysknife_plan` | Turns plain language into typed steps, each with a risk level, a resolved command and a daemon transaction ID |
+| `sysknife_execute` | Runs steps that carry a one-time receipt, and nothing else |
+| `sysknife_history` | Reads past runs out of the signed audit log |
+| `sysknife_doctor` | Reports daemon, provider and audit-chain health |
+| `sysknife_audit_verify` | Walks the Ed25519 chain and says whether it is intact |
+| `sysknife_get_disk_usage`, and the rest of the read-only catalogue | Direct queries, selected for the distro you are on |
+
+```sh
+npx sysknife-setup
+```
+
+One command wires the server into your client and installs the daemon.
+[Install](#install) has the detail, and [MCP protocol](#mcp-protocol) has the
+wire behaviour.
+
+**Your assistant cannot approve its own work.** `sysknife_plan` hands back a
+transaction ID and stops there. The receipt `sysknife_execute` demands comes
+from `sysknife approve <transaction-id>`, typed in your terminal, on a channel
+the model does not sit on. Missing, expired, mismatched and replayed receipts
+are all refused.
+
+Prefer to stay in the shell? [The CLI](#prefer-the-terminal-the-cli-is-a-first-class-path)
+is the same engine with no client in front of it.
 
 ---
 
@@ -172,8 +206,9 @@ npx sysknife-setup --no-binary --daemon-mode=skip
 Whichever way you installed, there is one command for it.
 
 ```sh
-# Removes what the wizard installed: the user service, the binaries in
-# ~/.local/bin, and the MCP + agent config in the current directory.
+# Removes the user service, the binaries in ~/.local/bin, and the Claude Code
+# MCP + agent config in the current directory. A Cursor or Codex install also
+# wrote .cursor/ and ~/.codex/config.toml, and those are left in place (#526).
 npx sysknife-setup --uninstall
 
 # See exactly what that would touch, without touching it.
@@ -268,8 +303,8 @@ the other two route through.
 3. The shell shows the plan with previews, side-effects, and rollback
    metadata.
 4. You approve each step explicitly (or set `--yes` up to a risk ceiling).
-5. The daemon executes, streams live output, rolls back automatically on
-   high-risk failure.
+5. The daemon executes, streams live output, and rolls back atomic-host
+   (rpm-ostree) changes automatically on failure.
 6. Every execution is logged to a hash-chained SQLite or Postgres audit
    trail you can verify with `sysknife audit verify`.
 
@@ -292,7 +327,8 @@ mechanical: no shell strings cross the wire.
 
 SysKnife is different by construction: typed actions, an Ed25519-signed audit
 chain, explicit approval gate, automatic rollback for atomic-host (rpm-ostree)
-changes, polkit-mediated privilege boundary. The AI never holds a shell. See the
+changes, a privilege boundary scoped per action across sudo and polkit. The AI
+never holds a shell. See the
 full [SysKnife vs. alternatives](docs/comparison.md) breakdown (AIShell-Gate,
 gate-oc-audit, MCP gateways, generic mcp-shell).
 
@@ -315,7 +351,7 @@ milestone.
 | **Every Ubuntu LTS validated** — 22.04, 24.04 and 26.04 all at 79/79, each with a replay twin that reproduces it | ✅ |
 | Telegram approval interface | 📋 roadmap |
 
-**1,879 Rust tests and 72 frontend tests** form the current deterministic
+**1,943 Rust tests and 72 frontend tests** form the current deterministic
 release baseline.
 
 ## Configure your LLM

@@ -3894,6 +3894,7 @@ def check_layer_transition_stitching(pcb: Dict,
             dp_nets.add(pair.get('negative', ''))
 
     flagged_nets = set()
+    touch = _touch_nets(pcb)  # KH-410: touch-net transitions cross an intentional void
 
     for lt in layer_trans:
         net_name = lt.get('net', '')
@@ -3944,6 +3945,20 @@ def check_layer_transition_stitching(pcb: Dict,
         else:
             severity = 'LOW'
 
+        is_touch = net_name in touch
+        if is_touch:
+            recommendation = (
+                'Route the layer transition outside the touch-pad void and '
+                'keep it there; do not add stitching vias inside the void — '
+                'the ground clearance under a capacitive touch pad is intentional.'
+            )
+        else:
+            recommendation = (
+                f'Add a ground stitching via within {search_radius:.1f}mm '
+                f'of each signal via. Place the ground via adjacent to '
+                f'the signal via on the same pad cluster.'
+            )
+        extra = {'is_touch_net': True} if is_touch else {}
         findings.append(_make_finding(
             'return_path', severity, 'RP-001',
             title=f'Missing stitching via at layer transition: {net_name}',
@@ -3953,13 +3968,11 @@ def check_layer_transition_stitching(pcb: Dict,
                 f'{unstitched_count} transition(s) have no ground stitching '
                 f'via within {search_radius:.1f}mm. The return current must '
                 f'find an alternate path, creating a loop antenna.'
+                + (' The gap here is the intentional touch-pad void.' if is_touch else '')
             ),
             nets=[net_name],
-            recommendation=(
-                f'Add a ground stitching via within {search_radius:.1f}mm '
-                f'of each signal via. Place the ground via adjacent to '
-                f'the signal via on the same pad cluster.'
-            ),
+            recommendation=recommendation,
+            **extra,
         ))
 
         # Limit to avoid flooding output on large boards

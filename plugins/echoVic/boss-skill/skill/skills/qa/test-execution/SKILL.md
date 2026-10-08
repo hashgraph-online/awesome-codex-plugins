@@ -11,6 +11,8 @@ dependencies:
 triggers:
   - 需要执行测试时
   - 需要验证测试覆盖率时
+metadata:
+  internal: true
 ---
 
 # 测试执行方法

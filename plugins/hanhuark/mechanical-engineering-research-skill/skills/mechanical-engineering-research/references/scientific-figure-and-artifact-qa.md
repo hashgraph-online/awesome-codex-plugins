@@ -50,6 +50,17 @@ For Word/PDF:
 - check page count, headers/footers, broken glyphs, equations, cross-references, tracked changes/comments, metadata, and blank or clipped pages;
 - scan for placeholders, prompts, revision residue, and hidden instructions.
 
+## Default Word Format
+
+When creating or reformatting a Word document and no journal, sponsor, institutional, or user-supplied template controls the format, use the following default:
+
+- Times New Roman, 11 pt;
+- black text;
+- single line spacing; and
+- Word's Normal margins: 1 in (2.54 cm) on all sides.
+
+Treat this as the default document style, not as permission to override a supplied template or a target venue's requirements. Preserve deliberate exceptions needed for equations, figures, tables, captions, headers, footers, or accessibility.
+
 For spreadsheets:
 
 - inspect formulas, ranges, units, hidden sheets/rows, filters, named ranges, charts, error values, and source links;

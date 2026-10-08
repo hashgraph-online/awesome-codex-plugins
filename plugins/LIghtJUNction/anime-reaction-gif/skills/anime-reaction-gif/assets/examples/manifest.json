@@ -1,0 +1,182 @@
+{
+  "stage": "approved examples",
+  "user_taste_approval": "User approved all three prototypes before skill creation.",
+  "skill_creation": "Reusable skill packaged; GitHub publication is coordinated separately.",
+  "reference": "https://x.com/94vanAI/status/2105862317049336233?s=20",
+  "items": [
+    {
+      "gif": "grass-sneeze.gif",
+      "sha256": "f7831ad17e1f31735d541680c45099c3566d61386e7b3eca4f92e7ade5ba4cda",
+      "bytes": 615223,
+      "size": [
+        384,
+        384
+      ],
+      "frames": 31,
+      "duration_s": 2.58,
+      "loop": 0,
+      "source_sheet": "sources/grass-sneeze-sheet.png",
+      "source_sheet_sha256": "b516d286d9c46071cee390b927a1ff5334e5fc438c15a1b0324bdf32bb520e2c",
+      "source_sheet_size": [
+        1536,
+        1024
+      ],
+      "grid": [
+        3,
+        2
+      ],
+      "distinct_pose_cells": 6,
+      "sequence": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        0
+      ],
+      "hold_seconds": [
+        0.5,
+        0.3,
+        0.3,
+        0.15,
+        0.55,
+        0.45,
+        0.35
+      ],
+      "decoded_contact_frames": [
+        3,
+        8,
+        11,
+        14,
+        18,
+        24
+      ],
+      "frame_editing_tool": "FFmpeg only",
+      "decoded_first_last_png_identical": true,
+      "mp4": "grass-sneeze.mp4",
+      "mp4_sha256": "7cfbc1aece7b92b94461c3b25a8fba12a0af441dea9ff1fa68495a7784f12d9a",
+      "decoded_contact": "grass-sneeze-decoded-contact.png",
+      "mobile_preview": "grass-sneeze-mobile.png",
+      "generation_prompt_key": "grass_sneeze",
+      "identity_reference": null
+    },
+    {
+      "gif": "heart-hands.gif",
+      "sha256": "8a55810ba97ccdf89689c3c6cb31674d291a6ebb1bcaf2ed979526dcc71942d9",
+      "bytes": 607200,
+      "size": [
+        384,
+        384
+      ],
+      "frames": 31,
+      "duration_s": 2.58,
+      "loop": 0,
+      "source_sheet": "sources/heart-hands-sheet.png",
+      "source_sheet_sha256": "ba3f8f3377cb379cdd6ae1da7dec47e7ad81a342fc1a4b2fb4b502965d64698a",
+      "source_sheet_size": [
+        1536,
+        1024
+      ],
+      "grid": [
+        3,
+        2
+      ],
+      "distinct_pose_cells": 6,
+      "sequence": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        0
+      ],
+      "hold_seconds": [
+        0.4,
+        0.25,
+        0.25,
+        0.65,
+        0.3,
+        0.4,
+        0.35
+      ],
+      "decoded_contact_frames": [
+        2,
+        6,
+        9,
+        15,
+        20,
+        25
+      ],
+      "frame_editing_tool": "FFmpeg only",
+      "decoded_first_last_png_identical": true,
+      "mp4": "heart-hands.mp4",
+      "mp4_sha256": "836ab7d8784912ce99b877aeda6eca4b234adc797d5ed086c269cf31fda6bf3b",
+      "decoded_contact": "heart-hands-decoded-contact.png",
+      "mobile_preview": "heart-hands-mobile.png",
+      "generation_prompt_key": "heart_hands",
+      "identity_reference": "sources/grass-sneeze-sheet.png"
+    },
+    {
+      "gif": "pout-stomp.gif",
+      "sha256": "9a00b32e194fb85bc576aba86f794683f2b63612fd9e4685f2d21173c58a4ea2",
+      "bytes": 594796,
+      "size": [
+        384,
+        384
+      ],
+      "frames": 31,
+      "duration_s": 2.58,
+      "loop": 0,
+      "source_sheet": "sources/pout-stomp-sheet.png",
+      "source_sheet_sha256": "fff9094ac26d9559c7a926e23602809946a35f9494b19101ab2d4b00b9c28634",
+      "source_sheet_size": [
+        1536,
+        1024
+      ],
+      "grid": [
+        3,
+        2
+      ],
+      "distinct_pose_cells": 6,
+      "sequence": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        0
+      ],
+      "hold_seconds": [
+        0.4,
+        0.4,
+        0.15,
+        0.15,
+        0.5,
+        0.65,
+        0.35
+      ],
+      "decoded_contact_frames": [
+        2,
+        7,
+        10,
+        12,
+        16,
+        23
+      ],
+      "frame_editing_tool": "FFmpeg only",
+      "decoded_first_last_png_identical": true,
+      "mp4": "pout-stomp.mp4",
+      "mp4_sha256": "83e20689b52f288511ceadf7dbcc9e540a395639815d93da951fc7e2b11468b5",
+      "decoded_contact": "pout-stomp-decoded-contact.png",
+      "mobile_preview": "pout-stomp-mobile.png",
+      "generation_prompt_key": "pout_stomp",
+      "identity_reference": "sources/grass-sneeze-sheet.png"
+    }
+  ],
+  "reference_video_included": false,
+  "generation_mode": "built-in image_gen",
+  "assembly_mode": "FFmpeg key-pose holds; no synthesized in-between motion"
+}

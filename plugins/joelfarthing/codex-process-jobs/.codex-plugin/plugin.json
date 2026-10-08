@@ -1,6 +1,6 @@
 {
   "name": "codex-process-jobs",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Launch and manage durable, detached local process jobs from Codex.",
   "author": {
     "name": "Joel Farthing"
@@ -18,7 +18,7 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Codex Process Jobs",
-    "shortDescription": "Durable detached process jobs for Codex",
+    "shortDescription": "Detached process jobs",
     "composerIcon": "./assets/icon.png",
     "logo": "./assets/icon.png",
     "longDescription": "Launch long-running local commands as tracked detached process groups, inspect bounded output, wait for completion, retrieve results, and cancel safely on macOS or Linux.",

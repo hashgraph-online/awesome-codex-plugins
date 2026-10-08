@@ -1,0 +1,28 @@
+{
+  "name": "owasp-scan",
+  "version": "1.0.0",
+  "type": "gate",
+  "description": "OWASP Top 10 安全模式扫描：检测注入、认证失效、敏感数据暴露、XSS、不安全配置等常见漏洞模式",
+  "author": "Boss Harness Team",
+  "license": "MIT",
+  "hooks": {
+    "gate": "gate.js"
+  },
+  "config": {
+    "severity": "high",
+    "categories": [
+      "injection",
+      "broken-auth",
+      "sensitive-data",
+      "xss",
+      "misconfig",
+      "insecure-crypto",
+      "insecure-deserialization",
+      "insufficient-logging"
+    ],
+    "scanPaths": ["."],
+    "excludePaths": ["node_modules", ".git", "dist", "build", ".boss"]
+  },
+  "stages": [3],
+  "enabled": true
+}

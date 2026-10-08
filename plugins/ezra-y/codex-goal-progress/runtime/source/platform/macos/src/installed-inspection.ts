@@ -1,5 +1,6 @@
 import { lstat, readFile, stat } from "node:fs/promises";
 import { resolve } from "node:path";
+import type { GoalProgressDoctorResult } from "../../../packages/host/src/helper-doctor.js";
 import {
   GOAL_PROGRESS_IPC_PROTOCOL_VERSION,
   GoalProgressIpcClient,
@@ -19,6 +20,7 @@ import {
 } from "./verified-release.js";
 
 export interface HelperHealthInspection {
+  readonly renderer?: GoalProgressDoctorResult["runtime"]["renderer"] | null;
   readonly ok: boolean;
   readonly socketPathExists: boolean;
   readonly socketIsSocket: boolean;
@@ -131,6 +133,7 @@ export async function inspectInstalledHelper(
   let startupListenerRunning = false;
   let startupListenerReady = false;
   let startupListenerPid: number | null = null;
+  let renderer: HelperHealthInspection["renderer"] = null;
   let code: string | null = socketPathExists ? null : "HELPER_SOCKET_MISSING";
   if (socketIsSocket) {
     const client = new GoalProgressIpcClient(paths.helperSocketPath, {
@@ -172,6 +175,10 @@ export async function inspectInstalledHelper(
           runtime.startupListener !== null && typeof runtime.startupListener === "object"
             ? (runtime.startupListener as Record<string, unknown>)
             : {};
+        renderer =
+          runtime.renderer !== null && typeof runtime.renderer === "object"
+            ? (runtime.renderer as GoalProgressDoctorResult["runtime"]["renderer"])
+            : null;
         startupListenerRunning = startupListener.running === true;
         startupListenerReady = startupListener.ready === true;
         startupListenerPid = Number.isInteger(startupListener.pid)
@@ -206,6 +213,7 @@ export async function inspectInstalledHelper(
   }
   return {
     ok,
+    renderer,
     socketPathExists,
     socketIsSocket,
     socketMode,
@@ -222,6 +230,43 @@ export async function inspectInstalledHelper(
     startupListenerReady,
     startupListenerPid,
     code: ok ? null : code,
+  };
+}
+
+export function inspectDisplayVerification(helper: HelperHealthInspection): {
+  readonly installation: "pass" | "fail";
+  readonly currentDisplay: "pass" | "fail" | "waiting" | "not-needed" | "unverified";
+  readonly renderer: HelperHealthInspection["renderer"];
+  readonly createAndUpdateFlow: "unverified";
+} {
+  const renderer = helper.renderer;
+  const currentDisplay =
+    renderer?.visibleThreadStatus === "mismatch"
+      ? "unverified"
+      : renderer?.displayRequired === false && renderer.displayState === "not-needed"
+        ? "not-needed"
+        : renderer?.displayRequired !== true
+          ? "unverified"
+          : renderer.displayState === "unrecognized" || renderer.retryExhausted === true
+            ? "fail"
+            : renderer.componentVisible === true &&
+                renderer.displayState === "rendered" &&
+                renderer.componentCount === 1 &&
+                renderer.currentThreadMatched === true &&
+                (renderer.visibleThreadStatus === "matched" ||
+                  renderer.visibleThreadStatus === "retained") &&
+                Number.isSafeInteger(renderer.receivedViewModelRevision) &&
+                Number.isSafeInteger(renderer.latestViewModelRevision) &&
+                renderer.latestViewModelRevision === renderer.receivedViewModelRevision
+              ? "pass"
+              : renderer.displayState === "pending"
+                ? "waiting"
+                : "fail";
+  return {
+    installation: helper.ok ? "pass" : "fail",
+    currentDisplay,
+    renderer: renderer ?? null,
+    createAndUpdateFlow: "unverified",
   };
 }
 

@@ -13,6 +13,8 @@ description: |
 version: 3.2.0
 license: MIT
 user-invocable: false
+metadata:
+  internal: true
 ---
 
 # Brainstorming — 需求澄清

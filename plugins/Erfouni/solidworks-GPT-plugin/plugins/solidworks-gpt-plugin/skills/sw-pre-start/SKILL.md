@@ -68,6 +68,10 @@ Set `KB_HOST` from `SW_KB_HOST`; default to
 request. Quote the complete URL. Do not use browser or web-fetch tools for this
 KB.
 
+On Windows, run `curl.exe` instead of `curl`: in Windows PowerShell 5.1
+`curl` is an alias for `Invoke-WebRequest`, which rejects curl options such
+as `-sS`. `curl.exe` is the real curl in every Windows shell.
+
 ## Phase 1: conventions
 
 Run:

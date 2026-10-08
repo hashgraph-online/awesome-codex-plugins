@@ -13,8 +13,28 @@ scene breaks as `[pause]`, and the total runtime. Actual pace varies by
 narrator and genre; thrillers read faster than literary fiction. Use the
 total to budget, not to promise.
 
+155 words per minute is the English narration rate. Speech rate in words
+differs by language, because words differ in length, so the build uses
+the rate in the language pack for `language` in `story.md` (120 words a
+minute for German) and English's rate for a language with none. A book
+counted in characters (Chinese and Japanese, or `count-unit: characters`)
+is timed at 300 characters a minute; Mandarin narration runs a little
+slower, and the count includes punctuation. The script's first line names the rate it
+used. These are starting estimates: time the narrator reading a sample
+chapter and rescale the totals.
+
+The opening and closing credits are in the book's language, from the
+pack's build labels; the headings and `[narrator]` marker stay in
+English. In a collection or anthology, each story with its own chapter
+`author` has a spoken credit after its heading (`Written by Ines
+Calder.`), and the opening credits name the `editor` and then the story
+authors the book's credits leave out. Check the credits with the user
+before recording.
+
 Rebuild after every manuscript or pronunciation change. The file is
 generated; keep narrator notes in `production.md`, not in the script.
+`--out` never replaces an existing file under `adaptations/`, so delete
+the old script before rebuilding it.
 
 ## Pronunciation
 
@@ -29,6 +49,13 @@ pronunciation: SEER-sha VAYL
 - Respell in plain syllables with the stressed syllable in capitals.
   Avoid ambiguous spellings (`th` in *thin* or *this*? write
   `TH as in thin`).
+- Respell for the narrator's language. `SEER-sha` assumes English
+  spelling; a German or Spanish narrator would read it differently. For
+  a book in another language, respell in that language's spelling
+  conventions, mark stress the way its narrators expect, and add IPA
+  when the author or narrator wants it. In languages with tone or
+  pitch accent, ask how the narrator wants it marked. In Japanese, the
+  kana reading usually does this job.
 - Include invented words, made-up units, non-English names, real places
   with local pronunciations, and any name with a silent letter.
 - For real places and names, record the source (a local speaker, a

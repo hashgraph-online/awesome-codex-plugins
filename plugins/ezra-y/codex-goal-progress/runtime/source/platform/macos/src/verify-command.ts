@@ -1,6 +1,7 @@
 import type { MacosCommandResult } from "./command-protocol.js";
 import type { MacosCommandResultFactory } from "./install-command.js";
 import type { InstallationState } from "./installation-state.js";
+import { inspectDisplayVerification } from "./installed-inspection.js";
 import { inspectOperationalHealth } from "./operational-health.js";
 
 export interface VerifyCommandDependencies {
@@ -127,6 +128,7 @@ export function createVerifyCommand(dependencies: VerifyCommandDependencies) {
     }
 
     const { facts } = health;
+    const verification = inspectDisplayVerification(facts.helper);
     await state.installedRelease(facts.installed);
     const permissions = await state.permissionFacts(facts.installed, facts.release);
     if (permissions.configurationPath) {
@@ -136,10 +138,11 @@ export function createVerifyCommand(dependencies: VerifyCommandDependencies) {
       throw new Error(`GOAL_PROGRESS_EXECUTABLE_PERMISSION_INVALID: ${permissions.executablePath}`);
     }
     return dependencies.commandResult("verify", {
-      ok: true,
-      code: "VERIFY_OK",
+      ok: verification.currentDisplay !== "fail",
+      code: verification.currentDisplay === "fail" ? "VERIFY_DISPLAY_MISSING" : "VERIFY_OK",
       changed: false,
       details: {
+        verification,
         releaseVersion: facts.installed.releaseVersion,
         checksumsValid: true,
         permissionsValid: true,

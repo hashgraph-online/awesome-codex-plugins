@@ -1,0 +1,38 @@
+{
+  "name": "magic-hour",
+  "version": "1.4.0",
+  "description": "Create and finish AI media with reusable Magic Hour workflows and inspectable output examples.",
+  "author": {
+    "name": "Magic Hour",
+    "url": "https://magichour.ai"
+  },
+  "homepage": "https://github.com/magichourhq/skills",
+  "repository": "https://github.com/magichourhq/skills",
+  "license": "MIT",
+  "keywords": [
+    "ai-media",
+    "image-generation",
+    "video-generation",
+    "creator-video",
+    "mcp"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Magic Hour",
+    "composerIcon": "./assets/logo.svg",
+    "shortDescription": "Remix photos, performances and ideas into videos",
+    "longDescription": "Choose a media workflow, reuse approved references, inspect real outputs and finish editable assets with Magic Hour's MCP or API. Skills are free to install; generation requires a connected account and credits.",
+    "developerName": "Magic Hour",
+    "category": "Design",
+    "capabilities": [
+      "Write"
+    ],
+    "websiteURL": "https://magichour.ai",
+    "defaultPrompt": [
+      "Animate this photo into an impossible scene while keeping me recognizable.",
+      "Put my face into this clip and preserve the performance.",
+      "Make my character perform the action in this video.",
+      "Study this reference and make an original finished short with my media."
+    ]
+  }
+}

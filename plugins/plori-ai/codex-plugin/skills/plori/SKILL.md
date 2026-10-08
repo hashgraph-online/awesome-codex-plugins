@@ -186,17 +186,16 @@ File references: a reply can reference a file by an agent-local path such as
 agent for the content inline, or for a hosted URL, when you need the file.
 
 Human input: `awaiting_input` can mean an approval or a question. Show the pending
-request to the human and use `answer_pending_input` for their answer. Never approve
-on the human's behalf just to unblock a run. After an answer, follow the exact
+request to the human. An MCP client cannot approve an action or grant `always_allow`:
+`answer_pending_input` can deny a request or answer a question the agent asks. Each
+awaiting approval has an `approve_url`; give it to the human, who approves in the
+Plori web app. After an answer or an approval, follow the exact
 `continuation_run_id` returned by `get_run_result`. If `input_status` is
 `answered` but the successor is not yet available, retry the original run.
 A historical run can retain `awaiting_input` after its input has been answered.
 `list_pending_inputs` returns the current queue. A row with `consent_tool`
-represents an outward write: `always_allow=true` grants standing consent for that
-tool. Set it only when the human explicitly asks to stop being prompted. On a
-connection write, `scope="thread"` is the narrower answer: it allows the rest of that
-conversation's calls with the same method to the same host, expires after 24 hours, and
-cannot be combined with `always_allow`.
+represents an outward write. Only the human can approve it or grant standing consent
+for it, in the Plori web app.
 
 MCP clients that negotiate the Tasks extension can receive a task handle and
 subscribe to its status. Every other client gets the inline `awaiting_input`
@@ -207,7 +206,9 @@ polling or an active subscription is required to observe later changes. MCP
 support alone does not mean the client can wake an idle model.
 
 Deferred work: `schedule_run` (agent_id, prompt, and delay_seconds or an RFC3339
-fire_at) invokes the agent later as an ordinary run.
+fire_at) schedules a later run. The result has `status: "awaiting_confirmation"` and a
+`confirm_url`. Show the human the prompt, the time and the `confirm_url`; the run
+starts only after the human confirms it in the Plori web app.
 
 Connections: `list_connections` shows the account's third-party OAuth provider status,
 authorization and expiry times, and configured scopes. `status` is the re-authentication
@@ -220,8 +221,8 @@ Workflows: `list_workflows` (optional agent_id UUID, or "none" for unassigned),
 values), `edit_workflow` (workflow_id + base_version + constrained ops; creates a draft
 version under CAS and does not activate it),
 `create_workflow` (name, optional description/trigger_kind/cron_expr),
-`run_workflow` (runs a workflow now: a real execution billed like any run,
-returning the execution, terminal or still `running`), `list_workflow_executions`
+`run_workflow` (runs an active workflow, using the version the owner activated; for
+a workflow that is not active, returns a link where the owner runs it in the web app), `list_workflow_executions`
 (workflow_id; recent execution history), and `get_workflow_execution` to poll one and read
 its full per-step input/output payloads.
 A workflow's steps are built by an agent; these tools manage and run the result.

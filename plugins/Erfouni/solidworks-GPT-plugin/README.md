@@ -2,7 +2,7 @@
 
 [![Validate plugin](https://github.com/Erfouni/solidworks-GPT-plugin/actions/workflows/validate.yml/badge.svg)](https://github.com/Erfouni/solidworks-GPT-plugin/actions/workflows/validate.yml)
 [![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![Model Context Protocol](https://img.shields.io/badge/MCP-enabled-7C3AED)](https://modelcontextprotocol.io/)
+[![Needs a SolidWorks MCP/COM bridge](https://img.shields.io/badge/needs-SolidWorks%20MCP%2FCOM%20bridge-7C3AED)](#requirements)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 An installable Codex plugin that ports the knowledge workflow of
@@ -94,7 +94,7 @@ the absolute path to this repository.
 - Windows with SolidWorks installed for actual CAD work.
 - A SolidWorks automation surface already available to Codex (for example a
   SolidWorks MCP/COM integration). This plugin supplies the design and knowledge
-  workflow; it does not bundle or install SolidWorks itself.
+  workflow; it does not bundle an MCP server or install SolidWorks itself.
 - `curl` for knowledge-base calls.
 - Python 3.9+ for the optional deterministic session and feedback utilities.
 

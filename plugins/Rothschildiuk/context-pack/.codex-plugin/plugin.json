@@ -1,6 +1,6 @@
 {
   "name": "context-pack",
-  "version": "0.3.2",
+  "version": "0.7.0",
   "description": "Use Context Pack to generate compact first-pass repository briefings for coding agents.",
   "author": {
     "name": "Rothschildiuk",

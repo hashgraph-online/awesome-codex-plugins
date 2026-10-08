@@ -58,7 +58,8 @@ export interface CodexAppServerRuntime {
   close(): Promise<void>;
 }
 
-export interface CodexAppServerRuntimeOptions extends CodexAppServerClientOptions {
+export interface CodexAppServerRuntimeOptions extends Omit<CodexAppServerClientOptions, "command"> {
+  readonly command?: string | (() => Promise<string>);
   readonly connect?: () => Promise<CodexAppServerSession>;
   readonly reconnectDelaysMs?: readonly number[];
   readonly tokenPolling?: {
@@ -435,9 +436,13 @@ class CodexAppServerRuntimeImpl implements CodexAppServerRuntime {
       return this.#options.connect();
     }
     const { CodexAppServerClient } = await import("./index.js");
+    const command =
+      typeof this.#options.command === "function"
+        ? await this.#options.command()
+        : this.#options.command;
     return CodexAppServerClient.connect({
       onNotification: (notification) => this.#onNotification(notification),
-      ...(this.#options.command === undefined ? {} : { command: this.#options.command }),
+      ...(command === undefined ? {} : { command }),
       ...(this.#options.args === undefined ? {} : { args: this.#options.args }),
       ...(this.#options.cwd === undefined ? {} : { cwd: this.#options.cwd }),
       ...(this.#options.env === undefined ? {} : { env: this.#options.env }),

@@ -39,8 +39,8 @@ amq drain --root .agent-mail/demo --me bob --include-body
 This walkthrough connects **Claude Code** and **Codex CLI** on one machine.
 Install both agent CLIs and put `claude` and `codex` on `PATH` first.
 Use macOS or Linux; on Windows, use WSL with the Linux binary for this
-terminal workflow. Native Windows supports the core queue; see the
-[platform matrix](INSTALL.md#platform-capability-matrix).
+terminal workflow. Native Windows has a verified subset of queue and adapter
+support; see the [platform matrix](INSTALL.md#platform-capability-matrix).
 
 ### 1. Install the binary
 
@@ -100,7 +100,9 @@ wake. The recipient can still get them with `amq drain --include-body`.
 
 ### Control a session from Buzz
 
-Inside a running Claude Code or Codex session, type `/amq-remote`. The first
+Inside a running Claude Code session, type `/amq-remote`; inside Codex, invoke
+the skill as `$amq-remote` (Codex does not register `/` commands for skills).
+The first
 time, import that session's agent into Buzz Desktop. Each session has its own
 agent; the ACP model `amq-remote:<name>` selects it. DM that agent from the
 Buzz app or Desktop, and the DM runs in that session.
@@ -185,7 +187,7 @@ built on these primitives.
 
 See the [contribution guide](CONTRIBUTING.md) for development and review.
 Contributor clones should install the git hooks
-(`./scripts/install-hooks.sh`) so pushes run the CI gate locally.
+(`./scripts/install-hooks.sh`) so pushes run the static checks locally.
 Use [GitHub issues](https://github.com/avivsinai/agent-message-queue/issues)
 for questions and bug reports. Follow the [code of conduct](CODE_OF_CONDUCT.md)
 and report security issues through the [security policy](SECURITY.md).

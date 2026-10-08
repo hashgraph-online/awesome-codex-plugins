@@ -1,6 +1,6 @@
 ---
 name: gsc-ai-performance
-description: "Baseline and interpret Google Search Console's AI Performance Report — combined AI Overviews + AI Mode impressions, cited pages, country and device mix (no click data; attribution stays in GA4) — from a user-supplied CSV export, with an in-SC AI opt-out recommendation and a gated quality scorecard. Triggers on \"/digital-marketing-pro:gsc-ai-performance\", \"read the new GSC AI report\", \"baseline our AI search visibility\", \"how many AI Overviews impressions do we get\", \"should we opt out of AI results\". Parses and archives exports via gsc-ai-performance.py, reconciles actuals against /digital-marketing-pro:aeo-audit probes, and feeds /digital-marketing-pro:seo-drift."
+description: "Baseline and interpret Google Search Console's AI Performance Report — combined AI Overviews + AI Mode impressions, cited pages, country and device mix (impressions only: no clicks, CTR or queries, and GA4 files AI Overviews/AI Mode visits under Organic Search) — from a user-supplied CSV export, with an in-SC AI opt-out recommendation and a gated quality scorecard. Triggers on \"/digital-marketing-pro:gsc-ai-performance\", \"read the new GSC AI report\", \"baseline our AI search visibility\", \"how many AI Overviews impressions do we get\", \"should we opt out of AI results\". Parses and archives exports via gsc-ai-performance.py, reconciles actuals against /digital-marketing-pro:aeo-audit probes, and feeds /digital-marketing-pro:seo-drift."
 argument-hint: "[brand-name or site URL]"
 ---
 
@@ -21,12 +21,32 @@ Google rolled out a new **GSC AI Performance Report** on **3 June 2026** ([Searc
 | Date range filtering | NEW |
 | **Click data** | **NOT INCLUDED** (Google explicitly excluded — important caveat for attribution) |
 | Opt-out toggle in Search Console | NEW (replaces having to ship robots.txt / meta tags for AI-specific exclusion) |
-| API surface | **NOT YET PUBLISHED** — UI only (still true as of July 2026) |
+| API surface | **NOT YET PUBLISHED** — UI only (last checked July 2026; re-check the Search Console API release notes before automating) |
 | **Discover generative surfaces** | **NEW (June–July 2026)** — the report family now also covers generative AI features in Discover ([Google announcement](https://developers.google.com/search/blog/2026/06/gen-ai-performance-reports)) |
 | Data availability | Backfilled from **18 May 2026**; access expanded broadly in July 2026, with a companion deep-dive help doc on AI controls |
 | Geographic rollout | UK first, then global ([source](https://searchengineland.com/google-search-console-ai-performance-reports-and-controls-to-block-your-content-in-ai-responses-479298)) |
+| **Multimodal filter** | **NEW (September 2026)** — a `multimodal` search-type filter (Lens, Circle to Search, image uploads) appears in both the Search performance report and the generative AI report. It has **no Queries dimension**, and these impressions are **newly counted** ([Google Search Central](https://developers.google.com/search/blog/2026/09/web-multimodal-in-sc)) |
 
-**Critical interpretation guidance:** The report shows when your pages were SHOWN in AI Overviews / AI Mode, not when users clicked through to them. Because click data is absent, all downstream attribution to AI traffic must come from your analytics (GA4's new `AI Assistant` channel — added 13 May 2026 — is the matching analytics-side surface; see `/digital-marketing-pro:analytics-insights`).
+**Critical interpretation guidance:** The report shows when your pages were SHOWN in AI Overviews / AI Mode, not when users clicked through to them.
+
+Because click data is absent, all downstream attribution to AI traffic must come from your analytics, and GA4 has a blind spot for exactly this surface. Its `AI Assistant` channel **excludes** Google's AI Overviews and AI Mode; GA4 counts those visits as Organic Search (see the map below and `/digital-marketing-pro:analytics-insights`).
+
+## Honest measurement map — what exists and what does not (checked 2026-10-04)
+
+State these limits in every deliverable. A blank cell is not a zero; it is a metric no first-party tool publishes.
+
+| Question | First-party answer | Source |
+|---|---|---|
+| How often did Google show my pages in AI Overviews / AI Mode? | **Yes:** impressions in the Search Console generative AI performance report. You can group by Pages, Countries, Dates, Devices and filter by search type (text / multimodal). The export button downloads chart + table | [Search Console help](https://support.google.com/webmasters/answer/16984139) |
+| Which **queries** triggered those AI impressions? | **Does not exist.** The report has no Queries dimension | same |
+| How many **clicks**, and what **CTR**, came from AI Overviews / AI Mode? | **Does not exist** in Search Console. The report shows impressions only | same; [Google Search Central blog](https://developers.google.com/search/blog/2026/06/gen-ai-performance-reports) (3 Jun 2026) |
+| Can GA4 separate AI Overviews / AI Mode visits? | **No documented way.** GA4's Organic Search channel *includes* "Google's AI Overviews and AI Mode", and the AI Assistant channel *excludes* them. Google's channel page documents no dimension that splits them out of organic | [GA4 default channel group](https://support.google.com/analytics/answer/9756891) |
+| Who sees the report? | Google: "As of August 31, 2026, we've rolled out these insights to all websites worldwide." If a property doesn't see it, the site may have too few AI-feature impressions or may be excluded from Search generative AI features | [Search Console help](https://support.google.com/webmasters/answer/16984139) |
+| Is there an API for it? | Not documented on the help page, which describes the UI and its export button only. Keep automation on CSV exports | same |
+| Copilot / Bing AI citations? | **Yes, but a different tool:** Bing Webmaster Tools AI Performance (citations, grounding queries, citation share, intents). It shows no clicks | `/digital-marketing-pro:geo-monitor` |
+| ChatGPT / Claude / Perplexity citations? | **No first-party report exists.** Only synthetic probes (`/digital-marketing-pro:aeo-audit`, `/digital-marketing-pro:geo-monitor`), labeled as probes | — |
+
+Google's [AI optimization guide](https://developers.google.com/search/docs/fundamentals/ai-optimization-guide) points to this report as the way to measure generative AI visibility. It also warns that "No third-party tool has access to our internal ranking or AI systems."
 
 ## When to use this skill
 
@@ -63,10 +83,10 @@ PLAN.md                      single-page summary with tracking cadence
 |---|---|
 | **gsc_access_verified** | User has confirmed Search Console verified ownership for the brand domain |
 | **export_completeness** | CSV has ≥ 1 day of data + at minimum the impressions column |
-| **cohort_documented** | `00-input.md` notes whether the brand is in the UK rollout (data live) or pending global rollout (no data yet — wait) |
+| **cohort_documented** | `00-input.md` notes whether the property sees the report. If it does not, record which documented reason applies: too few AI-feature impressions, or the site is excluded from Search generative AI features |
 | **reconciliation_done** | `04-reconciliation.md` cross-references against the brand's most recent aeo-audit |
 
-If the brand isn't in the UK rollout yet, the gate framework still applies but `export_completeness` will be `fail` until Google rolls out globally — that's expected, not a regression.
+If the property still doesn't see the report after the worldwide rollout (31 Aug 2026), the gate framework still applies, but `export_completeness` will be `fail`. Record the reason; that is a finding, not a regression.
 
 ## Chain handoffs
 
@@ -78,9 +98,9 @@ If the brand isn't in the UK rollout yet, the gate framework still applies but `
 
 ## Process
 
-1. **Access check** — confirm the user has Google Search Console verified access for the brand's domain. If the brand is in the UK rollout cohort, the report is live; otherwise it will appear when global rollout reaches them.
+1. **Access check** — confirm the user has Google Search Console verified access for the brand's domain. The report has been available to all websites worldwide since 31 Aug 2026. If it is missing, check whether the site is excluded from Search generative AI features or has too few AI-feature impressions.
 2. **Locate the report** — Search Console → left nav → **Performance** → switch tab to **Search results** → look for the new **AI Overviews & AI Mode** tab (the tab title may vary slightly during rollout; Google's working name during testing was "Search Generative AI"). On rollouts pre-tab, the data may also surface under the existing Performance report with an AI Features filter.
-3. **Run baseline export** — set the date range to "last 28 days" (or maximum available since rollout), export to CSV/Sheets via Search Console's export button. Capture: impressions, pages, country mix, device mix, top queries (if available in your cohort). Then parse and archive it with the helper script:
+3. **Run baseline export** — set the date range to "last 28 days" (or maximum available since rollout), export to CSV/Sheets via Search Console's export button. Capture: impressions, pages, country mix, device mix. There is **no Queries dimension** in this report (checked 2026-10-04), so do not promise a query list. Use the main Performance report's queries only as a separate, non-AI-specific view, and label it that way. Then parse and archive it with the helper script:
    ```bash
    python "${CLAUDE_PLUGIN_ROOT}/scripts/gsc-ai-performance.py" \
        --brand {slug} \
@@ -113,11 +133,15 @@ A structured GSC AI performance brief containing:
 
 ## Caveats and known limitations (June 2026)
 
-1. **No click data.** Google explicitly chose not to include click metrics. AI-to-website attribution must come from GA4 (the new `AI Assistant` channel group, added 13 May 2026, captures `Medium=ai-assistant` referrals from ChatGPT/Gemini/Claude). Note: GA4's channel may or may not specifically attribute Google's own AI Mode traffic the same way — verify in your property.
+1. **No click data, no CTR, no queries.** The report shows impressions only, with Pages / Countries / Dates / Devices dimensions.
+   - GA4's `AI Assistant` channel (rule: medium exactly matches `ai-assistant`) covers referrals from assistants such as ChatGPT, Gemini, Deepseek, Copilot and Grok.
+   - Per Google's channel definitions (checked 2026-10-04), it **excludes Google's AI Overviews and AI Mode**, which land in **Organic Search**.
+   - So **no first-party tool reports clicks from AI Overviews or AI Mode**. Say so plainly rather than inferring a number. Source: [GA4 default channel group](https://support.google.com/analytics/answer/9756891).
 2. **UI only at launch.** No public API. Wait for Google to publish the AI report under the Search Console Search Analytics API (`searchanalytics.query`) before automating against it. Current automation must rely on CSV export + manual upload.
-3. **Rollout completed broadly July 2026.** The report started UK-first but access expanded broadly in July 2026, so most properties should now see it. Mark the date you first see data so subsequent month-over-month comparisons start from a real baseline.
+3. **Rolled out worldwide.** The report started UK-first. Google's help page now says "As of August 31, 2026, we've rolled out these insights to all websites worldwide" (checked 2026-10-04). Mark the date you first see data so subsequent month-over-month comparisons start from a real baseline.
 4. **Tab placement may move during rollout.** Google often refines the UI in the first 30–60 days. If the exact tab path differs from step 2 above, look anywhere in the Performance > Search results area for "AI", "Generative", "AI Mode", or "AI Overviews" labels.
-5. **Don't compare AI Overviews impressions to classic SERP impressions one-for-one.** AI Overviews surface differently — an "impression" there means your page was used as a grounding source, which is a stricter bar than appearing in a 10-blue-link result.
+5. **September 2026 is a measurement break, not necessarily growth.** Multimodal impressions (Lens, Circle to Search, image uploads) began being counted in September 2026. Before reporting a month-over-month jump, re-run the comparison with the multimodal filter excluded — otherwise a counting change reads as a visibility gain.
+6. **Don't compare AI Overviews impressions to classic SERP impressions one-for-one.** AI Overviews surface differently — an "impression" there means your page was used as a grounding source, which is a stricter bar than appearing in a 10-blue-link result.
 
 ## Agents used
 

@@ -1,0 +1,18 @@
+version: 2
+updates:
+  # Workflow actions are pinned by commit SHA; Dependabot bumps the SHA and the version comment.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ['*']
+  # .github/requirements-ci.txt is pinned by version and sha256; Dependabot updates both.
+  - package-ecosystem: pip
+    directory: /.github
+    schedule:
+      interval: weekly
+    groups:
+      ci-python:
+        patterns: ['*']

@@ -148,6 +148,7 @@ For quick requests (e.g., "write me a LinkedIn post"), infer reasonable defaults
 - `case-studies.md` — Challenge-Solution-Results framework, customer-hero narrative structure, and case study creation best practices
 - `personalization.md` — Personalization maturity model, segment/rule-based/behavioral strategies, and implementation guidance
 - `video-scripting.md` — Platform-specific video formats and lengths, script structures, and hook and retention techniques
+- `draft-deliverables.md` — Minimum components per deliverable type (incl. press release), the after-drafting follow-up menu, and parallel-dispatch rules when one brief yields several formats
 
 ## Output Formats
 

@@ -17,7 +17,15 @@ task. Once per conversation (or after the selected deck changes):
 
 1. `get_session_context` — one call returns the workspace, effective deck,
    `display_summary`, services, credential metadata, and playbook summaries
-2. Print **exactly one** line from `display_summary` (e.g. `◆ dev · 2 MCP · 0 keys · 1 playbooks`)
+2. Show the session binding as **exactly one transcript line** rendering
+   `display_summary` verbatim (e.g. `◆ dev · 2 MCP · 0 keys · 1 playbooks`).
+   `display_summary` is the one source string for this canonical session
+   receipt: do not reconstruct the deck name, counts, badge, or the
+   `session (default …)` override suffix — print the suffix exactly as
+   returned when the session deck differs from the workspace default. This
+   transcript receipt is the authoritative binding record for the session;
+   workspace badges and terminal status lines are optional secondary context
+   and never override it.
 3. Match the task against the returned playbook triggers. For every match, use the
    `agent-deck-playbooks` skill and call `get_playbook` before taking task action.
 
@@ -37,4 +45,4 @@ Give the operator recovery for the failed layer:
   or retry the MCP connection.
 - **Unattended launch:** fix `x-agent-deck-deck-id` / the launch configuration.
 
-Do not repeat the status line every turn unless the user asks or the bind changes.
+Do not repeat the receipt on later turns when the binding is unchanged. A confirmed binding change allows exactly one new receipt line.

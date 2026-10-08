@@ -1,0 +1,8 @@
+# Codex skill metadata. Codex reads skill icons only from this skill's assets/ folder, so
+# assets/icon.svg is a byte-for-byte copy of .claude-plugin/icon.svg; scripts/validate.mjs checks it.
+interface:
+  display_name: "LienDeadline"
+  short_description: "Lien and preliminary notice deadline baselines"
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"
+  brand_color: "#205E4E"

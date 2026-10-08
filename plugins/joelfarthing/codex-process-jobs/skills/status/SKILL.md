@@ -54,7 +54,7 @@ An automatic continuation is not a status request:
 3. Apply the host Goal blocked audit. Count the immediately preceding launch
    turn when it ended with this same job as the sole blocker; otherwise start
    with the first result-gated continuation.
-4. When a hook supplies terminal state, inspect with
+4. When a completion notice supplies terminal state, inspect with
    `$result <job-id> --peek`, summarize, and continue the next
    already-authorized in-scope Goal step. Ask only for new authority, a
    consequential choice, or expanded scope.

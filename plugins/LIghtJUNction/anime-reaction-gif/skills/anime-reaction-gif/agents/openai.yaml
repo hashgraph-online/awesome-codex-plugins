@@ -1,0 +1,4 @@
+interface:
+  display_name: "Anime Reaction GIF"
+  short_description: "Create anime reaction stickers from original key poses"
+  default_prompt: "Use $anime-reaction-gif to make an original character reaction sticker with a looping GIF and MP4 preview."

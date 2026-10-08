@@ -1,0 +1,40 @@
+{
+  "name": "firecrawl",
+  "version": "1.0.0",
+  "description": "Firecrawl web data skills for Codex: search, scrape, crawl, map, interact, parse, and agent workflows via the Firecrawl CLI.",
+  "author": {
+    "name": "Firecrawl",
+    "email": "hello@firecrawl.com",
+    "url": "https://www.firecrawl.dev"
+  },
+  "homepage": "https://www.firecrawl.dev",
+  "repository": "https://github.com/firecrawl/firecrawl-codex-plugin",
+  "license": "MIT",
+  "keywords": [
+    "firecrawl",
+    "web-scraping",
+    "search",
+    "crawl",
+    "research"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Firecrawl",
+    "shortDescription": "Search, scrape, and crawl the web with Firecrawl",
+    "longDescription": "Bundle of Firecrawl CLI workflow skills for live web research and extraction in Codex. This plugin is skills-only for Codex directory review; MCP and ChatGPT app integration can be added after the app review path is complete. Requires Firecrawl CLI authentication or a Firecrawl API key from firecrawl.dev.",
+    "developerName": "Firecrawl",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://www.firecrawl.dev",
+    "privacyPolicyURL": "https://trust.firecrawl.dev",
+    "termsOfServiceURL": "https://trust.firecrawl.dev",
+    "defaultPrompt": [
+      "Use Firecrawl to search the web for the latest release notes on Next.js App Router and summarize.",
+      "Use Firecrawl to scrape https://docs.firecrawl.dev and list the top-level doc sections."
+    ],
+    "brandColor": "#fa5d19"
+  }
+}

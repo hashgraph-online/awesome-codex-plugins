@@ -1,0 +1,8 @@
+interface:
+  display_name: "Teaching Skills"
+  short_description: "Teaching lifecycle workflows plus Claude-style ts-* aliases"
+  brand_color: "#2563EB"
+  default_prompt: "Use $teaching-suite with ts-course to design a course backward from learning outcomes."
+
+policy:
+  allow_implicit_invocation: true

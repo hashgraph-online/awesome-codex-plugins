@@ -10,6 +10,8 @@ dependencies: []
 triggers:
   - 需要拆解开发任务时
   - 需要估算工作量时
+metadata:
+  internal: true
 ---
 
 # 任务拆解方法

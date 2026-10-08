@@ -7,26 +7,32 @@ argument-hint: '[tool set to organize or extend]'
 
 # Tool Composition and Discovery Design
 
-Tools should compose like Unix pipes, not like a chain of command. That needs three
-properties across the set: consistent shapes so one output feeds the next input, batch
-support so the agent does not loop one item at a time, and multiple abstraction levels
-so the agent can pick the granularity the task needs. It also needs the agent to be
-able to find the right tool without trial and error.
+A composable tool set has four properties: consistent input and output shapes, so one
+tool's output feeds the next tool's input; batch support, so the agent does not loop one
+item at a time; more than one abstraction level, so the agent picks the granularity the
+task needs; and discoverability, so the agent finds the right tool without trial and
+error.
 
 ## Procedure
 
 1. **Map the current set**: every tool, its type, and the sequences agents actually run
    (from traces, not from intent).
-2. **Find bundle candidates**: sequences repeated across runs with no branching between
-   steps.
-3. **Find batch candidates**: the same tool called in a loop over a list.
-4. **Find ladder gaps**: capabilities with only a raw low-level tool and no intent-level
-   tool, or the reverse.
-5. **Add preview modes** to every destructive or costly command.
-6. **Design discovery**: dependency hints in descriptions, a registry or search tool
-   once the set is large, layered schema exploration for data sources.
+2. **Find bundle candidates** (Task Bundle): sequences repeated across runs with no
+   branching between steps.
+3. **Find batch candidates** (Batch Operation): the same tool called in a loop over a
+   list.
+4. **Find ladder gaps** (Abstraction Ladder): capabilities with only a raw low-level tool
+   and no intent-level tool, or the reverse.
+5. **Add a `mode` parameter** (Operation Mode) that defaults to `preview` on every
+   destructive or costly command.
+6. **Design discovery** (Dependency Hint, Tool Registry, Schema Explorer): hints in
+   descriptions, a registry or search tool once the set is large, and layered schema
+   exploration for data sources.
 7. **Prune**: merge near-duplicates and retire tools with no traffic. Fewer,
    better-described tools beat many similar ones.
+8. **Verify**: run each new tool on its own, then run the agent and read its trace to
+   confirm it picks the new bundle, batch form, or preview mode instead of the old
+   sequence.
 
 ## Rules with examples
 
@@ -96,11 +102,12 @@ error the tool returns when the prerequisite is missing.
 
 ### Catalog the set when it is large (Tool Registry, Capability Matching)
 
-Past roughly twenty tools, the model can no longer hold every definition in context.
+Past roughly twenty tools, tool-selection accuracy drops and every definition costs
+context tokens.
 Provide a `list_available_tools(category)` registry with name, description, category,
 and auth requirements, and a `find_tool_by_intent(intent)` search that ranks tools by
-semantic match with confidence and usage examples. Keep the must-use tools always
-loaded and let the long tail be discovered.
+semantic match with confidence and usage examples. Where your runtime can defer tools,
+keep the must-use tools always loaded and let the long tail be discovered.
 
 ### Reveal structure in layers (Schema Explorer)
 
@@ -138,26 +145,63 @@ Cache the status briefly.
 
 ## On Runtype
 
-- **Tool count and residency.** A dispatch carries at most 50 runtime tools. At 20
-  the platform partitions them into a hot set plus a `tool_search` meta-tool. Pin the
-  must-use tools with `config.tools.toolSearch.alwaysLoaded` (or `alwaysLoaded: true`
-  on the tool), raise or lower the cut with `toolSearch.threshold`, or set
-  `toolSearch.enabled: false` to force every tool into context. Descriptions drive
-  both model choice and search ranking.
+- **Tool count and residency.** A dispatch carries at most 50 runtime tools. Tool search
+  is on by default for multi-turn agents: at 20 or more tools, Runtype keeps a hot set
+  loaded and defers the inline runtime tools behind a `tool_search` tool that the model
+  calls to load more. Saved, built-in, and MCP tools stay loaded. Set
+  `tools.toolSearch.enabled: false` to send every tool on every request. Single-turn
+  agents and flow prompt steps always send every tool, so keep those sets small or split
+  them across subagents. Either way, make descriptions distinct, because they are what
+  the model chooses by and what `tool_search` matches against.
+- **Tool-call budget.** An agent makes at most 10 tool calls per execution unless you
+  set `config.tools.maxToolCalls`. A per-item loop over a list uses up that budget
+  quickly, so ship a batch form, or raise the cap on purpose.
 - **Task bundle and tool chain.** A flow is the platform's explicit chain: fixed step
   order, data passing, per-step error handling. Expose it as one tool
   (`toolType: "flow"`) when the agent should run the whole sequence as a single call.
-- **Abstraction ladder.** Built-in and Orthogonal catalog tools are the low rung,
-  `custom` and `external` tools the middle, flows and subagents the top. Subagents
-  have their own caps; read `get_platform_documentation(topic="subagent-delegation")`.
-- **Operation mode.** A `tool-call` flow step runs a catalog tool deterministically
-  with no approval gate, so a preview mode must be a distinct tool or a `mode`
-  parameter; do not rely on the gate to make a step safe.
+  Map tool parameters to flow inputs with `parameterMapping`. The model receives the
+  flow's terminal step output; to return a composite status object instead, assign it
+  to a flow variable and name that variable in `outputVariable`. A variable name that
+  starts with `_` is rejected, and a variable the flow never assigns fails the call.
+- **Code Mode for batch, chain, and fan-out.** When the logic between calls varies by
+  input (loops over a list, conditional chains, several sources merged), set
+  `config.tools.codeModeConfig` on the agent or prompt step. `toolPool` lists the tool
+  ids the model can call (wildcards such as `mcp:*` work), and `timeoutMs` defaults to 60000. The model writes JavaScript that calls those tools in a sandbox, and
+  intermediate values never enter model context. Choose a `flow` tool when the order
+  is fixed; choose Code Mode when the model must write the logic.
+- **Binary results.** A binary tool result, such as a screenshot or a generated image,
+  carries a `runtype-asset://` handle. To accept it in your own tool, declare the input
+  as a string with `"contentEncoding": "base64"`; a handle passed there is replaced with
+  the stored bytes before your tool runs, so the model never copies base64. A parameter
+  without that declaration receives the handle string unchanged.
+- **Abstraction ladder.** Built-in and Orthogonal catalog tools are the low rung;
+  `custom`, `external`, and `mcp` tools the middle; flows and subagents the
+  top. Compose subagents as saved subagent tools, inline subagent tools, or dynamic
+  spawning through `config.tools.subagentConfig`, which gives the agent a
+  `spawn_subagent` tool. Subagents have their own caps; read
+  `get_platform_documentation(topic="subagent-delegation")`.
+- **Gateway and adapter.** An MCP server attached through `config.tools.mcpServers` is
+  a Tool Gateway: one connection, many tools. An `external` tool is a Tool Adapter: it
+  wraps an upstream API behind a clean interface. For a GraphQL API, use an `external`
+  tool that POSTs the query; the `graphql` tool type is not executable.
+- **Operation mode.** On an agent, gate destructive tools with
+  `config.tools.approval.require` (for example, `["delete_files"]`; patterns such as
+  `mcp:*` work). Approval asks a person before the call runs; it complements a
+  `preview` mode but does not replace it. A `tool-call` flow step runs a catalog tool
+  deterministically with no approval gate, so there a preview must be a distinct tool
+  or a `mode` parameter. Approval details:
+  `get_platform_documentation(topic="agent-design")`.
+- **Description length.** A new saved tool's description is capped at 500 characters. When
+  dependency hints, replacement notes, and deprecation notes do not fit, move them into
+  parameter descriptions or the error text.
 - **Registry and discovery.** `list_tools` covers saved tools,
   `discover_mcp_server_tools` an MCP server, and
   `get_platform_documentation(topic="builtin-tools")` the catalog. A `tool-call` step
   that names a catalog id nobody answers to is rejected as
   `TOOL_CALL_STEP_UNKNOWN_CATALOG_TOOL`.
+- **Traces and verification.** Find real sequences with `list_runs` (filtered by `agentId`) and
+  `trace_execution`. Test one tool with `execute_tool`, then run the agent with
+  `execute_agent` and read the trace to confirm the tool choice.
 - **Versioning.** Agents and flows are versioned (`publish_agent_version`,
   `publish_flow_version`); a tool behavior change ships behind a new published version
   rather than in place.

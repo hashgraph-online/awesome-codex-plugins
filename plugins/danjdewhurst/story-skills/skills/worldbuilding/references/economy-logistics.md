@@ -71,4 +71,4 @@ the result on the location's `routes` so `story continuity` checks journeys
 between dated scenes (see `maps-and-routes.md`).
 
 After editing economic or magic systems, run `story reindex .`,
-`story links .`, and `story validate .`.
+`story wordcount . --write`, and `story check .`.

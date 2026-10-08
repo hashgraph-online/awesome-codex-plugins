@@ -16,10 +16,14 @@ mentions:
 arcs-advanced:
   - {arc-kebab}
 status: {outline|draft|revised|final|complete}
+date: {YYYY-MM-DD}
+time: "{HH:MM}"
 hook: {cliffhanger|question|revelation|reversal|decision|emotional|resolution}
 word-count: {N}
 ---
 ```
+
+`date` and `time` are the chapter's place on the story clock, in the same formats as scene records (see `scene-template.md`); set them when the chapter has no scene records, since `story timeline` and the clock checks in `story continuity` skip undated chapters and scenes.
 
 `hook` is optional but expected once a chapter is drafted: it records how the chapter ends. `story pacing` warns about drafted chapters with no `hook` and about three or more consecutive chapters ending on `resolution`.
 

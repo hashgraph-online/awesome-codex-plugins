@@ -19,7 +19,7 @@ not adopt a contract, authorize an action, or change a profile.
   the product", or "do not force-push") remain recoverable requirements that
   the executing agent must honor; the Guard preserves them across
   compaction and resume but does not enforce them by vetoing tools.
-- `release` — active only after the user explicitly adopts a repository-release
+- `release` — active only after the user explicitly adopts a release
   execution contract or declares the release profile — requires
   `candidate-closure/v1`, passing publication `release-readiness/v3` (with
   explicit `v2` compatibility), and an exact one-shot `action-ticket/v1` for

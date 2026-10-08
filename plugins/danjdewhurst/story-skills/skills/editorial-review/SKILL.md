@@ -1,6 +1,6 @@
 ---
 name: editorial-review
-description: This skill should be used when the user asks for a "sensitivity reader", "authenticity reader", "cultural review", "is this portrayal okay", "real people in my novel", "defamation", "can I use song lyrics", "epigraph permission", "permissions", "quote permission", "fair use", "AI disclosure", "do I need to disclose AI", "send to my editor", "editorial round", "Word file for my editor", "editor review copy", "co-author", "collaborate on a book", "shared world", "back up my book", or wants to run human editorial, ethics, permissions, or collaboration workflows around a story project. NOT for contracts or selling rights (use publishing) or reader feedback rounds (use feedback-triage).
+description: This skill should be used when the user asks for a "sensitivity reader", "authenticity reader", "cultural review", "is this portrayal okay", "real people in my novel", "defamation", "can I use song lyrics", "epigraph permission", "permissions", "quote permission", "fair use", "AI disclosure", "do I need to disclose AI", "send to my editor", "editorial round", "Word file for my editor", "editor review copy", "co-author", "collaborate on a book", "shared world", "back up my book", "does this echo my source", "similarity check", "check overlap with my earlier books", or wants to run human editorial, ethics, permissions, or collaboration workflows around a story project. NOT for contracts or selling rights (use publishing), or reader feedback rounds and review copies for readers, including the GitHub review-copy setup (use feedback-triage).
 ---
 
 # Editorial Review
@@ -28,6 +28,7 @@ workflow; offer `git init` if the project has none.
   experience the author does not share
 - Fiction features or resembles real, identifiable people or organisations
 - The manuscript quotes lyrics, poems, epigraphs, or other writers' prose
+- A passage may echo a source, an earlier book, or another writer too closely
 - The user needs an AI-use statement for a retailer, agent, or publisher
 - Sending the manuscript to a human editor, or taking their edits back
 - Two or more people write or maintain the same book or shared world
@@ -46,7 +47,7 @@ workflow; offer `git init` if the project has none.
    `medical`, `legal`, or others as they apply), or open one:
 
    ```shell
-   story add research "Deaf community in 1980s Glasgow" --accuracy must-be-accurate --method expert-review --risk cultural --used-in chapter-04
+   story add research 'Deaf community in 1980s Glasgow' --accuracy must-be-accurate --method expert-review --risk cultural --used-in chapter-04
    ```
 
 2. Prepare the brief with `references/sensitivity-reader-brief.md`: which
@@ -57,6 +58,9 @@ workflow; offer `git init` if the project has none.
 3. Build what the reader receives: `story build . --format docx` for
    readers who comment in Word, or `story build . --format html` for
    paragraph-anchored notes.
+   A `reader-panel` round's sensitivity persona can point at passages to
+   put in the brief, but it is not a sensitivity read: never record it in
+   `reviewed-by` or treat it as clearing a portrayal.
 4. Record the returned notes as a feedback round (`feedback/round-{N}/`)
    and synthesise them through the `feedback-triage` skill. When the
    reader's notes are incorporated, add them to the research note's
@@ -89,9 +93,45 @@ or a real organisation is shown doing something discreditable.
    date. Never set `granted` or `public-domain` without the user's
    confirmation and, for `granted`, the rights-holder's name.
 4. `story validate .` warns when a matter page is `pending` and the story
-   is `complete`, and when `granted` has no `rights-holder`.
+   is `complete`, and when `granted` has no `rights-holder`. Whatever the
+   status, `story export` and the builds leave a `pending` page out (the
+   review copy too) and warn `permission-pending-left-out`, unless
+   `--include-pending` is given.
 
-### 4. AI-use disclosure
+### 4. Overlap with other text
+
+When the user worries that a passage echoes a source, an earlier book, or
+another writer too closely, compare the chapters with that text:
+
+```shell
+story similarity . --against ../sources
+story similarity . --against ../book-one --min-words 12
+```
+
+`--against` takes a file, a folder, or a git ref. Each run of shared
+words is a warning with both locations and the words.
+
+Report the result honestly:
+
+- Say what was compared and what was not. The check only sees the text
+  passed to `--against`. It says nothing about other books, the web, or
+  sources nobody gave it, so never tell the user a manuscript is
+  "original", "clean", or "plagiarism-free" on its strength.
+- Shared text is not plagiarism. Stock phrases, a quotation the author
+  meant, and the author's own recurring lines all share words. List each
+  passage with its locations and let the user decide what it is. Never
+  call a passage copied.
+- A passage quoted on purpose from another writer belongs in the
+  permissions pass (section 3), not in a rewrite.
+- A passage that should not be there is rewritten by the author, or with
+  the `line-editing` skill at the author's direction. Never paraphrase it
+  quietly to make the match disappear.
+- Where a matching passage came from AI-assisted drafting, raise it when
+  drafting or revisiting `ai-disclosure` (section 5): the statement
+  describes how AI was used, and the similarity result neither proves nor
+  disproves AI use.
+
+### 5. AI-use disclosure
 
 1. Ask the user how AI tools were used on this book: brainstorming,
    outlining, drafting prose, editing, research, cover or art, or
@@ -110,40 +150,44 @@ or a real organisation is shown doing something discreditable.
 4. `story build . --format metadata` includes the statement on the
    retailer metadata sheet.
 
-### 5. Editorial rounds with a human editor
+### 6. Editorial rounds with a human editor
 
 Follow `references/editor-rounds.md`:
 
-1. Snapshot and tag the draft sent (`sent-to-editor-1`) with the user's
-   approval, then build the file the editor wants:
-   `story build . --format docx` (Word with Track Changes) or `story
-   build . --format shunn` for manuscript format.
+1. Snapshot and tag the draft sent (`sent-to-editor-1`). From the
+   book's folder (the one with `story.md`), check that `.gitignore`
+   lists `dist/`, show the user `git status --untracked-files=all -- .`,
+   and ask about any private file it lists (a `.env`, keys, scans). With
+   the user's approval, commit the book's folder only and tag it:
+   `git add -A -- . && git commit -m "…" -- . && git tag sent-to-editor-1`.
+   When the status lists nothing, run only the tag; if the user declines
+   the commit, or it fails, never tag over the uncommitted tree. Then
+   build the file the editor wants: `story build . --format docx` (Word
+   with Track Changes) or `story build . --format shunn` for manuscript
+   format.
 2. When edits come back, the author accepts or rejects them in Word; the
    agent transfers the accepted text into the chapter markdown, chapter
    by chapter, never by a bulk script. Queries that change events go to
    `revision-continuity`; editorial letters go through `feedback-triage`.
 3. Show how deep the round went: `story compare . --ref sent-to-editor-1`.
 
-### 6. Review copies for non-technical readers
+### 7. Review copies for non-technical readers
 
-For beta readers, editors, or agents who never open a terminal:
+For editors, sensitivity readers, or agents who never open a terminal,
+`story build . --format html` produces one file with a table of contents
+and a clickable paragraph label on every paragraph (`ch03-p12`), so
+comments can cite exact places in email, a doc, or an issue. To publish
+the copy on GitHub Pages with an issue form for notes, follow the GitHub
+review copy setup in step 1 of the `feedback-triage` workflow, which has
+the details. Even without that skill, warn first that a public Pages site
+makes the manuscript public unless the repository and Pages are private,
+confirm the visibility the user wants, and ask before creating any file
+in `.github/`. Collect the notes that come back into a feedback round
+and triage them with `feedback-triage`. Resolve labels from an older build with
+`story compare . --ref <round-tag> --anchor '<label>'` before acting on
+them; see `references/editor-rounds.md`.
 
-1. `story build . --format html` produces one file with a table of
-   contents and a clickable paragraph label on every paragraph (`ch03-p12`), so
-   comments can cite exact places in email, a doc, or an issue.
-2. For a GitHub-hosted project, offer the templates from the Story Skills
-   repository (https://github.com/danjdewhurst/story-skills,
-   `templates/github/`): copy `review-copy.yml` into `.github/workflows/`
-   to publish the HTML copy to GitHub Pages on every push to `main`, and
-   `ISSUE_TEMPLATE/manuscript-note.yml` into `.github/ISSUE_TEMPLATE/` so
-   readers file notes with an anchor and a type (typo, confusion,
-   continuity, sensitivity, praise, other). Ask before creating files in
-   `.github/`, and warn that a public Pages site makes the manuscript
-   public unless the repository and Pages are private.
-3. Collect issue notes into a feedback round and triage them with
-   `feedback-triage`.
-
-### 7. Collaboration and backups
+### 8. Collaboration and backups
 
 Follow `references/collaboration.md` for co-authored books and shared
 worlds: list every author under `authors` in `story.md`, one branch per
@@ -171,21 +215,26 @@ file through branches instead.
 
 ## CLI Maintenance
 
-Use the Story CLI when it is available. If `story` is not installed, use
-`bun run story --` from the Story Skills repository checkout or the bundled
-fallback `node ../story-maintenance/scripts/story.js` with the same
-arguments, resolving the path relative to this skill folder. If no CLI is
-available, keep `research/_index.md`, `matter/_index.md`, and the
-frontmatter fields current by hand.
+Use the Story CLI when it is available. If `story` is not installed, use the
+bundled fallback `node ../story-maintenance/scripts/story.js` with the same
+arguments. Use `node <checkout>/bin/story.js` instead only when the user
+names a Story Skills repository checkout or you are working in one. Write
+the script as an absolute path (resolve the fallback relative to this skill
+folder) and run it from the folder you would run `story` from, so `.` and
+other relative paths keep their meaning. Use Node, not Bun or a package
+script: Bun would load that folder's `bunfig.toml` (which can run code) and
+`.env`, and a package script runs from the checkout's root. If no CLI is
+available, keep the frontmatter fields current by hand, and leave the
+`research/_index.md` and `matter/_index.md` tables to the next
+`story reindex .`: never edit their rows.
 
 After adding or editing research notes, matter pages, `story.md`
 metadata, or chapters:
 
 ```shell
 story reindex .
-story links .
-story validate .
 story wordcount . --write
+story check .
 ```
 
 ## Reference Files
@@ -194,3 +243,7 @@ story wordcount . --write
 - **`references/real-people-and-permissions.md`** - Real-people and defamation-risk pass, permissions for epigraphs, lyrics, and quotations, and the matter-file permission fields
 - **`references/editor-rounds.md`** - Sending a manuscript to a human editor, snapshot tags, taking DOCX edits back into markdown, and HTML review copies with paragraph anchors
 - **`references/collaboration.md`** - Multi-author projects, git branching per author, CODEOWNERS for shared worlds, and backups
+
+## Shared Conventions
+
+Every story skill follows the shared conventions in [`../story-maintenance/references/conventions.md`](../story-maintenance/references/conventions.md), resolved relative to this skill folder. Read it before creating, renaming, or linking story files. If that file is missing because this skill was installed without `story-maintenance`, the essentials are: kebab-case ids and filenames, YAML frontmatter on every story-project file, `_index.md` registry tables that `story reindex` rebuilds (never edit them by hand), bidirectional links between entities, `characters` for who is on the page and `mentions` for who is only referred to, `status: deceased` plus `died-in: chapter-{NN}` for deaths, and no project-local generator or build scripts (run only the installed or bundled Story CLI).

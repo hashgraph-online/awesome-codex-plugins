@@ -12,9 +12,14 @@ proposed edit shows where it is, what it was, what it becomes, and why.
 Why: moves the subject forward and cuts the filter verb *heard*.
 ```
 
-- **Location:** paragraph anchor in the form the HTML build uses
-  (`ch03-p12`: chapter 3, paragraph 12). Count paragraphs in the chapter
-  text, or take the anchor from `story build . --format html`.
+- **Location:** paragraph label in the form the HTML build uses
+  (`ch03-p12`: chapter 3, paragraph 12). Take the label from
+  `story build . --format html`; only the build's labels are
+  authoritative. Do not count paragraphs by hand: the build drops
+  comment-only blocks and headings such as `## Chapter Text`, so a hand
+  count disagrees. A label is a position in that build, so any edit earlier
+  in the chapter renumbers the ones after it; rebuild after edits before
+  citing labels.
 - **Category:** one of `clarity`, `precision`, `economy`, `rhythm`,
   `pov`, `voice`, `dialogue`, `grammar`, `punctuation`, `consistency`,
   `typo`.

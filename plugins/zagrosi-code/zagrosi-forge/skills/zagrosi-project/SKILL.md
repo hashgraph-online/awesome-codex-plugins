@@ -17,10 +17,13 @@ ownership, dependency, or risk uncertainty; record actual answers using
 
 ## Run
 
-Resolve `plugin_root` from the nearest parent containing `scripts/zagrosi_skills.py`:
+Resolve `plugin_root` from this loaded `SKILL.md`'s enclosing plugin directory
+containing `scripts/zagrosi_skills.py`, never from the target repo. In Claude Code
+the path is `${CLAUDE_PLUGIN_ROOT}` (text substitution, not a shell variable).
+Use Python 3.11+ (`python3` below; `python` or `py -3` on Windows).
 
 ```bash
-python3 {plugin_root}/scripts/zagrosi_skills.py project-setup --file "{requirements_file}" --depth lean
+python3 "{plugin_root}/scripts/zagrosi_skills.py" project-setup --file "{requirements_file}" --depth lean
 ```
 
 Substitute requested depth in every command. On `success: false`, repair blockers.
@@ -36,8 +39,10 @@ Sequence shared files; repeat no background.
 Run one bundled postflight:
 
 ```bash
-python3 {plugin_root}/scripts/zagrosi_skills.py postflight --phase project --planning-dir "{planning_dir}" --depth lean --strict
+python3 "{plugin_root}/scripts/zagrosi_skills.py" postflight --phase project --planning-dir "{planning_dir}" --depth lean --strict
 ```
 
-Fix blockers; diagnose narrowly. Return paths and dependency-ordered next commands.
-Do not start Zagrosi Plan unless asked.
+Fix blockers; diagnose narrowly. For a decomposition-only request, return paths
+and dependency-ordered next commands. When the user already authorized delivery,
+continue into Zagrosi Plan and Implement in dependency order, preserving their
+depth, preferences and permissions. Ask only for a new material decision.

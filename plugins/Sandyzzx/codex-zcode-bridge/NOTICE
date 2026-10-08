@@ -1,0 +1,48 @@
+codex-zcode-bridge
+Copyright 2026 codex-zcode-bridge contributors
+
+The project as a whole is licensed under the Apache License, Version 2.0;
+see the LICENSE file. The following notice applies to adapted third-party code.
+
+This product includes software developed as part of the cc-plugin-codex project
+(https://github.com/hex1n/cc-plugin-codex), licensed under the Apache License,
+Version 2.0.
+
+Adapted source: scripts/lib/process.mjs (commit
+501f975372ddb5117b6389114c15f1ccd0104711) was adapted, with modifications, into
+src/adapters/process-spawn.ts of this project. Modifications include the
+TypeScript ESM rewrite, injection-friendly types for this project's frozen
+adapter contract, and additional termination verification. The adapted file
+carries an attribution header.
+
+The upstream project's NOTICE is reproduced below as required.
+
+This product also includes adapted software from the zcode-acp project
+(https://github.com/william0wang/zcode-acp), licensed under the Apache License,
+Version 2.0.
+
+Adapted source: src/tasks-index.ts was adapted, with modifications, into
+src/adapters/task-index-sync.ts. Modifications include Bridge task correlation,
+custom ZCODE_HOME path resolution, runtime schema checks, preserving Desktop-
+owned rows and titles, and best-effort session status synchronization.
+
+--------------------------------------------------------------------------------
+
+cc-plugin-codex
+Copyright 2026 cc-plugin-codex contributors
+
+This product is independently developed and is not affiliated with or endorsed
+by Anthropic PBC or OpenAI, L.L.C. Claude, Claude Code, Codex, and OpenAI are
+trademarks of their respective owners.
+
+The plugin bundles the following runtime dependencies. Their license texts
+are included under licenses/:
+
+  @modelcontextprotocol/server 2.1.0 and @modelcontextprotocol/core 2.1.0
+    Hybrid Apache-2.0/MIT license; the package license also references
+    CC-BY-4.0 for documentation. See MCP-TYPESCRIPT-SDK-LICENSE.txt.
+  Zod 4.6.5
+    MIT License. See ZOD-LICENSE.txt.
+  content-type
+    MIT License; bundled license comment credits Douglas Christopher Wilson.
+    See CONTENT-TYPE-LICENSE.txt.

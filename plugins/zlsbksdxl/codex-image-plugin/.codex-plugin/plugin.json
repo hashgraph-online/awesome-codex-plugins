@@ -1,0 +1,40 @@
+{
+  "name": "codex-image-plugin",
+  "version": "0.2.3",
+  "description": "A Codex plugin for generating and editing images through any OpenAI-compatible image API.",
+  "author": {
+    "name": "Starfall",
+    "url": "https://github.com/zlsbksdxl"
+  },
+  "homepage": "https://github.com/zlsbksdxl/codex-image-plugin",
+  "repository": "https://github.com/zlsbksdxl/codex-image-plugin",
+  "license": "MIT",
+  "keywords": [
+    "image-generation",
+    "image-editing",
+    "openai-compatible",
+    "codex",
+    "visual"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Codex Image Plugin",
+    "shortDescription": "Generate and edit images with any compatible image API",
+    "longDescription": "Pass an image API URL, key, and model to generate or edit images. List image-capable models exposed by the endpoint before choosing a model.",
+    "developerName": "Starfall",
+    "category": "Creativity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "composerIcon": "./assets/icon.svg",
+    "websiteURL": "https://github.com/zlsbksdxl/codex-image-plugin",
+    "defaultPrompt": [
+      "Use this image API URL and key to list available image models.",
+      "Generate an image with this image API URL, key, and model.",
+      "Edit this reference image through the supplied image API."
+    ],
+    "brandColor": "#111827"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "name": "codex-zcode-bridge",
+  "version": "1.2.2",
+  "description": "让 Codex 通过本地 Bridge 委派、跟进并审查 ZCode 开发任务。",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/Sandyzzx/codex-zcode-bridge",
+  "homepage": "https://github.com/Sandyzzx/codex-zcode-bridge",
+  "keywords": [
+    "codex",
+    "zcode",
+    "mcp",
+    "developer-tools"
+  ],
+  "author": {
+    "name": "Sandy"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Zcode Bridge",
+    "shortDescription": "把开发任务交给本机 ZCode 执行。",
+    "longDescription": "通过本地 MCP 将开发任务交给 ZCode，在 Codex 查看进度、审查改动并决定是否接收。",
+    "developerName": "Sandy",
+    "category": "Developer tools",
+    "capabilities": [
+      "MCP tools",
+      "Task delegation"
+    ],
+    "defaultPrompt": [
+      "把这个开发任务交给 ZCode，并跟进到完成。",
+      "用指定模型让 ZCode 修复这个问题。",
+      "检查 ZCode 的任务进度和最终改动。"
+    ],
+    "logo": "./assets/logo.png",
+    "composerIcon": "./assets/icon.png"
+  },
+  "mcpServers": "./.mcp.json"
+}

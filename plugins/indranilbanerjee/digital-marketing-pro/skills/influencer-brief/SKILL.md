@@ -50,7 +50,7 @@ A structured influencer campaign brief containing:
 
 ### AI-tool clauses for creator briefs (May 2026)
 
-Creators increasingly use AI image/video tools (Nano Banana Pro, Gemini Omni, Veo 3.1, Kling v3.0 Pro, Runway Gen-4, Midjourney; **note:** OpenAI's consumer Sora app was discontinued 26 Apr 2026 and the Sora API ends 24 Sep 2026 — do not specify Sora in new briefs) inside sponsored content. The brief must spell out three things to keep the brand safe:
+Creators increasingly use AI image/video tools (Nano Banana Pro, Gemini Omni, Veo 3.1, Kling v3.0 Pro, Runway Gen-4, Midjourney; **note:** OpenAI's consumer Sora app was discontinued 26 Apr 2026 and the Sora API (and OpenAI's whole Videos API) shut down 24 Sep 2026 with no replacement — do not specify Sora in new briefs) inside sponsored content. The brief must spell out three things to keep the brand safe:
 
 1. **Permitted AI use**: Allowed for B-roll, mood, and stylised visuals. **Not permitted for** synthetic depictions of real people (including the creator themselves in altered form), synthetic product imagery that misrepresents the brand's actual product, or AI-generated voiceover impersonating a real person without explicit release.
 2. **Required disclosures**: Any AI-generated visual or audio in the sponsored content must (a) be flagged in the creator's platform-native AI disclosure (TikTok AI label, Meta AI Content label, YouTube "altered or synthetic content" toggle) AND (b) carry C2PA Content Credentials if the creator ships the file to the brand for paid amplification — provide `/digital-marketing-pro:c2pa-metadata` workflow link in the brief.

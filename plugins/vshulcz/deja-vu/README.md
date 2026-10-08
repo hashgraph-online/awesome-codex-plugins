@@ -6,12 +6,13 @@ The plugin bundle Codex installs from this repository's marketplace:
 codex plugin marketplace add vshulcz/deja-vu && codex plugin add deja-vu@deja-vu
 ```
 
-It carries deja's MCP server, the `deja-history` skill and three hooks:
-recall at session start and on each prompt, and what a compaction threw away
-served again once.
+It carries deja's MCP server, the `deja-history` skill and four hooks:
+recall at session start and on each prompt, a line before a shell command or
+patch about what this machine already knows of it, and a capture as a compaction
+starts so what the summary drops is served back once.
 
 [deja](https://github.com/vshulcz/deja-vu) indexes the session transcripts
-thirty-four coding agents already write to disk, including sessions from before it
+thirty-eight coding agents already write to disk, including sessions from before it
 was installed, and answers from them locally: BM25 over the transcripts, no
 model and no embeddings, credentials redacted as the index is built.
 
@@ -27,8 +28,8 @@ or
 curl -fsSL https://raw.githubusercontent.com/vshulcz/deja-vu/main/install.sh | sh
 ```
 
-`deja install codex` writes the same MCP server and hooks into `~/.codex`
-from the CLI. Either path works, and having both does not wire anything twice.
+`deja install codex-auto` writes the same MCP server and hooks into `~/.codex`
+from the CLI (`deja install codex` writes the MCP server alone). Either path works, and having both does not wire anything twice.
 
 Details, the harness matrix and the benchmarks are in the
 [repository README](../README.md). Security policy: [SECURITY.md](../SECURITY.md).

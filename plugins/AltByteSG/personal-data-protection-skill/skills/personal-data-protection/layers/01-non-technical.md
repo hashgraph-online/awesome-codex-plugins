@@ -1,6 +1,6 @@
 # Layer 01 — Non-technical / Organisational
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 
 Obligations that have no code component but must exist for the organisation to be compliant. These apply across all PDP-family jurisdictions.
 

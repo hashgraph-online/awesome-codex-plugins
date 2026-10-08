@@ -29,6 +29,7 @@
 - [ ] Every fix proposal passes through fix-reviewer before user sees it.
 - [ ] No fix applied without user confirmation via AskUserQuestion.
 - [ ] After a fix, the skill prints an evidence line with an exit code, or a none reason -- never a bare "run the tests".
+- [ ] A `test:` line and a `source:` line print before the reproducing test is written, and the `red:` and pass lines start with that same command. On a Python project with no `python` binary, the `test:` line names `none (python not on PATH)`, never a bare `python` or a substituted `python3`.
 - [ ] Before the fix is applied, a `red:` line names the reproducing test; after it, a pass line follows -- or one `skipped:` reason covers both when no command resolves.
 - [ ] Adaptive exploration bounded to 2 rounds.
 - [ ] Every hypothesis carries a Refutation entry; none reads "nothing in particular".

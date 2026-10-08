@@ -1,0 +1,4 @@
+interface:
+  display_name: "AI Media Quality Review"
+  short_description: "Inspect generated media before accepting it"
+  default_prompt: "Use $ai-media-quality-review to inspect this generated file against my brief and tell me what passes, fails, or remains unverified."

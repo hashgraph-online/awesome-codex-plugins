@@ -16,7 +16,7 @@ The user must provide (or will be prompted for):
 
 - **Campaign dates**: Start date, end date, and any blackout periods or mandatory flight windows
 - **Total paid media budget**: Aggregate budget for the campaign period with any channel-specific floors or caps
-- **Channels available**: Platforms in consideration — Google Ads, Meta Ads, LinkedIn Ads, TikTok Ads, programmatic display, connected TV, native, audio, out-of-home, etc.
+- **Channels available**: Platforms in consideration — Google Ads, Meta Ads, LinkedIn Ads, TikTok Ads, ChatGPT Ads, programmatic display, connected TV, native, audio, out-of-home, etc.
 - **Campaign objectives**: Primary and secondary objectives — awareness (reach/impressions), consideration (traffic/engagement), conversion (leads/sales/ROAS)
 - **Target audiences with segments**: Audience definitions including demographics, interests, behaviors, custom audiences, lookalikes, and retargeting pools
 - **Creative assets available**: Existing ad formats and sizes, video lengths, static variants, and any creative production timelines for new assets
@@ -38,6 +38,22 @@ The user must provide (or will be prompted for):
 9. **Create platform setup checklists**: Build channel-specific setup checklists covering account structure, campaign naming conventions, tracking implementation, audience uploads, and creative specs
 10. **Model reach and frequency estimates**: Project total reach, average frequency, and effective frequency per channel and in aggregate — flag oversaturation or underspend risks
 11. **Compile unified media plan calendar**: Assemble all components into a single calendar view showing budget pacing, creative rotation, audience activation, and measurement milestones week by week
+
+## Ads inside AI answers (checked 2026-10-04)
+
+Two surfaces need special handling in any plan. Full sourcing, tracking and feed detail live in `skills/paid-advertising/ads-in-ai-answers.md`; follow it rather than restating numbers from memory.
+
+- **ChatGPT Ads: plan it as a test line, funded from the contingency reserve (step 8).**
+  - Before any budget is committed, check two prerequisites:
+    1. The Measurement Pixel **and** the server-side Conversions API are both live and deduplicated (pixel `event_id` = API `id`).
+    2. The target countries have been confirmed inside the brand's own Ads Manager.
+  - The developer surface is primary-documented at [developers.openai.com/ads](https://developers.openai.com/ads). Launch dates and country rollout are secondary-sourced; label them "reported, unverified" in the plan.
+  - Custom Audiences are unavailable in the EEA and Switzerland, so EU/CH lines carry no audience tactics.
+  - In the measurement framework (step 7), state the attribution window next to the line: the Reporting API default is 30-day click / 1-day view.
+- **Google AI Mode: not a separate line item.**
+  - Google reaches AI Mode inventory through **AI Max for Search, AI Max for Shopping, and Performance Max** ([blog.google](https://blog.google/products/ads-commerce/google-marketing-live-search-ads/), 20 May 2026).
+  - Budget it inside those lines, and say in the plan that no AI-Mode-specific reporting is documented.
+  - Do not schedule Business Agent for leads ("coming months") or Direct Offers upgrades ("coming soon") as live flights until the account shows them.
 
 ## Output
 

@@ -20,7 +20,7 @@ when-to-use: "user wants to commit changes or write a commit message -- '/commit
 ```
 
 ```
-!`git log --oneline -10 2>/dev/null || echo "NO_GIT"`
+!`git log --oneline -10 2>/dev/null || echo "NO_COMMITS"`
 ```
 
 ---

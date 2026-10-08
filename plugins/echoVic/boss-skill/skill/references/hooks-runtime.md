@@ -4,12 +4,17 @@
 
 ## Hook Dispatch
 
-所有 hooks 脚本使用 Node.js 实现，通过 `boss hooks run` 中间件统一调度。
+所有 hooks 脚本使用 Node.js 实现，通过 `boss hooks run` 中间件统一调度。CLI 随 skill 分发，
+hooks 命令用插件根占位符（`${CLAUDE_PLUGIN_ROOT}` / Codex 的 `${PLUGIN_ROOT}`）或安装副本的
+绝对路径指向 `<skill>/cli/bin/boss.mts`（.mts 源码由 Node >=22.18 直接运行），不依赖 npm，也不依赖 PATH 上的二进制。
+
+调度链：hook 命令 → `boss hooks run <hook-id> <script-relative-path>` → `skill/scripts/lib/run-with-flags.js`
+（自定位 skill 根，做 profile 开关、stdin 归一化与路径校验）→ `<skill>/scripts/hooks/<script>`。
 
 hooks 定义在：
-- `skill/hooks/claude/hooks.json`
-- `skill/hooks/codex/hooks.json`
-- `.claude/settings.json`
+- `skill/hooks/claude/hooks.json`（声明于 `.claude-plugin/plugin.json` 的 `hooks` 字段）
+- `skill/hooks/codex/hooks.json`（声明于 `.codex-plugin/plugin.json` 的 `hooks` 字段）
+- `.claude/settings.json`（本仓库 dogfood，用 `$CLAUDE_PROJECT_DIR/skill/cli/bin/boss.mts`）
 
 ## Hook Profile
 

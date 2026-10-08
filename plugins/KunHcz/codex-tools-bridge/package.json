@@ -1,0 +1,45 @@
+{
+  "name": "codex-tools-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Let ChatGPT Web orchestrate native local Codex tools through OpenAI Secure MCP Tunnel. No second model loop.",
+  "type": "module",
+  "license": "MIT",
+  "author": "KunHcz",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KunHcz/codex-tools-bridge.git"
+  },
+  "homepage": "https://github.com/KunHcz/codex-tools-bridge#readme",
+  "bugs": {
+    "url": "https://github.com/KunHcz/codex-tools-bridge/issues"
+  },
+  "packageManager": "bun@1.3.11",
+  "engines": {
+    "bun": ">=1.3.11"
+  },
+  "scripts": {
+    "start": "bun src/cli.ts mcp",
+    "doctor": "bun src/cli.ts doctor",
+    "test": "bun test ./tests",
+    "typecheck": "tsc --noEmit",
+    "verify": "bun run typecheck && bun run test && bun run check:release",
+    "check:release": "bun scripts/check-release.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.30.0",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/bun": "1.4.0",
+    "typescript": "5.9.3"
+  },
+  "keywords": [
+    "chatgpt",
+    "codex",
+    "mcp",
+    "local-tools",
+    "tunnel",
+    "tool-bridge"
+  ]
+}

@@ -118,7 +118,7 @@ unavailable or disabled, say completion is recorded and status/result is
 available. Never promise an immediate wake.
 
 For `--goal-mode`, say the job is durably tracked under the Goal and will be
-picked up by completion delivery, a hook, or Goal continuation. Automatic
+picked up by completion delivery or Goal continuation. Automatic
 continuation is not permission to monitor: do independent work or apply the host
 Goal blocked audit.
 

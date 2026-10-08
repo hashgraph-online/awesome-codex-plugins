@@ -1,368 +1,86 @@
-# Xquik extraction tools
+# Extraction jobs
 
-Xquik provides 23 bulk data extraction tools. Each tool requires a specific target.
+Use an extraction for a complete list, a large dataset, or a file export.
+Each job bills 1 credit per delivered tweet or profile, and
+`article_extractor` 5 per article. So 10,000 tweets cost 10,000 credits, or
+$1.50.
 
-## Privacy and acceptable use
+## Flow
 
-Bulk extraction and export can collect large amounts of visible identity,
-activity, and relationship data. Before creating a job, confirm the lawful
-purpose, target, `resultsLimit`, intended recipients, and retention period.
-Follow X rules and applicable privacy law. Do not use these tools for
-credential collection, private data, surveillance, discrimination, harassment,
-doxxing, or unrelated secondary use. Delete exported data when the confirmed
-purpose ends.
+| Call | Contract |
+| --- | --- |
+| `POST /extractions/estimate` | Free. Creates nothing. Takes the job body: `toolType`, its target, the requested filters & `resultsLimit`. Without a cap the API uses 10,000. Returns `allowed`, `estimatedResults`, `creditsRequired`, `creditsAvailable` & `source` |
+| `POST /extractions` | Same body plus a new `Idempotency-Key`. A retry with that key returns the original job. `202` returns the job `id`, `status` & `statusUrl` |
+| `GET /extractions/{id}` | Returns `job`, `results`, `hasMore`, `nextCursor` & `pollAfterMs`. `job.status` ends as `completed`, `failed`, or `canceled`. Rows come 100 per page, up to 1,000 with `limit=1000`. Send `nextCursor` back as `cursor` |
+| `GET /extractions/{id}/export?format=csv` | Formats: `csv`, `json`, `md`, `md-document`, `pdf`, `txt`, `xlsx`. 1 export holds up to 100,000 rows, and PDF up to 10,000 |
 
-Every extraction requires an estimate and explicit approval for the exact
-bounded job. Never infer approval from a general request or increase a bound
-without renewed approval.
+- `creditsRequired` & `creditsAvailable` are numeric strings. Convert them
+  before any math.
+- `creditsRequired` is a charge ceiling, not an exact bill. Skipped or
+  filtered rows cost nothing.
+- `estimatedResults` is a conservative billing count, such as the follower
+  count or the `resultsLimit` cap. It is not a count of matching posts.
+  `source` names which one it used.
+- `allowed: false` means the balance cannot fund the job. Lower
+  `resultsLimit`, or the user adds credits in the dashboard.
+- Show the estimate & get a yes before `POST /extractions`. Create nothing
+  before that yes.
+- Wait `pollAfterMs` between status reads.
+- Always give the download call. For a job over the export limit, page
+  `GET /extractions/{id}?limit=1000` from the start instead, so no row
+  appears twice.
 
-The API accepts an omitted `resultsLimit`. This Skill must always send an
-explicit finite positive bound. Use the same bound for estimate and create.
-
-First send the bounded body to `POST /extractions/estimate`. Review
-`creditsRequired`, `creditsAvailable`, and `allowed`. Create nothing when
-`allowed` is false. When it is true, show the exact estimate and wait for
-explicit approval. Only then send the same body to `POST /extractions`.
-
-## Tool types
-
-### Tweet-based tools
-
-These tools require `targetTweetId`.
-
-| Tool type | Description |
-|-----------|-------------|
-| `reply_extractor` | Extract users who replied to a tweet |
-| `repost_extractor` | Extract users who retweeted a tweet |
-| `quote_extractor` | Extract users who quote-tweeted a tweet |
-| `thread_extractor` | Extract all tweets in a thread |
-| `article_extractor` | Extract article content linked in a tweet |
-| `favoriters` | Extract users who favorited a tweet |
-
-For example:
-
-```json
-{
-  "toolType": "reply_extractor",
-  "targetTweetId": "1893704267862470862",
-  "resultsLimit": 100
-}
-```
-
-### User-based tools
-
-These tools require `targetUsername`.
-
-| Tool type | Description |
-|-----------|-------------|
-| `follower_explorer` | Extract followers of an account |
-| `following_explorer` | Extract accounts followed by a user |
-| `verified_follower_explorer` | Extract verified followers of an account |
-| `mention_extractor` | Extract tweets mentioning an account |
-| `post_extractor` | Extract posts from an account |
-
-For example:
+`DELETE /extractions/{id}` cancels a running job.
 
 ```json
 {
   "toolType": "follower_explorer",
-  "targetUsername": "elonmusk",
-  "resultsLimit": 100
+  "targetUsername": "nasa",
+  "resultsLimit": 5000
 }
 ```
 
-The `@` prefix is automatically stripped if included.
+## Tools and targets
 
-### User timeline tools
+| Target field | Tools |
+| --- | --- |
+| `targetTweetId` | `reply_extractor` (reply authors), `repost_extractor`, `quote_extractor`, `favoriters` (needs a connected X account), `thread_extractor`, `article_extractor` |
+| `targetUsername` | `follower_explorer`, `following_explorer`, `verified_follower_explorer`, `mention_extractor`, `post_extractor`, `user_media`, `user_likes` (needs a connected X account) |
+| `targetCommunityId` | `community_extractor` (members), `community_moderator_explorer`, `community_post_extractor`, `community_search` (also needs `searchQuery`) |
+| `targetListId` | `list_member_extractor`, `list_post_extractor`, `list_follower_explorer` |
+| `targetSpaceId` | `space_explorer` (participants) |
+| `searchQuery` | `tweet_search_extractor`, `people_search` |
 
-These tools require `targetUsername`.
+Multi-target jobs use `targetUsernames`, `targetTweetIds`, `searchQueries`,
+`targetCommunityIds`, or `targetListIds`, with `maxItemsPerTarget`.
 
-| Tool type | Description |
-|-----------|-------------|
-| `user_likes` | Extract tweets liked by a user |
-| `user_media` | Extract media tweets from a user |
+## Search filters
 
-For example:
-
-```json
-{
-  "toolType": "user_likes",
-  "targetUsername": "elonmusk",
-  "resultsLimit": 100
-}
-```
-
-### Community-based tools
-
-These tools require `targetCommunityId`.
-
-| Tool type | Description |
-|-----------|-------------|
-| `community_extractor` | Extract members of a community |
-| `community_moderator_explorer` | Extract moderators of a community |
-| `community_post_extractor` | Extract posts from a community |
-| `community_search` | Search posts within a community (also requires `searchQuery`) |
-
-For example:
-
-```json
-{
-  "toolType": "community_extractor",
-  "targetCommunityId": "1234567890",
-  "resultsLimit": 100
-}
-```
-
-### List-based tools
-
-These tools require `targetListId`.
-
-| Tool type | Description |
-|-----------|-------------|
-| `list_member_extractor` | Extract members of a list |
-| `list_post_extractor` | Extract posts from a list |
-| `list_follower_explorer` | Extract followers of a list |
-
-For example:
-
-```json
-{
-  "toolType": "list_member_extractor",
-  "targetListId": "1234567890",
-  "resultsLimit": 100
-}
-```
-
-### Space-based tools
-
-These tools require `targetSpaceId`.
-
-| Tool type | Description |
-|-----------|-------------|
-| `space_explorer` | Extract participants of a Space |
-
-For example:
-
-```json
-{
-  "toolType": "space_explorer",
-  "targetSpaceId": "1YqKDqDXAbwKV",
-  "resultsLimit": 100
-}
-```
-
-### Search-based tools
-
-These tools require `searchQuery`.
-
-| Tool type | Description |
-|-----------|-------------|
-| `people_search` | Search for users by keyword |
-| `tweet_search_extractor` | Search and extract tweets by keyword or hashtag |
-
-For a people search:
-
-```json
-{
-  "toolType": "people_search",
-  "searchQuery": "machine learning engineer",
-  "resultsLimit": 100
-}
-```
-
-For a tweet search:
+`tweet_search_extractor` takes the query in `searchQuery` and these optional
+top-level filters: `fromUser`, `toUser`, `mentioning`, `language`,
+`sinceDate`, `untilDate`, `mediaType`, `minFaves`, `minRetweets`,
+`minReplies`, `minQuotes`, `verifiedOnly`, `replies`, `retweets`, `quotes`,
+`exactPhrase`, `excludeWords`, `anyWords`, `hashtags`, `cashtags`, `url`, and
+`queryType` (`Latest` default, or `Top`). Send only the filters the user asked
+for.
 
 ```json
 {
   "toolType": "tweet_search_extractor",
-  "searchQuery": "#AI",
-  "resultsLimit": 100
-}
-```
-
-### Tweet search filters
-
-`tweet_search_extractor` accepts structured filters. It combines them with
-`searchQuery` before collection.
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `fromUser` | string | Author username |
-| `toUser` | string | Directed to user |
-| `mentioning` | string | Mentions user |
-| `language` | string | Language code (e.g., `en`) |
-| `sinceDate` | string | Start date (YYYY-MM-DD) |
-| `untilDate` | string | End date (YYYY-MM-DD) |
-| `mediaType` | string | `images`, `videos`, `gifs`, `media`, `links`, or `none` |
-| `minFaves` | number | Minimum likes |
-| `minRetweets` | number | Minimum retweets |
-| `minReplies` | number | Minimum replies |
-| `minQuotes` | number | Minimum quote count |
-| `minViews` | number | Minimum view count |
-| `minBookmarks` | number | Minimum bookmark count |
-| `maxLikes` | number | Maximum likes |
-| `maxRetweets` | number | Maximum reposts |
-| `maxReplies` | number | Maximum replies |
-| `maxQuotes` | number | Maximum quotes |
-| `blueVerifiedOnly` | boolean | Blue-verified authors only |
-| `cardName` | string | Match the Tweet card name |
-| `source` | string | Match the source application |
-| `excludeSource` | string | Exclude a source application |
-| `geocode` | string | Match latitude, longitude, and radius |
-| `sinceId` | string | Tweets newer than this ID |
-| `maxId` | string | Tweets older than this ID |
-| `near` | string | Match a place name |
-| `within` | string | Radius for the `near` filter |
-| `withinTime` | string | Recent time window |
-| `nativeRetweets` | boolean | Native reposts only |
-| `safe` | boolean | Enable safe search |
-| `news` | boolean | News results only |
-| `verifiedOnly` | boolean | Verified authors only |
-| `replies` | string | `include`, `exclude`, or `only` |
-| `retweets` | string | `include`, `exclude`, or `only` |
-| `quotes` | string | `include`, `exclude`, or `only` |
-| `exactPhrase` | string | Exact match text |
-| `excludeWords` | string | Comma-separated words to exclude |
-| `anyWords` | string | Terms where any one can match |
-| `hashtags` | string | Hashtags separated by spaces, commas, or lines |
-| `cashtags` | string | Cashtags separated by spaces, commas, or lines |
-| `url` | string | URL substring or domain |
-| `conversationId` | string | Conversation ID |
-| `inReplyToTweetId` | string | Replies to one Tweet ID |
-| `quotesOfTweetId` | string | Quotes of one Tweet ID |
-| `retweetsOfTweetId` | string | Reposts of one Tweet ID |
-| `listId` | string | Search within a list |
-| `place` | string | Search within a place ID |
-| `placeCountry` | string | Search within a country code |
-| `pointRadius` | string | Geographic point and radius |
-| `boundingBox` | string | Geographic bounding box |
-| `advancedQuery` | string | Raw X search operators appended to query |
-
-For example, apply filters:
-
-```json
-{
-  "toolType": "tweet_search_extractor",
-  "searchQuery": "AI",
-  "fromUser": "elonmusk",
-  "minFaves": 100,
+  "searchQuery": "solar panels",
+  "language": "en",
   "sinceDate": "2026-01-01",
-  "mediaType": "videos",
-  "resultsLimit": 500
+  "untilDate": "2026-06-30",
+  "retweets": "exclude",
+  "resultsLimit": 20000
 }
 ```
 
-The API makes `resultsLimit` optional. This Skill requires a finite positive
-value. Pass the same value to `POST /extractions/estimate` and
-`POST /extractions`.
+Profile tools accept `minFollowers`, `maxFollowers`, `verifiedOnly`,
+`bioContains`, `locationContains`, and `minAccountAgeDays`.
 
-### Profile filters
+## Results
 
-Profile-producing extractions also accept `minFollowers`, `maxFollowers`,
-`minFollowing`, `maxFollowing`, `minPosts`, `maxPosts`,
-`minAccountAgeDays`, `verifiedType`, `hasWebsite`, `hasLocation`,
-`bioContains`, `locationContains`, and `usernameContains`.
-
-## Response
-
-```json
-{
-  "id": "77777",
-  "toolType": "reply_extractor",
-  "status": "completed",
-  "totalResults": 150
-}
-```
-
-The status is `pending`, `running`, `completed`, or `failed`.
-
-## Retrieving results
-
-```javascript
-const xquikFetch = globalThis.xquikFetch;
-if (typeof xquikFetch !== "function") {
-  throw new Error("Configure the authenticated xquikFetch client first.");
-}
-const extractionId = globalThis.xquikExtractionId;
-if (typeof extractionId !== "string" || !extractionId) {
-  throw new Error("Supply the confirmed xquikExtractionId first.");
-}
-const approvedMaxPages = globalThis.xquikApprovedMaxPages;
-if (!Number.isInteger(approvedMaxPages) || approvedMaxPages < 1) {
-  throw new Error("Supply the confirmed positive xquikApprovedMaxPages first.");
-}
-
-const results = [];
-let nextCursor;
-for (let pageNumber = 0; pageNumber < approvedMaxPages; pageNumber++) {
-  const params = new URLSearchParams({ limit: "1000" });
-  if (nextCursor) params.set("after", nextCursor);
-  const page = await xquikFetch(`/extractions/${extractionId}?${params}`);
-  if (
-    page === null ||
-    typeof page !== "object" ||
-    Array.isArray(page) ||
-    !Array.isArray(page.results) ||
-    typeof page.hasMore !== "boolean"
-  ) {
-    throw new Error("Invalid extraction page.");
-  }
-  results.push(...page.results);
-  if (!page.hasMore) {
-    nextCursor = undefined;
-    break;
-  }
-  if (typeof page.nextCursor !== "string" || !page.nextCursor) {
-    throw new Error("Missing extraction cursor.");
-  }
-  nextCursor = page.nextCursor;
-}
-if (nextCursor) throw new Error("Confirmed extraction page limit reached.");
-```
-
-The endpoint returns up to 1,000 results per page. When `hasMore` is true, send
-the returned `nextCursor` unchanged as the next request's `after` value. Each result
-includes:
-
-- `xUserId`, `xUsername`, `xDisplayName`
-- `xFollowersCount`, `xVerified`, `xProfileImageUrl`
-- `tweetId`, `tweetText`, `tweetCreatedAt` (for tweet-based extractions)
-
-## Exporting results
-
-```http
-GET /extractions/{id}/export?format=csv
-```
-
-Choose `csv`, `json`, `md`, `md-document`, `pdf`, `txt`, or `xlsx`. Exports support 100,000 rows, except PDF supports 10,000.
-
-Exports include enrichment columns not present in the API response.
-
-The endpoint supports follower, following, post, engagement, profile, media,
-language, search, and date filters. It does not project individual fields.
-
-Get approval first. Set the smallest confirmed `resultsLimit` when creating
-the job. Before export, show the job, filters, format, row count, schema,
-recipients, storage, and retention. Materialize or transmit the dataset only
-after explicit approval. Delete it when the confirmed purpose ends.
-
-## Estimating usage
-
-```http
-POST /extractions/estimate
-```
-
-Same body as create. Response:
-
-```json
-{
-  "allowed": true,
-  "source": "replyCount",
-  "estimatedResults": 150,
-  "creditsRequired": "150",
-  "creditsAvailable": "50000"
-}
-```
-
-If `allowed` is `false`, do not create the extraction. The current balance does
-not cover the estimate.
+Rows keep stable IDs. Store the job ID, body, and collection time with the
+file. Deleted, protected, or unavailable content can be missing, so counts can
+differ from the numbers X shows on a profile or post.

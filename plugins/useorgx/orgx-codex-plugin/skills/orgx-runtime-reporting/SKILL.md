@@ -64,6 +64,9 @@ durable in OrgX while the session is still fresh.
 
 5. Handle blockers structurally:
 - If judgment is required, request a decision with explicit options.
+- A decision waits on a person: report the blocker as waiting on them with the
+  decision's `review_url`. `orgx_decide` approve/reject only returns that link;
+  never report a decision as approved or rejected yourself.
 - If context is missing, report the exact missing dependency.
 
 6. Close execution cleanly:
@@ -74,6 +77,9 @@ durable in OrgX while the session is still fresh.
   classify: name decisions, artifacts, blockers, next actions, and verification.
 - Do not claim OrgX was updated unless an MCP tool or API call actually
   succeeded.
+- Do not claim delegated or spawned work finished because the spawn call
+  succeeded: that only means it started. Check it with `orgx_command_status`
+  (`kind: "run"` and the returned run ID) until `next_poll_after_ms` is `null`.
 
 8. Preserve Work Graph continuity:
 - When a Work Graph report is generated, include its `work_graph_fingerprint`

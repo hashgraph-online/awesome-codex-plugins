@@ -36,8 +36,19 @@ Use this skill when the task is tied to OrgX execution state rather than just lo
 5. Surface decisions explicitly:
 - If work is blocked on judgment, request a decision with clear options and impact.
 - Do not bury blockers in prose.
+- Only a person settles a decision. `orgx_decide` with `action: "approve"` or
+  `"reject"` never approves or rejects anything: it returns the decision's
+  `review_url` in OrgX. Give the person that link, report the work as waiting
+  on them, and never say a decision was approved or rejected unless OrgX shows
+  it settled.
 
 6. Close the loop:
+- Launching or spawning work starts it; it does not finish it. Report it as
+  started, keep the returned run ID, and check it with `orgx_command_status`
+  (`kind: "run"`, or `kind: "decision"` for a decision) before claiming any
+  outcome. When `next_poll_after_ms` is a number, check again after that many
+  milliseconds; `null` means the state is final. Use `orgx_inspect` for
+  anything without a run, decision or command ID.
 - When a task is truly done, verify it first.
 - Then update completion state in OrgX if the current task is known.
 
@@ -46,4 +57,8 @@ Use this skill when the task is tied to OrgX execution state rather than just lo
 - Never assume OrgX entity state from memory alone.
 - Never mark work complete without verification.
 - Prefer one verified task completion over broad unverified status claims.
+- If a write's outcome is unclear (timeout, dropped connection), retry it with
+  the same `idempotency_key`: OrgX replays the stored result instead of
+  duplicating the write. Reusing a key with a different body is refused (422);
+  a 409 means the first attempt is still in flight.
 - Use `source_client=codex` whenever the tool supports client attribution.

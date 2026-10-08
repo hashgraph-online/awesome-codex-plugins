@@ -64,3 +64,13 @@ bullets or a closed `text` fence; separate read-only references. Each file has
 one owner unless edits are explicitly sequenced. Include applicable rollback
 and stop conditions. Link shared contracts precisely; never copy background.
 Review requires a verdict plus actual reviewed scope/result.
+
+## Compatibility
+
+New mutable plans require a `## Compatibility` section in each section file.
+Use the [shared declaration and execution contract](../../zagrosi-implement/references/compatibility.md):
+one fenced JSON object declares protected source, checks and their provenance,
+or `not_required` with a concrete reason. Keep the protected behavior and intended
+changes in the existing Contract; do not create another behavior ledger.
+An undecided draft cannot pass admission. Existing undeclared plans remain legacy;
+the pinned detached protocol retains its own evidence format.

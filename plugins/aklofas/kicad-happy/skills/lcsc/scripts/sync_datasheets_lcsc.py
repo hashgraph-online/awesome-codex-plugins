@@ -157,7 +157,7 @@ def save_index(path: Path, index: dict):
     tmp = new_path.with_suffix(".tmp")
     with open(tmp, "w") as f:
         json.dump(index, f, indent=2)
-    tmp.rename(new_path)
+    tmp.replace(new_path)
     old_path = parent / LEGACY_MANIFEST_FILENAME
     if old_path.exists() and old_path != new_path:
         try:

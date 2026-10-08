@@ -1,0 +1,53 @@
+{
+  "name": "@darkmoon_ai/mcp-server",
+  "version": "0.1.0",
+  "mcpName": "io.github.ASCIT31/darkmoon-mcp-server",
+  "description": "MCP server for a self-hosted Darkmoon Pro instance: start autonomous AI pentest runs, poll status, list campaigns and read findings.",
+  "license": "GPL-3.0-only",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "darkmoon-mcp-server": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && chmod +x dist/cli.js",
+    "test": "tsc -p tsconfig.test.json && node --test dist-test/test/server.test.js",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "darkmoon",
+    "pentest",
+    "security",
+    "ai-agent",
+    "vulnerability-scanner"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ASCIT31/darkmoon-mcp-server.git"
+  },
+  "homepage": "https://github.com/ASCIT31/Dark-Moon",
+  "bugs": {
+    "url": "https://github.com/ASCIT31/Dark-Moon/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  }
+}

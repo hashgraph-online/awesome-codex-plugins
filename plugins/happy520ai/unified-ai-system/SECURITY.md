@@ -46,6 +46,17 @@ authorized to test. Do not make unapproved real-provider calls, access other
 people's data, degrade shared services, or use social engineering. Stop and
 report privately if testing exposes credentials or sensitive data.
 
+What we have already tested, and the limit of what it shows, is published rather
+than implied: the credential-free attack regression and the two published-image
+content reviews are summarised in
+[MCP security boundaries](https://happy520ai.github.io/unified-ai-system/mcp-security-boundaries.html),
+with a rerunnable command behind each figure, and the raw output is in
+[security drill evidence](https://happy520ai.github.io/unified-ai-system/security-drill-evidence.html).
+Neither establishes what a running container is confined to do, or that the code
+resists exploitation. Reading where each claim stops is the fastest way to aim a
+report at something real, which is the point of publishing it here as well as on
+the site.
+
 ## Coordinated Disclosure
 
 Please allow time for validation and a supported fix before public disclosure.

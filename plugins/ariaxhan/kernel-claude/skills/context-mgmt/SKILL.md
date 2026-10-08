@@ -33,9 +33,9 @@ Graph telemetry (shadow): JSON receipts → `agentdb graph-project` / `graph-sug
 <core_principles>
 1. COMPACTION: Summarize and reinitialize. Keep architecture decisions, discard noise.
 2. STRUCTURED NOTES: AgentDB + active.md persist across context resets.
-3. MULTI-AGENT: Delegate research to subagents. They explore, report summaries.
+3. MULTI-AGENT: Delegate research to subagents. They explore, report summaries. Cap the return at ~1,000-2,000 tokens (conclusion + path:line evidence, no raw dumps); the exploration context stays in the subagent.
 4. MINIMAL READS: grep/glob to find, then read specific sections.
-5. TOOL RESULT CLEARING: Old tool output rarely needs to stay in context.
+5. TOOL RESULT CLEARING: Old tool output rarely needs to stay in context. When calling the Claude API directly (not via this harness), prefer the server-side `context-management-2025-06-27` beta over hand-rolled truncation: `clear_tool_uses_20250919` clears old tool results past a token trigger (client keeps full history, no sync needed), `clear_thinking_20251015` clears old thinking blocks while preserving cache hits. Client-side SDK compaction (`compaction_control`, TypeScript/Ruby) is deprecated; use server-side `compact_20260112` (same beta header) for summarization. Ordering: `clear_thinking_20251015` must precede `clear_tool_uses_20250919` in `edits`. Set `exclude_tools` for results that must survive; clearing tool results invalidates the cached prefix, so set `clear_at_least` so each clear pays for itself.
 </core_principles>
 
 <token_budget>

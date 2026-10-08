@@ -34,6 +34,8 @@ The user must provide (or will be prompted for):
 9. Identify dependencies, risks, and contingency actions
 10. Output the full plan in a structured, actionable format
 
+When you start writing the plan, read `brief-structure.md` (beside this file) for the 10-section brief skeleton, the after-planning follow-up menu, and the parallel-dispatch rules (per-channel briefs fan out once the channel mix is approved; budget allocation stays sequential).
+
 ## Output
 
 A structured campaign plan document containing:

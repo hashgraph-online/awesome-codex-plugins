@@ -22,9 +22,32 @@ This is the **attribution-side counterpart** to the new GSC AI Performance Repor
 4. **Reconcile with `aeo-audit` outputs and the GSC AI report.** Three data sources, three different views:
    - `aeo-audit` (synthetic probing) — what AI engines *could* say about the brand
    - GSC AI Performance Report — actual impressions in Google AI Overviews / AI Mode (no clicks)
-   - GA4 AI Assistant channel — actual *traffic* from AI assistants (clicks materialized)
+   - GA4 AI Assistant channel — actual *traffic* from non-Google AI assistants (clicks materialized)
 
    A healthy AEO program shows growth across all three; divergence between them is a diagnostic signal.
+
+### The blind spot: Google's own AI surfaces are filed as Organic Search (checked 2026-10-04)
+
+Google's default-channel definitions ([support.google.com/analytics/answer/9756891](https://support.google.com/analytics/answer/9756891)) say three things:
+- **AI Assistant** rule: "The medium exactly matches 'ai-assistant'". GA4 sets that medium (and the campaign `(ai-assistant)`) when the referrer matches its list of AI assistants. Google's channel description names ChatGPT, Gemini, Deepseek, Copilot and Grok; the 13 May 2026 release note also names Claude.
+- The AI Assistant channel "excludes Google's AI Overviews and AI Mode".
+- **Organic Search** is the channel for non-ad links in organic-search results, "including Google's AI Overviews and AI Mode".
+
+So a click from an AI Overview or from AI Mode is counted as Organic Search. The channel page documents no dimension that separates it from a classic blue-link click. Consequences:
+- **Never report the AI Assistant channel as "all AI traffic."** It is non-Google assistant traffic only.
+- **Never subtract or estimate an "AI Overviews share" of Organic Search** from GA4 data. No first-party metric for it exists, and an estimate presented as data is a fabrication.
+- When AI Overviews impressions rise in Search Console while organic clicks fall, report both numbers side by side. Say plainly that GA4 cannot attribute the clicks to AI Overviews or AI Mode.
+
+### One table per AI surface: what you can and cannot measure (checked 2026-10-04)
+
+| Surface | Visibility metric (first-party) | Click / traffic metric | Not available |
+|---|---|---|---|
+| Google AI Overviews + AI Mode | Search Console generative AI report: impressions by page, country, date, device ([help](https://support.google.com/webmasters/answer/16984139)) | Inside GA4 Organic Search, inseparable | Clicks, CTR, and queries in the AI report; an AI-only slice of GA4 organic |
+| Copilot, Bing, and select partner AI experiences | Bing Webmaster Tools AI Performance: citations, grounding queries, **Intents**, **Topics**, **Citation Share** (your share of all citations shown for a grounding query), and **Compare** periods. Intents, Topics, Citation Share and Compare are in preview ([Bing blog](https://blogs.bing.com/search/2026/6/New-AI-Visibility-Insights-in-Bing-Webmaster-Tools-Intents-Topics-Citation-Share-Compare/), 16 Jun 2026) | GA4 AI Assistant channel (Copilot is a named source) | Bing says Citation Share "does not expose competitor domains, represent traffic share, or assign quality scores to content" |
+| Google Shopping in AI Mode / AI Overviews / Gemini app | Merchant Center **AI performance insights**: brand share of voice vs similar brands, across discovery, evaluation and purchase, plus popular product terms and specifications ([Merchant Center help](https://support.google.com/merchants/answer/17117204); [blog.google](https://blog.google/products-and-platforms/products/shopping/shopping-updates-google-marketing-live/), 20 May 2026) | Merchant Center / Ads conversion reporting as usual | Availability: Google said it is rolling out in the U.S., Canada, Australia, India and New Zealand "in the coming months" (as of May 2026). Confirm in the account before promising it |
+| ChatGPT, Claude, Perplexity, Gemini app (answers) | **No first-party citation report exists.** Use synthetic probes (`/digital-marketing-pro:aeo-audit`, `/digital-marketing-pro:geo-monitor`) and label them as probes | GA4 AI Assistant channel | Any vendor-published citation or impression count |
+
+Report each row in its own units. **Do not add Bing citations, Search Console impressions and GA4 sessions into one "AI visibility" number.** They measure different events on different surfaces.
 
 ## When to Use This Skill
 
@@ -186,7 +209,7 @@ For anomaly investigation, prioritize speed. Ask for the specific metric, timefr
 - `reporting-templates.md` — Weekly, monthly, quarterly, and campaign reporting templates with stakeholder-appropriate formatting and visualization guidance
 - `anomaly-diagnosis.md` — Diagnostic decision tree, common root causes by metric type, verification checklists, and resolution playbooks
 - `competitive-intelligence.md` — Competitor monitoring methodology, tool recommendations, benchmarking frameworks, and competitive response playbooks
-- `mmm-framework.md` — Marketing mix modeling data requirements, model design guidance, result interpretation, and optimization recommendations
+- `mmm-framework.md` — Marketing mix modeling data requirements, model design guidance, result interpretation, and optimization recommendations, including Google Meridian 2.x (JAX default and experiment-calibrated priors in v2.0.0; declarative calibration/holdout specs in v2.1.0; checked 2026-10-04)
 - `incrementality-testing.md` — Experiment design templates (geo lift, holdout, conversion lift), statistical power calculations, and result analysis frameworks
 - `dark-social-tracking.md` — Dark social measurement methods, implementation guides for tracking private shares, and estimation models
 - `privacy-first-measurement.md` — Cookieless attribution approaches, consent management architecture, server-side tracking implementation, and privacy regulation compliance guide

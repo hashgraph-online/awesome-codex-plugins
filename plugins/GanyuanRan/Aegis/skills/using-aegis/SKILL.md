@@ -19,7 +19,8 @@ otherwise proceed normally.
 
 1. User/project instructions outrank Aegis.
 2. Load only the smallest explicitly requested or clearly relevant skill/reference;
-   otherwise stay on the fast path.
+   otherwise stay on the fast path. Compose `ui-ux-governance` for UI/UX effects;
+   retain task ownership and scope.
 3. Active codebase question/"what next": check README/ADR/rules/baseline, else
    bounded index-first scan. Non-trivial work passively use relevant
    `CONTEXT-MAP.md`/`CONTEXT.md`; model semantic conflicts only when found.
