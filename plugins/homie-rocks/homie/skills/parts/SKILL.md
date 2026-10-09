@@ -4,6 +4,9 @@ description: Games build on each other by sharing parts, pieces of a game its st
 compatibility: Node 22. A studio made with @homie-rocks/studio; npm installs the packages a part builds on.
 ---
 
+**Apps:** For a business, venue, cause or customer app, follow the `app` skill: `apps/<id>/app.json`, one morphing screen, roles and parts. Reuse these engines and workflows; do not impose game rounds, scores, bots, a game demo or page navigation. The app check proves shared actions and reconnect; app stores use the same standalone command.
+
+
 # Game parts: pieces of games, shared
 
 A studio is the folder with `studio.json`. Games build on each other by sharing **parts**: a piece of a game that

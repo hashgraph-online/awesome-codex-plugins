@@ -134,8 +134,9 @@ hosts. Gate execution, state block, and resume rules:
   ownership rule 2 in `skills/_shared/prd-contract.md`.
 - Entry conditions:
   - skip_when: a `spec` covering the capability this invocation designs exists
-    in `.archcore/`, or no consumer relies on the planned behavior as a
-    contract, per the routing gate in `skills/_shared/spec-contract.md`.
+    in `.archcore/` without an open `sdd.design` state block, or no consumer
+    relies on the planned behavior as a contract, per the routing gate in
+    `skills/_shared/spec-contract.md`.
   - The conductor invokes this gate per its instrument-registry entry in
     `skills/_shared/delta-routing.md` — one invocation per capability.
   - A `prd` on the topic exists, or `sdd.require` closed through the
@@ -143,7 +144,8 @@ hosts. Gate execution, state block, and resume rules:
     `rnd`, `research`, or `adr` that closed it records the problem and the goals.
 - Elicitation knobs:
   - trigger: the dependents, the surface, the constraints and invariants, or
-    the failure behaviors are not recorded.
+    the failure behaviors are not recorded; or a material draft claim relies
+    only on a similar precedent or conflicts with applicable grounding.
   - taxonomy: Domain & Data Model, Integration & External Dependencies, Edge
     Cases & Failure Handling, Constraints & Tradeoffs from
     `skills/_shared/coverage-taxonomy.md`.
@@ -165,6 +167,17 @@ hosts. Gate execution, state block, and resume rules:
   - blocking: WHEN this spec took over a prd statement, the executing skill
     edited that statement in the prd per ownership rule 2 of
     `skills/_shared/prd-contract.md`, in one `update_document` call.
+  - advisory: compare the draft's scope, surface, normative behavior,
+    invariants, failure behavior, and conformance with the request and
+    applicable grounding; report material omissions, contradictions, and
+    unsupported claims by section, and correct those the evidence resolves.
+  - blocking: every material `user`-source choice that changes normative
+    behavior, an invariant, or failure behavior is answered by the request or
+    a recorded clarification, or recorded as delegated under
+    `## Clarifications` and marked `[assumption]` in the draft; otherwise keep
+    this gate open and report per the stopped-gate rule in
+    `skills/_shared/elicitation-contract.md`. A blocked gate cannot advance to
+    `sdd.decompose`.
   - advisory: each Normative Behavior clause of the spec draft is illustrated by
     one example — in its Conformance block, in a `scenario` that `depends_on`
     it, or in a feature file it cites by `@path`; the closing report lists the

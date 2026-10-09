@@ -6,7 +6,7 @@ description: "The pre-merge review of a branch in a project that records its spe
 
 # /archcore:review
 
-Review the changes on the current branch against the `.archcore/` knowledge base, in both directions: whether the changed code still matches the documents that claim it, and whether the changed documents still match the code they describe. A plain branch review also checks a matching `plan` for completion and continues into closeout when one exists. On the default branch, or with an empty diff, the skill reports project health instead. Write affinity: experience types — `cpat` and `task-type` land through the experience track. This is also the only skill that removes a document: `closeout.discharge` removes a completed `plan`, and `actualize.fix` may remove a long-stale draft of any type — both via `mcp__archcore__remove_document`, each under its own confirmation.
+Review the changes on the current branch against the `.archcore/` knowledge base, in both directions: whether the changed code still matches the documents that claim it, and whether the changed documents still match the code they describe. A plain branch review also checks a matching `plan` for completion and continues into closeout when one exists. On the default branch, or with an empty diff, the skill reports project health instead. Write affinity: experience types — `cpat` and `task-type` land through the experience track. A branch review also selects durable context — the claims of the change a later reader needs from `.archcore/` — and writes the units the user authorizes through their owning instruments, per `skills/_shared/durable-context-selection.md`. This is also the only skill that removes a document: `closeout.discharge` removes a completed `plan`, and `actualize.fix` may remove a long-stale draft of any type — both via `mcp__archcore__remove_document`, each under its own confirmation.
 
 Command tense: `/archcore:plan` declares a future canon delta, `/archcore:document`
 records the present state — including work that shipped without a plan — and
@@ -32,8 +32,8 @@ records the present state — including work that shipped without a plan — and
 
 | Signal | Route |
 |---|---|
-| No arguments, branch with changes | → branch review, steps 1–4; step 3 runs closeout for each matched `plan` |
-| On the default branch, or empty diff | → project health dashboard (step 1 fallback) |
+| No arguments, branch with changes | → branch review, steps 1–4; step 3 runs closeout for each matched `plan`, or the durable-context selection when no plan reaches capture |
+| On the default branch, or empty diff | → project health dashboard (step 1 fallback); `closeout` and `experience` ask for a scope instead (step 1) |
 | First word `drift` | → actualize track (step 3); scope from step 1 when the branch boundary resolves, all documents on `on-default-branch` or `empty-diff` |
 | First word `deep` | → actualize track over all documents, plus coverage and relation findings |
 | First word `closeout` | → closeout track (`skills/_shared/tracks/closeout.md`), scope pre-filled from the step 1 `branch-state` block; exits into the step 4 experience offer |
@@ -74,6 +74,8 @@ Handle every sentinel the contract defines:
 
 In `drift` and `deep` modes, the `on-default-branch` and `empty-diff` sentinels widen the actualize scope to all documents instead of the health fallback, and Step 2 is skipped.
 
+In `closeout` and `experience` modes, the `on-default-branch` and `empty-diff` sentinels do not fall back to project health. WHEN the arguments name no plan, path, or commit range, ask one question for that scope, recommending the most recently modified draft `plan`. With the scope set, the track judges the named plan against the current tree and, when given, the commit range.
+
 **Project health fallback** — compact dashboard, data and mechanical checks, no judgement:
 
 - document counts by category, by status, and by type (skip types with 0);
@@ -112,21 +114,26 @@ Match local `plan` documents to the branch work:
 4. IF a candidate matches ambiguously, THEN report it as a candidate and skip closeout for it.
 5. Record each unambiguous match for step 3.
 
+List open tracks in scope: each draft that carries an `archcore:track` state block, with its gate, its `deferred` entries, and the resume command per `skills/_shared/gate-contract.md`. An open track is unfinished work, not a verdict; closeout does not accept it.
+
 ### Step 3: Actualize gate
 
 WHEN step 2 surfaces a drift signal — any `spec-wrong` or `code-wrong` finding — or the first word is `deep` or `drift`, route into the actualize track (`skills/_shared/tracks/actualize.md`) and run its gates: `actualize.scope` (pre-filled with the step 1 `branch-state` block), `actualize.verdict`, `actualize.fix`. In `deep` mode, widen the scope to all documents and run the track's deep checks within their stated budget — claim sampling, cross-document conflicts, type fitness, and relation candidates — alongside the drift verdicts, then report coverage gaps per the auditor's Coverage dimension (`agents/archcore-auditor.md`). Verdict vocabulary lives in `skills/_shared/verdict-contract.md`.
 
 On a plain branch review, after step 2 and any actualize fixes:
 
-1. IF step 2 matched no `plan`, THEN skip closeout and continue to step 4.
+1. IF step 2 matched no `plan`, THEN skip closeout and run the durable-context selection before step 4.
 2. For each matched `plan`, run the closeout track (`skills/_shared/tracks/closeout.md`) with the step 1 branch boundary and that plan's scope pre-filled.
 3. Run `closeout.verify` even when the request contains no completion wording.
 4. Never infer completion from branch readiness alone. The track's plain-review entry rule decides which gates run after `closeout.verify`.
-5. Run the step 4 experience offer once, after all matched plans have been checked.
+5. IF matched plans exist but none reached `closeout.capture`, THEN run the durable-context selection over the branch scope, excluding work an unfinished plan declares.
+6. Run the step 4 experience offer once, after all matched plans have been checked.
+
+The durable-context selection follows `skills/_shared/durable-context-selection.md`. It treats an ambiguously matched plan as no match, and it never selects a `journey`.
 
 ### Step 4: Experience offer
 
-WHEN the reviewed changes repeat an undocumented pattern, offer a `cpat` or `task-type` capture through the experience track (`skills/_shared/tracks/experience.md`): `experience.detect` establishes the repeated edit shape and its evidence; `experience.offer` asks once. The offer is optional — never force it; a decline writes nothing.
+WHEN the reviewed changes carry an undocumented pattern that the durable-context preview did not list, offer a `cpat` or `task-type` capture through the experience track (`skills/_shared/tracks/experience.md`): `experience.detect` establishes the pattern and its evidence; `experience.offer` asks once. The offer is optional — never force it; a decline writes nothing.
 
 ## Delegation
 
@@ -139,7 +146,16 @@ WHEN the reviewed changes repeat an undocumented pattern, offer a `cpat` or `tas
 - Branch review: findings grouped by verdict — `spec-wrong` / `code-wrong` / `ok` — with evidence, applied fixes, and declined fixes.
 - Health fallback: the dashboard — data and the reference helper's counts.
 - Ambiguous plan candidates: each candidate named, with closeout skipped.
-- Closeout: per-task verdicts, applied and declined document updates, status transitions grouped applied / declined / skipped, routed residue with the instrument that took it, removed plans, and retained plans with the remaining work or blocking reason.
-- Produced documents grouped by category — experience: a `cpat` or `task-type` draft from the experience offer or from closeout residue capture; knowledge: a `guide`, or an `adr` plus its standard cascade (`rule`, `guide`), when closeout routes residue through the decision instrument; knowledge / vision: documents updated by a drift fix or a closeout merge.
+- Open tracks: each draft from step 2's open-track list, with its gate, its unresolved choices, and its resume command.
+- Durable context: units grouped created, updated, omitted, deferred, and declined — each with its claim, evidence, and owner, and a reason for every omitted or declined unit.
+- Closeout: per-task verdicts, applied and declined document updates, status transitions grouped applied / declined / skipped, units written at capture with the instrument that took each, removed plans, and retained plans with the remaining work or blocking reason.
+- Produced documents grouped by category — experience: a `cpat` or `task-type` draft from the experience offer or the durable-context selection; knowledge: a `spec`, `doc`, `guide`, `scenario`, or an `adr` plus its standard cascade (`rule`, `guide`), from the durable-context selection; knowledge / vision: documents updated by a drift fix or a closeout merge.
 - Removed documents: each completed `plan` closeout removed, and each long-stale draft a drift fix removed on the user's confirmation — each named with a verified recovery commit when available. For closeout, state explicitly when git history does not preserve the removed plan's current content.
+- Next actions — one line per finding kind present, naming only v2 commands:
+  - a `code-wrong` finding: fix the code against the governing document, or, when the document should change instead, `/archcore:plan <capability>` to amend it;
+  - code that no longer follows an `adr`: `/archcore:document decision` to record the superseding decision;
+  - a coverage gap: `/archcore:document code <subject>`;
+  - an open track: its resume command;
+  - drafts the branch created with no matched `plan`: `/archcore:review closeout` to offer their acceptance;
+  - an open `rfc`: `/archcore:document decision` to resolve it.
 - Name tracks and steps in plain words; do not print a gate address of the form `<track>.<stage>`.

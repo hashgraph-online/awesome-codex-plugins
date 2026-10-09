@@ -260,6 +260,6 @@ rejects shell metacharacters as defense-in-depth. Full trust model in
   (especially `health-endpoints` URLs). Session Config lives in `CLAUDE.md`, which is
   normally committed.
 - **Do not paste tokens into permission allowlists** in `.claude/settings.json` or
-  `.claude/settings.local.json` (SEC-021). `settings.local.json` is conventionally
+  `.claude/settings.local.json` (SEC-025). `settings.local.json` is conventionally
   untracked, so the pre-commit leakage scanner — which enumerates tracked files —
   structurally cannot see a token pasted there.

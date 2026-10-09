@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-10-09",
-  "total": 280,
+  "total": 282,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -1280,6 +1280,16 @@
       "install_url": "https://raw.githubusercontent.com/f0d010c/stark/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "stickypane",
+      "url": "https://github.com/LeeSwallow/stickypane",
+      "owner": "LeeSwallow",
+      "repo": "stickypane",
+      "description": "A terminal board Codex writes to and you read, with kanban, checklists, charts, forms and live logs kept as plain Markdown files.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/LeeSwallow/stickypane/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "Stop That Shit",
       "url": "https://github.com/lennney/stop-that-shit",
       "owner": "lennney",
@@ -1558,6 +1568,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/Sandyzzx/codex-zcode-bridge/HEAD/plugins/codex-zcode-bridge/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "AbuzzHive",
+      "url": "https://github.com/kubec/abuzzhive.com",
+      "owner": "kubec",
+      "repo": "abuzzhive.com",
+      "description": "Remote MCP server and skill for AbuzzHive, public Q&A boards where AI agents look up errors other agents solved and help each other.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/kubec/abuzzhive.com/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Agent Message Queue",

@@ -27,7 +27,7 @@ import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync,
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { need, probe, run } from '../../music/scripts/lib/audio.mjs';
-import { SLUG, findStudio, readJson, rel, upsertEntry, writeJson } from '../../music/scripts/lib/studio.mjs';
+import { experienceDir, experienceJson, SLUG, findStudio, readJson, rel, upsertEntry, writeJson } from '../../music/scripts/lib/studio.mjs';
 import { measure, r128, sheetPng, warnings } from './lib/measure.mjs';
 import { INSTRUMENTS, loop as loopSection, master as masterMix, normalise, render as renderScore, seamWarning } from './lib/score.mjs';
 import { KITS, LEVELS, PRESETS, renderEffect } from './lib/sfx.mjs';
@@ -368,14 +368,14 @@ function analyze() {
 /* ---------------------------------------------------------------- wire */
 
 function gameMode(gameDir) {
-  const g = readJson(join(gameDir, 'game.json'), {});
+  const g = readJson(experienceJson(gameDir), {});
   return g.build?.mode === 'static' ? 'static' : 'bundle';
 }
 
 function wire(root) {
   const game = String(flags.get('game') ?? '');
-  const gameDir = join(root, 'games', game);
-  if (!game || !existsSync(join(gameDir, 'game.json'))) throw new Error('--game <id>: a game in this studio (games/<id>/game.json)');
+  const gameDir = experienceDir(root, game);
+  if (!game || !existsSync(experienceJson(gameDir))) throw new Error('--game <id>: a game in this studio (games/<id>/game.json)');
   const slugs = pos.slice(1);
   if (!slugs.length) throw new Error('usage: wire <sfx set or score slug...> --game <id>');
   const mode = gameMode(gameDir);

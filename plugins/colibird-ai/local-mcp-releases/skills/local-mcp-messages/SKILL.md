@@ -1,6 +1,6 @@
 ---
 name: local-mcp-messages
-description: Use when the user wants to read or search iMessage, WhatsApp or Signal (macOS) or Microsoft Teams and Slack (macOS and Windows) — things cloud connectors usually can't reach. Powered by LMCP.
+description: Use when the user wants to read or search iMessage, WhatsApp or Signal (macOS) or Microsoft Teams and Slack (macOS and Windows) from the apps on their computer. Powered by LMCP.
 ---
 
 # Messages & team chat via LMCP

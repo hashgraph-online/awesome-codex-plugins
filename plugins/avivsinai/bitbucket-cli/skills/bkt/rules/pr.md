@@ -464,6 +464,9 @@ bkt pr comments <command> [flags]
   # List deleted comments (Cloud only)
   bkt pr comments 42 --state deleted
 
+  # View one comment thread with its file/line anchor
+  bkt pr comments view 42 1001
+
   # Delete a comment
   bkt pr comments delete 42 1001
 
@@ -479,6 +482,7 @@ bkt pr comments <command> [flags]
 | delete | Delete a pull request comment |
 | reopen | Reopen a resolved pull request comment thread |
 | resolve | Resolve a pull request comment thread |
+| view | View one pull request comment thread |
 
 ## bkt pr comments delete
 
@@ -610,6 +614,53 @@ bkt pr comments resolve <id> <comment-id> [flags]
 
   # Resolve a thread in a specific repository
   bkt pr comments resolve 42 1001 --repo platform-api
+```
+
+## bkt pr comments view
+
+Show the comment thread that contains a comment: the root comment, its
+replies, and the inline anchor (file, line, orphaned). The comment-id can be the
+root comment or any reply; the requested comment is marked in the output.
+
+On Data Center, the output also includes a few lines of diff around the
+anchored line when Bitbucket returns them. --json returns the root comment as
+"thread" with replies nested under "comments" and the diff lines as
+"diff_context". On Cloud, --json returns the thread as a flat "comments" list,
+root first.
+
+### Usage
+
+```
+bkt pr comments view <id> <comment-id> [flags]
+```
+
+### Flags
+
+| Flag | Short | Description |
+|---|---|---|
+| `--project` |  | Bitbucket project key override |
+| `--repo` |  | Repository slug override |
+| `--workspace` |  | Bitbucket Cloud workspace override |
+
+### Inherited Flags
+
+| Flag | Short | Description |
+|---|---|---|
+| `--context` | `-c` | Active Bitbucket context name |
+| `--format` |  | Output format: json or yaml (alias for --json/--yaml) |
+| `--jq` |  | Apply a jq expression to JSON output (requires --json or --format json) |
+| `--json` |  | Output in JSON format when supported |
+| `--template` |  | Render output using Go templates |
+| `--yaml` |  | Output in YAML format when supported |
+
+### Examples
+
+```bash
+# View the thread that contains comment 1001 on pull request 42
+  bkt pr comments view 42 1001
+
+  # Get the thread as JSON
+  bkt pr comments view 42 1001 --json
 ```
 
 ## bkt pr create

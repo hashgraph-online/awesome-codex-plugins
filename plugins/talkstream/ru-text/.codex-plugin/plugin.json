@@ -1,6 +1,6 @@
 {
   "name": "ru-text",
-  "version": "2.9.3",
+  "version": "2.10.6",
   "description": "Russian text quality for AI agents — neuroslop cleanup, typography, information style, editorial standards, UX writing, business correspondence. Scores text 0–10. 2,000+ linguistic atoms.",
   "author": {
     "name": "Arseniy Kamyshev",
@@ -27,10 +27,21 @@
     "composerIcon": "./assets/icon.png",
     "logo": "./logo-round.png",
     "displayName": "ru-text",
-    "shortDescription": "Russian text quality for AI agents — neuroslop cleanup, typography, info-style, editorial, UX writing, business correspondence",
+    "shortDescription": "Proofread Russian text",
+    "longDescription": "ru-text proofreads Russian text for AI agents. It sets Russian typography (guillemets, em dashes, non-breaking spaces, digit grouping), removes bureaucratic register and seventeen tells of machine-written Russian (neuroslop), and covers UX copy and business correspondence. Every edit comes with a quote and the rule behind it.\n\nThree skills: ru-text applies the always-on typography table and loads the reference files on demand; ru-check runs a full check against the whole corpus and returns the corrected text with a list of changes; ru-score rates a text 0–10 on five scales, with a quote and a rule for each remark.\n\nFor anyone who writes in Russian with an AI agent: developers, editors, product and marketing teams.\n\nLimitations: Russian only. The corpus holds 2,000+ linguistic atoms in ten reference files. Its rules are defaults: an explicit style request (colloquial, academic, legal, SEO, literary) overrides them. ru-text does not rewrite a file unless asked, keeps quotations and code as they are, and does not check factual accuracy. It makes no network calls and collects no data.",
     "developerName": "Arseniy Kamyshev",
     "category": "Productivity",
+    "capabilities": [
+      "Read"
+    ],
     "websiteURL": "https://ru-text.org",
-    "privacyPolicyURL": "https://github.com/talkstream/ru-text/blob/main/PRIVACY_POLICY.md"
+    "privacyPolicyURL": "https://github.com/talkstream/ru-text/blob/main/PRIVACY_POLICY.md",
+    "supportURL": "https://github.com/talkstream/ru-text/issues",
+    "termsOfServiceURL": "https://github.com/talkstream/ru-text/blob/main/TERMS.md",
+    "defaultPrompt": [
+      "Вычитай этот текст",
+      "Убери из текста нейрослоп",
+      "Оцени качество текста по десятибалльной шкале"
+    ]
   }
 }

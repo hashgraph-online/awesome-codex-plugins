@@ -23,7 +23,8 @@
 
 ## How the shift ends (and only these ways)
 
-- **Done** — every box in the Items list is `- [x]`. The ticks are the truth; no magic phrase ends it.
+- **Done** — every box in the Items list is `- [x]`, or `- [-]` for an item stopped at its hard
+  budget, which is never ticked. The ticks are the truth; no magic phrase ends it.
 - **Stop-work order** — `STOP` exists (the Nightshift Stop skill, or
   `touch "$NS/STOP"` on POSIX, or
   `New-Item -ItemType File -Force "$NS\STOP"` in native Windows
@@ -74,5 +75,8 @@ _None configured._
 <!-- Empty until you promote work here from drafting-table.md — while this is empty the gate stays
      inert. One top-level open checkbox per task (a dash, a space, then a bracketed space), each
      with its own sub-bullets, a Verify line, and a Commit line (repository) or receipt (artifact). Tick to a bracketed x when done.
+     An optional Budget line limits one item: "Budget: soft 30m / 1M tokens, hard 45m / 2M tokens",
+     either level, time and/or tokens. An item stopped at its hard budget is closed with a bracketed
+     dash and a Stopped line, and is never ticked.
      drafting-table.md carries the exact shape. Keep the illustration out of this file: any
      bracketed-space checkbox here, even in a comment, counts as an open item. -->

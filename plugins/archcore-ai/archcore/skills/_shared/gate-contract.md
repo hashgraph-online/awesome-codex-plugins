@@ -93,10 +93,13 @@ route: <computed route and size label per skills/_shared/delta-routing.md>
 delta: <declared Δ fields per skills/_shared/delta-routing.md>
 taxonomy: <coverage categories already covered by accepted answers>
 asked: <questions already asked in this track>
-budget: <remaining question budget per skills/_shared/elicitation-contract.md>
-deferred: <questions deferred to a later gate>
+budget: <remaining per-gate budget under an expert invocation; informational>
+deferred: <one entry per unresolved question: the question, its reason (budget, interrupted, or later gate), and the behavior it affects>
 -->
 ```
+
+The `budget` field never reduces a later invocation's question ceiling: each
+invocation starts a fresh ceiling per `skills/_shared/elicitation-contract.md`.
 
 The `route` and `delta` fields are written by the `plan` skill's conductor
 (`skills/_shared/delta-routing.md`); a skill that runs a track outside a
@@ -127,6 +130,10 @@ investigation. Failure recovery and edge ordering belong to
 3. WHEN a gate closes, the executing skill MUST persist accepted answers and the state block in one `update_document` call.
 4. WHEN all blocking exit checks pass, the executing skill MUST advance the `gate` field to the next stage.
 5. WHEN the track exits, the executing skill MUST remove the state block from the artifact.
+6. IF a blocking exit check stops the gate, THEN the executing skill MUST persist accepted answers and the state block with the current `gate` in one `update_document` call.
+
+On a computed route, the track exits at the route's last instrument, per
+sequencing rule 15 in `skills/_shared/delta-routing.md`.
 
 Import exception: before the confirmed plan exists, keep preview rows in the
 session. Tier `S` keeps its row results in the session through closing and
@@ -135,8 +142,8 @@ side file for this bookkeeping. Plan-backed imports follow the lifecycle above.
 
 ## Execution rules at a gate
 
-1. WHEN a gate opens, the executing skill MUST evaluate `skip_when` before any other gate step.
-2. WHEN existing documents or the request text satisfy a gate's entry conditions, the executing skill MUST ask zero questions at that gate.
+1. WHEN a gate opens, the executing skill MUST evaluate `skip_when` before any other gate step, except at a gate that resume rule 7 selects.
+2. WHEN existing documents or the request text satisfy a gate's entry conditions, the executing skill MUST NOT treat that fact alone as a reason to skip the gate's elicitation checks.
 3. WHEN a gate produces a document, the executing skill MUST create it with `status: draft` via `create_document`.
 4. WHEN a gate produces a document, the executing skill MUST check the draft against Rules 1, 7, and 8 of `skills/_shared/precision-rules.md`.
 5. IF the draft departs from those rules, THEN the executing skill MUST report each departure as an advisory finding.
@@ -158,6 +165,18 @@ contract inside a gate. A gate states only what is specific to it.
 3. IF the state block names a stage absent from the track file, THEN the executing skill MUST resume at the first gate whose entry conditions fail.
 4. IF the state block names a stage absent from the track file, THEN the executing skill MUST preserve recorded clarifications.
 5. IF an upstream document required by an entry condition is missing, THEN the executing skill MUST route to the earliest gate that produces it.
+6. IF an interruption left a question in `asked` without an answer or a delegation, THEN the executing skill MAY re-ask that question within the budget; rule 2 does not apply to it.
+7. IF a resumed track's earlier gate fails a blocking exit check on the draft that gate produced, THEN the executing skill MUST resume at that gate even when its `skip_when` holds.
+8. IF the state block names a track that the executing command does not run, THEN the executing skill MUST NOT write to that draft.
+9. IF the state block names a track that the executing command does not run, THEN the executing skill MUST name the command that resumes it.
+10. WHEN a resume finds more than one draft with a state block and the request names none of them, the executing skill MUST list them and ask one question, recommending the most recently modified draft.
+
+Commands that resume a track: `/archcore:plan` — `sdd`, `requirements-cascade`,
+`research`, and `decision` as a conductor instrument;
+`/archcore:document decision` — `decision`; `/archcore:document code` —
+`describe`; `/archcore:document research` — `research`, recommended for an
+`evidence` draft; `/archcore:init import` — `import`. The `actualize`,
+`closeout`, and `experience` tracks write no state block.
 
 ## Authoring rules for track files
 

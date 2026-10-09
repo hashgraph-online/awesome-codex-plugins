@@ -4,6 +4,9 @@ description: Make a studio's game into an app of its own, a desktop app for macO
 compatibility: Node 22 and a studio on @homie-rocks/studio 0.32.0 or later (0.32.1 for a run on a real iPhone). A Mac for the macOS and iOS builds (Xcode for iOS). The Android SDK and JDK 21 for Android. Nothing is installed for the person; a target whose tool is missing is skipped, and a GitHub workflow can build it instead.
 ---
 
+**Apps:** For a business, venue, cause or customer app, follow the `app` skill: `apps/<id>/app.json`, one morphing screen, roles and parts. Reuse these engines and workflows; do not impose game rounds, scores, bots, a game demo or page navigation. The app check proves shared actions and reconnect; app stores use the same standalone command.
+
+
 # A game as an app of its own
 
 A studio is the folder with `studio.json`. `homie-studio standalone` wraps a game the studio already has. It does
@@ -52,6 +55,12 @@ Before anything ships, the game should name its revision: `"netplay": { "version
 An older copy then keeps playing with other copies of its revision, and says "Update <Name> to play online
 with everyone." when it meets a newer one. Raise the number with every change an older copy cannot play with.
 
+For a rules game, `room.offline` defaults to true: the app includes its guarded rules, host runtime and all
+tunables, and plays that build locally with bots. Say that those rules and tunables reach the device. With
+`room.offline: false` and `host: server`, the app needs a connection and carries no private rules. A server
+room accepts the live build only: an older app is told to update and can play offline if enabled. With
+`host: browser`, older copies can still meet copies of the same build; every copy includes the rules.
+
 ## 2. Build
 
 ```sh
@@ -82,7 +91,9 @@ npx --no-install homie-studio standalone run <id> --for ios  # or android: Capac
 ```
 
 Play it with the person. Check that it finds a room when the studio is online (the room button says "Room 3")
-and plays with its bots when it is not ("Playing offline · Try again").
+and plays with its bots when it is not ("Playing offline · Try again"). For a private server game with offline
+play disabled, check that it says "Connection needed" instead. Test with networking actually unavailable,
+so a missing rules file cannot be hidden by a successful download.
 
 ### On their own iPhone or iPad
 

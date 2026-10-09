@@ -101,8 +101,11 @@ jk job configure platform/services/auth-relay --file auth-relay.config.xml
 
 Create a Jenkins job.
 
-Current support is intentionally focused: this command creates a Multibranch
-Pipeline backed by a Bitbucket repository and configures the Jenkinsfile path.
+By default this command creates a Multibranch Pipeline backed by a Bitbucket
+repository and configures the Jenkinsfile path.
+
+With --file or --stdin it creates a job of ANY type (Pipeline, Freestyle,
+Multibranch, Folder) from a full config.xml, like `jk job config` prints.
 
 If Jenkins creates the job but a later config.xml step fails, the partially
 created job remains and may need cleanup via the Jenkins UI.
@@ -123,10 +126,12 @@ jk job create <name> [flags]
 | `--description` |  | Job description |
 | `--discover-fork-prs` |  | Discover pull requests raised from forks using TrustTeamForks |
 | `--discover-origin-prs` |  | Discover pull requests raised from the origin repository |
+| `--file` |  | Create the job from a full config.xml file (any job type) |
 | `--folder` |  | Folder path where the job should be created |
 | `--repo-owner` |  | Bitbucket repository owner/workspace |
 | `--repository` |  | Bitbucket repository name |
 | `--script-path` |  | Path to the Jenkinsfile inside the repository |
+| `--stdin` |  | Create the job from a full config.xml on standard input (any job type) |
 
 ### Inherited Flags
 
@@ -149,6 +154,7 @@ jk job create auth-relay \
     --repository my-service-repo \
     --script-path services/auth-relay/Jenkinsfile \
     --credentials bitbucket-readonly
+  jk job create amit-release --file amit-release.config.xml
 ```
 
 ## jk job ls

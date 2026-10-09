@@ -1,0 +1,7 @@
+# Keeps the SHA-pinned GitHub Actions current (pins are required by awesome-codex-plugins' scanner).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

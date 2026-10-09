@@ -10,6 +10,8 @@ description: >
 allowed-tools: Read, Grep, Glob
 disallowed-tools: Write, Edit, NotebookEdit, Bash, PowerShell, Monitor
 context: fork
+model: sonnet
+effort: medium
 user-invocable: true
 ---
 
@@ -31,7 +33,9 @@ alongside it. Locate that folder once, then read the named files from it:
   Cowork on 12.08.2026, where an opening `ls` returned «Permission to use Bash has been
   denied» in red before the search found the corpus anyway. The call bought nothing and
   cost the reader a scare.
-- In Claude Code the plugin root is also available directly, which saves the search.
+- In Claude Code the folder is `${CLAUDE_SKILL_DIR}/../ru-text/references/` — `Read`
+  `info-style.md` there first and skip the search. If that path arrives unexpanded or the
+  read fails, fall back to the search above.
 - **Do not guess a path.** If the folder cannot be found, say so and stop — a check run
   against remembered rules instead of the corpus is not this command, and reporting one
   as the other is the failure this whole product exists to prevent.
@@ -81,7 +85,8 @@ exists to prevent. No search tool on this host → no triage: run the full check
    - Quotes: «» primary, „“ nested
    - Dashes: — (em) in text, – (en) in ranges, - (hyphen) in compounds only
    - Spaces: NBSP after single-letter words, in digit groups, before units — but `%` is glued to
-     the number (R37: `100%`, not `100 %`). Report it with the reason the rule gives: an ordinary
+     the number in general and web text (R37: `100%`, not `100 %`; a GOST technical document may use
+     `100<NBSP>%`). Report it with the reason the rule gives: an ordinary
      space is a line break point and leaves `%` alone on the next line
    - Ellipsis, abbreviations, special characters
 

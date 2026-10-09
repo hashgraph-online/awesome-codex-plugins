@@ -41,7 +41,7 @@ import { createHash } from 'node:crypto';
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statfsSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { findStudio, readJson, slugify, writeJson } from '../../music/scripts/lib/studio.mjs';
+import { experienceDir, experienceJson, findStudio, readJson, slugify, writeJson } from '../../music/scripts/lib/studio.mjs';
 import { gamePageCheck, sameAdditions } from './lib/page.mjs';
 import { sizeHints } from './lib/sizes.mjs';
 import { finish } from '../../playtest/scripts/lib/exit.mjs';
@@ -161,7 +161,7 @@ function keepBuild(root, game, dir, v) {
 
 /** Keep the game's source folder as `v` (everything but node_modules, .port and build output). */
 function keepSource(root, game, dir, v) {
-  const from = join(root, 'games', game);
+  const from = experienceDir(root, game);
   const to = join(dir, 'sources', v);
   rmSync(to, { recursive: true, force: true });
   for (const f of listFiles(from)) { mkdirSync(dirname(join(to, f)), { recursive: true }); cpSync(join(from, f), join(to, f)); }
@@ -171,7 +171,7 @@ function keepSource(root, game, dir, v) {
 /** The files of games/<game>/ that differ from source `v` (changed, added, removed). */
 function sourceDiff(root, game, dir, v) {
   const a = join(dir, 'sources', v);
-  const b = join(root, 'games', game);
+  const b = experienceDir(root, game);
   const fa = new Set(listFiles(a));
   const fb = new Set(listFiles(b));
   const changed = [];
@@ -186,7 +186,7 @@ function sourceDiff(root, game, dir, v) {
 /** Put games/<game>/ back to source `v`: changed files restored, files the change added removed. Only that folder. */
 function restoreSource(root, game, dir, v) {
   const snap = join(dir, 'sources', v);
-  const gameDir = join(root, 'games', game);
+  const gameDir = experienceDir(root, game);
   const diff = sourceDiff(root, game, dir, v);
   for (const d of diff) {
     const target = join(gameDir, d.file);
@@ -197,11 +197,11 @@ function restoreSource(root, game, dir, v) {
 }
 
 /** A patch from source a to source b, as games/<game>/… paths (git diff --no-index; diff -ru when there is no git). */
-function patchOf(dir, game, a, b) {
+function patchOf(dir, game, a, b, root) {
   const r = spawnSync('git', ['diff', '--no-index', '--no-color', '--src-prefix=a/', '--dst-prefix=b/', join('sources', a), join('sources', b)], { cwd: dir, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, timeout: CHILD_TIMEOUT_MS, killSignal: 'SIGKILL' });
   let text = r.stdout ?? '';
   if (r.error || (r.status !== 0 && r.status !== 1)) text = spawnSync('diff', ['-ru', join('sources', a), join('sources', b)], { cwd: dir, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, timeout: CHILD_TIMEOUT_MS, killSignal: 'SIGKILL' }).stdout ?? '';
-  return text.split(`sources/${a}/`).join(`games/${game}/`).split(`sources/${b}/`).join(`games/${game}/`);
+  return text.split(`sources/${a}/`).join(relative(root, experienceDir(root, game)) + '/').split(`sources/${b}/`).join(relative(root, experienceDir(root, game)) + '/');
 }
 
 /** Serve build `v`: its files into site/dist/games/<game>/ (the dev server picks them up) and its map into .studio/maps. */
@@ -346,7 +346,7 @@ async function baseline() {
   const url = String(flags.get('url') ?? '').replace(/\/+$/, '');
   if (!game || !/^https?:\/\//.test(url)) throw new Error('usage: baseline <game> --url <site> (http://127.0.0.1:8787 from npm run dev)');
   const root = studioOrThrow();
-  if (!existsSync(join(root, 'games', game, 'game.json'))) throw new Error(`no games/${game}/game.json in this studio`);
+  if (!existsSync(experienceJson(experienceDir(root, game)))) throw new Error(`no games/${game}/game.json in this studio`);
   diskOk(root);
   const version = await needsPerf(root);
   await alive(url, game);
@@ -544,7 +544,7 @@ async function tryChange() {
   }
   keepBuild(root, game, dir, v);
   keepSource(root, game, dir, v);
-  writeFileSync(join(exp, 'change.patch'), patchOf(dir, game, s.kept, v));
+  writeFileSync(join(exp, 'change.patch'), patchOf(dir, game, s.kept, v, root));
   await servedIs(s.url, game, dir, v, { added: s.pageAdded ?? null });
   log('… the two-browser check on the changed build');
   const ck = await cli(root, ['check', game, '--url', s.url], { timeoutMs: 8 * 60_000 });
@@ -733,7 +733,7 @@ async function report() {
   };
   const patches = new Map();
   for (const k of kept) { const p = join(dir, k.folder, 'change.patch'); if (existsSync(p)) patches.set(k.n, relative(outDir, keepPatch(readFileSync(p, 'utf8'), readJson(join(dir, k.folder, 'result.json'))?.against ?? 'base', k.v, join(ba, `${String(k.n).padStart(2, '0')}-${slugify(k.name).slice(0, 40)}`)))); }
-  if (kept.length > 1) keepPatch(patchOf(dir, game, 'base', s.kept), 'base', s.kept, join(ba, 'all-kept'));
+  if (kept.length > 1) keepPatch(patchOf(dir, game, 'base', s.kept, root), 'base', s.kept, join(ba, 'all-kept'));
   const baseSummary = summaryFromRuns(join(dir, 'runs', 'base'));
   const profs = profiles(join(dir, 'profile', 'base'));
   // Both builds' files measured the same way now (the first build put back for a moment), the kept one left serving.

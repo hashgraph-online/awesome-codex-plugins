@@ -49,8 +49,10 @@ Run after grounding, before any question and any document creation:
    need. Do not guess.
 4. Derive Π: list the information needs the package's documents require and
    assign each need one source. A `machine` claim cites its artifact — a file
-   path, a document, a commit. A matching `task-type` or `cpat` precedent
-   de-escalates the needs it covers from `user` to `machine`.
+   path, a document, a commit. A `task-type` or `cpat` precedent de-escalates
+   only the technical needs its recorded behavior and relevant constraints
+   cover; cite that match. It does not settle a new `user`-source product choice
+   without target-specific evidence from the request or accepted canon.
 5. Derive M per touched zone and R from the request and the grounding
    evidence. WHEN any touched zone is `stone`, the escalators read M as
    `stone`. Record an R flag per capability when the flag names one
@@ -185,6 +187,11 @@ Sequencing rules:
 14. WHEN a `journey` on the topic exists and no `spec` covers the interaction,
     produce no `scenario`; the routing test between the pair is the covering
     `spec`, not the presence of any `spec`.
+15. WHILE a computed route has instruments left, keep the `archcore:track`
+    state block, with `route:` and the next instrument's gate, on the newest
+    draft of the route; move it at each gate close and remove it when the
+    route's last instrument closes. A blocked gate keeps the block where the
+    route stopped.
 
 ## Route announcement
 

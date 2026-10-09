@@ -1,6 +1,6 @@
 {
   "name": "story-skills",
-  "version": "0.23.1",
+  "version": "0.23.2",
   "description": "Agent skills and a companion CLI for planning, tracking, and drafting fiction in markdown.",
   "type": "module",
   "packageManager": "bun@1.4.2",

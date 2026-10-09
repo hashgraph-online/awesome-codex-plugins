@@ -38,7 +38,7 @@ Apply in this order:
 
 | Signal | Route |
 |---|---|
-| No arguments | Ground per step 1; WHEN a draft on the branch carries a state block, resume it; otherwise ask one question — what to plan — with a recommendation drawn from the branch changes |
+| No arguments | Ground per step 1; WHEN a draft carries a state block that this command resumes, resume it — several such drafts follow resume rule 10 in `skills/_shared/gate-contract.md`; otherwise ask one question — what to plan — with a recommendation drawn from the branch changes |
 | The first word is a mode (`sdd`, `sources`, `iso`, `research`) | The mapped instrument per the mode map in `skills/_shared/delta-routing.md`, without route computation |
 | Any other request | Compute Δ, Π, M, and R per the Derivation section of `skills/_shared/delta-routing.md`; its route table decides the package |
 | A decision surfaces at a gate | Record the `adr` through the decision instrument (`skills/_shared/tracks/decision.md`), then return to the open gate |
@@ -136,7 +136,8 @@ exit gate or the announcement names the follow-ups.
 
 ### 6. Implement fork
 
-Offer exactly two exits and let the user choose:
+WHEN a blocking exit check stopped the route, skip this step and go to Result.
+Otherwise, offer exactly two exits and let the user choose:
 
 - **Implement now** — start on the mapped task list, first phase first, against the files mapped in Step 5.
 - **Stop here** — the draft documents and relations stay in `.archcore/`; a later `/archcore:plan` invocation resumes any draft that still carries a state block.
@@ -150,4 +151,5 @@ Report:
 - Relations created, plus candidate `mcp__archcore__add_relation` targets among existing documents, or a statement that none match.
 - `retires` entries reported for closeout discharge, when any exist.
 - Next actions, naming only v2 commands: `/archcore:plan` to continue a package, `/archcore:document decision` to record a decision or `/archcore:document code` to document code touched during implementation, `/archcore:review closeout` to check the implementation against the recorded plan and reconcile the declared Δ.
+- WHEN contract drafting remains open on a material user-owned choice, name the draft `spec`, the unanswered choice, and the behavior it changes. Do not offer implementation until that check passes. Name the three ways to continue — answer the choice, delegate it ("you decide"), or proceed anyway — and the resume command `/archcore:plan <spec title>`.
 - Name instruments and stages in plain words; do not print a gate address of the form `<track>.<stage>`.

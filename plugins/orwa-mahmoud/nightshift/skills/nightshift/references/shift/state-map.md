@@ -7,6 +7,7 @@ work points here.
 - `staging/drafting-table.md` → known work the owner stages for a later shift.
 - `inbox/parking-lot.md` → unresolved owner decisions plus the default chosen so work continues.
 - `staging/work-orders.md` → timed catalog work composed only through Hunt.
+- `staging/plan-record.md` → the plan room's notebook: how each plan was reached.
 
 Ordinary plans belong in the drafting table, never in Hunt or the parking lot, and the drafting
 table is the owner's: the agent writes it only when the owner asks. A bug found on a shift is fixed
@@ -23,7 +24,8 @@ is for:
 
 - `receipts/` — what the shift delivered.
 - `inbox/` — what waits for the owner's verdict: the parking lot and the snag log.
-- `staging/` — work waiting for a later shift: the drafting table and the work orders.
+- `staging/` — work waiting for a later shift: the drafting table, the work orders and the plan
+  record.
 - `product/` — the product-evolution notebook: the opportunity map and the research notes.
 - `archive/` — filed shifts.
 - `run/` — everything the runtime owns: markers, locks, the lease and session, the policy
@@ -50,8 +52,9 @@ and refuses deleting or forging the control files: `STOP`, and in `run/` `.shift
 | File | Written by | Rebuilt | Changes | Leaves live storage | Governed by |
 |---|---|---|---|---|---|
 | `punch-list.md` | Owner, and the agent through Start, Hunt or Quality. The agent ticks boxes. The runtime adds each item's `<!-- id: … -->` comment when the shift policy is written, before arming. | No | Composed before arming; while armed only boxes tick | Once the shift has ended, `archive-receipts` files the whole list into the shift's folder at the same path, then keeps only the contract and the open items live | The contract above `## Items`; its digests in `run/shift-policy.json` |
-| `staging/drafting-table.md` | The owner; the agent only when the owner asks, as Quality's "draft for later" and Import issues do | No | When work is staged, or cut into the punch list | Start moves an item out when it cuts it; never archived | — |
+| `staging/drafting-table.md` | The owner; the agent only when the owner asks, as Quality's "draft for later", Import issues and the plan room's capture do | No | When work is staged, or cut into the punch list | Start moves an item out when it cuts it; never archived | — |
 | `staging/work-orders.md` | Hunt; `ns scaffold work-orders` creates it the first time Hunt stages an order | No | Hunt composes; Start cuts | Archive files an order ticked in place and drops an empty heading | — |
+| `staging/plan-record.md` | The planning conversation, without asking: the plan room's own notebook. `ns plan-enter` creates it on first entry | No | Throughout the plan room: decisions, rejected options, open questions, where the discussion stands | Archive files captured and dropped entries into the shift's folder at the same path, then keeps open plans live, with a `Filed:` pointer | One `- ` bullet per plan; ` · captured: <heading>` or ` · dropped: <why>` closes it |
 | `inbox/parking-lot.md` | The agent parks decisions, including a fix that would change behaviour users rely on. The runtime adds permission gaps (`park-needs`) and watchman revival notices. An ordinary session or another agent may add one for the owner to review. The owner answers. | No | During the shift; answered in the morning | Archive files the whole file into the shift's folder at `inbox/parking-lot.md`, then keeps only unanswered entries live, with a `Filed:` pointer | One `- ` bullet per decision; ` · answered: <decision>` closes it |
 | `inbox/snag-log.md` | The agent, for every bug it finds: fixed on the shift, with the fix as the disposition. The runtime adds a broken archive-pointer entry. An ordinary session or another agent may add one for the owner to review. | No | As findings are made and dispositioned | Archive files the whole file into the shift's folder at `inbox/snag-log.md`, then keeps only open entries live, with a `Filed:` pointer | One `- ` bullet: `finding · evidence · disposition · date` |
 | `run/shift-log.md` | The runtime (gates, watchman, Stop and Reset) and the agent | No | Every cycle and control event | Archive moves it whole into the shift's folder at `run/shift-log.md`; past about 500 KB Start moves it into the last ended shift's folder the same way | — |
@@ -79,11 +82,13 @@ read it as empty.
 
 | File | Written by | Rebuilt | Changes | Leaves live storage | Governed by |
 |---|---|---|---|---|---|
-| `receipts/<NN>-<slug>-<id>.md` | The agent writes the prose. The runtime keeps its `<!-- item: … -->` comment and a `Renamed from` line current, writes the Tokens and Time tables at the tick, and adds a Sessions row as each span on the item closes. The file name is the item's number, title and id; the runtime finds it by the id and, between shifts, renames it to follow a renumbered or retitled item. | No | From the first substantive work until the tick | `archive-receipts` copies it into the shift's folder at the same path, and retires it from live storage once the shift has ended and its item is ticked; an open item's is copied and stays | `references/receipts/` shapes; `receipts.*` settings |
+| `receipts/<NN>-<slug>-<id>.md` | The agent writes the prose. The runtime keeps its `<!-- item: … -->` comment and a `Renamed from` line current, keeps one section under the heading — the Tokens and Time totals, a Sessions row per span naming its host and model, and the handoffs between hosts — redrawn in place as each span on the item closes. The file name is the item's number, title and id; the runtime finds it by the id and, between shifts, renames it to follow a renumbered or retitled item. | No | From the first substantive work until the tick | `archive-receipts` copies it into the shift's folder at the same path, and retires it from live storage once the shift has ended and its item is ticked; an open item's is copied and stays | `references/receipts/` shapes; `receipts.*` settings |
 | `receipts/README.md` | The runtime | Yes, from the punch list and receipts | Every tick, arming, clock-out, and archive | Archive rebuilds it on both sides of the move | — |
 | `receipts/morning-<date>-<shiftId>.md` | The clock-out gate, unless the agent already wrote the page the owner's template asks for | Yes, while its records are live | Once, at clock-out | Archive copies it into the shift folder and retires it when it is named with `--retire` | `handoff.*` settings |
 | `receipts/previous-report.md` | `migrate-state`, from the single page an older layout kept beside the punch list | No | Once | Archive copies it; it leaves live storage only when named | — |
 | `run/usage/` (`segments.tsv`, `marks.tsv`, `pauses.tsv`, `active`, `window`, `previous-pulse`, `previous-ticked`, `.ticked-now`) | The runtime | No | Every pulse, tick, switch of item, and pause | Archive files it into the ended shift's folder at `run/usage/`; a Start before that renames it `run/usage-<shiftId>/`, and Archive files that into the folder of the shift it belongs to | — |
+| `run/budget.tsv` | The runtime | No | When the item being worked spends its soft or hard budget; the line goes when the item closes | Stays with the run state; a closed item's lines are already gone | `Budget:` lines, `shift.itemBudget` |
+| `run/plan-room` | `ns plan-enter`; the probe binds it | No — no conversation may touch it | When the plan room opens and when its conversation is bound | Removed when the owner leaves the plan room (`plan-exit`, or the owner's exit command through the prompt hooks), or by the probe when the conversation asking for it is working the shift; never filed | Plan room |
 | `run/evidence/findings.jsonl` | The agent, through the ledger helper, which validates each record | No | Append-only during the shift | The clock-out gate appends it to the shift's folder at `run/evidence/findings.jsonl` and empties the live ledger | `schemas/v1/finding.json` |
 | `archive/` | The clock-out gate, `archive-receipts`, the Archive skill | No | Each clock-out and each Archive | Only `retain-history --apply`, when the owner set `retention.archiveDays` | `archive.root`, `archive.layout` |
 | `archive/history-index.md` | The Archive skill | No | One entry per archived shift, updated when the shift is filed again | Never | The Archive skill's `## Index` |

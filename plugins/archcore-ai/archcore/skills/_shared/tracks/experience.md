@@ -9,8 +9,12 @@ routing resolves to the `experience` track. Gate records and track state follow
 
 - Stages: `experience.detect` → `experience.offer` → exit.
 - The whole track is an offer. WHEN reviewed changes repeat an undocumented
-  pattern, the review skill SHOULD offer a `cpat`, `task-type`, or `guide`
-  capture.
+  pattern, or change one practice whose lesson transfers beyond this edit, the
+  review skill SHOULD offer a `cpat`, `task-type`, or `guide` capture.
+- On a branch review, the durable-context selection
+  (`skills/_shared/durable-context-selection.md`) runs first. Its preview is
+  the capture offer for every pattern it lists, and its omissions stand; this
+  track handles only the patterns the selection did not consider.
 - The review skill MUST NOT create a document on this track without the user's
   acceptance at `experience.offer`.
 - Produced types: `cpat` records a Before/After code-pattern change;
@@ -34,15 +38,18 @@ write-back in `skills/_shared/elicitation-contract.md`.
 
 ### gate: experience.detect
 
-- Purpose: Establish that the reviewed changes repeat a pattern that no
+- Purpose: Establish that the reviewed changes carry a pattern that no
   `.archcore/` document records.
 - Entry conditions:
-  - skip_when: no pattern repeats in the reviewed changes, or a `cpat` or
-    `task-type` document already records the pattern — search `.archcore/`
-    first, per the Ground first rule in
+  - skip_when: the reviewed changes carry no detection signal, a `cpat` or
+    `task-type` document already records the pattern, or the durable-context
+    selection of this invocation already listed or omitted it — search
+    `.archcore/` first, per the Ground first rule in
     `skills/_shared/elicitation-contract.md`.
   - One detection signal is present: the same edit shape appears in two or
-    more files or documents of the reviewed diff.
+    more files or documents of the reviewed diff, with evidence of its reason
+    for a `cpat`; or one deliberate change of practice carries evidence of its
+    reason and a scope beyond this edit.
   - [assumption] Or: the changes match a pattern previously applied in the
     base (git history) — this file's reading of a recorded-pattern match.
 - Elicitation knobs:
@@ -51,8 +58,9 @@ write-back in `skills/_shared/elicitation-contract.md`.
   - budget: 0
 - Produces: none — `experience.offer` produces the document.
 - Exit checks:
-  - blocking: the review output names the repeated edit shape and its
-    evidence — the diff paths that carry it, or the matched base pattern.
+  - blocking: the review output names the pattern and its evidence — the
+    diff paths that carry it, the matched base pattern, or the recorded reason
+    and scope of the changed practice.
 - Next: `experience.offer`.
 
 ### gate: experience.offer

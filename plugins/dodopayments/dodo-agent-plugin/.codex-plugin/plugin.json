@@ -1,6 +1,6 @@
 {
   "name": "dodopayments",
-  "version": "0.6.3",
+  "version": "0.6.5",
   "description": "Dodo Payments tools for Codex: integration skills + API/docs MCP servers.",
   "author": {
     "name": "Dodo Payments",
@@ -21,16 +21,28 @@
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
-    "composerIcon": "./assets/icon.svg",
     "displayName": "Dodo Payments",
-    "shortDescription": "Payments, billing, subscriptions - integrated into Codex.",
-    "longDescription": "Official Dodo Payments plugin. Bundles the Dodo Payments integration skills (checkout, subscriptions, mobile checkout, webhooks, framework adapters, usage-based billing, credits, license keys, products, discounts, localized pricing, customers, refunds and disputes, billing SDK, Better Auth, testing and go-live, best practices) plus two MCP servers: a live API server and a documentation search server.",
+    "shortDescription": "Payments and billing for apps",
+    "longDescription": "Integration skills for adding Dodo Payments to your app: checkout sessions, subscriptions, webhooks, framework adapters, usage-based and credit-based billing, license keys, products, discounts, localized pricing, customers, refunds and disputes, BillingSDK, Better Auth, and testing before go-live. The connected Dodo Payments MCP server searches the API docs and runs SDK calls against the Dodo Payments account you sign in with, such as listing products or creating a test checkout session. Before its first change in a session it confirms whether you are in test or live mode, and it confirms each live-mode change with you.",
     "developerName": "Dodo Payments",
     "category": "Developer Tools",
+    "capabilities": [
+      "Search Dodo Payments docs",
+      "Read account data",
+      "Create test resources"
+    ],
+    "websiteURL": "https://dodopayments.com",
+    "supportURL": "https://dodopayments.com/contact",
+    "privacyPolicyURL": "https://dodopayments.com/legal/privacy-policy",
+    "termsOfServiceURL": "https://dodopayments.com/legal/terms-of-use",
     "defaultPrompt": [
       "Set up Dodo Payments webhook handlers in my Next.js app.",
       "Create a subscription checkout session with a 14-day trial.",
       "Implement usage-based billing with meters and events."
-    ]
+    ],
+    "brandColor": "#6E8E0C",
+    "brandColorDark": "#C6FE1E",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/logo.png"
   }
 }

@@ -25,7 +25,7 @@ import { spawnSync } from 'node:child_process';
 import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, extname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { SLUG, checkBudget, findStudio, readBudget, readJson, setBudget, writeJson } from '../../music/scripts/lib/studio.mjs';
+import { experienceDir, experienceJson, SLUG, checkBudget, findStudio, readBudget, readJson, setBudget, writeJson } from '../../music/scripts/lib/studio.mjs';
 import { GPU_FLAGS, chromePath, htmlToPng, loadPuppeteer } from '../../video/scripts/lib/browser.mjs';
 import { checkKey, falKey, priceOf, run as falRun } from '../../video/scripts/lib/fal.mjs';
 import { decode, stats } from '../../playtest/scripts/lib/pixels.mjs';
@@ -55,8 +55,8 @@ function artDir(root, slug) {
   return d;
 }
 function gameDir(root, game) {
-  const d = join(root, 'games', String(game ?? ''));
-  if (!game || !existsSync(join(d, 'game.json'))) throw new Error('a game in this studio: games/<id>/game.json');
+  const d = experienceDir(root, String(game ?? ''));
+  if (!game || !existsSync(experienceJson(d))) throw new Error('a game in this studio: games/<id>/game.json');
   return d;
 }
 
@@ -129,7 +129,7 @@ function cover(root) {
   const gdir = gameDir(root, game);
   const from = resolve(String(flags.get('from') ?? ''));
   if (!existsSync(from)) throw new Error('--from <image>: a frame from `frame`, a painted image from `gen`, or the person\'s own art');
-  const g = readJson(join(gdir, 'game.json'), {});
+  const g = readJson(experienceJson(gdir), {});
   const pub = g.build?.mode === 'static' ? gdir : join(gdir, 'public');
   mkdirSync(pub, { recursive: true });
   const { w, h } = size(from);
@@ -146,7 +146,7 @@ function cover(root) {
     q += 1;
   }
   g.cover = 'cover.jpg';
-  writeFileSync(join(gdir, 'game.json'), `${JSON.stringify(g, null, 2)}\n`);
+  writeFileSync(experienceJson(gdir), `${JSON.stringify(g, null, 2)}\n`);
   const st = stats(decode(out, 480));
   const warn = [];
   if (w < 1200) warn.push(`the source is ${w} px wide: upscaled covers look soft; capture or generate at 1600 px or more`);

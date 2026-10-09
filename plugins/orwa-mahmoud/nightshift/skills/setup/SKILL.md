@@ -129,7 +129,7 @@ scaffolding as if the site were current.
  names the transient markers instead: `STOP`, `.stall`, `.notified`, `deadline`, `.session-end`,
  `.shift-pulse`, `.mint-failed`, `.shift-session`, `.shift-session.tmp.*`, `.shift-worker`,
  `.shift-lease`, `.shift-lease.tmp.*`, `.mutex-scope`, `.mutex-scope.tmp.*`, `.watchman`,
- `.watchman-tick`, `.lock.d/`, and `.lease-lock.d/`; migrate-state adds `run/` with the move. Make one initial commit only when setup created the receipts repository.
+ `.watchman-tick`, `.budget.tsv`, `.item-sessions/`, `.plan-room`, `.lock.d/`, and `.lease-lock.d/`; migrate-state adds `run/` with the move. Make one initial commit only when setup created the receipts repository.
  Creating the repo does **not** turn on headless auto-commit — that is `receiptsAutoCommit`
  in `rules.json`, shipped `false`; the owner commits the receipts tree when they want.
  **Never add a remote to it, never push it.**

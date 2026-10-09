@@ -1,6 +1,6 @@
 ---
 name: amq-cli
-version: 0.92.0 # x-release-please-version
+version: 0.94.0 # x-release-please-version
 description: Coordinate coding agents through AMQ. Use for agent messages, inboxes, receipts, sessions, wake delivery, cross-project routing, managed launches, or AMQ diagnostics. Use amq-spec for collaborative design; do not use this for general message queues or single-agent work.
 metadata:
   short-description: Inter-agent messaging via AMQ CLI
@@ -40,6 +40,41 @@ Do not run `amq watch`, `amq monitor`, sleep-poll, or start another inbox
 watcher under that live wake. A blocking wait holds your turn while the
 doorbell queues behind it. When your work is done, finish the turn; do not
 keep a tool running or send idle check-ins just to wait for mail.
+
+A wake can hold its first doorbell for routine mail with the `hold_normal` and
+`hold_low` settings; `5m` / `30m` is an opt-in example. One drain takes all
+pending mail, and the configured retry policy applies after the first attempt.
+Urgent priority skips the hold. Ordinary urgent mail still passes through
+debounce and input deferral; urgent mail with the configured interrupt label
+follows the interrupt path.
+Use `--priority urgent` on `send` or `reply` for time-critical verdicts and
+unblocking requests. Other review responses remain normal by default.
+
+Wake settings (hold, debounce, preview, bell, input deferral, interrupt notice)
+live in `.wake.settings` and apply to a running wake. Change your own or a
+peer's wake without a restart:
+
+```bash
+amq wake config --me <handle>                           # show
+amq wake config --me <handle> --hold-normal 5m --wait   # set, wait for apply
+amq wake config --me <handle> --unset hold_normal       # back to default
+amq wake config --me <handle> --reset --hold-low 30m    # replace the file
+```
+
+A refused file shows `file: refused: <err>` with default rows (the wake keeps
+its last applied settings); `set` and `--unset` exit 1 and point at `--reset`.
+A running wake that reports no live settings shows `unreported`: `--wait` exits
+6 after 5 s, and `set`/`--unset` on an absent file exit 6 after the same 5 s.
+Causes: an older image, a failed status write, or a resumed wake still storing
+its command-line settings in the file (wait a moment). Otherwise restart that
+wake (a resume seeds the file) or `--reset` with the full set. A missing
+mailbox exits 3.
+
+Flags fixed for a running wake (`--inject-mode`, `--inject-via`, `--inject-arg`,
+`--inject-cmd`, `--interrupt-cmd`, `--retry-until`) are refused; restart the
+wake through its owning terminal after `amq wake check`. Repair, `coop exec`,
+keepalive, and self-upgrade keep the stored settings; a resume with no file
+seeds it once from its argv settings flags.
 
 Without an injecting wake, use the receive methods in the operations guide.
 A notify-only wake (`--inject-mode none`) paired with a supervisor `monitor`

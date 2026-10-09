@@ -31638,7 +31638,7 @@ import path19 from "node:path";
 import { fileURLToPath } from "node:url";
 
 // src/version.js
-var VERSION = "0.23.1";
+var VERSION = "0.23.2";
 
 // src/workflows.js
 var ENV_LINE = /^\s*(STORY_VERSION|STORY_REF|STORY_PACKAGE)\s*:\s*["']?([^"'\s#]*)/;

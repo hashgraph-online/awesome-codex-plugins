@@ -7,8 +7,7 @@
 </picture>
 </p>
 
-Forge turns requests into compact plans, clear code, and verified changes.
-For features, fixes and cleanup in Codex and Claude Code.
+Forge plans, builds, fixes and cleans code in Codex and Claude Code.
 Lean by default: focused context, targeted checks, one integration result.
 
 [Install](#install) · [Use](#use) · [Multiple models](#multiple-models) · [Teams](#teams) · [Workflows](#workflows) · [Engineering](#engineering) · [Releases](docs/releases.md) · [Contribute](#contribute)
@@ -43,7 +42,7 @@ git clone https://github.com/zagrosi-code/zagrosi-forge.git
 cd zagrosi-forge
 ```
 
-Load this checkout in Claude Code for one session:
+Load the checkout for one Claude Code session:
 
 ```bash
 claude --plugin-dir "/absolute/path/to/zagrosi-forge"
@@ -65,8 +64,8 @@ python3 scripts/zagrosi_skills.py self-update --pretty
 
 ## Use
 
-Describe your task; request `standard` or `deep`
-when needed. Try the [first task](examples/first-task/README.md).
+Describe your task; optionally request `standard` or `deep`.
+Try the [first task](examples/first-task/README.md).
 
 **Claude Code**
 
@@ -82,32 +81,33 @@ Use $zagrosi-forge:zagrosi-forge to add this feature and finish verification.
 Use $zagrosi-forge:zagrosi-cleanup to simplify this subsystem while preserving behavior.
 ```
 
-Both hosts share skills, runtime and standards. Use `zagrosi-project`, `zagrosi-plan`, and `zagrosi-implement`
-for individual phases. Authorized work continues through delivery; planning-only requests stop at the plan.
+Shared skills, runtime and standards. Individual phases: `zagrosi-project`,
+`zagrosi-plan`, `zagrosi-implement`. Authorized work continues through delivery;
+planning-only requests stop at planning.
 
 ## Multiple models
 
-Ask Forge for independent Codex, Claude or Gemini reviews. Reviewers receive the
-same bounded packet:
+Request independent Codex, Claude or Gemini reviews of the same bounded packet:
 
 ```text
 Implement this feature with independent Codex and Claude reviews. Keep one writer; report missing access.
 ```
 
-Forge reuses native CLI logins. Choose model IDs or native defaults;
-missing access and unreported identity stay visible. No silent fallback.
+Forge reuses native CLI logins and model defaults or requested IDs.
+Missing access and unreported identity stay visible; no silent fallback.
 Add `--check-auth` for login status. See [provider setup](skills/zagrosi-forge/references/providers.md).
+Resolve `{plugin_root}` from the loaded Forge skill: the absolute directory
+containing `scripts/zagrosi_skills.py`.
 
 ```bash
-python3 scripts/zagrosi_skills.py provider-status --check-cli --pretty
+python3 "{plugin_root}/scripts/zagrosi_skills.py" provider-status --check-cli --pretty
 ```
 
 ## Teams
 
-See teammates' tasks and reserve work across clones, worktrees and both hosts.
-Ask Forge to enable collaboration, commit `.forge/team.json`, and have teammates
-join. Share reviewed plans through Git; prepare private workspaces for independent
-section work. No extra service.
+View tasks and reserve work across clones, worktrees and hosts. Ask Forge to
+enable collaboration; commit `.forge/team.json` for teammates to join. Share
+reviewed plans through Git; work independently in private workspaces. No extra service.
 
 Every depth and cleanup shares reservations. Stale tasks retain ownership; offline
 status grants no clearance. Notes remain in Git history.
@@ -136,8 +136,8 @@ See [setup, handoffs and recovery](docs/collaboration.md).
 | `standard` | Wider research, traceability, or coordination |
 | `deep` | High-risk or architecture-heavy work |
 
-Depth changes investigation and review. Every mode retains requirements,
-ownership, acceptance, and verification without duplicate ledgers.
+Depth controls investigation and review; every mode retains requirements,
+ownership, acceptance and verification.
 
 Complete contracts before coding. See
 [compact-plan format](skills/zagrosi-plan/references/plan-format.md),
@@ -146,16 +146,19 @@ Complete contracts before coding. See
 
 ### Resume and compatibility
 
-Continue from the planning directory in either host. Checkpoints retain progress;
-ownership conflicts serialize work. Changed code/contracts require fresh verification.
-Legacy evidence cannot establish new verified completion.
+Resume from the target project in either host. Checkpoints retain progress;
+conflicting ownership serializes work. Changed code/contracts require fresh
+verification; legacy evidence cannot prove completion.
 
-Run helpers **from the Forge checkout**; use absolute plan paths.
+Run helpers **from the target project directory**, with absolute plugin and plan
+paths. Until implementation setup saves the target, `status` uses the working
+directory; it has no `--target-dir` option.
 
 ```bash
-python3 scripts/zagrosi_skills.py status --path "/absolute/path/to/planning/01-auth" --pretty
-python3 scripts/zagrosi_skills.py next-section --planning-dir "/absolute/path/to/planning/01-auth" --pretty
-python3 scripts/zagrosi_skills.py commands --phase implement --verbose --pretty
+cd "/absolute/path/to/target project"
+python3 "{plugin_root}/scripts/zagrosi_skills.py" status --path "/absolute/path/to/planning/01-auth" --pretty
+python3 "{plugin_root}/scripts/zagrosi_skills.py" next-section --planning-dir "/absolute/path/to/planning/01-auth" --target-dir "/absolute/path/to/target project" --pretty
+python3 "{plugin_root}/scripts/zagrosi_skills.py" commands --phase implement --verbose --pretty
 ```
 
 `fast` aliases `lean`; existing `zagrosi-*`, `deep-*`, `DEEP_META`, and migrated
@@ -167,7 +170,7 @@ Darwin/arm64 and APFS.
 
 ## Engineering
 
-The [engineering standard](skills/zagrosi-implement/references/engineering.md)
+Our [engineering standard](skills/zagrosi-implement/references/engineering.md)
 follows [Ponytail](https://github.com/DietrichGebert/ponytail): trace callers, reuse
 code, prefer direct flow. Simplify duplication and responsibilities with
 regression coverage. [Preservation checks](skills/zagrosi-implement/references/compatibility.md)
@@ -183,19 +186,19 @@ blockers, recovery commands and complete reports (`--full-output`).
 Runtime loading verifies SHA-256 source bindings; writes are locked and atomic.
 
 [Helper benchmarks](examples/evals/performance.json) measure fixed fixtures.
-[Coding trials](examples/evals/coding/README.md) separate code quality, workflow
-completion, time, and usage. [Latest observations](examples/evals/coding/behavior-contract-results-2026-10-02.md) retain failures;
-adapter support alone does not establish faster or better model output.
+[Coding trials](examples/evals/coding/README.md) track quality, completion, time and
+usage. [Results](examples/evals/coding/behavior-contract-results-2026-10-02.md) retain failures;
+adapter support alone proves neither speed nor quality.
 
 ## Contribute
 
 Shared workflows: `skills/`; runtime: `scripts/forge/`; checks: `tests/` and
 `examples/`; host metadata: `.codex-plugin/` and `.claude-plugin/`.
 
-After runtime/test edits, run `python3 tools/update_runtime_manifest.py`.
-After adding/removing package members, stage intended files and run
+Runtime/test edits: run `python3 tools/update_runtime_manifest.py`.
+Package membership changes: stage intended files, then run
 `python3 tools/update_package_manifest.py`.
-CI covers Linux/macOS/Windows and native host packaging. Native validators require their CLIs.
+CI covers Linux/macOS/Windows and native packaging. Native validators require their CLIs.
 
 ```bash
 python3 tools/update_runtime_manifest.py --check

@@ -46,7 +46,7 @@ import { createServer } from 'node:http';
 import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { beatsOf, decodeMono, energyOnsets, lagBetween, loudness, need, probe, run } from '../../music/scripts/lib/audio.mjs';
-import { SLUG, checkBudget, getEntry, readJson, receipt, rel, requireStudio, setBudget, upsertEntry, writeJson } from '../../music/scripts/lib/studio.mjs';
+import { experienceDir, experienceJson, SLUG, checkBudget, getEntry, readJson, receipt, rel, requireStudio, setBudget, upsertEntry, writeJson } from '../../music/scripts/lib/studio.mjs';
 import { publishEntry } from '../../music/scripts/music.mjs';
 import { chromePath, htmlToPng, launch, loadPuppeteer } from './lib/browser.mjs';
 import { checkKey, falKey, priceOf, run as falRun } from './lib/fal.mjs';
@@ -394,7 +394,7 @@ small{position:absolute;left:0;right:0;bottom:${h === w ? 56 : v ? 120 : 56}px;f
 function lookOf(root, game) {
   const look = {};
   if (!game) return look;
-  const t = readJson(join(root, 'games', String(game), 'style.json'), null);
+  const t = readJson(join(experienceDir(root, String(game)), 'style.json'), null);
   const hex = (c) => (/^#[0-9a-f]{6}$/i.test(String(c ?? '')) ? c : undefined);
   if (t?.palette) Object.assign(look, { bg: hex(t.palette.bg), ink: hex(t.palette.ink), accent: hex(t.palette.accent) });
   if (t?.fonts?.display) look.font = t.fonts.display;
@@ -662,7 +662,7 @@ async function trailer(root) {
   writeJson(join(dir, 'work', 'edl.json'), made.edl);
   // 3. The cards, in the game's look, at all three shapes.
   const look = lookOf(root, game);
-  const gameName = readJson(join(root, 'games', game, 'game.json'), {}).name ?? game;
+  const gameName = readJson(experienceJson(experienceDir(root, game)), {}).name ?? game;
   const end = flags.get('end') && flags.get('end') !== true ? String(flags.get('end')) : `Play ${gameName}`;
   const sub = flags.get('sub') && flags.get('sub') !== true ? String(flags.get('sub')) : (readJson(join(root, 'studio.json'), {}).cloudflare?.url ? `${readJson(join(root, 'studio.json'), {}).cloudflare.url.replace(/^https?:\/\//, '').replace(/\/+$/, '')}/${game}` : '');
   if (title) await drawCard(root, dir, 'title', { text: title, look, square: true });

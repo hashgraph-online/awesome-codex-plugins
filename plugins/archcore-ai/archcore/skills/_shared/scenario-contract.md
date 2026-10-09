@@ -8,10 +8,16 @@ instrument at `sdd.illustrate`) and `document` (the describe track). Companion t
 ## What a scenario is
 
 The record of **how a user or an external actor moves through a system**, and the
-concrete examples that illustrate the clauses of one `spec`. A scenario takes the
+concrete examples that illustrate the clauses of one `spec` — or, in a cross-spec
+scenario, of several. A scenario takes the
 actor as the subject of every step and carries no modal; the rules stay in the
 `spec` it illustrates. It exists so a reader sees the realized path — who does
 what, and what the system shows — beside the contract that governs it.
+
+**Cross-spec scenario.** WHEN one realized flow crosses the contracts of two or
+more `spec` documents, one scenario keeps the flow whole instead of splitting it
+per `spec`: its Subject names each `spec` with its clause numbers, and it carries
+one `depends_on` edge to each.
 
 **Routing gate:** the subject of the line decides. A line that obligates the
 component with a modal (`WHEN the user requests a refund, the service MUST approve
@@ -32,7 +38,8 @@ scenario step. Between the pair: a covering `spec` exists → `scenario`; none e
 ## Mandatory sections
 
 1. **Subject** — the system and the `spec` clauses this document illustrates, by
-   clause number; who depends on the illustration.
+   clause number — in a cross-spec scenario, each `spec` with its clause numbers;
+   who depends on the illustration.
 2. **Actors** — a table with the columns `Actor`, `Who they are`, `What they want`.
    The first column is the actor list every step opens with.
 3. **Flows** — one `###` subsection per actor. Each subsection opens with an
@@ -40,7 +47,8 @@ scenario step. Between the pair: a covering `spec` exists → `scenario`; none e
    then numbered steps, then an `Extensions` list for alternative and failure paths.
 4. **Examples** — a `Background` block for context shared by every example, then
    one titled example per case: a title naming what is special, an `Illustrates:`
-   line with the clause number, and unfenced Given/When/Then lines. Several cases of
+   line with the clause number — in a cross-spec scenario, the `spec` and the clause
+   number — and unfenced Given/When/Then lines. Several cases of
    one shape go in an `Examples` table with a `notes` column.
 5. **Open Questions** — what the team does not know.
 
@@ -81,7 +89,7 @@ evidence supports:
    `prd`, a delivery task to the `plan`, a stakeholder need to the `urd`.
 3. Split by the **actor**: Flows is already sectioned per actor, so the document
    becomes one scenario per actor (`filename=<subject-slug>-<actor-slug>`), each with
-   its own Subject, and each still `depends_on` the one `spec` it illustrates.
+   its own Subject, and each still `depends_on` every `spec` it illustrates.
    Evaluate links between the parts through
    `skills/_shared/relation-authoring.md`; splitting alone creates no edge.
 4. WHEN the actor is one and the cap still exceeds, split by the `spec` clause set:
@@ -99,8 +107,8 @@ status is the word of whoever confirmed it.
 
 ## Relations and tags
 
-- `scenario depends_on spec` — the one `spec` this document illustrates; the edge the
-  engine's cascade notice reads, so a `spec` edit reaches its scenarios.
+- `scenario depends_on spec` — one edge to each `spec` this document illustrates; the
+  edge the engine's cascade notice reads, so an edit to any of them reaches the scenario.
 - `scenario implements journey` — when a `journey` on the topic exists.
 - `scenario related scenario` — between the parts of a split.
 - No edge from `spec` to `scenario`; a behavior change enters `/archcore:plan` as a

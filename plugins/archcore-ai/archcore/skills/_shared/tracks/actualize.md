@@ -88,8 +88,10 @@ unavailable, skip the code-drift check and run cascade and temporal only.
    document, and nothing supersedes it — no `supersedes` edge targets it and
    its body does not say it is superseded, even in part. A `plan` belongs to the closeout track; an `idea`, `prd`, or
    `rfc` records intent, not shipped state. A draft the branch created or
-   changed is not a finding: the closeout track offers its acceptance. Age
-   alone never flags it.
+   changed is not a finding: the closeout track offers its acceptance, and
+   the `review` skill names `/archcore:review closeout` when no `plan`
+   matched. Age alone never flags it. A draft that carries an
+   `archcore:track` state block is unfinished work, never a shipped draft.
 
 **Deep checks.** WHEN the mode is `deep`, also run these, within one budget:
 at most 20 documents, chosen in proportion to the document count of each
@@ -141,11 +143,14 @@ relation candidates — carry no verdict and do not enter the fix budget.
 Offer fixes one document at a time, in the source's forms:
 
 - Code drift, `spec-wrong`: read the current code; propose the document
-  update that matches it.
+  update that matches it. For an `adr` whose decision the code no longer
+  follows, propose a new decision through `/archcore:document decision`
+  that supersedes it; correct a path or a name in place.
 - Cascade, `spec-wrong`: read the source and its updated target; identify
   discrepancies; propose the reconciling update.
 - Temporal, `spec-wrong`: propose a status change or TODO-marker removal via
-  `update_document`; when the user chooses removal of a long-stale draft,
+  `update_document`; for an `rfc`, name `/archcore:document decision` to
+  resolve it instead of a status change; when the user chooses removal of a long-stale draft,
   use `remove_document` under the same per-document confirmation.
   [assumption] Removal derives from the source report's "consider accepting
   or removing" guidance for long-stale drafts; the source fix flow itself

@@ -1,0 +1,21 @@
+{
+  "name": "stickypane",
+  "interface": {
+    "displayName": "stickypane"
+  },
+  "plugins": [
+    {
+      "name": "board",
+      "version": "0.1.0",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "NONE"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

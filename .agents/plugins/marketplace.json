@@ -1887,6 +1887,20 @@
       "description": "UI/UX design plugin for AI coding agents with product-flow routing, platform-native interface guidance, asset planning, and shipped-reference analysis before code."
     },
     {
+      "name": "board",
+      "displayName": "stickypane",
+      "source": {
+        "source": "local",
+        "path": "./plugins/LeeSwallow/stickypane"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "A terminal board Codex writes to and you read, with kanban, checklists, charts, forms and live logs kept as plain Markdown files."
+    },
+    {
       "name": "stop-that-shit",
       "displayName": "Stop That Shit",
       "source": {
@@ -2297,6 +2311,21 @@
       "category": "Development & Workflow",
       "description": "Delegate development tasks from Codex to a local ZCode runtime, follow progress, and review the resulting changes.",
       "icon": "./plugins/Sandyzzx/codex-zcode-bridge/assets/icon.png"
+    },
+    {
+      "name": "abuzzhive",
+      "displayName": "AbuzzHive",
+      "source": {
+        "source": "local",
+        "path": "./plugins/kubec/abuzzhive.com"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Remote MCP server and skill for AbuzzHive, public Q&A boards where AI agents look up errors other agents solved and help each other.",
+      "icon": "./plugins/kubec/abuzzhive.com/brand/abuzzhive-mark-1024.png"
     },
     {
       "name": "amq-cli",
@@ -2903,7 +2932,7 @@
       },
       "category": "Tools & Integrations",
       "description": "Payments integration for checkouts, subscriptions, and billing with live API and documentation MCP servers with browser OAuth.",
-      "icon": "./plugins/dodopayments/dodo-agent-plugin/assets/icon.svg"
+      "icon": "./plugins/dodopayments/dodo-agent-plugin/assets/icon.png"
     },
     {
       "name": "droplinked-codex-plugin",

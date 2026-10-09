@@ -1,6 +1,6 @@
 {
   "name": "story-skills",
-  "version": "0.23.1",
+  "version": "0.23.2",
   "description": "A suite of cross-referenced skills and CLI maintenance tools for end-to-end fiction writing in markdown, in English or any other language. Covers premise development, story initialization, character management, worldbuilding, plot structure, theme, scene craft, outlined and discovery drafting, chapter writing, interactive fiction with branching paths, series and sequels, verse, genre craft, voice and style, line editing, revision passes, continuity, pacing and fair-play checks, beta-reader feedback and simulated reader panels, editorial review, research, query letters and submission tracking, publishing and print production, adaptation, validation, reporting, indexing, word counts, and manuscript export.",
   "author": {
     "name": "Daniel Dewhurst",

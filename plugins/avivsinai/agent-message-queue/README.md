@@ -149,6 +149,11 @@ agent to check its inbox; it is not evidence that the agent read or completed
 the request. See [routing](docs/session-routing.md) and
 [message tracing](docs/trace.md) for those contracts.
 
+Optional [priority holds](docs/wake-operations.md#hold-by-priority) can delay
+the first notification for routine mail while urgent mail skips the hold. Wake
+[live settings](docs/wake-operations.md#live-settings) are stored per agent;
+use `amq wake config --me <handle> --hold-normal 5m` to change a running wake.
+
 AMQ is for local agent coordination, not a distributed broker. The optional
 [bridge companion](cmd/amq-bridge/README.md) exchanges messages between hosts;
 each host keeps control of its own queue.
@@ -170,6 +175,7 @@ gains no socket. The Homebrew `amq` formula installs `amq`, `amq-acp`, and
 | --- | --- |
 | Install, update, or use another platform | [Installation](INSTALL.md) |
 | Run agent pairs, isolate sessions, or supervise notifications | [Co-op operations](COOP.md) |
+| Batch routine wake notifications by priority | [Wake operations](docs/wake-operations.md#hold-by-priority) |
 | Look up a command or flag | [CLI reference](docs/cli.md) |
 | Diagnose delivery or wake problems | [Wake operations](docs/wake-operations.md) · [Trace](docs/trace.md) |
 | Attach to a running harness session | [amq-remote](cmd/amq-remote/README.md) |

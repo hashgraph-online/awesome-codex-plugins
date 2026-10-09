@@ -41,7 +41,7 @@ import { spawnSync } from 'node:child_process';
 import { appendFileSync, copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname, extname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { SLUG, checkBudget, findStudio, readBudget, readJson, setBudget, writeJson } from '../../music/scripts/lib/studio.mjs';
+import { experienceDir, experienceJson, SLUG, checkBudget, findStudio, readBudget, readJson, setBudget, writeJson } from '../../music/scripts/lib/studio.mjs';
 import { checkKey, falKey, priceOf, run as falRun, unitPrice } from '../../video/scripts/lib/fal.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -65,8 +65,8 @@ function studioRoot() {
 }
 function gameDir(root, game) {
   if (!SLUG.test(String(game ?? ''))) throw new Error('name the game: models.mjs <command> <game> …');
-  const d = join(root, 'games', game);
-  if (!existsSync(join(d, 'game.json')) && !existsSync(join(d, 'CODEX.md'))) throw new Error(`no game "${game}" in games/`);
+  const d = experienceDir(root, game);
+  if (!existsSync(experienceJson(d)) && !existsSync(join(d, 'CODEX.md'))) throw new Error(`no game "${game}" in games/`);
   return d;
 }
 /** The game's money for generated models: art/<game>-models/budget.json (one cap for every model of the game). */
@@ -189,7 +189,7 @@ function budget(root) {
 function conceptInput(root, game, what) {
   const reg = registry();
   const style = studio(root, ['style', 'prompt', game]);
-  const golden = (style.golden ?? []).map((g) => join('games', game, g.path)).filter((p) => existsSync(join(root, p))).slice(0, 4);
+  const golden = (style.golden ?? []).map((g) => relative(root, join(experienceDir(root, game), g.path))).filter((p) => existsSync(join(root, p))).slice(0, 4);
   const prompt = `${String(what).trim().replace(/\.$/, '')}. A single game prop, the whole object in frame, centred, seen three-quarters from slightly above. ${style.prompt.text}.`;
   if (golden.length) {
     const c = reg.concept.withRefs;
@@ -250,7 +250,7 @@ async function prop(root) {
 function characterConcept(root, game, what, like) {
   const reg = registry();
   const style = studio(root, ['style', 'prompt', game]);
-  const golden = (style.golden ?? []).map((g) => join('games', game, g.path)).filter((p) => existsSync(join(root, p))).slice(0, 4);
+  const golden = (style.golden ?? []).map((g) => relative(root, join(experienceDir(root, game), g.path))).filter((p) => existsSync(join(root, p))).slice(0, 4);
   const refs = [...golden, ...(like ? [like] : [])].slice(0, 4);
   const look = String(style.prompt.text).replace(/,?\s*3\/4 view, centred, whole object in frame[^]*$/, '');
   const prompt = `${String(what).trim().replace(/\.$/, '')}. One game character, full body from head to feet, standing in an A-pose (arms straight and angled down about 45 degrees away from the body, hands open, legs slightly apart), front view facing the camera, centred. ${look}, lit evenly and neutrally for modelling, plain light grey background, no ground shadow, no text, no logo.`;
@@ -427,7 +427,7 @@ async function mood(root) {
   const [, game, which] = pos;
   gameDir(root, game);
   const reg = registry();
-  const doc = readJson(join(root, 'games', game, 'codex', 'decisions.json'), null);
+  const doc = readJson(join(experienceDir(root, game), 'codex', 'decisions.json'), null);
   const dirs = (doc?.board?.directions ?? []).filter((d) => which === 'all' || d.id === which);
   if (!dirs.length) throw new Error(`no style-board direction "${which}" (homie-studio style board ${game} draws the board first)`);
   const out = [];

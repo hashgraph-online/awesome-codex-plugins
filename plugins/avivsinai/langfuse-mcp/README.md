@@ -245,6 +245,59 @@ docker run --rm -i \
   ghcr.io/avivsinai/langfuse-mcp:latest
 ```
 
+### Multiple projects with profiles (stdio)
+
+For local clients (Claude Code, Codex, Cursor), keep the credentials of each Langfuse
+project in a profiles file and register one MCP server per project. Each server
+starts with `--profile <name>`.
+
+The file is TOML at `$XDG_CONFIG_HOME/langfuse-mcp/profiles.toml` (or
+`~/.config/langfuse-mcp/profiles.toml` when `XDG_CONFIG_HOME` is not set). Use
+`--profiles-file PATH` or `LANGFUSE_MCP_PROFILES_FILE` to read a different file.
+
+```toml
+[profiles.prod]
+host = "https://cloud.langfuse.com"
+public_key = "pk-lf-..."
+secret_key_env = "LANGFUSE_PROD_SECRET_KEY"   # read the secret from this env var
+
+[profiles.staging]
+host = "https://langfuse.staging.example.com"
+public_key = "pk-lf-..."
+secret_key = "sk-lf-..."                       # or give the value directly
+```
+
+Each of `public_key`, `secret_key` and `host` takes a literal value, or a
+`<field>_env` key that names the environment variable that holds the value.
+`host` defaults to `https://cloud.langfuse.com`.
+
+```bash
+claude mcp add langfuse-prod -- uvx langfuse-mcp --profile prod
+claude mcp add langfuse-staging -- uvx langfuse-mcp --profile staging
+```
+
+```json
+{
+  "mcpServers": {
+    "langfuse-prod": {
+      "command": "uvx",
+      "args": ["langfuse-mcp", "--profile", "prod"]
+    },
+    "langfuse-staging": {
+      "command": "uvx",
+      "args": ["langfuse-mcp", "--profile", "staging"]
+    }
+  }
+}
+```
+
+Precedence is CLI flags (`--public-key`, `--secret-key`, `--host`) > environment
+variables (`LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_HOST`) > the
+selected profile > defaults. When an environment variable overrides a profile
+value, the server logs a warning. An unknown profile name or a missing profiles
+file stops the server with an error that names the file and the available
+profiles. `LANGFUSE_MCP_PROFILE` selects a profile when `--profile` is not given.
+
 ### HTTP transport — shared server for multiple projects
 
 Run one persistent server instance and route each MCP client to its own Langfuse
@@ -295,6 +348,8 @@ silent fallback to a different project.
 | Variable | Default | Description |
 |---|---|---|
 | `LANGFUSE_MAX_AGE_DAYS` | `7` | Caps the lookback window for time-based tools (`fetch_traces`, `fetch_observations`, etc.). Set to match your Langfuse instance's data retention — e.g. `30` if your retention is 30 days. |
+| `LANGFUSE_MCP_PROFILE` | unset | Profile to load from the profiles file; same as `--profile`. See [Multiple projects with profiles](#multiple-projects-with-profiles-stdio). |
+| `LANGFUSE_MCP_PROFILES_FILE` | `$XDG_CONFIG_HOME/langfuse-mcp/profiles.toml` | Path of the profiles file; same as `--profiles-file`. |
 | `LANGFUSE_MCP_TRACE_TIMEOUT_SECONDS` | `120` | Per-request read timeout (seconds) for single-trace fetches (`fetch_trace`). Raise it if large traces with `include_observations=True` time out. Must be a positive integer. |
 
 ## Development

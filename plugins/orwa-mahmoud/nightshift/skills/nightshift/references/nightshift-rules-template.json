@@ -49,6 +49,7 @@
   "shift": {
     "verificationProfile": "fast",
     "hours": null,
+    "itemBudget": "",
     "execution": "review-first",
     "toolingPolicy": "existing-tools"
   },

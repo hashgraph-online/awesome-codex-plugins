@@ -86,6 +86,15 @@ tunables.json, one line a value), or tells you, and you run `npx --no-install ho
 
 ## 4. Multiplayer: every screen, the host's rules
 
+For a rules game (`src/rules.ts` plus `view.ts`), the Lab runs the same host runtime locally in each pane,
+including when the published game keeps `room.offline: false`. No Lab state reaches a room. Put gameplay
+numbers in tunables.json; the runtime reads the sliders automatically, including `public.speed` for a value
+under `public`. Keep them with `homie-studio lab set <game> public.speed=7`. The take's stage reaches
+`world.stage` in the rules; use that for a target or a ledge, without importing the Lab into guarded rules.
+Keep `lab.phase`, `lab.track`, poses and overlays in the view. Both panes get the same seed and fixed clock.
+`lab check` must show actual gameplay tracks changing and the repeated take matching, not just an empty page.
+
+
 A studio game is played in a room. A feel change must look the same on every screen and keep the two-browser check
 green:
 

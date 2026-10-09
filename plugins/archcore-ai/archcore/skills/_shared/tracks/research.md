@@ -44,7 +44,7 @@ an expert maximum; auto mode uses the shared ceiling.
 3. On a supported engine, include `research`, `evidence`, `rnd`, `idea`, and `prd` in the duplicate check.
 4. On an older engine, use `rnd`, `idea`, and `prd` in the duplicate check.
 5. If a result is global, load `skills/_shared/globals.md`.
-6. If the request is an explicit `evidence` entry, fix the artifact type to `evidence`, subject to the compatibility fallback.
+6. If the request is an explicit `evidence` entry, or names `rnd` or `research` per the document skill's Named type rule, fix the artifact type to that type, subject to the compatibility fallback.
 7. Otherwise, if the request names a pending decision or a set of candidates to choose between, select `rnd`; a supplied report that ends in a recommendation names a pending decision.
 8. Otherwise, select `research`. The path name `research` selects this instrument, not the type.
 9. Record the artifact type in the artifact's `artifact_type` state field per `skills/_shared/gate-contract.md`.

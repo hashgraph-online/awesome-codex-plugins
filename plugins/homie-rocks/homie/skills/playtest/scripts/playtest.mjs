@@ -31,7 +31,7 @@ import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSyn
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { findStudio, readJson } from '../../music/scripts/lib/studio.mjs';
+import { experienceDir, experienceJson, findStudio, readJson } from '../../music/scripts/lib/studio.mjs';
 import { measure, sheetPng, warnings } from '../../sound/scripts/lib/measure.mjs';
 import { wavBytes } from '../../sound/scripts/lib/synth.mjs';
 import { GPU_FLAGS, chromePath, loadPuppeteer } from '../../video/scripts/lib/browser.mjs';
@@ -651,7 +651,8 @@ async function run() {
   EXE = chromePath();
   puppeteer = loadPuppeteer(root);
   if (!EXE || !puppeteer) throw new Error(!EXE ? 'no Chrome found (set CHROME_PATH to a Chrome or Chromium)' : 'puppeteer-core is not installed (it comes with @homie-rocks/studio: npm install in the studio)');
-  const gameJson = root ? readJson(join(root, 'games', game, 'game.json'), {}) : {};
+  const gameJson = root ? readJson(experienceJson(experienceDir(root, game)), {}) : {};
+  const isApp = root && experienceJson(experienceDir(root, game)).endsWith('/app.json');
   const started = Date.now();
   const errors = [];
   const bad = [];
@@ -676,8 +677,8 @@ async function run() {
     errors.push(...r.errors.map((e) => `${device}: ${e}`)); bad.push(...r.bad.map((e) => `${device}: ${e}`)); probed ||= r.probe;
   }
   if (only.has('sound')) { log('… sound: the game\'s own audio while someone plays'); await soundSession(url, game, out, Math.max(15, seconds), gameJson); }
-  if (only.has('play')) { log('… play: a round with one person playing hard and one doing nothing'); await playSession(url, game, out, Number(gameJson.roundSeconds ?? 90), gameJson); }
-  if (only.has('controls') && root) {
+  if (only.has('play') && !isApp) { log('… play: a round with one person playing hard and one doing nothing'); await playSession(url, game, out, Number(gameJson.roundSeconds ?? 90), gameJson); }
+  if (only.has('controls') && root && !isApp) {
     log('… controls: the owner tests (homie-studio port check)');
     const pc = await studioCheck(root, ['port', 'check', game, '--url', url, '--only', 'owner-desk,owner-phone,owner-iphone,ui-cover,life,tv,audio,errors', '--shots', join(out, 'port-check')], 'controls', 9 * 60_000);
     if (pc) {
@@ -692,14 +693,15 @@ async function run() {
       row('controls', verdict, { why, qualifier: unchecked.join('; ') || undefined, rows: (pc.rows ?? []).map((x) => ({ name: x.name, ok: x.ok, why: x.why ?? null, ...(x.qrNote ? { note: x.qrNote } : {}) })), receipt: 'port-check/receipt.json' });
     }
   }
-  if (only.has('round') && root) {
-    log('… round: two fresh browsers press Play and finish a round together (homie-studio check)');
+  if ((only.has('round') || (isApp && only.has('play'))) && root) {
+    log(isApp ? '… sync: a wall and two phones share an action and reconnect' : '… round: two fresh browsers press Play and finish a round together (homie-studio check)');
     const ck = await studioCheck(root, ['check', game, '--url', url, '--shots', join(out, 'round')], 'round', 5 * 60_000);
     if (ck) {
       // A round that finished is not a connection that held: reconnects are said beside completion, and a round
       // completed across a reconnect is WARN (measured, worth a look), not a quiet pass.
       const conn = connectionNote(ck.connection);
-      row('round', !ck.ok ? 'FAIL' : conn.uninterrupted === false ? 'WARN' : 'PASS', { why: !ck.ok ? ck.why : conn.uninterrupted === false ? conn.note : undefined, completed: Boolean(ck.ok), reconnects: conn.reconnects ?? 'not reported', uninterrupted: conn.uninterrupted ?? 'unknown', connection: conn.note, readiness: ck.readiness ?? null, room: ck.room, seats: ck.seats, round: ck.round ? { n: ck.round.n, humans: ck.round.humans, bots: ck.round.bots } : null, seconds: ck.totalMs ? Math.round(ck.totalMs / 1000) : null });
+      if (isApp) row('sync', ck.ok ? 'PASS' : 'FAIL', { why: ck.why, room: ck.room, surfaces: ck.surfaces, reconnect: ck.reconnect });
+      else row('round', !ck.ok ? 'FAIL' : conn.uninterrupted === false ? 'WARN' : 'PASS', { why: !ck.ok ? ck.why : conn.uninterrupted === false ? conn.note : undefined, completed: Boolean(ck.ok), reconnects: conn.reconnects ?? 'not reported', uninterrupted: conn.uninterrupted ?? 'unknown', connection: conn.note, readiness: ck.readiness ?? null, room: ck.room, seats: ck.seats, round: ck.round ? { n: ck.round.n, humans: ck.round.humans, bots: ck.round.bots } : null, seconds: ck.totalMs ? Math.round(ck.totalMs / 1000) : null });
     }
   }
   const uniq = (xs) => [...new Set(xs)].slice(0, 30);

@@ -6,9 +6,50 @@ metadata:
   providers: cloudflare
 ---
 
+**Apps:** For a business, venue, cause or customer app, follow the `app` skill: `apps/<id>/app.json`, one morphing screen, roles and parts. Reuse these engines and workflows; do not impose game rounds, scores, bots, a game demo or page navigation. The app check proves shared actions and reconnect; app stores use the same standalone command.
+
+
 # Publish a studio
 
 A studio's site runs on the studio's own Cloudflare account; homie.rocks only lists it.
+
+## Game links on X
+
+When X shows the player card, its phone apps show the game's picture with a play
+button that opens the game full screen inside X's in-app browser. On X's website,
+third-party games open the posted link in a new tab; post `/<id>/play/embed` to go
+straight into a public room there. The same Play code serves both that top-level
+player and cross-origin frames. Never promise that X will show or frame a game.
+
+X's archived player-card reference (developer.x.com, "Cards: player card")
+documents the phone behavior, but its written policy is for linear audio/video and
+explicitly excludes gaming. X's [public web bundle](https://abs.twimg.com/x-web/x-web/assets/article-card-DEH89WAV.js)
+observed on 2026-10-08 frames only YouTube, SoundCloud and Periscope hosts; other
+hosts get a new-tab link. This is a code observation, not a signed-in test, and
+account flags could differ. X decides what it shows and may change it.
+
+The switch defaults on. Set `site.playerCard: false` in studio.json, or
+`playerCard: false` in a game's game.json, to switch off. A TV-only game declares
+`screen.singleScreen: false`. Tags need HTTPS and a local picture the build has
+measured against what X's reference says will render: JPG/PNG/WEBP/GIF, at least
+68,600 pixels, under 5 MB. A missing or refused picture produces a build warning
+naming the file and the rule, and the page keeps its picture card. Any shape gets
+the card (a 1200×630 social picture, a 16:9 still, a square); the player is
+advertised as 480×480, Homie's choice from two live game cards; X's website draws
+the picture as a small square thumbnail whatever its shape. `site.twitterSite` (an
+@handle) adds `twitter:site` and is optional. Starters need a cover. Custom
+landing Twitter tags remain the owner's; Open Graph pictures stay unchanged.
+
+Preview at `/<id>/play/preview` during `homie-studio dev`, and directly at
+`/<id>/play/embed` on phone and desktop. The preview uses X's observed sandbox,
+including web-share and scrolling=no, on a different origin. Guest play works
+without storage; opened as its own page a reload keeps the room, seat and name.
+Sound waits for a press. The room button reads "Room N · Site" and the first row
+of its sheet is the way to the studio's site; in a frame, account, shop, Game and
+big-screen links open a tab of their own. Purchases never start in the player.
+Blocked popups show an address to copy, and an opaque shell shows why it cannot
+connect. `site.playerCardOrigins` replaces the embed-only ancestor list.
+See `packages/studio/site/SITE.md`, “Play from a post,” for settings and evidence.
 
 ## Cloudflare (checked only when you publish)
 

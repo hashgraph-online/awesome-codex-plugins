@@ -33,6 +33,7 @@ bolt on a second pipeline.
    for native changes)
 5. **Run pre-submission checklist** (gate: all items pass before submitting):
    - [ ] Privacy manifests (iOS): all required API reasons declared
+   - [ ] iOS third-party SDKs on [Apple's required list](https://developer.apple.com/support/third-party-SDK-requirements/): bundled privacy manifests present; binary SDKs signed
    - [ ] Permissions: only what you use, with clear usage descriptions
    - [ ] Metadata: screenshots current, descriptions accurate (`fastlane/metadata/`)
    - [ ] Version/build numbers: incremented correctly

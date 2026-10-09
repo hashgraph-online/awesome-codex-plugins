@@ -3,6 +3,9 @@ name: playtest
 description: Playtest a studio's game the way Homie holds its own games to a bar — real browsers on a computer and a phone held both ways, the first ten seconds timed, the look measured (black or flat frames, contrast, detail), how much of the screen the UI covers, the game's real sound captured and measured, a round played with one person trying and one doing nothing, the owner control tests and two strangers finishing a round — then a blind review by a fresh reviewer that never saw the code, and a ranked list of what is weak. Use when someone asks to playtest, test, review, critique or judge a game, asks what is weak or what to fix next, before calling a game finished or publishing it, and after every change that should make it better.
 ---
 
+**Apps:** For a business, venue, cause or customer app, follow the `app` skill: `apps/<id>/app.json`, one morphing screen, roles and parts. Reuse these engines and workflows; do not impose game rounds, scores, bots, a game demo or page navigation. The app check proves shared actions and reconnect; app stores use the same standalone command.
+
+
 # Playtest a game
 
 The question is never "does it run". It is: **would a stranger who pressed Play stay for a whole

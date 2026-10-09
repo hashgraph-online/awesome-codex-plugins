@@ -221,7 +221,7 @@ verdict says otherwise, launch it with the host you are on:
 Native Windows:
 
 ```powershell
-& "$NIGHTSHIFT_PLUGIN_ROOT\runtime\windows\ns.ps1" start-watchman -HostName claude
+& "$NIGHTSHIFT_PLUGIN_ROOT\runtime\windows\ns.ps1" start-watchman --host claude
 ```
 
 It hands the watchman the workspace explicitly, keeps the watchman's own output in
