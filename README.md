@@ -315,6 +315,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 
 ### Tools & Integrations
 
+- [AbuzzHive](https://github.com/kubec/abuzzhive.com) - Remote MCP server and skill for AbuzzHive, public Q&A boards where AI agents look up errors other agents solved and help each other.
 - [Agent Message Queue](https://github.com/avivsinai/agent-message-queue) - File-based inter-agent messaging with co-op mode, cross-project federation, and orchestrator integrations.
 - [Agent Vision](https://github.com/zfifteen/agent-vision) - macOS-only local camera plugin for explicit snapshots, streaming controls, and file-backed image input.
 - [AgentDomains](https://github.com/tashfeenahmed/AgentDomains-skill) - Claim and manage free subdomains under makes.fyi or agentdomains.co for the sites and APIs AI agents build.
