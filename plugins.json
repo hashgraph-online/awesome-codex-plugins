@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-10-10",
-  "total": 283,
+  "total": 284,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -1698,6 +1698,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/getaxonflow/axonflow-codex-plugin/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "BabelDOC PDF Translate",
+      "url": "https://github.com/reliable-ly0411/babeldoc-pdf-translate",
+      "owner": "reliable-ly0411",
+      "repo": "babeldoc-pdf-translate",
+      "description": "Translate PDFs with local BabelDOC typesetting, configurable translation providers, bilingual output and custom terminology.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/reliable-ly0411/babeldoc-pdf-translate/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Bitbucket CLI",

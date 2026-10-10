@@ -2505,6 +2505,20 @@
       "description": "Runtime governance for Codex with policy enforcement on terminal commands, advisory checks for non-terminal tools via skills, PII/secret detection, and compliance-grade audit trails. Self-hosted via Docker."
     },
     {
+      "name": "babeldoc-pdf-translate",
+      "displayName": "BabelDOC PDF Translate",
+      "source": {
+        "source": "local",
+        "path": "./plugins/reliable-ly0411/babeldoc-pdf-translate"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Translate PDFs with local BabelDOC typesetting, configurable translation providers, bilingual output and custom terminology."
+    },
+    {
       "name": "bkt",
       "displayName": "Bitbucket CLI",
       "source": {

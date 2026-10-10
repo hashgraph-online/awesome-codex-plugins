@@ -1,0 +1,34 @@
+{
+  "name": "babeldoc-pdf-translate",
+  "version": "1.1.0",
+  "description": "Layout-preserving PDF translation with bilingual output, custom terminology and a configurable translation provider.",
+  "author": {
+    "name": "reliable-ly0411",
+    "url": "https://github.com/reliable-ly0411"
+  },
+  "homepage": "https://github.com/reliable-ly0411/babeldoc-pdf-translate",
+  "repository": "https://github.com/reliable-ly0411/babeldoc-pdf-translate",
+  "license": "MIT",
+  "keywords": [
+    "pdf",
+    "translation",
+    "babeldoc",
+    "skills",
+    "terminology"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "BabelDOC PDF Translate",
+    "shortDescription": "Translate PDFs with layout",
+    "longDescription": "Translate PDFs with local BabelDOC parsing and typesetting, configurable translation providers, bilingual output and custom terminology. Requires Python and separately installed BabelDOC dependencies. Complex formulas and scanned pages require visual review.",
+    "developerName": "reliable-ly0411",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Translate this PDF with bilingual output and preserve its figures and formulas."
+    ]
+  }
+}

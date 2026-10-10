@@ -1,0 +1,21 @@
+{
+  "input": "document.pdf",
+  "output": "output/translation-001",
+  "source_language": "en",
+  "target_language": "zh-CN",
+  "outputs": "both",
+  "dual_layout": "side-by-side",
+  "translated_first": false,
+  "auto_terms": true,
+  "save_terms": true,
+  "glossaries": [],
+  "qps": 2,
+  "workers": 2,
+  "watermark": "no_watermark",
+  "scan_mode": "off",
+  "provider": {
+    "base_url": "https://YOUR-PROVIDER.example/v1",
+    "model": "YOUR-MODEL",
+    "api_key_env": "PDF_TRANSLATE_API_KEY"
+  }
+}
