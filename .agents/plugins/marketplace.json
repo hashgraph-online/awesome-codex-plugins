@@ -2919,6 +2919,21 @@
       "description": "Full data-product lifecycle on dbt for Entropy Data: scaffold, audit, and integrate projects with ODCS, ODPS, OpenLineage, and GitHub Actions."
     },
     {
+      "name": "datacircle",
+      "displayName": "Datacircle",
+      "source": {
+        "source": "local",
+        "path": "./plugins/waynehamadi/datacircle-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Query your favorite B2B data APIs through us. Same request, same price, no markup.",
+      "icon": "./plugins/waynehamadi/datacircle-plugin/assets/logo.png"
+    },
+    {
       "name": "deja-vu",
       "displayName": "deja",
       "source": {
