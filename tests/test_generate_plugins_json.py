@@ -1,6 +1,7 @@
 import importlib.util
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 SPEC = importlib.util.spec_from_file_location(
@@ -27,6 +28,60 @@ class GeneratedBundleCleanupTests(unittest.TestCase):
             self.assertEqual((canonical / "SKILL.md").read_bytes(), canonical_bytes)
             self.assertTrue((failed_fetch / "SKILL.md").is_file())
             self.assertEqual(MODULE.prune_unlisted_bundles(root, listed), [])
+
+    def test_unlisted_and_local_link_bundles_are_preserved(self):
+        with tempfile.TemporaryDirectory() as scratch:
+            root = Path(scratch) / "plugins"
+            identities = ("samuelbushi/uizze", "uizze/uizze", "mturac/changelog-forge", "other/unlisted")
+            for identity in identities:
+                bundle = root / identity
+                bundle.mkdir(parents=True)
+                (bundle / "SKILL.md").write_text(identity)
+            readme = Path(scratch) / "README.md"
+            readme.write_text("## Community Plugins\n"
+                              "- [UIZZE](https://github.com/uizze/uizze) - Canonical.\n"
+                              "- [Changelog Forge](./plugins/mturac/changelog-forge) - Local.\n")
+            listed = MODULE.parse_plugins(readme)
+            self.assertEqual(MODULE.prune_unlisted_bundles(root, listed), ["samuelbushi/uizze"])
+            for identity in identities[1:]:
+                self.assertEqual((root / identity / "SKILL.md").read_text(), identity)
+
+    def test_local_link_retains_even_an_explicit_retirement(self):
+        with tempfile.TemporaryDirectory() as scratch:
+            root = Path(scratch) / "plugins"
+            legacy = root / "samuelbushi/uizze"
+            legacy.mkdir(parents=True)
+            readme = Path(scratch) / "README.md"
+            readme.write_text("## Community Plugins\n"
+                              "- [Legacy](./plugins/SamuelBushi/UIZZE) - Still listed.\n")
+            self.assertEqual(MODULE.prune_unlisted_bundles(root, MODULE.parse_plugins(readme)), [])
+            self.assertTrue(legacy.is_dir())
+
+    def test_local_link_is_never_sent_to_upstream_mirroring(self):
+        with tempfile.TemporaryDirectory() as scratch:
+            base = Path(scratch)
+            readme = base / "README.md"
+            readme.write_text("## Community Plugins\n"
+                              "- [Local](./plugins/local/bundle) - Retain only.\n")
+            with patch.multiple(MODULE, README=readme, PLUGINS_ROOT=base / "plugins",
+                                OUTPUT=base / "plugins.json", MARKETPLACE_OUTPUT=base / "marketplace.json"), \
+                    patch.object(MODULE, "mirror_plugin_bundle") as mirror:
+                MODULE.main()
+                mirror.assert_not_called()
+
+    def test_partial_parse_aborts_before_any_deletion(self):
+        with tempfile.TemporaryDirectory() as scratch:
+            root = Path(scratch) / "plugins"
+            legacy = root / "samuelbushi/uizze"
+            legacy.mkdir(parents=True)
+            (legacy / "SKILL.md").write_text("keep")
+            readme = Path(scratch) / "README.md"
+            readme.write_text("## Community Plugins\n"
+                              "- [UIZZE](https://github.com/uizze/uizze) - Canonical.\n"
+                              "- [Unknown](https://example.com/plugin) - Unsupported.\n")
+            with self.assertRaisesRegex(ValueError, "Unrecognized Community Plugins entry"):
+                MODULE.prune_unlisted_bundles(root, MODULE.parse_plugins(readme))
+            self.assertEqual((legacy / "SKILL.md").read_text(), "keep")
 
     def test_refuses_symlink_without_touching_external_files(self):
         with tempfile.TemporaryDirectory() as scratch:
@@ -76,7 +131,7 @@ class GeneratedBundleCleanupTests(unittest.TestCase):
         for invalid_owner in (False, True):
             with self.subTest(invalid_owner=invalid_owner), tempfile.TemporaryDirectory() as scratch:
                 root = Path(scratch) / "plugins"
-                retired = root / "a/retired"
+                retired = root / "samuelbushi/uizze"
                 retired.mkdir(parents=True)
                 (retired / "SKILL.md").write_text("preserve-until-preflight-completes")
                 invalid = root / "z"

@@ -13,8 +13,17 @@ Generator (CI):  plugins/<owner>/<repo>/  ←  fetched from your GitHub repo
                   marketplace.json        ←  regenerated from README
 ```
 
-The generator removes mirrored `plugins/<owner>/<repo>/` bundles when their repository is no longer listed in the README. Listed repositories are retained even if a fetch fails; a retired owner identity must not remain installable alongside its canonical replacement.
-Repository identity comparisons ignore GitHub owner/repository display case. Cleanup refuses an empty parsed source and preflights the entire two-level tree for symlinks before deleting any bundle; even a dangling root symlink is refused. A truly empty catalog requires explicit maintainer retirement rather than automatic cache deletion.
+The generator removes only explicitly reviewed retired identities in
+`RETIRED_BUNDLE_IDENTITIES`, currently `samuelbushi/uizze`, and only when absent
+from the README. Missing README entries do not authorize cleanup of other
+bundles. This retirement change includes deletion of that nine-file legacy
+bundle; `plugins/uizze/uizze` is preserved.
+
+GitHub and local `./plugins/<owner>/<repo>` links retain their bundles, ignoring
+owner/repository display case. Local links are retention-only and are not fetched
+from GitHub. An empty parsed source, an unrecognized plugin listing, or a symlink
+in the two-level generated tree aborts cleanup before deletion. Additional
+retirements require their own reviewed set change and committed bundle removal.
 
 ## Adding a Plugin
 
