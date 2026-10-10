@@ -1,6 +1,6 @@
 {
   "name": "assay",
-  "version": "0.2.10",
+  "version": "0.2.11",
   "description": "Opens a page you changed, drives every control it offers, and reports what it did and what happened. One line every time, clean or not.",
   "author": {
     "name": "awss1i",

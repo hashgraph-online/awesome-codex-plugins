@@ -20,7 +20,7 @@
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "OrgX for Codex",
-    "shortDescription": "Install OrgX MCP, chronicle reporting, and initiative-aware workflows in Codex.",
+    "shortDescription": "Plan and review OrgX work",
     "longDescription": "Bundles OrgX MCP configuration, Codex skills, and runtime hook templates for operator chronicle reporting, initiative orchestration, passive Work Graph reconciliation, artifact registration, and human-in-the-loop decision flows.",
     "developerName": "OrgX Team",
     "category": "Productivity",
@@ -30,10 +30,11 @@
       "Write"
     ],
     "websiteURL": "https://useorgx.com",
+    "supportURL": "https://useorgx.com/support",
     "privacyPolicyURL": "https://useorgx.com/privacy",
     "termsOfServiceURL": "https://useorgx.com/terms",
     "defaultPrompt": [
-      "Operator chronicle: get_operator_chronicle; else orgx_recommend mode=\"morning_brief\"; use reportingNarrative.briefMarkdown.",
+      "Operator chronicle: get_operator_chronicle or orgx_recommend mode=\"morning_brief\"; chronicle.reportingNarrative.briefMarkdown.",
       "Use OrgX to scaffold this goal into workstreams, milestones, and tasks."
     ],
     "brandColor": "#14B8A6",

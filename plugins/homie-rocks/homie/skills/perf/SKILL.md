@@ -8,7 +8,7 @@ description: Make a studio's game run faster with a measured loop, and keep only
 The question is never "does it feel faster". It is: **is this build measurably better than the one before it, beyond
 the noise, without looking or playing any differently, and does it still work?** Every number here comes from a real
 Chrome on this computer's GPU, two browsers in a room (the host runs the rules and the bots, the replica draws from
-snapshots), playing the same seeded presses every run.
+snapshots), playing the same seeded presses every run. When the server hosts the rules, both browsers are replicas (`replica` and `replica-2`); reports and regression guards include both, and the default goal uses `replica` instead of `host`. An explicit `--goal` keeps the role you name.
 
 One script: `scripts/perf.mjs` in this skill's folder (Claude Code:
 `node "${CLAUDE_PLUGIN_ROOT}/skills/perf/scripts/perf.mjs" <command>`), run from inside the studio. It drives the

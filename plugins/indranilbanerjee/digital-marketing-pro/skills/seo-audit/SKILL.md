@@ -1,10 +1,12 @@
 ---
 name: seo-audit
-description: "Run a comprehensive SEO audit across technical health, on-page, content quality, E-E-A-T, link profile, and local SEO — producing dated numbered outputs (crawl inventory through prioritised actions) plus a single-page PLAN.md with an impact-by-effort action plan and a four-gate quality scorecard. Triggers on \"/digital-marketing-pro:seo-audit\", \"audit my site's SEO\", \"why did our rankings drop\", \"check our technical SEO health\", \"how strong is our E-E-A-T\". Reads the brand profile; PLAN.md feeds /digital-marketing-pro:seo-implement, /digital-marketing-pro:seo-plan, and /digital-marketing-pro:seo-drift, with link prospecting handed to /digital-marketing-pro:backlink-gap."
+description: "Run a site-wide SEO audit into a ranked PLAN.md: technical, content, links, local. A single page → page-seo-analysis. \"why did our traffic drop\""
 argument-hint: "[URL]"
 ---
 
 # /digital-marketing-pro:seo-audit
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 ## Purpose
 

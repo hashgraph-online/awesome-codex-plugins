@@ -1,9 +1,11 @@
 ---
 name: eval-config
-description: "View and tune the brand's content evaluation settings — per-dimension minimum score thresholds, composite weight distribution, auto-reject floors, and content-type overrides — with validation, before/after scoring comparisons, and industry-based recommendations. Outputs an updated, internally consistent eval configuration. Triggers on \"/digital-marketing-pro:eval-config\", \"raise the hallucination threshold\", \"why did this draft auto-reject\", \"recommend eval settings for healthcare\", \"reset eval scoring to defaults\". Reads the brand profile and guidelines, writes via eval-config-manager.py, and pairs with /digital-marketing-pro:eval-content to see the new bar in action."
+description: "Tune eval thresholds: dimension minimums, weights, auto-reject floors. \"raise the hallucination threshold\""
 ---
 
 # /digital-marketing-pro:eval-config
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 ## Purpose
 

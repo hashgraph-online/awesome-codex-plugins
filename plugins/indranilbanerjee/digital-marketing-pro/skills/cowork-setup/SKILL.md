@@ -1,11 +1,13 @@
 ---
 name: cowork-setup
-description: "One-shot setup that wires Digital Marketing Pro for team use in Anthropic Cowork — verifies the sandbox via plugin-metadata.py, checks a Google Drive MCP is connected, creates the canonical Drive folder skeleton (_brands/, _runs/, _plans/), and writes the routing config via drive-sync-state.py so brand profiles, plans, and run checkpoints persist across sessions. Triggers on \"/digital-marketing-pro:cowork-setup\", \"set up DMP for my team in Cowork\", \"brand profiles aren't persisting between sessions\", \"route outputs to our shared Drive\", \"first-time Cowork install\". Run once per team; in local Claude Code it only offers optional Drive mirroring. Pairs with /digital-marketing-pro:brand-setup next and /digital-marketing-pro:doctor to verify routing."
+description: "Set up DMP for team use in Cowork: sandbox check, Drive folders, saved routing. \"set up DMP for my team in Cowork\""
 argument-hint: "[--brand <name>] [--drive-root <folder-name>]"
 effort: low
 ---
 
 # /digital-marketing-pro:cowork-setup
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 The one-time setup that makes Digital Marketing Pro persistent in Cowork by a team. Wires up the Cowork → Drive routing so brand profiles, campaign plans, audit reports, and run records survive past the end of the current Cowork session.
 

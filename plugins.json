@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-10-09",
-  "total": 282,
+  "last_updated": "2026-10-10",
+  "total": 283,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -1488,6 +1488,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/dadwadw233/VibePortrait/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "vibestretch",
+      "url": "https://github.com/Eliasjunit/vibestretch",
+      "owner": "Eliasjunit",
+      "repo": "vibestretch",
+      "description": "Codex hooks that print one stretch or eye-break line and play a soft chime once the agent has kept you waiting for minutes, with zero model tokens and no telemetry (also Claude Code and Gemini CLI).",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/Eliasjunit/vibestretch/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "VillageSQL Skills",

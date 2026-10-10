@@ -1,0 +1,34 @@
+{
+  "name": "vibestretch",
+  "version": "0.8.0",
+  "description": "Stretch, move and rest your eyes while your coding agent works — friendly nudges on long-running turns.",
+  "author": {
+    "name": "Junit",
+    "url": "https://github.com/Eliasjunit"
+  },
+  "homepage": "https://github.com/Eliasjunit/vibestretch",
+  "repository": "https://github.com/Eliasjunit/vibestretch",
+  "license": "MIT",
+  "keywords": [
+    "health",
+    "posture",
+    "eyes",
+    "breaks",
+    "hooks",
+    "wellness"
+  ],
+  "hooks": "./hooks/codex-hooks.json",
+  "interface": {
+    "displayName": "vibestretch",
+    "shortDescription": "Stretch nudges on long turns",
+    "longDescription": "While a long agent turn keeps you waiting, vibestretch shows one line with a stretch, a micro-workout or an eye break, and plays a quiet chime. It counts only the minutes a turn kept you at the machine, nudges at most once every 15 minutes, and stays silent through quick turns. It is three hooks and a POSIX shell script: no dependencies, no network access, no telemetry, and nothing is added to the model's context. In Codex there is no desktop banner and no status line segment, only the line and the chime.",
+    "developerName": "Junit",
+    "category": "Development & Workflow",
+    "capabilities": [
+      "Lifecycle hooks",
+      "Break reminders"
+    ],
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png"
+  }
+}

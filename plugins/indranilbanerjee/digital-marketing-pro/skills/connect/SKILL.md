@@ -1,10 +1,12 @@
 ---
 name: connect
-description: "Guide the connection of a known MCP integration to the plugin — looks up the connector registry via connector-status.py, checks current status, and returns transport-specific setup steps (OAuth for HTTP connectors, env-var credentials plus the exact .mcp.json block for npx connectors), verification steps, and the skills each connector unlocks. Triggers on \"/digital-marketing-pro:connect\", \"connect Google Ads\", \"hook up Slack to the plugin\", \"set up the HubSpot integration\", \"how do I add Mailchimp\". Guidance and status checks only — the user adds credentials themselves; unknown or custom servers route to /digital-marketing-pro:add-integration."
+description: "Connect a known MCP integration: check the registry and status, return exact setup steps. \"connect Google Ads\""
 argument-hint: "[connector-name]"
 ---
 
 # /digital-marketing-pro:connect
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 ## Purpose
 
@@ -26,7 +28,7 @@ The user must provide (or will be prompted for):
 3. **Present setup instructions based on transport type**:
 
    **For HTTP connectors** (the registry-backed ones: Slack, Canva, Figma, HubSpot, Ahrefs, Similarweb, Klaviyo, Amplitude, Google Calendar, Gmail, and the official ad-platform servers `meta-ads`, `google-ads-mcp`, `amazon-ads-mcp`):
-   - **Nothing is pre-connected.** The shipped `.mcp.json` is empty (`{"mcpServers":{}}`) so a fresh install has zero auto-connecting MCP servers — this is deliberate (it keeps Cowork and multi-tenant installs safe). These HTTP connectors are an **opt-in catalog**, documented in `.mcp.json.connectors-reference`.
+   - **Nothing is pre-connected.** No `.mcp.json` ships (it is gitignored), so a fresh install has zero auto-connecting MCP servers — this is deliberate (it keeps Cowork and multi-tenant installs safe). These HTTP connectors are an **opt-in catalog**, documented in `.mcp.json.connectors-reference`.
    - To enable one, the user copies its block from `.mcp.json.connectors-reference` into their own `.mcp.json` (or adds it via `/digital-marketing-pro:add-integration`), then restarts the client. HTTP connectors need no API key in the file — once the server is added, Claude prompts for OAuth on first use.
    - Example: "Slack isn't connected yet. Copy the Slack block from `.mcp.json.connectors-reference` into your `.mcp.json` (or run `/digital-marketing-pro:add-integration slack`), restart, then run `/digital-marketing-pro:send-notification` — you'll be prompted to authorize Slack via OAuth."
    - Notion, Stripe, Asana, and Webflow are **catalog-only** HTTP servers: configure them directly from `.mcp.json.connectors-reference` the same way, but they are not in the connector registry, so `/digital-marketing-pro:doctor` and `connector-status.py` will not report on them.

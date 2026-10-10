@@ -1,9 +1,11 @@
 ---
 name: local-seo-audit
-description: "Run a comprehensive local SEO audit — Google Business Profile completeness, NAP consistency, citations, reviews, location pages, local schema, local link opportunities, and competitor benchmarking — scored 0-100 and compiled into a prioritized report with the top 5 quick wins and a 90-day week-by-week action plan. Triggers on \"/digital-marketing-pro:local-seo-audit\", \"audit our local SEO\", \"how healthy is our Google Business Profile\", \"check our citations and NAP\", \"why did we drop out of the local pack\". Runs the local-seo-checker script when Python is available, reads the brand profile and compliance rules, and draws on the /digital-marketing-pro:local-seo reference frameworks for GBP, citations, local content, and multi-location work."
+description: "Audit local SEO health by script: profile, NAP, citations, reviews, scored 0-100. \"audit our local SEO\""
 ---
 
 # /digital-marketing-pro:local-seo-audit
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 ## Purpose
 

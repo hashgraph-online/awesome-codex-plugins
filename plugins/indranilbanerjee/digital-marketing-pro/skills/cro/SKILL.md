@@ -1,9 +1,11 @@
 ---
 name: cro
-description: "Audit landing pages, forms, pricing pages, and checkout flows for conversion killers, and design statistically sound A/B tests — ICE-prioritized recommendations, hypothesis templates, and script-computed sample sizes and significance checks. Advises and plans; it does not edit your site or run the tests. Triggers on \"/digital-marketing-pro:cro\", \"audit this landing page\", \"why is our conversion rate so low\", \"how long should this A/B test run\", \"reduce cart abandonment\". Reads the brand profile, industry benchmarks, and campaign history before making recommendations."
+description: "Plan CRO for pages, forms and checkout with ICE-ranked fixes. One page → landing-page-audit. \"reduce cart abandonment\""
 ---
 
 # CRO (Conversion Rate Optimization)
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 ## When to Use This Skill
 

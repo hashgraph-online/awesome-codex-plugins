@@ -40,7 +40,7 @@ command.
 
 **What it asks of the agent.** Nothing it does not already know how to do.
 Writing a Markdown file is enough; for the rest there are one-line commands
-that need no reading first (`stickypane todo plan check tests`,
+that need no reading first (`stickypane todo plan add "write tests"`,
 `stickypane chart tokens add input 1200`, `stickypane show README.md`) and the
 same as MCP tools. A one-screen guide, added to `CLAUDE.md` or `AGENTS.md`,
 or the plugin, tells it all of this.

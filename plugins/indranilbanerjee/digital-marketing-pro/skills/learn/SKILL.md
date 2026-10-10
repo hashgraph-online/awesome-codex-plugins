@@ -1,9 +1,11 @@
 ---
 name: learn
-description: "Save a structured marketing learning to the brand's intelligence graph — insight text, context conditions (channel, audience, objective), confidence score, source, and supporting evidence — deduplicated against related learnings, with contradictions surfaced for a decision and a confirmation plus graph stats returned. Triggers on \"/digital-marketing-pro:learn\", \"save this insight\", \"remember that subject lines with numbers win for us\", \"log what we learned from this campaign\", \"record this test result\". Reads the brand profile to validate the learning fits the brand's domain, writes via the intelligence-graph script, and routes each saved learning to the relevant specialist agents so future recommendations use it."
+description: "Log a marketing learning to the brand intelligence graph with confidence, deduplicated. \"save this insight\""
 ---
 
 # /digital-marketing-pro:learn
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 ## Purpose
 

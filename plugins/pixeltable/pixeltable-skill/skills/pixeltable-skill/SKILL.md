@@ -77,7 +77,7 @@ pxt schema update app.py pxt://org:db -f
 pxt service update app.py pxt://org:db -f
 ```
 
-Provider keys on Cloud: `pxt secret set pxt://org OPENAI_API_KEY=...`, never in `pixeltable.toml`. Cloud handle: `pxt.get_table('pxt://org:db/docs')`. Media goes to the database's managed home bucket unless a column sets `destination=`. Try the app with a dashboard insert plus `pxt schema diff`; read failures with `pxt service logs` / `pxt db logs`.
+Provider keys on Cloud: `pxt secret set pxt://org OPENAI_API_KEY=...`, never in `pixeltable.toml`. Cloud handle: `pxt.get_table('pxt://org:db/docs')`. Media goes to the database's managed home bucket unless a column sets `destination=`; share a file by link or `/sign` (`references/cli.md`, Cloud). Try the app with a dashboard insert plus `pxt schema diff`; read failures with `pxt service logs` / `pxt db logs`.
 
 ## The application file
 

@@ -1,9 +1,11 @@
 ---
 name: competitor-monitor
-description: "Set up ongoing competitor monitoring — captures per-competitor baselines across content, pricing, ads, social, SEO, and SERP features, saves them via competitor-tracker.py, configures per-dimension scan schedules and alert rules, and produces an initial competitive intelligence brief with threat rankings. Triggers on \"/digital-marketing-pro:competitor-monitor\", \"track our competitors over time\", \"watch competitor pricing pages\", \"set up competitor tracking\", \"detect when competitors change their site\". Baselines power /digital-marketing-pro:competitor-alerts and share-of-voice trends. Reads the brand profile for competitive landscape context."
+description: "Monitor competitors over time: baseline sites, pricing and ads by script, flag changes. \"track our competitors over time\""
 ---
 
 # /digital-marketing-pro:competitor-monitor
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 ## Purpose
 

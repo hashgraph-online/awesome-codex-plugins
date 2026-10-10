@@ -1,9 +1,11 @@
 ---
 name: funnel-architect
-description: "Design or restructure a marketing funnel matched to the business model — stage architecture with entry/exit criteria and KPIs, a customer journey map with emotions and friction points, gap analysis, an attribution model recommendation, and a 30/60/90 optimization roadmap. Plans and diagnoses; does not execute campaigns. Triggers on \"/digital-marketing-pro:funnel-architect\", \"map our customer journey\", \"which attribution model should we use\", \"where are we losing customers\", \"design a funnel for our SaaS\". Reads the brand profile, industry benchmarks, and campaign history; pairs with /digital-marketing-pro:funnel-audit for data-driven diagnosis."
+description: "Design a funnel for the business model: stages, KPIs, journey. Existing data → funnel-audit. \"design a funnel for our SaaS\""
 ---
 
 # Funnel Architect
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 ## When to Use This Skill
 

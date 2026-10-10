@@ -6,10 +6,11 @@ The plugin bundle Codex installs from this repository's marketplace:
 codex plugin marketplace add vshulcz/deja-vu && codex plugin add deja-vu@deja-vu
 ```
 
-It carries deja's MCP server, the `deja-history` skill and four hooks:
+It carries deja's MCP server, the `deja-history` skill and five hooks:
 recall at session start and on each prompt, a line before a shell command or
-patch about what this machine already knows of it, and a capture as a compaction
-starts so what the summary drops is served back once.
+patch about what this machine already knows of it, a capture as a compaction
+starts so what the summary drops is served back once, and a marker when the
+session ends.
 
 [deja](https://github.com/vshulcz/deja-vu) indexes the session transcripts
 forty-one coding agents already write to disk, including sessions from before it

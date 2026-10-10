@@ -126,10 +126,10 @@ node <video.mjs> sheet <slug> --in videos/<slug>/<slug>.mp4
 
 ## B. Generated footage: a music video, a cutscene
 
-**The provider, only now.** fal through the person's own account: they create a key at
-https://fal.ai/dashboard/keys and set `FAL_KEY` in the environment your AI runs in
-(never pasted into the chat, never written into the studio). `check` tests it for free.
-**fal's own MCP server** is the way to find models and read their input schemas and prices
+Use an already connected fal account for paid generation; never ask the person to find or set a key.
+The local paid script requires an existing FAL_KEY in its environment. If none is available, continue
+with local assets or captured footage and explain that this paid-script connection is not ready.
+Do not make account configuration a prerequisite for a live studio. **fal's own MCP server** is the way to find models and read their input schemas and prices
 (`search_models`, `recommend_model`, `get_model_schema`, `get_pricing`): use it rather than memory,
 because video endpoints retire and reprice monthly. Not connected? Offer it, and the person signs in
 on fal's own page (no key): in Claude Code `claude mcp add --transport http --scope user fal

@@ -1,10 +1,12 @@
 ---
 name: agent-readiness-audit
-description: "Audit whether AI agents and AI crawlers can actually use a site — robots.txt rules per AI crawler token (OpenAI, Anthropic and Perplexity bots, Google-Extended, Applebot-Extended), Product/Offer/Organization/FAQ JSON-LD, whether main content is in the no-JavaScript server HTML, Merchant Center feed completeness incl. native_commerce checkout eligibility and conversational attributes, an optional agentic-commerce feed, and an optional experimental WebMCP check. Triggers on \"/digital-marketing-pro:agent-readiness-audit\", \"can AI agents use our site\", \"are we blocking GPTBot or ClaudeBot\", \"is our product feed ready for AI Mode shopping\", \"run an agent-readiness check\". Runs agent-readiness-audit.py offline on exports (network only with --fetch) and never recommends llms.txt for Google."
+description: "Audit agent readiness by script: AI-crawler rules, product schema, no-JS HTML, feeds. \"can AI agents use our site\""
 argument-hint: "[site URL, or paths to robots.txt / HTML / feed exports]"
 ---
 
 # /digital-marketing-pro:agent-readiness-audit
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 ## Purpose
 

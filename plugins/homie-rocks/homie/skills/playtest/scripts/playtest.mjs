@@ -587,7 +587,7 @@ async function playSession(base, game, out, roundSeconds, gameJson) {
     for (const s of scores) { if (s.active === null || s.idle === null) continue; const l = s.active > s.idle ? 'active' : s.idle > s.active ? 'idle' : lead; if (lead && l !== lead) changes++; lead = l; }
     // What the scores of this one round say, and no more (lib/judge.mjs judgeScores): a cooperative game's shared
     // total is not a ranking, a bot's win is a measured gap, and a conclusion says which inputs the script used.
-    const j = judgeScores({ me, them, rows: rowsR, scoring: gameJson?.scoring ?? null, planned, roundSeconds, actions });
+    const j = judgeScores({ me, them, rows: rowsR, scoring: gameJson?.scoring ?? null, planned, roundSeconds: gameJson?.roundSeconds ?? null, actions });
     const notes = j.notes;
     row('play', notes.length ? 'WARN' : 'PASS', {
       why: notes.join('; ') || undefined, room: sa.room, round: result.n, plannedSeconds: planned, watchedSeconds: watched, players: rowsR.length, bots: rowsR.filter((x) => x.bot).length,

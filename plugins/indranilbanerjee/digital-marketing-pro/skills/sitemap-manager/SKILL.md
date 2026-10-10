@@ -1,6 +1,6 @@
 ---
 name: sitemap-manager
-description: "Audit an existing XML sitemap — URL counts vs protocol limits, lastmod validity, sampled URL status codes, robots.txt and noindex conflicts, missing pages, compression — or generate a new sitemap (plan or valid XML with index splitting) from industry templates for SaaS, ecommerce, local, publisher, or agency sites. Triggers on \"/digital-marketing-pro:sitemap-manager\", \"audit our sitemap\", \"why are there 404s in the sitemap\", \"generate a sitemap for the new site\", \"is our sitemap declared in robots.txt\". Outputs a severity-ranked issue report or ready-to-submit XML with the robots.txt line and GSC submission instructions; uses tech-seo-auditor.py for URL health checks."
+description: "Audit or generate XML sitemaps: limits, lastmod, status codes, robots conflicts. \"audit our sitemap\""
 argument-hint: "[URL or generate]"
 user-invocable: true
 ---

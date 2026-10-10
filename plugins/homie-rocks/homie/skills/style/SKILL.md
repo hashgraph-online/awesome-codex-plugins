@@ -37,7 +37,7 @@ budget. The first asset you add pins the decisions it was made under.
 
 ## The hands-on path
 
-When the person wants to steer the look closely (the plan asks once), show the **style board**:
+When the person wants to steer the look closely (only when they request it), show the **style board**:
 
 ```sh
 npx --no-install homie-studio style board <id>

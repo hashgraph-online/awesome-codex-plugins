@@ -112,11 +112,11 @@ node <playtest.mjs> review .playtest/<game>/<time>
 It writes `REVIEW.md` in that folder: a brief for a FRESH reviewer, with the pictures, the numbers and
 a rubric.
 
-**The review hands the game's screenshots to someone outside this session, so ask first, once.**
+**An outside review is optional, only when requested.** Finish local checks and your own visual review without an extra question. When an outside review is requested, it hands screenshots outside this session: use the authorization already given, or ask once if the destination was not specified.
 The command prints `approval`: one self-contained question naming every file it sends (REVIEW.md,
 report.json and the listed pictures), the report folder they come from, and the destination (name
 it with `--to "<the reviewer>"`: a subagent in this session, or an external command such as a
-second coding agent). Ask the person that question word for word. One yes covers that report
+second coding agent). For a requested outside review without prior destination consent, ask that question once. One yes covers that report
 folder and that reviewer; another folder or reviewer is a new question. `review-request.json` in
 the folder keeps the same list. A host that reviews what an agent sends may still refuse the
 transfer: that is the host's decision. Do not rephrase and retry it, and do not send the pictures

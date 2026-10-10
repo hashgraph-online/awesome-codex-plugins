@@ -1,9 +1,11 @@
 ---
 name: prompt-test
-description: "A/B test content variations by quality score: create a named test, log each variant (scored via eval-runner.py on hallucination, content quality, and readability), and get a winner declaration with margin of victory, confidence level, per-dimension trade-offs, and auto-reject flags. Produces a decision-ready recommendation plus reusable insights about which approach wins for this brand. Triggers on \"/digital-marketing-pro:prompt-test\", \"which headline style works better\", \"A/B test these subject lines\", \"compare two versions of this copy\", \"show the results of my content test\". Reads the brand profile and guidelines for evaluation context; compares eval scores, not live audience performance — pair with /digital-marketing-pro:ab-test-plan for real-traffic experiments."
+description: "A/B test content variants by eval score and declare a winner with confidence. \"compare two versions of this copy\""
 ---
 
 # /digital-marketing-pro:prompt-test
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 ## Purpose
 

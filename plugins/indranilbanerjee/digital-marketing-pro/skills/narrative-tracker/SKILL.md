@@ -1,9 +1,11 @@
 ---
 name: narrative-tracker
-description: "Track what AI engines (ChatGPT, Perplexity, Gemini, AI Overviews, Copilot) say about the brand, score responses against desired positioning, and flag misrepresentations, drift, and competitor narrative gains. Produces an alignment report, a narrative territory map, and a content strategy to correct AI perception, with snapshots persisted via geo-tracker.py for trend comparison. Triggers on \"/digital-marketing-pro:narrative-tracker\", \"what is ChatGPT saying about us\", \"track our AI narrative\", \"is AI misrepresenting our brand\", \"are competitors gaining narrative ground\". Reads the brand profile for reference positioning; recommends corrective content but does not publish it. Pairs with /digital-marketing-pro:narrative-landscape for competitor messaging territory."
+description: "Track the brand narrative in AI engines against desired positioning, flag misstatements. \"is AI misrepresenting our brand\""
 ---
 
 # /digital-marketing-pro:narrative-tracker
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 ## Purpose
 

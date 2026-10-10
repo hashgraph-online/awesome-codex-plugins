@@ -1,6 +1,6 @@
 ---
 name: ad-creative
-description: "Generate 3-5 ad copy variations per platform — headlines, descriptions, and CTAs formatted to Google, Meta, LinkedIn, TikTok, X, and Pinterest specs — each scored 1-10 with policy-compliance flags, A/B testing groupings, and a message-match check against the landing page. Triggers on \"/digital-marketing-pro:ad-creative\", \"write ad copy for Meta\", \"give me RSA headline variations\", \"we need LinkedIn ad copy\", \"draft TikTok ad creative\". Reads the brand profile, guidelines, and compliance rules; routes video ad scripts to /digital-marketing-pro:video-script and gates AI-generated visuals for EU campaigns through /digital-marketing-pro:c2pa-metadata and /digital-marketing-pro:check."
+description: "Write ad copy variants to each platform's specs, policy-checked and in brand voice. \"write ad copy for Meta\""
 argument-hint: "[platform]"
 ---
 

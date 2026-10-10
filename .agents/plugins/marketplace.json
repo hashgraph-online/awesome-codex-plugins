@@ -2196,6 +2196,21 @@
       "description": "Developer personality portrait generator — analyzes AI conversation history to produce MBTI type (16 color themes), capability radar, developer rating, 3-dimension famous match, and a persona skill that lets any AI \"think like you\"."
     },
     {
+      "name": "vibestretch",
+      "displayName": "vibestretch",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Eliasjunit/vibestretch"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Codex hooks that print one stretch or eye-break line and play a soft chime once the agent has kept you waiting for minutes, with zero model tokens and no telemetry (also Claude Code and Gemini CLI).",
+      "icon": "./plugins/Eliasjunit/vibestretch/assets/icon.png"
+    },
+    {
       "name": "villagesql",
       "displayName": "VillageSQL Skills",
       "source": {

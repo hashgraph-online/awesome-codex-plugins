@@ -1,11 +1,13 @@
 ---
 name: crm-sync
-description: "Sync marketing data to and from Salesforce, HubSpot, Zoho, or Pipedrive — contacts, deals, and campaign links with field mapping, deduplication, consent checks, batched execution behind a mandatory approval gate, and a rollback manifest. Produces a full sync report with per-record outcomes. Triggers on \"/digital-marketing-pro:crm-sync\", \"push these contacts into HubSpot\", \"sync deals to Salesforce\", \"our CRM and marketing lists don't match\", \"set up a recurring CRM sync\". Reads the brand profile and compliance rules; for scored lead imports use /digital-marketing-pro:lead-import instead."
+description: "Sync contacts and deals with a connected CRM, deduped, approval-gated. \"sync deals to Salesforce\""
 disable-model-invocation: false
 argument-hint: "[crm-platform]"
 ---
 
 # /digital-marketing-pro:crm-sync
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 ## Purpose
 
@@ -18,7 +20,8 @@ Use this command instead of manual CSV imports when you need deduplication, comp
 1. Present the full preview — recipients / spend / changes / compliance — as an **Execution Summary** before touching any live system.
 2. The user must type `yes` (or an equivalent explicit approval). ANY other input — ambiguous, implied, partial, or absent approval — cancels the run.
 3. Never proceed on ambiguous input. Never auto-retry a failed execution; a failure needs human review before any re-run.
-4. Record the approval with `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action create-approval --data '{"risk_level":"<tier>","summary":"..."}'` **before** executing, then `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action mark-executed --id {approval_id}` after the platform confirms success.
+4. Only after the user types `yes`, record it: `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action create-approval --data '{"type":"crm-sync","platform":"<platform>","content_summary":"<one line from the Execution Summary>","risk_level":"<tier>"}'`, then `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action approve --id {approval_id}`. If either command errors, stop and report the error; never work around it with another tool. The record proves the approval step ran for this action; it cannot prove who typed `yes`.
+5. Execute. A write sent through `connector_executor.py` needs `--approval-id` and fires only against a matching, unused, unexpired record (see `/digital-marketing-pro:execute-action`). A write through a connected MCP server tool is outside that code check: it relies on this typed `yes` and on your host's permission prompt. Afterwards run `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action mark-executed --id {approval_id} --data '{"execution_result":"success"}'` (or `failure`).
 
 ## Input Required
 

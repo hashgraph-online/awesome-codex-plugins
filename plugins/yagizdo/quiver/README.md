@@ -219,6 +219,8 @@ Re-review detection: if you run `/quiver:review` again on the same branch after 
 | `pre-compact-handover` | PreCompact | Summarizes the conversation and saves a handover before the CLI compacts context |
 | `session-start-auto-dispatch` | SessionStart | Reads every skill's `when-to-use` and emits a routing block so intent matches invoke the right skill |
 
+> To turn the guard's confirmation prompts off, add `"env": {"QUIVER_GUARD_PROMPTS": "off"}` to `~/.claude/settings.json`, or to a project's `.claude/settings.json` for that project only. The refusals for `rm -rf /` and `rm -rf ~` stay on.
+
 > The handover hook keeps the 3 most recent handovers in `.claude/handovers/` and prunes older ones automatically. Filenames are timestamps, so sort order is lexicographic.
 
 ## Agents

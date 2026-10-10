@@ -1,9 +1,11 @@
 ---
 name: focus-group
-description: "Run a simulated focus group: AI personas grounded in your CRM data react to messaging, pricing, or creative stimuli, producing a transcript with per-segment sentiment, consensus themes, objections, and explicit confidence caveats — directional hypotheses, not real consumer research. Triggers on \"/digital-marketing-pro:focus-group\", \"test this messaging before we spend on research\", \"how would our segments react to this pricing\", \"run a synthetic panel\", \"which positioning lands better\". Builds and reuses panels via audience-simulator.py, reads the brand profile, and shares panel IDs with /digital-marketing-pro:message-test."
+description: "Run a simulated focus group of CRM-grounded personas reacting to messaging or pricing. \"run a focus group on this message\""
 ---
 
 # /digital-marketing-pro:focus-group
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 ## Purpose
 

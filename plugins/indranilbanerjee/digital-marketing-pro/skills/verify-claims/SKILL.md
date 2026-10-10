@@ -1,10 +1,12 @@
 ---
 name: verify-claims
-description: "Extract every verifiable claim in marketing copy — statistics, rankings, awards, citations, performance and time-bound assertions — and check each against a user-supplied evidence JSON, classifying it verified, partially verified, unverified, or contradicted, with corrected-text and hedged-language suggestions. Without an evidence file it runs extraction-only and generates a template to fill in. Triggers on \"/digital-marketing-pro:verify-claims\", \"fact-check this case study\", \"can we back up these numbers\", \"is this statistic real\", \"check our award claims before the press release\". Runs claim-verifier.py and applies brand compliance rules for regulated industries; the claim-integrity deep-dive alongside /digital-marketing-pro:eval-content."
+description: "Verify copy claims by script against evidence you give; without it, lists what needs proof. \"can we back up these numbers\""
 argument-hint: "[content-path]"
 ---
 
 # /digital-marketing-pro:verify-claims
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 ## Purpose
 

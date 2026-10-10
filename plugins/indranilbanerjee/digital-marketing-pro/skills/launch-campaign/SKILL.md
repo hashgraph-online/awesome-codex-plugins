@@ -1,11 +1,13 @@
 ---
 name: launch-campaign
-description: "Orchestrate the full multi-channel launch of an approved campaign plan — pre-launch BLOCKER gates (approved plan, assets present, connectors probed, conversion tracking verified, C2PA-signed AI assets for EU markets), then dependency-ordered activation across CRM, landing page, email, paid ads, organic social, influencer, and PR, with a checkpoint after every step and a dual-copy launch record. Nothing executes until the dry-run preview is shown and the user types an explicit yes. Triggers on \"/digital-marketing-pro:launch-campaign\", \"go live with the campaign\", \"kick off the launch\", \"activate every channel for this campaign\", \"flip the switch on the launch\". Consumes the plan from /digital-marketing-pro:campaign-plan, delegates paid ads to /digital-marketing-pro:launch-ad-campaign, and resumes interrupted launches via /digital-marketing-pro:resume."
+description: "Launch an approved multi-channel campaign: blocker checks, then ordered activation. \"go live with the campaign\""
 user-invocable: true
 allowed-tools: Read Bash Glob Grep
 ---
 
 # /digital-marketing-pro:launch-campaign — Multi-Channel Campaign Launch Orchestrator
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 This skill takes an **approved** campaign plan (from `/digital-marketing-pro:campaign-plan`) and walks it through every step required to go live: pre-launch gates, channel-by-channel activation, CRM record creation, kickoff comms to the team, and day-1 monitoring setup. It complements — and is broader than — `/digital-marketing-pro:launch-ad-campaign`, which handles only paid-ads activation on Google / Meta / LinkedIn / TikTok.
 

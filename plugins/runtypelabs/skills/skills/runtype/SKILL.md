@@ -34,6 +34,10 @@ give schema, catalog, or creation guidance:
   `status` command ignores environment credentials.
 - Reuse valid authentication. If a signup is pending, resume it with the `next` command
   that `status` prints.
+- If `status` reports `unauthenticated` with a `requestedOrgId`, the directory is linked
+  to an organization with no stored login. Do not register a new account: have the user
+  log in to that organization privately (`runtype auth login --api-key <key>`), or confirm
+  with them before `runtype unlink` if the link is stale.
 
 Keep working through the CLI while MCP is unavailable: `runtype mcp tools` lists the
 hosted tools and `runtype mcp call <tool>` runs one. Use MCP after its tools appear in

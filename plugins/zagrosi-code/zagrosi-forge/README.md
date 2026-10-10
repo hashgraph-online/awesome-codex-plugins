@@ -186,9 +186,10 @@ blockers, recovery commands and complete reports (`--full-output`).
 Runtime loading verifies SHA-256 source bindings; writes are locked and atomic.
 
 [Helper benchmarks](examples/evals/performance.json) measure fixed fixtures.
-[Coding trials](examples/evals/coding/README.md) track quality, completion, time and
-usage. [Results](examples/evals/coding/behavior-contract-results-2026-10-02.md) retain failures;
-adapter support alone proves neither speed nor quality.
+[Suite comparisons](examples/evals/coding/README.md#manifest-driven-suites) use frozen
+tasks, isolated checks and blind review.
+[Historical results](examples/evals/coding/behavior-contract-results-2026-10-02.md)
+retain failures; adapter support proves neither speed nor quality.
 
 ## Contribute
 

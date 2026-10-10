@@ -110,16 +110,16 @@ Every active campaign receives a 0–100 health score, recalculated on each moni
 
 ### Default Safety Limits
 
-These define what the system can do WITHOUT human approval:
+By default autopilot applies NOTHING on its own: it proposes each correction and waits for the user's typed `yes` (`allowed_actions` is empty). The first six rows can be pre-authorised, within these limits, only through `set-guardrails` with a standing approval the user approved (kind `autopilot`, scoped to those actions, capped per day, at most 30 days). Everything else always needs approval.
 
-| Action | Allowed Automatically | Limit |
+| Action | Can be pre-authorised? | Limit |
 |---|---|---|
-| **Pause individual ads** | Yes | Any ad with health score <30 |
-| **Pause ad sets** | Yes, if all ads within are paused | Only when all child ads qualify |
-| **Reduce bid** | Yes | Up to 15% reduction per cycle |
-| **Throttle daily budget** | Yes | Up to 20% reduction per cycle |
-| **Pause campaign (landing page down)** | Yes | Immediate if non-200 for 2 consecutive checks |
-| **Resume campaign (landing page restored)** | Yes | After 2 consecutive healthy checks, at 80% of original bid |
+| **Pause individual ads** | Yes, under a standing approval | Any ad with health score <30 |
+| **Pause ad sets** | Yes, under a standing approval, if all ads within are paused | Only when all child ads qualify |
+| **Reduce bid** | Yes, under a standing approval | Up to 15% reduction per cycle |
+| **Throttle daily budget** | Yes, under a standing approval | Up to 20% reduction per cycle |
+| **Pause campaign (landing page down)** | Yes, under a standing approval | Immediate if non-200 for 2 consecutive checks |
+| **Resume campaign (landing page restored)** | Yes, under a standing approval | After 2 consecutive healthy checks, at 80% of original bid |
 | **Swap to next creative variant** | No | Requires approval |
 | **Increase budget** | No | Always requires approval |
 | **Change targeting** | No | Always requires approval |
@@ -128,21 +128,20 @@ These define what the system can do WITHOUT human approval:
 
 ### Guardrail Configuration
 
-Guardrails are configurable per brand at `~/.claude-marketing/brands/{slug}/guardrails.json`:
+Guardrails are stored per brand at `~/.claude-marketing/brands/{slug}/config/guardrails.json`. Read and write them with `campaign-health-monitor.py --action get-guardrails|set-guardrails --brand {slug}`; the defaults are:
 
 ```json
 {
-  "auto_pause_threshold": 30,
-  "max_bid_reduction_pct": 15,
-  "max_budget_throttle_pct": 20,
-  "landing_page_check_interval_min": 15,
-  "landing_page_failure_threshold": 2,
-  "resume_at_bid_pct": 80,
-  "creative_swap_auto": false,
-  "budget_increase_auto": false,
-  "require_approval_for": ["targeting_change", "bidding_strategy_change", "account_pause", "budget_increase"]
+  "allowed_actions": [],
+  "max_bid_adjustment_pct": 15,
+  "max_budget_adjustment_pct": 20,
+  "pause_on_landing_page_down": true
 }
 ```
+
+To pre-authorise actions: create a standing approval with `approval-manager.py --brand {slug} --action create-standing --data '{"kind": "autopilot", "actions": ["adjust_bid"], "max_uses_per_day": 5, "days": 30, "summary": "..."}'`, show its scope and cap to the user, run `approve` only after they type `yes`, then `campaign-health-monitor.py --action set-guardrails --brand {slug} --guardrails '{"allowed_actions": ["adjust_bid"]}' --approval-id <id>`. The script refuses non-empty `allowed_actions` without a covering approved standing approval.
+
+Before applying any correction without asking, check it is in `allowed_actions` and inside the limits, then log it with `log-correction --was-auto true`; if the log step reports `cap_reached` (or the standing approval expired), propose the correction instead and wait for a typed `yes`. The corrections themselves run through the ad platform's MCP tools, so the limits are kept by you and logged by the script, not enforced by the platform. Guardrails written before 3.35.0 that already list actions keep working as written.
 
 ---
 

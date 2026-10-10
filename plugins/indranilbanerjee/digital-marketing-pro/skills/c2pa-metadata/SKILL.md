@@ -1,6 +1,6 @@
 ---
 name: c2pa-metadata
-description: "Embed a C2PA provenance manifest into an AI-generated marketing asset (PNG, JPG, WebP, GIF, TIFF, MP4, MOV, WebM, MP3, WAV, PDF) via scripts/embed-c2pa.py — produces a signed copy of the file carrying IPTC digital-source-type AI claims, an optional c2pa.ai-disclosure assertion for EU AI Act Article 50 (applicable 2 Aug 2026), and a JSON status report. Triggers on \"/digital-marketing-pro:c2pa-metadata\", \"sign this AI image for EU compliance\", \"add content credentials to this asset\", \"embed provenance metadata\", \"mark this video as AI-generated\". Uses a self-signed dev certificate unless --signing-cert/--signing-key are supplied; pairs with /digital-marketing-pro:check, which verifies manifests pre-publish."
+description: "Embed C2PA provenance in AI-generated images, video or PDF by script. \"add content credentials to this asset\""
 ---
 
 # /digital-marketing-pro:c2pa-metadata — Embed Content Authenticity Provenance
@@ -111,10 +111,12 @@ Reference: [opensource.contentauthenticity.org/docs/manifest/signing-manifests/]
 
 ## Python dependencies
 
-- `c2pa-python>=0.5.0` — auto-installed on first run via `pip install`
-- `cryptography` — only needed for the dev self-signed cert path; auto-installed if missing
+- `c2pa-python==0.38.0`: required for signing and for `--verify`
+- `cryptography==46.0.3`: only needed for the dev self-signed cert path
 
-Both are part of the plugin's **Full mode** (~50 MB) — see `pip install -r scripts/requirements.txt` in the README.
+The script never installs anything. If either package is missing it prints the exact `python -m pip install "…"` command and exits with code 2; show that command to the user and let them decide whether to run it. Do not run pip on their behalf.
+
+Each signature requests a timestamp from `http://timestamp.digicert.com` (a hash of the claim, not the asset). The dev key, when used, is deleted as soon as the script exits.
 
 ## Output
 

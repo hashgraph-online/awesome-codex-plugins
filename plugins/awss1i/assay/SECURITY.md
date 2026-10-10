@@ -1,8 +1,19 @@
-# Security
+<h1 align="center">Security</h1>
 
-**Report a vulnerability privately, never in a public issue.** Use
-[Report a vulnerability](https://github.com/awss1i/assay/security/advisories/new)
-on the Security tab. A fix goes out as a new release on PyPI.
+---
+
+<p align="center"><strong>Report a vulnerability privately, never in a public issue.</strong> Use
+<a href="https://github.com/awss1i/assay/security/advisories/new">Report a vulnerability</a>
+on the Security tab. A fix goes out as a new release on PyPI.</p>
+
+---
+
+## Contents
+
+- [What the Plugin Does](#what-the-plugin-does)
+- [Supported Versions](#supported-versions)
+
+---
 
 ## What the Plugin Does
 
@@ -18,6 +29,8 @@ installs anything. The full boundaries are in the repository's
 The hook running anything other than `assay`, or assay reaching outside that
 folder or outside loopback, is a vulnerability. Anything a page can normally do
 inside a browser is not.
+
+---
 
 ## Supported Versions
 

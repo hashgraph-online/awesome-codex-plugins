@@ -1,9 +1,11 @@
 ---
 name: campaign-orchestrator
-description: "Full campaign-lifecycle module — produces campaign briefs, budget allocations via three models (70/20/10, efficiency-ranked, funnel-weighted), channel-mix and media plans, UTM taxonomies with governance rules, launch checklists, ABM plans, and post-mortem reports. Plans and documents; it does not launch or edit live campaigns. Triggers on \"/digital-marketing-pro:campaign-orchestrator\", \"build a media plan\", \"how should we split budget across channels\", \"set up UTM naming conventions\", \"run a post-mortem on the campaign\". Reads the brand profile, guidelines, and campaign history via campaign-tracker.py; its reference docs are consumed by /digital-marketing-pro:campaign-plan rather than duplicated."
+description: "Orchestrate a campaign lifecycle: briefs, budget models, UTMs, post-mortems. \"set up UTM naming conventions\""
 ---
 
 # Campaign Orchestrator
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 ## When to Use This Skill
 

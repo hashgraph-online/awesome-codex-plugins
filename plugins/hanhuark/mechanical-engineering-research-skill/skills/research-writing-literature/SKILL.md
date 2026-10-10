@@ -9,6 +9,8 @@ description: Write and revise rigorous research narratives, literature reviews, 
 
 Build a research story rather than a sequence of paper summaries. Every paragraph needs a central topic, normally in its first sentence; each later sentence must develop, support, qualify, or transition from it.
 
+When AI is used to draft or substantially revise the document, first use [author-guided-ai-writing.md](../mechanical-engineering-research/references/author-guided-ai-writing.md) to obtain an author-approved story brief and claim-evidence map. Drafting and line editing do not replace those author decisions.
+
 Before a substantial draft or structural revision, identify the reader, the decision or scientific understanding the section must support, the evidence that carries the central claim, and what the reader should know after the section. Write the structure from that reader-to-evidence path instead of filling a generic manuscript template.
 
 ## Route To References

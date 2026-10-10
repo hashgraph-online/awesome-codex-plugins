@@ -1,11 +1,13 @@
 ---
 name: send-email-campaign
-description: "Send a targeted email campaign through a connected SendGrid, Klaviyo, Customer.io, Brevo, or Mailchimp MCP — subject-line and spam scoring, personalization with fallbacks, A/B variants, CAN-SPAM/GDPR/CASL compliance checks, a test send you confirm, then the full send with deliverability monitoring and early engagement snapshots. No email leaves without the mandatory execution gate: a campaign summary with recipient count and risk tier (medium/high/critical by list size) that you must explicitly approve. Triggers on \"/digital-marketing-pro:send-email-campaign\", \"send this newsletter to the active list\", \"deploy the Q1 announcement email\", \"launch the promo email with two subject lines\", \"email this segment tomorrow at 9am\". Reads the brand profile, guidelines, and platform publishing specs."
+description: "Send an email campaign via a connected ESP with spam and compliance checks, approval-gated. \"send this newsletter to the active list\""
 disable-model-invocation: false
 argument-hint: "[campaign-name]"
 ---
 
 # /digital-marketing-pro:send-email-campaign
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 ## Purpose
 
@@ -16,7 +18,8 @@ Create and send a targeted email campaign through the brand's connected email pl
 1. Present the full preview — recipients / spend / changes / compliance — as an **Execution Summary** before touching any live system.
 2. The user must type `yes` (or an equivalent explicit approval). ANY other input — ambiguous, implied, partial, or absent approval — cancels the run.
 3. Never proceed on ambiguous input. Never auto-retry a failed execution; a failure needs human review before any re-run.
-4. Record the approval with `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action create-approval --data '{"risk_level":"<tier>","summary":"..."}'` **before** executing, then `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action mark-executed --id {approval_id}` after the platform confirms success.
+4. Only after the user types `yes`, record it: `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action create-approval --data '{"type":"send-email","platform":"<platform>","content_summary":"<one line from the Execution Summary>","risk_level":"<tier>"}'`, then `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action approve --id {approval_id}`. If either command errors, stop and report the error; never work around it with another tool. The record proves the approval step ran for this action; it cannot prove who typed `yes`.
+5. Execute. A write sent through `connector_executor.py` needs `--approval-id` and fires only against a matching, unused, unexpired record (see `/digital-marketing-pro:execute-action`). A write through a connected MCP server tool is outside that code check: it relies on this typed `yes` and on your host's permission prompt. Afterwards run `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action mark-executed --id {approval_id} --data '{"execution_result":"success"}'` (or `failure`).
 
 ## Input Required
 
@@ -47,7 +50,7 @@ The user must provide (or will be prompted for):
 6. **Build platform-specific payload**: Structure the email payload per the target platform's API requirements — consult `skills/context-engine/platform-publishing-specs.md` for field mappings, template rendering, merge tag syntax (e.g., `{{first_name}}` vs `{first_name}`), A/B test configuration parameters, and scheduling API format.
 7. **Verify list size and consent compliance**: Confirm recipient count and segment definition. Check that the list has proper opt-in consent flags for the applicable jurisdiction. Verify unsubscribe mechanism is functional, one-click unsubscribe header is present, physical mailing address is included, and compliance with CAN-SPAM (US), GDPR (EU), CASL (Canada), and any other regulations for the brand's target markets.
 8. **Score brand voice**: Run `brand-voice-scorer.py` on the email body content to verify alignment with brand tone and messaging guidelines. Flag any copy that deviates from brand standards.
-9. **Create approval record**: Create the record via `approval-manager.py --action create-approval` with the tiered risk level inside the `--data` JSON — `{"risk_level":"medium",...}` for fewer than 1,000 recipients, `"high"` for 1,000-10,000, `"critical"` for more than 10,000. There is no `--risk-level` flag; see the Execution gate above for the exact command. Generate a send summary with all campaign details, scores, and compliance status.
+9. **Create approval record**: Create the record via `approval-manager.py --action create-approval` with the tiered risk level inside the `--data` JSON — `{"type":"send-email","platform":"<platform>","content_summary":"...","risk_level":"medium"}` for fewer than 1,000 recipients, `"high"` for 1,000-10,000, `"critical"` for more than 10,000. There is no `--risk-level` flag; see the Execution gate above for the exact command. Generate a send summary with all campaign details, scores, and compliance status.
 10. **Present campaign summary**: Display the complete summary for user review — subject lines with scores, preview text, recipient count and segment name, send time, personalization preview with sample recipient data, spam score, brand voice score, and compliance checklist. Wait for explicit confirmation.
 11. **Send test email**: On initial approval, send a test email to the user's address (and any additional test addresses) via the MCP server. Ask the user to confirm the test renders correctly across desktop and mobile, personalization tokens resolve, links work, and images load.
 12. **Execute full send via MCP**: After test confirmation, trigger the campaign send through the connected email platform MCP. Handle A/B test split configuration, scheduling, and any platform-specific send options (track opens, track clicks, Google Analytics UTM tagging).

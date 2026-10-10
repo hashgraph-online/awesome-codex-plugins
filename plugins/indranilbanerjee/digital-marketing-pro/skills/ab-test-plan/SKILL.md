@@ -1,10 +1,12 @@
 ---
 name: ab-test-plan
-description: "Design a statistically rigorous A/B or multivariate test plan — If/Then/Because hypothesis, control and variant specs, required sample size per variant (absolute vs relative MDE via sample-size-calculator.py), test duration, guardrail metrics, stopping rules, and go/no-go decision criteria. Triggers on \"/digital-marketing-pro:ab-test-plan\", \"set up an A/B test\", \"how long should my test run\", \"calculate sample size for an experiment\", \"is this test result significant\". Reads the brand profile and past campaign-tracker results to avoid re-testing validated hypotheses; finished tests are evaluated with significance-tester.py by the cro-specialist agent."
+description: "Plan an A/B test by script: sample size per variant, days to run, stopping rules. \"how many visitors per variant\""
 argument-hint: "[element-to-test]"
 ---
 
 # /digital-marketing-pro:ab-test-plan
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 ## Purpose
 

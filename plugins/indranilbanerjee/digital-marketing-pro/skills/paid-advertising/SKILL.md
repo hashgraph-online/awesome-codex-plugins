@@ -1,9 +1,11 @@
 ---
 name: paid-advertising
-description: "Plan, structure, and audit paid media campaigns across Google, Meta, LinkedIn, TikTok, Microsoft, ChatGPT, programmatic, retail media, native, and audio — campaign hierarchy, audience architecture, bid strategy, budget allocation and pacing, creative strategy, and current platform API changes (Google Ads v24/v25, Meta v25). Produces campaign plans, platform audit scorecards, budget models, creative briefs, and optimization playbooks. Triggers on \"/digital-marketing-pro:paid-advertising\", \"plan a Google Ads campaign\", \"audit our Meta account\", \"which bid strategy should we use\", \"allocate our paid media budget\". Reads the brand profile, guidelines, and campaign history via campaign-tracker.py; plans and recommends only — launching is handled by /digital-marketing-pro:launch-campaign."
+description: "Plan or audit paid ads with current platform rules and benchmarks: Google PMax/AI Max, Meta, retail. \"should we use Performance Max\""
 ---
 
 # Paid Advertising
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 ## Since August 2026 (verified 2026-10-04)
 

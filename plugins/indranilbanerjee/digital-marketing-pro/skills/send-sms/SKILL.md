@@ -1,11 +1,13 @@
 ---
 name: send-sms
-description: "Send an SMS or WhatsApp marketing message through a connected Twilio or Brevo MCP, with consent verification (TCPA/GDPR/CASL), quiet-hours enforcement, opt-out and message-length checks, cost estimates, and delivery tracking. Nothing sends without an Execution Summary and explicit typed approval — the gate cannot be skipped. Triggers on \"/digital-marketing-pro:send-sms\", \"send an SMS blast\", \"send this WhatsApp message to the list\", \"text our customers about the sale\", \"schedule an SMS for tomorrow morning\". Reads the brand profile and compliance rules, scores the message with the brand-voice scorer, and logs every send to the execution audit trail."
+description: "Send SMS or WhatsApp marketing with consent and quiet-hours checks, approval-gated. \"send an SMS blast\""
 disable-model-invocation: false
 argument-hint: "[message-type]"
 ---
 
 # /digital-marketing-pro:send-sms
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 ## Purpose
 
@@ -16,7 +18,8 @@ Send an SMS or WhatsApp marketing message via Twilio or Brevo with mandatory com
 1. Present the full preview — recipients / spend / changes / compliance — as an **Execution Summary** before touching any live system.
 2. The user must type `yes` (or an equivalent explicit approval). ANY other input — ambiguous, implied, partial, or absent approval — cancels the run.
 3. Never proceed on ambiguous input. Never auto-retry a failed execution; a failure needs human review before any re-run.
-4. Record the approval with `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action create-approval --data '{"risk_level":"<tier>","summary":"..."}'` **before** executing, then `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action mark-executed --id {approval_id}` after the platform confirms success.
+4. Only after the user types `yes`, record it: `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action create-approval --data '{"type":"send-sms","platform":"<platform>","content_summary":"<one line from the Execution Summary>","risk_level":"<tier>"}'`, then `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action approve --id {approval_id}`. If either command errors, stop and report the error; never work around it with another tool. The record proves the approval step ran for this action; it cannot prove who typed `yes`.
+5. Execute. A write sent through `connector_executor.py` needs `--approval-id` and fires only against a matching, unused, unexpired record (see `/digital-marketing-pro:execute-action`). A write through a connected MCP server tool is outside that code check: it relies on this typed `yes` and on your host's permission prompt. Afterwards run `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action mark-executed --id {approval_id} --data '{"execution_result":"success"}'` (or `failure`).
 
 ## Input Required
 
@@ -41,7 +44,7 @@ The user must provide (or will be prompted for):
 5. **Check message length**: Validate message length against channel limits — 160 characters per SMS segment (concatenated messages up to 1,600 characters with segment count and cost warning), 1,024 characters for WhatsApp text. For personalized messages, calculate length with the longest possible variable substitution to ensure no recipient receives a truncated message. Report character count, segment count, and per-message cost.
 6. **Verify messaging MCP connection**: Check which messaging platform MCP is connected — Twilio or Brevo — and confirm it supports the selected channel (SMS, WhatsApp, or both). Verify sender ID is registered, authorized, and compliant with the destination country's sender ID regulations. If not connected, guide the user through integration setup.
 7. **Score brand voice**: Run `brand-voice-scorer.py` on the message content to verify alignment with brand tone guidelines. SMS requires concise, direct messaging — flag content that is off-brand, overly formal for the channel, or could be misinterpreted in short-form context without visual cues.
-8. **Create approval record**: Create the record via `approval-manager.py --action create-approval` with the risk level inside the `--data` JSON — `{"risk_level":"high",...}`. SMS and WhatsApp marketing carries regulatory exposure (TCPA fines up to $1,500 per unsolicited message) and per-message cost. There is no `--risk-level` flag; see the Execution gate above for the exact command. Generate a comprehensive send summary for review.
+8. **Create approval record**: Create the record via `approval-manager.py --action create-approval` with the risk level inside the `--data` JSON — `{"type":"send-sms","platform":"<platform>","content_summary":"...","risk_level":"high"}`. SMS and WhatsApp marketing carries regulatory exposure (TCPA fines up to $1,500 per unsolicited message) and per-message cost. There is no `--risk-level` flag; see the Execution gate above for the exact command. Generate a comprehensive send summary for review.
 9. **Present send summary**: Display the complete summary — message preview with personalization tokens resolved for a sample recipient, recipient count (total, eligible after compliance filtering, excluded with reasons), channel, sender ID, send time with quiet hours verification, compliance checklist (consent, quiet hours, opt-out, sender verification), estimated cost per message and total send cost, SMS segment count if applicable, and brand voice score. Wait for explicit "send" confirmation.
 10. **Execute send via MCP**: On approval, trigger the message send through the connected Twilio or Brevo MCP. Handle personalization token replacement per recipient, batch processing for bulk sends with rate limiting, WhatsApp template variable injection, and platform-specific API formatting. Monitor for immediate delivery failures and API errors.
 11. **Track delivery**: Poll the messaging platform API for delivery status updates — delivered, failed, undelivered, queued, or read (WhatsApp only). Track per-recipient status for bulk sends. Alert the user if delivery failure rate exceeds 5% with categorized failure reasons (invalid numbers, carrier blocks, opt-outs processed, network timeouts).

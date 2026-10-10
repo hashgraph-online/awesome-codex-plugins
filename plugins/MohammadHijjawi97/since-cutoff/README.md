@@ -192,11 +192,22 @@ nothing, and the file keeps its bytes and modification time.
 | `since-cutoff sync --yes` | writes without asking | 0 |
 | `since-cutoff sync --dry-run` | shows the diff, writes nothing | 0 |
 | `since-cutoff sync --check` | writes nothing (for CI and pre-commit) | 0 up to date; 3 out of date |
+| `since-cutoff sync --json --yes` | writes without asking; prints JSON proposals and write results | same as `sync --yes` |
+| `since-cutoff sync --json --check` | prints JSON proposals; writes nothing | 0 up to date; 3 out of date |
+| `since-cutoff sync --json --dry-run` | prints JSON proposals; writes nothing | 0 |
 | `since-cutoff status` | compares the block with the lockfile, offline | 0 current, or no block; 3 out of date; 1 broken markers |
 
 When the block was edited by hand, `sync` and `sync --check` show the diff, write nothing and
 exit with code 4; `sync --force` replaces it. When a package the notes are about cannot be
 checked (PyPI unreachable), `sync` writes nothing and exits with code 1.
+
+`sync --json` requires `--yes`, `--check` or `--dry-run`; without one it exits with code 2
+without prompting. Stdout contains only JSON (and stays empty for usage errors); progress,
+diffs and errors go to stderr. The object contains `exit_code` and `targets`. Each target
+reports `target`, `action`, `changed`, `edited`, `written`, `model`, `cutoff`, `scope`,
+`notes`, `changes` (each package's `package`, `done` and `state`), `retest` and `diff_lines`.
+`written` distinguishes an applied proposal from a preview or a refused hand edit. The usual
+exit codes and `--force` behavior still apply.
 
 `since-cutoff status` reads no network and no code: per package, the version the notes are for
 and the version the lockfile has, whether other dependencies changed, and whether the model
@@ -699,7 +710,7 @@ was checked, and nothing else is claimed:
 | `[diff + library]` | As `[diff]`, and the library's own deprecation text (a docstring, a parameter's docstring entry, an `@deprecated` message or a `warnings.warn` text, in the older release or, for a deprecation, in the pinned one) states the replacement ("Use `stop` instead"), and that name exists in your pinned version. Text that only mentions a name as advice is quoted under `[diff]`, not taken as a replacement. | That the replacement behaves the same. |
 | `[diff + move checked]` | As `[diff]`, and the object at the new path is the same object as far as can be counted: a class or module keeps at least half of the old one's public names, a function keeps its parameters, a value is the same. | Behaviour. |
 | `[diff + metadata]` | The older release's Requires-Dist (its wheel's METADATA) lists a library the pinned one does not, and places in the public API that named that library's types (parameters, return types, attributes, base classes, re-exports) name the types of another library the pinned release requires, or of a copy of the old one it ships, with none of the old library left: openai 3.x, anthropic 1.8, huggingface-hub 2.0 and mcp 2.2 take `httpx2` objects where they took `httpx` ones. | Behaviour: whether the pinned release still accepts the old library's objects (openai 3 converts some, anthropic 1.8 raises `TypeError`, according to their sources). The terminal, report.md, the MCP tools and the JSON add an "Installed:" line (whether your project, its virtual environment included, still has the old library) and a "Runtime:" line that points to where the pinned source still names it. |
-| `[diff; probable rename]` | A parameter in the same position, with the same annotation, has a new name. A guess, labelled as one. | That it is the same parameter. |
+| `[diff; probable rename]` | A parameter in the same position, with the same annotation, has a new name, and no version note in the pinned release's docstring (`.. versionadded::`, `.. versionchanged::`) says that one was added or the other removed. A guess, labelled as one. | That it is the same parameter. |
 | `[type-checked]` | Written by a model during `since-cutoff run` and kept because its example passed the type check below. | Behaviour; that the bullet's explanation is true beyond the names it shows. |
 | `[not confirmed]` | Only with `sync --suggestions`: names in the pinned version that look similar to what was removed (the bullet's tag then reads `[diff; not confirmed]`). | That any of them replaces it. |
 
@@ -751,7 +762,9 @@ meaning the same as `checks.example_type_checks`).
   inspection off; only `.py`/`.pyi` files are extracted, with path and size checks). The model's
   answers are only type-checked, locally, with basedpyright.
 - **Fetches** public package metadata and wheels from PyPI, and model cutoffs from models.dev (a
-  snapshot is bundled for offline use). Each downloaded wheel or sdist is checked against the
+  snapshot is bundled for offline use). Release lists are cached for 12 hours; when PyPI cannot
+  be reached, an older cached copy is used and the scan says from which day it is. Each
+  downloaded wheel or sdist is checked against the
   sha256 that PyPI lists before extraction. Git, path, workspace and private-index dependencies
   are never looked up on public PyPI by name. `status` fetches nothing.
 - **Sends** prompts only in `run`, and only to the model provider you choose: package names,

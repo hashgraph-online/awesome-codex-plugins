@@ -1,9 +1,11 @@
 ---
 name: exec-summary
-description: "Generate a C-suite-ready executive summary of marketing performance — ROI, CAC, LTV, top-3 wins and risks, strategic recommendations, and budget utilization — for a single brand or the whole portfolio, adapted to CEO, CMO, CFO, or board audiences. Triggers on \"/digital-marketing-pro:exec-summary\", \"prepare the board report\", \"summarize this quarter for the CEO\", \"portfolio ROI summary\", \"what do I tell leadership\". Computes KPIs via the CLV, ROI, forecaster, and budget-optimizer scripts, pulls data from connected analytics and CRM MCPs, reads the brand profile, and pairs with /digital-marketing-pro:competitor-analysis for competitive context."
+description: "Write an executive summary from tracked marketing results for CEO, CFO or board. \"summarize this quarter for the CEO\""
 ---
 
 # /digital-marketing-pro:exec-summary
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 ## Purpose
 

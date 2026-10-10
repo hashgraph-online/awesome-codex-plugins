@@ -1,9 +1,11 @@
 ---
 name: pricing-test
-description: "Estimate willingness-to-pay by testing 3-8 candidate price points against synthetic audience panels grounded in CRM purchase data (audience-simulator.py), Van Westendorp / Gabor-Granger style. Produces per-segment sensitivity curves, an optimal price, the acceptable price range, revenue- vs volume-maximizing prices, competitive positioning, and tiering recommendations — always with explicit confidence limits. Triggers on \"/digital-marketing-pro:pricing-test\", \"what should we charge for this\", \"test these price points\", \"is our pricing too high\", \"should we introduce pricing tiers\". Reads the brand profile for positioning and market context; results are directional simulations that require real-world validation, not live market tests."
+description: "Test 3-8 price points on CRM-grounded synthetic panels by script, find the optimum. \"test these price points\""
 ---
 
 # /digital-marketing-pro:pricing-test
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 ## Purpose
 

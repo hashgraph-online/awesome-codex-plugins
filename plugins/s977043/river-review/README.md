@@ -29,7 +29,7 @@ River Review は、こうした問いに答えるためのフレームワーク�
 
 ⭐ AI 支援開発のレビュー運用に役立ちそうなら、[Star](https://github.com/s977043/river-review) で応援してください。更新を追えるほか、同じ課題を持つチームに River Review が届きやすくなります。
 
-River Review が向き合う課題、設計意図、PlanGate および Harness Engineering との関係は、[設計思想](docs/philosophy.md)にまとめています。
+River Review が向き合う課題、設計意図、PlanGate および Harness Engineering との関係は、[公開の設計哲学](https://river-review.the3396.com/explanation/design-philosophy/)を参照してください。OSSの開発・改善で大切にする価値観は[実践進化方針](pages/guides/governance/practice-evolution.md)で公開しています。
 
 ## なぜ River Review か
 
@@ -101,7 +101,6 @@ River Review には、レビューに特化した 3 つの実行形態があり�
 | リポジトリ全体を踏まえたレビュー           | [リポジトリ全体レビューガイド](pages/guides/repo-wide-review.md)                                                          |
 | CLI でレビューを計画・実行する             | [review plan 仕様](pages/reference/cli-review-plan-spec.md) / [review exec 仕様](pages/reference/cli-review-exec-spec.md) |
 | コンセプトを理解する                       | [コンセプト解説](https://river-review.the3396.com/explanation/concept/)                                                   |
-| 設計思想を理解する                         | [設計思想](docs/philosophy.md) / [アーキテクチャ解説](https://river-review.the3396.com/explanation/river-architecture/)   |
 
 開発手順は [docs/runbook/dev.md](docs/runbook/dev.md) を参照してください。ライセンスは [本ファイル末尾](#ライセンス) に記載しています。
 

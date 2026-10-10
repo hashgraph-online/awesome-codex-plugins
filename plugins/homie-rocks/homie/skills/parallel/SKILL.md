@@ -1,6 +1,6 @@
 ---
 name: parallel
-description: Build a planned game with several agents at once — game logic and netcode, levels, art, sound, the landing page — each in its own folders, then one merge, a two-browser check, a playtest and a blind review. Offer it as a choice once the game has its Game Codex and the app can run subagents (Claude Code's Agent tool), with the trade-off said plainly (faster, uses more of the person's plan while the agents run), and let the person choose. Use after the plan step, or when someone asks to "build it in parallel", "use more agents", "split the work" or "go faster".
+description: Build a planned game with several agents at once — game logic and netcode, levels, art, sound, the landing page — each in its own folders, then one merge, a two-browser check, a playtest and a blind review. Use only when parallel work is requested and the host supports it. Use after the plan step, or when someone asks to "build it in parallel", "use more agents", "split the work" or "go faster".
 ---
 
 # Build in parallel
@@ -8,22 +8,11 @@ description: Build a planned game with several agents at once — game logic and
 One agent building step by step is slower but uses the least. Several agents, each on its own part of
 the game at the same time, finish sooner and use more. The person chooses.
 
-## 1. Offer it, once, as a choice
+## 1. Only when requested
 
-After the codex is written (the `plan` skill), and only when your app can run subagents (Claude Code:
-the Agent tool), ask once, with your pick:
-
-> Build it step by step, or with parallel agents? In parallel, four agents (game logic, art, sound,
-> the landing page) work at the same time, then I merge, check and playtest. It's usually done in about
-> a third of the time, but while they run it uses about four times as much of your plan's usage. Step by
-> step uses less and you can watch each change. I'd go parallel for this one: the parts barely touch.
-
-- Say the real number of agents and parts for this game (two to five), from the codex.
-- Recommend step by step when their plan is near its usage limit, when the game is still being found
-  (no codex yet), or for a small change.
-- Codex CLI, the Claude app chat, or any app without subagents: build step by step and say why in one
-  line. Do not offer what the app cannot do.
-- Respect the answer; do not ask again unless the scope grows.
+Use one agent by default. Do not turn implementation staffing into a question for the person.
+When parallel work is requested and the host supports it, choose the number of agents from the
+independent work available, within the agreed usage budget. Say the allocation briefly and proceed.
 
 ## 2. Split the work: one folder each
 

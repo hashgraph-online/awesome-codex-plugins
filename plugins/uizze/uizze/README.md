@@ -44,6 +44,7 @@ The skills work without an account or MCP connection. Start in an existing proje
 | Build or redesign an interface | [`ui-design`](skills/ui-design) | A clear hierarchy, working interactions, and the states your users need |
 | Fix a generic first draft | [`anti-ui-slop`](skills/anti-ui-slop) | Product-specific content, deliberate layouts, and a finish review |
 | Investigate a UI decision | [`ui-radar`](skills/ui-radar) | A focused reference workflow; connect the paid MCP for live retrieval |
+| Recreate an image or screenshot | [`image-to-ui`](skills/image-to-ui) | A 1:1 implementation, checked against the reference at the same viewport |
 
 For a focused review, install `anti-ui-slop` instead:
 
@@ -51,7 +52,26 @@ For a focused review, install `anti-ui-slop` instead:
 npx skills add https://uizze.com --skill anti-ui-slop
 ```
 
-Prefer installing from GitHub? Use `npx skills add uizze/uizze --skill ui-design`. The domain packages remain canonical; this repository mirrors all three skills.
+Prefer installing from GitHub? Use `npx skills add uizze/uizze --skill ui-design`. The domain packages remain canonical for `anti-ui-slop`, `ui-design`, and `ui-radar`; this repository mirrors those three skills. The new `image-to-ui` skill is maintained here as a GitHub-native package.
+
+### Recreate an image
+
+Have a screenshot or mockup you want implemented? Install Image to UI:
+
+```bash
+npx skills add uizze/uizze --skill image-to-ui
+```
+
+Then attach the image and ask:
+
+```text
+Use image-to-ui to implement this screenshot in our existing app.
+Match it 1:1 rather than redesigning it. Render at the same viewport,
+compare the result with the reference, and correct visible differences.
+```
+
+This is a short, self-contained skill, not another design framework. It works
+without an account or MCP connection and includes the MIT license.
 
 ## Bring real product references into the conversation
 

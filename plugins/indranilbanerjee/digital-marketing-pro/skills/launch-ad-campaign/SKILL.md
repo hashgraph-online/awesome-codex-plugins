@@ -1,11 +1,13 @@
 ---
 name: launch-ad-campaign
-description: "Create and launch a paid ad campaign on Google, Meta, LinkedIn, or TikTok through the connected ad-platform MCP — campaign structure, audience targeting, bid strategy, negative targeting, creative quality scoring, compliance review, and a post-launch monitoring schedule. A mandatory execution gate shows the full spend summary and requires an explicit typed yes before anything goes live; budgets over brand thresholds force re-confirmation and every approval is recorded via approval-manager.py. Triggers on \"/digital-marketing-pro:launch-ad-campaign\", \"launch the Google Ads campaign\", \"put these Meta ads live\", \"start the LinkedIn campaign tomorrow\", \"deploy our TikTok ads\". Reads the brand profile's budget thresholds, guidelines, and agency SOPs; it is the paid-ads subset that /digital-marketing-pro:launch-campaign delegates to."
+description: "Launch a paid ad campaign on a connected ad platform, approval-gated. \"launch the Google Ads campaign\""
 disable-model-invocation: false
 argument-hint: "[platform]"
 ---
 
 # /digital-marketing-pro:launch-ad-campaign
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 ## Purpose
 
@@ -16,7 +18,8 @@ Create and launch a paid advertising campaign on the specified ad platform with 
 1. Present the full preview — recipients / spend / changes / compliance — as an **Execution Summary** before touching any live system.
 2. The user must type `yes` (or an equivalent explicit approval). ANY other input — ambiguous, implied, partial, or absent approval — cancels the run.
 3. Never proceed on ambiguous input. Never auto-retry a failed execution; a failure needs human review before any re-run.
-4. Record the approval with `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action create-approval --data '{"risk_level":"<tier>","summary":"..."}'` **before** executing, then `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action mark-executed --id {approval_id}` after the platform confirms success.
+4. Only after the user types `yes`, record it: `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action create-approval --data '{"type":"launch-ad","platform":"<platform>","content_summary":"<one line from the Execution Summary>","risk_level":"<tier>"}'`, then `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action approve --id {approval_id}`. If either command errors, stop and report the error; never work around it with another tool. The record proves the approval step ran for this action; it cannot prove who typed `yes`.
+5. Execute. A write sent through `connector_executor.py` needs `--approval-id` and fires only against a matching, unused, unexpired record (see `/digital-marketing-pro:execute-action`). A write through a connected MCP server tool is outside that code check: it relies on this typed `yes` and on your host's permission prompt. Afterwards run `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action mark-executed --id {approval_id} --data '{"execution_result":"success"}'` (or `failure`).
 
 ## Executing through the official ad-platform MCP servers (checked 2026-10-04)
 
@@ -29,7 +32,7 @@ The platforms now publish their own MCP servers (catalog: `.mcp.json.connectors-
 | `google-ads-mcp` — Google's open-source server | **Read only.** Use it for step 13 (verify the campaign exists with the right settings) and for pacing reports. Google: it "cannot modify bids, pause campaigns, or create new assets". It cannot create or launch anything |
 
 Rules that apply to every write through these servers:
-1. **The typed approval gate comes first.** Execution Summary → the user types `yes` → `approval-manager.py --action create-approval` → only then the tool call → `approval-manager.py --action mark-executed` after the platform confirms. A tool's own confirmation prompt does not replace this gate.
+1. **The typed approval gate comes first.** Execution Summary → the user types `yes` → `approval-manager.py --action create-approval` → `--action approve` → only then the tool call → `approval-manager.py --action mark-executed` after the platform confirms. A tool's own confirmation prompt does not replace this gate.
 2. **Create PAUSED by default.** Every new campaign, ad set/ad group and ad is created with status `PAUSED`, set explicitly in the tool call; don't rely on a server default. Ignore the user preference in step 12 for creation — creation is always PAUSED.
 3. **Going live is a second, separately approved write.** Show a short activation summary (what turns on, daily spend, start time), get a fresh typed `yes`, record a new approval, then switch to ACTIVE (or schedule the start date). `/digital-marketing-pro:doctor` / `connector_resolver.py` reports this as the `launch-ads` action with `create_status: PAUSED`.
 4. **Read-only servers never take writes.** The resolver skips any connector whose registry `access` is `read-only` for write actions. If only `google-ads-mcp` is connected, a Google launch stays manual (or uses a write-capable connector) — say so, don't improvise.
@@ -65,7 +68,7 @@ The user must provide (or will be prompted for):
 7. **Score ad creative quality**: Evaluate ad creative — headline character limits and keyword relevance, description effectiveness and CTA clarity, image and video specs (dimensions, file size, text overlay percentage for Meta), landing page relevance, and ad-to-landing-page message match. Score against platform-specific quality benchmarks and provide improvement recommendations.
 8. **Configure bid strategy and budget controls**: Set bid strategy per user preference with appropriate guardrails — bid caps or target CPA/ROAS values, budget pacing (standard vs. accelerated), frequency caps to prevent ad fatigue, placement controls (automatic vs. manual), and device targeting adjustments. Verify conversion tracking is active and receiving data if using conversion-based bidding.
 9. **Apply negative targeting**: Configure negative keywords for Search campaigns, placement exclusions for Display and Video, and audience exclusions to prevent overlap and wasted spend. Include brand safety exclusion lists if defined in brand guidelines.
-10. **Create approval record**: Create the record via `approval-manager.py --action create-approval` with the risk level inside the `--data` JSON — `{"risk_level":"high",...}` (use `"critical"` if daily budget exceeds $1,000). There is no `--risk-level` flag; see the Execution gate above for the exact command. Generate a campaign summary with projected reach, estimated cost per result, targeting details, creative preview, budget safeguard verification, and compliance status.
+10. **Create approval record**: Create the record via `approval-manager.py --action create-approval` with the risk level inside the `--data` JSON — `{"type":"launch-ad","platform":"<platform>","content_summary":"...","risk_level":"high"}` (use `"critical"` if daily budget exceeds $1,000). There is no `--risk-level` flag; see the Execution gate above for the exact command. Generate a campaign summary with projected reach, estimated cost per result, targeting details, creative preview, budget safeguard verification, and compliance status.
 11. **Present detailed campaign summary**: Display the complete campaign configuration for user review — platform, objective, budget with safeguard status, audience size estimates per ad group, creative preview with quality scores, bid strategy and caps, projected reach and cost range, and compliance checklist. Wait for explicit approval.
 12. **Execute campaign creation via MCP**: On approval, create the campaign through the connected ad platform MCP server **with status PAUSED** (all new campaigns, ad sets/ad groups and ads). Then apply the user's launch preference as a second, separately approved write (see "Executing through the official ad-platform MCP servers"):
     - **active**: activate now, after a fresh typed `yes`

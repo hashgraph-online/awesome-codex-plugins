@@ -1,9 +1,11 @@
 ---
 name: eval-suite
-description: "Batch-evaluate a whole set of content pieces — files, a directory, or pasted blocks — in one run, producing a ranked portfolio quality report: grade distribution, per-dimension averages, systemic issues, a prioritized revision list, and auto-rejects below threshold. Triggers on \"/digital-marketing-pro:eval-suite\", \"score our whole content library\", \"quality-check all campaign assets before launch\", \"evaluate these 5 drafts together\", \"which deliverables are weakest\". Runs eval-runner.py per item, logs every score to the quality tracker for trend analysis, and reads the brand profile and guidelines for scoring context."
+description: "Evaluate a batch of content in one run: ranked quality report, systemic issues. \"score our whole content library\""
 ---
 
 # /digital-marketing-pro:eval-suite
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 ## Purpose
 

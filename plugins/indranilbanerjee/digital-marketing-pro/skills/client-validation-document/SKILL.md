@@ -1,6 +1,6 @@
 ---
 name: client-validation-document
-description: "Produce the Part 5 Client Validation Document — the one true stop of the 12-Part engagement where unbiased v1 findings from Parts 2-4 are compiled into 12-25 evidence-cited finding blocks, each awaiting an ACCEPT / REJECT / EDIT / DEFER client decision, plus a paired JSON response template. Recorded responses feed the Part 6 Decision Matrix (engagement-state.py) to determine v2 re-runs. Triggers on \"/digital-marketing-pro:client-validation-document\", \"prepare v1 findings for client review\", \"run part 5 client validation\", \"the one true stop\", \"record the client's validation responses\". Requires Parts 3-4 marked completed in _engagement.json; reads the eight v1 core documents; pairs with /digital-marketing-pro:engagement-workflow and /digital-marketing-pro:four-core-documents."
+description: "Produce the Part 5 client validation document: evidence-cited findings for client decisions. \"prepare v1 findings for client review\""
 user-invocable: true
 allowed-tools: Read Write Edit Bash Glob Grep
 engagement-part: "5"
@@ -8,6 +8,8 @@ view-preference: v1-only
 ---
 
 # /digital-marketing-pro:client-validation-document — Part 5: The One True Stop
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 This skill produces the Part 5 deliverable: the Client Validation Document. It is the only point in the engagement where unbiased v1 findings are formally presented to the client for accept/reject/edit decisions.
 

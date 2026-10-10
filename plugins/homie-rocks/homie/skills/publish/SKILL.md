@@ -1,6 +1,6 @@
 ---
 name: publish
-description: Put a Homie studio's site and games online on the studio's OWN Cloudflare account (Worker, D1 and public-room Durable Objects, all on the free plan with no payment method; R2 storage only when added), run its site (the hub's sections in the studio's own look, a landing for every game, news posts with feeds, and what the studio's site/ folder overrides), list them in the homie.rocks directory, and read the studio's own stats (visits, plays, rooms, rounds, players, songs, videos, where people came from); ask an owner for a grant when a game uses a protected name. Use when someone asks to deploy, publish, go live, share a studio's games, write a news post or announce a drop, change how the studio's site looks, list games in the Homie directory, or how their studio or a game is doing.
+description: Put a Homie studio's site and games online on the studio's OWN Cloudflare account (Worker, D1 and public-room Durable Objects, with R2 storage only when added), run its site (the hub's sections in the studio's own look, a landing for every game, news posts with feeds, and what the studio's site/ folder overrides), list them in the homie.rocks directory, and read the studio's own stats (visits, plays, rooms, rounds, players, songs, videos, where people came from). Use when someone asks to deploy, publish, go live, share a studio's games, write a news post or announce a drop, change how the studio's site looks, list games in the Homie directory, or how their studio or a game is doing.
 compatibility: Node 22 and the studio's own pinned Wrangler, signed in to the studio's Cloudflare account. Cloudflare's own plugin (cloudflare/skills) and docs MCP are optional helpers.
 metadata:
   providers: cloudflare
@@ -55,12 +55,11 @@ See `packages/studio/site/SITE.md`, “Play from a post,” for settings and evi
 
 1. In the studio folder: `npx wrangler whoami`.
 2. Not signed in: run `npx wrangler login`. Tell the person in one line that Cloudflare
-   opened in their browser and they approve once (a free account works, no payment
-   method). Wait, then
+   opened in their browser and they approve once (their own account). Wait, then
    `whoami` again. Never ask for, paste or store an API key. Where no browser can open on
    this computer (a remote or cloud session), `npx wrangler login --device` prints a code the
    person approves on any device.
-3. Several accounts: ask the person which one, and put its id in `studio.json`
+3. Several accounts: use the already named business account; if ambiguous, show account names and ask which business owns the studio. The AI resolves and puts its id in `studio.json`
    (`cloudflare.accountId`).
 4. **Cloudflare's own tools**, for Cloudflare questions beyond the studio's deploy (a
    Worker's logs, a limit, what a Wrangler flag does, building on Cloudflare yourself):
@@ -81,6 +80,14 @@ See `packages/studio/site/SITE.md`, “Play from a post,” for settings and evi
      delete, a secret, a hand rollout, a write to the live database) until the person says
      Proceed.
 
+## A requested custom domain
+
+Run `homie-studio domain <hostname>` (Desktop: `studio_domain`) and then deploy. The AI writes
+the exact custom-domain route and Cloudflare creates DNS and TLS using the existing sign-in.
+Do not ask for a zone id, DNS record or dashboard setting. Keep workers.dev until a domain is requested.
+If the domain is not yet on this account, help connect it at https://dash.cloudflare.com/?to=/:account/domains.
+A registrar sign-in, purchase or ownership challenge belongs to the owner; the AI handles the DNS values.
+
 ## Deploy
 
 ```sh
@@ -90,7 +97,7 @@ npx --no-install homie-studio check <id> --url <the live site it printed>
 
 Before the first deploy, tell the person what it creates and what it costs:
 `npx --no-install homie-studio deploy --plan` prints it and changes nothing (one Worker,
-one D1 database, two SQLite-backed Durable Objects; free on the Workers Free plan; no R2).
+one D1 database, two SQLite-backed Durable Objects; R2 only when requested).
 
 `deploy` builds every game, creates the Worker and D1 database named in `studio.json`,
 applies migrations, deploys, and reads the live site once (the site then claims itself
@@ -205,7 +212,7 @@ site's name up (a browser may still open it): test against the local dev site, a
 
 ## Stats (the owner's, and only the owner's)
 
-Every studio counts, in its own Cloudflare (D1, free plan): pages opened, Play presses,
+Every studio counts, in its own Cloudflare D1 database: pages opened, Play presses,
 rooms opened, the most people playing at once and right now, rounds finished, songs played,
 videos watched, and which site sent each visitor (homie.rocks, another studio, search, the
 web, a `?via=` link). It counts and never tracks: no cookie on a visitor, no person

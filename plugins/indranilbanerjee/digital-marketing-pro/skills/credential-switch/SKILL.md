@@ -1,11 +1,13 @@
 ---
 name: credential-switch
-description: "Switch the active credential profile to a different client brand, validating each configured platform's API keys, env vars, and token expiry before anything runs — preventing cross-client data leaks and misrouted ad spend. Outputs a per-platform validation report plus a logged switch confirmation with audit trail. Triggers on \"/digital-marketing-pro:credential-switch\", \"switch to the other client's account\", \"activate Acme's API keys\", \"are the right credentials active\", \"change which brand we're working on\". Reads brand and credential profiles under ~/.claude-marketing/ and pairs with /digital-marketing-pro:client-onboarding when a profile is missing."
+description: "Switch the active credential profile to another client, validating keys first, approval-gated. \"activate Acme's API keys\""
 disable-model-invocation: false
 argument-hint: "[brand-slug]"
 ---
 
 # /digital-marketing-pro:credential-switch
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 ## Purpose
 
@@ -16,7 +18,8 @@ Switch the active credential profile to a different brand for multi-client agenc
 1. Present the validation summary — target brand, per-platform credential status, and any warnings — as an **Execution Summary**.
 2. If validation is clean **and only one** client credential profile is configured, the switch may proceed automatically. If **more than one** client profile exists, or any warning / missing / expiring credential is present, the user must type `yes` (or an equivalent explicit approval) — ANY other input cancels.
 3. Never proceed on ambiguous input. Never auto-retry a failed switch.
-4. When confirmation is required, record it with `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action create-approval --data '{"risk_level":"medium","summary":"credential switch to {slug}"}'` **before** switching, then `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action mark-executed --id {approval_id}` after the switch verifies.
+4. Only after the user types `yes`, record it: `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action create-approval --data '{"type":"credential-switch","platform":"<platform>","content_summary":"<one line from the Execution Summary>","risk_level":"<tier>"}'`, then `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action approve --id {approval_id}`. If either command errors, stop and report the error; never work around it with another tool. The record proves the approval step ran for this action; it cannot prove who typed `yes`.
+5. Execute. A write sent through `connector_executor.py` needs `--approval-id` and fires only against a matching, unused, unexpired record (see `/digital-marketing-pro:execute-action`). A write through a connected MCP server tool is outside that code check: it relies on this typed `yes` and on your host's permission prompt. Afterwards run `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action mark-executed --id {approval_id} --data '{"execution_result":"success"}'` (or `failure`).
 
 ## Input Required
 

@@ -10,20 +10,20 @@ Actions are classified into four risk levels. The classification determines the 
 
 | Risk Level | Approval Required | Response Time | Description |
 |---|---|---|---|
-| **Low** | Auto-confirm + execute | Immediate | Read-only operations and internal-only outputs. No external audience impact, no budget spend, no data modification. |
+| **Low** | None (nothing leaves your machine) | Immediate | Read-only queries and local-only outputs. Nothing is posted, sent or changed on any outside service. |
 | **Medium** | Review + explicit approve | User confirms once | External-facing content with limited blast radius. Moderate audience size, no budget commitment, reversible actions. |
 | **High** | Budget/data confirmation required | User confirms with specifics (amount, count) | Actions involving money, large audiences, or bulk data changes. Requires the user to acknowledge the specific scope. |
 | **Critical** | Double confirmation + compliance review | User confirms twice; compliance rules auto-checked | High-spend actions, regulated industries, large-scale sends, or irreversible operations. |
 
-### Low Risk — Auto-Confirm
+### Low Risk — No approval (read-only or local-only)
 
 | Action | Why Low |
 |---|---|
-| Slack notifications and internal messages | Internal only, no external audience |
-| Google Sheets exports and data dumps | Read/write to user's own workspace |
-| Knowledge storage and memory operations | Internal persistence, no external impact |
+| Knowledge storage and memory operations | Written to local files only |
 | Read-only analytics queries | No data modification, no audience impact |
-| Internal performance reports | Not client-facing, no external distribution |
+| Internal performance reports drafted locally | Nothing is sent until a send step runs |
+
+Anything that posts, sends or writes to an outside service is at least **Medium**, including Slack or Teams messages to your own team and exports to Google Sheets: each needs a typed `yes`, or a capped standing approval the user approved for that connector and action (`approval-manager.py --action create-standing`, at most 7 days, a daily cap, every use logged). There is no auto-confirm for live writes.
 | Brand voice scoring and content grading | Analysis only, no publishing |
 | Keyword research and competitor lookups | Research only, no execution |
 
@@ -103,7 +103,7 @@ Industry Gate Check (auto, if regulated industry)
     v
 Risk Assessment (auto)
     |
-    +-- Low Risk --------> Auto-approve --> Execute --> Verify --> Log
+    +-- Low Risk (read-only / local) --> Execute --> Log   (nothing leaves the machine)
     |
     +-- Medium Risk -----> Present summary to user
     |                          |-- User approves --> Execute --> Verify --> Log

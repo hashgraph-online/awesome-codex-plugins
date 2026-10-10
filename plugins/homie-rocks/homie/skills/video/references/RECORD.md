@@ -14,7 +14,7 @@ node <video.mjs> sheet <slug> --in videos/<slug>/work/record/recording.mp4
 
 Outside a studio (any project, any address): `node <skill folder>/scripts/record-page.mjs --steps
 <steps.json> --out <folder>`. It needs Chrome, ffmpeg and `puppeteer-core` (a studio has it; elsewhere
-ask the person before `npm install --no-save puppeteer-core`).
+install it yourself with `npm install --no-save puppeteer-core`).
 
 The take lands in `videos/<slug>/work/record/` (`--name <take>`: `work/record-<take>/`):
 

@@ -27,8 +27,7 @@ npx --no-install homie-studio standalone plan <id>
 
 It changes nothing and installs nothing. Tell the person, in your own short words, all of this:
 
-- **Which targets this computer can build**, and for each one it cannot, why and the fix it printed. Never
-  install a JDK, Xcode, Android Studio or anything else for them: say the fix and let them choose. A computer
+- **Which targets this computer can build**, and for each one it cannot, why and the fix it printed. Install the prerequisites for the requested target yourself. The person only handles OS or store authorization prompts. A computer
   that cannot make a target can still get it from GitHub (section 5).
 - **The address built into every copy.** A shipped copy keeps it for good. If it is a workers.dev address,
   say so and recommend the studio's own domain before shipping. With no address the copy plays offline only.
@@ -121,21 +120,18 @@ Capacitor ask which phone, and that has never been run on a real Android phone.
 Only when the person asks to ship.
 
 1. `game.json` needs the app's id first: `"standalone": { "appId": "com.example.gemrush" }`. A store never lets
-   it change, so it is the person's to choose (a domain they own, reversed). `--release` stops and prints the
+   it change, so derive it from their owned domain and game slug, show it with the release plan, and keep it stable. `--release` stops and prints the
    exact lines when it is missing. Version, build number, orientation, icon and Steam's numbers go in the same
    block.
 2. A real icon: a square 1024 by 1024 PNG at `games/<id>/icon.png`. Without one the app wears the game's cover
    or a letter, which no store page should.
-3. Signing comes from **environment variables the person sets themselves**: `HOMIE_APPLE_IDENTITY` and
-   `HOMIE_APPLE_NOTARY_PROFILE` (macOS), `HOMIE_APPLE_TEAM` (iOS, with Xcode signed in to an Apple account of
-   that team), the four `HOMIE_ANDROID_*` (Android). Never
-   ask for a password, a keystore or a certificate in the chat, never write one to a file, and never run
-   `xcrun notarytool store-credentials` for them: they run it in their own terminal. Tell them how a value
-   gets there when they work in a desktop app: a terminal they start their AI from, `launchctl setenv` on a
-   Mac, or a repository secret for the workflow. The build says UNSIGNED, or NOT NOTARIZED, for what it could
-   not do, and "notarized" only when Apple's own tool confirms it on the finished app. Signing with a real
-   Developer ID, notarizing, and the iOS archive have never been run by the people who made this: read the
-   result closely the first time.
+3. Discover the existing signing identity and team with the platform tools; configure the build yourself.
+   If none exists, open Xcode/Apple Developer or the appropriate store's sign-in and let the owner approve.
+   Never tell a person to set environment variables, copy a team id, find a key or open a terminal.
+   Never ask for a password, keystore or certificate in the chat.
+   Keep credentials in the OS keychain or provider-managed secrets. If the host cannot complete signing,
+   produce the unsigned build and name the single missing provider approval; do not claim it is signed.
+   Apple signing and store submission still need real-account validation before promising a one-click flow.
 4. `npx --no-install homie-studio standalone build <id> --release`.
 5. **Uploading is the person's.** The build prints the exact steps for Steam (`steamcmd`), App Store Connect
    (Transporter) and Google Play (the Play Console). Hand them over; run none of them.

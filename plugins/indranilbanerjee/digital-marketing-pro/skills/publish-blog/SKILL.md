@@ -1,11 +1,13 @@
 ---
 name: publish-blog
-description: "Publish a blog post to WordPress or Webflow through the connected CMS MCP with SEO metadata, categories and tags, featured image, slug optimization, and optional scheduling. Runs pre-publish gates — content-scorer.py, brand-voice-scorer.py, SEO and compliance checks — and a MANDATORY approval gate: an Execution Summary the user must approve with an explicit typed yes (logged via approval-manager.py) before anything goes live, then verifies the live URL and schema markup and submits to Google Search Console if connected. Triggers on \"/digital-marketing-pro:publish-blog\", \"publish this post to WordPress\", \"push the draft live on Webflow\", \"schedule this article for Monday\", \"take this blog post live\". Reads the brand profile and platform-publishing-specs.md for CMS field mappings."
+description: "Publish a blog post to WordPress or Webflow with SEO metadata, approval-gated. \"publish this post to WordPress\""
 disable-model-invocation: false
 argument-hint: "[--platform=wordpress|webflow]"
 ---
 
 # /digital-marketing-pro:publish-blog
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 ## Purpose
 
@@ -16,7 +18,8 @@ Publish a fully optimized blog post to the brand's CMS (WordPress or Webflow) wi
 1. Present the full preview — recipients / spend / changes / compliance — as an **Execution Summary** before touching any live system.
 2. The user must type `yes` (or an equivalent explicit approval). ANY other input — ambiguous, implied, partial, or absent approval — cancels the run.
 3. Never proceed on ambiguous input. Never auto-retry a failed execution; a failure needs human review before any re-run.
-4. Record the approval with `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action create-approval --data '{"risk_level":"<tier>","summary":"..."}'` **before** executing, then `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action mark-executed --id {approval_id}` after the platform confirms success.
+4. Only after the user types `yes`, record it: `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action create-approval --data '{"type":"publish-blog","platform":"<platform>","content_summary":"<one line from the Execution Summary>","risk_level":"<tier>"}'`, then `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action approve --id {approval_id}`. If either command errors, stop and report the error; never work around it with another tool. The record proves the approval step ran for this action; it cannot prove who typed `yes`.
+5. Execute. A write sent through `connector_executor.py` needs `--approval-id` and fires only against a matching, unused, unexpired record (see `/digital-marketing-pro:execute-action`). A write through a connected MCP server tool is outside that code check: it relies on this typed `yes` and on your host's permission prompt. Afterwards run `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action mark-executed --id {approval_id} --data '{"execution_result":"success"}'` (or `failure`).
 
 ## Input Required
 
@@ -46,7 +49,7 @@ The user must provide (or will be prompted for):
 5. **Optimize for SEO**: Ensure the primary keyword appears in the title, H1, first 100 words, URL slug, and meta description. Verify meta description is 150-160 characters and meta title is 50-60 characters. Check internal linking opportunities, image alt text, and heading keyword usage. Validate schema markup compatibility for the content type (article, how-to, FAQ).
 6. **Format for platform API**: Structure the content payload per the target CMS requirements — consult `skills/context-engine/platform-publishing-specs.md` for field mappings, HTML formatting, image handling, category/tag taxonomy IDs, featured image upload, Open Graph meta fields, and any platform-specific quirks like WordPress custom fields or Webflow CMS collection structure.
 7. **Run compliance check**: Verify content meets regulatory requirements for the brand's target markets — disclosure statements, affiliate link disclaimers, medical or financial disclaimers, and copyright attribution for any third-party content or images referenced.
-8. **Create approval record**: Create the record via `approval-manager.py --action create-approval` with the risk level inside the `--data` JSON — `{"risk_level":"medium",...}`. There is no `--risk-level` flag; see the Execution gate above for the exact command. Generate a pre-publish summary showing title, URL slug, publish time, SEO score, brand voice score, content quality score, categories, tags, featured image preview, and compliance status.
+8. **Create approval record**: Create the record via `approval-manager.py --action create-approval` with the risk level inside the `--data` JSON — `{"type":"publish-blog","platform":"<platform>","content_summary":"...","risk_level":"medium"}`. There is no `--risk-level` flag; see the Execution gate above for the exact command. Generate a pre-publish summary showing title, URL slug, publish time, SEO score, brand voice score, content quality score, categories, tags, featured image preview, and compliance status.
 9. **Present pre-publish summary**: Display the complete summary for user review and approval. Highlight any warnings from content scoring, SEO analysis, or compliance checks. Show a side-by-side preview of how the post will appear in search results and social sharing cards. Wait for explicit user confirmation before proceeding.
 10. **Execute publish via CMS MCP**: On approval, send the formatted payload to the CMS through the connected MCP server. Handle scheduling if a future publish date was specified. Confirm the API response indicates success.
 11. **Verify live URL**: After publish, request the live URL from the CMS API and verify it returns a 200 status. Confirm the title, meta description, featured image, canonical URL, and Open Graph tags are rendering correctly. Check that the page is not blocked by robots.txt or noindex tags.

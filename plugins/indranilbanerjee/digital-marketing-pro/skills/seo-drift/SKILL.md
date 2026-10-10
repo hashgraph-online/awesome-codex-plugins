@@ -1,11 +1,13 @@
 ---
 name: seo-drift
-description: "Compare two SEO snapshots from the same source — GSC, the GSC AI Performance report, a rank-tracker export, or aeo-audit probes — into a drift report: top gainers and losers per metric, growth/decline/reshuffle/stable/new/lost classification, and a four-gate quality scorecard. Triggers on \"/digital-marketing-pro:seo-drift\", \"compare this month's GSC export to last month's\", \"what moved after the core update\", \"did the content refresh work\", \"which queries lost AI Mode impressions\". Runs scripts/seo_drift.py on two CSVs, reads the brand profile for noise thresholds, and branches findings to /digital-marketing-pro:seo-audit, /digital-marketing-pro:aeo-geo, or /digital-marketing-pro:content-engine."
+description: "Compare two SEO snapshots by script: gainers, losers, drift classes. \"what moved after the core update\""
 argument-hint: "<baseline.csv> <current.csv> [--noise 5]"
 user-invocable: true
 ---
 
 # /digital-marketing-pro:seo-drift
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 ## Purpose
 

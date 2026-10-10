@@ -1,13 +1,19 @@
-# The Skill and the Plugin
+<h1 align="center">The Skill and the Plugin</h1>
 
-Two ways to have your agent check a page it just wrote.
-**[Install steps for fifteen harnesses →](../../docs/harnesses.md)**
+---
+
+<p align="center">Two ways to have your agent check a page it just wrote.
+<strong><a href="../../docs/harnesses.md">Install steps for fifteen harnesses →</a></strong></p>
+
+---
 
 ## Contents
 
 - [The Skill](#the-skill)
 - [The Plugin](#the-plugin)
 - [Reporting, Not Fixing](#reporting-not-fixing)
+
+---
 
 ## The Skill
 
@@ -40,6 +46,8 @@ repeating its message. The agent copies assay's output rather than
 summarising it, so the numbers and wording stay exact. With the skill alone,
 the agent decides when to run the check.
 
+---
+
 ## The Plugin
 
 The plugin adds a `Stop` hook, which runs the check at the end of every turn
@@ -61,6 +69,8 @@ Code bridge.
   timestamp (in the harness's scratch folder, else `.git/`, else a
   `.assay-last-run` file). If it can't write the timestamp, it reports
   without keeping the turn open.
+
+---
 
 ## Reporting, Not Fixing
 

@@ -1,61 +1,30 @@
 ---
 name: plan
-description: Plan a game with the person before building it — a short, natural interview (game type and genre, style and art direction, devices, players and rooms, progress that lasts (cloud saves, player accounts), art and film, music and sound, scope) that ends in the game's Game Codex, games/<id>/CODEX.md, drawn as a page in the game's own palette, fonts and art that anyone can read and steer (a Claude artifact where the app has artifacts, else a page in their browser, and a private page on the studio's site), kept true as decisions change, with the build's progress on it. Use for step 4 of a new studio, or when someone says "let's plan my game", "what should my game be", "make a design doc, a game bible or a codex", "show me the plan", or before a big change to a game.
+description: Plan a game with the person before building it — sensible defaults from their request, with an interview only when requested that ends in the game's Game Codex, games/<id>/CODEX.md, drawn as a page in the game's own palette, fonts and art that anyone can read and steer (a Claude artifact where the app has artifacts, else a page in their browser, and a private page on the studio's site), kept true as decisions change, with the build's progress on it. Use for step 4 of a new studio, or when someone says "let's plan my game", "what should my game be", "make a design doc, a game bible or a codex", "show me the plan", or before a big change to a game.
 ---
 
 **Apps:** For a business, venue, cause or customer app, follow the `app` skill: `apps/<id>/app.json`, one morphing screen, roles and parts. Reuse these engines and workflows; do not impose game rounds, scores, bots, a game demo or page navigation. The app check proves shared actions and reconnect; app stores use the same standalone command.
 
 
-# Plan a game: the interview and its Game Codex
+# Plan a game: defaults and its Game Codex
 
 You are in a Homie studio (a folder with `studio.json`) with a game in `games/<id>/`. The plan
 comes out as the game's **Game Codex**: `games/<id>/CODEX.md` (the source of truth, in the studio's
 repository) and a page drawn from it in the game's own look, with cards, tables and a Build status
 tab. People who never read code see the game in it and steer it; you keep it true.
 
-## 1. The interview: natural, not a form
+## 1. Decide from the request
 
-Collect all eight topics, in whatever order the conversation goes:
+Default to doing the planning yourself. Choose genre, controls, camera, palette, room size,
+round length, bots and scope from the person's premise. Use phones and computers, a small first
+version, CC0 art and local sound. Infer cloud saves for persistent characters and collections;
+short standalone rounds need none. Record decisions in the codex and continue building.
+Never route engineering or design questions to the person. A pub or charity may want an app;
+do not force a game interview onto it. Ask only when the intended outcome is missing.
 
-1. **Game type and genre**: what kind of game, what a player does in the first ten seconds, how a round
-   is won. Why it is fun with strangers who just pressed Play.
-2. **Style and art direction** (the Style phase): pixel, painterly, low-poly, neon, hand-drawn; mood; two or
-   three games, films or pictures it should feel like; the palette. Ask once whether they want to steer the
-   look closely (the style board) or have you pick, and the art budget (free only, a small budget on their own
-   fal account, or their number). Then the decisions: `npx --no-install homie-studio style init <id> --prompt
-   "<their words>"` (add `--hands-on` and `--budget <usd>` from their answers) fills every look decision with a
-   pick and a why, which the codex's Art direction tab draws; the `style` skill has the rest.
-3. **Devices**: phone, computer, TV with phones as pads. Every Homie game plays on phones and computers;
-   say what changes on each (touch on the lower left, keys, the big screen).
-4. **Players and rooms**: how many in a room (up to 32), teams or free-for-all, round length, what bots do
-   in empty seats, what a player who arrives mid-round gets.
-5. **Progress and saves**: always ask it plainly: "Does progress need to persist across sessions or devices?"
-   A round that is all there is (a brawl, a race) needs nothing. A character that levels up for days, unlocks,
-   a collection, a hardcore mode with one life: yes. Then the game keeps it in **cloud saves** (player accounts
-   with passkeys, a guest's progress kept until they make one), never in the room, which forgets everything 60 s
-   after its last player leaves. Ask what is kept (the hero, the inventory, unlocks), what lifetime stats count
-   (kills, gold, time played), and whether a death can be forever (hardcore: a wipe and a memorial in the hall of
-   the fallen). Write it into the codex under **Rooms and players** as "Progress that lasts", with a dated line
-   under Latest; the `game` skill wires it in.
-6. **Art and film**: characters, creatures, places; the cover; a trailer or a cutscene; what is made
-   from the game itself (free) and what is painted or generated (the `art` and `video` skills, on their
-   own accounts, under a budget).
-7. **Music and sound**: the theme's mood and tempo; the sounds that matter (a pick-up, a hit, a win);
-   synthesized here for free (the `sound` skill) or songs from ElevenLabs (the `music` skill).
-8. **Scope**: what the first playable version has, what comes later, and the milestones between.
-
-How to ask:
-
-- **Two or three questions a message**, never all seven at once. Start from what you know: the starter
-  they saw, the change they asked for, the studio's name.
-- **Each question offers concrete options and your pick**, so "yes" is an answer: "Pixel art, painterly,
-  or clean vector shapes? For a fast arcade game I'd go pixel: it reads well small on a phone."
-- **Say back what you heard** in one line before the next questions ("So: a relay race in a burning
-  valley, two teams, 90-second rounds.").
-- **"You pick"** means pick, say it in one line, and move on.
-- **Stop when every topic has an answer or a default**, usually after three or four messages. If they
-  say "just build it", fill the rest with your own choices and list them under Open questions.
-- `references/INTERVIEW.md` has questions with options for each topic and genre.
+When the person explicitly asks to plan together, use references/INTERVIEW.md as an optional
+conversation aid. Their earlier answers count. Paid media needs a budget; use local assets until then.
+Run `style init <id> --prompt "<their words>"` with automatic defaults unless they requested hands-on styling.
 
 ### While planning: what already exists
 
@@ -76,10 +45,10 @@ npx --no-install homie-studio codex new <id>      # games/<id>/CODEX.md with eve
 ```
 
 A new studio has no game yet: its game is planned before it is made. With no game `<id>`, `codex new <id> --name
-"<Name>"` starts the game's folder with only the codex in it, and once the plan is agreed, `game new <id> --from
+"<Name>"` starts the game's folder with only the codex in it, and once you have recorded the plan, `game new <id> --from
 gem-rush --name "<Name>"` makes the game around it (the codex stays).
 
-Never replace an existing codex: change it. Fill every section from the interview (the format, with an
+Never replace an existing codex: change it. Fill every section from the request and your defaults (the format, with an
 example: `references/CODEX.md`):
 
 - **The look in the frontmatter**: the game's own `palette` (`bg`, `ink`, `accent` for headings,
@@ -113,8 +82,7 @@ Then show it where the person is:
 - **On their phone or anywhere else**, after a deploy: the site has it at `/_studio/codex/<id>/` for the
   owner only, never listed; `npx --no-install homie-studio codex link <id>` gives a one-time link.
 
-In the chat, say what is in it in three to five lines and ask what to change. Change, redraw, show
-again, until they are happy. Then tick step 4 of the new-studio checklist.
+In the chat, say what you chose in one line, show the page, and continue. They can change it by asking.
 
 ## 4. Keep it true
 
@@ -150,5 +118,4 @@ pick, mix, steer and lock. Models then come from the `models` skill, free routes
 
 ## 7. Then build
 
-Offer the choice in the `parallel` skill (one agent, or several at once), then build with the `game`
-skill, a milestone at a time.
+Build with the `game` skill, one agent by default. Use parallel agents when the person requested them.

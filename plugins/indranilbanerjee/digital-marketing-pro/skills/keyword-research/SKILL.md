@@ -1,10 +1,12 @@
 ---
 name: keyword-research
-description: "Standalone keyword research — expands seeds via the brand's connected keyword MCP (Ahrefs, Semrush, SE Ranking, or GSC), classifies search intent, maps keywords to content types, surfaces competitor content gaps, long-tail and SERP-feature opportunities, and delivers a prioritized keyword strategy document. Volume and difficulty come from the connected provider and are never fabricated. Triggers on \"/digital-marketing-pro:keyword-research\", \"what keywords should we target\", \"find content gaps versus competitors\", \"expand these seed keywords\", \"which queries have buying intent\". Reads the brand profile, guidelines, and campaign history; hands 20+ raw keywords to /digital-marketing-pro:keyword-cluster for pillar+spokes clustering."
+description: "Research keywords via the connected data source: intent, gaps. Grouping → keyword-cluster. \"what keywords should we target\""
 argument-hint: "[topic or seed keywords]"
 ---
 
 # /digital-marketing-pro:keyword-research
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 ## Purpose
 

@@ -1,9 +1,11 @@
 ---
 name: aeo-geo
-description: "Strategy module for Answer Engine / Generative Engine Optimization — audits AI visibility, restructures content for citation, runs entity-consistency checks across Knowledge Graph, Wikidata, Wikipedia, Crunchbase, and LinkedIn, and produces JSON-LD schema specs, monitoring frameworks, and a 90-day LLM content strategy. Triggers on \"/digital-marketing-pro:aeo-geo\", \"how do we get cited by AI\", \"optimize for AI Overviews\", \"fix our entity consistency\", \"do we need llms.txt\". Reads the brand profile, compliance rules, and industry benchmarks; its measurement counterpart is /digital-marketing-pro:aeo-audit, with GSC actuals via /digital-marketing-pro:gsc-ai-performance."
+description: "Plan AEO/GEO strategy to get cited by AI: content, entities, schema, 90-day plan. \"how do we get cited by AI\""
 ---
 
 # AEO/GEO Intelligence
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 ## When to Use This Skill
 

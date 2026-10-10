@@ -1,11 +1,13 @@
 ---
 name: campaign-audit
-description: "Inventory and score everything currently running for a brand across paid search, paid social, email, organic, SEO, AEO/GEO, CRM, and analytics — produces a dated audit document with a 4-tier triage (healthy / quick win / strategic gap / red flag), a quick-wins backlog, and a compliance posture section. Strictly read-only: it never pauses, edits, or launches anything. Triggers on \"/digital-marketing-pro:campaign-audit\", \"what's currently running for this brand\", \"audit our existing campaigns\", \"we just inherited this account\", \"where is budget leaking\". Requires a validated brand profile (run validate-profile first); missing connectors degrade gracefully into findings. Feeds /digital-marketing-pro:campaign-plan and pairs with /digital-marketing-pro:performance-check."
+description: "Audit all campaigns running for a brand across channels, with 4-tier triage. \"we just inherited this account\""
 user-invocable: true
 allowed-tools: Read Bash Glob Grep
 ---
 
 # /digital-marketing-pro:campaign-audit — Cross-Channel Current-State Audit
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 This skill produces a single document describing **everything currently running for a brand across every channel** — what's live, what's spending, what's performing, what's leaking budget, what's quietly broken. It's the prerequisite for any informed `/digital-marketing-pro:campaign-plan`, `/digital-marketing-pro:performance-report`, or `/digital-marketing-pro:competitor-analysis` refresh.
 

@@ -1,6 +1,6 @@
 ---
 name: engagement-workflow
-description: "Orchestrate a full marketing engagement through the 12-Part methodology — Stone vs Opinion intake, external research, Four Core Documents, client validation, Decision Matrix v2 re-runs, growth planning, channel fan-out, and the continuous-improvement loop — with checkpointed, resumable state at every part. Triggers on \"/digital-marketing-pro:engagement-workflow\", \"start a new engagement\", \"what part of the engagement are we on\", \"apply the decision matrix\", \"advance to the next part\". Reads and writes engagement state via engagement-state.py only, and dispatches to /digital-marketing-pro:four-core-documents, growth-plan, yearly-planner, and continuous-improvement-loop."
+description: "Run the 12-Part engagement workflow from intake to growth plan, checkpointed. \"start a new engagement\""
 user-invocable: true
 allowed-tools: Read Write Edit Bash Glob Grep Task
 engagement-part: orchestrator
@@ -8,6 +8,8 @@ view-preference: both
 ---
 
 # /digital-marketing-pro:engagement-workflow — 12-Part Engagement Orchestrator
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 This skill orchestrates the full marketing engagement using the 12-Part sequential methodology. Every brand engagement runs through the same 12 parts in sequence, producing a canonical set of files at each stage.
 

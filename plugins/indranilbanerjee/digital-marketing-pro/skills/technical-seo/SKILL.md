@@ -1,9 +1,11 @@
 ---
 name: technical-seo
-description: "Deep technical SEO knowledge module covering Core Web Vitals, crawlability, indexation, site architecture, JavaScript SEO, redirects, structured data, hreflang, and migrations — producing audit reports, redirect maps, robots.txt and JSON-LD specs, and migration checklists. Triggers on \"/digital-marketing-pro:technical-seo\", \"my LCP is failing\", \"plan a site migration\", \"fix redirect chains\", \"write schema markup for my pages\", \"crawl budget problems\". Reads the brand profile plus its own reference files (core-web-vitals, crawlability, site-architecture, indexation, international-seo) and backs the /digital-marketing-pro:tech-seo-audit command."
+description: "Technical SEO reference for deep fixes: Web Vitals, JS SEO, migrations, schema. \"plan a site migration\""
 ---
 
 # Technical SEO
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 ## When to Use This Skill
 

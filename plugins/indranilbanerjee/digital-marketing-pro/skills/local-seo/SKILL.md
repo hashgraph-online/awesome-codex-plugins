@@ -1,9 +1,11 @@
 ---
 name: local-seo
-description: "Build local SEO strategy end to end — Google Business Profile optimization, NAP consistency and citation cleanup, local pack ranking tactics, location and service-area pages, review management, local link building, LocalBusiness schema, and multi-location management — delivered as audit reports, checklists, and a 30/60/90-day roadmap. Triggers on \"/digital-marketing-pro:local-seo\", \"optimize my Google Business Profile\", \"why aren't we in the map pack\", \"fix our NAP consistency\", \"local SEO for our 12 locations\", \"rank for near me searches\". Includes Google's 2026 agentic-booking guidance for local services, home repair, beauty, and pet care verticals. Reads the brand profile and compliance rules; its reference files also power /digital-marketing-pro:local-seo-audit."
+description: "Build local SEO strategy: Business Profile, NAP, map pack, location pages, reviews. \"rank for near me searches\""
 ---
 
 # Local SEO
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 ## When to Use This Skill
 

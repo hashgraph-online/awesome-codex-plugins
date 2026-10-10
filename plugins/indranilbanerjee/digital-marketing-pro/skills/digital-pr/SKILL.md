@@ -1,9 +1,11 @@
 ---
 name: digital-pr
-description: "Plan and draft digital PR campaigns — tiered media lists, customized journalist pitches, press releases, journalist-request responses (Qwoted, Featured, Source of Sources), thought-leadership calendars, and E-E-A-T authority audits. Produces strategy documents, pitch templates, and press kits; sending the outreach stays with you. Triggers on \"/digital-marketing-pro:digital-pr\", \"pitch this story to journalists\", \"write a press release for our launch\", \"how do we build E-E-A-T authority\", \"respond to this journalist request\". Reads the brand profile, guidelines, and campaign history, and pairs with /digital-marketing-pro:content-engine for byline content."
+description: "Plan digital PR: media lists, thought leadership, E-E-A-T authority. One pitch → pr-pitch. \"how do we build E-E-A-T authority\""
 ---
 
 # Digital PR & Authority
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 ## When to Use This Skill
 

@@ -1,10 +1,12 @@
 ---
 name: content-decay-scan
-description: "Scan the content library for decay — declining traffic, falling keyword positions, stale content, broken links, lost AI citations — scoring each URL 0-100 via creative-fatigue-predictor.py and ranking refreshes by recoverable revenue, with actionable refresh briefs and traffic-recovery estimates for top-priority tiers. Triggers on \"/digital-marketing-pro:content-decay-scan\", \"which content is losing traffic\", \"find stale content to refresh\", \"our blog traffic keeps dropping\", \"prioritize content refreshes\". Pulls performance data from Google Analytics/Search Console MCPs or exported CSVs; cross-reference causes with /digital-marketing-pro:seo-drift. Reads the brand profile for content strategy context."
+description: "Scan content for decay by script and rank refreshes by recoverable traffic. \"which content is losing traffic\""
 user-invocable: true
 ---
 
 # /digital-marketing-pro:content-decay-scan
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 ## Purpose
 

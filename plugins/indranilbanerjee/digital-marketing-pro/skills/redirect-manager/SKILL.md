@@ -1,11 +1,13 @@
 ---
 name: redirect-manager
-description: "Create, audit, and repair URL redirects — new 301/302 rules, chain flattening, loop breaking, broken-target fixes, and bulk migration imports — deployed through a connected WordPress or Webflow CMS MCP with post-deploy HTTP verification and rollback logging. Every change stops at a mandatory approval gate: an Execution Summary you must explicitly approve before any live rule is touched. Triggers on \"/digital-marketing-pro:redirect-manager\", \"set up a 301 redirect\", \"audit our redirects for chains and loops\", \"we migrated URLs and traffic dropped\", \"import this redirect map\". Reads the brand profile and GSC history for source-URL validation."
+description: "Create, audit and fix URL redirects on a connected CMS, approval-gated. \"set up a 301 redirect\""
 disable-model-invocation: false
 argument-hint: "[URL or action]"
 ---
 
 # /digital-marketing-pro:redirect-manager
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 ## Purpose
 
@@ -16,7 +18,8 @@ Manage URL redirects across the website. Create new 301/302 redirects, audit exi
 1. Present the full preview — every redirect to be created/updated/removed with current-vs-proposed state and site-wide blast radius — as an **Execution Summary** before touching any live rule.
 2. The user must type `yes` (or an equivalent explicit approval). ANY other input — ambiguous, implied, partial, or absent approval — cancels the run.
 3. Never proceed on ambiguous input. Never auto-retry a failed execution; a failure needs human review before any re-run.
-4. Record the approval with `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action create-approval --data '{"risk_level":"<tier>","summary":"..."}'` **before** executing, then `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action mark-executed --id {approval_id}` after the platform confirms success.
+4. Only after the user types `yes`, record it: `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action create-approval --data '{"type":"redirect-manager","platform":"<platform>","content_summary":"<one line from the Execution Summary>","risk_level":"<tier>"}'`, then `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action approve --id {approval_id}`. If either command errors, stop and report the error; never work around it with another tool. The record proves the approval step ran for this action; it cannot prove who typed `yes`.
+5. Execute. A write sent through `connector_executor.py` needs `--approval-id` and fires only against a matching, unused, unexpired record (see `/digital-marketing-pro:execute-action`). A write through a connected MCP server tool is outside that code check: it relies on this typed `yes` and on your host's permission prompt. Afterwards run `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action mark-executed --id {approval_id} --data '{"execution_result":"success"}'` (or `failure`).
 
 ## Input Required
 

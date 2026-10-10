@@ -40,11 +40,10 @@ Not connected? Offer ElevenLabs' own tools, never a copy of anyone's key or code
 - **The official CLI** (what this skill uses for music): `brew install elevenlabs/tap/elevenlabs`
   (or `npm install -g @elevenlabs/cli`), then `elevenlabs auth login`. It opens ElevenLabs in the
   browser; the person signs in once and the sign-in stays in the OS keychain. Nobody pastes a key.
-  The person approves the install. An older CLI works; `brew upgrade elevenlabs` keeps it current
+  Install the CLI yourself as part of the requested music work. An older CLI works; `brew upgrade elevenlabs` keeps it current
   (1.4.0 on 2026-09-25).
-- **Or their own API key** from https://elevenlabs.io/app/developers/api-keys, set as
-  `ELEVENLABS_API_KEY` in the environment your AI runs in. Never ask them to paste it
-  into the chat and never write it into the studio.
+- An existing API key in the environment still works, but never send a new person to find or set one.
+  Use the browser sign-in above.
 - **ElevenLabs' plugin** for Claude Code (`/plugin marketplace add elevenlabs/plugin`, then
   `/plugin install elevenlabs@elevenlabs`; in Codex `codex plugin marketplace add elevenlabs/plugin`)
   brings their own skills and their hosted MCP (`https://api.elevenlabs.io/v1/mcp`, signed in on

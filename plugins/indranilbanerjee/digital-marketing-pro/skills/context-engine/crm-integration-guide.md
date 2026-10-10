@@ -1,5 +1,7 @@
 # CRM Integration Guide — Connection Patterns & Data Sync
 
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
+
 How the Digital Marketing Pro plugin connects to CRMs, maps marketing data to CRM objects, and keeps records synchronized across systems.
 
 ---

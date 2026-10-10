@@ -302,6 +302,8 @@ room.input({ ax: 127, ay: 0 }); // held movement; send new values on control cha
 // room.command('vote', { choice: 2 }); // only if shapes.commands declares vote
 ```
 
+The testing probe assumes world X points right and world Y points up. If the canvas draws positive Y downward, use `openRoom({ screenBasis: () => ({ right: [1, 0], up: [0, -1] }) })`, as Gem Rush does. A moving camera can return its current axes; the controls check uses those axes to judge movement on screen.
+
 `room.me` and `room.shared` are properties. `room.each(kind, callback)` visits that
 kind. `room.on(effectName, callback)` returns an unsubscribe function. The payload
 has the declared fields at top level, with `at`, `id`, and `tick`; there is no `data`

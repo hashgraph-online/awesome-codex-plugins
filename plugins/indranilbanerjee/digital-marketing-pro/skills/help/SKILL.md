@@ -1,10 +1,12 @@
 ---
 name: help
-description: "Show the Digital Marketing Pro guide with live plugin state — version, agent, skill, command, and connector counts read from plugin-metadata.py, never hardcoded — plus getting-started steps, examples, and troubleshooting. Includes the --intent goal-routing mode, which turns a stated goal into up to 3 ordered skill chains ending at a quality gate, and renders depth-tier badges — [E] executes scripts, [M] measured output, [G] structured guidance — read from skills-index.json. Triggers on \"/digital-marketing-pro:help\", \"what can this plugin do\", \"which skill should I use for more leads\", \"list all the commands\", \"how do I get started\". Pairs with /digital-marketing-pro:status and /digital-marketing-pro:integrations for brand and connector state."
+description: "Show help with live plugin counts: getting started, which skill fits a goal, fixes. \"what can this plugin do\""
 argument-hint: "[--commands | --skills | --examples | --connectors | --troubleshoot | --brand | --intent \"<goal>\"]"
 ---
 
 # /digital-marketing-pro:help
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 Show the Digital Marketing Pro user guide with **live plugin state** (version, agent/skill/command/script counts, connector counts, runtime environment) pulled from disk — not hardcoded — plus getting-started steps, usage examples, and troubleshooting.
 
@@ -95,7 +97,7 @@ Goal: "more leads from organic"
 
 Chain 1 (recommended):
   1. [E] /digital-marketing-pro:seo-audit        — find what blocks organic visibility
-  2. [G] /digital-marketing-pro:content-strategy — turn gaps into a content plan
+  2. [G] /digital-marketing-pro:content-calendar — turn gaps into a content plan
   3. [E] /digital-marketing-pro:lead-magnet-ideas — capture the traffic you win
   4. [M] /digital-marketing-pro:check            — gate before anything ships
 ```
@@ -143,7 +145,7 @@ Full engagement:
 | Issue | Solution |
 |-------|----------|
 | "No active brand" message | Run `/digital-marketing-pro:brand-setup` to create your first brand profile |
-| Python features unavailable | Install: `pip install nltk textstat` (lite mode) or the full requirements.txt |
+| Python features unavailable | Install the tested versions: `python scripts/setup.py --install lite` (lite mode) or `python -m pip install -r scripts/requirements.txt` (everything, exact pins) |
 | MCP connector not working | Run `/digital-marketing-pro:integrations` to check status, `/digital-marketing-pro:connect <name>` for setup |
 | Brand voice seems off | Run `/digital-marketing-pro:brand-setup --full` for detailed 17-question profiling |
 | Commands not recognized | Ensure the plugin is installed: check "Manage Plugin" in Cowork or `claude plugin list` |

@@ -1,7 +1,7 @@
 {
   "name": "local-mcp",
   "version": "1.0.0",
-  "description": "Give Codex access to your own Mac or Windows apps through LMCP, a local MCP server: Mail, Calendar, Contacts, Messages, Teams, Slack, WhatsApp, OneDrive, Office documents and local files. Tools run on your computer; no API keys to manage.",
+  "description": "Give Codex access to your own Mac or Windows apps through LMCP, a local MCP server: Mail, Calendar, Contacts, Messages, Teams, Slack, WhatsApp, OneDrive, Notion, Office documents and local files. Tools run on your computer; no API keys to manage.",
   "author": {
     "name": "LMCP",
     "email": "support@local-mcp.com",
@@ -28,7 +28,7 @@
   "interface": {
     "displayName": "LMCP",
     "shortDescription": "Your Mac or Windows apps, as tools for Codex",
-    "longDescription": "LMCP is a local MCP server that lets Codex work with Mail, Calendar, Contacts, Messages, Teams, Slack, WhatsApp, OneDrive, Office documents and local files on your computer. Install the LMCP app first; the plugin starts its MCP server.",
+    "longDescription": "LMCP is a local MCP server that lets Codex work with Mail, Calendar, Contacts, Messages, Teams, Slack, WhatsApp, OneDrive, Notion, Office documents and local files on your computer. Install the LMCP app first; the plugin starts its MCP server.",
     "developerName": "LMCP",
     "category": "Productivity",
     "capabilities": [

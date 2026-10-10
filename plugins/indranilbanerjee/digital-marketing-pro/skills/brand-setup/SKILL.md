@@ -1,10 +1,12 @@
 ---
 name: brand-setup
-description: "Create or update the brand profile every other skill reads — a quick 5-question or full 17-question interactive setup capturing identity, business model, industry and compliance markets, 4-dimension voice scales, channels, goals, and competitors, saved to ~/.claude-marketing/brands/{slug}/profile.json via scripts/setup.py. Triggers on \"/digital-marketing-pro:brand-setup\", \"set up a new brand\", \"onboard a new client\", \"switch to another brand\", \"update our brand voice\". Also handles brand switching (updates _active-brand.json) and field-level profile edits; run this first — all marketing skills auto-apply the resulting profile, voice samples, and compliance rules."
+description: "Set up or update the brand profile every skill reads: voice, audience, compliance. \"set up a new brand\""
 argument-hint: "[brand-name or --full]"
 ---
 
 # Brand Setup — Interactive Brand Profiling
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 ## When to Use This Skill
 

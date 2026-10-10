@@ -1,10 +1,12 @@
 ---
 name: roi-calculator
-description: "Compute campaign ROI from spend, conversion, and revenue inputs — channel-level ROI/ROAS/CPA/CPL, blended totals, five-model attribution comparison (last-touch, first-touch, linear, time-decay, position-based), LTV payback periods, industry benchmark ratings, and 2-3 modeled budget-reallocation scenarios, packaged as an executive-ready report. Triggers on \"/digital-marketing-pro:roi-calculator\", \"what's the ROI on this campaign\", \"compare ROAS across channels\", \"is our CAC sustainable against LTV\", \"where should we shift budget\". Runs roi-calculator.py, reads industry benchmarks for the brand's vertical, and logs results to the campaign tracker for period-over-period trend comparison."
+description: "Calculate campaign ROI by script: ROAS, CPA, attribution views, LTV payback. \"what's the ROI on this campaign\""
 argument-hint: "[campaign-name]"
 ---
 
 # /digital-marketing-pro:roi-calculator
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 ## Purpose
 

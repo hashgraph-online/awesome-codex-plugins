@@ -22,6 +22,8 @@ The coordinator retains the evidence and integrity gates below. Do not load all 
 
 For a substantial manuscript, review article, proposal, thesis chapter, or major revision, use the integrated workflow in [research-workflow-and-revision.md](references/research-workflow-and-revision.md). It coordinates the specialist skills around a shared evidence map, narrative architecture, revision roadmap, and final verification. Do not force a focused task through the full workflow.
 
+When AI will draft or substantially revise research writing, use [author-guided-ai-writing.md](references/author-guided-ai-writing.md) to retain author control of the scientific story before drafting and at the revision decision gate. It standardizes author guidance and author review without treating style as evidence of authorship.
+
 ## Core Workflow
 
 1. Define the engineering decision or research question.
@@ -65,6 +67,7 @@ Read only the references needed for the task.
 | --- | --- |
 | Research brief or trade study | [brief-template.md](references/brief-template.md) |
 | End-to-end manuscript, review, proposal, thesis chapter, or major revision | [research-workflow-and-revision.md](references/research-workflow-and-revision.md) |
+| AI-assisted manuscript, proposal, report, review, or response | [author-guided-ai-writing.md](references/author-guided-ai-writing.md) |
 | Technical analysis, DOE, plotting, or results discussion | [technical-writing-analysis.md](references/technical-writing-analysis.md) |
 | Equation explanations, claim-evidence audit, methods completeness, or figure/equation narrative | [technical-argument-audit.md](../research-writing-literature/references/technical-argument-audit.md) |
 | Reader-focused technical-prose audit | [technical-prose-clarity.md](../research-writing-literature/references/technical-prose-clarity.md) |

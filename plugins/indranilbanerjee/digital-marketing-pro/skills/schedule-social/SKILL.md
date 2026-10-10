@@ -1,11 +1,13 @@
 ---
 name: schedule-social
-description: "Schedule social posts to Twitter/X, Instagram, LinkedIn, TikTok, YouTube, and Pinterest through connected platform MCPs — generating per-platform copy variations, hashtag mixes, media-spec validation, UTM-tagged links, and posting-time analysis (the brand's own engagement history first, dated population baselines second), then verifying each queued post and updating the content calendar. Nothing goes live without the mandatory execution gate: a full scheduling summary you must explicitly approve first. Triggers on \"/digital-marketing-pro:schedule-social\", \"schedule this post for Monday\", \"publish this across our social channels\", \"queue the launch announcement on LinkedIn and X\", \"post this everywhere at the best times\". Reads the brand profile, guidelines, and platform publishing specs."
+description: "Schedule social posts to connected platforms at best times, approval-gated. \"schedule this post for Monday\""
 disable-model-invocation: false
 argument-hint: "[platform]"
 ---
 
 # /digital-marketing-pro:schedule-social
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 ## Purpose
 
@@ -16,7 +18,8 @@ Schedule social media posts to one or more platforms with platform-specific form
 1. Present the full preview — recipients / spend / changes / compliance — as an **Execution Summary** before touching any live system.
 2. The user must type `yes` (or an equivalent explicit approval). ANY other input — ambiguous, implied, partial, or absent approval — cancels the run.
 3. Never proceed on ambiguous input. Never auto-retry a failed execution; a failure needs human review before any re-run.
-4. Record the approval with `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action create-approval --data '{"type":"schedule-social","platform":"{platform}","content_summary":"...","risk_level":"<tier>"}'` **before** executing, then `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action mark-executed --id {approval_id} --data '{"execution_result":"success","platform_response":"..."}'` after the platform confirms success.
+4. Only after the user types `yes`, record it: `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action create-approval --data '{"type":"schedule-social","platform":"<platform>","content_summary":"<one line from the Execution Summary>","risk_level":"<tier>"}'`, then `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action approve --id {approval_id}`. If either command errors, stop and report the error; never work around it with another tool. The record proves the approval step ran for this action; it cannot prove who typed `yes`.
+5. Execute. A write sent through `connector_executor.py` needs `--approval-id` and fires only against a matching, unused, unexpired record (see `/digital-marketing-pro:execute-action`). A write through a connected MCP server tool is outside that code check: it relies on this typed `yes` and on your host's permission prompt. Afterwards run `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action mark-executed --id {approval_id} --data '{"execution_result":"success"}'` (or `failure`).
 
 ## Input Required
 
@@ -47,7 +50,7 @@ The user must provide (or will be prompted for):
 6. **Score content for brand voice**: Run `brand-voice-scorer.py` on each platform variation to verify alignment with brand tone, vocabulary, and messaging guidelines. Flag any variation that falls below the brand's minimum score and suggest specific edits.
 7. **Create per-platform variations**: If the user did not provide explicit per-platform copy, generate tailored variations — shorter and punchier for Twitter/X, professional and insight-driven for LinkedIn, visual-first captions with line breaks for Instagram, trend-aware and casual for TikTok, keyword-rich with vertical imagery for Pinterest. Preserve the core message and CTA across all while adapting voice for each platform's native style.
 8. **Validate media assets**: Verify all images and videos meet platform requirements — dimensions, aspect ratio, file size limits, video duration, and format (JPEG/PNG for images, MP4 for video). Flag any assets that need resizing or reformatting and suggest optimal crops per platform.
-9. **Create approval record**: Create the record via `approval-manager.py --action create-approval` with the risk level inside the `--data` JSON — `{"risk_level":"medium",...}`. There is no `--risk-level` flag; see the Execution gate above for the exact command. Generate a scheduling summary showing each platform's post content, media preview, hashtags, posting time, UTM-tagged links, and brand voice score.
+9. **Create approval record**: Create the record via `approval-manager.py --action create-approval` with the risk level inside the `--data` JSON — `{"type":"schedule-social","platform":"<platform>","content_summary":"...","risk_level":"medium"}`. There is no `--risk-level` flag; see the Execution gate above for the exact command. Generate a scheduling summary showing each platform's post content, media preview, hashtags, posting time, UTM-tagged links, and brand voice score.
 10. **Present scheduling summary**: Display the complete multi-platform schedule for user review — one section per platform showing final copy with character count, media attachments with dimensions, hashtags, posting time with timezone, and any platform-specific notes or warnings. Wait for explicit approval.
 11. **Schedule via each platform's MCP**: On approval, submit each post to its target platform through the connected MCP server. Handle platform-specific scheduling APIs, media uploads, hashtag formatting, and link shortening. Confirm the scheduled status for each platform individually.
 12. **Verify scheduled status**: After scheduling, query each platform's API to confirm the posts are queued at the correct times with the correct content. Flag any scheduling failures, content truncation, or media upload errors and retry or escalate as needed.

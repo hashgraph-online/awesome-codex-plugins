@@ -1,9 +1,11 @@
 ---
 name: sync-memory
-description: "Batch-sync this session's learnings, insights.json entries, and campaign history into the persistent memory layer — incremental from the last checkpoint so repeat runs are fast and idempotent — and report exactly what was synced, skipped, or failed. Triggers on \"/digital-marketing-pro:sync-memory\", \"save what we learned this session\", \"sync insights to memory\", \"persist campaign learnings before I close\", \"did my session learnings get saved\". Stores via a connected vector-DB MCP when one exists, otherwise the local index; reads the active brand profile and complements /digital-marketing-pro:save-knowledge, which saves single items."
+description: "Sync session learnings to persistent memory incrementally, with a report. \"save what we learned this session\""
 ---
 
 # /digital-marketing-pro:sync-memory
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 ## Purpose
 

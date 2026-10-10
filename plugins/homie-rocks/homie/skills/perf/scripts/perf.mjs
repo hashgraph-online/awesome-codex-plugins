@@ -314,6 +314,16 @@ async function alternate(root, s, dir, a, b, out) {
 }
 
 /** The look of each build, from its runs' screenshots: brightness, contrast, detail, colour (playtest's pixels.mjs). */
+function firstBrowserShots(folder, device) {
+  if (!folder || !existsSync(folder)) return [];
+  const files = readdirSync(folder).sort();
+  for (const role of ['host', 'replica']) {
+    const shots = files.filter((f) => new RegExp(`^${device}-\\d+-${role}\\.png$`).test(f));
+    if (shots.length) return shots.map((f) => join(folder, f));
+  }
+  return [];
+}
+
 async function looksOf(dirA, dirB) {
   let pixels;
   try { pixels = await import('../../playtest/scripts/lib/pixels.mjs'); } catch { return null; }
@@ -322,7 +332,7 @@ async function looksOf(dirA, dirB) {
   const spread = (xs) => { const s = [...xs].sort((x, y) => x - y); return s.length > 2 ? s[Math.ceil(s.length * 0.75) - 1] - s[Math.floor(s.length * 0.25)] : 0; };
   const out = {};
   for (const device of ['computer', 'phone']) {
-    const shots = (d) => (existsSync(d) ? readdirSync(d).filter((f) => new RegExp(`^${device}-\\d+-host\\.png$`).test(f)).map((f) => join(d, f)) : []);
+    const shots = (d) => firstBrowserShots(d, device);
     const sa = shots(dirA).map((f) => { try { return pixels.stats(pixels.decode(f, 320)); } catch { return null; } }).filter(Boolean);
     const sb = shots(dirB).map((f) => { try { return pixels.stats(pixels.decode(f, 320)); } catch { return null; } }).filter(Boolean);
     if (!sa.length || !sb.length) continue;
@@ -353,7 +363,10 @@ async function baseline() {
   const devices = String(flags.get('devices') ?? 'computer,phone').split(',').map((d) => d.trim()).filter((d) => ['computer', 'phone'].includes(d));
   if (!devices.length) throw new Error('--devices: computer, phone or both');
   const num = (k, d, lo, hi) => Math.max(lo, Math.min(hi, Number(flags.get(k) ?? d) || d));
-  const goal = String(flags.get('goal') ?? (devices.includes('phone') ? 'phone.host.frame.p95' : 'computer.host.frame.p95'));
+  const meta = readJson(experienceJson(experienceDir(root, game)));
+  const rules = meta?.room && existsSync(join(experienceDir(root, game), 'src', 'rules.ts'));
+  const role = meta?.room?.host === 'server' || (rules && meta.room.host !== 'browser') ? 'replica' : 'host';
+  const goal = String(flags.get('goal') ?? `${devices.includes('phone') ? 'phone' : 'computer'}.${role}.frame.p95`);
   const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\..*/, '');
   const name = `loop-${stamp}`;
   const dir = join(loopsDir(root, game), name);
@@ -432,7 +445,7 @@ function readyWords(a, readyMs) {
 
 function headline(s, summary) {
   const out = [];
-  for (const d of s.devices) for (const role of ['host', 'replica']) {
+  for (const d of s.devices) for (const role of ['host', 'replica', 'replica-2']) {
     const m = (k) => summary.metrics?.[`${d}.${role}.${k}`]?.median;
     if (m('frame.p50') === undefined) continue;
     out.push(`${d} ${role}: frames ${fmt(m('frame.p50'))}/${fmt(m('frame.p95'))} ms (median/p95), ${fmt(m('frame.over50'), '%')} over 50 ms; game JS ${fmt(m('work.mean'))} ms a frame; main thread ${fmt(m('busy'))} ms a frame; first look ${fmt(m('load.look'))} ms, playable (control-ready) ${fmt(m('load.playable'))} ms${readyWords(summary.arrival?.[`${d}.${role}`], m('load.ready'))}; heap ${fmt(m('heap'))} MB; netplay ${fmt(m('net.msgsOut'))} out, ${fmt(m('net.msgsIn'))} in a second`);
@@ -445,8 +458,9 @@ function hints(s, summary, profs, sizes) {
   const h = [];
   const m = (k) => summary.metrics?.[k]?.median;
   for (const d of s.devices) {
-    const p95 = m(`${d}.host.frame.p95`); const over50 = m(`${d}.host.frame.over50`); const busy = m(`${d}.host.busy`); const p50 = m(`${d}.host.frame.p50`);
-    if (p95 !== undefined && p95 <= 17.5) h.push(`${d}: frames already keep pace with the display (p95 ${p95} ms against 16.7). A faster frame cannot show on this profile; aim at the work per frame (\`${d}.host.busy\`: ${busy} ms of main thread a frame), which is battery and headroom on slower phones${d === 'phone' ? `, or measure a slower phone (baseline --cpu ${Math.min(20, s.cpu * 2)})` : ''}.`);
+    const role = m(`${d}.host.frame.p95`) === undefined ? 'replica' : 'host';
+    const p95 = m(`${d}.${role}.frame.p95`); const over50 = m(`${d}.${role}.frame.over50`); const busy = m(`${d}.${role}.busy`); const p50 = m(`${d}.${role}.frame.p50`);
+    if (p95 !== undefined && p95 <= 17.5) h.push(`${d}: frames already keep pace with the display (p95 ${p95} ms against 16.7). A faster frame cannot show on this profile; aim at the work per frame (\`${d}.${role}.busy\`: ${busy} ms of main thread a frame), which is battery and headroom on slower phones${d === 'phone' ? `, or measure a slower phone (baseline --cpu ${Math.min(20, s.cpu * 2)})` : ''}.`);
     else if (p50 !== undefined && p50 > 18) h.push(`${d}: the median frame takes ${p50} ms (under 60 fps): the steady cost per frame is the problem. Start from the hottest game function in the profile below.`);
     if (over50 !== undefined && over50 >= 0.5) h.push(`${d}: ${over50}% of frames take over 50 ms (hitches anyone sees). Look for long tasks, garbage collection and work that runs only now and then (a spawn, a big message, a texture upload).`);
   }
@@ -456,7 +470,8 @@ function hints(s, summary, profs, sizes) {
     if (top) h.push(`${p.device} ${p.role}: the hottest game function is ${top.name} (${top.where}), ${top.selfPct}% of the busy time itself and ${top.totalPct}% with what it calls.`);
   }
   for (const d of s.devices) {
-    const g = m(`${d}.host.heap.growth`);
+    const role = m(`${d}.host.heap.growth`) === undefined ? 'replica' : 'host';
+    const g = m(`${d}.${role}.heap.growth`);
     if (g === undefined || g <= 1) continue;
     // A short window mostly sees buffers filling: the port probe alone keeps its last 4,000 frames (about a minute).
     h.push(s.seconds < 90
@@ -471,7 +486,7 @@ function hints(s, summary, profs, sizes) {
 function fetchedOf(folder, device) {
   if (!existsSync(folder)) return null;
   const runs = readdirSync(folder).filter((f) => new RegExp(`^${device}-\\d+\\.json$`).test(f)).sort().map((f) => readJson(join(folder, f))).filter((r) => r && !r.blocked && !r.loaded);
-  const host = runs[0]?.browsers?.find((b) => b.role === 'host');
+  const host = runs[0]?.browsers?.find((b) => b.role === 'host') ?? runs[0]?.browsers?.[0];
   return host?.load ? { device, ...host.load } : null;
 }
 
@@ -495,7 +510,7 @@ function baselineMd(s, summary, profs, sizes, fetched = []) {
   if (sizes?.ok) {
     const kb = (b) => `${(b / 1024).toFixed(1)} KB`;
     L.push('## What a player downloads', '');
-    for (const f of fetched.filter((x) => x && Number.isFinite(x.requests))) L.push(`Fetched before playable (${f.device}, the host's first run): ${f.requests} requests, ${f.kb} KB on the wire, the game's own files ${f.gameKb} KB: ${(f.biggest ?? []).slice(0, 6).map((b) => `${b.path} ${b.kb} KB`).join(', ')}.`, '');
+    for (const f of fetched.filter((x) => x && Number.isFinite(x.requests))) L.push(`Fetched before playable (${f.device}, the first browser's run): ${f.requests} requests, ${f.kb} KB on the wire, the game's own files ${f.gameKb} KB: ${(f.biggest ?? []).slice(0, 6).map((b) => `${b.path} ${b.kb} KB`).join(', ')}.`, '');
     L.push(`The built game (every file the site serves for it; the landing page's art is not counted): ${sizes.total.files} files, ${kb(sizes.total.bytes)} (${kb(sizes.total.gzip)} gzipped); JavaScript ${kb(sizes.js.bytes)} (${kb(sizes.js.gzip)} gzipped).`, '', '| bytes | gzipped | file |', '| --- | --- | --- |', ...sizes.biggest.slice(0, 10).map((f) => `| ${kb(f.bytes)} | ${kb(f.gzip)} | ${f.path} |`), '');
     if (sizes.modules) L.push('Bundle modules:', '', ...sizes.modules.top.slice(0, 8).map((m) => `- ${kb(m.bytes)} ${m.module}`), '');
   }
@@ -662,7 +677,7 @@ function goals() {
     ok: true,
     command: 'goals',
     metrics: [
-      '<device>.<role>.<metric>: device computer or phone, role host (runs the rules, bots and snapshots) or replica; all lower is better',
+      '<device>.<role>.<metric>: device computer or phone, role host (runs the rules, bots and snapshots), replica or replica-2 (server-hosted rooms); all lower is better',
       'frame.p50 / frame.p95 / frame.p99 / frame.max: ms between animation frames (16.7 at 60 Hz). p95 is what stutter feels like',
       'frame.over33 / frame.over50: % of frames slower than 33 ms (a dropped frame twice) / 50 ms (a hitch anyone sees)',
       'work.mean / work.p95: ms of the game\'s JavaScript inside each animation frame',
@@ -711,7 +726,7 @@ async function report() {
   }
   // Pictures: the host's screenshot from the middle run of each side, per device (JPEG when ffmpeg is here).
   const pictures = [];
-  const shotFrom = (folder, device) => { if (!folder || !existsSync(folder)) return null; const f = readdirSync(folder).filter((x) => new RegExp(`^${device}-\\d+-host\\.png$`).test(x)).sort(); return f.length ? join(folder, f[Math.floor((f.length - 1) / 2)]) : null; };
+  const shotFrom = (folder, device) => { const f = firstBrowserShots(folder, device); return f.length ? f[Math.floor((f.length - 1) / 2)] : null; };
   const before = final?.runsBefore ?? join(dir, 'runs', 'base');
   for (const device of s.devices) {
     for (const [side, folder] of [['before', before], ['after', final?.runsAfter ?? null]]) {
@@ -786,7 +801,7 @@ function reportMd(s, n, final, pictures, kept, patches = new Map()) {
   }
   const changedLook = n.changes.filter((c) => c.verdict === 'keep' && (c.looks !== 'same' || c.plays !== 'same'));
   L.push(`How it looks and plays: ${changedLook.length ? `**changed by ${changedLook.map((c) => `change ${c.n} (looks: ${c.looks}; plays: ${c.plays})`).join(', ')}**` : kept.length ? 'unchanged: every kept change said it looks and plays the same, and its screenshots measured the same' : 'unchanged'}. The studio's two-browser check (two fresh browsers finish a round together) passed before the first change${kept.length ? ' and after every kept one' : ''}.`, '');
-  if (pictures.length) L.push('Pictures (the host\'s screen at the end of a measured run):', '', ...pictures.map((p) => `- [${p}](${p})`), '');
+  if (pictures.length) L.push('Pictures (the first browser\'s screen at the end of a measured run):', '', ...pictures.map((p) => `- [${p}](${p})`), '');
   if (n.sizes.before) {
     const kb = (b) => `${(b / 1024).toFixed(1)} KB`;
     L.push(`What a player downloads: ${kb(n.sizes.before.total.gzip)} gzipped (JavaScript ${kb(n.sizes.before.js.gzip)})${n.sizes.after ? ` → ${kb(n.sizes.after.total.gzip)} (JavaScript ${kb(n.sizes.after.js.gzip)})` : ''}.`, '');
@@ -804,7 +819,7 @@ function reportMd(s, n, final, pictures, kept, patches = new Map()) {
     L.push(`- **${p.device} ${p.role}**: ${p.idlePct}% idle; busy time: game ${p.gamePct}%, Chrome's own drawing and compositing ${p.programPct}%, garbage collection ${p.gcPct}%. Hottest: ${p.top.slice(0, 5).map((t) => `${t.name} (${t.where === '(native)' ? 'native' : t.where}) ${t.selfPct}%`).join('; ')}.`);
   }
   L.push('', '## How this was measured', '');
-  L.push(`- Each run: two browsers (the host and a replica) in a fresh room of their own, the same seeded presses, a 3 s warm-up and a ${s.seconds} s measured window; headless Chrome on this computer's GPU (never a software renderer).`);
+  L.push(`- Each run: two browsers (host and replica, or two replicas when the server hosts) in a fresh room of their own, the same seeded presses, a 3 s warm-up and a ${s.seconds} s measured window; headless Chrome on this computer's GPU (never a software renderer).`);
   L.push(`- Each change: the build to beat and the changed build measured in turns (before, after, after, before, …), ${s.runs} runs each per device. Each before-run and the after-run beside it are a pair, so a computer that drifted busier hits both sides alike. Better means: a one-sided signed-rank test on the pairs (Wilcoxon, exact) p < 0.05, the 95% bootstrap interval of the change below zero, and at least ${s.min}% better. Guards (frame time, main thread per frame, time to playable, heap, the host's upload) must not be worse (worse in every pair or p < 0.01, and at least 5%).`);
   L.push(`- The computer is shared: every run waited for the 1-minute load to fall under ${s.maxLoad} per core and recorded it; a run that started busy was taken again and left out.`);
   L.push(`- Before every run the site was checked to serve exactly the build being measured: every file by SHA-256, and the game page as the build made it${s.pageAdded ? `, with what the site adds to it (${addedSaid(s.pageAdded)}) the same throughout` : ''}.`);

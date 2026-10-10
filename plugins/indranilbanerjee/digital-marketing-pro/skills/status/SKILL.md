@@ -1,12 +1,14 @@
 ---
 name: status
-description: "Print a read-only status snapshot of the active brand via scripts/dm-status.py: profile summary, engagements with current part and update age, last five insights, recent compliance violations, and Python dependency mode — with --quiet, --json, --section, and --brand variants. Triggers on \"/digital-marketing-pro:status\", \"what's my DMP status\", \"what brand am I on\", \"show engagement status\", \"status snapshot\". Never modifies state: switching brands is /digital-marketing-pro:switch-brand, advancing engagements is /digital-marketing-pro:engagement, connector status is /digital-marketing-pro:integrations, and content checks are /digital-marketing-pro:check."
+description: "Show DMP status for the active brand: profile, engagement progress, recent insights. \"what brand am I on\""
 user-invocable: true
 argument-hint: "[--brand <slug>] [--json] [--quiet] [--section brand|engagements|insights|compliance|deps]"
 allowed-tools: Read Bash Glob Grep
 ---
 
 # /digital-marketing-pro:status — Unified Status Snapshot
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 This skill prints a complete status snapshot for the active Digital Marketing Pro brand: profile summary, all engagements with their current part and update age, recent insights, recent compliance violations, and Python dependency mode.
 

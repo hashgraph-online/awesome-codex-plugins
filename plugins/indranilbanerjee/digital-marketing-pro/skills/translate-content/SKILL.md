@@ -1,10 +1,12 @@
 ---
 name: translate-content
-description: "Translate marketing content with automatic service routing per language pair, quality scoring across five dimensions (length ratio, formatting, key terms, placeholders, completeness), and a brand-voice check on the result; flags idioms, wordplay, and emotional CTAs for transcreation with 2-3 scored creative options plus back-translations. Triggers on \"/digital-marketing-pro:translate-content\", \"translate this landing page into German\", \"localize this email for India\", \"transcreate our slogan\", \"does the translated version keep our brand voice\". Reads the brand profile's do-not-translate terms, glossary, and formality preferences; executes via connected translation MCP servers."
+description: "Translate marketing content using the brand glossary and do-not-translate terms, with quality scoring. \"translate this into Japanese\""
 argument-hint: "[target-language]"
 ---
 
 # /digital-marketing-pro:translate-content
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 ## Purpose
 

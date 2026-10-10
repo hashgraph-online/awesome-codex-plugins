@@ -1,9 +1,11 @@
 ---
 name: geo-monitor
-description: "Track brand visibility in AI answers on a recurring schedule across the 6 canonical surfaces — ChatGPT, Perplexity, Gemini, Google AI Mode, AI Overviews, Copilot — scoring each query on the shared aeo-audit rubric and rolling results into a 0-100 GEO health trend with narrative-drift flags and competitor benchmarks. Triggers on \"/digital-marketing-pro:geo-monitor\", \"is ChatGPT mentioning us\", \"track our AI visibility over time\", \"monitor brand mentions in Perplexity\", \"did our AI Overviews presence change\". Records and diffs runs via geo-tracker.py, keeps probe scores separate from first-party Bing Webmaster AI Performance citations and Search Console AI impressions, reads the brand profile for positioning, and is the recurring mode of /digital-marketing-pro:aeo-audit."
+description: "Monitor GEO visibility over time across six AI answer engines, with a 0-100 trend. \"is ChatGPT mentioning us\""
 ---
 
 # /digital-marketing-pro:geo-monitor
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`.
 
 ## Purpose
 
