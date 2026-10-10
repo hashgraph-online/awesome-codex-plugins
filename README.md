@@ -369,6 +369,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [FXMacroData](https://github.com/fxmacrodata/claude-plugin-fxmacrodata) - Official-source macro releases, central-bank rates, release calendars and FX rates for 22 currencies through the hosted FXMacroData MCP server.
 - [GH Project](https://github.com/zfifteen/gh-project-plugin) - Create GitHub repositories from Codex with inferred defaults, native menus, explicit confirmation, and deterministic local cloning.
 - [Hermes Tweet](https://github.com/Xquik-dev/hermes-tweet) - Hermes Agent X/Twitter plugin for read-first social research, monitoring, and approval-gated actions through Xquik.
+- [Hypr-Agent-Portal](https://github.com/gfhdhytghd/Hypr-Agent-Portal) - Hyprland desktop computer use through a local MCP bridge with background window screenshots, app-state inspection, keyboard and pointer input, clipboard operations, and a visible agent cursor.
 - [Jenkins CLI](https://github.com/avivsinai/jenkins-cli) - GitHub CLI-style interface for Jenkins controllers with jobs, pipelines, runs, logs, artifacts, credentials, and nodes.
 - [Jev Social](https://github.com/socai-io/jev-social) - Read-only Instagram, TikTok, and LinkedIn research in the user's Chrome, with Jev selecting bounded operations and the socai CLI streaming posts, comments, video evidence, and source-linked reports.
 - [Kachilu Browser](https://github.com/kachilu-inc/kachilu-browser) - Anti-bot-aware browser automation for AI agents with MCP tools, CAPTCHA-aware workflows, and WSL2 Windows browser support.
