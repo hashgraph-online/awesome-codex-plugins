@@ -351,6 +351,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [Computer Usage Summary](https://github.com/liuyewang/computer-usage-summary-skill) - Privacy-first, local ActivityWatch reports for app time, AFK time, projects, billable work, and redacted timelines across macOS, Windows, and Linux.
 - [CONTAM Tools](https://github.com/summer521521/CONTAM_plugin) - Runs and inspects CONTAM airflow projects through a local MCP server with project guards, diagnostics, simulation helpers, and bridge workflows.
 - [Context Pack](https://github.com/Rothschildiuk/context-pack) - Generate compact first-pass repository briefings for coding agents before deeper exploration.
+- [ContextStream](https://contextstream.io) - Shared project context for Cursor, Claude Code, Codex, and Grok. Intelligence isn’t the bottleneck. Context is. Remote MCP: https://mcp.contextstream.io/mcp
 - [Coolify](https://github.com/Sevi-py/coolify-codex-plugin) - Control Coolify Cloud and self-hosted Coolify instances through API-aware workflow skills and local tools.
 - [Court Rules](https://github.com/foklepoint/court-rules-codex-plugin) - Search U.S. federal and state court filing rules, judge standing orders, local rules and court holidays through the hosted Court Rules MCP server, with a skill that cites the court's own document.
 - [Darkmoon](https://github.com/ASCIT31/darkmoon-mcp-server) - Start authorized autonomous AI pentest runs, poll status, list campaigns and read findings on your own self-hosted Darkmoon Pro through MCP.
