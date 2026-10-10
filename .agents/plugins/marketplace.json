@@ -3819,6 +3819,21 @@
       "icon": "./plugins/hitSlop/shots/assets/icon.png"
     },
     {
+      "name": "svatlas",
+      "displayName": "Silicon Valley Atlas",
+      "source": {
+        "source": "local",
+        "path": "./plugins/phnx-labs/svatlas-mcp"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Search sourced profiles of AI startups, founders and funding, rank the companies most likely to buy a product from its website, and keep outreach lists through a hosted MCP server with OAuth sign-in.",
+      "icon": "./plugins/phnx-labs/svatlas-mcp/assets/logo.png"
+    },
+    {
       "name": "solidworks-gpt-plugin",
       "displayName": "SolidWorks GPT Plugin",
       "source": {

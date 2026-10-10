@@ -1,0 +1,52 @@
+{
+  "name": "svatlas",
+  "version": "1.3.0",
+  "description": "Search AI startups and founders, find the companies most likely to buy a product, and keep outreach lists, from the sourced Silicon Valley Atlas directory.",
+  "author": {
+    "name": "Phoenix Horizon, Inc.",
+    "email": "support@getrush.ai",
+    "url": "https://svatlas.io"
+  },
+  "homepage": "https://svatlas.io/agents",
+  "keywords": [
+    "startups",
+    "founders",
+    "venture",
+    "prospecting",
+    "sales",
+    "accelerators"
+  ],
+  "interface": {
+    "displayName": "Silicon Valley Atlas",
+    "shortDescription": "Sourced map of AI startups",
+    "longDescription": "Silicon Valley Atlas maps the AI startup landscape: companies, founders, funding rounds, and investors from accelerator directories, company sites, and press. Every fact links to the public page it came from.\n\nAsk in plain language to find startups by what they do, who they sell to, or the technology they use. Paste a product's website to get the companies most likely to buy it, ranked against an ideal-customer profile written from that site. Open any company for its stage, team size, funding with investors, founders, and sourced signals.\n\nKeep the results as outreach lists: create, add, move, rename, merge, and clean them up from the conversation, then see sourced product announcements from the companies you track.\n\nSign in with the Google account you use on svatlas.io; lists you make in the conversation appear on the site.",
+    "developerName": "Phoenix Horizon, Inc.",
+    "category": "Data & Analytics",
+    "capabilities": [
+      "Search AI startups by meaning, sector, location, and accelerator program",
+      "Rank companies likely to buy a product from its website",
+      "Read sourced company profiles with funding, investors, and founders",
+      "Search founders by program, vertical, location, and founding year",
+      "Create and manage outreach lists",
+      "Show sourced product announcements for companies on your lists",
+      "Find who in your own contacts can introduce you to a company, with a draft ask",
+      "Open Atlas from the ChatGPT sidebar and attach selected companies to a conversation"
+    ],
+    "websiteURL": "https://svatlas.io",
+    "privacyPolicyURL": "https://svatlas.io/privacy",
+    "termsOfServiceURL": "https://svatlas.io/terms",
+    "defaultPrompt": [
+      "Find seed-stage AI startups building agents for legal teams",
+      "Which startups would buy the product at linear.app? Save the top 10 to a list",
+      "Summarize funding and founders for the companies on my Prospects list"
+    ],
+    "brandColor": "#A84D23",
+    "composerIcon": "./assets/logo.png",
+    "logo": "./assets/logo.png",
+    "logoDark": "./assets/logo-dark.png"
+  },
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "license": "MIT",
+  "repository": "https://github.com/phnx-labs/svatlas-mcp"
+}

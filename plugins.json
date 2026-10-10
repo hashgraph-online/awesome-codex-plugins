@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-10-10",
-  "total": 284,
+  "total": 285,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -2588,6 +2588,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/hitSlop/shots/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Silicon Valley Atlas",
+      "url": "https://github.com/phnx-labs/svatlas-mcp",
+      "owner": "phnx-labs",
+      "repo": "svatlas-mcp",
+      "description": "Search sourced profiles of AI startups, founders and funding, rank the companies most likely to buy a product from its website, and keep outreach lists through a hosted MCP server with OAuth sign-in.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/phnx-labs/svatlas-mcp/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "SolidWorks GPT Plugin",
