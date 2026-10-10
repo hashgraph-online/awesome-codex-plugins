@@ -54,8 +54,7 @@ npx --no-install homie-studio anim preview <id> --asset knight     # looping pre
 ```
 
 Verbs: idle, walk, run, jump, fall, land, attack, attack2, hit, die, emote, win, interact, pickup, cast, shoot,
-block, dodge, crouch, sit, drive, spawn. Clips are baked in place (the game moves bodies; netplay's host moves
-them) at 30 fps; a loop's drift is removed. Look at the preview sheet after retargeting onto a new rig: a shoulder
+block, dodge, crouch, sit, drive, spawn. Clips are baked in place (the rules move bodies; the view draws their predicted or interpolated pose) at 30 fps; a loop's drift is removed. Look at the preview sheet after retargeting onto a new rig: a shoulder
 that flips or a foot through the floor shows there first.
 
 ## In the game: @homie-rocks/studio/animate
@@ -87,6 +86,15 @@ crowd(allCharacters, camera);                                      // far and of
   cape, hair (`spring`), and two-bone foot planting on slopes (`ground: (x, z) => height`).
 - Copy `ANIM_TUNING` (exported) into the game's tunables.json under the "Motion" group; every number is a slider.
 - The `hero-rush-3d` starter shows all of it (`homie-studio game new <id> --from hero-rush-3d`).
+
+In a rules game, use the pose from `room.me` or `room.each`, including `heading`,
+`grounded` and `vel.z`. Rules use z up; three.js uses y up: map `(x, y, z)` to
+`(x, z, y)`. Feed `hero.air(body.grounded, body.vel.z)` and the planar speed to
+`hero.move`. The runtime predicts jumps and eases corrections, and interpolates other
+players' poses and facing. Do not integrate a second jump or gravity in animation.
+Play hit and attack actions from room effects; keep animation time, particles and
+camera shake in the view. Physics tuning belongs in the rules' public tunables.
+
 
 ## Feel: the Game Lab
 

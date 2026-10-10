@@ -331,8 +331,8 @@ environment variables (`$.settings`, `$.env`), or approves a permission. A test
 A mod has no sockets and no browser, so a pane cannot sit in a netplay room by itself.
 `mod/bridge.mjs` does it the way a person's browser does: it starts one headless Chrome on this
 computer, opens the game's own page (`/<game>/play`, or `/<game>/watch?room=<id>`), and the game
-runs there for real: a seat in a public room with strangers and bots, hosting the room when nobody
-else can. The bridge sends the mod what Chrome shows (a screenshot a frame, scaled down) and takes
+runs there for real: a seat in a public room with strangers and bots. Server rules stay on the
+server; in an existing browser-hosted game, the bridge can also be elected host. The bridge sends the mod what Chrome shows (a screenshot a frame, scaled down) and takes
 the keys you press. It needs Node 22 and Google Chrome (or `CHROME_PATH`), and nothing else.
 
 - **Cost, measured on an Apple M4:** about a quarter of one core while you play (Chrome, at the

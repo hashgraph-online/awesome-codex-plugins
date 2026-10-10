@@ -5,7 +5,7 @@
   },
   "plugins": [
     {
-      "name": "agiflow-ai-plugin",
+      "name": "agiflow",
       "source": {
         "source": "url",
         "url": "https://github.com/AgiFlow/ai-plugin.git"

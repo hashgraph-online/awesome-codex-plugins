@@ -22,9 +22,9 @@
  *                                         clicks, taps, keys, typing, scrolls, waits, in real time, honest frames
  *   trailer <slug> --game <id> [--url <site>] [--page <path>] [--seconds 40] [--length 20] [--fps 30] [--scale 1]
  *          [--steps <steps.json>] [--title "…"] [--end "Play free"] [--sub "…"] [--shot <s>] [--wait-for "<js>"]
- *                                         one command: the game rendered frame by frame on a virtual clock
- *                                         (record-fixed.mjs: no held frames), its sound rebuilt from the game's own
- *                                         files and its log of what it played, the highlights picked from that log,
+ *                                         one command: live capture for server rules; a virtual clock for browser
+ *                                         games. Live sound is captured; virtual-clock sound is rebuilt from the
+ *                                         game's files and event log. Pick highlights, add
  *                                         an end card, and 16:9, 1:1 and 9:16 deliveries (references/TRAILER.md)
  *   edl <slug> --length <s> [--song <slug>] [--bed-from-bar <k>] [--title "…"] [--end "…"]   an edit, cut on bars
  *   card <slug> --name <title|end> --text "…" [--sub "…"] [--game <id>]   a title or end card, 16:9 and 9:16 (--game: in
@@ -46,7 +46,7 @@ import { createServer } from 'node:http';
 import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { beatsOf, decodeMono, energyOnsets, lagBetween, loudness, need, probe, run } from '../../music/scripts/lib/audio.mjs';
-import { experienceDir, experienceJson, SLUG, checkBudget, getEntry, readJson, receipt, rel, requireStudio, setBudget, upsertEntry, writeJson } from '../../music/scripts/lib/studio.mjs';
+import { experienceDir, experienceJson, isServerRules, SLUG, checkBudget, getEntry, readJson, receipt, rel, requireStudio, setBudget, upsertEntry, writeJson } from '../../music/scripts/lib/studio.mjs';
 import { publishEntry } from '../../music/scripts/music.mjs';
 import { chromePath, htmlToPng, launch, loadPuppeteer } from './lib/browser.mjs';
 import { checkKey, falKey, priceOf, run as falRun } from './lib/fal.mjs';
@@ -634,6 +634,8 @@ async function trailer(root) {
   const dir = jobDir(root, slug);
   const game = String(flags.get('game') ?? '');
   if (!/^[a-z0-9][a-z0-9-]{0,39}$/.test(game)) throw new Error('--game <id>: the game to film');
+  const sourceDir = experienceDir(root, game);
+  const serverRules = isServerRules(sourceDir);
   const out = join(dir, 'work', 'capture');
   const length = Number(flags.get('length') ?? 20);
   const seconds = Number(flags.get('seconds') ?? Math.max(30, length * 2));
@@ -642,19 +644,23 @@ async function trailer(root) {
   if (!(flags.has('keep-capture') && existsSync(join(out, 'capture.mp4')) && existsSync(join(out, 'events.json')))) {
     const site = String(flags.get('url') ?? readJson(join(root, 'studio.json'), {}).cloudflare?.url ?? '').replace(/\/+$/, '');
     if (!/^https?:\/\//.test(site)) throw new Error('--url <site>: http://127.0.0.1:8787 while `npm run dev` runs, or the live site');
+    if (serverRules && (flags.has('steps') || flags.has('page') || flags.has('no-pace'))) throw new Error('Server rules keep real time. For scripted footage use video record with your steps, then edl and cut; omit --steps/--page/--no-pace for a live-room trailer.');
     const own = flags.get('page');
     const page = own ? String(own) : `/${game}/tv`;
-    const args = [join(HERE, 'record-fixed.mjs'), '--url', `${site}${page.startsWith('/') ? '' : '/'}${page}`, '--out', out, '--seconds', String(seconds)];
-    // The studio's big screen holds the game in a frame, with the shell's furniture over it.
-    if (!own) args.push('--frame', 'game', '--css', FURNITURE, '--settle', String(flags.get('settle') ?? 4));
-    for (const k of ['fps', 'scale', 'width', 'height', 'steps', 'wait-for', 'min-free-gb', ...(own ? ['settle', 'frame'] : [])]) if (flags.has(k) && flags.get(k) !== true) args.push(`--${k}`, String(flags.get(k)));
-    if (flags.has('no-pace')) args.push('--no-pace');
+    const args = serverRules
+      ? [join(HERE, 'capture-game.mjs'), '--url', site, '--game', game, '--view', String(flags.get('view') ?? 'play'), '--out', out, '--seconds', String(seconds)]
+      : [join(HERE, 'record-fixed.mjs'), '--url', `${site}${page.startsWith('/') ? '' : '/'}${page}`, '--out', out, '--seconds', String(seconds)];
+    if (!serverRules && !own) args.push('--frame', 'game', '--css', FURNITURE, '--settle', String(flags.get('settle') ?? 4));
+    for (const k of ['fps', 'scale', 'width', 'height', 'min-free-gb', ...(serverRules ? ['settle'] : ['steps', 'wait-for', ...(own ? ['settle', 'frame'] : [])])]) if (flags.has(k) && flags.get(k) !== true) args.push(`--${k}`, String(flags.get(k)));
+    if (!serverRules && flags.has('no-pace')) args.push('--no-pace');
     const r = spawnSync(process.execPath, args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'], timeout: 60 * 60_000 });
     let j = null; try { j = JSON.parse(r.stdout.trim().split('\n').pop()); } catch { /* */ }
-    if (!j?.ok) throw new Error(j?.failed ? `the recording stopped at step ${j.failed.step} (${j.failed.do}): ${j.failed.why}` : 'the frame-by-frame recording failed (its log is above)');
+    if (!j?.ok) throw new Error(j?.failed ? `the recording stopped at step ${j.failed.step} (${j.failed.do}): ${j.failed.why}` : 'the gameplay recording failed (its log is above)');
   }
+  if (serverRules && !existsSync(join(out, 'events.json'))) writeJson(join(out, 'events.json'), { events: [] });
   const cap = join(out, 'capture.mp4');
   const capInfo = readJson(join(out, 'capture.json'), {});
+  const captureMode = capInfo.mode ?? (capInfo.realSeconds === undefined ? 'live' : 'virtual');
   const log = readJson(join(out, 'events.json'), { events: [] });
   // 2. The edit, from the sound log.
   const title = flags.get('title') && flags.get('title') !== true ? String(flags.get('title')) : null;
@@ -666,16 +672,16 @@ async function trailer(root) {
   const end = flags.get('end') && flags.get('end') !== true ? String(flags.get('end')) : `Play ${gameName}`;
   const sub = flags.get('sub') && flags.get('sub') !== true ? String(flags.get('sub')) : (readJson(join(root, 'studio.json'), {}).cloudflare?.url ? `${readJson(join(root, 'studio.json'), {}).cloudflare.url.replace(/^https?:\/\//, '').replace(/\/+$/, '')}/${game}` : '');
   if (title) await drawCard(root, dir, 'title', { text: title, look, square: true });
-  await drawCard(root, dir, 'end', { text: end, sub, small: flags.get('small') && flags.get('small') !== true ? String(flags.get('small')) : 'Real gameplay, rendered frame by frame.', look, square: true });
+  await drawCard(root, dir, 'end', { text: end, sub, small: flags.get('small') && flags.get('small') !== true ? String(flags.get('small')) : (captureMode === 'live' ? 'Real gameplay, recorded live.' : 'Real gameplay, rendered frame by frame.'), look, square: true });
   // 4. The three deliveries.
   flags.set('square', true); flags.delete('edl');
   const c = await cut(root);
-  const warnings = [...(capInfo.warnings ?? [])];
+  const warnings = [...(capInfo.warnings ?? []), ...(capInfo.advice ? [capInfo.advice] : [])];
   if (!made.heard) warnings.push('the game logged no sound effects, so the shots were picked by motion alone');
   if (made.musicCut) warnings.push(`the game's music could not run on under the cuts: from its first bar line the capture does not hold ${length} s of it, so the music is cut with the picture and jumps at every cut. Film longer (--seconds), two or three times the trailer's length.`);
   return {
     ok: c.ok, command: 'trailer', slug, game, seconds: c.seconds, frames: c.frames, fps: c.fps,
-    capture: { file: rel(root, cap), seconds: capInfo.seconds, frames: capInfo.outputFrames, heldFrames: capInfo.heldFrames ?? 0, realSeconds: capInfo.realSeconds, speed: capInfo.speed, soundEvents: capInfo.soundEvents ?? log.events.length, audio: capInfo.audio ? { rebuilt: capInfo.audio.rebuilt ?? false, placed: capInfo.audio.placed, missing: capInfo.audio.missing?.length ?? 0, peakDb: capInfo.audio.peakDb } : null },
+    capture: { mode: captureMode, file: rel(root, cap), seconds: capInfo.seconds, frames: capInfo.outputFrames, heldFrames: capInfo.heldFrames ?? 0, realSeconds: capInfo.realSeconds, speed: capInfo.speed, soundEvents: capInfo.soundEvents ?? log.events.length, audio: capInfo.audio ? { rebuilt: capInfo.audio.rebuilt ?? false, placed: capInfo.audio.placed, missing: capInfo.audio.missing?.length ?? 0, peakDb: capInfo.audio.peakDb } : null },
     edit: { file: rel(root, join(dir, 'work', 'edl.json')), shots: made.shots, shotSeconds: +made.shot.toFixed(3), title: made.titleDur, end: made.endDur, picked: made.edl.picked, bed: made.edl.bed ? 'the game\'s own music, running on under the cuts' : null, shotsPlayed: made.edl.segments.filter((x) => x.type === 'clip').map((x) => ({ in: x.in, played: x.played })) },
     cuts: c.cuts, outputs: c.outputs, poster: c.poster, ...(warnings.length ? { warnings } : {}), ...(c.problems ? { problems: c.problems, why: c.why } : {}),
     honesty: capInfo.honesty ?? null,

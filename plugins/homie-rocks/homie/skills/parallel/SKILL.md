@@ -20,7 +20,7 @@ Every agent writes only in its own folders. Pick the parts the codex calls for:
 
 | Part | Writes only in | Reads | Hands back |
 | --- | --- | --- | --- |
-| Game logic and netcode | `games/<id>/src/` (not `src/levels/`) | the codex's Concept, Rooms and players, Controls; `node_modules/@homie-rocks/studio/netplay/NETPLAY.md` | rules, bots, rounds, input, the netplay shape |
+| Rules, movement and view | `games/<id>/src/` (not `src/levels/`) | the codex's Concept, Rooms and players, Controls; the game skill's RULES.md and NETPLAY.md section 29 | declared truth and events in rules.ts, prediction in move.ts, input and rendering in view.ts; server host by default |
 | Levels and content | `games/<id>/src/levels/` | the codex's World and Characters | levels, waves or maps as data the game logic loads |
 | Art | `games/<id>/public/art/`, `games/<id>/art/` | the codex's Art direction and Characters; the `art` skill | sprites, backdrops, the cover, at the sizes the contract names |
 | Sound | `games/<id>/public/sound/`, `music/<slug>/` | the codex's Music and sound; the `sound` skill | the named sound effects and the theme |

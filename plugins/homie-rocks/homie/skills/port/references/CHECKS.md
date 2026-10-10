@@ -9,6 +9,12 @@ a failed hold carries its `path` on screen (x right, y down, in bodies).
 Run single rows with `--only owner-desk,owner-phone,owner-iphone,round,life,tv`
 (`life` = host-kill + late-join).
 
+Rules games build and pass strict types and generated play before these browser checks.
+Both players are replicas of the server. Directional controls are N/A for declared
+stationary anchors; prove the real commands, turn changes and immediate local feedback
+instead. An intentional freeze is a blocked sample: repeat during active play without
+removing the mechanic. Native DOM buttons must receive actual touch taps, not only clicks.
+
 ## owner-desk · owner-phone · owner-iphone
 
 A private room (`?room=chk-…`), the player alone with bots.
@@ -35,12 +41,12 @@ Failures and their usual cause:
 
 | Says | Usually |
 | --- | --- |
-| too few samples / no body on the probe | `exposePort` missing, or `self()` returns null (no body adopted yet: `adopt` not wired) |
+| too few samples / no body on the probe | probe missing, or the player has not arrived; rules views use `room.me` and the starter probe |
 | barely moved | input never reached the body: keys go to the game's canvas/document? on phones, touch not wired (use the touch kit), or the stick's keys don't match the game's keys |
 | went the wrong way | input read in the character's facing, a mirrored axis, or a y-up/y-down mix-up in `self`/`basis` |
 | not a straight line | acceleration/inertia or steering that curves (tank controls), a camera-relative mapping to a moving camera |
 | the camera turned by itself | the camera follows the heading; give it a yaw only the player turns |
-| alternate: wrong way | input latency (moved through the host?), or momentum that keeps the old direction for > 600 ms |
+| alternate: wrong way | input latency (movement missing from shared `defineMove`?), or momentum that keeps the old direction for > 600 ms |
 | iPhone only fails | a pointer id sentinel (`-1`), passive listeners, a page gesture, an overlay taking touches — use the touch kit |
 | a press or a hold is thrown off now and then | something hit the player (a bot's shot, a knockback): report `busy` in the probe while the body is not the player's to steer, and keep bots off newcomers for their first seconds |
 
@@ -51,41 +57,38 @@ On the Android phone during play: the share of the screen the game's DOM UI cove
 opaque may sit in the middle third. Fix: chips, not panels; `pointer-events: none`
 and translucent backgrounds; hide menus during play. A game whose world IS HTML (a
 board of tiles, a card table) names it with `exposePort({ world: '.board' })` so the
-board counts as the world; never rewrite a game's renderer just to pass this row.
+board counts as the world; stationary DOM controls may make this row N/A. Never rewrite a game's renderer just to pass this row; inspect its actual board on phone sizes.
 
 ## round
 
 Two fresh browsers (a computer and a phone) press Play (the real lobby, like two
 strangers), must land in the same room, and must both see a round finish that lists
 both of them in its results. It plays for them (keys, drags) the whole time. Fails:
-different rooms (the page ignored the shell's room), no results (the host never calls
-the round over: use `createRoom` and call `room.update()` every host frame), or only
-one person listed (a person's body is missing from the results).
+different rooms (the page ignored the shell's room), no results (rules need automatic
+rounds or a room handler calling `world.round.end()`), or only one person listed
+(a person's declared player entity is missing from the results). A turn game needs
+its actual moves played; random directions alone cannot prove a match.
 
 ## host-kill · late-join (the `life` row)
 
-A computer hosts a private room, a phone joins; after 3 s the host's whole browser is
-killed. **host-kill** passes when the phone becomes host within 5 s and the SAME round
-continues with the clock where it was. Then a new computer joins mid-round:
-**late-join** passes when it is seated, is in the same round, took a bot's place (the
-number of bodies did not grow), receives snapshots, its clock is within 2.5 s of
-the host's, and a short press moves its body (a seat it cannot steer is not a join).
-Fails: a promoted host starts a new round (restore from `e.round`/checkpoint —
-`createRoom` does), a joiner adds a body (use `Roster.claim`), a stale clock (draw the
-clock from the room's round), a joiner that never adopts its body (wire `adopt`).
+A computer opens a private room and a phone joins. After 3 s the first browser
+closes. In a server rules game the phone remains a replica and the SAME round
+continues: there is no election. A new computer then joins the same round, receives
+state, takes the appropriate bot slot and can use the actual controls. Keep
+`on.arrive` initialization separate from `onRoom.roundStart`; a join must not reset
+the whole room. Read `room.round` for the authoritative clock.
 
-`port check` does not cover these three; try each by hand in two real browsers before calling
-joining done (NETPLAY.md section 25 has the whole list):
+For an unchanged older browser-hosted game only, `host-kill` instead checks that
+the phone becomes host within 5 s and restores the same round from its checkpoint.
+Its maintenance contract remains in NETPLAY.md sections 1–28.
 
-- **Everyone leaves, then a new visitor enters before the room is forgotten (60 s).** The
-  visitor hosts the SAME round, restored from the checkpoint. It must have taken a body over
-  (`onTakeover(body, { why: 'restore', own: true })` ran, so it does not carry a departed
-  player's score), stand where that body stands (`adopt` ran) and move at once. A game that
-  only resets a newcomer in its `join` handler misses this path; `createRoom` covers it.
-- **The same, with one of the players who left** (the same tab, reloaded): their own body and
-  score back, and no takeover.
-- **The host's network drops for a second while a third browser joins.** After it reconnects:
-  three people, three bodies, nobody's score reset.
+Also try these manually in two browsers:
+
+- Everyone leaves, then someone enters before the 60 s forget interval. The server
+  resumes its saved room; the new arrival gets the intended body and initialization.
+- Reload the same person's tab: their body and score return without resetting others.
+- Disconnect one person's network while another joins: after reconnect, each person
+  has one body and the intended score. Do not add browser-host handoff code.
 
 ## tv
 
@@ -95,7 +98,9 @@ address another phone can reach; on a loopback preview (127.0.0.1, localhost) th
 leaves the join card out on purpose, so the row says `qr: not applicable` and does not
 fail on it. A local pass therefore says nothing about the live QR: run this row against
 the deployed address before release. Fails: the game gives a spectator
-a body (check `room.mySeat() === null`), or renders nothing without a player.
+a body (rules views have `room.seat === null`), or renders nothing without a player.
+A spectator does not keep an empty server room ticking: keep a real player connected
+when testing live action. A LAN address can prove the local QR without deploying.
 
 ## audio · sandbox · errors
 

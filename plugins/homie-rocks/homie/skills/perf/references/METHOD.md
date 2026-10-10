@@ -6,7 +6,9 @@ How a game gets faster without anybody fooling themselves, and the ways a measur
 
 Two headless Chromes on this computer's GPU (`--use-angle=metal` on a Mac), each a separate process with its own
 throwaway profile, open the game's play page with `?room=perf-…`: a fresh room nobody else is in, so every run starts
-the same way (round 1, the same bots). The first is the host, the second a replica. Both are the same device:
+the same way (round 1, the same bots). With server rules, both are replicas (`replica` and
+`replica-2`); browser measurements do not measure server tick work. An existing browser-hosted
+game has a host and a replica. Both are the same device:
 
 | device | what it is |
 | --- | --- |
@@ -67,7 +69,9 @@ Sizes on disk never vary: any change of at least 1% counts.
   garbage collection). Look at `gcPct` and long tasks.
 - "(program)" large in the profile: Chrome's own drawing and compositing. Fewer draw calls and state changes, smaller
   canvases and fewer full-screen fills help; JavaScript changes will not.
-- The host's `busy` well above the replica's: the rules, bots and snapshots cost; the replica only draws.
+- For an existing browser-hosted game, the host's `busy` well above the replica's points to
+  rules, bots and snapshot work. For server rules, compare both replicas and measure server
+  tick work separately; neither browser runs authoritative rules.
 
 ## Changes that usually help, and their traps
 
@@ -79,7 +83,7 @@ Sizes on disk never vary: any change of at least 1% counts.
 | skip work for what is off screen or far away | a body that pops in, a sound that stops |
 | minified builds of the same library version | a different version is a different game; minify only a file `perf sizes` reads as not minified, keep its name and licence |
 | load big things after the first frame | a game that is "playable" but blank for a second has moved the wait, not removed it |
-| send less netplay: only what changed, coarser numbers | the replica's interpolation and the host's checks read those numbers |
+| send less netplay: only what changed, coarser numbers | interpolation and authoritative checks read those numbers; rules games use the runtime's wire format |
 
 Trades, never optimisations (say them, and only with the person's yes): a lower resolution or pixel ratio, fewer bots,
 particles or physics steps, shorter view distance, softer or smaller shadows, a lower snapshot rate.

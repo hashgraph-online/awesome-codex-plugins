@@ -251,3 +251,7 @@ Homie for studios is in beta. When something breaks, tell the person it can go t
 https://github.com/homie-rocks/homie/issues/new/choose (bug, port request or question),
 without keys, tokens or private addresses in it. Or, with their yes, send a short note
 from here (`homie_feedback`, above).
+
+## Connect an AI to this studio
+
+Every studio serves its own MCP at `<site>/mcp`. Use the `tools` skill for studio-defined business actions, signed integrations and staff AI access. Reuse office and app-record built-ins first. After an authorized deploy, hand over the MCP address and `<site>/_studio/office/connections`: the person approves with the studio account they already have, with no key to copy. Staff connect their own account and retain only their app grants. Client connector setup is separate from the studio approval. Never deploy merely to set up a local tool test.

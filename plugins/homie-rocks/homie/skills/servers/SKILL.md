@@ -18,6 +18,12 @@ A **server** is a named, lasting pool of rooms for one game: strangers are match
 game already has one, **Quick play** (its public rooms). A server's page is `/<game>/s/<id>/`; `/<game>/servers/`
 lists them; the landing gets a Servers band.
 
+For new or rewritten rules games, read the game skill's RULES.md: `guide.view`, `guide.floor`,
+`think` and `goalDone` replace browser-hosted `useAgents`; declared asks replace `net.decide`.
+Use `world.level`, `world.guideLevel`, `world.guideSeats` and `world.kids` for the server policy.
+A floor must play without a model. The legacy recipes below are only for unchanged older games.
+Rooms currently hold at most 32 seats; a named server is a pool of rooms, not a larger room.
+
 ## Do
 
 | The person says | Run (or the MCP tool) | What happens |

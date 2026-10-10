@@ -16,11 +16,13 @@ Original: <where it came from>, licence <MIT/…> (<file>), <lines> lines, <engi
 
 ## Multiplayer design
 - A round: <length; what wins; what happens on death (respawn, never out)>.
-- Room: <max players>; bots from the first frame: <how many>.
-- The host owns: <rules, enemies, pickups, hits, the clock, the seed…>.
-- Each browser owns: <its own body / its own board>. Movement mode: <owner | host>.
+- Room: <chosen players.max, tested at that size>; bots from the first frame: <how many>.
+- Server rules own: <rules, enemies, pickups, hits, the clock, the seed…>.
+- The preserved view draws: <predicted own body / shared board and local button feedback>.
+- Shared move: <movement, map collisions and motion fields; stationary anchors for a board>.
 - A late joiner: <takes which bot's place, and what it sees first>.
-- Host handoff: <what the checkpoint holds>.
+- Continuity: <first browser closes; late join and reload preserve the server round>.
+- Save compatibility: <declared fields and events; automatic room saves, separate character progress>.
 - The big screen: <overview / director camera; what it shows>.
 
 ## Controls

@@ -6,6 +6,13 @@ metadata:
   providers: fal
 ---
 
+
+**Server rules keep real time.** A trailer for a rules game uses live `capture`, not a
+virtual browser clock: slowing the view cannot slow the server. Scripted inputs use
+`record`, then `edl`/`cut`. Keep a real participant in the room while filming a wall/TV;
+a spectator does not keep an empty room alive. Do not switch to a browser host for footage
+presented as online play. Inspect the room and actual action, sound and held frames.
+
 # Video for a studio
 
 A studio is the folder with `studio.json`. Videos live in `videos/<slug>/`, listed in
@@ -46,7 +53,11 @@ Both start with `node <video.mjs> check` (ffmpeg, Chrome, the studio; fal only i
 
 ## A. A gameplay trailer
 
-**One command** films the game, rebuilds its sound, picks the shots and delivers three shapes:
+**One command** films the game, picks the shots and delivers three shapes. Server-rules
+games record live picture and speaker audio; the older browser-game path below rebuilds
+sound and steps a virtual clock. A rules trailer defaults to `--view play`: its idle
+camera occupies a seat and keeps the room awake. Use `--view tv` only with another
+participant connected in that room. Inspect actual action; an idle seat is not gameplay.
 
 ```sh
 npm run dev                                                    # background task; the site at http://127.0.0.1:8787
@@ -55,7 +66,9 @@ node <video.mjs> trailer <slug> --game <id> --url http://127.0.0.1:8787 --second
 
 (`npx --no-install homie-studio trailer <id> …` is the same command, into `videos/<id>-trailer/`.)
 
-- It renders the game **frame by frame on a virtual clock**: in each frame the page's
+The following virtual-clock options apply only to older browser games:
+
+- It renders **frame by frame on a virtual clock**: in each frame the page's
   `requestAnimationFrame`, `performance.now`, `Date`, `setTimeout`, `setInterval` and its CSS and Web
   animations all move on by exactly 1/30 s, then the frame is copied. No frame is ever held, however
   heavy the game or slow the computer (`heldFrames` is 0; `speed` says how it compared with real time).
@@ -83,9 +96,9 @@ node <video.mjs> trailer <slug> --game <id> --url http://127.0.0.1:8787 --second
 
 ```sh
 npm run dev                                                    # background task; the site at http://127.0.0.1:8787
-node <video.mjs> capture <slug> --game <id> --url http://127.0.0.1:8787 --seconds 60
+node <video.mjs> capture <slug> --game <id> --view play --url http://127.0.0.1:8787 --seconds 60
 node <video.mjs> card <slug> --name title --text "<GAME NAME>" --sub "<one line>" --game <id>   # the game's palette and font
-node <video.mjs> card <slug> --name end --text "Play free" --sub "<site>/<id>/play" --small "Real gameplay. Empty seats are filled by bots."
+node <video.mjs> card <slug> --name end --text "Play free" --sub "<site>/<id>/play" --small "Real gameplay, recorded live."
 node <video.mjs> edl <slug> --length 30 --song <music slug> --title "<GAME NAME>"
 node <video.mjs> cut <slug>
 node <video.mjs> sync <slug>

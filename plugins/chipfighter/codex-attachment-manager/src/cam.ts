@@ -162,8 +162,9 @@ async function main(): Promise<void> {
     steps.push(t("cli.step.selfTest", { tools: test.tools.join(t("cli.list")) }));
     const plan = useEngine(port);
     const migrated = migrateSelections();
-    // The installed copy runs the engine, as it will when Codex starts it; an older engine still running is replaced.
-    const engine = await ensureEngine({ port, dir: join(installed, "src") });
+    // The installed copy runs the engine, as it will when Codex starts it; an engine of other code still running is
+    // replaced (v0.4: also one of the same version, which a plugin service alone leaves running).
+    const engine = await ensureEngine({ port, dir: join(installed, "src"), force: true });
     console.log(JSON.stringify({ command, steps, configChanged: plan.configChanged, envChanged: plan.envChanged, notes: plan.notes, migratedSelections: migrated, dataDir: dataDir(), engine: engine.state, enginePid: engine.health?.pid ?? null, next: t("cli.next.install") }, null, 2));
     return;
   }

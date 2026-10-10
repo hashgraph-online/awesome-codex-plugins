@@ -109,7 +109,7 @@ async function waitFrame(h, ms = 30_000) {
 }
 const shell = (h) => T(h.page.evaluate(() => { const s = window.__shell; return s ? { room: s.room, seat: s.seat, role: s.stats?.role ?? null, round: s.round, results: s.results } : null; }), 5000);
 const inFrame = async (h, fn, arg) => { const f = gameFrame(h); return f ? T(f.evaluate(fn, arg), 8000) : null; };
-const probeInfo = (h) => inFrame(h, () => { const p = window.__homiePort; if (!p) return null; const i = p.info(); return { view: p.view, size: p.size, keys: p.keys, thumb: p.thumb, world: p.world, info: i, now: p.now() }; });
+const probeInfo = (h) => inFrame(h, () => { const p = window.__homiePort; if (!p) return null; const i = p.info(); return { movement: window.__homieNet?.probe?.movement?.() ?? null, view: p.view, size: p.size, keys: p.keys, thumb: p.thumb, world: p.world, info: i, now: p.now() }; });
 const selfAt = (h, since) => inFrame(h, (s) => { const p = window.__homiePort; if (!p) return null; const rows = p.rows(s); return rows.length ? rows[rows.length - 1] : null; }, since);
 const frameNow = (h) => inFrame(h, () => performance.now());
 
@@ -313,6 +313,7 @@ async function deviceSession(device, base, game, out, seconds, only, gameJson) {
       const HOLD_MS = 3000;
       if (slow || soft) row(`move ${device}`, 'BLOCKED', { why: softWhy });
       else if (!probe) row(`move ${device}`, 'BLOCKED', { why: 'the game has no port probe (exposePort), so the script cannot see its body: first-move latency was not measured (the controls row needs the probe too)' });
+      else if (probe.movement === 'stationary') row(`move ${device}`, 'N/A', { why: 'Rules declare stationary player anchors (maxSpeed 0). Test actual choices/taps/turns in two browsers; this does not pass their action latency.' });
       else if (probe.view === 'board') row(`move ${device}`, 'N/A', { why: 'a board game has no body to move: the controls row checks that a press is applied' });
       else {
         const tryMove = async (dir) => {
@@ -375,7 +376,7 @@ async function deviceSession(device, base, game, out, seconds, only, gameJson) {
       if (avg('sd') < 22) notes.push(`low contrast: luma spread ${avg('sd')}`);
       if (avg('edges') < 0.03) notes.push(`little visible detail (${(avg('edges') * 100).toFixed(1)}% edge pixels): flat shapes read as unfinished`);
       if (plain >= 2) notes.push(`over 30% of the screen is one flat dark colour in ${plain} shots: an empty backdrop reads as unfinished; give the floor texture, light or props`);
-      if (still >= 2) notes.push(`${still} pairs of shots barely changed while playing: is anything moving?`);
+      if (still >= 2 && probe?.movement !== 'stationary') notes.push(`${still} pairs of shots barely changed while playing: is anything moving?`);
       const offPlay = lookShots.filter((x) => !['live', 'unknown'].includes(x.screen));
       const why = black ? `${black} of ${lookShots.length} shots were black or one colour while playing` : dead >= 2 ? `${dead} shots have pure-black holes over 5% of the screen: nothing drew there (a failed shader, a world that never loaded, the clear colour)` : undefined;
       // Measured runtime cost, when the game exposes its renderer's counters; "not exposed" is said, never a zero.
@@ -710,7 +711,7 @@ async function run() {
   writeFileSync(join(out, 'report.json'), `${JSON.stringify(report, null, 1)}\n`);
   writeFileSync(join(out, 'REPORT.md'), reportMd(report, readJson(join(out, 'review.json'), null)));
   await sheets(out, root);
-  return { ok: !rows.some((r) => r.verdict === 'FAIL') && !instrumentFaults.length, ...(instrumentFaults.length ? { blocked: instrumentFaults } : {}), command: 'run', game, out, report: join(out, 'REPORT.md'), seconds: report.seconds, rows: rows.map((r) => `${r.verdict.padEnd(7)} ${r.name}${r.why ? `: ${r.why}` : ''}`), weak: report.weak, review: reviewLine(null).line, next: `node playtest.mjs review ${relative(process.cwd(), out) || '.'} (then hand REVIEW.md to a fresh reviewer)` };
+  return { ok: !rows.some((r) => r.verdict === 'FAIL') && !instrumentFaults.length, ...(instrumentFaults.length ? { blocked: instrumentFaults } : {}), command: 'run', game, out, report: join(out, 'REPORT.md'), seconds: report.seconds, rows: rows.map((r) => `${r.verdict.padEnd(7)} ${r.name}${r.why ? `: ${r.why}` : ''}`), weak: report.weak, review: reviewLine(null).line, next: `node playtest.mjs review ${relative(process.cwd(), out) || '.'} --local (read the pictures and rubric, save VERDICT.json, then record the local review; outside review only when requested)` };
 }
 
 /** Contact sheets of a run's pictures, labelled (drawn in Chrome, so no font setup). */
@@ -775,11 +776,11 @@ function review() {
       '',
       `The game: ${rep.url}/${rep.game}/play. The run folder: \`${out}\`.`, '',
       rubric.trimEnd(), '',
-      'Add `"review": "local"` to the JSON, save it as VERDICT.json in the run folder, then record it:', '',
-      `    node playtest.mjs reviewed ${relative(process.cwd(), out) || '.'} --kind local --reason "<why no independent review ran>" --score <overall>`, '',
+      'Add `"review": "local"` to the JSON, save it as VERDICT.json in the run folder, then record it. Parts use 0–10; the overall JSON score and --score use 0–100 (seven out of ten means 70):', '',
+      `    node playtest.mjs reviewed ${relative(process.cwd(), out) || '.'} --kind local --reason "<why no independent review ran>" --score <overall-0-100>`, '',
       'When you report to the person, say in the first sentence that this was a local review and not an independent one, and offer the independent review again.', ''].join('\n');
     writeFileSync(join(out, 'REVIEW-LOCAL.md'), local);
-    return { ok: true, command: 'review', kind: 'local', brief: join(out, 'REVIEW-LOCAL.md'), pictures: pics.length, sends: 'nothing: the pictures stay in this session', how: 'Read REVIEW-LOCAL.md and every picture it lists yourself, score with its rubric, save VERDICT.json (with "review": "local"), then run `reviewed <run folder> --kind local --reason "<why>" --score <n>`. This is NOT independent: say so wherever you report it.' };
+    return { ok: true, command: 'review', kind: 'local', brief: join(out, 'REVIEW-LOCAL.md'), pictures: pics.length, sends: 'nothing: the pictures stay in this session', how: 'Read REVIEW-LOCAL.md and every picture it lists yourself, score with its rubric (parts 0–10, overall 0–100), save VERDICT.json (with "review": "local"), then run `reviewed <run folder> --kind local --reason "<why>" --score <overall-0-100>`. This is NOT independent: say so wherever you report it.' };
   }
   writeFileSync(join(out, 'REVIEW.md'), text);
   // Exactly what the review step hands over: the brief, the numbers and these pictures, all from this one folder.

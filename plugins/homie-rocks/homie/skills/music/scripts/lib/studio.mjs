@@ -139,3 +139,9 @@ export function studioHasMediaPages(root) {
 /** Source paths for media and review jobs; built assets retain the shared games namespace. */
 export const experienceDir = (root, id) => join(root, existsSync(join(root, 'apps', id, 'app.json')) ? 'apps' : 'games', id);
 export const experienceJson = (dir) => join(dir, existsSync(join(dir, 'app.json')) ? 'app.json' : 'game.json');
+
+/** Match the toolkit's rules opt-in; an older game may have an unrelated rules.ts helper. */
+export function isServerRules(dir) {
+  const room = readJson(experienceJson(dir), {}).room;
+  return room != null && typeof room === 'object' && room.host !== 'browser' && existsSync(join(dir, 'src', 'rules.ts'));
+}

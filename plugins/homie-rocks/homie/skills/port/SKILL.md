@@ -1,6 +1,6 @@
 ---
 name: port
-description: Make an existing single-player web game multiplayer in a Homie studio. Reads the game (loop, input, state, camera), grades the port easy, medium, hard or not a fit and says why, adds netplay public rooms (bots in empty seats, join in progress, host handoff, rounds), phone touch controls, a stable camera and the big-screen view, proves it with the owner tests (held and alternating directions, real touch on iPhone WebKit and Android Chrome, a late joiner, a killed host, two fresh browsers finishing a round), then deploys it to the studio's own Cloudflare and lists it. Use when someone says "make this multiplayer", "make my game multiplayer on Homie", "port this game to my studio", or points at a single-player web game.
+description: Make an existing single-player web game multiplayer in a Homie studio. Reads the game (loop, input, state, camera), grades the port easy, medium, hard or not a fit and says why, adds netplay public rooms (bots in empty seats, join in progress, server rules, predicted movement, rounds), phone touch controls, a stable camera and the big-screen view, proves it with the owner tests (held and alternating directions, real touch on iPhone WebKit and Android Chrome, a late joiner, a departing first player, two fresh browsers finishing a round), then publishes only when requested. Use when someone says "make this multiplayer", "make my game multiplayer on Homie", "port this game to my studio", or points at a single-player web game.
 ---
 
 # Make a game multiplayer (port)
@@ -54,9 +54,8 @@ score), how the camera moves, what "game over" is. Then write `PORT.md` in the g
   **not a fit** — and one paragraph of why, in plain words;
 - the multiplayer design: what a round is, what the host owns, what each browser
   owns, what bots do, how a late joiner comes in, what the big screen shows;
-- the movement mode: **owner** for action games (each browser moves its own body
-  at once, the host bounds it), **host** for turn-based and grid games (the host's
-  rules move bodies from intents);
+- the rules/view boundary: server-owned entities and shared state, shared `defineMove` for
+  immediate local movement, the existing renderer consuming predicted/interpolated poses;
 - controls on keys and on touch, and the camera rule (below).
 
 Tell the person the grade and why in two or three lines, then go on. If it is
@@ -78,78 +77,36 @@ npx --no-install homie-studio port import <game folder> --id <id> [--name "<Name
 
 It copies the game to `games/<id>/` untouched except: the port toolkit loads first
 in `<head>` (sandbox shims, first-touch audio, `window.HomiePort`) and the viewport
-is phone-safe. `game.json` says how it builds: `static` (the folder as it is, for
-plain `<script>` games), `bundle` (an ES-module entry bundled by esbuild), or
-`command` (its own Vite/webpack build; set its base to `./`). The id is the
+is phone-safe. `game.json` declares the target rules/view entry. The copied source is a
+reference until its rules and view are rewritten; it is not a second build path. The id is the
 game's address: lowercase, digits, hyphens.
 
 ## 3. Port it
 
-Follow [references/RECIPE.md](references/RECIPE.md): it has the worked example
-(a single-player canvas game turned multiplayer with `createRoom`), the patterns
-for turn-based, 2D action, platformer/physics and 3D games, and what goes in
-snapshots, keyed state and checkpoints. The rules that people's hands and real
-phones taught, with the bugs behind them, are in
-[references/LESSONS.md](references/LESSONS.md). Read both before writing code.
+Read the game skill's [RULES.md](../game/RULES.md) and
+[REWRITE.md](../game/REWRITE.md), then extract truth from the existing loop step by step.
+This is a manual rewrite to rules plus view with `room.host: "server"`. Keep the art,
+renderer, controls, sound and feel. `port import` only copies files; it does not convert
+rules. Existing ports retain the compatible host scaffold for upgrades. Follow `references/RECIPE.md` for the
+same rules/view contract used by the starters. Never add a browser host to get past a rules error.
 
-Non-negotiable, every port:
+Use declared entities and events for hits, scores, spawns and turns, shared `defineMove`
+for local prediction, authored map data for collision, and `world.math`/the provided clocks
+and random source for deterministic logic. Match the original movement before adding
+multiplayer. Bots and guide floors use the same legal inputs and the world's skill policy.
+Round, late arrival, watch and TV behavior must fit the actual game; keep a board game's
+turns and a tank game's intentional steering. Do not silently turn it into a gem collector.
 
-1. **Instant start.** The first visitor is playing within seconds, with bots.
-   No title screen, no "press Space", no waiting for players, no "tap for sound".
-2. **Rounds.** A single-player "game over" becomes a round: a clock (60–180 s), a
-   score race or a goal, results for a few seconds, then the next round by itself.
-   Death respawns; it never ends a person's round.
-3. **Bots** fill every empty seat, play by the same rules through the same inputs,
-   and are beatable. An arriving person takes a bot's body where it stands.
-   **Make your bots honour the skill dial** (servers, NETPLAY.md section 17): give
-   `BotBrain` `skill: () => room.skillOf(body)` (reaction, aim and commitment follow
-   the party's vote) and use `jitter`, `engages` and `standoff` for the rest of a
-   bot's choices. `createRoom` keeps a hybrid server's AI seats and labels them AI.
-   For guides that talk (a beginner server), give the game a vocabulary and `useAgents`
-   (the game skill's "Write the guide vocabulary"; NETPLAY.md section 18). For AI that
-   picks the bots' tactics or a director's call, `room.net.decide` per beat, never per
-   frame, opt-in and with the game's own floor (the game skill's "Let the game decide
-   with AI"; NETPLAY.md section 20).
-   Room chat needs nothing from a port (the play page has it); draw speech bubbles over
-   characters with `createBubbles` / `paintBubbles` from `net.on('say')` (NETPLAY.md section 19).
-4. **Host handoff.** Everything the rules need is in the checkpoint; a promoted
-   browser continues the SAME round (clock, scores, world).
-5. **Controls mean the same thing every second.** Input is read on the camera's
-   screen axes, never the character's facing. Tank/rotate controls become
-   screen-relative (a direction held = go that way on screen). The camera never
-   turns by itself while a direction is held.
-6. **Phones.** A floating stick where the thumb lands, a few small see-through
-   buttons at the edge shown only when useful, nothing opaque in the middle, UI
-   under 12% of the screen, no touch UI on computers. Use the touch kit; do not
-   write your own touch code.
-   The world fills a phone held upright: a fixed arena letterboxed into a strip
-   of a portrait screen looks broken. Follow your own body with a camera (your
-   body about 14% of the screen's height) or lay the arena out for portrait.
-   For a flat (top-down) world the kit's `fitView` does it: the whole world where
-   it reads, else the world fills the screen and follows your body, never past
-   its edge but for the HUD's margins. Names drawn over bodies pile up when they
-   crowd: place them with `createLabels` (yours first, never covered; the rest
-   move or fade). Both starters show the pattern.
-   Your own body is unmistakable at a glance (a ring or highlight plus "You").
-7. **The big screen** (`/<id>/tv`) is a spectator: no body, no personal prompts,
-   an overview or director camera, readable from across a room. **A watcher**
-   (`/<id>/watch`) follows one player: point the camera at `room.viewBody()` (your
-   own local body when it is your seat) and the HUD at its numbers, and fall back to
-   the overview when it is null (the recipe's section 8).
-8. **The probe.** Call `exposePort` (see the recipe): the checks cannot judge a
-   game that does not report where its player is. In its `extra`, set the state hooks the
-   playtest and `perf` read by name, whichever the game has (`PortExtra` in the port
-   kit types them): `alive`, `mode`, `loadout`, `touchHeld`, and in a 3D game
-   `drawCalls` and `triangles` from `renderer.info.render`. The round needs no hook
-   (`createRoom` gives it).
-9. Randomness that changes the world happens on the host only. Names people type
-   are drawn as text, never as HTML.
-10. It is still their game: keep its look, its renderer, its feel and its name
-    (add "Race", "Arena", "Party" if you like). The port adds multiplayer; it does not
-    remake the game, and never rewrites something only to pass a check.
+Use the rules starter's truthful `exposePort` probe; adapt its input, body and camera values
+to what players actually see. Report renderer counters when available. The first browser
+leaving cannot end a server-hosted room; no browser checkpoint or host election is needed.
+Phone controls stay at the edges; keep the world readable upright and sideways, with an
+unmistakable own player. Read [references/LESSONS.md](references/LESSONS.md) for control
+and camera failures, applying their lessons to the preserved game rather than replacing it.
 
 ## 4. Prove it (and keep going until it passes)
 
+Build first (`npm run build`); repair rules guard, types and deterministic play errors using RULES.md.
 In the studio, start the site locally and run the checks. Both are long-running:
 start each as a **background task your app keeps alive** (Claude Code: the Bash
 tool's `run_in_background`; a `nohup ... &` inside an ordinary command can be killed
@@ -170,14 +127,14 @@ it measures and how to fix a failure: [references/CHECKS.md](references/CHECKS.m
 
 - **owner-desk / owner-phone / owner-iphone**: hold a direction 5 s → one straight
   line the pressed way, camera yaw change under 10°; alternate directions for 10 s
-  → every press goes the pressed way. Board games: every key and swipe is the move
-  the game applies. Keys on a computer; real touch on Android Chrome and iPhone
+  → every press goes the pressed way. Stationary rules declare maxSpeed 0: movement rows are N/A; explicitly test
+  the actual choices, taps or turns in two browsers. Keys on a computer; real touch on Android Chrome and iPhone
   WebKit (first time: `npm i -D playwright-core@1.58.2 && npx playwright-core install webkit`).
 - **ui-cover**: the UI covers at most 12% of a phone, nothing opaque in the middle.
 - **round**: two fresh browsers (a computer and a phone) meet through Play and both
   see a round finish with both of them in the results.
-- **host-kill / late-join**: the host's browser is killed mid-round; the other
-  takes over the same round within 5 s; a late joiner is seated in a bot's place
+- **host-kill / late-join**: the first player's browser is killed mid-round; the other
+  continues the same server-hosted round (an unchanged older browser-hosted game elects a host); a late joiner is seated in a bot's place
   with the world and the right clock at once.
 - **tv**, **audio**, **errors**: the big screen, sound after the first input, no
   uncaught errors.
@@ -198,16 +155,18 @@ phone held sideways, the look while playing, the UI in landscape, the game's rea
 one player trying and one idle, and a blind review by a fresh reviewer. A port that went silent or
 never had sound: the `sound` skill makes and wires effects and a theme for free.
 
-## 5. Put it online and list it
+## 5. Publish when requested
 
-Follow the `publish` skill: `npm run deploy` (the person approves Cloudflare once
+A port request authorizes building and checking. If going live or listing was not
+requested, hand off the checked local result; do not begin account setup or deploy.
+When publication is requested, follow the `publish` skill: `npm run deploy` (the person approves Cloudflare once
 if Wrangler is not signed in), then run the full check against the live site:
 
 ```sh
 npx --no-install homie-studio port check <id> --url <the live site> > .port-check-live.log 2>&1   # background task
 ```
 
-Then list it with the Homie MCP tool `studio_publish` { site } (without the connector,
+If a directory listing was requested, list it with the Homie MCP tool `studio_publish` { site } (without the connector,
 `npx --no-install homie-studio publish`). Commit the studio
 (`git add -A && git commit -m "Port <Name> to multiplayer"` inside the studio).
 
@@ -215,8 +174,8 @@ Then list it with the Homie MCP tool `studio_publish` { site } (without the conn
 
 Five to eight lines: the grade and why; what multiplayer means in their game now
 (rounds, bots, what the host decides); the check table (each row pass/fail, with
-the numbers that matter); the Play link, the big-screen link and the directory
-listing; and anything still weak, plainly. If something in Homie itself got in the
+the numbers that matter); the local start command and paths, or the live Play/big-screen links and any
+requested directory listing; and anything still weak, plainly. If something in Homie itself got in the
 way, say it can be reported at https://github.com/homie-rocks/homie/issues/new/choose.
 
 ## Never

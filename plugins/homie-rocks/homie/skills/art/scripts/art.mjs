@@ -25,7 +25,7 @@ import { spawnSync } from 'node:child_process';
 import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, extname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { experienceDir, experienceJson, SLUG, checkBudget, findStudio, readBudget, readJson, setBudget, writeJson } from '../../music/scripts/lib/studio.mjs';
+import { experienceDir, experienceJson, isServerRules, SLUG, checkBudget, findStudio, readBudget, readJson, setBudget, writeJson } from '../../music/scripts/lib/studio.mjs';
 import { GPU_FLAGS, chromePath, htmlToPng, loadPuppeteer } from '../../video/scripts/lib/browser.mjs';
 import { checkKey, falKey, priceOf, run as falRun } from '../../video/scripts/lib/fal.mjs';
 import { decode, stats } from '../../playtest/scripts/lib/pixels.mjs';
@@ -90,10 +90,11 @@ async function check() {
 
 async function frame(root) {
   const game = pos[1];
-  gameDir(root, game);
+  const source = gameDir(root, game);
   const url = String(flags.get('url') ?? '').replace(/\/+$/, '');
   if (!/^https?:\/\//.test(url)) throw new Error('--url <the studio site: http://127.0.0.1:8787 from npm run dev, or the live site>');
-  const view = flags.get('view') === 'play' ? 'play' : 'tv';
+  const serverRules = isServerRules(source);
+  const view = flags.has('view') ? (flags.get('view') === 'play' ? 'play' : 'tv') : serverRules ? 'play' : 'tv';
   const seconds = Math.max(4, Math.min(60, Number(flags.get('seconds') ?? 12)));
   const dir = artDir(root, String(flags.get('slug') ?? 'frames'));
   const puppeteer = loadPuppeteer(root); const exe = chromePath();
@@ -107,7 +108,16 @@ async function frame(root) {
     await page.goto(`${url}/${game}/${view}`, { waitUntil: 'domcontentloaded', timeout: 60_000 });
     // The platform's own furniture never goes into art: the join card, the QR, the status chip, result cards.
     await page.addStyleTag({ content: '.join,.chip,.card,[data-join],[data-chip],[data-results],[data-screen],[data-room-ui],[data-toast]{display:none!important}' }).catch(() => {});
+    await page.waitForSelector('iframe', { timeout: 30000 });
+    const gameFrame = page.frames().find(f => /\/__game\//.test(f.url()));
+    if (!gameFrame) throw new Error('the game frame never loaded');
+    if (serverRules) await gameFrame.waitForFunction(() => Boolean(window.__homieNet), { timeout: 30000 });
+    const before = await gameFrame.evaluate(() => window.__homieNet?.probe?.tick?.() ?? null);
     await sleep(4000);
+    if (serverRules && view === 'tv') {
+      const after = await gameFrame.evaluate(() => window.__homieNet?.probe?.tick?.() ?? null);
+      if (!(after > before)) throw new Error('The server room is paused: a TV is not a participant. Use --view play, or keep a player in this same room, then capture again.');
+    }
     for (let t = 0; t < seconds; t += 2) {
       const png = await page.screenshot({ type: 'png', captureBeyondViewport: false });
       const st = stats(decode(png, 480));

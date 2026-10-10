@@ -17,6 +17,15 @@ One script: `scripts/playtest.mjs` in this skill's folder (Claude Code:
 studio. It needs Node 22, Chrome and the studio's `@homie-rocks/studio` (for puppeteer-core and its
 checks). It opens at most two browsers at a time, all muted: nothing plays out loud.
 
+For rules games, build first: the guard, strict types and deterministic play check must pass
+before Chrome opens. Both online browsers are replicas of a server host; killing the first
+browser tests continuity, not host election. Use the real predicted pose in the probe, never
+fake movement or scores. Test local movement with 150 ms delay and also verify hits, scores,
+turns and results agree after authority arrives. A turn game, quiz or live app needs its actual
+buttons and workflow exercised: movement-only rows do not prove it works, and an app has no
+required game round. Use the app check for shared actions and reconnect. Report inapplicable
+rows honestly, and add a manual two-browser trial of the requested mechanic.
+
 ## 1. Run the site and the instruments
 
 Start the site as a background task that outlives the command (Claude Code: the Bash tool's
@@ -40,7 +49,7 @@ Stop the site afterwards with `npx --no-install homie-studio dev --stop`.
 | `ui <phone>` | waits for active play, holds the thumb on the stick, hides the world, paints the page black then white, and counts what stays: the share of the screen the DOM UI covers and what is opaque in the middle third. Both frames are saved with the game's state at each | over 12% covered, or anything opaque in the middle, during active play. N/A when the screen was the results card, a spectator view, the loading cover or a browser cut off from its room (measured, labelled, not judged by that bar). BLOCKED when the game changed state between the two frames. WARN when it would pass and a DOM HUD element sits under one of the play page's own controls (the room button, the server or chat pill, the banner): the row names the element and the control |
 | `sound` | copies what the game sends to its speaker while it is played (no autoplay flag: the real first-touch rule); loudness overall and through a phone speaker, true peak, clipping, gaps, whether each action press answers with a sound, whether music started | silence, clipping; WARN for quiet, gaps, actions without sound, what a phone loses |
 | `play` | a computer plays (direction holds and the game's primary action) and a phone does nothing, in the same public room, for a round that starts after both are in: places, scores, round length against `game.json`, lead changes, and which inputs the script really pressed | no round finishes; WARN when doing nothing scores as well as playing, everyone ties, or a bot is far ahead (a measured gap in one scripted round, never "people cannot win") |
-| `controls` | the owner tests from `homie-studio port check`: hold a direction 5 s (one straight line, the camera's yaw moves under 10°), alternate directions 10 s (every press goes the pressed way), real touch on Android Chrome (and iPhone WebKit when Playwright's WebKit is installed; otherwise that row says skip), a killed host, a late joiner, the big screen, audio unlock, errors | any of them (`port` skill: `references/CHECKS.md` says what each failure usually means) |
+| `controls` | the owner tests from `homie-studio port check`: hold a direction 5 s (one straight line, the camera's yaw moves under 10°), alternate directions 10 s (every press goes the pressed way), real touch on Android Chrome (and iPhone WebKit when Playwright's WebKit is installed; otherwise that row says skip), the first browser closing (server continuity; host election only for older games), a late joiner, the big screen, audio unlock, errors | any of them (`port` skill: `references/CHECKS.md` says what each failure usually means) |
 | `round` | `homie-studio check`: two fresh browsers press Play, meet in one room and both see a round finish with both of them in the results; reconnects are reported beside completion | they do not. WARN when the round finished and a browser reconnected on the way |
 | `errors` | uncaught errors and failed requests seen along the way | any uncaught error |
 
@@ -94,7 +103,7 @@ named; under the "N playing" chip, which fades, it is a note. Fix it by laying t
 
 A reading taken while the browser was not in its room is labelled, never judged as play: the
 helper's link (`window.__homieNet.link`, and `window.__shell.link.state`) says `reconnecting`,
-`alone` (the room never answered and the browser hosts by itself), `offline` or `closed`, and a
+`alone` (the room never answered; an older browser-hosted game may play locally), `offline` or `closed`, and a
 press, a picture or a UI frame sampled then is BLOCKED or N/A with "CUT OFF from its room" in its
 state. The round row says a browser "was seen cut off" beside completion.
 
@@ -104,6 +113,16 @@ every screenshot (the UI row's pair as `*-ui-on-black.png` and `*-ui-on-white.pn
 **Open the contact sheets and look at every picture before believing any number.**
 
 ## 2. The blind review
+
+For a rules game with maxSpeed 0 on every player kind, the toolkit marks the
+movement probe stationary. First-move rows say N/A and directional owner tests
+say not applicable, never PASS. Exercise its actual choices/taps/turns in two
+browsers and measure local feedback separately from authoritative acceptance.
+Do not add movement, fake pose samples or a board-direction probe to silence a check.
+A hold entirely inside a hiding countdown, death or stun is blocked evidence.
+Wait for an active, steerable phase and repeat the real controls in both browsers;
+record that directed result beside the generic row. Keep the mechanic and honest
+busy/alive probes; never remove a freeze or disguise it to turn a row green.
 
 ```sh
 node <playtest.mjs> review .playtest/<game>/<time>
@@ -126,6 +145,11 @@ another way. Then one of:
   this session to score the contact sheets itself. Nothing leaves the session. It is the builder
   grading its own build, so it is labelled **not independent** everywhere, and you say so in the
   first sentence when you report it.
+  Read that brief and every listed picture, follow its JSON rubric and write
+  `VERDICT.json` with `"review": "local"` in this exact run folder BEFORE calling
+  `reviewed --kind local`. The `reviewed` command records a verdict; it does not create one.
+  Rubric parts use 0–10; the overall JSON `score` and `--score` use **0–100**
+  (for example, an overall seven out of ten is `--score 70`, not `7`).
 - Record what happened, always: `node <playtest.mjs> reviewed <folder> --kind independent --by
   "<who>"`, `--kind local --reason "<why>"`, or `--kind none --reason "<why>"`. REPORT.md and
   `report <folder>` then say which review this run had. With no record, or `none`, the review line
@@ -152,7 +176,8 @@ missing lighting model, not five jobs). Name the one change that would matter mo
 person wants, fix it and run the same instruments again; a change that does not measure better than
 the version before it is a regression, not progress. When the weak thing is speed (a low frame rate in
 `first`, a slow first ten seconds, a phone that struggles), the `perf` skill measures it properly: frame
-times and CPU per frame for the host and a replica, alternating runs, and only changes that beat the noise.
+times and CPU per frame for player browsers (server tick work is separate), alternating runs,
+and only changes that beat the noise.
 When the weak thing is how a move feels (a hit that does not land, a floaty jump), the `lab` skill compares the
 change with the last commit frame by frame, with the person.
 
@@ -165,7 +190,7 @@ test, and the traps that make an instrument lie.
 - Never call a game good, fixed or finished from the code, a build that passed, or your own look at it.
 - Never report a local review as a blind one, and never read a BLOCKED or N/A row, or a missing review, as a pass.
 - Never turn one scripted round into a rule ("people cannot win", "input does not matter"): say what was measured, and run it again.
-- Never let the builder grade the build: the reviewer is fresh, every time.
+- Never call the builder's local verdict an independent review: an independent reviewer is fresh every time.
 - Never script a player to make a number look good; the instruments play like a person on purpose.
 - Never leave a room open on a live site: the playtest's browsers leave when it ends; do not start
   more than two browsers of your own beside it.

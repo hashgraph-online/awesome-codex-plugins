@@ -23,6 +23,9 @@ export function dataDir(env: NodeJS.ProcessEnv = process.env, platform: NodeJS.P
 }
 
 export const selectionDirOf = (root = dataDir()) => join(root, "selection");
+// v0.4: Claude Code sessions keep their own selections and request statistics, apart from Codex's.
+export const claudeSelectionDirOf = (root = dataDir()) => join(root, "claude", "selection");
+export const claudeRequestStatsDirOf = (root = dataDir()) => join(root, "claude", "requests");
 export const requestStatsDirOf = (root = dataDir()) => join(root, "state", "requests");
 export const proxyLogDirOf = (root = dataDir()) => join(root, "proxy");
 export const bindingsDirOf = (root = dataDir()) => join(root, "bindings");

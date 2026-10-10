@@ -4,7 +4,7 @@
 
 LinkMCP is a hosted MCP server for LinkedIn. You connect your LinkedIn account once in the web app. Then your AI assistant can research people and companies, search LinkedIn (also Sales Navigator, with your own seat), read and answer your LinkedIn messages, post, comment and react (as yourself or as a company page that you administer), manage invitations, and find work emails and mobile numbers. There is nothing to install and nothing to run.
 
-[![Start your free 7-day trial](https://img.shields.io/badge/Start%20your%20free%207--day%20trial-005ccc?style=for-the-badge)](https://app.linkmcp.io/login?utm_source=github&utm_medium=readme&utm_content=cta-top)
+[![Start your free 7-day trial](https://img.shields.io/badge/Start%20your%20free%207--day%20trial-005ccc?style=for-the-badge)](https://app.linkmcp.io/?utm_source=github&utm_medium=readme&utm_content=cta-top)
 
 No card. Sign in with an email code or Google. Setup takes about a minute.
 
@@ -203,12 +203,14 @@ Current prices: [app.linkmcp.io/#pricing](https://app.linkmcp.io/#pricing)
 
 ## Account risk and limits
 
-Any automated use of LinkedIn can put an account at risk, and no tool can promise that LinkedIn will not restrict an account. LinkMCP limits the risk:
+How LinkMCP protects your LinkedIn account:
 
 - Server-side rate limits on every call, and a warm-up limit for connection requests on new or quiet accounts.
 - Your LinkedIn password is not stored. The LinkedIn session runs on dedicated session infrastructure, not in your browser.
 - No bulk scraping and no mass exports. No training on your data.
 - Read [Will my LinkedIn get banned?](https://app.linkmcp.io/guides/will-my-linkedin-get-banned) before you automate at volume.
+
+As with any tool that acts on LinkedIn for you, a restriction cannot be ruled out completely; these limits keep the risk low.
 
 ---
 

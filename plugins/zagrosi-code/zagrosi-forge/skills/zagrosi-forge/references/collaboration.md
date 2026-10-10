@@ -15,6 +15,13 @@ covers routine task announcements, scope updates, checks and delivery notes;
 it does not authorize source publication, unrelated services or taking over work.
 See the [public guide](../../../docs/collaboration.md) for onboarding and commands.
 
+New boards use protocol v2; v1 keeps ownership checks without dependency awareness.
+Upgrade only through explicit `start`/`update --upgrade-protocol --expect …` using
+the freshly reviewed revision, after arranging compatible clients and reconciling
+pending work. A changed revision needs fresh review, never automatic rebasing of
+upgrade consent. Retry uncertain publications as their exact saved commits;
+do not replace or downgrade the board.
+
 Keep private research and execution records local. For a shared plan, deliberately
 review and commit its stable spec, contract and sections in a dedicated directory
 such as `.forge/plans/sign-in/`; preserve normal commit/push authorization. Keep
@@ -60,6 +67,15 @@ readers can implement independent sections concurrently; contract edits conflict
 with active readers. Ordinary in-repository plans still reserve their planning
 directory, so use prepared workspaces for shared section implementation.
 
+V2 plan-aware `start`/`update` publishes required Compatibility source/check paths
+as declared inputs, separate from reserved writes. Unplanned updates and recovery
+preserve accepted declarations and aliases. Explicitly refresh the actual plan
+scope when these change; follow returned dependency-binding repair commands.
+Do not treat an advisory overlap as failed verification or extra ownership.
+Observing unsafe aliases in accepted read inputs makes awareness partial;
+publishing refreshed inputs still validates paths. Write-alias checks and
+canonical-plan reader protection remain blocking.
+
 Synchronize code and canonical plans through normal Git operations. The pinned
 contract does not prove every remote branch was fetched. If it changes, review
 and commit the change, finish/update affected reservations, and prepare again;
@@ -75,6 +91,14 @@ reservation atomically before cleanup crosses its scope. If blocked, preserve
 work and report the colleague/task or unavailable state; do not bypass the check.
 Normal commits on a named branch remain valid. Switching branches or moving a
 detached HEAD needs an explicit task update before further work.
+
+Observe both directions: your declared reads against peer writes and your writes
+against peer reads. Either arrival order is visible at supported command boundaries;
+earlier tasks receive no asynchronous notice. Surface peers, paths and omissions.
+`observed` describes complete advertised coverage, not semantic safety. Preserve
+`partial` for unknown declarations/unsafe aliases and `unavailable` for offline,
+v1 or no selected task; empty warnings never establish compatibility. Keep current-task
+and next-entry observations distinct. They do not alter saved verification receipts.
 
 Mutable setup, section entry, verification and recording check bindings and scope.
 Follow their returned repair commands. A successful saved record remains saved

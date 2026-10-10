@@ -50,7 +50,7 @@ The plan cannot see which version the live site runs; ask, or deploy. A room mad
 with an older site too (seen against 0.31.0, not promised for every older version): say both halves, and never
 "it needs 0.32.0 to play online".
 
-Before anything ships, the game should name its revision: `"netplay": { "version": "1" }` in its `game.json`.
+For an older browser-hosted game, before anything ships name its revision: `"netplay": { "version": "1" }` in its `game.json`.
 An older copy then keeps playing with other copies of its revision, and says "Update <Name> to play online
 with everyone." when it meets a newer one. Raise the number with every change an older copy cannot play with.
 

@@ -29,12 +29,16 @@ card, a link preview. Start from the game itself:
 
 ```sh
 npm run dev                                                       # background task
-node <art.mjs> frame <game> --url http://127.0.0.1:8787           # frames of the big screen playing, the busiest picked
+node <art.mjs> frame <game> --url http://127.0.0.1:8787           # real game frames, the most detailed picked
 node <art.mjs> cover <game> --from art/frames/frame-04.png [--focus 0.6,0.4]
 ```
 
-`frame` films the game's big screen (bots playing in a live room) with the platform's own furniture
-hidden (the join QR, the status chip, result cards) and keeps the frame with the most visible detail.
+`frame` uses the play view for server rules so the camera's seat keeps the room
+running, and the big screen for older games. It hides the platform's furniture
+(join QR, status chip, result cards) and keeps the frame with the most visible detail.
+For `--view tv` in a rules game, keep a real player in that same room: a TV alone
+does not keep a server match running. A paused-room message means use `--view play`
+or open a player, not change hosting mode.
 `cover` crops it to 16:9 around the focus, writes `cover.jpg` (1600x900, under 400 KB) into the game
 and names it in `game.json` (`"cover": "cover.jpg"`): the site and the directory use it until the game's
 landing has a still of its own (`hero/wide.jpg`), which then is its picture everywhere.

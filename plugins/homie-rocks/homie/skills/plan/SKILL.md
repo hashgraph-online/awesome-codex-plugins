@@ -13,6 +13,12 @@ comes out as the game's **Game Codex**: `games/<id>/CODEX.md` (the source of tru
 repository) and a page drawn from it in the game's own look, with cards, tables and a Build status
 tab. People who never read code see the game in it and steer it; you keep it true.
 
+The implementation default is rules plus view on a server room, up to 32 seats.
+Choose engineering details yourself; never ask the person to choose hosting, ownership,
+tick rate or serialization. Capture the requested mechanic, controls, outcomes and visual
+identity in the Codex. Read the game skill's RULES.md before implementing. A live app uses
+the same transient rooms, without mandatory scores/bots/rounds, plus authorized records.
+
 ## 1. Decide from the request
 
 Default to doing the planning yourself. Choose genre, controls, camera, palette, room size,

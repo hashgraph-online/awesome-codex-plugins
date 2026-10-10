@@ -2,9 +2,8 @@
   "mcpServers": {
     "agiflow": {
       "type": "http",
-      "url": "https://agiflow.io/api/v1/mcp",
+      "url": "https://agiflow.io/api/v1/mcp-app",
       "headers": {
-        "Authorization": "Bearer ${AGIFLOW_API_KEY}",
         "x-agiflow-mcp-consumer": "plugin"
       }
     }

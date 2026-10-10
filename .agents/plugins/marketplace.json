@@ -168,7 +168,7 @@
       "icon": "./plugins/fr33dr4g0n/agentry-public/assets/icon.svg"
     },
     {
-      "name": "agiflow-ai-plugin",
+      "name": "agiflow",
       "displayName": "AgiFlow",
       "source": {
         "source": "local",

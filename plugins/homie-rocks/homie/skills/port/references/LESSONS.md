@@ -4,12 +4,20 @@ Every line here is something real players, real phones or an independent tester
 found in multiplayer web games built on this contract. Numbers are what was
 measured. Read it before porting; come back when a check fails.
 
+These observations include older browser-hosted ports. New ports use server rules
+and shared `defineMove`; the historical `bound`, `take`/`give`, `adopt`, checkpoint
+and host-election remedies below apply only to maintaining those older games.
+For a rules rewrite, encode knocks/freezes in motion, use map sweeps and predicted
+poses, initialize `on.arrive`, and let the runtime save and resume the server room.
+Do not copy an old browser-host architecture. The reported timings are observations,
+not a performance or feel guarantee.
+
 ## Movement
 
-- **Your own body never waits for the network.** Owner movement answers a key in
-  8–17 ms; anything routed through the host answers in 100–200 ms and feels broken.
-  Turn-based and grid games are the exception (host movement), with the move shown
-  the moment it is applied.
+- **Your own body should answer locally.** Historical owner movement answered a key in
+  8–17 ms in these trials; waiting for the host took 100–200 ms. Rules games use
+  shared `defineMove` for immediate prediction. A turn game gives local press/selection
+  feedback while its authoritative turn and score wait for the server.
 - **Bound claims by time, not per frame.** A per-frame speed bound at 60 fps let a
   cheat run at ~6× speed; a bound of 0.4 s of "bank" reset an honest phone that had
   stalled for a second. Bound a claim by `maxSpeed × 1.3 × dt` plus a little slack,
@@ -51,6 +59,9 @@ measured. Read it before porting; come back when a check fails.
   stick that used `-1` as "no finger" and `id >= 0` as "a finger" drew its knob
   perfectly and never moved the player, while the buttons worked. Emulators number
   fingers 0, 1, 2 and passed for hours. Use `null` for "no finger" (the touch kit does).
+- Native DOM buttons belong outside `guardGestures`' touch selector unless they
+  handle touch pointers explicitly; suppressing native clicks can make an `onclick`
+  button inert on phones. Verify with a real touch tap.
 - **A pinch between two thumbs is a page gesture**: the browser cancels both touches.
   Listen on the window, capture phase, non-passive; `preventDefault` every game
   touch; cancel Safari's `gesture*` events; a phone-safe viewport (no zoom).
@@ -96,10 +107,8 @@ measured. Read it before porting; come back when a check fails.
 - **A late joiner takes a bot's place**, not a new body: pick a bot that is doing
   well but not winning (the one nearest the pack), give a short shield, and never
   hand over a bot that is dead, carrying the win, or a lap down.
-  `createRoom({ admit })` is where that choice is made: it is asked for every new
-  arrival (a join, a room revived from its checkpoint, a new host's reconcile) and
-  never for a player coming back to their own body, so a reload is not a way back
-  into an elimination round.
+  Express admission in declared rules and preserve the existing player body on
+  reconnect, so a reload is not a way back into an elimination round.
 - **A room can outlive everyone in it.** The relay keeps an empty room's round for
   60 s; the next visitor hosts that same round. Its body is a takeover like any
   other (`onTakeover`, then `adopt`): do the newcomer's reset there, not only in a

@@ -9,10 +9,11 @@
 // Input: thread id, the sessions directory (rollouts are only read) and the tool's data directory.
 // Output: PanelState as plain JSON; selection changes are written to <data dir>/selection/.
 
+import { claudeHome, claudeImageData, loadClaudeIndex, type ClaudeIndex } from "./claude-index.ts";
 import type { ImageSource } from "./images.ts";
-import { dataDir, requestStatsDirOf, selectionDirOf } from "./paths.ts";
+import { claudeRequestStatsDirOf, claudeSelectionDirOf, dataDir, requestStatsDirOf, selectionDirOf } from "./paths.ts";
 import { readRequestStats, type RequestStats } from "./request-stats.ts";
-import { effectiveSelection, writeSelection, type Mark, type Selection } from "./selection.ts";
+import { effectiveSelection, readSelection, writeSelection, type Mark, type Selection } from "./selection.ts";
 import { buildIndex, imageData, readThreadHistory, type IndexedImage, type ThreadIndex } from "./thread-index.ts";
 import { threadTitle } from "./thread-names.ts";
 import { pngThumbnail } from "./thumbnail.ts";
@@ -36,7 +37,9 @@ export type SendInfo = {
   baseline: { at: string; bytes: number } | null;
   // What the engine sent for that request.
   last: { at: string; bytesBefore: number; bytesAfter: number; replaced: number; skipped: boolean } | null;
-  notice: { kind: "skipped"; at: string; reason: SkipReason } | { kind: "websocket"; at: string } | null;
+  // v0.4: "fallback": Anthropic refused the rewritten history under its thinking, so the engine sent the original
+  // (claude-rewrite.ts): what the user unchecked went out that time.
+  notice: { kind: "skipped"; at: string; reason: SkipReason } | { kind: "websocket"; at: string } | { kind: "fallback"; at: string } | null;
 };
 // started: the thread has a rollout. A panel opened on a new chat before its first message may be tied to a thread
 // Codex prepared and then replaced (v0.1-8); that one never gets a rollout.
@@ -69,10 +72,10 @@ export function sendInfo(stats: RequestStats | null): SendInfo {
   if (latest?.transport === "websocket" && (latest.event === "active-while-unchecked" || latest.activeWhileUnchecked)) notice = { kind: "websocket", at: latest.at };
   else if (latest?.transport === "http" && rewrite?.skipped) {
     notice = { kind: "skipped", at: http!.at, reason: SKIP_REASONS.find(([pattern]) => pattern.test(rewrite.skipped))?.[1] ?? "other" };
-  }
+  } else if (latest?.transport === "http" && rewrite?.fallback) notice = { kind: "fallback", at: http!.at };
   return {
     baseline: http && bytes !== null && http.imageSizes ? { at: http.at, bytes } : null,
-    last: http && bytes !== null ? { at: http.at, bytesBefore: bytes, bytesAfter: rewrite?.decodedAfter ?? bytes, replaced: rewrite?.replaced?.length ?? 0, skipped: !!rewrite?.skipped } : null,
+    last: http && bytes !== null ? { at: http.at, bytesBefore: bytes, bytesAfter: rewrite?.fallback ? bytes : rewrite?.decodedAfter ?? bytes, replaced: rewrite?.fallback ? 0 : rewrite?.replaced?.length ?? 0, skipped: !!rewrite?.skipped || !!rewrite?.fallback } : null,
     notice,
   };
 }
@@ -129,7 +132,12 @@ export function sameContent(index: ThreadIndex, image: IndexedImage): string[] {
 
 // `unchecked`: the keys whose box is not ticked (v0.3: with automatic selection on, every image not pinned).
 export function panelState(threadId: string, history: Record_[], index: ThreadIndex, unchecked: Set<string>, stats: RequestStats | null, title: string | null = null, auto = false): PanelState {
-  const requested = requestedIds(history);
+  return panelStateOf(threadId, index, unchecked, stats, title, auto, requestedIds(history), history.length > 0);
+}
+
+// v0.4: the same for any index: Codex's (from a rollout) or Claude Code's (claude-index.ts), with the ids the model's
+// latest reply asked for and whether the conversation has started.
+export function panelStateOf(threadId: string, index: ThreadIndex, unchecked: Set<string>, stats: RequestStats | null, title: string | null, auto: boolean, requested: string[], started: boolean): PanelState {
   const fetched = [...new Set([...index.copies.values()].filter((copy) => copy.turn !== null && copy.turn === index.turns).map((copy) => copy.of))];
   const carried: Record<string, number> | null = stats?.lastHttp?.imageSizes ?? null;
   // Images after the last one that request carried, or from a later turn, were added since and go out next time.
@@ -151,7 +159,7 @@ export function panelState(threadId: string, history: Record_[], index: ThreadIn
     };
   });
   return {
-    threadId, title, started: history.length > 0, historyMissing: false, turns: index.turns, images, requested, auto, fetched,
+    threadId, title, started, historyMissing: false, turns: index.turns, images, requested, auto, fetched,
     totals: {
       images: images.length,
       unchecked: images.filter((image) => !image.checked).length,
@@ -199,8 +207,16 @@ export function loadPanelState(threadId: string, options: PanelOptions): PanelSt
 
 // v0.3: `auto` switches automatic selection; with `mode: "auto"` a tick pins an image instead of sending it, each kept
 // in its own record, so switching back finds the manual checks as they were.
-export function applySelection(threadId: string, change: { uncheck?: string[]; check?: string[]; checkAll?: boolean; auto?: boolean; mode?: "manual" | "auto" }, options: PanelOptions): PanelState {
+export type SelectionChange = { uncheck?: string[]; check?: string[]; checkAll?: boolean; auto?: boolean; mode?: "manual" | "auto" };
+export function applySelection(threadId: string, change: SelectionChange, options: PanelOptions): PanelState {
   const { root, history, index, selection, stats, title, historyMissing } = load(threadId, options);
+  const next = changedSelection(threadId, index, selection, change);
+  writeSelection(next, selectionDirOf(root));
+  return { ...panelState(threadId, history, index, offKeys(index, next), stats, title, !!next.auto), historyMissing };
+}
+
+// The selection after a change; nothing is written.
+export function changedSelection(threadId: string, index: ThreadIndex, selection: Selection, change: SelectionChange): Selection {
   const now = new Date().toISOString();
   let next: Selection = { ...selection, threadId };
   // Switched on for the first time, the thread is marked: from then on its history may hold copies the model fetched.
@@ -222,9 +238,7 @@ export function applySelection(threadId: string, change: { uncheck?: string[]; c
     const image = imageOf(id);
     if (pins) marks[image.key] = { id, at: now }; else delete marks[image.key];
   }
-  next = pins ? { ...next, pinned: marks } : { ...next, unchecked: marks };
-  writeSelection(next, selectionDirOf(root));
-  return { ...panelState(threadId, history, index, offKeys(index, next), stats, title, !!next.auto), historyMissing };
+  return pins ? { ...next, pinned: marks } : { ...next, unchecked: marks };
 }
 
 // One image for the panel: a PNG larger than maxSide is scaled down; smaller PNGs and other formats (which the
@@ -240,5 +254,43 @@ export function imageFor(threadId: string, id: string, maxSide: number, options:
   const original = `data:${image.mime};base64,${data}`;
   const large = image.mime === "image/png" && Math.max(image.width ?? 0, image.height ?? 0) > maxSide;
   // A PNG our decoder cannot read (e.g. interlaced) is still shown, just not scaled down first.
+  return { id, dataUrl: large ? pngThumbnail(data, maxSide) ?? original : original };
+}
+
+// v0.4: the same for a Claude Code session, from its transcript (claude-index.ts) and the selection and statistics
+// kept for Claude sessions (paths.ts).
+export type ClaudePanelOptions = { dataRoot?: string; home?: string };
+
+function loadClaude(sessionId: string, options: ClaudePanelOptions) {
+  const root = options.dataRoot ?? dataDir();
+  const index = loadClaudeIndex(sessionId, options.home ?? claudeHome());
+  const selection = readSelection(sessionId, claudeSelectionDirOf(root));
+  const stats = readRequestStats(sessionId, claudeRequestStatsDirOf(root));
+  return { root, index, selection, stats };
+}
+
+const claudeState = (sessionId: string, index: ClaudeIndex, selection: Selection, stats: RequestStats | null): PanelState =>
+  panelStateOf(sessionId, index, offKeys(index, selection), stats, index.title, !!selection.auto, [...new Set(index.replies.flatMap(askedIn))], index.chain.length > 0);
+
+export function loadClaudePanelState(sessionId: string, options: ClaudePanelOptions = {}): PanelState {
+  const { index, selection, stats } = loadClaude(sessionId, options);
+  return claudeState(sessionId, index, selection, stats);
+}
+
+export function applyClaudeSelection(sessionId: string, change: SelectionChange, options: ClaudePanelOptions = {}): PanelState {
+  const { root, index, selection, stats } = loadClaude(sessionId, options);
+  const next = changedSelection(sessionId, index, selection, change);
+  writeSelection(next, claudeSelectionDirOf(root));
+  return claudeState(sessionId, index, next, stats);
+}
+
+export function claudeImageFor(sessionId: string, id: string, maxSide: number, options: ClaudePanelOptions = {}): { id: string; dataUrl: string | null } {
+  const index = loadClaudeIndex(sessionId, options.home ?? claudeHome());
+  const image = index.images.find((candidate) => candidate.id === id);
+  if (!image) throw new Error(`${id} is not an image of this session`);
+  const data = claudeImageData(index, image);
+  if (!data || !image.mime?.startsWith("image/")) return { id, dataUrl: null };
+  const original = `data:${image.mime};base64,${data}`;
+  const large = image.mime === "image/png" && Math.max(image.width ?? 0, image.height ?? 0) > maxSide;
   return { id, dataUrl: large ? pngThumbnail(data, maxSide) ?? original : original };
 }

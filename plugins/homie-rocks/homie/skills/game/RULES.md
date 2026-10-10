@@ -18,7 +18,7 @@ export default defineRules({
       player: { away: 'think', leave: 'bot' },
       fields: { score: f.u16({ score: true }) },
       input: { ax: f.i8(), ay: f.i8() },
-      body: { shape: 'circle', radius: 0.5, maxSpeed: 6, move: 'owner' },
+      body: { shape: 'circle', radius: 0.5, maxSpeed: 6 },
       think() { return { ax: 0, ay: 0 }; },
       on: { point(world, self) { self.score += 1; } },
       onRoom: { roundStart(world, self) { self.score = 0; } },
@@ -36,10 +36,10 @@ export default defineRules({
 
 The map must contain a nonempty `spots.start` list for that example:
 `{"bounds":{"min":[-12,-7],"max":[12,7]},"boxes":[],"spots":{"start":[[-5,0],[5,0]]}}`.
-Declare `players.max` in game.json (1–32); use `entry: "src/view.ts"` and
+Declare `players.max` in game.json (a positive integer, including hundreds); use `entry: "src/view.ts"` and
 `room: { host: "server" }`. Only public tunables are visible in move.ts.
 
-`index.html` is the browser entry document; include `<script type="module" src="/src/view.ts"></script>`. The build rewrites that entry to its bundle. A minimal manifest is:
+`index.html` is the browser entry document; include `<script type="module" src="./assets/main.js"></script>`. The manifest names the source, but HTML loads this relative built bundle. Never point HTML at /src/view.ts: that URL is not served. The build rewrites assets/main.js to its hashed bundle. A minimal manifest is:
 
 ```json
 {"id":"keepers","name":"Keepers","entry":"src/view.ts","players":{"min":1,"max":4},"room":{"host":"server"}}
@@ -49,9 +49,57 @@ Declare `players.max` in game.json (1–32); use `entry: "src/view.ts"` and
 
 For example, `homie-studio servers new keepers "Practice" --policy beginner --guides 1` creates a beginner server with one guide. Use `homie-studio servers set keepers <server> --policy hybrid --ai 1` to change an existing server through its owner controls.
 
-`body.move: 'owner'` lets an active person's browser predict and claim movement; the server bounds claims by `maxSpeed`. Without it the server runs movement from input. Bots, AI and away people are always moved on the server. A non-player entity may declare the same `body` and use `world.sweep(self, delta)`; `radius` and `maxSpeed` are required. In two dimensions `shape` is `circle`; in three dimensions the declarations also accept `sphere`, `capsule` and `box`. Map collision currently uses the ground projection and radius. `sweep: true` enables automatic map collision for movement; `world.sweep` explicitly tests a displacement and returns a hit when blocked.
+Server movement is the default and predicts immediately in the local browser using
+its guarded `move`. Bots, AI and away people are always moved on the server.
+`body.move: 'owner'` is an existing compatibility option that accepts bounded position
+claims and cannot enforce walls against a modified browser; do not use it for new games.
+A non-player entity may use `world.sweep(self, delta)` instead of a move function.
+Bodies require radius and maxSpeed. In 2D use circle; in 3D use sphere, capsule or
+axis-aligned box, with full height for capsule/box. `sweep: true` adds automatic map
+collision; explicit `ctx.map.sweep` moves and returns a contact for sliding.
 
-The view's `room.map` contains `bounds: {min: Vec3, max: Vec3}`, `boxes: readonly {min: Vec3, max: Vec3}[]`, `circles: readonly {at: Vec3, r: number}[]` and `spots: Readonly<Record<string, readonly Vec3[]>>`. Here `Vec3` has numeric `x`, `y`, `z`. Check a named spot exists before indexing. Rules instead use `world.map.spot(name)` or `spots(name)`.
+### Level data and three dimensions
+
+Declare `map: './map'` in rules and put static geometry in `map/main.json`. Both
+host and predictor compile the same data; the view reads it as `room.map`.
+Coordinates in JSON are arrays; runtime Vec3 values have x/y/z. Bounds have finite,
+increasing min/max. Named spots are lists; test length before indexing or modulo.
+Rules use `world.map.spot(name)` / `spots(name)`; the view uses `room.map.spots[name]`.
+
+With `space: { dims: 3 }`, z is up and pos is the body's feet. Three.js renders
+`(x,z,y)`. Gravity, jumping and facing belong in move, animation in the view.
+Use continuous sweeps, then slide the remainder along the contact tangent.
+`world.sweep` includes entity bodies. Movement sees the map plus declared live colliders through `ctx.world` (also exposed on `ctx.map`).
+
+| Map list (at most 100,000 shapes in all) | JSON shape |
+| --- | --- |
+| boxes | `{ "min": [0,0,0], "max": [2,2,1] }` |
+| circles (vertical columns in 3D) | `{ "at": [4,0,0], "r": 1 }` |
+| spheres | `{ "at": [0,0,2], "r": 1 }` |
+| capsules | `{ "at": [0,0,0], "r": 0.5, "height": 2 }` |
+| heightTiles | `{ "at": [0,0,0], "size": [2,2], "heights": [0,1,0,1] }` |
+
+Height tiles without `base` retain their open, foot-point top surface. Add `base`
+(a height offset from `at.z`, at or below all four samples) for a closed solid:
+vertical sides, the sampled top and a flat underside. For example the relay ramp
+is `{ "at": [-2.5,5,0], "size": [5,12], "heights": [4,4,0,0], "base": 0 }`.
+Raise `at.z` or `base` for roofs and underpasses. `diagonal` defaults to `"00-11"`;
+`"10-01"` preserves meshes split the other way. Row order is 00,10,01,11.
+Noncoplanar cells are two triangular prisms, never a convex hull or bilinear patch.
+Solid tiles use the whole declared body for sweeps, support and overlap; rays hit
+sides and undersides as well as tops. Capsules sit above slopes by their rounded
+foot's clearance, rather than embedding their lower sphere in a foot-point surface.
+
+`compileMap` builds an immutable spatial index, shared in meaning by authority and
+prediction. Queries charge visited bounds and actual geometry tests, not every
+shape in the map; live colliders remain a separate overlay. A 100,000-shape map is
+supported without decimation or a larger tick budget. Dense local geometry still
+costs work. Walk slopes by projecting the remaining sweep onto a walkable contact
+normal. For a step, sweep upward for head clearance, sweep across, then support
+and sweep down; never teleport upward through a ceiling. Keep jump and snap-down
+limits in the shared move function. A rendered mesh is not a collider. Draw solid geometry
+from room.map, including spheres/capsules/heightTiles. Changing the map changes
+state compatibility; it is static build data, not a per-room saved copy.
 
 `tunables.json` contains public movement/view values under `public`; other keys are
 private rules values. Both a plain value and a record with `value` are accepted:
@@ -66,6 +114,28 @@ lists of coordinates: `{"boxes":[{"min":[-1,-1],"max":[1,1]}],
 "circles":[{"at":[4,0],"r":1}],"spots":{"start":[[-5,0],[5,0]]}}`.
 Include bounds as above. A missing spot name returns an empty list, so check its
 length before taking an entry or using modulo.
+
+## Stationary games and live apps
+
+A player's kind currently requires a body and a named move handler even when the
+interface is a board, quiz or poll. Use `body: { shape: 'circle', radius: 0.1,
+maxSpeed: 0 }` and `defineMove({ participant() {} })` for a `participant` kind.
+The anchor need not be drawn. Use commands for choices; validate whose turn it is,
+then send an event to a room handler to update shared state. Do not fabricate movement
+or a score to satisfy a test.
+The toolkit derives the stationary movement probe from all declared player kinds
+having maxSpeed 0. Movement checks then say N/A; prove actual command feedback,
+turns and shared results yourself. This is not a pass for the game's controls.
+Native DOM buttons can use `onclick`. Keep them outside `guardGestures`' `touch`
+selector (its default is `canvas`): that selector suppresses native touch clicks.
+If a gameplay button must be inside that surface, handle its touch pointer
+explicitly as well as mouse/keyboard activation, without firing twice. Prove it
+with a real touchscreen tap in Chrome; calling `element.click()` does not test
+touch delivery.
+Use `rounds: { seconds: 0, breakSeconds: 0 }` for manual rounds, and no fill bots
+for an app. A wall/TV watches without taking a seat. Each interactive phone
+takes one of the room's declared seats; shared state is replicated, public and transient. An app's
+lasting, authorized business data belongs in `createAppRecords`, not in room fields.
 
 ## State and field types
 
@@ -244,6 +314,8 @@ A returned view costs `16 + number of fields + number of motion fields`.
 world.near returns nearest first and includes self when self matches the kind and radius.
 Bots and away players do not send commands: implement their actions in tick using think input.
 Queries return readonly views; send events to make recipients change themselves.
+Math vectors are readonly too: replace `d.x += n` with
+`d = { ...d, x: d.x + n }`, or use `world.math.add`/`scale`.
 
 World properties: `tick`, `dt`, `tune`, `shared`, `map`, `math`, `stage`, `level`,
 `levelMax`, `round: {n,phase,endsAt}`. Phase is `live` or `over`.
@@ -273,11 +345,12 @@ export const move = defineMove({
 ```
 
 Movement's `ctx` has tick, dt, ticks, math, public tune, map.name, map.spot,
-map.spots and map.sweep. `ctx.map.sweep` tests static shapes, costs
+map.spots, and `world.sweep/support/overlaps` (also on map). Sweeps test static shapes plus declared live colliders, cost
 `20 + 4S` plus copying, writes body.pos, and returns an optional hit.
 Movement may write pos, vel, heading, grounded and declared motion; never return
-an updated body. Normalize diagonals and respect maxSpeed. Collision movement
-needs a sweep; setting velocity alone does not provide wall collision in owner mode.
+an updated body. Normalize diagonals and respect maxSpeed. Collision movement needs a sweep; setting velocity alone does not move a body.
+Put freezes, boost expiry and knockback in declared motion. Initialize a late arrival
+in on.arrive too: onRoom.roundStart already happened before it joined.
 
 ## The view
 
@@ -290,7 +363,7 @@ room.on('spark', effect => {
 });
 function draw() {
   room.each('runner', entity => {
-    // entity.pos is interpolated; entity.mine marks your own body.
+    // Own entity.pos is predicted; remote poses are interpolated. entity.mine marks yours.
     // Draw entity.score and other declared fields here.
   });
   const me = room.me; // your entity, or null while waiting / watching
@@ -306,9 +379,13 @@ The testing probe assumes world X points right and world Y points up. If the can
 
 `room.me` and `room.shared` are properties. `room.each(kind, callback)` visits that
 kind. `room.on(effectName, callback)` returns an unsubscribe function. The payload
-has the declared fields at top level, with `at`, `id`, and `tick`; there is no `data`
-wrapper. `room.command(name, data)` addresses the person's own entity. Use
+has the declared fields at top level and `tick`; `at` and `id` are optional: an
+effect names a position or an entity. Check `if (effect.at)` before reading coordinates,
+or resolve `effect.id` through room.get. There is no `data` wrapper. `room.command(name, data)` addresses the person's own entity. Use
 `room.round`, `room.roster`, and `room.status` for UI. `room.round?.secondsLeft` is the displayed countdown. `room.tune` holds public tunables, and `room.map` holds the map bounds, boxes, circles and named spots. Always handle a null `me`.
+
+Roster rows are `{ seat, name, driver, score, me }`, where driver is `'person'`,
+`'bot'` or `'ai'`; there is no roster `bot` boolean. Keep AI visibly labelled.
 
 For each companion entity, `room.askButtons(entity.id)` returns `{k,args,text}` buttons from its vocabulary and offered view. Draw their text, then call `room.ask(entity.id, button.k, button.args)` when pressed. The server validates the request and passes it to that companion's floor as `view.asks`; an accepted goal reaches its `think` handler.
 
@@ -459,7 +536,7 @@ export default defineRules({
     walker(body, input, ctx) {
       const stick = ctx.math.clampLen({ x: input.ax / 127, y: input.ay / 127, z: 0 }, 1);
       body.vel = ctx.math.scale(stick, 2);
-      body.pos = ctx.math.add(body.pos, ctx.math.scale(body.vel, ctx.dt));
+      ctx.map.sweep(body, ctx.math.scale(body.vel, ctx.dt));
     },
   }),
   shapes: { view: { places: f.list(f.text(12), 2) } },
@@ -569,3 +646,129 @@ Speech text is safe to assign to `textContent`; it is not HTML.
 `room.askButtons(id)` returns a union of the vocabulary's requests plus `text`.
 Narrow `button.k` before reading an argument that only that request declares.
 `room.ask(id, k, args)` is checked against the same requests: an unknown name or missing or wrongly typed arguments do not compile, and `room.ask(id, button.k, button.args)` needs no narrowing.
+
+
+## Message guide: repair the cause
+
+Read the full message, including file/line, handler, tick, seed and measured values.
+Never patch node_modules, the guard, generated declarations or a probe to make a
+check green. Never rename rules.ts away or fall back to old-style hosting.
+
+| Message family | Next action |
+| --- | --- |
+| index.html: load the built view | Use `<script type="module" src="./assets/main.js"></script>`; game/app.json entry remains src/view.ts. |
+| Syntax/global/import/load-time guard | Move DOM, audio, clocks, network and dependencies into view. Use local pure helpers, world math/random/timers in handlers, literal module constants and declared state. No mutable module closures, classes, try/catch or computed prototype access. |
+| Linked module has an uncounted function or unchecked operation | This is the final verification of the built artifact. Preserve the source and full diagnostic as a toolkit reproduction; never remove that verification or patch its output. Check that the installed toolkit and build are current and consistent. |
+| Unknown field/handler/payload or TypeScript | Read generated types and the declaration; fix spelling, declare the bounded shape, narrow kind/event/ask before using its fields. Do not cast away capability errors. |
+| Missing key/property | Test `key in object` or list length before reading; `??` does not guard the read. |
+| Readonly/entity/shared capability | Copy and reassign own collections; send a declared event to another entity; sendRoom for a room handler to change shared. |
+| Handler threw / invalid return / companion decision | Fix the named handler's argument or vocabulary name. Use only declared options and available player/quest values; handle empty queries. |
+| Value lost / NaN / list, map, text or effect overflow | Check divisor and absent inputs; bound/splice collections before storing, or declare their actual bounded size. Emit fewer effects. Integer rounding/clamping info alone is not failure. |
+| Budget exhausted | Reduce repeated scans, range, per-tick work and growth; schedule bounded work over ticks. Inspect the most expensive named handler. Keep the default budget unless actual game requirements justify measured tuning. |
+| maxSpeed held movement | Normalize stick and diagonal input; check metres/seconds and acceleration. Declare normal maximum running speed accurately. Knocks/dashes use motion; don't multiply the limit to hide a broken step. |
+| Save/replay differs | Eliminate undeclared state and nondeterministic operations. If explicitly a Homie save or check-internal fault, preserve the reproduction and report it; don't rewrite correct game state to evade it. |
+| info: coverage, clamps, unreached handler, counts | Not a failure. Exercise important unreached behavior yourself; growing entity/event counts suggest a leak. `--long-check` extends deterministic play. No claim that finite smoke proves every future input. |
+| Browser wire allowance / oversized frame | Reduce declared state/payloads or rate. Browser-hosted excess fails; server-only warnings still deserve inspection. No hand-packed replacement transport. |
+| host-failed | Rules did not start: read its reason and server log, rebuild the complete site with this game's rules and view from the same build. No silent browser fallback. |
+| host-fault / tick-failed / room-over (budget, fault, overrun) | Inspect the named build/kind/handler and tick counters. Repair bounded work or the fault; overrun may be runner load and is not itself evidence of nondeterministic game code. The ended room stays ended; use a fresh room after fixing. |
+| restore loop | Inspect repeated host restarts and other rooms sharing the isolate. The third restored failure ends the match; do not keep retrying the saved failure. |
+| stale / room-stale / changed state, rematch | Reload into the current build. Same state shape restores; incompatible state starts a fresh match. Rules builds use automatic hashes, not manual netplay.version. |
+| connecting / reconnecting / offline / full / closed | Display the helper's true link/standing. Test the actual URL and running dev server; offline practice is not evidence of a shared room. A full room watches/waits; closed errors show their reason. |
+| kicked, muted, room-closed, agents-off, agent-pace | Respect the owner/server policy and retry delay. Never change identity or bypass policy to make testing pass. |
+| Two-browser check failed / no round | Read screenshots, console and room facts. Verify same server room and real win/round transition. A turn game needs its actual inputs exercised, not dummy motion/rounds. App checks exercise their declared action and reconnect, without rounds. |
+
+`room.probe` adds truthful frame/mechanic/render counters to the built-in rules probe.
+Use the normal build, local dev and two-browser check, then play the requested mechanic
+for a minute with delay. Movement should respond before the authoritative response;
+score and other shared outcomes still arrive with the network. The studio chooses `players.max`; neither frame rate nor feel is guaranteed by a passing build.
+
+Room state is saved automatically (default movementSeconds: 1, plus round end,
+pause and finish). After 60 seconds with no person the room ends even if screens or
+AI remain. Use browser createSaves for player-owned character progress; it is not
+server-verified money. All replicated fields are public, including disguised roles.
+Use a separate authorized records service for private or lasting app records.
+
+
+## Spatial delivery (0.45.0; milestone 2 slice 2)
+
+For a server game with a larger map, the studio's AI can set
+`"room": { "view": { "radiusM": 32 } }` in game.json to send each player only
+entities within that many metres of its body (3D includes height). This is the
+studio's choice: omit it or use null for the whole room. Rules and move do not
+change. The player's own body is always sent. Before a body exists, its view has
+no entities. Watchers still receive the whole room.
+
+`room.each` visits visible entities; `enter`/`leave` mean coming into or out of
+view, not spawning or despawning. Remove departed meshes and recreate returning
+ones. Prediction and compact snapshot recovery are handled by the runtime. Live
+collision geometry bypasses visual interest filtering, so a sweep or dash can
+reach a collider beyond the view radius without predicting through it. Its entity
+may be absent from room.each while its geometry still blocks movement.
+Shared state, effects, rosters and watcher state are still public: this is not a
+hidden-information feature. Browser hosting sends the whole room.
+
+Set the room size in `players.max`. The same setting feeds rules compilation,
+public admission and the automatic Gate layout; there is no 32-seat clamp.
+For example, in game.json:
+
+```json
+{
+  "players": { "min": 1, "max": 300 },
+  "room": {
+    "host": "server",
+    "view": { "radiusM": 12, "precisionM": 0.01, "nearM": 4, "farHz": 5 }
+  }
+}
+```
+
+These are example visual settings, not defaults. `precisionM` rounds remote
+positions and velocities in the delivered view; controlled bodies stay exact.
+Remote bodies outside `nearM` update at `farHz`; visibility exits are immediate.
+Rules, collision, saves and shared state stay authoritative and unchanged.
+Views must interpolate distant motion and dispose/recreate entities on view exit
+and entry. Omit the settings for full precision and the room's normal tick rate.
+
+A small room embeds delivery in its Table. Larger rooms open Gate connections;
+more than eight Gates use concentrators. The studio template supplies their exports, bindings and
+migration; upgrade the template before deploying an existing studio. No infrastructure naming or studio admission ceiling is required.
+Read the local measurements and their limitations in
+`docs/rooms-milestone-2-notes.md` before making a capacity claim.
+
+## Live collision geometry (0.44.1)
+
+```ts
+cover: {
+  fields: { size: f.vec3({init: {x: 3, y: .3, z: 2.6}}), solid: f.bit({init: true}) },
+  body: {shape: 'box', radius: .5, height: 2.6, maxSpeed: 0},
+  collider: {size: 'size', enabled: 'solid'},
+  // Handlers change self.size/self.solid, world.place(self, at), or despawn.
+}
+```
+
+`collider: true` uses the body's shape and dimensions. The optional `size` field
+supplies full axis-aligned box dimensions in metres, including rectangular 2D
+walls (use a circle body with a size field). Nonpositive width/depth disables it.
+`enabled` names a bit field; false removes it from movement collision. Collider
+entities are non-player bodies; players use server movement (omit `body.move: 'owner'`). Their declared state and position save and restore
+with the room; their refs stay opaque. Collision geometry is sent to all players
+in the room, independently of visual interpolation and spatial interest, including in compact
+updates and on reload/rejoin. This includes all live geometry, rather than a
+speed-based margin that could miss an authored dash or sweep.
+
+`ctx.world.sweep(body, delta)` moves and updates grounded, returning an optional
+hit with at/normal and the collider's entity ref. `support(body, distance=.002)`
+queries downwards without moving, returning at/normal/dist/entity, or undefined.
+Use a longer distance for dive height and a short one before jumping. `overlaps(body)`
+checks whether the body is inside geometry (for example, whether a pad is blocked).
+2D support is the ground plane. All calls charge the movement budget; convex casts
+have a bounded iteration count. The number of colliders is bounded by the room's
+entity and snapshot budgets. Games without colliders send no extra snapshot data.
+
+Every movement phase freezes one world for all movers; edits from handlers take
+effect on the next movement tick. A snapshot carries a tick-stamped collision
+revision for that next tick. Prediction selects revisions by effective tick, and
+replays pending input after rebasing to the authoritative pose. It holds the latest
+known geometry beyond received ticks: a client cannot predict an unseen remote
+build/destruction. Once that update arrives, replay uses its geometry immediately.
+Moving platforms use world.place in their handlers; sweep/support see each tick's
+position. Passenger carrying is explicit movement logic, not automatic physics.

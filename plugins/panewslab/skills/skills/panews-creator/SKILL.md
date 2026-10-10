@@ -6,7 +6,7 @@ description: >
   upload images, search tags, apply for a column, polish or review article content.
 metadata:
   author: Seven Du
-  version: "2026.09.23"
+  version: "2026.10.10"
 ---
 
 This is the PANews creator skill for contributors who need to write, edit, manage, and publish articles on the platform. Use it when the task involves authenticated creator workflows such as validating a session, managing drafts or submissions, uploading images, searching tags, applying for a column, or preparing an article for review.
@@ -55,6 +55,8 @@ For `create-article`, `--lang` indicates the **article content language** and is
   - When updating an article, change only the fields the user asked to modify.
   - Before moving an article to `PENDING`, make sure the user intends to submit it for review now.
   - Treat image upload and tag search as support steps for PANews publishing workflows, not as unrelated generic utilities.
+
+`--content-file` must contain non-empty Markdown. The CLI uploads that Markdown directly; do not convert it to HTML before creating or updating an article.
 
 ## Scripts
 

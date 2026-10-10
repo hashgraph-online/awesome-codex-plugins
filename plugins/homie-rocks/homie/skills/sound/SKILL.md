@@ -110,9 +110,9 @@ sound.duck(0.4, 0.5);                           // music down for a big hit
 
 - **Sound starts on the first touch or key, with no "tap for sound" screen**: the player resumes audio
   inside the first gesture. A sound asked for before that is dropped, not queued.
-- **Every browser plays its own sounds** for what it sees: call `play` where the host AND each replica
+- **Every browser plays its own sounds** for what it sees: call `play` where the each browser
   draw the event (a pickup that shows up in a snapshot, a hit that lands on screen), not only in the
-  host's rules, or only the host hears the game.
+  rules handlers. In a rules game emit a declared effect and play it from room.on in the view; the server has no speaker.
 - Loops go out as Ogg with a WAV fallback (older Safari cannot decode Ogg): the player takes the first
   one the browser decodes. `wire` prints the real download size; keep a game's sound under about 3 MB.
 - Each variant of an effect, and each loop, is a list of files tried in order (`["jump.ogg", "jump.wav"]`);

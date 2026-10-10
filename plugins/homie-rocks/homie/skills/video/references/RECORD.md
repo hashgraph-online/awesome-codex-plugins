@@ -1,5 +1,12 @@
 # Recording a page while a script drives it
 
+**Server rules keep real time.** A trailer for a rules game uses live `capture`, not a
+virtual browser clock: slowing the view cannot slow the server. Scripted inputs use
+`record`, then `edl`/`cut`. Keep a real participant in the room while filming a wall/TV;
+a spectator does not keep an empty room alive. Do not switch to a browser host for footage
+presented as online play. Inspect the room and actual action, sound and held frames.
+
+
 `record` (scripts/record-page.mjs) records any web page in real time while a steps file drives it:
 clicks, taps, keys, typing, scrolls, drags, and waits for a selector, a text or a state. Use it for
 a studio's own game page (land, press Play, play a little), a site walkthrough, a product demo or a
@@ -110,7 +117,7 @@ pointer handlers listen for).
 - **Sound.** A studio game's own WebAudio (its `/__game/` frame), on the picture's clock: steady
   presses land within a frame or two of their sound. Any other page records silent; a bed or a voice-over
   is added in the edit.
-- **Bots are bots.** A studio game fills empty seats with its own bots: never caption them as people.
+- **Bots are bots.** A studio game may fill empty seats with its own bots: never caption them as people.
 - **Mask before it is public.** A recording shows no address bar, but a page can print its own
   address: a local `dev` address, a room code, a QR code that joins a room (the big screen's). Decode
   every QR in a public video. The recorder's visits are tagged as the studio's own QA, so the studio's
@@ -118,7 +125,7 @@ pointer handlers listen for).
 
 ## Frame by frame instead of real time
 
-`record-fixed.mjs` (what `trailer` films with) takes the same steps file but steps the page's clock
+`record-fixed.mjs` (the older browser-game trailer path) takes the same steps file but steps the page's clock
 1/fps a frame instead of filming it live: no held frames on a slow page, and waits and holds are in
 film time. It has wait, waitFor, click, tap, key, keys, type, focus and caption only, draws no cursor,
 films a computer's page only, and its sound comes from the game's sound log, not from the speaker.

@@ -2,6 +2,7 @@
 # Purpose: v0.1 - start one of the plugin's scripts (the MCP server, the command line) on macOS and Linux with a Node
 # that runs TypeScript directly (Node 24 or newer). Tries the Node runtimes that Codex ships first, then a node on PATH.
 # Codex runs this file for the plugin's MCP server (.mcp.json: ./scripts/launch); on Windows it finds launch.cmd.
+# v0.4: Claude Code runs it too (.claude-plugin/plugin.json); without Codex, the node on PATH must be Node 24 or newer.
 # Input: the script to run and its arguments. Output: whatever the script prints (the MCP stdio stream).
 set -eu
 
@@ -36,5 +37,5 @@ if node_path=$(command -v node 2>/dev/null) && "$node_path" -e 'process.exit(Num
   exec "$node_path" "$@"
 fi
 
-printf '%s\n' 'codex-attachment-manager: no Node 24 or newer found; update Codex or install Node 24' >&2
+printf '%s\n' 'codex-attachment-manager: no Node 24 or newer found; install Node 24 or newer from nodejs.org (with Codex, updating Codex also works)' >&2
 exit 127

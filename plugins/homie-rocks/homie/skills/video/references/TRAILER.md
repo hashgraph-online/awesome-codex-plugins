@@ -1,5 +1,12 @@
 # A gameplay trailer (15 to 60 seconds)
 
+**Server rules keep real time.** A trailer for a rules game uses live `capture`, not a
+virtual browser clock: slowing the view cannot slow the server. Scripted inputs use
+`record`, then `edl`/`cut`. Keep a real participant in the room while filming a wall/TV;
+a spectator does not keep an empty room alive. Do not switch to a browser host for footage
+presented as online play. Inspect the room and actual action, sound and held frames.
+
+
 Real footage of the studio's own game, cut on the beat of the studio's own music. Free: no
 provider, no model, nothing generated.
 
@@ -10,7 +17,15 @@ npm run dev      # as a background task
 node <video.mjs> trailer <slug> --game <id> --url http://127.0.0.1:8787 --seconds 45 --length 20 --title "GAME NAME"
 ```
 
-One command does sections 2 to 5 below a different way, and needs no song:
+For a server-rules game this captures live picture and speaker audio, picks shots by
+motion, and makes cards and three deliveries. It defaults to `--view play`: an idle
+camera occupies a seat and keeps the room awake. `--view tv` needs another participant
+in that same room. Inspect actual action; an idle seat is not gameplay.
+The output says frames were recorded live, including held frames; it does not claim
+reconstructed audio stems or beat-aligned shots without a sound log. Use record for
+scripted inputs. The virtual-clock flags are refused with that alternative.
+
+For an older browser game, the frame-by-frame path below needs no song:
 
 1. **Films frame by frame** (`record-fixed.mjs`): the page's clock is the recorder's. Each film frame,
    `requestAnimationFrame`, `performance.now`, `Date`, `setTimeout`, `setInterval`, CSS animations and
@@ -29,7 +44,7 @@ One command does sections 2 to 5 below a different way, and needs no song:
 4. **Cards and three deliveries**: an end card (`--end`, `--sub`, `--small`), a title card with
    `--title`, in the game's look; 16:9, 1:1 and 9:16, each -14 LUFS.
 
-What it does not cover, exactly:
+Limits of the older frame-by-frame path:
 
 - Sound that does not go through `sound.js` (the game's own oscillators, an `<audio>` element, speech):
   not in the mix. A game with its own audio code can push the same events (the head of `sound.js`
@@ -57,7 +72,7 @@ trailer runs on the game's own sound and cuts every two seconds.
 
 ```sh
 npm run dev      # as a background task: the studio's site at http://127.0.0.1:8787
-node <video.mjs> capture <slug> --game <id> --url http://127.0.0.1:8787 --seconds 60
+node <video.mjs> capture <slug> --game <id> --view play --url http://127.0.0.1:8787 --seconds 60
 ```
 
 - If another site already holds port 8787, start this one with
@@ -65,15 +80,17 @@ node <video.mjs> capture <slug> --game <id> --url http://127.0.0.1:8787 --second
   this studio's name before capturing.
 - Stop it afterwards with `npx --no-install homie-studio dev --stop` (this studio's server and
   nothing else).
-- It opens the game's big screen (`/<id>/tv`): a spectator in a live public room. The room starts
-  at once with bots in empty seats, so there is always a round to film. Nothing is pressed.
+- Without `--view play`, capture opens the game's big screen (`/<id>/tv`): a spectator
+  in a live public room. A server room needs a participant to tick. Bots may fill empty seats
+  according to the game's policy; do not assume there is always action. Nothing is pressed.
 - The picture is Chrome's own frame stream with the time each frame was shown; it is laid onto
   30 fps, and a frame the page did not paint in time is held and counted (`heldFrames`). The
   sound is copied off the game's WebAudio output on the audio clock, which is fitted to the page
   clock, so a hit and its sound stay on the same frame.
 - Capture two or three times the trailer's length: the edit picks the best moments.
 - `--view play` films a seat instead of the big screen, but that seat is taken by the capture and
-  stands still (its avatar is idle, and the room counts it). Prefer the big screen. Never script a
+  stands still (its avatar is idle, and the room counts it). Prefer the big screen when
+  other people are playing in that room. Never script a
   player to look good for the camera: what is filmed is the game as it plays.
 - A 3D game on a laptop: check `sourceFps` in `capture.json`; under 30, capture again with fewer
   other programs running, or a smaller `--width`/`--height`.
@@ -82,7 +99,7 @@ node <video.mjs> capture <slug> --game <id> --url http://127.0.0.1:8787 --second
 
 ```sh
 node <video.mjs> card <slug> --name title --text "GAME NAME" --sub "a one-line promise"
-node <video.mjs> card <slug> --name end --text "Play free" --sub "<the play link>" --small "Real gameplay. Empty seats are filled by bots."
+node <video.mjs> card <slug> --name end --text "Play free" --sub "<the play link>" --small "Real gameplay, recorded live."
 ```
 
 Cards are drawn in Chrome at 1920x1080 and 1080x1920 (no font setup needed). Keep the title to a

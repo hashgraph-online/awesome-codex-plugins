@@ -8,6 +8,8 @@
 // v0.1-14: the text for the model is in the language the panel last reported (Codex's interface language).
 // v0.3: automatic selection — a thread with it on leaves out the images of earlier turns that are not pinned, and a
 // copy the model fetched is sent in its own turn only (spec v0.3).
+// v0.4: Claude Code too (the plugin's mod points ANTHROPIC_BASE_URL here): its /v1/… requests go to api.anthropic.com,
+// everything else to chatgpt.com as before. A Claude session is told apart by x-claude-code-session-id.
 // Only metadata is logged (never auth headers or conversation content).
 // Input: [--port 17891] [--stay (no auto-exit)] [--force-http] [--dump-requests (synthetic test threads only)];
 // the outbound proxy is taken from HTTPS_PROXY/HTTP_PROXY or the system proxy settings (Windows, macOS).
@@ -15,35 +17,47 @@
 
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import http, { type IncomingHttpHeaders } from "node:http";
 import net from "node:net";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import type { Duplex } from "node:stream";
 import tls from "node:tls";
+import { fileURLToPath } from "node:url";
 import zlib from "node:zlib";
+import { claudeHome, loadClaudeIndex, type ClaudeIndex } from "./claude-index.ts";
+import { findRequestImages, rewriteMessages, type RequestImage } from "./claude-rewrite.ts";
 import { codexHome } from "./codexconfig.ts";
 import { buildOf, DEFAULT_PORT, ENGINE_SERVICE, engineHealth, versionOf, watchForCodex } from "./engine.ts";
 import { findImages, type ImageRef } from "./images.ts";
 import { isEntryPoint } from "./entry.ts";
 import { currentLang } from "./language.ts";
 import { migrateDataOnce } from "./migrate-data.ts";
-import { dataDir, pixelCacheDirOf, proxyLogDirOf } from "./paths.ts";
+import { applyClaudeSelection, claudeImageFor, loadClaudePanelState, type ClaudePanelOptions } from "./panel-state.ts";
+import { claudeRequestStatsDirOf, claudeSelectionDirOf, dataDir, pixelCacheDirOf, proxyLogDirOf } from "./paths.ts";
 import { recordRequest } from "./request-stats.ts";
 import { rewriteItems, type Described } from "./rewrite.ts";
 import { connectDirectly, pluginGone, usesEngine } from "./setup.ts";
-import { effectiveSelection, selectionDir } from "./selection.ts";
-import { loadThreadIndex, pixelHashOf, setPixelCache, type ThreadIndex } from "./thread-index.ts";
+import { effectiveSelection, readSelection, selectionDir } from "./selection.ts";
+import { loadThreadIndex, pixelHashOf, pixelHashOfData, setPixelCache, type ThreadIndex } from "./thread-index.ts";
 
 type Json = Record<string, any>;
+const here = dirname(fileURLToPath(import.meta.url));
 const UPSTREAM_HOST = "chatgpt.com";
+// v0.4: Claude Code's API host.
+export const CLAUDE_HOST = "api.anthropic.com";
 const HOP_BY_HOP = new Set(["connection", "keep-alive", "proxy-connection", "transfer-encoding", "te", "trailer", "upgrade", "host"]);
+
+// Codex's requests all start with /backend-api/ (its base URL ends in /backend-api/codex); Claude Code's with /v1/.
+export function upstreamOf(path: string): string {
+  return path.startsWith("/v1/") ? CLAUDE_HOST : UPSTREAM_HOST;
+}
 
 // Outbound proxy: environment first, then the system setting (Windows per-user, macOS); NO_PROXY is honoured for the
 // upstream host.
-export function outboundProxy(env = process.env, systemSetting = readSystemProxy): { host: string; port: number } | null {
+export function outboundProxy(env = process.env, systemSetting = readSystemProxy, upstream = UPSTREAM_HOST): { host: string; port: number } | null {
   const noProxy = (env.NO_PROXY ?? env.no_proxy ?? "").split(",").map((s) => s.trim().replace(/^\./, "")).filter(Boolean);
-  if (noProxy.some((entry) => entry === "*" || UPSTREAM_HOST === entry || UPSTREAM_HOST.endsWith(`.${entry}`))) return null;
+  if (noProxy.some((entry) => entry === "*" || upstream === entry || upstream.endsWith(`.${entry}`))) return null;
   const fromEnv = env.HTTPS_PROXY ?? env.https_proxy ?? env.HTTP_PROXY ?? env.http_proxy;
   let value = fromEnv || systemSetting();
   if (!value) return null;
@@ -78,14 +92,14 @@ export function macProxy(scutil: string): string | null {
   return null;
 }
 
-function connectUpstream(via: { host: string; port: number } | null): Promise<tls.TLSSocket> {
+function connectUpstream(via: { host: string; port: number } | null, upstream = UPSTREAM_HOST): Promise<tls.TLSSocket> {
   const startTls = (socket?: net.Socket) => new Promise<tls.TLSSocket>((ok, fail) => {
-    const secure = tls.connect({ socket, host: socket ? undefined : UPSTREAM_HOST, port: 443, servername: UPSTREAM_HOST, ALPNProtocols: ["http/1.1"] }, () => ok(secure));
+    const secure = tls.connect({ socket, host: socket ? undefined : upstream, port: 443, servername: upstream, ALPNProtocols: ["http/1.1"] }, () => ok(secure));
     secure.once("error", fail);
   });
   if (!via) return startTls();
   return new Promise((ok, fail) => {
-    const socket = net.connect(via.port, via.host, () => socket.write(`CONNECT ${UPSTREAM_HOST}:443 HTTP/1.1\r\nHost: ${UPSTREAM_HOST}:443\r\n\r\n`));
+    const socket = net.connect(via.port, via.host, () => socket.write(`CONNECT ${upstream}:443 HTTP/1.1\r\nHost: ${upstream}:443\r\n\r\n`));
     let buffered = Buffer.alloc(0);
     const onData = (chunk: Buffer) => {
       buffered = Buffer.concat([buffered, chunk]);
@@ -101,10 +115,10 @@ function connectUpstream(via: { host: string; port: number } | null): Promise<tl
   });
 }
 
-function forwardHeaders(headers: IncomingHttpHeaders): Record<string, string | string[]> {
+export function forwardHeaders(headers: IncomingHttpHeaders, upstream = UPSTREAM_HOST): Record<string, string | string[]> {
   const out: Record<string, string | string[]> = {};
   for (const [name, value] of Object.entries(headers)) if (value !== undefined && !HOP_BY_HOP.has(name)) out[name] = value;
-  out.host = UPSTREAM_HOST;
+  out.host = upstream;
   return out;
 }
 
@@ -113,6 +127,12 @@ export function requestIdentity(headers: IncomingHttpHeaders): { threadId: strin
   let meta: Json = {};
   try { meta = JSON.parse(String(headers["x-codex-turn-metadata"] ?? "{}")); } catch { /* not JSON */ }
   return { threadId: meta.thread_id ?? meta.session_id ?? null, turnId: meta.turn_id ?? null, windowId: (headers["x-codex-window-id"] as string) ?? null };
+}
+
+// v0.4: which Claude Code session a request belongs to, and whether a subagent's loop sent it (its own conversation).
+export function claudeIdentity(headers: IncomingHttpHeaders): { sessionId: string | null; agentId: string | null } {
+  const one = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value) || null;
+  return { sessionId: one(headers["x-claude-code-session-id"]), agentId: one(headers["x-claude-code-agent-id"]) };
 }
 
 function decodeBody(body: Buffer, encoding: string | undefined): Buffer | null {
@@ -145,8 +165,32 @@ export function describeBody(path: string, json: Json): Json {
     const inputs = Array.isArray(json.images) ? json.images : json.image ? [json.image] : [];
     return { kind: path.endsWith("edits") ? "image_edit" : "image_generation", model: json.model ?? null, inputImages: inputs.length, size: json.size ?? null };
   }
+  // v0.4: Anthropic Messages, with images in user messages and inside tool results.
+  if (path === "/v1/messages") {
+    const messages: Json[] = Array.isArray(json.messages) ? json.messages : [];
+    let images = 0;
+    let imageBytes = 0;
+    let thinkingBlocks = 0;
+    const visit = (blocks: unknown) => {
+      if (!Array.isArray(blocks)) return;
+      for (const block of blocks as Json[]) {
+        if (block?.type === "image" && typeof block.source?.data === "string") { images++; imageBytes += block.source.data.length; }
+        if (block?.type === "thinking" || block?.type === "redacted_thinking") thinkingBlocks++;
+        if (block?.type === "tool_result") visit(block.content);
+      }
+    };
+    for (const message of messages) visit(message?.content);
+    return { kind: "messages", model: json.model ?? null, messages: messages.length, images, imageBytes, thinkingBlocks, thinking: json.thinking?.type ?? null, stream: json.stream ?? null, tools: Array.isArray(json.tools) ? json.tools.length : 0 };
+  }
   return { kind: "other" };
 }
+
+// v0.4: the requests the panel's "last request" line is about: the session's conversation as the model works on it,
+// Claude Code's main loop, which always carries its tools. Claude Desktop also sends side requests in the session (a
+// status summary while the user is away, auto mode's safety check): no tools and none of the conversation's images.
+// They are rewritten like the rest; only the line leaves them out (2026-10-10: it said "nothing replaced" after a turn
+// whose four images had all been left out).
+export const claudeConversationRequest = (details: Json): boolean => details.kind === "messages" && details.tools > 0;
 
 function log(entry: Json): void {
   const dir = proxyLogDirOf();
@@ -163,7 +207,8 @@ export function imageSizesOf(input: Json[]): Record<string, number> {
 export function redactImages(value: unknown, key = ""): unknown {
   if (typeof value === "string") {
     const inline = /^data:([^;,]+);base64,/.exec(value);
-    const raw = inline ? value.slice(inline[0].length) : key === "result" && value.length > 256 ? value : null;
+    // v0.4: an Anthropic image block keeps its base64 in source.data; a thinking block's signature is opaque too.
+    const raw = inline ? value.slice(inline[0].length) : (key === "result" || key === "data" || key === "signature") && value.length > 256 ? value : null;
     if (raw === null) return value;
     const digest = createHash("sha256").update(raw).digest("hex").slice(0, 16);
     return `${inline ? `data:${inline[1]};base64,` : ""}<sha256:${digest} chars:${raw.length}>`;
@@ -255,6 +300,124 @@ export function rewriteBody(original: Buffer, encoding: string | undefined, thre
   return { body, report: { ...summary, decodedBefore: decoded.length, decodedAfter: next.length, encodedBefore: original.length, encodedAfter: body.length } };
 }
 
+// v0.4: a Claude Code session's requests are rewritten once something is unchecked there, or automatic selection was
+// used (copies the model fetched may be in its history from then on).
+export function claudeNeedsRewrite(sessionId: string | null, dir = claudeSelectionDirOf()): boolean {
+  if (!sessionId) return false;
+  try {
+    const selection = readSelection(sessionId, dir);
+    return Object.keys(selection.unchecked).length > 0 || !!selection.autoSince;
+  } catch { return false; }
+}
+
+// The images a Claude Code request carried, by index key, with the base64 characters each took (the panel's
+// baseline); images not in the transcript yet are left out.
+export function claudeImageSizes(messages: Json[], index: ClaudeIndex): Record<string, number> {
+  return Object.fromEntries(findRequestImages(messages, index).filter((ref) => ref.key).map((ref) => [ref.key!, ref.base64Chars]));
+}
+
+// Anthropic refuses a request whose earlier content changed under the thinking that followed it (accounts created from
+// 2026-08-31, or a request that asks for it): docs/v0.4/plan.md §2.2. The engine then sends the original instead.
+export function thinkingRejected(status: number, body: string): boolean {
+  return status === 400 && /thinking/i.test(body) && /signature|bound to a different conversation|prefix/i.test(body);
+}
+
+// v0.4: the same rules as rewriteBody, for a Claude Code request (Anthropic Messages, claude-rewrite.ts). The current
+// turn is the transcript's latest prompt: Claude Code writes it before it sends the request.
+// CAM_EXPERIMENT_BLOCK_BINDING (experiments only, docs/v0.4/tasks.md T04-01): asks Anthropic to check thinking with
+// that prefix_mismatch_behavior, as for an account created from 2026-08-31; the report names the beta header to add.
+export function rewriteClaudeBody(original: Buffer, encoding: string | undefined, sessionId: string, dir = claudeSelectionDirOf(), home = claudeHome(), env = process.env): { body: Buffer; report: Json } {
+  const decoded = decodeBody(original, encoding);
+  if (!decoded) return { body: original, report: { skipped: "undecodable body" } };
+  const text = decoded.toString("utf8");
+  let json: Json;
+  try { json = JSON.parse(text); } catch { return { body: original, report: { skipped: "unparsable body" } }; }
+  if (!Array.isArray(json.messages)) return { body: original, report: { skipped: "no messages array" } };
+  if (hasUnsafeInteger(text)) return { body: original, report: { skipped: "integer beyond 2^53 would change when re-serialized" } };
+  let index: ClaudeIndex;
+  try { index = loadClaudeIndex(sessionId, home); } catch (error) { return { body: original, report: { skipped: `thread index: ${String(error)}` } }; }
+  const selection = readSelection(sessionId, dir);
+  const current = index.turns;
+  const copies = new Map([...index.copies.values()].filter((copy) => copy.turn === null || copy.turn < current).map((copy) => [copy.key, copy.of]));
+  let leaveOut = new Set(Object.keys(selection.unchecked));
+  if (selection.auto) {
+    const pinned = selection.pinned ?? {};
+    leaveOut = new Set(index.images.filter((image) => image.replaceable && image.turn !== null && image.turn < current && !pinned[image.key]).map((image) => image.key));
+  }
+  const pixels = (ref: RequestImage) => (ref.key ? index.byKey.get(ref.key)?.pixelSha256 : undefined) ?? pixelHashOfData(ref, ref.block.source.data);
+  const { messages, report } = rewriteMessages(json.messages, index, leaveOut, pixels, { lang: currentLang(), copies, ...(selection.auto ? { auto: { currentTurn: current } } : {}) });
+  const summary: Json = {
+    images: report.images,
+    replaced: report.replaced.map(({ key: _key, ...rest }) => rest),
+    locked: report.locked,
+    sentImageHashes: report.sentContentIds.map((id) => id.slice(0, 16)),
+    thinkingBlocks: json.messages.reduce((sum: number, message: Json) => sum + (Array.isArray(message?.content) ? message.content.filter((block: Json) => block?.type === "thinking" || block?.type === "redacted_thinking").length : 0), 0),
+    ...(report.noteAt !== undefined ? { noteAt: report.noteAt } : {}),
+    ...(selection.auto ? { auto: true } : {}),
+    ...(report.copies.length ? { copies: report.copies } : {}),
+  };
+  if (!report.replaced.length && !report.copies.length) return { body: original, report: summary };
+  json.messages = messages;
+  const experiment = env.CAM_EXPERIMENT_BLOCK_BINDING?.trim();
+  if (experiment && json.thinking && typeof json.thinking === "object") {
+    json.thinking = { ...json.thinking, block_binding: { prefix_mismatch_behavior: experiment } };
+    summary.experiment = { blockBinding: experiment, beta: "thinking-binding-controls-2026-08-01" };
+  }
+  const next = Buffer.from(JSON.stringify(json), "utf8");
+  const body = encodeBody(next, encoding);
+  return { body, report: { ...summary, decodedBefore: decoded.length, decodedAfter: next.length, encodedBefore: original.length, encodedAfter: body.length } };
+}
+
+// v0.4: a Claude Code session's panel reads and changes its images here: the panel page the engine serves
+// (/__cam/panel, panel.html with panel-web.js) and the Claude plugin's mod. The Codex panel goes through the plugin's
+// MCP server; under Claude Code that is not open to a panel (a mod reaches it only through Claude Code's tool
+// permissions, a prompt for every call, and Claude Code registers no app-only tool), so the engine, the one local HTTP
+// service, serves the panel. Loopback only, like everything the engine serves; only a request naming the engine by a
+// loopback name (no other site rebinding its name to 127.0.0.1), carrying our header, and coming from no other site's
+// page (a browser's Origin, when sent, is the engine's own).
+const SESSION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const LOOPBACK_HOST = /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/;
+export function ownRequest(headers: IncomingHttpHeaders): boolean {
+  const host = String(headers.host ?? "");
+  if (!LOOPBACK_HOST.test(host)) return false;
+  return headers.origin === undefined || headers.origin === `http://${host}`;
+}
+
+// The panel page for a Claude Code session: the same panel.html as in Codex, with panel-web.js before its own script.
+export function claudePanelPage(dir = here): string {
+  const page = readFileSync(join(dir, "panel.html"), "utf8");
+  const bridge = readFileSync(join(dir, "panel-web.js"), "utf8");
+  const at = page.indexOf("<script>");
+  if (at < 0) throw new Error("panel.html has no script");
+  return `${page.slice(0, at)}<script>\n${bridge}\n</script>\n${page.slice(at)}`;
+}
+export const PANEL_PAGE_CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; font-src data:; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
+
+export function claudePanelApi(method: string, url: string, headers: IncomingHttpHeaders, body: string | null, options: ClaudePanelOptions = {}): { status: number; body: Json } {
+  if (!ownRequest(headers) || headers["x-cam-panel"] !== "1") return { status: 403, body: { error: "forbidden" } };
+  const parsed = new URL(url, "http://localhost");
+  const session = parsed.searchParams.get("session") ?? "";
+  if (!SESSION_ID.test(session)) return { status: 400, body: { error: "no session" } };
+  const lang = currentLang();
+  try {
+    if (method === "GET" && parsed.pathname === "/__cam/claude/panel") return { status: 200, body: { ...loadClaudePanelState(session, options), lang } };
+    if (method === "GET" && parsed.pathname === "/__cam/claude/image") {
+      const max = Number(parsed.searchParams.get("max") ?? 160);
+      return { status: 200, body: claudeImageFor(session, String(parsed.searchParams.get("id") ?? ""), Number.isFinite(max) && max > 0 ? max : 160, options) };
+    }
+    if (method === "POST" && parsed.pathname === "/__cam/claude/select") {
+      if (body === null) return { status: 413, body: { error: "too large" } };
+      const change = JSON.parse(body || "{}");
+      const list = (value: unknown) => (Array.isArray(value) ? value.map(String) : undefined);
+      const state = applyClaudeSelection(session, { uncheck: list(change.uncheck), check: list(change.check), checkAll: change.checkAll === true, auto: typeof change.auto === "boolean" ? change.auto : undefined, mode: change.mode === "auto" ? "auto" : "manual" }, options);
+      return { status: 200, body: { ...state, lang } };
+    }
+    return { status: 404, body: { error: "not found" } };
+  } catch (error) {
+    return { status: 400, body: { error: error instanceof Error ? error.message : String(error) } };
+  }
+}
+
 async function main(): Promise<void> {
   migrateDataOnce(); // v0.1-15: Windows moved the data folder
   const portIndex = process.argv.indexOf("--port");
@@ -271,6 +434,9 @@ async function main(): Promise<void> {
   const sessionsDir = join(codexHome(), "sessions");
   setPixelCache(pixelCacheDirOf());
   const via = outboundProxy();
+  // v0.4: NO_PROXY may name one upstream host and not the other.
+  const claudeVia = outboundProxy(process.env, readSystemProxy, CLAUDE_HOST);
+  const viaOf = (upstream: string) => (upstream === CLAUDE_HOST ? claudeVia : via);
   const startedAt = new Date().toISOString();
   // v0.1-3: which code this engine runs, so the plugin can tell when an update needs a new engine.
   const build = buildOf();
@@ -297,7 +463,7 @@ async function main(): Promise<void> {
     setInterval(() => checkPlugin(false), 15_000).unref();
     watchForCodex(() => {
       checkPlugin(true);
-      log({ at: new Date().toISOString(), event: "engine-exit", pid: process.pid, reason: "no Codex process left" });
+      log({ at: new Date().toISOString(), event: "engine-exit", pid: process.pid, reason: "no Codex or Claude Code process left" });
       process.exit(0);
     });
   }
@@ -351,13 +517,39 @@ async function main(): Promise<void> {
   const onRequest = (req: http.IncomingMessage, res: http.ServerResponse) => {
     if (req.url === "/__cam/health") {
       res.writeHead(200, { "content-type": "application/json" });
-      res.end(JSON.stringify({ ok: true, service: ENGINE_SERVICE, pid: process.pid, startedAt, port, build, version, upstream: UPSTREAM_HOST, via: via ? `${via.host}:${via.port}` : "direct" }));
+      res.end(JSON.stringify({ ok: true, service: ENGINE_SERVICE, pid: process.pid, startedAt, port, build, version, upstream: UPSTREAM_HOST, upstreams: [UPSTREAM_HOST, CLAUDE_HOST], via: via ? `${via.host}:${via.port}` : "direct" }));
       return;
     }
     if (req.url === "/__cam/retire" && req.method === "POST") {
       res.writeHead(200, { "content-type": "application/json", connection: "close" });
       res.end(JSON.stringify({ retiring: true, pid: process.pid }));
       retire(String(req.headers["x-cam-build"] ?? ""));
+      return;
+    }
+    // v0.4: a Claude Code session's panel: the page (panel.html as in Codex, with panel-web.js), and its API.
+    if (req.method === "GET" && (req.url ?? "").split("?")[0] === "/__cam/panel") {
+      if (!ownRequest(req.headers)) { res.writeHead(403, { "content-type": "text/plain" }); res.end("forbidden"); return; }
+      let page: string;
+      try {
+        page = claudePanelPage();
+      } catch (error) {
+        res.writeHead(500, { "content-type": "text/plain" });
+        res.end(String(error));
+        return;
+      }
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "content-security-policy": PANEL_PAGE_CSP, "x-content-type-options": "nosniff", "referrer-policy": "no-referrer" });
+      res.end(page);
+      return;
+    }
+    if ((req.url ?? "").startsWith("/__cam/claude/")) {
+      const chunks: Buffer[] = [];
+      let size = 0;
+      req.on("data", (chunk: Buffer) => { size += chunk.length; if (size <= 64 * 1024) chunks.push(chunk); });
+      req.on("end", () => {
+        const answer = claudePanelApi(req.method ?? "GET", req.url ?? "/", req.headers, size <= 64 * 1024 ? Buffer.concat(chunks).toString("utf8") : null);
+        res.writeHead(answer.status, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
+        res.end(JSON.stringify(answer.body));
+      });
       return;
     }
     inFlight++;
@@ -367,14 +559,23 @@ async function main(): Promise<void> {
     const id = ++sequence;
     const started = Date.now();
     const path = (req.url ?? "/").split("?")[0];
+    const upstream = upstreamOf(path);
     const identity = requestIdentity(req.headers);
     const rewrite = req.method === "POST" && /\/responses(\/compact)?$/.test(path) && needsRewrite(identity.threadId);
+    // v0.4: a Claude Code request of a session's main conversation (a subagent's loop has its own); rewritten like a
+    // Codex thread's once something is unchecked there.
+    const claude = upstream === CLAUDE_HOST ? claudeIdentity(req.headers) : null;
+    const claudeSession = claude?.sessionId && !claude.agentId && req.method === "POST" && path === "/v1/messages" ? claude.sessionId : null;
+    const claudeRewrite = claudeNeedsRewrite(claudeSession);
+    const claudeFields = claude ? { claudeSessionId: claude.sessionId, claudeAgentId: claude.agentId } : {};
     const chunks: Buffer[] = [];
     let requestBytes = 0;
     let responseBytes = 0;
     let status = 0;
     let finished = false;
     let extra: Json = {};
+    // Synthetic test threads only (--dump-requests): the body as the engine sent it, after a rewrite.
+    let sentBody: Buffer | null = null;
     const collect = () => req.on("data", (chunk: Buffer) => { chunks.push(chunk); requestBytes += chunk.length; });
     const finish = (error?: string) => {
       if (finished) return;
@@ -389,52 +590,81 @@ async function main(): Promise<void> {
           details = describeBody(path, json);
           // Measured on the body as Codex sent it, before any rewrite: the panel's "everything sent" baseline.
           if (/\/responses$/.test(path) && Array.isArray(json.input)) imageSizes = imageSizesOf(json.input);
-          if (dumpDir && /\/responses$/.test(path)) {
+          if (claudeSession && Array.isArray(json.messages)) imageSizes = claudeImageSizes(json.messages, loadClaudeIndex(claudeSession));
+          if (dumpDir && (/\/responses$/.test(path) || path === "/v1/messages")) {
             mkdirSync(dumpDir, { recursive: true });
-            const headers = Object.fromEntries(Object.entries(req.headers).filter(([name]) => /^(x-codex|session_id|conversation_id|openai-beta|content-)/.test(name)));
+            const headers = Object.fromEntries(Object.entries(req.headers).filter(([name]) => /^(x-codex|session_id|conversation_id|openai-beta|content-|anthropic-(beta|version)|x-claude-code-|user-agent)/.test(name)));
             writeFileSync(join(dumpDir, `${new Date(started).toISOString().replaceAll(":", "-")}-${id}.json`), JSON.stringify({ path, headers, body: redactImages(json) }, null, 2));
+            if (sentBody) { const sent = decodeBody(sentBody, req.headers["content-encoding"] as string | undefined); if (sent) writeFileSync(join(dumpDir, `${new Date(started).toISOString().replaceAll(":", "-")}-${id}.sent.json`), JSON.stringify({ path, body: redactImages(JSON.parse(sent.toString("utf8"))) }, null, 2)); }
           }
         } catch { details = { kind: "unparsed" }; }
       }
-      const entry = { at: new Date(started).toISOString(), id, transport: "http", method: req.method, path, status, requestBytes, decodedBytes: decoded?.length ?? null, contentEncoding: req.headers["content-encoding"] ?? null, responseBytes, ms: Date.now() - started, ...identity, ...details, ...extra, error: error ?? null };
+      const entry = { at: new Date(started).toISOString(), id, transport: "http", method: req.method, path, status, requestBytes, decodedBytes: decoded?.length ?? null, contentEncoding: req.headers["content-encoding"] ?? null, responseBytes, ms: Date.now() - started, ...identity, ...claudeFields, ...details, ...extra, error: error ?? null };
       log(entry);
       // Image keys go to the per-thread statistics only, not to the log.
       if (/\/responses$/.test(path)) recordRequest(identity.threadId, imageSizes ? { ...entry, imageSizes } : entry);
+      if (claudeSession && claudeConversationRequest(details)) recordRequest(claudeSession, imageSizes ? { ...entry, imageSizes } : entry, claudeRequestStatsDirOf());
     };
-    // body === null streams the request through unchanged.
-    const send = (headers: Record<string, string | string[]>, body: Buffer | null) => connectUpstream(via).then((socket) => {
+    // body === null streams the request through unchanged. v0.4: with `fallback` (the original body of a rewritten
+    // Claude Code request), Anthropic refusing the rewritten history under its thinking (thinkingRejected) sends the
+    // original instead: the request goes out as Claude Code built it, and the statistics say why (the panel shows it).
+    const send = (headers: Record<string, string | string[]>, body: Buffer | null, fallback: Buffer | null = null) => connectUpstream(viaOf(upstream), upstream).then((socket) => {
       // No `agent` option: with agent:false Node ignores createConnection and dials the host directly.
-      const upstream = http.request({ host: UPSTREAM_HOST, method: req.method, path: req.url, headers, createConnection: () => socket }, (answer) => {
+      const outbound = http.request({ host: upstream, method: req.method, path: req.url, headers, createConnection: () => socket }, (answer) => {
         status = answer.statusCode ?? 0;
         const headers: Record<string, string | string[]> = {};
         for (const [name, value] of Object.entries(answer.headers)) if (value !== undefined && !HOP_BY_HOP.has(name)) headers[name] = value;
+        if (fallback && status === 400) {
+          const parts: Buffer[] = [];
+          answer.on("data", (chunk: Buffer) => parts.push(chunk));
+          answer.on("error", (error) => finish(String(error)));
+          answer.on("end", () => {
+            const raw = Buffer.concat(parts);
+            const text = decodeBody(raw, answer.headers["content-encoding"] as string | undefined)?.toString("utf8") ?? "";
+            if (thinkingRejected(status, text)) {
+              extra = { ...extra, rewrite: { ...extra.rewrite, fallback: "thinking-signature", rejectedStatus: status } };
+              const again = { ...forwardHeaders(req.headers, upstream), "content-length": String(fallback.length) };
+              socket.destroy();
+              send(again, fallback);
+              return;
+            }
+            res.writeHead(status, headers);
+            responseBytes += raw.length;
+            res.end(raw);
+            finish();
+          });
+          return;
+        }
         res.writeHead(status, headers);
         answer.on("data", (chunk: Buffer) => { responseBytes += chunk.length; });
         answer.pipe(res);
         answer.on("end", () => finish());
         answer.on("error", (error) => finish(String(error)));
       });
-      upstream.on("error", (error) => { if (!res.headersSent) res.writeHead(502); res.end(); finish(String(error)); });
+      outbound.on("error", (error) => { if (!res.headersSent) res.writeHead(502); res.end(); finish(String(error)); });
       // Codex may drop the connection mid-stream; still log the request once.
       res.on("close", () => finish(res.writableFinished ? undefined : "client closed before the response ended"));
-      if (body) upstream.end(body);
-      else { collect(); req.pipe(upstream); }
+      if (body) outbound.end(body);
+      else { collect(); req.pipe(outbound); }
     }, (error) => {
       res.writeHead(502, { "content-type": "text/plain" });
-      res.end(`codex-attachment-manager proxy: cannot reach ${UPSTREAM_HOST}`);
+      res.end(`codex-attachment-manager proxy: cannot reach ${upstream}`);
       finish(String(error));
     });
-    if (!rewrite) { send(forwardHeaders(req.headers), null); return; }
+    if (!rewrite && !claudeRewrite) { send(forwardHeaders(req.headers, upstream), null); return; }
     collect();
     req.on("end", () => {
       const original = Buffer.concat(chunks);
+      const encoding = req.headers["content-encoding"] as string | undefined;
       let out: { body: Buffer; report: Json };
-      try { out = rewriteBody(original, req.headers["content-encoding"] as string | undefined, identity.threadId!, sessionsDir, selectionDir, identity.turnId); }
+      try { out = claudeRewrite ? rewriteClaudeBody(original, encoding, claudeSession!) : rewriteBody(original, encoding, identity.threadId!, sessionsDir, selectionDir, identity.turnId); }
       catch (error) { out = { body: original, report: { skipped: `rewrite failed: ${String(error)}` } }; }
       extra = { rewrite: out.report };
-      const headers = forwardHeaders(req.headers);
+      if (dumpDir && out.body !== original) sentBody = out.body;
+      const headers = forwardHeaders(req.headers, upstream);
       headers["content-length"] = String(out.body.length);
-      send(headers, out.body);
+      if (out.report.experiment?.beta) headers["anthropic-beta"] = [String(headers["anthropic-beta"] ?? ""), out.report.experiment.beta].filter(Boolean).join(",");
+      send(headers, out.body, claudeRewrite && out.body !== original ? original : null);
     });
   };
 

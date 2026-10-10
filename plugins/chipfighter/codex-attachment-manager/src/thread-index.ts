@@ -202,6 +202,11 @@ function pixelHash(ref: ImageRef, value: string): string | null {
   return pixelHashes.get(ref.contentId) ?? null;
 }
 
+// v0.4: the same fingerprint for an image held elsewhere (a Claude Code transcript), by its digest and base64.
+export function pixelHashOfData(ref: Pick<ImageRef, "contentId" | "mime">, value: string): string | null {
+  return pixelHash(ref as ImageRef, value);
+}
+
 export function imageData(items: Json[], ref: ImageRef): string | null {
   const item = items[ref.item];
   if (ref.part === null) return typeof item?.result === "string" ? item.result : null;

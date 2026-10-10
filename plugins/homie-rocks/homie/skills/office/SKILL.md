@@ -70,3 +70,7 @@ you asked for, give them the link, and check afterwards (`office`, or the ask's 
   `address: true` for a persistent troll (a household or a phone carrier can share one).
 - In a Preview (a branch's own address) launch states are not enforced and there is no
   office: it has no database.
+
+## Connect an AI to this studio
+
+Every studio serves its own MCP at `<site>/mcp`. Use the `tools` skill for studio-defined business actions, signed integrations and staff AI access. Reuse office and app-record built-ins first. After an authorized deploy, hand over the MCP address and `<site>/_studio/office/connections`: the person approves with the studio account they already have, with no key to copy. Staff connect their own account and retain only their app grants. Client connector setup is separate from the studio approval. Never deploy merely to set up a local tool test.

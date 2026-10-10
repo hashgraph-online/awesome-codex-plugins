@@ -66,3 +66,9 @@ openclaw plugins install -l .
 | [panews](skills/panews/SKILL.md)                       | Crypto and blockchain news discovery, briefings, and public smart money leaderboard reads                                                                                 | You need PANews coverage about crypto news, projects, market narratives, rankings, events, calendars, or the latest public smart money board snapshots |
 | [panews-creator](skills/panews-creator/SKILL.md)       | Write, manage, and publish PANews articles with authenticated creator tools for sessions, drafts, submissions, image uploads, tag search, and columns                      | You need authenticated PANews creator operations that require `PA-User-Session`                         |
 | [panews-web-viewer](skills/panews-web-viewer/SKILL.md) | Read PANews homepage, article, and column pages as Markdown with page metadata                                                                                             | You need the rendered PANews page itself as Markdown rather than structured API-style content           |
+
+## Article content
+
+Reader and creator CLIs exchange article bodies as Markdown. Creator content files are uploaded directly; the reader keeps the returned Markdown, including supported media HTML, intact. During the API compatibility period, requests send `PA-Content-Format: markdown`; the header will be removed when Markdown becomes the sole API body format. Requests identify this release as `panews-cli/0.2.1`.
+
+The generated Node bundles include their runtime dependencies and need no Markdown conversion WASM or HTML parser. The web-viewer skill continues to read rendered web pages.

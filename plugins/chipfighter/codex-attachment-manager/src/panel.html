@@ -32,6 +32,8 @@
   v0.3 (user 2026-10-06): an automatic selection switch at the end of the footer. While it is on, a tick pins an image
   (sent every turn; kept apart from the manual ticks), the others are left out unless the model fetches them, the bar
   lists what the model fetched in the latest turn instead of what it asked for, and those rows say so.
+  v0.4: under Claude Code, when Anthropic refused the rewritten history under its thinking and the engine sent the
+  original request, the panel says so as for any request it could not rewrite.
 -->
 <style>
   /* Fallbacks follow Codex's own widget palette; inside Codex its theme variables (MCP Apps host styles) win. */
@@ -358,6 +360,7 @@
       "reason.integer": "请求里有超大整数，改写会改变它的值",
       "reason.index": "读取这个任务的记录失败",
       "reason.other": "改写时出错",
+      "reason.thinking": "这个账号不接受改过的对话历史（思考记录的校验），引擎改发了原始请求",
       "chooser.title": "刚刚开始了好几个任务，这个面板要显示哪一个？",
       "chooser.untitled": "新任务",
       "footer.hint": "勾选的图片会随下一条消息发给模型",
@@ -467,6 +470,7 @@
       "reason.integer": "the request holds an integer too large to rewrite safely",
       "reason.index": "this task's records could not be read",
       "reason.other": "an error occurred while rewriting",
+      "reason.thinking": "this account does not accept edited conversation history (the thinking check), so the engine sent the original request",
       "chooser.title": "Several tasks just started. Which one should this panel show?",
       "chooser.untitled": "New task",
       "footer.hint": "Checked images go to the model with the next message",
@@ -543,7 +547,9 @@
   // ---- MCP Apps bridge (JSON-RPC over postMessage with Codex) ----
   let nextId = 1;
   const waiting = new Map();
-  const post = (message) => window.parent.postMessage({ jsonrpc: "2.0", ...message }, "*");
+  // v0.4: the same page also runs on its own for a Claude Code session (served by the engine), where panel-web.js stands
+  // in for the host as window.camHost.
+  const post = (message) => (window.camHost ? window.camHost.post({ jsonrpc: "2.0", ...message }) : window.parent.postMessage({ jsonrpc: "2.0", ...message }, "*"));
   function request(method, params, timeoutMs = 30000) {
     return new Promise((resolve, reject) => {
       const id = nextId++;
@@ -1206,6 +1212,7 @@
     if (S.data?.engineRunning === false && S.data?.setup?.usesEngine !== false) nodes.push(notice("warn", t("notice.engineDown")));
     const sendNotice = S.data?.send?.notice;
     if (sendNotice?.kind === "skipped") nodes.push(notice("error", t("notice.skipped", { time: timeOf(sendNotice.at), reason: t(MESSAGES[lang][`reason.${sendNotice.reason}`] ? `reason.${sendNotice.reason}` : "reason.other") })));
+    if (sendNotice?.kind === "fallback") nodes.push(notice("error", t("notice.skipped", { time: timeOf(sendNotice.at), reason: t("reason.thinking") })));
     if (sendNotice?.kind === "websocket") nodes.push(notice("warn", t("notice.websocket")));
     const list = images();
     if (S.data && !list.length) nodes.push(emptyState);

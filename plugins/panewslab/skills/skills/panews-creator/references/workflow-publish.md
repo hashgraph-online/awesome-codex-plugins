@@ -33,10 +33,10 @@ Confirm the following fields with the user (skip if already provided):
 |-------|----------|-------|
 | Title | Yes | Recommended under 20 characters |
 | Summary | Yes | 50–100 characters |
-| Body | Yes | Path to a Markdown file |
+| Body | Yes | Path to a non-empty Markdown file; sent directly |
 | Cover image | Recommended | Upload local images first, or provide a CDN URL |
 | Tags | No | Up to 5 tag IDs |
-| Language | No | Default: zh |
+| Language | Yes | Language of the article, e.g. zh or en |
 
 Do not generate body content on behalf of the user. If they only have a topic, ask whether the body is already written.
 
