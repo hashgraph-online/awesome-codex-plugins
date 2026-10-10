@@ -13,6 +13,18 @@ Generator (CI):  plugins/<owner>/<repo>/  ←  fetched from your GitHub repo
                   marketplace.json        ←  regenerated from README
 ```
 
+The generator removes only explicitly reviewed retired identities in
+`RETIRED_BUNDLE_IDENTITIES`, currently `samuelbushi/uizze`, and only when absent
+from the README. Missing README entries do not authorize cleanup of other
+bundles. This retirement change includes deletion of that nine-file legacy
+bundle; `plugins/uizze/uizze` is preserved.
+
+GitHub and local `./plugins/<owner>/<repo>` links retain their bundles, ignoring
+owner/repository display case. Local links are retention-only and are not fetched
+from GitHub. An empty parsed source, an unrecognized plugin listing, or a symlink
+in the two-level generated tree aborts cleanup before deletion. Additional
+retirements require their own reviewed set change and committed bundle removal.
+
 ## Adding a Plugin
 
 > **Important: Read this entire guide before opening a PR. Submissions missing required items will be asked to fix them.**
