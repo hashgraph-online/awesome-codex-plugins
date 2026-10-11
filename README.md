@@ -246,6 +246,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [MailAgent](https://github.com/Alex0nder/MailAgent) - Temporary inboxes for Codex — OTP, magic links, signup QA, simulate-first autotests (23 MCP tools).
 - [Maintainer Mode](https://github.com/jacobbabula/maintainer-mode) - Evidence gates for AI-generated pull requests that catch stale issues, overlapping work, and unsupported test claims.
 - [Markdown Reader](https://github.com/JoseEstevez520/mcp-md-reader) - Navigate Markdown structure and retrieve only the relevant section through a portable Codex MCP plugin.
+- [Masaka for Codex](https://github.com/masakaai/codex-multiple-env) - Keeps each ChatGPT account and workspace in an isolated `CODEX_HOME`, shows official usage windows, and selects the identity used by the next native Codex process.
 - [memi](https://github.com/sarveshsea/memi) - Interface understanding and design-system memory for Codex, Claude Code, Cursor, and MCP agents with UI audits, Tailwind token extraction, shadcn registry workflows, and a bundled Codex plugin.
 - [ML Pipeline](https://github.com/jananthan30/ml-pipeline) - Enforces a strict 16-step data-first ML workflow — data inspection, EDA, and problem definition before any model training — with explicit user-permission gates, marimo notebooks, and matplotlib figures at every step; also works in Claude Code and Kimi.
 - [Nightshift](https://github.com/orwa-mahmoud/nightshift) - Accountable, time-bounded Codex shifts with a persistent punch list, parked decisions, and reviewable run history.
