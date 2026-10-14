@@ -15,29 +15,20 @@ SPEC.loader.exec_module(VALIDATOR)
 
 
 class ReadmeEntryRegexTests(unittest.TestCase):
-    def test_standard_github_repository_entry(self) -> None:
-        entry = "- [BringYour](https://github.com/unitedideas/bringyour-mcp) - Read-only project migration audit."
+    def test_repository_urls_preserve_owner_repo_and_description_groups(self) -> None:
+        for suffix in ("", "/tree/main/plugins/example", "?tab=readme-ov-file#setup"):
+            with self.subTest(suffix=suffix):
+                url = "https://github.com/example/plugin" + suffix
+                entry = f"- [Example]({url}) - A useful plugin."
 
-        match = VALIDATOR.README_ENTRY_RE.match(entry)
+                match = VALIDATOR.README_ENTRY_RE.fullmatch(entry)
 
-        self.assertIsNotNone(match)
-        assert match is not None
-        self.assertEqual(match.groups(), (
-            "BringYour",
-            "https://github.com/unitedideas/bringyour-mcp",
-            "unitedideas",
-            "bringyour-mcp",
-            "Read-only project migration audit.",
-        ))
-
-    def test_tree_url_keeps_owner_and_repository_groups(self) -> None:
-        entry = "- [Plugin](https://github.com/example/repo/tree/main/plugins/demo) – A plugin bundle."
-
-        match = VALIDATOR.README_ENTRY_RE.match(entry)
-
-        self.assertIsNotNone(match)
-        assert match is not None
-        self.assertEqual(match.group(3, 4, 5), ("example", "repo", "A plugin bundle."))
+                self.assertIsNotNone(match)
+                assert match is not None
+                self.assertEqual(
+                    match.groups(),
+                    ("Example", url, "example", "plugin", "A useful plugin."),
+                )
 
 
 if __name__ == "__main__":
