@@ -2055,7 +2055,7 @@ var ZCodeAppServerAdapter = class {
       entry.child = null;
       const baseMessage = error instanceof Error ? error.message : String(error);
       const message = entry.timedOut ? "ZCode run exceeded its wall-clock budget" : entry.cancelRequested ? "ZCode task cancelled" : baseMessage;
-      const code = entry.timedOut ? "timeout" : entry.cancelRequested ? "cancelled" : "zcode_nonzero_exit";
+      const code = entry.timedOut ? "timeout" : entry.cancelRequested ? "cancelled" : error instanceof BridgeError ? error.code : "zcode_nonzero_exit";
       entry.onEvent({ type: "error", summary: message.slice(0, 1500), details: { error_code: code } });
       if (error instanceof BridgeError) throw error;
       throw new BridgeError(code, message);
@@ -2277,10 +2277,13 @@ var ZCodeAppServerAdapter = class {
       if (type === "turn.failed") {
         entry.acceptingTurn = false;
         entry.turnCompletedAt = this.#now().toISOString();
-        const problem = asRecord2(payload.error);
-        void problem;
-        this.#publishSessionEvent(type, payload, entry, params);
-        entry.rejectTurn(new Error("ZCode turn failed"));
+        const quotaExhausted = providerReportedUsageExhaustion(payload.error);
+        const failure = quotaExhausted ? new BridgeError(
+          "zcode_usage_exhausted",
+          "ZCode \u63D0\u4F9B\u65B9\u660E\u786E\u62A5\u544A\u7528\u91CF\u989D\u5EA6\u5DF2\u8017\u5C3D\uFF1B\u5F53\u524D\u6267\u884C\u5DF2\u4E2D\u65AD\u3002\u8BF7\u7ACB\u5373\u505C\u6B62\u5F53\u524D\u4EFB\u52A1\u5E76\u544A\u77E5\u7528\u6237\uFF1B\u4E0D\u8981\u7EE7\u7EED\u5DE5\u4F5C\u3001\u81EA\u52A8\u91CD\u8BD5\u6216\u7EED\u4F5C\uFF0C\u7B49\u5F85\u7528\u6237\u786E\u8BA4\u989D\u5EA6\u6062\u590D\u540E\u518D\u7EE7\u7EED\u3002"
+        ) : new Error("ZCode turn failed");
+        this.#publishSessionEvent(type, payload, entry, params, quotaExhausted ? "zcode_usage_exhausted" : "zcode_nonzero_exit");
+        entry.rejectTurn(failure);
         return;
       }
       this.#publishSessionEvent(type, payload, entry, params);
@@ -2410,7 +2413,7 @@ var ZCodeAppServerAdapter = class {
       turn_id: entry.turnId
     };
   }
-  #publishSessionEvent(type, payload, entry, event) {
+  #publishSessionEvent(type, payload, entry, event, failureCode) {
     if (type === "turn.started") {
       entry.onEvent({
         type: "turn_started",
@@ -2466,7 +2469,8 @@ var ZCodeAppServerAdapter = class {
     } else if (type === "turn.failed") {
       entry.onEvent({
         type: "turn_failed",
-        summary: "ZCode turn failed"
+        summary: failureCode === "zcode_usage_exhausted" ? "ZCode \u63D0\u4F9B\u65B9\u62A5\u544A\u7528\u91CF\u989D\u5EA6\u5DF2\u8017\u5C3D\uFF1B\u5F53\u524D\u6267\u884C\u5DF2\u4E2D\u65AD\u3002\u8BF7\u7ACB\u5373\u505C\u6B62\u5F53\u524D\u4EFB\u52A1\u5E76\u544A\u77E5\u7528\u6237\uFF0C\u7B49\u5F85\u7528\u6237\u786E\u8BA4\u989D\u5EA6\u6062\u590D\u3002" : "ZCode turn failed",
+        ...failureCode ? { details: { error_code: failureCode } } : {}
       });
     }
   }
@@ -2566,6 +2570,30 @@ function nestedNumber(record, path6) {
 }
 function asRecord2(value) {
   return isRecord2(value) ? value : {};
+}
+function providerReportedUsageExhaustion(value) {
+  const error = asRecord2(value);
+  const candidates = [
+    typeof value === "string" ? value : null,
+    typeof error.code === "string" ? error.code : null,
+    typeof error.type === "string" ? error.type : null,
+    typeof error.message === "string" ? error.message : null
+  ].filter((candidate) => candidate !== null).map((candidate) => candidate.slice(0, 2048));
+  if (candidates.length === 0) return false;
+  const text = candidates.join("\n").normalize("NFKC").toLowerCase();
+  return [
+    /\binsufficient[_\s-]+quota\b/,
+    /\bquota[_\s-]+(?:(?:has[_\s-]+been)[_\s-]+)?(?:exceeded|exhausted|depleted)\b/,
+    /\b(?:usage|token)[_\s-]+quota[_\s-]+(?:exceeded|exhausted|depleted)\b/,
+    /\b(?:usage|token)[_\s-]+limit[_\s-]+(?:exceeded|exhausted|reached)\b/,
+    /\b(?:out[_\s-]+of|no[_\s-]+remaining|insufficient[_\s-]+)(?:[_\s-]+)?credits?\b/,
+    /\bcredits?[_\s-]+(?:exhausted|depleted)\b/,
+    /\bbilling[_\s-]+hard[_\s-]+limit[_\s-]+reached\b/,
+    /(?:用量|额度|配额)(?:已|已经)?(?:用尽|耗尽|用完|不足)/,
+    /(?:用尽|耗尽|用完|不足)(?:了)?(?:用量|额度|配额)/,
+    /(?:超出|超过)(?:了)?(?:当前)?(?:用量|额度|配额)/,
+    /(?:当前)?(?:用量|额度|配额)(?:已经)?(?:超出|不足)/
+  ].some((pattern) => pattern.test(text));
 }
 async function syncDesktopStatus(entry, status, onEvent) {
   if (!entry) return;

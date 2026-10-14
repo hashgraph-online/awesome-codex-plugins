@@ -18,17 +18,24 @@ const presentResult = 'const exact=(v,k)=>v&&typeof v==="object"&&Reflect.ownKey
   + 'const c=exact(result,["content"])?result.content:null;'
   + 'text(Array.isArray(c)&&c.length===1&&exact(c,["0","length"])&&exact(c[0],["type","text"])&&c[0].type==="text"&&typeof c[0].text==="string"?c[0].text:result);';
 
-/** Authoring keeps its controller in a complete Host-bound management call. */
-export function workflowAuthoringControllerAdapterDescriptor(operation, authority) {
+/** A management continuation embeds the exact Host-owned controller authority. */
+export function workflowControllerAdapterDescriptor(operation, authority) {
   noOptions(arguments.length, 2);
-  requireValue(['drive','resume','cancel'].includes(operation), 'AUTHORING_CONTROLLER_OPERATION', 'Unsupported authoring controller continuation');
+  requireValue(['drive','resume','cancel'].includes(operation), 'WORKFLOW_CONTROLLER_OPERATION', 'Unsupported Workflow controller continuation');
   const toolName=`workflow_${operation}`;
   const args={run_id:authority.run_id,control_token:authority.control_token};
   validateData(args,workflowToolDefinitions().find(tool=>tool.name===toolName).inputSchema);
   const json=canonicalJSON(args).replaceAll('\u2028','\\u2028').replaceAll('\u2029','\\u2029');
-  return {schema_version:1,kind:'functions_exec',tool_name:toolName,slot:'none',scope:'authoring_controller_only',
+  return {schema_version:1,kind:'functions_exec',tool_name:toolName,slot:'none',scope:'workflow_controller_only',
     code:pragma+'const workflowData = JSON.parse(Function.prototype.toString.call(()=> ('+json+')).slice(6,-1));\n'
       +`const result = await tools.mcp__codex_agents_workflow__${toolName}(workflowData);\n`+presentResult};
+}
+
+/** Preserve the published authoring descriptor and its narrower scope. */
+export function workflowAuthoringControllerAdapterDescriptor(operation, authority) {
+  noOptions(arguments.length, 2);
+  requireValue(['drive','resume','cancel'].includes(operation), 'AUTHORING_CONTROLLER_OPERATION', 'Unsupported authoring controller continuation');
+  return {...workflowControllerAdapterDescriptor(operation,authority),scope:'authoring_controller_only'};
 }
 
 function noOptions(actual, expected) {

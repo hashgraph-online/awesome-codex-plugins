@@ -1,3 +1,4 @@
+import { providerKey } from '../../../../hooks/lib/provider-key.mjs';
 /**
  * fal, through the creator's OWN account (FAL_KEY in the environment: the
  * person's key from https://fal.ai/dashboard/keys; never written into the
@@ -19,10 +20,9 @@ const API = () => (process.env.FAL_API_URL || 'https://api.fal.ai').replace(/\/+
 const STORAGE = () => (process.env.FAL_STORAGE_URL || 'https://rest.alpha.fal.ai').replace(/\/+$/, '');
 
 export function falKey() {
-  const k = (process.env.FAL_KEY ?? '').trim();
-  return k || null;
+  return providerKey('fal').key;
 }
-const auth = () => { const k = falKey(); if (!k) throw new Error('no fal key: the person sets FAL_KEY (their key from https://fal.ai/dashboard/keys) in the environment this runs in'); return { Authorization: `Key ${k}` }; };
+const auth = () => { const k = falKey(); if (!k) throw new Error('no fal key in FAL_KEY or ~/.homie/keys/fal-key (also checked ~/.homie/workspace/fal-key)'); return { Authorization: `Key ${k}` }; };
 
 async function retry(fn, tries = 6) {
   for (let i = 0; ; i++) {
@@ -34,7 +34,7 @@ async function retry(fn, tries = 6) {
 export async function checkKey() {
   if (!falKey()) return { ok: false, why: 'FAL_KEY is not set' };
   const res = await fetch(`${API()}/v1/models/pricing?endpoint_id=fal-ai/flux/dev`, { headers: auth() }).catch((e) => ({ ok: false, status: 0, text: async () => e.message }));
-  if (res.ok) return { ok: true };
+  if (res.ok) return { ok: true, source: providerKey('fal').source };
   return { ok: false, why: res.status === 401 || res.status === 403 ? 'fal refused the key (401/403): it is wrong or revoked' : `fal answered ${res.status}` };
 }
 

@@ -29,6 +29,9 @@
   </a>
 </p>
 
+> **🏆 Qloo Agentic Hackathon 2026 entry — [TasteRouter](taste-router/):** an AI agent that finds the neighbourhood that already loves your business idea, powered by Qloo Taste AI. **Live demo: https://tasterouter.tasterouter.workers.dev** · [Code & docs](taste-router/)
+
+
 <p align="center">
   <img
     src="docs/assets/readme-hero.png"

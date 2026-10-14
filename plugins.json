@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-10-13",
-  "total": 294,
+  "last_updated": "2026-10-14",
+  "total": 296,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -68,6 +68,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/yfge/agent-harness-skills/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Agent Retro",
+      "url": "https://github.com/summationai/agent-retro",
+      "owner": "summationai",
+      "repo": "agent-retro",
+      "description": "Weekly retro of how you use Codex and Claude Code: 12 animated slides of usage stats with four evidence-backed coaching tips, built locally from your own logs.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/summationai/agent-retro/HEAD/plugins/agent-retro/.codex-plugin/plugin.json"
     },
     {
       "name": "Agent Workflow System",
@@ -1698,6 +1708,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/matk0shub/apple-productivity-mcp/HEAD/plugins/apple-calendar/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Arcmira: YouTube Transcript Search",
+      "url": "https://github.com/arcmira/mcp",
+      "owner": "arcmira",
+      "repo": "mcp",
+      "description": "Search YouTube transcripts for timestamped quotes, speaker appearances, sponsors and recommendations.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/arcmira/mcp/HEAD/plugins/arcmira/.codex-plugin/plugin.json"
     },
     {
       "name": "AutoCAD Tianzheng Tools",

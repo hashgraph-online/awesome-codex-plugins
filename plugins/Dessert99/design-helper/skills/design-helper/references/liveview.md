@@ -12,8 +12,10 @@ sheet is served, not opened as a file.
 Everything this skill makes lives in **one directory outside the project**, created once
 per session and deleted at the end:
 
-    WS=$(mktemp -d)/design-helper    # or under the session's own scratch dir, if there is one
-    mkdir -p "$WS"
+    WS=$(mktemp -d "${TMPDIR:-/tmp}/design-helper.XXXXXX")   # or a new folder in the session's scratch dir
+
+`$WS` is the whole workspace, with nothing above it to clean up. Teardown deletes
+`$WS` itself and nothing else.
 
 The sheet, the server, the built CSS, the memo, screenshots, any entry file a build
 tool needs, and the pid files below — all in `$WS`. **Nothing is ever written inside
@@ -153,7 +155,7 @@ mid-comparison. Turn dividers and the table of contents (`references/sheet.md`) 
 ## After every edit
 
 1. Wait past one poll (~1.5s) so the browser has picked it up
-2. Verify — computed style and screenshot, per SKILL.md
+2. Verify — computed style and screenshot, per `worker.md`
 3. When the revision is ready to present, foreground or reopen the user's comparison
    as described below and show the changed section
 4. Then report, saying what to look at: `맨 아래 그림자 사다리입니다`
@@ -161,41 +163,28 @@ mid-comparison. Turn dividers and the table of contents (`references/sheet.md`) 
 The screenshot comes from Playwright's own page at the same URL, so it and the user's
 browser are looking at the same bytes.
 
-**For optional interactive sheets, a reload wipes unsaved client state.** Scrub windows and context toggles
-live in `sessionStorage` under `ctl:<section id>` and `ctx`, restored on
-load by the engine in `references/controls.md`. Anything interactive added later goes
-through the same two helpers or it dies on my next edit — which is the worst possible
-moment, because the user was mid-comparison.
+An optional interactive sheet keeps its state across these reloads as described in
+`references/controls.md`.
 
 ## Present every revision
 
-This applies to the first sheet and each ready revision after user feedback, including
-changes within an existing section. Do not steal focus during intermediate writes,
-verification, background polling, or a conversation that produces no new comparison.
+Bring the user to the first sheet and to every ready revision after feedback, including
+an edit inside an existing section. Do not steal focus for intermediate writes,
+verification or a turn that produces nothing new to compare.
 
-1. Ensure the same session's server and required CSS build are healthy, and the current
-   sheet URL responds. If the workspace expired, start a fresh sheet with only the new
-   request as described above;
-   if only the server stopped, restart it and recover a watcher if needed. If the port is occupied,
-   choose a free port and use the updated URL without killing unrelated processes.
-2. With the available browser/desktop controls, locate the user's comparison tab by
-   session URL or saved tab identity. Select it and activate its containing window/app.
-   Open the sheet only after confirming that its tab is absent. If its tab exists,
-   reuse it, including when its window is minimized or another tab is selected.
-   A changed server port does not justify a duplicate: navigate the existing session
-   tab to the updated URL. Track its tab/window identity for later revisions.
-3. Ensure the latest content has loaded; explicitly reload if background polling was
-   suspended. Scroll to the section being presented, whether it is new or edited in
-   place. Keep optional interactive state when reusing the tab; a reopened tab may
-   reset sessionStorage, so inspect what is actually displayed.
-4. Verify the visible result when the available tools support it, then report. A
-   screenshot from a separate verification tab or successful HEAD request does not
-   establish that the user's browser was activated.
-
-Use browser activation controls, not a page-level `window.focus()`. **Never invoke a URL
-opener as a focus fallback** — it may create a duplicate tab. If existing-tab detection
-or activation is unavailable, briefly explain the limitation and give the current URL;
-do not claim focus changed without evidence.
+1. Check that the session's server (and CSS watcher, if any) is up and the sheet URL
+   answers. Workspace gone → a fresh sheet as above; server stopped → restart it.
+   Port taken → pick a free one; never kill what is already there.
+2. With the browser or desktop controls you have, find the user's comparison tab by
+   its URL, select it and bring its window forward. **Never open a second tab for the
+   same sheet**: open the URL only after confirming no such tab exists, and if the
+   port changed, navigate the existing tab instead. Use those controls, not a
+   page-level `window.focus()`, and never a URL opener as a focus fallback.
+3. Make sure the latest content is loaded (reload if polling was suspended) and scroll
+   to the section being presented.
+4. Then report. A screenshot from your own headless page or a successful HEAD request
+   does not show that the user's tab came forward. If you can't find or activate the
+   tab, say so in one line and give the URL; don't claim it came forward.
 
 ## No python3
 

@@ -1,12 +1,13 @@
 {
   "name": "superloopy",
-  "version": "0.22.3",
+  "version": "0.24.0",
   "description": "A lightweight loop harness for Codex, Claude Code, and Google Antigravity with strict evidence gates.",
   "type": "module",
   "bin": {
     "superloopy": "src/cli.js"
   },
   "scripts": {
+    "pretest": "node scripts/check-node-version.mjs",
     "test": "node --test \"test/**/*.test.js\" \"test/**/*.test.mjs\" \"examples/**/*.test.js\" \"examples/**/*.test.mjs\"",
     "check": "npm test",
     "sync-version": "node scripts/sync-version.mjs"

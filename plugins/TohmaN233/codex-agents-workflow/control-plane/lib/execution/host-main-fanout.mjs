@@ -122,11 +122,6 @@ export async function executeHostMainFanout(manager,entry,{record,envelope,bindi
   // accepted item is an immutable sibling on retry.
   const roots=[...itemScopes.values()];
   if(envelope.access==='bounded_write')for(let i=0;i<roots.length;i++)for(let j=i+1;j<roots.length;j++)requireValue(!within(roots[i].rootPath,roots[j].rootPath)&&!within(roots[j].rootPath,roots[i].rootPath),'HOST_MAIN_WORKSPACE_ISOLATION','Main fan-out item workspace directories overlap');
-  let isolationReadPath;
-  if(assignments.length&&envelope.access==='bounded_write'){
-    const directory=join(envelope.workspace,'work','.workflow-runtime','host-main',runId,binding.attempt_id);await mkdir(directory,{recursive:true});
-    isolationReadPath=join(directory,`isolation-read-${randomUUID()}.txt`);await writeFile(isolationReadPath,'Host command isolation qualification',{flag:'wx'});
-  }
   const shared=fanout.shared_prefix?sharedPrefixInputProjection(envelope,plan.items,fanout.shared_prefix):null;
   const commonDirectory=join(envelope.workspace,'work','.workflow-runtime','host-main',runId,binding.attempt_id,'shared-prefix');
   const commonMaterial=shared&&assignments.length?await prepareHostMainContext({directory:commonDirectory,
@@ -229,7 +224,7 @@ export async function executeHostMainFanout(manager,entry,{record,envelope,bindi
       const created=await createSession({parent:manager.parent,owner:{run_id:runId,node_id:binding.node_id,attempt_id:binding.attempt_id,assignment_index:assignment.index,item_index:itemIndex},
         hostAuth:preparedPrefix||settings.authentication.mode==='host_chatgpt'?manager.hostAuth:undefined,binary:settings.codex_binary,expectedBinaryHash:settings.binary_sha256,expectedBinaryPath:codexQualification(settings)?.resolved_path,dynamicToolFormat:codexQualification(settings)?.dynamic_tool_format,authentication:settings.authentication,rawObservation:codexQualification(settings)?.raw_observation,
         resolveModelSelection:select,...(preparedPrefix?{prefix:preparedPrefix.prefix}:{}),ephemeral:true,cwd:scope.cwd,access:envelope.access,allowedPaths:envelope.access==='bounded_write'?['.']:scope.itemPaths,
-        ...(envelope.access==='bounded_write'?{isolatedWorkspace:{read_path:isolationReadPath,outside_directories:[envelope.workspace,...roots.filter(root=>root.cwd!==scope.cwd).map(root=>root.cwd)]}}:{}),
+        ...(envelope.access==='bounded_write'?{ownedCommandTemp:true}:{}),
         env:augmentedRuntimeEnvironment(manager.env,envelope.constraints?.runtime_environment??record.state.runtime_environment??record.state.constraints?.runtime_environment,{workspace:scope.cwd}),toolBroker:broker,authorize,assertActive,skillPolicy:{...envelope.skill_policy,implicit:'deny'},allowedSkills,maxTurns:definition.retry.max_attempts,onSessionOwned:own,
         onProfilePrepared:profile=>event('profile_owned',{home:profile.home,...(profile.receipt_home?{receipt_home:profile.receipt_home}:{}),executable_sha256:profile.binary_sha256}),onModelCatalog:metadata=>event('model_catalog',metadata),
         onObservationBatch:metadata=>runtime.recordExecutorObservations(runId,{...binding,

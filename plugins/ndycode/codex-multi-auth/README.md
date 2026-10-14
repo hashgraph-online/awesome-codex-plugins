@@ -16,8 +16,9 @@ Using OpenCode rather than the Codex CLI? The sibling project [`oc-codex-multi-a
 ## What it does
 
 - **Account pool** — OAuth login for multiple ChatGPT accounts, stored locally under `~/.codex/multi-auth` (files `0600`, directories `0700`), with per-project pools under `projects/<project-key>/`.
-- **Switching and selection** — pin an account, pick the forecast-best one, or let health- and quota-aware hybrid selection rotate for you.
-- **Runtime rotation** — a default-on, loopback-only proxy that forwards Responses API and model-discovery traffic through the best available account during wrapper-launched Codex sessions.
+- **Switching and selection** — pin an account, pick the forecast-best one, follow saved account order within customized priority tiers with sequential scheduling, or let health- and quota-aware hybrid selection rotate for you.
+- **Runtime rotation** — a default-on, loopback-only proxy that forwards Responses API, model-discovery, image, thread-goal, and Codex dictation/transcription traffic through managed accounts during wrapper-launched Codex sessions.
+- **API capability evidence** — opted-in API/ZDR routes receive daily billable checks while the router runs; status distinguishes configured access programs from verified responses. See [check behavior and controls](docs/reference/commands.md#codex-multi-auth-check).
 - **Diagnostics and repair** — status, live health checks, quota forecasts, JSON reports, and `fix`/`doctor`/`verify` commands that recover stale or damaged local state.
 - **Luna Reserve fallback** — treats `gpt-reserve` as a separately metered Luna allowance, automatically falls back after a genuine Luna quota 429, and exposes the Reserve percentage through `limits --json --refresh`.
 - **Local governance** — file-backed usage ledger, budget guards, account tags/weights/pause/drain policies, routing profiles, and an optional loopback bridge with bearer tokens for local OpenAI-compatible clients.
@@ -94,7 +95,7 @@ codex-multi-auth rotation status              # is live rotation enabled?
 
 ## Runtime rotation, in one paragraph
 
-With rotation on (the default), request-bearing wrapper commands — `exec`, `review`, `resume`, `fork`, `app`, and the bare TUI — route through a local proxy that picks the healthiest account per request, refreshes tokens as needed, and fails over across the pool on rate limits within a bounded retry budget. The proxy listens on loopback only, authenticates its own clients with a per-process token, forwards only Responses API, model-discovery, image, and thread-goal calls, and never writes account emails or tokens to client headers or logs. Plain `codex` is never touched: rotation exists only inside `codex-multi-auth-codex`/`mcodex` sessions, or inside the packaged desktop app after an opt-in, reversible bind. Turn it off with `codex-multi-auth rotation disable` or `CODEX_MULTI_AUTH_RUNTIME_ROTATION_PROXY=0`.
+With rotation on (the default), request-bearing wrapper commands — `exec`, `review`, `resume`, `fork`, `app`, and the bare TUI — route through a local proxy that picks the healthiest account per request, refreshes tokens as needed, and fails over across the pool on rate limits within a bounded retry budget. The proxy listens on loopback only, authenticates its own clients with a per-process token, forwards only Responses API, model-discovery, image, thread-goal, and `POST /transcribe` calls, and never writes account emails or tokens to client headers or logs. Transcription preserves the incoming multipart audio body and boundary, uses managed ChatGPT OAuth, and does not replay ambiguous audio uploads across accounts. Plain `codex` is never touched: rotation exists only inside `codex-multi-auth-codex`/`mcodex` sessions, or inside the packaged desktop app after an opt-in, reversible bind. Turn it off with `codex-multi-auth rotation disable` or `CODEX_MULTI_AUTH_RUNTIME_ROTATION_PROXY=0`.
 
 ## Where state lives
 
@@ -138,7 +139,7 @@ Common symptoms — wrong active account, OAuth callback port `1455` already bou
 
 ## Release notes
 
-- Current stable: [v2.21.0](docs/releases/v2.21.0.md) — `npm i -g codex-multi-auth`
+- Current stable: [v2.22.0](docs/releases/v2.22.0.md) — `npm i -g codex-multi-auth`
 - Earlier stable lines: [v2.6.0](docs/releases/v2.6.0.md), [v2.5.0](docs/releases/v2.5.0.md)
 - Full release archive: [docs/README.md#release-history](docs/README.md#release-history)
 

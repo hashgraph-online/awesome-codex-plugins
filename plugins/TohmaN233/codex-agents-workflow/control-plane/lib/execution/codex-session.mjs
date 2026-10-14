@@ -517,9 +517,9 @@ async function createNormalSession(options,prefixLease,onLeaseTransferred){
   }
   const makeCommandBroker = () => createCodexCommandBroker({ binary, home, cwd, access, env,
     getExecutionPolicy:()=>executionPolicy,
-    spoolRoot: options.isolatedWorkspace?join(cwd,'.workflow-command-output',digest(receiptHome)):join(receiptHome, 'command-output'), getClient: () => client,
+    spoolRoot: options.ownedCommandTemp?join(cwd,'.workflow-command-output',digest(receiptHome)):join(receiptHome, 'command-output'), getClient: () => client,
     allowedPaths: options.allowedPaths ?? [],
-    isolatedWorkspace: options.isolatedWorkspace,
+    ownedCommandTemp: options.ownedCommandTemp,
     recoverToolErrors:true,
     getOutputBudget:()=>toolOutputBudget,
     shutdownGraceMs:options.commandShutdownGraceMs,
@@ -815,7 +815,6 @@ async function createNormalSession(options,prefixLease,onLeaseTransferred){
       executionPolicy=cooperativeExecutionPolicy(executionAccess,selection.main_execution_context);
       await record({model,effort,sandbox:executionPolicy.thread_sandbox,execution_policy:executionPolicy});
     }
-    if(options.isolatedWorkspace)await commandBroker.qualifyIsolation();
     if (authentication.authenticated) {
       if (authenticationMode === 'environment_api_key') await environmentKeyModel(client, model, effort, options.onModelCatalog);
       else await authenticatedModel(client, model, effort, options.onModelCatalog);
@@ -856,7 +855,6 @@ async function createNormalSession(options,prefixLease,onLeaseTransferred){
       }
       client=openClient(webResponseDefault?.overrides??executionOverrides);
       await initializeClient();
-      if(options.isolatedWorkspace)await commandBroker.qualifyIsolation();
       const routedAuth=await session.authentication();
       requireValue(routedAuth.authenticated && routedAuth.type===currentAuth.type,'CODEX_AUTH_MODE','Tool routing changed the authenticated account mode');
       // Qualify the actual execution client's effective configuration. Reading
@@ -942,7 +940,6 @@ async function createNormalSession(options,prefixLease,onLeaseTransferred){
       if(options.authorize)await options.authorize();
       requireOpen();
       commandBroker=makeCommandBroker();commandGeneration++;commandSettled=false;
-      if(options.isolatedWorkspace)await commandBroker.qualifyIsolation();
       requireOpen();
     }
     const pins = continuation ? null : await pinnedSkills();

@@ -44,7 +44,9 @@ export function validateStrictConfig(raw = {}) {
     typeof result.main_reasoning_effort === 'string' && (!result.main_reasoning_effort || /^[a-z][a-z0-9_-]{0,31}$/.test(result.main_reasoning_effort)), 'STRICT_CONFIG', 'Main inherits the calling chat model and reasoning selection; explicit experiment identifiers must be valid');
   requireValue(Number.isSafeInteger(result.inactivity_timeout_ms) && result.inactivity_timeout_ms >= 0 && result.inactivity_timeout_ms <= 86_400_000,
     'STRICT_CONFIG', 'Strict inactivity_timeout_ms must be an integer from 0 through 86400000; 0 disables inactivity termination');
-  requireValue(!result.enabled || result.codex_binary && result.binary_sha256 && (result.authentication.mode !== 'environment_api_key' || result.authentication.api_key_env), 'STRICT_CONFIG', 'Enabled Strict executor requires complete binary and authentication settings');
+  requireValue(!result.enabled || Boolean(result.codex_binary) === Boolean(result.binary_sha256)
+    && (result.authentication.mode !== 'environment_api_key' || result.authentication.api_key_env),
+    'STRICT_CONFIG', 'Enabled Strict executor requires paired binary identity or deferred registration, and complete authentication settings');
   return result;
 }
 
@@ -255,10 +257,16 @@ export async function qualifiedCodexBinary(settings, { env = process.env, schema
   return settings;
 }
 
+export async function qualifiedCooperativeSettings(config, env = process.env, options = {}) {
+  const settings = validateStrictConfig(config.strict_executor);
+  requireValue(settings.codex_binary && settings.binary_sha256, 'CODEX_REGISTRATION_REQUIRED', 'The Codex executor must be discovered and registered before execution');
+  requireValue(settings.authentication.mode !== 'environment_api_key' || Boolean(settings.authentication.api_key_env && env[settings.authentication.api_key_env]), 'CODEX_CREDENTIAL_MISSING', 'Configured authentication environment variable is unavailable');
+  await qualifiedCodexBinary(settings, { ...options, env });
+  return settings;
+}
+
 export async function qualifiedStrictSettings(config, env = process.env, options = {}) {
   const settings = validateStrictConfig(config.strict_executor);
   requireValue(settings.enabled, 'STRICT_DISABLED', 'The user has not enabled the Codex executor');
-  requireValue(settings.authentication.mode !== 'environment_api_key' || Boolean(env[settings.authentication.api_key_env]), 'CODEX_CREDENTIAL_MISSING', 'Configured authentication environment variable is unavailable');
-  await qualifiedCodexBinary(settings, { ...options, env });
-  return settings;
+  return qualifiedCooperativeSettings(config, env, options);
 }

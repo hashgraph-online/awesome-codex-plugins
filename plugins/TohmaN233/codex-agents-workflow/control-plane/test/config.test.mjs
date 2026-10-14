@@ -1,3 +1,7 @@
+import { WorkflowStore, withRunAdmissionObserver } from '../lib/workflow-store.mjs';
+import fsPromises from 'node:fs/promises';
+import { syncBuiltinESMExports } from 'node:module';
+import { loadLegacyConfig } from './legacy-config.mjs';
 import assert from 'node:assert/strict';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from './physical-tempdir.mjs';
@@ -6,6 +10,7 @@ import test from 'node:test';
 import { GitWorktrees } from '../lib/parallel/git-worktrees.mjs';
 
 import {
+  CONFIG_VERSION,
   loadConfig,
   ensureConfigFile,
   resolveConfigPath,
@@ -20,7 +25,7 @@ import { DEFAULT_CONFIG_PATH } from '../server.mjs';
 async function fixture() {
   const dir = await mkdtemp(join(tmpdir(), 'sol-control-config-'));
   const configPath = join(dir, 'control-plane.json');
-  const config = await loadConfig({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH });
+  const config = await loadLegacyConfig({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH });
   return { dir, configPath, config };
 }
 
@@ -209,7 +214,7 @@ test('legacy store migration refuses to split data when the canonical directory 
   await rm(root, { recursive: true, force: true });
 });
 
-test('bundled defaults use delegate for light work and full for difficult work', async () => {
+test('explicit legacy fixtures retain delegate and full stage topology', async () => {
   const { config } = await fixture();
   assert.equal(config.version, 6);
   assert.equal('scenarios' in config, false);
@@ -698,4 +703,234 @@ test('legacy relocation refuses real manager-owned Git worktrees before changing
   assert.deepEqual(await manager.git(workspace, ['worktree', 'list', '--porcelain']), before);
   assert.equal(await readFile(join(owned.workspace, '.git'), 'utf8'), registration);
   await manager.verify(owned);
+});
+
+
+test('fresh bootstrap persists canonical v7 and owns its existing Workflow store', async t => {
+  const dir = await mkdtemp(join(tmpdir(), 'workflow-current-bootstrap-'));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const configPath = join(dir, 'control-plane.json');
+  const config = await loadConfig({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH });
+  assert.equal(CONFIG_VERSION, 7);
+  assert.equal(config.version, CONFIG_VERSION);
+  assert.equal(Object.hasOwn(config, 'task_types'), false);
+  assert.deepEqual(config.workflow_store, { schema_version: 1, relative_path: 'workflows' });
+  assert.deepEqual(config.legacy_mapping, {});
+  assert.equal(config.strict_executor.enabled, true);
+  assert.equal(config.strict_executor.main_model, '');
+  assert.equal(config.strict_executor.main_reasoning_effort, '');
+  assert.deepEqual(JSON.parse(await readFile(configPath, 'utf8')), config);
+  assert.deepEqual(await loadConfig({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH }), config);
+  assert.deepEqual(validateConfig({ ...config, task_types: [] }), config);
+});
+
+test('native v7 edits retain the user store pointer, policy, and Provider customization', async t => {
+  const dir = await mkdtemp(join(tmpdir(), 'workflow-current-custom-config-'));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const configPath = join(dir, 'control-plane.json');
+  const config = JSON.parse(await readFile(DEFAULT_CONFIG_PATH, 'utf8'));
+  config.workflow_store.relative_path = 'user-library';
+  config.global.console_title = 'User library';
+  config.global.allow_direct_api = true;
+  config.providers.find(provider => provider.id === 'cursor-local').config.cdp_port = 9333;
+  await mkdir(join(dir, 'user-library'));
+  await writeFile(configPath, JSON.stringify(config));
+  const loaded = await loadConfig({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH });
+  const pointer = structuredClone(loaded.workflow_store);
+  loaded.global.enabled = false;
+  loaded.providers.find(provider => provider.id === 'cursor-local').enabled = true;
+  await saveConfig(loaded, { configPath });
+  const retained = await loadConfig({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH });
+  assert.deepEqual(retained.workflow_store, pointer);
+  assert.deepEqual(retained.legacy_mapping, {});
+  assert.equal(retained.global.console_title, 'User library');
+  assert.equal(retained.global.allow_direct_api, true);
+  assert.equal(retained.global.enabled, false);
+  const cursor = retained.providers.find(provider => provider.id === 'cursor-local');
+  assert.equal(cursor.enabled, true);
+  assert.equal(cursor.config.cdp_port, 9333);
+  await assert.rejects(saveConfig({ ...retained, workflow_store: { ...pointer, relative_path: 'replaced' } }, { configPath }), /cannot replace/);
+});
+
+test('fresh bootstrap refuses an orphaned store without adopting or changing its data', async t => {
+  const dir = await mkdtemp(join(tmpdir(), 'workflow-current-orphan-store-'));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const configPath = join(dir, 'control-plane.json');
+  await mkdir(join(dir, 'workflows'));
+  const marker = join(dir, 'workflows', 'user-data.txt');
+  await writeFile(marker, 'Existing user data');
+  await assert.rejects(loadConfig({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH }), { code: 'EEXIST' });
+  await assert.rejects(readFile(configPath), { code: 'ENOENT' });
+  assert.equal(await readFile(marker, 'utf8'), 'Existing user data');
+});
+
+
+test('fresh bootstrap never replaces a configuration created externally before publication', async t => {
+  const dir = await mkdtemp(join(tmpdir(), 'workflow-current-external-creator-'));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const configPath = join(dir, 'control-plane.json');
+  const external = JSON.parse(await readFile(DEFAULT_CONFIG_PATH, 'utf8'));
+  external.global.console_title = 'Concurrent user configuration';
+  const bytes = JSON.stringify(external) + '\n';
+  const initialize = WorkflowStore.prototype.initialize;
+  let created = false;
+  t.mock.method(WorkflowStore.prototype, 'initialize', async function () {
+    const result = await initialize.call(this);
+    if (this.root === join(dir, 'workflows')) {
+      await writeFile(configPath, bytes, { flag: 'wx' });
+      created = true;
+    }
+    return result;
+  });
+  await ensureConfigFile({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH });
+  assert.equal(created, true);
+  assert.equal(await readFile(configPath, 'utf8'), bytes);
+  const { readdir } = await import('node:fs/promises');
+  assert.equal((await readdir(dir)).some(name => name.includes('.bootstrap-')), false);
+});
+
+
+test('simultaneous fresh loads share bounded validated bootstrap admission', { timeout: 10000 }, async t => {
+  const dir = await mkdtemp(join(tmpdir(), 'workflow-current-concurrent-bootstrap-'));
+  const configPath = join(dir, 'control-plane.json');
+  let release, entered, waiting;
+  const gate = new Promise(resolve => { release = resolve; });
+  const reached = new Promise(resolve => { entered = resolve; });
+  const contended = new Promise(resolve => { waiting = resolve; });
+  const initialize = WorkflowStore.prototype.initialize;
+  const pending = [];
+  t.after(async () => { release(); await Promise.allSettled(pending); await rm(dir, { recursive: true, force: true }); });
+  t.mock.method(WorkflowStore.prototype, 'initialize', async function () {
+    const result = await initialize.call(this);
+    if (this.root === join(dir, 'workflows')) { entered(); await gate; }
+    return result;
+  });
+  await withRunAdmissionObserver({ admissionRoot: dir, onWait: observation => {
+    if (observation.phase === 'waiting' && observation.owner_operation === 'config_bootstrap') waiting();
+  } }, async () => {
+    const first = loadConfig({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH });
+    pending.push(first);
+    await reached;
+    await assert.rejects(new WorkflowStore(dir).withWriter(() => assert.fail('Ordinary writer must stay fail-fast')), { code: 'WORKFLOW_STORE_BUSY' });
+    const second = loadConfig({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH });
+    pending.push(second);
+    try {
+      await Promise.race([contended, second.then(() => assert.fail('Second bootstrap must observe the held writer'))]);
+    } finally { release(); }
+    const [firstConfig, secondConfig] = await Promise.all(pending);
+    assert.deepEqual(secondConfig, firstConfig);
+    assert.equal(firstConfig.version, 7);
+    assert.deepEqual(JSON.parse(await readFile(configPath, 'utf8')), firstConfig);
+  });
+});
+
+test('caught initialization failure rolls back only owned empty store and allows retry', async t => {
+  const dir = await mkdtemp(join(tmpdir(), 'workflow-current-initialize-retry-'));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const configPath = join(dir, 'control-plane.json'), storeRoot = join(dir, 'workflows');
+  const fault = new Error('Injected initializer failure');
+  const initialize = WorkflowStore.prototype.initialize;
+  const mocked = t.mock.method(WorkflowStore.prototype, 'initialize', async function () {
+    const result = await initialize.call(this);
+    if (this.root === storeRoot) throw fault;
+    return result;
+  });
+  await assert.rejects(loadConfig({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH }), error => error === fault);
+  assert.deepEqual(fault.bootstrap_cleanup, { store_retained: false });
+  await assert.rejects(fsPromises.lstat(storeRoot), { code: 'ENOENT' });
+  await assert.rejects(readFile(configPath), { code: 'ENOENT' });
+  mocked.mock.restore();
+  const config = await loadConfig({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH });
+  assert.equal(config.version, 7);
+  assert((await fsPromises.lstat(storeRoot)).isDirectory());
+});
+
+test('caught exclusive publication failure cleans owned staging and empty store before retry', async t => {
+  const dir = await mkdtemp(join(tmpdir(), 'workflow-current-publication-retry-'));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const configPath = join(dir, 'control-plane.json'), storeRoot = join(dir, 'workflows');
+  const fault = Object.assign(new Error('Injected unsupported exclusive publication'), { code: 'ENOTSUP' });
+  const original = fsPromises.link;
+  const mocked = t.mock.method(fsPromises, 'link', async (...args) => {
+    if (args[1] === configPath) throw fault;
+    return original(...args);
+  });
+  syncBuiltinESMExports();
+  t.after(() => { mocked.mock.restore(); syncBuiltinESMExports(); });
+  await assert.rejects(loadConfig({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH }), error => error === fault);
+  assert.deepEqual(fault.bootstrap_cleanup, { store_retained: false });
+  await assert.rejects(fsPromises.lstat(storeRoot), { code: 'ENOENT' });
+  await assert.rejects(readFile(configPath), { code: 'ENOENT' });
+  assert.equal((await fsPromises.readdir(dir)).some(name => name.includes('.bootstrap-')), false);
+  mocked.mock.restore(); syncBuiltinESMExports();
+  const config = await loadConfig({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH });
+  assert.equal(config.version, 7);
+});
+
+test('caught bootstrap failure preserves externally populated store and its original error', async t => {
+  const dir = await mkdtemp(join(tmpdir(), 'workflow-current-populated-failure-'));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const configPath = join(dir, 'control-plane.json'), storeRoot = join(dir, 'workflows');
+  const marker = join(storeRoot, '.pending', 'external-data.txt');
+  const fault = new Error('Injected failure after external store write');
+  const initialize = WorkflowStore.prototype.initialize;
+  const mocked = t.mock.method(WorkflowStore.prototype, 'initialize', async function () {
+    const result = await initialize.call(this);
+    if (this.root === storeRoot) { await writeFile(marker, 'Preserve external data'); throw fault; }
+    return result;
+  });
+  await assert.rejects(loadConfig({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH }), error => error === fault);
+  assert.deepEqual(fault.bootstrap_cleanup, { store_retained: true, reason: 'populated_initialization_directory' });
+  assert.equal(await readFile(marker, 'utf8'), 'Preserve external data');
+  mocked.mock.restore();
+  await assert.rejects(loadConfig({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH }), { code: 'EEXIST' });
+  assert.equal(await readFile(marker, 'utf8'), 'Preserve external data');
+});
+
+test('caught bootstrap failure retains an externally published config and its store for retry', async t => {
+  const dir = await mkdtemp(join(tmpdir(), 'workflow-current-external-failure-'));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const configPath = join(dir, 'control-plane.json'), storeRoot = join(dir, 'workflows');
+  const external = JSON.parse(await readFile(DEFAULT_CONFIG_PATH, 'utf8'));
+  external.global.console_title = 'External configuration survives failed bootstrap';
+  const bytes = JSON.stringify(external) + '\n', fault = new Error('Injected failure after external publication');
+  const initialize = WorkflowStore.prototype.initialize;
+  const mocked = t.mock.method(WorkflowStore.prototype, 'initialize', async function () {
+    const result = await initialize.call(this);
+    if (this.root === storeRoot) { await writeFile(configPath, bytes, { flag: 'wx' }); throw fault; }
+    return result;
+  });
+  await assert.rejects(loadConfig({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH }), error => error === fault);
+  assert.deepEqual(fault.bootstrap_cleanup, { store_retained: true, reason: 'configuration_present' });
+  assert.equal(await readFile(configPath, 'utf8'), bytes);
+  assert((await fsPromises.lstat(storeRoot)).isDirectory());
+  mocked.mock.restore();
+  const config = await loadConfig({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH });
+  assert.equal(config.global.console_title, external.global.console_title);
+});
+
+
+test('caught bootstrap failure never cleans a replacement store identity', async t => {
+  const dir = await mkdtemp(join(tmpdir(), 'workflow-current-replaced-store-'));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const configPath = join(dir, 'control-plane.json'), storeRoot = join(dir, 'workflows');
+  const moved = join(dir, 'moved-original-store'), marker = join(storeRoot, 'replacement-data.txt');
+  const fault = new Error('Injected failure after store replacement');
+  const initialize = WorkflowStore.prototype.initialize;
+  const mocked = t.mock.method(WorkflowStore.prototype, 'initialize', async function () {
+    const result = await initialize.call(this);
+    if (this.root === storeRoot) {
+      await fsPromises.rename(storeRoot, moved);
+      await mkdir(storeRoot);
+      await writeFile(marker, 'Preserve replacement store');
+      throw fault;
+    }
+    return result;
+  });
+  await assert.rejects(loadConfig({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH }), error => error === fault);
+  assert.deepEqual(fault.bootstrap_cleanup, { store_retained: true, reason: 'store_identity_changed' });
+  assert.equal(await readFile(marker, 'utf8'), 'Preserve replacement store');
+  assert.deepEqual((await fsPromises.readdir(moved)).sort(), ['.pending', '.trash']);
+  mocked.mock.restore();
+  await assert.rejects(loadConfig({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH }), { code: 'EEXIST' });
 });

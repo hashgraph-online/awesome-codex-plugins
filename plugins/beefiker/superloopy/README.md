@@ -12,7 +12,7 @@
   <a href="README.es.md">Español</a>
 </p>
 
-<img src=".github/assets/franky.png" width="92" alt="franky" />&nbsp;<img src=".github/assets/zoro.png" width="92" alt="zoro" />&nbsp;<img src=".github/assets/usopp.png" width="92" alt="usopp" />&nbsp;<img src=".github/assets/jinbe.png" width="92" alt="jinbe" />&nbsp;<img src=".github/assets/robin.png" width="92" alt="robin" />&nbsp;<img src=".github/assets/nami.png" width="92" alt="nami" />
+<img src=".github/assets/forge.webp" width="92" alt="forge" />&nbsp;<img src=".github/assets/sentinel.webp" width="92" alt="sentinel" />&nbsp;<img src=".github/assets/probe.webp" width="92" alt="probe" />&nbsp;<img src=".github/assets/arbiter.webp" width="92" alt="arbiter" />&nbsp;<img src=".github/assets/assayer.webp" width="92" alt="assayer" />&nbsp;<img src=".github/assets/pathfinder.webp" width="92" alt="pathfinder" />
 
 <sub><b>the crew</b> — optional subagents, one job each</sub>
 
@@ -109,14 +109,14 @@ Resolution finishes before launch, with no post-launch retry or model switch. Th
 
 <table>
   <tr>
-    <td align="center" width="33%"><img src=".github/assets/franky.png" width="190" alt="franky" /><br /><b>franky</b><br /><sub>builds it</sub></td>
-    <td align="center" width="33%"><img src=".github/assets/zoro.png" width="190" alt="zoro" /><br /><b>zoro</b><br /><sub>reviews it</sub></td>
-    <td align="center" width="33%"><img src=".github/assets/usopp.png" width="190" alt="usopp" /><br /><b>usopp</b><br /><sub>tests it</sub></td>
+    <td align="center" width="33%"><img src=".github/assets/forge.webp" width="190" alt="forge" /><br /><b>forge</b><br /><sub>builds it</sub></td>
+    <td align="center" width="33%"><img src=".github/assets/sentinel.webp" width="190" alt="sentinel" /><br /><b>sentinel</b><br /><sub>reviews it</sub></td>
+    <td align="center" width="33%"><img src=".github/assets/probe.webp" width="190" alt="probe" /><br /><b>probe</b><br /><sub>tests it</sub></td>
   </tr>
   <tr>
-    <td align="center"><img src=".github/assets/jinbe.png" width="190" alt="jinbe" /><br /><b>jinbe</b><br /><sub>gates it</sub></td>
-    <td align="center"><img src=".github/assets/robin.png" width="190" alt="robin" /><br /><b>robin</b><br /><sub>audits it</sub></td>
-    <td align="center"><img src=".github/assets/nami.png" width="190" alt="nami" /><br /><b>nami</b><br /><sub>finds it</sub></td>
+    <td align="center"><img src=".github/assets/arbiter.webp" width="190" alt="arbiter" /><br /><b>arbiter</b><br /><sub>gates it</sub></td>
+    <td align="center"><img src=".github/assets/assayer.webp" width="190" alt="assayer" /><br /><b>assayer</b><br /><sub>audits it</sub></td>
+    <td align="center"><img src=".github/assets/pathfinder.webp" width="190" alt="pathfinder" /><br /><b>pathfinder</b><br /><sub>finds it</sub></td>
   </tr>
 </table>
 
@@ -253,11 +253,21 @@ Restart Codex after uninstalling. Optional local bootstrap cleanup: plugin remov
 
 ```sh
 rm -f ~/.local/bin/superloopy
-rm -f ~/.codex/agents/franky.toml ~/.codex/agents/zoro.toml ~/.codex/agents/usopp.toml ~/.codex/agents/jinbe.toml ~/.codex/agents/robin.toml ~/.codex/agents/nami.toml
+rm -f ~/.codex/agents/forge.toml ~/.codex/agents/sentinel.toml ~/.codex/agents/probe.toml ~/.codex/agents/arbiter.toml ~/.codex/agents/assayer.toml ~/.codex/agents/pathfinder.toml
 ```
 
 ```powershell
 Remove-Item "$env:APPDATA\npm\superloopy.cmd" -ErrorAction SilentlyContinue
+Remove-Item "$env:USERPROFILE\.codex\agents\forge.toml", "$env:USERPROFILE\.codex\agents\sentinel.toml", "$env:USERPROFILE\.codex\agents\probe.toml", "$env:USERPROFILE\.codex\agents\arbiter.toml", "$env:USERPROFILE\.codex\agents\assayer.toml", "$env:USERPROFILE\.codex\agents\pathfinder.toml" -ErrorAction SilentlyContinue
+```
+
+Upgrading removes the pre-rename agent files automatically when they are unmodified. If you edited any of them, remove them by hand:
+
+```sh
+rm -f ~/.codex/agents/franky.toml ~/.codex/agents/zoro.toml ~/.codex/agents/usopp.toml ~/.codex/agents/jinbe.toml ~/.codex/agents/robin.toml ~/.codex/agents/nami.toml
+```
+
+```powershell
 Remove-Item "$env:USERPROFILE\.codex\agents\franky.toml", "$env:USERPROFILE\.codex\agents\zoro.toml", "$env:USERPROFILE\.codex\agents\usopp.toml", "$env:USERPROFILE\.codex\agents\jinbe.toml", "$env:USERPROFILE\.codex\agents\robin.toml", "$env:USERPROFILE\.codex\agents\nami.toml" -ErrorAction SilentlyContinue
 ```
 

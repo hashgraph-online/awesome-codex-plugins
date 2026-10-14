@@ -54,8 +54,8 @@ async function fixture(t,{jobs=[{name:'a',workspace:'pages/a',destinations:['pag
  const settings={enabled:true,codex_binary:process.execPath,binary_sha256:'b'.repeat(64),authentication:{mode:'managed_chatgpt',api_key_env:''},main_model:'',main_reasoning_effort:'',inactivity_timeout_ms:0};
  const created=[],prompts=[],selections=[];let modelReads=0;
  if(prefixFactory)Object.defineProperty(prefixFactory,'usageCapability',{value:Object.freeze({...prefixCapability})});
- const manager=new HostMainManager({configPath:join(root,'control-plane.json'),...(prefixFactory?{prefixFactory}:{}),...(hostCheck?{hostToolRunner:hostCheck.runner}:{}),env:{},getConfig:async()=>({global:{enabled:true},strict_executor:settings,providers:[]}),qualify:async()=>settings,mainModelSelection:async()=>{modelReads++;return {model:'initiating-main',effort:'high',...(mainExecutionContext?{main_execution_context:structuredClone(mainExecutionContext)}:{})};},sessionFactory:async options=>{
-   const index=options.owner.item_index??0;const selected=await options.resolveModelSelection({});selections.push(selected);assert.equal(options.ephemeral,true);assert.equal(options.cwd,single?workspace:join(workspace,jobs[index].workspace));assert.deepEqual(options.allowedPaths,['.']);if(!single)assert(options.isolatedWorkspace);
+ const manager=new HostMainManager({register:async({config})=>config,configPath:join(root,'control-plane.json'),...(prefixFactory?{prefixFactory}:{}),...(hostCheck?{hostToolRunner:hostCheck.runner}:{}),env:{},getConfig:async()=>({global:{enabled:true},strict_executor:settings,providers:[]}),qualify:async()=>settings,mainModelSelection:async()=>{modelReads++;return {model:'initiating-main',effort:'high',...(mainExecutionContext?{main_execution_context:structuredClone(mainExecutionContext)}:{})};},sessionFactory:async options=>{
+   const index=options.owner.item_index??0;const selected=await options.resolveModelSelection({});selections.push(selected);assert.equal(options.ephemeral,true);assert.equal(options.cwd,single?workspace:join(workspace,jobs[index].workspace));assert.deepEqual(options.allowedPaths,['.']);assert.equal(options.isolatedWorkspace,undefined,'Main fanout must not add an OS isolation probe');
    let closed=false,turnNumber=0;const gate=deferred(),session={prepareHostCompletion:async()=>prepare({index,options,session}),interrupt:async()=>gate.resolve(),close:async()=>{closed=true;gate.resolve();await close({index,options,session});options.toolBroker.revoke();},turn:async(text,turnOptions={})=>{
      const itemIndex=Number(/runtime item (\d+)/.exec(text)?.[1]??index);prompts.push({index:itemIndex,text});await turn({index:itemIndex,text,options,session,gate,closed:()=>closed});
      if(closed)throw Object.assign(new Error('interrupted fixture item'),{code:'HOST_MAIN_STOPPED'});
@@ -286,7 +286,7 @@ test('fanout shares one exact authenticated parent policy across fresh item sess
  for(const selected of f.selections)assert.deepEqual(selected.main_execution_context,context);
  assert.notEqual(f.selections[0].main_execution_context,f.selections[1].main_execution_context);
  assert.equal(new Set(f.created.map(item=>item.options.cwd)).size,3);
- for(const item of f.created){assert.deepEqual(item.options.allowedPaths,['.']);assert(item.options.isolatedWorkspace);}
+ for(const item of f.created){assert.deepEqual(item.options.allowedPaths,['.']);assert.equal(item.options.isolatedWorkspace,undefined,'Main fanout must not add an OS isolation probe');}
 });
 
 test('fanout rejects a writable node contradicting its actual read-only initiating Main before any item turn',async t=>{

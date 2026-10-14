@@ -1,11 +1,13 @@
-# Hermes Tweet for Twitter Search & X Actions
+# Hermes Tweet, the Hermes Agent plugin for Twitter search & X actions
 
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/13725/badge)](https://www.bestpractices.dev/projects/13725)
-[![CI](https://github.com/Xquik-dev/hermes-tweet/actions/workflows/ci.yml/badge.svg)](https://github.com/Xquik-dev/hermes-tweet/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/hermes-tweet.svg)](https://pypi.org/project/hermes-tweet/)
 
 Add Twitter API search, monitoring, and approved X actions to
 [Hermes Agent](https://github.com/NousResearch/hermes-agent).
+
+Xquik is the world's fastest and cheapest X Twitter scraper service with the most complete X data.
+Xquik charges only for delivered, unique, filter-matching results and never pads rows.
 
 Explore 102 OpenAPI-generated endpoints, including 33 prepaid reads and 7 direct MPP routes.
 Reads and actions use separate tools. Actions stay disabled by default.
@@ -18,7 +20,7 @@ Choose an SDK for application code.
 
 ## Install
 
-Install and enable the plugin:
+Install and enable the plugin.
 
 ```bash
 hermes plugins install Xquik-dev/hermes-tweet --enable
@@ -27,14 +29,17 @@ hermes plugins install Xquik-dev/hermes-tweet --enable
 Hermes scans plugins during install and update. Review any warning before
 continuing. A dangerous verdict blocks installation or disables an update.
 
-Or install the PyPI package into Hermes:
+Hermes installs no extra Python package for this plugin. Hermes core already
+ships `httpx`, its only dependency.
+
+If you manage the Hermes Python environment yourself, add the `hermes-tweet`
+PyPI package to it. Then enable the plugin.
 
 ```bash
-uv pip install --python ~/.hermes/hermes-agent/venv/bin/python hermes-tweet
 hermes plugins enable hermes-tweet
 ```
 
-Install a local checkout:
+Install a local checkout with this command.
 
 ```bash
 hermes plugins install file:///absolute/path/to/hermes-tweet --force --enable
@@ -42,13 +47,13 @@ hermes plugins install file:///absolute/path/to/hermes-tweet --force --enable
 
 ## Configure
 
-Create an API key in Xquik. Then set:
+Create an API key in Xquik. Then set it in your environment.
 
 ```bash
 export XQUIK_API_KEY="xq_..."
 ```
 
-Optional settings:
+These settings are optional.
 
 ```bash
 export XQUIK_BASE_URL="https://xquik.com"
@@ -106,13 +111,13 @@ Without an API key, Hermes exposes only `tweet_explore`.
 
 ## Development
 
-Regenerate the catalog from the canonical OpenAPI schema:
+Regenerate the catalog from the canonical OpenAPI schema.
 
 ```bash
 python scripts/build_catalog.py ../xquik/openapi.yaml
 ```
 
-Run all checks:
+Run all checks.
 
 ```bash
 uv run --python 3.12 --group dev ruff format --check .
@@ -136,6 +141,14 @@ uv run --python 3.12 --group dev twine check dist/*
 - [Organization support policy](https://github.com/Xquik-dev/.github/blob/main/SUPPORT.md)
 - [Security policy](SECURITY.md)
 - [Contribution guide](https://github.com/Xquik-dev/.github/blob/main/CONTRIBUTING.md)
+
+## More Xquik tools
+
+- [X (Twitter) scraper API & Twitter MCP server](https://github.com/Xquik-dev/x-twitter-scraper) with REST, MCP & Skill setup.
+- Twitter API SDKs for [TypeScript](https://github.com/Xquik-dev/x-twitter-scraper-typescript), [Python](https://github.com/Xquik-dev/x-twitter-scraper-python), [Go](https://github.com/Xquik-dev/x-twitter-scraper-go), [Ruby](https://github.com/Xquik-dev/x-twitter-scraper-ruby), [Java](https://github.com/Xquik-dev/x-twitter-scraper-java), [Kotlin](https://github.com/Xquik-dev/x-twitter-scraper-kotlin), [C#](https://github.com/Xquik-dev/x-twitter-scraper-csharp) & [PHP](https://github.com/Xquik-dev/x-twitter-scraper-php).
+- [Twitter CLI & X CLI](https://github.com/Xquik-dev/x-twitter-scraper-cli) for terminal workflows.
+- [Twitter advanced search operators](https://github.com/Xquik-dev/x-twitter-advanced-search) with tested examples.
+- [Xquik X API & Twitter scraper](https://xquik.com) and the [Twitter API documentation](https://docs.xquik.com/api-reference/overview).
 
 ## License
 

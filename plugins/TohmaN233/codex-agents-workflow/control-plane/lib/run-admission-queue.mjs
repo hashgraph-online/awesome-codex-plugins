@@ -25,13 +25,17 @@ async function ticketReadObservation(path){
  }
 }
 async function ticketAt(path,{initializationMs=250,allowUnsettled=false}={}){
- await noSymlinks(path);const info=await lstat(path);
- // A POSIX lookup can finish on an inode that its owner has just retired.
- // Only a confirmed missing original path is a gone peer; a replacement or
- // other lookup failure must remain visible, without rereading its body.
- if(info.isFile()&&info.nlink===0)await lstat(path);
+ await noSymlinks(path);let info=await lstat(path);
+ // Queue names are mutable: choosing number=0 is atomically published as a
+ // numbered ticket. A lookup can finish on the retired chooser inode. Use one
+ // fresh namespace observation, then apply every original file/body check to
+ // that current ticket. Missing paths and invalid replacements remain errors;
+ // ownership-sensitive callers still verify the exact token and record.
+ const retiredLookup=info.isFile()&&info.nlink===0;
+ if(retiredLookup)info=await lstat(path);
  requireValue(info.isFile()&&info.nlink===1&&info.size<=4096,'RUN_ADMISSION_QUEUE_FILE','Admission ticket must be one bounded regular file',
-  {ticket_path:path,ticket_bytes:info.size,ticket_links:info.nlink});
+  {phase:'ticket_metadata',ticket_path:path,ticket_bytes:info.size,ticket_links:info.nlink,
+   ...(retiredLookup?{retired_lookup:true}:{})});
  let bytes;
  try{bytes=await readFile(path);}
  catch(error){

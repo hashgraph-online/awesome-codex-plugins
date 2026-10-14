@@ -69,7 +69,7 @@ export function workflowResourceProgramRegistry(){
       try{
         await authorize();
         const broker=await createCodexToolBroker({workspace:context.workspace,access:'bounded_write',allowedPaths:permissions.write_paths,
-          resources:context.resources,executionBinding:context.execution_binding,runtimeEnvironment:context.runtime_environment,prepareRuntimeEnvironment:context.prepareRuntimeEnvironment,programEnvironment:env,
+          resources:context.resources,executionBinding:context.execution_binding,runtimeEnvironment:context.runtime_environment,prepareRuntimeEnvironment:context.prepareRuntimeEnvironment,programEnvironment:env,programDeadlineMs:context.deadline_ms,
           inputRoots:typeof context.task_root==='string'&&isAbsolute(context.task_root)?[{name:'task_root',path:context.task_root}]:[],
           authorize,onOperation:async()=>{}});
         entry.broker=broker;

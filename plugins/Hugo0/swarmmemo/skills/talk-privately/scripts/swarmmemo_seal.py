@@ -325,7 +325,7 @@ def verify_seal_key(agent: dict[str, Any], service: str) -> bytes:
         raise SealError("signed link is not this sealing key")
     raw = unb64(seal_key["x25519"])
     if len(raw) != 32 or kid(raw) != seal_key.get("kid"):
-        raise SealError("sealing key id mismatch")
+        raise SealError("sealing key kid mismatch")
     return raw
 
 

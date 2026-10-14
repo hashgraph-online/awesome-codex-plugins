@@ -18,6 +18,7 @@ import { pathBoundaries, pathBoundaryContains, resolveBindings, bindingPointers 
 import { validateData } from './workflow-data-schema.mjs';
 import { runPermissions, nodePermissions, approvalBinding, leaseToken, executionEnvelope, bindingContext } from './workflow-execution-envelope.mjs';
 import { effectiveRunInputs } from './workflow-run-inputs.mjs';
+import { projectNodeContext } from './workflow-context-projection.mjs';
 import { assertThreadReceipt, isThreadExecutor, threadResourcePacketText } from './thread-handoff.mjs';
 import { assertThreadDispatchAvailable, assertThreadStartIdentity, assertThreadCompletion } from './thread-protocol.mjs';
 import { initialRunState, advanceRun, graphInfo, setOutcome, interruptActiveNodes, EXECUTOR_NODES } from './workflow-state.mjs';
@@ -299,6 +300,12 @@ export class WorkflowRuntime {
       if (parallel) { pins.parallel = parallel; state.pins_hash = digest(canonicalJSON(pins)); }
     }
     advanceRun(state, pins);
+    // Resolve only the executable frontier selected by normal control flow.
+    // This uses the same semantic projection as dispatch, so optional selectors
+    // and skipped branches retain their normal behavior without demanding future
+    // outputs. A missing first-node business binding must never publish a Run.
+    for (const node of root.workflow.nodes) if (EXECUTOR_NODES.has(node.type) && state.nodes[node.id].status === 'ready')
+      projectNodeContext(node, root.workflow, bindingContext(state));
     this.executionAdmission?.assertRunActive(run_id);
     const created = await this.runs.create(run_id, pins, blobs, state,
       retainHostAuthority ? {hostAuthority:{run_id,control_token:controlToken}} : {});

@@ -8,10 +8,10 @@ Read events by polling, or receive them at an HTTPS webhook.
 Each active monitor costs 30 credits per hour, events and webhook deliveries
 included. That is a monitor's only charge. Reading stored events with
 `GET /events` costs nothing. Creation needs 30 available credits and bills
-nothing itself: the username lookup is free. Before the first create call,
-show the whole setup: target, event types, webhook URL if any, cost, and the
-stop calls. Get one yes for that setup, then create the monitor and the
-webhook.
+nothing itself. The username lookup is free. Before the first create call,
+show the whole setup. It lists the target, event types, webhook URL if any,
+cost, and the stop calls. Get one yes for that setup, then create the monitor
+and the webhook.
 
 ## Monitors
 
@@ -31,7 +31,7 @@ Content-Type: application/json
 {"query": "#rustlang", "eventTypes": ["tweet.new"]}
 ```
 
-Event types: `tweet.new`, `tweet.reply`, `tweet.retweet`, `tweet.quote`,
+The event types are `tweet.new`, `tweet.reply`, `tweet.retweet`, `tweet.quote`,
 `tweet.media`, `tweet.link`, `tweet.poll`, `tweet.mention`, `tweet.hashtag`,
 `tweet.longform`, and profile changes such as `profile.bio.changed`,
 `profile.name.changed`, and `profile.avatar.changed`.
@@ -52,7 +52,7 @@ monitor with a query such as `@my_brand`.
 
 `GET /events?monitorId=<id>&limit=50` or `GET /events?keywordMonitorId=<id>`.
 Filter with `eventType`. The response holds `events`, `hasMore`, and
-`nextCursor`; pass `nextCursor` back as `cursor`. Each event has `id`, `type`,
+`nextCursor`. Pass `nextCursor` back as `cursor`. Each event has `id`, `type`,
 `monitorId`, `monitorType`, `occurredAt`, and `data`, plus `keywordMonitorId`
 and `query` for keyword monitors. Events come newest first, and `nextCursor`
 pages toward older events. For a scheduled poll, request the first page
@@ -79,11 +79,11 @@ event types.
 ## Verify every delivery
 
 Each delivery carries three headers. Show them and explain verification in
-webhook previews:
+webhook previews.
 
-- `X-Xquik-Timestamp`: Unix time in milliseconds
-- `X-Xquik-Nonce`: 16 random bytes in hex
-- `X-Xquik-Signature`: `sha256=` plus the hex HMAC-SHA256 of
+- `X-Xquik-Timestamp` holds Unix time in milliseconds
+- `X-Xquik-Nonce` holds 16 random bytes in hex
+- `X-Xquik-Signature` holds `sha256=` plus the hex HMAC-SHA256 of
   `<timestamp>.<nonce>.<raw body>`, keyed with the webhook secret
 
 The JSON body holds `eventType`, `streamEventId` (the event ID),

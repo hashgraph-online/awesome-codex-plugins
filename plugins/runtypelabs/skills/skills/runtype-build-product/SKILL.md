@@ -39,7 +39,7 @@ Then fetch only the `get_platform_documentation` topics the task needs:
 | Delivery and embeds                                             | `surface-types`, `types-surface-configs`, `persona-embed`                                                         |
 | Slack workspace connection                                      | `slack-setup`                                                                                                     |
 | Tools and credentials                                           | `builtin-tools`, `orthogonal-tools`, `external-tools`; pass `vendor` instead of a topic for one Orthogonal vendor |
-| Routing, classification, relevance, matching, or rubric scoring | `decision-models` plus `list_decision_models`                                                                     |
+| Routing, ranking, relevance, matching, verification, or scoring | `decision-models` plus `list_decision_models`                                                                     |
 | Generative models                                               | `models` plus the account's `list_model_configs`                                                                  |
 | Agent that runs outside Runtype                                 | `external-agents`, or the `runtype-external-agents` skill                                                         |
 | Validation or go-live blockers                                  | `validation-errors`, `setup-readiness`                                                                            |
@@ -86,9 +86,9 @@ finding, and ask whether to use UCP or the traditional commerce path before you 
      need complete strings for every row.
    - Use `agent_type` to narrow `list_agents`. Call the matching `get_*` tool for one
      resource's full configuration.
-3. Pick surfaces from the live `surface-types` docs. `messaging` is the generic
-   multi-channel surface. Prefer a dedicated surface such as
-   `slack`, `email`, or `sms` when you need channel-specific setup or formatting. For
+3. Pick surfaces from the live `surface-types` docs. Use the dedicated channel surface
+   (`slack`, `telegram`, `imessage`, `email`, `sms`, `discord`, `whatsapp`); the generic
+   `messaging` type is retired. For
    browser-side WebMCP tools, use a `chat` surface with `behavior.webmcp`, not an `mcp`
    surface. For WebMCP details and client-side tools outside the Persona widget, use the
    `runtype-persona` skill.
@@ -148,10 +148,16 @@ finding, and ask whether to use UCP or the traditional commerce path before you 
 
 ## Guardrails
 
-- For bounded judgments, discover a decision model and read `decision-models`; do not put
-  a decision-only model in an agent or prompt step. Create and publish reusable question
-  sets before binding `builtin:typesafe_judge`. Build `state` explicitly, and never transfer
-  calibration thresholds or provider confidence across models without measurement.
+- For bounded judgments, discover a decision model and read `decision-models` before
+  designing questions; do not put a decision-only model in an agent or prompt step. Create
+  and publish reusable question sets before binding `builtin:typesafe_judge`. Never transfer
+  calibration thresholds or provider confidence across models without measurement, and never
+  present an unmeasured threshold as calibrated.
+- Judgment designs that fail without an error: one call per candidate to rank a list (put
+  all candidates in one state), a `choice` with no `other` option on open input, a
+  whole-draft question to verify a draft (ask per sentence), and `{{variable}}` templates
+  nested inside a flow `tool-call` step's `state` (build the state in a `transform-data`
+  step and pass one top-level `"{{variable}}"` string).
 - Never invent schemas or model IDs. Fetch the docs and the account's model configs.
 - Set an explicit, enabled model on every agent and prompt step. Choose it from
   `list_model_configs` and the `models` topic. Never leave it to account defaults.

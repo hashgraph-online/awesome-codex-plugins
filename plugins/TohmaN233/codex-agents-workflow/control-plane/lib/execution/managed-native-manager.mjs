@@ -6,7 +6,8 @@ import { createHostAuthBroker } from './codex-host-auth.mjs';
 import { createWorkflowResourceBroker, loadNodeSkillSnapshots } from './workflow-resource-broker.mjs';
 import {rejectWorkspaceScope} from './workspace-scope-evidence.mjs';
 import {snapshotWorkspace, changedWorkspacePaths as changedPaths} from './workspace-snapshot.mjs';
-import { qualifiedStrictSettings, codexQualification } from './strict-config.mjs';
+import { qualifiedCooperativeSettings, codexQualification } from './strict-config.mjs';
+import { refreshCodexRegistration } from './codex-runtime-registration.mjs';
 import { managedNativeResultSchema, hostCompletionEnvelope, strictAgentOutputSchema, hostNodeTurnSchema, hostNodeTurnResult } from './host-main-automation.mjs';
 import { canonicalJSON, digest } from '../workflow-revisions.mjs';
 import { requireValue } from '../workflow-paths.mjs';
@@ -159,14 +160,20 @@ async function quiesceBrokerForRecovery(broker) {
 }
 
 export class ManagedNativeManager {
-  constructor({ configPath, getConfig, env = process.env, sessionFactory = createManagedNativeSession, qualify = qualifiedStrictSettings }) {
+  constructor({ configPath, getConfig, env = process.env, sessionFactory = createManagedNativeSession, qualify = qualifiedCooperativeSettings, register = refreshCodexRegistration }) {
     this.configPath = resolve(configPath); this.getConfig = getConfig; this.env = env; this.sessionFactory = sessionFactory; this.qualify = qualify;
+    this.register = register;
     this.parent = join(dirname(this.configPath), 'managed-native-profiles'); this.entries = new Map(); this.hostAuth = null; this.hostAuthBinary = null; this.accepting = executionAdmissionOpen(this.configPath);
   }
   async prepare(_runtime, _runId, _args, envelope) {
     requireValue(this.accepting && executionAdmissionOpen(this.configPath), 'MANAGED_NATIVE_STOPPED', 'Managed native manager is closed to new work');
     requireValue(envelope.skill_policy.mode === 'cooperative' && envelope.provider?.kind === 'native_agent', 'MANAGED_NATIVE_NODE', 'Managed native execution requires a cooperative native Provider node');
-    const settings = await this.qualify(await this.getConfig(), this.env, { scope: 'managed_native' });
+    // This authenticated execution route owns an SDK session. Native model-side
+    // handoffs never enter this manager and must not acquire this prerequisite.
+    const qualify = this.qualify;
+    const config = await this.register({configPath:this.configPath,config:await this.getConfig(),env:this.env,
+      strict:false,scope:'managed_native',qualify:(candidate,env,options)=>Reflect.apply(qualify,this,[candidate,env,options])});
+    const settings = await Reflect.apply(qualify,this,[config,this.env,{scope:'managed_native'}]);
     requireValue(this.accepting && executionAdmissionOpen(this.configPath), 'MANAGED_NATIVE_STOPPED', 'Managed native manager is closed to new work');
     return { execution: 'managed_native_codex', model: envelope.provider.config.model, effort: envelope.provider.config.reasoning_effort,
       executable_sha256: settings.binary_sha256, settings, qualification: codexQualification(settings), final_acceptance_required: false };

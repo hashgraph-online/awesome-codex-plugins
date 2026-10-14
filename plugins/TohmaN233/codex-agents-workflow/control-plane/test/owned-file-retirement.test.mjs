@@ -13,25 +13,31 @@ async function fixture(t){const root=await mkdtemp(join(tmpdir(),'owned-retireme
 const validate=expected=>bytes=>assert.deepEqual(bytes,Buffer.from(expected));
 
 for(const mode of ['released','held','extra-entry','replacement-file','replacement-directory','initial-directory-replacement','permission'])
-test(`Windows exact retired directory settlement preserves ownership for ${mode}`,
+test(`Windows injected exact retired directory settlement preserves ownership for ${mode}`,
  {skip:process.platform!=='win32',timeout:5000},async t=>{
   const root=await fixture(t),path=join(root,'.writer.lock');await writeFile(path,'exact owner');
   const script=`import fs from 'node:fs/promises';import {syncBuiltinESMExports} from 'node:module';import {join,dirname} from 'node:path';
    const path=process.argv[1],stagingRoot=process.argv[2],mode=process.argv[3],reader=await fs.open(path,'r');
-   const remove=fs.rmdir,unlink=fs.unlink;let dirCalls=0,unlinks=0,retired=0,firstError,timer,released,foreign,foreignDirectory;
+   const remove=fs.rmdir,unlink=fs.unlink;let dirCalls=0,unlinks=0,retired=0,firstError,timer,released,foreign,foreignDirectory,retiredDirectory,settled=false;
    fs.unlink=async p=>{unlinks++;const result=await unlink(p);
+    retiredDirectory=dirname(p);
     if(mode==='initial-directory-replacement'){await reader.close();foreignDirectory=dirname(p);await fs.rename(foreignDirectory,foreignDirectory+'.original');await fs.mkdir(foreignDirectory);}
     return result;};
    fs.rmdir=async p=>{
+    if(p!==retiredDirectory)return remove(p);
     dirCalls++;if(mode==='permission')throw Object.assign(new Error('Exact directory permission failure'),{code:'EPERM'});
-    try{return await remove(p);}catch(error){
+    // An ordinary open peer may permit immediate POSIX deletion on Windows.
+    // Inject only the exact rmdir fault; ownership checks and directory reads stay real.
+    if(mode==='held'||(mode==='released'&&!settled)||(!firstError&&['extra-entry','replacement-file','replacement-directory'].includes(mode))){
+     const error=firstError??Object.assign(new Error('Injected exact retired directory nonempty'),{code:'ENOTEMPTY',path:p});
      if(!firstError){firstError=error;
-      if(mode==='released')timer=setTimeout(()=>{released=reader.close();},25);
+      if(mode==='released')timer=setTimeout(()=>{released=reader.close().then(()=>{settled=true;});},25);
       if(mode==='extra-entry'){foreign=join(p,'foreign.txt');await fs.writeFile(foreign,'foreign');}
       if(mode==='replacement-file'){await reader.close();foreign=join(p,'record.json');await fs.writeFile(foreign,'foreign');}
       if(mode==='replacement-directory'){await reader.close();await fs.rename(p,p+'.original');await fs.mkdir(p);foreign=join(p,'foreign.txt');await fs.writeFile(foreign,'foreign');}
      }throw error;
     }
+    return remove(p);
    };syncBuiltinESMExports();const {retireOwnedFile}=await import(${JSON.stringify(helperModule)});
    let error;try{await retireOwnedFile(path,{stagingRoot,validate:bytes=>{if(bytes.toString()!=='exact owner')throw new Error('Owner changed');},
     onRetired:async()=>{retired++;await fs.writeFile(path,'successor',{flag:'wx'});}});}catch(cause){error=cause;}
@@ -71,6 +77,24 @@ test('only genuine immutable retirement provenance is summarized and bounded omi
  let nested=errors[0];for(let depth=0;depth<6;depth++)nested=new AggregateError([nested],'nested');
  const bounded=retirementErrorDetails([nested]);assert.equal(bounded.retirement_failures_complete,false);
  assert.equal(bounded.retirement_failures.length,0);
+});
+
+test('Windows real open-peer retirement preserves original inode, bytes and successor with either deletion behavior',
+ {skip:process.platform!=='win32',timeout:5000},async t=>{
+ const root=await fixture(t),path=join(root,'owner.json');await writeFile(path,'exact owner');
+ const reader=await open(path,'r'),identity=await reader.stat({bigint:true});let retired=0,error;
+ try{
+  try{await retireOwnedFile(path,{stagingRoot:join(root,'.pending'),validate:validate('exact owner'),onRetired:async()=>{
+   retired++;await assert.rejects(readFile(path),{code:'ENOENT'});await writeFile(path,'successor',{flag:'wx'});
+  }});}catch(cause){error=cause;}
+  if(error){
+   assert.equal(error.code,'ENOTEMPTY');const receipt=verifiedRetirementReceipt(error);
+   assert.equal(receipt.phase,'retirement_directory_cleanup');assert.equal(receipt.retired,true);assert.equal(receipt.deleted,true);
+   assert.equal(receipt.cause_code,'ENOTEMPTY');assert(receipt.cleanup_waited_ms>=1000);assert(receipt.cleanup_checks>0);
+  }
+  assert.equal((await reader.stat({bigint:true})).ino,identity.ino);assert.equal((await reader.readFile()).toString(),'exact owner');
+  assert.equal(retired,1);assert.equal(await readFile(path,'utf8'),'successor');
+ }finally{await reader.close();}
 });
 
 for(const holdThroughDelete of [false,true])test(holdThroughDelete

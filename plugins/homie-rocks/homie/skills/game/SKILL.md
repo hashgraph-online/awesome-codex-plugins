@@ -6,6 +6,11 @@ metadata:
   providers: cloudflare github ollama
 ---
 
+For a game with its own fixed integration rate, use the opt-in
+`ctx.substeps(body, hz, step)` facility in `RULES.md` (Integrating at the game's
+own rate). Its callbacks share the tick budget and its recorded poses drive
+local drawing. Keep the game's input-transition policy explicit.
+
 Read the installed toolkit's `node_modules/@homie-rocks/studio/guides/game/{RULES,REWRITE}.md`
 before authoring: these match its runtime even when this plugin is older. Toolkit
 check/build report stale installed plugin copies and the update step. For solid slopes and terrain, use heightTiles with `base` and the source
@@ -74,6 +79,12 @@ Cloudflare or physical-phone capacity guarantees.
   <studio>").
 
 ## Write and change rules plus view
+
+For wrapping worlds or generated levels, use the map's opt-in `wrap` and room-scoped
+`world.map.replace` APIs described in RULES.md's **Wrapped worlds and generated levels**.
+Prefer one indexed map revision for a generated maze; keep independently moving
+doors and platforms as live colliders. Generation and navigation baking spend the
+room handler's budget.
 
 **Read [RULES.md](RULES.md) before writing code.** All five starters use this contract.
 Work in few, large edits: read each source file once, decide its changes, then
@@ -445,3 +456,25 @@ nothing is cut off or runs off the side. Fix what you see; build again.
 A whole landing of the studio's own (`site/pages/<id>/index.html`) replaces the generated one: only when
 the person asks for a hand-made page, and start from the generated one's HTML so Play, the TV road and
 "Made with Homie" stay.
+
+## Physics
+
+For movement against a static GLB's triangles, use the opt-in physics bridge in
+[RULES.md](RULES.md#physics). Install `@homie-rocks/physics` 0.1.2, set
+`map/main.json`'s `physics.level` to the game's GLB, and call
+`ctx.physics.sweep(body, delta, radius, height)` inside the game's movement.
+`ctx.substeps(body, 300, step => { ... })` shares its existing handler budget and
+predicts the same baked world in the browser. The full example, cost table and
+save contract are in that section. Prefer kernel collision for its primitive
+maps; use physics for arbitrary static triangle levels. Initialization is awaited
+before the first room tick, calls in handlers are synchronous, and the complete
+physics snapshot is saved with the room. No opt-in means no physics load or cost.
+
+### Input under loss
+
+Rules games inherit redundant sequenced input, late movement replay and applied-tick
+receipts. Do not add a game-side resend loop or interpret negative held values as
+late-release repayment. Use `f.held()` for duration, sampled fields for latest
+state and `f.pulse()` for ordered actions. Choose `player.pulses: 'hold'` when a
+knock should buffer an action; the default drops it. See RULES.md, “Input during
+loss and stalls”, for timestamps, replay boundaries and visual correction settings.

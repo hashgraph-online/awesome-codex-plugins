@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import {prepareOwnedCommandTemp,qualifyOwnedCommandTempShell} from './owned-command-temp.mjs';
+import {prepareOwnedCommandTemp} from './owned-command-temp.mjs';
 import { appendFile, mkdir, open, rm, stat, writeFile } from 'node:fs/promises';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { StringDecoder } from 'node:string_decoder';
@@ -9,7 +9,6 @@ import { requireValue } from '../workflow-paths.mjs';
 import { pathBoundaries } from '../workflow-bindings.mjs';
 import { canonicalJSON,digest } from '../workflow-revisions.mjs';
 import {serializedToolResultBytes} from './tool-output-delivery.mjs';
-import {qualifyCommandWorkspaceIsolation} from './command-workspace-isolation.mjs';
 import {prepareCommandLifecycleDiagnostics,readCommandLifecycleDiagnostics,releaseCommandLifecycleDiagnostics} from './command-lifecycle-diagnostics.mjs';
 
 const COMMAND_TIMEOUT_MS = 60 * 60 * 1000;
@@ -78,7 +77,7 @@ const controlDiagnostic=value=>String(value??'').replace(/https?:\/\/\S+/ig,'[re
 export function createCodexCommandBroker({ binary, home, cwd, access, spoolRoot, env = process.env,
   clientFactory = createCodexClient, getClient, platform = process.platform, nodeBinary = process.execPath,
   onOperation = async () => {}, networkAccess = false, allowedPaths = [],recoverToolErrors=false, shutdownGraceMs=SHUTDOWN_GRACE_MS,
-  getOutputBudget,isolatedWorkspace,getExecutionPolicy }) {
+  getOutputBudget,ownedCommandTemp:useOwnedTemp,getExecutionPolicy }) {
   requireValue(typeof binary === 'string' && typeof home === 'string' && typeof cwd === 'string'
     && typeof spoolRoot === 'string' && isAbsolute(spoolRoot) && ['read_only', 'bounded_write'].includes(access),
   'CODEX_COMMAND_BROKER', 'Command broker requires the exact node binary, home, workspace, spool root and access mode');
@@ -136,8 +135,8 @@ export function createCodexCommandBroker({ binary, home, cwd, access, spoolRoot,
   }
   const commandSandbox = () => executionPolicy()?.command_type === 'dangerFullAccess'
     ? {type:'dangerFullAccess'}
-    : { type: 'workspaceWrite', writableRoots:[...writableRoots,...(ownedTemp?[ownedTemp.path]:[])], networkAccess, excludeTmpdirEnvVar: Boolean(isolatedWorkspace), excludeSlashTmp: Boolean(isolatedWorkspace) };
-  let ownedTemp,preparingTemp,commandEnvironment;const qualifiedShells=new WeakMap(),preparationPhases=new Set();
+    : { type: 'workspaceWrite', writableRoots:[...writableRoots,...(ownedTemp?[ownedTemp.path]:[])], networkAccess, excludeTmpdirEnvVar: Boolean(useOwnedTemp), excludeSlashTmp: Boolean(useOwnedTemp) };
+  let ownedTemp,preparingTemp,commandEnvironment;const preparationPhases=new Set();
   const assertActive=()=>requireValue(!revoked,'CODEX_COMMAND_REVOKED','Command broker was revoked during command preparation');
   function preparation(kind,action){
     assertActive();
@@ -150,45 +149,13 @@ export function createCodexCommandBroker({ binary, home, cwd, access, spoolRoot,
     return phase.promise;
   }
   async function prepareTemp(){
-    if(!isolatedWorkspace)return;
+    if(!useOwnedTemp)return;
     assertActive();
     if(!preparingTemp)preparingTemp=(async()=>{ownedTemp=await prepareOwnedCommandTemp({workspace,spool});assertActive();commandEnvironment={TEMP:ownedTemp.path,TMP:ownedTemp.path,...(platform==='win32'?{}:{TMPDIR:ownedTemp.path})};await onOperation({phase:'temp_prepared',process_id:ownedTemp.summary.broker_id,runtime_temp:ownedTemp.summary});})();
     await preparingTemp;assertActive();await ownedTemp.assertOwned();assertActive();
   }
-  requireValue(!isolatedWorkspace||access==='bounded_write'&&relativeAllowed.length===1&&relativeAllowed[0]==='.',
-    'CODEX_COMMAND_ISOLATION','Isolated command workers must own their exact complete workspace directory');
-  async function qualifyShell(commandClient,shell,login){
-    assertActive();
-    if(!ownedTemp)return;
-    let shellQualifications=qualifiedShells.get(commandClient);
-    if(!shellQualifications){shellQualifications=new Map();qualifiedShells.set(commandClient,shellQualifications);}
-    const selected=shell||(platform==='win32'?'powershell.exe':'/bin/bash');
-    const shellKey=canonicalJSON([selected,platform==='win32'?Boolean(login):login!==false]);
-    if(!shellQualifications.has(shellKey))shellQualifications.set(shellKey,preparation('shell_capability',async()=>{
-      const probePath=join(ownedTemp.path,'shell-probe-'+randomUUID()+'.ps1');
-      const powerShell=platform==='win32'&&/^(?:powershell|pwsh)(?:\.exe)?$/i.test(selected.replaceAll('\\','/').split('/').at(-1));
-      const probeSource=powerShell?"Write-Output 'WORKFLOW_TEMP_READY'":platform==='win32'?'echo WORKFLOW_TEMP_READY':"printf 'WORKFLOW_TEMP_READY\\n'";
-      const probeArgv=commandArgv(platform,shell,probeSource,login,probePath);
-      await writeFile(probePath,probeSource,{flag:'wx',encoding:'utf8'});
-      let failure;
-      try{assertActive();await qualifyOwnedCommandTempShell({client:commandClient,nodeBinary,workspace,sandboxPolicy:commandSandbox(),environment:commandEnvironment,argv:probeArgv});}catch(error){failure=error;}
-      try{await rm(probePath);}catch(error){if(failure)throw new AggregateError([failure,error],'Selected shell capability and probe cleanup failed');throw error;}
-      if(failure)throw failure;
-    }));
-    await shellQualifications.get(shellKey);assertActive();await ownedTemp.assertOwned();assertActive();
-  }
-  const qualifiedClients=new WeakMap();
-  function qualifyIsolation(owned){
-    if(!isolatedWorkspace){assertActive();return;}
-    return preparation('isolation_capability',async()=>{
-      await prepareTemp();assertActive();
-      if(executionPolicy()?.command_type==='dangerFullAccess'){await qualifyShell(owned);return;}
-      let qualification=qualifiedClients.get(owned);
-      if(!qualification){qualification=qualifyCommandWorkspaceIsolation({client:owned,workspace,nodeBinary,sandboxPolicy:commandSandbox(),isolation:isolatedWorkspace,onOperation,commandEnvironment,beforeLaunch:assertActive});qualifiedClients.set(owned,qualification);}
-      await qualification;assertActive();await qualifyShell(owned);
-    });
-  }
-
+  requireValue(!useOwnedTemp||access==='bounded_write'&&relativeAllowed.length===1&&relativeAllowed[0]==='.',
+    'CODEX_COMMAND_ISOLATION','Owned command temp requires the complete worker workspace');
   async function openClient() {
     requireValue(!revoked, 'CODEX_COMMAND_REVOKED', 'Command broker was revoked');
     if (getClient) {
@@ -357,10 +324,9 @@ export function createCodexCommandBroker({ binary, home, cwd, access, spoolRoot,
     diagnostics.parent.started_observation_end_ms=elapsed();
     try {
       const commandClient = await openClient();
-      await qualifyIsolation(commandClient);
+      await preparation('command_temp',prepareTemp);
       if(ownedTemp){
         diagnostics.runtime_temp=structuredClone(ownedTemp.summary);
-        if(!directProgram)await qualifyShell(commandClient,args.shell,args.login);
       }
       session.client=commandClient;
       session.lifecycleCapability=await prepareCommandLifecycleDiagnostics(lifecyclePath,id);
@@ -442,7 +408,6 @@ export function createCodexCommandBroker({ binary, home, cwd, access, spoolRoot,
   }
 
   return {
-    async qualifyIsolation(){return preparation('command_admission',async()=>{const owned=await openClient();assertActive();await qualifyIsolation(owned);});},
     tools: () => tools.map(tool => structuredClone(tool)),
     handles: name => tools.some(tool => tool.name === name),
     async call(name, args, callId, owner=null) {

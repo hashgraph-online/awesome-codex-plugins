@@ -366,7 +366,7 @@ function argsShape(args, names) {
 // All file access is performed by this host broker. No shell or arbitrary-path
 // dynamic reader is exposed. This is an application boundary, not an OS ACL.
 export async function createCodexToolBroker({ workspace, access, allowedPaths = [], deniedPaths = [], resources = [],
-  inputRoots = [], executionBinding, runtimeEnvironment, prepareRuntimeEnvironment, programEnvironment, authorize, onOperation, recoverToolErrors = false,
+  inputRoots = [], executionBinding, runtimeEnvironment, prepareRuntimeEnvironment, programEnvironment, programDeadlineMs, authorize, onOperation, recoverToolErrors = false,
 }) {
   requireValue(['read_only', 'bounded_write'].includes(access) && typeof authorize === 'function' && typeof onOperation === 'function', 'CODEX_BROKER_AUTHORITY', 'The broker requires explicit access, a live lease check and a durable operation sink');
   await noSymlinks(workspace); const root = await realpath(workspace);
@@ -382,10 +382,15 @@ export async function createCodexToolBroker({ workspace, access, allowedPaths = 
     inputs.set(item.name, path);
   }
   const qualifiedExecution = qualifiedExecutionBinding(executionBinding);
+  requireValue(programDeadlineMs===undefined||Number.isSafeInteger(programDeadlineMs)&&programDeadlineMs>0&&programDeadlineMs<=3600000,
+    'CODEX_EXECUTION_BINDING','Declared Host program deadline must be between 1ms and 1 hour');
+  // This trusted constructor option comes from the pinned Host-tool contract;
+  // model program arguments and ordinary broker defaults cannot extend it.
+  const withProgramDeadline=binding=>binding&&programDeadlineMs!==undefined?{...binding,command_timeout_ms:programDeadlineMs}:binding;
   if(programEnvironment!==undefined)requireValue(programEnvironment&&typeof programEnvironment==='object'&&!Array.isArray(programEnvironment)
     &&Object.entries(programEnvironment).length<=256&&Object.entries(programEnvironment).every(([name,value])=>/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)&&typeof value==='string'&&value.length<=32768&&!value.includes('\0')),
     'CODEX_EXECUTION_ENVIRONMENT','Host process environment must contain bounded structured string values');
-  let execution = (access === 'bounded_write' ? qualifiedExecution : null) ?? nativeExecutionBinding(runtimeEnvironment);
+  let execution = withProgramDeadline((access === 'bounded_write' ? qualifiedExecution : null) ?? nativeExecutionBinding(runtimeEnvironment));
   if (execution?.kind === 'wsl') requireValue(inputs.has('task_root'), 'CODEX_EXECUTION_BINDING', 'Inherited WSL task execution requires a task_root input');
   const pinned = new Map();
   requireValue(resources.length <= 512, 'CODEX_RESOURCE_LIMIT', 'Too many node resources');
@@ -466,7 +471,7 @@ export async function createCodexToolBroker({ workspace, access, allowedPaths = 
         if (prepareRuntimeEnvironment) {
           const prepared = await prepareRuntimeEnvironment();
           requireValue(!runtimeEnvironment?.scope_sha256||prepared.scope_sha256===runtimeEnvironment.scope_sha256,'ENVIRONMENT_BINDING_STALE','Scoped task program preparation changed its pinned node requirement scope');
-          execution = nativeExecutionBinding(prepared.environment ?? prepared);
+          execution = withProgramDeadline(nativeExecutionBinding(prepared.environment ?? prepared));
         } else {
           await verifyRuntimeEnvironment(runtimeEnvironment.requirements ?? {executables:runtimeEnvironment.tools.map(tool=>tool.name)},runtimeEnvironment);
         }

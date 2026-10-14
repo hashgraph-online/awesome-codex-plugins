@@ -4,7 +4,7 @@ description: Animate a portrait, character, artwork or scene with Magic Hour, ed
 license: MIT
 metadata:
   author: magichourhq
-  version: "1.5.0"
+  version: "1.6.0"
 ---
 
 # Magic Hour image to video
@@ -30,6 +30,8 @@ Extract or infer:
 Keep a short clip to one coherent beat. If the user wants several shots, treat each shot as its own reviewed start frame and video job. Derive those frames from the same approved identity reference rather than chaining unreviewed edits. Choose motion that preserves the deliverable: a dolly changes subject scale and available copy space, while a locked camera with restrained light or environmental motion can preserve a hero layout.
 
 ## Build the start frame first
+
+When the user names a saved character or reference, use `saved_items_list` (or authenticated `GET /v1/saved-items` through the existing API) with that type. Match the name, follow `next_cursor` as needed, and ask which item if ambiguous. Inspect its primary `IMAGE` asset and use the durable `file_path` without another upload; an item ID is not an image path. Preserve an explicitly supplied image.
 
 Choose one route:
 

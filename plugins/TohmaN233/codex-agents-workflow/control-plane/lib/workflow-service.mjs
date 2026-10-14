@@ -244,10 +244,10 @@ export async function loadWorkflowInputsFile(request,{model=false}={}){
 const REMOTE_PACKAGE_LIMIT=70*1024*1024;
 const BUILTIN_ROLE_PREFIX='builtin-role-';
 const nativeDriveOwners=new Map();
-import { isWorkerMain, hasOrchestrationMain } from './execution/main-execution-mode.mjs';
+import { hasOrchestrationMain } from './execution/main-execution-mode.mjs';
 import { prepareMainOrchestration, completeMainOrchestration } from './execution/main-orchestration.mjs';
 import {startupSemanticContract,startupSemanticNode} from './execution/workflow-startup-semantic.mjs';
-import { WORKFLOW_CALL_DEFAULTS, WORKFLOW_LONG_CALL_TOOLS, workflowCallArguments, workflowInvocationAdapters, workflowAuthoringControllerAdapterDescriptor } from './execution/workflow-call-adapter.mjs';
+import { WORKFLOW_CALL_DEFAULTS, WORKFLOW_LONG_CALL_TOOLS, workflowCallArguments, workflowInvocationAdapters, workflowAuthoringControllerAdapterDescriptor, workflowControllerAdapterDescriptor } from './execution/workflow-call-adapter.mjs';
 import { workflowMcpTransport } from './workflow-call-policy.mjs';
 import { createPreparedStartup } from './execution/prepared-startup-record.mjs';
 const MODEL_NATIVE_CONTINUATIONS=new Set(['native_next','native_spawned_batch','native_followed_up']);
@@ -334,9 +334,10 @@ function activeNativeAssignmentSlots(record,definition,attempt){
   const plan=resolvedSubagentPlan(definition,record.state);
   return plan?activeFanoutAssignmentIndices(plan,definition.fanout,attempt.inherited_native_item_indices):[0];
 }
-async function bundledRoleDefinitions(defaultConfigPath,providers){
-  const defaults=JSON.parse(await readFile(defaultConfigPath,'utf8'));
-  return (defaults.task_types??[]).filter(item=>item.stages?.length===1).map(item=>{
+async function bundledRoleDefinitions(providers){
+  const {roles}=JSON.parse(await readFile(new URL('../builtin-role-definitions.json',import.meta.url),'utf8'));
+  requireValue(Array.isArray(roles)&&roles.every(item=>item.stages?.length===1),'BUILTIN_ROLE_DEFINITIONS','Bundled Roles must each contain exactly one stage');
+  return roles.map(item=>{
     const stage=item.stages[0],provider=providers.find(candidate=>candidate.id===stage.provider_id);
     return {item,stage,provider,id:BUILTIN_ROLE_PREFIX+item.id,revision_hash:digest(canonicalJSON(item))};
   });
@@ -374,8 +375,8 @@ function roleConnectorPermissions(profile,args){
   }
   return permissions;
 }
-async function bundledRoles(defaultConfigPath,providers){
-  return (await bundledRoleDefinitions(defaultConfigPath,providers)).filter(entry=>roleProviderSupports(entry.provider,entry.stage.access));
+async function bundledRoles(providers){
+  return (await bundledRoleDefinitions(providers)).filter(entry=>roleProviderSupports(entry.provider,entry.stage.access));
 }
 function builtinRoleCustomizationId(pack){
   if(pack.provenance?.kind!=='role_customization')return null;
@@ -422,10 +423,10 @@ async function storedRolePacks(store){
     packs.push(await store.snapshot(metadata.workflow.id,metadata.revision_hash));
   return packs;
 }
-async function activeRoleProfiles(defaultConfigPath,providers,store){
+async function activeRoleProfiles(providers,store){
   const packs=await storedRolePacks(store);
   const customizations=builtinRoleCustomizations(packs),profiles=[];
-  for(const entry of await bundledRoles(defaultConfigPath,providers)){
+  for(const entry of await bundledRoles(providers)){
     const customization=customizations.get(entry.id);
     if(customization?.workflow.status==='ready'){
       const descriptor=storedRoleDescriptor(customization,providers);
@@ -693,15 +694,14 @@ export class WorkflowService {
   async config() { return loadConfig({ configPath: this.configPath, defaultConfigPath: this.defaultConfigPath }); }
   async prepareCodexRegistration(closure) {
     const config = await this.config();
-    if (!config.strict_executor.enabled) return;
-    const main = closure.packs.some(pack => pack.workflow.nodes.some(isWorkerMain));
-    const native = closure.provider_ids.some(id => config.providers.some(provider => provider.id === id && provider.kind === 'native_agent'));
-    // Explicitly supplied executor managers own their own registration. The
-    // built-in path refreshes only a selected enabled local Codex installation.
-    if (!(main && !this.capabilities.hostMainManager && !this.capabilities.strictManager)
-      && !(native && !this.capabilities.managedNativeManager && !this.capabilities.strictManager)) return;
+    const strict = closure.packs.some(pack => pack.workflow.skill_policy.mode === 'strict');
+    // Strict qualification is a launch policy. Cooperative SDK registration
+    // belongs to the exact manager execution route, after preceding native,
+    // tool or conversation work has actually reached that worker.
+    if (!strict || this.capabilities.strictManager) return;
     await refreshCodexRegistration({ configPath: this.configPath, defaultConfigPath: this.defaultConfigPath, config,
-      env: this.env, qualify: this.capabilities.codexRegistrationQualifier });
+      env: this.env, strict, qualify: this.capabilities.codexRegistrationQualifier,
+      discover: this.capabilities.codexRegistrationDiscovery });
   }
   async inspectNativeAgents(runtime,args,definition,attempt,agentIds,{signal,beforeWait}={}) {
     const afterTurnIds={},rejectedTurnIds={},textAmendments={};let parentThreadId;
@@ -1454,7 +1454,7 @@ export class WorkflowService {
     // Only the Host's fixed execution routes can select this module-private
     // policy. Public/direct opening and Role operations retain full validation.
     if(policy!==WORKFLOW_EXECUTION_OPEN)
-      context.roles=await observeForegroundPhase('rp', () => activeRoleProfiles(this.defaultConfigPath,config.providers,store));
+      context.roles=await observeForegroundPhase('rp', () => activeRoleProfiles(config.providers,store));
     store.validationContext=context;
     const runtime = await new WorkflowRuntime({ workflowStore: store, runRoot: join(dirname(this.configPath), 'workflow-runs'), historyMaintenance: this.historyMaintenance.hook, context, executionAdmission: this.attemptAdmission,
       parallelManager: this.parallelManager, beforeStart: closure => this.prepareCodexRegistration(closure),
@@ -1731,7 +1731,7 @@ export class WorkflowService {
       }
       case 'role_templates': {
         const packs=await storedRolePacks(store),customizations=builtinRoleCustomizations(packs);
-        const roles=(await bundledRoles(this.defaultConfigPath,config.providers)).map(({item,stage,provider,id,revision_hash})=>{
+        const roles=(await bundledRoles(config.providers)).map(({item,stage,provider,id,revision_hash})=>{
           const pack=customizations.get(id),customization=pack?storedRoleDescriptor(pack,config.providers):null;
           const active=customization?.status==='ready'?customization:null;
           return {id,name:active?pack.workflow.name:item.name,description:active?pack.workflow.description:item.description,tags:active?pack.workflow.tags:item.tags,role:active?active.node.role:stage.role,
@@ -1757,7 +1757,7 @@ export class WorkflowService {
       case 'customize_role': {
         requireValue(human,'HUMAN_CONFIGURATION_REQUIRED','Built-in Role customization belongs to the human console');
         requireValue(typeof args.workflow_id==='string'&&args.workflow_id.startsWith(BUILTIN_ROLE_PREFIX),'ROLE_TEMPLATE_MISSING','Select a built-in Role to customize');
-        const entry=(await bundledRoles(this.defaultConfigPath,config.providers)).find(item=>item.id===args.workflow_id);
+        const entry=(await bundledRoles(config.providers)).find(item=>item.id===args.workflow_id);
         requireValue(entry,'ROLE_TEMPLATE_MISSING','Built-in role is unavailable');
         const customization=builtinRoleCustomizations(await storedRolePacks(store)).get(entry.id);
         if(customization)return store.snapshot(customization.workflow.id);
@@ -1790,7 +1790,7 @@ export class WorkflowService {
         };
         requireValue(typeof args.task==='string'&&args.task.trim()&&args.task.length<=30000,'ROLE_TASK','Role task must be nonempty and bounded');
         if(args.workflow_id.startsWith(BUILTIN_ROLE_PREFIX)){
-          const entry=(await bundledRoles(this.defaultConfigPath,config.providers)).find(item=>item.id===args.workflow_id);
+          const entry=(await bundledRoles(config.providers)).find(item=>item.id===args.workflow_id);
           requireValue(entry,'ROLE_TEMPLATE_MISSING','Built-in role is unavailable');
           const customization=builtinRoleCustomizations(await storedRolePacks(store)).get(entry.id);
           if(customization?.workflow.status==='ready'){
@@ -1999,6 +1999,7 @@ export class WorkflowService {
         if(args.provider_id)requireValue(args.provider_id===bindings.planner.id,'AUTHORING_WORKFLOW_PROVIDER','Planner Provider must match the stored authoring Workflow');
         const pinnedRules={...rules,generation:{...(rules.generation ?? {}),planner_provider_id:bindings.planner.id,review_provider_id:bindings.reviewer.id,max_rounds:bindings.maxRounds}};
         const job = authoringRunPack(pack, await store.resources(args.workflow_id, pack.revision_hash), bindings.planner, args.run_id, pinnedRules, args.automatic_generation === true, bindings.reviewer,config.providers,template,args.completion_policy);
+        await this.prepareCodexRegistration({packs:[job],provider_ids:job.workflow.requirements.providers});
         await this.strictManager.capability({ ...job, resources: prepareResources(job.resources).manifest }, config.providers);
         const jobs = await new WorkflowStore(join(dirname(this.configPath), 'workflow-expansion-jobs'), { validationContext: context }).initialize();
         // The reviewer binding is part of every authoring Run.  The automatic
@@ -2096,6 +2097,12 @@ export class WorkflowService {
         const closure=await resolveWorkflowPins(store,pack);
         const environment=await runtime.environmentResolver({executables:[...closure.packs.flatMap(item=>item.workflow.requirements.executables??[]), ...closure.skills.flatMap(skill=>skill.requirements.executables??[])]},{extraDirectories:args.environment_directories??[]});
         if(environment.status==='ready')await this.prepareCodexRegistration(closure);
+        if(model)return {status:environment.status,requirements:environment.requirements,
+          tools:environment.tools.map(tool=>({name:tool.name,status:tool.status,path:tool.path,
+            ...(tool.status==='missing'&&tool.rejections?{rejections:tool.rejections}:{})})),
+          missing:environment.missing,installation_performed:environment.installation_performed,
+          searched_directory_count:environment.searched_directories.length,
+          next_action:environment.status==='ready'?'Start the Workflow directly; startup owns dependency verification and registration.':environment.next_action};
         return environment;
       }
       case 'runtime_dependencies': return readHostRuntimeRegistry(registryPathForConfig(this.configPath));
@@ -2173,11 +2180,6 @@ export class WorkflowService {
         if(parent)request.constraints={...request.constraints,native_parent_thread_id:parent};
         requireValue(!closure.packs.some(item => hasOrchestrationMain(item.workflow)) || parent, 'MAIN_ORCHESTRATION_CONTEXT', 'Start this Workflow from the current Codex conversation: orchestration needs its existing working context. No Run was started.');
         if(args.native_bridge===true)await this.nativeParentVerifier(parent);
-        if (operation === 'run_main' && (args.return_after_start === true || args.native_bridge === true)
-          && pack.workflow.nodes.some(isWorkerMain)) {
-          await this.prepareCodexRegistration(closure);
-          await observeForegroundPhase('q', async () => hostMainManager.qualify(await this.config(), this.env));
-        }
         const run = await runtime.start(request,{preparedEnvironment:environment,retainHostAuthority:Boolean(parent)});
         if (parent) await retainOwnedAuthority(runtime, run);
         if (bridgeHooks?.runStarted) await bridgeHooks.runStarted({ run_id: run.run_id, control_token: run.control_token });
@@ -2257,8 +2259,17 @@ export class WorkflowService {
       case 'recover_control': {
         const record=await runtime.runs.read(args.run_id);
         const result=await recoverControllerTree(coordinator,this.strictManager,runtime,conversationalRecovery,{configPath:this.configPath});
-        return model&&isAuthoringRunProvenance(record.pins.root.provenance)&&!result.recovery_errors.length
-          ?authoringControllerContinuation(result,{run_id:args.run_id,control_token:result.control_token},'resume'):result;
+        if (!model) return result;
+        const authority={run_id:args.run_id,control_token:result.control_token};
+        if (isAuthoringRunProvenance(record.pins.root.provenance)) return result.recovery_errors.length
+          ?result:authoringControllerContinuation(result,authority,'resume');
+        const cancellation=workflowControllerAdapterDescriptor('cancel',authority);
+        // Incomplete cleanup offers only shutdown. Runtime resume retains its
+        // independent cleanup fence if an earlier adapter is invoked.
+        if (result.recovery_errors.length) return {...result,next_action:'workflow_cancel',invocation_adapter:cancellation,
+          cancellation_invocation_adapter:cancellation};
+        return {...result,next_action:'workflow_resume',invocation_adapter:workflowControllerAdapterDescriptor('resume',authority),
+          cancellation_invocation_adapter:cancellation};
       }
       case 'recover_claim': {
         const record = await executor.recoveryPreparation(args.run_id, args);

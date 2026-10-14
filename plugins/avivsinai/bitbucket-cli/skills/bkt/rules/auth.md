@@ -84,8 +84,9 @@ access token that is automatically refreshed.
 
 Credentials are verified against the remote host before being stored. If no
 OS keychain is available, pass --allow-insecure-store to use encrypted file
-fallback. In non-interactive environments, provide --username and --token
-on the command line or via stdin.
+fallback. In non-interactive environments, provide --username and pipe the
+token on stdin with --with-token (--token also works, but the process list
+shows it).
 
 ### Usage
 
@@ -105,6 +106,7 @@ bkt auth login [host] [flags]
 | `--username` |  | Username (DC: PAT owner, Cloud: Atlassian email for API tokens) |
 | `--web` | `-w` | Authenticate via OAuth in the browser (Cloud only) |
 | `--web-token` |  | Open browser to create an API token, then prompt for credentials |
+| `--with-token` |  | Read the token from standard input |
 
 ### Inherited Flags
 
@@ -133,7 +135,7 @@ bkt auth login [host] [flags]
   bkt auth login https://bitbucket.example.com --web-token
 
   # Non-interactive login with flags (CI pipelines)
-  bkt auth login https://bitbucket.example.com --username admin --token "$PAT"
+  bkt auth login https://bitbucket.example.com --username admin --with-token < pat.txt
 ```
 
 ## bkt auth logout

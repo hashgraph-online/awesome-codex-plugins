@@ -17,7 +17,8 @@ Read RULES.md before starting.
    An old file named rules.ts may already export pure helpers that tests import.
    Preserve that public test API and every existing test file byte-for-byte,
    including imports. Re-export the old helpers from rules.ts if extracted into
-   another module; do not redirect tests to that module. Record test-file hashes
+   another module with named exports (`export { helper } from './helper'`);
+   `export *` is refused. Do not redirect tests to that module. Record test-file hashes
    before editing and compare them at the end. The filename alone does not
    mean it is a rules-plus-view game. If tests now load toolkit TypeScript under
    Node, use a narrowly scoped TypeScript loader and keep the normal test command

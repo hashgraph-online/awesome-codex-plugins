@@ -4,7 +4,7 @@ description: Create, extend or apply a reusable brand kit with Magic Hour imager
 license: MIT
 metadata:
   author: magichourhq
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # Magic Hour brand kit
@@ -18,6 +18,8 @@ Use the connected Magic Hour creation MCP at `https://mcp.magichour.ai/`; otherw
 - **Apply:** existing logo, palette and type are authoritative. Produce the requested application without redesigning the identity.
 - **Extend:** keep approved assets; propose only the missing decisions needed for this job.
 - **Create:** infer a coherent direction from audience, product, positioning and references. When the user delegates design choices, select a direction and proceed. Present alternatives only if requested or a consequential decision is unresolved.
+
+For a named saved brand kit or moodboard, use `saved_items_list` (or authenticated `GET /v1/saved-items` through the existing API) with `type: brand_kit` or `type: moodboard`. Match the name, paginate with `next_cursor` as needed and disambiguate multiple matches. Inspect the returned assets and reuse compatible durable `file_path` values without reuploading. Saved images are references, not proof of exact palette values, font licenses or editable logo sources; retain the supplied brand guide as authoritative.
 
 Extract requirements from supplied files and prior context. Ask for missing source assets or a blocking business fact, not a questionnaire of technical parameters. Show the intended deliverables and generation allowance briefly; existing authorization covers work within that allowance.
 

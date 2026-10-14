@@ -41,6 +41,7 @@ description: 通过 Codex ZCode Bridge 把已授权的开发任务交给本机 Z
 5. 如果结果未达标，调用 zcode_continue，反馈具体失败证据；续作会复用同一 ZCode session 和原执行目录。任务运行期间若用户取消，调用 zcode_cancel 并确认终态。
 6. 如果结果为 `invalid_agent_report` 且执行工作已完成，先检查 `report_candidate`、原始 `zcode_output` 和实际 diff；续作提示只要求修复 JSON 报告，不要再次编辑或重跑测试。缺少的决定字段必须基于证据补齐，无法确认时设 `needs_master_decision=true`。
 7. 任务为 failed 时用 `zcode_result.error_code` 确认原因，不仅凭 `zcode_feedback` 的失败标签判断代码失败。`cleanup_failed` 是当时清理未能确认；后续 `zcode_status.observation.cleanup=verified` 表示已取得退出证据，原失败仍保留。分别报告两个事实，再独立验收代码。新鲜查询为 unknown 或 unverified 时不自行删除锁、改历史状态或另起同目录任务；旧不可读取锁需要独立诊断，不能按时间删锁。
+8. 若 `zcode_result.error_code` 或失败事件为 `zcode_usage_exhausted`，这表示本次 ZCode 执行已中断：立即停止当前任务，不要继续编辑、派发、调用 `zcode_continue` 或自动重试；马上明确告知用户额度已耗尽、当前任务已中断，并等待用户确认额度恢复后再继续。
 
 ## 边界
 

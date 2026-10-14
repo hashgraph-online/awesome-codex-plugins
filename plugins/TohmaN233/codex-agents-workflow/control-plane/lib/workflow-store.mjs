@@ -207,6 +207,12 @@ export class WorkflowStore {
   }
 
   withWriter(action) { return this.#withWriter(action); }
+  // Fresh configuration contenders wait only for this bounded, validated
+  // writer acquisition. Ordinary transactions retain fail-fast admission.
+  withConfigBootstrapWriter(action) {
+    requireValue(typeof action==='function','CONFIG_BOOTSTRAP_ACTION','Config bootstrap requires a callable transaction');
+    return this.#withWriter(action,{timeoutMs:5000,initializationMs:250,onWait:admissionObserver(this.root),operation:'config_bootstrap'});
+  }
   // The fixed read-only single-Run observer has no ancestor/creation callback
   // and takes no global writer admission. Wait only on its exact Run guard;
   // retain the original bounded owner/recovery/liveness validation.

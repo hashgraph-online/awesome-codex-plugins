@@ -693,23 +693,40 @@ test('retirement metadata validation rejects authority fields, escaped or mismat
 });
 
 test('real history child settlement timeout retains original fault and typed cleanup observations',
- {skip:process.platform!=='win32'},async t=>{
+ {skip:process.platform!=='win32',timeout:5000},async t=>{
  const {root,store}=await fixture(t),{launchHistoryWorker}=await maintenance(),worker=join(root,'settlement-timeout-worker.mjs');
- await writeFile(worker,`import {writeFile,open} from 'node:fs/promises';import {join} from 'node:path';
+ const observations=join(root,'settlement-observations.json'),faultMessage='Injected exact history retired directory nonempty';
+ await writeFile(worker,`import fs from 'node:fs/promises';import {syncBuiltinESMExports} from 'node:module';import {join,dirname} from 'node:path';import assert from 'node:assert/strict';
   import {retireOwnedFile} from ${JSON.stringify(new URL('../lib/owned-file-retirement.mjs',import.meta.url).href)};
   import {WorkflowRunStore} from ${JSON.stringify(new URL('../lib/workflow-run-store.mjs',import.meta.url).href)};
+  const remove=fs.rmdir,unlink=fs.unlink,events=[];let pendingRoot,retiredDirectory,dirCalls=0,unlinks=0;
+  const fault=Object.assign(new Error(${JSON.stringify(faultMessage)}),{code:'ENOTEMPTY',errno:-4051});
+  fs.unlink=async path=>{const result=await unlink(path);if(pendingRoot&&dirname(dirname(path))===pendingRoot){retiredDirectory=dirname(path);unlinks++;}return result;};
+  // Keep the real child and filesystem ownership path, but make its optional
+  // Windows delete-pending rmdir failure deterministic on this exact directory.
+  fs.rmdir=async path=>{if(path!==retiredDirectory)return remove(path);
+   if(!dirCalls++)events.push('nonempty_fault');throw fault;};syncBuiltinESMExports();
   WorkflowRunStore.prototype.cleanupHistory=async function(){
-   const path=join(this.root,'.writer.lock');await writeFile(path,'exact owner',{flag:'wx'});const reader=await open(path,'r');
-   try{await retireOwnedFile(path,{stagingRoot:join(this.root,'.pending'),validate:()=>process.pid});}finally{await reader.close();}
+   events.push('cleanup_entered');pendingRoot=join(this.root,'.pending');const path=join(this.root,'.writer.lock');await fs.writeFile(path,'exact owner',{flag:'wx'});
+   const reader=await fs.open(path,'r'),identity=await reader.stat({bigint:true});let originalError=false;
+   try{await retireOwnedFile(path,{stagingRoot:join(this.root,'.pending'),validate:()=>process.pid});assert.fail('Settlement must retain the injected fault');}
+   catch(error){assert.equal(error,fault);originalError=true;events.push('settlement_rejected');throw error;}
+   finally{assert.equal((await reader.stat({bigint:true})).ino,identity.ino);assert.equal((await reader.readFile()).toString(),'exact owner');
+    await reader.close();events.push('reader_closed');await fs.writeFile(${JSON.stringify(observations)},JSON.stringify({events,originalError,dirCalls,unlinks,worker_pid:process.pid}));}
   };await import(${JSON.stringify(new URL('../lib/run-history-maintenance-worker.mjs',import.meta.url).href)});`);
  let childPid;
  await assert.rejects(launchHistoryWorker({runRoot:store.root,owner:{job_id:randomUUID(),owner_token:randomUUID(),owner_pid:process.pid,created_at:Date.now()},
   signal:new AbortController().signal,onReady:pid=>{childPid=pid;},workerURL:pathToFileURL(worker)}),error=>{
   assert.equal(error.code,'ENOTEMPTY');assert.equal(error.worker_quiescent,true);
+  assert.equal(error.message_sha256,digest(faultMessage));assert.equal(error.message_bytes,Buffer.byteLength(faultMessage));
   assert.equal(error.retirements.length,1);const receipt=error.retirements[0];
   assert.equal(receipt.phase,'retirement_directory_cleanup');assert.equal(receipt.canonical_path,'.writer.lock');
+  assert.equal(receipt.cause_code,'ENOTEMPTY');assert.equal(receipt.cause_errno,-4051);assert.equal(receipt.owner_pid,childPid);
   assert.equal(receipt.retired,true);assert.equal(receipt.deleted,true);assert(receipt.cleanup_waited_ms>=1000);assert(receipt.cleanup_checks>0);return true;
  });
+ const observed=JSON.parse(await readFile(observations,'utf8'));
+ assert.deepEqual(observed.events,['cleanup_entered','nonempty_fault','settlement_rejected','reader_closed']);
+ assert.equal(observed.originalError,true);assert.equal(observed.unlinks,1);assert(observed.dirCalls>=1);assert.equal(observed.worker_pid,childPid);
  assert.throws(()=>process.kill(childPid,0),{code:'ESRCH'});
 });
 

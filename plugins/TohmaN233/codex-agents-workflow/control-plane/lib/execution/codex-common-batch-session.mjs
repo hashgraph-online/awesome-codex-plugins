@@ -89,8 +89,8 @@ export async function prepareCodexCommonBatch(options,text,turnOptions={}){
         const childOpen=()=>{open();requireValue(!closed,'CODEX_SESSION_CLOSED','Shared child ownership was revoked');childOptions.assertActive?.();};
         const makeCommands=()=>createCodexCommandBroker({binary:childOptions.binary,home:session.profile.home,cwd:childOptions.cwd,
           access:childOptions.access,env:childOptions.env,allowedPaths:childOptions.allowedPaths,
-          spoolRoot:childOptions.isolatedWorkspace?join(childOptions.cwd,'.workflow-command-output',digest(receiptHome)):join(receiptHome,'command-output'),
-          isolatedWorkspace:childOptions.isolatedWorkspace,recoverToolErrors:true,
+          spoolRoot:childOptions.ownedCommandTemp?join(childOptions.cwd,'.workflow-command-output',digest(receiptHome)):join(receiptHome,'command-output'),
+          ownedCommandTemp:childOptions.ownedCommandTemp,recoverToolErrors:true,
           getExecutionPolicy:()=>cooperativeExecutionPolicy(childOptions.access,selection.main_execution_context),
           getOutputBudget:()=>source.tool_output_budget,networkAccess:childOptions.commandNetworkAccess??false,
           shutdownGraceMs:childOptions.commandShutdownGraceMs,
@@ -163,7 +163,7 @@ export async function prepareCodexCommonBatch(options,text,turnOptions={}){
           await childOptions.onProfilePrepared?.(branch.profile);childOpen();
           requireValue(canonicalJSON([...(childOptions.toolBroker?.tools()??[]),...commands.tools()])===canonicalJSON(source.tools),
             'CODEX_BATCH_TOOL_SURFACE','Shared child must preserve the exact ordinary MCP public schemas');
-          if(childOptions.isolatedWorkspace)await commands.qualifyIsolation();childOpen();
+          childOpen();
           thread=await engine.fork(branchIndex);childOpen();
           await record({status:'fork_ready'});
           await childOptions.onEvent?.({method:'workflow/rawObservation',thread_id:thread.thread_id,status:'unsupported',diagnostic:receipt.raw_observation.diagnostic});
@@ -181,7 +181,7 @@ export async function prepareCodexCommonBatch(options,text,turnOptions={}){
               input_sha256:digest(canonicalJSON(input)),submitted_input_sha256:digest(canonicalJSON(input)),
               response_transport:{api_schema_sha256:transport.schema_sha256,semantic_schema_sha256:digest(canonicalJSON(output_schema))}};
             await childOptions.authorize?.();childOpen();
-            if(commandSettled){commands=makeCommands();commandSettled=false;if(childOptions.isolatedWorkspace)await commands.qualifyIsolation();}
+            if(commandSettled){commands=makeCommands();commandSettled=false;}
             await record({status:'turn_submit',input_audit:audit,turn_input_receipts:[...(receipt.turn_input_receipts??[]),audit]});childOpen();
             source.tool_transport.assertHealthy();
             let result;

@@ -120,6 +120,7 @@ Port conflicts: `agent-deck status` · `agent-deck start --force`. Full environm
 | [MVP](docs/MVP.md) | Source of truth — decks, vault, playbooks, MCP tools |
 | [Agent harness](docs/AGENT_HARNESS.md) | What `setup` installs |
 | [Delegation](docs/DELEGATION.md) | `agent-deck run` per-client reference |
+| [Agent run API](docs/AGENT_RUN_API.md) | Same-host HTTP start, observe, cancel, and resume |
 | [Playbooks vs Cursor skills](docs/PLAYBOOKS_AND_SKILLS.md) | Deck playbooks vs Cursor skills |
 | [Export / import](docs/PRD_EXPORT_IMPORT.md) | Portable layout bundles |
 | [Store format](docs/STORE_FORMAT.md) | File-backed store layout, sync, reindex |

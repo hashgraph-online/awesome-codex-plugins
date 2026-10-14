@@ -1,6 +1,6 @@
 {
   "name": "magents",
-  "version": "0.13.2",
+  "version": "0.14.0",
   "description": "Shared session bus so Codex can list/read/handoff/send/spawn with Claude, Cursor, Grok, and friends without pasting context.",
   "author": {
     "name": "abnegate",
@@ -39,6 +39,9 @@
     ],
     "brandColor": "#ec4899",
     "logo": "./assets/logo.svg",
-    "composerIcon": "./assets/logo.svg"
+    "composerIcon": "./assets/logo.svg",
+    "screenshots": [
+      "./assets/screenshot-cli-help.png"
+    ]
   }
 }

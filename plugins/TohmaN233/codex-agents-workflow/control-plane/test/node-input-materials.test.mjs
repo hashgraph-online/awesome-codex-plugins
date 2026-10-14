@@ -9,7 +9,7 @@ import { dirname, join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { canonicalJSON } from '../lib/workflow-revisions.mjs';
 import {compilePrompt} from '../lib/workflow-executor.mjs';
-import { HOST_MAIN_INLINE_BUDGETS, materializeMainTaskBundle, materializeNativeTaskBundle, materializeNodeInputs, prepareHostMainContext, readMainTaskProjection, readNativeTaskProjection,readTerminalMainInputs,TERMINAL_MAIN_INPUT_BUDGET } from '../lib/execution/node-input-materials.mjs';
+import { HOST_MAIN_INLINE_BUDGETS, NATIVE_TASK_INLINE_LIMIT, materializeMainTaskBundle, materializeNativeTaskBundle, materializeNodeInputs, prepareHostMainContext, readMainTaskProjection, readNativeTaskProjection,readTerminalMainInputs,TERMINAL_MAIN_INPUT_BUDGET } from '../lib/execution/node-input-materials.mjs';
 
 test('terminal semantic input carrier preserves UTF8 physical bytes and exact canonical reference on item/total limits',async t=>{
   const root=await fixture(t);
@@ -32,6 +32,23 @@ test('terminal semantic input carrier excludes resources and verified binary fil
   const receipt=await materializeMainTaskBundle({directory:join(root,'terminal'),envelope:{workspace:root,access:'read_only',inputs:{source:binary},
     resources:['neutral.mjs'],prompt_template:'Neutral task'},resources:[{path:'neutral.mjs',bytes,size:bytes.length,sha256:sha256(bytes)}]});
   assert.deepEqual(await readTerminalMainInputs(receipt),{});
+});
+
+test('terminal JSON carrier supplies its complete native value without a second JSON string encoding',async t=>{
+  const root=await fixture(t);
+  const value={pages:[{source:'Quote "hello", path \\neutral and line\r\n🌱'.repeat(260)}],settings:{enabled:true,count:3}};
+  const receipt=await materializeMainTaskBundle({directory:join(root,'terminal-native-json'),
+    envelope:{workspace:root,access:'read_only',inputs:{manuscripts:value},resources:[],prompt_template:'Read the complete manuscript'}});
+  const carrier=await readTerminalMainInputs(receipt);
+  assert.equal(carrier.semantic_inputs.manuscripts.format,'json');
+  assert.equal(typeof carrier.semantic_inputs.manuscripts.content,'object','Host must supply a native JSON value');
+  assert.deepEqual(carrier.semantic_inputs.manuscripts.content,value);
+  assert(JSON.stringify(carrier).length<JSON.stringify({semantic_inputs:{manuscripts:{format:'json',content:canonicalJSON(value)}}}).length);
+  const metadata=JSON.parse(await readFile(join(root,'terminal-native-json','context-preparation.json'),'utf8'));
+  const input=metadata.inputs.find(item=>item.name==='manuscripts');
+  assert.equal(await readFile(input.path,'utf8'),canonicalJSON(value),'Canonical bound bytes remain unchanged');
+  await writeFile(input.path,canonicalJSON({pages:[]}));
+  await assert.rejects(readTerminalMainInputs(receipt),{code:'MAIN_ORCHESTRATION_BUNDLE'});
 });
 
 test('native public carrier uses an exact 1024 UTF8 byte boundary for legacy semantic projections',async t=>{
@@ -776,14 +793,26 @@ for(const change of ['none','large semantic','input','resource','resource file',
   if(change==='schema')args.resultSchema={type:'string'};
   if(change==='unknown canonical')await writeFile(path,canonicalJSON({...bundle,schema_version:99}));
   const canonicalBefore=await readFile(path);
+  let semanticSidecar=false;
   if(['none','large semantic'].includes(change)){
     const retained=await materializeNativeTaskBundle(args);assert.equal(retained.task_bundle_sha256,sha256(bytes));
     const projection=await readNativeTaskProjection(retained,{materialize:true});
-    if(change==='none')assert.equal(projection.task_bundle.schema_version,1);
-    else {assert.equal(projection.inline,false);assert.equal(sha256(await readFile(projection.task_bundle_path)),projection.task_bundle_sha256);}
+    let semantic=projection.task_bundle;
+    if(!projection.inline){
+      semanticSidecar=true;
+      const sidecar=await readFile(projection.task_bundle_path);
+      assert(sidecar.length>NATIVE_TASK_INLINE_LIMIT,'A sidecar is needed only above the existing inline byte limit');
+      assert.equal(sha256(sidecar),projection.task_bundle_sha256);
+      semantic=JSON.parse(sidecar);
+    }else assert(Buffer.byteLength(canonicalJSON(semantic))<=NATIVE_TASK_INLINE_LIMIT);
+    assert.equal(semantic.schema_version,1);
+    assert.equal(semantic.task,bundle.task);
+    assert.equal(semantic.workspace,root);
+    assert.deepEqual(semantic.resources,[{path:'reference.md',local_path:resourcePath}]);
+    if(change==='large semantic')assert.equal(projection.inline,false);
   }else await assert.rejects(materializeNativeTaskBundle(args),error=>['NODE_INPUT_MATERIALS_CONFLICT','NATIVE_TASK_FILE_CHANGED','NATIVE_TASK_BUNDLE'].includes(error.code));
   assert.deepEqual(await readFile(path),canonicalBefore);
-  assert.deepEqual(await readdir(directory),change==='large semantic'?['inputs','resources','semantic-task.json','task.json']:['inputs','resources','task.json']);
+  assert.deepEqual(await readdir(directory),semanticSidecar?['inputs','resources','semantic-task.json','task.json']:['inputs','resources','task.json']);
 });
 
 test('native semantic sidecar is bounded and verified exactly after saving and on replay',async t=>{

@@ -94,6 +94,21 @@
       "icon": "./plugins/yfge/agent-harness-skills/assets/icon.svg"
     },
     {
+      "name": "agent-retro",
+      "displayName": "Agent Retro",
+      "source": {
+        "source": "local",
+        "path": "./plugins/summationai/agent-retro"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Weekly retro of how you use Codex and Claude Code: 12 animated slides of usage stats with four evidence-backed coaching tips, built locally from your own logs.",
+      "icon": "./plugins/summationai/agent-retro/assets/icon.svg"
+    },
+    {
       "name": "agent-workflow-system",
       "displayName": "Agent Workflow System",
       "source": {
@@ -372,7 +387,8 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Development & Workflow",
-      "description": "Read-only Codex plugin for auditing Claude Code to Codex migrations before Codex edits code. Checks AGENTS.md/CLAUDE.md scope, hooks, MCP config, skills, secret references, and validation notes."
+      "description": "Read-only Codex plugin for auditing Claude Code to Codex migrations before Codex edits code. Checks AGENTS.md/CLAUDE.md scope, hooks, MCP config, skills, secret references, and validation notes.",
+      "icon": "./plugins/unitedideas/bringyour-mcp/assets/bringyour.svg"
     },
     {
       "name": "brooks-lint",
@@ -2504,6 +2520,21 @@
       },
       "category": "Tools & Integrations",
       "description": "Local Apple Calendar and Reminders tooling for macOS with Codex plugin adapters."
+    },
+    {
+      "name": "arcmira",
+      "displayName": "Arcmira: YouTube Transcript Search",
+      "source": {
+        "source": "local",
+        "path": "./plugins/arcmira/mcp"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Search YouTube transcripts for timestamped quotes, speaker appearances, sponsors and recommendations.",
+      "icon": "./plugins/arcmira/mcp/assets/icon.png"
     },
     {
       "name": "autocad-tianzheng-tools",

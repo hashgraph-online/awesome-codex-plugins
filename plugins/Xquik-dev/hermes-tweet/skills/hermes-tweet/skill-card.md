@@ -12,7 +12,7 @@ skill directory.
 - Published by Xquik.
 - **Repository.** https://github.com/Xquik-dev/hermes-tweet
 - Licensed under MIT.
-- **Version.** 0.1.13
+- **Version.** 0.1.16
 - **Primary Skill.** `SKILL.md`
 
 ## Use case
@@ -21,7 +21,7 @@ Hermes Tweet helps Hermes Agent users find X/Twitter endpoints, perform
 authenticated X/Twitter reads, and run explicitly approved X/Twitter workflow
 actions through the bundled Hermes Tweet tools.
 
-Use it for:
+Use it for these tasks.
 
 - Searching tweets, reading tweet details, replies, and user profiles.
 - Preparing action previews for posts, replies, follows, direct messages,
@@ -82,7 +82,8 @@ support tickets, or direct HTTP fallback routes.
 
 ## Release trust gate
 
-Before broad enterprise release or any NVIDIA-verified claim:
+Complete these steps before a broad enterprise release or any NVIDIA-verified
+claim.
 
 1. Run SkillSpector against the complete skill directory.
 2. Resolve critical or high findings.

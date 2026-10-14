@@ -1,10 +1,19 @@
 ---
 name: playtest
-description: Playtest a studio's game the way Homie holds its own games to a bar — real browsers on a computer and a phone held both ways, the first ten seconds timed, the look measured (black or flat frames, contrast, detail), how much of the screen the UI covers, the game's real sound captured and measured, a round played with one person trying and one doing nothing, the owner control tests and two strangers finishing a round — then a blind review by a fresh reviewer that never saw the code, and a ranked list of what is weak. Use when someone asks to playtest, test, review, critique or judge a game, asks what is weak or what to fix next, before calling a game finished or publishing it, and after every change that should make it better.
+description: Playtest a studio's app against its owner's Codex needs, or its game the way Homie holds its own games to a bar — real browsers on a computer and a phone held both ways, the first ten seconds timed, the look measured (black or flat frames, contrast, detail), how much of the screen the UI covers, the game's real sound captured and measured, a round played with one person trying and one doing nothing, the owner control tests and two strangers finishing a round — then a blind review by a fresh reviewer that never saw the code, and a ranked list of what is weak. Use when someone asks to playtest, test, review, critique or judge a game, asks what is weak or what to fix next, before calling a game finished or publishing it, and after every change that should make it better.
 ---
 
-**Apps:** For a business, venue, cause or customer app, follow the `app` skill: `apps/<id>/app.json`, one morphing screen, roles and parts. Reuse these engines and workflows; do not impose game rounds, scores, bots, a game demo or page navigation. The app check proves shared actions and reconnect; app stores use the same standalone command.
+## Apps: judge the place against its owner’s words
 
+For an app, read `apps/<id>/CODEX.md` first. This is the app branch of the same playtest: no rounds, scores or invented entertainment. Run build and `check <id> --shots .checks` (including its Codex needs), then open the wall and phone in real Chrome. The game script below measures games; do not run a round instrument on an app.
+
+Walk in as the owner. Read **Their words** aloud to yourself, then inspect the wall capture: is the pictured place there, do recognisable things move/fill/arrive/light up as requested, and can someone across the room understand the work? A generic board of boxes fails a living-scene request even if every label is correct. Check an empty and a busy state without passing invented records off as real customers. Inspect state before and after a real action, not only a pretty still.
+
+Now arrive as a new customer on a phone: find the offer and correct price, book/give/log/sign up, understand success or failure, save the return link, reload and follow your own record. Use a second phone to check the link follows the same thing. As staff, sign in and perform the real work; as a public visitor, verify privileged writes are refused. Close all browsers and return: the work must remain. A simulated paid event is not a real charge; record payment connection gaps honestly.
+
+For every need, write `met / partly / not`, the exact capture or flow that demonstrates it, and what remains. Check phone portrait/landscape, wall readability, kiosk reset if present, native controls, keyboard focus and reduced motion. Do not infer usability from a build or a shared counter. Inspect the saved captures yourself; automated selector assertions cannot judge the dreamed scene. Copy the verdict and evidence into the Codex and redraw its page. Keep unfinished needs visibly unfinished. No approval question is needed for local checks or your visual review.
+
+A local review is labelled local, not independent. If a fresh reviewer was requested, give that reviewer the owner's original request, the Codex and real captures/flow addresses; ask them to judge as owner and customer, need by need. When comparing several businesses, they must read as different places with different work, not a common template recoloured. If one fails, identify what the builder read or skipped, repair that making path, and build/test again before saying done.
 
 # Playtest a game
 

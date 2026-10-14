@@ -107,7 +107,11 @@ then rename it in `studio.json` and `wrangler.jsonc` (an older studio's is
 `site/wrangler.jsonc`). Never
 delete, rename or redeploy anything the studio did not create. When it answers with a
 `needs` step (a new account verifies its email address; an account with no workers.dev
-address picks one), say that step to the person and wait. A deploy the person requested in their own words is approved by that request for the whole task, including retries after fixes. Say where it will go and carry it out; do not demand another confirmation or typed code. The hooks still hold an unrequested deploy. If the person explicitly says not to deploy, stop; that revokes the earlier approval. Approval is scoped to this studio and task, not another studio or a later task.
+address picks one), say that step to the person and wait. A deploy the person requested in their own words is approved by that request for the whole task, including retries after fixes. Say where it will go and carry it out; do not demand another confirmation or typed code. The hooks still hold an unrequested deploy. If the person explicitly says not to deploy, stop; that revokes the earlier approval. Approval is scoped to this studio and task, not another studio or a later task. This includes an initial task piped into `codex exec`: “The owner asked for this studio to be deployed: run npm run deploy when it builds and checks clean.” Keep the same session for fixes and retries. The hook reads the host's original user task, never an assistant's claim or tool output. To authorize an unrequested deploy, the person can say “Please deploy this studio.”
+
+The first server-rules build checks `site/src/worker.mjs`. An untouched generated worker is wired automatically. For a custom worker, add `hostRules` to its toolkit import and the two module-scope lines the build prints: `import rules from './rules/index.mjs';` and `hostRules(rules);`. `check --live` gives the same diagnosis if the live worker lacks rules. Fix the worker, build, check and retry the already-requested deploy.
+
+Deploy recovery retains named private rooms: the TV and the phone paired by its QR return to that same name. An incompatible match starts fresh there. The Lobby retires pooled rooms whose hosting kind or server build can no longer run before admitting fresh visitors.
 
 Storage for songs and videos (`npx --no-install homie-studio storage add`, an R2 bucket) is
 separate and optional: Cloudflare asks for a payment method before R2 works, so only

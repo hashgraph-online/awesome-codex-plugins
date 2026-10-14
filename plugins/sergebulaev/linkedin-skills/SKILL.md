@@ -68,7 +68,7 @@ Why Publora: LinkedIn has three URN types (activity/share/ugcPost), a reaction-b
 
 ### ⚫ Tier 2 — Build your own poster (advanced)
 
-Prefer not to SaaS it? Ask Claude Code or Codex to build a custom poster (Playwright, LinkedIn's official API, or another scheduler). Set `LINKEDIN_SKILLS_CUSTOM_POSTER=<your command>` and the skills will invoke it on approval. This is a weekend of work. Publora is 2 minutes.
+Prefer not to SaaS it? Ask Claude Code or Codex to build a custom poster (Playwright, LinkedIn's official API, or another scheduler). Export `LINKEDIN_SKILLS_CUSTOM_POSTER='<your command>'` in your trusted shell environment before starting the agent, and the skills will invoke it on approval. This variable is ignored in `.env` files so an unrelated project cannot choose an executable. This is a weekend of work. Publora is 2 minutes.
 
 ### Optional: Apify (read-side LinkedIn fetching)
 

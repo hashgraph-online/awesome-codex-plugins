@@ -1,6 +1,6 @@
 {
   "name": "stop-that-shit",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "private": true,
   "description": "Keep agent work bounded and reduce defensive wording in Codex, Claude Code, OpenCode, Hermes Agent CLI, Pi, and Oh My Pi",
   "keywords": [
@@ -60,7 +60,8 @@
     "eval:host-smoke": "node scripts/run-paired-eval.cjs --host-smoke --runs 1",
     "release:check": "npm run schema:check && node scripts/release-check.cjs",
     "release:build": "node scripts/build-release.cjs",
-    "test:omp": "node --test test/omp-adapter.test.cjs test/omp-extension.test.cjs test/omp-package.test.cjs"
+    "test:omp": "node --test test/omp-adapter.test.cjs test/omp-extension.test.cjs test/omp-package.test.cjs",
+    "test:hosts": "node scripts/test-hosts.cjs"
   },
   "engines": {
     "node": ">=18",
@@ -78,7 +79,7 @@
     "ajv": "^8.20.0"
   },
   "dependencies": {
-    "@opencode/schema": "2.0.22",
+    "@opencode/schema": "2.0.26",
     "effect": "4.0.0-rc.112"
   }
 }

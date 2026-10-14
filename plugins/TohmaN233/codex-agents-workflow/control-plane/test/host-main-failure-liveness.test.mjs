@@ -22,6 +22,7 @@ async function fixture(t,{uncertain=true,journalFailure=false}={}){
  const strict=validateStrictConfig({enabled:true,codex_binary:process.execPath,binary_sha256:'b'.repeat(64),
   authentication:{mode:'managed_chatgpt',api_key_env:''},main_model:'neutral-main',main_reasoning_effort:'high',inactivity_timeout_ms:0});
  const manager=new HostMainManager({configPath:join(root,'control-plane.json'),env:{},
+  register:async({config})=>config,
   getConfig:async()=>({global:{enabled:true},strict_executor:strict,providers:[]}),qualify:async()=>strict,
   mainModelSelection:async()=>({model:'neutral-main',effort:'high'}),sessionFactory:async options=>{
    await options.resolveModelSelection({});starts++;

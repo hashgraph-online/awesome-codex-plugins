@@ -367,6 +367,21 @@ async function fixture(t,{verified=true,execute,compatibleFinal=false,waitFailur
  const rpc=args=>publicRpc('workflow_start',{...startArgs,...args});
  return {service,pack,checks,rpc,publicRpc,startArgs,workspace,launches:()=>launches,waits:()=>waits,cancellations:()=>cancellations};
 }
+test('ordinary MCP startup with missing initial bindings leaves no Run or active invocation and accepts corrected inputs',async t=>{
+ const f=await fixture(t);
+ const rejected=await f.rpc({inputs:{}});
+ assert.equal(rejected.result.isError,true);assert.equal(JSON.parse(rejected.result.content[0].text).code,'BINDING_MISSING');
+ assert.equal((await f.service.call('runs')).length,0);
+ assert.equal(f.launches(),0);assert.equal(f.waits(),0);assert.equal(f.checks.length,0);
+ const corrected=await f.rpc({});
+ assert.equal(corrected.result.isError,undefined,JSON.stringify(corrected));
+ const handoff=JSON.parse(corrected.result.content[0].text);assert.equal(handoff.status,'orchestration_handoff');
+ const runs=await f.service.call('runs');assert.equal(runs.length,1);
+ const state=await f.service.call('get',{run_id:runs[0].run_id});
+ assert.equal(state.nodes.choose.attempts.length,1);assert.equal(state.nodes.final.attempts.length,0);
+ assert.equal(f.launches(),1);assert.equal(f.waits(),1);assert.equal(f.checks.length,0);
+});
+
 test('a pre-publication failure preserves the reserved Run identity for the exact retry',async t=>{
  const f=await fixture(t),startup={args:{...f.startArgs,launch_key:randomUUID(),revision_hash:f.pack.revision_hash},initial_output:null};
  let reserved,attempts=0;const failure=Object.assign(new Error('Neutral failure before publication'),{code:'NEUTRAL_RESERVED_FAILURE'});

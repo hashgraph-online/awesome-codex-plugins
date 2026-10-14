@@ -104,7 +104,7 @@ await writeFile("report.csv", csv);
 <details>
 <summary>Claude Code</summary>
 
-下载并解压 [0.2.4 源码](https://github.com/lennney/stop-that-shit/archive/refs/tags/0.2.4.zip)，在仓库根目录执行：
+下载并解压 [0.2.5 源码](https://github.com/lennney/stop-that-shit/archive/refs/tags/0.2.5.zip)，在仓库根目录执行：
 
 ```bash
 claude plugin validate .
@@ -124,7 +124,7 @@ claude plugin install stop-that-shit@stop-that-shit
 <summary>Codex</summary>
 
 ```bash
-codex plugin marketplace add lennney/stop-that-shit --ref 0.2.4
+codex plugin marketplace add lennney/stop-that-shit --ref 0.2.5
 codex plugin add stop-that-shit@stop-that-shit
 ```
 
@@ -188,10 +188,10 @@ pi install /absolute/path/to/stop-that-shit
 </details>
 
 <details>
-<summary>Oh My Pi（未发布候选）</summary>
+<summary>Oh My Pi</summary>
 
 已在 `@oh-my-pi/pi-coding-agent` `18.4.4` 验证独立 Extension。
-当前公开版 `0.2.4` 尚未包含 OMP；从包含该候选的本地 checkout 启动：
+0.2.5 包含 OMP 独立 Extension；从该版本源码或解压后的发布包启动：
 
 ```bash
 omp -e /absolute/path/to/stop-that-shit/omp/stop-that-shit.ts --skills /absolute/path/to/stop-that-shit/skills --sts-contract "review agents=0 -- inspect"
@@ -199,7 +199,7 @@ omp -e /absolute/path/to/stop-that-shit/omp/stop-that-shit.ts --skills /absolute
 
 确认扩展加载后，发送 `/sts change -- ...` 切换模式，`/sts status` 查看合同。
 该原生命令也用于 RPC。TUI 还支持首行 `$stop-that-shit` 指令。
-详见 [INSTALL.md](INSTALL.md#oh-my-pi-unreleased-candidate)。
+详见 [INSTALL.md](INSTALL.md#oh-my-pi)。
 
 </details>
 

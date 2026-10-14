@@ -9,6 +9,8 @@ import { exportWorkflowPackage, validateWorkflowPackage } from './workflow-packa
 // canonicalization. These are migration evidence, never execution grants.
 const previous = new Map([
   ['workflow-resource-program', { version: '1', hashes: [
+    // Exact 1.2 implementation before pinned Host deadlines reached its command broker.
+    '00833a81d3b9c1ada37182077befd5e9eb812bd6c6e20f83b81646e726231ebb',
     // Exact installed 1.2 implementation before Host program admission phases.
     '2a9a9d29b2055e0e187914c3d35d247a4ad0dfede2855f2ad809551a9e35e6c9',
     // Exact 1.2 implementation before per-worker completion execution slots.

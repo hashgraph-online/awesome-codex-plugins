@@ -9,7 +9,57 @@ import {WorkflowStore} from '../lib/workflow-store.mjs';
 import {inspectRunAdmissionQueue,recoverRunAdmissionTicket,commitAdmissionChoice} from '../lib/run-admission-queue.mjs';
 import {randomUUID} from 'node:crypto';
 const storeModule=new URL('../lib/workflow-store.mjs',import.meta.url).href;
-test('POSIX ticket lookup racing exact retirement treats only a confirmed missing path as gone',{skip:process.platform==='win32'},async t=>{
+test('peer lookup accepts the actual atomic choosing-to-numbered publication after a retired metadata snapshot',async t=>{
+ const f=await fixture(t),directory=join(f.path,'.admission-queue'),pending=join(directory,'.pending');
+ await mkdir(directory);await mkdir(pending);
+ const ticket={id:randomUUID(),pid:process.pid,token:randomUUID(),created_at:new Date().toISOString(),number:1};
+ const path=join(directory,`ticket-${ticket.id}.json`),temporary=join(pending,`ticket-${ticket.id}.json`);
+ await writeFile(path,JSON.stringify({...ticket,number:0}));await writeFile(temporary,JSON.stringify(ticket));
+ const queueModule=new URL('../lib/run-admission-queue.mjs',import.meta.url).href;
+ const script=`import assert from 'node:assert/strict';import fs from 'node:fs/promises';import {syncBuiltinESMExports} from 'node:module';
+  const path=process.argv[2],temporary=process.argv[3],ticket=JSON.parse(process.argv[4]),original=fs.lstat;let reads=0,publications=0,queue;
+  fs.lstat=async(p,...args)=>{
+   if(p===path&&++reads===2){
+    const before=await original(p,...args);
+    await queue.commitAdmissionChoice(path,temporary,ticket,{remaining:()=>1000,renameFile:async(a,b)=>{publications++;await fs.rename(a,b);}});
+    // Complete the old lookup after the real atomic publication; the old inode
+    // is retired, while its unique mutable name now holds the numbered ticket.
+    before.nlink=0;return before;
+   }return original(p,...args);
+  };
+  syncBuiltinESMExports();queue=await import(${JSON.stringify(queueModule)});
+  const entries=await queue.inspectRunAdmissionQueue(process.argv[1]);
+  assert.deepEqual(entries,[ticket]);assert.equal(publications,1);console.log('NUMBERED_PUBLICATION_OBSERVED');`;
+ const result=await promisify(execFile)(process.execPath,['--input-type=module','-e',script,f.path,path,temporary,JSON.stringify(ticket)],{windowsHide:true});
+ assert.equal(result.stdout.trim(),'NUMBERED_PUBLICATION_OBSERVED');
+});
+
+test('retired peer metadata refresh remains bounded and rejects invalid current tickets',async t=>{
+ const f=await fixture(t),directory=join(f.path,'.admission-queue');await mkdir(directory);
+ const ticket={id:randomUUID(),pid:process.pid,token:randomUUID(),created_at:new Date().toISOString(),number:1};
+ const path=join(directory,`ticket-${ticket.id}.json`),queueModule=new URL('../lib/run-admission-queue.mjs',import.meta.url).href;
+ for(const kind of ['directory','oversize','malformed','retired-again']){
+  await rm(path,{recursive:true,force:true});await writeFile(path,JSON.stringify(ticket));
+  const script=`import assert from 'node:assert/strict';import fs from 'node:fs/promises';import {syncBuiltinESMExports} from 'node:module';
+   const path=process.argv[2],kind=process.argv[3],original=fs.lstat;let reads=0;
+   fs.lstat=async(p,...args)=>{
+    if(p===path){reads++;const info=await original(p,...args);
+     if(reads===2){await fs.unlink(path);
+      if(kind==='directory')await fs.mkdir(path);else await fs.writeFile(path,kind==='oversize'?'x'.repeat(4097):kind==='malformed'?'{bad':process.argv[4]);
+      info.nlink=0;return info;}
+     if(reads===3&&kind==='retired-again')info.nlink=0;
+     return info;
+    }return original(p,...args);
+   };
+   syncBuiltinESMExports();const {inspectRunAdmissionQueue}=await import(${JSON.stringify(queueModule)});
+   await assert.rejects(inspectRunAdmissionQueue(process.argv[1]),{code:kind==='malformed'?'RUN_ADMISSION_QUEUE_MALFORMED':'RUN_ADMISSION_QUEUE_FILE'});
+   assert.equal(reads,3);console.log('INVALID_CURRENT_TICKET_REJECTED');`;
+  const result=await promisify(execFile)(process.execPath,['--input-type=module','-e',script,f.path,path,kind,JSON.stringify(ticket)],{windowsHide:true});
+  assert.equal(result.stdout.trim(),'INVALID_CURRENT_TICKET_REJECTED');
+ }
+});
+
+test('POSIX peer lookup observes a valid current ticket or confirms the retired path is gone',{skip:process.platform==='win32'},async t=>{
  const f=await fixture(t),directory=join(f.path,'.admission-queue');await mkdir(directory);
  const ticket={id:randomUUID(),pid:process.pid,token:randomUUID(),created_at:new Date().toISOString(),number:1};
  const path=join(directory,`ticket-${ticket.id}.json`),retired=join(f.path,'retired-ticket.json');
@@ -28,9 +78,9 @@ test('POSIX ticket lookup racing exact retirement treats only a confirmed missin
     }return original(p,...args);
    };
    syncBuiltinESMExports();const {inspectRunAdmissionQueue}=await import(${JSON.stringify(queueModule)});
-   ${replace?`try{await inspectRunAdmissionQueue(process.argv[1]);throw new Error('Replacement must not conceal the retired inode');}catch(error){if(error.code!=='RUN_ADMISSION_QUEUE_FILE')throw error;console.log('REPLACEMENT_REJECTED');}`:`const entries=await inspectRunAdmissionQueue(process.argv[1]);if(entries.length)throw new Error('Retired ticket survived');console.log('RETIRED_PATH_CONFIRMED');`}`;
+   ${replace?`const entries=await inspectRunAdmissionQueue(process.argv[1]);if(JSON.stringify(entries)!==JSON.stringify([JSON.parse(process.argv[4])]))throw new Error('Current valid ticket was not observed');console.log('CURRENT_TICKET_OBSERVED');`:`const entries=await inspectRunAdmissionQueue(process.argv[1]);if(entries.length)throw new Error('Retired ticket survived');console.log('RETIRED_PATH_CONFIRMED');`}`;
   const result=await promisify(execFile)(process.execPath,['--input-type=module','-e',script,f.path,path,retired,JSON.stringify(ticket)],{windowsHide:true});
-  assert.equal(result.stdout.trim(),replace?'REPLACEMENT_REJECTED':'RETIRED_PATH_CONFIRMED');
+  assert.equal(result.stdout.trim(),replace?'CURRENT_TICKET_OBSERVED':'RETIRED_PATH_CONFIRMED');
  }
 });
 

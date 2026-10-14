@@ -185,3 +185,13 @@ manifest, spec, plan and receipts go in).
 - Never claim rights the plan did not give, and never drop the "Eleven Music" credit on a
   free-plan render.
 - Never imitate a real artist, voice or person.
+
+### Existing provider credentials
+
+The tools read `FAL_KEY` or `ELEVENLABS_API_KEY` first, then the plain single-line
+key in `~/.homie/keys/fal-key` or `~/.homie/keys/elevenlabs-key`. They also accept
+`~/.homie/workspace/fal-key` and `~/.homie/workspace/elevenlabs-key` from earlier
+installs. Checks name the source, never the key. Keep these files private (mode
+0600); never copy them into a studio. ElevenLabs also accepts its CLI browser
+sign-in and the existing Stripe Projects connection. Run the tool’s `check`
+before declaring a provider disconnected.

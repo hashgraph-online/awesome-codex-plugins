@@ -145,10 +145,12 @@ Cache the status briefly.
 
 ## On Runtype
 
-- **Tool count and residency.** A dispatch carries at most 50 runtime tools. Tool search
-  is on by default for multi-turn agents: at 20 or more tools, Runtype keeps a hot set
-  loaded and defers the inline runtime tools behind a `tool_search` tool that the model
-  calls to load more. Saved, built-in, and MCP tools stay loaded. Set
+- **Tool count and residency.** Runtype does not cap the number of tools in a dispatch;
+  it caps the request's serialized `runtimeTools` at 1 MB. A model provider can still
+  refuse a long tool list (`TOOL_COUNT_REFUSED_BY_PROVIDER`), so use tool search for
+  large tool sets. Tool search is on by default for multi-turn agents: at 20 or more
+  tools, Runtype keeps a hot set loaded and defers the inline runtime tools behind a
+  `tool_search` tool that the model calls to load more. Saved, built-in, and MCP tools stay loaded. Set
   `tools.toolSearch.enabled: false` to send every tool on every request. Single-turn
   agents and flow prompt steps always send every tool, so keep those sets small or split
   them across subagents. Either way, make descriptions distinct, because they are what

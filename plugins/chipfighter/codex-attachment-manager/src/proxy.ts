@@ -25,7 +25,8 @@ import type { Duplex } from "node:stream";
 import tls from "node:tls";
 import { fileURLToPath } from "node:url";
 import zlib from "node:zlib";
-import { claudeHome, claudeImageData, loadClaudeIndex, type ClaudeIndex } from "./claude-index.ts";
+import { childOf, recordChild } from "./children.ts";
+import { claudeHome, claudeImageData, claudeStartedAt, loadClaudeIndex, type ClaudeIndex } from "./claude-index.ts";
 import { addCompacted, findRequestImages, rewriteMessages, summaryAt, type RequestImage, type Resend } from "./claude-rewrite.ts";
 import { chainOf, fitThinking, readThinkingRecord, recordSent, writeThinkingRecord, type ThinkingRecord } from "./claude-thinking.ts";
 import { codexHome } from "./codexconfig.ts";
@@ -35,12 +36,12 @@ import { isEntryPoint } from "./entry.ts";
 import { currentLang } from "./language.ts";
 import { migrateDataOnce } from "./migrate-data.ts";
 import { applyClaudeSelection, claudeImageFor, loadClaudePanelState, type ClaudePanelOptions } from "./panel-state.ts";
-import { claudeRequestStatsDirOf, claudeSelectionDirOf, dataDir, pixelCacheDirOf, proxyLogDirOf } from "./paths.ts";
+import { claudeRequestStatsDirOf, claudeSelectionDirOf, dataDir, pixelCacheDirOf, proxyLogDirOf, selectionDirOf } from "./paths.ts";
 import { recordRequest } from "./request-stats.ts";
 import { rewriteItems, type Described } from "./rewrite.ts";
 import { connectDirectly, pluginGone, usesEngine } from "./setup.ts";
-import { effectiveSelection, readSelection, selectionDir } from "./selection.ts";
-import { loadThreadIndex, pixelHashOf, pixelHashOfData, setPixelCache, type ThreadIndex } from "./thread-index.ts";
+import { claudeSelection, effectiveSelection, ensureAutoDefault, selectionDir, sideChatSelection } from "./selection.ts";
+import { loadThreadIndex, pixelHashOf, pixelHashOfData, setPixelCache, sideChatOrigin, type ThreadIndex } from "./thread-index.ts";
 
 type Json = Record<string, any>;
 const here = dirname(fileURLToPath(import.meta.url));
@@ -124,10 +125,17 @@ export function forwardHeaders(headers: IncomingHttpHeaders, upstream = UPSTREAM
 }
 
 // Which task a request belongs to, from Codex's own turn metadata header.
-export function requestIdentity(headers: IncomingHttpHeaders): { threadId: string | null; turnId: string | null; windowId: string | null } {
+// v0.7: and where that task came from: a side chat (a fork Codex keeps in memory only) names the task it was forked
+// from, a subagent its parent (also in Codex's own header).
+export type RequestIdentity = { threadId: string | null; turnId: string | null; windowId: string | null; forkedFrom: string | null; parentThreadId: string | null; subagentKind: string | null };
+export function requestIdentity(headers: IncomingHttpHeaders): RequestIdentity {
   let meta: Json = {};
   try { meta = JSON.parse(String(headers["x-codex-turn-metadata"] ?? "{}")); } catch { /* not JSON */ }
-  return { threadId: meta.thread_id ?? meta.session_id ?? null, turnId: meta.turn_id ?? null, windowId: (headers["x-codex-window-id"] as string) ?? null };
+  const header = (name: string) => { const value = headers[name]; return (Array.isArray(value) ? value[0] : value) || null; };
+  return {
+    threadId: meta.thread_id ?? meta.session_id ?? null, turnId: meta.turn_id ?? null, windowId: header("x-codex-window-id"),
+    forkedFrom: meta.forked_from_thread_id ?? null, parentThreadId: meta.parent_thread_id ?? header("x-codex-parent-thread-id"), subagentKind: meta.subagent_kind ?? null,
+  };
 }
 
 // v0.4: which Claude Code session a request belongs to, and whether a subagent's loop sent it (its own conversation).
@@ -241,9 +249,12 @@ export function hasUnchecked(threadId: string | null, dir = selectionDir, sessio
 
 // Whether a thread's requests go through the rewrite (and so over HTTP): something unchecked, or automatic selection
 // used at some point (v0.3), since from then on the history may hold copies the model fetched, left out of later turns.
-export function needsRewrite(threadId: string | null, dir = selectionDir, sessionsDir = join(codexHome(), "sessions")): boolean {
+// v0.7: a side chat's, unless its task's switch for subagents and side chats is off.
+export function needsRewrite(threadId: string | null, dir = selectionDir, sessionsDir = join(codexHome(), "sessions"), forkedFrom: string | null = null): boolean {
   if (!threadId) return false;
   try {
+    const origin = sideChatOrigin(threadId, forkedFrom, sessionsDir);
+    if (origin) return sideChatSelection(origin, sessionsDir, dir) !== null;
     const selection = effectiveSelection(threadId, sessionsDir, dir);
     return Object.keys(selection.unchecked).length > 0 || !!selection.autoSince;
   } catch { return false; }
@@ -260,7 +271,12 @@ export function currentTurnOf(index: ThreadIndex, turnId: string | null): number
 // forwarded unchanged and the reason is logged; the report never contains conversation content.
 // v0.3: with automatic selection on, the images of earlier turns that are not pinned instead; in either mode, copies
 // the model fetched in an earlier turn.
-export function rewriteBody(original: Buffer, encoding: string | undefined, threadId: string, sessionsDir: string, dir = selectionDir, turnId: string | null = null): { body: Buffer; report: Json } {
+// v0.7: a side chat's request carries the history of the task it came from: that task's index, with every one of its
+// turns counting as earlier (sideChatSelection).
+export function rewriteBody(original: Buffer, encoding: string | undefined, threadId: string, sessionsDir: string, dir = selectionDir, turnId: string | null = null, forkedFrom: string | null = null): { body: Buffer; report: Json } {
+  const origin = sideChatOrigin(threadId, forkedFrom, sessionsDir);
+  const side = origin ? sideChatSelection(origin, sessionsDir, dir) : null;
+  if (origin && !side) return { body: original, report: { sideChatOf: origin, off: true } };
   const decoded = decodeBody(original, encoding);
   if (!decoded) return { body: original, report: { skipped: "undecodable body" } };
   const text = decoded.toString("utf8");
@@ -269,8 +285,8 @@ export function rewriteBody(original: Buffer, encoding: string | undefined, thre
   if (!Array.isArray(json.input)) return { body: original, report: { skipped: "no input array" } };
   if (hasUnsafeInteger(text)) return { body: original, report: { skipped: "integer beyond 2^53 would change when re-serialized" } };
   let index: ThreadIndex;
-  try { index = loadThreadIndex(sessionsDir, threadId); } catch (error) { return { body: original, report: { skipped: `thread index: ${String(error)}` } }; }
-  const selection = effectiveSelection(threadId, sessionsDir, dir);
+  try { index = loadThreadIndex(sessionsDir, origin ?? threadId); } catch (error) { return { body: original, report: { skipped: `thread index: ${String(error)}` } }; }
+  const selection = side ?? effectiveSelection(threadId, sessionsDir, dir);
   const describe = (ref: ImageRef): Described | undefined => {
     const known = index.byKey.get(ref.key);
     if (known) return known;
@@ -278,7 +294,7 @@ export function rewriteBody(original: Buffer, encoding: string | undefined, thre
     return stored ? { id: stored.id, name: ref.name, label: ref.label, kind: ref.kind, turn: null, width: ref.width, height: ref.height } : undefined;
   };
   const pixels = (ref: ImageRef) => index.byKey.get(ref.key)?.pixelSha256 ?? pixelHashOf(json.input, ref);
-  const current = currentTurnOf(index, turnId);
+  const current = side ? index.turns + 1 : currentTurnOf(index, turnId);
   const copies = new Map([...index.copies.values()].filter((copy) => copy.turn === null || copy.turn < current).map((copy) => [copy.key, copy.of]));
   let leaveOut = new Set(Object.keys(selection.unchecked));
   if (selection.auto) {
@@ -293,6 +309,7 @@ export function rewriteBody(original: Buffer, encoding: string | undefined, thre
     sentImageHashes: report.sentContentIds.map((id) => id.slice(0, 16)),
     ...(selection.auto ? { auto: true } : {}),
     ...(report.copies.length ? { copies: report.copies } : {}),
+    ...(origin ? { sideChatOf: origin } : {}),
   };
   if (!report.replaced.length && !report.copies.length) return { body: original, report: summary };
   json.input = items;
@@ -306,11 +323,13 @@ export function rewriteBody(original: Buffer, encoding: string | undefined, thre
 // before the compaction, which the user may keep sending.
 export function claudeNeedsRewrite(sessionId: string | null, dir = claudeSelectionDirOf(), home = claudeHome()): boolean {
   if (!sessionId) return false;
+  let index: ClaudeIndex | null = null;
+  try { index = loadClaudeIndex(sessionId, home); } catch { /* the selection still decides */ }
   try {
-    const selection = readSelection(sessionId, dir);
+    const selection = claudeSelection(sessionId, dir, index ? claudeStartedAt(index) : null);
     if (Object.keys(selection.unchecked).length > 0 || selection.autoSince) return true;
   } catch { /* the transcript still decides */ }
-  try { return loadClaudeIndex(sessionId, home).images.some((image) => image.compacted); } catch { return false; }
+  return !!index?.images.some((image) => image.compacted);
 }
 
 // The images a Claude Code request carried, by index key, with the base64 characters each took (the panel's
@@ -348,7 +367,7 @@ export function rewriteClaudeBody(original: Buffer, encoding: string | undefined
   if (hasUnsafeInteger(text)) return asIs({ skipped: "integer beyond 2^53 would change when re-serialized" });
   let index: ClaudeIndex;
   try { index = loadClaudeIndex(sessionId, home); } catch (error) { return asIs({ skipped: `thread index: ${String(error)}` }); }
-  const selection = readSelection(sessionId, dir);
+  const selection = claudeSelection(sessionId, dir, claudeStartedAt(index));
   const current = index.turns;
   const copies = new Map([...index.copies.values()].filter((copy) => copy.turn === null || copy.turn < current).map((copy) => [copy.key, copy.of]));
   let leaveOut = new Set(Object.keys(selection.unchecked));
@@ -480,6 +499,9 @@ export function claudePanelApi(method: string, url: string, headers: IncomingHtt
 
 async function main(): Promise<void> {
   migrateDataOnce(); // v0.1-15: Windows moved the data folder
+  // v0.6: tasks and sessions started from now on have automatic selection on by default (selection.ts).
+  ensureAutoDefault(selectionDirOf());
+  ensureAutoDefault(claudeSelectionDirOf());
   const portIndex = process.argv.indexOf("--port");
   const port = Number(portIndex >= 0 ? process.argv[portIndex + 1] : DEFAULT_PORT);
   // One engine per machine: a second start leaves the running one alone.
@@ -502,6 +524,13 @@ async function main(): Promise<void> {
   const build = buildOf();
   const version = versionOf();
   let sequence = 0;
+  // v0.7: a subagent's or side chat's request, noted under its task for the task's panel (children.ts).
+  const noteChild = (identity: RequestIdentity, at: string) => {
+    try {
+      const found = childOf(identity, sessionsDir, at);
+      if (found) recordChild(found.task, found.id, found.child);
+    } catch { /* only the panel's list misses it */ }
+  };
   // v0.4: per Claude Code session, whether its account refuses thinking after a changed history and what was sent
   // (claude-thinking.ts); the latest sessions stay in memory.
   const thinkingRecords = new Map<string, ThinkingRecord>();
@@ -567,7 +596,8 @@ async function main(): Promise<void> {
   };
   setInterval(() => {
     for (const [threadId, connections] of live) {
-      if (!needsRewrite(threadId)) continue;
+      const forkedFrom = [...connections][0]?.identity.forkedFrom ?? null;
+      if (!needsRewrite(threadId, selectionDir, sessionsDir, forkedFrom)) continue;
       for (const connection of connections) {
         if (Date.now() - connection.last < 1500) {
           // A turn still running here keeps the images the server already holds; noted once so the panel can say so.
@@ -631,7 +661,7 @@ async function main(): Promise<void> {
     const path = (req.url ?? "/").split("?")[0];
     const upstream = upstreamOf(path);
     const identity = requestIdentity(req.headers);
-    const rewrite = req.method === "POST" && /\/responses(\/compact)?$/.test(path) && needsRewrite(identity.threadId);
+    const rewrite = req.method === "POST" && /\/responses(\/compact)?$/.test(path) && needsRewrite(identity.threadId, selectionDir, sessionsDir, identity.forkedFrom);
     // v0.4: a Claude Code request of a session's main conversation (a subagent's loop has its own); rewritten like a
     // Codex thread's once something is unchecked there.
     const claude = upstream === CLAUDE_HOST ? claudeIdentity(req.headers) : null;
@@ -676,7 +706,10 @@ async function main(): Promise<void> {
       const entry = { at: new Date(started).toISOString(), id, transport: "http", method: req.method, path, status, requestBytes, decodedBytes: decoded?.length ?? null, contentEncoding: req.headers["content-encoding"] ?? null, responseBytes, ms: Date.now() - started, ...identity, ...claudeFields, ...details, ...extra, error: error ?? null };
       log(entry);
       // Image keys go to the per-thread statistics only, not to the log.
-      if (/\/responses$/.test(path)) recordRequest(identity.threadId, imageSizes ? { ...entry, imageSizes } : entry);
+      if (/\/responses$/.test(path)) {
+        recordRequest(identity.threadId, imageSizes ? { ...entry, imageSizes } : entry);
+        noteChild(identity, entry.at);
+      }
       if (claudeSession && claudeConversationRequest(details)) recordRequest(claudeSession, imageSizes ? { ...entry, imageSizes } : entry, claudeRequestStatsDirOf());
     };
     // What to send, in order: body null streams the request through unchanged. v0.4: Anthropic refusing an attempt's
@@ -759,7 +792,7 @@ async function main(): Promise<void> {
       const original = Buffer.concat(chunks);
       const encoding = req.headers["content-encoding"] as string | undefined;
       let out: { body: Buffer; report: Json; attempts?: ClaudeAttempt[] };
-      try { out = claudeRewrite ? rewriteClaudeBody(original, encoding, claudeSession!, undefined, undefined, undefined, thinking) : rewriteBody(original, encoding, identity.threadId!, sessionsDir, selectionDir, identity.turnId); }
+      try { out = claudeRewrite ? rewriteClaudeBody(original, encoding, claudeSession!, undefined, undefined, undefined, thinking) : rewriteBody(original, encoding, identity.threadId!, sessionsDir, selectionDir, identity.turnId, identity.forkedFrom); }
       catch (error) { out = { body: original, report: { skipped: `rewrite failed: ${String(error)}` } }; }
       const attempts: Attempt[] = out.attempts?.length ? out.attempts.map((attempt) => ({ ...attempt, edited: attempt.body !== original })) : [{ body: out.body, report: out.report, edited: out.body !== original }];
       send(attempts);
@@ -776,7 +809,7 @@ async function main(): Promise<void> {
       client.end("HTTP/1.1 503 Service Unavailable\r\nConnection: close\r\nContent-Length: 0\r\n\r\n");
       return;
     }
-    if (/\/responses$/.test(path) && (forceHttp || needsRewrite(identity.threadId))) {
+    if (/\/responses$/.test(path) && (forceHttp || needsRewrite(identity.threadId, selectionDir, sessionsDir, identity.forkedFrom))) {
       client.end("HTTP/1.1 426 Upgrade Required\r\nConnection: close\r\nContent-Length: 0\r\n\r\n");
       log({ at: new Date(started).toISOString(), id, transport: "websocket", path, declined: 426, reason: forceHttp ? "--force-http" : "thread needs its requests rewritten", ...identity });
       return;
@@ -795,6 +828,7 @@ async function main(): Promise<void> {
       const opened = { at: new Date(started).toISOString(), id, transport: "websocket", event: "open", path, ...identity };
       log(opened);
       recordRequest(identity.threadId, opened);
+      noteChild(identity, opened.at);
       const lines = [`${req.method} ${req.url} HTTP/1.1`];
       for (let i = 0; i < req.rawHeaders.length; i += 2) {
         const name = req.rawHeaders[i];

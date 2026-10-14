@@ -12,8 +12,8 @@ An API key grants its documented access until revoked.
 |---------|-------|
 | Protocol | Streamable HTTP |
 | Endpoint | `https://xquik.com/mcp` |
-| Authentication | OAuth 2.1 discovery; API key fallback |
-| Skill bundle version | `2.7.0` |
+| Authentication | OAuth 2.1 discovery, with API key fallback |
+| Skill bundle version | `2.7.1` |
 
 Current clients negotiate MCP `2026-07-28` through `server/discover`.
 Use a current MCP SDK. It adds request `_meta` and protocol headers.
@@ -22,12 +22,12 @@ Discovery and tool catalogs include private 5-minute cache hints.
 Reuse cached metadata only with the same authorization context.
 Stateless 2025-era clients remain compatible at the same endpoint.
 
-Xquik publishes these discovery documents:
+Xquik publishes these discovery documents.
 
-- Protected resource metadata: `https://xquik.com/.well-known/oauth-protected-resource/mcp`
-- Authorization server metadata: `https://xquik.com/.well-known/oauth-authorization-server`
-- MCP registry card: `https://xquik.com/.well-known/mcp/server-card.json`
-- Authentication guide: `https://xquik.com/auth.md`
+- The protected resource metadata is at `https://xquik.com/.well-known/oauth-protected-resource/mcp`
+- The authorization server metadata is at `https://xquik.com/.well-known/oauth-authorization-server`
+- The MCP registry card is at `https://xquik.com/.well-known/mcp/server-card.json`
+- The authentication guide is at `https://xquik.com/auth.md`
 
 Xquik supports Client ID Metadata Documents and Dynamic Client Registration.
 Let each client use its documented registration flow. Both
@@ -83,7 +83,7 @@ Check your plan & workspace controls before setup.
 
 ### Codex CLI
 
-Use a current Codex CLI release. Run:
+Use a current Codex CLI release. Run these commands.
 
 ```bash
 codex mcp add xquik --url https://xquik.com/mcp
@@ -104,7 +104,7 @@ below only when OAuth shows the issuer error.
 
 ### API-key fallback for older Codex releases
 
-In Codex Settings, follow [API key fallback](#api-key-fallback) & add:
+In Codex Settings, follow [API key fallback](#api-key-fallback) & add this block.
 
 ```toml
 [mcp_servers.xquik]
@@ -142,7 +142,7 @@ def build_xquik_server(api_key: str) -> MCPServerStreamableHttp:
 
 ### Cursor
 
-Add to `~/.cursor/mcp.json` or `.cursor/mcp.json`:
+Add this to `~/.cursor/mcp.json` or `.cursor/mcp.json`.
 
 ```json
 {
@@ -159,7 +159,7 @@ Cursor starts OAuth after the server returns `401`. You can also run
 
 ### VS Code
 
-Add to `.vscode/mcp.json` or use **MCP: Open User Configuration**:
+Add this to `.vscode/mcp.json` or run the `MCP: Open User Configuration` command.
 
 ```json
 {
@@ -176,7 +176,7 @@ Start the server from the MCP view and follow the OAuth prompt.
 
 ### Windsurf
 
-Add to `~/.codeium/windsurf/mcp_config.json`:
+Add this to `~/.codeium/windsurf/mcp_config.json`.
 
 ```json
 {
@@ -194,7 +194,7 @@ disable MCP or restrict servers to an allowlist.
 
 ### OpenCode
 
-Add to `opencode.json`:
+Add this to `opencode.json`.
 
 ```json
 {
@@ -207,7 +207,7 @@ Add to `opencode.json`:
 }
 ```
 
-Then run:
+Then run these commands.
 
 ```bash
 opencode mcp auth xquik
@@ -216,7 +216,7 @@ opencode mcp list
 
 ### Gemini CLI
 
-Add the remote server:
+Add the remote server.
 
 ```bash
 gemini mcp add --transport http xquik https://xquik.com/mcp

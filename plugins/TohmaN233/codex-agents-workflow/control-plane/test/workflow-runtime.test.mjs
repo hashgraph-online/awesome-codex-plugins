@@ -40,6 +40,46 @@ async function fixture(t, workflow = definition(), options = {}) {
 }
 const payload = (output = {}, extra = {}) => ({ status: 'succeeded', summary: 'Verified by synthetic executor', structured_output: output, artifacts: [], evidence: [{ check: 'fake executor', passed: true }], changed_paths: [], outside_paths: [], ...extra });
 
+test('startup rejects missing initially ready bindings before publishing a Run', async t => {
+  const workflow = definition();
+  workflow.inputs_schema = { type: 'object', properties: { repository: { type: 'string' }, request: { type: 'string' } } };
+  workflow.nodes.find(node => node.id === 'work').input_bindings = { repository: '/inputs/repository', request: '/inputs/request' };
+  const f = await fixture(t, workflow);
+  const run_id = '00000000-0000-4000-8000-000000000001';
+  await assert.rejects(f.start({ run_id, inputs: { task: 'Missing declared business inputs' } }), { code: 'BINDING_MISSING' });
+  await assert.rejects(readFile(join(f.runtime.runs.directory(run_id), 'events.jsonl')), { code: 'ENOENT' });
+  assert.deepEqual(await f.runtime.runs.list(), []);
+  const corrected = await f.start({ run_id, inputs: { repository: 'fixture-repository', request: 'Inspect it' } });
+  assert.equal(corrected.nodes.work.status, 'ready');
+  assert.equal(Object.values(corrected.nodes).flatMap(node => node.attempts).length, 0);
+  assert.deepEqual(corrected.cost_ledger.calls, []);
+});
+
+test('startup binding preflight follows the selected branch and preserves defaults, coalesce and future outputs', async t => {
+  const workflow = definition('condition');
+  workflow.nodes.find(node => node.id === 'a').input_bindings = {
+    repository: { coalesce: ['/inputs/preferred_repository', '/inputs/repository'] },
+    request: { path: '/inputs/request', default: 'Inspect the repository' },
+  };
+  workflow.nodes.find(node => node.id === 'b').input_bindings = { unselected: '/inputs/not_supplied' };
+  workflow.nodes.find(node => node.id === 'final').input_bindings = { result: { coalesce: ['/nodes/b/output/result', '/nodes/a/output/result'] } };
+  const f = await fixture(t, workflow);
+  const run = await f.start({ inputs: { choice: true, repository: 'fixture-repository' } });
+  assert.equal(run.nodes.a.status, 'ready');assert.equal(run.nodes.b.status, 'skipped');assert.equal(run.nodes.final.status, 'pending');
+  const lease = await claim(f, run, 'a');
+  const envelope = await f.runtime.execution(run.run_id, { control_token: run.control_token, node_id: 'a', attempt_id: lease.attempt_id, lease_token: lease.lease_token });
+  assert.deepEqual({ ...envelope.inputs }, { repository: 'fixture-repository', request: 'Inspect the repository' });
+});
+
+test('startup binding preflight checks every initially ready parallel branch', async t => {
+  const workflow = definition('parallel');
+  workflow.nodes.find(node => node.id === 'a').input_bindings = { repository: '/inputs/repository' };
+  workflow.nodes.find(node => node.id === 'b').input_bindings = { request: '/inputs/request' };
+  const f = await fixture(t, workflow);
+  await assert.rejects(f.start({ inputs: { repository: 'fixture-repository' } }), error => error.code === 'BINDING_MISSING' && /request/.test(error.message));
+  assert.deepEqual(await f.runtime.runs.list(), []);
+});
+
 async function hostReceiptFixture(t) {
   const output = { ok: true }, contract = {
     id: 'receipt-tool', identity: { name: 'receipt-tool', version: '1', sha256: 'a'.repeat(64) }, argv: ['receipt-tool'],
@@ -469,7 +509,7 @@ for (const change of ['none', 'authority', 'lease', 'committed pins', 'authority
   const marker = new Error('stop after projection');
   const strict = { enabled: true, codex_binary: process.execPath, binary_sha256: 'b'.repeat(64), authentication: { mode: 'managed_chatgpt', api_key_env: '' },
     main_model: 'fixture', main_reasoning_effort: 'high', inactivity_timeout_ms: 0 };
-  const manager = new HostMainManager({ configPath: join(f.root, 'control-plane.json'), env: {},
+  const manager = new HostMainManager({register:async({config})=>config, configPath: join(f.root, 'control-plane.json'), env: {},
     getConfig: async () => {
       configurations++; assert.equal(reads, 1, 'The initial node metadata and execution envelope share one complete read');
       if (change !== 'authority after projection') throw marker;

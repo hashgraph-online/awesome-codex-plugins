@@ -21,7 +21,7 @@ that unit. Report completion only when final acceptance makes the Run `succeeded
 
 Read only the relevant route; do not load authoring instructions into execution context.
 
-- **Exact Ready startup or node packet already supplied:** call its named tool with the supplied business arguments and that tool's Host invocation preset. Follow the returned action. The tool and packet supply the execution contract; no execution-reference read, tool inventory, capabilities call, listing or routing is required. Read a reference only for a missing detail or an observed failure.
+- **Exact Ready startup or node packet already supplied:** call its named tool with the supplied business arguments and that tool's Host invocation preset. Follow the returned action. The tool and packet supply the execution contract; Host reads the supplied inputs_path and checks/registers dependencies during startup. No input-file reread, prepare_environment call, execution-reference read, tool inventory, capabilities call, listing or routing is required. Read a reference only for a missing detail or an observed failure.
 - **Execute an unselected concrete task:** read [execution](references/execution.md) to select its Ready Workflow and start it.
 - **Generate from a Skill or brief:** read [authoring](references/authoring.md). It links the semantic contract, independent review, and mandatory completion cleanup.
 - **Inspect, edit, publish or delete an existing Workflow:** read [editing](references/editing.md).

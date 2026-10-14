@@ -127,7 +127,7 @@ export function validateHostToolContract(contract) {
     write_paths: pathBoundaries(stringArray(contract.permissions.write_paths, 'write_paths')).filter(path=>path!==scratch) };
   requireValue(Number.isInteger(contract.output_cap_bytes) && contract.output_cap_bytes > 0 && contract.output_cap_bytes <= MAX_OUTPUT, 'HOST_TOOL_CONTRACT', 'Host output cap must be a bounded positive byte count');
   requireValue(contract.input_cap_bytes === undefined || Number.isInteger(contract.input_cap_bytes) && contract.input_cap_bytes > 0 && contract.input_cap_bytes <= MAX_DECLARED_INPUT, 'HOST_TOOL_CONTRACT', 'Declared Host input cap must be a bounded positive byte count');
-  requireValue(Number.isInteger(contract.deadline_ms) && contract.deadline_ms > 0 && contract.deadline_ms <= 300000, 'HOST_TOOL_CONTRACT', 'Host deadline must be between 1ms and 5 minutes');
+  requireValue(Number.isInteger(contract.deadline_ms) && contract.deadline_ms > 0 && contract.deadline_ms <= 3600000, 'HOST_TOOL_CONTRACT', 'Host deadline must be between 1ms and 1 hour');
   requireValue(object(contract.idempotency) && ['safe', 'reconcile_required', 'non_idempotent'].includes(contract.idempotency.mode) && Object.keys(contract.idempotency).length === 1, 'HOST_TOOL_CONTRACT', 'Host tool must declare one retry/idempotency mode');
   const implementsRequirements=contract.implements === undefined ? [] : stringArray(contract.implements,'implements',256);
   requireValue(implementsRequirements.every(id=>/^[a-zA-Z][a-zA-Z0-9_-]{0,127}$/.test(id)),'HOST_TOOL_CONTRACT','Host tool implemented requirement IDs must be stable identifiers');
@@ -194,6 +194,7 @@ export class HostToolRunner {
       run_id: context.run_id,
       node_id: context.node_id,
       attempt_id: context.attempt_id,
+      deadline_ms: pinned.deadline_ms,
       ...(context.execution_slot ? {execution_slot:context.execution_slot} : {}),
       workspace: context.workspace,
       resources: context.resources,

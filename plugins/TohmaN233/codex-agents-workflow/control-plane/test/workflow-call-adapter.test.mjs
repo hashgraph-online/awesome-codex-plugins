@@ -38,6 +38,21 @@ const execute = (code, toolName, call, text = () => {}, context = {}) => {
   return new vm.Script(`(async () => {\n${code}\n})()`).runInNewContext(context);
 };
 
+test('generic controller adapters bind exact resume and cancel authority without a model-filled slot',async()=>{
+ const authority={run_id:'ordinary-fixture',control_token:'host-only-"token" ` ${data}'};
+ for(const operation of ['resume','cancel']){
+  const adapter=direct.workflowControllerAdapterDescriptor(operation,authority);
+  assert.equal(adapter.slot,'none');assert.equal(adapter.scope,'workflow_controller_only');
+  assert.equal(adapter.tool_name,`workflow_${operation}`);
+  let received;
+  await execute(adapter.code,adapter.tool_name,async args=>{received=JSON.parse(JSON.stringify(args));return {content:[{type:'text',text:'exact-result'}]};},text=>assert.equal(text,'exact-result'));
+  assert.deepEqual(received,authority);assert.equal(Object.hasOwn(adapter,'code_prefix'),false);
+ }
+ assert.throws(()=>direct.workflowControllerAdapterDescriptor('delete',authority),{code:'WORKFLOW_CONTROLLER_OPERATION'});
+ assert.throws(()=>direct.workflowControllerAdapterDescriptor('resume',authority,{}),{code:'WORKFLOW_CALL_OPTIONS'});
+ assert.throws(()=>direct.workflowControllerAdapterDescriptor('cancel',{run_id:authority.run_id}),/control_token|required/);
+});
+
 test('authoring controller adapters bind exact authority with no model-filled slot',async()=>{
  const authority={run_id:'authoring-fixture',control_token:'host-only-"token" ` ${data}'};
  for(const operation of ['drive','resume','cancel']){

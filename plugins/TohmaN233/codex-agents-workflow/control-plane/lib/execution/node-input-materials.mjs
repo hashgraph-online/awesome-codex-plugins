@@ -524,8 +524,9 @@ export async function readTerminalMainInputs(receipt){
       semantic_input_files[item.name]={path:item.path,format:item.format};continue;
     }
     const content=new TextDecoder('utf-8',{fatal:true}).decode(bytes);
-    if(item.format==='json')JSON.parse(content);
-    semantic_inputs[item.name]={format:item.format,content};total+=bytes.length;
+    // Host delivers JSON as JSON, without making Main decode a JSON string
+    // inside its JSON handoff. The exact canonical file/pin remains unchanged.
+    semantic_inputs[item.name]={format:item.format,content:item.format==='json'?JSON.parse(content):content};total+=bytes.length;
   }
   return {...(Object.keys(semantic_inputs).length?{semantic_inputs}:{}),...(Object.keys(semantic_input_files).length?{semantic_input_files}:{})};
 }

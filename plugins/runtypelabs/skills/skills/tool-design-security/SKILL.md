@@ -174,9 +174,10 @@ Violations return a clear, logged error.
 - **Boundaries.** Cap calls with `tools.maxToolCalls` (1 to 100 per execution) and bound
   the loop with `loopConfig.maxTurns` or `loopConfig.maxCost`. For expensive or
   destructive tools, enforce a per-tool budget inside the tool; do not set
-  `tools.perToolLimits`, which is retired and gets the agent rejected. A request
-  carries at most 50 runtime tools. Pin the host in an external tool's `url` instead of
-  accepting it as a parameter.
+  `tools.perToolLimits`, which is retired and gets the agent rejected. Runtype caps a
+  request's serialized `runtimeTools` at 1 MB and does not cap the tool count, so a
+  smaller tool set is not an injection defense. Pin the host in an external tool's `url`
+  instead of accepting it as a parameter.
 - **Permission gate.** `config.tools.approval` pauses gated tool calls for a human:
   - `require` takes tool names or patterns (`mcp:*`, `builtin:*`), or `true` for every
     tool. Prefer the list.

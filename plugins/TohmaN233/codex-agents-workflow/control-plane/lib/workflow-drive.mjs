@@ -3,7 +3,7 @@ import { requireValue } from './workflow-paths.mjs';
 import { createMainAgentPacket, createMainHostBinding } from './execution/host-main-automation.mjs';
 import { canonicalJSON, digest } from './workflow-revisions.mjs';
 import { isAuthoringRunProvenance } from './authoring/authoring-workflows.mjs';
-import {committedTerminalOutput} from './execution/terminal-output.mjs';
+import {committedTerminalCompletion} from './execution/terminal-output.mjs';
 import {nodeRuntimeScope,runtimeRequirementsForState} from './runtime-environment-state.mjs';
 import {sharedHostRegion,prepareSharedHostProjection,startSharedHostWork,joinSharedHostWork,hasSharedHostWorkOwner,releaseSettledSharedHostOwners} from './execution/shared-host-work.mjs';
 
@@ -59,7 +59,7 @@ export class WorkflowDrive {
       const state = record.state;
       releaseSettledSharedHostOwners(this.runtime,runId,state);
       let externalEnvironment=false;
-      const stop = progress => ({ ...(!externalEnvironment?{record}:{}),progress:{...progress,...committedTerminalOutput(state)}, active: null });
+      const stop = (progress,committedState=state) => ({ ...(!externalEnvironment?{record}:{}),progress:{...progress,...committedTerminalCompletion(committedState)}, active: null });
       const concurrent=record.pins.root.workflow.nodes.find(definition=>definition.type==='tool'
         &&sharedHostRegion(record.pins.root.workflow,definition.id)&&['claimed','running'].includes(state.nodes[definition.id]?.status));
       if(concurrent&&!hasSharedHostWorkOwner(this.runtime,runId,state.nodes[concurrent.id].active_attempt_id))
@@ -122,7 +122,7 @@ export class WorkflowDrive {
             const settled=await this.settleToolFailure(runId,binding,error);
             if(settled.error)return stop({status:state.status,stop_reason:'execution_recovery_required',node_id:nodeId,attempt_id:lease.attempt_id,...settled,steps:step+1});
             return stop({status:settled.outcome.status,stop_reason:terminal.has(settled.outcome.status)&&settled.outcome.status!=='failed'?'terminal':'host_failure',
-              node_id:nodeId,error:settled.outcome.nodes?.[nodeId]?.error??{code:error.code??'SHARED_HOST_PROJECTION_FAILED',message:String(error.message).slice(0,2000)},steps:step+1});
+              node_id:nodeId,error:settled.outcome.nodes?.[nodeId]?.error??{code:error.code??'SHARED_HOST_PROJECTION_FAILED',message:String(error.message).slice(0,2000)},steps:step+1},settled.outcome);
           }
           // The ordinary tool executor owns admission/cancellation. An RPC
           // return must not revoke its long-lived attempt through that request's
@@ -133,8 +133,8 @@ export class WorkflowDrive {
         assertActive();const settled=await this.executeTool(runId,binding,assertActive);assertActive();
         if(settled.error)return stop({status:state.status,stop_reason:'execution_recovery_required',node_id:nodeId,attempt_id:lease.attempt_id,...settled,steps:step+1});
         const outcome=settled.outcome;
-        if (outcome.status === 'failed') return stop({ status: 'failed', stop_reason: 'host_failure', node_id: nodeId, error: outcome.nodes?.[nodeId]?.error ?? null, steps: step + 1 });
-        if (outcome.status === 'cancelled') return stop({ status: 'cancelled', stop_reason: 'terminal', steps: step + 1 });
+        if (outcome.status === 'failed') return stop({ status: 'failed', stop_reason: 'host_failure', node_id: nodeId, error: outcome.nodes?.[nodeId]?.error ?? null, steps: step + 1 },outcome);
+        if (outcome.status === 'cancelled') return stop({ status: 'cancelled', stop_reason: 'terminal', steps: step + 1 },outcome);
         assertActive();
         continue;
       }

@@ -42,6 +42,15 @@ updates:
         update-types:
           - "minor"
           - "patch"
+      # @vitest/coverage-v8 peer-pins the exact vitest version, so a major
+      # bump of either one alone cannot install (ERESOLVE). #581 and #582 were
+      # that pair split across two PRs, each red until the other landed.
+      vitest-major:
+        patterns:
+          - "vitest"
+          - "@vitest/*"
+        update-types:
+          - "major"
 
   - package-ecosystem: "github-actions"
     directory: "/"

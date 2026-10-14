@@ -235,9 +235,14 @@ test('a live admission owner causes a bounded timeout with small token-free diag
   assert.equal((await holder.next()).entered,true);
   const admission=new WorkflowStore(f.admission),lock=join(f.admission,'.writer.lock');
   const owner=await admission.inspectWriter(),traces=[],before=await readFile(lock,'utf8');let calls=0;
+  const started=performance.now();
   await assert.rejects(admission.withRunAdmission(()=>{calls++;},{timeoutMs:60,onWait:trace=>traces.push(trace)}),error=>{
+    const elapsed=performance.now()-started;
     assert.equal(error.code,'RUN_STORE_ADMISSION_TIMEOUT');assert.equal(error.owner_pid,holder.child.pid);
-    assert.equal(error.created_at,owner.created_at);assert(error.waited_ms>=60&&error.waited_ms<1000);
+    assert.equal(error.created_at,owner.created_at);assert(elapsed>=60&&elapsed<1000);
+    // The queue floors its remaining writer budget; writer and outer-call
+    // elapsed values have different origins, and diagnostics round down.
+    assert(Number.isSafeInteger(error.waited_ms)&&error.waited_ms>=0&&error.waited_ms<=elapsed&&error.waited_ms<1000);
     assert.equal(error.lock_path,lock);assert(!JSON.stringify(error).includes(owner.token));return true;
   });
   assert.equal(calls,0);assert.equal(traces.length,1);assert.equal(traces[0].phase,'waiting');
@@ -263,13 +268,18 @@ test('a recent empty admission owner gets only a bounded initialization window',
   await writeFile(lock,'');let calls=0;
   await assert.rejects(admission.withRunAdmission(()=>{calls++;},{initializationMs:60}),{code:'RUN_STORE_ADMISSION_INITIALIZATION_TIMEOUT'});
   assert.equal(calls,0);assert.equal(await readFile(lock,'utf8'),'');await unlink(lock);
-  await writeFile(lock,'');
   const owner={pid:process.pid,token:randomUUID(),created_at:new Date().toISOString()},traces=[];
-  const acquired=admission.withRunAdmission(()=>{calls++;return 'once';},{onWait:trace=>traces.push(trace)});
-  const initialized=new Promise(resolveWait=>setTimeout(resolveWait,25)).then(async()=>{
-    await writeFile(lock,canonicalJSON(owner));await new Promise(resolveWait=>setTimeout(resolveWait,40));await unlink(lock);
-  });
-  assert.equal((await Promise.all([acquired,initialized]))[0],'once');assert.equal(calls,1);assert(traces.some(trace=>trace.phase==='acquired'));
+  // Publish fully before admission; release only after the real live-owner wait
+  // is observed, so slow fixture writes cannot exhaust empty-owner grace.
+  await writeFile(lock,canonicalJSON(owner),{flag:'wx'});let released=false;
+  const result=await admission.withRunAdmission(()=>{calls++;assert.equal(released,true);return 'once';},{onWait:async trace=>{
+    traces.push(trace);
+    if(trace.phase==='waiting'){
+      assert.equal(calls,0);assert.equal(trace.owner_pid,owner.pid);assert.equal(trace.created_at,owner.created_at);
+      assert.equal(await readFile(lock,'utf8'),canonicalJSON(owner));await unlink(lock);released=true;
+    }
+  }});
+  assert.equal(result,'once');assert.equal(calls,1);assert.deepEqual(traces.map(trace=>trace.phase),['waiting','acquired']);
   assert(!JSON.stringify(traces).includes(owner.token));
 });
 

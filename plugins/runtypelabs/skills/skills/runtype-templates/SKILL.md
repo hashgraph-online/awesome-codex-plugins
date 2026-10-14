@@ -43,8 +43,9 @@ An FPO template has three top-level keys:
 - `productObject`: the full product definition.
 - `template.variables`: the non-secret values the importer supplies.
 
-A template must declare at least one variable, or at least one tool with
-`auth.setupRequired: true` and a non-empty `auth.secrets` array.
+A template must declare at least one variable or at least one pending secret: a tool with
+`auth.setupRequired: true` and a non-empty `auth.secrets` array, a top-level
+`productObject.secrets[]` entry, or a `{{secret:KEY}}` reference anywhere in the product.
 
 Use variables for names, public URLs, recipient lists, selected models, and other
 non-secret configuration. Every credential uses the pending-secret pattern.
@@ -71,6 +72,10 @@ Each variable needs `key`, `label`, `inputType`, and `required`:
 - Set defaults with `defaultValue`. Inline `{{key|default}}` syntax is rejected.
 - When a string field is exactly `{{key}}` and the variable is `number` or `boolean`, the
   field keeps that type. Every other substitution produces a string.
+- A typed field (a URL such as `externalConfig.endpoint`, a number such as
+  `config.loopConfig.maxTurns`, an enum, or a datetime such as a schedule's `runAt`) can
+  hold a variable. Validation checks such fields after substitution, so a bad default or
+  import value fails there instead.
 
 ### Runtime tokens and template variables
 
@@ -82,6 +87,9 @@ through to run time without a declaration:
 - `{{flow:name}}`, which resolves to the flow variable `name` at run time
 - System and message variables, such as `{{_record.metadata.field}}`, `{{_now}}`,
   `{{userMessage}}`, and `{{messages}}`
+- Host-resolved variables: `{{_identity.token}}` in a tool or MCP header, and
+  `{{_agent.*}}` / `{{_organization.id}}` in a memory `profileTemplate`, including a
+  fallback such as `{{_agent.alias || "live"}}`
 
 When you turn a working product into a template, rewrite runtime flow tokens with the
 `flow:` prefix. For example, change `Summarize {{research}}` to
@@ -131,6 +139,11 @@ Use this pattern for every credential:
 ```
 
 Each `auth.secrets` entry is an object with `key` and `required`, not a bare string.
+
+When the credential belongs to the product rather than one tool (an MCP server header, an
+external agent's auth, a model key), declare it in top-level `productObject.secrets[]`
+(`{ "id", "key", "description"?, "required"? }`) and reference it as `{{secret:KEY}}`
+wherever it is used. Import lists it with the other pending secrets.
 
 Do not use a variable with `inputType: "secret"` for credentials. Import writes that value
 into the product object as plain text. A `secret` variable cannot have a `defaultValue`.

@@ -296,16 +296,64 @@ export function forkOrigin(sessionsDir: string, threadId: string): { parent: str
     const first = segments.get(threadId);
     return first ? { found: true, record: firstRecord(first) } : { found: false, record: null };
   });
-  // No rollout yet: do not cache, it may appear once the thread starts.
-  if (!meta.found) return null;
-  const origin = meta.record?.type === "session_meta" && meta.record.payload.forked_from_id ? { parent: meta.record.payload.forked_from_id, at: meta.record.payload.timestamp ?? "" } : null;
+  // No rollout yet: do not cache, it may appear once the thread starts. v0.7: nor while its first line is not written
+  // yet: Codex creates the file a moment before, and a request can come in between.
+  if (!meta.found || !meta.record) return null;
+  const origin = meta.record.type === "session_meta" && meta.record.payload.forked_from_id ? { parent: meta.record.payload.forked_from_id, at: meta.record.payload.timestamp ?? "" } : null;
   origins.set(threadId, origin);
   return origin;
+}
+
+const spawners = new Map<string, string | null>();
+
+// v0.7: the thread that started a subagent without history (session_meta source.subagent.thread_spawn); null for
+// anything else: the user's tasks, forks (a subagent started with history is one), Codex's background tasks (review,
+// compaction, memory). Cached once the rollout's first line is there (as forkOrigin): it never changes.
+export function spawnParent(sessionsDir: string, threadId: string): string | null {
+  const key = `${sessionsDir}\0${threadId}`;
+  if (spawners.has(key)) return spawners.get(key)!;
+  const meta = withSegments(sessionsDir, ({ segments }) => {
+    const first = segments.get(threadId);
+    return first ? { found: true, record: firstRecord(first) } : { found: false, record: null };
+  });
+  if (!meta.found || !meta.record) return null;
+  const payload = meta.record.type === "session_meta" ? meta.record.payload : null;
+  const spawn = payload?.source?.subagent?.thread_spawn;
+  const parent = payload && !payload.forked_from_id && spawn ? spawn.parent_thread_id ?? payload.parent_thread_id : null;
+  spawners.set(key, typeof parent === "string" ? parent : null);
+  return spawners.get(key)!;
+}
+
+const starts = new Map<string, string | null>();
+
+// v0.6: when a thread started, from its session_meta; a fork counts from the thread it came from (followed to the
+// first one; the fork's own time when that one is gone). null while the thread has no rollout, or no first line yet.
+// Cached once known.
+export function threadStartedAt(sessionsDir: string, threadId: string, depth = 0): string | null {
+  const origin = forkOrigin(sessionsDir, threadId);
+  if (origin && depth < 16) return threadStartedAt(sessionsDir, origin.parent, depth + 1) ?? (origin.at || null);
+  const key = `${sessionsDir}\0${threadId}`;
+  if (starts.has(key)) return starts.get(key)!;
+  const meta = withSegments(sessionsDir, ({ segments }) => {
+    const first = segments.get(threadId);
+    return first ? { found: true, record: firstRecord(first) } : { found: false, record: null };
+  });
+  if (!meta.found || !meta.record) return null;
+  const at = (meta.record.type === "session_meta" ? meta.record.payload.timestamp : null) ?? meta.record.timestamp ?? null;
+  starts.set(key, typeof at === "string" ? at : null);
+  return starts.get(key)!;
 }
 
 // Whether the thread has a rollout at all: a thread Codex prepared for a new chat has none until its first message.
 export function hasRollout(sessionsDir: string, threadId: string): boolean {
   return allSegments(sessionsDir).segments.has(threadId);
+}
+
+// v0.7: the task a side chat came from. Codex keeps a side chat in memory only: its requests and tool calls name the
+// task it was forked from (forked_from_thread_id), and it has no rollout of its own (a fork the user made has one, and
+// follows the fork rules). null for any other thread.
+export function sideChatOrigin(threadId: string, forkedFrom: string | null | undefined, sessionsDir: string): string | null {
+  return forkedFrom && forkedFrom !== threadId && !hasRollout(sessionsDir, threadId) ? forkedFrom : null;
 }
 
 // The thread's session_meta (where it came from: source, thread_source, forked_from_id, parent_thread_id), or null.

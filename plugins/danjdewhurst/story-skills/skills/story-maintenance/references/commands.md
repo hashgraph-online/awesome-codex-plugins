@@ -89,4 +89,5 @@ story context chapter-04 --budget 6000
 story add clue 'The silver locket' --planted chapter-02 --payoff chapter-05
 story synopsis --pages 1
 story synopsis --pages 3 --out dist/synopsis.md
+story lsp --stdio
 ```

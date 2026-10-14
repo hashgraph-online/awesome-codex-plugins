@@ -154,7 +154,7 @@ async function check() {
     connector: 'not checked here: a fal connector signs in from the app, apart from this script. Ask it for its own account status; if it is ready, generate there and `import` the finished job',
     paidRoutes: [...(key.ok ? ['prop, character and mood here (FAL_KEY)'] : []), 'import: a job a fal connector already ran, with its receipt and its file'],
   };
-  return { ok: true, command: 'check', studio: root, fal: key.ok ? 'the key works (checked free)' : key.why, auth, registry: { checked: reg.checked, concept: reg.concept.noRefs.endpoint, conceptWithRefs: reg.concept.withRefs.endpoint, mesh: reg.mesh.prop.endpoint, mood: reg.mood.endpoint } };
+  return { ok: true, command: 'check', studio: root, fal: key.ok ? `the key works (checked free; from ${key.source})` : key.why, auth, registry: { checked: reg.checked, concept: reg.concept.noRefs.endpoint, conceptWithRefs: reg.concept.withRefs.endpoint, mesh: reg.mesh.prop.endpoint, mood: reg.mood.endpoint } };
 }
 
 async function registryCheck() {

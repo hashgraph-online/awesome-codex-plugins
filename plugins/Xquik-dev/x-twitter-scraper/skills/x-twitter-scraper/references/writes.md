@@ -6,8 +6,9 @@ account ID. `GET /x/accounts` lists connected accounts.
 
 ## Preview, confirm, send
 
-- Resolve every field before a preview: account, target ID, exact text,
-  media & reply target. Ask for a missing one instead of guessing.
+- Resolve every field before a preview. That means the account, target ID,
+  exact text, media & reply target. Ask for a missing one instead of
+  guessing.
 - The preview shows the method, full URL, headers, JSON body, cost & effect.
   An effect reads like "a new post appears on @my_brand for its followers".
 - A text post or reply costs 30 credits, plus 2 per started MB of media.
@@ -27,14 +28,15 @@ account ID. `GET /x/accounts` lists connected accounts.
 Every write returns an action record with `status`, `terminal`,
 `safeToRetry`, `statusUrl`, and `pollAfterMs`.
 
-- `200`: the action is terminal. Check `status`, because `failed` and
+- `200` means the action is terminal. Check `status`, because `failed` and
   `expired` are terminal too. A new post's ID is in `tweetId` and `result.id`.
-- `202`: accepted. Poll `statusUrl`, which is `GET /x/write-actions/{id}`,
-  every `pollAfterMs` until `terminal` is true. `statusUrl` is a path that
-  already starts with `/api/v1`, so prefix only `https://xquik.com`.
-- Timeout or lost response: do not send a new request, because the first one
-  may have gone through. Retry the identical request with the same
-  `Idempotency-Key`; Xquik returns the original action instead of acting
+- `202` means the action is accepted. Poll `statusUrl`, which is
+  `GET /x/write-actions/{id}`, every `pollAfterMs` until `terminal` is true.
+  `statusUrl` is a path that already starts with `/api/v1`, so prefix only
+  `https://xquik.com`.
+- After a timeout or lost response, do not send a new request, because the
+  first one may have gone through. Retry the identical request with the same
+  `Idempotency-Key`, and Xquik returns the original action instead of acting
   twice. Or poll the action if you have its `statusUrl`.
 - Start a new attempt with a new key only when a terminal record has
   `safeToRetry: true`, and only after the user agrees.
@@ -95,8 +97,8 @@ an `Idempotency-Key`.
 }
 ```
 
-Other fields: `backupCount`, `mustRetweet`, `mustFollowUsername`, `filterAccountAgeDays`,
-`filterLanguage`, `requiredHashtags`, `requiredKeywords`, `requiredMentions`.
+Other fields are `backupCount`, `mustRetweet`, `mustFollowUsername`, `filterAccountAgeDays`,
+`filterLanguage`, `requiredHashtags`, `requiredKeywords`, and `requiredMentions`.
 Read the result with `GET /draws/{id}` and export it with
 `GET /draws/{id}/export?format=csv`.
 

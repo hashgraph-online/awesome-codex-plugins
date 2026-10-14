@@ -50,6 +50,7 @@ Technical writing should help an informed reader identify the subject, action, a
 - Do not make a title a catalog of related activities or tools. Select the unifying research object and the main contribution; place secondary scope in the abstract, keywords, or opening paragraph.
 - Split a modifier-heavy sentence when its qualifications answer different questions. Give the reader the main finding first, then state the operating regime, diagnostic basis, limitation, or exception in a following clause or sentence.
 - Give the main clause most of the sentence's value. A long list of attributes, inputs, or caveats must materially change the reader's interpretation; do not retain it merely because it makes the sentence sound more complete.
+- When more than three details appear in parallel, identify the higher-level physical, methodological, or usage concept that they share. Use that concept when it preserves the intended emphasis. Retain the full list only when its members need separate comparison, reproduction, uncertainty treatment, boundary interpretation, or action.
 - Prefer ordinary field-recognized nouns to a string of adjectives. For example, replace a label such as `physics-grounded, evidence-bounded, stage-resolved interpretation` with the specific measurement, model, or conclusion it denotes when that is clearer.
 - Do not remove qualifiers that materially change scientific meaning. Conditions, uncertainty, validity limits, and evidence boundaries remain necessary; the goal is to attach them where the reader can see what they qualify.
 

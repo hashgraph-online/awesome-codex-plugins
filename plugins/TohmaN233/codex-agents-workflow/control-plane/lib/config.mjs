@@ -1,9 +1,9 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { constants as fsConstants } from 'node:fs';
-import { access, chmod, lstat, mkdir, open, readFile, readdir, rename, stat, writeFile } from 'node:fs/promises';
+import { access, chmod, link, lstat, mkdir, open, readFile, readdir, rename, rmdir, stat, unlink, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { basename, dirname, isAbsolute, join, resolve } from 'node:path';
-import { resourcePath } from './workflow-paths.mjs';
+import { insideRoot, noSymlinks, resourcePath } from './workflow-paths.mjs';
 import { canonicalJSON } from './workflow-revisions.mjs';
 import { validateStrictConfig } from './execution/strict-config.mjs';
 import { NATIVE_BUILTINS_PROFILE_NAME } from '../../scripts/native-context-profile.mjs';
@@ -14,7 +14,8 @@ import {
   canonicalNativeProviderId,
 } from './native-provider-identity.mjs';
 
-export const CONFIG_VERSION = 6;
+export const CONFIG_VERSION = 7;
+export const LEGACY_CONFIG_VERSION = 6;
 export const PROVIDER_KINDS = new Set(['native_agent', 'builtin_connector', 'external_mcp', 'mcp_tool', 'web_review', 'openai_compatible']);
 export const STAGE_ROLES = new Set(['implementer', 'reviewer']);
 export const STAGE_ACCESS = new Set(['read_only', 'bounded_write']);
@@ -582,7 +583,7 @@ export function migrateConfigV5(raw) {
   assert(object(raw), 'config must be an object');
   assert(raw.version === 5, 'migrateConfigV5 accepts only config.version=5');
   const migrated = jsonClone(raw, 'version-5 config');
-  migrated.version = CONFIG_VERSION;
+  migrated.version = LEGACY_CONFIG_VERSION;
   // Approval booleans are policy, not derived metadata. A v5 file cannot tell
   // whether a bundled-looking value was inherited or explicitly chosen, so
   // migration must preserve the persisted value and leave any relaxation to an
@@ -592,7 +593,7 @@ export function migrateConfigV5(raw) {
 
 export function validateConfig(raw) {
   assert(object(raw), 'config must be an object');
-  assert([CONFIG_VERSION, 7].includes(raw.version), `config.version must be ${CONFIG_VERSION} or 7`);
+  assert([LEGACY_CONFIG_VERSION, CONFIG_VERSION].includes(raw.version), `config.version must be ${LEGACY_CONFIG_VERSION} or ${CONFIG_VERSION}`);
   const providersRaw = Array.isArray(raw.providers) ? raw.providers : [];
   const taskTypesRaw = Array.isArray(raw.task_types) ? raw.task_types : [];
   assert(providersRaw.length > 0 && providersRaw.length <= 100,
@@ -696,13 +697,99 @@ export async function ensureConfigFile({ configPath, defaultConfigPath }) {
     if (await exists(configPath)) return;
   }
   await mkdir(dirname(configPath), { recursive: true, mode: 0o700 });
-  const body = await readFile(defaultConfigPath);
-  try {
-    await writeFile(configPath, body, { mode: 0o600, flag: 'wx' });
-    await chmod(configPath, 0o600).catch(() => {});
-  } catch (error) {
-    if (error?.code !== 'EEXIST' || !(await exists(configPath))) throw error;
+  const { WorkflowStore, syncDirectory } = await import('./workflow-store.mjs');
+  const writer = await new WorkflowStore(dirname(configPath)).initialize();
+  await writer.withConfigBootstrapWriter(async () => {
+    if (await exists(configPath)) return;
+    const defaults = JSON.parse(await readFile(defaultConfigPath, 'utf8'));
+    assert(defaults.version === CONFIG_VERSION, `bundled defaults must use config.version=${CONFIG_VERSION}`);
+    const config = validateConfig(defaults);
+    const storeRoot = insideRoot(dirname(configPath), join(dirname(configPath), config.workflow_store.relative_path));
+    await noSymlinks(dirname(storeRoot));
+    // Only this absent-config bootstrap owns creation. A missing existing store
+    // remains corruption, and an orphaned preexisting store requires inspection.
+    const owned = [];
+    try {
+      for (const path of [storeRoot, join(storeRoot, '.pending'), join(storeRoot, '.trash')]) {
+        if (owned.length) assert(sameBootstrapDirectory(await lstat(storeRoot), owned[0].info), 'config bootstrap Workflow store ownership changed');
+        await mkdir(path, { mode: 0o700 });
+        owned.push({ path, info: await lstat(path) });
+      }
+      await new WorkflowStore(storeRoot).initialize();
+      await syncDirectory(dirname(configPath));
+      await publishNewConfig(configPath, config);
+    } catch (error) {
+      if (owned.length) {
+        try { error.bootstrap_cleanup = await rollbackBootstrapStore(configPath, owned); }
+        catch (cleanupError) { throw new AggregateError([error, cleanupError], 'Config bootstrap and owned store cleanup failed'); }
+      }
+      throw error;
+    }
+  });
+}
+
+function sameBootstrapDirectory(info, expected) {
+  return info?.isDirectory() && !info.isSymbolicLink() && info.dev === expected.dev && info.ino === expected.ino;
+}
+
+async function rollbackBootstrapStore(configPath, owned) {
+  const present = async path => {
+    try { return await lstat(path); }
+    catch (error) { if (error.code === 'ENOENT') return null; throw error; }
+  };
+  const retained = reason => ({ store_retained: true, reason });
+  if (await present(configPath)) return retained('configuration_present');
+  const root = owned[0];
+  await noSymlinks(dirname(root.path));
+  const rootInfo = await present(root.path);
+  if (!rootInfo) return { store_retained: false };
+  if (!sameBootstrapDirectory(rootInfo, root.info)) return retained('store_identity_changed');
+  const children = owned.slice(1);
+  const names = new Set(children.map(child => basename(child.path)));
+  if ((await readdir(root.path)).some(name => !names.has(name))) return retained('unknown_store_content');
+  for (const child of children) {
+    const info = await present(child.path);
+    if (!info) continue;
+    if (!sameBootstrapDirectory(info, child.info)) return retained('initialization_directory_identity_changed');
+    if ((await readdir(child.path)).length) return retained('populated_initialization_directory');
   }
+  // No recursive deletion: rmdir also protects data arriving after inspection.
+  for (const entry of [...children, root]) {
+    if (await present(configPath)) return retained('configuration_present');
+    if (!sameBootstrapDirectory(await present(root.path), root.info)) return retained('store_identity_changed');
+    const info = await present(entry.path);
+    if (!info) continue;
+    if (!sameBootstrapDirectory(info, entry.info)) return retained('directory_identity_changed');
+    await rmdir(entry.path);
+  }
+  return { store_retained: false };
+}
+
+async function publishNewConfig(configPath, config) {
+  const { syncDirectory } = await import('./workflow-store.mjs');
+  const temporary = `${configPath}.bootstrap-${process.pid}-${randomUUID()}`;
+  const handle = await open(temporary, 'wx', 0o600);
+  let failure;
+  try {
+    try {
+      await handle.writeFile(`${JSON.stringify(config, null, 2)}\n`);
+      await handle.sync();
+    } finally { await handle.close(); }
+    // Publish complete bytes without replacing a file created by an external
+    // editor during bootstrap. Unsupported hard links remain visible errors.
+    try { await link(temporary, configPath); }
+    catch (error) {
+      if (error.code !== 'EEXIST') throw error;
+      await assertRegularNoSymlink(configPath, 'control-plane config path');
+    }
+    await syncDirectory(dirname(configPath));
+  } catch (error) { failure = error; }
+  try { await unlink(temporary); }
+  catch (error) {
+    if (failure) throw new AggregateError([failure, error], 'Config bootstrap and owned temporary cleanup failed');
+    throw error;
+  }
+  if (failure) throw failure;
 }
 
 async function writeConfigAtomic(validated, configPath) {
@@ -777,7 +864,7 @@ export async function saveConfig(config, { configPath, expectedRevision = '' } =
       'configuration changed since it was loaded');
   }
   const current = await exists(configPath) ? validateConfig(JSON.parse(await readFile(configPath, 'utf8'))) : null;
-  assert(current ? current.version === validated.version : validated.version === 6, 'configuration version changes require the transactional migration/restore API');
+  assert(current ? current.version === validated.version : validated.version === CONFIG_VERSION, 'configuration version changes require the transactional migration/restore API');
   if (current?.version === 7) assert(canonicalJSON(current.workflow_store) === canonicalJSON(validated.workflow_store) && canonicalJSON(current.legacy_mapping) === canonicalJSON(validated.legacy_mapping), 'config save cannot replace the workflow store pointer or legacy mapping');
   await writeDurableJSON(configPath, validated);
   return { config: validated, revision: configRevision(validated) };

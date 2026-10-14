@@ -24,6 +24,7 @@ import { WorkflowExecutor,compilePrompt } from '../lib/workflow-executor.mjs';
 import { WorkflowDrive } from '../lib/workflow-drive.mjs';
 import { workflowResourceProgramIdentity,workflowResourceProgramRegistry } from '../lib/execution/workflow-resource-program.mjs';
 import {captureNativeWorkspace} from '../lib/execution/native-dispatch-span.mjs';
+import {readNativeTaskProjection} from '../lib/execution/node-input-materials.mjs';
 
 const PARENT_THREAD_ID = '00000000-0000-7000-8000-000000000001';
 const MODEL_REQUEST = Object.freeze({ model: true, modelThreadId: PARENT_THREAD_ID });
@@ -413,12 +414,16 @@ test('native model-facing handoff exposes exact spawn tool arguments while retai
     const internal=await f.service.call('native_next',f.binding);
     assert.equal(visible.packets,undefined);
     assert.deepEqual(visible.spawn_calls,internal.packets.map(packet=>({tool:'collaboration.spawn_agent',arguments:{...packet.spawn_config,message:packet.prompt}})));
-    for(const call of visible.spawn_calls){
+    for(const [index,call] of visible.spawn_calls.entries()){
       assert.equal(call.arguments.fork_turns,upstream?'all':'none');
       assert.equal(call.arguments.model,upstream?undefined:'gpt-6-luna');
       assert.equal(call.arguments.reasoning_effort,upstream?undefined:'max');
       assert.doesNotMatch(call.arguments.message,/Host-only exact baseline/);
-      assert.equal((call.arguments.message.match(/Node worker only\./g)??[]).length,1);
+      const projection=await readNativeTaskProjection(internal.packets[index],{materialize:true});
+      const delivered=projection.inline?projection.task_bundle:JSON.parse(await readFile(projection.task_bundle_path));
+      assert.equal((delivered.task.match(/Node worker only\./g)??[]).length,1);
+      assert.doesNotMatch(delivered.task,/Host-only exact baseline/);
+      if(!projection.inline)assert(call.arguments.message.includes(canonicalJSON(projection.task_bundle_path)));
     }
     for(const key of ['run_id','attempt_id','packets','workspace','access','allowed_paths','result_schema','released_packet_indices','recorded_agent_ids','recovery'])assert.equal(visible[key],undefined,key);
     assert.equal(visible.invocation_adapter.tool_name,'workflow_native_spawned_batch');
@@ -2382,8 +2387,12 @@ test('native text amendment one-per-item batch repairs only its rejected child',
   assert.equal(repair.followup_config.target,f.seen.at(-1)[0]);
 });
 
-test('native text amendment repair ACK accepts a ready sibling before the repairing child terminates',{timeout:30_000},async t=>{
-  const phase=value=>console.log('NATIVE_REPAIR_SIBLING_PHASE '+value);
+// The whole fixture includes durable checker, amendment and replay I/O. Windows
+// CI completed the ACK at 28.9s and hit the old 30s budget during final reads;
+// actual event/ACK waits keep their independent 10s deadlines below.
+test('native text amendment repair ACK accepts a ready sibling before the repairing child terminates',{timeout:60_000},async t=>{
+  const began=performance.now();
+  const phase=value=>console.log('NATIVE_REPAIR_SIBLING_PHASE '+value+' '+JSON.stringify({elapsed_ms:Math.round(performance.now()-began)}));
   phase('fixture');
   const draft='draft a\r\npreserved second line',fixed='accepted a\r\npreserved second line';
   const siblingChecked=deferred(),repairWaitArmed=deferred(),repairReleased=deferred();
@@ -2459,11 +2468,12 @@ test('native text amendment repair ACK accepts a ready sibling before the repair
   let ackSettled=false;
   const ack=f.service.call('native_followed_up',repair.invocation_adapter.arguments,MODEL_REQUEST).finally(()=>{ackSettled=true;});
   phase('repair-ack');
-  const boundary=async(promise,label)=>{
-    let timer;try{return await Promise.race([promise,ack.then(()=>{throw new Error('Repair ACK settled before '+label);}),
+  const deadline=async(promise,label)=>{
+    let timer;try{return await Promise.race([promise,
       new Promise((_resolve,reject)=>{timer=setTimeout(()=>reject(new Error('Timed out waiting for '+label)),10_000);})]);}
     finally{clearTimeout(timer);}
   };
+  const boundary=(promise,label)=>deadline(Promise.race([promise,ack.then(()=>{throw new Error('Repair ACK settled before '+label);})]),label);
   const releaseRepair=async()=>{
     if(repairTerminal)return;repairTerminal=true;
     await fsPromises.appendFile(threads.get(agents[0]).thread.path,row('event_msg',{type:'task_complete',turn_id:threads.get(agents[0]).repairTurn}));
@@ -2486,13 +2496,14 @@ test('native text amendment repair ACK accepts a ready sibling before the repair
     assert.deepEqual(readySibling.agent_ids,agents);assert.equal(readySibling.waits_before,0);assert.equal(readySibling.waits_after,0);
     assert.deepEqual(readySibling.text_amendments,{[agents[0]]:true});
     midpoint={first_child_has_result:false,repair_terminal:false,sibling_result:attempt.native_item_results[1],ready_sibling_observation:readySibling};
-    await releaseRepair();next=await ack;
+    await releaseRepair();next=await deadline(ack,'repair ACK after terminal release');
     phase('repair-complete');
     assert.equal(next.status,'orchestration_handoff');
   }catch(error){failure=error;}
-  finally{await releaseRepair();const [settled]=await Promise.allSettled([ack]);if(!failure&&settled.status==='rejected')failure=settled.reason;}
+  finally{await releaseRepair();const [settled]=await Promise.allSettled([deadline(ack,'repair ACK cleanup')]);if(!failure&&settled.status==='rejected')failure=settled.reason;}
   if(failure)throw failure;
   const state=await f.service.call('get',f.binding),attempt=state.nodes.worker.attempts[0];
+  phase('final-state-read');
   assert.deepEqual(state.nodes.worker.output.results,[{summary:fixed},{summary:'accepted b'}]);
   assert.deepEqual(f.calls.map(call=>[call.input.inputs.jobs[0].name,call.input.output.summary]),[['a',draft],['b','accepted b'],['a',fixed]]);
   assert.equal(attempt.native_rejected_turns[0].count,1);assert.equal(attempt.native_rejected_turns[1],undefined);
@@ -2510,6 +2521,7 @@ test('native text amendment repair ACK accepts a ready sibling before the repair
   assert.equal(slots.filter(slot=>slot.identity.native_observation.agent_id===agents[1]).length,1);
   assert.equal((await f.service.call('native_next',{},MODEL_REQUEST)).status,'orchestration_handoff');
   assert.equal(f.calls.length,3,'Replay must not rerender either accepted child');
+  phase('replay-verified');
   const report={midpoint,observations,rpc,waits,amendment_trace:trace,checker_calls:f.calls.map(call=>({item:call.input.inputs.jobs[0].name,output:call.input.output})),
     repair_budget:{max_attempts:3,rejections:attempt.native_rejected_turns[0].count},final_status:next.status,replay_checker_calls:f.calls.length};
   console.log('NATIVE_REPAIR_SIBLING_BOUNDARY '+JSON.stringify(report));
@@ -2671,7 +2683,7 @@ test('terminal Main semantic inputs carry complete declared 13KB input without p
   const start=await f.service.call('native_next',{},MODEL_REQUEST);
   const handoff=await f.service.call('native_spawned_batch',{batch_id:start.batch_id},MODEL_REQUEST);
   assert.equal(handoff.status,'orchestration_handoff');
-  assert.deepEqual(JSON.parse(handoff.semantic_inputs.proposal.content),{summary:content});
+  assert.deepEqual(handoff.semantic_inputs.proposal.content,{summary:content});
   assert.equal(handoff.semantic_inputs.proposal.format,'json');
   const task=handoff.task_bundle.task,inputs=JSON.parse(task.split('\nInputs:\n')[1].split('\n')[0]);
   assert.deepEqual(inputs.proposal,{delivery:'inline',value_path:['semantic_inputs','proposal','content'],format:'json'});
@@ -2686,7 +2698,9 @@ test('native semantic child packets omit Host mechanical checker metadata and re
   const handoff=await f.service.call('native_next',{},MODEL_REQUEST);
   for(const packet of publicPackets(handoff)){
     assert.doesNotMatch(packet.prompt,/host_check|native-check|success_field|correction_field|input_bindings|Host-only exact baseline/);
-    assert.deepEqual(inlineNativeTask(packet.prompt).result_schema.properties.items.items.properties.result,nativeSemanticSchema);
+    const delivered=await publicNativeTask(packet.prompt);
+    assert.doesNotMatch(JSON.stringify(delivered),/host_check|native-check|success_field|correction_field|input_bindings|Host-only exact baseline/);
+    assert.deepEqual(delivered.result_schema.properties.items.items.properties.result,nativeSemanticSchema);
   }
   await f.service.call('native_spawned_batch',{batch_id:handoff.batch_id},MODEL_REQUEST);
   assert.equal(f.calls.length,2,'Omitting prompt metadata must retain every Host checker dispatch');

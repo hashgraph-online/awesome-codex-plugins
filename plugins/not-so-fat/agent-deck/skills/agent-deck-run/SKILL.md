@@ -56,7 +56,7 @@ agent-deck run log <runId> --tail 50
 agent-deck run list
 ```
 
-Log lines look like `<ts> text|tool|result|end ...`; a finished run ends with `result success sessionId=<id> <final text>` and `end sessionId=<id>`. Read `text` lines for questions; answer from verified facts or ask the human. Read the `state` field (`running|ended|error|died`), the `sessionId`, and the log path. Stop rule: on `died` or `error`, stop polling, read the tail of the log for the failure, and report to the human.
+Log lines look like `<ts> text|tool|result|end ...`; a finished run ends with `result success sessionId=<id> <final text>` and `end sessionId=<id>`. With `--json`, take the final answer from the `result` line's string `result` field (claude, codex, muse), not from the last `text` line; codex token usage is in a separate `usage` field. Read `text` lines for questions; answer from verified facts or ask the human. Read the `state` field (`running|ended|error|died`), the `sessionId`, and the log path. Stop rule: on `died` or `error`, stop polling, read the tail of the log for the failure, and report to the human.
 
 ## 4. Review
 

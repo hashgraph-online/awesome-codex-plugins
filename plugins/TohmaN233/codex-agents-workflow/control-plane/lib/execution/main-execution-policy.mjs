@@ -31,6 +31,5 @@ export function cooperativeExecutionPolicy(access, context) {
     command_type: inherited ? 'dangerFullAccess' : 'workspaceWrite',
     command_boundary: access === 'read_only' ? 'capture_spool_only' : 'host_allowed_paths_and_workspace_audit',
     os_read_isolation: 'not_claimed',
-    workspace_deny_qualification: inherited ? 'skipped_inherited_caller_policy' : 'existing_access_derived',
   });
 }

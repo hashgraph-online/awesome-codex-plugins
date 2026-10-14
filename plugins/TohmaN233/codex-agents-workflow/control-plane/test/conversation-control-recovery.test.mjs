@@ -6,7 +6,7 @@ import { tmpdir } from './physical-tempdir.mjs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { makeClient } from './mcp-test-client.mjs';
-import { loadConfig } from '../lib/config.mjs';
+import { loadLegacyConfig } from './legacy-config.mjs';
 import { WorkflowService } from '../lib/workflow-service.mjs';
 import { DEFAULT_CONFIG_PATH } from '../server.mjs';
 import { workflowToolDefinitions } from '../lib/workflow-tools.mjs';
@@ -25,7 +25,7 @@ const completion = structured_output => ({
 async function fixture(t) {
   const root = await mkdtemp(join(tmpdir(), 'conversation-control-recovery-')); const workspace = join(root, 'workspace'); await mkdir(workspace);
   t.after(async () => { assert(resolve(root).startsWith(resolve(tmpdir()))); await rm(root, { recursive: true, maxRetries: 3, retryDelay: 100 }); });
-  const configPath = join(root, 'control-plane.json'); await loadConfig({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH });
+  const configPath = join(root, 'control-plane.json'); await loadLegacyConfig({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH });
   const service = new WorkflowService({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH, env: {} });
   await service.call('migrate_v6', {}, { human: true });
   const run = await service.call('start', {

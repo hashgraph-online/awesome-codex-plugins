@@ -23,7 +23,8 @@ Call `workflow_start` with the selected Workflow, task and absolute workspace. P
 existing structured local inputs with `inputs_path`, or pass only the scalar local
 address expected by a registered Host tool. Never open a manifest or data file and
 copy its fields into `inputs`; the Host rejects nested model-transcribed inputs.
-Host step 0 verifies and registers dependencies. Missing dependencies are
+For a supplied inputs_path, let the Host read it; the initial semantic handoff supplies any content Main needs. Do not reread it before startup.
+Host step 0 verifies and registers dependencies; no separate workflow_prepare_environment call is needed. That tool is optional dependency diagnosis, not a startup prerequisite. Missing dependencies are
 reported before execution; ask before installing them.
 
 When the Host supplies a direct MCP invocation descriptor, call its exact `tool`

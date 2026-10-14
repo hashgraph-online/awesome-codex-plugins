@@ -47,7 +47,7 @@ USER_AGENT = "awesome-codex-plugins-validator"
 # Regex for README plugin entries
 README_ENTRY_RE = re.compile(
     r"^- \[([^\]]+)\]\((https://github\.com/"
-    r"([^/]+)/([^)#\?]+?)(?:/tree/[^/]+/(?:[^)]+))?(?:[?#][^)]*)?\)\s*[-\u2013]\s*(.+)",
+    r"([^/]+)/([^/?#)]+)(?:/tree/[^/]+/[^)?#]+)?(?:[?#][^)]*)?)\)\s*[-\u2013]\s*(.+)",
     re.MULTILINE,
 )
 

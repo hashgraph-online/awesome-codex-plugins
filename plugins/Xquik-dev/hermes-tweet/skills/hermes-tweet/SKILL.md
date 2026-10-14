@@ -5,7 +5,7 @@ allowed-tools:
   - tweet_explore
   - tweet_read
   - tweet_action
-version: 0.1.13
+version: 0.1.16
 author: Burak Bayır (@kriptoburak), Xquik
 license: MIT
 compatibility: Requires Hermes Agent plugin support and Xquik API access.
@@ -23,7 +23,7 @@ tags:
   - social-media
   - automation
 metadata:
-  version: 0.1.13
+  version: 0.1.16
   author: Xquik
   tags:
     - hermes-agent
@@ -170,7 +170,7 @@ permissions.
 ## Error handling
 
 Use the narrowest recovery step that preserves the read-first and action-gated
-contract:
+contract.
 
 - **Missing tool.** Confirm the plugin is enabled. Run `hermes tools list`.
 - **Missing API key.** Configure `XQUIK_API_KEY` on the runtime host without pasting
@@ -194,7 +194,7 @@ contract:
 {"query":"tweet search","method":"GET"}
 ```
 
-Then call:
+Then call `tweet_read` with this payload.
 
 ```json
 {"path":"/api/v1/x/tweets/search","query":{"q":"AI agents","limit":25}}
@@ -211,7 +211,7 @@ needs a catalog endpoint or structured response instead of the slash command.
 {"query":"post tweet","include_actions":true}
 ```
 
-Then call `tweet_action` with:
+Then call `tweet_action` with this payload.
 
 ```json
 {"path":"/api/v1/x/tweets","method":"POST","body":{"account":"@example","text":"Hello from Hermes Tweet"},"reason":"Post the user-approved tweet."}
@@ -219,7 +219,7 @@ Then call `tweet_action` with:
 
 ## Testing
 
-After installing or upgrading the plugin in Hermes Agent:
+Run these checks after you install or upgrade the plugin in Hermes Agent.
 
 1. Run `hermes plugins enable hermes-tweet` unless the install used `--enable`.
 2. Run `hermes plugins list` and confirm the plugin is `enabled`.
@@ -228,7 +228,7 @@ After installing or upgrading the plugin in Hermes Agent:
 5. Confirm `tweet_read` appears only when `XQUIK_API_KEY` is configured.
 6. Confirm `tweet_action` stays hidden or disabled unless `HERMES_TWEET_ENABLE_ACTIONS=true`.
 
-Useful CLI checks:
+Use these CLI checks.
 
 ```bash
 hermes plugins enable hermes-tweet
@@ -237,8 +237,8 @@ hermes tools list
 
 ## Release trust gate
 
-Before presenting this skill as NVIDIA-verified or ready for broad enterprise
-deployment:
+Complete these steps before you present this skill as NVIDIA-verified. Do the
+same before you call it ready for broad enterprise deployment.
 
 1. Run SkillSpector against the complete skill directory and resolve critical or
    high findings.

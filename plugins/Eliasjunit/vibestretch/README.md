@@ -2,6 +2,8 @@
 
 Stretch nudges in your terminal while your coding agent works.
 
+[![HOL Guard](https://img.shields.io/endpoint?url=https%3A%2F%2Fhol.org%2Fapi%2Fregistry%2Fbadges%2Fplugin%3Fslug%3Djunit%252Fvibestretch%26metric%3Dtrust)](https://hol.org/registry/plugins/junit%2Fvibestretch)
+
 ![vibestretch nudges you to stretch while Claude Code works](assets/demo.gif)
 
 Your agent grinds for minutes at a time. You sit there, slouched, not blinking.
@@ -285,4 +287,4 @@ Built in public by [Junit](https://github.com/Eliasjunit) — founder building A
 products, apps and games (and trying not to fuse with the chair while the agents
 grind).
 
-MIT.
+MIT. Privacy: [PRIVACY.md](PRIVACY.md). Terms: [TERMS.md](TERMS.md).

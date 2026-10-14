@@ -50,9 +50,18 @@ Then ask: "publish my site". No token needed.
 
 Install the DropTheHassle skill in Claude Code, Cursor, Codex or Gemini CLI: `npx skills add bosmdavid-gif/dropthehassle-skill`
 
-The skill lives in [`skills/dropthehassle-publish/`](skills/dropthehassle-publish). Install it
-with the open [skills CLI](https://github.com/vercel-labs/skills), as a Claude Code plugin, or by
-copying the folder.
+This repo has four skills. `npx skills add bosmdavid-gif/dropthehassle-skill` lists them all;
+pick one or more.
+
+| Skill | What it does |
+| --- | --- |
+| [`dropthehassle-publish`](skills/dropthehassle-publish) | Publish a built website or web app on a free HTTPS link: build, preflight, deploy, Update and Restore, claim link, live check. |
+| [`buy-domain`](skills/buy-domain) | Find a free domain name with real availability and price, then hand you the payment link. You pay; the site goes live on it with no DNS. |
+| [`custom-domain`](skills/custom-domain) | Connect a domain you already own to your site, free, with one A record you set at your registrar. |
+| [`domain-email`](skills/domain-email) | Turn on a mailbox such as hello@yourdomain.com (€5 / $5 a month). You pay the link. |
+
+Install them with the open [skills CLI](https://github.com/vercel-labs/skills), as a Claude Code
+plugin, or by copying the folders.
 
 ### Any agent (skills CLI)
 
@@ -166,6 +175,9 @@ It should list names with prices from a real search, and not create a payment li
 ## What's in the box
 
 ```
+skills/buy-domain/SKILL.md          # find a free name, hand over the payment link
+skills/custom-domain/SKILL.md       # connect a domain you already own (one A record)
+skills/domain-email/SKILL.md        # mailbox on your domain, human pays
 skills/dropthehassle-publish/
 ├── SKILL.md                    # the workflow the agent follows
 ├── references/

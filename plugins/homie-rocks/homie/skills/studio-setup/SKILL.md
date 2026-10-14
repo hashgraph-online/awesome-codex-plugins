@@ -415,3 +415,5 @@ there (checked by SHA-256, at the same addresses); `homie-studio media move --dr
 ## Connect an AI to this studio
 
 Every studio serves its own MCP at `<site>/mcp`. Use the `tools` skill for studio-defined business actions, signed integrations and staff AI access. Reuse office and app-record built-ins first. After an authorized deploy, hand over the MCP address and `<site>/_studio/office/connections`: the person approves with the studio account they already have, with no key to copy. Staff connect their own account and retain only their app grants. Client connector setup is separate from the studio approval. Never deploy merely to set up a local tool test.
+
+For a business or cause, use `studio_scaffold {name, kind:"business"}` or `homie-studio new <folder> --kind cause`. Continue directly with the app skill and the appropriate `app new --from` starter; no game demo or planning interview unless requested.

@@ -1,3 +1,4 @@
+import { loadLegacyConfig } from './legacy-config.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, rm } from 'node:fs/promises';
@@ -6,7 +7,7 @@ import { tmpdir } from './physical-tempdir.mjs';
 import { buildProviderAdapter } from '../lib/providers.mjs';
 import { WorkflowService } from '../lib/workflow-service.mjs';
 import { WorkflowExecutor } from '../lib/workflow-executor.mjs';
-import { loadConfig, saveConfig, configRevision, migrateBuiltinNativeAgentRoles } from '../lib/config.mjs';
+import { saveConfig, configRevision, migrateBuiltinNativeAgentRoles } from '../lib/config.mjs';
 import { nativeBindingIssue, nativeSpawnConfig } from '../lib/native-binding.mjs';
 import { NATIVE_BUILTINS_PROFILE_NAME } from '../../scripts/native-context-profile.mjs';
 import { DEFAULT_CONFIG_PATH } from '../server.mjs';
@@ -69,7 +70,7 @@ test('registry model edits update dependent Workflows and deletion blocks new Ru
   t.after(()=>rm(root,{recursive:true,maxRetries:3,retryDelay:100}));
   const workspace=join(root,'workspace');await mkdir(workspace);
   const configPath=join(root,'control-plane.json');
-  await loadConfig({configPath,defaultConfigPath:DEFAULT_CONFIG_PATH});
+  await loadLegacyConfig({configPath,defaultConfigPath:DEFAULT_CONFIG_PATH});
   const service=new WorkflowService({configPath,defaultConfigPath:DEFAULT_CONFIG_PATH,env:{}});
   await service.call('migrate_v6',{}, {human:true});
   const edit=async change=>{const config=await service.config();const revision=configRevision(config);change(config);await saveConfig(config,{configPath,expectedRevision:revision});};

@@ -435,7 +435,7 @@ test('a separate Host cancellation is reconciled at the next original fully auth
  await f.manager.settle();assert.equal(f.launches(),1);
 });
 
-for(const mode of ['deferred','failure','stop_pending'])test(`real server shutdown closes maintenance before releasing retained Main priority: ${mode}`,{timeout:10000},async t=>{
+for(const mode of ['deferred','failure','stop_pending','stop_pending_write'])test(`real server shutdown closes maintenance before releasing retained Main priority: ${mode}`,{timeout:10000},async t=>{
  const root=await mkdtemp(join(tmpdir(),'handoff-server-shutdown-'));
  const child=spawn(process.execPath,['--import',new URL('./fixtures/main-handoff-shutdown.mjs',import.meta.url).href,
   fileURLToPath(new URL('../server.mjs',import.meta.url))],{env:{...process.env,HANDOFF_PRIORITY_FIXTURE_ROOT:root,HANDOFF_PRIORITY_FIXTURE_MODE:mode},stdio:['pipe','pipe','pipe','ipc']});
@@ -451,11 +451,17 @@ for(const mode of ['deferred','failure','stop_pending'])test(`real server shutdo
  assert.equal(final.late_manager_error,'RUN_HISTORY_MAINTENANCE_CLOSED','A fresh per-RPC service cannot reopen maintenance during shutdown');
  assert.equal(final.late_rpc_error,'RUN_HISTORY_MAINTENANCE_CLOSED','An actual late service RPC during server write drain fails explicitly');
  assert.equal(final.launches,mode==='deferred'?0:1,'Releasing priority after close cannot launch deferred maintenance');
- if(mode==='stop_pending'){
+ if(mode.startsWith('stop_pending')){
   assert.match(stderr,/retained unconfirmed execution ownership/);
+  assert.deepEqual(final.close_error,{code:'RUN_HISTORY_MAINTENANCE_STOP_PENDING',persistence_error:'RUN_HISTORY_MAINTENANCE_RECEIPT_PENDING'});
   const receipt=JSON.parse(await readFile(join(root,'runs','.run-locks','.history-maintenance','receipt.json'),'utf8'));
-  assert.equal(receipt.outcome,'stop_pending');assert.equal(receipt.error.code,'RUN_HISTORY_MAINTENANCE_STOP_PENDING');
-  await readFile(join(root,'runs','.run-locks','.history-maintenance','.writer.lock'));
+  if(mode==='stop_pending_write'){
+   assert.equal(receipt.phase,'auditing');assert.equal(receipt.outcome,'pending');assert.equal(receipt.error,undefined);
+  }else{
+   assert.equal(receipt.outcome,'stop_pending');assert.equal(receipt.error.code,'RUN_HISTORY_MAINTENANCE_STOP_PENDING');
+  }
+  const claim=JSON.parse(await readFile(join(root,'runs','.run-locks','.history-maintenance','.writer.lock'),'utf8'));
+  for(const key of ['job_id','owner_token','owner_pid','created_at'])assert.equal(claim[key],receipt[key],'Unconfirmed shutdown must retain the exact original owner');
  }
  if(mode==='failure')assert.match(stderr,/retained unconfirmed execution ownership/);
 });

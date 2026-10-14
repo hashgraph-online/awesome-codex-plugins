@@ -29,6 +29,9 @@
       "Break reminders"
     ],
     "composerIcon": "./assets/icon.png",
-    "logo": "./assets/icon.png"
+    "logo": "./assets/icon.png",
+    "websiteURL": "https://github.com/Eliasjunit/vibestretch",
+    "privacyPolicyURL": "https://github.com/Eliasjunit/vibestretch/blob/main/PRIVACY.md",
+    "termsOfServiceURL": "https://github.com/Eliasjunit/vibestretch/blob/main/TERMS.md"
   }
 }

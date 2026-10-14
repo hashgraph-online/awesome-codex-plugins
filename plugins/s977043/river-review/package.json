@@ -62,6 +62,7 @@
     "pr:wait": "bash scripts/wait-pr-ready.sh",
     "check:sidebar-reachability": "node scripts/check-sidebar-reachability.mjs",
     "harness:report": "node scripts/harness/permission-prompt-report.mjs",
+    "harness:record": "node scripts/harness/record-event.mjs",
     "meta:validate": "node scripts/validate-meta-consistency.mjs && node scripts/check-doc-enumerations.mjs && node scripts/check-sidebar-reachability.mjs && node scripts/check-vocabulary-literals.mjs && node scripts/check-control-characters.mjs && node scripts/generate-skill-catalog.mjs --check",
     "plugin:validate": "node scripts/validate-plugin-manifest.mjs",
     "plugin:validate:official": "node scripts/validate-plugin-official.mjs",

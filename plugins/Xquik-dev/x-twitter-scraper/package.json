@@ -1,6 +1,6 @@
 {
   "name": "x-developer",
-  "version": "2.7.0",
+  "version": "2.7.1",
   "description": "Twitter scraper Skills & Twitter MCP server setup for Claude Code, Codex & Cursor. Search tweets, export followers & monitor accounts with Xquik. Not affiliated with X Corp.",
   "author": {
     "name": "Xquik",

@@ -83,7 +83,7 @@ async function check() {
   const ff = spawnSync('ffmpeg', ['-version']).status === 0;
   const root = findStudio();
   const key = falKey() ? await checkKey() : { ok: false, why: 'FAL_KEY is not set (only generated images need it; frames, covers, tiles and fitting are free)' };
-  return { ok: ff, command: 'check', ffmpeg: ff, chrome: chromePath(), puppeteer: Boolean(loadPuppeteer(root)), studio: root, fal: key.ok ? 'the key works (checked free)' : key.why };
+  return { ok: ff, command: 'check', ffmpeg: ff, chrome: chromePath(), puppeteer: Boolean(loadPuppeteer(root)), studio: root, fal: key.ok ? `the key works (checked free; from ${key.source})` : key.why };
 }
 
 /* ---------------------------------------------------------------- frame */

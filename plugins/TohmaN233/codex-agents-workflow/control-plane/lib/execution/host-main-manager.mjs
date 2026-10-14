@@ -12,7 +12,8 @@ import { createHostAuthBroker } from './codex-host-auth.mjs';
 import { createWorkflowResourceBroker, loadNodeSkillSnapshots } from './workflow-resource-broker.mjs';
 import {rejectWorkspaceScope} from './workspace-scope-evidence.mjs';
 import {snapshotWorkspace, changedWorkspacePaths as changedPaths} from './workspace-snapshot.mjs';
-import { qualifiedStrictSettings, validateStrictConfig, codexQualification } from './strict-config.mjs';
+import { qualifiedCooperativeSettings, validateStrictConfig, codexQualification } from './strict-config.mjs';
+import { refreshCodexRegistration } from './codex-runtime-registration.mjs';
 import { hostResultProposalEnvelope, semanticResultSchema, strictAgentOutputSchema } from './host-main-automation.mjs';
 import { authoringReviewIdentity, isAuthoringRunProvenance } from '../authoring/authoring-workflows.mjs';
 import { leaseToken } from '../workflow-execution-envelope.mjs';
@@ -120,9 +121,10 @@ async function closeSessionForRecovery(session) {
  * its projected inputs, pinned resources and scoped capability broker.
  */
 export class HostMainManager {
-  constructor({ configPath, getConfig, env = process.env, sessionFactory = createCodexSession, prefixFactory = prepareCodexCommonBatch, qualify = qualifiedStrictSettings, mainModelSelection = resolveMainModelSelection, hostToolRunner = new HostToolRunner({env}) }) {
+  constructor({ configPath, getConfig, env = process.env, sessionFactory = createCodexSession, prefixFactory = prepareCodexCommonBatch, qualify = qualifiedCooperativeSettings, register = refreshCodexRegistration, mainModelSelection = resolveMainModelSelection, hostToolRunner = new HostToolRunner({env}) }) {
     this.configPath = resolve(configPath); this.getConfig = getConfig; this.env = env;
     this.sessionFactory = sessionFactory; this.prefixFactory = prefixFactory; this.qualify = qualify; this.mainModelSelection = mainModelSelection;
+    this.register = register;
     this.hostToolRunner=hostToolRunner;
     this.parent = join(dirname(this.configPath), 'host-main-profiles');
     this.entries = new Map(); this.hostAuth = null; this.hostAuthBinary = null; this.accepting = executionAdmissionOpen(this.configPath);
@@ -191,7 +193,7 @@ export class HostMainManager {
       }
       const state = await entry.runtime.get(entry.runId);
       if (terminal.has(state.status)) {
-        entry.status = state.status; entry.outcome = { status: state.status, stop_reason: 'terminal',...committedTerminalOutput(state) }; this.compact(entry); return publicView(entry);
+        entry.status = state.status; entry.outcome = { status: state.status, stop_reason: 'terminal',...committedTerminalCompletion(state) }; this.compact(entry); return publicView(entry);
       }
       assertActive();
       handoff = await entry.drive.advanceToMain(entry.runId, {
@@ -228,7 +230,14 @@ export class HostMainManager {
     // Preserve the original method lookup before the config await and receiver.
     const qualify = this.qualify;
     const qualificationConfig = await this.getConfig();
-    const settings = await observeForegroundPhase('q', () => Reflect.apply(qualify, this, [qualificationConfig, this.env]));
+    requireValue(envelope.skill_policy?.mode !== 'strict' || qualificationConfig.strict_executor.enabled,
+      'STRICT_DISABLED', 'The user has not enabled the Codex executor');
+    const settings = await observeForegroundPhase('q', async () => {
+      const config = envelope.skill_policy?.mode === 'strict' ? qualificationConfig
+        : await this.register({configPath:this.configPath,config:qualificationConfig,env:this.env,strict:false,
+          qualify:(candidate,env,options)=>Reflect.apply(qualify,this,[candidate,env,options])});
+      return Reflect.apply(qualify, this, [config, this.env]);
+    });
     const reviewer = record.pins.authoring_reviewer ?? record.pins.generation?.reviewer ?? null;
     if (reviewer) {
       const current = (await this.getConfig()).providers.find(provider => provider.id === reviewer.id);
@@ -618,4 +627,4 @@ export class HostMainManager {
     this.hostAuth?.clear();
   }
 }
-import {committedTerminalOutput} from './terminal-output.mjs';
+import {committedTerminalCompletion} from './terminal-output.mjs';

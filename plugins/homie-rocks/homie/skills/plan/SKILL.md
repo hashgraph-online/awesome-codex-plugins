@@ -1,10 +1,9 @@
 ---
 name: plan
-description: Plan a game with the person before building it — sensible defaults from their request, with an interview only when requested that ends in the game's Game Codex, games/<id>/CODEX.md, drawn as a page in the game's own palette, fonts and art that anyone can read and steer (a Claude artifact where the app has artifacts, else a page in their browser, and a private page on the studio's site), kept true as decisions change, with the build's progress on it. Use for step 4 of a new studio, or when someone says "let's plan my game", "what should my game be", "make a design doc, a game bible or a codex", "show me the plan", or before a big change to a game.
+description: Plan a game or app with the person before building it — sensible defaults from their request, with an interview only when requested that ends in the game's Game Codex, games/<id>/CODEX.md, drawn as a page in the game's own palette, fonts and art that anyone can read and steer (a Claude artifact where the app has artifacts, else a page in their browser, and a private page on the studio's site), kept true as decisions change, with the build's progress on it. Use for step 4 of a new studio, or when someone says "let's plan my game", "what should my game be", "make a design doc, a game bible or a codex", "show me the plan", or before a big change to a game.
 ---
 
-**Apps:** For a business, venue, cause or customer app, follow the `app` skill: `apps/<id>/app.json`, one morphing screen, roles and parts. Reuse these engines and workflows; do not impose game rounds, scores, bots, a game demo or page navigation. The app check proves shared actions and reconnect; app stores use the same standalone command.
-
+**One planning mechanism for games and apps.** For an app, use this workflow with `apps/<id>/CODEX.md`, created by `codex new <id> --kind app`. Its page, style decisions and build status use the same renderer as a game. Read the app skill's dream/scene/people/offers/needs instructions and fill those sections from the person's words; skip game-only sections and interviews. Build with the app skill, then prove its Codex needs on wall and phone. A starter is plumbing, never the planned scene. Choose engineering yourself and continue unless essential real-world information is missing.
 
 # Plan a game: defaults and its Game Codex
 

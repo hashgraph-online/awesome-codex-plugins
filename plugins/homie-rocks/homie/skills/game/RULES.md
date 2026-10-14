@@ -54,7 +54,7 @@ its guarded `move`. Bots, AI and away people are always moved on the server.
 `body.move: 'owner'` is an existing compatibility option that accepts bounded position
 claims and cannot enforce walls against a modified browser; do not use it for new games.
 A non-player entity may use `world.sweep(self, delta)` instead of a move function.
-Bodies require radius and maxSpeed. In 2D use circle; in 3D use sphere, capsule or
+Bodies require radius and maxSpeed. In 2D use circle or box (radius is its half-width); in 3D use sphere, capsule or
 axis-aligned box, with full height for capsule/box. `sweep: true` adds automatic map
 collision; explicit `ctx.map.sweep` moves and returns a contact for sliding.
 
@@ -404,6 +404,46 @@ map.spots, and `world.sweep/support/overlaps` (also on map). Sweeps test static 
 `20 + 4S` plus copying, writes body.pos, and returns an optional hit.
 Movement may write pos, vel, heading, grounded and declared motion; never return
 an updated body. Normalize diagonals and respect maxSpeed. Collision movement needs a sweep; setting velocity alone does not move a body.
+
+### Integrating at the game's own rate
+
+Opt in from `move` with `ctx.substeps(body, hz, step)`. For a 20 Hz room,
+300 Hz runs fifteen integrations inside each tick; 60 Hz runs three. The rate
+must be a positive integer multiple of the room rate. Existing movement is
+unchanged unless it calls this method.
+
+```ts
+export const move = defineMove({
+  runner(body, input, ctx) {
+    ctx.substeps(body, 300, step => {
+      if (step.first && input.jump && body.grounded)
+        body.vel = { ...body.vel, z: 8 };
+      body.vel = { ...body.vel, z: body.vel.z - 30 * step.dt };
+      ctx.map.sweep(body, ctx.math.scale(body.vel, step.dt));
+    });
+  }
+});
+```
+
+The callback receives `dt` (seconds), zero-based `index`, `count`, `first`
+and end-of-step `fraction`. Use `step.dt` for integration; `ctx.dt` remains
+the full tick. A pulse belongs to the tick: consume it on `step.first` when
+it should act once. Held inputs retain their existing tick-mean semantics;
+this API does not recover the timestamp of changes within a tick. A game
+that already reconstructs held transitions can keep that policy in the
+callback. It does not change Stormbreak's existing integration.
+
+One body may be integrated once per move. The call charges 8 units plus
+64 per pose (the initial pose and each completed substep), before allocating
+the trace. Guarded callback operations and collision queries charge the
+same movement-handler budget as usual. There is no separate quota or
+implicit rate cap.
+
+The browser predicts the identical callback and draws between the recorded
+substep poses, including a path that leaves and returns to the same tick
+endpoint. The trace is temporary drawing data: it adds no wire fields or
+save fields. The final body and declared motion fields are saved as before.
+This helper does not add triangle collision or a physics world.
 Put freezes, boost expiry and knockback in declared motion. Initialize a late arrival
 in on.arrive too: onRoom.roundStart already happened before it joined.
 
@@ -1078,6 +1118,15 @@ leaves: take the marker down quietly. `ctx.ray/rays/rayAll` query what the
 player sees (`ctx.viewTick`); `ctx.preview` says the run is between ticks. A
 predictor runs often: keep it cheap, and keep per-entity state in `me`.
 
+`ctx.each(kind, fn)` reads frozen entities from the authoritative snapshot this
+prediction started from. Use it for pickups and other snapshot-based decisions;
+it excludes provisional ghosts. Reading `room.each`, `room.get`, `room.me` or
+ray queries inside a predictor cannot advance the clock or start a nested
+preview. Other room entities retain their normal drawn poses; `room.me` reads
+the authoritative own entity during the callback. Use the callback's `me` for
+the predicted own state. Snapshot reconciliation also prevents clock pumping
+through event listeners until replay finishes.
+
 To guess a shot the server will judge with rewind, ask for what the server
 will use (0.46.5). `ctx.judgedTick(aimTick)` is the tick it will pose the others
 at: the `aimTick` the input carries, held to how far back this seat may look
@@ -1172,9 +1221,251 @@ occupied terrain nodes out of the graph, and choose reachable endpoints.
 `@homie-rocks/nav` is the richer mesh/crowd API for applications that own that
 runtime; rules graphs avoid importing mutable navigation state into handlers.
 
-`room.predict.idleHold: true` holds small visual reconciliation offsets while
-input and body are stationary. Movement resumes smoothing. Large invalid poses
-still snap to authority. Opt in only after measuring stop/reversal and delayed
-collision behavior for the game's mover.
+Small reconciliation offsets expire even while stationary; see “Input during loss
+and stalls” below for the visual correction settings.
 
 For multi-cast movement or scratch trajectory checks, `ctx.world.sweep(body, delta, {ground:false})` (also captured-scene `sweep`) moves and returns the same collision but leaves `body.grounded` unchanged. Use it only when your mover computes support explicitly. Omitting the option retains the existing support query and grounding behavior. This avoids paying for identical support checks after horizontal and upward probes.
+
+
+## Wrapped worlds and generated levels (0.47.0)
+
+Declare wrapping in the map, independently per axis. The period is the bounds'
+extent; an omitted axis keeps its existing bounded behaviour:
+
+```json
+{"bounds":{"min":[0,0,0],"max":[25,25,10]},"wrap":{"x":true}}
+```
+
+Bodies and hit positions use canonical coordinates in `[min,max)`. Sweeps and rays
+follow the supplied displacement through periodic copies of the geometry; they can
+cross more than one period and pay for each visited image. Near/box queries, area
+events, effect ranges, spatial delivery, rewind and drawing interpolation use the
+short way around. Exactly half a period chooses the negative direction. A renderer
+can read `room.map.wrap.x` (the pair `[min,max]`) to draw copies at the viewport's
+edges. The server does not duplicate entities. In a maze with one tunnel, keep
+solid border cells on every other row; wrapping itself is per axis, not per row.
+
+For a generated maze, replace the room's current map in `room.start` or a room
+handler. Build its data using the rules' seeded random source, then publish once:
+
+```ts
+world.map.replace({
+  bounds: { min: [0, 0], max: [25, 25] },
+  wrap: { x: true },
+  tiles: { width: 25, height: 25, size: 1, data: cells,
+    flows: { exit: [312] } },
+  spots: { start: [[12.5, 19.5]] },
+});
+```
+
+`replace` preserves the original bounds and wrapping. It validates, bakes cardinal
+navigation fields and compiles the spatial index before publishing anything. A
+failed bake leaves the previous revision intact. The last successful replacement
+in a tick becomes current at the next tick; all bodies use the same revision.
+The compact map data and activation tick travel with collision revisions and saves,
+including both current and pending maps. Prediction replays against that tick's
+compiled geometry. Late knowledge is corrected by the normal reconciliation path.
+
+Tiles are row-major integers: zero is open, nonzero is solid. `at` defaults to
+`[0,0,0]`, `size` and `solidHeight` to 1. Horizontal runs become indexed boxes,
+including in 3D. On a wrapped axis the grid must span the full map. Authored boxes,
+round shapes, terrain and spots can be included in the same replacement. The view
+reads `room.map.tiles`; rules and movement read `world.map.tile(x,y)` and
+`ctx.map.tile(x,y)`. Cell coordinates are integers, not metres. Outside an unwrapped
+grid is solid. A custom tile mover may read these cells instead of using sweeps.
+
+`flows` names lists of open destination cell indices. `map.distance(name,x,y)` gives
+cardinal hops to the nearest destination, or -1 when unreachable/unknown;
+`map.flow(name,x,y)` gives the next unit direction, zero at a destination, or
+undefined when unreachable/unknown. Each lookup is constant work (4 or 8 budget
+units). Baking uses `@homie-rocks/nav`'s shared cardinal flow implementation;
+left/up/right/down resolves ties, including tunnels. Change destinations by
+publishing new flow declarations with the map. This is a bake, not an unmetered
+path search: budget for every field and regenerate only when its goals change.
+
+Room replacement charges copying, grid scanning, index construction and each flow
+bake to the calling handler. Snapshots charge for the compact data. Existing static
+maps need no replacement and retain their previous budget charges. A few thousand
+cells regenerated a few times a round belong in one map revision; live collider
+entities remain suitable for independently moving doors, cover and platforms.
+
+`spawn` exposes a new entity before its deferred `on.arrive` handler. Pass every
+field that must be valid immediately in the spawn data; use `arrive` for subsequent
+work, not for mandatory initialization.
+
+## Physics
+
+Use the opt-in `@homie-rocks/physics` bridge when the level is an arbitrary triangle
+mesh: caves, ramps, stairs and the static environment of a game such as Octree
+Arena. Keep `ctx.map` for the kernel's boxes, circles, capsules and height tiles.
+Install `@homie-rocks/physics` 0.1.2 in the studio. A game that does not
+ask for physics loads no physics engine and pays no physics units.
+
+In `map/main.json`, name a static GLB relative to the game directory:
+
+```json
+{
+  "bounds": { "min": [-100, -100, -100], "max": [100, 100, 100] },
+  "physics": { "level": "assets/level.glb" }
+}
+```
+
+The build bakes the default scene's node transforms and triangles into the
+physics package's indexed mesh format. It converts glTF Y-up to rules Z-up
+(`x, -z, y`), preserves reflected winding, and ships the baked mesh with the
+server rules and the browser movement bundle. Skins, animations and morph targets
+need a separate static collision GLB. The server never loads or parses a GLB.
+
+The smallest moving capsule uses the same guarded movement on both sides:
+
+```ts
+// src/move.ts
+import { defineMove } from '@homie-rocks/studio/rules';
+export const move = defineMove({ runner(body, input, ctx) {
+  ctx.substeps(body, 300, step => {
+    if (step.first && input.jump && body.grounded)
+      body.vel = { x: body.vel.x, y: body.vel.y, z: 10 };
+    body.vel = { x: input.ax * 5, y: 0, z: body.vel.z - 30 * step.dt };
+    ctx.physics.sweep(body, ctx.math.scale(body.vel, step.dt), .35, 1.35);
+  });
+} });
+
+// src/rules.ts
+import { defineRules, f } from '@homie-rocks/studio/rules';
+import { move } from './move';
+export default defineRules({
+  contract: 2, space: { dims: 3 }, move,
+  entities: { runner: {
+    player: true,
+    input: { ax: f.held(), jump: f.press() },
+    body: { shape: 'capsule', radius: .35, height: 1.35, maxSpeed: 30 }
+  } },
+  room: { bots: { keep: 0 }, join() {
+    return { kind: 'runner', at: { x: 0, y: 0, z: 8 } };
+  } }
+});
+```
+
+Use `"room": {"host":"server","offline":false}` in `game.json`. Physics
+initialization is awaited once per isolate before any room can tick; calls inside
+a handler are synchronous. `sweep(body, delta, radius, height)` sweeps and slides
+an upright capsule whose `body.pos` is its centre and whose height includes its
+caps. It writes position, velocity and grounded state. `ctx.physics.cast`,
+`ray`, and `overlap` expose the package's convex shape cast, raycast and overlap
+queries; query shapes are boxes, spheres or capsules. Room/entity handlers have
+these operations at `world.physics` and can call `world.physics.step(seconds)`
+to advance the collision world's solver clock. Movement owns capsule integration;
+its queries do not create persistent physics bodies or advance another player's
+world. This bridge exposes the baked collision world, not rigid-body ownership or
+predicted dynamic-body interactions.
+
+Every operation is charged before its engine work. On a 1,754-triangle level:
+
+| Operation | Budget units |
+| --- | ---: |
+| Capsule/convex cast | 768 |
+| Ray | 640 |
+| Overlap | 640 |
+| Solver step | 8 + 2,400 per 1/300 second |
+| Capsule sweep and slide | 64 + 768 per cast, at most four casts |
+
+Mesh-query and solver charges scale by `ceil(triangles / 1754)`, at least one.
+Substeps retain their usual pose and guarded callback charges. There is no new
+room budget, player cap or rate quota. The reproducible calibration is
+`scripts/calibrate-rules-physics.mjs`; its receipt compares physics on the real
+mesh with kernel operations on a box, since the kernel has no arbitrary-mesh
+or solver-step equivalent.
+
+A room save includes the package's complete binary world snapshot as JSON bytes,
+including solver state and its time remainder. The capsule's position, velocity,
+grounded flag and declared motion are saved by rules as usual. Browser prediction
+creates the same baked world and replays pending guarded movement against it;
+substep drawing traces remain temporary. Physics worlds are disposed when their
+host or view closes. A full solver save can exceed browser-host checkpoint caps;
+the build measures this, and server-hosted rooms retain the full save.
+
+## Input during loss and stalls (0.48.1)
+
+Rules views resend recent input automatically: a 4–64 tick history follows the
+measured round trip, jitter and missing application receipts (loss or recovery
+delay). Each tick entry carries a sequence number; each
+control change carries a field index, sequence and fraction of the predicted tick.
+Duplicates neither execute again nor count as fresh latency measurements. Both
+missing application frames and ordered TCP stalls are covered.
+
+The server retains up to one second of movement history and replays late movement
+against the geometry of those ticks. It never repeats commands or effects. An
+external body/motion write or placement fences that history. Beyond a fence or
+the retained history, input applies on the next tick instead. Entries carrying
+press handlers also apply next tick: world actions are never rerun as movement. Snapshot control
+rows report the application tick and the view uses it for replay. Within the
+replay window a snapshot still missing a predicted input does not replace live
+movement; an explicit placement always does. Legacy wire
+entries retain their old compensation; current views do not receive negative
+held values to repay late releases.
+
+Held controls integrate their duration, sampled controls coalesce to the latest
+value per tick, presses coalesce per field per tick, and valued pulses execute
+in order, one per tick. More sampled input never buys extra simulation steps.
+The clock resets before a fresh control after a long browser stall, so the press
+cannot inherit ten seconds of elapsed time. The prediction clock slews by at
+most 0.5%, preserving the cadence for fixed-step renderers.
+
+`room.input(sample, {at: event.timeStamp})` accepts the event's monotonic time
+(same origin as `performance.now()`), clamped to this predicted tick and now.
+Omit it to use the call time. A player can declare
+`player: {control: 'canMove', pulses: 'hold'}` to keep pulses during a knock or
+stun and deliver them when control returns. The default `'drop'` preserves the
+previous behaviour. The game's action handler still decides its cooldown.
+
+In 2D, own-body interpolation and correction are swept against the declared solid map.
+Keep that map consistent with custom movement and declare a square 2D runner as
+`body.shape: 'box'`. A blocked visual correction stops at contact; it never
+changes authoritative movement. Use `ctx.substeps` for custom integration so
+the toolkit draws the same path, without a second view-side displacement.
+Substep previews include the remaining duration of controls currently held.
+
+Residual drawing corrections use `room.predict.blendMs` (100 ms by default),
+slowed on each moving axis to avoid reversing movement (jumping cannot spend
+horizontal correction faster), with a one-second maximum
+(or the explicitly longer blendMs). Any remainder drains over the final 250 ms
+rather than disappearing on the deadline. `snapM` selects the large-error threshold;
+placements still snap. A placement keeps the established clock phase and
+projects the new body from the snapshot tick to the own tick; it never labels an
+old pose as a future one. Projection is bounded to one second and sends the
+controls it used. Queued held state from an earlier placement cannot later
+change the new body. Newly received discrete presses still belong to the player
+when the browser has not yet learned of that placement. `idleHold` no longer keeps a stopped body displaced
+indefinitely. These drawing settings never alter server truth.
+
+A fresh discrete movement action (press or pulse) exits the own body's historical
+catch-up path. It resumes live prediction at once and carries the drawn pose into
+the normal correction blend, so a counter-dash or jump does not wait for the
+unseen impulse's history to finish. This changes drawing only; authority, input
+timestamps, cooldowns and replay rules are unchanged.
+
+Own box-bodied 2D presentation also sweeps from its last displayed position. Reconciliation
+cannot switch sides of a solid merely because the new predicted origin is on
+the other side. Travel is limited by elapsed time plus a body-sized blend. Horizontal travel uses the adjacent
+actual velocities; vertical travel uses the recorded substeps with interpolation headroom, so an apex or landing is not trimmed.
+A stationary correction spends only blend speed, not the declared terminal falling speed.
+A large falling-speed limit cannot accelerate a horizontal correction. If sliding cannot reach a correction, a bounded
+incremental route searches collision-tested edges around the obstruction. No
+route means holding the last valid position, never crossing a solid. Explicit
+placements and epoch changes reset presentation immediately. These positions
+never feed movement, hits, scoring, input timestamps, or authority.
+
+A platformer can supply `openRoom({ correctionDirection: input => Number(input.r || 0) - Number(input.l || 0) })`
+for box-bodied 2D presentation. This is horizontal control intent (-1, 0, +1), not authority or a second movement loop.
+It prevents a visual correction from reversing held controls even when contact sets velocity to zero; neutral input
+allows convergence in either direction. Actual predicted braking against a newly reversed control remains allowed.
+
+After a delayed render, box-bodied 2D presentation spends at most 1.4 body widths per drawn frame,
+then continues toward prediction. This affects drawing only; an explicit placement remains immediate.
+
+When a player's connection comes back, the server hands the body back where it has it, with a new placement
+revision. Within three seconds of the link coming back online, box-bodied 2D presentation treats that revision as the
+same body and draws on from where it was shown, gliding and routing around solids as for any correction. A body that
+was really placed while the player was away (a respawn, a new round) should still be drawn at once: say so with
+`openRoom({ respawned: (before, after) => after.diedAt !== before.diedAt })`, where `before` and `after` are the own
+body as the server last had it before and after the outage.

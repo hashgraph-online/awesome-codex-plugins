@@ -503,14 +503,27 @@ test('Host-owned drive waits for the actual Strict native owner before continuin
   assert.equal(replay.idempotent,true);assert.equal(replay.execution_owner,'strict_codex');
 });
 
-test('drive stops before unavailable bindings or unaffordable semantic work and never dispatches either as a model call', async t => {
+test('startup rejects missing first bindings and drive stops before later missing inputs or unaffordable semantic work without model calls', async t => {
+  let toolCalls = 0;
+  const runner = new HostToolRunner({ registry: { 'fixture-tool': broker(async ({ input }) => { toolCalls++; return { exit_code: 0, diagnostic: '', effects: effects(), output: { doubled: input.value * 2 } }; }) }, env: {} });
   const missing = hostWorkflow(); missing.inputs_schema.required = ['task'];
-  const noInput = await fixture(t, missing, { inputs: { task: 'declared only' } });
-  assert.deepEqual(await noInput.drive.advance(noInput.run.run_id, { control_token: noInput.run.control_token }), { status: 'running', stop_reason: 'missing_input', node_id: 'double', error: { code: 'BINDING_MISSING', message: 'Required binding value is unavailable' }, steps: 0 });
+  await assert.rejects(fixture(t, missing, { runner, inputs: { task: 'declared only' } }), { code: 'BINDING_MISSING', binding: 'value', pointers: ['/inputs/value'] });
+  assert.equal(toolCalls, 0, 'Missing first-node inputs must fail before any tool execution');
+  const laterMissing = structuredClone(missing);
+  laterMissing.inputs_schema.properties.initial_value = { type: 'integer' };
+  const prepare = { ...structuredClone(laterMissing.nodes.find(node => node.id === 'double')), id: 'prepare', input_bindings: { value: '/inputs/initial_value' } };
+  laterMissing.nodes.splice(1, 0, prepare);
+  laterMissing.edges = [edge('start', 'prepare'), edge('prepare', 'double'), edge('double', 'semantic'), edge('semantic', 'final'), edge('final', 'end')];
+  const noInput = await fixture(t, laterMissing, { runner, inputs: { task: 'declared only', initial_value: 3 } });
+  assert.deepEqual(await noInput.drive.advance(noInput.run.run_id, { control_token: noInput.run.control_token }), { status: 'running', stop_reason: 'missing_input', node_id: 'double', error: { code: 'BINDING_MISSING', message: 'Required binding value is unavailable' }, steps: 1 });
+  const missingState = await noInput.runtime.get(noInput.run.run_id);
+  assert.equal(toolCalls, 1);assert.equal(missingState.nodes.prepare.status, 'succeeded');
+  assert.equal(missingState.nodes.double.attempts.length, 0);assert.equal(missingState.nodes.semantic.attempts.length, 0);assert.deepEqual(missingState.cost_ledger.calls, []);
   const budgeted = hostWorkflow(); budgeted.nodes.find(node => node.id === 'semantic').cost = { maximum_micros: 5 };
-  const runner = new HostToolRunner({ registry: { 'fixture-tool': broker(async ({ input }) => ({ exit_code: 0, diagnostic: '', effects: effects(), output: { doubled: input.value * 2 } })) }, env: {} });
   const noBudget = await fixture(t, budgeted, { runner, constraints: { cost_budget: { approval_id: 'approved', currency: 'USD', limit_micros: 4 } } });
   assert.deepEqual(await noBudget.drive.advance(noBudget.run.run_id, { control_token: noBudget.run.control_token }), { status: 'running', stop_reason: 'budget', node_id: 'semantic', steps: 1 });
+  const budgetState = await noBudget.runtime.get(noBudget.run.run_id);
+  assert.equal(toolCalls, 2);assert.equal(budgetState.nodes.semantic.attempts.length, 0);assert.deepEqual(budgetState.cost_ledger.calls, []);
 });
 
 test('host tool failure and timeout are explicit receipts; only the pinned safe mode can replay an unreceipted intent', async t => {

@@ -9,10 +9,10 @@ $1.50.
 
 | Call | Contract |
 | --- | --- |
-| `POST /extractions/estimate` | Free. Creates nothing. Takes the job body: `toolType`, its target, the requested filters & `resultsLimit`. Without a cap the API uses 10,000. Returns `allowed`, `estimatedResults`, `creditsRequired`, `creditsAvailable` & `source` |
+| `POST /extractions/estimate` | Free. Creates nothing. Takes the job body, which holds `toolType`, its target, the requested filters & `resultsLimit`. Without a cap the API uses 10,000. Returns `allowed`, `estimatedResults`, `creditsRequired`, `creditsAvailable` & `source` |
 | `POST /extractions` | Same body plus a new `Idempotency-Key`. A retry with that key returns the original job. `202` returns the job `id`, `status` & `statusUrl` |
 | `GET /extractions/{id}` | Returns `job`, `results`, `hasMore`, `nextCursor` & `pollAfterMs`. `job.status` ends as `completed`, `failed`, or `canceled`. Rows come 100 per page, up to 1,000 with `limit=1000`. Send `nextCursor` back as `cursor` |
-| `GET /extractions/{id}/export?format=csv` | Formats: `csv`, `json`, `md`, `md-document`, `pdf`, `txt`, `xlsx`. 1 export holds up to 100,000 rows, and PDF up to 10,000 |
+| `GET /extractions/{id}/export?format=csv` | The formats are `csv`, `json`, `md`, `md-document`, `pdf`, `txt` & `xlsx`. 1 export holds up to 100,000 rows, and PDF up to 10,000 |
 
 - `creditsRequired` & `creditsAvailable` are numeric strings. Convert them
   before any math.
@@ -56,8 +56,8 @@ Multi-target jobs use `targetUsernames`, `targetTweetIds`, `searchQueries`,
 
 ## Search filters
 
-`tweet_search_extractor` takes the query in `searchQuery` and these optional
-top-level filters: `fromUser`, `toUser`, `mentioning`, `language`,
+`tweet_search_extractor` takes the query in `searchQuery`. Its optional
+top-level filters are `fromUser`, `toUser`, `mentioning`, `language`,
 `sinceDate`, `untilDate`, `mediaType`, `minFaves`, `minRetweets`,
 `minReplies`, `minQuotes`, `verifiedOnly`, `replies`, `retweets`, `quotes`,
 `exactPhrase`, `excludeWords`, `anyWords`, `hashtags`, `cashtags`, `url`, and

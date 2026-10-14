@@ -184,6 +184,6 @@ than repeat the cohort hoping for different cache luck. Neutral fixture speed,
 structural valid/launch-ready, quality acceptance and business cost/time gates
 are distinct results; report each honestly.
 
-Evidence basis: the 2026-10-10 native Host correction and the dated
-`docs/reference/native-cache-and-parallelism-20261009.md` source report. This
-document contains no local runtime paths or machine-specific workflow resources.
+Engineering qualification and business comparisons are separate. Published
+task-specific comparisons are maintained in the [Workflow Package gallery](https://tohman233.github.io/workflow-package/).
+This document contains no local runtime paths or machine-specific workflow resources.

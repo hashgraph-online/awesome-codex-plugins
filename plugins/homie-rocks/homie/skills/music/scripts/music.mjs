@@ -573,7 +573,7 @@ function print(r) {
   const L = [];
   switch (r.command) {
     case 'check':
-      L.push(`ElevenLabs: ${r.road ? `connected (${r.road === 'cli' ? `the elevenlabs CLI, ${r.cli}` : r.via === 'stripe-projects' ? 'the key Stripe Projects keeps for this studio' : 'ELEVENLABS_API_KEY'})` : 'not connected'}`);
+      L.push(`ElevenLabs: ${r.road ? `connected (${r.road === 'cli' ? `the elevenlabs CLI, ${r.cli}` : r.via === 'stripe-projects' ? 'the key Stripe Projects keeps for this studio' : r.source ?? 'ELEVENLABS_API_KEY'})` : 'not connected'}`);
       if (r.plan) L.push(`Plan: ${r.plan.tier} (${r.plan.status}); ${r.plan.remaining} credits left of ${r.plan.limit}; resets ${r.plan.resetAt ?? '?'}; ${r.plan.canGoOver ? 'CAN go over (usage-based billing)' : 'cannot go over'}`);
       if (r.rights) L.push(`Rights: ${r.rights.words}`);
       L.push(`ffmpeg: ${r.ffmpeg ? 'yes' : 'NO'}`, `Studio: ${r.studio?.ok ? r.studio.root : r.studio?.why}${r.studio?.pages && !r.studio.pages.ok ? ` (song pages: ${r.studio.pages.why})` : ''}`);

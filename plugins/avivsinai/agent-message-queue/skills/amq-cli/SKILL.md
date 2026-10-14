@@ -55,6 +55,10 @@ follows the interrupt path.
 Use `--priority urgent` on `send` or `reply` for time-critical verdicts and
 unblocking requests. Other review responses remain normal by default.
 
+In Claude Code, `amq wake install-dialog-hook` makes the wake hold its doorbell
+while AskUserQuestion, ExitPlanMode, or a permission dialog is open; the held
+doorbell arrives after you answer, or when that turn ends.
+
 Wake settings (hold, debounce, preview, bell, input deferral, interrupt notice)
 live in `.wake.settings` and apply to a running wake. Change your own or a
 peer's wake without a restart:

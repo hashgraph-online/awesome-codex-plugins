@@ -1,3 +1,4 @@
+import { providerKey } from '../../../../hooks/lib/provider-key.mjs';
 /**
  * ElevenLabs, through the creator's OWN account, by one of two roads:
  *
@@ -65,7 +66,7 @@ export function projectsKey(from = process.cwd()) {
   }
   return null;
 }
-const keyOf = () => process.env.ELEVENLABS_API_KEY || projectsKey();
+const keyOf = () => providerKey('elevenlabs').key || projectsKey();
 
 /** Which road is open, without spending anything and without printing a secret. */
 export function road() {
@@ -78,7 +79,7 @@ export function road() {
   }
   const hasKey = Boolean(keyOf());
   if (hasCli && signedIn) return { road: 'cli', cli: probe.stdout.toString('utf8').trim() };
-  if (hasKey) return { road: 'key', via: process.env.ELEVENLABS_API_KEY ? 'environment' : 'stripe-projects', cli: hasCli ? probe.stdout.toString('utf8').trim() : null, cliSignedIn: false };
+  if (hasKey) return { road: 'key', via: providerKey('elevenlabs').source === 'ELEVENLABS_API_KEY' ? 'environment' : providerKey('elevenlabs').key ? 'key-file' : 'stripe-projects', source: providerKey('elevenlabs').source ?? 'stripe-projects', cli: hasCli ? probe.stdout.toString('utf8').trim() : null, cliSignedIn: false };
   return {
     road: null, cli: hasCli ? probe.stdout.toString('utf8').trim() : null, cliSignedIn: false,
     why: hasCli

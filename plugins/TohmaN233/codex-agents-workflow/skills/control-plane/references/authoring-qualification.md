@@ -9,6 +9,40 @@ checks for the actual changed boundary before a business trial; qualification is
 external engineering evidence, not additional generated Agent work. A graph or
 resource relocation pass alone does not establish functional or cost equivalence.
 
+## Eight checks before a changed candidate enters an experiment
+
+These checks apply to Skill2Workflow and Build Workflow. Keep their evidence in
+the external engineering record, pinned to the tested source and package. They
+do not add nodes, reports or startup gates to ordinary business Workflows.
+
+1. Account for every original callable and applicable dependency; preserve its
+   arguments, output, diagnostics and conditional trigger.
+2. Check semantic ownership and writable executor selection. New ordinary workers
+   use existing Providers; retain explicit user choices of SDK Main workers or
+   persistent tasks, and keep orchestration in the initiating Main.
+3. Check dependencies, independent effects and supported parallel interfaces.
+   Share only common input; do not infer cache or speed savings from graph shape.
+4. Give each source phase one complete mechanical observation owner. Reuse its
+   established evidence rather than repeating full resource or product audits.
+5. Check source coverage in both directions, including instructions, required
+   output fields and the experimental caller. Remove source-absent research,
+   delivery records and verification work before measuring the business task.
+6. Qualify Host-owned bindings, formats, receipts and terminal completion facts.
+   The real Drive and SDK Host Main return completion and recovery flags from
+   committed state without making Main discover tools or fetch the full Run.
+7. Pass focused regressions, affected interface checks and neutral real-tool
+   qualification for the exact final resource closure before a model trial.
+8. Check portable packaging, applicable installation dependencies, launch-ready
+   identity and cleanup. Keep original Skill instructions and benchmark answers
+   outside deployed worker resources.
+
+Any unresolved check blocks the next engineering trial. An SDK command executing
+successfully is evidence for that command boundary only. Static qualification is
+not a timed quality or cost win. Record and meter experimental artifacts outside
+the business session using existing Host receipts; do not ask the task Main to
+write, discover or revalidate a duplicate benchmark delivery record. Retain the
+actual costs of prior trials that did perform that extra work.
+
 Qualify the configured existing writable Provider subagent route for ordinary
 independent production and review. Actual initiating Main orchestration retains
 its context and decisions. Main worker and persistent task/thread are optional

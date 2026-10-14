@@ -29,6 +29,8 @@ export const claudeRequestStatsDirOf = (root = dataDir()) => join(root, "claude"
 // What the engine sent for each history it changed, so the thinking that still fits can stay (claude-thinking.ts).
 export const claudeThinkingDirOf = (root = dataDir()) => join(root, "claude", "thinking");
 export const requestStatsDirOf = (root = dataDir()) => join(root, "state", "requests");
+// v0.7: each task's subagents and side chats, as the engine saw their requests (children.ts).
+export const childrenDirOf = (root = dataDir()) => join(root, "state", "children");
 export const proxyLogDirOf = (root = dataDir()) => join(root, "proxy");
 export const bindingsDirOf = (root = dataDir()) => join(root, "bindings");
 export const pixelCacheDirOf = (root = dataDir()) => join(root, "cache", "pixels");

@@ -29,14 +29,3 @@ export async function prepareOwnedCommandTemp({workspace,spool}){
  },async close(){if(closed)return;await this.assertOwned();requireValue(dirname(path)===parent,'CODEX_COMMAND_TEMP_OWNER','Owned temporary leaf left its exact platform parent');await rm(path,{recursive:true});closed=true;}};
  }catch(error){throw Object.assign(error,{retained_at:path,temporary_parent:parent});}
 }
-
-// Qualify the selected shell, with the exact environment and command policy.
-// The fixed Node wrapper bounds only this capability probe and reaps its own
-// shell child. It is separate from the business command/lifecycle deadline.
-export async function qualifyOwnedCommandTempShell({client,nodeBinary,workspace,sandboxPolicy,environment,argv}){
- const script=`const fs=require('node:fs'),cp=require('node:child_process');const argv=${JSON.stringify(argv)};const child=cp.spawnSync(argv[0],argv.slice(1),{cwd:${JSON.stringify(workspace)},env:process.env,windowsHide:true,timeout:5000,encoding:'utf8'});process.stdout.write(JSON.stringify({exit_code:child.status,signal:child.signal,error_code:child.error?.code??null,stdout:child.stdout??'',stderr:child.stderr??''}));`;
- const response=await client.call('command/exec',{command:[nodeBinary,'-e',script],processId:randomUUID(),cwd:workspace,sandboxPolicy,env:environment,timeoutMs:10000},{timeout:15000});
- requireValue(response.exitCode===0&&response.stderr===''&&typeof response.stdout==='string','CODEX_COMMAND_TEMP_UNUSABLE','Selected shell temporary capability was not confirmed by its exact command client');
- let result;try{result=JSON.parse(response.stdout);}catch{requireValue(false,'CODEX_COMMAND_TEMP_UNUSABLE','Selected shell temporary capability returned malformed evidence');}
- requireValue(result.exit_code===0&&result.signal===null&&result.error_code===null&&result.stdout.trim()==='WORKFLOW_TEMP_READY'&&result.stderr==='','CODEX_COMMAND_TEMP_UNUSABLE','Selected shell did not confirm the owned temporary environment within its capability probe',{temporary_capability:result});
-}

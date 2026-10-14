@@ -13,7 +13,9 @@ total never resets spending. Only an explicitly user-authorized higher total
 extends it; this is the new total, not additional seconds. Do not lower, delete
 or recreate accounting to continue.
 
-Passed, failed and timed-out executions consume measured time. A pending
+Passed, failed and timed-out executions consume measured time. A caught preparation
+failure before command execution releases its unused reservation if that update
+can be saved; prior charges remain. A pending
 allocation has unknown elapsed time and blocks further captures. Explicit
 extension retains it as unmeasured. Remaining allowance limits each captured
 command's timeout, but cleanup can overrun: this is not a hard wall-clock deadline

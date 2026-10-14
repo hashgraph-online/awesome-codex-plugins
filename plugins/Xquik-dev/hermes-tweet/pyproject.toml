@@ -2,12 +2,12 @@
 # SPDX-License-Identifier: MIT
 
 [build-system]
-requires = ["hatchling==1.32.0"]
+requires = ["hatchling==1.32.4"]
 build-backend = "hatchling.build"
 
 [project]
 name = "hermes-tweet"
-version = "0.1.13"
+version = "0.1.16"
 description = "Hermes Agent plugin for Twitter search, monitoring, follower exports & approved X actions. Not affiliated with X Corp."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -82,12 +82,14 @@ include = [
   "/.claude-plugin",
   "/.codex-plugin",
   "/assets",
+  "/bin",
   "/dashboard",
   "/hermes_tweet",
   "/scripts",
   "/tests",
   "/.codexignore",
   "/.hermes-eco.json",
+  "/CHANGELOG.md",
   "/LICENSE",
   "/MANIFEST.in",
   "/README.md",
@@ -125,6 +127,8 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = ["D105", "D107", "EM101", "PLR2004", "S101", "TRY003"]
 "scripts/**/*.py" = ["T201"]
+# Script tests start this repository's own scripts with fixed arguments.
+"tests/test_*_command.py" = ["S603"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["hermes_tweet"]

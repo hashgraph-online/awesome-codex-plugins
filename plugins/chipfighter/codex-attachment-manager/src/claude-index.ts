@@ -268,6 +268,13 @@ export function titleOf(records: ClaudeRecord[], chain: ClaudeRecord[]): string 
   return line ? (line.length > 40 ? `${line.slice(0, 40)}…` : line) : null;
 }
 
+// v0.6: when the session started: Claude Code stamps its records, and the conversation's first one is the oldest.
+// null before its first message.
+export function claudeStartedAt(index: ClaudeIndex): string | null {
+  const first = index.chain.find((record) => typeof record.timestamp === "string");
+  return first ? first.timestamp : null;
+}
+
 // The base64 of one indexed image, from the record it sits in.
 export function claudeImageData(index: ClaudeIndex, image: ClaudeImage): string | null {
   const block = index.chain[image.item]?.message?.content?.[image.part!];

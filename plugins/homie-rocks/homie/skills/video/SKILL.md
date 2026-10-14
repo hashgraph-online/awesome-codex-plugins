@@ -140,7 +140,7 @@ node <video.mjs> sheet <slug> --in videos/<slug>/<slug>.mp4
 ## B. Generated footage: a music video, a cutscene
 
 Use an already connected fal account for paid generation; never ask the person to find or set a key.
-The local paid script requires an existing FAL_KEY in its environment. If none is available, continue
+The local paid script discovers an existing fal key using the lookup below. If none is available, continue
 with local assets or captured footage and explain that this paid-script connection is not ready.
 Do not make account configuration a prerequisite for a live studio. **fal's own MCP server** is the way to find models and read their input schemas and prices
 (`search_models`, `recommend_model`, `get_model_schema`, `get_pricing`): use it rather than memory,
@@ -258,3 +258,13 @@ is generated and what is captured, and what the sync check and the contact sheet
 - Never put a real person, a real brand or a copyrighted character in a prompt, a reference or
   the type.
 - Never spend without a budget, past it, or without a receipt; never print or store a key.
+
+### Existing provider credentials
+
+The tools read `FAL_KEY` or `ELEVENLABS_API_KEY` first, then the plain single-line
+key in `~/.homie/keys/fal-key` or `~/.homie/keys/elevenlabs-key`. They also accept
+`~/.homie/workspace/fal-key` and `~/.homie/workspace/elevenlabs-key` from earlier
+installs. Checks name the source, never the key. Keep these files private (mode
+0600); never copy them into a studio. ElevenLabs also accepts its CLI browser
+sign-in and the existing Stripe Projects connection. Run the tool’s `check`
+before declaring a provider disconnected.

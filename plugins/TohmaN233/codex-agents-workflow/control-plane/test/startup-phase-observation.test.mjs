@@ -7,6 +7,7 @@ import { tmpdir } from './physical-tempdir.mjs';
 import { readyWorkflow } from './fixtures/workflow-fixtures.mjs';
 import { WorkflowService } from '../lib/workflow-service.mjs';
 import { HostMainManager } from '../lib/execution/host-main-manager.mjs';
+import { StrictSessionManager } from '../lib/execution/strict-session-manager.mjs';
 import { DEFAULT_CONFIG_PATH } from '../server.mjs';
 import { loadConfig } from '../lib/config.mjs';
 import { canonicalJSON, digest } from '../lib/workflow-revisions.mjs';
@@ -47,20 +48,21 @@ test('actual service #call open retains migration and Role boundaries with fresh
   assert.deepEqual(failed.reports[0].fn, [1, 1, 0]);
 });
 
-test('actual service qualification rejection is observed before any Run or launch', async t => {
+test('actual Strict qualification rejection is observed before Run creation or launch', async t => {
   const root = await temporary(t), configPath = join(root, 'control-plane.json'), fault = new Error('neutral qualifier failure');
   await loadConfig({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH });
   let qualifications = 0, starts = 0;
-  const service = new WorkflowService({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH, env: {}, capabilities: {
-    nativeAgentObserver: null, hostMainManager: { qualify: async () => { qualifications++; throw fault; } },
-  } });
+  const strictManager=new StrictSessionManager({configPath,getConfig:async()=>({}),env:{},
+    qualify:async()=>observeForegroundPhase('q',()=>{qualifications++;throw fault;}),sessionFactory:()=>assert.fail('Qualification must fail before session creation')});
+  t.after(()=>strictManager.close());
+  const service = new WorkflowService({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH, env: {}, capabilities: {nativeAgentObserver:null,strictManager} });
   await service.call('migrate_v6', {}, { human: true });
   const { store } = await service.open(); const pack = await store.create(readyWorkflow('neutral-qualification'));
   const open = service.open.bind(service);
-  service.open = async () => { const result = await open(); result.runtime.start = () => { starts++; assert.fail('Run must not start'); }; return result; };
+  service.open = async () => { const result = await open(); result.runtime.runs.create = () => { starts++; assert.fail('Run must not be created'); }; return result; };
   const c = collection();
   await assert.rejects(c.run(() => service.call('run_main', { workflow_id: pack.workflow.id, workspace: root,
-    access: 'read_only', inputs: {}, return_after_start: true })), error => error === fault);
+    access: 'read_only',main_actor:'root', inputs: {}, return_after_start: true })), error => error === fault);
   assert.equal(qualifications, 1); assert.equal(starts, 0);
   assert.deepEqual(Object.keys(c.reports[0].f).sort(), ['hm', 'op', 'pm', 'q', 'rp']);
   assert.deepEqual(c.reports[0].fn, [5, 5, 0]);
@@ -86,7 +88,7 @@ async function mainFixture(t, faults = {}) {
     recordHostMainDispatchReceipt: async () => { order.push('receipt'); },
     recordExecutorEvent: async (_id, args) => { events.push(args.event); }, recordHostMainUsage: async () => {},
     completeHostMainResult: async () => { committed++; } };
-  const manager = new HostMainManager({ configPath: join(root, 'config.json'), env: {},
+  const manager = new HostMainManager({register:async({config})=>config, configPath: join(root, 'config.json'), env: {},
     getConfig: async () => { order.push('config'); return { global: { enabled: true }, strict_executor: settings, providers: [] }; },
     qualify: async function () { assert.equal(this, manager); order.push('qualify'); return settings; },
     mainModelSelection: async () => ({ model: 'fixture-model', effort: 'high' }), sessionFactory: async options => {

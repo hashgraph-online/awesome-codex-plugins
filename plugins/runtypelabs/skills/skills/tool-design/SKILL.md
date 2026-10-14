@@ -228,9 +228,10 @@ Iterate with `update_tool` and `get_tool`; read
   `loopConfig.maxCost`, or enforce a per-tool budget inside the tool. `codeModeConfig`
   gives the agent a `code_mode` tool that chains a subset of its tools in sandboxed
   code, an alternative to hand-built bundle and batch tools.
-- Tool count: 50 runtime tools per request. Tool search is on by default for multi-turn
-  agents at 20+ tools (inline tools defer behind `tool_search`, and
-  `tools.toolSearch.enabled: false` opts out). Single-turn agents send every tool on every
+- Tool count: no cap; a request's serialized `runtimeTools` may total 1 MB. A provider
+  can still refuse a long list (`TOOL_COUNT_REFUSED_BY_PROVIDER`). Tool search is on by
+  default for multi-turn agents at 20+ tools (inline tools defer behind `tool_search`,
+  and `tools.toolSearch.enabled: false` opts out); use it for large tool sets. Single-turn agents send every tool on every
   request, so keep sets small or split them across agents.
 - Save-time checks: `validate_flow` reports several checklist rows as stable codes
   (see `references/checklist.md`, "Checked for you on Runtype").

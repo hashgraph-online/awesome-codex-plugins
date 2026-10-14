@@ -12,11 +12,27 @@ const deferred=()=>{let resolve;const promise=new Promise(done=>{resolve=done;})
 
 test('managed preparation accepts exact pinned Skill allowances for native session policy',async()=>{
   const manager=new ManagedNativeManager({configPath:'C:\\fixture\\managed-skills.json',env:{},getConfig:async()=>({}),
+    register:async({config})=>config,
     qualify:async()=>({binary_sha256:'a'.repeat(64)})});
   const envelope={skill_policy:{mode:'cooperative'},provider:{kind:'native_agent',config:{model:'gpt-test',reasoning_effort:'low'}},
     skill_ref:{path:'skills/exact/SKILL.md'},allowed_skills:[{path:'skills/exact/SKILL.md',resources:[]}]};
   const prepared=await manager.prepare(null,null,null,envelope);
   assert.equal(prepared.execution,'managed_native_codex');
+});
+
+test('managed preparation captures one qualifier before config await and preserves its receiver through registration',async()=>{
+  const order=[],config={},env={},settings={binary_sha256:'a'.repeat(64)};
+  let manager;
+  const qualifier=function(candidate,selectedEnv,options){
+    order.push('qualify');assert.equal(this,manager);assert.equal(candidate,config);assert.equal(selectedEnv,env);
+    assert.equal(options.scope,'managed_native');return settings;
+  };
+  manager=new ManagedNativeManager({configPath:'C:\\fixture\\managed-qualifier-receiver.json',env,qualify:qualifier,
+    getConfig:async()=>{order.push('config');Object.defineProperty(manager,'qualify',{value:()=>assert.fail('Must retain the original qualifier across config await'),configurable:true});return config;},
+    register:async options=>{order.push('register');await options.qualify(options.config,options.env,{scope:'managed_native'});return options.config;}});
+  Object.defineProperty(manager,'qualify',{get(){order.push('qualifier_lookup');return qualifier;},configurable:true});
+  const prepared=await manager.prepare(null,null,null,{skill_policy:{mode:'cooperative'},provider:{kind:'native_agent',config:{model:'fixture-model',reasoning_effort:'high'}}});
+  assert.equal(prepared.settings,settings);assert.deepEqual(order,['qualifier_lookup','config','register','qualify','qualify']);
 });
 
 test('managed fan-out respects the declared concurrency and preserves dispatch order', async () => {

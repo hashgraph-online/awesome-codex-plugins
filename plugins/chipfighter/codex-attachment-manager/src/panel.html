@@ -37,6 +37,9 @@
   also says how many thinking records the last request left out to keep the selection (user 2026-10-11).
   v0.5 (user 2026-10-12): under Claude Code, images from before a compaction stay in the list as they were, marked
   “压缩前”; checked ones go out again from the engine, and the last request's line says how many.
+  v0.7 (user 2026-10-13): once the engine has seen a Codex task's subagents or side chats, a block under the request
+  size lists them (folded to one line by default), each with its last request and the rule that applies to it, and
+  holds the task's switch for them (on by default).
 -->
 <style>
   /* Fallbacks follow Codex's own widget palette; inside Codex its theme variables (MCP Apps host styles) win. */
@@ -126,6 +129,23 @@
   .needs.fetched { background: var(--info-bg); color: var(--info); }
   .needs.fetched button { border-color: color-mix(in srgb, var(--info) 35%, transparent); color: var(--info); }
   .needs.fetched button:hover { border-color: var(--info); }
+  /* v0.7: the task's subagents and side chats; folded to its first line, which holds the switch for them. */
+  .children { margin-top: 10px; border-radius: 12px; background: var(--bg-soft); font-size: 12.5px; }
+  .children-head { display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 6px; }
+  .children-toggle { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; height: 26px; padding: 0 6px; border: 0; border-radius: 8px; background: none; color: var(--text-2); font: inherit; font-weight: 500; text-align: left; cursor: pointer; transition: background .15s; }
+  .children-toggle:hover { background: var(--bg-hover); }
+  .children-toggle svg { flex: none; width: 14px; height: 14px; color: var(--text-3); transition: transform .15s; }
+  .children-toggle[aria-expanded="true"] svg { transform: rotate(90deg); }
+  .children-toggle .label { flex: none; white-space: nowrap; }
+  .children-toggle .n { flex: none; color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .children-toggle .sum { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-3); font-weight: 400; font-variant-numeric: tabular-nums; }
+  .children-list { display: flex; flex-direction: column; gap: 8px; padding: 2px 12px 10px 32px; }
+  .child-line1 { display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .child-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); font-weight: 600; }
+  .child-kind { flex: none; color: var(--text-3); }
+  .child-rule { flex: none; margin-left: auto; padding: 0 8px; border-radius: 999px; background: var(--info-bg); color: var(--info); font-size: 11.5px; font-weight: 500; line-height: 20px; white-space: nowrap; }
+  .child-rule.off { background: color-mix(in srgb, var(--text) 8%, transparent); color: var(--text-3); }
+  .child-meta { margin-top: 1px; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
   /* v0.2: rounded source buttons, drawn unlike the rows' square send checkboxes so the two are not confused. */
   .filters { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
   .chip { height: 26px; padding: 0 10px; border: 1px solid var(--border-strong); border-radius: 999px; background: transparent; color: var(--text-2); font-size: 12px; font-weight: 500; white-space: nowrap; cursor: pointer; transition: background .15s, border-color .15s, color .15s; }
@@ -258,6 +278,7 @@
   </div>
   <div class="last" id="last"></div>
   <div class="needs" id="needs" hidden></div>
+  <div class="children" id="children" hidden></div>
   <div class="filters" id="filters" role="group" hidden></div>
 </header>
 <main id="main"></main>
@@ -373,6 +394,19 @@
       "footer.hintAuto": "勾选的图每轮都发，其余由模型按需取回",
       "auto.label": "自动选图",
       "auto.title": "打开后，之前各轮的图默认不发，模型需要时自己按编号取回；勾选的图每轮都发",
+      "children.title": "子代理和旁聊",
+      "children.saved": " · 上次请求共少发 {saved}",
+      "children.auto": "也自动选图",
+      "children.autoTitle": "打开后，这个任务的子代理和旁聊也按自动选图发图：之前各轮的图默认不发，模型需要时按编号取回；关掉则原样发送",
+      "children.subagent": "子代理",
+      "children.sideAt": "旁聊 {time}",
+      "children.ruleAuto": "自动选图",
+      "children.ruleOff": "原样发送",
+      "children.images": "{count} 张图",
+      "children.noRequest": "还没有经过代理的请求",
+      "children.lastReplaced": "上次 {time}：替换了 {count} 张，少发 {saved}",
+      "children.lastNone": "上次 {time}：没有替换",
+      "children.lastSkipped": "上次 {time}：没能替换，原样发出",
       "viewer.label": "图片预览",
       "viewer.close": "关闭预览",
       "viewer.closeTitle": "关闭（Esc）",
@@ -487,6 +521,20 @@
       "footer.hintAuto": "Checked images go every turn; the model fetches the rest as needed",
       "auto.label": "Auto-select",
       "auto.title": "When on, images from earlier turns are left out by default and the model fetches the ones it needs by id; checked images go every turn",
+      "children.title": "Subagents & side chats",
+      "children.saved": " · {saved} saved last time",
+      "children.auto": "Auto-select too",
+      "children.autoTitle": "When on, this task's subagents and side chats use Auto-select too: images from earlier turns are left out by default and the model fetches the ones it needs by id. When off, their requests go out as they are",
+      "children.subagent": "Subagent",
+      "children.sideAt": "Side chat {time}",
+      "children.ruleAuto": "Auto-select",
+      "children.ruleOff": "Sent as is",
+      "children.images": "{count} images",
+      "children.images_one": "{count} image",
+      "children.noRequest": "No request through the proxy yet",
+      "children.lastReplaced": "Last {time}: {count} replaced, {saved} less",
+      "children.lastNone": "Last {time}: nothing replaced",
+      "children.lastSkipped": "Last {time}: not rewritten, sent as it was",
       "viewer.label": "Image preview",
       "viewer.close": "Close preview",
       "viewer.closeTitle": "Close (Esc)",
@@ -642,6 +690,8 @@
     manual: false,                 // the running refresh was asked for with the 刷新 button
     filter: { open: false, sources: new Set() },   // v0.2: the filter bar, and the sources shown (none picked: all)
     autoPending: null,             // v0.3: the switch's new state while it is being saved
+    childrenOpen: false,           // v0.7: the subagents and side chats unfolded
+    childrenPending: null,         // v0.7: their switch's new state while it is being saved
   };
   let lastFresh = 0;               // when the panel last received the thread's state
   // When this page was on screen (v0.1-10), sent with every read: a panel on a new chat is offered the threads started
@@ -757,6 +807,24 @@
       ingest(result.structuredContent);
     } catch (error) {
       S.autoPending = null;
+      S.error = { key: "error.switch", message: error.message };
+    }
+    render();
+  }
+
+  // v0.7: the switch for the task's subagents and side chats, saved the same way.
+  async function setChildrenAuto(on) {
+    if (S.childrenPending !== null) return;
+    S.childrenPending = on;
+    render();
+    try {
+      while (S.saving || S.unsaved.size) { if (!S.saving) await flush(); else await new Promise((resolve) => setTimeout(resolve, 50)); }
+      lastSaveStarted = Date.now();
+      const result = await callTool("cam_set_selection", { childrenAuto: on });
+      S.childrenPending = null;
+      ingest(result.structuredContent);
+    } catch (error) {
+      S.childrenPending = null;
       S.error = { key: "error.switch", message: error.message };
     }
     render();
@@ -1122,6 +1190,70 @@
     ] : []));
   }
 
+  // ---- v0.7: the task's subagents and side chats (user 2026-10-13) ----
+  // Shown once the engine has seen one. Its first line folds the list and holds the switch; both are made once, so hover
+  // and focus survive the polling, and the rows are rebuilt only when what they say changes.
+  let childrenParts = null;
+  let childrenKey = "";
+  function childrenHead() {
+    if (childrenParts) return childrenParts;
+    const toggle = Object.assign(document.createElement("button"), { type: "button", className: "children-toggle" });
+    toggle.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg><span class="label"></span><span class="n"></span><span class="sum"></span>';
+    toggle.setAttribute("aria-controls", "childrenList");
+    toggle.addEventListener("click", () => { S.childrenOpen = !S.childrenOpen; renderChildren(); });
+    const control = Object.assign(document.createElement("label"), { className: "auto" });
+    control.innerHTML = '<span class="auto-label"></span><input type="checkbox" role="switch"><span class="sw"></span>';
+    control.querySelector("input").addEventListener("change", (event) => setChildrenAuto(event.target.checked));
+    const head = Object.assign(document.createElement("div"), { className: "children-head" });
+    head.append(toggle, control);
+    const list = Object.assign(document.createElement("div"), { className: "children-list", id: "childrenList" });
+    $("children").append(head, list);
+    childrenParts = { toggle, control, list };
+    return childrenParts;
+  }
+  function renderChildren() {
+    const children = S.data?.children ?? [];
+    $("children").hidden = !children.length;
+    if (!children.length) return;
+    const { toggle, control, list } = childrenHead();
+    toggle.setAttribute("aria-expanded", String(S.childrenOpen));
+    toggle.querySelector(".label").textContent = t("children.title");
+    toggle.querySelector(".n").textContent = String(children.length);
+    const saved = children.reduce((sum, child) => sum + (child.last && !child.last.skipped ? Math.max(0, child.last.bytesBefore - child.last.bytesAfter) : 0), 0);
+    toggle.querySelector(".sum").textContent = saved > 0 ? t("children.saved", { saved: formatBytes(saved) }) : "";
+    control.title = t("children.autoTitle");
+    control.querySelector(".auto-label").textContent = t("children.auto");
+    const input = control.querySelector("input");
+    input.checked = S.childrenPending ?? S.data?.childrenAuto ?? true;
+    input.disabled = S.childrenPending !== null;
+    input.setAttribute("aria-label", t("children.auto"));
+    list.hidden = !S.childrenOpen;
+    const key = `${lang}|${JSON.stringify(children)}`;
+    if (key === childrenKey) return;
+    childrenKey = key;
+    list.replaceChildren(...children.map(childRow));
+  }
+  // A subagent by its name in Codex, a side chat by when it started; the rule that applies to it, and its last request.
+  function childRow(child) {
+    const line = Object.assign(document.createElement("div"), { className: "child-line1" });
+    const named = child.kind === "subagent" && child.name;
+    line.append(Object.assign(document.createElement("span"), { className: "child-name", textContent: child.kind === "side" ? t("children.sideAt", { time: clockOf(child.startedAt).slice(0, 5) }) : child.name ?? t("children.subagent") }));
+    if (named) line.append(Object.assign(document.createElement("span"), { className: "child-kind", textContent: t("children.subagent") }));
+    line.append(Object.assign(document.createElement("span"), { className: `child-rule${child.auto ? "" : " off"}`, textContent: t(child.auto ? "children.ruleAuto" : "children.ruleOff") }));
+    const last = child.last;
+    const time = last ? timeOf(last.at) : "";
+    const meta = [
+      child.images === null ? null : t("children.images", { count: child.images }),
+      !last ? t("children.noRequest")
+        : last.skipped ? t("children.lastSkipped", { time })
+        : last.replaced ? t("children.lastReplaced", { time, count: last.replaced, saved: formatBytes(last.bytesBefore - last.bytesAfter) })
+        : t("children.lastNone", { time }),
+    ].filter(Boolean).join(" · ");
+    const row = Object.assign(document.createElement("div"), { className: "child" });
+    row.append(line, Object.assign(document.createElement("div"), { className: "child-meta", textContent: meta, title: meta }));
+    return row;
+  }
+
   // Scrolls the row to the middle of the list, then flashes it; the keyboard focus goes to its checkbox (Space checks it).
   let flashAfterScroll = null;
   main.addEventListener("scrollend", () => flashAfterScroll?.());
@@ -1292,7 +1424,7 @@
     }
   }
 
-  function render() { renderFilter(); renderHeader(); renderNeeds(); renderPlugin(); renderRefresh(); renderList(); renderFooter(); renderViewer(); }
+  function render() { renderFilter(); renderHeader(); renderNeeds(); renderChildren(); renderPlugin(); renderRefresh(); renderList(); renderFooter(); renderViewer(); }
 
   let focusBeforeViewer = null;
   function openViewer(id) {
@@ -1324,7 +1456,7 @@
   // ---- start: handshake, then Codex sends its own cam_panel result; poll so new images show up ----
   if (window.matchMedia?.("(prefers-color-scheme: dark)").matches) document.documentElement.dataset.theme = "dark";
   applyLanguage();
-  request("ui/initialize", { protocolVersion: "2026-01-26", appInfo: { name: "codex-attachment-manager", version: "0.5.0" }, appCapabilities: {} })
+  request("ui/initialize", { protocolVersion: "2026-01-26", appInfo: { name: "codex-attachment-manager", version: "0.7.0" }, appCapabilities: {} })
     .then((init) => { applyHost(init?.hostContext); post({ method: "ui/notifications/initialized", params: {} }); reportFrame(); })
     .catch(() => {})
     .finally(() => setTimeout(() => { if (!S.data) refresh(); }, 1200));

@@ -1,3 +1,4 @@
+import { loadLegacyConfig } from './legacy-config.mjs';
 import { deferred } from './fixtures/deferred.mjs';
 import test from 'node:test';
 import {spawn} from 'node:child_process';
@@ -25,9 +26,9 @@ import { digest, canonicalJSON } from '../lib/workflow-revisions.mjs';
 import { workflowResourceProgramIdentity } from '../lib/execution/workflow-resource-program.mjs';
 import { qualifiedExecutionBinding } from '../lib/execution/codex-tool-broker.mjs';
 import { refreshCodexRegistration } from '../lib/execution/codex-runtime-registration.mjs';
-import { verifyCodexDistribution } from '../lib/execution/strict-config.mjs';
+import { CODEX_EXECUTION_REQUIREMENTS, qualifiedCooperativeSettings, qualifiedStrictSettings, verifyCodexDistribution } from '../lib/execution/strict-config.mjs';
 import { readyWorkflow, edge } from './fixtures/workflow-fixtures.mjs';
-import { retainOwnedAuthority, replaceOwnedAuthority } from '../lib/execution/owned-workflow-authority.mjs';
+import { retainOwnedAuthority, replaceOwnedAuthority, readOwnedAuthority } from '../lib/execution/owned-workflow-authority.mjs';
 import {packDirectory} from '../lib/workflow-paths.mjs';
 
 test('service opening and Role discovery audit only Role candidates while ordinary reads still audit selected resources',async t=>{
@@ -297,7 +298,7 @@ test('folder import prepares routing without exposing the removed direct-apply e
 async function fixture(t, options = {}) {
   const root = await mkdtemp(join(tmpdir(), 'workflow-service-')); const workspace = join(root, 'workspace'); await mkdir(workspace);
   t.after(async () => { await Promise.allSettled([...service.attemptAdmission.drainJobs.values()]); assert(resolve(root).startsWith(resolve(tmpdir()))); await rm(root, { recursive: true, maxRetries: 3, retryDelay: 100 }); });
-  const configPath = join(root, 'control-plane.json'); const config = await loadConfig({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH });
+  const configPath = join(root, 'control-plane.json'); const config = await loadLegacyConfig({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH });
   if (options.configure) { options.configure(config); await saveConfig(config, { configPath }); }
   const service = new WorkflowService({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH, env: {}, ...options,
     capabilities:{nativeAgentObserver:null,nativeParentVerifier:async()=>{},...options.capabilities} });
@@ -802,7 +803,7 @@ async function mainStartupRegistrationFixture(t,{registrationError,qualification
   let modelCalls=0;
   const f=await fixture(t,{fetchImpl:async()=>{modelCalls++;assert.fail('Startup qualification must not call a model');}});
   await f.migrate();
-  const workflow=readyWorkflow('main-startup-registration');workflow.skill_policy.mode='cooperative';
+  const workflow=readyWorkflow('main-startup-registration');workflow.skill_policy.mode='strict';
   const created=await f.service.call('create',{workflow},{human:true});
   const binary=join(f.root,'current-codex'),bytes=Buffer.from('current local Codex fixture'),hash=digest(bytes);
   await writeFile(binary,bytes);
@@ -820,6 +821,7 @@ async function mainStartupRegistrationFixture(t,{registrationError,qualification
     await verifyCodexDistribution(current.strict_executor.codex_binary,{sha256:current.strict_executor.binary_sha256});
     return current.strict_executor;
   };
+  f.service.strictManager.qualify=f.service.hostMainManager.qualify;
   f.service.hostMainManager.launchRun=async args=>{order.push('launch');launches.push(args);return {status:'starting'};};
   // Inject only local discovery/qualification into the real registration
   // operation; keep the built-in manager so service registration stays enabled.
@@ -838,6 +840,108 @@ async function mainStartupRegistrationFixture(t,{registrationError,qualification
     request:{workflow_id:workflow.id,revision_hash:created.revision_hash,workspace:f.workspace,
       access:'read_only',main_actor:'root',inputs:{},return_after_start:true}};
 }
+
+async function freshExecutorStartupFixture(t,{registrationError}={}){
+  const root=await mkdtemp(join(tmpdir(),'fresh-executor-startup-')),workspace=join(root,'workspace'),home=join(root,'home');
+  await mkdir(workspace);await mkdir(home);
+  const configPath=join(root,'control-plane.json'),binary=join(root,'receiving-codex'),bytes='receiving Codex fixture';await writeFile(binary,bytes);
+  const defaults=await loadConfig({configPath,defaultConfigPath:DEFAULT_CONFIG_PATH});
+  assert.equal(defaults.strict_executor.enabled,true);assert.equal(defaults.strict_executor.codex_binary,'');
+  const methods=entries=>({oneOf:entries.map(([method,fields])=>({properties:{method:{const:method},params:{type:'object',properties:Object.fromEntries(fields.map(field=>[field,{}]))}}}))});
+  const schemas={ClientRequest:{...methods(Object.entries(CODEX_EXECUTION_REQUIREMENTS)),definitions:{DynamicToolSpec:{type:'object',properties:{name:{},description:{},inputSchema:{}}}}},
+    ServerRequest:methods([['item/tool/call',['threadId','turnId','callId','tool','arguments']]]),
+    ServerNotification:methods([['turn/completed',[]],['item/completed',[]],['thread/tokenUsage/updated',[]]])};
+  const calls=[],env={CODEX_HOME:home},options={cache:new Map(),schemaReader:async()=>schemas,clientFactory:()=>({initialized(){},async close(){calls.push('close');},async call(method){
+    calls.push(method);if(method==='initialize')return {};if(method==='account/read')return {account:{type:'chatgpt'}};
+    if(method==='config/read')return {config:{}};if(method==='model/list')return {data:[]};if(method==='skills/list')return {data:[{skills:[],errors:[]}]};
+    assert.fail(`Startup must not call ${method}`);
+  }})};
+  let discoveries=0,sessionStarts=0;
+  const preparedStop=Object.assign(new Error('Qualified fixture stopped before model execution'),{code:'FIXTURE_QUALIFIED_STOP'});
+  const service=new WorkflowService({configPath,defaultConfigPath:DEFAULT_CONFIG_PATH,env,capabilities:{nativeAgentObserver:null,nativeParentVerifier:async()=>{},
+    codexRegistrationDiscovery:async()=>{discoveries++;if(registrationError)throw registrationError;return {binary};},
+    codexRegistrationQualifier:(config,env,scope)=>qualifiedCooperativeSettings(config,env,{...options,...scope})}});
+  service.hostMainManager.qualify=(config,env,scope)=>qualifiedCooperativeSettings(config,env,{...options,...scope});
+  service.hostMainManager.register=registration=>refreshCodexRegistration({...registration,discover:service.capabilities.codexRegistrationDiscovery});
+  service.strictManager.qualify=(config,env,scope)=>qualifiedStrictSettings(config,env,{...options,...scope});
+  service.hostMainManager.sessionFactory=()=>{sessionStarts++;throw preparedStop;};
+  t.after(async()=>{await service.hostMainManager.close();await service.historyMaintenance.task;await Promise.allSettled([...service.attemptAdmission.drainJobs.values()]);await rm(root,{recursive:true,maxRetries:3,retryDelay:100});});
+  return {root,workspace,configPath,binary,hash:digest(bytes),defaults,service,calls,discoveries:()=>discoveries,sessionStarts:()=>sessionStarts};
+}
+
+for(const strictEnabled of [true,false])test(`fresh cooperative Main registers receiving Codex at authorized execution with Strict ${strictEnabled}`,async t=>{
+  const f=await freshExecutorStartupFixture(t),workflow=readyWorkflow('fresh-cooperative-start');workflow.skill_policy.mode='cooperative';
+  if(!strictEnabled){const config=await f.service.config();config.strict_executor.enabled=false;await saveConfig(config,{configPath:f.configPath});}
+  const created=await f.service.call('create',{workflow},{human:true});
+  await f.service.call('read',{workflow_id:workflow.id});await f.service.call('role_templates');assert.equal(f.discoveries(),0);assert.deepEqual(f.calls,[]);
+  const started=await f.service.call('run_main',{workflow_id:workflow.id,revision_hash:created.revision_hash,workspace:f.workspace,access:'read_only',main_actor:'root',inputs:{},return_after_start:true});
+  assert.equal(started.status,'starting');
+  const settled=await f.service.hostMainManager.wait(started.run_id);assert.equal(settled.error.code,'FIXTURE_QUALIFIED_STOP');
+  assert.equal(f.discoveries(),1);assert.equal(f.sessionStarts(),1);
+  const saved=await f.service.config();assert.equal(saved.strict_executor.enabled,strictEnabled);assert.equal(saved.strict_executor.codex_binary,f.binary);assert.equal(saved.strict_executor.binary_sha256,f.hash);
+  assert.deepEqual(saved.providers,f.defaults.providers);assert.equal((await f.service.call('runs')).length,1);
+  assert(f.calls.every(method=>!['thread/start','turn/start'].includes(method)));
+});
+
+test('fresh cooperative Main missing receiving Codex journals failure before any model session',async t=>{
+  const failure=Object.assign(new Error('Receiving Codex is missing'),{code:'LOCAL_CODEX_MISSING'}),f=await freshExecutorStartupFixture(t,{registrationError:failure});
+  const workflow=readyWorkflow('fresh-missing-codex');workflow.skill_policy.mode='cooperative';
+  const created=await f.service.call('create',{workflow},{human:true});
+  const started=await f.service.call('run_main',{workflow_id:workflow.id,revision_hash:created.revision_hash,workspace:f.workspace,access:'read_only',main_actor:'root',inputs:{},return_after_start:true});
+  const settled=await f.service.hostMainManager.wait(started.run_id);assert.equal(settled.error.code,'LOCAL_CODEX_MISSING');assert.equal(f.sessionStarts(),0);
+  const state=await f.service.call('get',{run_id:started.run_id});assert.equal(state.status,'failed');assert.equal(state.nodes.final.attempts[0].error.code,'LOCAL_CODEX_MISSING');
+  assert.deepEqual(f.calls,[]);
+  assert.equal((await f.service.config()).strict_executor.codex_binary,'');
+});
+
+test('native-first cooperative handoff defers receiving SDK registration until its later Main worker executes',async t=>{
+  const f=await freshExecutorStartupFixture(t),workflow=readyWorkflow('native-before-sdk');workflow.skill_policy.mode='cooperative';
+  const config=await f.service.config();config.strict_executor.enabled=false;await saveConfig(config,{configPath:f.configPath});
+  workflow.nodes.splice(1,0,{id:'native',type:'agent',executor:{kind:'provider',provider_id:'native-luna'},access:'read_only',
+    prompt_template:'Return the bounded fixture result.',approval:{required:false},retry:{max_attempts:1},input_bindings:{},
+    outputs_schema:{type:'object',properties:{completed:{type:'boolean'}},required:['completed'],additionalProperties:false}});
+  workflow.requirements.providers=['native-luna'];workflow.edges=[edge('start','native'),edge('native','final'),edge('final','end')];
+  f.service.nativeAgentObserver=async ids=>({status:'completed',agent_id:ids[0],turn_id:'fixture-native-finished',result:{completed:true}});
+  const created=await f.service.call('create',{workflow},{human:true});
+  const run=await f.service.call('start',{workflow_id:workflow.id,revision_hash:created.revision_hash,workspace:f.workspace,access:'read_only',main_actor:'root',native_parent_thread_id:'01a0db81-70bf-7233-9021-4b4e3849bec7',inputs:{}});
+  await f.service.call('prepare_environment',{workflow_id:workflow.id,revision_hash:created.revision_hash});
+  const handoff=await f.service.call('native_next',control(run));assert.equal(handoff.status,'native_handoff');
+  assert.equal(f.discoveries(),0);assert.deepEqual(f.calls,[]);assert.equal(f.sessionStarts(),0);
+  await recordNativeSpawn(f,{...control(run),attempt_id:handoff.attempt_id,index:0,agent_id:'fixture-native-child'});
+  await f.service.call('native_next',control(run));
+  const beforeMain=await f.service.call('get',{run_id:run.run_id});assert.equal(beforeMain.nodes.native.status,'succeeded');assert.equal(beforeMain.nodes.final.status,'ready');
+  assert.equal(f.discoveries(),0);assert.deepEqual(f.calls,[]);
+  await f.service.call('continue_main',{...control(run),owner:'root'});
+  const settled=await f.service.hostMainManager.wait(run.run_id);assert.equal(settled.error.code,'FIXTURE_QUALIFIED_STOP');
+  assert.equal(f.discoveries(),1);assert.equal(f.sessionStarts(),1);
+  const saved=await f.service.config();assert.equal(saved.strict_executor.enabled,false);assert.equal(saved.strict_executor.codex_binary,f.binary);assert.equal(saved.strict_executor.binary_sha256,f.hash);
+  assert(f.calls.every(method=>!['thread/start','turn/start'].includes(method)));
+});
+
+test('fresh pure native model handoff and orchestration start avoid SDK registration and qualification',async t=>{
+  const f=await freshExecutorStartupFixture(t),workflow=readyWorkflow('fresh-model-native');workflow.skill_policy.mode='cooperative';
+  workflow.nodes.find(node=>node.id==='final').executor={kind:'main',mode:'orchestration'};
+  const common={type:'agent',executor:{kind:'provider',provider_id:'native-luna'},access:'read_only',prompt_template:'Return a bounded fixture result.',approval:{required:false},retry:{max_attempts:1},input_bindings:{}};
+  workflow.nodes.splice(1,0,{...common,id:'native'});workflow.requirements.providers=['native-luna'];workflow.edges=[edge('start','native'),edge('native','final'),edge('final','end')];
+  const created=await f.service.call('create',{workflow},{human:true});
+  const run=await f.service.call('start',{workflow_id:workflow.id,revision_hash:created.revision_hash,workspace:f.workspace,access:'read_only',main_actor:'root',native_parent_thread_id:'01a0db81-70bf-7233-9021-4b4e3849bec7',inputs:{}});
+  assert.equal(run.status,'running');assert.equal(f.discoveries(),0);assert.deepEqual(f.calls,[]);
+  const handoff=await f.service.call('native_next',control(run));assert.equal(handoff.status,'native_handoff');assert.equal(handoff.packets.length,1);
+  assert.equal(handoff.packets[0].spawn_config.model,'gpt-6-luna');
+  assert.equal(f.discoveries(),0);assert.deepEqual(f.calls,[]);
+  assert.equal((await f.service.config()).strict_executor.codex_binary,'');
+});
+
+test('fresh direct authoring registers enabled Strict before its capability check and keeps the fixed policy',async t=>{
+  const f=await freshExecutorStartupFixture(t);
+  const source=await f.service.call('build_workflow',{workflow_id:'fresh-authoring-source',name:'Fresh source',brief:'Inspect the task and return a precise answer.'});
+  const run=await f.service.call('create_authoring_run',{workflow_id:source.workflow.id,revision_hash:source.revision_hash,run_id:'fresh-authoring-run',workspace:f.workspace,main_actor:'root',automatic_generation:true});
+  assert.equal(run.status,'running');assert.equal(f.discoveries(),1);
+  const {runtime}=await f.service.open(),record=await runtime.runs.read(run.run_id);
+  assert.equal(record.pins.root.workflow.skill_policy.mode,'strict');
+  assert.equal((await f.service.config()).strict_executor.binary_sha256,f.hash);
+  assert(f.calls.every(method=>!['thread/start','turn/start'].includes(method)));
+});
 
 async function observeRunMainResourceAdmission(f,{mutateAfterEnvironment=false}={}){
   const {store}=await f.service.open();
@@ -895,11 +999,11 @@ test('run_main rereads root resource bytes after its environment callback before
   assert.deepEqual(observed.legacy,{snapshot:0,resources:0});
 });
 
-test('run_main refreshes removed Codex registration before built-in Main qualification and Run creation',async t=>{
+test('Strict run_main refreshes removed Codex registration before capability qualification and Run creation',async t=>{
   const f=await mainStartupRegistrationFixture(t);
   const started=await f.service.call('run_main',f.request);
   assert.equal(started.status,'starting');assert.equal(f.modelCalls(),0);assert.equal(f.launches.length,1);
-  assert.deepEqual(f.order,['registration','discover','registration_qualify','main_qualify','registration','launch']);
+  assert.deepEqual(f.order,['registration','discover','registration_qualify','main_qualify','launch']);
   assert.equal(f.qualifications.length,1);
   assert.equal(f.qualifications[0].strict_executor.codex_binary,f.binary);
   assert.equal(f.qualifications[0].strict_executor.binary_sha256,f.hash);
@@ -913,7 +1017,7 @@ test('run_main refreshes removed Codex registration before built-in Main qualifi
   await f.service.historyMaintenance.task;
 });
 
-test('run_main registration and Main qualification failures propagate before Run creation or model launch',async t=>{
+test('Strict run_main registration and capability qualification failures propagate before Run creation or model launch',async t=>{
   for(const stage of ['registration','Main qualification'])await t.test(stage,async t=>{
     const error=Object.assign(new Error(`${stage} failed`),{code:stage==='registration'?'CODEX_CAPABILITY_UNSUPPORTED':'CODEX_CREDENTIAL_MISSING'});
     const f=await mainStartupRegistrationFixture(t,stage==='registration'?{registrationError:error}:{qualificationError:error});
@@ -951,10 +1055,57 @@ test('prepare_environment keeps missing ordinary dependencies ahead of Codex reg
   assert.deepEqual(await f.service.call('runs'),[]);
 });
 
-test('model-facing Main start returns its persisted Run while prior Provider work is still pending', async t => {
-  const gate = deferred(); const entered = deferred(); let progress;
+test('model environment diagnosis keeps readiness while omitting mechanical search history',async t=>{
+ const f=await mainStartupRegistrationFixture(t);
+ const args={workflow_id:f.request.workflow_id,revision_hash:f.request.revision_hash};
+ const human=await f.service.call('prepare_environment',args,{human:true});
+ assert(Array.isArray(human.searched_directories));
+ const model=await f.service.call('prepare_environment',args,{model:true});
+ assert.equal(model.status,'ready');assert.deepEqual(model.missing,[]);
+ assert.equal(model.searched_directories,undefined);
+ assert.equal(model.searched_directory_count,human.searched_directories.length);
+ assert.equal(model.installation_performed,false);
+ assert.match(model.next_action,/Start the Workflow directly/);
+ assert.equal(f.modelCalls(),0);assert.equal(f.launches.length,0);
+});
+
+test('direct Main startup resolves dependencies once without a separate model preparation call',async t=>{
+ const f=await mainStartupRegistrationFixture(t),open=f.service.open.bind(f.service);
+ let resolutions=0;
+ f.service.open=async()=>{const result=await open();const resolver=result.runtime.environmentResolver;
+  result.runtime.environmentResolver=async(...args)=>{resolutions++;return resolver(...args);};return result;};
+ const result=await f.service.call('run_main',f.request);
+ assert(result.run_id);assert.equal(resolutions,1);assert.equal(f.launches.length,1);
+ assert.equal(f.modelCalls(),0);
+});
+
+test('model environment diagnosis retains missing dependency and approval instructions',async t=>{
+ const f=await mainStartupRegistrationFixture(t),{store}=await f.service.open();
+ const pack=await store.snapshot(f.request.workflow_id,f.request.revision_hash),workflow=structuredClone(pack.workflow);
+ workflow.requirements.executables=['caw-missing-model-diagnostic-fixture'];
+ const saved=await store.save(workflow.id,workflow,{expected_revision:pack.revision_hash});
+ const result=await f.service.call('prepare_environment',{workflow_id:workflow.id,revision_hash:saved.revision_hash},{model:true});
+ assert.equal(result.status,'installation_approval_required');
+ assert.deepEqual(result.missing,workflow.requirements.executables);
+ assert.equal(result.tools[0].status,'missing');assert.equal(result.tools[0].path,null);
+ assert.match(result.next_action,/approve installation/);assert.equal(result.searched_directories,undefined);
+ assert.equal(f.launches.length,0);assert.equal(f.modelCalls(),0);
+});
+
+test('model-facing Main start returns its persisted Run while prior Provider work is still pending', {timeout:15_000}, async t => {
+  const gate = deferred(); const entered = deferred(); let progress, progressSettled=false, released=false, launches=0, entries=0;
+  const bounded=async(promise,label)=>{
+    let timer;
+    try { return await Promise.race([promise,new Promise((_resolve,reject)=>{
+      timer=setTimeout(()=>reject(new Error('Timed out waiting for '+label)),5000);
+    })]); } finally { clearTimeout(timer); }
+  };
   const hostMainManager = {
-    launchRun: ({ drive }) => { progress = drive.advanceToMain(); return { status: 'starting' }; },
+    launchRun: ({ drive }) => {
+      launches++;progress = drive.advanceToMain();
+      progress.then(()=>{progressSettled=true;},()=>{progressSettled=true;});
+      return { status: 'starting' };
+    },
     launch: async () => ({ status: 'host-owned' }), stopRun: async () => {}, qualify: async () => ({}),
   };
   const strictManager = { capability: async () => true, stopRun: async () => {} };
@@ -962,7 +1113,7 @@ test('model-facing Main start returns its persisted Run while prior Provider wor
   const originalOpen = f.service.open.bind(f.service);
   f.service.open = async () => {
     const opened = await originalOpen();
-    opened.drive.advanceToMain = async () => { entered.resolve(); return gate.promise; };
+    opened.drive.advanceToMain = async () => { entries++;entered.resolve(); return gate.promise; };
     return opened;
   };
   const pending = f.service.call('run_main', {
@@ -970,13 +1121,20 @@ test('model-facing Main start returns its persisted Run while prior Provider wor
     inputs: { task: 'Synthetic workflow integration', context: 'Fixture only' }, return_after_start: true,
   });
   try {
-    await entered.promise;
-    const settled = await Promise.race([pending.then(() => true), new Promise(resolve => setTimeout(() => resolve(false), 50))]);
-    assert.equal(settled, true, 'startup must not await prior Provider execution');
-    const result = await pending;
+    await bounded(entered.promise,'the prior Provider execution boundary');
+    // Verify ordering against the unreleased Provider gate, rather than a
+    // 50ms wall-clock assumption that includes response/audit filesystem I/O.
+    const result = await bounded(pending,'startup while the Provider gate remains held');
+    assert.equal(launches,1);assert.equal(entries,1);
+    assert.equal(released,false);assert.equal(progressSettled,false);
     assert.equal(result.status, 'starting'); assert.equal(typeof result.control_token, 'string');
     assert((await f.service.call('runs')).some(run => run.run_id === result.run_id));
-  } finally { gate.resolve({ status: 'running', stop_reason: 'no_deterministic_progress' }); if (progress) await progress; }
+    assert.equal(progressSettled,false,'Provider execution must remain pending through persisted-Run inspection');
+  } finally {
+    released=true;gate.resolve({ status: 'running', stop_reason: 'no_deterministic_progress' });
+    if (progress) await progress;
+    await bounded(pending,'released startup cleanup');
+  }
 });
 
 test('workflow_start keeps native dispatch and opaque continuation inside its Host owner',async t=>{
@@ -1376,6 +1534,75 @@ test('compact main-session service starts, projects one node and completes to th
   assert.deepEqual(second.agent_packet.response_form.schema.required, ['value', 'accepted']);
   const terminal = await completeHostHandoff(f.service,second,{ value: 'accepted' },{ accepted: true });
   assert.equal(terminal.stop_reason, 'terminal'); assert.equal(terminal.status, 'succeeded');
+});
+
+test('ordinary recovered controller returns executable Host resume and cancellation adapters',async t=>{
+ const f=await fixture(t);await f.migrate();
+ const started=await f.start();
+ const rpc=async(name,args)=>handleRpc({jsonrpc:'2.0',id:1,method:'tools/call',params:{name,arguments:args,_meta:{threadId:'01a0db81-70bf-7233-9021-4b4e3849bec7'}}},
+  {configPath:f.configPath,defaultConfigPath:DEFAULT_CONFIG_PATH,env:{},serviceCapabilities:{nativeParentVerifier:async()=>{}}});
+ const parse=response=>{assert.notEqual(response.result.isError,true,JSON.stringify(response.result));return JSON.parse(response.result.content[0].text);};
+ const invoke=async adapter=>{
+  let response;
+  const tools={[`mcp__codex_agents_workflow__${adapter.tool_name}`]:async args=>{response=await rpc(adapter.tool_name,JSON.parse(JSON.stringify(args)));return response.result;}};
+  await new (await import('node:vm')).Script(`(async()=>{\n${adapter.code}\n})()`).runInNewContext({tools,text:()=>{}});
+  return response;
+ };
+ const before=await f.service.call('get',{run_id:started.run_id});
+ const request={run_id:started.run_id,expected_sequence:before.sequence,main_actor:'codex',reason:'Continue the existing authorized task after losing controller state.'};
+ const recovered=parse(await rpc('workflow_recover_control',request));
+ assert.equal(recovered.status,'paused');assert.equal(recovered.control_token,undefined);
+ assert.deepEqual(recovered.recovery_errors,[]);
+ assert.equal(recovered.invocation_adapter?.tool_name,'workflow_resume');
+ assert.equal(recovered.invocation_adapter.slot,'none');
+ assert.equal(recovered.cancellation_invocation_adapter?.tool_name,'workflow_cancel');
+ assert.equal(recovered.cancellation_invocation_adapter.slot,'none');
+ assert.equal(recovered.cancellation_invocation_adapter.scope,'workflow_controller_only');
+ const repeated=await rpc('workflow_recover_control',request);
+ assert.equal(repeated.result.isError,true);assert.match(JSON.stringify(repeated.result),/RUN_SEQUENCE_CONFLICT/);
+ await assert.rejects(f.service.call('resume',control(started)),{code:'RUN_AUTHORITY'});
+ const resumed=parse(await invoke(recovered.invocation_adapter));
+ assert.equal(resumed.status,'running');assert.equal(resumed.control_token,undefined);
+ assert.equal(Object.values(resumed.nodes).flatMap(node=>node.attempts).length,0);
+ const recoveredAgain=parse(await rpc('workflow_recover_control',{...request,expected_sequence:resumed.sequence}));
+ const stale=await invoke(recovered.cancellation_invocation_adapter);
+ assert.equal(stale.result.isError,true);assert.match(JSON.stringify(stale.result),/RUN_AUTHORITY/);
+ const cancelled=parse(await invoke(recoveredAgain.cancellation_invocation_adapter));
+ assert.equal(cancelled.status,'cancelled');assert.equal(cancelled.control_token,undefined);
+ assert.equal(Object.values(cancelled.nodes).flatMap(node=>node.attempts).length,0);
+ assert.deepEqual(cancelled.cost_ledger.calls,[]);
+});
+
+test('ordinary recovery adapters retain cleanup failure fences and can retry exact cancellation',async t=>{
+ const strictManager={entries:new Map(),fenceRun:()=>{},fenceAttempt:()=>{},stopRun:async()=>{},
+  stopRecovered:async()=>{throw Object.assign(new Error('Offline unconfirmed recovery stop'),{code:'FIXTURE_RECOVERY_STOP'});}};
+ const capabilities={strictManager,nativeParentVerifier:async()=>{}};
+ const f=await fixture(t,{capabilities});await f.migrate();const started=await f.start();
+ const rpc=async(name,args)=>handleRpc({jsonrpc:'2.0',id:1,method:'tools/call',params:{name,arguments:args,_meta:{threadId:'01a0db81-70bf-7233-9021-4b4e3849bec7'}}},
+  {configPath:f.configPath,defaultConfigPath:DEFAULT_CONFIG_PATH,env:{},serviceCapabilities:capabilities});
+ const before=await f.service.call('get',{run_id:started.run_id});
+ const response=await rpc('workflow_recover_control',{run_id:started.run_id,expected_sequence:before.sequence,main_actor:'codex',reason:'Continue the existing authorized task.'});
+ assert.notEqual(response.result.isError,true,JSON.stringify(response));
+ const recovered=JSON.parse(response.result.content[0].text);
+ assert.equal(recovered.status,'paused');assert.equal(recovered.control_token,undefined);
+ assert(recovered.recovery_errors.some(error=>error.code==='FIXTURE_RECOVERY_STOP'));
+ assert.equal(recovered.next_action,'workflow_cancel');
+ assert.equal(recovered.invocation_adapter?.tool_name,'workflow_cancel');
+ assert.equal(recovered.cancellation_invocation_adapter?.tool_name,'workflow_cancel');
+ assert.equal(JSON.stringify(recovered).includes('workflow_resume'),false,'Incomplete cleanup must not suggest resuming execution');
+ const invoke=async adapter=>{
+  let result;
+  const tools={[`mcp__codex_agents_workflow__${adapter.tool_name}`]:async args=>{result=await rpc(adapter.tool_name,JSON.parse(JSON.stringify(args)));return result.result;}};
+  await new (await import('node:vm')).Script(`(async()=>{\n${adapter.code}\n})()`).runInNewContext({tools,text:()=>{}});
+  return result;
+ };
+ const {runtime}=await f.service.open();
+ const authority=await readOwnedAuthority(runtime,started.run_id);
+ await assert.rejects(f.service.call('resume',{run_id:started.run_id,control_token:authority.control_token}),{code:'CONTROL_RECOVERY_INCOMPLETE'});
+ assert.equal((await f.service.call('get',{run_id:started.run_id})).status,'paused');
+ const cancelled=await invoke(recovered.cancellation_invocation_adapter);
+ assert.notEqual(cancelled.result.isError,true,JSON.stringify(cancelled));
+ assert.equal(JSON.parse(cancelled.result.content[0].text).status,'cancelled');
 });
 
 test('actual model MCP authoring starts carry executable Host continuations for Skill and brief',async t=>{
@@ -2016,8 +2243,12 @@ test('service migration is human-owned; MCP executes a native handoff and main f
   assert.doesNotMatch(JSON.stringify(historical), /CONSTRAINTS AND OWNERSHIP/);
   const mainPack=await f.service.call('read',{workflow_id:'brainstorm'});
   const noBridge=await handleRpc({jsonrpc:'2.0',id:3,method:'tools/call',params:{name:'workflow_start',_meta:{threadId:'01a0db81-70bf-7233-9021-4b4e3849bec7'},arguments:{workflow_id:'brainstorm',workspace:f.workspace,access:'read_only'}}},{configPath:f.configPath,defaultConfigPath:DEFAULT_CONFIG_PATH,env:{},serviceCapabilities:{nativeParentVerifier:async()=>{}}});
-  assert.equal(noBridge.result.isError,true);assert.match(JSON.stringify(noBridge),/STRICT_DISABLED/);
-  assert.equal((await f.service.call('runs')).length,0,'disabled Main execution must fail before persisting a Run');
+  assert.notEqual(noBridge.result.isError,true,JSON.stringify(noBridge));
+  const bridgedRuns=await f.service.call('runs');assert.equal(bridgedRuns.length,1,'ordinary native-first execution does not require Strict enablement');
+  assert.equal((await f.service.config()).strict_executor.enabled,false);
+  const bridgedRecord=await (await f.service.open()).runtime.runs.read(bridgedRuns[0].run_id);
+  const bridgedAuthority=await readOwnedAuthority((await f.service.open()).runtime,bridgedRecord.state.run_id);
+  await f.service.call('cancel',{run_id:bridgedRecord.state.run_id,control_token:bridgedAuthority.control_token});
   const run = await f.start();
   await assert.rejects(f.service.call('drive',control(run),{model:true}),{code:'HOST_MAIN_BRIDGE_REQUIRED'});
   assert.equal(Object.values((await f.service.call('get',control(run))).nodes).flatMap(node=>node.attempts).length,0);

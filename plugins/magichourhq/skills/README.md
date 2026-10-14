@@ -82,9 +82,11 @@ Attach your source media and use the matching prompt. The agent should use the c
 
 > Make a five-second vertical video of an ordinary elevator opening onto the moon. No specific person or reference is needed. Choose the settings, leave time to see the reveal and deliver the video within my budget.
 
-**My character + a performance → character remix**
+**My saved character + a performance → character remix**
 
-> Replace the performer in this clip with my character. Keep the setting and performance. Choose the right mode, inspect the body and hands through the action, and deliver the finished video within my budget. Keep the reference so we can make the next episode.
+> Use my saved Magic Hour character named “Nori” to replace the performer in this clip. Find the saved reference without asking me to upload it again. Keep the setting and performance. Choose the right mode, inspect the body and hands through the action, and deliver the finished video within my budget. Keep the reference so we can make the next episode.
+
+Use your actual saved character name; the agent should inspect the matching reference before spending. It can also retrieve saved references, moodboards, brand kits and voice recordings through the connected MCP. A voice recording does not automatically become a text-to-speech preset.
 
 **Speech + portrait → talking clip**
 

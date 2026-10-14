@@ -20,6 +20,8 @@ Before retaining a sentence, ask whether it helps the reader understand somethin
 
 Apply a sentence-weight check: the main clause should carry most of the sentence's value. A long trailing list of attributes, inputs, or caveats must change the reader's interpretation enough to justify its space. If the first half already conveys the point and the second half only makes it sound more complete, cut the tail or move the necessary detail to a later sentence.
 
+Apply a parallel-detail check: when a sentence lists more than three items, identify the shared technical concept before retaining the inventory. Prefer the one or two concepts that explain the mechanism, deficiency, or decision. Keep the individual items only when they lead to different interpretation, reproduction, boundary assessment, or action. A compressed abstraction must remain specific enough to preserve the scientific point; replacing a list with a vague word such as `context` or `factors` is not an improvement unless the surrounding sentence identifies the relevant kind of context or factor.
+
 ## 1. Build a short author story brief
 
 Before drafting a substantial section, record the following in plain technical language. The author may answer in bullets. Unknown items stay marked as unknown rather than being filled with plausible AI text.

@@ -6,16 +6,23 @@
 // the manual checks, which come back as they were when it is switched off. `autoAt` is when it was last switched,
 // `autoSince` when it was first switched on: from then on the history may hold copies the model fetched, which the
 // engine leaves out of later turns even with the switch off.
+// v0.6 — automatic selection is on by default in a thread started after this version first ran here (user
+// 2026-10-13: every new task and session, in Codex and Claude Code; the ones from before keep what they had). That
+// time is written once next to the selections (auto-default.json); a thread's own switch always wins, and the default
+// itself is never written down.
+// v0.7 — a task's subagents (started without history) and side chats get automatic selection unless the user turned
+// that off in the task's panel ("childrenAuto": false; user 2026-10-13), whatever the task's own switch says.
 // Input/Output: <data dir>/selection/<thread id>.json, e.g. { "threadId": "…", "unchecked": { "<key>": { "id": "IMG-003", "at": "…" } } },
-// plus "auto", "autoAt", "autoSince" and "pinned" (same shape as "unchecked") once automatic selection has been used.
+// plus "auto", "autoAt", "autoSince" and "pinned" (same shape as "unchecked") once automatic selection has been used,
+// and "childrenAuto" once the switch for subagents and side chats has been changed.
 
 import { existsSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { selectionDirOf } from "./paths.ts";
-import { forkOrigin } from "./thread-index.ts";
+import { forkOrigin, spawnParent, threadStartedAt } from "./thread-index.ts";
 
 export type Mark = { id: string; at: string };
-export type Selection = { threadId: string; unchecked: Record<string, Mark>; auto?: boolean; autoAt?: string; autoSince?: string; pinned?: Record<string, Mark>; inheritedFrom?: string };
+export type Selection = { threadId: string; unchecked: Record<string, Mark>; auto?: boolean; autoAt?: string; autoSince?: string; pinned?: Record<string, Mark>; inheritedFrom?: string; childrenAuto?: boolean };
 
 export const selectionDir = selectionDirOf();
 const THREAD_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -45,10 +52,81 @@ export function writeSelection(selection: Selection, dir = selectionDir): void {
   renameSync(`${file}.tmp`, file);
 }
 
+// v0.6: written by the engine and the plugin service when they start; the first one wins.
+const AUTO_DEFAULT = "auto-default.json";
+const sinceOf = new Map<string, string>();
+export function ensureAutoDefault(dir = selectionDir, now = new Date()): void {
+  mkdirSync(dir, { recursive: true });
+  try {
+    writeFileSync(join(dir, AUTO_DEFAULT), JSON.stringify({ since: now.toISOString() }, null, 2), { flag: "wx" });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+  }
+}
+
+// null until this version has run here: then nothing is on by default.
+export function autoDefaultSince(dir = selectionDir): string | null {
+  const known = sinceOf.get(dir);
+  if (known) return known;
+  try {
+    const since = JSON.parse(readFileSync(join(dir, AUTO_DEFAULT), "utf8")).since;
+    if (typeof since === "string") sinceOf.set(dir, since);
+    return typeof since === "string" ? since : null;
+  } catch {
+    return null;
+  }
+}
+
+// A thread with no switch of its own that started at or after `since` has automatic selection on, from its start;
+// one with no history yet (startedAt null) is just starting.
+export function withAutoDefault(selection: Selection, startedAt: string | null, since: string | null): Selection {
+  if (typeof selection.auto === "boolean" || !since) return selection;
+  const started = startedAt ?? new Date().toISOString();
+  if (Date.parse(started) < Date.parse(since)) return selection;
+  return { ...selection, auto: true, autoSince: selection.autoSince ?? started };
+}
+
+// v0.6: a Claude Code session's selection with the default applied, given when it started (claudeStartedAt).
+export function claudeSelection(sessionId: string, dir: string, startedAt: string | null): Selection {
+  return withAutoDefault(readSelection(sessionId, dir), startedAt, autoDefaultSince(dir));
+}
+
 // The thread's own selection; a fork without one takes the images its parent had unchecked by the time of the fork
 // (a fork of a fork asks its own parent in turn) and keeps them as its own file from then on. v0.3: likewise the
-// pinned images and the switch, when it was turned on before the fork.
+// pinned images and the switch, when it was turned on before the fork. v0.6: then the default applies, a fork
+// counting from the thread it came from.
+// v0.7: a subagent without a switch of its own follows its task's switch for subagents and side chats instead.
 export function effectiveSelection(threadId: string, sessionsDir: string, dir = selectionDir, depth = 0): Selection {
+  const own = ownSelection(threadId, sessionsDir, dir, depth);
+  const main = typeof own.auto === "boolean" || depth > 16 ? null : mainTaskOf(sessionsDir, threadId);
+  if (main) return childSelection(own, effectiveSelection(main, sessionsDir, dir, depth + 1), threadStartedAt(sessionsDir, threadId));
+  return withAutoDefault(own, threadStartedAt(sessionsDir, threadId), autoDefaultSince(dir));
+}
+
+// v0.7: the task a subagent started without history belongs to: its parent, followed up while that is such a subagent
+// too. null for any other thread.
+export function mainTaskOf(sessionsDir: string, threadId: string, depth = 0): string | null {
+  const parent = spawnParent(sessionsDir, threadId);
+  if (!parent) return null;
+  return (depth < 16 ? mainTaskOf(sessionsDir, parent, depth + 1) : null) ?? parent;
+}
+
+// v0.7: on, automatic selection from the subagent's start; off, none, so its requests go out as they are.
+export function childSelection(own: Selection, main: Selection, startedAt: string | null): Selection {
+  if (main.childrenAuto === false) return { ...own, auto: false };
+  return { ...own, auto: true, autoSince: own.autoSince ?? startedAt ?? new Date().toISOString() };
+}
+
+// v0.7: what a side chat forked from `origin` is sent with: the images of that task, every one of its turns counting as
+// earlier, so all of them are left out but the ones pinned there. null when its task's switch is off.
+export function sideChatSelection(origin: string, sessionsDir: string, dir = selectionDir): Selection | null {
+  const main = mainTaskOf(sessionsDir, origin) ?? origin;
+  if (effectiveSelection(main, sessionsDir, dir).childrenAuto === false) return null;
+  const from = effectiveSelection(origin, sessionsDir, dir);
+  return { threadId: origin, unchecked: {}, auto: true, autoSince: from.autoSince ?? new Date().toISOString(), ...(from.pinned ? { pinned: from.pinned } : {}) };
+}
+
+function ownSelection(threadId: string, sessionsDir: string, dir: string, depth: number): Selection {
   if (existsSync(fileFor(threadId, dir)) || depth > 16) return readSelection(threadId, dir);
   const origin = forkOrigin(sessionsDir, threadId);
   if (!origin) return { threadId, unchecked: {} };

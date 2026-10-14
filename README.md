@@ -330,6 +330,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [Anime Reaction GIF](https://github.com/LIghtJUNction/anime-reaction-gif) - Create original anime reaction stickers with image-generated pose sheets, expressive timing, and looping GIF and MP4 exports.
 - [Antigravity 2.0](https://github.com/comprono/antigravity-2-codex-plugin) - Local Codex bridge for Antigravity desktop with setup checks, model limit summaries, DevTools UI automation, and safe project/chat handoff.
 - [Apple Productivity](https://github.com/matk0shub/apple-productivity-mcp) - Local Apple Calendar and Reminders tooling for macOS with Codex plugin adapters.
+- [Arcmira: YouTube Transcript Search](https://github.com/arcmira/mcp) - Search YouTube transcripts for timestamped quotes, speaker appearances, sponsors and recommendations.
 - [AutoCAD Tianzheng Tools](https://github.com/summer521521/AutoCAD_Tianzheng_plugin) - Connects Codex to AutoCAD and Tianzheng HVAC through a local MCP server for DWG-aware HVAC drawing inspection and workflow automation.
 - [AxonFlow](https://github.com/getaxonflow/axonflow-codex-plugin) - Runtime governance for Codex with policy enforcement on terminal commands, advisory checks for non-terminal tools via skills, PII/secret detection, and compliance-grade audit trails. Self-hosted via Docker.
 - [BabelDOC PDF Translate](https://github.com/reliable-ly0411/babeldoc-pdf-translate) - Translate PDFs with local BabelDOC typesetting, configurable translation providers, bilingual output and custom terminology.

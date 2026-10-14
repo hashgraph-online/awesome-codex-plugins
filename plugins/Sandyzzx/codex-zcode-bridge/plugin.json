@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "codex-zcode-bridge",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "Let Codex delegate development tasks to your local ZCode runtime and review their progress and results.",
   "author": {
     "name": "Sandy"

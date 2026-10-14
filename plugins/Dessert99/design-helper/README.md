@@ -69,6 +69,11 @@ you see comes from that property. Each value you pick carries into the next comp
   can jump back to an earlier comparison.
 - **You don't refresh.** When the sheet changes, the skill reloads the tab and brings it
   to the front. If the agent can't control a browser, it says so and gives you the URL.
+- **Your conversation stays light.** A subagent reads the code, draws the sheet, checks
+  it and applies your pick. The main conversation only passes messages, so a long
+  comparison doesn't crowd out the rest of your work. In a test run the main agent grew
+  by about 5k tokens over four rounds. Where subagents aren't available, the main agent
+  does the work itself.
 - **Your project stays clean.** The sheet, server, notes and screenshots live in a
   temporary folder outside the project. The only thing left behind is the code for the
   values you chose.
@@ -133,9 +138,12 @@ ln -sfn ~/src/design-helper/skills/design-helper ~/.claude/skills/design-helper 
 ln -sfn ~/src/design-helper/skills/design-helper ~/.codex/skills/design-helper    # Codex
 ```
 
-Both agents read the `description` in `SKILL.md` when a session starts, and the body and
-`references/` when the skill runs. Edits to the body apply immediately; a changed
-`description` needs a new session.
+Both agents read the `description` in `SKILL.md` when a session starts, and the rest
+(`SKILL.md`, `worker.md`, `references/`) when the skill runs. Edits to the body apply
+immediately; a changed `description` needs a new session.
+
+A symlinked skill has no plugin agent, so Claude Code hands the work to a general-purpose
+subagent that reads `worker.md` instead. It works the same way.
 
 To remove it, delete the symlink (`rm ~/.claude/skills/design-helper`). The clone stays.
 
@@ -206,19 +214,21 @@ The instructions are in English, but chat replies and everything on the comparis
 sheet are in Korean. Code, class names, file names and commit messages stay in English.
 
 To change it, install [from a clone](#from-a-clone) and edit the `## Language` section in
-`skills/design-helper/SKILL.md`. A plugin install is replaced on every update, so edits
+`skills/design-helper/worker.md`. A plugin install is replaced on every update, so edits
 there don't last. The Korean phrases quoted in the instructions (`토큰 그대로`, `끝났어`
 and so on) need to change too.
 
 ## Docs
 
-- [`SKILL.md`](skills/design-helper/SKILL.md): the skill itself. The work unit, drawing rules, reading replies, checking, finishing
-- [`references/`](skills/design-helper/references/): detailed instructions the skill reads when needed
+- [`SKILL.md`](skills/design-helper/SKILL.md): what the main agent reads. It hands the work to a subagent and passes messages between it and you, so the main conversation stays small. Without subagents, the main agent does the work itself
+- [`worker.md`](skills/design-helper/worker.md): the full instructions the subagent follows. The work unit, drawing rules, reading replies, checking, finishing
+- [`agents/worker.md`](agents/worker.md): the Claude Code plugin agent that runs `worker.md`. Codex plugins can't ship agents, so Codex spawns a plain subagent instead
+- [`references/`](skills/design-helper/references/): detailed instructions read when needed
   - [`clarification.md`](skills/design-helper/references/clarification.md): asking about a vague request
   - [`sweeping.md`](skills/design-helper/references/sweeping.md): candidate values, captions and the recommendation, background and size, starting from a blank slate, wireframes
   - [`sheet.md`](skills/design-helper/references/sheet.md): the sheet page's section guide, request dividers, table of contents, layout and style
   - [`stylesystems.md`](skills/design-helper/references/stylesystems.md): detecting the style system and drawing in each one
-  - [`controls.md`](skills/design-helper/references/controls.md): optional sliders and their engine
+  - [`controls.md`](skills/design-helper/references/controls.md): optional sliders: when to add one and the rules it has to follow
   - [`motion.md`](skills/design-helper/references/motion.md): comparing animation
   - [`liveview.md`](skills/design-helper/references/liveview.md): the temporary folder, local server, browser tabs, cleanup
 - [`docs/flows.ko.md`](docs/flows.ko.md): usage flows by situation (Korean)
