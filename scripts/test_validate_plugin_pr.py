@@ -16,7 +16,12 @@ SPEC.loader.exec_module(VALIDATOR)
 
 class ReadmeEntryRegexTests(unittest.TestCase):
     def test_repository_urls_preserve_owner_repo_and_description_groups(self) -> None:
-        for suffix in ("", "/tree/main/plugins/example", "?tab=readme-ov-file#setup"):
+        for suffix in (
+            "",
+            "/",
+            "/tree/main/plugins/example",
+            "?tab=readme-ov-file#setup",
+        ):
             with self.subTest(suffix=suffix):
                 url = "https://github.com/example/plugin" + suffix
                 entry = f"- [Example]({url}) - A useful plugin."
