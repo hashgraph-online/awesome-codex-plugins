@@ -4,6 +4,7 @@ import importlib.util
 from pathlib import Path
 import sys
 import unittest
+from unittest.mock import patch
 
 
 MODULE_PATH = Path(__file__).with_name("validate-plugin-pr.py")
@@ -34,6 +35,35 @@ class ReadmeEntryRegexTests(unittest.TestCase):
                     match.groups(),
                     ("Example", url, "example", "plugin", "A useful plugin."),
                 )
+
+    def test_trailing_slash_before_query_is_not_a_new_repository(self) -> None:
+        diff = "\n".join(
+            (
+                "diff --git a/README.md b/README.md",
+                "- [Example](https://github.com/example/plugin?tab=readme) - Existing entry.",
+                "+- [Example](https://github.com/example/plugin/?tab=readme) - Existing entry.",
+            )
+        )
+        base_readme = "- [Example](https://github.com/example/plugin?tab=readme) - Existing entry."
+
+        with patch.object(VALIDATOR, "git", side_effect=(diff, base_readme)):
+            entries = VALIDATOR.get_new_readme_entries("origin/main")
+
+        self.assertEqual(entries, [])
+
+    def test_seen_urls_are_normalized_before_deduplication(self) -> None:
+        diff = "\n".join(
+            (
+                "diff --git a/README.md b/README.md",
+                "+- [Example](https://github.com/example/plugin?tab=readme) - First entry.",
+                "+- [Example](https://github.com/example/plugin/?tab=readme) - Duplicate entry.",
+            )
+        )
+
+        with patch.object(VALIDATOR, "git", side_effect=(diff, "")):
+            entries = VALIDATOR.get_new_readme_entries("origin/main")
+
+        self.assertEqual(len(entries), 1)
 
 
 if __name__ == "__main__":

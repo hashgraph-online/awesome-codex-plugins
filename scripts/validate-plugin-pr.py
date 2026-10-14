@@ -31,6 +31,7 @@ import subprocess
 import sys
 import zipfile
 from pathlib import Path, PurePosixPath
+from urllib.parse import urlsplit, urlunsplit
 from urllib.request import Request, urlopen
 
 REPO_ROOT = Path(__file__).parent.parent
@@ -50,6 +51,18 @@ README_ENTRY_RE = re.compile(
     r"([^/]+)/([^/?#)]+)(?:/tree/[^/]+/[^)?#]+)?/?(?:[?#][^)]*)?)\)\s*[-\u2013]\s*(.+)",
     re.MULTILINE,
 )
+
+
+def normalize_github_repo_url(url: str) -> str:
+    """Normalize GitHub URLs so trailing-slash edits are not new listings."""
+
+    parsed = urlsplit(url)
+    path = parsed.path.rstrip("/")
+    if path.lower().endswith(".git"):
+        path = path[:-4]
+    return urlunsplit(
+        (parsed.scheme.lower(), parsed.netloc.lower(), path.lower(), parsed.query, parsed.fragment)
+    )
 
 
 def git(*args: str) -> str:
@@ -292,7 +305,10 @@ def get_new_readme_entries(base_ref: str) -> list[dict[str, str]]:
     base_readme = git("show", f"{base_ref}:README.md")
     base_urls = set()
     if base_readme:
-        base_urls = {m.group(2) for m in README_ENTRY_RE.finditer(base_readme)}
+        base_urls = {
+            normalize_github_repo_url(match.group(2))
+            for match in README_ENTRY_RE.finditer(base_readme)
+        }
 
     # Extract added lines matching the plugin entry pattern
     new_entries: list[dict[str, str]] = []
@@ -306,9 +322,10 @@ def get_new_readme_entries(base_ref: str) -> list[dict[str, str]]:
         if not match:
             continue
         display_name, url, owner, repo = match.group(1), match.group(2), match.group(3), match.group(4)
-        if url in seen_urls or url in base_urls:
+        normalized_url = normalize_github_repo_url(url)
+        if normalized_url in seen_urls or normalized_url in base_urls:
             continue
-        seen_urls.add(url)
+        seen_urls.add(normalized_url)
         new_entries.append({
             "display_name": display_name,
             "url": url,
