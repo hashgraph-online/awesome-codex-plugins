@@ -65,6 +65,25 @@ class ReadmeEntryRegexTests(unittest.TestCase):
 
         self.assertEqual(len(entries), 1)
 
+    def test_tree_ref_and_subpath_case_are_preserved(self) -> None:
+        base_readme = (
+            "- [Example](https://github.com/example/plugin/tree/Main/Plugins/Foo) "
+            "- Existing entry."
+        )
+        diff = "\n".join(
+            (
+                "diff --git a/README.md b/README.md",
+                "- " + base_readme,
+                "+- [Example](https://github.com/example/plugin/tree/main/plugins/foo) "
+                "- Updated entry.",
+            )
+        )
+
+        with patch.object(VALIDATOR, "git", side_effect=(diff, base_readme)):
+            entries = VALIDATOR.get_new_readme_entries("origin/main")
+
+        self.assertEqual(len(entries), 1)
+
 
 if __name__ == "__main__":
     unittest.main()

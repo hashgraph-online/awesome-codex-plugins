@@ -57,11 +57,16 @@ def normalize_github_repo_url(url: str) -> str:
     """Normalize GitHub URLs so trailing-slash edits are not new listings."""
 
     parsed = urlsplit(url)
-    path = parsed.path.rstrip("/")
-    if path.lower().endswith(".git"):
-        path = path[:-4]
+    path_parts = parsed.path.rstrip("/").split("/")
+    if len(path_parts) >= 3 and path_parts[0] == "":
+        path_parts[1] = path_parts[1].lower()
+        repo = path_parts[2]
+        if repo.lower().endswith(".git"):
+            repo = repo[:-4]
+        path_parts[2] = repo.lower()
+    path = "/".join(path_parts)
     return urlunsplit(
-        (parsed.scheme.lower(), parsed.netloc.lower(), path.lower(), parsed.query, parsed.fragment)
+        (parsed.scheme.lower(), parsed.netloc.lower(), path, parsed.query, parsed.fragment)
     )
 
 
