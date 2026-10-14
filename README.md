@@ -164,7 +164,6 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [Anchor](https://github.com/biefan/anchor) - Engineering discipline pack for Claude Code & Codex CLI with task-scope locking, anti-drift braking, condition-based codex review, project-CLAUDE.md pitfall writeback, and PreToolUse hooks that block irreversible bash patterns.
 - [Antigravity Workspace Template](https://github.com/study8677/antigravity-workspace-template) - Multi-agent codebase knowledge graph generator with context-aware planning and automatic scope management — turns codebases into coherent agent workspaces.
 - [Archcore](https://github.com/archcore-ai/archcore) - Spec-driven development and context engineering for Claude Code, Cursor, Codex, and GitHub Copilot — backed by project context in Git.
-- [Arcmira: YouTube Transcript Search](https://github.com/arcmira/mcp) - Search YouTube transcripts for timestamped quotes, speaker appearances, sponsors and recommendations.
 - [ArmorCodex](https://github.com/armoriq/armorCodex) - Intent-based security for Codex with MCP plan registration, policy gating, CSRG cryptographic proofs, and audit logging on `bash` and `apply_patch`.
 - [assay](https://github.com/awss1i/assay) - Opens a web page you changed, drives every control on it, and reports what it did and what happened in one line, clean or broken.
 - [AtomLane](https://github.com/cloudguo123/atomlane) - Parallelizes only work proven safe by compiling resource-aware atomic plans for builds, tests, Make/Compose workflows, and long-running jobs with live progress and measured savings.
@@ -331,6 +330,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [Anime Reaction GIF](https://github.com/LIghtJUNction/anime-reaction-gif) - Create original anime reaction stickers with image-generated pose sheets, expressive timing, and looping GIF and MP4 exports.
 - [Antigravity 2.0](https://github.com/comprono/antigravity-2-codex-plugin) - Local Codex bridge for Antigravity desktop with setup checks, model limit summaries, DevTools UI automation, and safe project/chat handoff.
 - [Apple Productivity](https://github.com/matk0shub/apple-productivity-mcp) - Local Apple Calendar and Reminders tooling for macOS with Codex plugin adapters.
+- [Arcmira: YouTube Transcript Search](https://github.com/arcmira/mcp) - Search YouTube transcripts for timestamped quotes, speaker appearances, sponsors and recommendations.
 - [AutoCAD Tianzheng Tools](https://github.com/summer521521/AutoCAD_Tianzheng_plugin) - Connects Codex to AutoCAD and Tianzheng HVAC through a local MCP server for DWG-aware HVAC drawing inspection and workflow automation.
 - [AxonFlow](https://github.com/getaxonflow/axonflow-codex-plugin) - Runtime governance for Codex with policy enforcement on terminal commands, advisory checks for non-terminal tools via skills, PII/secret detection, and compliance-grade audit trails. Self-hosted via Docker.
 - [BabelDOC PDF Translate](https://github.com/reliable-ly0411/babeldoc-pdf-translate) - Translate PDFs with local BabelDOC typesetting, configurable translation providers, bilingual output and custom terminology.
