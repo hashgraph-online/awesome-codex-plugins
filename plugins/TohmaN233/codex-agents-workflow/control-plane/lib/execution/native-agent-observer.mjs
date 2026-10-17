@@ -1,10 +1,13 @@
 import { homedir } from 'node:os';
+import { AsyncLocalStorage } from 'node:async_hooks';
+import { performance } from 'node:perf_hooks';
 import { watch } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { join, resolve, dirname, basename, isAbsolute } from 'node:path';
 import { createCodexClient } from './codex-app-server-client.mjs';
 import { discoverLocalCodex } from './local-codex-catalog.mjs';
 import { createNativeLifecycleReader } from './native-agent-lifecycle.mjs';
 import { validateData } from '../workflow-data-schema.mjs';
+import {assertOutsideHostRunTransaction} from '../workflow-run-store.mjs';
 
 function parseFinalJSON(text) {
   try { return {value:JSON.parse(text),syntax_repairs:0}; }
@@ -36,12 +39,16 @@ function parseFinalJSON(text) {
   }
 }
 
-function finalPayload(turn,resultSchema,perItemResult=false) {
+function finalPayload(turn,resultSchema,perItemResult=false,textAmendment=false) {
   const messages=(turn.items??[]).filter(item=>item.type==='agentMessage' && item.phase==='final_answer');
   if(messages.length!==1) return {status:'invalid',reason:`Native Agent turn ${turn.id} has no unique final answer`};
   let value,syntaxRepairs=0,hostProjected=false;
   try { ({value,syntax_repairs:syntaxRepairs}=parseFinalJSON(messages[0].text)); }
   catch { return {status:'invalid',reason:`Native Agent turn ${turn.id} final answer is not JSON`}; }
+  if(textAmendment){
+    if(syntaxRepairs)throw identityError('NATIVE_TEXT_AMENDMENT','Text amendments require exact valid JSON without syntax normalization');
+    return {status:'amendment',amendment:value,result_shape:'text_amendment'};
+  }
   if(perItemResult&&value&&typeof value==='object'&&!Array.isArray(value)&&Array.isArray(value.items)){
     const extras=Object.keys(value).filter(key=>key!=='items');
     const hostOwned=key=>/(?:^|_)(?:id|ids|path|paths|sha256|hash|hashes|checksum|checksums|token|tokens|index|indices|revision|receipt|receipts|timestamp|timestamps|uuid|uuids|nonce|nonces|seed|seeds|encoding|encoded)$/.test(key);
@@ -85,11 +92,13 @@ const NATIVE_EVENT_WAIT_MS=60*60*1000;
 // unresolved registration wakes on a non-parent session event and immediately
 // re-runs the exact parent-scoped identity lookup.
 export async function waitForNativeSessionEvent({home=process.env.CODEX_HOME||join(homedir(),'.codex'),threadIds=[],
-  parentThreadId,timeoutMs=NATIVE_EVENT_WAIT_MS,signal,watchImpl=watch}={}) {
+  parentThreadId,timeoutMs=NATIVE_EVENT_WAIT_MS,signal,watchImpl=watch,runJournalPath,onChange}={}) {
   if(!Number.isSafeInteger(timeoutMs)||timeoutMs<1||timeoutMs>NATIVE_EVENT_WAIT_MS)
     throw identityError('NATIVE_AGENT_WAIT_CONFIG','Native Agent event timeout must be an integer from 1 to 3600000 ms');
   if(!Array.isArray(threadIds)||threadIds.some(id=>typeof id!=='string'||!id))
     throw identityError('NATIVE_AGENT_WAIT_CONFIG','Native Agent event identities must be nonempty strings');
+  if(runJournalPath!==undefined&&(typeof runJournalPath!=='string'||!isAbsolute(runJournalPath))||onChange!==undefined&&typeof onChange!=='function')
+    throw identityError('NATIVE_AGENT_WAIT_CONFIG','Native wait requires an exact absolute Run journal and callable lifecycle predicate');
   const controller=new AbortController();
   const abort=()=>controller.abort(signal?.reason??identityError('NATIVE_AGENT_WAIT_CANCELLED','Native Agent event wait was cancelled'));
   if(signal?.aborted)abort();else signal?.addEventListener('abort',abort,{once:true});
@@ -97,22 +106,38 @@ export async function waitForNativeSessionEvent({home=process.env.CODEX_HOME||jo
     `Native Agent produced no lifecycle event within ${timeoutMs} ms`)),timeoutMs);
   // This pending Host call owns the deadline even when a nonpersistent watcher
   // is the process's only other handle. Release it only when the wait settles.
+  const streams=[];
+  const next=stream=>stream.pending=Promise.resolve(stream.iterator.next()).then(value=>({stream,value}),error=>({stream,error}));
   try{
-    const events=watchImpl(resolve(home,'sessions'),{recursive:true,persistent:false,signal:controller.signal});
-    for await(const event of events){
+    streams.push({scope:'child',iterator:watchImpl(resolve(home,'sessions'),{recursive:true,persistent:false,signal:controller.signal})[Symbol.asyncIterator]()});
+    if(runJournalPath)streams.push({scope:'run',iterator:watchImpl(dirname(runJournalPath),{persistent:false,signal:controller.signal})[Symbol.asyncIterator]()});
+    streams.forEach(next);
+    while(true){
+      const received=await Promise.race(streams.map(stream=>stream.pending));
+      if(received.error)throw received.error;
+      if(received.value.done)throw identityError('NATIVE_AGENT_WAIT_CLOSED','Native Agent lifecycle watcher closed before an event');
+      const {stream}=received,event=received.value.value;next(stream);
       const filename=event?.filename===null||event?.filename===undefined?'':String(event.filename);
-      if(filename&&parentThreadId&&filename.includes(parentThreadId))continue;
-      if(threadIds.length&&filename&&!threadIds.some(id=>filename.includes(id)))continue;
-      return {event_type:event?.eventType??'change',filename};
+      if(stream.scope==='run'){if(filename&&filename!==basename(runJournalPath))continue;}
+      else{
+        if(filename&&parentThreadId&&filename.includes(parentThreadId))continue;
+        if(threadIds.length&&filename&&!threadIds.some(id=>filename.includes(id)))continue;
+      }
+      const observed={event_type:event?.eventType??'change',filename,event_scope:stream.scope};
+      if(onChange){const changed=await onChange(observed);
+        if(typeof changed!=='boolean')throw identityError('NATIVE_AGENT_WAIT_CONFIG','Native lifecycle predicate must return a boolean');
+        if(!changed)continue;
+      }
+      return observed;
     }
-    throw identityError('NATIVE_AGENT_WAIT_CLOSED','Native Agent lifecycle watcher closed before an event');
   }catch(error){
     if(controller.signal.aborted)throw controller.signal.reason??identityError('NATIVE_AGENT_WAIT_CANCELLED','Native Agent event wait was cancelled');
     if(error.code?.startsWith('NATIVE_AGENT_'))throw error;
     throw Object.assign(new Error(`Native Agent lifecycle watch failed: ${error.code??error.message??'WATCH_ERROR'}`,{cause:error}),
       {code:'NATIVE_AGENT_WAIT_FAILED'});
   }finally{
-    clearTimeout(timer);signal?.removeEventListener('abort',abort);
+    clearTimeout(timer);signal?.removeEventListener('abort',abort);controller.abort();
+    await Promise.all(streams.map(async stream=>{await stream.pending;await stream.iterator.return?.();}));
   }
 }
 
@@ -208,12 +233,13 @@ async function resolveNativeThread(client,agentId,{parentThreadId,identityAttemp
   }
 }
 
-async function inspectResolvedNativeAgent(client,agentId,threadId,{parentThreadId,afterTurnId,rejectedTurnIds=[],readLifecycle,onIdentityEvent=async()=>{},reported=new Set(),terminalSnapshots=new Map(),terminalAttempts=7,resultSchema,perItemResult=false}={}) {
+async function inspectResolvedNativeAgent(client,agentId,threadId,{parentThreadId,afterTurnId,rejectedTurnIds=[],readLifecycle,onIdentityEvent=async()=>{},onThreadRead=()=>{},reported=new Set(),terminalSnapshots=new Map(),terminalAttempts=7,resultSchema,perItemResult=false,textAmendment=false}={}) {
   const read=await observerRead(client,'thread/read',{threadId,includeTurns:false},agentId,'OBSERVATION');
   if(read?.thread?.id!==threadId) throw identityError('NATIVE_AGENT_IDENTITY_SCHEMA',`Native Agent identity mismatch: ${agentId} expected thread ${threadId}`);
   if(parentThreadId && read.thread.parentThreadId!==parentThreadId)
     throw identityError('NATIVE_AGENT_IDENTITY_PARENT',`Native Agent ${agentId} has a different parent task; expected ${parentThreadId}`);
   const turn=await latestNativeTurn(client,threadId,agentId,'summary');
+  onThreadRead(agentId,read.thread,turn);
   const lifecycle=await readLifecycle({thread:read.thread,agentId,parentThreadId,turn});
   const pendingFinal=async()=>{
     const key=agentId+':'+lifecycle.turn_id,count=(terminalSnapshots.get(key)??0)+1;terminalSnapshots.set(key,count);
@@ -243,7 +269,7 @@ async function inspectResolvedNativeAgent(client,agentId,threadId,{parentThreadI
   if(!full.items?.some(item=>item.type==='agentMessage'&&item.phase==='final_answer'))return pendingFinal();
   const confirmed=await readLifecycle({thread:read.thread,agentId,parentThreadId,turn:full});
   if(confirmed.turn_id!==turn.id||confirmed.status!=='completed')return {status:'pending',pending_phase:'final_snapshot',agent_id:agentId};
-  return {...finalPayload(full,resultSchema,perItemResult),agent_id:agentId,turn_id:turn.id};
+  return {...finalPayload(full,resultSchema,perItemResult,textAmendment),agent_id:agentId,turn_id:turn.id};
 }
 
 export async function inspectNativeAgent(client,agentId,options={}) {
@@ -257,15 +283,27 @@ export async function inspectNativeAgent(client,agentId,options={}) {
 // only after a child terminal event or an explicit timeout/cancellation.
 export async function inspectNativeAgents(client,agentIds,{pollIntervalMs=250,identityAttempts=1,terminalAttempts=7,
   checkActive=async()=>{},onIdentityEvent=async()=>{},parentThreadId,afterTurnIds={},rejectedTurnIds={},lifecycleHome,
-  resultSchema,perItemResult=false,readLifecycle=createNativeLifecycleReader({home:lifecycleHome??client.nativeObserverHome}),
-  waitForTerminal=false,waitTimeoutMs=NATIVE_EVENT_WAIT_MS,waitForChange=waitForNativeSessionEvent,signal}={}) {
+  resultSchema,perItemResult=false,textAmendments={},readLifecycle=createNativeLifecycleReader({home:lifecycleHome??client.nativeObserverHome}),
+  waitForTerminal=false,waitTimeoutMs=NATIVE_EVENT_WAIT_MS,waitForChange=waitForNativeSessionEvent,signal,runJournalPath}={}) {
   if(!Array.isArray(agentIds)||!agentIds.length) throw new Error('Native Agent inspection requires at least one recorded Agent ID');
   if(!Number.isSafeInteger(pollIntervalMs)||pollIntervalMs<=0) throw new Error('Native Agent final projection interval must be a positive integer');
   if(!Number.isSafeInteger(identityAttempts)||identityAttempts<1||identityAttempts>60)throw new Error('Native Agent identity attempts must be an integer from 1 to 60');
   if(!Number.isSafeInteger(terminalAttempts)||terminalAttempts<1||terminalAttempts>60)throw new Error('Native Agent terminal snapshot attempts must be an integer from 1 to 60');
   if(typeof waitForTerminal!=='boolean'||typeof waitForChange!=='function')
     throw identityError('NATIVE_AGENT_WAIT_CONFIG','Native Agent event wait configuration is invalid');
-  const reported=new Set(),terminalSnapshots=new Map(),resolvedThreads=new Map();
+  const reported=new Set(),terminalSnapshots=new Map(),resolvedThreads=new Map(),knownThreads=new Map();
+  const deadline=performance.now()+waitTimeoutMs;
+  const lifecycleChanged=async event=>{
+    signal?.throwIfAborted();
+    if(event?.event_scope==='run'){await checkActive();return false;}
+    if(!event)return true; // Explicit injected one-shot observer notification.
+    for(const agentId of agentIds){
+      const known=knownThreads.get(agentId);if(!known)return true;
+      const state=await readLifecycle({thread:known.thread,turn:known.turn,agentId,parentThreadId});
+      if(state.status!=='pending'&&state.turn_id!==afterTurnIds[agentId]&&!rejectedTurnIds[agentId]?.includes(state.turn_id))return true;
+    }
+    return false;
+  };
   const inspectOnce=async()=>{
     let sawRegistrationPending=false;
     for(const agentId of agentIds){
@@ -282,7 +320,8 @@ export async function inspectNativeAgents(client,agentIds,{pollIntervalMs=250,id
       for(let snapshot=1;snapshot<=terminalAttempts;snapshot++){
         const result=await inspectResolvedNativeAgent(client,agentId,threadId,{parentThreadId,
           afterTurnId:afterTurnIds[agentId],rejectedTurnIds:rejectedTurnIds[agentId],readLifecycle,onIdentityEvent,
-          reported,terminalSnapshots,terminalAttempts,resultSchema,perItemResult});
+          onThreadRead:(id,thread,turn)=>knownThreads.set(id,{thread,turn}),
+          reported,terminalSnapshots,terminalAttempts,resultSchema,perItemResult,textAmendment:textAmendments[agentId]===true});
         await checkActive();
         if(result.status!=='pending')return result;
         if(result.pending_phase!=='final_snapshot'||snapshot===terminalAttempts)break;
@@ -297,34 +336,128 @@ export async function inspectNativeAgents(client,agentIds,{pollIntervalMs=250,id
     diagnostic:`Host armed one event wait for ${agentIds.length} recorded native Agent(s), timeout ${waitTimeoutMs} ms`});
   while(observed.status==='pending'){
     await checkActive();
+    const remaining=Math.ceil(deadline-performance.now());
+    if(remaining<1)throw identityError('NATIVE_AGENT_WAIT_TIMEOUT','Native Agent terminal wait reached its original deadline');
     const eventController=new AbortController();
     const relayAbort=()=>eventController.abort(signal?.reason??identityError('NATIVE_AGENT_WAIT_CANCELLED','Native Agent event wait was cancelled'));
     if(signal?.aborted)relayAbort();else signal?.addEventListener('abort',relayAbort,{once:true});
-    const outcome=Promise.resolve(waitForChange({home:lifecycleHome??client.nativeObserverHome,
-      threadIds:[...resolvedThreads.values()],parentThreadId,timeoutMs:waitTimeoutMs,signal:eventController.signal}))
+    const outcome=Promise.resolve().then(()=>waitForChange({home:lifecycleHome??client.nativeObserverHome,
+      threadIds:[...resolvedThreads.values()],parentThreadId,timeoutMs:remaining,signal:eventController.signal,runJournalPath,onChange:lifecycleChanged}))
       .then(value=>({value}),error=>({error}));
     // Close the inspect-to-sleep race: the watcher is live before this exact
     // second read. A terminal result cancels the now-unneeded watcher.
-    const rechecked=await inspectOnce();
-    if(rechecked.status!=='pending'){
-      eventController.abort(identityError('NATIVE_AGENT_WAIT_COMPLETE','Native Agent became terminal while the event wait was armed'));
-      await outcome;signal?.removeEventListener('abort',relayAbort);return rechecked;
+    try{
+      // Let the scheduled waiter arm both durable streams before checking the
+      // Run fence. A quiet authority commit before arm has no future event.
+      await Promise.resolve();
+      await checkActive();
+      const rechecked=await lifecycleChanged({event_scope:'child'})?await inspectOnce():observed;
+      if(rechecked.status!=='pending')return rechecked;
+      const event=await outcome;
+      if(event.error)throw event.error;
+      if(!await lifecycleChanged(event.value))continue;
+      await checkActive();observed=await inspectOnce();
+    }finally{
+      eventController.abort(identityError('NATIVE_AGENT_WAIT_COMPLETE','The exact native event wait has settled'));
+      await outcome;signal?.removeEventListener('abort',relayAbort);
     }
-    const event=await outcome;signal?.removeEventListener('abort',relayAbort);
-    if(event.error)throw event.error;
-    await checkActive();observed=await inspectOnce();
   }
   return observed;
 }
 
-export async function withNativeAgentObserver(action,{env=process.env,clientFactory=createCodexClient}={}) {
-  const source=await discoverLocalCodex({env});
-  const home=env.CODEX_HOME || join(homedir(),'.codex');
-  const client=clientFactory(source.binary,{home,cwd:home,env});
-  client.nativeObserverHome=home;
-  try {
+const observerDrives=new AsyncLocalStorage();
+
+// One public native collection owns this connection. Recursive collection can
+// reuse transport initialization; every identity/turn/lifecycle read stays fresh.
+// This is neither a global client nor a cache spanning model tool calls.
+export async function withNativeAgentObserverDrive(action,{env=process.env,clientFactory=createCodexClient,
+  discoverImpl=discoverLocalCodex,onObservation=async()=>{}}={}) {
+  const inherited=observerDrives.getStore();
+  if(inherited){
+    requireObserverDrive(inherited,env,clientFactory,discoverImpl);
+    return action();
+  }
+  const started=performance.now(),pending=new Set(),failures=[];
+  const owner={active:true,env,clientFactory,discoverImpl,pending,failures,client:null,opening:null,
+    report:{schema_version:1,connections:0,actions:0,rpc:{},phases_ms:{}}};
+  let result;
+  try {result=await observerDrives.run(owner,action);}
+  catch(error){failures.push(error);}
+  finally {
+    owner.active=false;
+    // Already-started actions own their full wait. Closing a shared connection
+    // while another action is outstanding would manufacture interrupted turns.
+    await Promise.allSettled([...pending]);
+    if(owner.client){
+      const closeStarted=performance.now();
+      try{await owner.client.close();}catch(error){failures.push(error);}
+      owner.report.phases_ms.close=performance.now()-closeStarted;
+    }
+    owner.report.total_ms=performance.now()-started;
+    owner.report.status=failures.length?'failed':'succeeded';
+    owner.report.error_codes=[...new Set(failures.map(error=>error.code??'NATIVE_AGENT_OBSERVER_FAILED'))];
+    const lifecycleChanges=[...new Set(failures)].filter(error=>error.code==='NATIVE_AGENT_LIFECYCLE_CHANGED'&&error.diagnostic).map(error=>error.diagnostic);
+    if(lifecycleChanges.length)owner.report.lifecycle_changes=structuredClone(lifecycleChanges);
+    try{await onObservation(structuredClone(owner.report));}catch(error){failures.push(error);}
+  }
+  const unique=[...new Set(failures)];
+  if(unique.length===1)throw unique[0];
+  if(unique.length)throw new AggregateError(unique,'Native observer drive or owned shutdown failed');
+  return result;
+}
+
+function requireObserverDrive(owner,env,clientFactory,discoverImpl){
+  if(!owner.active)throw identityError('NATIVE_AGENT_OBSERVER_SCOPE_EXPIRED','Native observer drive already settled');
+  if(owner.env!==env||owner.clientFactory!==clientFactory||owner.discoverImpl!==discoverImpl)
+    throw identityError('NATIVE_AGENT_OBSERVER_SCOPE','Native observer cannot reuse a drive with a different environment or client contract');
+}
+
+async function openObserver(owner){
+  if(!owner.opening)owner.opening=(async()=>{
+    let started=performance.now();
+    const source=await owner.discoverImpl({env:owner.env});
+    owner.report.phases_ms.discovery=performance.now()-started;
+    const home=owner.env.CODEX_HOME||join(homedir(),'.codex');
+    started=performance.now();
+    const client=owner.client=owner.clientFactory(source.binary,{home,cwd:home,env:owner.env});
+    owner.report.phases_ms.spawn=performance.now()-started;
+    owner.report.connections++;
+    const originalCall=client.call.bind(client);
+    client.call=async(method,...args)=>{
+      const rpcStarted=performance.now(),stats=owner.report.rpc[method]??={calls:0,failed:0,total_ms:0,max_ms:0};
+      stats.calls++;
+      try{return await originalCall(method,...args);}catch(error){stats.failed++;throw error;}
+      finally{const elapsed=performance.now()-rpcStarted;stats.total_ms+=elapsed;stats.max_ms=Math.max(stats.max_ms,elapsed);}
+    };
+    client.nativeObserverHome=home;
+    started=performance.now();
     await client.call('initialize',{clientInfo:{name:'codex_workflow_native_observer',version:'1.0.0'},capabilities:{experimentalApi:true}});
     client.initialized();
-    return await action(client);
-  } finally { await client.close(); }
+    owner.report.phases_ms.initialize=performance.now()-started;
+    return client;
+  })();
+  return owner.opening;
+}
+
+export function withNativeAgentObserver(action,{env=process.env,clientFactory=createCodexClient,
+  discoverImpl=discoverLocalCodex,onObservation=async()=>{}}={}) {
+  assertOutsideHostRunTransaction();
+  const owner=observerDrives.getStore();
+  if(!owner)return withNativeAgentObserverDrive(()=>withNativeAgentObserver(action,{env,clientFactory,discoverImpl}),
+    {env,clientFactory,discoverImpl,onObservation});
+  try{requireObserverDrive(owner,env,clientFactory,discoverImpl);}catch(error){
+    const rejected=Promise.reject(error);rejected.catch(()=>{});return rejected;
+  }
+  owner.report.actions++;
+  const operation=(async()=>{
+    const started=performance.now();
+    try{return await action(await openObserver(owner));}
+    catch(error){owner.failures.push(error);throw error;}
+    finally{owner.report.phases_ms.actions=(owner.report.phases_ms.actions??0)+performance.now()-started;}
+  })();
+  owner.pending.add(operation);
+  // Install both handlers immediately, including for a caller that fails to
+  // await its operation. The drive still reports its failure before returning.
+  operation.then(()=>owner.pending.delete(operation),()=>owner.pending.delete(operation));
+  return operation;
 }

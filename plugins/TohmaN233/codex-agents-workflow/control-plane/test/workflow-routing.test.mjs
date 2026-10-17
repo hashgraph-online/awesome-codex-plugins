@@ -4,6 +4,16 @@ import { routeReadyWorkflows } from '../lib/workflow-routing.mjs';
 
 const pack=(id,name,description,tags=[],extra={})=>({revision_hash:id.padEnd(64,'0').slice(0,64),provenance:extra.provenance ?? {},workflow:{id,name,description,tags,status:extra.status ?? 'ready',enabled:extra.enabled ?? true,inputs_schema:{required:['task']},nodes:extra.nodes ?? [],...extra.workflow}});
 
+test('routing exposes declared business schema even without required keys',()=>{
+  const inputs_schema={type:'object',properties:{repository:{type:'string',description:'Repository to inspect'},request:{type:'string'}},required:[]};
+  const source=pack('repository-inspection','Repository inspection','Inspect repository facts',[],{workflow:{inputs_schema}});
+  const route=routeReadyWorkflows([source],'Run repository-inspection');
+  assert.deepEqual(route.selected.required_inputs,[]);
+  assert.deepEqual(route.selected.inputs_schema,inputs_schema);
+  route.selected.inputs_schema.properties.repository.type='number';
+  assert.equal(inputs_schema.properties.repository.type,'string','Routing must not hand out mutable Pack schema references');
+});
+
 test('compact routing selects explicit or uniquely strong Ready matches and exposes material effects',()=>{
   const packs=[
     pack('video-use','Video production','Create and validate a final video artifact.',['video','media'],{nodes:[{type:'agent',access:'bounded_write',executor:{kind:'main'}}]}),

@@ -33,7 +33,7 @@ test('current bundled authoring Host identities refresh without changing configu
     for (const contract of workflow.host_tools) contract.identity.sha256 = previous[contract.identity.name];
     workflow.nodes.find(node => node.id === 'expand').prompt_template += ' User planner policy.';
     originals.push(await store.create(workflow, { provenance: { kind: 'bundled_authoring_workflow', authoring_workflow_id: definition.id,
-      builtin_contract: definition.contract, builtin_prompt_bases: { planner: promptBaseIdentity(authoring.AUTHORING_PLANNER_PROMPT_V27), reviewer: promptBaseIdentity(authoring.AUTHORING_REVIEW_PROMPT_V22) } } }));
+      builtin_contract: definition.contract, builtin_prompt_bases: { planner: promptBaseIdentity(authoring.AUTHORING_PLANNER_PROMPT_CURRENT), reviewer: promptBaseIdentity(authoring.AUTHORING_REVIEW_PROMPT_CURRENT) } } }));
   }
   const refreshed = await authoring.ensureStoredAuthoringWorkflows(store, { providers, routingRules });
   for (const [index, pack] of refreshed.entries()) {
@@ -98,8 +98,8 @@ test('the bundled v28 prompt refreshes to the generic no-transcription contract'
   await authoring.ensureStoredAuthoringWorkflows(store,{providers,routingRules});
   for(const definition of authoring.AUTHORING_WORKFLOWS){
     const pack=await store.snapshot(definition.id);
-    assert.equal(pack.workflow.nodes.find(node=>node.id==='expand').prompt_template,authoring.AUTHORING_PLANNER_PROMPT_V27);
-    assert.deepEqual(pack.provenance.migration,{kind:'bundled_authoring_refresh',contract:'codex-authoring-workflow/v30',from_prompt_sha256:'292b851153c56cf9053fb90066ed3560fc49c74c63eeb6ec37a79feeb1da7d38'});
+    assert.equal(pack.workflow.nodes.find(node=>node.id==='expand').prompt_template,authoring.AUTHORING_PLANNER_PROMPT_CURRENT);
+    assert.deepEqual(pack.provenance.migration,{kind:'bundled_authoring_refresh',contract:'codex-authoring-workflow/v31',from_prompt_sha256:'292b851153c56cf9053fb90066ed3560fc49c74c63eeb6ec37a79feeb1da7d38'});
   }
 });
 
@@ -150,9 +150,9 @@ test('persisted prompt-base identity replaces unknown retired bases and preserve
   await authoring.ensureStoredAuthoringWorkflows(store,{providers,routingRules});
   for(const definition of authoring.AUTHORING_WORKFLOWS){
     const pack=await store.snapshot(definition.id);
-    assert.equal(pack.workflow.nodes.find(node=>node.id==='expand').prompt_template,authoring.AUTHORING_PLANNER_PROMPT_V27+' User planner policy.');
-    assert.equal(pack.workflow.nodes.find(node=>node.id==='final').prompt_template,authoring.AUTHORING_REVIEW_PROMPT_V22+' User reviewer policy.');
-    assert.deepEqual(pack.provenance.builtin_prompt_bases,{planner:promptBaseIdentity(authoring.AUTHORING_PLANNER_PROMPT_V27),reviewer:promptBaseIdentity(authoring.AUTHORING_REVIEW_PROMPT_V22)});
+    assert.equal(pack.workflow.nodes.find(node=>node.id==='expand').prompt_template,authoring.AUTHORING_PLANNER_PROMPT_CURRENT+' User planner policy.');
+    assert.equal(pack.workflow.nodes.find(node=>node.id==='final').prompt_template,authoring.AUTHORING_REVIEW_PROMPT_CURRENT+' User reviewer policy.');
+    assert.deepEqual(pack.provenance.builtin_prompt_bases,{planner:promptBaseIdentity(authoring.AUTHORING_PLANNER_PROMPT_CURRENT),reviewer:promptBaseIdentity(authoring.AUTHORING_REVIEW_PROMPT_CURRENT)});
   }
 });
 
@@ -177,10 +177,10 @@ for(const version of [18,19,21,22,23,24,26,27])for(const custom of [false,true])
   for(const definition of authoring.AUTHORING_WORKFLOWS){
     const pack=await store.snapshot(definition.id),workflow=pack.workflow;
     const planner=workflow.nodes.find(node=>node.id==='expand'),reviewer=workflow.nodes.find(node=>node.id==='final');
-    assert.equal(workflow.authoring.contract,'codex-authoring-workflow/v30');
+    assert.equal(workflow.authoring.contract,'codex-authoring-workflow/v31');
     const oldPrompt=[26,27].includes(version)?authoring.AUTHORING_PLANNER_PROMPT_V26:version===24?authoring.AUTHORING_PLANNER_PROMPT_V24:version===23?authoring.AUTHORING_PLANNER_PROMPT_V23:version===22?authoring.AUTHORING_PLANNER_PROMPT_V22:version===21?authoring.AUTHORING_PLANNER_PROMPT_V21:version===19?authoring.AUTHORING_PLANNER_PROMPT_V19:authoring.AUTHORING_PLANNER_PROMPT_V15;
-    assert.equal(planner.prompt_template,custom?authoring.AUTHORING_PLANNER_PROMPT_V27+' User planner policy.':authoring.AUTHORING_PLANNER_PROMPT_V27);
-    assert.equal(reviewer.prompt_template,custom?'User review policy.':authoring.AUTHORING_REVIEW_PROMPT_V22);
+    assert.equal(planner.prompt_template,custom?authoring.AUTHORING_PLANNER_PROMPT_CURRENT+' User planner policy.':authoring.AUTHORING_PLANNER_PROMPT_CURRENT);
+    assert.equal(reviewer.prompt_template,custom?'User review policy.':authoring.AUTHORING_REVIEW_PROMPT_CURRENT);
     assert.equal(planner.approval.required,true);assert.equal(reviewer.approval.required,true);
     assert.equal(planner.retry.max_attempts,10);assert.equal(reviewer.retry.max_attempts,3);
     assert.equal(planner.executor.provider_id,'planner');assert.equal(reviewer.authoring_reviewer_provider_id,'reviewer');
@@ -188,6 +188,6 @@ for(const version of [18,19,21,22,23,24,26,27])for(const custom of [false,true])
     assert.equal(workflow.nodes.filter(node=>node.type==='agent').length,2);
     assert.equal(workflow.nodes.filter(node=>node.type==='tool').length,3);
     assert.equal(pack.provenance.migration.from_contract,`codex-authoring-workflow/v${version}`);
-    assert.equal(pack.provenance.migration.to_contract,'codex-authoring-workflow/v30');
+    assert.equal(pack.provenance.migration.to_contract,'codex-authoring-workflow/v31');
   }
 });

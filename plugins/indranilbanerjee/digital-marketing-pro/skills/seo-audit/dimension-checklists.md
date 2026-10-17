@@ -1,5 +1,7 @@
 # SEO audit — dimension checklists, finding tables, follow-ups, and dispatch rules
 
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`. Run them with Python 3.10 or newer: `python`, or `python3` where `python` is not found (macOS, many Linux systems).
+
 Read this when you are working an audit dimension, laying out the findings tables and action plan, offering next steps, or fanning the dimensions out in parallel. It supplements `SKILL.md`; the brand-loading step, numbered-output convention, and quality gates there are authoritative.
 
 ## Scope options (ask if not given)

@@ -1,23 +1,13 @@
 {
     "mcpServers": {
         "dodopayments-api": {
-            "type": "stdio",
-            "command": "npx",
-            "args": [
-                "-y",
-                "mcp-remote@latest",
-                "https://mcp.dodopayments.com/mcp"
-            ],
+            "type": "http",
+            "url": "https://mcp.dodopayments.com/mcp",
             "enabled": true
         },
         "dodo-knowledge": {
-            "type": "stdio",
-            "command": "npx",
-            "args": [
-                "-y",
-                "mcp-remote@latest",
-                "https://knowledge.dodopayments.com/mcp"
-            ],
+            "type": "http",
+            "url": "https://knowledge.dodopayments.com/mcp",
             "enabled": true
         }
     }

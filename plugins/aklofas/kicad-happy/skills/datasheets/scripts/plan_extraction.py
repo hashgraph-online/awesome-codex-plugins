@@ -58,7 +58,7 @@ def _load_existing_extraction(cache_dir: Path, mpn: str) -> dict | None:
     if not p.exists():
         return None
     try:
-        return json.loads(p.read_text())
+        return json.loads(p.read_text(encoding="utf-8"))
     except json.JSONDecodeError:
         return None
 
@@ -76,7 +76,7 @@ def _load_scout(cache_dir: Path, mpn: str) -> dict:
             f"Cached scout not found at {p}. Run scout subagent and write its data here, "
             f"or invoke without --use-cached-scout (live scout requires a dispatcher)."
         )
-    return json.loads(p.read_text())
+    return json.loads(p.read_text(encoding="utf-8"))
 
 
 def _build_plan(mpn: str, pdf_path: Path, pdf_sha: str, cache_dir: Path, scout: dict) -> dict:

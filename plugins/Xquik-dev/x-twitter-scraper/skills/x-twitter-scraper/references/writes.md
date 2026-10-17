@@ -6,34 +6,37 @@ account ID. `GET /x/accounts` lists connected accounts.
 
 ## Preview, confirm, send
 
-1. Resolve every field: account, target ID, exact text, media, reply target.
-   Ask for anything missing instead of guessing.
-2. Show the preview: method, full URL, headers, JSON body, cost, and the
-   effect, such as "a new post appears on @my_brand for its followers". A text
-   post or reply costs 30 credits, plus 2 credits per started MB of media.
-   Likes, reposts, follows, DMs, and deletes cost 10 credits each.
-   Itemize each operation, including lookups, with rates, total credits, & dollars.
-   Show media charges, including no media charge for text-only posts.
-   Include `statusUrl` or `GET https://xquik.com/api/v1/x/write-actions/{id}`
-   for checking the final outcome. Acceptance does not mean success.
-3. Generate one new `Idempotency-Key` (a UUID) per intended action. Reuse it
-   only to retry that identical request.
-4. Ask whether the user confirms this exact request. Edits need a new preview.
-5. Send once, through the connected Xquik MCP server or the user's own client.
+- Resolve every field before a preview. That means the account, target ID,
+  exact text, media & reply target. Ask for a missing one instead of
+  guessing.
+- The preview shows the method, full URL, headers, JSON body, cost & effect.
+  An effect reads like "a new post appears on @my_brand for its followers".
+- A text post or reply costs 30 credits, plus 2 per started MB of media.
+  Likes, reposts, follows, DMs & deletes cost 10 credits each.
+- Itemize each operation, lookups included, with rates, total credits &
+  dollars. Show the media charge, or say a text-only post has none.
+- Include `statusUrl`, or `GET https://xquik.com/api/v1/x/write-actions/{id}`,
+  for the final outcome. Acceptance does not mean success.
+- Each intended action gets 1 new `Idempotency-Key`, a UUID. Reuse it only to
+  retry that identical request.
+- Ask whether the user confirms this exact request. An edit needs a new
+  preview.
+- Send once, through the connected Xquik MCP server or the user's own client.
 
 ## Responses and retries
 
 Every write returns an action record with `status`, `terminal`,
 `safeToRetry`, `statusUrl`, and `pollAfterMs`.
 
-- `200`: the action is terminal. Check `status`, because `failed` and
+- `200` means the action is terminal. Check `status`, because `failed` and
   `expired` are terminal too. A new post's ID is in `tweetId` and `result.id`.
-- `202`: accepted. Poll `statusUrl`, which is `GET /x/write-actions/{id}`,
-  every `pollAfterMs` until `terminal` is true. `statusUrl` is a path that
-  already starts with `/api/v1`, so prefix only `https://xquik.com`.
-- Timeout or lost response: do not send a new request, because the first one
-  may have gone through. Retry the identical request with the same
-  `Idempotency-Key`; Xquik returns the original action instead of acting
+- `202` means the action is accepted. Poll `statusUrl`, which is
+  `GET /x/write-actions/{id}`, every `pollAfterMs` until `terminal` is true.
+  `statusUrl` is a path that already starts with `/api/v1`, so prefix only
+  `https://xquik.com`.
+- After a timeout or lost response, do not send a new request, because the
+  first one may have gone through. Retry the identical request with the same
+  `Idempotency-Key`, and Xquik returns the original action instead of acting
   twice. Or poll the action if you have its `statusUrl`.
 - Start a new attempt with a new key only when a terminal record has
   `safeToRetry: true`, and only after the user agrees.
@@ -78,9 +81,10 @@ take numeric user IDs. Resolve a username with `GET /x/users/{username}`.
 
 `POST /draws` picks winners from a post's replies and reposters. The result is
 final, so confirm first. A draw bills 2 base credits, 1 per inspected reply,
-1 per reposter read when `mustRetweet` is on, and 5 per follow check when
-`mustFollowUsername` is set. The total depends on the post's replies and
-reposts, so show that formula with the preview. Remaining credits cap how many
+1 per reposter read when `mustRetweet` is on, and 1 per follow check when
+`mustFollowUsername` is set. It checks only authors who pass the other
+filters. The total depends on the post's replies and reposts, so show that
+formula with the preview. Remaining credits cap how many
 entries the draw inspects, so a low balance can leave valid entries out. Send
 an `Idempotency-Key`.
 
@@ -93,8 +97,8 @@ an `Idempotency-Key`.
 }
 ```
 
-Other fields: `backupCount`, `mustRetweet`, `mustFollowUsername`, `filterAccountAgeDays`,
-`filterLanguage`, `requiredHashtags`, `requiredKeywords`, `requiredMentions`.
+Other fields are `backupCount`, `mustRetweet`, `mustFollowUsername`, `filterAccountAgeDays`,
+`filterLanguage`, `requiredHashtags`, `requiredKeywords`, and `requiredMentions`.
 Read the result with `GET /draws/{id}` and export it with
 `GET /draws/{id}/export?format=csv`.
 

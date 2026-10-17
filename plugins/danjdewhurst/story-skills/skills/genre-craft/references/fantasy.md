@@ -76,7 +76,7 @@ any one time.
   the scene needs it, and anchor each to something concrete. Keep names
   consistent with the world's naming rules
   (`worldbuilding/references/naming-languages.md`), and check each new name
-  with `story names <name>` to catch clashes and look-alikes.
+  with `story names '<name>'` to catch clashes and look-alikes.
 - Open close to the familiar: a human want or fear the reader recognises
   before the strangeness arrives.
 

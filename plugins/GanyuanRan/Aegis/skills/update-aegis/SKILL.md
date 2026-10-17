@@ -58,6 +58,17 @@ python scripts/aegis-update.py register \
   --reload-hint "restart CodeBuddy"
 ```
 
+Copy synchronization uses the installation registry's scoped file inventory.
+It preserves unrelated files and local edits, and stops on conflicting writes
+before changing the view. An identical legacy copy can be adopted; a differing
+copy needs reconciliation or a separate discovery root. Unknown stale copies
+are retained. Names and prefixes alone never prove ownership; do not delete
+them to make verification pass.
+Source names that collide under Unicode normalization/case folding are rejected
+for portability. A case-only rename with changed contents can require moving
+the conflicting file to a backup outside the discovery root, or selecting a
+separate root. Preserve existing files during reconciliation.
+
 Prefixed direct-child host example:
 
 ```bash

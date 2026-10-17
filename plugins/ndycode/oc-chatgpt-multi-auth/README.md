@@ -172,7 +172,7 @@ Plugin settings are re-read per request — most edits need no restart. Boolean 
 | --- | --- |
 | `CODEX_AUTH_PER_PROJECT_ACCOUNTS=0` | Force the global account pool |
 | `CODEX_KEYCHAIN=1` | Store accounts in the OS keychain |
-| `CODEX_AUTH_ROTATION_STRATEGY=hybrid\|sticky\|round-robin` | Account selection strategy |
+| `CODEX_AUTH_ROTATION_STRATEGY=hybrid\|sticky\|round-robin\|custom` | Account selection strategy |
 | `CODEX_AUTH_SPEND_CREDITS=1` | Spend Codex credits once no account has plan quota left |
 | `CODEX_AUTH_QUOTA_DISPLAY=free\|used` | Quota percentages as headroom (default) or consumption |
 | `CODEX_RETRY_ALL_UNBOUNDED=1` | Let "wait as long as the backend asks" apply when every account is rate-limited; otherwise capped at 10 minutes |
@@ -180,6 +180,8 @@ Plugin settings are re-read per request — most edits need no restart. Boolean 
 | `CODEX_PLUGIN_LOG_BODIES=1` | Also log raw bodies (sensitive) |
 
 Full reference, field by field: [docs/configuration.md](docs/configuration.md).
+
+For trusted JavaScript policies and offline validation, see [Custom account rotation](docs/custom-rotation.md).
 
 ## Troubleshooting in 60 seconds
 
@@ -209,7 +211,7 @@ Most issues resolve by signing in again or running `codex-doctor fix=true` insid
 
 ## Release notes
 
-- Current stable: [v6.28.0](CHANGELOG.md) — `npx -y oc-codex-multi-auth@latest`
+- Current stable: [v6.29.0](CHANGELOG.md) — `npx -y oc-codex-multi-auth@latest`
 - Full release archive: [CHANGELOG.md](CHANGELOG.md)
 
 ## Terms and license

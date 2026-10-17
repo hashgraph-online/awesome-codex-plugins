@@ -27,9 +27,9 @@ import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync,
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { need, probe, run } from '../../music/scripts/lib/audio.mjs';
-import { SLUG, findStudio, readJson, rel, upsertEntry, writeJson } from '../../music/scripts/lib/studio.mjs';
+import { experienceDir, experienceJson, SLUG, findStudio, readJson, rel, upsertEntry, writeJson } from '../../music/scripts/lib/studio.mjs';
 import { measure, r128, sheetPng, warnings } from './lib/measure.mjs';
-import { INSTRUMENTS, loop as loopSection, master as masterMix, normalise, render as renderScore, seamRatio } from './lib/score.mjs';
+import { INSTRUMENTS, loop as loopSection, master as masterMix, normalise, render as renderScore, seamWarning } from './lib/score.mjs';
 import { KITS, LEVELS, PRESETS, renderEffect } from './lib/sfx.mjs';
 import { RATE, addInto, dbToGain, dcBlock, levels as levelsOf, limit, peakOf, scale, stereo, wavBytes } from './lib/synth.mjs';
 
@@ -231,13 +231,13 @@ function score(root) {
   const names = want === 'all' ? s.sections.map((x) => x.name) : want ? want.split(',').map((x) => x.trim()).filter(Boolean) : [s.sections.reduce((a, b) => (b.bars > a.bars ? b : a)).name];
   const loops = [];
   for (const name of names) {
-    const lp = loopSection(s, name);
-    scale(lp.mix, gain);
-    limit(lp.mix, { ceiling: dbToGain(-1.2), releaseMs: 150 });
+    // The master's gain and limiter go on inside loopSection, across the three copies it cuts the loop from:
+    // limiting the cut loop by itself puts a step of gain at the wrap.
+    const lp = loopSection(s, name, { gain, ceilingDb: -1.2 });
     const base = `${slug}-${name}-loop-${lp.bars}bars`;
     const wav = writeWav(join(dir, `${base}.wav`), lp.mix, { bits: 16 });
     const ogg = encode(wav, join(dir, `${base}.ogg`), 'ogg');
-    const seam = seamRatio(lp.mix);
+    const seam = lp.seam;
     writeJson(join(dir, `${base}.json`), { section: name, bars: lp.bars, seconds: +lp.seconds.toFixed(6), bpm: s.bpm, beatsPerBar: s.beatsPerBar, seam, codec: ogg.codec });
     if (flags.has('loop-stems')) {
       for (const [st, b] of Object.entries(lp.stems)) { if (!(peakOf(b) > 1e-5)) continue; scale(b, gain); writeWav(join(dir, 'loops', name, `${st}.wav`), b, { bits: 16 }); }
@@ -245,6 +245,9 @@ function score(root) {
     loops.push({ section: name, bars: lp.bars, seconds: +lp.seconds.toFixed(3), seam, wav: rel(root, wav), ogg: rel(root, ogg.file) });
   }
   const m = measure(join(dir, `${slug}.mp3`));
+  // A loop over the seam limit is a warning like any other: an empty list must mean the loops were checked and pass.
+  const seamWarnings = loops.map((l) => seamWarning(l.section, l.seam)).filter(Boolean);
+  const allWarnings = [...warnings(m, 'music'), ...seamWarnings];
   // plan.json: the bar grid, in the shape the video skill reads to cut a trailer on this music's bar lines.
   const plan = {
     title: s.title ?? slug, bpm: s.bpm, key: s.key ?? null, beatsPerBar: s.beatsPerBar, vocals: false, synthesized: true,
@@ -253,15 +256,16 @@ function score(root) {
   };
   writeJson(join(dir, 'plan.json'), plan);
   writeJson(join(dir, 'master.json'), { seconds: m.seconds, mp3: { lufs: m.loudness.lufs, truePeak: m.loudness.truePeakDb }, phoneLufs: m.loudness.phoneLufs });
-  writeJson(join(dir, 'render.json'), { at: new Date().toISOString(), made: 'synthesized', seconds: m.seconds, grid: r.grid, loudness: m.loudness, stems, loops, renderMs: Date.now() - t0 });
+  writeJson(join(dir, 'render.json'), { at: new Date().toISOString(), made: 'synthesized', seconds: m.seconds, grid: r.grid, loudness: m.loudness, stems, loops, warnings: allWarnings, renderMs: Date.now() - t0 });
   let sheet = null;
   try { sheet = rel(root, sheetPng(join(dir, `${slug}.mp3`), join(dir, `${slug}.png`))); } catch { /* */ }
   return {
     ok: true, command: 'score', slug, title: plan.title, seconds: m.seconds, bars: r.grid.bars, bpm: s.bpm,
     loudness: `${m.loudness.lufs} LUFS, true peak ${m.loudness.truePeakDb} dBTP, through a phone speaker ${m.loudness.phoneLufs} LUFS`,
     page: rel(root, join(dir, `${slug}.mp3`)), master: rel(root, masterWav), stems: stems.map((x) => `stems/${x}.wav`),
-    loops: loops.map((l) => `${l.section}: ${l.bars} bars, ${l.seconds}s, seam ${l.seam} (1 or less is seamless) ${l.wav}`),
-    sheet, warnings: warnings(m, 'music'), renderMs: Date.now() - t0,
+    loops: loops.map((l) => `${l.section}: ${l.bars} bars, ${l.seconds}s, seam ${l.seam} ${l.seam > 1 ? 'OVER 1: NOT SEAMLESS, see warnings' : '(1 or less is seamless)'} ${l.wav}`),
+    loopsSeamless: seamWarnings.length === 0,
+    sheet, warnings: allWarnings, renderMs: Date.now() - t0,
   };
 }
 
@@ -364,14 +368,14 @@ function analyze() {
 /* ---------------------------------------------------------------- wire */
 
 function gameMode(gameDir) {
-  const g = readJson(join(gameDir, 'game.json'), {});
+  const g = readJson(experienceJson(gameDir), {});
   return g.build?.mode === 'static' ? 'static' : 'bundle';
 }
 
 function wire(root) {
   const game = String(flags.get('game') ?? '');
-  const gameDir = join(root, 'games', game);
-  if (!game || !existsSync(join(gameDir, 'game.json'))) throw new Error('--game <id>: a game in this studio (games/<id>/game.json)');
+  const gameDir = experienceDir(root, game);
+  if (!game || !existsSync(experienceJson(gameDir))) throw new Error('--game <id>: a game in this studio (games/<id>/game.json)');
   const slugs = pos.slice(1);
   if (!slugs.length) throw new Error('usage: wire <sfx set or score slug...> --game <id>');
   const mode = gameMode(gameDir);
@@ -380,6 +384,7 @@ function wire(root) {
   const manifest = readJson(join(assets, 'sound.json'), { v: 1, sfx: {}, music: {} });
   let bytes = 0;
   const copied = [];
+  const seams = [];
   for (const slug of slugs) {
     const dir = join(root, 'music', slug);
     const sfxInfo = readJson(join(dir, 'sfx.json'), null);
@@ -397,6 +402,8 @@ function wire(root) {
       for (const f of loopsFound) {
         const info = readJson(join(dir, f.replace(/\.wav$/, '.json')), {});
         const name = info.section ?? 'main';
+        const sw = seamWarning(name, info.seam);
+        if (sw) seams.push(`music/${slug}: ${sw}`);
         // Ogg first (a tenth of the bytes), the WAV for a browser that cannot decode Ogg: sound.js takes the first that decodes.
         const list = [];
         for (const g of [f.replace(/\.wav$/, '.ogg'), f]) {
@@ -430,6 +437,7 @@ function wire(root) {
     sfx: Object.keys(manifest.sfx), music: Object.fromEntries(Object.entries(manifest.music).map(([k, v]) => [k, Object.keys(v.loops)])),
     add: importLine,
     then: 'call sound.play(\'<name>\') where the action happens (the host AND every replica: each browser plays its own sound for what it sees), sound.music(\'<slug>\') once at start, sound.section(\'<name>\') when the game\'s intensity changes. Build, then prove it with the playtest skill (its sound row captures what the game really plays).',
+    warnings: seams,
     download: `about ${Math.round(downloadBytes / 1024)} KB for a browser that decodes Ogg (the WAV copies are only fetched when it cannot)`,
     ...(downloadBytes > 3 * 1024 * 1024 ? { note: `${Math.round(downloadBytes / 1024 / 1024)} MB of sound: phones download it before the first round; fewer variants or shorter loops` } : {}),
   };

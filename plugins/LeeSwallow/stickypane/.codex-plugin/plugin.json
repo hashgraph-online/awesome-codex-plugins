@@ -1,0 +1,39 @@
+{
+  "name": "board",
+  "version": "0.1.0",
+  "description": "Put notes, checklists, kanban boards, charts, diagrams, logs and questions on the user's stickypane board and read back what the user did there.",
+  "author": {
+    "name": "LeeSwallow",
+    "url": "https://github.com/LeeSwallow"
+  },
+  "repository": "https://github.com/LeeSwallow/stickypane",
+  "keywords": [
+    "stickypane",
+    "board",
+    "notes",
+    "kanban",
+    "tui",
+    "agent"
+  ],
+  "skills": "./skills/",
+  "hooks": "./hooks/codex-hooks.json",
+  "interface": {
+    "displayName": "stickypane board",
+    "shortDescription": "A board in the terminal that the agent writes to and the user reads",
+    "longDescription": "stickypane shows a folder of plain files as panes in a terminal window next to the agent: notes, kanban boards, checklists, charts, Mermaid diagrams, logs followed live, scripts with a Run button, and forms the user answers with a key press. This plugin teaches the agent when and how to use it.",
+    "developerName": "LeeSwallow",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/LeeSwallow/stickypane",
+    "defaultPrompt": [
+      "Put a checklist of this task on the board.",
+      "Show the plan on the board as a kanban.",
+      "Ask me on the board which option to take."
+    ],
+    "brandColor": "#F2D45C"
+  }
+}

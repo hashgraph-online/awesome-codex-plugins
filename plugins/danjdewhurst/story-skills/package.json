@@ -1,6 +1,6 @@
 {
   "name": "story-skills",
-  "version": "0.21.0",
+  "version": "0.24.0",
   "description": "Agent skills and a companion CLI for planning, tracking, and drafting fiction in markdown.",
   "type": "module",
   "packageManager": "bun@1.4.2",
@@ -29,6 +29,7 @@
   "scripts": {
     "build:fallback": "node scripts/build-fallback.js",
     "build:binaries": "node scripts/build-binaries.js",
+    "build:schema-patterns": "node scripts/schema-patterns.js",
     "build:skill-zips": "node scripts/build-skill-zips.js",
     "check:metadata": "node scripts/check-metadata.js",
     "check:fallback": "node scripts/check-fallback.js",
@@ -40,8 +41,8 @@
     "test:examples": "node scripts/check-examples.js",
     "eval:selftest": "node evals/run-evals.js --all evals/examples",
     "story": "bun run ./bin/story.js",
-    "test": "bun test ./test/*.test.js",
-    "test:coverage": "bun test ./test/*.test.js --coverage --coverage-reporter=lcov --coverage-dir=coverage && node scripts/check-coverage.js coverage/lcov.info src scripts:85 evals:85 && bun run check:fallback"
+    "test": "bun test --timeout 60000 ./test/*.test.js",
+    "test:coverage": "bun test --timeout 60000 ./test/*.test.js --coverage --coverage-reporter=lcov --coverage-dir=coverage && node scripts/check-coverage.js coverage/lcov.info src scripts:85 evals:85 && bun run check:fallback"
   },
   "keywords": [
     "story",

@@ -1,6 +1,15 @@
 import { requireValue } from '../workflow-paths.mjs';
+import { generatedTaskLineageError, GENERATION_RESPONSIBILITY_GUIDE } from '../authoring/generation-executor-policy.mjs';
 
 export const TASK_TYPES = ['implementation', 'complex_implementation', 'review', 'planning'];
+export const LEGACY_DEFAULT_ROUTING_INSTRUCTIONS='Classify each agent by its responsibility. Use GPT-6 Luna / Max for routine bounded implementation, GPT-6.1 Sol / High for complex implementation and independent review, and GPT-6 Astra / Medium for planning and focused problem solving. Preserve separate review boundaries. Use registered suitability descriptions for automatic selection; fixed mode follows the configured routes. Never grant permissions.';
+export const DEFAULT_ROUTING_INSTRUCTIONS='Classify responsibility and actual difficulty before selecting a model. Use GPT-6 Luna / Max for routine bounded inspection, documentation and implementation; GPT-6.1 Sol / High for complex repository analysis, implementation and independent review; GPT-6 Astra / Medium only for difficult planning, novel diagnosis or unresolved design tradeoffs. Ordinary reads, scans and audits are not planning by default. Main orchestration owns initiating-conversation decisions and final semantic acceptance. Preserve source-required review boundaries without adding review stages. Use configured suitability descriptions; the Host binds profiles to configured routes and never grants permissions.';
+
+export function currentRoutingInstructions(rules){
+  const result=structuredClone(rules);
+  if(result.instructions===LEGACY_DEFAULT_ROUTING_INSTRUCTIONS)result.instructions=DEFAULT_ROUTING_INSTRUCTIONS;
+  return result;
+}
 export function routingCatalog(providers = []) {
   return providers.filter(p => p.enabled && p.capabilities?.read).map(p => ({
     id:p.id, kind:p.kind, model:p.config?.model ?? 'client-managed', effort:p.config?.reasoning_effort ?? null,
@@ -10,19 +19,28 @@ export function routingCatalog(providers = []) {
 }
 export function defaultRoutingRules(providers = []) {
   const presets = { implementation: 'native-luna', complex_implementation: 'native-sol', review: 'native-sol', planning: 'native-astra' };
-  const routes=Object.fromEntries(TASK_TYPES.map(type => [type, { provider_id: providers.some(p => p.id === presets[type] && p.enabled) ? presets[type] : '', role: type === 'review' ? 'reviewer' : 'implementer' }]));
+  const routes=Object.fromEntries(TASK_TYPES.map(type => [type, { provider_id: providers.some(p => p.id === presets[type] && p.enabled) ? presets[type] : '' }]));
   const eligible=providers.filter(provider=>provider.enabled && provider.capabilities?.read);
   const authoringPlanner=providers.some(provider=>provider.id==='native-astra'&&provider.enabled)?'native-astra':routes.planning.provider_id || eligible[0]?.id;
   const authoringReviewer=providers.some(provider=>provider.id==='native-sol'&&provider.enabled)?'native-sol'
     : eligible.find(provider=>provider.config?.role==='reviewer')?.id ?? authoringPlanner;
-  return { version: 1, instructions: 'Classify each agent by its responsibility. Use GPT-6 Luna / Max for routine bounded implementation, GPT-6.1 Sol / High for complex implementation and independent review, and GPT-6 Astra / Medium for planning and focused problem solving. Preserve separate review boundaries. Use registered suitability descriptions for automatic selection; fixed mode follows the configured routes. Never grant permissions.',
+  return { version: 1, instructions: DEFAULT_ROUTING_INSTRUCTIONS,
     selection_mode: 'automatic', routes, generation:{...(authoringPlanner?{planner_provider_id:authoringPlanner}:{}),review_provider_id:authoringReviewer ?? 'native-sol',max_rounds:4} };
+}
+
+export function generationRoutingGuide(rules,providers){
+  const catalog=routingCatalog(providers),selected=new Set(Object.values(rules.routes).map(item=>item.provider_id));
+  return {responsibilities:GENERATION_RESPONSIBILITY_GUIDE,instructions:rules.instructions,
+    profiles:{worker_read:'implementation',worker_write:'implementation',worker_complex_read:'complex_implementation',
+      worker_complex_write:'complex_implementation',review:'review',worker_reasoning:'planning',
+      decision:'main_orchestration',orchestration_read:'main_orchestration',orchestration_write:'main_orchestration'},
+    routes:rules.routes,providers:catalog.filter(item=>selected.has(item.id)).map(({role,...item})=>item)};
 }
 export function validateRoutingRules(rules) {
   requireValue(rules && rules.version === 1 && typeof rules.instructions === 'string' && rules.instructions.trim() && rules.instructions.length <= 16000 && rules.routes && Object.keys(rules).every(k => ['version','instructions','routes','generation','selection_mode'].includes(k)), 'ROUTING_RULES', 'Routing rules require version 1, instructions and routes');
   requireValue(rules.selection_mode === undefined || ['automatic','fixed'].includes(rules.selection_mode),'ROUTING_RULES','Unknown selection mode');
   requireValue(Object.keys(rules.routes).length === TASK_TYPES.length && TASK_TYPES.every(t => Object.hasOwn(rules.routes,t)), 'ROUTING_RULES', 'Provide one route for every supported task type');
-  for (const [type,route] of Object.entries(rules.routes)) requireValue(route && Object.keys(route).every(k => ['provider_id','role'].includes(k)) && typeof route.provider_id === 'string' && route.provider_id.length <= 128 && typeof route.role === 'string' && route.role.trim() && route.role.length <= 64, 'ROUTING_RULES', `Each ${type} route requires a Provider ID and node responsibility`);
+  for (const [type,route] of Object.entries(rules.routes)) requireValue(route && Object.keys(route).every(k => ['provider_id','role'].includes(k)) && typeof route.provider_id === 'string' && route.provider_id.length <= 128 && (route.role===undefined||typeof route.role==='string'&&route.role.trim()&&route.role.length<=64), 'ROUTING_RULES', `Each ${type} route requires a Provider ID; legacy role metadata is optional`);
   if (rules.generation !== undefined) validateGenerationSettings(rules.generation);
   return structuredClone(rules);
 }
@@ -31,13 +49,13 @@ export function routeAgent(node, rules, providers, catalog = routingCatalog(prov
   requireValue(node.main_mode === undefined || ['worker','orchestration'].includes(node.main_mode), 'MAIN_EXECUTION_MODE', 'Unknown Main context mode');
   if (node.main_mode !== undefined) {
     requireValue([undefined,'main'].includes(node.execution_target) && node.provider_choice === undefined && node.thread_lifecycle === undefined && node.thread_source_node === undefined, 'MAIN_EXECUTION_MODE', 'Explicit Main context modes cannot select a Provider or task lifecycle');
-    return {executor:{kind:'main',mode:node.main_mode},role:'advisor'};
+    return {executor:{kind:'main',mode:node.main_mode}};
   }
   if (rules.selection_mode === 'automatic') {
     requireValue(['main','subagent','thread'].includes(node.execution_target),'ROUTING_CLASSIFICATION','Choose Main, a one-off Provider subagent, or a source-required durable Codex task');
     if (node.execution_target === 'main') {
       requireValue(node.provider_choice === undefined && node.thread_lifecycle === undefined && node.thread_source_node === undefined,'ROUTING_CLASSIFICATION','Main has no Provider/model or Codex task lifecycle selection');
-      return {executor:{kind:'main'},role:'advisor'};
+      return {executor:{kind:'main'}};
     }
     requireValue(catalog.some(p=>p.id===node.provider_choice),'ROUTING_CLASSIFICATION','Subagent must choose a Provider from the pinned candidate catalog');
     const selected=providers.find(p=>p.id===node.provider_choice);
@@ -48,16 +66,29 @@ export function routeAgent(node, rules, providers, catalog = routingCatalog(prov
       requireValue(['start','continue'].includes(lifecycle),'ROUTING_THREAD_LIFECYCLE','Codex task threads must start a task or continue one exact prior task');
       if (lifecycle === 'start') requireValue(node.thread_source_node === undefined,'ROUTING_THREAD_SOURCE','A new Codex task cannot name a source node');
       else requireValue(typeof node.thread_source_node === 'string' && node.thread_source_node.trim(),'ROUTING_THREAD_SOURCE','A continuing Codex task must name its exact source node');
-      return {executor:{kind:'thread',provider_id:selected.id,lifecycle,...(lifecycle==='continue'?{source_node:node.thread_source_node}:{})},role:node.task_type==='review'?'reviewer':'implementer'};
+      return {executor:{kind:'thread',provider_id:selected.id,lifecycle,...(lifecycle==='continue'?{source_node:node.thread_source_node}:{})}};
     }
     requireValue(node.thread_lifecycle === undefined && node.thread_source_node === undefined,'ROUTING_CLASSIFICATION','Only Codex task threads accept a task lifecycle');
-    return {executor:{kind:'provider',provider_id:selected.id},role:node.task_type==='review'?'reviewer':'implementer'};
+    return {executor:{kind:'provider',provider_id:selected.id}};
   }
   requireValue(node.execution_target === undefined && node.provider_choice === undefined,'ROUTING_CLASSIFICATION','Fixed routes do not accept automatic execution choices');
   const rule = rules.routes[node.task_type];
   const provider = providers.find(p => p.id === rule.provider_id);
-  requireValue(provider?.enabled && provider.capabilities?.read && (provider.kind !== 'native_agent' || ['advisor', rule.role].includes(provider.config?.role)), 'ROUTING_PROVIDER_UNAVAILABLE', `No eligible enabled Provider for ${node.task_type}; edit the routing rule`, { task_type: node.task_type, provider_id: rule.provider_id });
-  return { executor: {kind:'provider',provider_id:provider.id}, role:rule.role };
+  requireValue(provider?.enabled && provider.capabilities?.read, 'ROUTING_PROVIDER_UNAVAILABLE', `No eligible enabled Provider for ${node.task_type}; edit the routing rule`, { task_type: node.task_type, provider_id: rule.provider_id });
+  return { executor: {kind:'provider',provider_id:provider.id} };
+}
+
+// Forge-generated workers follow configured routes in either selection mode.
+// Manual node routing remains in routeAgent, including Main worker and thread.
+export function routeGeneratedAgent(node,rules,providers,catalog=routingCatalog(providers)){
+  requireValue(TASK_TYPES.includes(node.task_type)&&typeof node.routing_reason==='string'&&node.routing_reason.trim()&&node.routing_reason.length<=2000,'ROUTING_CLASSIFICATION','Every routed agent requires task_type and routing_reason');
+  requireValue(node.main_mode===undefined||['worker','orchestration'].includes(node.main_mode),'MAIN_EXECUTION_MODE','Unknown Main context mode');
+  if(node.main_mode==='orchestration')return routeAgent(node,rules,providers,catalog);
+  if(node.thread_lifecycle==='continue'||node.thread_source_node)throw generatedTaskLineageError(node,node.thread_source_node,'task_continues',node.source_spans??(node.source_span?[node.source_span]:[]));
+  const providerId=rules?.routes?.[node.task_type]?.provider_id,provider=providers.find(item=>item.id===providerId);
+  requireValue(provider?.enabled&&provider.capabilities?.read&&catalog.some(item=>item.id===providerId),'ROUTING_PROVIDER_UNAVAILABLE',`No eligible enabled configured Provider for ${node.task_type}; edit the routing rule`,{task_type:node.task_type,provider_id:providerId});
+  requireValue(provider.capabilities.write,'EXPANSION_WRITE_PROVIDER','Generated Agent nodes need a registered write-capable Provider regardless of semantic profile');
+  return {executor:{kind:'provider',provider_id:provider.id}};
 }
 
 export function validateGenerationSettings(value = {}) {

@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 /**
  * capture-game.mjs — real gameplay from a studio's own game, for a trailer: the
- * game's big-screen view (/<id>/tv: a spectator in a live public room, bots in
- * the empty seats) recorded off a headless GPU Chrome, picture and the game's own
+ * game's big-screen view (/<id>/tv: a spectator in a live public room) recorded
+ * off a headless GPU Chrome, picture and the game's own
  * sound on one clock.
+ * A server rules room needs a player to keep ticking; use --view play when
+ * filming an otherwise empty room. A spectator alone does not wake it.
  *
  *   node capture-game.mjs --url <site> --game <id> --seconds 60 --out <dir>
  *        [--view tv|play] [--fps 30] [--width 1920] [--height 1080] [--scale 1] [--settle 4] [--min-free-gb 10]
@@ -95,8 +97,16 @@ try {
     if (!game) await sleep(150);
   }
   if (!game) throw new Error('the game frame never loaded');
+  // A static/older imported game need not publish a netplay probe. Its module
+  // still finishes loading before complete; rules games publish their probe there.
+  await game.waitForFunction(() => document.readyState === 'complete', { timeout: 30000 });
   report.room = await page.evaluate(() => window.__shell?.room ?? null).catch(() => null);
+  const rulesBefore = await game.evaluate(() => { const p = window.__homieNet?.probe; return typeof p?.hosted === 'function' ? { hosted: p.hosted(), tick: p.tick?.() } : null; }).catch(() => null);
   await sleep(SETTLE * 1000);
+  if (VIEW === 'tv' && rulesBefore?.hosted === 'server') {
+    const tick = await game.evaluate(() => window.__homieNet?.probe?.tick?.()).catch(() => null);
+    if (!(tick > rulesBefore.tick)) throw new Error('The server room is paused: a TV is not a participant. Keep a real player open in this same room, or capture with --view play, then record again.');
+  }
   await page.keyboard.press('Shift').catch(() => {}); // a first gesture, for games that start their sound on one
   const tapStart = await game.evaluate(() => window.__homieTap?.start?.() ?? null).catch(() => null);
   report.tap = tapStart;
@@ -156,9 +166,9 @@ if (sourceFps < FPS * 0.75) {
     + (want < SCALE ? `capture again with --scale ${want} (a ${Math.round(W * want)}x${Math.round(H * want)} page, scaled up)${load > 1.5 ? ' when it is quieter' : ''}, or a lower --fps` : `capture with a lower --fps${load > 1.5 ? ', or when the computer is quieter' : ''}`);
 }
 const result = {
-  ...report, file: 'capture.mp4', seconds: +(total / FPS).toFixed(3), outputFrames: total, sourceFrames: frames.length,
+  ...report, mode: 'live', file: 'capture.mp4', seconds: +(total / FPS).toFixed(3), outputFrames: total, sourceFrames: frames.length,
   sourceFps, distinctFramesUsed: distinct, heldFrames: held, audio, ...(advice ? { advice } : {}),
-  honesty: 'Recorded from the game running in a live public room; nothing was pressed and nothing was drawn over. Seats without a person are the game\'s own bots.',
+  honesty: 'Recorded from the game in a live public room, with no scripted gameplay or drawn overlay. Any bots shown are the game\'s own bots.',
 };
 writeFileSync(join(OUT, 'capture.json'), `${JSON.stringify(result, null, 1)}\n`);
 process.stdout.write(`${JSON.stringify({ ok: true, file: mp4, seconds: result.seconds, sourceFps: result.sourceFps, heldFrames: held, ...(advice ? { advice } : {}), audio: audio ? { seconds: audio.seconds, peakDb: audio.peakDb, covered: audio.covered } : null })}\n`);

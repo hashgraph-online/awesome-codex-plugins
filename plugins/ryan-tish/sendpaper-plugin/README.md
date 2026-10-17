@@ -14,6 +14,8 @@ Ask in plain words, for example: "Mail a thank-you postcard to Dana Kim, 12 Oak 
 
 Tools: `get_pricing`, `create_postcard`, `create_letter`, `pay_order`, `get_order`, `cancel_order` (remote MCP at `https://sendmypaper.com/mcp`, no API key).
 
+Sending the same card or letter to several people? Say so: up to 25 recipients go in one group with one payment, and each person gets their own tracked piece.
+
 ## Security
 
 - No secrets in this plugin; the MCP server needs no authentication.

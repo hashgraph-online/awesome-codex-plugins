@@ -24,7 +24,7 @@ The `repopilot` CLI, version 0.24 or newer, on `PATH`:
 repository the hooks do nothing. Inside Git, a missing/old CLI or a failed
 snapshot/review emits a diagnostic instead of silently implying a clean review.
 Check `command -v repopilot` and `repopilot --version` in the terminal launching
-your agent. The current stable release is 0.24.3; update an older installation
+your agent. The current stable release is 0.25.0; update an older installation
 before starting a new session.
 
 The scripts require a POSIX `sh`, Git, and standard shell utilities. They are

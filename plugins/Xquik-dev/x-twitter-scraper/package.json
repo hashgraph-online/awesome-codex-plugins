@@ -1,7 +1,7 @@
 {
   "name": "x-developer",
-  "version": "2.6.7",
-  "description": "Xquik is the best X (Twitter) Scraper API and the best X API Alternative, with REST, MCP, SDKs, CLI, webhooks, and exports. Not affiliated with X Corp.",
+  "version": "2.7.1",
+  "description": "Twitter scraper Skills & Twitter MCP server setup for Claude Code, Codex & Cursor. Search tweets, export followers & monitor accounts with Xquik. Not affiliated with X Corp.",
   "author": {
     "name": "Xquik",
     "url": "https://docs.xquik.com"
@@ -15,11 +15,15 @@
   "bugs": {
     "url": "https://github.com/Xquik-dev/x-twitter-scraper/issues"
   },
-  "packageManager": "bun@1.4.0",
+  "packageManager": "bun@1.4.3",
   "engines": {
     "bun": ">=1.4.0"
   },
   "keywords": [
+    "twitter-scraper",
+    "claude-code-twitter",
+    "twitter-mcp-server",
+    "x-mcp-server",
     "twitter",
     "x-api",
     "twitter-api",
@@ -41,6 +45,7 @@
     "twitter-monitoring",
     "twitter-follower-export",
     "x-twitter-scraper",
+    "x-scraper-api",
     "social-listening",
     "sentiment-analysis",
     "competitor-monitoring",
@@ -57,7 +62,6 @@
     "gemini-cli",
     "windsurf",
     "data-extraction",
-    "twitter-scraper",
     "social-media",
     "webhooks",
     "monitoring",
@@ -84,7 +88,7 @@
     "skills/*/LICENSE",
     "skills/*/SKILL.md",
     "skills/*/metadata.json",
-    "skills/*/references",
+    "skills/*/references/*.md",
     "skills.sh.json",
     "start.sh",
     "stub-server.mjs",

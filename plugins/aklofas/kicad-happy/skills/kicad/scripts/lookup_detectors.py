@@ -128,7 +128,9 @@ def detect_absolute_max_violations(ctx, rail_voltages: dict) -> list[dict]:
             if rail_v is None:
                 continue
 
-            synonyms = _candidate_synonyms(domain, VDD_SYNONYMS)
+            # The base schema keys abs-max ratings "<domain>_max" (VIN_max), as
+            # datasheet_verify._v2_domain_voltage_max reads them.
+            synonyms = (f"{domain}_max",) + _candidate_synonyms(domain, VDD_SYNONYMS)
             specs = _resolve_key(am_block, synonyms)
             if not has_data(specs):
                 continue

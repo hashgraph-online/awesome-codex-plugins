@@ -37,6 +37,8 @@
       "Check AGENTS.md and CLAUDE.md migration gaps.",
       "Review MCP config for secret-reference risks."
     ],
-    "brandColor": "#d97757"
+    "brandColor": "#d97757",
+    "logo": "./assets/bringyour.svg",
+    "composerIcon": "./assets/bringyour.svg"
   }
 }

@@ -33,7 +33,7 @@ All measurement uses existing `hera-godot` commands (no custom tooling):
 - Enumerate: `hera-godot --ids scene tree` / `hera-godot node find --type <Class>`
 - Read tokens: `hera-godot node get <path> --props "<a>,<b>"`
   (**type-aware — see below**)
-- Read effective color: `hera-godot eval "get_node('<path>').get_theme_color('font_color')"`
+- Read effective color: `hera-godot eval --lang gdscript "get_node('<path>').get_theme_color('font_color')"`
 - Read geometry (runtime): `hera-godot game ui tree --fields rect,type,path`
 - Enforce (undoable): `hera-godot node set <path> --prop "<token>" --value <v>`
 - Verify render: `hera-godot screenshot --runtime --analyze`
@@ -239,10 +239,10 @@ and its background surface color, compute WCAG contrast. Fail if below the
 corpus threshold for that text's size (body 4.5:1; large ≥24px or ≥18.66px bold
 3.0:1).
 
-- Effective font color: `hera-godot eval "get_node('<path>').get_theme_color('font_color')"`
+- Effective font color: `hera-godot eval --lang gdscript "get_node('<path>').get_theme_color('font_color')"`
   (the override property alone can be empty while the theme still paints it).
 - Background: the nearest ancestor with a painted `StyleBox` — read via
-  `hera-godot eval "get_node('<panel>').get_theme_stylebox('panel').bg_color"`, else
+  `hera-godot eval --lang gdscript "get_node('<panel>').get_theme_stylebox('panel').bg_color"`, else
   the effective panel/root background.
 
 **Fix:** keep the text colour's hue and saturation and **solve** for the

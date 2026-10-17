@@ -8,6 +8,9 @@ import { WorkflowStore } from '../lib/workflow-store.mjs';
 import { createDraft } from '../lib/workflow-schema.mjs';
 import { canonicalJSON, digest, LIMITS } from '../lib/workflow-revisions.mjs';
 import { packDirectory } from '../lib/workflow-paths.mjs';
+import {migrateStoredWorkflowProviderIds} from '../lib/workflow-provider-identity.mjs';
+import {migrateStoredWorkflowHostToolIdentities} from '../lib/workflow-host-tool-identity.mjs';
+import {workflowResourceProgramIdentity} from '../lib/execution/workflow-resource-program.mjs';
 
 async function fixture(t) {
   const parent = await mkdtemp(join(tmpdir(), 'sol-workflow-store-'));
@@ -64,6 +67,105 @@ test('corrupt heads, immutable revisions and resources fail closed', async t => 
   await writeFile(head, JSON.stringify(altered));
   await assert.rejects(store.snapshot('bad'), { code: 'REVISION_CORRUPT' });
   assert.equal((await store.snapshot('bad', created.revision_hash)).workflow.name, 'Original');
+});
+
+test('metadata candidate scans validate complete definitions without auditing unrelated object bytes', async t => {
+  const {store}=await fixture(t);
+  const created=await store.create(createDraft('metadata','Metadata'),{resources:{'source.txt':'original'}});
+  const pack=packDirectory(store.root,'metadata');
+  await writeFile(join(pack,'objects',created.resources[0].sha256),'corrupt');
+  assert.deepEqual(await store.metadata('metadata'),created);
+  assert.deepEqual(await store.listMetadata(),[created]);
+  assert.deepEqual(await store.metadata('metadata',created.revision_hash),created);
+  await assert.rejects(store.snapshot('metadata'),{code:'RESOURCE_CORRUPT'});
+  await assert.rejects(store.list(),{code:'RESOURCE_CORRUPT'});
+  const altered=structuredClone(created);altered.workflow.name='changed';
+  await writeFile(join(pack,'workflow.json'),JSON.stringify(altered));
+  await assert.rejects(store.listMetadata(),{code:'REVISION_CORRUPT'});
+  await writeFile(join(pack,'workflow.json'),'{invalid');
+  await assert.rejects(store.metadata('metadata'),SyntaxError);
+});
+
+test('startup snapshot returns the same verified object bytes from one observable read',async t=>{
+  const {store}=await fixture(t);
+  const created=await store.create(createDraft('startup-scan','Startup scan'),{resources:{'source.txt':'trusted bytes'}});
+  const load=store.snapshotWithResources.bind(store),snapshot=store.snapshot.bind(store),resources=store.resources.bind(store);
+  let legacyReads=0;
+  store.snapshot=async(...args)=>{legacyReads++;return snapshot(...args);};
+  store.resources=async(...args)=>{legacyReads++;return resources(...args);};
+  const result=await load('startup-scan',created.revision_hash);
+  assert.deepEqual(result.snapshot,created);
+  assert.equal(result.resources['source.txt'].toString(),'trusted bytes');
+  assert.equal(result.resource_scan.resource_count,1);
+  assert.equal(result.resource_scan.object_read_count,1);
+  assert.equal(result.resource_scan.verified_resource_bytes,Buffer.byteLength('trusted bytes'));
+  assert(Number.isFinite(result.resource_scan.elapsed_ms)&&result.resource_scan.elapsed_ms>=0);
+  assert.equal(legacyReads,0);
+
+  await writeFile(join(packDirectory(store.root,'startup-scan'),'objects',created.resources[0].sha256),'changed bytes');
+  const diagnostics=[],writeLog=console.error;
+  console.error=message=>diagnostics.push(String(message));
+  try{await assert.rejects(load('startup-scan',created.revision_hash),{code:'RESOURCE_CORRUPT'});}
+  finally{console.error=writeLog;}
+  const failure=JSON.parse(diagnostics.at(-1).replace(/^\[workflow-resource-scan\] /,''));
+  assert.equal(failure.status,'failed');
+  assert.equal(failure.error_code,'RESOURCE_CORRUPT');
+  assert.equal(failure.resource_count,1);
+  assert.equal(failure.object_read_count,1);
+});
+
+test('metadata scans refuse linked packs, invalid manifests and unknown store entries',async t=>{
+  const {parent,store}=await fixture(t);
+  const outside=join(parent,'outside');await mkdir(outside);
+  await symlink(outside,packDirectory(store.root,'linked'),process.platform==='win32'?'junction':'dir');
+  await assert.rejects(store.listMetadata(),{code:'UNKNOWN_STORE_ENTRY'});
+  await assert.rejects(store.metadata('linked'),{code:'WORKFLOW_SYMLINK'});
+  await rm(packDirectory(store.root,'linked'));
+  const created=await store.create(createDraft('invalid-manifest','Manifest'));
+  const document=structuredClone(created);document.resources=[{path:'../escape',sha256:'a'.repeat(64),bytes:1}];
+  const {revision_hash,...snapshot}=document;document.revision_hash=digest(canonicalJSON(snapshot));
+  await writeFile(join(packDirectory(store.root,'invalid-manifest'),'workflow.json'),JSON.stringify(document));
+  await assert.rejects(store.listMetadata());
+  await writeFile(join(store.root,'unexpected.txt'),'x');
+  await assert.rejects(store.listMetadata());
+});
+
+test('migration scans skip unrelated object bytes but fully audit selected candidates and preserve CAS',async t=>{
+  const {store}=await fixture(t);
+  const unrelated=await store.create(createDraft('unrelated','Unrelated'),{resources:{'source.txt':'original'}});
+  await writeFile(join(packDirectory(store.root,'unrelated'),'objects',unrelated.resources[0].sha256),'corrupt');
+  const workflow=createDraft('old-provider','Old provider');workflow.requirements.providers=['native-terra'];
+  const candidate=await store.create(workflow,{resources:{'candidate.txt':'candidate'}});
+  assert.equal((await migrateStoredWorkflowProviderIds(store)).length,1);
+  const migrated=await store.snapshot(candidate.workflow.id);
+  assert.deepEqual(migrated.workflow.requirements.providers,['native-sol']);
+  await assert.rejects(store.list(),{code:'RESOURCE_CORRUPT'});
+  const bad=createDraft('bad-provider','Bad provider');bad.requirements.providers=['native-terra'];
+  const badPack=await store.create(bad,{resources:{'candidate.txt':'candidate'}});
+  await writeFile(join(packDirectory(store.root,bad.id),'objects',badPack.resources[0].sha256),'corrupt');
+  await assert.rejects(migrateStoredWorkflowProviderIds(store),{code:'RESOURCE_CORRUPT'});
+  await writeFile(join(packDirectory(store.root,bad.id),'objects',badPack.resources[0].sha256),'candidate');
+  const originalSave=store.save.bind(store);
+  store.save=async(id,next,options)=>{
+    const current=await store.snapshot(id);
+    await originalSave(id,{...current.workflow,name:'Concurrent change'},{expected_revision:options.expected_revision});
+    return originalSave(id,next,options);
+  };
+  await assert.rejects(migrateStoredWorkflowProviderIds(store),{code:'REVISION_CONFLICT'});
+});
+
+test('Host migration candidates retain full resource validation even for unsupported identities',async t=>{
+  const {store}=await fixture(t);
+  const unrelated=await store.create(createDraft('unrelated-host','Unrelated'),{resources:{'source.txt':'original'}});
+  await writeFile(join(packDirectory(store.root,unrelated.workflow.id),'objects',unrelated.resources[0].sha256),'corrupt');
+  assert.deepEqual(await migrateStoredWorkflowHostToolIdentities(store),[]);
+  const workflow=createDraft('unknown-host','Unknown Host');
+  workflow.host_tools=[{id:'unknown',identity:{...workflowResourceProgramIdentity(),sha256:'f'.repeat(64)},argv:['node','scripts/check.mjs','work'],
+    input_schema:{type:'object'},output_schema:{type:'object'},env_allow:[],permissions:{network:false,read_paths:[],write_paths:['work']},
+    output_cap_bytes:4096,deadline_ms:10000,idempotency:{mode:'safe'}}];
+  const candidate=await store.create(workflow,{resources:{'scripts/check.mjs':'original'}});
+  await writeFile(join(packDirectory(store.root,workflow.id),'objects',candidate.resources[0].sha256),'corrupt');
+  await assert.rejects(migrateStoredWorkflowHostToolIdentities(store),{code:'RESOURCE_CORRUPT'});
 });
 
 test('unsafe resource paths, collision and size limit fail before any pack is published', async t => {

@@ -1,7 +1,7 @@
 import { readFile, lstat, open, rename } from 'node:fs/promises';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { defaultRoutingRules, validateRoutingRules } from './routing-rules.mjs';
+import { defaultRoutingRules, validateRoutingRules, currentRoutingInstructions } from './routing-rules.mjs';
 import { noSymlinks, requireValue } from '../workflow-paths.mjs';
 import { canonicalJSON } from '../workflow-revisions.mjs';
 import { syncDirectory } from '../workflow-store.mjs';
@@ -14,7 +14,7 @@ export async function loadRoutingSettings(directory, providers) {
     requireValue(info.isFile() && info.nlink === 1 && info.size <= 128000,'ROUTING_SETTINGS_FILE','Routing settings must be a bounded regular file');
     const bytes = await readFile(path);
     requireValue(bytes.length <= 128000,'ROUTING_SETTINGS_FILE','Routing settings grew beyond limit');
-    return validateRoutingRules(canonicalizeRoutingProviderIds(JSON.parse(bytes.toString('utf8'))));
+    return currentRoutingInstructions(validateRoutingRules(canonicalizeRoutingProviderIds(JSON.parse(bytes.toString('utf8')))));
   } catch (error) { if (error.code === 'ENOENT') return defaultRoutingRules(providers); throw error; }
 }
 export async function saveRoutingSettings(directory, providers, store, rules, expected) {

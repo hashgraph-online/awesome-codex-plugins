@@ -27,7 +27,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.7.0-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.8.0-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="MIT License">
   <img src="https://img.shields.io/badge/Claude_Code-Plugin-blueviolet.svg" alt="Claude Code Plugin">
   <img src="https://img.shields.io/badge/Codex_CLI-Skill-orange.svg" alt="Codex CLI Skill">
@@ -227,7 +227,7 @@ Because the parser is deterministic and the corpus is frozen, `npm run benchmark
 
 **Scoring determinism** — for a fixed finding set (2 Critical / 3 Warning / 1 Suggestion), the strictness presets produce exactly the scores their `common.md` table predicts: strict **34**, balanced **54**, legacy-friendly **74** — and only `legacy-friendly` leads with the top-three fixes.
 
-**Model quality** — whether the model finds the *right* risks on real code is measured by the **57-scenario eval suite** (`evals/evals.json`): `npm run evals` (structural) and `npm run evals:live` (live, needs `ANTHROPIC_API_KEY`).
+**Model quality** — whether the model finds the *right* risks on real code is measured by the **58-scenario eval suite** (`evals/evals.json`): `npm run evals` (structural) and `npm run evals:live` (live, needs `ANTHROPIC_API_KEY`).
 
 > Scope & honesty: the parser numbers are deterministic and exactly reproducible. The strictness and eval-suite figures are single-run live measurements against the model and vary slightly run to run. The parser benchmark measures report-parsing fidelity (does the tooling read every finding the report states?), not whether a given finding is "correct." The severity-count match is the fully independent signal; risk-code agreement also reflects the shared canonical name→code legend.
 
@@ -250,7 +250,7 @@ Because the parser is deterministic and the corpus is frozen, `npm run benchmark
 
 ## Installation
 
-### Claude Code (recommended)
+### Claude Code
 
 ```bash
 /plugin marketplace add hyhmrright/brooks-lint
@@ -303,7 +303,13 @@ The installer copies the skills **flat** into the right folder, so the shared fr
 OpenCode v2, Kiro, Factory Droid, and DeepSeek Harness also auto-register `/brooks-review`. New to
 skills, or using an agent not listed? See **[docs/getting-started.md](docs/getting-started.md)**.
 
-> **🧪 Verification status.** Claude Code, Gemini CLI, and Codex CLI are maintainer-verified. The
+> **Maintainer testing policy (2026-10-16).** My Claude account has been banned. Going forward,
+> I will only test and verify Codex-related capabilities. Earlier verification of Claude Code,
+> Gemini CLI, or other platforms is historical and does not imply ongoing testing. Existing
+> integrations remain available, but their current behavior is not verified by the maintainer;
+> community test reports and contributions are welcome.
+
+> **🧪 Historical verification.** Claude Code, Gemini CLI, and Codex CLI were previously verified by the maintainer. The
 > ten platforms above are documented from each tool's official skill spec and verified at the
 > file-layout level (the installer is tested), but not yet run end-to-end by the maintainer on every
 > platform. Tried one — working **or** broken?
@@ -403,7 +409,7 @@ brooks-lint/
 │   └── brooks-sweep/     # Mode 6: Full Sweep         → sweep-guide.md
 ├── hooks/                # SessionStart hook
 ├── commands/             # short-form command wrappers (auto-installed by the hook)
-├── evals/                # 57-scenario eval suite + frozen parser-fidelity corpus
+├── evals/                # 58-scenario eval suite + frozen parser-fidelity corpus
 └── assets/               # logo, banner, demo
 ```
 
@@ -424,10 +430,10 @@ jobs:
     permissions:
       pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: hyhmrright/brooks-lint/.github/actions/brooks-lint@v1.4.3
+      - uses: hyhmrright/brooks-lint/.github/actions/brooks-lint@v1.8.0
         with:
           mode: review
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -437,6 +443,8 @@ jobs:
 See [`docs/github-action-example.yml`](docs/github-action-example.yml) for the full template.
 
 The action posts the review as a PR comment and optionally fails the check if the Health Score drops below a threshold. If `.brooks-lint-history.json` is committed to your repo, the comment also includes a trend delta (e.g., "85 → 82 (−3) over last 3 runs").
+
+**`mode: sweep` in CI reports but never applies fixes.** The action makes a single tool-less API call, so Full Sweep's consent gate (Step 0), its in-place file edits, and its iteration loop cannot run — the Fix Log and Iteration History sections come back empty, and `sweep.max_iterations` from `.brooks-lint.yaml` is inert here. What you get is a description of a sweep, not a sweep. For fixes that actually land, run `/brooks-sweep` interactively in a harness that has file tools and can answer the Step 0 consent prompt. The five read-only modes — `review`, `audit`, `debt`, `test`, `health` — behave in CI exactly as they do locally.
 
 **Quality gates and Code Scanning.** Beyond `fail-below`, the action exposes:
 
@@ -451,6 +459,15 @@ The action posts the review as a PR comment and optionally fails the check if th
 
 `fail-on-regression` reads `.brooks-lint-history.json`, so commit that file to enforce "no new regressions". Setting `sarif-file` makes findings appear inline on the PR's **Files changed** tab and requires `security-events: write` permission on the job.
 
+**Project config in CI.** The action applies your `.brooks-lint.yaml` — `strictness`, `disable`, `focus`, `severity`, `ignore`, `custom_risks` — and reads it **from the base branch**, not from the PR's checkout. A pull request therefore cannot weaken the policy that reviews it: a diff that disables every risk would otherwise score 100 and sail through `fail-below` before anyone approved the config change. A config a PR adds for the first time takes effect once merged, for the same reason. The report's `Config:` line names the provenance it used (e.g. `applied from base (main)`). This needs the base object in the clone, which is why the template checks out with `fetch-depth: 0`; in a PR, missing base refs stop the action with an error instructing you to use `fetch-depth: 0`. It never falls back to the PR's policy. Outside PRs (including local runs), unavailable base refs fall back to the working-tree config with an explicit provenance note. Set `config-ref: head` to use the PR's own copy instead — appropriate when `.brooks-lint.yaml` is CODEOWNERS-protected and config changes should take effect in the PR that makes them:
+
+```yaml
+        with:
+          mode: review
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          config-ref: base   # base (default) | head
+```
+
 **Custom API endpoint.** `api-base-url` points the action at any Anthropic-compatible `/v1/messages` endpoint — a self-hosted proxy, an LLM gateway, a regional mirror — instead of `api.anthropic.com`. Pass that endpoint's key as `anthropic-api-key` and the model id it expects as `model`:
 
 ```yaml
@@ -462,6 +479,12 @@ The action posts the review as a PR comment and optionally fails the check if th
 ```
 
 brooks-lint sends your diff to whatever host you name here, so only point it at one you trust with your source. Running `scripts/ci-review.mjs` yourself needs no flag at all — the Anthropic SDK reads `ANTHROPIC_BASE_URL` directly.
+
+**Claude on Amazon Bedrock.** Bedrock serves the [Anthropic Messages API](https://docs.aws.amazon.com/bedrock/latest/userguide/inference-messages-api.html) natively, so no new client is needed: point `api-base-url` (action `v1.6.0`+) at `https://bedrock-runtime.{region}.amazonaws.com/anthropic` and pass a short-term [Bedrock API key](https://docs.aws.amazon.com/bedrock/latest/userguide/api-keys.html) as `anthropic-api-key` — minted inside the job from an OIDC-assumed role, so no long-lived key sits in a secret. [`docs/github-action-example.yml`](docs/github-action-example.yml) carries the full wiring as commented steps: role assumption, token minting, model ids, the IAM permissions needed, and the `bedrock-mantle` alternative. The trust note above still applies — with Bedrock the diff goes to your own AWS account, in the Region you name.
+
+**This path cannot review pull requests from forks.** GitHub grants a forked `pull_request` run neither repository secrets nor `id-token: write`, so there is no OIDC token to exchange for the role and no stored key to fall back on. Fork coverage needs a different trigger (`pull_request_target`, with all the care that running against untrusted branches demands) or a different key source.
+
+**Output ceiling.** `max-tokens: 8192` raises the report's output ceiling (default 4096). A long `sweep` or `health` report can hit that ceiling, and truncation fails in the wrong direction: the findings that were cut off are never counted, so the Health Score comes back *higher* and a `fail-below` gate can pass a run it should have failed. You do not have to notice that yourself: a run whose report was cut off carries a `::warning::` annotation, repeats the warning in the PR comment, and sets `"truncated": true` in `brooks-lint-report.json` — raise `max-tokens` and re-run. The run is not failed over it.
 
 **Cost:** ~$0.05–0.15 per PR run depending on diff size and model. Recommend running on `pull_request` events only.
 

@@ -9,7 +9,7 @@ test('worker constraint projection excludes the native parent identity while the
   const state={run_id:'fixture-run',workflow_id:'fixture',workflow_revision:1,inputs:{task:'Fixture'},
     constraints:{native_parent_thread_id:parent,network:false},permissions:{workspace:'C:/fixture',access:'read_only',allowed_paths:[]},
     nodes:{work:{status:'claimed',output:null}}};
-  const pins={root:{workflow:{skill_policy:{mode:'cooperative',implicit:'allow',ambient_allow:[],shadowed_skill_paths:[]},edges:[],requirements:{}},
+  const pins={root:{workflow:{finalization:{node_id:'final'},skill_policy:{mode:'cooperative',implicit:'allow',ambient_allow:[],shadowed_skill_paths:[]},edges:[],requirements:{}},
     resources:[]},providers:[],skills:[]};
   const envelope=executionEnvelope(node,state,pins,{id:'attempt-1'},'lease');
   assert.deepEqual(envelope.constraints,{network:false});
@@ -21,7 +21,7 @@ test('worker constraint projection excludes the native parent identity while the
 test('handoff exposes pinned resource IDs, never the content-addressed object directory', () => {
   const node = { id: 'work', type: 'agent', executor: { kind: 'main' }, access: 'read_only', prompt_template: 'Inspect the source.', resources: ['source/SKILL.md'] };
   const state = { run_id: 'fixture-run', workflow_id: 'fixture', workflow_revision: 1, inputs: { task: 'Fixture' }, constraints: {}, permissions: { workspace: 'C:/fixture', access: 'read_only', allowed_paths: [] }, nodes: { work: { status: 'claimed', output: null } } };
-  const pins = { root: { workflow: { skill_policy: { mode: 'cooperative', implicit: 'allow', ambient_allow: [], shadowed_skill_paths: [] }, edges: [], requirements: {} }, resources: [{ path: 'source/SKILL.md', sha256: 'a'.repeat(64), bytes: 12 }] }, providers: [], skills: [] };
+  const pins = { root: { workflow: { finalization:{node_id:'final'},skill_policy: { mode: 'cooperative', implicit: 'allow', ambient_allow: [], shadowed_skill_paths: [] }, edges: [], requirements: {} }, resources: [{ path: 'source/SKILL.md', sha256: 'a'.repeat(64), bytes: 12 }] }, providers: [], skills: [] };
   const envelope = executionEnvelope(node, state, pins, { id: 'attempt-1' }, 'lease');
 
   assert.equal('resources_root' in envelope, false);

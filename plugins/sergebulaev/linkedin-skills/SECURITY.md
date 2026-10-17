@@ -41,7 +41,17 @@ disclosure decision within 14 days.
   runs whatever `LINKEDIN_SKILLS_CUSTOM_POSTER` names, via `subprocess`
   with no shell. That variable is unset by default; anything able to write
   it gains code execution on the next approved publish, so treat it as a
-  credential.
+  credential. Set it only in the trusted launch environment; the bundle's
+  `.env` loader accepts only API credentials and `LINKEDIN_PLATFORM_ID`, not
+  custom commands or transport configuration. The CLI publishing scripts use
+  the same restricted loader.
+- Authenticated Publora calls, including credential diagnostics, refuse HTTP
+  redirects so `x-publora-key` cannot travel to a different origin.
+- Post deletion requires a successful status lookup showing `draft` or
+  `scheduled`. Lookup errors and unknown, processing or live states stop the
+  operation unless the caller explicitly passes `allow_live=True`. This is a
+  client safeguard; the server must enforce the status check atomically to
+  prevent a post changing state between the lookup and deletion.
 - Content fetched from LinkedIn through the Apify read layer is untrusted
   input to the agent. See `references/untrusted-content.md`.
 - Please do not test vulnerabilities against third-party services

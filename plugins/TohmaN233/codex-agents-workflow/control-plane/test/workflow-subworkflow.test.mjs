@@ -12,7 +12,9 @@ import { adoptRunTree, reattachAttempt } from '../lib/workflow-recovery.mjs';
 import { hostResultProposalEnvelope } from '../lib/execution/host-main-automation.mjs';
 import { AttemptAdmissionRegistry } from '../lib/execution/attempt-admission.mjs';
 import { RunExecutionCoordinator } from '../lib/execution/run-execution-coordinator.mjs';
-import { digest } from '../lib/workflow-revisions.mjs';
+import { digest,canonicalJSON } from '../lib/workflow-revisions.mjs';
+import {prepareMainOrchestration} from '../lib/execution/main-orchestration.mjs';
+import {foregroundActivityCount} from '../lib/foreground-activity.mjs';
 import { WORKSPACE_SOURCE_LOCATIONS, WORKSPACE_SOURCE_LOCATIONS_SCHEMA } from '../lib/workspace-source-locations.mjs';
 
 const agent = id => ({ id, type: 'agent', executor: { kind: 'main' }, role: 'implementer', access: 'read_only', prompt_template: '{{task}}', approval: { required: false }, retry: { max_attempts: 2 }, input_bindings: {} });
@@ -81,6 +83,18 @@ test('human tree adoption preserves pinned child identity, rotates all controlle
   await complete(f.runtime, newChild, await claim(f.runtime, newChild, 'final'), { value: 9 }, { acceptance: { accepted: true } });
   const accepted = await f.runtime.collectSubworkflow(parent.run_id, args(recovery.run, reattached.envelope)); assert.deepEqual(accepted.nodes.call.output, { result: { value: 9 } });
   assert.equal((await f.runtime.runs.list()).length, 2); assert.equal(accepted.nodes.call.attempts.length, 1);
+});
+
+test('fork copy explicitly audits all source objects before publishing a child', async t => {
+  const f = await fixture(t), parent = await f.start(), call = await claim(f.runtime, parent, 'call');
+  const record = await f.runtime.runs.read(parent.run_id), pin = record.pins.resources[0];
+  await writeFile(join(f.runtime.runs.directory(parent.run_id), 'objects', pin.sha256), 'corrupt child source');
+  await f.runtime.runs.read(parent.run_id);
+  const audit = f.runtime.runs.audit.bind(f.runtime.runs), audited = [];
+  f.runtime.runs.audit = async id => { audited.push(id); return audit(id); };
+  await assert.rejects(f.runtime.startSubworkflow(parent.run_id, args(parent, call)), { code: 'RUN_RESOURCE_CORRUPT' });
+  assert.deepEqual(audited, [parent.run_id]);
+  assert.equal((await f.runtime.runs.list()).length, 1, 'Corrupt source cannot publish a child Run');
 });
 
 test('child execution pins survive library deletion, reconcile exact identity and require main acceptance before namespaced collection', async t => {
@@ -182,6 +196,28 @@ test('child failure cannot release the parent until sibling execution has draine
   owner.settle();
   assert.equal((await collecting).nodes.call.status, 'failed');
   await coordinator.waitDrain(child.run_id); await coordinator.waitDrain(parent.run_id);
+});
+
+for(const mode of ['attempt','run'])test(`owned ${mode} drain settles a real child Main handoff before parent stop errors`,async t=>{
+  const thread='12345678-1234-4234-8234-123456789abc',childWorkflow=workflow('child');
+  childWorkflow.nodes.find(n=>n.id==='work').executor.mode='orchestration';
+  const f=await fixture(t,{childWorkflow}),admission=new AttemptAdmissionRegistry();f.runtime.executionAdmission=admission;
+  const manager=()=>({entries:new Map(),fenceRun(){},fenceAttempt(){},async stopRun(){},async stopAttempt(){}});
+  const host=manager(),coordinator=new RunExecutionCoordinator({admission,strictManager:manager(),managedNativeManager:manager(),hostMainManager:host,registry:{}});
+  coordinator.bind(f.runtime);
+  const parent=await f.start({constraints:{native_parent_thread_id:thread}}),call=await claim(f.runtime,parent,'call');
+  const child=(await f.runtime.startSubworkflow(parent.run_id,args(parent,call))).child,work=await claim(f.runtime,child,'work');
+  const binding=args(child,work),envelope=await f.runtime.execution(child.run_id,binding);
+  await f.runtime.recordHostMainDispatchIntent(child.run_id,{...binding,request_id:`dispatch-${work.attempt_id}`,envelope_hash:digest(canonicalJSON(envelope))});
+  await prepareMainOrchestration(f.runtime,{run_id:child.run_id,control_token:child.control_token,thread_id:thread});
+  assert.equal(foregroundActivityCount(f.runtime.runs.root),1);
+  const exact=Object.assign(new Error('Parent stop failed'),{code:'EXACT_STOP_FAILURE'});
+  if(mode==='attempt')host.stopAttempt=async id=>{if(id===parent.run_id)throw exact;};
+  else host.stopRun=async id=>{if(id===parent.run_id)throw exact;};
+  await assert.rejects(mode==='attempt'?coordinator.drainAttempt(parent.run_id,call.node_id,call.attempt_id):coordinator.drainRun(parent.run_id),
+    error=>error.code===(mode==='attempt'?'FAIL_NODE_STOP_INCOMPLETE':'RUN_EXECUTION_STOP_INCOMPLETE')&&error.errors.includes(exact));
+  assert.throws(()=>admission.assertRunActive(child.run_id),{code:'ATTEMPT_STOPPED'});
+  assert.equal((await f.runtime.get(child.run_id)).status,'cancelled');assert.equal(foregroundActivityCount(f.runtime.runs.root),0);
 });
 
 test('parent pause blocks child release and dispatch while active completion survives; cancellation fences and records the tree', async t => {

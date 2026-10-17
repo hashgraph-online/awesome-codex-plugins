@@ -139,7 +139,6 @@ export function Inspector({ workflow, selection, providers, change, select, inli
           {node.fanout && <><JsonField label={t('运行时 fanout 合同','Runtime fanout contract')} value={node.fanout} onChange={fanout=>patch({fanout})}/><button type="button" onClick={()=>patch({subagent_count:'auto',fanout:undefined})}>{t('关闭列表 fan-out','Disable list fan-out')}</button></>}
         </>}
         {node.executor?.kind === 'thread' && node.executor.lifecycle === 'continue' && <small>{t('续聊复用一个确定的 Codex Task，不提供子 Agent 数量设置。','Continuation reuses one exact Codex task, so sub-Agent count is unavailable.')}</small>}
-        <Field label={t('节点职责', 'Node responsibility')} value={node.role} onChange={role => patch({ role })}/>
         {node.executor?.kind === 'thread' && <>
           <Select label={t('Task 生命周期', 'Task lifecycle')} value={node.executor.lifecycle ?? 'start'} options={[{value:'start',label:t('创建独立 Task', 'Create independent task')},...(threadSources.length?[{value:'continue',label:t('续聊已有 Task', 'Continue existing task')}]:[])]} onChange={setThreadLifecycle}/>
           {node.executor.lifecycle === 'continue' && <div className={sourceNeedsSelection ? 'invalid-field' : undefined}>
@@ -151,7 +150,7 @@ export function Inspector({ workflow, selection, providers, change, select, inli
           </div>}
         </>}
       </>}
-      {node.type === 'skill_ref' && <><ProviderField label={t('固定 Provider', 'Fixed provider')} providers={providers} value={node.executor?.kind === 'main' ? '$main' : node.executor?.provider_id ?? ''} onChange={id => patch({ executor: id === '$main' ? { kind: 'main' } : { kind: 'provider', provider_id: id } })}/><Field label={t('节点职责', 'Node responsibility')} value={node.role} onChange={role => patch({ role })}/></>}
+      {node.type === 'skill_ref' && <><ProviderField label={t('固定 Provider', 'Fixed provider')} providers={providers} value={node.executor?.kind === 'main' ? '$main' : node.executor?.provider_id ?? ''} onChange={id => patch({ executor: id === '$main' ? { kind: 'main' } : { kind: 'provider', provider_id: id } })}/></>}
       {node.type === 'agent' && <Field label={t('任务指令 / 模板', 'Task instruction / template')} value={node.prompt_template} multiline onChange={prompt_template => patch({ prompt_template })}/>}
       {node.executor && <>
         <Select label={t('访问权限', 'Access')} value={typeof node.access === 'string' ? node.access : '$run'} options={[{value:'read_only',label:t('只读','Read only')},{value:'bounded_write',label:t('受限写入','Bounded write')}, ...(['main','subworkflow'].includes(node.executor.kind) ? [{ value: '$run', label: t('继承 Run 权限', 'Inherit Run access') }] : [])]} onChange={access => patch({ access: access === '$run' ? { binding: 'run.access' } : access })}/>

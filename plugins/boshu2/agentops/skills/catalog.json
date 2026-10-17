@@ -254,7 +254,7 @@
         "documentation",
         "session-handoff"
       ],
-      "references_count": 16,
+      "references_count": 17,
       "tier": "product",
       "user_invocable": true
     },
@@ -363,7 +363,7 @@
       "produces": [
         "subject-manifest.v1"
       ],
-      "references_count": 3,
+      "references_count": 4,
       "tier": "execution",
       "user_invocable": true
     },
@@ -852,7 +852,7 @@
         "suite-summary.json",
         "redteam-results.json"
       ],
-      "references_count": 6,
+      "references_count": 7,
       "tier": "product",
       "user_invocable": true
     },
@@ -961,7 +961,7 @@
       "produces": [
         "test-evidence"
       ],
-      "references_count": 7,
+      "references_count": 10,
       "tier": "execution",
       "user_invocable": true
     },

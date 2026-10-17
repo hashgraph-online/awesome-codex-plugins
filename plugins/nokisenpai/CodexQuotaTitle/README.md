@@ -26,7 +26,7 @@ Development uses the local marketplace already configured on the developer machi
 
 ## Automatic quota updates
 
-The helper starts automatically when a Codex Desktop task/session is opened or resumed. It uses Codex App Server rate-limit updates and periodic resynchronization when App Server is available. If App Server cannot start or later becomes unavailable, the helper falls back to the newest profile-scoped quota snapshot from Codex session rollouts without discarding a newer App Server value. It updates a title only when it can correlate exactly one visible Codex Desktop window to the Desktop host process. If correlation is ambiguous, the title is left unchanged.
+The helper starts automatically when a Codex Desktop task/session is opened or resumed. It uses Codex App Server rate-limit updates and periodic resynchronization when App Server is available. Session rollout readers and watchers are started only when App Server is unavailable, so a working live connection never scans session history. If App Server cannot start or later becomes unavailable, the helper falls back to the newest profile-scoped quota snapshot from Codex session rollouts without discarding a newer App Server value. The fallback caches each rollout and reads appended bytes with a bounded rewrite check after its first scan; unchanged history is not reread. It updates a title only when it can correlate exactly one visible Codex Desktop window to the Desktop host process. If correlation is ambiguous, the title is left unchanged.
 
 ## Profile behavior
 

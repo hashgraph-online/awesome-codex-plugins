@@ -27,8 +27,9 @@ Plan the zoom **per scene** before drafting:
   moves faster.
 - **Shifts must be deliberate.** One zoom level per scene, chosen in advance
   and recorded in the scene record's planning notes (`psychic-distance:
-  {distant|close|deep}`). Zooming mid-scene without a scene break reads as
-  head-hopping's gentler cousin.
+  {distant|close|deep}`). Level 1 records `distant`, levels 2 and 3 record
+  `close`, and level 4 records `deep`. Zooming mid-scene without a scene
+  break reads as head-hopping's gentler cousin.
 
 ## Checkable deep-POV rules
 

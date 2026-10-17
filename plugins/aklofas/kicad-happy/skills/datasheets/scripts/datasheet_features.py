@@ -80,7 +80,7 @@ def _load(mpn, extract_dir=None, analysis_json=None, project_dir=None):
     direct = Path(extract_dir) / f"{mpn}.json"
     if direct.exists():
         try:
-            with direct.open() as f:
+            with direct.open(encoding="utf-8") as f:
                 return _json.load(f)
         except (OSError, ValueError):
             pass

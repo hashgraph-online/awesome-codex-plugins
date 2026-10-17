@@ -171,3 +171,12 @@ test('revalidation checks only selected marked upstream bindings', async t => {
   assert.deepEqual(await revalidateBoundSourceLocations({ id: 'write', input_bindings: {} }, state, pins), { verified: 0 });
   assert.deepEqual(await revalidateBoundSourceLocations({ id: 'write', input_bindings: { other: '/nodes/source/output/other' } }, state, pins), { verified: 0 });
 });
+
+test('completion-only source locations retain the existing stale-file validation',async t=>{
+ const f=await fixture(t),producer={id:'source',output_validators:{locations:WORKSPACE_SOURCE_LOCATIONS}};
+ const consumer={id:'final',input_bindings:{},completion_contract:{host_check:{input_bindings:{original:'/nodes/source/output/locations'}}}};
+ const pins={root:{workflow:{nodes:[producer,consumer]}}},state={permissions:{workspace:f.workspace},inputs:{},nodes:{source:{output:{locations:[f.location]}}}};
+ assert.deepEqual(await revalidateBoundSourceLocations(consumer,state,pins),{verified:1});
+ await writeFile(join(f.workspace,'source.mjs'),f.content+'// changed\n');
+ await assert.rejects(revalidateBoundSourceLocations(consumer,state,pins),{code:'SOURCE_LOCATION_STALE',reason:'file_sha256_mismatch',producer_node_id:'source',output_name:'locations',path:'source.mjs'});
+});

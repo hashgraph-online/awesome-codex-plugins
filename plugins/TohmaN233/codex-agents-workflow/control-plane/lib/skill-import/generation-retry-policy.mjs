@@ -50,3 +50,9 @@ export function generationRetryClass(errorOrFeedback){
 export function semanticGenerationRepair(errorOrFeedback){
   return generationRetryClass(errorOrFeedback)==='semantic';
 }
+
+export function generationReviewRepairOwner(review){
+  if(review.host_findings.length)return 'host';
+  if(review.semantic_findings.length)return 'planner';
+  return 'none';
+}

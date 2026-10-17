@@ -57,7 +57,7 @@ export function qa(file, { kind = 'trailer', maxMb = 25 } = {}) {
   const [fn, fd] = String(v?.avg_frame_rate ?? v?.r_frame_rate ?? '0/1').split('/').map(Number);
   const fps = fd ? +(fn / fd).toFixed(3) : null;
   if (v && v.codec_name !== 'h264') warns.push(`video codec ${v.codec_name}: H.264 plays on every phone and in every browser`);
-  if (v && v.pix_fmt !== 'yuv420p') fails.push(`pixel format ${v.pix_fmt}: Safari and many phones need yuv420p (-pix_fmt yuv420p)`);
+  if (v && v.pix_fmt !== 'yuv420p') fails.push(`pixel format ${v.pix_fmt}: Safari and many phones need yuv420p${/^yuvj/.test(String(v.pix_fmt)) ? ' in limited range; this file is FULL range, which -pix_fmt alone does not change: convert it (scale=out_range=tv:out_color_matrix=bt709,format=yuv420p, with -color_range tv), as `cut` does' : ' (-pix_fmt yuv420p)'}`);
   if (v && (v.width % 2 || v.height % 2)) fails.push(`odd frame size ${v.width}x${v.height}: H.264 needs even sizes`);
   if (v && (v.color_primaries !== 'bt709' || v.color_transfer !== 'bt709' || v.color_space !== 'bt709')) warns.push(`colour tags ${v.color_primaries ?? 'unset'}/${v.color_transfer ?? 'unset'}/${v.color_space ?? 'unset'}: tag BT.709 (-colorspace bt709 -color_primaries bt709 -color_trc bt709) or players guess and the colours shift`);
   const ratio = v ? v.width / v.height : null;

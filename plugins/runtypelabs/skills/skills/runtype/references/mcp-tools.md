@@ -263,6 +263,8 @@ Read `get_platform_documentation(topic="agent-skills")` before authoring.
 
 Versioned judgment question sets: named boolean, choice, or score questions answered with probabilities. Publish a version before a tool config or step references the set.
 
+Read `get_platform_documentation(topic="decision-models")` before authoring. Criteria shape depends on the type: `boolean` takes an optional object `{ "true": "...", "false": "..." }` (a string returns a 400), `choice` takes an object of label to description, and `score` takes an ordered array of 2 to 10 level descriptions, lowest first. Questions are fixed, so to judge N items, write one question per slot and put all N items in one `state`.
+
 | Tool                                                                | Use                                       |
 | ------------------------------------------------------------------- | ----------------------------------------- |
 | `create_question_set` / `update_question_set`                       | Author questions (updates add a draft)    |

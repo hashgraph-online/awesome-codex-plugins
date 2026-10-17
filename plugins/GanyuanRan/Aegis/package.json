@@ -1,6 +1,12 @@
 {
   "name": "aegis",
-  "version": "2.12.1",
+  "version": "2.13.0",
+  "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GanyuanRan/Aegis.git"
+  },
   "type": "module",
   "main": ".opencode/plugins/aegis.js",
   "keywords": [

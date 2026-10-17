@@ -1,0 +1,18 @@
+{
+  "input": "document.pdf",
+  "output": "output/codex-001",
+  "source_language": "en",
+  "target_language": "zh-CN",
+  "outputs": "both",
+  "watermark": "no_watermark",
+  "translate_tables": true,
+  "auto_terms": true,
+  "save_terms": true,
+  "timeout_seconds": 7200,
+  "provider": {
+    "type": "codex",
+    "timeout_seconds": 180,
+    "retries": 1,
+    "cache_dir": ".translation-cache/codex"
+  }
+}

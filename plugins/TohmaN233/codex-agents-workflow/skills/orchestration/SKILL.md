@@ -1,16 +1,28 @@
 ---
 name: orchestration
-description: "Automatically use enabled Workbench Roles for useful delegation in ordinary tasks when no registered Workflow matches. The user does not need to name a Role."
+description: "Automatically use enabled Workbench Roles for useful delegation in ordinary tasks when no registered Workflow matches."
 ---
 
 # Use Workbench Roles in ordinary tasks
+
+**Automatic Role delegation is the default whenever this plugin is loaded.**
+The user does not need to ask for a Role or name one. When no Ready Workflow
+matches a concrete request and a helper would materially help, select and launch
+an enabled Role through the procedure below.
 
 A Role is a saved way to assign one helper. It says what kind of work the helper
 is suited for, which configured model to use, what it may change, and the
 instructions it receives. It does not start a Workflow.
 
-Apply this behavior whenever the plugin is loaded. The user does not need to ask
-for a Role or name one. If no registered Workflow matches a concrete request and
+Choose the least complex adequate enabled Role from its description and configured
+Provider suitability. Routine inspection, documentation and checklist work do not
+justify a difficult-planning model. Reserve Astra / medium for concrete difficult
+planning, novel causal diagnosis or unresolved design tradeoffs; retain the user's
+configured model when compiling the chosen Role. User intent, task routing,
+conversation coordination and final acceptance remain with the primary Agent.
+Role delegation does not turn those duties into an isolated worker assignment.
+
+If no Ready Workflow matches a concrete request and
 one helper would materially help, call `workflow_role_templates`, select the one
 enabled Role whose description fits the work, and call `workflow_role_template`
 for that Role only. Pass the complete task boundary, owned files, constraints,

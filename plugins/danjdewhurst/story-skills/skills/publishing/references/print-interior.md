@@ -47,7 +47,10 @@ finds one the author has installed and runs it, writing
 `dist/<story-id>.pdf`. It tries Prince, WeasyPrint, `pagedjs-cli`, then
 headless Chrome or Chromium, in that order; `--pdf-engine <name|path>` picks
 one. Chrome is a fallback: it skips the blank pages that start chapters on a
-recto, and older versions drop running heads. To run an engine by hand:
+recto, leaves the contents page without page numbers in every book, and older
+versions drop running heads. When the CLI reports `(chrome)`, tell the author
+and suggest one of the other three for the upload copy. To run an engine by
+hand:
 
 - **Paged.js CLI:** `pagedjs-cli dist/<file>.html -o dist/<file>.pdf`
   (free; Chromium-based).

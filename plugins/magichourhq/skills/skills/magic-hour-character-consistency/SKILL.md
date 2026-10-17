@@ -4,7 +4,7 @@ description: Keep a recurring character recognizable across Magic Hour images, s
 license: MIT
 metadata:
   author: magichourhq
-  version: "1.2.0"
+  version: "1.3.0"
 ---
 
 # Magic Hour character consistency
@@ -16,6 +16,8 @@ Reuse the existing character and series context. Choose staging and technical se
 ## Establish the anchor
 
 Read the existing character sheet or approved image before asking for another. Separate fixed traits (face shape, hair silhouette, build, distinctive marks, rendering style) from scene variables (pose, expression, setting, lighting). Clothing is fixed only when the brief requires continuity. Record visible facts; do not infer hidden details or a real person's identity.
+
+For a named saved character, call `saved_items_list` (or authenticated `GET /v1/saved-items` through the existing API) with `type: character`. Match the name and paginate with `next_cursor` as needed; disambiguate multiple matches. Inspect its primary `IMAGE` asset and any additional views the shot requires. Reuse their durable `file_path` values in compatible image fields, not the item ID or temporary preview URL. Keep an explicitly supplied anchor authoritative. Check the library before deciding no reference exists.
 
 If there is no reference, create one useful view with `ai_image_generator_create_image`. Prefer a clear face and readable silhouette at the scale the story needs. An elaborate turnaround is unnecessary for two similar shots; a back view or unusual angle may need its own reviewed anchor. Keep only individually accepted views—an inconsistent contact sheet is not a better reference.
 

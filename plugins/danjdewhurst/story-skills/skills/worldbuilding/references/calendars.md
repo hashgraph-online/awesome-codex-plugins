@@ -9,8 +9,9 @@ the CLI does not (seasons, moons, holidays, how people tell time).
 ## Add the calendar to story.md
 
 Ask the user for the month names and lengths in order, any days outside the
-months (festivals), the week if the story names weekdays, and how years are
-counted. Then add a `calendar` list to the `story.md` frontmatter:
+months (festivals), the week if the story names weekdays, how years are
+counted, and how many hours a day has if not 24. Then add a `calendar` list
+to the `story.md` frontmatter:
 
 ```yaml
 calendar:
@@ -41,6 +42,9 @@ calendar:
 - **Eras** are optional, in order. A `direction: backward` era counts down
   toward the next one, as BC does, and only the first era may. Every
   forward era except the last needs `years` (how long it lasted).
+- **Hours per day** is optional, listed once: add `- hours-per-day: 30` (a
+  whole number from 1 to 100) when the world's day is not 24 hours long,
+  and leave it out for a 24-hour day.
 - Names must not start with a digit or contain a comma, and must be unique.
 
 The full rules are in the project format reference, under Custom calendars
@@ -55,10 +59,13 @@ With a calendar, scene and chapter `date` values are written in it:
 - `3 Thaw 412` (no era: the last era)
 - `Seconday, 3 Thaw 412 AF` (a stated weekday must be the right one)
 
-`story add scene --date "3 Thaw 412 AF"` takes the same forms. Use `time`
-for the time of day: it keeps the 24-hour `HH:MM` clock and the named
-parts of the day (`dawn`, `evening`), even if people in the world count
-hours differently.
+`story add scene --date '3 Thaw 412 AF'` takes the same forms. Use `time`
+for the time of day: `HH:MM` or a named part of the day (`dawn`,
+`evening`). The clock has 24 hours, or the calendar's `hours-per-day`:
+with `hours-per-day: 30`, times run from `00:00` to `29:59`, a journey
+across midnight counts 30 hours a day, and each named part covers the same
+share of the longer day. Record how people in the world name the hours in
+the system file below.
 
 `story timeline`, `story continuity`, the route check, `story knowledge`,
 and progression order turn each date into a day count, so elapsed time
@@ -71,7 +78,7 @@ or a weekday must be a real day of the calendar: `31 Thaw 412 AF` in a
 ## Record the rest as a system file
 
 ```shell
-story add system "Reckoning of Vell" --type social
+story add system 'Reckoning of Vell' --type social
 ```
 
 Fill `worldbuilding/systems/reckoning-of-vell.md` with what the `calendar`
@@ -127,12 +134,14 @@ which makes a good rare event.
 - `story continuity .` checks clock order, `travel-hours`, and routes. It
   reads scene `date`, `time`, `location`, `characters`, and `pov`; chapter
   dates do not feed the route check. A named time is a span (`morning` is
-  05:00-11:59), an untimed scene spans its whole day, and only journeys
-  impossible on every reading are errors. `travel-hours` on a scene is the
-  minimum time since the latest moment the story has reached in reading
-  order (a flashback does not reset it), not a journey within the scene.
+  05:00-11:59 of a 24-hour day), an untimed scene spans its whole day, and
+  only journeys impossible on every reading are errors. `travel-hours` on
+  a scene is the minimum time since the latest moment the story has
+  reached in reading order (a flashback does not reset it), not a journey
+  within the scene. A `time` past the end of the calendar's day is a
+  `malformed-time` warning.
 
-After adding or changing the calendar, run `story validate .` (it checks the
-`calendar` list and every date against it), then `story continuity .`. After
-adding or changing the calendar system file, run `story reindex .`,
-`story links .`, and `story validate .`.
+After adding or changing the calendar or the calendar system file, run
+`story reindex .`, `story wordcount . --write`, and `story check .`:
+`check` validates the `calendar` list and every date against it, then runs
+the continuity checks.

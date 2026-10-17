@@ -48,7 +48,8 @@ Wire the speculative element through the existing machinery in this order:
 3. **Arc file**: at least one plot turn that is impossible without it
    (the load-bearing test, made concrete).
 4. **Timeline**: the element's introduction precedes its exploitation —
-   check `planted-in` vs `paid-off-in` ordering as with any setup.
+   check the `planted` and `payoff` ordering as with any setup
+   (`story continuity` reports a payoff before its plant).
 
 ## Common failure modes
 

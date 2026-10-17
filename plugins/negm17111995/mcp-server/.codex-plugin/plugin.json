@@ -1,7 +1,7 @@
 {
   "name": "maqami-travel",
-  "version": "1.0.6",
-  "description": "Official MCP server for MAQAMI, a hotel and flight booking platform with 3M+ hotels. Search hotels and flights, read hotel details, then prebook and book. Remote Streamable HTTP endpoint, no API key required.",
+  "version": "1.0.9",
+  "description": "Official MCP server for MAQAMI, a hotel and flight booking platform with 3M+ hotels. Search hotels and flights, read hotel details, then send the customer a secure checkout link on book.maqami.co. Remote Streamable HTTP endpoint, no API key required.",
   "author": {
     "name": "MAQAMI",
     "email": "info@maqami.co",
@@ -23,8 +23,8 @@
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "MAQAMI Travel",
-    "shortDescription": "Search and book hotels and flights",
-    "longDescription": "Search hotels (3M+ hotels) and flights worldwide with live rates, read hotel details, amenities, photos and reviews, then prebook a rate to confirm the final price and book it. Booking creates a real reservation and needs guest and payment details, so Codex asks you before it books. No account or API key is needed to connect.",
+    "shortDescription": "Search hotels and flights, book on MAQAMI",
+    "longDescription": "Search hotels (3M+ hotels) and flights worldwide with live rates, read hotel details, amenities, photos and reviews, then hold the price and send the customer a secure checkout link on book.maqami.co, where they enter their details, pay and get confirmed. The MCP server never takes payment. No account or API key is needed to connect.",
     "developerName": "MAQAMI LLC",
     "category": "Travel",
     "capabilities": [

@@ -25,8 +25,8 @@
       "./assets/icon.png"
     ],
     "displayName": "Pixeltable",
-    "shortDescription": "Build Pixeltable apps with declarative tables, pxt CLI, RAG, agents, and serving",
-    "longDescription": "Use Pixeltable to build multimodal AI applications with declarative tables, computed columns, embeddings, retrieval, provider integrations, the pxt CLI (schema, service, inspect), and production workflow patterns.",
+    "shortDescription": "Multimodal database, orchestration, and serving in one file",
+    "longDescription": "The backend agents build with: multimodal database, orchestration, and serving in one file. Build Pixeltable apps with declarative tables, computed columns, embeddings, retrieval, tool-calling agents, provider integrations, and the pxt CLI (schema, service, inspect).",
     "developerName": "Pixeltable",
     "category": "Developer Tools",
     "capabilities": [

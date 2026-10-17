@@ -37,11 +37,14 @@ the procedure and apply the caller response from the sentinel table.
       The first ref that succeeds wins. Strip an `origin/` prefix when
       present; the remainder is `<name>`.
    3. If every probe fails, stop with sentinel `no-default-branch`.
-4. If the current branch equals `<name>`, stop with sentinel
-   `on-default-branch`.
-5. Select `<default-ref>`: if `git rev-parse --verify --quiet origin/<name>`
-   succeeds, set `<default-ref>` to `origin/<name>`; otherwise set
-   `<default-ref>` to `<name>`.
+4. If the current branch equals `<name>`, select `<default-ref>` as the
+   upstream of the branch: if `git rev-parse --verify --quiet @{upstream}`
+   succeeds, set `<default-ref>` to `@{upstream}`; otherwise set
+   `<default-ref>` to `HEAD`.
+5. If the current branch differs from `<name>`, select `<default-ref>`: if
+   `git rev-parse --verify --quiet origin/<name>` succeeds, set
+   `<default-ref>` to `origin/<name>`; otherwise set `<default-ref>` to
+   `<name>`.
 6. Run `git merge-base HEAD <default-ref>`.
    Expected result: one commit hash — the merge base `<merge-base>`.
    If the command fails, stop with sentinel `no-merge-base`.
@@ -78,6 +81,5 @@ and to the `review` skill, not to this file.
 | `no-repo` | The working directory is not inside a git repository. | The skill requests an explicit path or topic from the user. |
 | `detached-head` | `HEAD` points to a commit, not a branch. | The skill states the detached state and requests an explicit path, topic, or ref. |
 | `no-default-branch` | No default branch resolves offline. | The skill requests an explicit path or topic from the user. |
-| `on-default-branch` | The current branch is the default branch. | The `review` skill reports project health instead of a branch review. |
 | `no-merge-base` | `HEAD` and `<default-ref>` share no common ancestor. | The skill requests an explicit path or topic from the user. |
-| `empty-diff` | No committed and no uncommitted changes exist since the merge base. | The `review` skill reports project health instead of a branch review. |
+| `empty-diff` | No committed and no uncommitted changes exist since the merge base. | The skill requests an explicit path, topic, or ref from the user. |

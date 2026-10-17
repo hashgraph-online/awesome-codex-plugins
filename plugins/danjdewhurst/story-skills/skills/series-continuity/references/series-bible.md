@@ -70,11 +70,14 @@ characters or events that do not exist in some book's files.
 - **When a fact first appears on the page**, give it a `fact` id with
   `learned-in` in that book, and carry it without `learned-in` into every
   later book.
-- **When a name changes**, run `story rename` in every book that defines
-  the id, or keep the old id. Put a new title or epithet in `aliases`, not
-  `name`.
+- **When a name changes**, rename it with `story rename` and `--prose` in
+  every book that defines the id, so each book's chapter text follows, or
+  keep the old id. In each book, run it with `--dry-run` first, show the
+  user that book's replacements, and run it for real only once they
+  approve. In each book, after the rename, run `story reindex .`, `story wordcount . --write`, and
+  `story check .`. Put a new title or epithet in `aliases`, not `name`.
 - **Before naming a new character** in a later book, run
-  `story names "<name>" --path <other-book>` against each earlier book, so
+  `story names '<name>' --path '<other-book>'` against each earlier book, so
   a minor character does not echo a major one.
 
 ## Planning a multi-book series
@@ -102,7 +105,7 @@ Plan the series in the first book before drafting later ones:
    own ending; leave the series question open, not the book's.
 4. List the planned books, their working titles, and one-line premises in
    book one's `story.md` `## Series Notes`. Create a book's project with
-   `story init "{Title}" --follows <book-dir>` (or `--precedes`) only when
+   `story init '{Title}' --follows '<book-dir>'` (or `--precedes`) only when
    work on it starts. A planned book with no project needs no links yet.
 5. Decide which canon is fixed now (deaths, the world's rules, the order of
    major reveals) and which stays open. Fix only what book one's ending

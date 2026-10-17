@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "serply": {
+      "type": "http",
+      "url": "https://api.serply.io/mcp",
+      "env_http_headers": {
+        "X-Api-Key": "SERPLY_API_KEY"
+      }
+    }
+  }
+}

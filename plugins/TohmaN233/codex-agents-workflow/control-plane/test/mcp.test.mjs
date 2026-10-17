@@ -1,3 +1,4 @@
+import { legacyConfig } from './legacy-config.mjs';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
@@ -10,13 +11,42 @@ import { createServer } from 'node:http';
 import { once, EventEmitter } from 'node:events';
 import { PassThrough } from 'node:stream';
 import { pathToFileURL } from 'node:url';
-import { createStdioRequestScheduler } from '../server.mjs';
+import { createStdioRequestScheduler, handleRpc } from '../server.mjs';
 import { workflowToolDefinitions } from '../lib/workflow-tools.mjs';
-import { buildBootstrapSource, canonicalLf } from '../../scripts/build-mcp-entry.mjs';
+import { buildBootstrapSource, buildMcpManifest, canonicalLf } from '../../scripts/build-mcp-entry.mjs';
+import {WORKFLOW_EXECUTION_MCP_SERVER,WORKFLOW_LONG_CALL_TOOLS,WORKFLOW_DIRECT_TOOLS} from '../lib/workflow-call-policy.mjs';
 
 const controlDir = dirname(dirname(fileURLToPath(import.meta.url)));
 const pluginDir = dirname(controlDir);
 const serverPath = join(controlDir, 'server.mjs');
+
+test('startup entrypoints advertise direct invocation and optional environment diagnosis',()=>{
+ for(const transport of ['code_mode','direct_mcp']){
+  const tools=workflowToolDefinitions(transport);
+  const start=tools.find(tool=>tool.name==='workflow_start').description;
+  assert.match(start,/call this tool directly/i);
+  assert.match(start,/Host reads inputs_path/);
+  assert.match(start,/do not reread/);
+  assert.match(start,/or call prepare_environment first/);
+  const environment=tools.find(tool=>tool.name==='workflow_prepare_environment').description;
+  assert.match(environment,/Optional/);
+  assert.doesNotMatch(environment,/Mandatory before task execution/);
+ }
+});
+
+test('stdio MCP rejects an unknown launcher transport before serving a request',{timeout:5000},async t=>{
+ const child=spawn(process.execPath,[serverPath],{env:{...process.env,WORKFLOW_MCP_TRANSPORT:'unknown'},stdio:['ignore','pipe','pipe'],windowsHide:true});
+ t.after(()=>{if(child.exitCode===null)child.kill();});
+ let stdout='',stderr='';child.stdout.on('data',chunk=>{stdout+=chunk;});child.stderr.on('data',chunk=>{stderr+=chunk;});
+ const [code]=await once(child,'close');assert.equal(code,1);assert.equal(stdout,'');assert.match(stderr,/WORKFLOW_MCP_TRANSPORT/);
+});
+
+test('stateful startup preparation advertises exact local write effects in the actual MCP catalog',async()=>{
+ const listed=await handleRpc({jsonrpc:'2.0',id:'preparation-effects',method:'tools/list'});
+ const tool=listed.result.tools.find(tool=>tool.name==='workflow_startup_contract');
+ assert.ok(tool);
+ assert.deepEqual(tool.annotations,{readOnlyHint:false,destructiveHint:false,openWorldHint:false});
+});
 
 function clientFixture(t, options) {
   const child = Object.assign(new EventEmitter(), {
@@ -75,6 +105,28 @@ test('plugin MCP uses a stable parent and fresh registry resolution with the glo
   assert.ok(server.env_vars.includes('USERPROFILE'));
 });
 
+test('bootstrap generator updates both launchers and deterministically preserves their transport bindings',async()=>{
+ const manifest=JSON.parse(await readFile(join(pluginDir,'.mcp.json'),'utf8')),
+  source=await readFile(join(pluginDir,'scripts/mcp-bootstrap.cjs'),'utf8');
+ assert.deepEqual(buildMcpManifest(structuredClone(manifest),source),manifest);
+ const changedSource=source.replace('const fs = require','const fs = require_changed'),
+  generated=buildMcpManifest(structuredClone(manifest),changedSource),
+  management=generated.mcpServers['codex-agents-workflow'],execution=generated.mcpServers[WORKFLOW_EXECUTION_MCP_SERVER];
+ assert.equal(management.args[1],buildBootstrapSource(changedSource));assert.deepEqual(execution.args,management.args);
+ assert.notEqual(execution.args[1],manifest.mcpServers[WORKFLOW_EXECUTION_MCP_SERVER].args[1]);
+ assert.equal(management.disabled_tools,undefined);
+ assert.deepEqual(execution.enabled_tools,WORKFLOW_DIRECT_TOOLS);assert.deepEqual(execution.omit_tools_from,['code_mode','deferred']);
+ assert.equal(management.env.WORKFLOW_MCP_TRANSPORT,'code_mode');assert.equal(execution.env.WORKFLOW_MCP_TRANSPORT,'direct_mcp');
+ const {env:managementEnv,...managementLauncher}=management,{env:executionEnv,enabled_tools,omit_tools_from,...executionLauncher}=execution;
+ assert.deepEqual(executionLauncher,managementLauncher);
+ const {WORKFLOW_MCP_TRANSPORT:managementTransport,...managementInherited}=managementEnv,
+  {WORKFLOW_MCP_TRANSPORT:executionTransport,...executionInherited}=executionEnv;
+ assert.deepEqual(executionInherited,managementInherited);
+ const stale=structuredClone(manifest);stale.mcpServers['codex-agents-workflow'].disabled_tools=[...WORKFLOW_LONG_CALL_TOOLS];
+ assert.deepEqual(buildMcpManifest(stale,source),manifest);
+ assert.deepEqual(buildMcpManifest(structuredClone(generated),changedSource),generated);
+});
+
 test('routing policy leaves the primary model to the host and never auto-falls back', async () => {
   const controlSkill = await readFile(join(pluginDir, 'skills', 'control-plane', 'SKILL.md'), 'utf8');
   const nativeSkill = await readFile(join(pluginDir, 'skills', 'orchestration', 'SKILL.md'), 'utf8');
@@ -88,13 +140,20 @@ test('routing policy leaves the primary model to the host and never auto-falls b
   assert.match(nativeSkill, /longest supported\s+timeout/i);
   assert.doesNotMatch(controlSkill, /legacy|version: [67]|\bv[67]\b/);
   const toolNames=new Set(workflowToolDefinitions().map(tool=>tool.name));
-  for (const operation of ['workflow_start', 'workflow_claim_node', 'workflow_dispatch', 'workflow_complete_node', 'workflow_reattach_connector']) assert(toolNames.has(operation));
+  for (const operation of ['workflow_start', 'workflow_start_prepared', 'workflow_claim_node', 'workflow_dispatch', 'workflow_complete_node', 'workflow_reattach_connector']) assert(toolNames.has(operation));
   const workflowStart=workflowToolDefinitions().find(tool=>tool.name==='workflow_start');
-  for(const hostField of ['main_actor','native_parent_thread_id','revision_hash','run_id','control_token'])
+  for(const hostField of ['main_actor','native_parent_thread_id','run_id','control_token'])
     assert.equal(Object.hasOwn(workflowStart.inputSchema.properties,hostField),false,hostField);
+  assert.deepEqual(workflowStart.inputSchema.properties.revision_hash,{type:'string'});
+  assert(Object.hasOwn(workflowStart.inputSchema.properties,'initial_output'));
+  const prepared=workflowToolDefinitions().find(tool=>tool.name==='workflow_start_prepared').inputSchema;
+  assert.deepEqual(prepared.required,['startup_reference']);
+  assert.deepEqual(Object.keys(prepared.properties),['startup_reference','initial_output']);
+  assert.equal(prepared.additionalProperties,false);
   for(const continuation of ['workflow_native_next','workflow_native_spawned_batch','workflow_native_followed_up']){
     const schema=workflowToolDefinitions().find(tool=>tool.name===continuation).inputSchema;
-    assert.deepEqual(schema.required,[]);assert.deepEqual(schema.properties,{});
+    assert.deepEqual(schema.required,[]);
+    assert.deepEqual(Object.keys(schema.properties),continuation==='workflow_native_spawned_batch'?['batch_id']:[]);
   }
   const connection = await readFile(join(pluginDir, 'skills/control-plane/references/connection.md'), 'utf8');
   assert.match(connection, /Never claim connection recovery before a host tool call\s+succeeds/i);
@@ -178,7 +237,8 @@ test('stdio MCP lists control tools and returns sanitized status', async (t) => 
   });
   const status = JSON.parse(statusResponse.result.content[0].text);
   assert.equal(status.effective_enabled, true);
-  assert.ok(status.task_types.some((taskType) => taskType.id === 'bounded-code-change'));
+  assert.equal(status.version,7);
+  assert.deepEqual(status.task_types,[]);
   assert.doesNotMatch(statusResponse.result.content[0].text, /CONSTRAINTS AND OWNERSHIP/);
   assert.doesNotMatch(statusResponse.result.content[0].text, /example\.invalid/);
 
@@ -207,7 +267,7 @@ test('real stdio server keeps ping responsive and drains invocation before signa
   });
   http.listen(0, '127.0.0.1'); await once(http, 'listening');
   t.after(() => { release(); http.closeAllConnections(); http.close(); });
-  const config = JSON.parse(await readFile(join(controlDir, 'default-config.json'), 'utf8'));
+  const config = await legacyConfig();
   config.global.allow_direct_api = true;
   const provider = config.providers.find(p => p.id === 'custom-openai-compatible');
   provider.enabled = true; provider.config.auth_type = 'none'; provider.config.timeout_ms = 10000;

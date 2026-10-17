@@ -168,8 +168,7 @@ def normalize_repo_url(raw: str) -> str:
     Strips trailing slashes, .git suffix, and extra path segments.
     """
     s = raw.strip().rstrip("/")
-    if s.endswith(".git"):
-        s = s[:-4]
+    s = re.sub(r"\.git$", "", s, flags=re.IGNORECASE)
     # If it's a full URL, extract owner/repo
     match = re.match(r"https?://github\.com/([^/]+/[^/]+)", s, re.IGNORECASE)
     if match:
@@ -204,19 +203,56 @@ def parse_pr_diff_for_repos():
     )
     diff = result.stdout
 
-    repos = set()
-    # Match https://github.com/owner/repo in added lines (starting with +)
-    for line in diff.split("\n"):
-        if not line.startswith("+"):
-            continue
-        matches = re.findall(r"https://github\.com/([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)", line)
-        for match in matches:
-            normalized = normalize_repo_url(match)
-            # Skip hashgraph-online repos (our own)
-            if not normalized.startswith("hashgraph-online/"):
-                repos.add(normalized)
+    added_line_repos = {}
+    removed_line_repos = {}
+    # Match https://github.com/owner/repo on diff lines. A re-sorted README
+    # line appears on both a `-` and a `+` side with the same content, so it
+    # must not count as the PR adding that repository. Bodies are compared
+    # case- and punctuation-insensitively so a moved line that is re-indented
+    # or re-punctuated still nets, while a real addition survives an unrelated
+    # removal of the same URL. Netting is keyed per repository: the removed
+    # line must mention the same repo, so distinct repos whose listing text
+    # differs only in punctuation (acme/foo-bar vs acme/foobar) never alias.
+    repo_url_re = re.compile(
+        r"https://github\.com/([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)", re.IGNORECASE
+    )
 
-    return repos
+    def normalize_body(text):
+        # Canonicalize repo URLs inside the body so .git suffixes, trailing
+        # slashes, and host casing do not defeat the move comparison.
+        text = repo_url_re.sub(lambda m: " repo/" + normalize_repo_url(m.group(1)), text)
+        return re.sub(r"[^a-z0-9]+", "", text.lower())
+
+    current_file = None
+    for line in diff.split("\n"):
+        if line.startswith("+++ "):
+            path = line[4:].strip()
+            current_file = path[2:] if path.startswith("b/") else path
+            continue
+        if line.startswith("--- "):
+            continue
+        is_added = line.startswith("+")
+        is_removed = line.startswith("-")
+        if not is_added and not is_removed:
+            continue
+        body = normalize_body(line[1:])
+        repos = {normalize_repo_url(m) for m in repo_url_re.findall(line)}
+        # Skip hashgraph-online repos (our own)
+        repos = {repo for repo in repos if not repo.startswith("hashgraph-online/")}
+        # Netting is scoped per file: a removal in a vendored or unrelated
+        # file must not suppress a genuine catalog README addition.
+        if is_removed:
+            for repo in repos:
+                removed_line_repos.setdefault((repo, current_file), set()).add(body)
+            continue
+        for repo in repos:
+            added_line_repos.setdefault((repo, current_file), set()).add(body)
+
+    return {
+        repo
+        for (repo, filename), bodies in added_line_repos.items()
+        if bodies - removed_line_repos.get((repo, filename), set())
+    }
 
 
 def has_existing_claim_comment():

@@ -163,7 +163,8 @@ choices:
 - `story links` errors on a choice to a missing chapter and warns about a
   chapter no choice path reaches; the build refuses the first and warns
   about the second. `story move` and `story remove chapter` rewrite and
-  drop choice targets.
+  drop choice targets. After either command changes files, run `story reindex .`,
+  `story wordcount . --write`, and `story check .`.
 - Without `ifid:` in `story.md` the build derives the IFID from the story
   id and warns with the line to add. Add it before sharing the story, so
   a retitle keeps the same IFID.

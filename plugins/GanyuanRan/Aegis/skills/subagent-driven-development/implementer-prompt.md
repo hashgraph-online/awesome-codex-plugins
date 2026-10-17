@@ -16,7 +16,8 @@ Task tool (general-purpose):
 
     [Paste the compact packet here: Task, Goal, Stop condition, Relevant baseline
     refs, Relevant files, Known facts, Unknowns, Non-goals, Expected output,
-    Verification expected, Must-read excerpts, Unsafe assumptions.]
+    Verification expected, recorded TDD Mode/Route/authority and selecting
+    owner, Must-read excerpts, Unsafe assumptions.]
 
     The packet is a map, not proof. Read the smallest raw file/log/test excerpt
     needed to verify critical facts before relying on them.
@@ -38,8 +39,10 @@ Task tool (general-purpose):
     ## Your Job
 
     Once you're clear on requirements:
-    1. Implement exactly what the task specifies
-    2. Write tests (following TDD if task says to)
+    1. Validate and consume the recorded TDD route; return missing or invalid
+       auto decisions to the selecting owner before source edits. Follow strict
+       TDD only when authorized; otherwise use proportional verification.
+    2. Implement exactly what the task specifies, with tests under that route
     3. Verify implementation works
     4. Self-review (see below)
     5. Report back to the coordinator
@@ -66,7 +69,9 @@ Task tool (general-purpose):
     - Follow the file structure defined in the plan
     - Each file should have one clear responsibility with a well-defined interface
     - If a file you're creating is growing beyond the plan's intent, stop and report
-      it as DONE_WITH_CONCERNS — don't split files on your own without plan guidance
+      it as NEEDS_CONTEXT or BLOCKED when acceptance is incomplete; include
+      partial evidence and the needed decision. Don't split files on your own
+      without plan guidance. DONE_WITH_CONCERNS is only for completed work.
     - If an existing file you're modifying is already large or tangled, work carefully
       and note it as a concern in your report
     - In existing codebases, follow established patterns. Improve code you're touching

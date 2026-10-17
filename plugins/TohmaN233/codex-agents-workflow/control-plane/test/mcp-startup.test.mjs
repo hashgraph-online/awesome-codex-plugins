@@ -36,7 +36,7 @@ async function fixture(t,{aliasHome=false,marketplace='codex-agents-workflow',ot
  return {home,cwd,cached,env:{...process.env,CODEX_HOME:home,HOME:home,USERPROFILE:home,CODEX_CLI_PATH:process.execPath,NODE_OPTIONS:`--require ${JSON.stringify(registryCli)}`}};
 }
 
-test('bootstrap retains a stable cwd so a live MCP process cannot lock the installed version', {timeout:15000},async t=>{
+test('bootstrap uses user-data cwd so a live MCP process cannot lock the cache namespace', {timeout:15000},async t=>{
  let child,closed;
  t.after(async()=>{if(child){child.kill();await closed;}});
  const fx=await fixture(t);
@@ -47,11 +47,11 @@ test('bootstrap retains a stable cwd so a live MCP process cannot lock the insta
  const lines=readline.createInterface({input:child.stdout});
  let stderr='';child.stderr.on('data',chunk=>{stderr+=chunk;});
  const first=await Promise.race([once(lines,'line').then(([line])=>JSON.parse(line)),closed.then(([code])=>{throw new Error(`Bootstrap exited ${code}: ${stderr}`);})]);
- assert.equal(first.cwd,fx.cwd);
+ assert.equal(first.cwd,await realpath(join(fx.home,'codex-agents-workflow')));
  assert.equal(child.exitCode,null);
- const replacement=fx.cached+'-replacement';
- await rename(fx.cached,replacement);
- await rename(replacement,fx.cached);
+ const replacement=fx.cwd+'-replacement';
+ await rename(fx.cwd,replacement);
+ await rename(replacement,fx.cwd);
  assert.equal(child.exitCode,null);
  lines.close();
 });

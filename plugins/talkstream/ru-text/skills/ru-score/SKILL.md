@@ -31,7 +31,9 @@ alongside it. Locate that folder once, then read the named files from it:
   Cowork on 12.08.2026, where an opening `ls` returned «Permission to use Bash has been
   denied» in red before the search found the corpus anyway. The call bought nothing and
   cost the reader a scare.
-- In Claude Code the plugin root is also available directly, which saves the search.
+- In Claude Code the folder is `${CLAUDE_SKILL_DIR}/../ru-text/references/` — `Read`
+  `info-style.md` there first and skip the search. If that path arrives unexpanded or the
+  read fails, fall back to the search above.
 - **Do not guess a path.** If the folder cannot be found, say so and stop — a check run
   against remembered rules instead of the corpus is not this command, and reporting one
   as the other is the failure this whole product exists to prevent.

@@ -1,6 +1,6 @@
 ---
 name: product-catalog-management
-description: Guide for creating and managing products, pricing, add-ons, product collections, images, and digital product delivery
+description: Dodo Payments product catalog management, covering products with one_time_price, recurring_price, or usage_based_price, add-ons, product collections, product images, and digital file delivery. Use when creating or updating products, plans, or prices, building a storefront, uploading images, attaching downloadable files, or debugging a failed product update.
 ---
 
 # Product Catalog Management
@@ -13,7 +13,7 @@ This skill covers the full product lifecycle: creating products with pricing mod
 - You're building a product collection or storefront.
 - You need to upload product images or deliver digital files to customers.
 - You're managing add-ons or product variants.
-- You need to understand why a product update failed or why pricing can't be changed.
+- You need to understand why a product update failed or how to change a product's pricing.
 
 ## Core concepts
 
@@ -36,7 +36,7 @@ Pricing is nested inside the product object. There is no separate top-level Pric
 
 **Lifecycle:** Products support `list`, `retrieve`, `update`, and `archive`/`unarchive`. There is no delete endpoint. Archived products remain in your history but don't appear in new checkouts.
 
-**Images:** Presigned upload URLs expire after 60 seconds. Download the URL immediately after requesting it.
+**Images:** Presigned upload URLs expire after 60 seconds. Upload to the URL immediately after requesting it.
 
 **Digital delivery:** Entitlements grant customers access to files. Download URLs expire after roughly 15 minutes.
 
@@ -129,7 +129,9 @@ const product = await client.products.retrieve('pdt_pro_bundle');
 
 ## Updating a product
 
-You can update the name, description, and metadata. You cannot change the pricing model or price of a live product. Create a new product instead.
+`PATCH /products/{id}` (`client.products.update`) accepts the name, description, and metadata, and also `price`, `tax_category`, and `pricing_mode`. Every field is optional; omitted fields stay unchanged.
+
+Two limits apply. The **pricing model is immutable**: you can edit the amount, but you cannot turn a one-time product into a subscription or usage-based one (or back) - create a new product instead. And a price edit only changes what **new** customers pay: existing subscriptions keep the price they were created with, so move them explicitly with Change Plan (`client.subscriptions.changePlan(...)`).
 
 ```typescript
 await client.products.update('pdt_pro_bundle', {
@@ -226,14 +228,25 @@ await client.productCollections.groups.create(collection.id, {
   ],
 });
 
-// Checkout with a collection
-const session = await client.checkoutSessions.create({
-  product_collection_id: collection.id,
-  product_cart: [], // Required: pass an empty array for collection checkout
-  return_url: 'https://yoursite.com/return',
-});
+// Server route (e.g. POST /api/checkout): create the checkout session and return its URL
+export async function POST() {
+  const session = await client.checkoutSessions.create({
+    product_collection_id: collection.id,
+    product_cart: [], // Required: pass an empty array for collection checkout
+    return_url: 'https://yoursite.com/return',
+  });
 
-window.location.href = session.checkout_url;
+  return Response.json({ checkout_url: session.checkout_url });
+}
+```
+
+Never call the SDK or expose the API key in browser code. The browser only receives the URL from your server route and redirects:
+
+```typescript
+// Browser
+const res = await fetch('/api/checkout', { method: 'POST' });
+const { checkout_url } = (await res.json()) as { checkout_url: string };
+window.location.href = checkout_url;
 ```
 
 ## Digital product delivery
@@ -241,6 +254,9 @@ window.location.href = session.checkout_url;
 Entitlements grant customers access to downloadable files. Create an entitlement, upload files, and generate download links.
 
 ```typescript
+// openAsBlob requires Node.js 20 or later
+import { openAsBlob } from 'node:fs';
+
 // Create an entitlement
 const entitlement = await client.entitlements.create({
   name: 'Pro Bundle Files',
@@ -250,10 +266,15 @@ const entitlement = await client.entitlements.create({
   },
 });
 
-// Upload and attach a file; the response identifies the attached file
-const { file_id } = await client.entitlements.files.upload(entitlement.id);
+// Upload and attach a file as multipart/form-data (append `filename` before `file`)
+const form = new FormData();
+form.append('filename', 'pro-bundle.zip');
+form.append('file', await openAsBlob('./pro-bundle.zip'), 'pro-bundle.zip');
+const { file_id } = await client.entitlements.files.upload(entitlement.id, { body: form });
 
-// Attach the entitlement to a product
+// Attach the entitlement to a product.
+// `entitlements` REPLACES every entitlement already attached to the product:
+// include all of them, send [] to remove all, or omit the field to leave them unchanged.
 await client.products.update('pdt_pro_bundle', {
   entitlements: [{ entitlement_id: entitlement.id }],
 });
@@ -290,7 +311,9 @@ For country or currency-specific pricing, use the `localized-pricing` skill. Do 
 
 **Expecting a delete endpoint:** Products don't have a delete method. Archive them instead. Archived products remain in your history for reconciliation.
 
-**Trying to change the pricing model:** Once a product is created with `one_time_price`, you can't change it to `recurring_price`. Create a new product and migrate customers to it.
+**Trying to change the pricing model:** You cannot switch a product between one-time, subscription, and usage-based pricing (for example `one_time_price` to `recurring_price`). Create a new product with the model you need.
+
+**Expecting a price edit to reprice existing subscribers:** `client.products.update(...)` changes the amount for new customers only. Existing subscriptions renew at the price they were created with; move them with `client.subscriptions.changePlan(...)`.
 
 **Hardcoding prices in the client:** Always fetch the product catalog from the API. Prices change, and your client code will become stale. Read `client.products.retrieve(id)` to get the current price.
 
@@ -300,7 +323,7 @@ For country or currency-specific pricing, use the `localized-pricing` skill. Do 
 
 **Passing a non-empty product_cart for collection checkout:** Collection checkout requires `product_cart: []`. The collection itself defines what's in the cart.
 
-**Confusing purchasing_power_parity with localized pricing:** The OpenAPI schema includes a `purchasing_power_parity` field in examples, but it's marked unavailable. Use the `localized-pricing` skill for country and currency pricing instead.
+**Confusing purchasing_power_parity with localized pricing:** PPP is native. Set `price.purchasing_power_parity: true` to charge a business-wide, per-country percentage of the price (default `false`). It requires Adaptive Currency to be enabled, and a matching localized price always wins over PPP. See the `localized-pricing` skill.
 
 ## Resources
 

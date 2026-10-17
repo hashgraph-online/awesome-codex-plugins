@@ -33,11 +33,13 @@ ls -la ~/.claude ~/.codex 2>/dev/null
 find . ~/.codex -name AGENTS.md -o -name config.toml 2>/dev/null
 ```
 
-3. Look for high-risk migration residue:
+3. Locate text files with high-risk migration residue without printing matching lines:
 
 ```bash
-grep -RInE "hook|secret|token|api[_-]?key|validation note|not equivalent|manual review|CLAUDE.md|AGENTS.md" ~/.codex . 2>/dev/null
+grep -rIlE "hook|secret|token|api[_-]?key|validation note|not equivalent|manual review|CLAUDE.md|AGENTS.md" ~/.codex . 2>/dev/null
 ```
+
+The search prints filenames only and does not follow symlinks encountered during recursion. Exit status 1 means no matches. Do not dump or `cat` matching configs, or use line-printing searches on them. For follow-up inspection, process contents locally without emitting values; report only file paths, environment variable names, and whether a value appears literal.
 
 4. If Bring Your AI is installed, ask it for the migration preview or run a dry audit command when available:
 

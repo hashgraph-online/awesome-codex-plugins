@@ -1,3 +1,4 @@
+import { writeLegacyConfig } from './legacy-config.mjs';
 import assert from 'node:assert/strict';
 import { mkdtemp, readFile } from 'node:fs/promises';
 import { tmpdir } from './physical-tempdir.mjs';
@@ -9,6 +10,7 @@ import { DEFAULT_CONFIG_PATH, SERVER_VERSION, startConsole, stopConsole } from '
 test('loopback console requires token and revision-checks saves', async (t) => {
   const dir = await mkdtemp(join(tmpdir(), 'sol-control-console-'));
   const configPath = join(dir, 'control-plane.json');
+  await writeLegacyConfig(configPath);
   const state = await startConsole({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH, open: false });
   t.after(stopConsole);
   const base = `http://127.0.0.1:${state.port}`;

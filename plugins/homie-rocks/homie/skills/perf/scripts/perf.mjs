@@ -41,9 +41,11 @@ import { createHash } from 'node:crypto';
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statfsSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { findStudio, readJson, slugify, writeJson } from '../../music/scripts/lib/studio.mjs';
+import { experienceDir, experienceJson, findStudio, readJson, slugify, writeJson } from '../../music/scripts/lib/studio.mjs';
 import { gamePageCheck, sameAdditions } from './lib/page.mjs';
 import { sizeHints } from './lib/sizes.mjs';
+import { finish } from '../../playtest/scripts/lib/exit.mjs';
+import { preflight } from '../../playtest/scripts/lib/preflight.mjs';
 
 const argv = process.argv.slice(2);
 const flags = new Map();
@@ -57,6 +59,8 @@ const log = (m) => { if (!JSON_OUT) process.stderr.write(`${m}\n`); };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const sha256 = (buf) => createHash('sha256').update(buf).digest('hex');
 const NEEDS = [0, 19, 0];
+/** No synchronous child (git diff, diff, ffmpeg) may hold the loop for longer than this: it is stopped and its result treated as missing. */
+const CHILD_TIMEOUT_MS = 60_000;
 const SKIP = new Set(['node_modules', '.port', 'dist', '.git', '.wrangler', '.DS_Store']);
 
 /* ------------------------------------------------------------------------------------------- the studio */
@@ -77,13 +81,21 @@ function cli(root, args, { timeoutMs = 20 * 60_000 } = {}) {
     let err = '';
     child.stdout.on('data', (d) => { out += d; });
     child.stderr.on('data', (d) => { err += d; if (err.length > 20_000) err = err.slice(-10_000); });
-    const timer = setTimeout(() => { try { child.kill('SIGTERM'); } catch { /* gone */ } }, timeoutMs);
-    child.on('close', (code) => {
-      clearTimeout(timer);
+    // Bounded all the way down: asked to stop at the timeout, killed 5 s later, and answered 5 s after that even if
+    // `close` never comes (a helper process that inherited the pipes keeps them open after the child is gone).
+    let settled = false;
+    const timers = [];
+    const done = (code, timedOut = false) => {
+      if (settled) return; settled = true;
+      for (const t of timers) clearTimeout(t);
       let json = null;
       try { json = JSON.parse(out); } catch { /* not JSON */ }
-      ok({ code, json, err: err.trim().split('\n').slice(-3).join(' ') });
-    });
+      ok({ code, json, timedOut, err: timedOut ? `homie-studio ${args.join(' ')} did not finish in ${Math.round(timeoutMs / 1000)} s and was stopped` : err.trim().split('\n').slice(-3).join(' ') });
+    };
+    timers.push(setTimeout(() => { try { child.kill('SIGTERM'); } catch { /* gone */ } }, timeoutMs));
+    timers.push(setTimeout(() => { try { child.kill('SIGKILL'); } catch { /* gone */ } }, timeoutMs + 5000));
+    timers.push(setTimeout(() => { try { child.stdout.destroy(); child.stderr.destroy(); } catch { /* */ } done(1, true); }, timeoutMs + 10_000));
+    child.on('close', (code) => done(code));
   });
 }
 
@@ -95,9 +107,17 @@ async function needsPerf(root) {
   return v.json.version;
 }
 
+/**
+ * Can this process reach the play page? A name Node cannot resolve while a browser can (they do not resolve names the
+ * same way) is a network preflight failure: BLOCKED, nothing measured, with local testing as the way round it. It is
+ * never reported as the game or the site failing.
+ */
 async function alive(url, game) {
-  const ok = await fetch(`${url}/${game}/play`, { signal: AbortSignal.timeout(15_000) }).then((r) => r.ok).catch(() => false);
-  if (!ok) throw new Error(`${url}/${game}/play does not answer: start the site (npm run dev, as a background task that outlives this command) or check --url`);
+  const pre = await preflight(`${url}/${game}/play`, { timeoutMs: 15_000 });
+  if (pre.ok) return;
+  const e = new Error(pre.verdict === 'BLOCKED' ? `BLOCKED ${pre.why}` : `${pre.why} (--url ${url})`);
+  e.verdict = pre.verdict; e.kind = pre.kind;
+  throw e;
 }
 
 function diskOk(root) {
@@ -141,7 +161,7 @@ function keepBuild(root, game, dir, v) {
 
 /** Keep the game's source folder as `v` (everything but node_modules, .port and build output). */
 function keepSource(root, game, dir, v) {
-  const from = join(root, 'games', game);
+  const from = experienceDir(root, game);
   const to = join(dir, 'sources', v);
   rmSync(to, { recursive: true, force: true });
   for (const f of listFiles(from)) { mkdirSync(dirname(join(to, f)), { recursive: true }); cpSync(join(from, f), join(to, f)); }
@@ -151,7 +171,7 @@ function keepSource(root, game, dir, v) {
 /** The files of games/<game>/ that differ from source `v` (changed, added, removed). */
 function sourceDiff(root, game, dir, v) {
   const a = join(dir, 'sources', v);
-  const b = join(root, 'games', game);
+  const b = experienceDir(root, game);
   const fa = new Set(listFiles(a));
   const fb = new Set(listFiles(b));
   const changed = [];
@@ -166,7 +186,7 @@ function sourceDiff(root, game, dir, v) {
 /** Put games/<game>/ back to source `v`: changed files restored, files the change added removed. Only that folder. */
 function restoreSource(root, game, dir, v) {
   const snap = join(dir, 'sources', v);
-  const gameDir = join(root, 'games', game);
+  const gameDir = experienceDir(root, game);
   const diff = sourceDiff(root, game, dir, v);
   for (const d of diff) {
     const target = join(gameDir, d.file);
@@ -177,11 +197,11 @@ function restoreSource(root, game, dir, v) {
 }
 
 /** A patch from source a to source b, as games/<game>/… paths (git diff --no-index; diff -ru when there is no git). */
-function patchOf(dir, game, a, b) {
-  const r = spawnSync('git', ['diff', '--no-index', '--no-color', '--src-prefix=a/', '--dst-prefix=b/', join('sources', a), join('sources', b)], { cwd: dir, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+function patchOf(dir, game, a, b, root) {
+  const r = spawnSync('git', ['diff', '--no-index', '--no-color', '--src-prefix=a/', '--dst-prefix=b/', join('sources', a), join('sources', b)], { cwd: dir, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, timeout: CHILD_TIMEOUT_MS, killSignal: 'SIGKILL' });
   let text = r.stdout ?? '';
-  if (r.error || (r.status !== 0 && r.status !== 1)) text = spawnSync('diff', ['-ru', join('sources', a), join('sources', b)], { cwd: dir, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).stdout ?? '';
-  return text.split(`sources/${a}/`).join(`games/${game}/`).split(`sources/${b}/`).join(`games/${game}/`);
+  if (r.error || (r.status !== 0 && r.status !== 1)) text = spawnSync('diff', ['-ru', join('sources', a), join('sources', b)], { cwd: dir, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, timeout: CHILD_TIMEOUT_MS, killSignal: 'SIGKILL' }).stdout ?? '';
+  return text.split(`sources/${a}/`).join(relative(root, experienceDir(root, game)) + '/').split(`sources/${b}/`).join(relative(root, experienceDir(root, game)) + '/');
 }
 
 /** Serve build `v`: its files into site/dist/games/<game>/ (the dev server picks them up) and its map into .studio/maps. */
@@ -294,15 +314,25 @@ async function alternate(root, s, dir, a, b, out) {
 }
 
 /** The look of each build, from its runs' screenshots: brightness, contrast, detail, colour (playtest's pixels.mjs). */
+function firstBrowserShots(folder, device) {
+  if (!folder || !existsSync(folder)) return [];
+  const files = readdirSync(folder).sort();
+  for (const role of ['host', 'replica']) {
+    const shots = files.filter((f) => new RegExp(`^${device}-\\d+-${role}\\.png$`).test(f));
+    if (shots.length) return shots.map((f) => join(folder, f));
+  }
+  return [];
+}
+
 async function looksOf(dirA, dirB) {
   let pixels;
   try { pixels = await import('../../playtest/scripts/lib/pixels.mjs'); } catch { return null; }
-  if (spawnSync('ffmpeg', ['-version'], { encoding: 'utf8' }).status !== 0) return { note: 'ffmpeg is not installed: the pictures were not measured (look at them)' };
+  if (spawnSync('ffmpeg', ['-version'], { encoding: 'utf8', timeout: 15_000, killSignal: 'SIGKILL' }).status !== 0) return { note: 'ffmpeg is not installed: the pictures were not measured (look at them)' };
   const median = (xs) => { const s = [...xs].sort((x, y) => x - y); return s.length ? s[Math.floor((s.length - 1) / 2)] : null; };
   const spread = (xs) => { const s = [...xs].sort((x, y) => x - y); return s.length > 2 ? s[Math.ceil(s.length * 0.75) - 1] - s[Math.floor(s.length * 0.25)] : 0; };
   const out = {};
   for (const device of ['computer', 'phone']) {
-    const shots = (d) => (existsSync(d) ? readdirSync(d).filter((f) => new RegExp(`^${device}-\\d+-host\\.png$`).test(f)).map((f) => join(d, f)) : []);
+    const shots = (d) => firstBrowserShots(d, device);
     const sa = shots(dirA).map((f) => { try { return pixels.stats(pixels.decode(f, 320)); } catch { return null; } }).filter(Boolean);
     const sb = shots(dirB).map((f) => { try { return pixels.stats(pixels.decode(f, 320)); } catch { return null; } }).filter(Boolean);
     if (!sa.length || !sb.length) continue;
@@ -326,14 +356,17 @@ async function baseline() {
   const url = String(flags.get('url') ?? '').replace(/\/+$/, '');
   if (!game || !/^https?:\/\//.test(url)) throw new Error('usage: baseline <game> --url <site> (http://127.0.0.1:8787 from npm run dev)');
   const root = studioOrThrow();
-  if (!existsSync(join(root, 'games', game, 'game.json'))) throw new Error(`no games/${game}/game.json in this studio`);
+  if (!existsSync(experienceJson(experienceDir(root, game)))) throw new Error(`no games/${game}/game.json in this studio`);
   diskOk(root);
   const version = await needsPerf(root);
   await alive(url, game);
   const devices = String(flags.get('devices') ?? 'computer,phone').split(',').map((d) => d.trim()).filter((d) => ['computer', 'phone'].includes(d));
   if (!devices.length) throw new Error('--devices: computer, phone or both');
   const num = (k, d, lo, hi) => Math.max(lo, Math.min(hi, Number(flags.get(k) ?? d) || d));
-  const goal = String(flags.get('goal') ?? (devices.includes('phone') ? 'phone.host.frame.p95' : 'computer.host.frame.p95'));
+  const meta = readJson(experienceJson(experienceDir(root, game)));
+  const rules = meta?.room && existsSync(join(experienceDir(root, game), 'src', 'rules.ts'));
+  const role = meta?.room?.host === 'server' || (rules && meta.room.host !== 'browser') ? 'replica' : 'host';
+  const goal = String(flags.get('goal') ?? `${devices.includes('phone') ? 'phone' : 'computer'}.${role}.frame.p95`);
   const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\..*/, '');
   const name = `loop-${stamp}`;
   const dir = join(loopsDir(root, game), name);
@@ -377,13 +410,22 @@ function summaryFromRuns(folder) {
       const put = (k, v) => { if (Number.isFinite(v)) (by[`${p}.${k}`] ??= []).push(v); };
       put('frame.p50', b.frames?.p50); put('frame.p95', b.frames?.p95); put('frame.p99', b.frames?.p99); put('frame.over33', b.frames?.over33); put('frame.over50', b.frames?.over50);
       put('work.mean', b.work?.mean); put('work.p95', b.work?.p95); put('busy', b.main?.busyPerFrame); put('heap', b.heap?.afterGcMb); put('heap.growth', b.heap?.gcGrowthMbPerMin);
-      put('load.look', b.load?.lookMs); put('load.firstFrame', b.load?.firstFrameMs); put('load.playable', b.load?.playableMs); put('load.gameKb', b.load?.gameKb);
+      put('load.look', b.load?.lookMs); put('load.firstFrame', b.load?.firstFrameMs); put('load.playable', b.load?.playableMs); put('load.ready', b.load?.readyMs); put('load.gameKb', b.load?.gameKb); put('load.prePlayKb', b.load?.prePlay?.kb); put('render.calls', b.render?.drawCalls?.median); put('render.triangles', b.render?.triangles?.median);
       put('net.msgsOut', b.net?.msgsOut); put('net.msgsIn', b.net?.msgsIn); put('net.kbOut', b.net?.kbOut); put('net.kbIn', b.net?.kbIn);
     }
   }
   const med = (xs) => { const s = [...xs].sort((a, b) => a - b); const q = (p) => { const at = (s.length - 1) * p; const lo = Math.floor(at); return s[lo] + (s[Math.ceil(at)] - s[lo]) * (at - lo); }; return { n: s.length, median: +q(0.5).toFixed(3), q1: +q(0.25).toFixed(3), q3: +q(0.75).toFixed(3), spread: q(0.5) ? +((q(0.75) - q(0.25)) / Math.abs(q(0.5))).toFixed(4) : null }; };
   const slow = runs.map((r) => r.cpuMeasured).filter(Number.isFinite).sort((x, y) => x - y);
-  return { cpuMeasured: slow.length ? slow[Math.floor((slow.length - 1) / 2)] : null, runs: runs.length, counted: runs.filter((x) => !x.blocked && !x.loaded).length, devices: [...new Set(runs.map((r) => r.device))], renderers: [...new Set(runs.map((r) => r.renderer).filter(Boolean))], machine: runs[0]?.machine ?? null, chrome: runs[0]?.chrome ?? null, deviceLabels: Object.fromEntries(runs.map((r) => [r.device, r.deviceLabel])), load: runs.map((r) => ({ device: r.device, before: r.load?.before?.load1 ?? null, after: r.load?.after?.load1 ?? null, busyPct: r.load?.busyPct ?? null, loaded: Boolean(r.loaded), blocked: r.blocked ?? null })), metrics: Object.fromEntries(Object.entries(by).sort(([a], [b]) => a.localeCompare(b)).map(([k, xs]) => [k, med(xs)])) };
+  // The arrival each role reported (homie-studio perf, from the play page's __shell.arrival): who was to say the
+  // game is playable, and the worst lateness of the game's own word under an automatic arrival.
+  const arrival = {};
+  for (const r of runs.filter((x) => !x.blocked && !x.loaded)) for (const b of r.browsers ?? []) {
+    const a = b.load?.arrival; if (!a) continue;
+    const row = (arrival[`${r.device}.${b.role}`] ??= { mode: null, lateMs: null });
+    row.mode ??= a.mode ?? null;
+    if (Number.isFinite(a.lateMs)) row.lateMs = Math.max(row.lateMs ?? 0, a.lateMs);
+  }
+  return { arrival, cpuMeasured: slow.length ? slow[Math.floor((slow.length - 1) / 2)] : null, runs: runs.length, counted: runs.filter((x) => !x.blocked && !x.loaded).length, devices: [...new Set(runs.map((r) => r.device))], renderers: [...new Set(runs.map((r) => r.renderer).filter(Boolean))], machine: runs[0]?.machine ?? null, chrome: runs[0]?.chrome ?? null, deviceLabels: Object.fromEntries(runs.map((r) => [r.device, r.deviceLabel])), load: runs.map((r) => ({ device: r.device, before: r.load?.before?.load1 ?? null, after: r.load?.after?.load1 ?? null, busyPct: r.load?.busyPct ?? null, loaded: Boolean(r.loaded), blocked: r.blocked ?? null })), metrics: Object.fromEntries(Object.entries(by).sort(([a], [b]) => a.localeCompare(b)).map(([k, xs]) => [k, med(xs)])) };
 }
 
 /** The profiled runs in a folder: per device and role, the summary `homie-studio perf --profile` wrote. */
@@ -394,12 +436,19 @@ function profiles(folder) {
 
 const fmt = (x, unit = '') => (x === null || x === undefined ? '–' : `${x}${unit}`);
 
+/** Beside control-ready: the game's own "ready" and the arrival mode (the same words as homie-studio perf's headline). */
+function readyWords(a, readyMs) {
+  if (!a?.mode && readyMs === undefined) return '';
+  const said = readyMs !== undefined ? `the game said ready at ${readyMs} ms` : 'the game never said ready itself';
+  return `, ${said} (arrival ${a?.mode ?? 'unknown'}${Number.isFinite(a?.lateMs) ? `: ${a.lateMs} ms after the cover had lifted` : ''})`;
+}
+
 function headline(s, summary) {
   const out = [];
-  for (const d of s.devices) for (const role of ['host', 'replica']) {
+  for (const d of s.devices) for (const role of ['host', 'replica', 'replica-2']) {
     const m = (k) => summary.metrics?.[`${d}.${role}.${k}`]?.median;
     if (m('frame.p50') === undefined) continue;
-    out.push(`${d} ${role}: frames ${fmt(m('frame.p50'))}/${fmt(m('frame.p95'))} ms (median/p95), ${fmt(m('frame.over50'), '%')} over 50 ms; game JS ${fmt(m('work.mean'))} ms a frame; main thread ${fmt(m('busy'))} ms a frame; first look ${fmt(m('load.look'))} ms, playable ${fmt(m('load.playable'))} ms; heap ${fmt(m('heap'))} MB; netplay ${fmt(m('net.msgsOut'))} out, ${fmt(m('net.msgsIn'))} in a second`);
+    out.push(`${d} ${role}: frames ${fmt(m('frame.p50'))}/${fmt(m('frame.p95'))} ms (median/p95), ${fmt(m('frame.over50'), '%')} over 50 ms; game JS ${fmt(m('work.mean'))} ms a frame; main thread ${fmt(m('busy'))} ms a frame; first look ${fmt(m('load.look'))} ms, playable (control-ready) ${fmt(m('load.playable'))} ms${readyWords(summary.arrival?.[`${d}.${role}`], m('load.ready'))}; heap ${fmt(m('heap'))} MB; netplay ${fmt(m('net.msgsOut'))} out, ${fmt(m('net.msgsIn'))} in a second`);
   }
   return out;
 }
@@ -409,8 +458,9 @@ function hints(s, summary, profs, sizes) {
   const h = [];
   const m = (k) => summary.metrics?.[k]?.median;
   for (const d of s.devices) {
-    const p95 = m(`${d}.host.frame.p95`); const over50 = m(`${d}.host.frame.over50`); const busy = m(`${d}.host.busy`); const p50 = m(`${d}.host.frame.p50`);
-    if (p95 !== undefined && p95 <= 17.5) h.push(`${d}: frames already keep pace with the display (p95 ${p95} ms against 16.7). A faster frame cannot show on this profile; aim at the work per frame (\`${d}.host.busy\`: ${busy} ms of main thread a frame), which is battery and headroom on slower phones${d === 'phone' ? `, or measure a slower phone (baseline --cpu ${Math.min(20, s.cpu * 2)})` : ''}.`);
+    const role = m(`${d}.host.frame.p95`) === undefined ? 'replica' : 'host';
+    const p95 = m(`${d}.${role}.frame.p95`); const over50 = m(`${d}.${role}.frame.over50`); const busy = m(`${d}.${role}.busy`); const p50 = m(`${d}.${role}.frame.p50`);
+    if (p95 !== undefined && p95 <= 17.5) h.push(`${d}: frames already keep pace with the display (p95 ${p95} ms against 16.7). A faster frame cannot show on this profile; aim at the work per frame (\`${d}.${role}.busy\`: ${busy} ms of main thread a frame), which is battery and headroom on slower phones${d === 'phone' ? `, or measure a slower phone (baseline --cpu ${Math.min(20, s.cpu * 2)})` : ''}.`);
     else if (p50 !== undefined && p50 > 18) h.push(`${d}: the median frame takes ${p50} ms (under 60 fps): the steady cost per frame is the problem. Start from the hottest game function in the profile below.`);
     if (over50 !== undefined && over50 >= 0.5) h.push(`${d}: ${over50}% of frames take over 50 ms (hitches anyone sees). Look for long tasks, garbage collection and work that runs only now and then (a spawn, a big message, a texture upload).`);
   }
@@ -420,7 +470,8 @@ function hints(s, summary, profs, sizes) {
     if (top) h.push(`${p.device} ${p.role}: the hottest game function is ${top.name} (${top.where}), ${top.selfPct}% of the busy time itself and ${top.totalPct}% with what it calls.`);
   }
   for (const d of s.devices) {
-    const g = m(`${d}.host.heap.growth`);
+    const role = m(`${d}.host.heap.growth`) === undefined ? 'replica' : 'host';
+    const g = m(`${d}.${role}.heap.growth`);
     if (g === undefined || g <= 1) continue;
     // A short window mostly sees buffers filling: the port probe alone keeps its last 4,000 frames (about a minute).
     h.push(s.seconds < 90
@@ -435,7 +486,7 @@ function hints(s, summary, profs, sizes) {
 function fetchedOf(folder, device) {
   if (!existsSync(folder)) return null;
   const runs = readdirSync(folder).filter((f) => new RegExp(`^${device}-\\d+\\.json$`).test(f)).sort().map((f) => readJson(join(folder, f))).filter((r) => r && !r.blocked && !r.loaded);
-  const host = runs[0]?.browsers?.find((b) => b.role === 'host');
+  const host = runs[0]?.browsers?.find((b) => b.role === 'host') ?? runs[0]?.browsers?.[0];
   return host?.load ? { device, ...host.load } : null;
 }
 
@@ -446,7 +497,7 @@ function baselineMd(s, summary, profs, sizes, fetched = []) {
   if (summary.cpuMeasured) L.push(`- The phone's throttle measured **${summary.cpuMeasured}x** here (the median run): its work is that much slower than this computer's, not ${s.cpu}x.`);
   if (s.pageAdded) L.push(`- The game page as the site serves it is the build's page plus ${addedSaid(s.pageAdded)}: the site's, not the build's, and the same for every build this loop measures. Before every run the page is checked against the build's (every script and the markup) and every other file by SHA-256.`);
   L.push('', '## The numbers (median of the runs; the spread is the middle half as a share of the median)', '', '| metric | median | spread |', '| --- | --- | --- |');
-  const keep = /\.(frame\.(p50|p95|p99|over50)|work\.(mean|p95)|busy|heap|heap\.growth|load\.(look|firstFrame|playable|gameKb)|net\.(msgsOut|msgsIn|kbOut|kbIn))$/;
+  const keep = /\.(frame\.(p50|p95|p99|over50)|work\.(mean|p95)|busy|heap|heap\.growth|load\.(look|firstFrame|playable|gameKb|prePlayKb)|render\.(calls|triangles)|net\.(msgsOut|msgsIn|kbOut|kbIn))$/;
   for (const [k, v] of Object.entries(summary.metrics ?? {})) if (keep.test(k)) L.push(`| \`${k}\` | ${v.median} | ${v.spread === null ? '–' : `${Math.round(v.spread * 100)}%`} |`);
   L.push('', 'A change has to beat the spread to count: `try` measures both builds in turns and only keeps a change that is better beyond the noise.', '');
   L.push('## Load during the runs', '', ...summary.load.map((x, i) => `- run ${i + 1} (${x.device}): load ${x.before} → ${x.after}, cores ${x.busyPct}% busy${x.loaded ? ' — **started on a busy computer, left out**' : ''}${x.blocked ? ` — **blocked: ${x.blocked}**` : ''}`), '');
@@ -459,8 +510,8 @@ function baselineMd(s, summary, profs, sizes, fetched = []) {
   if (sizes?.ok) {
     const kb = (b) => `${(b / 1024).toFixed(1)} KB`;
     L.push('## What a player downloads', '');
-    for (const f of fetched.filter((x) => x && Number.isFinite(x.requests))) L.push(`Fetched before playable (${f.device}, the host's first run): ${f.requests} requests, ${f.kb} KB on the wire, the game's own files ${f.gameKb} KB: ${(f.biggest ?? []).slice(0, 6).map((b) => `${b.path} ${b.kb} KB`).join(', ')}.`, '');
-    L.push(`The built game (every file the site serves for it; the landing page's art and the remix source are not counted): ${sizes.total.files} files, ${kb(sizes.total.bytes)} (${kb(sizes.total.gzip)} gzipped); JavaScript ${kb(sizes.js.bytes)} (${kb(sizes.js.gzip)} gzipped).`, '', '| bytes | gzipped | file |', '| --- | --- | --- |', ...sizes.biggest.slice(0, 10).map((f) => `| ${kb(f.bytes)} | ${kb(f.gzip)} | ${f.path} |`), '');
+    for (const f of fetched.filter((x) => x && Number.isFinite(x.requests))) L.push(`Fetched before playable (${f.device}, the first browser's run): ${f.requests} requests, ${f.kb} KB on the wire, the game's own files ${f.gameKb} KB: ${(f.biggest ?? []).slice(0, 6).map((b) => `${b.path} ${b.kb} KB`).join(', ')}.`, '');
+    L.push(`The built game (every file the site serves for it; the landing page's art is not counted): ${sizes.total.files} files, ${kb(sizes.total.bytes)} (${kb(sizes.total.gzip)} gzipped); JavaScript ${kb(sizes.js.bytes)} (${kb(sizes.js.gzip)} gzipped).`, '', '| bytes | gzipped | file |', '| --- | --- | --- |', ...sizes.biggest.slice(0, 10).map((f) => `| ${kb(f.bytes)} | ${kb(f.gzip)} | ${f.path} |`), '');
     if (sizes.modules) L.push('Bundle modules:', '', ...sizes.modules.top.slice(0, 8).map((m) => `- ${kb(m.bytes)} ${m.module}`), '');
   }
   const hs = hints(s, summary, profs, sizes);
@@ -508,7 +559,7 @@ async function tryChange() {
   }
   keepBuild(root, game, dir, v);
   keepSource(root, game, dir, v);
-  writeFileSync(join(exp, 'change.patch'), patchOf(dir, game, s.kept, v));
+  writeFileSync(join(exp, 'change.patch'), patchOf(dir, game, s.kept, v, root));
   await servedIs(s.url, game, dir, v, { added: s.pageAdded ?? null });
   log('… the two-browser check on the changed build');
   const ck = await cli(root, ['check', game, '--url', s.url], { timeoutMs: 8 * 60_000 });
@@ -626,14 +677,15 @@ function goals() {
     ok: true,
     command: 'goals',
     metrics: [
-      '<device>.<role>.<metric>: device computer or phone, role host (runs the rules, bots and snapshots) or replica; all lower is better',
+      '<device>.<role>.<metric>: device computer or phone, role host (runs the rules, bots and snapshots), replica or replica-2 (server-hosted rooms); all lower is better',
       'frame.p50 / frame.p95 / frame.p99 / frame.max: ms between animation frames (16.7 at 60 Hz). p95 is what stutter feels like',
       'frame.over33 / frame.over50: % of frames slower than 33 ms (a dropped frame twice) / 50 ms (a hitch anyone sees)',
       'work.mean / work.p95: ms of the game\'s JavaScript inside each animation frame',
       'busy: ms of the page\'s main thread per frame (scripts, style, layout, socket messages): CPU per frame, battery',
       'script: ms of script a second',
       'heap / heap.growth: MB of JavaScript heap after a garbage collection / its growth in MB a minute',
-      'load.look / load.firstFrame / load.seated / load.playable: ms from opening the page (look: the first meaningful frame, the play page\'s arrival card with the game\'s title and art; playable: seated, the body drawn, the card lifted); load.gameKb: KB of the game\'s files on the wire',
+      'load.look / load.firstFrame / load.seated / load.playable: ms from opening the page (look: the first meaningful frame, the play page\'s arrival card with the game\'s title and art; playable: control-ready, which is seated, the body drawn, the card lifted); load.ready: ms to the game\'s OWN word that it was ready (net.playable()), absent when it never said so; with the arrival mode `auto` and a ready later than playable, players are shown the game before it is ready: declare arrival: \'game\' (NETPLAY.md section 21); load.gameKb: KB of the game\'s files on the wire; load.prePlayKb: KB really fetched (every request, bytes of those still in flight included) up to playable: measured first-play traffic, which is not the shipped payload under bytes.*',
+      'render.calls / render.triangles: the renderer\'s own draw calls and triangles while playing, when the game exposes them (exposePort extra: drawCalls, triangles): measured runtime scene cost, not the asset inventory\'s estimate; absent when not exposed',
       'net.msgsOut / net.msgsIn / net.kbOut / net.kbIn: netplay messages and KB a second on the room\'s socket',
       'bytes.total / bytes.gzip / bytes.js / bytes.jsGzip: the built game on disk (no device, no role; the same every run)',
     ],
@@ -674,14 +726,14 @@ async function report() {
   }
   // Pictures: the host's screenshot from the middle run of each side, per device (JPEG when ffmpeg is here).
   const pictures = [];
-  const shotFrom = (folder, device) => { if (!folder || !existsSync(folder)) return null; const f = readdirSync(folder).filter((x) => new RegExp(`^${device}-\\d+-host\\.png$`).test(x)).sort(); return f.length ? join(folder, f[Math.floor((f.length - 1) / 2)]) : null; };
+  const shotFrom = (folder, device) => { const f = firstBrowserShots(folder, device); return f.length ? f[Math.floor((f.length - 1) / 2)] : null; };
   const before = final?.runsBefore ?? join(dir, 'runs', 'base');
   for (const device of s.devices) {
     for (const [side, folder] of [['before', before], ['after', final?.runsAfter ?? null]]) {
       const src = shotFrom(folder, device);
       if (!src) continue;
       const jpg = join(ba, `${device}-${side}.jpg`);
-      const ff = spawnSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-i', src, '-q:v', '4', jpg]);
+      const ff = spawnSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-i', src, '-q:v', '4', jpg], { timeout: CHILD_TIMEOUT_MS, killSignal: 'SIGKILL' });
       if (ff.status === 0 && existsSync(jpg)) pictures.push(relative(outDir, jpg));
       else { const png = join(ba, `${device}-${side}.png`); cpSync(src, png); pictures.push(relative(outDir, png)); }
     }
@@ -696,7 +748,7 @@ async function report() {
   };
   const patches = new Map();
   for (const k of kept) { const p = join(dir, k.folder, 'change.patch'); if (existsSync(p)) patches.set(k.n, relative(outDir, keepPatch(readFileSync(p, 'utf8'), readJson(join(dir, k.folder, 'result.json'))?.against ?? 'base', k.v, join(ba, `${String(k.n).padStart(2, '0')}-${slugify(k.name).slice(0, 40)}`)))); }
-  if (kept.length > 1) keepPatch(patchOf(dir, game, 'base', s.kept), 'base', s.kept, join(ba, 'all-kept'));
+  if (kept.length > 1) keepPatch(patchOf(dir, game, 'base', s.kept, root), 'base', s.kept, join(ba, 'all-kept'));
   const baseSummary = summaryFromRuns(join(dir, 'runs', 'base'));
   const profs = profiles(join(dir, 'profile', 'base'));
   // Both builds' files measured the same way now (the first build put back for a moment), the kept one left serving.
@@ -725,7 +777,7 @@ async function report() {
 }
 
 /** The unit a metric is in, for a person. */
-const unitOf = (k) => (k.startsWith('bytes.') ? ' B' : /\.load\.gameKb$/.test(k) ? ' KB' : /\.(frame|work)\.(p\d+|max|mean)$|\.busy$|\.load\./.test(k) ? ' ms' : /\.frame\.over\d+$/.test(k) ? '%' : /heap$/.test(k) ? ' MB' : /heap\.growth$/.test(k) ? ' MB/min' : /\.net\.kb/.test(k) ? ' KB/s' : /\.net\.msgs/.test(k) ? '/s' : '');
+const unitOf = (k) => (k.startsWith('bytes.') ? ' B' : /\.load\.(gameKb|prePlayKb)$/.test(k) ? ' KB' : /\.render\./.test(k) ? '' : /\.(frame|work)\.(p\d+|max|mean)$|\.busy$|\.load\./.test(k) ? ' ms' : /\.frame\.over\d+$/.test(k) ? '%' : /heap$/.test(k) ? ' MB' : /heap\.growth$/.test(k) ? ' MB/min' : /\.net\.kb/.test(k) ? ' KB/s' : /\.net\.msgs/.test(k) ? '/s' : '');
 
 function reportMd(s, n, final, pictures, kept, patches = new Map()) {
   const pct = (x) => (x === null || x === undefined ? '–' : `${x > 0 ? '+' : ''}${(x * 100).toFixed(1)}%`);
@@ -749,7 +801,7 @@ function reportMd(s, n, final, pictures, kept, patches = new Map()) {
   }
   const changedLook = n.changes.filter((c) => c.verdict === 'keep' && (c.looks !== 'same' || c.plays !== 'same'));
   L.push(`How it looks and plays: ${changedLook.length ? `**changed by ${changedLook.map((c) => `change ${c.n} (looks: ${c.looks}; plays: ${c.plays})`).join(', ')}**` : kept.length ? 'unchanged: every kept change said it looks and plays the same, and its screenshots measured the same' : 'unchanged'}. The studio's two-browser check (two fresh browsers finish a round together) passed before the first change${kept.length ? ' and after every kept one' : ''}.`, '');
-  if (pictures.length) L.push('Pictures (the host\'s screen at the end of a measured run):', '', ...pictures.map((p) => `- [${p}](${p})`), '');
+  if (pictures.length) L.push('Pictures (the first browser\'s screen at the end of a measured run):', '', ...pictures.map((p) => `- [${p}](${p})`), '');
   if (n.sizes.before) {
     const kb = (b) => `${(b / 1024).toFixed(1)} KB`;
     L.push(`What a player downloads: ${kb(n.sizes.before.total.gzip)} gzipped (JavaScript ${kb(n.sizes.before.js.gzip)})${n.sizes.after ? ` → ${kb(n.sizes.after.total.gzip)} (JavaScript ${kb(n.sizes.after.js.gzip)})` : ''}.`, '');
@@ -767,7 +819,7 @@ function reportMd(s, n, final, pictures, kept, patches = new Map()) {
     L.push(`- **${p.device} ${p.role}**: ${p.idlePct}% idle; busy time: game ${p.gamePct}%, Chrome's own drawing and compositing ${p.programPct}%, garbage collection ${p.gcPct}%. Hottest: ${p.top.slice(0, 5).map((t) => `${t.name} (${t.where === '(native)' ? 'native' : t.where}) ${t.selfPct}%`).join('; ')}.`);
   }
   L.push('', '## How this was measured', '');
-  L.push(`- Each run: two browsers (the host and a replica) in a fresh room of their own, the same seeded presses, a 3 s warm-up and a ${s.seconds} s measured window; headless Chrome on this computer's GPU (never a software renderer).`);
+  L.push(`- Each run: two browsers (host and replica, or two replicas when the server hosts) in a fresh room of their own, the same seeded presses, a 3 s warm-up and a ${s.seconds} s measured window; headless Chrome on this computer's GPU (never a software renderer).`);
   L.push(`- Each change: the build to beat and the changed build measured in turns (before, after, after, before, …), ${s.runs} runs each per device. Each before-run and the after-run beside it are a pair, so a computer that drifted busier hits both sides alike. Better means: a one-sided signed-rank test on the pairs (Wilcoxon, exact) p < 0.05, the 95% bootstrap interval of the change below zero, and at least ${s.min}% better. Guards (frame time, main thread per frame, time to playable, heap, the host's upload) must not be worse (worse in every pair or p < 0.01, and at least 5%).`);
   L.push(`- The computer is shared: every run waited for the 1-minute load to fall under ${s.maxLoad} per core and recorded it; a run that started busy was taken again and left out.`);
   L.push(`- Before every run the site was checked to serve exactly the build being measured: every file by SHA-256, and the game page as the build made it${s.pageAdded ? `, with what the site adds to it (${addedSaid(s.pageAdded)}) the same throughout` : ''}.`);
@@ -805,6 +857,9 @@ try {
   const r = await main();
   if (r) { print(r); if (r.ok === false) process.exitCode = 1; }
 } catch (error) {
-  print({ ok: false, why: error instanceof Error ? error.message : String(error) });
+  // A network preflight that could not reach the site keeps its verdict (BLOCKED: nothing was measured).
+  print({ ok: false, ...(error?.verdict === 'BLOCKED' ? { verdict: 'BLOCKED', kind: error.kind } : {}), why: error instanceof Error ? error.message : String(error) });
   process.exitCode = 1;
 }
+// Printed and done: leave with the exit code set above, whatever is still on the event loop (lib/exit.mjs).
+await finish();

@@ -38,7 +38,11 @@ These checks ignore the paths, so they can misread sibling branches:
   `route-too-fast`)
 - `story pacing` runs (consecutive `yes` outcomes, `resolution` hooks in a
   row)
-- `story series` and `story diagram` lifelines
+
+`story series` and `story diagram` lifelines, and the second-death checks,
+read every chapter in one order rather than path by path: the reading order
+of the choices, so a chapter comes after the chapters that lead to it. A
+death on one branch still counts at the end of the book.
 
 A sibling ending dated earlier than the ending numbered before it reports
 `clock-backward`. When the finding only reflects branch order, record it in
@@ -62,7 +66,8 @@ question, and clue against the paths by hand.
 against the paths that lead there.
 
 - Set `current-chapter` to the passage you last drafted. On a branch the
-  snapshot describes that branch.
+  snapshot describes that branch, and `story context` shows it only for
+  passages a path leads to from there.
 - An object change made before a split still holds on a branch that does
   not change it again.
 - A character who learns the same fact on two branches takes one
@@ -107,10 +112,12 @@ in the built Twine or ink file; record the decision in
 
 | Finding | From | Fix |
 |---------|------|-----|
-| `unreachable-chapter` | `story links`, Twee and ink builds | Add a choice that leads to the chapter, or remove it |
+| `unreachable-chapter` | `story links`, Twee and ink builds | Add a choice that leads to the chapter, or remove it only with the user's approval after a snapshot and a `--dry-run` |
 | A choice to a missing chapter | `story links` (error, except a `chapter-NN` with no file yet, which it allows as scheduled), builds refuse every one | Write the chapter, or point `to` at one that exists |
 | Malformed `choices` (no `text`, link syntax in `text`, a `to` that is not kebab-case) | `story validate` | Fix the entry |
 | Choices dropped by `story remove chapter` | `story remove` (warning) | Give each named chapter a new choice unless it is now a deliberate ending |
+
+After you add, move, or remove a chapter or a choice, run `story reindex .`, `story wordcount . --write`, and `story check .`.
 
 ## Hand Checklist
 

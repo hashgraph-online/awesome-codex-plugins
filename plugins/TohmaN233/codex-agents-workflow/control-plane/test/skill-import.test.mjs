@@ -25,7 +25,7 @@ import { observedSourceRequirements, projectObservedRequirements } from '../lib/
 import { validateData } from '../lib/workflow-data-schema.mjs';
 import { sourceSectionInventory, validateSourceDispositions } from '../lib/skill-import/source-dispositions.mjs';
 import { CONVERSION_CONTRACT } from '../lib/skill-import/conversion-contract.mjs';
-import { compileDeployableConversion, requireDeployableConvertedSnapshot } from '../lib/skill-import/conversion-deployment.mjs';
+import { compileDeployableConversion, requireDeployableConvertedSnapshot, reconcileImportObservations, sanitizeConversionReviewHistory } from '../lib/skill-import/conversion-deployment.mjs';
 import { AUTHORING_NODE_PROMPT_MAX_LENGTH } from '../lib/authoring/blueprint-contract.mjs';
 import { createConversionCertificate, requireCurrentConversionCertificate } from '../lib/skill-import/conversion-certificate.mjs';
 import { exclusiveConditionFanIn } from '../lib/skill-import/fan-in-topology.mjs';
@@ -72,7 +72,7 @@ test('compiled agent prompt rejects overflow after Host-required artifact paths 
 
 test('parallel aggregates consume declared fields from every concrete branch and may use a registered tool', async t => {
   const f=await fixture(t,'Run both independent checks and combine their summaries.');
-  const provider={id:'chosen',enabled:true,capabilities:{read:true}};
+  const provider={id:'chosen',enabled:true,capabilities:{read:true,write:true}};
   const pack=await importCoarseSkill(f.store,f.source,{id:'field-aggregate',providerId:provider.id});
   const resources=await f.store.resources('field-aggregate');
   const origin={confidence:1,source_span:{resource:'source/SKILL.md',start_line:9,end_line:9}};
@@ -95,7 +95,7 @@ test('parallel aggregates consume declared fields from every concrete branch and
     assert.equal(compiled.workflow.nodes.find(node=>node.id==='left').retry.max_attempts,3);
     const explicitRetry=structuredClone(candidate);explicitRetry.nodes.find(node=>node.id==='left').retry_max_attempts=1;
     assert.equal(compileExpansion(pack,resources,explicitRetry,context).workflow.nodes.find(node=>node.id==='left').retry.max_attempts,1);
-    assert.deepEqual(compiled.workflow.nodes.find(node=>node.id==='final').input_bindings,{task:'/inputs/task',upstream_result:'/nodes/aggregate/output'});
+    assert.deepEqual(compiled.workflow.nodes.find(node=>node.id==='final').input_bindings,{upstream_result:'/nodes/aggregate/output'});
     assert.deepEqual(compileExpansion(pack,resources,compiled.canonical_proposal,context).canonical_proposal,compiled.canonical_proposal);
   }
   for(const input_bindings of [{left_summary:bindings.left_summary},{selected:{coalesce:Object.values(bindings)}}]) {
@@ -139,6 +139,149 @@ test('an explicit missing inline script is unresolved instead of self-contained'
   const analysis=analyzeSkillDependencies({root:'/synthetic/source',metadata:{},problems:[],inventory:[],files:{'source/SKILL.md':Buffer.from('Run `python scripts/missing.py input.json`.\n')}});
   assert(analysis.unresolved.some(item=>item.code==='UNRESOLVED_COMMAND_REFERENCE' && item.target==='scripts/missing.py'));
   assert.notEqual(analysis.classification,'self_contained_candidate');
+});
+
+test('dependency scanning uses Markdown grammar and the nearest packaged repository root',()=>{
+  const snapshot={root:'/private/source',metadata:{},problems:[],inventory:[],files:{
+    'source/SKILL.md':Buffer.from('[Missing](missing.md)\nRun `node scripts/missing.mjs`.\n'),
+    'source/repository/package.json':Buffer.from('{"bin":{"tool":"bin/absent.js"}}'),
+    'source/repository/docs/guide.md':Buffer.from('Run `node scripts/build.mjs`.\n'),
+    'source/repository/scripts/build.mjs':Buffer.from('console.log("built")'),
+    'source/repository/src/regex.js':Buffer.from('const re=/[label](missing.md)/; /** [type](other.md) */ const metadata="scripts/not-a-command.js";'),
+    'source/browser.js':Buffer.from('const executable="C:\\\\Program Files\\\\Google\\\\Chrome\\\\Application\\\\chrome.exe";'),
+    'source/private.js':Buffer.from('const config="/private/source/custom-config.json";'),
+    'source/other-private.js':Buffer.from('const config="C:/another-private/custom-config.json";'),
+  }};
+  const scan=analyzeSkillDependencies(snapshot);
+  assert.equal(scan.unresolved.filter(item=>item.code==='UNRESOLVED_LOCAL_REFERENCE').length,1);
+  assert.equal(scan.unresolved.filter(item=>item.code==='UNRESOLVED_COMMAND_REFERENCE').length,1);
+  assert(scan.references.some(item=>item.path==='source/repository/docs/guide.md'&&item.resolved==='source/repository/scripts/build.mjs'&&item.present));
+  assert(!scan.unresolved.some(item=>item.path==='source/browser.js'));
+  assert(scan.observations.some(item=>item.path==='source/browser.js'&&item.code==='RUNTIME_PATH_REFERENCE'));
+  assert(scan.unresolved.some(item=>item.path==='source/private.js'&&item.code==='SOURCE_LINKED_PATH'));
+  assert(scan.unresolved.some(item=>item.path==='source/other-private.js'&&item.code==='SOURCE_LINKED_PATH'));
+});
+
+test('compiler reconciliation keeps distinct opaque occurrences and genuine blockers',()=>{
+  const resources={'source/SKILL.md':Buffer.from('# Source\n[Missing](absent.md)\nRun `node scripts/missing.mjs`.\n'),
+    'source/repository/package.json':Buffer.from('{}'),
+    'source/repository/docs/guide.md':Buffer.from('Run `node scripts/build.mjs`.\n'),
+    'source/repository/scripts/build.mjs':Buffer.from('console.log("built")'),
+    'source/code.js':Buffer.from('const re=/[x](missing.md)/;'),
+  };
+  const old=[{code:'UNRESOLVED_LOCAL_REFERENCE',path:'source/code.js',line:1,target:'missing.md',origin:'observed'},
+    {code:'UNRESOLVED_COMMAND_REFERENCE',path:'source/repository/docs/guide.md',line:1,target:'scripts/build.mjs',origin:'observed'},
+    {code:'UNSUPPORTED_DECLARED_REQUIREMENT',origin:'declared',reason:'private wording'},
+    {code:'MISSING_RUNTIME',origin:'compiled'}, {code:'MISSING_RUNTIME',origin:'compiled'}];
+  const workflow={nodes:[{id:'run',resources:Object.keys(resources)}],import_status:{unresolved:old}};
+  const pack={provenance:{source_path:'/private/source/SKILL.md'},import_report:{problems:[]}};
+  const result=reconcileImportObservations({workflow,proposal:{},resources,pack});
+  assert.equal(result.evidence.filter(item=>item.resolution==='reconciled').length,2);
+  assert(result.unresolved.some(item=>item.code==='UNRESOLVED_LOCAL_REFERENCE'));
+  assert(result.unresolved.some(item=>item.code==='UNRESOLVED_COMMAND_REFERENCE'));
+  assert(result.unresolved.some(item=>item.code==='UNSUPPORTED_DECLARED_REQUIREMENT'));
+  const missing=result.unresolved.filter(item=>item.code==='MISSING_RUNTIME');
+  assert.equal(missing.length,2);assert.notEqual(missing[0].occurrence_id,missing[1].occurrence_id);
+  assert.deepEqual(result,reconcileImportObservations({workflow,proposal:{},resources,pack}));
+  assert(!JSON.stringify(result).includes('private wording'));
+  assert(!JSON.stringify(result).includes('source/code.js'));
+  const unbound=reconcileImportObservations({workflow:{...workflow,nodes:[]},proposal:{},resources,pack});
+  assert(unbound.unresolved.some(item=>item.occurrence_id===result.evidence[1].occurrence_id));
+});
+
+test('explicit program process calls and package scripts preserve missing runtime command blockers',()=>{
+  const resources={'source/SKILL.md':Buffer.from('# Source'),
+    'source/package.json':Buffer.from('{"scripts":{"build":"node scripts/missing-build.mjs"},"bin":{"dependency":"bin/not-an-invocation.js"}}'),
+    'source/code.js':Buffer.from("import { execFileSync } from 'node:child_process';\nexecFileSync('node', ['scripts/missing-runtime.js']);\nconst banner='scripts/not-a-command.js';\n")};
+  const old={code:'UNRESOLVED_COMMAND_REFERENCE',path:'source/code.js',line:2,target:'scripts/missing-runtime.js',origin:'observed'};
+  const result=reconcileImportObservations({workflow:{nodes:[],import_status:{unresolved:[old]}},proposal:{},resources,pack:{provenance:{},import_report:{}}});
+  assert.equal(result.unresolved.filter(item=>item.code==='UNRESOLVED_COMMAND_REFERENCE').length,2);
+  assert(!result.evidence.some(item=>item.reason==='non_markdown_syntax'));
+});
+
+test('aliased process calls and unrecognized consumers never reconcile by scan absence',()=>{
+  for(const code of ["import { execFileSync as run } from 'node:child_process';\nrun('python', ['scripts/missing.py']);", "import { run } from './transport.js';\nrun('python', ['scripts/missing.py']);"]){
+    const resources={'source/SKILL.md':Buffer.from('# Source'),'source/code.js':Buffer.from(code)};
+    const issue={code:'UNRESOLVED_COMMAND_REFERENCE',path:'source/code.js',line:2,target:'scripts/missing.py',origin:'observed'};
+    const result=reconcileImportObservations({workflow:{nodes:[],import_status:{unresolved:[issue]}},proposal:{},resources,pack:{provenance:{},import_report:{}}});
+    assert.equal(result.unresolved.length,1);assert.equal(result.evidence[0].resolution,'unresolved');
+  }
+});
+
+test('redacted synthetic fixtures reconcile only with pinned use evidence; real test credentials remain blocked',()=>{
+  const path='repository/test/provider.test.js';
+  const raw=["import { pickProvider } from '../src/provider.js';","assert.equal(pickProvider('auto', { API_KEY: 'k' }).name, 'fake');",
+    "test('network fixture', async () => {",'  const savedFetch = globalThis.fetch;',
+    "  globalThis.fetch = async () => { throw new Error('offline'); };",'  try {',
+    "    const provider = pickProvider('fake', { API_KEY: 'x' });",'    await provider.synth();',
+    '  } finally { globalThis.fetch = savedFetch; }','});',
+    "test('real stored key', () => { const API_KEY = 'actual-real-secret-value'; });",
+    "test('short alone is insufficient', () => { const API_KEY = 'q'; });"].join('\n');
+  const screened=redactKnownCredentials(raw,{sourcePath:path});
+  assert.equal(screened.findings.length,4);
+  assert.equal(screened.findings.filter(item=>item.synthetic_evidence).length,2);
+  const implementation=["export function pickProvider(choice, env) {",'  const online = () => createProvider(env);','  const offline = () => createOffline(env);',"  if (choice === 'off') return null;",'  if (env.API_KEY) return online();','  return offline();','}',
+    'function createProvider(env) {','  return {',"    name: 'fake',",'    async synth(text) { return text;','    },','  };','}'].join('\n');
+  const resources={'source/SKILL.md':Buffer.from('# Source'),['source/'+path]:Buffer.from(screened.text),'source/repository/src/provider.js':Buffer.from(implementation)};
+  const problems=screened.findings.map(issue=>({...issue,path}));
+  const workflow={nodes:[{id:'test',resources:Object.keys(resources)}],import_status:{unresolved:problems}};
+  const pack={provenance:{},import_report:{problems}};
+  const result=reconcileImportObservations({workflow,proposal:{},resources,pack});
+  assert.equal(result.evidence.filter(item=>item.resolution==='reconciled').length,1);
+  assert.equal(result.unresolved.filter(item=>item.code==='CREDENTIAL_REDACTED').length,3);
+  assert(!JSON.stringify(result).includes('actual-real-secret-value'));
+  const changed={...resources,['source/'+path]:Buffer.from(screened.text+'\n// changed')};
+  assert.equal(reconcileImportObservations({workflow,proposal:{},resources:changed,pack}).unresolved.length,4);
+  const effectful={...resources,'source/repository/src/provider.js':Buffer.from("export function pickProvider(choice, env) {\n fetch('https://api.example.test', { headers: { Authorization: env.API_KEY } });\n return { name: 'fake' };\n}\n")};
+  assert.equal(reconcileImportObservations({workflow,proposal:{},resources:effectful,pack}).unresolved.length,4);
+  const history=sanitizeConversionReviewHistory([{actor:'user',decisions:[{observation:problems[0],resolution:'resolved',note:'verified'}]}],{resources});
+  assert(!JSON.stringify(history).includes(path));assert(!JSON.stringify(history).includes('REDACTED_REQUIREMENT'));
+});
+
+test('a rejecting fetch stub cannot approve an unrelated HTTPS credential consumer',()=>{
+  const path='repository/test/transport.test.js';
+  const raw="test('stub', async () => {\n const saved = globalThis.fetch;\n globalThis.fetch = async () => { throw new Error('offline'); };\n try {\n  const API_KEY = 'k';\n  await sendUsingHttps(API_KEY);\n } finally { globalThis.fetch = saved; }\n});";
+  const redacted=redactKnownCredentials(raw,{sourcePath:path});
+  const problems=redacted.findings.map(item=>({...item,path}));
+  const resources={'source/SKILL.md':Buffer.from('# Source'),['source/'+path]:Buffer.from(redacted.text)};
+  assert.equal(reconcileImportObservations({workflow:{nodes:[],import_status:{unresolved:problems}},proposal:{},resources,pack:{provenance:{},import_report:{problems}}}).unresolved.length,1);
+});
+
+test('fetch fixture proof derives renamed consumer, choice, credential field, method and header',()=>{
+  const path='repository/test/transport.test.js';
+  const raw=["import { selectService } from '../src/service.js';","test('stub', async () => {",' const saved = globalThis.fetch;'," globalThis.fetch = async () => { throw new Error('offline'); };",' try {',"  const service = selectService('online', { AUTH_TOKEN: 'q' });","  await assert.rejects(service.request('test'), NetworkError);",' } finally { globalThis.fetch = saved; }','});'].join('\n');
+  const implementation=["export class NetworkError extends Error {",' constructor(message) {',"  super(message); this.name = 'NetworkError';",' }','}',
+    'export function selectService(mode, variables) {',' const remote = () => createService(variables);',' const fallback = () => createOffline(variables);'," if (mode === 'online') {", "  if (!variables.AUTH_TOKEN) throw new NetworkError('missing');",'  return remote();',' }',' if (variables.AUTH_TOKEN) return remote();',' return fallback();','}',
+    'function createService(variables) {',' return {',"  name: 'remote',",'  async request(body) {','      const url = `https://example.test`;','      let res;','      try {','        res = await fetch(url, {',"          headers: { 'Authorization': variables.AUTH_TOKEN },",'        });','      } catch (e) {','        throw new NetworkError(`unavailable`);','      }','    },',' };','}'].join('\n');
+  const redacted=redactKnownCredentials(raw,{sourcePath:path});
+  const problems=redacted.findings.map(item=>({...item,path}));
+  const resources={'source/SKILL.md':Buffer.from('# Source'),['source/'+path]:Buffer.from(redacted.text),'source/repository/src/service.js':Buffer.from(implementation)};
+  const result=reconcileImportObservations({workflow:{nodes:[],import_status:{unresolved:problems}},proposal:{},resources,pack:{provenance:{},import_report:{problems}}});
+  assert.equal(result.unresolved.length,0);assert.equal(result.evidence[0].dependency_sha256[0],digest(resources['source/repository/src/service.js']));
+  for(const mutation of [
+    raw.replace("  await assert.rejects(service.request('test'), NetworkError);","  globalThis.fetch = saved;\n  await assert.rejects(service.request('test'), NetworkError);"),
+    raw.replace("  await assert.rejects(service.request('test'), NetworkError);","  service.request = sendUsingHttps;\n  await assert.rejects(service.request('test'), NetworkError);"),
+    raw.replace("  const service = selectService('online', { AUTH_TOKEN: 'q' });","  const restore = () => { globalThis.fetch = saved; };\n  restore();\n  const service = selectService('online', { AUTH_TOKEN: 'q' });"),
+    raw.replace("service.request('test')","service.request((globalThis.fetch = saved, 'test'))"),
+  ]){
+    const changed=redactKnownCredentials(mutation,{sourcePath:path});
+    const issues=changed.findings.map(item=>({...item,path}));
+    const bytes={...resources,['source/'+path]:Buffer.from(changed.text)};
+    assert.equal(reconcileImportObservations({workflow:{nodes:[],import_status:{unresolved:issues}},proposal:{},resources:bytes,pack:{provenance:{},import_report:{problems:issues}}}).unresolved.length,1);
+  }
+});
+
+test('source path fixtures need a pinned imported pure classifier; a test filename does not exempt real paths',()=>{
+  const resources={'source/SKILL.md':Buffer.from('# Source'),
+    'source/repository/src/classifier.js':Buffer.from("export function classify(path = '') {\n if (/plugins/.test(path)) { return 'plugin'; }\n return 'other';\n}\n"),
+    'source/repository/test/path.test.js':Buffer.from("import { classify } from '../src/classifier.js';\nassert.match(classify('/Users/u/plugins/x'), /plugin/);\n"),
+    'source/repository/test/real.test.js':Buffer.from("const actualConfig = '/Users/person/private/config.json';\n"),
+  };
+  const result=reconcileImportObservations({workflow:{nodes:[],import_status:{}},proposal:{},resources,pack:{provenance:{},import_report:{}}});
+  assert.equal(result.evidence.filter(item=>item.reason==='pure_path_classifier_fixture').length,1);
+  assert.equal(result.unresolved.filter(item=>item.code==='SOURCE_LINKED_PATH').length,1);
+  resources['source/repository/src/classifier.js']=Buffer.from("export function classify(path = '') {\n readFileSync(path);\n return 'plugin';\n}\n");
+  assert.equal(reconcileImportObservations({workflow:{nodes:[],import_status:{}},proposal:{},resources,pack:{provenance:{},import_report:{}}}).unresolved.length,2);
 });
 
 test('contract anchors retain entrypoint artifacts and dependencies without promoting optional references', () => {
@@ -228,7 +371,12 @@ test('Host node evidence includes its mapped source sections and requirement lin
   const node=projected.nodes[0];
   assert(node.requirement_ids.includes(rule.requirement_id));
   assert(node.source_spans.some(span=>span.resource===implementation.source_span.resource && span.start_line===implementation.source_span.start_line && span.end_line===implementation.source_span.end_line));
-  assert(node.source_spans.some(span=>span.resource===rule.source_spans[0].resource && span.start_line===rule.source_spans[0].start_line && span.end_line===rule.source_spans[0].end_line));
+  assert(node.source_spans.some(span=>span.resource===rule.source_spans[0].resource && span.start_line<=rule.source_spans[0].start_line && span.end_line>=rule.source_spans[0].end_line));
+  assert.deepEqual(projected.source_requirements.find(item=>item.requirement_id===rule.requirement_id).source_spans,rule.source_spans);
+  for(let i=0;i<node.source_spans.length;i++)for(let j=i+1;j<node.source_spans.length;j++){
+    const a=node.source_spans[i],b=node.source_spans[j];
+    assert(a.resource!==b.resource||a.start_line>b.end_line||b.start_line>a.end_line);
+  }
   assert.deepEqual(projectObservedRequirements(projected,resources).nodes[0].source_spans,node.source_spans);
 });
 
@@ -530,7 +678,7 @@ test('source status detects changes to imported resources, not only SKILL.md', a
 
 test('automatic planning pins model suitability and compiles main, independent parallel agents and human approval', async t => {
   const f=await fixture(t,'Inspect two independent sources and synthesize a result.');
-  const providers=[{id:'custom-fast',description:'Fast bounded evidence extraction',enabled:true,kind:'native_agent',capabilities:{read:true},config:{model:'custom-model',role:'implementer'}}];
+  const providers=[{id:'custom-fast',description:'Fast bounded evidence extraction',enabled:true,kind:'native_agent',capabilities:{read:true,write:true},config:{model:'custom-model',role:'implementer'}}];
   const pack=await importCoarseSkill(f.store,f.source,{id:'automatic'});
   const resources=await f.store.resources('automatic'); const rules=defaultRoutingRules(providers);
   const span={resource:'source/SKILL.md',start_line:9,end_line:9};
@@ -544,7 +692,7 @@ test('automatic planning pins model suitability and compiles main, independent p
   const context={providers,roles:roleProfiles,routing_rules:rules,tools:['read_workflow_resource']};
   const planningPrompt=expansionPacket(pack,resources,providers[0],rules,providers).prompt;
   assert.doesNotMatch(planningPrompt,/Fast bounded evidence extraction/);
-  assert.match(planningPrompt,/Routing is entirely Host-owned/);
+  assert.match(planningPrompt,/Default responsibility and model suitability/);
   const result=compileExpansion(pack,resources,proposal,context);
   assert.equal(result.validation.valid,true);
   assert.notEqual(result.workflow.import_status.conversion_level,'unsupported',JSON.stringify(result.workflow.import_status.requirement_coverage));
@@ -561,6 +709,16 @@ test('automatic planning pins model suitability and compiles main, independent p
   const saved=await applyExpansion(f.store,'automatic',proposal,{expected_revision:pack.revision_hash,context,inference_confirmation:'Confirmed all displayed nodes and edges',conversion_review_contract_version:CONVERSION_CONTRACT.version});
   assert(!validateWorkflowGraph(saved.workflow,context).blockers.some(i=>i.code==='AI_INFERENCE_UNREVIEWED'));
   assert.equal(saved.provenance.kind,'workflow_conversion');
+  const refreshSource=await importCoarseSkill(f.store,f.source,{id:'automatic-refresh'});
+  const refreshProposal={...proposal,source_revision:refreshSource.revision_hash};
+  const hostOptions={context,inference_confirmation:'Existing accepted proposal',inference_authority:'host',
+    inference_receipt:{completion_policy:{mode:'automatic'},review_result_sha256:'a'.repeat(64)},conversion_review_contract_version:CONVERSION_CONTRACT.version};
+  const refreshInitial=await applyExpansion(f.store,'automatic-refresh',refreshProposal,{...hostOptions,expected_revision:refreshSource.revision_hash});
+  const refresh=await applyExpansion(f.store,'automatic-refresh',refreshProposal,{...hostOptions,expected_revision:refreshInitial.revision_hash,source_revision:refreshSource.revision_hash});
+  assert.equal(refresh.revision_hash,refreshInitial.revision_hash,'Unchanged mechanical reprojection must be idempotent');
+  const edited=await f.store.save('automatic-refresh',{...refresh.workflow,name:'User-edited workflow'},{expected_revision:refresh.revision_hash});
+  await assert.rejects(applyExpansion(f.store,'automatic-refresh',refreshProposal,{...hostOptions,expected_revision:edited.revision_hash,source_revision:refreshSource.revision_hash}),{code:'EXPANSION_REPROJECTION_CHANGED'});
+  await assert.rejects(applyExpansion(f.store,'automatic-refresh',refreshProposal,{...hostOptions,inference_authority:'user',expected_revision:edited.revision_hash,source_revision:refreshSource.revision_hash}),{code:'EXPANSION_ACCEPTANCE_AUTHORITY'});
   assert.equal(saved.workflow.nodes.find(n=>n.id==='a').origin.kind,'converted');
   assert(saved.import_report.expansion.inference_confirmation.note);
   assert.equal(saved.resources.some(item=>item.path.startsWith('source/')),false);
@@ -609,7 +767,7 @@ test('routed expansion assigns each responsibility independently and pins editab
   const f = await fixture(t,'Implement a result.\nReview the result.');
   const providers = [
     {id:'native-luna',enabled:true,kind:'native_agent',capabilities:{read:true,write:true},config:{role:'advisor'}},
-    {id:'native-sol',enabled:true,kind:'native_agent',capabilities:{read:true,write:false},config:{role:'reviewer'}},
+    {id:'native-sol',enabled:true,kind:'native_agent',capabilities:{read:true,write:true},config:{role:'reviewer'}},
   ];
   const pack = await importCoarseSkill(f.store,f.source,{id:'routed'});
   const resources = await f.store.resources('routed');
@@ -641,14 +799,14 @@ test('routed expansion assigns each responsibility independently and pins editab
   assert.equal(convertedReviewAndFix.workflow.nodes.find(node=>node.id==='check').access,'bounded_write');
   assert.equal(Object.hasOwn(convertedReviewAndFix.workflow.nodes.find(node=>node.id==='check'),'role_ref'),false);
   assert.throws(()=>compileExpansion(pack,resources,reviewAndFix,
-    {providers,roles:roleProfiles,routing_rules:packet.routing_rules,tools:['read_workflow_resource']}),{code:'EXPANSION_WRITE_PROVIDER'});
+    {providers:providers.map(provider=>provider.id==='native-sol'?{...provider,capabilities:{read:true,write:false}}:provider),roles:roleProfiles,routing_rules:packet.routing_rules,tools:['read_workflow_resource']}),{code:'EXPANSION_WRITE_PROVIDER'});
   assert.equal(result.workflow.nodes.find(n=>n.id==='final').executor.kind,'main');
   assert.equal(result.workflow.status,'draft');
   const job = expansionRunPack(pack,resources,providers[0],'planning-job',rules,false,providers[1],providers);
   rules.routes.implementation.provider_id='native-luna';
   assert.equal(job.provenance.routing_rules.routes.implementation.provider_id,'native-luna');
   assert.doesNotMatch(job.resources['analysis/request.txt'],/Every agent requires task_type/);
-  assert.match(job.resources['analysis/request.txt'],/compact activity profile/);
+  assert.match(job.resources['analysis/request.txt'],/semantic execution profile/);
   const dependencyPack=structuredClone(pack);dependencyPack.workflow.requirements.executables=['ffmpeg','ffprobe'];
   const dependencyJob=expansionRunPack(dependencyPack,resources,providers[0],'dependency-planning-job',packet.routing_rules,false,providers[1],providers);
   assert.match(dependencyJob.resources['analysis/request.txt'],/Imported Draft baseline requirements/);
@@ -714,10 +872,10 @@ test('scripts, missing references, external paths and credential resources stay 
   const resources = await f.store.resources('requirements'); assert.equal(resources['source/.env'], undefined);
   assert.deepEqual(pack.workflow.requirements.environment, []);
   assert(pack.import_report.observed_dependencies.some(item=>item.kind==='environment' && item.name==='REQUIRED_KEY'));
-  const validation = validateWorkflowGraph({ ...pack.workflow, status: 'ready' }, { providers: [{ id: 'chosen', enabled: true, capabilities: { read: true } }], tools: ['read_workflow_resource'], executables: ['node'] });
+  const validation = validateWorkflowGraph({ ...pack.workflow, status: 'ready' }, { providers: [{ id: 'chosen', enabled: true, capabilities: { read: true, write: true } }], tools: ['read_workflow_resource'], executables: ['node'] });
   assert(validation.blockers.some(item => item.code === 'IMPORT_UNRESOLVED'));
   assert(!validation.blockers.some(item => item.requirement === 'REQUIRED_KEY'));
-  assert(!validateWorkflowGraph({...pack.workflow,status:'ready'},{providers:[{id:'chosen',enabled:true,capabilities:{read:true}}],check_runtime_requirements:true}).blockers.some(item=>item.requirement==='REQUIRED_KEY'));
+  assert(!validateWorkflowGraph({...pack.workflow,status:'ready'},{providers:[{id:'chosen',enabled:true,capabilities:{read:true,write:true}}],check_runtime_requirements:true}).blockers.some(item=>item.requirement==='REQUIRED_KEY'));
   assert.throws(() => verifyCoarseRelocation(pack, resources), { code: 'IMPORT_UNRESOLVED' });
 });
 
@@ -835,13 +993,13 @@ test('inventory detects concurrent host config edits without reverting them', as
 });
 
 test('AI expansion stays Draft, pins inferences, preserves authority and retains the coarse revision on failure', async t => {
-  const f = await fixture(t); const provider = { id: 'chosen', enabled: true, capabilities: { read: true } };
+  const f = await fixture(t); const provider = { id: 'chosen', enabled: true, capabilities: { read: true, write: true } };
   const pack = await importCoarseSkill(f.store, f.source, { id: 'expanded', providerId: provider.id }); const resources = await f.store.resources('expanded');
   const packet = expansionPacket(pack, resources, provider); assert.equal(packet.access, 'read_only'); assert.equal(packet.source_revision, pack.revision_hash);
   assert.match(packet.prompt, /planning Run task is not the future task/);
   assert.match(packet.prompt, /fixed-shape semantic blueprint/i);
   assert.match(packet.prompt, /Host owns all strict Workflow fields/i);
-  assert.match(packet.prompt, /Existing input schema and coarse instructions/);
+  assert.match(packet.prompt, /Existing business input schema/);
   assert.throws(() => expansionPacket(pack, resources, { ...provider, enabled: false }), { code: 'EXPANSION_PROVIDER' });
   const inference = { confidence: 0.7, source_span: { resource: 'source/SKILL.md', start_line: 9, end_line: 9 } };
   const proposal = { source_revision: pack.revision_hash, nodes: [{ id: 'step', type: 'agent', prompt_template: 'Apply the pinned guide to {{task}}', ...inference }],
@@ -850,13 +1008,13 @@ test('AI expansion stays Draft, pins inferences, preserves authority and retains
   await assert.rejects(applyExpansion(f.store, 'expanded', invalid, { expected_revision: pack.revision_hash, context: { providers: [provider] }, conversion_review_contract_version:CONVERSION_CONTRACT.version }), { code: 'EXPANSION_AUTHORITY' });
   assert.equal((await f.store.snapshot('expanded')).revision_hash, pack.revision_hash);
   const next = await applyExpansion(f.store, 'expanded', proposal, { expected_revision: pack.revision_hash, context: { providers: [provider] }, conversion_review_contract_version:CONVERSION_CONTRACT.version });
-  assert.equal(next.workflow.status, 'draft'); assert.equal(next.workflow.nodes.find(node => node.id === 'step').access, 'read_only');
+  assert.equal(next.workflow.status, 'draft'); assert.equal(next.workflow.nodes.find(node => node.id === 'step').access, 'bounded_write');
   assert.equal(next.workflow.nodes.find(node => node.id === 'step').executor.provider_id, provider.id);
   assert.equal(next.workflow.nodes.find(node => node.id === 'final').executor.kind, 'main');
   assert(next.workflow.import_status.unresolved.some(item => item.code === 'AI_INFERENCES_REQUIRE_REVIEW'));
   assert.equal((await f.store.snapshot('expanded', pack.revision_hash)).workflow.import_status.mode, 'coarse');
   const regenerated = expansionPacket(next, resources, provider, defaultRoutingRules([{id:'native-luna',enabled:true}]), []);
-  assert.match(regenerated.prompt, /previous graph is not source authority/);
+  assert.match(regenerated.prompt, /coarse scaffold is Host-owned, not a production design/);
   const stale = structuredClone(proposal); stale.source_revision = 'a'.repeat(64);
   await assert.rejects(applyExpansion(f.store, 'expanded', stale, { expected_revision: next.revision_hash, context: { providers: [provider] }, conversion_review_contract_version:CONVERSION_CONTRACT.version }), { code: 'EXPANSION_SCHEMA' });
   const review = importReviewPacket(next); assert.equal(review.inferences.length, 3);
@@ -872,7 +1030,7 @@ test('AI expansion stays Draft, pins inferences, preserves authority and retains
 });
 
 test('published expansion contract compiles a named gate and finite condition without granting model authority', async t => {
-  const f = await fixture(t); const provider = { id: 'chosen', enabled: true, capabilities: { read: true } };
+  const f = await fixture(t); const provider = { id: 'chosen', enabled: true, capabilities: { read: true, write: true } };
   const pack = await importCoarseSkill(f.store, f.source, { id: 'contract', providerId: provider.id });
   const resources = await f.store.resources('contract');
   const origin = { confidence: 0.9, source_span: { resource: 'source/SKILL.md', start_line: 9, end_line: 9 } };
@@ -912,7 +1070,7 @@ test('published expansion contract compiles a named gate and finite condition wi
 });
 
 test('condition fan-in uses one selected binding while parallel fan-in stays strict', async t => {
-  const f=await fixture(t);const provider={id:'chosen',enabled:true,capabilities:{read:true}};
+  const f=await fixture(t);const provider={id:'chosen',enabled:true,capabilities:{read:true,write:true}};
   const pack=await importCoarseSkill(f.store,f.source,{id:'exclusive-fan-in',providerId:provider.id});
   const resources=await f.store.resources('exclusive-fan-in');
   const origin={confidence:1,source_span:{resource:'source/SKILL.md',start_line:9,end_line:9}};
@@ -941,7 +1099,7 @@ test('condition fan-in uses one selected binding while parallel fan-in stays str
 });
 
 test('conversion inventory limits fail before a planning packet is dispatched', async t => {
-  const f=await fixture(t);const provider={id:'chosen',enabled:true,capabilities:{read:true}};
+  const f=await fixture(t);const provider={id:'chosen',enabled:true,capabilities:{read:true,write:true}};
   const pack=await importCoarseSkill(f.store,f.source,{id:'bounded-inventory',providerId:provider.id});
   const resources=await f.store.resources('bounded-inventory');
   resources['source/SKILL.md']=Buffer.from(Array.from({length:201},(_,index)=>`## Step ${index+1}\nDo work.`).join('\n'));
@@ -951,7 +1109,7 @@ test('conversion inventory limits fail before a planning packet is dispatched', 
 test('a pinned script requirement binds only to a host-authorized contract and executes through the host runner', async t => {
   const f=await fixture(t,'Run `python scripts/run.py input.json` and use its structured result.');
   await mkdir(join(f.sourceRoot,'scripts'));await writeFile(join(f.sourceRoot,'scripts','run.py'),'print("registered broker owns execution")\n');
-  const provider={id:'chosen',enabled:true,capabilities:{read:true}};
+  const provider={id:'chosen',enabled:true,capabilities:{read:true,write:true}};
   const pack=await importCoarseSkill(f.store,f.source,{id:'script-bound',providerId:provider.id});
   const resources=await f.store.resources('script-bound');
   const contract={id:'skill_script_run',identity:{name:'source/scripts/run.py',version:'1',sha256:digest(resources['source/scripts/run.py'])},argv:['python','source/scripts/run.py'],input_schema:{type:'object',required:['task'],additionalProperties:false,properties:{task:{type:'string'}}},output_schema:{type:'object',required:['result'],additionalProperties:false,properties:{result:{type:'string'}}},implements:['observed_script_9_1'],env_allow:[],permissions:{network:false,read_paths:['source/scripts/run.py'],write_paths:[]},output_cap_bytes:4096,deadline_ms:1000,idempotency:{mode:'safe'}};
@@ -1008,6 +1166,31 @@ test('review cannot approve a proposal that omits a source-required approval gat
   assert.equal(result.approved,false);assert(result.findings.some(item=>item.includes('no human_gate')));
 });
 
+test('deployable conversion checks nested source entrypoints, known private roots and actual asset bytes',()=>{
+  const resources={'source/SKILL.md':Buffer.from('# Private entrypoint\nDo the full task.'),'source/guide.md':Buffer.from('# Knowledge\nUseful guidance.')};
+  const workflow={nodes:[{id:'work',resources:Object.keys(resources)}],edges:[],import_status:{unresolved:[]}};
+  const pack={revision_hash:'a'.repeat(64),provenance:{source_path:'C:/private/custom/SKILL.md',source_hash:digest(resources['source/SKILL.md'])}};
+  const compiled=compileDeployableConversion({workflow,proposal:{nodes:[],edges:[]},resources,pack,proposalHash:'b'.repeat(64),reviewContractVersion:CONVERSION_CONTRACT.version});
+  const snapshot={...compiled,resources:prepareResources(compiled.resources).manifest};
+  const privacy={resourceBytes:compiled.resources,privateSourceRoots:['C:/private/custom']};
+  assert.doesNotThrow(()=>requireDeployableConvertedSnapshot(snapshot,privacy));
+  assert.throws(()=>requireDeployableConvertedSnapshot({...snapshot,workflow:{...snapshot.workflow,description:'Read C:/private/custom/custom-config.json'}},privacy),{code:'CONVERTED_SOURCE_LEAK'});
+  assert.doesNotThrow(()=>requireDeployableConvertedSnapshot({...snapshot,workflow:{...snapshot.workflow,description:'Chrome default C:/Program Files/Google/Chrome/Application/chrome.exe'}},privacy));
+  for(const leaked of ['const source="source/nested/SKILL.md";','const config="C:\\\\private\\\\custom\\\\custom-config.json";']){
+    const bytes={'workflow-assets/module.js':Buffer.from(leaked)};
+    assert.throws(()=>requireDeployableConvertedSnapshot({...snapshot,resources:prepareResources(bytes).manifest},{resourceBytes:bytes,privateSourceRoots:privacy.privateSourceRoots}),{code:'CONVERTED_ASSET_SOURCE_LEAK'});
+  }
+  assert.throws(()=>requireDeployableConvertedSnapshot(snapshot,{...privacy,resourceBytes:{...compiled.resources,'workflow-assets/guide.md':Buffer.from('changed')}}),{code:'CONVERTED_RESOURCE_BYTES'});
+  const reviewed=observation=>({...snapshot,import_report:{...snapshot.import_report,review_history:[{decisions:[{observation}]}]}});
+  assert.doesNotThrow(()=>requireDeployableConvertedSnapshot(reviewed({code:'RESOURCE_EDIT_REQUIRES_REVIEW',path:'workflow-assets/guide.md',after_sha256:digest(compiled.resources['workflow-assets/guide.md'])}),privacy));
+  for(const observation of [{code:'SOURCE_LINKED_PATH',path:'source/private.js'},{code:'RESOURCE_EDIT_REQUIRES_REVIEW',path:'workflow-assets/../source/private.js'}])
+    assert.throws(()=>requireDeployableConvertedSnapshot(reviewed(observation),privacy),{code:'CONVERTED_SOURCE_LEAK'});
+  for(const extra of [{'source/duplicate.md':resources['source/SKILL.md']},{'source/module.js':Buffer.from('const source="source/nested/SKILL.md";')}]){
+    const files={...resources,...extra};
+    assert.throws(()=>compileDeployableConversion({workflow:{...workflow,nodes:[{id:'work',resources:Object.keys(files)}]},proposal:{nodes:[],edges:[]},resources:files,pack,proposalHash:'b'.repeat(64),reviewContractVersion:CONVERSION_CONTRACT.version}),{code:Object.hasOwn(extra,'source/duplicate.md')?'CONVERTED_SOURCE_ENTRYPOINT':'CONVERTED_ASSET_SOURCE_LEAK'});
+  }
+});
+
 test('review validation projects source spans and graph identities in Host order', () => {
   const span={resource:'source/SKILL.md',start_line:1,end_line:1};
   const proposal={source_requirements:[],requirement_mappings:[],source_dispositions:[{section_id:'section_01_overview',disposition:'workflow',node_ids:['work'],requirement_ids:[],rationale:'The entrypoint defines the task.'}],nodes:[{id:'work',type:'agent'}],edges:[{id:'work-final',source:'work',target:'final'}]};
@@ -1023,7 +1206,7 @@ test('review validation projects source spans and graph identities in Host order
 
 test('v4 contract rejects an all-pass generic proposal that omits exact artifact, method and interface rules', async t => {
   const f=await fixture(t,'Write `record.json` with exact keys `id` and `label`. Apply the declared transform and round to 2 decimal places.');
-  const provider={id:'chosen',enabled:true,kind:'native_agent',capabilities:{read:true},config:{role:'implementer'}};
+  const provider={id:'chosen',enabled:true,kind:'native_agent',capabilities:{read:true,write:true},config:{role:'implementer'}};
   const reviewer={id:'native-sol',enabled:true,kind:'native_agent',capabilities:{read:true,write:false},config:{role:'reviewer'}};
   const pack=await importCoarseSkill(f.store,f.source,{id:'v4-generic',providerId:provider.id}); const resources=await f.store.resources('v4-generic');
   const origin={confidence:0.9,source_span:{resource:'source/SKILL.md',start_line:9,end_line:9}};

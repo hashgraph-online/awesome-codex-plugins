@@ -36,14 +36,15 @@ treated differently; that judgement belongs to a lawyer.
 Open or update a research note per risky portrayal:
 
 ```shell
-story add research "Portrayal of the Harbour Board" --accuracy blended --risk defamation --used-in chapter-07
+story add research 'Portrayal of the Harbour Board' --accuracy blended --risk defamation --used-in chapter-07
 ```
 
 Record in the note who is portrayed, what the prose asserts, what is
 documented (with sources) versus invented, and the decision taken. After
 a legal read, add `publishing lawyer` to the note's `reviewed-by` list
 (or the lawyer's name with consent). `story validate .` warns while a note with a `risk`
-is used in a final chapter without `reviewed-by`.
+is used in a final chapter without `reviewed-by`. After you add or edit a note, run `story reindex .`,
+`story wordcount . --write`, and `story check .`.
 
 ## Permissions for quoted material
 
@@ -78,7 +79,7 @@ market; do not assert it from memory.
 ## Matter-file fields
 
 Each epigraph or quoted page in `matter/` records its state. Create an
-epigraph with `story add matter "Epigraph" --heading false`, or edit the
+epigraph with `story add matter 'Epigraph' --heading=false`, or edit the
 scaffolded `heading:` key; never add a second `heading:` line.
 
 ```yaml
@@ -106,6 +107,9 @@ neither fits.
 
 `story validate .` warns when a matter page is `pending` and the story
 status is `complete`, and when `granted` has no `rights-holder`.
+`story export` and the builds leave a `pending` page out, with a
+`permission-pending-left-out` warning, unless `--include-pending` is
+given, so the review copy and shared files never carry it.
 
 ## Permission request checklist
 

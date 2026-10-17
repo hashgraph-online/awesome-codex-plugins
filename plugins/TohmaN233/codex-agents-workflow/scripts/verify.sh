@@ -12,6 +12,13 @@ script_dir=$(CDPATH= cd "$(dirname "$0")" && pwd) || exit 1
 plugin_dir=$(CDPATH= cd "$script_dir/.." && pwd) || exit 1
 repo_dir=$(CDPATH= cd "$plugin_dir/../.." && pwd) || exit 1
 
+node --input-type=module - "$repo_dir" <<'NODE'
+import {execFileSync} from 'node:child_process';
+const paths=execFileSync('git',['-C',process.argv[2],'ls-files','-z'],{encoding:'utf8'}).split('\0').filter(Boolean);
+const forbidden=paths.filter(path=>/^agents?\.md$/i.test(path.split('/').at(-1)));
+if(forbidden.length)throw new Error('Private maintainer instructions must not be published: '+JSON.stringify(forbidden));
+NODE
+
 if [ -d "$plugin_dir/agents" ]; then
   agent_files=$(find "$plugin_dir/agents" -type f -print -quit) || exit 1
   [ -z "$agent_files" ] \

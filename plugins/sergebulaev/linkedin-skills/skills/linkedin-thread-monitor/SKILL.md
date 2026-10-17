@@ -7,7 +7,7 @@ description: "Track which of your LinkedIn comments earned author replies. Flags
 
 Track which of your comments earned author replies. The author-reply signal is the highest-value inbound LinkedIn produces; this skill ensures you respond inside the window where momentum compounds.
 
-Depends on `APIFY_TOKEN`. Without it, falls back to user-paste of recent comment URLs.
+Needs a read credential: `APIFY_TOKEN`, or the Apify MCP connector (the only option on claude.ai). With neither, falls back to user-paste of recent comment URLs.
 
 ## When to use
 
@@ -26,7 +26,7 @@ Output format (daily report, warm-thread preview, weekly roll-up): see `referenc
 
 ## Steps
 
-1. **Fetch user's recent comments.** If `APIFY_TOKEN` is set, call `lib.ApifyClient.fetch_user_recent_comments(username=<your-handle>, result_limit=30)`. Each item already includes the parent post body, post URL, post author, and reaction stats. If `APIFY_TOKEN` is not set, ask the user to list (or paste) the URLs of comments they've posted in the last 72h.
+1. **Fetch user's recent comments.** If `APIFY_TOKEN` is set, call `lib.ApifyClient.fetch_user_recent_comments(username=<your-handle>, result_limit=30)`. Each item already includes the parent post body, post URL, post author, and reaction stats. If `APIFY_TOKEN` is not set but the Apify MCP connector is available, read the same actor through its tool, which needs no token and is the only read path on claude.ai; see `../../references/mcp-read-layer.md` for the inputs and what to do with the rows. With neither, ask the user to list (or paste) the URLs of comments they've posted in the last 72h.
 2. **For each comment posted in last 72h:** check the parent post's comment tree (use `fetch_post_comments(post_id=...)`, which sorts by most relevant so reply threads actually come back) for:
    - Replies to the user's comment
    - Whether the author posted any of those replies

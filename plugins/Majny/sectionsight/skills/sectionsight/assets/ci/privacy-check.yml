@@ -1,0 +1,197 @@
+# Privacy check: runs verify.mjs from the sectionsight skill in
+# GitHub Actions. Copy it to .github/workflows/privacy-check.yml, copy
+# scripts/verify.mjs to VERIFY_SCRIPT, write CONFIG_FILE (see
+# assets/ci/privacy-check.config.example.json) and edit the env block below.
+#
+#   Pull requests  against the host's preview deployment when the host posts
+#                  a GitHub deployment status (Vercel, Netlify and Cloudflare
+#                  Pages can; set the repository variable
+#                  PRIVACY_CHECK_PREVIEW to "deployment"), otherwise against
+#                  the app built and started on the runner. Preview runs
+#                  store nothing (as --no-write) unless the config file says
+#                  previews have a store of their own ("previewWrites": true).
+#   Nightly        against production with --no-write, so the run leaves no
+#                  data behind. Also on demand (workflow_dispatch).
+#
+# Blocking or warning: with WARN_ONLY 'false' a failed check fails the job;
+# mark the pull-request job as a required status check in the branch rules
+# to block merges. With WARN_ONLY 'true' the job stays green and the table in
+# the job summary shows what failed. GitHub e-mails a failed scheduled run to
+# the person who last changed the cron line (their notification settings
+# permitting); see references/verify.md for other alerting.
+name: privacy-check
+
+on:
+  pull_request:
+  deployment_status:
+  schedule:
+    - cron: '17 3 * * *' # nightly, 03:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # Where verify.mjs and the shared settings live in this repository.
+  VERIFY_SCRIPT: scripts/privacy-check/verify.mjs
+  CONFIG_FILE: privacy-check.config.json
+  # Production, for the nightly run.
+  PRODUCTION_URL: https://www.example.com
+  # The local fallback for pull requests.
+  NODE_VERSION: '22'
+  INSTALL_COMMAND: npm ci
+  BUILD_COMMAND: npm run build
+  START_COMMAND: npm start
+  LOCAL_URL: http://localhost:3000
+  # Extra flags for the local run only, e.g. "--resolve example.test" with
+  # LOCAL_URL http://example.test:3000 when data-hosts lists only real hosts.
+  LOCAL_ARGS: ''
+  # 'true': failures show in the summary but never fail the job.
+  WARN_ONLY: 'false'
+  PLAYWRIGHT_VERSION: 1.63.0
+
+jobs:
+  preview:
+    name: privacy check (preview deployment)
+    if: >-
+      github.event_name == 'deployment_status' &&
+      github.event.deployment_status.state == 'success' &&
+      vars.PRIVACY_CHECK_PREVIEW == 'deployment' &&
+      github.event.deployment.environment != 'production' &&
+      github.event.deployment.production_environment != true
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.deployment.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install Playwright
+        run: mkdir -p "$RUNNER_TEMP/sectionsight" && cd "$RUNNER_TEMP/sectionsight" && npm init -y > /dev/null && npm i --no-audit --no-fund "playwright@$PLAYWRIGHT_VERSION"
+      - name: Cache Chromium
+        id: browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ env.PLAYWRIGHT_VERSION }}
+      - name: Install Chromium
+        if: steps.browsers.outputs.cache-hit != 'true'
+        working-directory: ${{ runner.temp }}/sectionsight
+        run: npx playwright install --with-deps chromium
+      - name: Install Chromium's system libraries
+        if: steps.browsers.outputs.cache-hit == 'true'
+        working-directory: ${{ runner.temp }}/sectionsight
+        run: npx playwright install-deps chromium
+      - name: Privacy check
+        continue-on-error: ${{ env.WARN_ONLY == 'true' }}
+        working-directory: ${{ runner.temp }}/sectionsight
+        env:
+          TARGET_URL: ${{ github.event.deployment_status.environment_url || github.event.deployment_status.target_url }}
+        # --preview: read-only like --no-write (previews often share the
+        # production database), unless the config has "previewWrites": true.
+        run: node "$GITHUB_WORKSPACE/$VERIFY_SCRIPT" --url "$TARGET_URL" --config "$GITHUB_WORKSPACE/$CONFIG_FILE" --preview --github
+      - name: Keep the results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: privacy-check-preview
+          path: ${{ runner.temp }}/sectionsight/privacy-check.json
+          if-no-files-found: ignore
+
+  local:
+    name: privacy check (pull request)
+    if: github.event_name == 'pull_request' && vars.PRIVACY_CHECK_PREVIEW != 'deployment'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install and build the site
+        run: |
+          sh -c "$INSTALL_COMMAND"
+          sh -c "$BUILD_COMMAND"
+      - name: Start the site
+        run: |
+          nohup sh -c "$START_COMMAND" > "$RUNNER_TEMP/site.log" 2>&1 &
+          for i in $(seq 1 90); do
+            if curl -sS -o /dev/null "$LOCAL_URL" 2> /dev/null; then exit 0; fi
+            sleep 2
+          done
+          echo "The site did not answer at $LOCAL_URL within 3 minutes:"
+          cat "$RUNNER_TEMP/site.log"
+          exit 1
+      - name: Install Playwright
+        run: mkdir -p "$RUNNER_TEMP/sectionsight" && cd "$RUNNER_TEMP/sectionsight" && npm init -y > /dev/null && npm i --no-audit --no-fund "playwright@$PLAYWRIGHT_VERSION"
+      - name: Cache Chromium
+        id: browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ env.PLAYWRIGHT_VERSION }}
+      - name: Install Chromium
+        if: steps.browsers.outputs.cache-hit != 'true'
+        working-directory: ${{ runner.temp }}/sectionsight
+        run: npx playwright install --with-deps chromium
+      - name: Install Chromium's system libraries
+        if: steps.browsers.outputs.cache-hit == 'true'
+        working-directory: ${{ runner.temp }}/sectionsight
+        run: npx playwright install-deps chromium
+      - name: Privacy check
+        continue-on-error: ${{ env.WARN_ONLY == 'true' }}
+        working-directory: ${{ runner.temp }}/sectionsight
+        run: node "$GITHUB_WORKSPACE/$VERIFY_SCRIPT" --url "$LOCAL_URL" --config "$GITHUB_WORKSPACE/$CONFIG_FILE" --github $LOCAL_ARGS
+      - name: Keep the results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: privacy-check-pull-request
+          path: |
+            ${{ runner.temp }}/sectionsight/privacy-check.json
+            ${{ runner.temp }}/site.log
+          if-no-files-found: ignore
+
+  production:
+    name: privacy check (production, nightly)
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install Playwright
+        run: mkdir -p "$RUNNER_TEMP/sectionsight" && cd "$RUNNER_TEMP/sectionsight" && npm init -y > /dev/null && npm i --no-audit --no-fund "playwright@$PLAYWRIGHT_VERSION"
+      - name: Cache Chromium
+        id: browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ env.PLAYWRIGHT_VERSION }}
+      - name: Install Chromium
+        if: steps.browsers.outputs.cache-hit != 'true'
+        working-directory: ${{ runner.temp }}/sectionsight
+        run: npx playwright install --with-deps chromium
+      - name: Install Chromium's system libraries
+        if: steps.browsers.outputs.cache-hit == 'true'
+        working-directory: ${{ runner.temp }}/sectionsight
+        run: npx playwright install-deps chromium
+      - name: Privacy check
+        working-directory: ${{ runner.temp }}/sectionsight
+        run: node "$GITHUB_WORKSPACE/$VERIFY_SCRIPT" --url "$PRODUCTION_URL" --config "$GITHUB_WORKSPACE/$CONFIG_FILE" --no-write --github
+      - name: Keep the results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: privacy-check-production
+          path: ${{ runner.temp }}/sectionsight/privacy-check.json
+          if-no-files-found: ignore

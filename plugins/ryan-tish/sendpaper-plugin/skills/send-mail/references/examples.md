@@ -15,7 +15,12 @@ Use these as a model for tone and structure, not as fixed text.
 ## After `create_postcard` succeeds (no payment token available)
 
 > Done. Here's exactly what will print: [preview](preview_url).
-> Pay $2.99 here to send it: [checkout](checkout_url). Nothing is mailed until it's paid. After that, a person checks it and it's usually in the mail within one business day.
+> Pay $2.39 here to send it (that includes your first-order discount): [checkout](checkout_url). Nothing is mailed until it's paid. After that, a person checks it and it's usually in the mail within one business day.
+
+## After creating a group with `recipients`
+
+> Done: 3 postcards, one each for your parents, Jo and Sam. Each has its own preview here: [group](batch.url).
+> Pay $8.97 once for all three: [checkout](batch.checkout_url). Nothing is mailed until it's paid; then each card is checked and mailed separately, with its own tracking page.
 
 ## After `pay_order` succeeds
 

@@ -1,3 +1,4 @@
+import { writeLegacyConfig } from './legacy-config.mjs';
 import assert from 'node:assert/strict';
 import { mkdtemp, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -19,15 +20,16 @@ function readyWorkflow(id = 'app-api-fixture') {
   };
 }
 
-async function fixture(t, { migrate = true } = {}) {
+async function fixture(t, { migrate = true, legacy = false } = {}) {
   const root = await mkdtemp(join(tmpdir(), 'workflow-mcp-app-'));
   const configPath = join(root, 'control-plane.json');
+  if (!migrate || legacy) await writeLegacyConfig(configPath);
   const env = { ...process.env, CODEX_WORKFLOW_CONFIG: configPath, CODEX_WORKFLOW_DISABLED: '0', SOL_CONTROL_DISABLED: '0' };
   const options = { configPath, defaultConfigPath: DEFAULT_CONFIG_PATH, env };
   const state = await startConsole({ ...options, open: false });
   t.after(stopConsole);
   const api = new WorkbenchApi(options);
-  if (migrate) {
+  if (migrate && legacy) {
     const migrated = await api.request({ path: '/api/workflow/migrate_v6', method: 'POST' });
     assert.equal(migrated.status, 200, JSON.stringify(migrated));
   }
@@ -202,7 +204,7 @@ test('opener bootstrap includes actual initial reads only in UI metadata', async
 });
 
 test('bootstrap records exact initial request arguments and retains legacy entries only for that list request', async t => {
-  const f = await fixture(t);
+  const f = await fixture(t, { legacy: true });
   const result = await f.call('codex_agents_workflow_app');
   const { bootstrap, bootstrapRequests } = result._meta;
   assert.deepEqual(bootstrapRequests['/api/workflow/list'], { method: 'POST', body: { include_legacy: true } });

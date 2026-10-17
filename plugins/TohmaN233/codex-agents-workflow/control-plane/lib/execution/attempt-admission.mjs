@@ -31,18 +31,35 @@ export class AttemptAdmissionRegistry {
   }
 
   begin(runId, nodeId, attemptId, kind) {
-    const key = keyOf(runId, nodeId, attemptId);
+    this.assertAttemptActive(runId,nodeId,attemptId);
+    requireValue(!this.pendingAttempt(runId,nodeId,attemptId).length,'ATTEMPT_DUPLICATE','This attempt already has an execution owner');
+    return this.#begin(runId,nodeId,attemptId,kind);
+  }
+
+  beginNativeCheck(runId,nodeId,attemptId,slotId,itemIndex) {
+    this.assertAttemptActive(runId,nodeId,attemptId);
+    requireValue(typeof slotId==='string'&&/^native-[0-9a-f]{40}$/.test(slotId)&&Number.isSafeInteger(itemIndex)&&itemIndex>=0,
+      'NATIVE_CHECK_ADMISSION','Native checker admission requires an exact Host-derived item slot');
+    const siblings=this.pendingAttempt(runId,nodeId,attemptId);
+    requireValue(siblings.every(entry=>entry.native_slot&&entry.native_slot!==slotId&&entry.item_index!==itemIndex),
+      'ATTEMPT_DUPLICATE','This attempt or exact native checker item already has an execution owner');
+    return this.#begin(runId,nodeId,attemptId,'host_tool',{slotId,itemIndex});
+  }
+
+  #begin(runId,nodeId,attemptId,kind,nativeCheck) {
+    const attemptKey=keyOf(runId,nodeId,attemptId),key=nativeCheck?`${attemptKey}\0${nativeCheck.slotId}`:attemptKey;
     this.assertAttemptActive(runId, nodeId, attemptId);
     requireValue(!this.entries.has(key), 'ATTEMPT_DUPLICATE', 'This attempt already has an execution owner');
     const controller = new AbortController(); let finish;
-    const entry = { run_id: runId, node_id: nodeId, attempt_id: attemptId, kind, controller,
+    const entry = { run_id: runId, node_id: nodeId, attempt_id: attemptId, kind, controller,admission_key:key,
+      ...(nativeCheck?{native_slot:nativeCheck.slotId,item_index:nativeCheck.itemIndex}:{}),
       done: new Promise(resolveDone => { finish = resolveDone; }), settled: false, cleanup: null, cleanupConfirmed: false, result: null };
     entry.registerCleanup = cleanup => {
       requireValue(!entry.settled && typeof cleanup === 'function', 'ATTEMPT_CLEANUP_OWNER', 'Cleanup ownership must be registered before attempt settlement');
       entry.cleanup = async () => { await cleanup(); entry.cleanupConfirmed = true; };
       return entry.cleanup;
     };
-    entry.assertActive = () => requireValue(this.accepting && !this.fencedRuns.has(runId) && !this.fencedAttempts.has(key) && !controller.signal.aborted,
+    entry.assertActive = () => requireValue(this.accepting && !this.fencedRuns.has(runId) && !this.fencedAttempts.has(attemptKey) && !controller.signal.aborted,
       'ATTEMPT_STOPPED', 'Execution attempt was revoked');
     entry.settle = (result = {}) => {
       if (entry.settled) return;
@@ -50,7 +67,7 @@ export class AttemptAdmissionRegistry {
       entry.result = result;
       // A failed owner after revocation remains visible for a later cleanup
       // attempt; removing it would let another request report false success.
-      if (!result.error || !entry.cleanup || entry.cleanupConfirmed) this.entries.delete(key);
+      if ((!result.error || !entry.cleanup || entry.cleanupConfirmed)&&this.entries.get(key)===entry) this.entries.delete(key);
       finish(result);
     };
     this.entries.set(key, entry);
@@ -62,8 +79,7 @@ export class AttemptAdmissionRegistry {
   }
 
   pendingAttempt(runId, nodeId, attemptId) {
-    const entry = this.entries.get(keyOf(runId, nodeId, attemptId));
-    return entry ? [entry] : [];
+    return this.pending(runId).filter(entry=>entry.node_id===nodeId&&entry.attempt_id===attemptId);
   }
 
   fenceRun(runId) {
@@ -76,7 +92,7 @@ export class AttemptAdmissionRegistry {
   fenceAttempt(runId, nodeId, attemptId) {
     const key = keyOf(runId, nodeId, attemptId);
     this.fencedAttempts.add(key);
-    this.entries.get(key)?.controller.abort(stopped());
+    for(const entry of this.pendingAttempt(runId,nodeId,attemptId))entry.controller.abort(stopped());
     for (const [childRunId, parentKey] of this.children.get(runId) ?? []) if (parentKey === key) this.fenceRun(childRunId);
   }
 
@@ -104,7 +120,7 @@ export class AttemptAdmissionRegistry {
     for (let index = 0; index < retained.length; index++) {
       const result = results[index];
       if (result.status === 'rejected') errors.push(result.reason);
-      else { retained[index].result = {}; this.entries.delete(keyOf(runId, retained[index].node_id, retained[index].attempt_id)); }
+      else { retained[index].result = {};if(this.entries.get(retained[index].admission_key)===retained[index])this.entries.delete(retained[index].admission_key); }
     }
     if (errors.length) throw Object.assign(new AggregateError(errors, 'Exact attempt cleanup remains unconfirmed'), { code: 'ATTEMPT_STOP_INCOMPLETE' });
   }
@@ -119,7 +135,7 @@ export class AttemptAdmissionRegistry {
         Promise.all(entries.map(entry => entry.done.then(() => entry.result))),
         new Promise((_resolve, reject) => { timer = setTimeout(() => reject(Object.assign(new Error('Execution cancellation did not settle'), { code: 'ATTEMPT_STOP_PENDING' })), STOP_WAIT_MS); }),
       ]);
-      const errors = entries.flatMap(entry => this.entries.get(keyOf(entry.run_id, entry.node_id, entry.attempt_id)) === entry && entry.result?.error
+      const errors = entries.flatMap(entry => this.entries.get(entry.admission_key) === entry && entry.result?.error
         ? [entry.result.error] : []);
       if (errors.length) throw Object.assign(new AggregateError(errors, 'Execution owner did not confirm cleanup'), { code: 'ATTEMPT_STOP_INCOMPLETE' });
       return entries;

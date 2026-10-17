@@ -31,6 +31,16 @@ own work.
 
 ## Prompt privacy
 
+Skill2Workflow and Build Workflow share an authoring completion boundary. New
+Runs pin automatic completion; explicit manual preference and historical pins
+retain Draft acceptance. Independent semantic review binds the exact canonical
+proposal and durable review artifact. The Host validates resource bytes, reconciles
+anchored import observations and deploys only Workflow-owned assets. A separate
+Host acceptance receipt carries the automatic policy; generic model completion
+cannot manufacture it. Exact cleanup journals survive private Run removal and
+gate every Ready save, including ordinary editor publication. Successful automatic
+completion publishes and enables the launch-ready revision and displays its graph.
+
 `codex_agents_workflow_status` exposes only ids, public descriptions, mappings, capabilities,
 enabled/approval state, and template revision fingerprints. It does not return prompt
 templates, endpoints, credential-variable names, or console tokens.
@@ -207,4 +217,12 @@ At Run startup, the store removes eligible succeeded/failed history older than
 24 hours after termination. Manual Workbench cleanup removes eligible history
 immediately. Interrupted/unfinished Runs and unresolved effects remain; task
 workspace outputs are never removed. Cleanup and mutations share writer locks,
-and deleted Runs cannot be recreated by queued executor writes.
+and deleted Runs cannot be recreated by queued executor writes. Short Run-store
+transactions share one cross-process admission before any root or Run lock;
+ordinary Agent execution remains parallel. Admission waits only before executing
+the callback, for at most five seconds while the exact owner PID is verified
+alive. An empty owner record has a 250ms initialization window. The callback is
+never replayed. Orphaned, malformed, unreadable, unverifiable, recovering or
+timed-out owners fail visibly and retain their locks for explicit maintenance.
+Diagnostics expose the lock address, owner PID and wait duration, never the
+ownership token. Ordinary library and inner Run locks continue to fail fast.

@@ -3,6 +3,7 @@ import { requireValue } from '../workflow-paths.mjs';
 import { importCoarseSkill } from './coarse-compiler.mjs';
 import { BRIEF_SOURCE } from './authoring-source.mjs';
 import { digest } from '../workflow-revisions.mjs';
+import { generatedNodePermissions } from '../node-permissions.mjs';
 
 export const BRIEF_FINAL_PROMPT = 'Review the result against the pinned Workflow brief and user task. Accept only supported completion evidence.';
 
@@ -14,11 +15,11 @@ function briefDraft({workflow_id,name,brief,provider_id,role='advisor'}){
   workflow.requirements={providers:provider_id?[provider_id]:[],tools:['read_workflow_resource'],mcp_servers:[],executables:[]};
   const sourceHash=digest(Buffer.from(brief));
   workflow.import_status={mode:'authored',source_hash:sourceHash,classification:'workflow_brief',unresolved:[],source_independent:false,relocation_evidence:null};
-  const common={access:'read_only',approval:{required:false},retry:{max_attempts:3},input_bindings:{task:'/inputs/task'}};
+  const common={...generatedNodePermissions(),approval:{required:false},retry:{max_attempts:3},input_bindings:{task:'/inputs/task'}};
   workflow.nodes=[
     {id:'start',type:'start'},
-    {...common,id:'instructions',type:'agent',role,executor:provider_id?{kind:'provider',provider_id}:{kind:'main'},prompt_template:`Read the pinned Workflow resource ${BRIEF_SOURCE} and execute the user task {{task}} according to that brief. Report missing requirements instead of guessing.`,resources:[BRIEF_SOURCE],origin:{kind:'source',source_span:{resource:BRIEF_SOURCE,start_line:1,end_line:brief.split('\n').length}}},
-    {...common,id:'final',type:'agent',role:'finalizer',executor:{kind:'main'},input_bindings:{task:'/inputs/task',instruction_result:'/nodes/instructions/output'},prompt_template:BRIEF_FINAL_PROMPT,resources:[BRIEF_SOURCE]},
+    {...common,id:'instructions',type:'agent',executor:provider_id?{kind:'provider',provider_id}:{kind:'main'},prompt_template:`Read the pinned Workflow resource ${BRIEF_SOURCE} and execute the user task {{task}} according to that brief. Report missing requirements instead of guessing.`,resources:[BRIEF_SOURCE],origin:{kind:'source',source_span:{resource:BRIEF_SOURCE,start_line:1,end_line:brief.split('\n').length}}},
+    {...common,id:'final',type:'agent',executor:{kind:'main'},input_bindings:{task:'/inputs/task',instruction_result:'/nodes/instructions/output'},prompt_template:BRIEF_FINAL_PROMPT,resources:[BRIEF_SOURCE]},
     {id:'end',type:'end'},
   ];
   workflow.edges=[['start','instructions'],['instructions','final'],['final','end']].map(([source,target])=>({id:`${source}-${target}`,source,target}));
@@ -36,10 +37,9 @@ function roleDraft({workflow_id,name,brief,provider_id,role='implementer',access
   workflow.tags=['role'];
   workflow.skill_policy={mode:'cooperative',implicit:'deny',ambient_allow:[],shadowed_skill_paths:[]};
   workflow.requirements={providers:provider_id?[provider_id]:[],tools:[],mcp_servers:[],executables:[]};
-  const stage={id:'role',type:'agent',role,executor:provider_id?{kind:'provider',provider_id}:{kind:'main'},access,
-    ...(access==='bounded_write'?{path_scope:{binding:'run.allowed_paths'}}:{}),
+  const stage={id:'role',type:'agent',role,executor:provider_id?{kind:'provider',provider_id}:{kind:'main'},...generatedNodePermissions(access),
     prompt_template:brief,approval:{required:false},retry:{max_attempts:3},input_bindings:{task:'/inputs/task'}};
-  workflow.nodes=[{id:'start',type:'start'},stage,{id:'final',type:'agent',role:'finalizer',executor:{kind:'main'},access:'read_only',prompt_template:'Verify the role result against the task and return the evidence.',approval:{required:false},retry:{max_attempts:3},input_bindings:{task:'/inputs/task',result:'/nodes/role/output'}},{id:'end',type:'end'}];
+  workflow.nodes=[{id:'start',type:'start'},stage,{id:'final',type:'agent',executor:{kind:'main'},...generatedNodePermissions(access),prompt_template:'Verify the role result against the task and return the evidence.',approval:{required:false},retry:{max_attempts:3},input_bindings:{task:'/inputs/task',result:'/nodes/role/output'}},{id:'end',type:'end'}];
   workflow.edges=[['start','role'],['role','final'],['final','end']].map(([source,target])=>({id:`${source}-${target}`,source,target}));
   workflow.finalization.node_id='final';
   const sourceHash=digest(Buffer.from(brief));

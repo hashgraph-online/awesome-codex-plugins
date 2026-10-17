@@ -70,7 +70,8 @@ succeeds either way, so read the response.
 
 Enforced at runtime rather than at save time: tool timeouts (row 26; 30 s for runtime
 custom tools, longer for saved custom, MCP, and subagent tools), the `idempotent` flag
-and MCP `idempotentHint` / `readOnlyHint` on interrupted turns (row 28), the 50-tool
-request cap (row 39; multi-turn agents defer inline tools at 20+), `{{secret:KEY}}`
+and MCP `idempotentHint` / `readOnlyHint` on interrupted turns (row 28), the 1 MB
+`runtimeTools` byte budget (row 39; no count cap, and multi-turn agents defer inline
+tools at 20+), `{{secret:KEY}}`
 resolution (row 30), `hiddenParameterNames` with `_endUser` or `_tenant` (rows 34 and
 35), and approval gates (row 37).

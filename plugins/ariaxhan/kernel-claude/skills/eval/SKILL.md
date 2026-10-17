@@ -75,6 +75,17 @@ can hide a grader that labels every case as passing. Recheck after changing the 
 See reference for full grader templates and examples.
 </grader_selection>
 
+<eval_validity>
+Before trusting a score:
+- Isolate trials: each starts from a clean environment (fresh checkout/fixture). Leftover state or git history from earlier trials correlates failures or inflates passes.
+- Reference solution: every task has a known-good output that passes all graders; proves the task is solvable and the grader is wired right.
+- Near-zero pass rate = suspect the task or grader first, not the agent.
+- Read transcripts and grades from many trials; separates real agent errors from graders rejecting valid solutions.
+- Grade the outcome produced, not the path taken; give partial credit on multi-part tasks.
+- 100% pass tracks regressions only; add harder tasks once saturated.
+Source: https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents
+</eval_validity>
+
 <anti_patterns>
 <block id="eval_after_code">Writing evals after implementation tests existing bugs, not requirements.</block>
 <block id="model_grader_overuse">Model-based grading is slow and probabilistic. Prefer code graders.</block>

@@ -15,7 +15,7 @@ changes to your global settings.
 | No ordinary-prompt reminders | Removes Espresso's repeated reminder payload | Eliminates that input overhead compared with Espresso 1.x; total session savings are unmeasured |
 | Concise policy | Asks for direct answers and the smallest correct change | Aims to reduce unnecessary prose and code; output length and quality remain model-dependent |
 | Optional RTK | Filters supported command output before it enters context | Can reduce tool-output volume; RTK reports bytes removed and estimated tokens, not total session or subscription savings |
-| Same-model delegation | Delegated agents keep the session model | Avoids the quality loss and retries of cheaper workers; each agent still pays its own startup context |
+| Same-model delegation | Delegated agents keep the session model, except web-only research on Haiku in Claude Code | Avoids the quality loss and retries of cheaper workers on code; each agent still pays its own startup context |
 
 Espresso does not enlarge the context window or erase existing history.
 Its policy also occupies context. We have verified the integrations, not measured
@@ -63,7 +63,7 @@ security and accessibility must remain intact.
 
 | Harness | Policy | Delegation |
 |---|---|---|
-| Claude Code | SessionStart hook and skill | Read-only `espresso:scout` and native subagents, all on the session model |
+| Claude Code | SessionStart hook and skill | Read-only `espresso:scout` and native subagents on the session model; web-only research on Haiku |
 | Codex | Trusted SessionStart hook and skill | Native agents on the session model |
 | OMP | Extension and skill | Native agents and an explicit text-only worker |
 | Pi | Extension and skill | Explicit text-only worker; core Pi has no subagent tool |
@@ -75,7 +75,18 @@ conversation (multi-file search, flow tracing with GitNexus, docs, long logs),
 and you keep talking with the main thread while it works. Below the prompt,
 each running agent shows its model, effort and tokens.
 
-Espresso no longer routes delegated work to a cheaper model. With a strong
+One exception: for web-only research (searching and reading pages, no code to
+read), the lead passes `model: haiku` to the scout. With the same research
+brief, Opus 5.5 took 62 s and 55 s, Haiku 5.5 took 55 s and 76 s, and the
+answers were comparable. Haiku 5.5 costs $0.10 / $0.50 per million input /
+output tokens, against $4 / $20 for Opus 5.5
+([pricing](https://platform.claude.com/docs/en/about-claude/pricing)).
+Reading and reviewing code stay on the session model: in a
+[code-review comparison](https://postcutoff.com/v/dubibubi-haiku-5-5-subagents-vs-opus-5-5/),
+Opus 5.5 alone found 122 bugs, Opus 5.5 with Haiku 5.5 workers found 103 and
+reported 14 false positives.
+
+Espresso no longer routes code work to a cheaper model. With a strong
 session model, adding agents brings no gain or a loss on sequential coding
 work ([260-configuration study](https://arxiv.org/abs/2512.08296)), and cheaper
 workers can cost more per solved task once retries are counted. Delegate only
@@ -192,6 +203,9 @@ and section prompts, same-model worker), selective RTK rewriting with RTK
 three bundled hooks. For 2.3.0: the scout agent passes `claude plugin
 validate`, skips the Ponytail injection, and the agent status rows render from
 sample input. How often Claude picks the scout on its own, and comparative
-token/quality benchmarks, were not measured.
+token/quality benchmarks, were not measured. For 2.4.1: the hooks inject the
+web-only Haiku rule, the scout still skips Ponytail, and `claude plugin
+validate` passes. The Haiku web-research timings come from two runs per model
+on one brief, not a benchmark.
 
 MIT License.

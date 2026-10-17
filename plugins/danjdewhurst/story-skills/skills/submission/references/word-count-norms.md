@@ -47,7 +47,10 @@ anthologies publish their own limits; follow those.
   thousand in submission copy.
 - When the count is well outside the range (roughly 15% or more), tell the
   user, name the likely objection (printing cost for long books, thinness
-  for short ones), and let them decide.
+  for short ones), and let them decide. If they choose to cut or expand,
+  run `revision-continuity`'s
+  [length pass](../../revision-continuity/references/pass-checklists.md#length-pass),
+  which sets a budget per chapter and arc before touching the prose.
 - Sequels and established authors are judged differently; these ranges are
   for a first submission.
 - If `story.md` has `target-words`, also report the count against that

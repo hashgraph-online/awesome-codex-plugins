@@ -47,9 +47,10 @@ here unless it brings a procedure of its own.
 Find contradictions, stale references, timeline problems, missing
 backlinks, or word-count drift.
 
-- **Run:** `story continuity .` first for the deterministic findings, then
-  `story links .` for missing backlinks and `story validate .`.
-  `story wordcount . --write` corrects word-count drift.
+- **Run:** `story reindex .`, `story wordcount . --write`, and
+  `story check .`: the first two correct registry and word-count drift,
+  and `check` reports the deterministic continuity findings, missing
+  backlinks, and validation errors.
 - **Check:** what the CLI cannot judge, using the Continuity Audit
   Checklist in `SKILL.md`.
 - **Update:** the chapter, and every dependent record listed in step 6 of
@@ -78,10 +79,10 @@ files say it should do. Reorder, merge, split, or cut where they disagree.
 
 - **Read:** every chapter in `chapters/`, `plot/timeline.md`, active arc
   files.
-- **Update:** `plot/timeline.md`, arc plot-point tables, and
-  `chapters/_index.md` when chapters move, merge, or split. Make the changes
-  with `story move`, `story split`, and `story merge` (see Structural Edits
-  in `SKILL.md`).
+- **Update:** `plot/timeline.md` and arc plot-point tables when chapters
+  move, merge, or split. Make the moves with `story move`, `story split`,
+  and `story merge` (see Structural Edits in `SKILL.md`), which rebuild
+  `chapters/_index.md`; never edit its rows.
 
 ## Theme audit
 
@@ -126,17 +127,20 @@ both read as cheap.
   warnings (late plants, unplanted payoffs, clues nobody can notice,
   undebunked red herrings). `story diagram clues` draws the plant-to-reveal
   flow.
-- **Read:** `continuity/promises/`, arc foreshadowing tables,
-  `knowledge-state` in `continuity/state.md`.
-- **Update:** promise/question `status` and chapter fields, foreshadowing
-  rows.
+- **Read:** `continuity/promises/`, `continuity/clues/`,
+  `continuity/questions/`, arc foreshadowing tables (hints with no
+  record), `knowledge-state` in `continuity/state.md`.
+- **Update:** the `status` and chapter fields of the one record that owns
+  each setup (a promise, clue, or question file), or the arc foreshadowing
+  row for a hint with no record.
 
 ## Removability audit (darling-killing)
 
 Find scenes whose removal would change nothing downstream: no state
-changes, no causality, no payoff. Wire such scenes in (give them
-consequence), fold them into an adjacent scene, or cut them, then record
-the decision so nobody re-litigates it.
+changes, no causality, no payoff. For each one, propose a treatment: wire
+it in (give it consequence), fold it into an adjacent scene, or cut it.
+Show the user the list and let them decide; fold or cut only the scenes
+they approve. Then record each decision so nobody re-litigates it.
 
 - **Read:** `scenes/` state-changes, `continuity/state.md`,
   `continuity/promises/`.
@@ -169,22 +173,28 @@ polished and then cut. Track it as a custom pass with
      outliers, runs of sequels, and chapters whose scenes advance no arc.
      Expanding, give words to short outliers, scene runs with no sequel,
      and arcs with missing plot points. Keep the budgets summing to the
-     book target and write each one, as a whole number, to the chapter's
-     `target-words` (`target-characters`): `story progress .` then lists every chapter
-     against its budget (`chapter-01: 101 of 70 words (144%)`), and
-     `story context <chapter>` shows it when the chapter is redrafted.
+     book target, as whole numbers, and write nothing yet.
   4. Budget each arc: add up the counts of the chapters whose
      `arcs-advanced` lists it and compare its share of the book with its
      weight in `plot/_index.md`. A subplot that takes a quarter of the book
      for one late payoff is the first cut; a main arc squeezed into a few
      chapters is where an expansion goes.
-  5. After each batch of edits, `story wordcount . --write` and
+  5. Put the chapter budgets and the cuts they imply in the revision plan
+     (step 4 of the Revision Workflow in `SKILL.md`). Once the user
+     approves it, write each budget to the chapter's `target-words`
+     (`target-characters`): `story progress .` then lists every chapter
+     against its budget (`chapter-01: 101 of 70 words (144%)`), and
+     `story context <chapter>` shows it when the chapter is redrafted.
+  6. After each batch of edits, run `story reindex .`,
+     `story wordcount . --write`, and `story check .`, then
      `story progress .` again, until the total is within the tolerance
      agreed with the user (say 2%).
 - **Read:** `story.md` (`target-words`, `form`), `chapters/_index.md`,
   `plot/_index.md` and the arc files, `scenes/` state-changes,
   `continuity/promises/`, `continuity/questions/`, `continuity/clues/`.
-- **Check:** cut biggest first: whole subplots and scenes (the
+- **Check:** agree the cuts with the user before making any. Show them the
+  budget and name each subplot, scene, or chapter you propose to cut or
+  merge, and cut only what they approve. Cut biggest first: whole subplots and scenes (the
   [removability audit](#removability-audit-darling-killing)), then merge
   scenes or chapters that do the same job, then compress (summarise
   transit, repeated sequels, backstory, and description), and trim

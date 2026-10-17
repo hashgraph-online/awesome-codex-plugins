@@ -1,6 +1,6 @@
 {
   "name": "fxmacrodata",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Official-source FX, macroeconomic and central-bank data: release calendars, indicator histories, policy rates, FX rates, COT positioning and commodities across 22 currencies.",
   "author": {
     "name": "FXMacroData",
@@ -37,8 +37,8 @@
     "logo": "./assets/icon.png",
     "defaultPrompt": [
       "What US data is due this week?",
-      "Show the last 12 months of US core CPI with release dates.",
-      "How has the Fed funds rate moved this year?"
+      "Show US core CPI within the available public history window, with units and source links.",
+      "Show the latest available USD policy-rate observations and the next officially scheduled release."
     ]
   }
 }

@@ -1,7 +1,9 @@
 import type { GoalProgressViewModel } from "../../contracts/src/goal-contract.js";
-import type {
-  CodexAnchorRejectionReason,
-  CodexVisibleThreadRejectionReason,
+import {
+  type CodexAnchorRejectionReason,
+  type CodexVisibleThreadRejectionReason,
+  type CurrentCodexPage,
+  readCurrentCodexPage,
 } from "./anchor-adapter.js";
 
 export type GoalProgressDisplayMode = "native" | "fallback" | "hidden";
@@ -87,6 +89,8 @@ export interface SidecarVisibilityDiagnostics {
 
 export interface SidecarDiagnosticHost extends HTMLElement {
   readonly viewModel: GoalProgressViewModel | null;
+  readonly hasUpdated?: boolean;
+  readonly isUpdatePending?: boolean;
   readonly collapsed: boolean;
   readonly placement: "inline" | "floating";
   readonly spaceConstrained: boolean;
@@ -146,6 +150,16 @@ function componentIsVisible(host: SidecarDiagnosticHost | null, document: Docume
   if (!surface) {
     return false;
   }
+  for (let current: HTMLElement | null = host; current; current = current.parentElement) {
+    const style = view.getComputedStyle(current);
+    if (
+      current.hidden ||
+      current.inert ||
+      style.display === "none" ||
+      style.visibility === "hidden"
+    )
+      return false;
+  }
   const bounds = [
     new DOMRect(0, 0, Math.max(0, view.innerWidth), Math.max(0, view.innerHeight)),
     ...clippingAncestors(host, view).map((element) => element.getBoundingClientRect()),
@@ -178,7 +192,10 @@ export function projectSidecarHealth(input: SidecarHealthProjectionInput): Sidec
     visibleThreadStatus: input.continuityModeActive ? "retained" : "matched",
     componentVisible: input.status === "mounted" && componentIsVisible(input.host, input.document),
     viewModelRevision:
-      input.host?.viewModel && Number.isSafeInteger(input.host.viewModel.revision)
+      input.host?.hasUpdated === true &&
+      input.host.isUpdatePending === false &&
+      input.host.viewModel &&
+      Number.isSafeInteger(input.host.viewModel.revision)
         ? input.host.viewModel.revision
         : null,
   };
@@ -188,6 +205,7 @@ export interface SidecarDiagnosticsProjectionInput {
   readonly host: SidecarDiagnosticHost | null;
   readonly anchor: HTMLElement | null;
   readonly document: Document;
+  readonly page?: CurrentCodexPage;
   readonly lastAnchorState: SidecarLayoutDiagnostics["lastAnchorState"];
   readonly lastConstraintTransition: SidecarLayoutDiagnostics["lastConstraintTransition"];
   readonly lastCollapsedTransition: SidecarLayoutDiagnostics["lastCollapsedTransition"];
@@ -208,9 +226,8 @@ export function projectSidecarDiagnostics(
 ): SidecarLayoutDiagnostics {
   const { host, anchor, document } = input;
   const view = document.defaultView;
-  const composer = anchor?.closest<HTMLElement>("[data-codex-composer-root]") ?? null;
-  const textbox =
-    composer?.querySelector<HTMLElement>('[role="textbox"][data-codex-composer]') ?? null;
+  const page = input.page ?? readCurrentCodexPage(document);
+  const { composer, textbox } = page;
   const hostRect = host?.getBoundingClientRect() ?? null;
   const clipping = host && view ? clippingAncestors(host, view) : [];
   const viewport =
@@ -256,8 +273,8 @@ export function projectSidecarDiagnostics(
         ...clipping.map((element) => element.getBoundingClientRect()),
       ]),
       anchorConnected: anchor?.isConnected === true,
-      composerCount: document.querySelectorAll("[data-codex-composer-root]").length,
-      textboxCount: document.querySelectorAll('[role="textbox"][data-codex-composer]').length,
+      composerCount: page.composerCount,
+      textboxCount: page.textboxCount,
       surface:
         host === null ? "none" : host.collapsed || host.spaceConstrained ? "compact" : "expanded",
       lastObserverReason: input.lastObserverReason,

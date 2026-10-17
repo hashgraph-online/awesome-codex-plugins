@@ -87,4 +87,14 @@ Scheduling a node is not proof that anything is audible. Three instruments, chea
    that double their gain, without playing anything out loud. `currentTime` stays 0 offline, so give
    the game's audio a clock the render can drive.
 
+## A log for a recorder
+
+`sound.js` keeps a log of everything it schedules when a recorder asks for one, and only then: the
+recorder sets `window.__homieSoundCapture = { events: [] }` before the page's scripts run, and each
+`play`, each music loop, each stop, duck and fader move is pushed onto `events` with `performance.now()`
+and what is needed to mix it again (the file's address, gain, playback rate, pan, loop, delay). The
+head of `sound.js` lists the events. The `video` skill's `trailer` films the game frame by frame and
+rebuilds its sound from that log and the game's own files. A game with audio code of its own can push
+the same events, and only what is in the log is in the trailer's sound.
+
 A visual check can never hear a game. Report numbers, and look at the spectrogram.

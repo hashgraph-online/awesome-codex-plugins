@@ -7,35 +7,28 @@ $1.50.
 
 ## Flow
 
-1. Build one body with `toolType`, its target, the requested filters, and
-   `resultsLimit` when the user set a cap. Without a cap the API uses 10,000.
-2. `POST /extractions/estimate` with that body. It is free and creates
-   nothing. The response holds `allowed`, `estimatedResults`,
-   `creditsRequired`, `creditsAvailable`, and `source`. `creditsRequired` and
-   `creditsAvailable` are numeric strings, so convert them before any math.
-3. Show those numbers and explain billing: `creditsRequired` is a charge
-   ceiling, not an exact bill. State that skipped or filtered rows cost
-   nothing. `estimatedResults` is a conservative billing count, such as the
-   follower count or the
-   `resultsLimit` cap, not a count of matching posts. `source` names which one
-   it used. When `allowed` is false, the balance cannot fund the job, so lower
-   `resultsLimit` or add credits in the dashboard.
-4. Ask the user to confirm the estimate. Create nothing before a yes.
-5. `POST /extractions` with the same body and a new `Idempotency-Key`. A
-   retry with the same key returns the original job instead of a second one.
-   A `202` response returns the job `id`, `status`, and `statusUrl`.
-6. Poll `GET /extractions/{id}` until `job.status` is `completed`, `failed`, or
-   `canceled`. The response holds `job`, `results`, `hasMore`, `nextCursor`,
-   and `pollAfterMs`. Wait
-   `pollAfterMs` between polls. Rows arrive 100 per page by default, up to
-   1,000 with `limit=1000`. While `hasMore` is true, pass `nextCursor` back as
-   `cursor`.
-7. Always give the download call: `GET /extractions/{id}/export?format=csv`.
-   Formats: `csv`, `json`, `md`, `md-document`, `pdf`, `txt`, `xlsx`. One
-   export holds up to 100,000 rows, and PDF up to 10,000. For a larger job,
-   skip the export and write every row by paging
-   `GET /extractions/{id}?limit=1000` from the start, passing `nextCursor`
-   back as `cursor`, so no row appears twice.
+| Call | Contract |
+| --- | --- |
+| `POST /extractions/estimate` | Free. Creates nothing. Takes the job body, which holds `toolType`, its target, the requested filters & `resultsLimit`. Without a cap the API uses 10,000. Returns `allowed`, `estimatedResults`, `creditsRequired`, `creditsAvailable` & `source` |
+| `POST /extractions` | Same body plus a new `Idempotency-Key`. A retry with that key returns the original job. `202` returns the job `id`, `status` & `statusUrl` |
+| `GET /extractions/{id}` | Returns `job`, `results`, `hasMore`, `nextCursor` & `pollAfterMs`. `job.status` ends as `completed`, `failed`, or `canceled`. Rows come 100 per page, up to 1,000 with `limit=1000`. Send `nextCursor` back as `cursor` |
+| `GET /extractions/{id}/export?format=csv` | The formats are `csv`, `json`, `md`, `md-document`, `pdf`, `txt` & `xlsx`. 1 export holds up to 100,000 rows, and PDF up to 10,000 |
+
+- `creditsRequired` & `creditsAvailable` are numeric strings. Convert them
+  before any math.
+- `creditsRequired` is a charge ceiling, not an exact bill. Skipped or
+  filtered rows cost nothing.
+- `estimatedResults` is a conservative billing count, such as the follower
+  count or the `resultsLimit` cap. It is not a count of matching posts.
+  `source` names which one it used.
+- `allowed: false` means the balance cannot fund the job. Lower
+  `resultsLimit`, or the user adds credits in the dashboard.
+- Show the estimate & get a yes before `POST /extractions`. Create nothing
+  before that yes.
+- Wait `pollAfterMs` between status reads.
+- Always give the download call. For a job over the export limit, page
+  `GET /extractions/{id}?limit=1000` from the start instead, so no row
+  appears twice.
 
 `DELETE /extractions/{id}` cancels a running job.
 
@@ -63,8 +56,8 @@ Multi-target jobs use `targetUsernames`, `targetTweetIds`, `searchQueries`,
 
 ## Search filters
 
-`tweet_search_extractor` takes the query in `searchQuery` and these optional
-top-level filters: `fromUser`, `toUser`, `mentioning`, `language`,
+`tweet_search_extractor` takes the query in `searchQuery`. Its optional
+top-level filters are `fromUser`, `toUser`, `mentioning`, `language`,
 `sinceDate`, `untilDate`, `mediaType`, `minFaves`, `minRetweets`,
 `minReplies`, `minQuotes`, `verifiedOnly`, `replies`, `retweets`, `quotes`,
 `exactPhrase`, `excludeWords`, `anyWords`, `hashtags`, `cashtags`, `url`, and

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
+import {AsyncLocalStorage} from 'node:async_hooks';
+import { mkdtemp, mkdir, rm, writeFile, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { tmpdir } from './physical-tempdir.mjs';
 import { WorkflowStore } from '../lib/workflow-store.mjs';
@@ -16,8 +17,12 @@ import { managedNativeResultSchema, semanticResultSchema, strictAgentOutputSchem
 import { createManagedNativeSession } from '../lib/execution/managed-native-session.mjs';
 import { createWorkflowResourceBroker } from '../lib/execution/workflow-resource-broker.mjs';
 import { digest } from '../lib/workflow-revisions.mjs';
+import { OWNED_MCP_NAMESPACE } from '../lib/execution/owned-tool-mcp.mjs';
 
 const identity = { name: 'fixture-tool', version: '1', sha256: 'a'.repeat(64) };
+// Match the Host-emitted JSON literals and TOML inline table subset.
+const fixtureToml=raw=>JSON.parse(raw.replace(/"(?:\\.|[^"\\])*"|[A-Za-z_][\w-]*\s*(?==)|=/g,token=>
+  token.startsWith('"')?token:token==='='?':':JSON.stringify(token.trim())));
 const fixtureProvider = { id: 'fixture-provider', name: 'Fixture', kind: 'openai_compatible', enabled: true, capabilities: { read: true, write: true }, requires_user_approval: false, config: { role: 'implementer' } };
 const contract = { id: 'fixture-tool', identity, argv: ['fixture-tool', '--fixed'], input_schema: { type: 'object', properties: { value: { type: 'integer' } }, required: ['value'], additionalProperties: false }, output_schema: { type: 'object', properties: { doubled: { type: 'integer' } }, required: ['doubled'], additionalProperties: false }, env_allow: [], permissions: { network: false, read_paths: [], write_paths: [] }, output_cap_bytes: 1024, deadline_ms: 100, idempotency: { mode: 'safe' } };
 const effects = (changed_paths = [], outside_paths = []) => ({ observed: true, changed_paths, outside_paths, artifacts: [] });
@@ -60,17 +65,46 @@ async function proposeHostResult(runtime, run, lease, result) {
 }
 
 test('projection exposes declared bindings and references only', () => {
-  const node = { ...agent('review'), resources: ['source/task.md'], input_bindings: { task: '/inputs/task' } };
+  const node = { ...agent('review','finalizer'), resources: ['source/task.md'], input_bindings: { task: '/inputs/task' } };
   const state = { run_id: 'r', workflow_id: 'w', workflow_revision: 'x', inputs: { task: 'visible', secret: 'hidden' }, constraints: {}, permissions: { workspace: 'C:/fixture', access: 'read_only', allowed_paths: [] }, nodes: { review: { status: 'claimed', output: null }, upstream: { status: 'succeeded', output: { secret: 'not copied' }, error: null } } };
-  const pins = { root: { workflow: { name: 'w', edges: [{ id: 'upstream-review', source: 'upstream', target: 'review' }], requirements: {}, skill_policy: { mode: 'cooperative', implicit: 'allow', ambient_allow: [], shadowed_skill_paths: [] } }, resources: [{ path: 'source/task.md', sha256: 'b'.repeat(64), bytes: 1 }] }, providers: [], skills: [] };
+  const pins = { root: { workflow: { name: 'w', finalization:{node_id:'final'}, edges: [{ id: 'upstream-review', source: 'upstream', target: 'review' }], requirements: {}, skill_policy: { mode: 'cooperative', implicit: 'allow', ambient_allow: [], shadowed_skill_paths: [] } }, resources: [{ path: 'source/task.md', sha256: 'b'.repeat(64), bytes: 1 }] }, providers: [], skills: [] };
   const envelope = executionEnvelope(node, state, pins, { id: 'a' }, 'lease');
+  assert.equal(envelope.final_acceptance_required,false);assert.equal(Object.hasOwn(envelope,'role'),false);
+  delete node.role;pins.root.workflow.finalization.node_id='review';
+  assert.equal(executionEnvelope(node,state,pins,{id:'a'},'lease').final_acceptance_required,true);
   assert.deepEqual({ ...envelope.inputs }, { task: 'visible' }); assert.equal('workflow_inputs' in envelope, false); assert.equal('upstream_results' in envelope, false); assert.deepEqual(envelope.context_projection.references, ['source/task.md']);
+});
+
+test('exact repeated usage preserves committed journal and still validates authority and conflicts',async t=>{
+ for(const native of [false,true])await t.test(native?'native unknown':'ordinary known',async t=>{
+  const workflow=hostWorkflow(),semantic=workflow.nodes.find(node=>node.id==='semantic');
+  const provider={...fixtureProvider,...(native?{kind:'native_agent',config:{model:'gpt-6.1-sol',reasoning_effort:'high',role:'implementer'}}:{})};
+  semantic.executor={kind:'provider',provider_id:provider.id};
+  workflow.nodes=workflow.nodes.filter(node=>node.id!=='double');
+  workflow.edges=[edge('start','semantic'),edge('semantic','final'),edge('final','end')];
+  const f=await fixture(t,workflow,{context:{host_tools:['fixture-tool'],providers:[provider]}});
+  const lease=await claim(f,'semantic');await acknowledgeProvider(f.runtime,f.run,lease);
+  const args={...lease,control_token:f.run.control_token,request_id:`dispatch-${lease.attempt_id}`,
+   usage:native?{unknown:true}:{unknown:false,input_tokens:10,output_tokens:2,cached_input_tokens:4,cost_micros:1}};
+  const record=native?f.runtime.recordNativeUsage.bind(f.runtime):f.runtime.recordUsage.bind(f.runtime);
+  await record(f.run.run_id,args);
+  const path=join(f.runtime.runs.directory(f.run.run_id),'events.jsonl'),before=await readFile(path);
+  const accepted=await f.runtime.runs.read(f.run.run_id);
+  await record(f.run.run_id,args);
+  assert.deepEqual(await readFile(path),before,'Duplicate usage appended an unrelated timestamp-only journal event');
+  assert.deepEqual((await f.runtime.runs.read(f.run.run_id)).state,accepted.state);
+  await assert.rejects(record(f.run.run_id,{...args,control_token:'wrong'}),{code:'RUN_AUTHORITY'});
+  await assert.rejects(record(f.run.run_id,{...args,lease_token:'wrong'}),{code:'LEASE_INVALID'});
+  await assert.rejects(record(f.run.run_id,{...args,usage:{...args.usage,input_tokens:11}}),{code:'USAGE_CONFLICT'});
+  await assert.rejects(record(f.run.run_id,{...args,usage:{unknown:true,unsupported:1}}),{code:'USAGE_SCHEMA'});
+  assert.deepEqual(await readFile(path),before,'Rejected replay changed the accepted journal');
+ });
 });
 
 test('old provenance cannot widen declared node context', () => {
   const node = { ...agent('review'), input_bindings: { task: '/inputs/task' } };
   const state = { run_id: 'r', workflow_id: 'w', workflow_revision: 'old', inputs: { task: 'visible', prior: 'legacy-only' }, constraints: {}, permissions: { workspace: 'C:/fixture', access: 'read_only', allowed_paths: [] }, nodes: { review: { status: 'claimed', output: null }, prior: { status: 'succeeded', output: { retained: true }, error: null } } };
-  const workflow = { name: 'w', edges: [{ id: 'prior-review', source: 'prior', target: 'review' }], requirements: {}, skill_policy: { mode: 'cooperative', implicit: 'allow', ambient_allow: [], shadowed_skill_paths: [] } };
+  const workflow = { name: 'w', finalization:{node_id:'final'}, edges: [{ id: 'prior-review', source: 'prior', target: 'review' }], requirements: {}, skill_policy: { mode: 'cooperative', implicit: 'allow', ambient_allow: [], shadowed_skill_paths: [] } };
   const envelope = executionEnvelope(node, state, { root: { workflow, provenance: { kind: 'v6-migration' }, resources: [] }, providers: [], skills: [] }, { id: 'a' }, 'lease');
   assert.deepEqual({ ...envelope.inputs }, { task: 'visible' });
   assert.equal(envelope.context_projection.legacy_ancestor_results, undefined);
@@ -132,13 +166,17 @@ test('managed thread/start activates exact Run access and retains normal permiss
   ]) {
     const resourceBroker = await createWorkflowResourceBroker({ workspace: cwd, access,
       allowedPaths: access === 'bounded_write' ? ['.'] : [], resources: [resource], authorize: async () => {}, onOperation: async () => {} });
-    let params, turnStarts = 0;
+    let params, turnStarts = 0, effectiveConfig;
     const client = {
       events: [], initialized() {}, async close() {},
       async call(method, arguments_) {
         if (method === 'initialize') return {};
         if (method === 'account/read') return { account: { type: 'chatgpt' }, requiresOpenaiAuth: true };
         if (method === 'model/list') return { data: [{ model, supportedReasoningEfforts: [{ reasoningEffort: 'high' }] }] };
+        if (method === 'config/read') {
+          assert.deepEqual(arguments_, { cwd, includeLayers: false });
+          return { config: structuredClone(effectiveConfig) };
+        }
         if (method === 'skills/list') return { data: [{ cwd, skills: [], errors: [] }] };
         if (method === 'thread/start') {
           params = arguments_;
@@ -157,7 +195,20 @@ test('managed thread/start activates exact Run access and retains normal permiss
     const session = await createManagedNativeSession({ parent: root, binary, expectedBinaryHash: digest('fixture'),
       cwd, model, effort: 'high', access, allowedPaths: access === 'bounded_write' ? ['.'] : [], env: { CODEX_HOME: home },
       skillPolicy: { implicit: 'deny', ambient_allow: [], shadowed_skill_paths: [] }, toolBroker: resourceBroker,
-      dynamicToolFormat: 'tagged_function', clientFactory: () => client, modelMetadataReader: async () => ({ slug: model, tool_mode: 'code_mode_only',
+      dynamicToolFormat: 'tagged_function', clientFactory: (_binary, launch) => {
+        effectiveConfig = { tool_output_token_limit: 5000, mcp_servers: {} };
+        for (const assignment of launch.overrides ?? []) {
+          const separator = assignment.indexOf('='), keys = assignment.slice(0, separator).split('.');
+          if (!['mcp_servers','features'].includes(keys[0])) continue;
+          let target = effectiveConfig;
+          for (const key of keys.slice(0, -1)) target = target[key] ??= {};
+          target[keys.at(-1)] = fixtureToml(assignment.slice(separator + 1));
+        }
+        // The effective native configuration normalizes an existing MCP entry
+        // without an explicit enabled override to enabled:true.
+        if (effectiveConfig.mcp_servers[OWNED_MCP_NAMESPACE]) effectiveConfig.mcp_servers[OWNED_MCP_NAMESPACE].enabled = true;
+        return client;
+      }, modelMetadataReader: async () => ({ slug: model, tool_mode: 'code_mode_only',
         base_instructions: 'Normal instructions', input_modalities: ['text'], supports_parallel_tool_calls: true }) });
     try {
       if (access === 'read_only' && returnedSandbox === 'workspaceWrite')
@@ -167,12 +218,18 @@ test('managed thread/start activates exact Run access and retains normal permiss
       assert.equal(params.cwd, cwd); assert.equal(params.model, model);
       assert.equal(params.sandbox, access === 'read_only' ? 'read-only' : 'workspace-write');
       assert.equal(params.approvalPolicy, undefined); assert.equal(params.baseInstructions, undefined);
-      assert.equal(params.environments, undefined); assert.equal(params.ephemeral, false);
+      assert.equal(params.environments, undefined); assert.equal(params.ephemeral, true);
+      assert.equal(Object.hasOwn(params.config,'tool_output_token_limit'),false);
       assert.equal(params.allowProviderModelFallback, false);
       const resourceTools = resourceBroker.tools();
-      assert.deepEqual(params.dynamicTools.slice(0, resourceTools.length), resourceTools.map(tool => ({ ...tool, type: 'function' })));
-      assert(params.dynamicTools.some(tool => tool.name === 'run_workspace_command'));
-      assert(!params.dynamicTools.some(tool => tool.name === 'write_workspace'));
+      assert.deepEqual(params.dynamicTools, []);
+      const receipt = JSON.parse(await readFile(join(session.profile.receipt_home, 'attempt.json'), 'utf8'));
+      assert.equal(receipt.tool_interface.broker_transport, 'native_mcp');
+      assert.equal(receipt.tool_interface.native_parallel_tools, true);
+      assert.equal(receipt.tool_interface.owned_mcp_namespace, OWNED_MCP_NAMESPACE);
+      assert.equal(receipt.tool_interface.owned_mcp_binding_qualified, true);
+      assert(resourceTools.some(tool => tool.name === 'read_workflow_resource'));
+      assert(!resourceTools.some(tool => tool.name === 'write_workspace'));
     } finally { await session.close(); }
   }
 });
@@ -225,7 +282,8 @@ test('a guarded Host tool finalizes a Run without a model relay', async t => {
   }) }, env: {} });
   const f = await fixture(t, workflow, { runner });
   const result = await f.drive.advance(f.run.run_id, { control_token: f.run.control_token });
-  assert.deepEqual(result, { status: 'succeeded', stop_reason: 'terminal', steps: 1 });
+  assert.deepEqual(result, { status: 'succeeded', stop_reason: 'terminal', steps: 1,
+    completion_satisfied: true, recovery_required: false, output: { doubled: 6, all_passed: true } });
   assert.equal(calls, 1);
   const state = await f.runtime.get(f.run.run_id);
   assert.deepEqual(state.nodes.double.output, { doubled: 6, all_passed: true });
@@ -244,28 +302,49 @@ test('host tools receive the exact Run-resolved executable paths instead of redi
   assert.deepEqual(observed, resolved);
 });
 
-test('host execution cleanup settles after durable output storage fails so cancellation cannot hang', async t => {
-  const runner = new HostToolRunner({ registry: { 'fixture-tool': broker(async ({ input }) => ({ exit_code: 0, diagnostic: 'ok', effects: effects(), output: { doubled: input.value * 2 } })) }, env: {} });
+test('host execution cleanup reports exact durable output failure without hanging or releasing its uncertain owner', async t => {
+  let calls=0;
+  const runner = new HostToolRunner({ registry: { 'fixture-tool': broker(async ({ input }) => {
+    calls++;return { exit_code: 0, diagnostic: 'ok', effects: effects(), output: { doubled: input.value * 2 } };
+  }) }, env: {} });
   const f = await fixture(t, hostWorkflow(), { runner }); const lease = await claim(f, 'double');
-  f.runtime.runs.saveExecutorResult = async () => { throw Object.assign(new Error('Synthetic output persistence failure'), { code: 'SYNTHETIC_SAVE_FAILURE' }); };
-  await assert.rejects(f.executor.executeHostTool(f.run.run_id, { ...lease, control_token: f.run.control_token }), { code: 'SYNTHETIC_SAVE_FAILURE' });
+  const failure=Object.assign(new Error('Synthetic output persistence failure'),{code:'SYNTHETIC_SAVE_FAILURE'});
+  f.runtime.runs.saveExecutorResult = async () => { throw failure; };
+  const binding={...lease,control_token:f.run.control_token};
+  await assert.rejects(f.executor.executeHostTool(f.run.run_id,binding),error=>error===failure);
+  assert.equal(f.executor.hostExecutions.size,1);
+  const owner=[...f.executor.hostExecutions.values()][0];
+  assert.equal(owner.attempt_id,lease.attempt_id);assert.equal(owner.settled,true);
+  assert.equal(owner.result.error,failure);assert.equal(owner.cleanupConfirmed,false);
   const cleanup = f.executor.cancelPendingHostTools(f.run.run_id, f.run.control_token);
-  await Promise.race([cleanup, new Promise((_resolve, reject) => setTimeout(() => reject(new Error('Host cleanup hung after saveExecutorResult failure')), 250))]);
-  assert.equal(f.executor.hostExecutions.size, 0);
+  let timer;
+  try {
+    await assert.rejects(Promise.race([cleanup,new Promise((_resolve,reject)=>{
+      timer=setTimeout(()=>reject(new Error('Host cleanup hung after saveExecutorResult failure')),250);
+    })]),error=>error.code==='HOST_TOOL_CANCEL_INCOMPLETE'&&error.errors.length===1&&error.errors[0]===failure);
+  } finally {clearTimeout(timer);}
+  assert.equal(f.executor.hostExecutions.size,1);assert.equal([...f.executor.hostExecutions.values()][0],owner);
+  const state=await f.runtime.get(f.run.run_id),intent=state.nodes.double.attempts[0].host_tool;
+  assert.equal(intent.attempt_id,lease.attempt_id);assert.equal(intent.phase,'intent');assert.equal(intent.receipt,null);
+  await assert.rejects(f.executor.executeHostTool(f.run.run_id,binding),{code:'ATTEMPT_STOPPED'});
+  assert.equal(calls,1,'storage failure and refused replay cannot duplicate the broker effect');
 });
 
-test('cancellation fences a host attempt suspended in Run I/O before it can write intent or launch broker work', async t => {
+test('cancellation fences a host attempt suspended in Run I/O before it can write intent or launch broker work', {timeout:10000}, async t => {
   let calls = 0;
   const runner = new HostToolRunner({ registry: { 'fixture-tool': broker(async () => { calls++; return { exit_code: 0, diagnostic: '', effects: effects(), output: { doubled: 6 } }; }) }, env: {} });
   const f = await fixture(t, hostWorkflow(), { runner }); const lease = await claim(f, 'double');
   const originalRead = f.runtime.runs.read.bind(f.runtime.runs);
-  let reads = 0; let enterRead; let releaseRead;
+  const originalAuthorization=f.runtime.authorizedExecution.bind(f.runtime),readPurpose=new AsyncLocalStorage();
+  let suspended=false; let enterRead; let releaseRead;
   const entered = new Promise(resolve => { enterRead = resolve; });
   const held = new Promise(resolve => { releaseRead = resolve; });
+  f.runtime.authorizedExecution=(...args)=>readPurpose.run('execution',()=>originalAuthorization(...args));
   f.runtime.runs.read = async (...args) => {
-    const record = await originalRead(...args);
-    if (++reads === 2) { enterRead(); await held; }
-    return record;
+    // Suspend actual authorization I/O before its physical read, outside the
+    // writer. Cancellation must settle, then this read sees the latest state.
+    if(readPurpose.getStore()==='execution'&&!suspended){suspended=true;enterRead();await held;}
+    return originalRead(...args);
   };
   const dispatch = f.executor.executeHostTool(f.run.run_id, { ...lease, control_token: f.run.control_token });
   await entered;
@@ -425,14 +504,27 @@ test('Host-owned drive waits for the actual Strict native owner before continuin
   assert.equal(replay.idempotent,true);assert.equal(replay.execution_owner,'strict_codex');
 });
 
-test('drive stops before unavailable bindings or unaffordable semantic work and never dispatches either as a model call', async t => {
+test('startup rejects missing first bindings and drive stops before later missing inputs or unaffordable semantic work without model calls', async t => {
+  let toolCalls = 0;
+  const runner = new HostToolRunner({ registry: { 'fixture-tool': broker(async ({ input }) => { toolCalls++; return { exit_code: 0, diagnostic: '', effects: effects(), output: { doubled: input.value * 2 } }; }) }, env: {} });
   const missing = hostWorkflow(); missing.inputs_schema.required = ['task'];
-  const noInput = await fixture(t, missing, { inputs: { task: 'declared only' } });
-  assert.deepEqual(await noInput.drive.advance(noInput.run.run_id, { control_token: noInput.run.control_token }), { status: 'running', stop_reason: 'missing_input', node_id: 'double', error: { code: 'BINDING_MISSING', message: 'Required binding value is unavailable' }, steps: 0 });
+  await assert.rejects(fixture(t, missing, { runner, inputs: { task: 'declared only' } }), { code: 'BINDING_MISSING', binding: 'value', pointers: ['/inputs/value'] });
+  assert.equal(toolCalls, 0, 'Missing first-node inputs must fail before any tool execution');
+  const laterMissing = structuredClone(missing);
+  laterMissing.inputs_schema.properties.initial_value = { type: 'integer' };
+  const prepare = { ...structuredClone(laterMissing.nodes.find(node => node.id === 'double')), id: 'prepare', input_bindings: { value: '/inputs/initial_value' } };
+  laterMissing.nodes.splice(1, 0, prepare);
+  laterMissing.edges = [edge('start', 'prepare'), edge('prepare', 'double'), edge('double', 'semantic'), edge('semantic', 'final'), edge('final', 'end')];
+  const noInput = await fixture(t, laterMissing, { runner, inputs: { task: 'declared only', initial_value: 3 } });
+  assert.deepEqual(await noInput.drive.advance(noInput.run.run_id, { control_token: noInput.run.control_token }), { status: 'running', stop_reason: 'missing_input', node_id: 'double', error: { code: 'BINDING_MISSING', message: 'Required binding value is unavailable' }, steps: 1 });
+  const missingState = await noInput.runtime.get(noInput.run.run_id);
+  assert.equal(toolCalls, 1);assert.equal(missingState.nodes.prepare.status, 'succeeded');
+  assert.equal(missingState.nodes.double.attempts.length, 0);assert.equal(missingState.nodes.semantic.attempts.length, 0);assert.deepEqual(missingState.cost_ledger.calls, []);
   const budgeted = hostWorkflow(); budgeted.nodes.find(node => node.id === 'semantic').cost = { maximum_micros: 5 };
-  const runner = new HostToolRunner({ registry: { 'fixture-tool': broker(async ({ input }) => ({ exit_code: 0, diagnostic: '', effects: effects(), output: { doubled: input.value * 2 } })) }, env: {} });
   const noBudget = await fixture(t, budgeted, { runner, constraints: { cost_budget: { approval_id: 'approved', currency: 'USD', limit_micros: 4 } } });
   assert.deepEqual(await noBudget.drive.advance(noBudget.run.run_id, { control_token: noBudget.run.control_token }), { status: 'running', stop_reason: 'budget', node_id: 'semantic', steps: 1 });
+  const budgetState = await noBudget.runtime.get(noBudget.run.run_id);
+  assert.equal(toolCalls, 2);assert.equal(budgetState.nodes.semantic.attempts.length, 0);assert.deepEqual(budgetState.cost_ledger.calls, []);
 });
 
 test('host tool failure and timeout are explicit receipts; only the pinned safe mode can replay an unreceipted intent', async t => {

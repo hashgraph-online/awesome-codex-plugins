@@ -3,6 +3,7 @@
 import { pathToFileURL } from 'node:url';
 
 import { DEFAULT_CONSOLE_PORT, startConsole, stopConsole } from './server.mjs';
+import { closeRunHistoryMaintenances } from './lib/run-history-maintenance.mjs';
 
 export function parseOptions(args = []) {
   let port = DEFAULT_CONSOLE_PORT;
@@ -57,12 +58,16 @@ export async function main(args = process.argv.slice(2)) {
   }
   process.stdout.write('Keep this terminal open. Press Ctrl+C to stop the console.\n');
 
-  await new Promise((resolve) => {
+  await new Promise((resolve, reject) => {
     let stopping = false;
     const shutdown = () => {
       if (stopping) return;
       stopping = true;
-      void stopConsole().finally(resolve);
+      void Promise.allSettled([stopConsole(), closeRunHistoryMaintenances()]).then(results => {
+        const errors=results.filter(result=>result.status==='rejected').map(result=>result.reason);
+        if(errors.length)reject(new AggregateError(errors,'Console history maintenance shutdown requires attention'));
+        else resolve();
+      });
     };
     process.once('SIGINT', shutdown);
     process.once('SIGTERM', shutdown);

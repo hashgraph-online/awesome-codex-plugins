@@ -4,15 +4,17 @@ What each `story build` format writes, and the flags and `story.md` fields it re
 
 ## build
 
-`build` when the user asks to build the book artifact; supports markdown, EPUB, DOCX, Shunn, HTML, print, narration, metadata, Fountain, Twee, and ink outputs in `dist/`, and a codex site in `dist/codex/`, with front and back matter. For EPUB, set `cover: path/to/cover.jpg` (inside the project) and `author` in `story.md` to embed a cover image and creator.
+`build` when the user asks to build the book artifact; supports markdown, EPUB, DOCX, Shunn, HTML, print, narration, metadata, Fountain, Twee, and ink outputs in `dist/`, and a codex site in `dist/codex/`, with front and back matter. For EPUB, set `cover: path/to/cover.jpg` (inside the project, and holding the kind of image its extension names) and `author` in `story.md` to embed a cover image and creator; never pass the cover or the `build-style` `css` file as `--out`, which is refused. For an anthology, set `editor` in `story.md` and `author` on each chapter: builds credit the editor on the title pages and print each story's writer under its heading, outside the word count (docs/manuscripts.md#story-authors-in-collections-and-anthologies).
+
+A matter page with `permission: pending`, a misspelt `permission` key, or any value but `not-needed`, `granted`, or `public-domain` is left out of `export` and of every build that prints matter (markdown, EPUB, DOCX, HTML, print, narration), with a `permission-pending-left-out` warning for each. Report the warning rather than work around it. Add `--include-pending` only for a proof the author reads alone, never for a file anyone else sees; `cli-defaults` cannot set it, and other builds refuse it.
 
 ## html
 
 `build --format html` when the user wants a review or reading copy for people who never open a terminal: a single HTML file with a table of contents and a paragraph label on every paragraph, shown faintly in the margin as a link labelled `ch03-p12` (chapter 3, paragraph 12), that reviewers cite in notes.
 
 - A label is the paragraph's position in that build, so any earlier edit renumbers it; add `--stamp <round or date>` so notes can name the build, and ask reviewers to quote each paragraph's first few words.
-- `--note-url <url>` adds a Note link beside each label, prefilled with `title`, `anchor`, `build`, and `quote` query parameters for the `manuscript-note.yml` issue form.
-- `templates/github/review-copy.yml` publishes it to GitHub Pages; see the `feedback-triage` skill.
+- `--note-url <url>` adds a Note link beside each label, prefilled with `title`, `anchor`, `build`, and `quote` query parameters for the reader-note issue form.
+- The `feedback-triage` skill sets up the GitHub Pages workflow that publishes it, and the issue form.
 
 ## print
 
@@ -24,7 +26,7 @@ See the `publishing` skill.
 
 ## narration
 
-`build --format narration` for an audiobook narration script: a pronunciation guide table from every `pronunciation` field, each chapter with an estimated finished runtime at the language's narration pace (155 words per minute in English), scene breaks as `[pause]`, and a total runtime. See the `adaptation` skill.
+`build --format narration` for an audiobook narration script: a pronunciation guide table from every `pronunciation` field, each chapter with an estimated finished runtime at the language's narration pace (155 words per minute in English), scene breaks as `[pause]`, and a total runtime. In a collection or anthology, each story with its own chapter `author` gets a spoken credit after its heading, and the opening credits name the `editor` and then the story authors the book's credits leave out. See the `adaptation` skill.
 
 ## metadata
 
@@ -50,6 +52,7 @@ See the `interactive-fiction` skill, or `adaptation` to convert a linear book.
 
 - It is spoiler-safe by default (no entity notes, statuses, deaths, knowledge, clues, or resolutions); add `--spoilers` only for the author's own copy, never for one readers will see.
 - `--out` names a folder, and a rebuild replaces an earlier codex there.
+- Its headings, columns, and notes follow `story.md` `language`, like other build labels; to reword one, add a `codex-` entry under `labels` (see docs/manuscripts.md#build-labels).
 
 ## epub
 
@@ -57,7 +60,7 @@ See the `interactive-fiction` skill, or `adaptation` to convert a linear book.
 
 ## shunn
 
-`build --format shunn` when the user wants Shunn manuscript-format markdown: title page, contact block, word count, chapter breaks, and double-spaced prose; `story build . --format docx --shunn` applies the same Shunn formatting to the DOCX output, and `story build . --format shunn --pdf` renders a Shunn PDF with an installed engine.
+`build --format shunn` when the user wants Shunn manuscript-format markdown: title page, contact block, word count, chapter breaks, and double-spaced prose; `story build . --format docx --shunn` applies the same Shunn formatting to a Word file, `dist/<story-id>.shunn.docx`, so it never replaces the plain `docx` build, and `story build . --format shunn --pdf` renders a Shunn PDF with an installed engine.
 
 ## build-style
 

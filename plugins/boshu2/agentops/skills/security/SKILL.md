@@ -74,10 +74,17 @@ Apply these to every review, scripted or manual. They are the rules most often s
    A finding reasoned from the code is suspected, even with a candidate input;
    give that input and rank it below proven findings.
 
+For each finding, explain the attacker path and relevant protective control in
+the fields below. Read [attacker-path evidence](references/attacker-path-evidence.md)
+only when reachability, control effectiveness, or claimed test completion needs
+closer support for that finding.
+
 ```text
 target:   <paths, endpoints, or binary>; authorization: <boundary>
 findings: <id> <severity> <file:line> <class>: <what>
           proven: <input run> | suspected: <candidate input, why not run>
+          path: <attacker input> -> <reachable behavior> -> <trust boundary> -> <impact>
+          control: <relevant protection challenged and outcome, or none identified>
           fix class: <a few words>
 coverage: <class> -> finding <ids> | clean | not assessed (<why>)
 tools:    <scanner or command> -> ran | missing | error
@@ -154,7 +161,7 @@ action, approval, release, ship, or retry decision.
 - [ ] Target and authorization boundary are explicit; collection stayed within them.
 - [ ] Every applicable class has a result; unvisited classes are listed as not assessed.
 - [ ] Scanner availability and skipped/error coverage are visible in the report.
-- [ ] Findings include severity, location, proven-or-suspected evidence, and a remediation class, with no patch, plan, owner, or priority.
+- [ ] Findings include severity, location, proven-or-suspected evidence, attacker path, relevant control outcome, and a remediation class, with no patch, plan, owner, or priority.
 - [ ] Artifacts contain no newly exposed secrets or unredacted sensitive payloads.
 - [ ] The report distinguishes a passing scan from permission to promote, ship, or release.
 - [ ] Suppressions, policy changes, baselines, and risk acceptance require explicit judgment.
@@ -183,6 +190,7 @@ For a bounded suite smoke test, use an owned binary and a temporary output direc
 
 ## Reference Documents
 
+- [references/attacker-path-evidence.md](references/attacker-path-evidence.md) — finding reachability, controls, and evidence limits
 - [references/security-suite-runbook.md](references/security-suite-runbook.md) — binary/policy/baseline/redteam commands and artifacts
 - [references/security.feature](references/security.feature) — repository-gate executable spec
 - [references/security-suite.feature](references/security-suite.feature) — composable-suite executable spec

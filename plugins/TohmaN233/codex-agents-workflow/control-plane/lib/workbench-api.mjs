@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { WorkflowService } from './workflow-service.mjs';
 import { appendAuditEvent, configRevision, loadConfig, resolveConfigPath, saveConfig, validateConfig } from './config.mjs';
 import { localCodexCatalog } from './execution/local-codex-catalog.mjs';
+import { pluginUpdateStatus } from './plugin-update.mjs';
 
 export const MAX_WORKBENCH_BODY = 8 * 1024 * 1024;
 export const MAX_PACKAGE_BODY = 72 * 1024 * 1024;
@@ -33,6 +34,7 @@ export class WorkbenchApi {
     this.configPath = configPath;
     this.defaultConfigPath = defaultConfigPath;
     this.env = env;
+    this.fetchImpl = fetchImpl;
     this.storage = workbenchStorage(configPath, env);
     this.service = new WorkflowService({ configPath, defaultConfigPath, env, fetchImpl, capabilities });
   }
@@ -54,6 +56,7 @@ export class WorkbenchApi {
 
   async #dispatch(path, method, body) {
     const { configPath, defaultConfigPath, env, service } = this;
+    if(path==='/api/plugin-update'&&method==='GET')return pluginUpdateStatus(this.fetchImpl);
     if (path.startsWith('/api/workflow/') && method === 'POST') {
       const operation = path.slice('/api/workflow/'.length);
       if (operation === 'current_main_pending') return service.call('main_status', { run_id: String(body.run_id || '') }, { human: true });

@@ -1,6 +1,6 @@
 ---
 name: amq-cli
-version: 0.87.0 # x-release-please-version
+version: 0.97.0 # x-release-please-version
 description: Coordinate coding agents through AMQ. Use for agent messages, inboxes, receipts, sessions, wake delivery, cross-project routing, managed launches, or AMQ diagnostics. Use amq-spec for collaborative design; do not use this for general message queues or single-agent work.
 metadata:
   short-description: Inter-agent messaging via AMQ CLI
@@ -36,14 +36,79 @@ If session-start context says `wake=live(...)`, or
 injection mode other than `none`, the wake delivers a doorbell for you.
 Run `amq drain --include-body` when it fires, then act on the messages.
 
+The default drain reads at most 20 messages in filename order, including held
+mail. After a full batch, check `amq list --new --limit 1` and continue with bounded drains
+as needed; do not assume the inbox is empty. Use `--limit 0` only for a known,
+manageable batch. Urgent hold bypass does not change drain order.
+
 Do not run `amq watch`, `amq monitor`, sleep-poll, or start another inbox
 watcher under that live wake. A blocking wait holds your turn while the
 doorbell queues behind it. When your work is done, finish the turn; do not
 keep a tool running or send idle check-ins just to wait for mail.
 
+A wake can hold its first doorbell for routine mail with the `hold_normal` and
+`hold_low` settings; `5m` / `30m` is an opt-in example. The configured retry
+policy applies after the first attempt.
+Urgent priority skips the hold. Ordinary urgent mail still passes through
+debounce and input deferral; urgent mail with the configured interrupt label
+follows the interrupt path.
+Use `--priority urgent` on `send` or `reply` for time-critical verdicts and
+unblocking requests. Other review responses remain normal by default.
+
+In Claude Code, `amq wake install-dialog-hook` makes the wake hold its doorbell
+while AskUserQuestion, ExitPlanMode, or a permission dialog is open; the held
+doorbell arrives after you answer, or when that turn ends.
+
+Wake settings (hold, debounce, preview, bell, input deferral, interrupt notice)
+live in `.wake.settings` and apply to a running wake. Change your own or a
+peer's wake without a restart:
+
+```bash
+amq wake config --me <handle>                           # show
+amq wake config --me <handle> --hold-normal 5m --wait   # set, wait for apply
+amq wake config --me <handle> --unset hold_normal       # back to default
+amq wake config --me <handle> --reset --hold-low 30m    # replace the file
+```
+
+Set a default for every wake of this user on this machine with `--machine`
+(no `--me`); a per-agent value overrides it per key, and `--unset` falls back
+to the next layer:
+
+```bash
+amq wake config --machine --hold-normal 5m --hold-low 30m  # machine default
+amq wake config --machine --unset hold_low                 # back to default
+```
+
+A refused file shows `file: refused: <err>` with default rows (the wake keeps
+its last applied settings); `set` and `--unset` exit 1 and point at `--reset`.
+A running wake that reports no live settings shows `unreported`: `--wait` exits
+6 after 5 s, and `set`/`--unset` on an absent file exit 6 after the same 5 s.
+Causes: an older image, a failed status write, or a resumed wake still storing
+its command-line settings in the file (wait a moment). Otherwise restart that
+wake (a resume seeds the file) or `--reset` with the full set. A missing
+mailbox exits 3.
+
+Flags fixed for a running wake (`--inject-mode`, `--inject-via`, `--inject-arg`,
+`--inject-cmd`, `--interrupt-cmd`, `--retry-until`) are refused; restart the
+wake through its owning terminal after `amq wake check`. Repair, `coop exec`,
+keepalive, and self-upgrade keep the stored settings; a resume with no file
+seeds it once from its argv settings flags.
+
 Without an injecting wake, use the receive methods in the operations guide.
 A notify-only wake (`--inject-mode none`) paired with a supervisor `monitor`
 service is a separate supported setup.
+
+## Send useful handoffs
+
+For one related batch, send one completion handoff with artifact paths, the
+relevant source or digest, checks, failed or pending parts, and the next action
+or actor. Send independent blockers promptly; send a partial result when the
+receiver can act on it before the rest finishes.
+
+Send status when work starts, a state, decision, or result changes, or an agreed
+escalation is due. Avoid file-by-file completion notices and unchanged check-ins.
+Automated callers own duplicate suppression by item, revision, and event;
+AMQ threads correlate messages, but do not deduplicate repeated sends.
 
 ## Route the task
 
@@ -83,7 +148,8 @@ are in the [amq-remote reference](https://github.com/avivsinai/agent-message-que
 ## Safety and delivery rules
 
 - A wake notification is attention, not consumption proof. Use receipts or
-  `--wait-for drained` when delivery proof matters.
+  `--wait-for drained` when delivery proof matters. A `drained` receipt proves
+  ingestion, not that the requested work is complete.
 - Preserve the existing thread when replying. Drain again after a doorbell;
   the newest complete message body is authoritative.
 - Cleanup is explicit through `amq cleanup`. Do not add automatic deletion.

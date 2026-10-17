@@ -1,5 +1,10 @@
 import {canonicalJSON} from '../workflow-revisions.mjs';
 
+function observation(snapshot,path,side){
+  const value=snapshot.get(path)??null;
+  return value?.startsWith('metadata:')?{[`${side}_sha256`]:null,[`${side}_metadata_sha256`]:value.slice(9)}:{[`${side}_sha256`]:value};
+}
+
 // Preserve the exact evidence before managers release their in-memory snapshots.
 // This diagnostic never exempts caches or other writes from the declared scope.
 export async function rejectWorkspaceScope({runtime,runId,attemptId,code,changed,outside,before,after,event}) {
@@ -7,7 +12,7 @@ export async function rejectWorkspaceScope({runtime,runId,attemptId,code,changed
   const violation=Object.assign(new Error(`Changed ${outside.length} path(s) outside declared write scope: ${sample}`),{code});
   const report={schema:'workspace-scope-violation/v1',run_id:runId,attempt_id:attemptId,
     changed_paths:changed,outside_paths:outside,
-    changes:changed.map(path=>({path,before_sha256:before.get(path)??null,after_sha256:after.get(path)??null,
+    changes:changed.map(path=>({path,...observation(before,path,'before'),...observation(after,path,'after'),
       ...(before.unreadablePaths?.has(path)?{before_unreadable:before.unreadablePaths.get(path)}:{}),
       ...(after.unreadablePaths?.has(path)?{after_unreadable:after.unreadablePaths.get(path)}:{})}))};
   try {

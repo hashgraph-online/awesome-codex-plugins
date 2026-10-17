@@ -1,8 +1,10 @@
 # Other (terminal / generic CLI)
 
-Read this file **before** any prospecting work when running on a **plain terminal**, in **scripts**, **CI**, or any host that is **not** Cowork, OpenClaw, Codex, or Claude Code.
+Read this file **before** any prospecting work when running in **Grok Build**, on a **plain terminal**, in **scripts**, **CI**, or any host that is **not** Cowork, OpenClaw, Codex, or Claude Code.
 
 Use this as the default CLI reference when no other platform reference applies.
+
+**Grok Build:** use this guide for installation, authentication, sample previews, and CSV chaining. The `vibe-prospecting` skill and `skip_sample` command share this CLI workflow. For plugin installation and marketplace status, see the [Grok Build install guide](../../../docs/install-grok-build.md).
 
 For dedicated platforms, read [`claude-chat.md`](claude-chat.md), [`cowork.md`](cowork.md), [`openclaw.md`](openclaw.md), [`codex.md`](codex.md), or [`claude-code.md`](claude-code.md) instead.
 

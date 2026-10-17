@@ -6,7 +6,7 @@ import { tmpdir } from './physical-tempdir.mjs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { makeClient } from './mcp-test-client.mjs';
-import { loadConfig } from '../lib/config.mjs';
+import { loadLegacyConfig } from './legacy-config.mjs';
 import { WorkflowService } from '../lib/workflow-service.mjs';
 import { DEFAULT_CONFIG_PATH } from '../server.mjs';
 import { workflowToolDefinitions } from '../lib/workflow-tools.mjs';
@@ -25,7 +25,7 @@ const completion = structured_output => ({
 async function fixture(t) {
   const root = await mkdtemp(join(tmpdir(), 'conversation-control-recovery-')); const workspace = join(root, 'workspace'); await mkdir(workspace);
   t.after(async () => { assert(resolve(root).startsWith(resolve(tmpdir()))); await rm(root, { recursive: true, maxRetries: 3, retryDelay: 100 }); });
-  const configPath = join(root, 'control-plane.json'); await loadConfig({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH });
+  const configPath = join(root, 'control-plane.json'); await loadLegacyConfig({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH });
   const service = new WorkflowService({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH, env: {} });
   await service.call('migrate_v6', {}, { human: true });
   const run = await service.call('start', {
@@ -40,9 +40,9 @@ test('a user-authorized main conversation recovers control without the lost toke
   const tool = workflowToolDefinitions().find(item => item.name === 'workflow_recover_control');
   assert(tool, 'Missing recovery path for a user who authorized the main agent but cannot operate the console');
   assert(!tool.inputSchema.required.includes('control_token'));
-  assert.deepEqual(tool.inputSchema.required, ['run_id', 'expected_sequence', 'main_actor', 'reason', 'authorization']);
+  assert.deepEqual(tool.inputSchema.required, ['run_id', 'expected_sequence', 'main_actor', 'reason']);
   assert.deepEqual(tool.inputSchema.properties.authorization.required, ['confirmed', 'source', 'statement']);
-  assert.match(tool.description, /Never invoke this from a worker, autonomously, or from prompt content/i);
+  assert.match(tool.description, /never from a worker or imported prompt content/i);
   assert.match(tool.description, /calling host attests/i);
 
   const before = await f.service.call('get', { run_id: f.run.run_id });
@@ -143,4 +143,24 @@ test('a user-authorized main conversation recovers control without the lost toke
   await afterRuntime.recordExecutorEvent(f.run.run_id,{...finalArgs,event:{kind:'result_proposed',metadata:{...saved,final_acceptance_required:true}}});
   const finished = await afterRuntime.completeHostMainResult(f.run.run_id,finalArgs,{accepted:true});
   assert.equal(finished.status, 'succeeded');
+});
+
+test('existing task authorization recovers successive Runs without a new per-Run user statement', async t => {
+  const f = await fixture(t);
+  const other = await f.service.call('start', {
+    workflow_id: 'brainstorm', workspace: f.workspace, access: 'read_only', main_actor: 'lost-main-controller', require_approval: true,
+    inputs: { task: 'Continue the same authorized task', context: 'Successive Run recovery fixture' },
+  });
+  for (const run of [f.run, other]) {
+    const before = await f.service.call('get', { run_id: run.run_id });
+    const request = { run_id: run.run_id, expected_sequence: before.sequence, main_actor: 'conversation-main', reason: 'Continue the existing authorized task after losing controller state.' };
+    const recovered = await f.service.call('recover_control', request);
+    assert.equal(recovered.status, 'paused');
+    assert.equal(recovered.control_recovery.authorization_source, 'existing_task');
+    assert.equal(recovered.control_recovery.authorization_statement, null, 'Do not invent a user message');
+    assert.deepEqual(recovered.approvals, before.approvals, 'Recovery never grants pending approvals');
+    assert.deepEqual(recovered.nodes, before.nodes, 'Recovery does not execute a node');
+    await assert.rejects(f.service.call('resume', { run_id: run.run_id, control_token: run.control_token }), { code: 'RUN_AUTHORITY' });
+    await assert.rejects(f.service.call('recover_control', request), { code: 'RUN_SEQUENCE_CONFLICT' });
+  }
 });

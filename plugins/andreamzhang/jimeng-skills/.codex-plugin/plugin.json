@@ -1,0 +1,50 @@
+{
+  "name": "jimeng-skills",
+  "version": "0.1.0",
+  "description": "即梦分镜完整制片调度工作流：六角色子代理 + 全流程校验与派生工具链。",
+  "author": {
+    "name": "andreamzhang",
+    "url": "https://github.com/andreamzhang"
+  },
+  "homepage": "https://github.com/andreamzhang/jimeng-skills",
+  "repository": "https://github.com/andreamzhang/jimeng-skills",
+  "license": "MIT",
+  "keywords": [
+    "short-drama",
+    "storyboard",
+    "agents",
+    "skills",
+    "director",
+    "producer",
+    "art-design",
+    "review"
+  ],
+  "skills": "./.agents/skills/",
+  "hooks": {},
+  "interface": {
+    "displayName": "即梦分镜师",
+    "shortDescription": "完整制片调度工作流：拆本、台词、导演、服化道、分镜、终审。",
+    "longDescription": "用 AGENTS.md 作为制片人规则，协调六个角色子代理完成即梦分镜流程：剧本入库、台词本、导演分析、服化道、全景站位、分镜填写、时长校准、终审与派生视图。",
+    "developerName": "andreamzhang",
+    "category": "Production",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "用即梦分镜师流程给这部剧本做分镜。",
+      "把这部剧本交给拆剧本专家入库拆集。",
+      "用即梦分镜师流程生成本集分镜并做终审校验。"
+    ],
+    "websiteURL": "https://github.com/andreamzhang/jimeng-skills",
+    "privacyPolicyURL": "https://github.com/andreamzhang/jimeng-skills/blob/main/LICENSE",
+    "termsOfServiceURL": "https://github.com/andreamzhang/jimeng-skills/blob/main/LICENSE",
+    "brandColor": "#1B6AED",
+    "composerIcon": "./assets/logo.svg",
+    "logo": "./assets/logo.svg",
+    "screenshots": [
+      "./assets/logo.svg"
+    ]
+  }
+}

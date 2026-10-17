@@ -8,16 +8,17 @@
 
 **Expected behavior:**
 1. Skill gathers git context and parses user's bug description.
-2. When a screenshot is attached, the skill describes the anomaly geometry in measurable terms before any hypothesis.
+2. When a screenshot is attached, the skill describes the anomaly geometry in measurable terms before any hypothesis. When the input names a component by description, the skill finds the exact one in code, or asks which one, before any hypothesis.
 3. Skill generates 2-4 hypotheses based on symptoms and codebase scan, each carrying a Refutation entry that names what would be observed if it were wrong.
 4. Skill tests hypotheses, dispatching agents conditionally (only when their specialization adds value).
 5. A hypothesis is confirmed only by a local observation no rival hypothesis explains, with its Refutation entry checked first -- never by an upstream issue or doc match alone. The confirmation is quoted as a `confirmed by:` line.
 6. If hypotheses fail, skill enters adaptive exploration (max 2 rounds) with targeted user questions via AskUserQuestion.
-7. On confirmed root cause, skill generates fix proposals (simplest first) and dispatches fix-reviewer.
+7. On confirmed root cause, skill generates fix proposals (simplest first), each with a `path:` line tying the user's symptom to the code it changes, and dispatches fix-reviewer. A real defect off that path is listed under "Not on this bug's path" and never proposed.
 8. When the user questions the diagnosis, the skill re-audits it against local evidence (Step 5c) before discussing alternative fixes; a contradiction refutes the root cause and re-enters hypothesis testing.
 9. After fix review, skill presents approved proposals to user via AskUserQuestion.
 10. On user selection, skill writes a reproducing test and prints its `red:` line, applies the fix, runs the resolved test command and reports its evidence line -- or names the reason once when no command resolves.
 11. If the run after the fix fails, skill reverses the code change, records the root cause as refuted, and re-enters Step 2 once; a second failure ends the run with the ruled-out list and, when the refutations point at one, a named design assumption with its evidence.
+12. Every run ends on the Step 8 summary: an `H<n> <statement>` line per hypothesis followed by every `refuted:`, `survived:` and `confirmed by:` line Step 3 recorded for it, verbatim, or `untested:  H<n>` when there is none, then the applied proposal's `path:` line.
 
 **Verification checklist:**
 - [ ] Slash menu shows `/hypothesis-debugging`.
@@ -41,6 +42,9 @@
 - [ ] "Are you sure" or "is there nothing better" triggers a re-audit of the diagnosis (Step 5c) before any alternative fix is proposed.
 - [ ] A failed post-fix run never gets a second patch on top of the first; the first change is reversed and the root cause is re-examined, at most once.
 - [ ] The stop report names a design assumption only together with the evidence that undercuts it, never as a bare label.
+- [ ] A symptom that names a component by description ("the rename button") gets that component identified in code, or a question asking which one, before Step 2 -- never an assumed one.
+- [ ] Every fix proposal carries a `path:` line in `<check> -> <observed>` form; a defect with no such line appears only under "Not on this bug's path" and is not applied.
+- [ ] The last message of the run, whichever step it stops at, carries an `H<n> <statement>` line per hypothesis followed by every check line Step 3 recorded for it, verbatim, never a prose restatement; after an applied fix it ends with that fix's `path:` line.
 - [ ] All user decision points use AskUserQuestion, not plain text.
 
 **Known gotchas:**

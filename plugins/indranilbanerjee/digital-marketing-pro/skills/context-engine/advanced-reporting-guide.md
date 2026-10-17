@@ -258,7 +258,7 @@ For each channel/campaign:
 | **Data source unavailable** | API timeout or error response during data pull | Retry 3x with exponential backoff (1min, 5min, 15min). If all fail, send partial report with "[Data unavailable]" placeholder and alert owner |
 | **Data freshness issue** | Timestamp check — data is older than expected | Include warning banner: "Data as of [timestamp]. [Source] data may be delayed." Proceed with stale data rather than blocking report |
 | **Rendering failure** | PDF generation throws exception | Fall back to plain-text email with key metrics. Log error for debugging. Alert owner |
-| **Delivery failure** | Email bounce, Slack API error, Drive permission error | Retry delivery 2x. If persistent, alert owner via alternate channel. Log failure in execution tracker |
+| **Delivery failure** | Email bounce, Slack API error, Drive permission error | Retry delivery (up to 2x) only when it provably never reached the platform (connection refused, DNS failure, or a 429 rate-limit rejection); after a timeout or a lost reply, check the channel or inbox for the report before resending. If persistent, alert owner via alternate channel. Log failure in execution tracker |
 | **Anomaly in data** | Metric values outside expected range (>3 standard deviations) | Include anomaly callout in report. Do not suppress anomalous data. Flag for human review |
 
 ---

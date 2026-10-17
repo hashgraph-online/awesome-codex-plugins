@@ -50,7 +50,7 @@ Dispatch one inspector per area (`spacing`, `type-scale`, `color`, `contrast`,
 
 - reads **only its area section** of `references/ui-theme-areas.md`,
 - measures the live editor with the read commands listed there
-  (`node get --props`, `eval get_theme_color`, `game ui tree` rects),
+  (`node get --props`, `eval --lang gdscript get_theme_color`, `game ui tree` rects),
 - writes `findings-<area>.md` using the schema (each item a **`check`
   predicate**, never a status word).
 

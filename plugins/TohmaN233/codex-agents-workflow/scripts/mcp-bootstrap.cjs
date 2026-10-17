@@ -21,6 +21,14 @@ function registeredRoot(registry, namespace) {
   return {...identity,version:entries[0].version,root:path.join(identity.root,entries[0].version)};
 }
 
+function releaseCacheWorkingDirectory(namespace, runtimeDirectory) {
+  const runtime=path.resolve(runtimeDirectory),relative=path.relative(path.resolve(namespace),runtime);
+  if(relative==='' || !path.isAbsolute(relative) && relative!=='..' && !relative.startsWith('..'+path.sep))
+    throw Error('WORKFLOW_MCP_WORKING_DIRECTORY: runtime user-data directory must be outside the replaceable plugin cache');
+  process.chdir(runtime);
+  return process.cwd();
+}
+
 async function boot() {
   const home = process.env.CODEX_HOME || path.join(os.homedir(),'.codex');
   const auditRoot=path.join(home,'codex-agents-workflow');
@@ -31,6 +39,10 @@ async function boot() {
     const namespace=await fs.realpath(process.cwd());
     const identity=installationNamespace(namespace);
     Object.assign(context,{namespace,marketplace:identity.marketplace,pluginId:identity.pluginId});
+    // The CLI replaces the whole cache entry, including this namespace.
+    // Retain its identity, then release its Windows cwd handle before serving
+    // requests. Runtime storage belongs to the existing portable user-data root.
+    context.runtime_cwd=releaseCacheWorkingDirectory(namespace,await fs.realpath(auditRoot));
     // Ask the installation registry on EVERY handshake. Never choose max(cache dirs)
     // or use the revision captured by a long-running host's plugin catalog.
     // The host resolves cwd=".." relative to this installed package. That
@@ -44,8 +56,8 @@ async function boot() {
     // physical entry for argv so server.mjs recognizes itself as the main module.
     const entry=await fs.realpath(path.join(selected.root,'control-plane/server.mjs'));
     await audit({phase:'resolved',...context,version:selected.version,entry});
-    // Keep the configured stable cwd. Holding a disposable plugin version as
-    // cwd prevents the installer from replacing that directory on Windows.
+    // Keep the user-data cwd outside the replaceable cache. No live client is
+    // terminated merely to replace installed package files.
     process.argv[1]=entry;
     await import(pathToFileURL(entry).href);
   } catch(error) {
@@ -53,4 +65,4 @@ async function boot() {
     throw error;
   }
 }
-module.exports={installationNamespace,registeredRoot,boot};
+module.exports={installationNamespace,registeredRoot,releaseCacheWorkingDirectory,boot};

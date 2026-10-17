@@ -101,3 +101,34 @@ export function assignedFanoutWritePaths({workspace,nodeAllowedPaths,assignedIte
   requireValue(effective.length>0,'SUBAGENT_ITEM_WRITE_PATHS','Per-item write scope has no Run/node intersection');
   return effective;
 }
+
+// Validate the complete pinned assignment plan, including accepted retry siblings.
+// Path grants must not depend on which slot happens to be dispatched first.
+// A segment trie avoids quadratic pair comparisons for large capped fan-outs.
+export function assertFanoutWriteScopesDisjoint({workspace,nodeAllowedPaths,assignments,fanout}) {
+  if(fanout?.scheduling!=='parallel'||fanout.max_concurrency===1||assignments.length<2)return;
+  const root={children:new Map()};
+  const conflict=(path,index,other)=>requireValue(false,'SUBAGENT_ITEM_WRITE_OVERLAP',
+    'Concurrent fan-out assignments have overlapping write scopes',
+    {path,assignment_index:index,conflicting_assignment_index:other});
+  for(const [index,assignedItems] of assignments.entries()){
+    const paths=assignedFanoutWritePaths({workspace,nodeAllowedPaths,assignedItems,fanout});
+    for(const path of paths){
+      const key=process.platform==='win32'?path.toLowerCase():path;
+      let cursor=root;const ancestors=[root];
+      for(const segment of key==='.'?[]:key.split('/')){
+        if(cursor.writer!==undefined&&cursor.writer!==index)conflict(path,index,cursor.writer);
+        if(!cursor.children.has(segment))cursor.children.set(segment,{children:new Map()});
+        cursor=cursor.children.get(segment);ancestors.push(cursor);
+      }
+      if(cursor.writer!==undefined&&cursor.writer!==index)conflict(path,index,cursor.writer);
+      if(cursor.descendantOwner!==undefined&&(cursor.descendantOwner!==index||cursor.mixedOwners))
+        conflict(path,index,cursor.descendantOwner!==index?cursor.descendantOwner:cursor.otherOwner);
+      cursor.writer=index;
+      for(const ancestor of ancestors){
+        if(ancestor.descendantOwner===undefined)ancestor.descendantOwner=index;
+        else if(ancestor.descendantOwner!==index){ancestor.mixedOwners=true;ancestor.otherOwner=index;}
+      }
+    }
+  }
+}

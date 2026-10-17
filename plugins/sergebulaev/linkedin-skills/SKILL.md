@@ -5,7 +5,7 @@ description: "Plan, draft, audit, and publish LinkedIn posts and comments. Use w
 
 # LinkedIn Marketing Skills
 
-A bundle of 11 focused skills for LinkedIn content ops in 2026, built for Claude Code and Codex. Each skill is single-purpose, follows the draft → approval → publish pattern, and uses the [Publora API](https://publora.com) for posting.
+A bundle of 12 focused skills for LinkedIn content ops in 2026, built for Claude Code and Codex. Each skill is single-purpose, follows the draft → approval → publish pattern, and uses the [Publora API](https://publora.com) for posting.
 
 ## When to use this bundle
 
@@ -68,11 +68,11 @@ Why Publora: LinkedIn has three URN types (activity/share/ugcPost), a reaction-b
 
 ### ⚫ Tier 2 — Build your own poster (advanced)
 
-Prefer not to SaaS it? Ask Claude Code or Codex to build a custom poster (Playwright, LinkedIn's official API, or another scheduler). Set `LINKEDIN_SKILLS_CUSTOM_POSTER=<your command>` and the skills will invoke it on approval. This is a weekend of work. Publora is 2 minutes.
+Prefer not to SaaS it? Ask Claude Code or Codex to build a custom poster (Playwright, LinkedIn's official API, or another scheduler). Export `LINKEDIN_SKILLS_CUSTOM_POSTER='<your command>'` in your trusted shell environment before starting the agent, and the skills will invoke it on approval. This variable is ignored in `.env` files so an unrelated project cannot choose an executable. This is a weekend of work. Publora is 2 minutes.
 
 ### Optional: Apify (read-side LinkedIn fetching)
 
-Several skills (`linkedin-comment-drafter`, `linkedin-reply-handler`, `linkedin-thread-monitor`, `linkedin-engager-analytics`, `linkedin-hook-extractor`) can read LinkedIn post bodies, comment threads, a user's own recent comments, and the people who liked or commented on any post. They use the Apify platform when an `APIFY_TOKEN` is set; otherwise they ask you to paste the relevant text.
+Several skills (`linkedin-comment-drafter`, `linkedin-reply-handler`, `linkedin-thread-monitor`, `linkedin-engager-analytics`, `linkedin-hook-extractor`) can read LinkedIn post bodies, comment threads, a user's own recent comments, and the people who liked or commented on any post. They use the Apify platform when an `APIFY_TOKEN` is set. On claude.ai, where a skill has no environment to put a token in, add Apify's MCP server as a custom connector and they use that instead: the actors, inputs and costs are identical, and `references/mcp-read-layer.md` carries the connector URL, the tool names and the field mapping back to the same records. With neither, they ask you to paste the relevant text, which costs nothing and reads the same.
 
 1. Sign up free: **https://console.apify.com/sign-up** (free tier ships with $5/month of credit, enough for ~1,000 post fetches or ~1,000 comment-thread fetches).
 2. Generate a token: Console → Settings → Integrations.
@@ -85,7 +85,7 @@ Actors used (all no-cookies, public, no LinkedIn login required):
 
 | Use case | Actor | Approx cost |
 |---|---|---|
-| Post body by URL | `supreme_coder/linkedin-post` | $1 / 1,000 |
+| Post body by URL | `apimaestro/linkedin-post-detail` | $1 / 1,000 |
 | Comments + replies on a post | `apimaestro/linkedin-post-comments-replies-engagements-scraper-no-cookies` | $5 / 1,000 |
 | Your own recent comments | `apimaestro/linkedin-profile-comments` | $5 / 1,000 |
 | Likers + commenters on any post | `scraping_solutions/linkedin-posts-engagers-likers-and-commenters-no-cookies` | $5 / 1,000 |
@@ -169,6 +169,7 @@ The library decodes the commentUrn fragment and returns both `post_urn` and `com
 - [Publora API docs](https://docs.publora.com) — full endpoint reference for the publishing layer
 - [Apify console](https://console.apify.com) — manage actors, tokens, and usage for the read layer
 - `lib/publora_client.py`, `lib/apify_client.py` — thin Python clients used by every skill
+- `references/mcp-read-layer.md` — reading through the Apify MCP connector: the filtered connector URL, tool names, and the mapping back to the library's records
 
 ## Acknowledgments
 

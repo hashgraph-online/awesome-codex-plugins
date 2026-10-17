@@ -109,7 +109,7 @@ Confirm which server you reached before doing anything else:
 "$VSQL_CLIENT" -u root --socket="$VSQL_SOCKET" -e "SELECT VERSION();"
 ```
 
-A VillageSQL server reports a version like `8.4.10-villagesql-0.0.6`. If the
+A VillageSQL server reports a version like `8.4.11-villagesql-0.0.7`. If the
 version has no `villagesql` in it, you have reached a stock MySQL and should
 stop it or pick a different port before continuing.
 
@@ -290,10 +290,9 @@ Three things that reliably bite:
 - **Never write `--datadir=~/...`.** No shell expands `~` after `=`, so
   mysqld receives a literal `~` and aborts. Use `$HOME` or an absolute path.
 - **Running as root needs `--user=root`.** The `Start Server:` command in
-  `credentials.txt` omits the flag (still true of 0.0.6, the current release),
-  so copying it verbatim as root fails with `[ERROR] [MY-010123] [Server]
-  Fatal error: Please read "Security" section of the manual to find out how to
-  run mysqld as root!`
+  `credentials.txt` omits the flag, so copying it verbatim as root fails with
+  `[ERROR] [MY-010123] [Server] Fatal error: Please read "Security" section of
+  the manual to find out how to run mysqld as root!`
 - **`vsql_allow_preview_extensions` defaults to `OFF`.** Some bundled
   extensions (`vsql_rest`, for instance) will not install without it, failing
   with `ERROR 3219 (HY000): Failed to load VEF extension '<name>': extension

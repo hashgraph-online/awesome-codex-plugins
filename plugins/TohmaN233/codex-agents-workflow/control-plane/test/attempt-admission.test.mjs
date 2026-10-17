@@ -3,6 +3,50 @@ import test from 'node:test';
 import { AttemptAdmissionRegistry, attemptAdmissionFor, fenceAllAttemptAdmissions } from '../lib/execution/attempt-admission.mjs';
 import { connectorExecutionQuiescent } from '../connectors/registry.mjs';
 
+const nativeSlot=index=>'native-'+String(index).padStart(40,'0');
+test('native checker slots exclude ordinary owners, duplicate slots and concurrent turns of one item',()=>{
+  const registry=new AttemptAdmissionRegistry();
+  const first=registry.beginNativeCheck('run','node','attempt',nativeSlot(1),0);
+  const second=registry.beginNativeCheck('run','node','attempt',nativeSlot(2),1);
+  assert.equal(registry.pendingAttempt('run','node','attempt').length,2);
+  assert.throws(()=>registry.begin('run','node','attempt','host_tool'),{code:'ATTEMPT_DUPLICATE'});
+  assert.throws(()=>registry.beginNativeCheck('run','node','attempt',nativeSlot(1),0),{code:'ATTEMPT_DUPLICATE'});
+  assert.throws(()=>registry.beginNativeCheck('run','node','attempt',nativeSlot(3),0),{code:'ATTEMPT_DUPLICATE'});
+  first.settle();second.settle();
+  const ordinary=registry.begin('run','node','attempt','host_tool');
+  assert.throws(()=>registry.beginNativeCheck('run','node','attempt',nativeSlot(1),0),{code:'ATTEMPT_DUPLICATE'});
+  ordinary.settle();
+  for(const [slot,item]of [['arbitrary-slot',0],[nativeSlot(1),null],[nativeSlot(1),-1]])
+    assert.throws(()=>registry.beginNativeCheck('run','node','attempt',slot,item),{code:'NATIVE_CHECK_ADMISSION'});
+});
+
+for(const fence of ['attempt','run','all'])test('native checker '+fence+' fence aborts and drains every exact slot',async()=>{
+  const registry=new AttemptAdmissionRegistry(),owners=[0,1].map(index=>registry.beginNativeCheck('run','node','attempt',nativeSlot(index),index));
+  const other=registry.begin('other','node','attempt','connector');
+  if(fence==='attempt')registry.fenceAttempt('run','node','attempt');
+  else if(fence==='run')registry.fenceRun('run');else registry.fenceAll();
+  for(const owner of owners){assert.equal(owner.controller.signal.aborted,true);assert.throws(()=>owner.assertActive(),{code:'ATTEMPT_STOPPED'});}
+  assert.equal(other.controller.signal.aborted,fence==='all');
+  assert.throws(()=>registry.beginNativeCheck('run','node','attempt',nativeSlot(2),2),{code:'ATTEMPT_STOPPED'});
+  let drained=false;const wait=registry.waitAttempt('run','node','attempt').then(()=>{drained=true;});
+  owners[0].settle();await Promise.resolve();assert.equal(drained,false);assert.equal(registry.pendingAttempt('run','node','attempt').length,1);
+  owners[1].settle();await wait;other.settle();assert.equal(drained,true);
+});
+
+test('native checker uncertain cleanup remains owned while other slots drain and retries only its owner',async()=>{
+  const registry=new AttemptAdmissionRegistry(),first=registry.beginNativeCheck('run','node','attempt',nativeSlot(1),0),second=registry.beginNativeCheck('run','node','attempt',nativeSlot(2),1);
+  let confirmed=false,cleanups=0;const failure=new Error('exact native cleanup unconfirmed');
+  first.registerCleanup(async()=>{cleanups++;if(!confirmed)throw failure;});
+  second.registerCleanup(async()=>assert.fail('Confirmed sibling must not be cleaned again'));
+  registry.fenceAttempt('run','node','attempt');first.settle({error:failure});second.settle();
+  assert.deepEqual(registry.pendingAttempt('run','node','attempt'),[first]);
+  await assert.rejects(registry.waitAttempt('run','node','attempt'),error=>error.code==='ATTEMPT_STOP_INCOMPLETE'&&error.errors[0]===failure);
+  await assert.rejects(registry.retryCleanup('run','host_tool','node','attempt'),{code:'ATTEMPT_STOP_INCOMPLETE'});
+  assert.deepEqual(registry.pendingAttempt('run','node','attempt'),[first]);
+  confirmed=true;await registry.retryCleanup('run','host_tool','node','attempt');
+  assert.equal(cleanups,2);assert.deepEqual(registry.pendingAttempt('run','node','attempt'),[]);
+});
+
 test('a retained exact cleanup owner can retire only after later confirmed cleanup', async () => {
   const registry = new AttemptAdmissionRegistry();
   const attempt = registry.begin('run', 'node', 'attempt', 'connector');

@@ -36,6 +36,8 @@ Learn more at [vibeprospecting.ai](https://www.vibeprospecting.ai).
 
 > Listed in the official **Anthropic plugin store** (`claude-plugins-official`) - available for Claude Code users via `/plugin install vibe-prospecting@claude-plugins-official`.
 
+**Grok Build:** integration instructions are available in the [Grok Build guide](docs/install-grok-build.md). The [xAI marketplace submission](https://github.com/xai-org/plugin-marketplace/pull/609) is pending review; the plugin is not yet listed there.
+
 [Getting started](#getting-started) · [Core capabilities](#core-capabilities) · [Use cases and example workflows](#use-cases-and-example-workflows) · [Supported platforms](#supported-platforms) · [vibeprospecting.ai ↗](https://vibeprospecting.ai)
 
 ---
@@ -68,6 +70,7 @@ Pick the guide for your host:
 | Claude Chat (claude.ai / Claude desktop)                    | [`docs/install-claude-chat.md`](docs/install-claude-chat.md) |
 | [OpenAI Codex](https://developers.openai.com/codex/plugins) | [`docs/install-codex.md`](docs/install-codex.md)           |
 | OpenClaw                                                    | [`docs/install-openclaw.md`](docs/install-openclaw.md)     |
+| Grok Build (marketplace submission pending)                  | [`docs/install-grok-build.md`](docs/install-grok-build.md) |
 | Other (terminal, scripts, CI, generic hosts)                | [`docs/install-other.md`](docs/install-other.md)           |
 
 

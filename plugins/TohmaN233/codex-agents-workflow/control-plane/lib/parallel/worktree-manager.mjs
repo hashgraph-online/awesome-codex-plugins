@@ -67,8 +67,7 @@ export class ParallelWorktreeManager {
     return [...new Set([...executions, ...integrations])];
   }
   async ensureNode(runtime, runId, args) {
-    await runtime.execution(runId, args);
-    const { pins } = await runtime.runs.read(runId);
+    const {record:{pins}}=await runtime.authorizedExecution(runId,args,()=>args);
     if (!pins.parallel) return;
     await this.git.initialize();
     for (const { region } of nodeBranchChain(pins.parallel, args.node_id)) await this.withDiagnostic(runtime, runId, { ...args, region_id: region.id }, 'provision', () => this.ensureRegion(runtime, runId, args, region.id));

@@ -5,6 +5,7 @@
 [![CI](https://github.com/avivsinai/bitbucket-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/avivsinai/bitbucket-cli/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/avivsinai/bitbucket-cli/graph/badge.svg)](https://codecov.io/gh/avivsinai/bitbucket-cli)
 [![Release](https://img.shields.io/github/v/release/avivsinai/bitbucket-cli?cache=none)](https://github.com/avivsinai/bitbucket-cli/releases)
+[![Homebrew](https://img.shields.io/homebrew/v/bitbucket-cli)](https://formulae.brew.sh/formula/bitbucket-cli)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/avivsinai/bitbucket-cli/badge)](https://scorecard.dev/viewer/?uri=github.com/avivsinai/bitbucket-cli)
 [![Go Reference](https://pkg.go.dev/badge/github.com/avivsinai/bitbucket-cli.svg)](https://pkg.go.dev/github.com/avivsinai/bitbucket-cli)
 [![License](https://img.shields.io/github/license/avivsinai/bitbucket-cli?cache=none)](LICENSE)
@@ -18,7 +19,7 @@ This project (`github.com/avivsinai/bitbucket-cli`, binary `bkt`) is unrelated t
 </p>
 
 ```bash
-brew install avivsinai/tap/bitbucket-cli
+brew install bitbucket-cli
 bkt --help
 ```
 
@@ -30,9 +31,19 @@ Recorded from a real `bkt --help` run — no Bitbucket login or token required. 
 
 ### Homebrew (macOS/Linux)
 
+`bkt` is in [Homebrew core](https://formulae.brew.sh/formula/bitbucket-cli):
+
+```bash
+brew install bitbucket-cli
+```
+
+The core formula is built from source without bkt's OAuth client, so Bitbucket Cloud browser login (`bkt auth login --kind cloud --web`) needs `BKT_OAUTH_CLIENT_ID` and `BKT_OAUTH_CLIENT_SECRET` (see [Binary Downloads](#binary-downloads)). API-token login (`--web-token`) and Data Center login work as is. For the official binary with Cloud OAuth built in, use the tap:
+
 ```bash
 brew install avivsinai/tap/bitbucket-cli
 ```
+
+Both install the same `bkt` command, so install only one of them.
 
 ### WinGet (Windows)
 
@@ -111,6 +122,7 @@ All `bkt` behaviour can be configured via environment variables, which is especi
 | `BKT_CONFIG_DIR` | Override the config file directory (default: `$XDG_CONFIG_HOME/bkt`). |
 | `BKT_HTTP_DEBUG` | Set to `1` to log HTTP request URLs and response status codes. |
 | `BKT_ALLOW_INSECURE_STORE` | Set to `1` to use encrypted file fallback when no OS keychain is available. |
+| `BKT_KEYRING_COLLECTION` | Secret Service collection name override (Linux only). Defaults to the `bkt` collection; set it to your provider's default collection name to reuse an already-unlocked wallet. |
 
 **Minimal headless example (Data Center):**
 
@@ -279,9 +291,21 @@ without a native keychain.
 If your keyring requires an interactive unlock prompt, you can increase the keyring timeout via
 `BKT_KEYRING_TIMEOUT` (for example `BKT_KEYRING_TIMEOUT=2m`).
 
+On Linux, if your keyring prompts for a passphrase on *every* invocation, check whether your
+Secret Service provider creates a separate wallet per collection. `bkt` stores credentials in a
+collection named `bkt` by default, and some providers (for example KWallet) materialize that as
+its own encrypted wallet rather than using the session's default, already-unlocked one. Setting
+`BKT_KEYRING_COLLECTION` to your provider's default collection name (for example
+`BKT_KEYRING_COLLECTION=kdewallet` on KDE) makes `bkt` share that default wallet instead.
+Distributors can bake the name in via `-ldflags -X
+github.com/avivsinai/bitbucket-cli/internal/secret.defaultKeyringCollection=<collection>` so it does not depend on an
+environment variable reaching every shell and GUI-launched process; `BKT_KEYRING_COLLECTION`
+still takes precedence when set. Note that credentials stored before the change remain in the
+old collection and must be re-added.
+
 ##### macOS note: Keychain prompts after `brew upgrade`
 
-On macOS, every `brew upgrade bkt` may trigger one Keychain prompt because the
+On macOS, every `brew upgrade bitbucket-cli` may trigger one Keychain prompt because the
 stored item's ACL is tied to the installed binary. Re-run `bkt auth login` once
 after the upgrade to refresh the ACL, then subsequent invocations should not
 prompt. Releases pin the Designated Requirement to the bundle identifier, so
@@ -318,6 +342,7 @@ bkt repo create data-pipeline --description "Data ingestion" --project DATA
 bkt repo create frontend-app --workspace myteam --cloud-project WEB
 bkt repo browse --project DATA --repo platform-api
 bkt repo clone platform-api --project DATA --ssh
+bkt repo downloads upload before.png after.png    # Cloud: host images for PR descriptions, prints URLs
 ```
 
 `repo list`/`repo view` automatically target the right REST API for your active context: Data Center uses `/rest/api/1.0/projects/{projectKey}/repos`, while Cloud uses `/2.0/repositories/{workspace}`.
@@ -333,7 +358,8 @@ bkt pr checks 42                              # Show build/CI status
 bkt pr checks 42 --wait                       # Wait for builds to complete
 bkt pr checks 42 --wait --timeout 5m          # Wait with timeout
 bkt pr checks 42 --wait --max-interval 1m     # Custom backoff cap
-bkt pr comments 42 --details                  # Review PR comments and thread IDs
+bkt pr comments 42 --details                  # Review PR comments, inline file/line anchors, and thread IDs
+bkt pr comments view 42 1001                  # Show one thread: anchor, diff context (DC), replies
 bkt pr comments resolve 42 1001               # Resolve a top-level comment thread
 bkt pr comments reopen 42 1001                # Reopen a resolved comment thread
 bkt pr comments delete 42 1001                # Delete a PR comment

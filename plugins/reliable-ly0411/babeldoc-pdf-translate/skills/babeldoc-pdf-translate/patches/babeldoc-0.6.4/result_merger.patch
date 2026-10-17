@@ -1,0 +1,29 @@
+--- a/babeldoc/format/pdf/result_merger.py
++++ b/babeldoc/format/pdf/result_merger.py
+@@ -4,6 +4,7 @@
+ from pymupdf import Document
+ 
+ from babeldoc.format.pdf.document_il.backend.pdf_creater import PDFCreater
++from babeldoc.format.pdf.translation_config import WatermarkOutputMode
+ from babeldoc.format.pdf.translation_config import TranslateResult
+ from babeldoc.format.pdf.translation_config import TranslationConfig
+ 
+@@ -37,6 +38,9 @@
+         dual_file_name_no_watermark = (
+             f"{basename}{debug_suffix}.{self.config.lang_out}.dual.pdf"
+         )
++        if self.config.watermark_output_mode == WatermarkOutputMode.NoWatermark:
++            mono_file_name = mono_file_name_no_watermark
++            dual_file_name = dual_file_name_no_watermark
+         results = {k: v for k, v in results.items() if v is not None}
+         # Sort results by part index
+         sorted_results = dict(sorted(results.items()))
+@@ -120,7 +124,7 @@
+                             for r in sorted_results.values()
+                             if r.no_watermark_dual_pdf_path
+                         ],
+-                        "merged_no_watermark_dual.pdf",
++                        dual_file_name_no_watermark,
+                         tag="merged_no_watermark_dual",
+                     )
+             except Exception as e:

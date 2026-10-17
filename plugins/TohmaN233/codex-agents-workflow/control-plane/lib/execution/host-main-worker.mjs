@@ -5,6 +5,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { digest } from '../workflow-revisions.mjs';
 import { readEvents, replayEvents } from '../workflow-events.mjs';
+import { WorkflowRunStore } from '../workflow-run-store.mjs';
 
 const workerFile = fileURLToPath(import.meta.url);
 const handshakeMs = 15_000;
@@ -76,6 +77,8 @@ function workerStatePath(configPath, runId) {
 }
 
 export async function writeHostMainWorker(configPath, runId, phase, extra = {}) {
+  const runs=new WorkflowRunStore(join(dirname(resolve(configPath)), 'workflow-runs'));
+  return runs.withRunWriter(runId,async()=>{
   const target = workerStatePath(configPath, runId), temporary = `${target}.${process.pid}.tmp`;
   await writeFile(temporary, JSON.stringify({ run_id: runId, pid: process.pid, phase, at: new Date().toISOString(), ...extra }));
   try {
@@ -92,6 +95,7 @@ export async function writeHostMainWorker(configPath, runId, phase, extra = {}) 
   } finally {
     try { await unlink(temporary); } catch (error) { if (error.code !== 'ENOENT') throw error; }
   }
+  });
 }
 
 export async function readHostMainWorker(configPath, runId) {
@@ -156,7 +160,8 @@ export function buildHostMainWorkerTerminal(outcome, authorityStop) {
 
 export async function launchDetachedHostMain({ configPath, defaultConfigPath, runId, controlToken, owner, env = process.env }) {
   const runDirectory = join(dirname(resolve(configPath)), 'workflow-runs', `run-${runId}.run`);
-  const log = await open(join(runDirectory, 'host-main-worker.log'), 'a');
+  const runs=new WorkflowRunStore(join(dirname(resolve(configPath)), 'workflow-runs'));
+  const log = await runs.withRunWriter(runId,()=>open(join(runDirectory, 'host-main-worker.log'), 'a'));
   let child;
   try {
     child = spawn(process.execPath, [workerFile, resolve(configPath), resolve(defaultConfigPath), runId], {

@@ -1,8 +1,38 @@
 # Session Orchestrator
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-5.9.0-blue.svg)](CHANGELOG.md)
+Plan, run and verify multi-agent coding sessions with quality gates and resumable handovers: a Claude Code plugin, with workflows for Codex CLI, Cursor IDE and Pi.
+
 [![npm](https://img.shields.io/npm/v/session-orchestrator.svg)](https://www.npmjs.com/package/session-orchestrator)
+[![Release](https://img.shields.io/github/v/release/Kanevry/session-orchestrator)](https://github.com/Kanevry/session-orchestrator/releases/latest)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-5.12.0-blue.svg)](CHANGELOG.md)
+
+## Install in Claude Code
+
+You need Node.js 24 or later and a git repository. In Claude Code, two lines:
+
+```text
+/plugin marketplace add Kanevry/session-orchestrator
+/plugin install session-orchestrator@kanevry
+```
+
+Then [check the Node dependencies once](docs/install.md#claude-code-check-the-node-dependencies) (current Claude Code installs them for you). Codex CLI, Cursor IDE and Pi install differently: see [Install](#install).
+
+## 30-second example
+
+In your project, run `/bootstrap` once and check the Session Config it writes. Then:
+
+```text
+/session feature    # read the repo, propose a scope, wait for your correction
+/go                 # run the agreed work, with tests and typecheck after each implementation wave
+/close              # check the plan against what happened, commit, file the rest as issues
+```
+
+The example takes seconds to read; setup and the coding itself depend on your project.
+
+[Codex setup](docs/codex-setup.md) · [Cursor setup](docs/cursor-setup.md) · [Pi setup](docs/pi-setup.md) · [User guide](docs/USER-GUIDE.md) · [Website](https://session-orchestrator.com)
+
+## What it does
 
 **Give your agents a working rhythm.**
 
@@ -34,9 +64,18 @@ Longer explanation, with examples and screenshots: **[session-orchestrator.com](
 
 You need **Node.js 24 or later**, a git repository, and one of the four agents below. Full requirements, upgrade path and uninstall: [docs/install.md](docs/install.md).
 
+In Claude Code, two lines:
+
+```text
+/plugin marketplace add Kanevry/session-orchestrator
+/plugin install session-orchestrator@kanevry
+```
+
+Optional, Claude Code only: `/plugin install so-hud@kanevry` adds a status line for the running session ([mods/so-hud](mods/so-hud/README.md)).
+
 | Platform | Install |
 |---|---|
-| **Claude Code** | `/plugin marketplace add Kanevry/session-orchestrator` then `/plugin install session-orchestrator@kanevry`, then [install its Node dependencies once](docs/install.md#claude-code-install-the-node-dependencies-once). |
+| **Claude Code** | `/plugin marketplace add Kanevry/session-orchestrator` then `/plugin install session-orchestrator@kanevry`, then [check its Node dependencies once](docs/install.md#claude-code-check-the-node-dependencies) (current Claude Code installs them for you). |
 | **Codex CLI** | `git clone` the repo, `npm install`, then `node scripts/codex-install.mjs` ([guide](docs/codex-setup.md)). |
 | **Cursor IDE** | `git clone` the repo, `npm install`, then `node scripts/cursor-install.mjs /path/to/your/project` ([guide](docs/cursor-setup.md)). |
 | **Pi** | `pi install npm:session-orchestrator` ([guide](docs/pi-setup.md)). |
@@ -45,9 +84,9 @@ After a clone-based install (Codex CLI, Cursor IDE, or contributing), run `npx h
 
 ## Quick Start
 
-**1. Run `/bootstrap` once in your project.** It creates the minimum structure and writes `.orchestrator/bootstrap.lock`. `/session` refuses to start until that file exists.
+**1. Run `/bootstrap` once in your project.** It creates the minimum structure, writes `.orchestrator/bootstrap.lock` and adds a Session Config. `/session` refuses to start until the lock exists. For the shortest path, `/bootstrap --fast --no-interview` skips the tier question and the personal-preferences interview; run that interview later with `/bootstrap --owner-reset`.
 
-**2. Add a Session Config** to your project's instruction file — `CLAUDE.md` on Claude Code and Cursor, `AGENTS.md` on Codex CLI and Pi ([which file each platform reads](skills/_shared/instruction-file-resolution.md)). These seven fields are enough:
+**2. Check the Session Config** that `/bootstrap` wrote into your project's instruction file — `CLAUDE.md` on Claude Code and Cursor, `AGENTS.md` on Codex CLI and Pi ([which file each platform reads](skills/_shared/instruction-file-resolution.md)). Add it by hand only if the block is missing. These seven fields are enough:
 
 ```yaml
 ## Session Config
@@ -139,16 +178,18 @@ How this compares to other orchestrators, with measured results kept separate fr
 
 All four platforms share the same skills, commands and scripts; only the hooks differ, because each harness fires different events. Codex leaves its `PreToolUse` handlers empty because these guards do not yet match its tool names and edit payloads ([why](docs/codex-setup.md#why-our-pretooluse-guards-stay-unwired--the-reason-corrected)). Cursor and Pi have known event-coverage limits — see [`docs/cursor-setup.md`](docs/cursor-setup.md) and [`docs/pi-setup.md`](docs/pi-setup.md).
 
-## Recent highlights (v5.9.0)
+## Recent highlights (v5.12.0)
 
-Highlights of the v5.9.0 line:
+Highlights of the v5.12.0 line:
 
-- **Gate counts per wave.** Quality-gate events now carry an optional `wave_number`, and the wave loop and `/close` read `suite_passed`/`suite_failed` from the gate event of exactly that wave, skipping unreadable ledger lines instead of silently returning nothing (#966).
-- **The CI banner says why a check is not green.** GitHub check runs that are in progress, queued, cancelled, `skipped`, `neutral` or waiting get their own reason, with counts per kind, instead of `check-runs-not-complete` (#856, #1526).
-- **Impossible timestamps are rejected.** The session-record validator refuses millisecond-precise timestamps that are not a real calendar date (#1526).
-- **A page for the lead session.** `site/lead/` introduces the sibling project lead-session-orchestrator, linked from the main, German and guide pages.
+- **A status line inside Claude Code.** The new `so-hud` mod shows the session state and a warning band when something needs attention, and how many peer sessions are running; install it with `/plugin install so-hud@kanevry` (#1508).
+- **Mode recommendations reach the next session.** The STATE.md idle reset at session start is code now and keeps the previous session's recommendation for the mode selector (#1560).
+- **A first `/session` asks before it starts.** Without any session history of its own, a bare `/session` asks for the task and the mode instead of starting `deep` (#1561).
+- **Solo use stays quiet.** Without fleet integration there is no fleet line and no check-in file, and a repo that is not set up yet is pointed to `/bootstrap` first (#1559).
+- **Vault files are no longer left behind unnoticed.** `/close` names untracked vault files modified since the session started, and new learning-note slugs keep umlauts (#1563, #1548).
+- **One repo, one identity.** A repo reached through a symlink counts as the same repo for peer discovery and the live-status board (#1557).
 
-Full changes and verification: [CHANGELOG.md](CHANGELOG.md).
+Full changes and upgrade notes: [CHANGELOG.md](CHANGELOG.md).
 
 ## Documentation
 

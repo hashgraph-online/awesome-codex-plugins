@@ -1,3 +1,7 @@
+import { automaticAuthoringCompletion } from './skill-import/completion-policy.mjs';
+import {nativeSpawnBatchBinding} from './execution/native-spawn-batch.mjs';
+import { observeForegroundPhase } from './foreground-operation-observation.mjs';
+import { certificateForPublishedWorkflow, requireCurrentConversionCertificate } from './skill-import/conversion-certificate.mjs';
 import {retainOwnedAuthority,replaceOwnedAuthority,readOwnedAuthority,readOwnedAuthorityForThread} from './execution/owned-workflow-authority.mjs';
 import {discoverRuntimeEnvironment, verifyRuntimeEnvironment, registryPathForConfig, readHostRuntimeRegistry, updateRuntimeCandidate} from './runtime-environment.mjs';
 import {workspaceRuntimeDirectories} from './runtime-environment-state.mjs';
@@ -5,20 +9,26 @@ import { evaluateReview } from './skill-import/review-checklist.mjs';
 import { cleanupCaches } from './cache-cleanup.mjs';
 import { homedir } from 'node:os';
 import { randomUUID } from 'node:crypto';
+import { AsyncLocalStorage } from 'node:async_hooks';
+import { isProxy } from 'node:util/types';
 import { prepareTaskInputs, generateTaskBrief } from './task-inputs.mjs';
 import { localCodexCatalog } from './execution/local-codex-catalog.mjs';
 import { refreshCodexRegistration } from './execution/codex-runtime-registration.mjs';
 import { lstat, readFile, rm } from 'node:fs/promises';
 import { advanceGeneration, acceptGeneration, loginGeneration, recheckGenerationProposal, acceptRecheckedGenerationReview, prepareAuthoringReview } from './skill-import/generation.mjs';
 import { continueGenerationRepair } from './skill-import/generation-repair.mjs';
+import { discoverAuthoringPreview } from './skill-import/generation-preview.mjs';
 import { discoverFolderSkills } from './skill-import/folder-inventory.mjs';
 import { loadRoutingSettings, saveRoutingSettings } from './skill-import/routing-settings.mjs';
 import { dirname, join, resolve, isAbsolute, relative } from 'node:path';
 import { loadConfig, isEnvironmentDisabled, appendAuditEvent } from './config.mjs';
 import { WorkflowStore } from './workflow-store.mjs';
 import { WorkflowRuntime, resolvedSubagentPlan, nativeRejectedTurnHistory } from './workflow-runtime.mjs';
+import { WorkflowRunStore,withRunStoreObservation } from './workflow-run-store.mjs';
+import {committedTerminalOutput} from './execution/terminal-output.mjs';
+import { writeDurableJSON } from './workflow-events.mjs';
 import { assignedFanoutIndices, activeFanoutAssignmentIndices } from './execution/fanout-input-projection.mjs';
-import { materializedNativeAgentHandoff, nativeAgentReceipt, nativeAgentCompletion, nativeAgentResultSchema } from './execution/native-agent-bridge.mjs';
+import { nativeAgentHandoff, materializedNativeAgentHandoff, nativeAgentReceipt, nativeAgentCompletion, preflightNativeHostCompletion, nativeAgentResultSchema } from './execution/native-agent-bridge.mjs';
 import { WorkflowExecutor } from './workflow-executor.mjs';
 import { validateWorkflowGraph } from './workflow-validator.mjs';
 import { migrateV6OnDisk, restoreV6Backup } from './workflow-migration-v6.mjs';
@@ -30,6 +40,7 @@ import { buildProviderAdapter } from './providers.mjs';
 import { strictManagerFor } from './execution/strict-session-manager.mjs';
 import { managedNativeManagerFor } from './execution/managed-native-manager.mjs';
 import { hostMainManagerFor } from './execution/host-main-manager.mjs';
+import { runHistoryMaintenanceFor } from './run-history-maintenance.mjs';
 import { launchDetachedHostMain, readHostMainWorker, waitForDetachedHostMainStop } from './execution/host-main-worker.mjs';
 import { waitForWorkflow, WORKFLOW_WAIT_MS } from './workflow-wait.mjs';
 import { attemptAdmissionFor, executionAdmissionOpen, assertExecutionAttemptAdmission } from './execution/attempt-admission.mjs';
@@ -48,14 +59,19 @@ import { codexQualification, qualifiedStrictSettings } from './execution/strict-
 import { adoptRunTree, conversationControlRecoveryRequest, controllerAttempt, reattachAttempt } from './workflow-recovery.mjs';
 import { childIdentity } from './workflow-subworkflow.mjs';
 import { nodePermissions, runPermissions, leaseToken } from './workflow-execution-envelope.mjs';
-import { intersectBoundaries } from './workflow-bindings.mjs';
+import { effectiveRunInputs } from './workflow-run-inputs.mjs';
+import { intersectBoundaries, resolveBindings } from './workflow-bindings.mjs';
 import { effectiveSkillPolicy } from './workflow-reference-schema.mjs';
 import { nodeWorkspace } from './parallel/workspace.mjs';
 import { skillSourceStatus } from './skill-import/source-status.mjs';
 import { HostToolRunner, hostToolBindingIssues, requireHostToolBindings } from './execution/host-tool-runner.mjs';
 import { authoringHostToolRegistry } from './execution/authoring-host-tools.mjs';
 import { workflowResourceProgramRegistry } from './execution/workflow-resource-program.mjs';
-import { inspectNativeAgents, inspectNativeParent, nativeParentThreadId, withNativeAgentObserver } from './execution/native-agent-observer.mjs';
+import { inspectNativeAgents, inspectNativeParent, nativeParentThreadId, withNativeAgentObserver, withNativeAgentObserverDrive } from './execution/native-agent-observer.mjs';
+import { resolveMainModelSelection } from './execution/main-model-selection.mjs';
+import {workerHostCheckEffectPaths,nativeItemHasSemanticResult,nativeTextRepairSnapshot,readNativeTextRepair} from './execution/worker-host-check.mjs';
+import {applyTextAmendment,textAmendmentSchema,textAmendmentInstruction} from './execution/native-text-amendment.mjs';
+import {prepareNativeSpan,materializeWithNativeSpan,reuseNativeSpanPublication,settleNativeSpan,releaseNativeSpanOwner} from './execution/native-dispatch-span.mjs';
 import { WorkflowDrive } from './workflow-drive.mjs';
 import { WorkflowAuthoringCompiler, compileWorkflowBrief } from './skill-import/workflow-authoring.mjs';
 import { exportWorkflowPackage, installWorkflowPackage, validateWorkflowPackage } from './workflow-package.mjs';
@@ -70,6 +86,132 @@ import { migrateStoredWorkflowProviderIds } from './workflow-provider-identity.m
 import { migrateStoredWorkflowHostToolIdentities } from './workflow-host-tool-identity.mjs';
 
 const WORKFLOW_INPUT_FILE_LIMIT=1024*1024;
+
+// The Host owns this lifetime, not a Run, model argument or global service cache.
+// Detached async work inherits an inactive context after the request settles.
+const executionRequests=new AsyncLocalStorage();
+export async function withWorkflowExecutionRequest(action){
+  if(executionRequests.getStore()?.active)return action();
+  const request={active:true,services:new Map()};
+  try{return await executionRequests.run(request,action);}
+  finally{request.active=false;request.services.clear();}
+}
+const REQUEST_OPEN_OPERATIONS=new Set(['read','run_main','wait','get',
+  'start','native_next','native_spawned_batch','native_followed_up','orchestration_complete']);
+
+function runtimeInitializationSnapshot(value,references){
+  // Runtime capability metadata is JavaScript state, not Workflow JSON. Encode
+  // every supported type explicitly; retain callable/opaque/prototype identity
+  // separately and inspect own enumerable state for in-place changes/cycles.
+  const seen=new Map();let entries=0,characters=0,complete=true,reason=null;
+  const identity=value=>{references.push(value);return references.length-1;};
+  const visit=(item,depth)=>{
+    // Exhausting this optimization's comparison budget cannot reject state
+    // accepted by the original opening. It makes the whole basis non-reusable.
+    if(!complete)return null;
+    if(++entries>100000||depth>128){complete=false;reason='budget';return null;}
+    if(item===null)return ['null'];
+    const type=typeof item;
+    if(type==='undefined')return ['undefined'];
+    if(type==='string'){
+      if((characters+=item.length)>8*1024*1024){complete=false;reason='budget';return null;}
+      return [type,item];
+    }
+    if(type==='boolean')return [type,item];
+    if(type==='number')return [type,Object.is(item,-0)?'-0':Number.isFinite(item)?item:String(item)];
+    if(type==='bigint')return [type,identity(item)];
+    if(type==='symbol')return [type,identity(item)];
+    if(isProxy(item)){complete=false;reason='accessor';identity(item);return null;}
+    if(seen.has(item))return ['reference',seen.get(item)];
+    const index=seen.size;seen.set(item,index);
+    const prototype=Object.getPrototypeOf(item),array=Array.isArray(item);
+    const opaque=type==='function'||(!array&&prototype!==Object.prototype&&prototype!==null);
+    const ownKeys=Reflect.ownKeys(item).filter(key=>Object.getOwnPropertyDescriptor(item,key).enumerable);
+    if(ownKeys.length>100000-entries){complete=false;reason='budget';return null;}
+    const keys=[...ownKeys.filter(key=>typeof key==='string').sort(),...ownKeys.filter(key=>typeof key==='symbol')];
+    const properties=[];
+    for(const key of keys){
+      if(!complete)break;
+      if(typeof key==='string'&&(characters+=key.length)>8*1024*1024){complete=false;reason='budget';break;}
+      const descriptor=Object.getOwnPropertyDescriptor(item,key);
+      if(!Object.hasOwn(descriptor,'value')){
+        complete=false;reason='accessor';identity(descriptor.get);identity(descriptor.set);break;
+      }
+      properties.push([typeof key==='symbol'?['symbol',identity(key)]:['string',key],visit(descriptor.value,depth+1)]);
+    }
+    return [type,index,identity(prototype),opaque?identity(item):null,array?item.length:null,
+      properties];
+  };
+  const snapshot=visit(value,0);return {snapshot,complete,reason};
+}
+function initializationBasis(service,config){
+  const hash=digest(canonicalJSON(config));
+  const ineligible=reason=>({hash,runtimeHash:null,reusable:false,reason,references:[]});
+  // Guard capture-front containers and outer fields before retrieving values.
+  // Post-construction accessors are valid original runtime state; comparison
+  // must not add their callbacks, including on unused registry entries.
+  const dataProperties=(source,keys)=>{
+    const values={};
+    for(const key of keys){
+      let object=source==null?null:Object(source),depth=0,descriptor;
+      while(object){
+        if(isProxy(object))return {reason:'accessor'};
+        if(++depth>128)return {reason:'budget'};
+        descriptor=Object.getOwnPropertyDescriptor(object,key);
+        if(descriptor)break;
+        object=Object.getPrototypeOf(object);
+      }
+      if(descriptor&&!Object.hasOwn(descriptor,'value'))return {reason:'accessor'};
+      values[key]=descriptor?.value;
+    }
+    return {values};
+  };
+  const capturedService=dataProperties(service,['capabilities','env','registry','strictManager','managedNativeManager','hostMainManager','parallelManager']);
+  if(capturedService.reason)return ineligible(capturedService.reason);
+  const owned=capturedService.values;
+  const capturedCapabilities=dataProperties(owned.capabilities,['hostToolRegistry','parallelWriteCapability','strictCapability','hostToolRunner','context','host_tools']);
+  if(capturedCapabilities.reason)return ineligible(capturedCapabilities.reason);
+  const capabilities=capturedCapabilities.values,registry=capabilities.hostToolRegistry??{};
+  if(isProxy(registry))return ineligible('accessor');
+  const names=Object.keys(registry);
+  if(names.length>100000)return ineligible('budget');
+  const tools=[];
+  for(const name of names){
+    const descriptor=Object.getOwnPropertyDescriptor(registry,name);
+    if(!Object.hasOwn(descriptor,'value'))return ineligible('accessor');
+    tools.push([name,descriptor.value]);
+  }
+  const references=[owned.registry,owned.strictManager,owned.managedNativeManager,owned.hostMainManager,owned.parallelManager,
+    capabilities.parallelWriteCapability,capabilities.strictCapability,capabilities.hostToolRunner,...tools.map(([,broker])=>broker)];
+  let reason=null;
+  const brokerMetadata=broker=>{
+    const descriptors={};
+    for(const key of ['identity','attestation','execute','cancel']){
+      let descriptor={value:undefined,enumerable:true},object=broker==null?null:Object(broker),depth=0;
+      while(object){
+        if(isProxy(object)){reason='accessor';break;}
+        if(++depth>128){reason='budget';break;}
+        const found=Object.getOwnPropertyDescriptor(object,key);
+        if(found){descriptor={...found,enumerable:true};break;}
+        object=Object.getPrototypeOf(object);
+      }
+      descriptors[key]=descriptor;
+    }
+    return Object.defineProperties({},descriptors);
+  };
+  // process.env's special prototype is immaterial to original ENV consumers;
+  // copy data descriptors exactly; never invoke accessors for fingerprinting.
+  const environment=isProxy(owned.env)?owned.env:Object.defineProperties({},Object.getOwnPropertyDescriptors(owned.env));
+  const state=runtimeInitializationSnapshot({env:environment,context:capabilities.context,
+    host_tools:capabilities.host_tools,tools:tools.map(([name,broker])=>({name,metadata:brokerMetadata(broker)}))},references);
+  const reusable=state.complete&&!reason;
+  return {hash,runtimeHash:reusable?digest(JSON.stringify(state.snapshot)):null,
+    reusable,reason:reason??state.reason,references};
+}
+function sameInitializationBasis(left,right){
+  return left.reusable&&right.reusable&&left.hash===right.hash&&left.runtimeHash===right.runtimeHash&&left.references.length===right.references.length
+    &&left.references.every((value,index)=>value===right.references[index]);
+}
 
 function hasNestedModelInput(value){
   if(!value||typeof value!=='object'||Array.isArray(value))return false;
@@ -102,10 +244,20 @@ export async function loadWorkflowInputsFile(request,{model=false}={}){
 const REMOTE_PACKAGE_LIMIT=70*1024*1024;
 const BUILTIN_ROLE_PREFIX='builtin-role-';
 const nativeDriveOwners=new Map();
-import { isWorkerMain, hasOrchestrationMain } from './execution/main-execution-mode.mjs';
+import { hasOrchestrationMain } from './execution/main-execution-mode.mjs';
 import { prepareMainOrchestration, completeMainOrchestration } from './execution/main-orchestration.mjs';
+import {startupSemanticContract,startupSemanticNode} from './execution/workflow-startup-semantic.mjs';
+import { WORKFLOW_CALL_DEFAULTS, WORKFLOW_LONG_CALL_TOOLS, workflowCallArguments, workflowInvocationAdapters, workflowAuthoringControllerAdapterDescriptor, workflowControllerAdapterDescriptor } from './execution/workflow-call-adapter.mjs';
+import { workflowMcpTransport } from './workflow-call-policy.mjs';
+import { createPreparedStartup } from './execution/prepared-startup-record.mjs';
 const MODEL_NATIVE_CONTINUATIONS=new Set(['native_next','native_spawned_batch','native_followed_up']);
-function modelNativeContinuationView(value){
+const WORKFLOW_EXECUTION_OPEN=Symbol('Workflow execution without eager Role profiles');
+const WORKFLOW_EXECUTION_OPERATIONS=new Set(['start','native_next','native_spawned_batch','native_followed_up','orchestration_complete']);
+function authoringControllerContinuation(result, authority, operation='drive') {
+  return {...result,next_action:`workflow_${operation}`,invocation_adapter:workflowAuthoringControllerAdapterDescriptor(operation,authority),
+    ...(operation==='resume'?{cancellation_invocation_adapter:workflowAuthoringControllerAdapterDescriptor('cancel',authority)}:{})};
+}
+function modelNativeContinuationView(value,adapters){
   if(!value||typeof value!=='object')return value;
   const result=structuredClone(value);
   delete result.control_token;
@@ -115,6 +267,37 @@ function modelNativeContinuationView(value){
   if(result.next_action_args?.continuation?.next_action==='workflow_native_next')
     result.next_action_args.continuation.next_action_args={};
   if(result.wait&&typeof result.wait==='object')delete result.wait.agent_ids;
+  // The launching Host fixes the protocol family before this projection.
+  // Caller data and tool failures cannot select or substitute a transport.
+  const invocationTool = result.completion_tool ?? result.registration_tool
+    ?? (['continue_recorded_agent','repair_recorded_agent'].includes(result.next_action)
+      ? result.followup_config ? 'workflow_native_followed_up' : 'workflow_native_next'
+      : result.next_action);
+  if(WORKFLOW_LONG_CALL_TOOLS.includes(invocationTool))
+    result.invocation_adapter=invocationTool==='workflow_native_spawned_batch'
+      ?adapters.nativeSpawnBatch(result.batch_id):adapters.call(invocationTool);
+  const continuation=result.next_action_args?.continuation;
+  if(continuation?.next_action==='workflow_native_next')
+    continuation.invocation_adapter=adapters.call('workflow_native_next');
+  if(['native_agent_blocked','native_agent_invalid_result'].includes(result.status)&&result.followup_config){
+    const visible={};
+    for(const key of ['status','next_action','next_action_args','followup_config','invocation_adapter'])
+      if(Object.hasOwn(result,key))visible[key]=result[key];
+    return visible;
+  }
+  if(result.status==='native_handoff'){
+    const spawn_calls=Array.isArray(result.packets)
+      ?result.packets.map(packet=>({tool:'collaboration.spawn_agent',arguments:{...packet.spawn_config,message:packet.prompt}}))
+      :result.spawn_calls;
+    requireValue(Array.isArray(spawn_calls)&&spawn_calls.length>0&&spawn_calls.length<=32&&spawn_calls.every(call=>
+      call.tool==='collaboration.spawn_agent'&&call.arguments&&typeof call.arguments.task_name==='string'
+      &&typeof call.arguments.message==='string'&&call.arguments.message.length>0),
+      'NATIVE_AGENT_HANDOFF','Model-facing native handoff requires exact Host-generated spawn arguments');
+    const visible={spawn_calls};
+    for(const key of ['status','node_id','next_action','next_action_args','registration_tool','batch_id','invocation_adapter',
+      'acknowledged_batch_id','journaled_spawn_count'])if(Object.hasOwn(result,key))visible[key]=result[key];
+    return visible;
+  }
   return result;
 }
 function nativeContinuation(runId, controlToken) {
@@ -126,8 +309,7 @@ function nativeBatchToJournal(runId,controlToken,attemptId,indices){
     registration_tool:'workflow_native_spawned_batch',released_packet_indices:[...indices]};
 }
 async function nativeAttemptBinding(runtime, { run_id, control_token, attempt_id }) {
-  await runtime.authorizeController(run_id, { control_token });
-  const record = await runtime.runs.read(run_id);
+  const record=await runtime.authorizedRun(run_id,{control_token});
   const matches = record.pins.root.workflow.nodes.flatMap(definition => {
     const provider = record.pins.providers.find(item => item.id === definition.executor?.provider_id);
     const node=record.state.nodes[definition.id];
@@ -152,9 +334,10 @@ function activeNativeAssignmentSlots(record,definition,attempt){
   const plan=resolvedSubagentPlan(definition,record.state);
   return plan?activeFanoutAssignmentIndices(plan,definition.fanout,attempt.inherited_native_item_indices):[0];
 }
-async function bundledRoleDefinitions(defaultConfigPath,providers){
-  const defaults=JSON.parse(await readFile(defaultConfigPath,'utf8'));
-  return (defaults.task_types??[]).filter(item=>item.stages?.length===1).map(item=>{
+async function bundledRoleDefinitions(providers){
+  const {roles}=JSON.parse(await readFile(new URL('../builtin-role-definitions.json',import.meta.url),'utf8'));
+  requireValue(Array.isArray(roles)&&roles.every(item=>item.stages?.length===1),'BUILTIN_ROLE_DEFINITIONS','Bundled Roles must each contain exactly one stage');
+  return roles.map(item=>{
     const stage=item.stages[0],provider=providers.find(candidate=>candidate.id===stage.provider_id);
     return {item,stage,provider,id:BUILTIN_ROLE_PREFIX+item.id,revision_hash:digest(canonicalJSON(item))};
   });
@@ -192,8 +375,8 @@ function roleConnectorPermissions(profile,args){
   }
   return permissions;
 }
-async function bundledRoles(defaultConfigPath,providers){
-  return (await bundledRoleDefinitions(defaultConfigPath,providers)).filter(entry=>roleProviderSupports(entry.provider,entry.stage.access));
+async function bundledRoles(providers){
+  return (await bundledRoleDefinitions(providers)).filter(entry=>roleProviderSupports(entry.provider,entry.stage.access));
 }
 function builtinRoleCustomizationId(pack){
   if(pack.provenance?.kind!=='role_customization')return null;
@@ -218,7 +401,8 @@ function storedRoleDescriptor(pack,providers){
     model:roleProviderModel(provider),reasoning_effort:provider?.config?.reasoning_effort??null};
 }
 function directRolePrompt(instructions,args){
-  const prompt=`${instructions}\n\nTASK\n${args.task}\n\nCONTEXT\n${args.context??'(not provided)'}\n\nCONSTRAINTS AND OWNERSHIP\n${args.constraints??'(not provided)'}\n\nVERIFICATION\n${args.verification??'(not provided)'}`;
+  const constraints=args.constraints==null?'(not provided)':typeof args.constraints==='string'?args.constraints:canonicalJSON(args.constraints);
+  const prompt=`${instructions}\n\nTASK\n${args.task}\n\nCONTEXT\n${args.context??'(not provided)'}\n\nCONSTRAINTS AND OWNERSHIP\n${constraints}\n\nVERIFICATION\n${args.verification??'(not provided)'}`;
   requireValue(prompt.length<=200000,'ROLE_TASK','Compiled role instructions are too long');
   return prompt;
 }
@@ -233,9 +417,16 @@ function storedRoleProfile(pack,providers,args,{id=pack.workflow.id,instructions
   return {id,source_workflow_id:pack.workflow.id,revision_hash:pack.revision_hash,template_kind:'role',role:node.role,...policy,
     provider_id:provider?.id??null,...compiledRoleProvider(provider,policy,providerOptions),instructions};
 }
-async function activeRoleProfiles(defaultConfigPath,providers,store){
-  const packs=await store.list(),customizations=builtinRoleCustomizations(packs),profiles=[];
-  for(const entry of await bundledRoles(defaultConfigPath,providers)){
+async function storedRolePacks(store){
+  const packs=[];
+  for(const metadata of await store.listMetadata())if(templateKind(metadata)==='role'||metadata.provenance?.kind==='role_customization')
+    packs.push(await store.snapshot(metadata.workflow.id,metadata.revision_hash));
+  return packs;
+}
+async function activeRoleProfiles(providers,store){
+  const packs=await storedRolePacks(store);
+  const customizations=builtinRoleCustomizations(packs),profiles=[];
+  for(const entry of await bundledRoles(providers)){
     const customization=customizations.get(entry.id);
     if(customization?.workflow.status==='ready'){
       const descriptor=storedRoleDescriptor(customization,providers);
@@ -341,11 +532,6 @@ async function resumeDetachedHostMain(service, runtime, args, state) {
     return { ...state, execution_owner: 'host_main_worker', host_worker: worker,
       next_action: 'workflow_wait', next_action_args: { run_id: args.run_id, control_token: args.control_token, timeout_ms: WORKFLOW_WAIT_MS } };
   }
-  const confirmedAuthorityRevocation = worker.termination?.confirmed === true
-    && worker.termination.reason === 'authority_revoked';
-  requireValue(confirmedAuthorityRevocation && worker.phase === 'stopped',
-  'HOST_MAIN_RESTART_UNSAFE',
-  `Detached Host Main cannot restart from ${worker.phase}: inspect its terminal evidence first`);
   await runtime.authorizeController(args.run_id, { control_token: args.control_token });
   const launched = await (service.capabilities.launchDetachedHostMain ?? launchDetachedHostMain)({
     configPath: service.configPath, defaultConfigPath: service.defaultConfigPath,
@@ -373,7 +559,7 @@ async function purgeManagedAuthoringWorkspace(configPath, runId, actualWorkspace
 function authoringCleanupRecord(record,deployed,controlToken){
   requireDeployableConvertedSnapshot(deployed);
   const provenance=record.pins.root.provenance,runId=record.state.run_id,finalId=record.pins.root.workflow.finalization?.node_id;
-  const node=record.state.nodes[finalId],attempt=node?.attempts.find(item=>item.id===node.active_attempt_id)??node?.attempts.at(-1),acceptance=attempt?.human_acceptance;
+  const node=record.state.nodes[finalId],attempt=node?.attempts.find(item=>item.id===node.active_attempt_id)??node?.attempts.at(-1),acceptance=attempt?.automatic_completion??attempt?.human_acceptance;
   requireValue(record.state.status==='succeeded'&&isAuthoringRunProvenance(provenance)&&attempt?.status==='succeeded','RUN_PURGE_STATE','Cleanup requires one succeeded accepted authoring Run');
   requireValue(acceptance?.review_result_sha256===attempt.result_proposal?.sha256
     &&acceptance.proposal_hash===deployed.provenance?.conversion?.proposal_hash
@@ -385,6 +571,7 @@ function authoringCleanupRecord(record,deployed,controlToken){
   requireValue(record.state.control_hash===digest(controlToken),'RUN_AUTHORITY','Cleanup authority differs from the accepted authoring Run');
   return {identity:{run_id:runId,control_hash:record.state.control_hash,source_workflow_id:provenance.source_workflow_id,source_revision:provenance.source_revision,
     proposal_hash:acceptance.proposal_hash,review_result_sha256:acceptance.review_result_sha256,deployed_revision:deployed.revision_hash,
+    ...(attempt.automatic_completion?{completion_policy:structuredClone(provenance.completion_policy)}:{}),
     authoring_workflow_id:record.pins.root.workflow.id,authoring_revision:record.pins.root.revision_hash},
     targets:{workspace:record.state.permissions.workspace,job_workflow_id:record.pins.root.workflow.id,job_revision:record.pins.root.revision_hash}};
 }
@@ -399,12 +586,24 @@ async function requireNoActiveSiblingAuthoringRun(runtime,identity){
   }
 }
 
-async function continueAcceptedAuthoringCleanup({configPath,store,runtime,context,journal,deployed}){
-  requireDeployableConvertedSnapshot(deployed);const {identity,targets}=journal;
+async function continueAcceptedAuthoringCleanup({configPath,store,runtime,context,journal,deployed,service}){
+  requireDeployableConvertedSnapshot({...deployed,resourceBytes:await store.resources(deployed.workflow.id,deployed.revision_hash)});const {identity,targets}=journal;
   requireValue(deployed.workflow.id===identity.source_workflow_id&&deployed.revision_hash===identity.deployed_revision
     &&deployed.provenance?.conversion?.proposal_hash===identity.proposal_hash,'AUTHORING_CLEANUP_IDENTITY','Deployed Workflow changed after cleanup intent was recorded');
   const jobs=await new WorkflowStore(join(dirname(configPath),'workflow-expansion-jobs'),{validationContext:context}).initialize();
   try{
+    await requireNoActiveSiblingAuthoringRun(runtime,identity);
+    if(!journal.steps.siblings&&(targets.siblings??[]).length){
+      requireValue(service,'AUTHORING_CLEANUP_OWNER','Sibling cleanup requires its Host manager owner');
+      for(const sibling of targets.siblings){
+        await Promise.all([service.strictManager.stopRun(sibling.run_id),service.managedNativeManager.stopRun(sibling.run_id),service.hostMainManager.stopRun(sibling.run_id)]);
+        await runtime.runs.purge(sibling.run_id,{expected_workflow_id:sibling.job_workflow_id,expected_revision:sibling.job_revision,
+          expected_source_workflow_id:identity.source_workflow_id,expected_source_revision:identity.source_revision,allow_missing:true,terminal_authoring:true});
+        await purgeManagedAuthoringWorkspace(configPath,sibling.run_id,sibling.workspace,{allowMissing:true});
+        await jobs.purge(sibling.job_workflow_id,sibling.job_revision,{expected_provenance_kind:'authoring_workflow_run',allow_missing:true});
+      }
+      journal=await store.markAuthoringCleanup(identity.source_workflow_id,identity.run_id,identity,'siblings');
+    }
     if(!journal.steps.library){await store.resumeHistoryPurge(identity.source_workflow_id,identity.deployed_revision,
       {beforePurge:()=>requireNoActiveSiblingAuthoringRun(runtime,identity)});journal=await store.markAuthoringCleanup(identity.source_workflow_id,identity.run_id,identity,'library');}
     if(!journal.steps.workspace){await purgeManagedAuthoringWorkspace(configPath,identity.run_id,targets.workspace,{allowMissing:true});journal=await store.markAuthoringCleanup(identity.source_workflow_id,identity.run_id,identity,'workspace');}
@@ -420,13 +619,26 @@ async function continueAcceptedAuthoringCleanup({configPath,store,runtime,contex
 }
 
 async function beginAcceptedAuthoringCleanup(options){
+  requireDeployableConvertedSnapshot({...options.deployed,resourceBytes:await options.store.resources(options.deployed.workflow.id,options.deployed.revision_hash)});
   const prepared=authoringCleanupRecord(options.record,options.deployed,options.controlToken);
+  prepared.targets.siblings=[];
+  for(const item of await options.runtime.runs.list()){
+    if(item.run_id===prepared.identity.run_id)continue;
+    const sibling=await options.runtime.runs.read(item.run_id),provenance=sibling.pins.root.provenance;
+    if(!isAuthoringRunProvenance(provenance)||provenance.source_workflow_id!==prepared.identity.source_workflow_id||provenance.source_revision!==prepared.identity.source_revision)continue;
+    prepared.targets.siblings.push({run_id:item.run_id,workspace:sibling.state.permissions.workspace,job_workflow_id:sibling.pins.root.workflow.id,job_revision:sibling.pins.root.revision_hash});
+  }
   const journal=await options.store.beginAuthoringCleanup(prepared.identity.source_workflow_id,prepared);
   return continueAcceptedAuthoringCleanup({...options,journal});
 }
 
 export class WorkflowService {
   constructor({ configPath, defaultConfigPath, env = process.env, fetchImpl = globalThis.fetch, registry, capabilities = {} }) {
+    const invocationTransport=workflowMcpTransport(env);
+    Object.defineProperties(this,{
+      invocationTransport:{value:invocationTransport,enumerable:true},
+      invocationAdapters:{value:workflowInvocationAdapters(invocationTransport)},
+    });
     this.configPath = resolve(configPath); this.defaultConfigPath = defaultConfigPath; this.env = env; this.fetchImpl = fetchImpl;
     this.registry = registry ?? connectorRegistryFor({ configPath: this.configPath, env });
     // Built-in host contracts are part of the control plane, not an optional
@@ -436,12 +648,15 @@ export class WorkflowService {
     this.attemptAdmission = capabilities.attemptAdmission ?? attemptAdmissionFor(this.configPath);
     this.strictManager = capabilities.strictManager ?? strictManagerFor({ configPath: this.configPath, getConfig: () => this.config(), env });
     this.managedNativeManager = capabilities.managedNativeManager ?? managedNativeManagerFor({ configPath: this.configPath, getConfig: () => this.config(), env });
-    this.hostMainManager = capabilities.hostMainManager ?? hostMainManagerFor({ configPath: this.configPath, getConfig: () => this.config(), env });
+    this.hostMainManager = capabilities.hostMainManager ?? hostMainManagerFor({ configPath: this.configPath, getConfig: () => this.config(), env,
+      hostToolRunner:capabilities.hostToolRunner??new HostToolRunner({registry:this.capabilities.hostToolRegistry,env}) });
+    this.historyMaintenance = runHistoryMaintenanceFor({ runRoot: join(dirname(this.configPath), 'workflow-runs') });
     this.parallelManager = capabilities.parallelManager ?? parallelManagerFor({ configPath: this.configPath, env });
     const nativeAgentObserverSession=capabilities.nativeAgentObserverSession
       ?? (action=>withNativeAgentObserver(action,{env:this.env}));
     this.nativeAgentObserver = Object.hasOwn(capabilities,'nativeAgentObserver') ? capabilities.nativeAgentObserver
       : (agentIds,options)=>nativeAgentObserverSession(client=>inspectNativeAgents(client,agentIds,{...options,waitForTerminal:true}));
+    this.nativeMainSelection=capabilities.nativeMainSelection??(record=>resolveMainModelSelection(record,{}, {env:this.env,observe:nativeAgentObserverSession}));
     this.nativeParentVerifier=capabilities.nativeParentVerifier??(parent=>withNativeAgentObserver(client=>inspectNativeParent(client,parent),{env:this.env}));
     this.nativeParentAgentPaths=new Map();
     this.folderInventory = new SkillInventory(folder => discoverFolderSkills(folder, {env}));
@@ -457,35 +672,38 @@ export class WorkflowService {
   }
   async persistModelSpawnWindow(runtime,args,record,binding,packet){
     const parentPath=await this.nativeParentAgentPath(record);
+    const spawns=[];
     for(const item of packet.packets){
       const taskName=item.spawn_config?.task_name;
       requireValue(typeof taskName==='string'&&/^[a-z0-9_]{1,64}$/.test(taskName),
         'NATIVE_AGENT_SPAWN_INTENT','Native packet needs a Host-generated task name');
-      await runtime.recordExecutorEvent(args.run_id,{...binding,control_token:args.control_token,
+      await runtime.recordNativeExecutorEvent(args.run_id,{...binding,control_token:args.control_token,
         event:{kind:'native_agent_spawn_intent',metadata:{index:item.index,task_name:taskName,
           agent_id:`${parentPath}/${taskName}`}}});
+      spawns.push({index:item.index,task_name:taskName,agent_id:`${parentPath}/${taskName}`});
     }
+    packet.batch_id=await runtime.publishNativeSpawnBatch(args.run_id,{...binding,control_token:args.control_token,
+      spawns:spawns.sort((a,b)=>a.index-b.index)});
     return packet;
   }
   async config() { return loadConfig({ configPath: this.configPath, defaultConfigPath: this.defaultConfigPath }); }
   async prepareCodexRegistration(closure) {
     const config = await this.config();
-    if (!config.strict_executor.enabled) return;
-    const main = closure.packs.some(pack => pack.workflow.nodes.some(isWorkerMain));
-    const native = closure.provider_ids.some(id => config.providers.some(provider => provider.id === id && provider.kind === 'native_agent'));
-    // Explicitly supplied executor managers own their own registration. The
-    // built-in path refreshes only a selected enabled local Codex installation.
-    if (!(main && !this.capabilities.hostMainManager && !this.capabilities.strictManager)
-      && !(native && !this.capabilities.managedNativeManager && !this.capabilities.strictManager)) return;
+    const strict = closure.packs.some(pack => pack.workflow.skill_policy.mode === 'strict');
+    // Strict qualification is a launch policy. Cooperative SDK registration
+    // belongs to the exact manager execution route, after preceding native,
+    // tool or conversation work has actually reached that worker.
+    if (!strict || this.capabilities.strictManager) return;
     await refreshCodexRegistration({ configPath: this.configPath, defaultConfigPath: this.defaultConfigPath, config,
-      env: this.env, qualify: this.capabilities.codexRegistrationQualifier });
+      env: this.env, strict, qualify: this.capabilities.codexRegistrationQualifier,
+      discover: this.capabilities.codexRegistrationDiscovery });
   }
-  async inspectNativeAgents(runtime,args,definition,attempt,agentIds,{signal}={}) {
-    const afterTurnIds={},rejectedTurnIds={};let parentThreadId;
+  async inspectNativeAgents(runtime,args,definition,attempt,agentIds,{signal,beforeWait}={}) {
+    const afterTurnIds={},rejectedTurnIds={},textAmendments={};let parentThreadId;
     const checkActive=async()=>{
       if(signal?.aborted)throw Object.assign(new Error('Native Agent wait was cancelled by its caller'),{code:'NATIVE_AGENT_WAIT_CANCELLED'});
       assertExecutionAttemptAdmission(this.configPath,args.run_id,definition.id,attempt.id);
-      const fresh=await runtime.runs.read(args.run_id),node=fresh.state.nodes[definition.id];
+      const fresh=await runtime.runs.readNativeWaitState(args.run_id),node=fresh.state.nodes[definition.id];
       const current=node?.attempts.find(item=>item.id===attempt.id);
       requireValue(fresh.state.status==='running'&&node?.active_attempt_id===attempt.id&&
         ['claimed','running'].includes(node.status)&&['claimed','running'].includes(current?.status)&&
@@ -500,26 +718,37 @@ export class WorkflowService {
         const last=turns.at(-1);if(!afterTurnIds[last.agent_id])afterTurnIds[last.agent_id]=last.turn_id;
         rejectedTurnIds[last.agent_id]=turns.map(item=>item.turn_id);
       }
+      for(const [index,rejection]of Object.entries(current.native_rejected_turns??{})){
+        const followup=current.native_repair_followups?.[`${index}:${rejection.count}`];
+        if(followup?.text_repair_ref&&(!definition.fanout||!current.native_item_results?.[followup.item_indices[0]]))textAmendments[followup.agent_id]=true;
+      }
     };
     const onIdentityEvent=async metadata=>{
-      await checkActive();
-      await runtime.recordExecutorEvent(args.run_id,{node_id:definition.id,attempt_id:attempt.id,control_token:args.control_token,
+      // Terminal siblings are inspected without waiting for their checkers.
+      // Before the observer enters a lifecycle wait, publish every already
+      // admitted result so a repairing child cannot hide a ready sibling.
+      if(metadata.status==='waiting_native_event')await beforeWait?.();
+      signal?.throwIfAborted();
+      await runtime.recordNativeExecutorEvent(args.run_id,{node_id:definition.id,attempt_id:attempt.id,control_token:args.control_token,
         lease_token:leaseToken(args.control_token,args.run_id,definition.id,attempt.id,attempt.lease_generation??0),
         event:{kind:'session_state',metadata}});
-      await checkActive();
     };
     // One duplicate terminal projection can race the rejected-turn journal. A
     // second one-shot inspection is bounded and never waits for a running turn.
     for(let inspection=0;inspection<2;inspection++){
       await checkActive();
       const observed=await this.nativeAgentObserver(agentIds,{parentThreadId,afterTurnIds,rejectedTurnIds,checkActive,onIdentityEvent,
-        resultSchema:nativeAgentResultSchema(definition),perItemResult:definition.fanout?.result_mode==='per_item',signal});
+        resultSchema:nativeAgentResultSchema(definition),perItemResult:definition.fanout?.result_mode==='per_item',textAmendments,signal,
+        runJournalPath:join(runtime.runs.directory(args.run_id),'events.jsonl')});
       await checkActive();
       requireValue(observed?.status!=='pending','NATIVE_AGENT_OBSERVER_PROTOCOL',
         'Native Agent observer returned a polling continuation instead of holding the Host event wait');
       requireValue(agentIds.includes(observed?.agent_id),'NATIVE_AGENT_IDENTITY','Observed native Agent is not in this dispatch');
       requireValue(typeof observed.turn_id==='string'&&observed.turn_id.length>0,
         'NATIVE_AGENT_OBSERVATION','Host observer must identify the exact terminal native turn');
+      if(textAmendments[observed.agent_id])requireValue(observed.status==='amendment','NATIVE_TEXT_AMENDMENT','The acknowledged text repair requires an exact amendment payload; a full result or invalid/blocked turn cannot replace it');
+      if(definition.completion_contract?.host_check)await runtime.recordNativeUsage(args.run_id,{node_id:definition.id,attempt_id:attempt.id,control_token:args.control_token,
+        lease_token:leaseToken(args.control_token,args.run_id,definition.id,attempt.id,attempt.lease_generation??0),request_id:attempt.dispatch.request_id,usage:{unknown:true}});
       if(['completed','blocked'].includes(observed.status)&&observed.result_shape)await onIdentityEvent({status:'native_result_shape',
         code:'NATIVE_AGENT_RESULT_SHAPE',
         diagnostic:`Native Agent ${observed.agent_id} turn ${observed.turn_id} returned ${observed.result_shape}`+
@@ -529,6 +758,66 @@ export class WorkflowService {
     }
     requireValue(false,'NATIVE_AGENT_OBSERVER_REPLAY','Native Agent observer repeated only already rejected terminal turns');
   }
+  async mergeObservedNativeAmendment(runtime,args,{definition,attempt,binding,index,observed}){
+    const {record}=await runtime.authorizedExecution(args.run_id,{...binding,control_token:args.control_token},()=>binding);
+    const current=record.state.nodes[definition.id].attempts.find(item=>item.id===attempt.id),rejection=current.native_rejected_turns?.[index];
+    const followup=current.native_repair_followups?.[`${index}:${rejection?.count}`],ref=followup?.text_repair_ref;
+    requireValue(ref&&rejection.agent_id===observed.agent_id&&followup.agent_id===observed.agent_id
+      &&current.native_agents?.[index]===observed.agent_id&&observed.turn_id!==rejection.turn_id,
+      'NATIVE_TEXT_AMENDMENT_BINDING','Amendment needs the acknowledged repair for its exact child and a new terminal turn');
+    const repair=await readNativeTextRepair(runtime,args.run_id,{...binding,control_token:args.control_token},ref);
+    requireValue(repair.snapshot.native_observation.turn_id===rejection.turn_id&&repair.snapshot.native_observation.index===index
+      &&repair.snapshot.native_observation.agent_id===observed.agent_id&&(!definition.fanout||unresolvedNativeItemTargets(record,definition,current,index).length===1
+        &&unresolvedNativeItemTargets(record,definition,current,index)[0]===repair.snapshot.item_index),
+      'NATIVE_TEXT_AMENDMENT_BINDING','Amendment baseline differs from the rejected turn or current unresolved item');
+    const {raw_ref,merged_ref,merged,mergeError}=await runtime.runs.withHostTransaction(args.run_id,'native_prepare',async()=>{
+      const raw_ref=await runtime.runs.saveExecutorResult(args.run_id,attempt.id,{kind:'native_text_amendment',native_observation:{index,agent_id:observed.agent_id,turn_id:observed.turn_id},text_repair_ref:ref,payload:observed.amendment});
+      let merged,mergeError;
+      try{merged=applyTextAmendment(repair.baseline,repair.snapshot.scope,repair.config,observed.amendment);validateData(merged,definition.fanout?definition.outputs_schema.properties[definition.fanout.result_output].items:definition.outputs_schema);}
+      catch(error){mergeError=error;}
+      const merged_ref=mergeError?null:await runtime.runs.saveExecutorResult(args.run_id,attempt.id,{kind:'native_text_merged_proposal',raw_ref,text_repair_ref:ref,output:merged});
+      // Keep the error as data until the existing failed raw trace is committed.
+      return {raw_ref,merged_ref,merged,mergeError};
+    });
+    await runtime.recordNativeTextAmendment(args.run_id,{...binding,control_token:args.control_token,index,agent_id:observed.agent_id,turn_id:observed.turn_id,text_repair_ref:ref,raw_ref,merged_ref,
+      ...(mergeError?{error:{code:mergeError.code??'NATIVE_TEXT_AMENDMENT',message:mergeError.message.slice(0,3900)}}:{})});
+    if(mergeError)throw mergeError;
+    return {...observed,status:'completed',result:definition.fanout?{items:[{outcome:'completed',result:merged}]}:merged,result_shape:'host_merged_text_amendment'};
+  }
+  async #nativeSpanHandoff(runtime,args,record,definition,lease,dispatched,maxPromptChars,indices,options){
+    const plan=resolvedSubagentPlan(definition,record.state);
+    const attempt=record.state.nodes[definition.id].attempts.find(item=>item.id===lease.attempt_id),pending=attempt?.native_pending_followup;
+    if(record.pins.native_dispatch_span_version===1&&pending){
+      const selectedIndices=Array.isArray(indices)?indices:[indices],index=selectedIndices[0];
+      requireValue(selectedIndices.length===1&&index===pending.index,'NATIVE_AGENT_FOLLOWUP_CHANGED',
+        'Published follow-up reuse requires its exact single recorded partition');
+      const inherited=new Set(attempt.inherited_native_item_indices??[]);
+      const unresolved=definition.fanout?assignedFanoutIndices(plan,definition.fanout,index)
+        .filter(item=>!inherited.has(item)&&!attempt.native_item_results?.[item]):null;
+      let selected=null,directory;
+      const root=join(dispatched.envelope.workspace,'work','.workflow-runtime','native-agent',args.run_id,attempt.id,`partition-${index}`);
+      if(pending.followup_kind==='repair'){
+        requireValue(options?.bundleSegment===`repair-${pending.rejection_count}`&&(!definition.fanout||
+          canonicalJSON(options?.itemPositionOverrides?.[index])===canonicalJSON(unresolved)),
+          'NATIVE_AGENT_FOLLOWUP_CHANGED','Published repair reuse differs from its exact unresolved-item selection');
+        selected=definition.fanout?.item_delivery==='incremental'?unresolved.slice(0,1):unresolved;
+        directory=join(root,options.bundleSegment);
+      }else{
+        requireValue(pending.followup_kind==='incremental'&&definition.fanout?.item_delivery==='incremental'
+          &&options?.bundleSegment==null&&unresolved.length>0,'NATIVE_AGENT_FOLLOWUP_CHANGED',
+          'Published continuation reuse requires its exact incremental delivery route');
+        selected=unresolved.slice(0,1);directory=join(root,`item-${selected[0]}`);
+      }
+      requireValue((selected?.[0]??null)===pending.item_index,'NATIVE_AGENT_FOLLOWUP_CHANGED',
+        'Published follow-up reuse differs from its exact first unresolved item');
+      const packet=await reuseNativeSpanPublication(runtime,record,definition,{...lease,control_token:args.control_token},dispatched,plan,
+        {pending,task_bundle_path:join(directory,'task.json')});
+      return nativeAgentHandoff(record,definition,lease,{...dispatched,materialized_packets:{[index]:{
+        ...packet,item_positions:selected,assigned_items:selected?.map(item=>plan.items[item])??null}}},maxPromptChars,index);
+    }
+    return materializeWithNativeSpan(runtime,record,definition,{...lease,control_token:args.control_token},dispatched,
+      plan,()=>materializedNativeAgentHandoff(record,definition,lease,dispatched,maxPromptChars,indices,options));
+  }
   async #nativeRepairFollowup(runtime,args,{record,definition,attempt,binding,index,agentId,turnId,category,reason,
     rejectionCount,executor,maxPromptChars}) {
     const assigned=definition.fanout?.result_mode==='per_item'
@@ -536,46 +825,77 @@ export class WorkflowService {
     const stored=attempt.native_item_results??{};
     const acceptedItemIndices=assigned.filter(itemIndex=>stored[itemIndex]?.agent_id===agentId);
     const unresolvedItemIndices=assigned.filter(itemIndex=>!stored[itemIndex]);
-    if(attempt.native_pending_followup)requireValue(definition.fanout?.result_mode==='per_item'&&
-      unresolvedItemIndices.length>0&&executor,'NATIVE_AGENT_FOLLOWUP_CHANGED',
+    if(attempt.native_pending_followup)requireValue((!definition.fanout||unresolvedItemIndices.length>0)&&executor,'NATIVE_AGENT_FOLLOWUP_CHANGED',
     'Pending repair follow-up lost its exact unresolved item or native executor');
     const repairRemaining=definition.retry.max_attempts-rejectionCount;
     requireValue(repairRemaining>0,'NATIVE_AGENT_REPAIR_EXHAUSTED',
       `Native Agent ${agentId} exhausted the pinned ${definition.retry.max_attempts}-turn limit: ${reason}`);
+    const diagnosticRef=attempt.native_rejected_turns?.[index]?.diagnostic_ref;
+    if(diagnosticRef){const stored=await runtime.runs.readExecutorResult(args.run_id,attempt.id,diagnosticRef.sha256);
+      requireValue(stored?.kind==='native_rejection_diagnostic'&&stored.agent_id===agentId&&stored.turn_id===turnId,'NATIVE_AGENT_REJECTION_CONFLICT','Full repair diagnostic differs from its exact rejected child turn');reason=stored.reason;}
     let repairPrompt=`Rejected result: ${reason}. Return the Result schema from the initial packet.`,repairPacket=null;
-    if(definition.fanout?.result_mode==='per_item'&&unresolvedItemIndices.length&&executor){
+    const textRepairRef=attempt.native_rejected_turns?.[index]?.text_repair_ref;
+    const textRepair=textRepairRef?await readNativeTextRepair(runtime,args.run_id,{...binding,control_token:args.control_token},textRepairRef):null;
+    if((!definition.fanout&&definition.completion_contract?.host_check||definition.fanout?.result_mode==='per_item'&&unresolvedItemIndices.length)&&executor){
       const prepared=await executor.prepare(args.run_id,{...binding,control_token:args.control_token});
       requireValue(digest(canonicalJSON(prepared))===attempt.dispatch.envelope_hash,
         'NATIVE_AGENT_HANDOFF_CHANGED','The repair handoff no longer matches its pinned dispatch intent');
       const config=maxPromptChars===undefined?await this.config():null;
-      const handoff=await materializedNativeAgentHandoff(record,definition,binding,{...prepared,
-        handoff_required:true,compiled_prompt:prepared.prompt,request_id:attempt.dispatch.request_id},
+      const dispatched={...prepared,handoff_required:true,compiled_prompt:prepared.prompt,request_id:attempt.dispatch.request_id};
+      const handoff=await this.#nativeSpanHandoff(runtime,args,record,definition,binding,dispatched,
         maxPromptChars??config.global.max_prompt_chars,index,{resourceRoot:join(runtime.runs.directory(args.run_id),'objects'),
-          itemPositionOverrides:{[index]:unresolvedItemIndices},bundleSegment:`repair-${rejectionCount}`});
+          ...(definition.fanout?{itemPositionOverrides:{[index]:unresolvedItemIndices}}:{}),bundleSegment:`repair-${rejectionCount}`});
       requireValue(handoff.packets.length===1&&handoff.packets[0].index===index,
         'NATIVE_AGENT_FOLLOWUP','Per-item repair must materialize exactly one recorded Agent packet');
       repairPacket=handoff.packets[0];
-      repairPrompt=`Rejected result: ${reason}. ${repairPacket.prompt}`;
-      const intent={index,agent_id:agentId,item_index:unresolvedItemIndices[0],task_bundle_sha256:repairPacket.task_bundle_sha256,
-        followup_kind:'repair',rejection_count:rejectionCount};
+      // This exact child already owns its original task and every delivered
+      // incremental item. Keep the full repair bundle and intent Host-side;
+      // resend only the diagnostic and the changed ordered return selection.
+      if(definition.fanout?.result_mode==='per_item'){
+        const incremental=definition.fanout.item_delivery==='incremental';
+        const inherited=new Set(attempt.inherited_native_item_indices??[]);
+        const originalAssigned=assigned.filter(itemIndex=>!inherited.has(itemIndex));
+        const selected=incremental?unresolvedItemIndices.slice(0,1):unresolvedItemIndices;
+        const selection=incremental?'the current supplied item'
+          :`initial assignment positions ${canonicalJSON(selected.map(itemIndex=>originalAssigned.indexOf(itemIndex)+1))} (one-based)`;
+        repairPrompt=`Rejected result: ${reason}\nReturn exactly ${selected.length} ordered items for ${selection}. `
+          +'Use the original semantic item schema with this return envelope: {"items":[{"outcome":"completed","result":<semantic item>}]} '
+          +'or a blocked entry with block_reason. '
+          +(definition.fanout.shared_change_field?`A delegated entry remains allowed for ${definition.fanout.shared_change_field} work owned by the downstream shared-write owner. `:'')
+          +'The Host retained accepted siblings. Return only the selected entries without IDs, positions, paths, hashes, tokens or receipts.';
+      }
+      if(textRepair)repairPrompt=textRepair.config.addressing==='host_ranges'
+        ?`Rejected result: ${reason}\n${textAmendmentInstruction(textRepair.baseline,textRepair.snapshot.scope,textRepair.config)}\nAmendment schema: ${canonicalJSON(textAmendmentSchema(textRepair.config))}`
+        :`Rejected result: ${reason}\nRevise only the sealed prior text using 1-based inclusive physical-line edits. Each selected line includes its separator. Replacement is exact text; nonempty non-EOF replacement must end in CRLF, LF or CR. Empty replacement deletes selected lines. Preserve all unrelated content. Return only this amendment JSON, without a full result, hashes or receipts.\nAllowed field/line scope: ${canonicalJSON(textRepair.snapshot.scope)}\nAmendment schema: ${canonicalJSON(textAmendmentSchema(textRepair.config))}`;
+      requireValue(repairPrompt.length<=200000,'CODEX_INPUT_LIMIT','Full native Host correction exceeds the actual 200000-character turn input bound');
+      const intent={index,agent_id:agentId,item_index:unresolvedItemIndices[0]??null,task_bundle_sha256:repairPacket.task_bundle_sha256,
+        followup_kind:'repair',rejection_count:rejectionCount,...(textRepairRef?{text_repair_ref:textRepairRef}:{})};
       if(attempt.native_pending_followup){
         requireValue(canonicalJSON(attempt.native_pending_followup)===canonicalJSON(intent),
           'NATIVE_AGENT_FOLLOWUP_CHANGED','Pending repair follow-up no longer matches its exact rejected turn and packet');
-      }else await runtime.recordExecutorEvent(args.run_id,{...binding,control_token:args.control_token,
-        event:{kind:'native_agent_followup_intent',metadata:intent}});
+      }else {const metadata={...intent};delete metadata.text_repair_ref;if(textRepairRef)metadata.text_repair_sha256=textRepairRef.sha256;
+        await runtime.recordNativeExecutorEvent(args.run_id,{...binding,control_token:args.control_token,
+        event:{kind:'native_agent_followup_intent',metadata}});}
     }else if(definition.fanout?.result_mode==='per_item')repairPrompt+=unresolvedItemIndices.length
       ?' Repair only the unresolved entries from the prior turn, in original partition order; the Host retained every accepted sibling.'
       :' return {"items":[]}.';
+    requireValue(repairPrompt.length<=200000,'CODEX_INPUT_LIMIT','Full native Host correction exceeds the actual 200000-character turn input bound');
     return {status:category==='blocked'?'native_agent_blocked':'native_agent_invalid_result',run_id:args.run_id,
       node_id:definition.id,attempt_id:attempt.id,index,agent_id:agentId,turn_id:turnId,reason,repair_remaining:repairRemaining,
-      repair_prompt:repairPrompt,...(repairPacket?{item_index:unresolvedItemIndices[0]}:{}),
+      repair_prompt:repairPrompt,...(repairPacket&&definition.fanout?{item_index:unresolvedItemIndices[0]}:{}),
       ...(definition.fanout?.result_mode==='per_item'?{unresolved_item_indices:unresolvedItemIndices,accepted_item_indices:acceptedItemIndices}:{}),
       ...(repairPacket?{followup_config:{target:agentId,message:repairPrompt},
         next_action_args:{run_id:args.run_id,control_token:args.control_token}}:{}),next_action:'repair_recorded_agent'};
   }
-  async rejectedNativeOutcome(runtime,args,{definition,attempt,binding,index,observed,category,reason,executor}) {
+  async rejectedNativeOutcome(runtime,args,{definition,attempt,binding,index,observed,category,reason,executor,textCheck}) {
+    await runtime.recordNativeUsage(args.run_id,{...binding,control_token:args.control_token,request_id:attempt.dispatch.request_id,usage:{unknown:true}});
+    let text_repair_ref;
+    if(textCheck&&definition.completion_contract.host_check.text_amendment){
+      const repair=await nativeTextRepairSnapshot(runtime,args.run_id,{...binding,control_token:args.control_token},textCheck.reference);
+      text_repair_ref=await runtime.runs.saveExecutorResult(args.run_id,attempt.id,repair.snapshot);
+    }
     const recorded=await runtime.recordNativeRejectedTurn(args.run_id,{...binding,control_token:args.control_token,
-      index,agent_id:observed.agent_id,turn_id:observed.turn_id,category,reason});
+      index,agent_id:observed.agent_id,turn_id:observed.turn_id,category,reason,...(text_repair_ref?{text_repair_ref}:{})});
     if(!recorded.new)return null;
     const fresh=await runtime.runs.read(args.run_id);
     const node=fresh.state.nodes[definition.id];
@@ -593,7 +913,7 @@ export class WorkflowService {
     // same-Agent correction allowance.
     const consumed=Math.max(1,rejected[index]?.length??0);
     if(definition.retry.max_attempts-consumed<=0){
-      const error={code:'NATIVE_AGENT_REPAIR_EXHAUSTED',message:`Native Agent ${observed.agent_id} exhausted the pinned ${definition.retry.max_attempts}-turn limit: ${reason}`};
+      const error={code:'NATIVE_AGENT_REPAIR_EXHAUSTED',message:`Native Agent ${observed.agent_id} exhausted the pinned ${definition.retry.max_attempts}-turn limit: ${reason.slice(0,3900)}`};
       const completedIds=new Set([
         ...(currentAttempt.native_serial_results??[]).map(item=>item.agent_id),
         ...Object.values(currentAttempt.native_parallel_results??{}).map(item=>item.agent_id),
@@ -611,27 +931,161 @@ export class WorkflowService {
     return this.#nativeRepairFollowup(runtime,args,{record:fresh,definition,attempt:currentAttempt,binding,index,
       agentId:observed.agent_id,turnId:observed.turn_id,category,reason,rejectionCount:recorded.count,executor});
   }
-  async recordObservedNativeItems(runtime,args,{definition,attempt,binding,index,observed,executor}) {
-    let recorded;
-    try{
+  async preflightObservedNativeCompletion(runtime,args,{record,definition,attempt,binding,index,observed,target_indices=[]}) {
+    const native_observation={index,agent_id:observed.agent_id,turn_id:observed.turn_id};
+    preflightNativeHostCompletion(record,definition,attempt,{result:observed.result,target_indices,native_observation});
+    await runtime.recordNativeExecutorEvent(args.run_id,{...binding,control_token:args.control_token,event:{kind:'session_state',metadata:{
+      status:'native_render_preflight',code:'NATIVE_RENDER_PREFLIGHT',
+      diagnostic:`Size preflight validated durable native_agents slot ${index}, Agent ${observed.agent_id}, observed turn ${observed.turn_id}; dispatch receipt ${attempt.dispatch.receipt?'sealed':'not yet sealed'}`}}});
+  }
+  async prepareObservedNativeItems(runtime,args,{definition,attempt,binding,index,observed,size_reservations={}}) {
+    return runtime.runs.withHostTransaction(args.run_id,'native_prepare',async()=>{
       const fresh=await runtime.runs.read(args.run_id);
       const current=fresh.state.nodes[definition.id].attempts.find(item=>item.id===attempt.id);
-      recorded=await runtime.recordNativeItemResults(args.run_id,{...binding,control_token:args.control_token,
-        index,agent_id:observed.agent_id,turn_id:observed.turn_id,
-        target_indices:unresolvedNativeItemTargets(fresh,definition,current,index),result:observed.result});
-    }
-    catch(error){if(!['NATIVE_ITEM_INDEX','NATIVE_ITEM_DUPLICATE','NATIVE_ITEM_RESULT_CONFLICT','NATIVE_ITEM_RESULT'].includes(error.code))throw error;
+      const targets=unresolvedNativeItemTargets(fresh,definition,current,index);
+      if(definition.completion_contract?.host_check){
+        validateData(observed.result,nativeAgentResultSchema(definition,targets.length));
+        // These extra products reserve size only. Live authority and unresolved
+        // targets still come from the original guarded Run projection.
+        const sizing={...current,native_item_results:{...size_reservations,...current.native_item_results}};
+        await this.preflightObservedNativeCompletion(runtime,args,{record:fresh,definition,attempt:sizing,binding,index,observed,target_indices:targets});
+      }
+      return targets;
+    });
+  }
+  async recordObservedNativeItems(runtime,args,{definition,attempt,binding,index,observed,executor,record_terminal_turn=false,prepared_targets,defer_admission=false}) {
+    let recorded;const hostRejections=new Map(),textChecks=new Map();
+    const rejected=async error=>{
+      if(error.native_host_check_failure||!['DATA_INVALID','NATIVE_ITEM_INDEX','NATIVE_ITEM_DUPLICATE','NATIVE_ITEM_RESULT_CONFLICT','NATIVE_ITEM_RESULT'].includes(error.code))throw error;
       const rejection=await this.rejectedNativeOutcome(runtime,args,{definition,attempt,binding,index,observed,executor,
-        category:'invalid',reason:error.message});return rejection?{rejection}:{retry:true};}
+        category:'invalid',reason:error.message});return rejection?{rejection}:{retry:true};
+    };
+    let targets,host_checks,admissionResult;
+    try{
+      targets=prepared_targets??await this.prepareObservedNativeItems(runtime,args,{definition,attempt,binding,index,observed});
+      host_checks={};admissionResult=structuredClone(observed.result);
+      if(definition.completion_contract?.host_check){
+        for(const [local,item_index]of targets.entries()){
+          const item=observed.result.items[local];
+          if(!nativeItemHasSemanticResult(definition,item))continue;
+          validateData(item.result,definition.outputs_schema.properties[definition.fanout.result_output].items);
+          const checked=await executor.executeNativeHostCheck(args.run_id,{...binding,control_token:args.control_token},item.result,
+            {item_index,native_observation:{index,agent_id:observed.agent_id,turn_id:observed.turn_id}});
+          if(!checked.accepted){
+            const diagnostic=`Host completion check rejected this proposal.\n${checked.diagnostic}`;
+            hostRejections.set(item_index,diagnostic);
+            textChecks.set(item_index,checked);
+            // Preserve accepted siblings while this exact item remains unaccepted.
+            // Journal summaries are bounded; the repair below uses the full typed diagnostic.
+            admissionResult.items[local]={outcome:'blocked',block_reason:diagnostic.slice(0,3900)};
+            continue;
+          }
+          host_checks[item_index]=checked.reference;
+        }
+      }
+    }catch(error){return rejected(error);}
+    const admit=async()=>{
+    try{
+      recorded=await runtime.runs.withHostTransaction(args.run_id,'native_prepare',async()=>{
+        const accepted=await runtime.recordNativeItemResults(args.run_id,{...binding,control_token:args.control_token,
+          index,agent_id:observed.agent_id,turn_id:observed.turn_id,
+          target_indices:targets,result:admissionResult,host_checks});
+        if(!accepted.unresolved_item_indices.length&&!accepted.issues.length){
+          const resultArgs={...binding,control_token:args.control_token,index,agent_id:observed.agent_id,result:accepted.result,
+            ...(record_terminal_turn?{turn_id:observed.turn_id}:{})};
+          if(definition.fanout.scheduling==='serial')await runtime.recordNativeSerialResult(args.run_id,resultArgs);
+          else await runtime.recordNativeParallelResult(args.run_id,resultArgs);
+        }
+        return accepted;
+      });
+    }
+    catch(error){return rejected(error);}
     if(definition.fanout?.item_delivery==='incremental'&&!recorded.issues.length&&recorded.unresolved_item_indices.length)
       return {continuation:true,accepted_item_indices:recorded.accepted_item_indices,
         unresolved_item_indices:recorded.unresolved_item_indices};
     if(recorded.unresolved_item_indices.length||recorded.issues.length){
-      const reason=recorded.issues.map(issue=>`item ${issue.item_index}: ${issue.reason}`).join('; ');
+      const reason=recorded.issues.map(issue=>`item ${issue.item_index}: ${hostRejections.get(issue.item_index)??issue.reason}`).join('; ');
       const rejection=await this.rejectedNativeOutcome(runtime,args,{definition,attempt,binding,index,observed,executor,
-        category:recorded.issues.some(issue=>issue.category==='invalid')?'invalid':'blocked',reason});return rejection?{rejection}:{retry:true};
+        category:hostRejections.size||recorded.issues.some(issue=>issue.category==='invalid')?'invalid':'blocked',reason,
+        ...(textChecks.size===1?{textCheck:[...textChecks.values()][0]}:{})});return rejection?{rejection}:{retry:true};
     }
     return {result:recorded.result};
+    };
+    return defer_admission?{admit,rejected:hostRejections.size>0||admissionResult.items.some(item=>!nativeItemHasSemanticResult(definition,item))}:admit();
+  }
+  parallelNativeItemCollection(record,definition,pending) {
+    if(pending.length<2||definition.fanout?.scheduling!=='parallel'||definition.fanout.result_mode!=='per_item'
+      ||definition.fanout.item_delivery==='incremental'||definition.fanout.shared_change_field
+      ||!definition.fanout.workspace_field||!definition.completion_contract?.host_check)return false;
+    const plan=resolvedSubagentPlan(definition,record.state),roots=pending.flatMap(([index])=>
+      assignedFanoutIndices(plan,definition.fanout,Number(index)).map(item=>resolve(nodeWorkspace(definition.id,record.state,record.pins),plan.items[item][definition.fanout.workspace_field])));
+    const contains=(a,b)=>{const path=relative(a,b);return !path||path!=='..'&&!path.startsWith(`..${process.platform==='win32'?'\\':'/'}`)&&!isAbsolute(path);};
+    return roots.every((root,index)=>roots.every((other,position)=>index===position||!contains(root,other)&&!contains(other,root)));
+  }
+  async collectObservedNativeItems(runtime,args,{record,definition,attempt,binding,pending,executor,signal,record_terminal_turn=false}) {
+    const waiting=new AbortController(),jobs=[],completed=[],size_reservations={};
+    let stopped=false,originalError,inspectionError,admissionError,admissionOutcome,terminal,commits=Promise.resolve();
+    const abort=()=>waiting.abort(signal.reason);
+    if(signal?.aborted)abort();else signal?.addEventListener('abort',abort,{once:true});
+    const stop=()=>{stopped=true;waiting.abort();};
+    const remaining=new Map(pending.slice(0,definition.fanout.max_concurrency??32));
+    try{
+      // One observer connection belongs to the public drive. Inspect it in
+      // order while independent item-local checker operations run outside
+      // every Host transaction; only admission/repair publication is deferred.
+      while(remaining.size&&!stopped){
+        let observed;
+        try{observed=await this.inspectNativeAgents(runtime,args,definition,attempt,[...remaining.values()],{
+          signal:waiting.signal,beforeWait:()=>commits});}
+        catch(error){if(stopped&&!signal?.aborted)break;throw error;}
+        if(stopped)break;
+        const found=[...remaining].find(([,id])=>id===observed.agent_id);
+        requireValue(found,'NATIVE_AGENT_IDENTITY','Observed native Agent is not in this active dispatch');
+        const index=Number(found[0]);remaining.delete(found[0]);
+        if(observed.status==='amendment')observed=await this.mergeObservedNativeAmendment(runtime,args,{definition,attempt,binding,index,observed});
+        if(observed.status==='blocked'||observed.status==='invalid'){terminal={index,observed};stop();break;}
+        requireValue(observed.status==='completed','NATIVE_AGENT_OBSERVATION','Host observer did not return a completed Agent');
+        let prepared_targets;
+        try{prepared_targets=await this.prepareObservedNativeItems(runtime,args,{definition,attempt,binding,index,observed,size_reservations});}
+        catch(error){if(error.code!=='DATA_INVALID')throw error;
+          terminal={index,observed:{...observed,status:'invalid',reason:error.message}};stop();break;}
+        if(stopped)break;
+        for(const [local,item_index]of prepared_targets.entries())if(nativeItemHasSemanticResult(definition,observed.result.items[local]))
+          size_reservations[item_index]={result:observed.result.items[local].result};
+        const job={index,observed};jobs.push(job);
+        job.promise=this.recordObservedNativeItems(runtime,args,{definition,attempt,binding,index,observed,executor,record_terminal_turn,
+          prepared_targets,defer_admission:true}).then(value=>{job.value=value;if(value.rejected||value.rejection||value.retry)stop();},error=>{
+          originalError??=error;stop();});
+        // Keep publication in admission order, but do not hold a ready
+        // sibling's durable result behind another child's lifecycle wait.
+        commits=commits.then(async()=>{
+          await job.promise;
+          if(originalError||admissionError||job.value?.rejected)return;
+          const accepted=job.value.admit?await job.value.admit():job.value;
+          if(accepted.rejection||accepted.retry){admissionOutcome??=accepted.rejection??{native_continue:true};stop();return;}
+          completed.push({agent_id:job.observed.agent_id,result:accepted.result});
+        }).catch(error=>{admissionError??=error;stop();});
+      }
+    }catch(error){inspectionError=error;stop();}
+    finally{
+      // No observer/checker operation may outlive the public connection owner,
+      // including a failure arriving during the next sibling inspection.
+      await Promise.all(jobs.map(job=>job.promise));
+      await commits;
+      signal?.removeEventListener('abort',abort);
+    }
+    if(originalError)throw originalError;
+    if(admissionError)throw admissionError;
+    signal?.throwIfAborted();
+    if(inspectionError)throw inspectionError;
+    if(admissionOutcome)return {outcome:admissionOutcome,completed};
+    // All admitted checks have settled before one exact-child correction is
+    // published. A second rejection keeps its receipt for the next drive.
+    const rejected=jobs.find(job=>job.value.rejected);
+    if(rejected){const accepted=await rejected.value.admit();return {outcome:accepted.rejection??{native_continue:true},completed};}
+    if(terminal){const outcome=await this.rejectedNativeOutcome(runtime,args,{definition,attempt,binding,executor,...terminal,
+      category:terminal.observed.status,reason:terminal.observed.reason});return {outcome:outcome??{native_continue:true},completed};}
+    return {outcome:{native_continue:true},completed};
   }
   async #incrementalNativeContinuation(runtime,args,{record,definition,attempt,binding,index,agentId,turnId,
     status='native_item_accepted',maxPromptChars,executor}) {
@@ -644,7 +1098,7 @@ export class WorkflowService {
     const nextPrepared=await executor.prepare(args.run_id,{...lease,control_token:args.control_token});
     requireValue(digest(canonicalJSON(nextPrepared))===attempt.dispatch.envelope_hash,
       'NATIVE_AGENT_HANDOFF_CHANGED','The incremental native handoff no longer matches its pinned dispatch intent');
-    const nextPacket=await materializedNativeAgentHandoff(record,definition,lease,{...nextPrepared,
+    const nextPacket=await this.#nativeSpanHandoff(runtime,args,record,definition,lease,{...nextPrepared,
       handoff_required:true,compiled_prompt:nextPrepared.prompt,request_id:attempt.dispatch.request_id},
       maxPromptChars,index,{resourceRoot:join(runtime.runs.directory(args.run_id),'objects')});
     requireValue(nextPacket.packets.length===1&&nextPacket.packets[0].index===index,
@@ -655,7 +1109,7 @@ export class WorkflowService {
     if(attempt.native_pending_followup){
       requireValue(canonicalJSON(attempt.native_pending_followup)===canonicalJSON(intent),
         'NATIVE_AGENT_FOLLOWUP_CHANGED','Pending incremental follow-up no longer matches its exact recorded packet');
-    }else await runtime.recordExecutorEvent(args.run_id,{...lease,control_token:args.control_token,
+    }else await runtime.recordNativeExecutorEvent(args.run_id,{...lease,control_token:args.control_token,
       event:{kind:'native_agent_followup_intent',metadata:intent}});
     return {status,run_id:args.run_id,node_id:definition.id,attempt_id:attempt.id,index,item_index:nextItem,agent_id:agentId,
       ...(turnId?{turn_id:turnId}:{}),accepted_item_indices:acceptedIndices,unresolved_item_indices:unresolvedIndices,
@@ -713,8 +1167,16 @@ export class WorkflowService {
       const completed=new Map(Object.values(attempt.native_parallel_results??{}).map(item=>[item.agent_id,item]));
       const pending=new Set(agentIds.filter(id=>!completed.has(id)));
       while(pending.size){
-        const observed=await this.inspectNativeAgents(runtime,args,definition,attempt,[...pending],{signal});
+        const assignments=activeSlots.map((index,position)=>[String(index),agentIds[position]]).filter(([,id])=>pending.has(id));
+        if(this.parallelNativeItemCollection(record,definition,assignments)){
+          const collected=await this.collectObservedNativeItems(runtime,args,{record,definition,attempt,binding,pending:assignments,executor,signal});
+          for(const item of collected.completed){completed.set(item.agent_id,item);pending.delete(item.agent_id);}
+          if(!collected.outcome.native_continue)return collected.outcome;
+          continue;
+        }
+        let observed=await this.inspectNativeAgents(runtime,args,definition,attempt,[...pending],{signal});
         requireValue(pending.has(observed.agent_id),'NATIVE_AGENT_IDENTITY','Observed native Agent is not in this dispatch');
+        if(observed.status==='amendment')observed=await this.mergeObservedNativeAmendment(runtime,args,{definition,attempt,binding,index:activeSlots[agentIds.indexOf(observed.agent_id)],observed});
         if(observed.status==='blocked'||observed.status==='invalid'){
           const activePosition=agentIds.indexOf(observed.agent_id);
           const rejection=await this.rejectedNativeOutcome(runtime,args,{definition,attempt,binding,executor,
@@ -733,8 +1195,6 @@ export class WorkflowService {
             return this.#incrementalNativeContinuation(runtime,args,{record:fresh,definition,attempt:currentAttempt,binding,
               index,agentId:observed.agent_id,turnId:observed.turn_id,maxPromptChars,executor});
           }
-          await runtime.recordNativeParallelResult(args.run_id,{...binding,control_token:args.control_token,
-            index,agent_id:observed.agent_id,result:accepted.result});
           completed.set(observed.agent_id,{agent_id:observed.agent_id,result:accepted.result});pending.delete(observed.agent_id);
           continue;
         }
@@ -743,9 +1203,20 @@ export class WorkflowService {
         catch(error){if(error.code!=='DATA_INVALID')throw error;
           const rejection=await this.rejectedNativeOutcome(runtime,args,{definition,attempt,binding,executor,index:activeSlots[agentIds.indexOf(observed.agent_id)],
             observed,category:'invalid',reason:error.message});if(rejection)return rejection;continue;}
+        let host_check;
+        if(definition.completion_contract?.host_check){
+          const index=activeSlots[agentIds.indexOf(observed.agent_id)];
+          const fresh=await runtime.runs.read(args.run_id),current=fresh.state.nodes[definition.id].attempts.find(item=>item.id===attempt.id);
+          await this.preflightObservedNativeCompletion(runtime,args,{record:fresh,definition,attempt:current,binding,index,observed});
+          const checked=await executor.executeNativeHostCheck(args.run_id,{...binding,control_token:args.control_token},observed.result,
+            {native_observation:{index,agent_id:observed.agent_id,turn_id:observed.turn_id}});
+          if(!checked.accepted){const rejection=await this.rejectedNativeOutcome(runtime,args,{definition,attempt,binding,index,observed,executor,category:'invalid',reason:`Host completion check rejected this proposal.\n${checked.diagnostic}`,textCheck:checked});
+            if(rejection)return rejection;continue;}
+          host_check=checked.reference;
+        }
         if(definition.fanout)await runtime.recordNativeParallelResult(args.run_id,{...binding,control_token:args.control_token,
           index:activeSlots[agentIds.indexOf(observed.agent_id)],agent_id:observed.agent_id,result:observed.result});
-        completed.set(observed.agent_id,{agent_id:observed.agent_id,result:observed.result});pending.delete(observed.agent_id);
+        completed.set(observed.agent_id,{agent_id:observed.agent_id,result:observed.result,...(host_check?{host_check}:{})});pending.delete(observed.agent_id);
       }
       results=agentIds.map(id=>completed.get(id));
     }
@@ -764,23 +1235,35 @@ export class WorkflowService {
       'NATIVE_AGENT_RESULT','Native results must match the recorded Agent IDs in dispatch order');
     let itemResults;
     if(definition.fanout?.result_mode==='per_item'){
-      const current=await runtime.runs.read(args.run_id),plan=resolvedSubagentPlan(definition,current.state);
+      const plan=resolvedSubagentPlan(definition,record.state);
       itemResults=Array.from({length:plan.items.length},(_,index)=>{
         const accepted=attempt.native_item_results?.[index];
         requireValue(accepted,'NATIVE_ITEM_RESULT',`Input item ${index} has no journaled accepted result`);
         return accepted.result;
       });
     }
-    const completion=nativeAgentCompletion(definition,receipt,results,{...args,item_results:itemResults});
-    if(definition.fanout)await runtime.recordManagedNativeResults(args.run_id,{...binding,
+    let checkedChanges=[];
+    if(definition.completion_contract?.host_check){
+      const refs=definition.fanout?Object.values(attempt.native_item_results).map(item=>item.host_check):[results[0].host_check];
+      checkedChanges=[...new Set(refs.flatMap(ref=>workerHostCheckEffectPaths(record,definition.id,ref,nodeWorkspace(definition.id,record.state,record.pins))))].sort();
+    }
+    const span=await settleNativeSpan(runtime,record,definition,attempt,binding,resolvedSubagentPlan(definition,record.state));
+    if(span)checkedChanges=[...new Set([...checkedChanges,...span.changed_paths])].sort();
+    const completion=nativeAgentCompletion(definition,receipt,results,{...args,item_results:itemResults,
+      ...(definition.completion_contract?.host_check||span?{changed_paths:checkedChanges,artifacts:checkedChanges}:{})});
+    if(span)completion.evidence.push({kind:'native_dispatch_span',reference:span.reference});
+    if(definition.completion_contract?.host_check&&!definition.fanout)completion.evidence.push({kind:'worker_host_check',reference:results[0].host_check});
+    if(definition.fanout)await runtime.recordCooperativeNativeResults(args.run_id,{...binding,
       results:results.map((item,index)=>({dispatch_id:item.agent_id,agent_id:item.agent_id,
         result_index:index,result_sha256:digest(canonicalJSON(item.result))}))});
-    await runtime.recordUsage(args.run_id,{...binding,request_id:attempt.dispatch.request_id,usage:args.usage??{unknown:true}});
+    await runtime.recordNativeUsage(args.run_id,{...binding,request_id:attempt.dispatch.request_id,usage:args.usage??{unknown:true}});
     const state=await runtime.completeNode(args.run_id,{...binding,completion});
+    if(span)await releaseNativeSpanOwner(runtime,record,definition,{...attempt,native_dispatch_span:{...attempt.native_dispatch_span,settled_ref:span.reference}});
     return {run_id:args.run_id,node_id:binding.node_id,status:state.status,
       ...(state.status==='running'?nativeContinuation(args.run_id,args.control_token):{next_action:null})};
   }
   async #sealNativeDispatch(runtime,args,{executor,signal,maxPromptChars}){
+    const sealed=await runtime.runs.withHostTransaction(args.run_id,'native_prepare',async()=>{
     const {record,definition,attempt,binding}=await nativeAttemptBinding(runtime,args);
     const activeSlots=activeNativeAssignmentSlots(record,definition,attempt),count=activeSlots.length;
     const agentIds=activeSlots.map(index=>attempt.native_agents?.[index]);
@@ -792,18 +1275,143 @@ export class WorkflowService {
       'NATIVE_AGENT_PARALLEL_RESULT','Every capped parallel sub-Agent must have a Host-observed validated result before sealing');
     const receipt=nativeAgentReceipt(definition,record.state,args.attempt_id,agentIds);
     requireValue(attempt?.dispatch?.request_id,'DISPATCH_INTENT_MISSING','Native Agent completion requires the Host-persisted dispatch intent');
-    await runtime.recordDispatchReceipt(args.run_id,{...binding,request_id:attempt.dispatch.request_id,receipt});
+    await runtime.recordNativeDispatchReceipt(args.run_id,{...binding,request_id:attempt.dispatch.request_id,receipt});
     const fresh=await runtime.runs.read(args.run_id);
     const current=fresh.state.nodes[definition.id].attempts.find(item=>item.id===attempt.id);
-    return this.completeObservedNative(runtime,args,{record:fresh,definition,attempt:current,binding,executor,signal,maxPromptChars});
+    return {record:fresh,definition,attempt:current,binding};
+    });
+    return this.completeObservedNative(runtime,args,{...sealed,executor,signal,maxPromptChars});
   }
   async ensureAuthoringWorkflows(store,config,routingRules=null){
     routingRules??=await loadRoutingSettings(dirname(this.configPath),config.providers);
     return ensureStoredAuthoringWorkflows(store,{providers:config.providers,routingRules});
   }
+  async resumeAutomaticAuthoring(args,{store,runtime,context}) {
+    // The Run can already be purged when Ready persistence or journal writing
+    // fails. Locate only this exact Run's durable receipt, never a name match.
+    let journal,workflowId=args.workflow_id;
+    if(workflowId)journal=await store.readAuthoringCleanup(workflowId,args.run_id);
+    else for(const pack of await store.list()){
+      const candidate=await store.readAuthoringCleanup(pack.workflow.id,args.run_id);
+      if(candidate){requireValue(!journal,'AUTHORING_COMPLETION_CONFLICT','Multiple completion journals claim this exact Run');journal=candidate;workflowId=pack.workflow.id;}
+    }
+    if(journal?.identity.completion_policy?.mode!=='automatic')return null;
+    requireValue(journal.identity.control_hash===digest(args.control_token),'RUN_AUTHORITY','Automatic completion retry requires its retained exact controller authority');
+    if(args.preview_identity)requireValue(args.preview_identity.proposal_hash===journal.identity.proposal_hash
+      &&args.preview_identity.source_revision===journal.identity.source_revision
+      &&args.preview_identity.review_result_sha256===journal.identity.review_result_sha256,'AUTHORING_PREVIEW_CHANGED',
+      'Displayed proposal or reviewer result differs from the exact retained completion receipt');
+    const retryArgs={...args,workflow_id:workflowId};
+    if(journal.status!=='complete'){
+      const deployed=await store.snapshot(workflowId,journal.identity.deployed_revision);
+      await this.preflightAutomaticAuthoring(retryArgs,{store,context,deployed});
+      await Promise.all([this.strictManager.stopRun(args.run_id),this.managedNativeManager.stopRun(args.run_id),this.hostMainManager.stopRun(args.run_id)]);
+      await continueAcceptedAuthoringCleanup({configPath:this.configPath,store,runtime,context,journal,deployed,service:this});
+    }
+    return this.finishAutomaticAuthoring(retryArgs,{store,runtime,context});
+  }
+
+  async preflightAutomaticAuthoring(args,{store,context,deployed}) {
+    requireDeployableConvertedSnapshot({...deployed,resourceBytes:await store.resources(deployed.workflow.id,deployed.revision_hash)});
+    requireCurrentConversionCertificate(deployed.workflow,deployed.resources,deployed.import_report,{required:true,provenance:deployed.provenance});
+    const workflow={...publishableEditorWorkflow(deployed.workflow),status:'ready',enabled:true};
+    const checked=await this.validationContext(store,workflow,context);
+    requireValue(checked.validation.launch_ready===true,'WORKFLOW_NOT_READY','Automatic authoring completion did not pass launch readiness',
+      {validation:checked.validation,workflow_id:deployed.workflow.id,run_id:args.run_id,deployed_revision:deployed.revision_hash,stage:'automatic_completion_preflight'});
+    return {workflow,checked};
+  }
+
+  async finishAutomaticAuthoring(args,{store,runtime,context}) {
+    const journal=await store.readAuthoringCleanup(args.workflow_id,args.run_id);
+    requireValue(journal?.status==='complete'&&journal.identity.control_hash===digest(args.control_token)
+      &&journal.identity.completion_policy?.mode==='automatic','AUTHORING_COMPLETION_REQUIRED','Ready completion requires exact finished cleanup and pinned automatic authority');
+    const identity=journal.identity;
+    let deployed=await store.snapshot(args.workflow_id);
+    const alreadyReady=deployed.workflow.status==='ready'&&deployed.workflow.enabled===true
+      &&deployed.provenance?.authoring_completion?.receipt_hash===digest(canonicalJSON(identity))
+      &&deployed.provenance.authoring_completion.workflow_sha256===digest(canonicalJSON(deployed.workflow))
+      &&deployed.provenance.authoring_completion.resources_sha256===digest(canonicalJSON(deployed.resources));
+    requireValue(alreadyReady||deployed.revision_hash===identity.deployed_revision,'AUTHORING_CLEANUP_IDENTITY','Deployed Workflow changed before Ready completion');
+    const {workflow,checked}=await this.preflightAutomaticAuthoring(args,{store,context,deployed});
+    if(!alreadyReady){
+      store.validationContext=checked.context;
+      deployed=await store.save(args.workflow_id,workflow,{expected_revision:identity.deployed_revision,
+        import_report:certificateForPublishedWorkflow({...deployed,workflow}),
+        provenance:{...deployed.provenance,authoring_completion:{kind:'host_automatic_completion',receipt_hash:digest(canonicalJSON(identity)),completion_policy:structuredClone(identity.completion_policy),review_result_sha256:identity.review_result_sha256,workflow_sha256:digest(canonicalJSON({...workflow,revision:deployed.workflow.revision+1})),resources_sha256:digest(canonicalJSON(deployed.resources)),completed_at:new Date().toISOString()}}});
+    }
+    requireValue(!journal.ready_revision||journal.ready_revision===deployed.revision_hash,'AUTHORING_COMPLETION_CONFLICT','Completed authoring journal identifies a different Ready revision');
+    await store.markAuthoringCompletion(args.workflow_id,args.run_id,identity,deployed.revision_hash);
+    return {...deployed,phase:'completed',status:'succeeded',validation:checked.validation,
+      authoring_cleanup:{private_authoring_artifacts_purged:true,cleanup_transaction:{run_id:args.run_id,status:'complete',steps:journal.steps}}};
+  }
+
+  async completeAuthoringResult(args,{store,runtime,context}) {
+    const resumed=await this.resumeAutomaticAuthoring(args,{store,runtime,context});if(resumed)return resumed;
+    const record=await runtime.runs.read(args.run_id),provenance=record.pins.root.provenance;
+    requireValue(automaticAuthoringCompletion(provenance),'AUTHORING_AUTOMATIC_COMPLETION_REQUIRED','Automatic completion was not pinned for this authoring Run');
+    const nodeId=record.pins.root.workflow.finalization.node_id,node=record.state.nodes[nodeId],attempt=node?.attempts.find(item=>item.id===node.active_attempt_id);
+    await runtime.completeAuthoringAutomatically(args.run_id,{...args,node_id:nodeId,attempt_id:attempt?.id,
+      lease_token:leaseToken(args.control_token,args.run_id,nodeId,attempt?.id,attempt?.lease_generation??0)});
+    return this.applyAcceptedAuthoringResult({...args,workflow_id:provenance.source_workflow_id,expected_revision:provenance.source_revision},{store,runtime,context,automatic:true});
+  }
+
+  async applyAcceptedAuthoringResult(args,{store,runtime,context,automatic=false}) {
+        const state = await runtime.authorizeController(args.run_id, args);
+        requireValue(state.status === 'succeeded', 'EXPANSION_ACCEPTANCE_REQUIRED', 'Expansion Run needs main-controller acceptance before applying its proposal');
+        const record = await runtime.runs.read(args.run_id); const {pins}=record,provenance = pins.root.provenance;
+        requireValue(isAuthoringRunProvenance(provenance) && provenance.source_workflow_id === args.workflow_id && provenance.source_revision === args.expected_revision,
+          'EXPANSION_RESULT_IDENTITY', 'Expansion result belongs to a different source Workflow revision');
+        if(!automatic)requireValue(!automaticAuthoringCompletion(provenance),'AUTHORING_AUTOMATIC_COMPLETION_REQUIRED','Run-pinned automatic completion cannot be applied through the human Draft route');
+        requireValue(provenance.review_contract_version===CONVERSION_CONTRACT.version,'CONVERSION_REVIEW_CONTRACT_STALE','Historical authoring Runs remain readable but must be rerun under the current conversion contract before mutation');
+        const final=state.nodes.final;const attempt=final.attempts.find(a=>a.id===final.active_attempt_id);
+        const acceptance=automatic?attempt?.automatic_completion:attempt?.human_acceptance;
+        if(automatic)requireValue(automaticAuthoringCompletion(provenance)&&acceptance?.actor==='host'&&canonicalJSON(acceptance?.completion_policy)===canonicalJSON(provenance.completion_policy),'AUTHORING_COMPLETION_POLICY','Host completion receipt must match the pinned automatic policy');
+        const reviewIdentity=authoringReviewIdentity(record),acceptedIdentity=acceptance?{proposal_hash:acceptance.proposal_hash,source_revision:acceptance.source_revision,expand_attempt_id:acceptance.expand_attempt_id}:null;
+        requireValue(attempt?.result_proposal && acceptance?.review_result_sha256===attempt.result_proposal.sha256 && canonicalJSON(acceptedIdentity)===canonicalJSON(reviewIdentity),'GENERATION_REVIEW_BLOCKED','A durable authorized receipt for this exact proposal and checklist review is required');
+        let deployed=await store.snapshot(args.workflow_id);
+        const alreadyCommitted=deployed.provenance?.kind==='workflow_conversion'
+          &&deployed.provenance.conversion?.source_revision===args.expected_revision
+          &&deployed.provenance.conversion?.proposal_hash===reviewIdentity.proposal_hash;
+        if(!alreadyCommitted){
+          requireValue(deployed.revision_hash===args.expected_revision,'REVISION_CONFLICT','Source Workflow changed before accepted conversion deployment');
+          const resources=await store.resources(args.workflow_id,args.expected_revision);
+          const expansionContext={...context,routing_rules:provenance.routing_rules,routing_catalog:provenance.routing_catalog};
+          const validated=validateGenerationProposal(state.nodes.expand.output,{pack:deployed,resources,provenance,context:expansionContext,previousPlan:record.state.generation_repair?.previous_proposal ?? null,repairFeedback:record.state.generation_repair?.feedback ?? null});
+          requireValue(validated.compiled.workflow.import_status.conversion_level!=='unsupported','CONVERSION_UNSUPPORTED','Unsupported source semantics cannot cross the deployable Workflow boundary');
+          const completion=await runtime.runs.readExecutorResult(args.run_id,attempt.id,attempt.result_proposal.sha256);
+          const review=evaluateReview(completion.structured_output,validated.proposal,resources,{version:CONVERSION_CONTRACT.version});
+          requireValue(review.approved&&review.findings.length===0,'GENERATION_REVIEW_BLOCKED','Checklist findings remain unresolved');
+          deployed=await applyExpansion(store,args.workflow_id,validated.proposal,{expected_revision:args.expected_revision,
+            context:expansionContext,inference_confirmation:automatic?'The Host completion policy and independent review receipt authorize this exact proposal.':'The authenticated Workbench acceptance is bound to this exact proposal and checklist review.',
+            conversion_review_contract_version:CONVERSION_CONTRACT.version,...(automatic?{inference_authority:'host',inference_receipt:acceptance}:{})});
+        } else if(automatic&&deployed.workflow.status==='draft') {
+          // A preflight can fail after committing the reviewed Draft but before
+          // cleanup starts. Reproject the same accepted artifact under corrected
+          // Host observation rules, without invoking models or overwriting edits.
+          const sourcePack=await store.snapshot(args.workflow_id,args.expected_revision);
+          const resources=await store.resources(args.workflow_id,args.expected_revision);
+          const expansionContext={...context,routing_rules:provenance.routing_rules,routing_catalog:provenance.routing_catalog};
+          const validated=validateGenerationProposal(state.nodes.expand.output,{pack:sourcePack,resources,provenance,context:expansionContext});
+          requireValue(validated.compiled.proposal_hash===reviewIdentity.proposal_hash,'AUTHORING_REVIEW_IDENTITY','Host reprojection changed the independently reviewed proposal');
+          const previousRevision=deployed.revision_hash;
+          deployed=await applyExpansion(store,args.workflow_id,validated.proposal,{expected_revision:previousRevision,source_revision:args.expected_revision,
+            context:expansionContext,inference_confirmation:'The Host completion policy and independent review receipt authorize this exact proposal.',
+            inference_authority:'host',inference_receipt:acceptance,conversion_review_contract_version:CONVERSION_CONTRACT.version});
+          if(deployed.revision_hash!==previousRevision)await appendAuditEvent(this.configPath,{event:'workflow-authoring-deployment-reproject',
+            run_id:args.run_id,workflow_id:args.workflow_id,source_revision:args.expected_revision,proposal_hash:reviewIdentity.proposal_hash,
+            previous_revision:previousRevision,deployed_revision:deployed.revision_hash});
+        }
+        if(automatic)await this.preflightAutomaticAuthoring(args,{store,context,deployed});
+        await Promise.all([this.strictManager.stopRun(args.run_id),this.managedNativeManager.stopRun(args.run_id),this.hostMainManager.stopRun(args.run_id)]);
+        const authoring_cleanup=await beginAcceptedAuthoringCleanup({configPath:this.configPath,store,runtime,context,record,deployed,service:this,controlToken:args.control_token});
+        if(automatic)return this.finishAutomaticAuthoring(args,{store,runtime,context});
+        return {...deployed,authoring_cleanup};
+  }
+
   async validationContext(store, workflow, context) {
-    const addHostBindingErrors = validation => {
-      const errors = hostToolBindingIssues(workflow, this.capabilities.hostToolRegistry ?? {});
+    const addHostBindingErrors = (validation, packs = [{workflow}]) => {
+      const errors = packs.flatMap(pack => hostToolBindingIssues(pack.workflow, this.capabilities.hostToolRegistry ?? {})
+        .map(error => ({...error, workflow_id:pack.workflow.id})));
       if (!errors.length) return validation;
       return { ...validation, valid: false, launch_ready: false, errors: [...validation.errors, ...errors] };
     };
@@ -814,15 +1422,15 @@ export class WorkflowService {
       const root = { workflow, resources: [], revision_hash: digest(canonicalJSON(workflow)) };
       const closure = await resolveWorkflowPins(store, root, { rootResources: {} });
       const resolved = { ...context, ...closure.context };
-      return { context: resolved, validation: addHostBindingErrors(validateWorkflowGraph(workflow, resolved)) };
+      return { context: resolved, validation: addHostBindingErrors(validateWorkflowGraph(workflow, resolved), closure.packs) };
     } catch (error) {
       return { context, validation: { valid: false, launch_ready: false, errors: [{ code: error.code ?? 'DEPENDENCY_RESOLUTION_FAILED', message: error.message }], blockers: [], order: [] } };
     }
   }
-  async open() {
+  async open(policy=undefined) {
     const config = await this.config();
     requireValue(config.version === 7, 'WORKFLOW_MIGRATION_REQUIRED', 'The user-owned configuration must migrate to v7 before Workflow execution');
-    const context = { providers: config.providers, ...(this.capabilities.context ?? {}) };
+    const context = { providers: config.providers, ...(this.capabilities.context ?? {}), check_runtime_requirements: true };
     // Provider authority always comes from the actual user config, never probes.
     context.providers = config.providers;
     context.environment = Object.keys(this.env).filter(key => Boolean(this.env[key]));
@@ -838,11 +1446,14 @@ export class WorkflowService {
     const storeRoot = insideRoot(dirname(this.configPath), join(dirname(this.configPath), config.workflow_store.relative_path));
     await noSymlinks(storeRoot); // A missing migrated generation is corruption, not an empty new library.
     const store = await new WorkflowStore(storeRoot, { validationContext: context }).initialize();
-    const providerIdentityMigrations = await migrateStoredWorkflowProviderIds(store);
-    const hostToolIdentityMigrations = await migrateStoredWorkflowHostToolIdentities(store);
-    context.roles=await activeRoleProfiles(this.defaultConfigPath,config.providers,store);
+    const providerIdentityMigrations = await observeForegroundPhase('pm', () => migrateStoredWorkflowProviderIds(store));
+    const hostToolIdentityMigrations = await observeForegroundPhase('hm', () => migrateStoredWorkflowHostToolIdentities(store));
+    // Only the Host's fixed execution routes can select this module-private
+    // policy. Public/direct opening and Role operations retain full validation.
+    if(policy!==WORKFLOW_EXECUTION_OPEN)
+      context.roles=await observeForegroundPhase('rp', () => activeRoleProfiles(config.providers,store));
     store.validationContext=context;
-    const runtime = await new WorkflowRuntime({ workflowStore: store, runRoot: join(dirname(this.configPath), 'workflow-runs'), context, executionAdmission: this.attemptAdmission,
+    const runtime = await new WorkflowRuntime({ workflowStore: store, runRoot: join(dirname(this.configPath), 'workflow-runs'), historyMaintenance: this.historyMaintenance.hook, context, executionAdmission: this.attemptAdmission,
       parallelManager: this.parallelManager, beforeStart: closure => this.prepareCodexRegistration(closure),
       environmentResolver:(requirements,options)=>discoverRuntimeEnvironment(requirements,{...options,env:this.env,registryPath:registryPathForConfig(this.configPath)}),
       environmentVerifier:(requirements,pinned)=>verifyRuntimeEnvironment(requirements,pinned,{env:this.env,registryPath:registryPathForConfig(this.configPath)}),
@@ -850,12 +1461,12 @@ export class WorkflowService {
       ...(this.capabilities.parallelWriteCapability ? { parallelWriteCapability: this.capabilities.parallelWriteCapability } : {}),
     }).initialize();
     const executor = new WorkflowExecutor({ runtime, getConfig: () => this.config(), registry: this.registry, strictManager: this.strictManager, managedNativeManager: this.managedNativeManager,
-      hostToolRunner: this.capabilities.hostToolRunner ?? new HostToolRunner({ registry: this.capabilities.hostToolRegistry ?? {}, env: this.env }), attemptAdmission: this.attemptAdmission, env: this.env, fetchImpl: this.fetchImpl });
+      hostToolRunner: this.capabilities.hostToolRunner ?? new HostToolRunner({ registry: this.capabilities.hostToolRegistry ?? {}, env: this.env }), attemptAdmission: this.attemptAdmission, nativeMainSelection:this.nativeMainSelection, env: this.env, fetchImpl: this.fetchImpl });
     const coordinator = new RunExecutionCoordinator({ admission: this.attemptAdmission, strictManager: this.strictManager,
       managedNativeManager: this.managedNativeManager, hostMainManager: this.hostMainManager, registry: this.registry });
     coordinator.bind(runtime);
-    runtime.fenceRunExecution = id => coordinator.fenceRun(id);
-    runtime.fenceAttemptExecution = (runId, nodeId, attemptId) => coordinator.fenceAttempt(runId, nodeId, attemptId);
+    runtime.fenceRunExecution = (id,foregroundFence) => coordinator.fenceRun(id,foregroundFence);
+    runtime.fenceAttemptExecution = (runId,nodeId,attemptId,foregroundFence) => coordinator.fenceAttempt(runId,nodeId,attemptId,foregroundFence);
     runtime.scheduleRunDrain = id => coordinator.scheduleDrain(id);
     runtime.failAttemptAfterQuiescence = (runId, args, error, options) => coordinator.failAttemptAfterQuiescence(runId, args, error, options);
     runtime.quiesceFailedOrigin = entry => coordinator.quiesceOrigin(entry);
@@ -865,33 +1476,222 @@ export class WorkflowService {
       host_tool_identity_migrations: hostToolIdentityMigrations.filter(item => item.status !== 'blocked'),
       host_tool_identity_issues: hostToolIdentityMigrations.filter(item => item.status === 'blocked') };
   }
-  modelResult(value){return modelNativeContinuationView(value);}
+  async #requestOpen(operation){
+    const request=executionRequests.getStore();
+    const execution=WORKFLOW_EXECUTION_OPERATIONS.has(operation);
+    const open=()=>observeForegroundPhase('op',()=>this.open(execution?WORKFLOW_EXECUTION_OPEN:undefined));
+    // Role and all other public operations preserve their original full opening.
+    if(!request?.active||!REQUEST_OPEN_OPERATIONS.has(operation))return open();
+    let entry;
+    try{
+      // Every transition still validates the actual current user configuration.
+      entry=request.services.get(this);
+      // Only initialization is shared; never serialize execution/authority work.
+      if(entry)await entry.pending;
+      if(!request.active)return open();
+      const config=await this.config(),basis=initializationBasis(this,config);
+      if(!request.active)return open();
+      // A sibling may have admitted initialization while this fresh read was
+      // pending. Re-enter against that exact entry rather than opening twice.
+      if(request.services.get(this)!==entry)return this.#requestOpen(operation);
+      if(!basis.reusable){request.services.delete(this);return observeForegroundPhase(basis.reason==='budget'?'ib':'ia',open);}
+      if(entry){
+        if(!sameInitializationBasis(entry.basis,basis)||(!execution&&!entry.full)){
+          request.services.delete(this);entry=null;
+        }
+      }
+      if(!entry){
+        entry={full:!execution,pending:null,basis:null,value:null};
+        request.services.set(this,entry);
+        entry.pending=(async()=>{
+          const value=await open();
+          const openedBasis=initializationBasis(this,value.config);
+          requireValue(sameInitializationBasis(basis,openedBasis),'WORKFLOW_REQUEST_INITIALIZATION_CHANGED',
+            'Workflow configuration, environment or capabilities changed during request initialization');
+          entry.basis=openedBasis;entry.value=value;
+          return value;
+        })();
+        return await entry.pending;
+      }
+      return await observeForegroundPhase('ir',async()=>{
+        // Retain original directory/link checks on every transition; no cached
+        // filesystem grant, Run, pins, authority, receipt or validation result.
+        await entry.value.store.initialize();await entry.value.runtime.initialize();
+        return {...entry.value,config};
+      });
+    }catch(error){if(request.services.get(this)===entry)request.services.delete(this);throw error;}
+  }
+  modelResult(value){return modelNativeContinuationView(value,this.invocationAdapters);}
+  async authorityReader(){
+    const config=await this.config();
+    requireValue(config.version===7,'WORKFLOW_MIGRATION_REQUIRED','The user-owned configuration must migrate to v7 before Workflow execution');
+    // Live authority reads do not need library migration or Role construction.
+    // The subsequent execution call still validates the current configuration.
+    return {runs:new WorkflowRunStore(join(dirname(this.configPath),'workflow-runs'))};
+  }
+  async withModelStartup(modelThreadId, startup, launch) {
+    requireValue(typeof modelThreadId === 'string' && /^[0-9a-f-]{36}$/i.test(modelThreadId),
+      'MODEL_THREAD_ID', 'Startup requires its authenticated initiating conversation');
+    requireValue(!['host_startup_sha256','host_startup_key'].some(key => Object.hasOwn(startup.args.constraints ?? {}, key)),
+      'WORKFLOW_STARTUP_FIELDS', 'Startup identity is Host-owned');
+    const identity = digest(canonicalJSON(startup));
+    // This gate is per initiating chat and independent of Run-store admission.
+    // Never hold the global store lock while launching or waiting for an Agent.
+    const gate = new WorkflowStore(join(dirname(this.configPath), 'workflow-startups', modelThreadId));
+    await gate.initialize();
+    return gate.withWriter(async () => {
+      const runtime = await this.authorityReader();
+      const records = await runtime.runs.listForThread(modelThreadId);
+      const active = records.filter(record =>
+        !['succeeded','failed','cancelled','interrupted'].includes(record.state.status));
+      requireValue(active.length <= 1, 'MODEL_RUN_AUTHORITY', 'More than one active Run is bound to this conversation');
+      let intent;
+      const key = startup.args.launch_key;
+      if (key) {
+        requireValue(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(key),
+          'WORKFLOW_STARTUP_FIELDS', 'Startup invocation identity must be a UUID');
+        const path = join(gate.root, `launch-${key}.json`);
+        try { await noSymlinks(path);const info=await lstat(path);
+          requireValue(info.isFile()&&info.nlink===1&&info.size<=4096,'WORKFLOW_STARTUP_INTENT','Startup intent must be one bounded regular file');
+          const bytes=await readFile(path);requireValue(bytes.length<=4096,'WORKFLOW_STARTUP_INTENT','Startup intent grew beyond its limit');
+          intent=JSON.parse(bytes.toString('utf8')); }
+        catch (error) { if (error.code !== 'ENOENT' || error.path !== path) throw error; }
+        if (intent) requireValue(intent.thread_id === modelThreadId && intent.sha256 === identity
+          && typeof intent.run_id === 'string' && /^[0-9a-f-]{36}$/.test(intent.run_id),
+          'WORKFLOW_STARTUP_CONFLICT', 'The retained invocation belongs to a different exact startup request');
+        else {
+          requireValue(!active.length, 'WORKFLOW_STARTUP_CONFLICT', 'This conversation already has a different active invocation');
+          intent = {thread_id:modelThreadId,sha256:identity,run_id:randomUUID(),published:false};
+          await writeDurableJSON(path, intent);
+        }
+      }
+      const record = intent ? records.find(record => record.state.run_id === intent.run_id) : active[0];
+      if (!record) {
+        requireValue(!active.length, 'WORKFLOW_STARTUP_CONFLICT', 'This conversation already has a different active invocation');
+        const publication=intent?await runtime.runs.startupPublication(intent.run_id):null;
+        if(publication)requireValue(publication.thread_id===modelThreadId&&publication.launch_key===key&&publication.sha256===identity,
+          'WORKFLOW_STARTUP_CONFLICT','The durable Run publication belongs to a different invocation');
+        requireValue(!publication,'WORKFLOW_STARTUP_HISTORY_REMOVED',
+          'This invocation committed publication but its Run is missing; inspect the outcome and generate a new invocation');
+        requireValue(!intent?.published,'WORKFLOW_STARTUP_HISTORY_REMOVED',
+          'This exact invocation was published and its history was removed; generate a new startup invocation');
+        try {
+          const launched=await launch(identity, intent?.run_id, key);
+          if(intent){requireValue(launched.run_id===intent.run_id,'WORKFLOW_STARTUP_IDENTITY','Launch returned a different reserved Run');
+            await writeDurableJSON(join(gate.root,`launch-${key}.json`),{...intent,published:true});}
+          return launched;
+        }catch(error){
+          if(intent)try{
+            // A tool failure after publication must not make the retry allocate
+            // another invocation or resurrect an already-removed outcome.
+            await runtime.runs.read(intent.run_id);
+            await writeDurableJSON(join(gate.root,`launch-${key}.json`),{...intent,published:true});
+          }catch(checkError){if(checkError.code!=='ENOENT'||checkError.path!==runtime.runs.directory(intent.run_id))
+            throw new AggregateError([error,checkError],'Startup failure and publication reconciliation failed');}
+          throw error;
+        }
+      }
+      requireValue(record.state.constraints?.host_startup_sha256 === identity,
+        'WORKFLOW_STARTUP_CONFLICT', 'An active Run in this conversation belongs to a different startup request');
+      const authority = await readOwnedAuthority(runtime, record.state.run_id);
+      if(intent&&!intent.published)await writeDurableJSON(join(gate.root,`launch-${key}.json`),{...intent,published:true});
+      return { ...await this.call('get',{run_id:record.state.run_id}), control_token: authority.control_token,
+        startup_rejoined: true, wake_reason: 'native_handoff_required', next_action: 'workflow_native_next' };
+    });
+  }
+  async modelStartedResult(value,{modelThreadId,signal,initialSemantic}={}){
+    return withRunStoreObservation(()=>this.#modelStartedResult(value,{modelThreadId,signal,initialSemantic}),report=>appendAuditEvent(this.configPath,
+      {event:'workflow-run-store-boundary',detail:canonicalJSON({operation:'startup_handoff',...report})}));
+  }
+  async #modelStartedResult(value,{modelThreadId,signal,initialSemantic}={}){
+    // A startup wait can end at a semantic boundary without having prepared
+    // its model packet. Resolve that relay inside this same authenticated call.
+    // Attention, terminal outcomes and Host failures retain their exact result.
+    if(value?.status!=='running' || value.wake_reason!=='native_handoff_required' || value.next_action!=='workflow_native_next'
+      || value.pending_approvals?.length || value.attention?.length
+      || ['failed','stale','audit_or_cleanup_failed'].includes(value.host_worker?.phase))return this.modelResult(value);
+    signal?.throwIfAborted();
+    const runtime=await this.authorityReader();
+    const authority=await readOwnedAuthorityForThread(runtime,modelThreadId,{onLookup:diagnostic=>appendAuditEvent(this.configPath,
+      {event:'workflow-model-authority-lookup',detail:canonicalJSON({thread_id:modelThreadId,...diagnostic})})});
+    requireValue(value.run_id===authority.run_id && (!value.next_action_args?.run_id || value.next_action_args.run_id===authority.run_id),
+      'RUN_IDENTITY','Startup handoff differs from the exact Run bound to this conversation');
+    requireValue((!value.control_token || value.control_token===authority.control_token)
+      && (!value.next_action_args?.control_token || value.next_action_args.control_token===authority.control_token),
+      'RUN_AUTHORITY','Startup handoff differs from its retained Host authority');
+    const expectedRunAuthority={run_id:authority.run_id,control_token:authority.control_token};
+    // This Host continuation already resolved the exact thread-bound authority.
+    // Reuse its identity, never its mutable state, through the private dispatch
+    // seam. Each operation still authorizes its current Run/attempt normally.
+    const options={model:true,modelThreadId,signal};
+    const next=()=>this.#nativeDrive(expectedRunAuthority,options,async()=>modelNativeContinuationView(
+      await this.#call('native_next',expectedRunAuthority,options),this.invocationAdapters));
+    if(initialSemantic){
+      const record=await runtime.runs.read(authority.run_id),node=startupSemanticNode(record.pins.root);
+      requireValue(record.state.workflow_revision===initialSemantic.revision_hash&&node.id===initialSemantic.node_id,
+        'WORKFLOW_STARTUP_IDENTITY','The actual startup node or pinned revision differs from its semantic contract');
+      if (value.startup_rejoined && record.state.nodes[node.id]?.status === 'succeeded')
+        return next();
+      const prepared=await next();
+      requireValue(prepared?.status==='orchestration_handoff','WORKFLOW_STARTUP_BOUNDARY','Initial semantics cannot skip another execution boundary');
+      const current=await runtime.runs.read(authority.run_id);
+      requireValue(current.state.nodes[node.id]?.status==='running'&&current.state.nodes[node.id].attempts.length===1,
+        'WORKFLOW_STARTUP_IDENTITY','The initial semantic submission requires its exact first active attempt');
+      // This is the same current-Main semantic completion, within the caller's
+      // start call. Its original checker, scope audit and metering stay intact.
+      return modelNativeContinuationView(await this.#call('orchestration_complete',{...expectedRunAuthority,output:initialSemantic.output}, {...options,
+        expectedOrchestration:{node_id:node.id,attempt_id:current.state.nodes[node.id].active_attempt_id}}),this.invocationAdapters);
+    }
+    return next();
+  }
   async call(operation,args={},options={}) {
+    return withRunStoreObservation(()=>this.#publicCall(operation,args,options),report=>appendAuditEvent(this.configPath,
+      {event:'workflow-run-store-boundary',detail:canonicalJSON({operation,...report})}));
+  }
+  async #publicCall(operation,args={},options={}) {
     if(options.model&&(MODEL_NATIVE_CONTINUATIONS.has(operation) || operation === 'orchestration_complete')){
-      requireValue(args&& (operation === 'orchestration_complete' ? Object.keys(args).length === 1 && Object.hasOwn(args,'output') : Object.keys(args).length===0),'MODEL_CONTINUATION_FIELDS',
-        'Model-facing Workflow continuation is argumentless; the Host owns every Run and receipt field');
-      const {runtime}=await this.open();
-      const authority=await readOwnedAuthorityForThread(runtime,options.modelThreadId);
+      requireValue(args&& (operation === 'orchestration_complete' ? Object.keys(args).length === 1 && Object.hasOwn(args,'output')
+        :operation==='native_spawned_batch'?Object.keys(args).every(key=>key==='batch_id')&&
+          (args.batch_id===undefined||typeof args.batch_id==='string'&&/^[a-f0-9]{64}$/.test(args.batch_id))
+          :Object.keys(args).length===0),'MODEL_CONTINUATION_FIELDS',
+        'The Host owns every Run and receipt field; native acknowledgement accepts only its fixed adapter batch identity');
+      const runtime=await this.authorityReader();
+      const authority=await readOwnedAuthorityForThread(runtime,options.modelThreadId,{onLookup:diagnostic=>appendAuditEvent(this.configPath,
+        {event:'workflow-model-authority-lookup',detail:canonicalJSON({thread_id:options.modelThreadId,...diagnostic})})});
+      // A Host startup continuation is pinned before this second lookup. A
+      // newer Run or recovered token must never inherit that earlier call.
+      if(options.expectedRunAuthority){
+        requireValue(authority.run_id===options.expectedRunAuthority.run_id,'RUN_IDENTITY','Workflow continuation resolved another Run after startup');
+        requireValue(authority.control_token===options.expectedRunAuthority.control_token,'RUN_AUTHORITY','Workflow continuation authority changed after startup');
+      }
       args={...args,run_id:authority.run_id,control_token:authority.control_token};
     }
     const invoke=async()=>{
-      const result=await this.#call(operation,args,options);
-      return options.model?modelNativeContinuationView(result):result;
+      try{
+        const result=await this.#call(operation,args,options);
+        return options.model?modelNativeContinuationView(result,this.invocationAdapters):result;
+      }catch(error){executionRequests.getStore()?.services.delete(this);throw error;}
     };
     if(operation!=='native_next')return invoke();
+    return this.#nativeDrive(args,options,invoke);
+  }
+  async #nativeDrive(args,options,invoke){
+    const operation='native_next';
     const configKey=process.platform==='win32'?this.configPath.toLowerCase():this.configPath;
     const key=JSON.stringify([configKey,args.run_id]);
     requireValue(!nativeDriveOwners.has(key),'NATIVE_AGENT_WAIT_ACTIVE',
       'This Run already has an active native collection call; await its bounded result without dispatching replacement Agents');
     const owner={operation};nativeDriveOwners.set(key,owner);
-    try {return await invoke();}
+    try {return await withNativeAgentObserverDrive(invoke,{env:this.env,
+      onObservation:report=>appendAuditEvent(this.configPath,{event:'workflow-native-observer-drive',
+        detail:canonicalJSON({run_id:args.run_id,operation,...report})})});}
     finally {if(nativeDriveOwners.get(key)===owner)nativeDriveOwners.delete(key);}
   }
-  async #call(operation, args = {}, { human = false, model = false, modelThreadId, bridgeHooks = null, signal } = {}) {
+  async #call(operation, args = {}, { human = false, model = false, modelThreadId, bridgeHooks = null, signal, expectedOrchestration, expectedNativeSpawnBatch } = {}) {
     if (operation === 'migrate_v6') { requireValue(human, 'HUMAN_CONFIGURATION_REQUIRED', 'Migration is a user-owned console action'); await this.config(); return migrateV6OnDisk({ configPath: this.configPath }); }
     if (operation === 'restore_v6') { requireValue(human, 'HUMAN_CONFIGURATION_REQUIRED', 'Backup restoration is a user-owned console action'); return restoreV6Backup({ configPath: this.configPath, expected_current_sha256: args.expected_current_sha256 }); }
     const conversationalRecovery = operation === 'recover_control' ? conversationControlRecoveryRequest(args) : null;
-    const { config, context, store, runtime, executor, coordinator, drive, hostMainManager } = await this.open();
+    const { config, context, store, runtime, executor, coordinator, drive, hostMainManager } = await this.#requestOpen(operation);
     if(human && !args.control_token && ['approve','cancel','continue_main','accept_main'].includes(operation)) {
       const authority=await readOwnedAuthority(runtime,args.run_id);
       args={...args,control_token:authority.control_token,...(operation==='continue_main'?{owner:authority.owner,host_owned:true}:{})};
@@ -902,14 +1702,39 @@ export class WorkflowService {
       requireValue(definition?.executor?.kind!=='main','HOST_MAIN_LIFECYCLE_REQUIRED','Main lifecycle is owned by its Host execution mode');
     }
     switch (operation) {
+      case 'startup_contract': {
+        const pack=await store.snapshot(args.workflow_id);
+        const contract=startupSemanticContract(pack);
+        const typed=Object.hasOwn(args,'initial_output'),{initial_output,...startupArgs}=args;
+        workflowCallArguments('workflow_start',startupArgs);
+        if(typed)validateData(initial_output,contract.response_schema);
+        const resources=await store.resources(args.workflow_id,pack.revision_hash);
+        const request=await loadWorkflowInputsFile(startupArgs,{model});
+        const permissions=runPermissions(request);await noSymlinks(permissions.workspace);
+        const effectiveInputs=effectiveRunInputs(request.inputs??{},pack.workflow.inputs_schema,permissions);
+        const inputs=resolveBindings(contract.input_bindings,{inputs:effectiveInputs});
+        let inlineBytes=0;
+        contract.resources=contract.resources.map(resource=>{
+          const bytes=resources[resource.path];requireValue(bytes&&bytes.length===resource.bytes&&digest(bytes)===resource.sha256,'WORKFLOW_STARTUP_RESOURCE','Initial semantic resource bytes changed');
+          if(!/\.(?:md|txt|rst)$/i.test(resource.path)||bytes.length>8192||inlineBytes+bytes.length>8192)return resource;
+          inlineBytes+=bytes.length;return {...resource,content:new TextDecoder('utf-8',{fatal:true}).decode(bytes)};
+        });
+        const startup_reference=await createPreparedStartup(this.configPath,
+          {...startupArgs,startup_inputs_sha256:digest(canonicalJSON(request.inputs??{})),revision_hash:pack.revision_hash,launch_key:randomUUID()},
+          {typed,invocationTransport:this.invocationTransport,...(typed?{initialOutput:initial_output}:{})});
+        return {...contract,inputs,startup_reference,model_invocations:0,runs_started:0,
+          startup_binding:'exact_revision_and_inputs',
+          invocation_adapter:this.invocationAdapters.startupReference(startup_reference,typed)};
+      }
       case 'role_templates': {
-        const packs=await store.list(),customizations=builtinRoleCustomizations(packs);
-        const roles=(await bundledRoles(this.defaultConfigPath,config.providers)).map(({item,stage,provider,id,revision_hash})=>{
+        const packs=await storedRolePacks(store),customizations=builtinRoleCustomizations(packs);
+        const roles=(await bundledRoles(config.providers)).map(({item,stage,provider,id,revision_hash})=>{
           const pack=customizations.get(id),customization=pack?storedRoleDescriptor(pack,config.providers):null;
           const active=customization?.status==='ready'?customization:null;
           return {id,name:active?pack.workflow.name:item.name,description:active?pack.workflow.description:item.description,tags:active?pack.workflow.tags:item.tags,role:active?active.node.role:stage.role,
             template_kind:'role',revision_hash:active?active.revision_hash:revision_hash,access:active?active.node.access:stage.access,
             provider_id:active?active.provider_id:provider.id,provider_kind:active?active.provider?.kind:provider.kind,
+            provider_description:(active?active.provider:provider)?.description??null,
             model:active?active.model:roleProviderModel(provider),
             reasoning_effort:active?active.reasoning_effort:provider.config?.reasoning_effort??null,
             enabled:active?active.enabled:item.enabled!==false,default_enabled:item.enabled!==false,
@@ -922,16 +1747,16 @@ export class WorkflowService {
           const provider=config.providers.find(item=>item.id===node.executor?.provider_id);
           roles.push({id:pack.workflow.id,name:pack.workflow.name,description:pack.workflow.description,tags:pack.workflow.tags,revision_hash:pack.revision_hash,role:node.role,access:node.access,
             enabled:pack.workflow.enabled!==false,provider_enabled:roleProviderAvailable(provider,node.access),provider_id:provider?.id??node.executor?.provider_id??null,
-            provider_kind:provider?.kind??null,model:roleProviderModel(provider),reasoning_effort:provider?.config?.reasoning_effort??null,builtin:false});
+            provider_kind:provider?.kind??null,provider_description:provider?.description??null,model:roleProviderModel(provider),reasoning_effort:provider?.config?.reasoning_effort??null,builtin:false});
         }
         return roles;
       }
       case 'customize_role': {
         requireValue(human,'HUMAN_CONFIGURATION_REQUIRED','Built-in Role customization belongs to the human console');
         requireValue(typeof args.workflow_id==='string'&&args.workflow_id.startsWith(BUILTIN_ROLE_PREFIX),'ROLE_TEMPLATE_MISSING','Select a built-in Role to customize');
-        const entry=(await bundledRoles(this.defaultConfigPath,config.providers)).find(item=>item.id===args.workflow_id);
+        const entry=(await bundledRoles(config.providers)).find(item=>item.id===args.workflow_id);
         requireValue(entry,'ROLE_TEMPLATE_MISSING','Built-in role is unavailable');
-        const customization=builtinRoleCustomizations(await store.list()).get(entry.id);
+        const customization=builtinRoleCustomizations(await storedRolePacks(store)).get(entry.id);
         if(customization)return store.snapshot(customization.workflow.id);
         const workflowId=`role-${entry.item.id}`;
         const compiled=compileWorkflowBrief({kind:'brief',template_kind:'role',workflow_id:workflowId,
@@ -962,9 +1787,9 @@ export class WorkflowService {
         };
         requireValue(typeof args.task==='string'&&args.task.trim()&&args.task.length<=30000,'ROLE_TASK','Role task must be nonempty and bounded');
         if(args.workflow_id.startsWith(BUILTIN_ROLE_PREFIX)){
-          const entry=(await bundledRoles(this.defaultConfigPath,config.providers)).find(item=>item.id===args.workflow_id);
+          const entry=(await bundledRoles(config.providers)).find(item=>item.id===args.workflow_id);
           requireValue(entry,'ROLE_TEMPLATE_MISSING','Built-in role is unavailable');
-          const customization=builtinRoleCustomizations(await store.list()).get(entry.id);
+          const customization=builtinRoleCustomizations(await storedRolePacks(store)).get(entry.id);
           if(customization?.workflow.status==='ready'){
             requireValue(!args.revision_hash||args.revision_hash===customization.revision_hash,'ROLE_REVISION','Built-in Role customization revision has changed');
             const node=roleNode(customization),unchanged=node.prompt_template===entry.stage.template;
@@ -1044,6 +1869,10 @@ export class WorkflowService {
         const job=authoringRunPack(pack,await store.resources(args.workflow_id,pack.revision_hash),bindings.planner,'generation-preview',pinnedRules,true,bindings.reviewer,config.providers,template);
         return {invoked:false,source_revision:pack.revision_hash,authoring_pipeline:structuredClone(template.workflow.authoring.pipeline),generator:job.workflow.nodes.find(n=>n.id==='expand').prompt_template,reviewer:job.workflow.nodes.find(n=>n.id==='final').prompt_template,model_resource_paths:job.workflow.nodes.filter(n=>n.type==='agent').map(n=>({node_id:n.id,paths:n.resources})),shared_request:job.resources['analysis/request.txt'],review_request:job.resources['analysis/review-request.txt'],output_schemas:Object.fromEntries(job.workflow.nodes.filter(n=>n.outputs_schema).map(n=>[n.id,n.outputs_schema])),runtime_context:'The planner fills only semantic inventory fields from its concise role packet. The Host then assembles the graph, binds schemas/executors/permissions, validates cycles/reachability/contracts, and records a pipeline trace before the reviewer receives its separate exhaustive packet. Execution additionally supplies actual upstream results, output schema and any previous repair feedback. This preview does not invoke a model.'};
       }
+      case 'authoring_preview': {
+        requireValue(human,'HUMAN_GENERATION','Saved authoring evidence belongs to the human Workbench');
+        return discoverAuthoringPreview(runtime,args,{store,context});
+      }
       case 'start_authoring': {
         requireValue(human,'HUMAN_GENERATION','Start automatic generation from the console');
         requireValue(config.global.enabled && !isEnvironmentDisabled(this.env),'CONTROL_DISABLED','Workflow execution is disabled');
@@ -1093,6 +1922,10 @@ export class WorkflowService {
         try { strict = { available: true, qualification: codexQualification(await qualifiedStrictSettings(config, this.env)) }; }
         catch (error) { strict = { available: false, code: error.code ?? 'STRICT_UNAVAILABLE', message: error.message, ...(error.capability?{capability:error.capability}:{}) }; }
         return { strict: { ...strict, authentication: config.strict_executor.authentication.mode },
+          ...(human ? { run_history_maintenance: await this.historyMaintenance.status() } : {}),
+          invocation_transport:this.invocationTransport,
+          ...(this.invocationTransport==='code_mode'?{legacy_code_mode_invocation_defaults:{...WORKFLOW_CALL_DEFAULTS}}:{}),
+          startup_invocation_adapter: this.invocationAdapters.call('workflow_start'),
           tools: context.tools, mcp_servers: context.mcp_servers ?? [], executables: context.executables ?? [], parallel_write: 'qualified Strict broker with Git worktrees', boundary: 'application catalog, explicit Skill input and broker; not an OS ACL' };
       }
       case 'routing_defaults': return loadRoutingSettings(dirname(this.configPath),config.providers);
@@ -1162,59 +1995,26 @@ export class WorkflowService {
         const bindings=storedAuthoringBindings(template.workflow,config.providers);
         if(args.provider_id)requireValue(args.provider_id===bindings.planner.id,'AUTHORING_WORKFLOW_PROVIDER','Planner Provider must match the stored authoring Workflow');
         const pinnedRules={...rules,generation:{...(rules.generation ?? {}),planner_provider_id:bindings.planner.id,review_provider_id:bindings.reviewer.id,max_rounds:bindings.maxRounds}};
-        const job = authoringRunPack(pack, await store.resources(args.workflow_id, pack.revision_hash), bindings.planner, args.run_id, pinnedRules, args.automatic_generation === true, bindings.reviewer,config.providers,template);
+        const job = authoringRunPack(pack, await store.resources(args.workflow_id, pack.revision_hash), bindings.planner, args.run_id, pinnedRules, args.automatic_generation === true, bindings.reviewer,config.providers,template,args.completion_policy);
+        await this.prepareCodexRegistration({packs:[job],provider_ids:job.workflow.requirements.providers});
         await this.strictManager.capability({ ...job, resources: prepareResources(job.resources).manifest }, config.providers);
         const jobs = await new WorkflowStore(join(dirname(this.configPath), 'workflow-expansion-jobs'), { validationContext: context }).initialize();
         // The reviewer binding is part of every authoring Run.  The automatic
         // flag controls bounded Host advancement/repair only; it must not make
         // a manually driven Run silently fall back to the generic main model.
-        const planning = await new WorkflowRuntime({ generationPolicy:args.automatic_generation === true ? {settings:job.provenance.generation,reviewer:bindings.reviewer} : null, authoringReviewer:bindings.reviewer, workflowStore: jobs, runRoot: runtime.runs.root, context, beforeStart: closure => this.prepareCodexRegistration(closure), strictCapability: async definition => { await this.strictManager.capability(definition, config.providers); return true; } }).initialize();
+        const planning = await new WorkflowRuntime({ generationPolicy:args.automatic_generation === true ? {settings:job.provenance.generation,reviewer:bindings.reviewer} : null, authoringReviewer:bindings.reviewer, workflowStore: jobs, runRoot: runtime.runs.root, historyMaintenance: this.historyMaintenance.hook, context, beforeStart: closure => this.prepareCodexRegistration(closure), strictCapability: async definition => { await this.strictManager.capability(definition, config.providers); return true; } }).initialize();
         return store.withWriter(async()=>{
           const current=await store.snapshot(args.workflow_id);
           requireValue(current.revision_hash===pack.revision_hash,'REVISION_CONFLICT','Private authoring source changed before its Run was registered');
           const saved = await jobs.create(job.workflow, job);
-          return planning.start({ workflow_id: saved.workflow.id, revision_hash: saved.revision_hash, run_id: args.run_id,
+          const run=await planning.start({ workflow_id: saved.workflow.id, revision_hash: saved.revision_hash, run_id: args.run_id,
             workspace: args.workspace, main_actor: args.main_actor, access: 'read_only', inputs: { task: 'Analyze this pinned Skill into an editable Draft' } });
+          return model?authoringControllerContinuation(run,run):run;
         });
       }
       case 'apply_authoring_result': {
         requireValue(human,'HUMAN_GENERATION','Applying an accepted authoring result belongs to the authenticated human console');
-        const state = await runtime.authorizeController(args.run_id, args);
-        requireValue(state.status === 'succeeded', 'EXPANSION_ACCEPTANCE_REQUIRED', 'Expansion Run needs main-controller acceptance before applying its proposal');
-        const record = await runtime.runs.read(args.run_id); const {pins}=record,provenance = pins.root.provenance;
-        requireValue(isAuthoringRunProvenance(provenance) && provenance.source_workflow_id === args.workflow_id && provenance.source_revision === args.expected_revision,
-          'EXPANSION_RESULT_IDENTITY', 'Expansion result belongs to a different source Workflow revision');
-        requireValue(provenance.review_contract_version===CONVERSION_CONTRACT.version,'CONVERSION_REVIEW_CONTRACT_STALE','Historical authoring Runs remain readable but must be rerun under the current conversion contract before mutation');
-        const final=state.nodes.final;const attempt=final.attempts.find(a=>a.id===final.active_attempt_id);
-        const reviewIdentity=authoringReviewIdentity(record),acceptedIdentity=attempt?.human_acceptance?{proposal_hash:attempt.human_acceptance.proposal_hash,source_revision:attempt.human_acceptance.source_revision,expand_attempt_id:attempt.human_acceptance.expand_attempt_id}:null;
-        requireValue(attempt?.result_proposal && attempt.human_acceptance?.review_result_sha256===attempt.result_proposal.sha256 && canonicalJSON(acceptedIdentity)===canonicalJSON(reviewIdentity),'GENERATION_REVIEW_BLOCKED','A durable human acceptance receipt for this exact proposal and checklist review is required');
-        let deployed=await store.snapshot(args.workflow_id);
-        const alreadyCommitted=deployed.provenance?.kind==='workflow_conversion'
-          &&deployed.provenance.conversion?.source_revision===args.expected_revision
-          &&deployed.provenance.conversion?.proposal_hash===reviewIdentity.proposal_hash;
-        if(!alreadyCommitted){
-          requireValue(deployed.revision_hash===args.expected_revision,'REVISION_CONFLICT','Source Workflow changed before accepted conversion deployment');
-          const resources=await store.resources(args.workflow_id,args.expected_revision);
-          const expansionContext={...context,routing_rules:provenance.routing_rules,routing_catalog:provenance.routing_catalog};
-          const validated=validateGenerationProposal(state.nodes.expand.output,{pack:deployed,resources,provenance,context:expansionContext,previousPlan:record.state.generation_repair?.previous_proposal ?? null,repairFeedback:record.state.generation_repair?.feedback ?? null});
-          requireValue(validated.compiled.workflow.import_status.conversion_level!=='unsupported','CONVERSION_UNSUPPORTED','Unsupported source semantics cannot cross the deployable Workflow boundary');
-          const completion=await runtime.runs.readExecutorResult(args.run_id,attempt.id,attempt.result_proposal.sha256);
-          const review=evaluateReview(completion.structured_output,validated.proposal,resources,{version:CONVERSION_CONTRACT.version});
-          requireValue(review.approved,'GENERATION_REVIEW_BLOCKED','Checklist findings remain unresolved');
-          try{
-            deployed=await applyExpansion(store,args.workflow_id,validated.proposal,{expected_revision:args.expected_revision,
-              context:expansionContext,inference_confirmation:'The authenticated Workbench acceptance is bound to this exact proposal and checklist review.',
-              conversion_review_contract_version:CONVERSION_CONTRACT.version});
-          }catch(cause){
-            const committed=await store.snapshot(args.workflow_id);
-            if(!(committed.provenance?.kind==='workflow_conversion'&&committed.provenance.conversion?.source_revision===args.expected_revision
-              &&committed.provenance.conversion?.proposal_hash===reviewIdentity.proposal_hash))throw cause;
-            deployed=committed;
-          }
-        }
-        await Promise.all([this.strictManager.stopRun(args.run_id),this.managedNativeManager.stopRun(args.run_id),this.hostMainManager.stopRun(args.run_id)]);
-        const authoring_cleanup=await beginAcceptedAuthoringCleanup({configPath:this.configPath,store,runtime,context,record,deployed,controlToken:args.control_token});
-        return {...deployed,authoring_cleanup};
+        return this.applyAcceptedAuthoringResult(args,{store,runtime,context});
       }
       case 'purge_authoring_artifacts': {
         requireValue(human,'HUMAN_GENERATION','Private authoring cleanup belongs to the authenticated human console');
@@ -1222,8 +2022,11 @@ export class WorkflowService {
         const journal=await store.readAuthoringCleanup(args.workflow_id,args.run_id);
         requireValue(journal&&journal.identity?.control_hash===digest(args.control_token),'RUN_AUTHORITY','Cleanup retry needs the exact retained transaction authority');
         const deployed=await store.snapshot(args.workflow_id,journal.identity.deployed_revision);
+        if(journal.identity.completion_policy?.mode==='automatic')await this.preflightAutomaticAuthoring(args,{store,context,deployed});
         await Promise.all([this.strictManager.stopRun(args.run_id),this.managedNativeManager.stopRun(args.run_id),this.hostMainManager.stopRun(args.run_id)]);
-        return continueAcceptedAuthoringCleanup({configPath:this.configPath,store,runtime,context,journal,deployed});
+        const cleanup=await continueAcceptedAuthoringCleanup({configPath:this.configPath,store,runtime,context,journal,deployed,service:this});
+        if(journal.identity.completion_policy?.mode==='automatic')return this.finishAutomaticAuthoring(args,{store,runtime,context});
+        return cleanup;
       }
       case 'list': {
         await this.ensureAuthoringWorkflows(store,config);
@@ -1236,7 +2039,7 @@ export class WorkflowService {
         for(const pack of await store.list()){
           if(pack.workflow.status!=='ready'||pack.workflow.enabled===false||pack.provenance?.kind==='bundled_authoring_workflow')continue;
           const checked=await this.validationContext(store,pack.workflow,context);
-          if(checked.validation.valid)eligible.push(pack);
+          if(checked.validation.launch_ready)eligible.push(pack);
         }
         return routeReadyWorkflows(eligible,args.task,{limit:args.limit ?? 5});
       }
@@ -1251,15 +2054,16 @@ export class WorkflowService {
       case 'publish': {
         const pack = await store.snapshot(args.workflow_id, args.expected_revision);
         if(AUTHORING_WORKFLOWS.some(item=>item.id===args.workflow_id))validateStoredAuthoringWorkflow({...pack.workflow,status:'ready'},config.providers,{requireReady:false});
+        certificateForPublishedWorkflow({...pack,workflow:publishableEditorWorkflow(pack.workflow)});
         const checked = await this.validationContext(store, { ...publishableEditorWorkflow(pack.workflow), status: 'ready' }, context);
-        requireValue(checked.validation.valid, 'WORKFLOW_NOT_READY', 'Workflow structure or dependencies are invalid', { validation: checked.validation }); store.validationContext = checked.context;
+        requireValue(checked.validation.launch_ready, 'WORKFLOW_NOT_READY', 'Workflow is not launch ready', { validation: checked.validation }); store.validationContext = checked.context;
         return publishEditorWorkflow(store, args);
       }
       case 'validate': return (await this.validationContext(store, args.workflow, context)).validation;
       case 'create': {
         if (args.workflow.status === 'ready') {
           const checked = await this.validationContext(store, args.workflow, context);
-          requireValue(checked.validation.valid, 'WORKFLOW_NOT_READY', 'Workflow dependencies or structure are invalid', { validation: checked.validation }); store.validationContext = checked.context;
+          requireValue(checked.validation.launch_ready, 'WORKFLOW_NOT_READY', 'Workflow dependencies or structure are invalid', { validation: checked.validation }); store.validationContext = checked.context;
         }
         return store.create(args.workflow, { resources: args.resources, provenance: args.provenance, import_report: args.import_report });
       }
@@ -1288,7 +2092,15 @@ export class WorkflowService {
       case 'prepare_environment': {
         const pack=await store.snapshot(args.workflow_id,args.revision_hash);
         const closure=await resolveWorkflowPins(store,pack);
-        return runtime.environmentResolver({executables:[...closure.packs.flatMap(item=>item.workflow.requirements.executables??[]), ...closure.skills.flatMap(skill=>skill.requirements.executables??[])]},{extraDirectories:args.environment_directories??[]});
+        const environment=await runtime.environmentResolver({executables:[...closure.packs.flatMap(item=>item.workflow.requirements.executables??[]), ...closure.skills.flatMap(skill=>skill.requirements.executables??[])]},{extraDirectories:args.environment_directories??[]});
+        if(environment.status==='ready')await this.prepareCodexRegistration(closure);
+        if(model)return {status:environment.status,requirements:environment.requirements,
+          tools:environment.tools.map(tool=>({name:tool.name,status:tool.status,path:tool.path,
+            ...(tool.status==='missing'&&tool.rejections?{rejections:tool.rejections}:{})})),
+          missing:environment.missing,installation_performed:environment.installation_performed,
+          searched_directory_count:environment.searched_directories.length,
+          next_action:environment.status==='ready'?'Start the Workflow directly; startup owns dependency verification and registration.':environment.next_action};
+        return environment;
       }
       case 'runtime_dependencies': return readHostRuntimeRegistry(registryPathForConfig(this.configPath));
       case 'register_runtime_dependency': {
@@ -1299,7 +2111,9 @@ export class WorkflowService {
         requireValue(human, 'HUMAN_CONFIGURATION_REQUIRED', 'Local dependency discovery belongs to the authenticated console');
         return runtime.environmentResolver({executables:args.executables??[]},{extraDirectories:args.environment_directories??[]});
       }
-      case 'recheck_runtime_environment': return runtime.ensureRuntimeEnvironment(args.run_id,{control_token:args.control_token,extraDirectories:args.environment_directories??[]});
+      case 'recheck_runtime_environment': {const record=await runtime.runs.read(args.run_id);
+        return runtime.ensureRuntimeEnvironment(args.run_id,{control_token:args.control_token,expected_sequence:record.sequence,
+          node_id:record.state.environment_attention?.node_id,extraDirectories:args.environment_directories??[]});}
       case 'start': {
         let request = { ...args };
         request=await loadWorkflowInputsFile(request,{model});
@@ -1313,13 +2127,13 @@ export class WorkflowService {
           requireValue(authoringWorkflowForPack(sourcePack).id===systemAuthoring.id,'AUTHORING_WORKFLOW_SOURCE','Selected system authoring Workflow does not accept this source kind');
           const runId=workflowId(request.run_id ?? randomUUID());
           const workspace=await ensureDirectory(join(dirname(this.configPath),'skill-generation-workspaces','job-'+runId));
-          return this.call('create_authoring_run',{workflow_id:sourceId,revision_hash:sourcePack.revision_hash,authoring_workflow_id:systemAuthoring.id,authoring_workflow_revision:launchPack.revision_hash,run_id:runId,workspace,routing_rules:await loadRoutingSettings(dirname(this.configPath),config.providers),automatic_generation:true,main_actor:request.main_actor ?? 'workflow-authoring-controller'},{human,model});
+          return this.call('create_authoring_run',{workflow_id:sourceId,revision_hash:sourcePack.revision_hash,authoring_workflow_id:systemAuthoring.id,authoring_workflow_revision:launchPack.revision_hash,run_id:runId,workspace,routing_rules:await loadRoutingSettings(dirname(this.configPath),config.providers),automatic_generation:true,completion_policy:args.completion_policy,main_actor:request.main_actor ?? 'workflow-authoring-controller'},{human,model});
         }
         if (model && launchPack.workflow.nodes.some(node => node.executor?.kind === 'main')) {
           requireValue(false, 'HOST_MAIN_BRIDGE_REQUIRED', 'This Workflow contains current-main semantic nodes, but the model MCP boundary has no trusted Host delivery/return bridge. No Run was started.');
         }
-        requireHostToolBindings(launchPack.workflow, this.capabilities.hostToolRegistry ?? {});
         const launchClosure=await resolveWorkflowPins(store,launchPack);
+        for(const pack of launchClosure.packs)requireHostToolBindings(pack.workflow, this.capabilities.hostToolRegistry ?? {});
         const environment=await runtime.environmentResolver({executables:[...launchClosure.packs.flatMap(item=>item.workflow.requirements.executables??[]),...launchClosure.skills.flatMap(skill=>skill.requirements.executables??[])]},{extraDirectories:request.environment_directories??[],knownDirectories:workspaceRuntimeDirectories(request.workspace)});
         requireValue(environment.status==='ready','ENVIRONMENT_SETUP_REQUIRED','请先准备运行依赖；安装前需要用户同意。',{environment});
         request.revision_hash=launchPack.revision_hash;
@@ -1350,10 +2164,10 @@ export class WorkflowService {
       }
       case 'begin_main':
       case 'run_main': {
-        const pack = await store.snapshot(args.workflow_id, args.revision_hash);
+        const {snapshot:pack,resources:rootResources}=await store.snapshotWithResources(args.workflow_id,args.revision_hash);
         requireValue(templateKind(pack)==='workflow','ROLE_NOT_RUNNABLE','Role templates are assigned to one agent, not started as Workflow Runs');
-        requireHostToolBindings(pack.workflow, this.capabilities.hostToolRegistry ?? {});
-        const closure = await resolveWorkflowPins(store, pack);
+        const closure = await resolveWorkflowPins(store, pack, {rootResources});
+        for(const pinned of closure.packs)requireHostToolBindings(pinned.workflow, this.capabilities.hostToolRegistry ?? {});
         const environment = await runtime.environmentResolver({ executables: [...closure.packs.flatMap(item => item.workflow.requirements.executables ?? []), ...closure.skills.flatMap(skill => skill.requirements.executables ?? [])] }, { extraDirectories: args.environment_directories ?? [],knownDirectories:workspaceRuntimeDirectories(args.workspace) });
         if (environment.status !== 'ready') return { status: 'environment_attention', environment: { status: environment.status, tools: environment.tools, missing: environment.missing, next_action: environment.next_action } };
         const { detached_host, ...launchArgs } = args;
@@ -1363,9 +2177,7 @@ export class WorkflowService {
         if(parent)request.constraints={...request.constraints,native_parent_thread_id:parent};
         requireValue(!closure.packs.some(item => hasOrchestrationMain(item.workflow)) || parent, 'MAIN_ORCHESTRATION_CONTEXT', 'Start this Workflow from the current Codex conversation: orchestration needs its existing working context. No Run was started.');
         if(args.native_bridge===true)await this.nativeParentVerifier(parent);
-        if (operation === 'run_main' && (args.return_after_start === true || args.native_bridge === true)
-          && pack.workflow.nodes.some(isWorkerMain)) await hostMainManager.qualify(config, this.env);
-        const run = await runtime.start(request,{preparedEnvironment:environment});
+        const run = await runtime.start(request,{preparedEnvironment:environment,retainHostAuthority:Boolean(parent)});
         if (parent) await retainOwnedAuthority(runtime, run);
         if (bridgeHooks?.runStarted) await bridgeHooks.runStarted({ run_id: run.run_id, control_token: run.control_token });
         if (operation === 'run_main' && args.return_after_start === true) {
@@ -1374,7 +2186,7 @@ export class WorkflowService {
             status_check:{tool:'workflow_get',arguments:{run_id:run.run_id}}};
           if (detached_host === true) {
             try {
-              await retainOwnedAuthority(runtime,run);
+              if(!parent)await retainOwnedAuthority(runtime,run);
               return await (this.capabilities.launchDetachedHostMain ?? launchDetachedHostMain)({
                 configPath: this.configPath, defaultConfigPath: this.defaultConfigPath,
                 runId: run.run_id, controlToken: run.control_token, owner: request.main_actor, env: this.env,
@@ -1421,7 +2233,7 @@ export class WorkflowService {
       }
       case 'runs': return runtime.runs.list();
       case 'wait': return waitForWorkflow({runId:args.run_id,controlToken:args.control_token,directory:runtime.runs.directory(args.run_id),
-        readState:()=>runtime.runs.read(args.run_id),readWorker:()=>readHostMainWorker(this.configPath,args.run_id),
+        readState:()=>runtime.runs.read(args.run_id),readWorker:record=>hostMainManager.failureWorker(record) ?? readHostMainWorker(this.configPath,args.run_id),
         afterSequence:args.after_sequence,timeoutMs:args.timeout_ms,signal});
       case 'get': {
         const state = await runtime.get(args.run_id);
@@ -1441,7 +2253,21 @@ export class WorkflowService {
         requireValue(human, 'HUMAN_CONTROL_RECOVERY_REQUIRED', 'Only the authenticated local human console can replace a lost main controller');
         return recoverControllerTree(coordinator, this.strictManager, runtime, args, { configPath: this.configPath });
       }
-      case 'recover_control': return recoverControllerTree(coordinator, this.strictManager, runtime, conversationalRecovery, { configPath: this.configPath });
+      case 'recover_control': {
+        const record=await runtime.runs.read(args.run_id);
+        const result=await recoverControllerTree(coordinator,this.strictManager,runtime,conversationalRecovery,{configPath:this.configPath});
+        if (!model) return result;
+        const authority={run_id:args.run_id,control_token:result.control_token};
+        if (isAuthoringRunProvenance(record.pins.root.provenance)) return result.recovery_errors.length
+          ?result:authoringControllerContinuation(result,authority,'resume');
+        const cancellation=workflowControllerAdapterDescriptor('cancel',authority);
+        // Incomplete cleanup offers only shutdown. Runtime resume retains its
+        // independent cleanup fence if an earlier adapter is invoked.
+        if (result.recovery_errors.length) return {...result,next_action:'workflow_cancel',invocation_adapter:cancellation,
+          cancellation_invocation_adapter:cancellation};
+        return {...result,next_action:'workflow_resume',invocation_adapter:workflowControllerAdapterDescriptor('resume',authority),
+          cancellation_invocation_adapter:cancellation};
+      }
       case 'recover_claim': {
         const record = await executor.recoveryPreparation(args.run_id, args);
         requireValue(!record.attempt.dispatch, 'DISPATCH_UNCERTAIN', 'This attempt has dispatch intent; inspect its exact executor instead');
@@ -1479,12 +2305,30 @@ export class WorkflowService {
       case 'next': return runtime.next(args.run_id);
       case 'orchestration_complete': {
         requireValue(model, 'MAIN_ORCHESTRATION_CONTEXT', 'Orchestration completion belongs to the initiating Codex conversation');
-        const completed = await completeMainOrchestration(runtime, { ...args, thread_id: modelThreadId });
-        if (['succeeded','failed','cancelled'].includes(completed.status)) return { status: completed.status, completion_satisfied: completed.status === 'succeeded', recovery_required: completed.status === 'failed' };
+        const completed = await completeMainOrchestration(runtime, { ...args, thread_id: modelThreadId }, { executor,signal,expectedOrchestration });
+        signal?.throwIfAborted();
+        if (['succeeded','failed','cancelled'].includes(completed.status)) return { status: completed.status, completion_satisfied: completed.status === 'succeeded', recovery_required: completed.status === 'failed',...committedTerminalOutput(completed) };
         return this.#call('native_next', { run_id: args.run_id, control_token: args.control_token }, { model, modelThreadId, signal });
       }
       case 'native_next': {
-        const existing = await runtime.runs.read(args.run_id);
+        signal?.throwIfAborted();
+        let existing=await runtime.authorizedRun(args.run_id,{control_token:args.control_token});
+        const completedHandoff=async pending=>{
+          const completed=await pending;
+          // Current-Main orchestration already owns the next semantic turn.
+          // Keep the exact native drive owner until deterministic Host work
+          // reaches that handoff, instead of asking Main for a polling turn.
+          if(model&&hasOrchestrationMain(existing.pins.root.workflow)&&completed.status==='running'
+            &&completed.next_action==='workflow_native_next')
+            return this.#call('native_next',args,{model,modelThreadId,signal});
+          return completed;
+        };
+        if(expectedNativeSpawnBatch)nativeSpawnBatchBinding(existing,{batch_id:expectedNativeSpawnBatch,
+          control_token:args.control_token,parent_thread_id:modelThreadId});
+        // One public drive owns the sibling loop. Every external checker gets
+        // fresh authority; pure journal advancement does not re-enter #call or
+        // recompile/reselect the unchanged sealed native dispatch.
+        for(let nativeStep=0;nativeStep<1024;nativeStep++){
         const active = existing.pins.root.workflow.nodes.find(node => {
           const provider = existing.pins.providers.find(item => item.id === node.executor?.provider_id);
           const current = existing.state.nodes[node.id];
@@ -1499,7 +2343,6 @@ export class WorkflowService {
           if(!active)await this.nativeParentVerifier(parent);
         }
         if (active) {
-          await runtime.authorizeController(args.run_id, { control_token: args.control_token });
           const current = existing.state.nodes[active.id];
           const attempt = current.attempts.find(item => item.id === current.active_attempt_id);
           const lease = { run_id: args.run_id, node_id: active.id, attempt_id: attempt.id,
@@ -1508,35 +2351,42 @@ export class WorkflowService {
             attempt,binding:lease,executor,maxPromptChars:config.global.max_prompt_chars});
           if(incrementalContinuation)return incrementalContinuation;
           if (attempt.dispatch.receipt) {
-            return this.completeObservedNative(runtime,args,{record:existing,definition:active,attempt,binding:lease,executor,signal,
-              maxPromptChars:config.global.max_prompt_chars});
+            return completedHandoff(this.completeObservedNative(runtime,args,{record:existing,definition:active,attempt,binding:lease,executor,signal,
+              maxPromptChars:config.global.max_prompt_chars}));
           }
-          const prepared = await executor.prepare(args.run_id, { ...lease, control_token: args.control_token });
-          requireValue(digest(canonicalJSON(prepared)) === attempt.dispatch.envelope_hash,
-            'NATIVE_AGENT_HANDOFF_CHANGED', 'The active native handoff no longer matches its pinned dispatch intent');
+          const observedProjection=await executor.prepareNativeObservation(args.run_id,{...lease,control_token:args.control_token},existing,config);
+          requireValue(digest(canonicalJSON(observedProjection))===attempt.dispatch.envelope_hash,
+            'NATIVE_AGENT_HANDOFF_CHANGED','Observed native projection differs from its sealed dispatch');
           const serial = active.fanout?.scheduling === 'serial';
           const capped = active.fanout?.scheduling === 'parallel' && active.fanout.max_concurrency;
           const activeSlots=activeNativeAssignmentSlots(existing,active,attempt);
           const completedSerial=attempt.native_serial_results?.length??0;
           const nextIndex = activeSlots[completedSerial];
           const count = activeSlots.length;
-          const seal=()=>this.#sealNativeDispatch(runtime,{...args,attempt_id:attempt.id},{executor,signal,
-            maxPromptChars:config.global.max_prompt_chars});
+          // An all-inherited retry has no runnable packet to materialize. It
+          // still owns a fresh completion interval, before sealing any receipt.
+          // Reuse the ordinary baseline guards; never synthesize after a spawn.
+          if(count===0&&existing.pins.native_dispatch_span_version===1&&!attempt.native_dispatch_span)
+            await prepareNativeSpan(runtime,existing,active,{...lease,control_token:args.control_token},observedProjection,
+              resolvedSubagentPlan(active,existing.state));
+          const seal=()=>completedHandoff(this.#sealNativeDispatch(runtime,{...args,attempt_id:attempt.id},{executor,signal,
+            maxPromptChars:config.global.max_prompt_chars}));
           if (serial && completedSerial === count) return seal();
           const parallelResults=attempt.native_parallel_results??{};
           const observe=async pending=>{
             if(!this.nativeAgentObserver)return null;
-            const observed=await this.inspectNativeAgents(runtime,args,active,attempt,pending.map(([,id])=>id),{signal});
+            let observed=await this.inspectNativeAgents(runtime,args,active,attempt,pending.map(([,id])=>id),{signal});
             if(!observed)return null;
             const found=pending.find(([,id])=>id===observed.agent_id);
             requireValue(found,'NATIVE_AGENT_IDENTITY','Observed native Agent is not in this active dispatch');
+            if(observed.status==='amendment')observed=await this.mergeObservedNativeAmendment(runtime,args,{definition:active,attempt,binding:lease,index:Number(found[0]),observed});
             if(observed.status==='blocked'||observed.status==='invalid')return await this.rejectedNativeOutcome(runtime,args,
               {definition:active,attempt,binding:lease,index:Number(found[0]),observed,executor,
                 category:observed.status,reason:observed.reason})??this.#call('native_next',args,{model,signal});
             requireValue(observed.status==='completed','NATIVE_AGENT_OBSERVATION','Host observer did not return a completed Agent');
             if(active.fanout?.result_mode==='per_item'){
               const accepted=await this.recordObservedNativeItems(runtime,args,{definition:active,attempt,binding:lease,
-                index:Number(found[0]),observed,executor});
+                index:Number(found[0]),observed,executor,record_terminal_turn:true});
               if(accepted.rejection)return accepted.rejection;
               if(accepted.retry)return this.#call('native_next',args,{model,signal});
               if(accepted.continuation){
@@ -1546,37 +2396,42 @@ export class WorkflowService {
                   binding:lease,index:Number(found[0]),agentId:observed.agent_id,turnId:observed.turn_id,
                   maxPromptChars:config.global.max_prompt_chars,executor});
               }
-              const resultArgs={...lease,control_token:args.control_token,index:Number(found[0]),
-                agent_id:observed.agent_id,result:accepted.result};
-              if(serial)await runtime.recordNativeSerialResult(args.run_id,resultArgs);
-              else await runtime.recordNativeParallelResult(args.run_id,resultArgs);
-              return this.#call('native_next',args,{model,signal});
+              return {native_continue:true};
             }
             const resultArgs={...lease,control_token:args.control_token,index:Number(found[0]),
-              agent_id:observed.agent_id,result:observed.result};
+              agent_id:observed.agent_id,turn_id:observed.turn_id,result:observed.result};
             try{
               if(serial)await runtime.recordNativeSerialResult(args.run_id,resultArgs);
               else await runtime.recordNativeParallelResult(args.run_id,resultArgs);
             }catch(error){if(error.code!=='DATA_INVALID')throw error;
               return await this.rejectedNativeOutcome(runtime,args,{definition:active,attempt,binding:lease,index:Number(found[0]),
                 observed,executor,category:'invalid',reason:error.message})??this.#call('native_next',args,{model,signal});}
-            return this.#call('native_next',args,{model,signal});
+            return {native_continue:true};
           };
           if(capped&&Object.keys(parallelResults).length===count)return seal();
           if (serial && attempt.native_agents?.[nextIndex]) {
-            return observe([[String(nextIndex),attempt.native_agents[nextIndex]]]);
+            const outcome=await observe([[String(nextIndex),attempt.native_agents[nextIndex]]]);
+            if(outcome?.native_continue){requireValue(nativeStep<1023,'NATIVE_DRIVE_LIMIT','Native sibling drive exceeded its bound');existing=await runtime.authorizedRun(args.run_id,{control_token:args.control_token});continue;}
+            return outcome;
           }
           const spawned=Object.keys(attempt.native_agents??{}).length;
           const activeCount=spawned-Object.keys(parallelResults).length;
           if(!serial&&!capped&&spawned===count)return seal();
           if(capped&&(activeCount>=active.fanout.max_concurrency||spawned===count)){
             const pending=Object.entries(attempt.native_agents??{}).filter(([index])=>!parallelResults[index]);
-            return observe(pending);
+            const outcome=this.parallelNativeItemCollection(existing,active,pending)
+              ?(await this.collectObservedNativeItems(runtime,args,{record:existing,definition:active,attempt,binding:lease,pending,executor,signal,record_terminal_turn:true})).outcome
+              :await observe(pending);
+            if(outcome?.native_continue){requireValue(nativeStep<1023,'NATIVE_DRIVE_LIMIT','Native sibling drive exceeded its bound');existing=await runtime.authorizedRun(args.run_id,{control_token:args.control_token});continue;}
+            return outcome;
           }
           const releasedIndices=serial ? nextIndex : capped
             ?activeSlots.filter(index=>!attempt.native_agents?.[index]).slice(0,active.fanout.max_concurrency-activeCount)
             :active.fanout?.result_mode==='per_item'?activeSlots.filter(index=>!attempt.native_agents?.[index]):null;
-          const packet = await materializedNativeAgentHandoff(existing, active, lease, { ...prepared,
+          const prepared = await executor.prepare(args.run_id, { ...lease, control_token: args.control_token });
+          requireValue(digest(canonicalJSON(prepared)) === attempt.dispatch.envelope_hash,
+            'NATIVE_AGENT_HANDOFF_CHANGED', 'The active native handoff no longer matches its pinned dispatch intent');
+          const packet = await this.#nativeSpanHandoff(runtime,args,existing, active, lease, { ...prepared,
             handoff_required: true, compiled_prompt: prepared.prompt, request_id: attempt.dispatch.request_id }, config.global.max_prompt_chars,
             releasedIndices,
             {resourceRoot:join(runtime.runs.directory(args.run_id),'objects')});
@@ -1587,11 +2442,14 @@ export class WorkflowService {
             recorded_agent_ids: attempt.native_agents ?? {},
             recovery: 'Inspect the current task for any spawn_agent call not yet journaled before spawning a remaining slot.' };
         }
-        await runtime.authorizeController(args.run_id, { control_token: args.control_token });
+        break;
+        }
         const progress = await drive.advanceToMain(args.run_id, { control_token: args.control_token,
           owner: existing.state.main_actor, request_prefix: `native-${args.run_id}` });
         const joinHostMain=async()=>{
-          await hostMainManager.wait(args.run_id);
+          const settled = await hostMainManager.wait(args.run_id);
+          if (['failed', 'audit_or_cleanup_failed'].includes(settled.status))
+            return this.#call('wait', { ...args, timeout_ms: WORKFLOW_WAIT_MS }, { model, signal });
           return this.#call('native_next',args,{model,signal});
         };
         if(progress.stop_reason==='main_execution_pending')return model?joinHostMain():progress;
@@ -1617,12 +2475,16 @@ export class WorkflowService {
         const claimed = await runtime.runs.read(args.run_id);
         const claimedAttempt=claimed.state.nodes[definition.id].attempts.find(item=>item.id===lease.attempt_id);
         const activeSlots=activeNativeAssignmentSlots(claimed,definition,claimedAttempt);
-        if(!activeSlots.length)return this.#sealNativeDispatch(runtime,{...args,attempt_id:lease.attempt_id},{executor,signal,
-          maxPromptChars:config.global.max_prompt_chars});
+        if(!activeSlots.length){
+          await prepareNativeSpan(runtime,claimed,definition,{...lease,control_token:args.control_token},dispatched,
+            resolvedSubagentPlan(definition,claimed.state));
+          return completedHandoff(this.#sealNativeDispatch(runtime,{...args,attempt_id:lease.attempt_id},{executor,signal,
+            maxPromptChars:config.global.max_prompt_chars}));
+        }
         const initialIndices=definition.fanout?.scheduling === 'serial' ? activeSlots[0] : definition.fanout?.max_concurrency
           ? activeSlots.slice(0,definition.fanout.max_concurrency)
           : definition.fanout?.result_mode==='per_item'?activeSlots:null;
-        const packet=await materializedNativeAgentHandoff(claimed, definition, lease, dispatched, config.global.max_prompt_chars,
+        const packet=await this.#nativeSpanHandoff(runtime,args,claimed, definition, lease, dispatched, config.global.max_prompt_chars,
           initialIndices,{resourceRoot:join(runtime.runs.directory(args.run_id),'objects')});
         if(model)await this.persistModelSpawnWindow(runtime,args,claimed,lease,packet);
         return { status: 'native_handoff', ...packet,
@@ -1630,22 +2492,29 @@ export class WorkflowService {
       }
       case 'native_spawned_batch': {
         requireValue(model,'NATIVE_MODEL_BRIDGE_REQUIRED','Native spawn acknowledgement is owned by the authenticated model bridge');
-        const initial=await nativeAttemptBinding(runtime,args);
-        const pending=Object.entries(initial.attempt.native_pending_spawns??{})
-          .map(([index,item])=>({index:Number(index),...item})).sort((a,b)=>a.index-b.index);
-        requireValue(pending.length>0,'NATIVE_AGENT_SPAWN_MISSING','No Host-persisted native spawn window awaits acknowledgement');
-        for(const spawn of pending)await runtime.recordExecutorEvent(args.run_id,{...initial.binding,
-          event:{kind:'native_agent_spawn',metadata:{index:spawn.index,agent_id:spawn.agent_id}}});
-        const next=await this.call('native_next',{}, {model:true,modelThreadId,signal});
-        return {...next,journaled_spawn_count:pending.length};
+        const initial=nativeSpawnBatchBinding(await runtime.runs.read(args.run_id),{batch_id:args.batch_id,
+          control_token:args.control_token,parent_thread_id:modelThreadId});
+        for(const spawn of initial.receipt.identity.spawns){
+          if(initial.receipt.acknowledged_indices.includes(spawn.index))continue;
+          await runtime.recordNativeExecutorEvent(args.run_id,{...initial.binding,event:{kind:'native_agent_spawn',
+            metadata:{index:spawn.index,agent_id:spawn.agent_id,batch_id:initial.receipt.batch_id}}});
+        }
+        // The public call already resolved this exact thread's authority.
+        // Continue its drive directly; #call performs fresh execution checks
+        // and validates the batch, without rescanning unrelated histories.
+        const next=await this.#nativeDrive(args,{model,modelThreadId,signal},()=>this.#call('native_next',args,
+          {model,modelThreadId,signal,expectedNativeSpawnBatch:initial.receipt.batch_id}));
+        return {...next,journaled_spawn_count:initial.receipt.identity.spawns.length,
+          acknowledged_batch_id:initial.receipt.batch_id};
       }
       case 'native_followed_up': {
         const { attempt,binding }=await nativeAttemptBinding(runtime,args);
         const pending=structuredClone(attempt.native_pending_followup);
         requireValue(pending,'NATIVE_AGENT_FOLLOWUP','No Host-persisted follow-up intent awaits acknowledgement');
-        await runtime.recordExecutorEvent(args.run_id,{...binding,event:{kind:'native_agent_followup',metadata:{}}});
+        await runtime.recordNativeExecutorEvent(args.run_id,{...binding,event:{kind:'native_agent_followup',metadata:{}}});
         if(model){
-          const next=await this.call('native_next',{}, {model:true,modelThreadId,signal});
+          const next=await this.#nativeDrive(args,{model,modelThreadId,signal},()=>this.#call('native_next',args,
+            {model,modelThreadId,signal}));
           return {...next,journaled_followup:{index:pending.index,agent_id:pending.agent_id,item_index:pending.item_index}};
         }
         return {run_id:args.run_id,node_id:binding.node_id,attempt_id:binding.attempt_id,index:pending.index,
@@ -1653,9 +2522,12 @@ export class WorkflowService {
           ...nativeContinuation(args.run_id,args.control_token)};
       }
       case 'drive': {
+        const resumed=await this.resumeAutomaticAuthoring(args,{store,runtime,context});if(resumed)return resumed;
         const record = await runtime.runs.read(args.run_id);
         if (isAuthoringRunProvenance(record.pins.root.provenance)) {
-          return advanceGeneration(this,runtime,executor,args,{store,context});
+          const result=await advanceGeneration(this,runtime,executor,args,{store,context});
+          return model&&['generating','reviewing','host_compiling','repairing'].includes(result.phase)
+            ?authoringControllerContinuation(result,args):result;
         }
         if (model && record.pins.root.workflow.nodes.some(node => node.executor?.kind === 'main')) {
           requireValue(false, 'HOST_MAIN_BRIDGE_REQUIRED', 'This Run requires a trusted current-main Host bridge; model-driven lifecycle transcription is forbidden. This workflow_drive call did not claim or dispatch a node; inspect workflow_get.host_worker for the detached Host worker.');
@@ -1669,15 +2541,16 @@ export class WorkflowService {
       case 'complete_node': return runtime.completeNode(args.run_id, args);
       case 'fail_node': {
         await runtime.execution(args.run_id, args, { allowPaused: true });
-        await coordinator.drainAttempt(args.run_id, args.node_id, args.attempt_id);
+        WorkflowRuntime.assertNodeFailure(args.error);
+        await coordinator.drainAttempt(args.run_id,args.node_id,args.attempt_id,{authorization:args});
         const result = await runtime.failNode(args.run_id, args, (runId, nodeId, attemptId) => coordinator.fenceAttempt(runId, nodeId, attemptId));
         await coordinator.waitDrain(args.run_id);
         return result;
       }
       case 'retry_node': {
-        const record = await runtime.runs.read(args.run_id);
+        const record = await runtime.authorizedRetryRun(args.run_id,args);
         const previous = record.state.nodes[args.node_id]?.attempts.at(-1);
-        if (previous) try { await coordinator.drainAttempt(args.run_id, args.node_id, previous.id); }
+        if (previous) try { await coordinator.drainAttempt(args.run_id,args.node_id,previous.id,{authorization:{control_token:args.control_token},retry:true}); }
         catch (error) { if (['EXECUTION_OWNER_ACTIVE', 'FAIL_NODE_STOP_INCOMPLETE'].includes(error.code)) error.code = 'RETRY_OWNER_ACTIVE'; throw error; }
         if (record.state.status !== 'failed') return runtime.retryNode(args.run_id, args);
         await coordinator.waitDrain(args.run_id);
@@ -1703,6 +2576,8 @@ export class WorkflowService {
           result = await runtime.resume(args.run_id, args);
           this.attemptAdmission.releaseRun(args.run_id);
         }
+        if(model&&isAuthoringRunProvenance(record.pins.root.provenance)&&result.status==='running')
+          return authoringControllerContinuation(result,args);
         return resumeDetachedHostMain(this, runtime, args, result);
       }
       case 'cancel': {

@@ -1,6 +1,6 @@
 {
 	"name": "codex-multi-auth",
-	"version": "2.19.1",
+	"version": "2.23.0",
 	"description": "Codex CLI multi-account OAuth manager with account switching, health checks, runtime rotation, diagnostics, and recovery tools for @openai/codex",
 	"main": "./dist/index.js",
 	"types": "./dist/index.d.ts",
@@ -116,6 +116,7 @@
 	},
 	"bin": {
 		"mcodex": "scripts/mcodex.js",
+		"codex-ma": "scripts/codex-multi-auth.js",
 		"codex-multi-auth-codex": "scripts/codex.js",
 		"codex-multi-auth-app-launcher": "scripts/codex-app-launcher.js",
 		"codex-multi-auth": "scripts/codex-multi-auth.js"
@@ -169,6 +170,7 @@
 		"fast-check": "^4.10.2",
 		"husky": "^9.1.7",
 		"lint-staged": "^17.6.0",
+		"playwright": "^1.64.1",
 		"tsgo": "npm:typescript@^7.0.2",
 		"typescript": "^6.0.3",
 		"typescript-language-server": "^6.0.1",

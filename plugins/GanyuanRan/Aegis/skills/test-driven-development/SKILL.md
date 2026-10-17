@@ -260,7 +260,7 @@ test('retry works', async () => {
   expect(mock).toHaveBeenCalledTimes(3);
 });
 ```
-Vague name, tests mock not code
+Vague name; exercises real retry code but asserts only callback count, not the returned result
 </Bad>
 
 **Requirements:**
@@ -286,7 +286,10 @@ Confirm:
 - Failure message is expected
 - Fails because feature missing (not typos)
 
-**Test passes?** You're testing existing behavior. Fix test.
+**Test passes before production edits?** Inspect the reproduction and assertions.
+If they miss the requested behavior, correct the test. If the behavior already
+exists, reassess Change Necessity; keep useful regression evidence without
+claiming a RED/GREEN cycle. Do not break or delete existing code to force RED.
 
 **Test errors?** Fix error, re-run until it fails correctly.
 
@@ -384,7 +387,7 @@ If the current environment cannot run automated tests, state the blocker and pro
 | **Clear** | Name describes behavior | `test('test1')` |
 | **Shows intent** | Demonstrates desired API | Obscures what code should do |
 
-## Strict-Route Red Flags - STOP and Start Over
+## Strict-Route Red Flags - STOP and Diagnose
 
 These red flags apply only after this skill has validly entered under
 `TDD Route: strict`. Do not project them onto debugging or regression work
@@ -392,7 +395,7 @@ whose route is `light` or `skipped`.
 
 - Code before test
 - Test after implementation
-- Test passes immediately
+- Test passes immediately without an explanation of existing behavior
 - Can't explain why test failed
 - Tests added "later"
 - Rationalizing "just this once"
@@ -404,7 +407,12 @@ whose route is `light` or `skipped`.
 - "TDD is dogmatic, I'm being pragmatic"
 - "This is different because..."
 
-**All of these mean: Delete code. Start over with TDD.**
+Stop and establish which case applies. If you wrote task-owned production code
+before the required failing test, remove only that premature implementation
+and restart from the behavior test. Preserve pre-existing code and user edits;
+if changes are interleaved, isolate ownership before recovery. A test that
+passes before any production edit needs the test/Change Necessity diagnosis
+above, not code deletion. Missing evidence alone does not authorize a reset.
 
 ## Example: Bug Fix
 
@@ -446,7 +454,8 @@ Extract validation for multiple fields if needed.
 ## Strict-Route Verification Checklist
 
 - [ ] Defined input, output, boundaries, compatibility, acceptance criteria
-- [ ] Every new function/method has a test that failed first
+- [ ] Each new behavior has a test observed failing before implementation;
+      helpers extracted during GREEN refactoring may use that existing test
 - [ ] All tests pass, output pristine
 - [ ] Regression: shared/contract/core changes ran related tests
 - [ ] Ripple signal hit: downstream or real user path covered
@@ -454,7 +463,7 @@ Extract validation for multiple fields if needed.
 - [ ] GREEN treated as local behavior proof only, not final completion
 - [ ] If `TaskIntentDraft`, parent plan/spec, or `Slice Card` exists, covered and uncovered scope are explicit before any done claim
 
-Can't check all boxes? Start over.
+Can't check all applicable boxes? Diagnose the gap before claiming strict-route completion.
 
 ## Exploration and Emergency Exceptions
 

@@ -92,7 +92,7 @@ const en: Record<keyof typeof zh, string> = {
   "tool.setup.description": "Used by the panel: route Codex through the local proxy (enable) or connect directly again (disable); takes effect after Codex restarts. Only the user can do this; calls from the model are refused.",
   "tool.bind.title": "Context Assets: switch to the new task",
   "tool.bind.description": "Used by the panel: a panel opened on a new chat before its first message switches to the task the user just started. Only the user can do this; calls from the model are refused.",
-  "server.title": "Codex Attachment Manager",
+  "server.title": "Context Attachment Manager",
   "resource.name": "Context Assets panel",
   "call.noThread": "Which task? The threadId is missing.",
   "call.summary": "Images: {images}, unchecked: {unchecked}.",

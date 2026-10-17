@@ -1,0 +1,83 @@
+--- a/babeldoc/format/pdf/document_il/midend/typesetting.py
++++ b/babeldoc/format/pdf/document_il/midend/typesetting.py
+@@ -1116,6 +1116,7 @@
+         )
+ 
+     def typesetting_document(self, document: il_version_1.Document):
++        self.watermark_page_number = min((p.page_number for p in document.page), default=0)
+         # 原有的排版逻辑
+         if self.translation_config.progress_monitor:
+             with self.translation_config.progress_monitor.stage_start(
+@@ -1149,7 +1150,7 @@
+                     if font.font_id:
+                         fonts[xobj.xobj_id][font.font_id] = font
+         if (
+-            page.page_number == 0
++            page.page_number == self.watermark_page_number
+             and self.translation_config.watermark_output_mode
+             == WatermarkOutputMode.Watermarked
+         ):
+@@ -1282,6 +1283,30 @@
+             # 重排版后，重新设置段落各字符的 render order
+             self._update_paragraph_render_order(paragraph)
+ 
++    @staticmethod
++    def _number_groups(typesetting_units):
++        """Keep signs, decimals and exponents in the same physical line.
++
++        A sign and its value can occupy separate formula/text units. Only group
++        complete units so a larger equation or prose unit is never split here.
++        """
++        text, starts, ends = "", {}, {}
++        for i, unit in enumerate(typesetting_units):
++            value = unit.try_get_unicode()
++            if value is None and unit.formular:
++                value = "".join(c.char_unicode or "" for c in unit.formular.pdf_character)
++            value = value or "\ufffc"
++            starts[len(text)] = i
++            text += value
++            ends[len(text)] = i + 1
++        groups = {}
++        pattern = r"(?<![A-Za-z0-9_.])[+\-\u2212]?(?:[0-9]+(?:[.,][0-9]+)*|[.,][0-9]+)(?:[eE][+\-\u2212]?[0-9]+)?"
++        for match in re.finditer(pattern, text):
++            first, last = starts.get(match.start()), ends.get(match.end())
++            if first is not None and last is not None and last > first + 1:
++                groups[first] = last
++        return groups
++
+     def _get_width_before_next_break_point(
+         self, typesetting_units: list[TypesettingUnit], scale: float
+     ) -> float:
+@@ -1360,6 +1385,16 @@
+         line_ys = [current_y]
+         if paragraph.first_line_indent:
+             current_x += space_width * 4
++        number_groups = self._number_groups(typesetting_units)
++        number_widths = {
++            first: sum(u.width for u in typesetting_units[first:last]) * scale
++            for first, last in number_groups.items()
++        }
++        if any(width > box.x2 - box.x for width in number_widths.values()):
++            return [], False  # Retry at a smaller scale, never split a number.
++        number_inner = {
++            i for first, last in number_groups.items() for i in range(first + 1, last)
++        }
+         # 遍历所有排版单元
+         for i, unit in enumerate(typesetting_units):
+             # 计算当前单元在当前缩放下的尺寸
+@@ -1404,12 +1439,14 @@
+                 width_before_next_break_point = 0
+ 
+             # 如果当前行放不下这个元素，换行
+-            if not unit.is_hung_punctuation and (
++            if (i in number_groups or not unit.is_hung_punctuation) and i not in number_inner and (
+                 (current_x + unit_width > box.x2)
+                 or (
+                     use_english_line_break
++                    and i not in number_groups
+                     and current_x + unit_width + width_before_next_break_point > box.x2
+                 )
++                or (i in number_widths and current_x + number_widths[i] > box.x2)
+                 or (
+                     unit.is_cannot_appear_in_line_end_punctuation
+                     and current_x + unit_width * 2 > box.x2

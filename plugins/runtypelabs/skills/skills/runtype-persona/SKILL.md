@@ -115,9 +115,12 @@ stops working immediately.
 
 ## Signed-in and Returning Visitors
 
-- To pass a verified signed-in user to the agent and its tools, send an `identityProof`
-  when the widget starts a session. Runtype ignores `identityProof` until Runtype enables
-  Identity Exchange for your organization. See
+- To pass a verified signed-in user to the agent and its tools, set `identityProvider` (the
+  Identity Exchange integration's provider value, such as `clerk` or `workos`) and
+  `getIdentityProof` in the widget config (Persona 4.24.0 or later). The widget then sends
+  `identityProof: { provider, token }` on every chat turn and stops the turn when the proof
+  is `null`. Without `identityProvider`, the proof goes only on init, so an agent whose
+  `tenancyStrategy` requires a tenant or end user rejects widget chat. See
   [End-user identity](https://docs.runtype.com/developer-guides/guides/end-user-identity).
 - To give each visitor a conversation list that persists, set
   `features.history: { enabled: true }` in the widget config and configure
@@ -140,7 +143,8 @@ page tools registered on `document.modelContext` and admitted by the chat surfac
 context should not enter model context.
 
 For server-side tools that need the signed-in visitor's identity, pass an Identity
-Exchange proof as `identityProof` on `/v1/client/init` and `/v1/client/chat`, then
+Exchange proof as `identityProof` on `/v1/client/init` and `/v1/client/chat` (in Persona,
+set `identityProvider` with `getIdentityProof`), then
 reference `{{_tenant.id}}` or `{{_endUser.id}}` in the tool's header (or send
 `{{_identity.token}}` for a signed assertion your API verifies). The model cannot set
 these values, and the call fails closed when the execution has no identity. Docs:
@@ -171,8 +175,9 @@ Required WebMCP setup:
 - Add origin-scoped `behavior.webmcp.allowlist` rules for page tools that should be
   callable, for example `{ origin: "https://store.example.com", tools: ["search_*"] }`.
   The server enforces only `enabled` and `allowlist`. `behavior.webmcp.requireConfirmFor`
-  (for example `["checkout_*"]`) is a confirmation hint for Persona, not a security
-  boundary.
+  (for example `["checkout_*"]`) forces Persona's confirmation and is not a security
+  boundary: chat dispatch does not enforce it, and the voice direct route never picks a
+  listed tool.
 - After real traffic, open the surface's **WebMCP** section in the dashboard to review
   discovered tools and observed origins. Discovery records the offered page tools before
   allowlist filtering.

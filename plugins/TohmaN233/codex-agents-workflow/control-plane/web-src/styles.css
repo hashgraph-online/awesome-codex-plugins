@@ -519,3 +519,6 @@ pre { max-width: 100%; max-height: 420px; padding: 12px; overflow: auto; color: 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }
+/* Version check belongs to the console, never to Workflow launch. */
+.plugin-update{display:flex;align-items:center;justify-content:flex-end;gap:14px;padding:7px 24px;border-bottom:1px solid var(--line);font-size:12px;flex-shrink:0}
+.plugin-update [role=status]{display:flex;gap:10px;align-items:center}.plugin-update a{text-decoration:none}.plugin-update-available{font-weight:600}.plugin-star{border:1px solid var(--line);border-radius:6px;padding:4px 10px;color:inherit}

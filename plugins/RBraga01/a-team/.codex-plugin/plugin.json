@@ -1,7 +1,7 @@
 {
   "name": "a-team",
-  "version": "1.4.0",
-  "description": "A complete engineering team in one folder. 26 pre-configured specialists, 20 enforced workflow skills, a lead orchestrator, and a Pipeline Auditor — for Claude Code, Codex CLI, Cursor, and OpenCode.",
+  "version": "1.4.1",
+  "description": "A complete engineering team in one folder. 26 pre-configured specialists, 20 enforced workflow skills, a lead orchestrator, and a Pipeline Auditor — for Claude Code, Codex CLI, Cursor, OpenCode, and GitHub Copilot CLI.",
   "author": {
     "name": "RBraga01",
     "url": "https://github.com/RBraga01"
@@ -22,9 +22,10 @@
     "claude-code",
     "codex"
   ],
-  "skills": "../skills/",
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json",
   "interface": {
-    "composerIcon": "../assets/ATeam.png",
+    "composerIcon": "./assets/ATeam_full.png",
     "displayName": "A Team",
     "shortDescription": "Complete pre-configured engineering team. Not a marketplace.",
     "longDescription": "A Team enforces structured development workflows: design before code, TDD before implementation, code review after every change, and hard gates that block completion without verified evidence. Drop it into any project to get an immediately operational team of specialists.",

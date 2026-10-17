@@ -40,6 +40,34 @@ async function addRun(store, id, {
   return state;
 }
 
+test('failed history validation settles admitted read callbacks without holding history admission',async t=>{
+ const {store}=await fixture(t);await addRun(store,'a');await addRun(store,'b');
+ await writeFile(join(store.directory('a'),'pins.json'),'{}');
+ const entered=latch(),proceed=latch(),original=store.readHistoryMetadata.bind(store);
+ let goodCleaned=false,cleanupSettled=false;
+ store.readHistoryMetadata=async function(id,options){
+  if(id==='a'){await entered.promise;return original(id,options);}
+  if(id==='b'){
+   try{entered.release();await proceed.promise;return await original(id,options);}
+   finally{goodCleaned=true;}
+  }
+  return original(id,options);
+ };
+ try{
+  const cleanup=store.cleanupHistory({olderThanMs:0}).finally(()=>cleanupSettled=true);
+  const rejection=assert.rejects(cleanup,{code:'RUN_PINS_CORRUPT'});
+  await entered.promise;
+  const mutation=store.mutate('b','pause',state=>{state.fixture_changed=true;});
+  await new Promise(resolve=>setTimeout(resolve,20));
+  assert.equal(cleanupSettled,false);assert.equal(goodCleaned,false);
+  proceed.release();await rejection;await mutation;
+  assert.equal(goodCleaned,true);assert.equal((await store.read('b')).state.fixture_changed,true);
+  assert((await lstat(store.directory('a'))).isDirectory());assert((await lstat(store.directory('b'))).isDirectory());
+  for(const path of [join(store.root,'.writer.lock'),join(store.directory('a'),'.writer.lock'),join(store.directory('b'),'.writer.lock')])
+   await assert.rejects(lstat(path),{code:'ENOENT'});
+ }finally{proceed.release();store.readHistoryMetadata=original;}
+});
+
 function childRunId(parentId, nodeId, attemptId) {
   return `child-${digest([parentId, nodeId, attemptId].join('\0')).slice(0, 58)}`;
 }
@@ -64,7 +92,7 @@ test('history preserves exact pending child intent before its directory exists',
   assert.equal((await store.list()).length, 3);
 });
 
-test('history and list queued during child creation do not invert root and Run locks', { timeout: 10000 }, async t => {
+test('history queues while list observes committed state during child creation without lock inversion', { timeout: 10000 }, async t => {
   const { store } = await fixture(t);
   await addRun(store, 'creating-parent', { status: 'running' });
   const entered = latch(), proceed = latch();
@@ -75,10 +103,11 @@ test('history and list queued during child creation do not invert root and Run l
   });
   await entered.promise;
   const cleanup = store.cleanupHistory({ olderThanMs: 0 });
-  const listing = store.list();
-  proceed.release();
-  const [, result, rows] = await Promise.all([creating, cleanup, listing]);
-  assert.equal(result.preserved_count, 2); assert.equal(rows.length, 2);
+  let rows;
+  try{rows=await store.list();}finally{proceed.release();}
+  const [, result] = await Promise.all([creating, cleanup]);
+  assert.deepEqual(rows.map(row=>row.run_id),['creating-parent']);
+  assert.equal(result.preserved_count, 2); assert.equal((await store.list()).length, 2);
 });
 
 test('opposing parent and child journal reads remain live across store instances', { timeout: 10000 }, async t => {
@@ -311,6 +340,25 @@ test('a failed Run can be removed after its interrupted sibling work is reconcil
   const result = await store.cleanupHistory({ olderThanMs: 0 });
   assert.deepEqual(result.deleted_run_ids, [id]);
   await assert.rejects(lstat(join(store.root, `run-${id}.run`)), { code: 'ENOENT' });
+});
+
+test('unfinished automatic authoring completion retains exact evidence while ordinary and manual history still expires',async t=>{
+  const {store}=await fixture(t);
+  const source={kind:'authoring_workflow_run',source_workflow_id:'source',source_revision:'source-revision'};
+  const automatic={mode:'automatic',target:'launch_ready'};
+  const root={workflow:{id:'authoring-job',nodes:[],edges:[]},revision_hash:'job-revision',provenance:{...source,completion_policy:automatic}};
+  await addRun(store,'blocked-automatic',{pins:{root},nodes:{final:{status:'succeeded',attempts:[{id:'reviewed',status:'succeeded',automatic_completion:{actor:'host',completion_policy:automatic}}]}}});
+  await addRun(store,'ordinary-success');
+  await addRun(store,'manual-authoring',{pins:{root:{...root,provenance:{...source,completion_policy:{mode:'manual',target:'draft'}}}}});
+  await addRun(store,'historical-authoring',{pins:{root:{...root,provenance:source}}});
+  await addRun(store,'failed-automatic',{status:'failed',pins:{root}});
+  const aged=await store.cleanupHistory({now:Date.parse('2026-01-03T00:00:00Z')});
+  assert.deepEqual(aged.preserved_run_ids,['blocked-automatic']);
+  assert.deepEqual(aged.deleted_run_ids,['failed-automatic','historical-authoring','manual-authoring','ordinary-success']);
+  assert.deepEqual((await store.cleanupHistory({olderThanMs:0})).preserved_run_ids,['blocked-automatic'],'generic manual history cleanup cannot discard the unfinished candidate');
+  assert.equal((await store.read('blocked-automatic')).state.nodes.final.attempts[0].automatic_completion.actor,'host');
+  const owned=await store.purge('blocked-automatic',{expected_workflow_id:'authoring-job',expected_revision:'job-revision',expected_source_workflow_id:'source',expected_source_revision:'source-revision'});
+  assert.equal(owned.purged,true,'exact owned completion cleanup still removes the retained Run');
 });
 
 test('manual cleanup clears fresh eligible terminal history and preserves workspace files', async t => {

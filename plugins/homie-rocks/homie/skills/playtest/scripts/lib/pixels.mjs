@@ -10,10 +10,32 @@
  */
 import { spawnSync } from 'node:child_process';
 
-/** Decode a PNG (a Buffer or a path) to RGB at `width` pixels wide. Returns { w, h, rgb }. */
-export function decode(png, width = 480) {
+/**
+ * How long one PNG decode may take. ffmpeg decodes a phone screenshot in well under a second; a decoder that is
+ * still running after this is stuck (one sat for over five minutes with the game drawing fine behind it), and a
+ * `spawnSync` with no bound holds the whole controller in it: no report, no closed browser. HOMIE_PLAYTEST_DECODE_MS
+ * sets another bound (a very slow disk, or a test that wants it short).
+ */
+export const DECODE_TIMEOUT_MS = Math.max(200, Number(process.env.HOMIE_PLAYTEST_DECODE_MS) || 20_000);
+
+/**
+ * The instrument could not read its own picture: nothing about the game was measured. Callers report the row
+ * BLOCKED (never FAIL, never PASS) and close their browser; `blocked` is how they tell it from a game fault.
+ */
+export class DecodeBlocked extends Error {
+  constructor(message) { super(message); this.name = 'DecodeBlocked'; this.blocked = true; }
+}
+
+/**
+ * Decode a PNG (a Buffer or a path) to RGB at `width` pixels wide. Returns { w, h, rgb }. Bounded: after
+ * `timeoutMs` the decoder is killed and a DecodeBlocked is thrown. `bin` is the decoder (a test puts a stuck one here).
+ */
+export function decode(png, width = 480, { timeoutMs = DECODE_TIMEOUT_MS, bin = process.env.HOMIE_PLAYTEST_FFMPEG || 'ffmpeg' } = {}) {
   const input = Buffer.isBuffer(png) ? ['-f', 'png_pipe', '-i', '-'] : ['-i', png];
-  const probe = spawnSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', ...input, '-vf', `scale=${width}:-2:flags=area`, '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'], { input: Buffer.isBuffer(png) ? png : undefined, maxBuffer: 256 * 1024 * 1024 });
+  const probe = spawnSync(bin, ['-hide_banner', '-loglevel', 'error', ...input, '-vf', `scale=${width}:-2:flags=area`, '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'], { input: Buffer.isBuffer(png) ? png : undefined, maxBuffer: 256 * 1024 * 1024, timeout: timeoutMs, killSignal: 'SIGKILL' });
+  // spawnSync reports its own timeout as error.code ETIMEDOUT (and the child killed by the signal above).
+  if (probe.error?.code === 'ETIMEDOUT') throw new DecodeBlocked(`the screenshot decoder (ffmpeg) did not finish in ${Math.round(timeoutMs / 1000)} s and was stopped: the picture was not measured`);
+  if (probe.error?.code === 'ENOENT') throw new DecodeBlocked('ffmpeg is not installed: screenshots cannot be measured on this computer');
   if (probe.status !== 0) throw new Error(`ffmpeg could not decode a screenshot: ${String(probe.stderr).trim().split('\n').pop()}`);
   const rgb = probe.stdout;
   const h = Math.round(rgb.length / 3 / width);

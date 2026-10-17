@@ -42,8 +42,8 @@ archive playback.
 - Cover invented words, titles and ranks, forms of address, place names,
   faction names, units, and recurring phrases (oaths, sayings,
   catchphrases).
-- Add terms the glossary lacks: `story add term "Name" --category
-  <category>`.
+- Add terms the glossary lacks: `story add term 'Name' --category
+  <category>` (the `worldbuilding` skill owns glossary terms).
 
 ## Names
 
@@ -62,7 +62,7 @@ the id does not change. Check new names for clashes in the translated
 project:
 
 ```shell
-story names "Zweitlicht" "Schwarzwasser" --path ../book-de
+story names 'Zweitlicht' 'Schwarzwasser' --path ../book-de
 ```
 
 Update `pronunciation` in the translated project for its narrator.
@@ -123,10 +123,9 @@ every edition.
 After each batch of translated chapters:
 
 ```shell
+story reindex ../book-de
 story wordcount ../book-de --write
-story validate ../book-de
-story links ../book-de
-story continuity ../book-de
+story check ../book-de
 story compare ../book-de --against .
 ```
 

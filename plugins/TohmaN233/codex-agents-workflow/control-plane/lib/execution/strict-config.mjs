@@ -44,7 +44,9 @@ export function validateStrictConfig(raw = {}) {
     typeof result.main_reasoning_effort === 'string' && (!result.main_reasoning_effort || /^[a-z][a-z0-9_-]{0,31}$/.test(result.main_reasoning_effort)), 'STRICT_CONFIG', 'Main inherits the calling chat model and reasoning selection; explicit experiment identifiers must be valid');
   requireValue(Number.isSafeInteger(result.inactivity_timeout_ms) && result.inactivity_timeout_ms >= 0 && result.inactivity_timeout_ms <= 86_400_000,
     'STRICT_CONFIG', 'Strict inactivity_timeout_ms must be an integer from 0 through 86400000; 0 disables inactivity termination');
-  requireValue(!result.enabled || result.codex_binary && result.binary_sha256 && (result.authentication.mode !== 'environment_api_key' || result.authentication.api_key_env), 'STRICT_CONFIG', 'Enabled Strict executor requires complete binary and authentication settings');
+  requireValue(!result.enabled || Boolean(result.codex_binary) === Boolean(result.binary_sha256)
+    && (result.authentication.mode !== 'environment_api_key' || result.authentication.api_key_env),
+    'STRICT_CONFIG', 'Enabled Strict executor requires paired binary identity or deferred registration, and complete authentication settings');
   return result;
 }
 
@@ -85,6 +87,67 @@ function methodParams(schema, method) {
   capability(entry, method);
   return dereference(schema, entry.properties.params);
 }
+// Optional schemas cannot make required execution qualification fail merely
+// because the generator uses a representation this observer cannot resolve.
+// Resolve only bounded local references; required dereference remains strict.
+function optionalDereference(schema, value) {
+  const visited = new Set();
+  for (let depth = 0; depth < 32; depth++) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+    if (!Object.hasOwn(value, '$ref')) return value;
+    const reference = value.$ref;
+    if (typeof reference !== 'string' || reference.length > 4096 || !reference.startsWith('#/') || visited.has(reference)) return null;
+    visited.add(reference);
+    const parts = reference.slice(2).split('/');
+    if (parts.length > 64) return null;
+    let target = schema;
+    for (const part of parts) {
+      const key = part.replaceAll('~1', '/').replaceAll('~0', '~');
+      if (!target || typeof target !== 'object' || !Object.hasOwn(target, key)) return null;
+      target = target[key];
+    }
+    value = target;
+  }
+  return null;
+}
+export function qualifyCodexRawObservation(schemas) {
+  const unsupported = diagnostic => ({ supported: false, diagnostic });
+  const thread = methodParams(schemas.ClientRequest, 'thread/start');
+  if (thread?.properties?.experimentalRawEvents?.type !== 'boolean')
+    return unsupported('thread/start.experimentalRawEvents:boolean unavailable');
+  const rawItemDocument = schemas.RawResponseItemCompletedNotification, rawResponseDocument = schemas.RawResponseCompletedNotification;
+  const rawItem = optionalDereference(rawItemDocument, rawItemDocument);
+  const rawResponse = optionalDereference(rawResponseDocument, rawResponseDocument);
+  const object = (schema, fields) => schema?.type === 'object'
+    && Array.isArray(schema.required)
+    && fields.every(field => schema.required.includes(field) && Object.hasOwn(schema.properties ?? {}, field));
+  const string = value => value?.type === 'string';
+  if (!object(rawItem, ['threadId', 'turnId', 'item'])
+    || !['threadId', 'turnId'].every(field => string(rawItem.properties[field])))
+    return unsupported('standalone raw item notification identity unavailable');
+  const item = optionalDereference(rawItemDocument, rawItem.properties.item);
+  const itemVariants = item?.oneOf ?? item?.anyOf;
+  const search = (Array.isArray(itemVariants) ? itemVariants : []).map(value => optionalDereference(rawItemDocument, value))
+    .find(value => Array.isArray(value?.properties?.type?.enum) && value.properties.type.enum.includes('tool_search_call'));
+  const nullableString = value => value?.type === 'string' || Array.isArray(value?.type) && value.type.includes('string');
+  if (!object(search, ['type', 'execution', 'arguments']) || !string(search.properties.execution)
+    || !['id', 'call_id', 'status'].every(field => nullableString(search.properties[field])))
+    return unsupported('standalone tool_search_call metadata unavailable');
+  if (!object(rawResponse, ['threadId', 'turnId', 'responseId'])
+    || !['threadId', 'turnId', 'responseId'].every(field => string(rawResponse.properties[field])))
+    return unsupported('standalone raw response identity unavailable');
+  const usageSchema = optionalDereference(rawResponseDocument, rawResponse.properties.usage);
+  const usageVariants = usageSchema?.anyOf ?? usageSchema?.oneOf;
+  const usage = (Array.isArray(usageVariants) ? usageVariants : [])
+    .map(value => optionalDereference(rawResponseDocument, value)).find(value => value?.type === 'object');
+  if (!object(usage, ['inputTokens', 'cachedInputTokens', 'outputTokens', 'reasoningOutputTokens', 'totalTokens'])
+    || !['inputTokens', 'cachedInputTokens', 'cacheWriteInputTokens', 'outputTokens', 'reasoningOutputTokens', 'totalTokens']
+      .every(field => usage.properties[field]?.type === 'integer'))
+    return unsupported('standalone raw response numeric usage unavailable');
+  // These schemas are generated independently; ServerNotification currently
+  // omits both methods, so union membership is not evidence of absence.
+  return { supported: true, diagnostic: 'declared thread opt-in and standalone bounded raw notification schemas' };
+}
 export function validateCodexProtocol(schemas, { scope = 'main' } = {}) {
   const schema = schemas.ClientRequest;
   const requirements = requirementsFor(scope);
@@ -104,7 +167,8 @@ export function validateCodexProtocol(schemas, { scope = 'main' } = {}) {
   capability(functionTool, 'thread/start.dynamicTools:function');
   const tagged = Boolean(functionTool.properties.type);
   for (const field of functionTool.required ?? []) capability(['name', 'description', 'inputSchema', ...(tagged ? ['type'] : [])].includes(field), `dynamicTools.required:${field}`);
-  return { scope, methods: Object.keys(requirements), dynamic_tool_format: tagged ? 'tagged_function' : 'untagged_function' };
+  return { scope, methods: Object.keys(requirements), dynamic_tool_format: tagged ? 'tagged_function' : 'untagged_function',
+    raw_observation: qualifyCodexRawObservation(schemas) };
 }
 
 async function readCodexProtocol(binary, env, { scope = 'main' } = {}) {
@@ -116,6 +180,14 @@ async function readCodexProtocol(binary, env, { scope = 'main' } = {}) {
     result = {};
     for (const name of scope === 'discovery' ? ['ClientRequest'] : ['ClientRequest', 'ServerRequest', 'ServerNotification']) {
       const file = join(directory, `${name}.json`), info = await lstat(file);
+      capability(info.isFile() && info.size <= 16 * 1024 * 1024, `protocol schema:${name}`);
+      result[name] = JSON.parse(await readFile(file, 'utf8'));
+    }
+    if (scope !== 'discovery') for (const name of ['RawResponseItemCompletedNotification', 'RawResponseCompletedNotification']) {
+      const file = join(directory, 'v2', `${name}.json`);
+      let info;
+      try { info = await lstat(file); }
+      catch (error) { if (error.code === 'ENOENT') continue; throw error; }
       capability(info.isFile() && info.size <= 16 * 1024 * 1024, `protocol schema:${name}`);
       result[name] = JSON.parse(await readFile(file, 'utf8'));
     }
@@ -185,10 +257,16 @@ export async function qualifiedCodexBinary(settings, { env = process.env, schema
   return settings;
 }
 
+export async function qualifiedCooperativeSettings(config, env = process.env, options = {}) {
+  const settings = validateStrictConfig(config.strict_executor);
+  requireValue(settings.codex_binary && settings.binary_sha256, 'CODEX_REGISTRATION_REQUIRED', 'The Codex executor must be discovered and registered before execution');
+  requireValue(settings.authentication.mode !== 'environment_api_key' || Boolean(settings.authentication.api_key_env && env[settings.authentication.api_key_env]), 'CODEX_CREDENTIAL_MISSING', 'Configured authentication environment variable is unavailable');
+  await qualifiedCodexBinary(settings, { ...options, env });
+  return settings;
+}
+
 export async function qualifiedStrictSettings(config, env = process.env, options = {}) {
   const settings = validateStrictConfig(config.strict_executor);
   requireValue(settings.enabled, 'STRICT_DISABLED', 'The user has not enabled the Codex executor');
-  requireValue(settings.authentication.mode !== 'environment_api_key' || Boolean(env[settings.authentication.api_key_env]), 'CODEX_CREDENTIAL_MISSING', 'Configured authentication environment variable is unavailable');
-  await qualifiedCodexBinary(settings, { ...options, env });
-  return settings;
+  return qualifiedCooperativeSettings(config, env, options);
 }

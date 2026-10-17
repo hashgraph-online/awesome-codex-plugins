@@ -1,0 +1,46 @@
+{
+  "name": "equibles",
+  "version": "1.0.1",
+  "description": "US stock market research through the hosted Equibles MCP server: SEC filings with full-text search, XBRL financial statements, earnings call transcripts, insider and congressional trades, 13F institutional holdings, short interest, prices, options and macroeconomic data.",
+  "author": {
+    "name": "Equibles",
+    "url": "https://equibles.com"
+  },
+  "homepage": "https://equibles.com/mcp",
+  "repository": "https://github.com/daniel3303/stock-market-mcp-server",
+  "license": "MIT",
+  "keywords": [
+    "equibles",
+    "finance",
+    "stocks",
+    "sec-filings",
+    "earnings-calls",
+    "13f",
+    "insider-trading",
+    "mcp"
+  ],
+  "mcpServers": "./.mcp.json",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Equibles",
+    "shortDescription": "SEC filings, financials, earnings calls, insider trades and 13F holdings",
+    "longDescription": "Connects Codex to the hosted Equibles MCP server over OAuth: full-text search across SEC filings and earnings call transcripts, XBRL financial statements, insider and congressional trades, 13F institutional holdings, short interest, end-of-day prices, option chains and macroeconomic series, each answer linked to its source. Free plan of 100 requests a day.",
+    "developerName": "Equibles",
+    "category": "Research",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://equibles.com",
+    "privacyPolicyURL": "https://equibles.com/legal/privacy",
+    "termsOfServiceURL": "https://equibles.com/legal/terms",
+    "brandColor": "#0F172A",
+    "composerIcon": "./assets/equibles-logo-400.png",
+    "logo": "./assets/equibles-logo-400.png",
+    "defaultPrompt": [
+      "Who are NVIDIA's top institutional holders this quarter?",
+      "Summarize Microsoft's most recent earnings call.",
+      "What did Apple's latest 10-K say about tariffs? Quote the passage."
+    ]
+  }
+}

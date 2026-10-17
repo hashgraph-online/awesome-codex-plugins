@@ -20,14 +20,19 @@ act.
 
 The declared `treatment_source` remains the only arm variable: `canonical-skill`
 uses exact SKILL.md bytes and is the mode the coverage gate counts;
-`injected-prelude` establishes prelude-only evidence. Live runs use the selected
-authorized native producer with equal scenario and repetitions. Effort levels
-are a declared experimental choice, not a prerequisite for every question.
+`injected-prelude` establishes prelude-only evidence. The live runner uses the
+Codex adapter; run it only when that adapter is available and caller-authorized,
+with equal scenario and repetitions. An unavailable or unauthorized route is
+UNMEASURED, not permission to substitute another runtime. Effort levels are a
+declared experimental choice, not a prerequisite for every question.
+
+Choose a caller-selected protected external non-Git result path and repetitions
+within the accepted envelope before a live run:
 
 ```bash
 bash scripts/probe-skill.sh --probe <id> --replay
 # Only within an already authorized live envelope:
-bash scripts/probe-skill.sh --probe <id> --live --capture --reps 3 --output out.json
+bash scripts/probe-skill.sh --probe <id> --live --capture --reps "$PROBE_REPS" --output "$PROBE_RESULT_PATH"
 bash scripts/check-skill-probe-headroom.sh
 ```
 

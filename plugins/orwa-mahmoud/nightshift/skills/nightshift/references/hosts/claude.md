@@ -9,3 +9,10 @@ A live conversation is handed back with `claude --resume <id>` for a
 terminal, or `vscode://anthropic.claude-code/open?session=<id>` for the IDE; `claude agents --json`
 lists ids. Claude Code records clean session ends and Esc, and its watchman stands down for either
 rather than resuming.
+
+The plan room closes on the owner's typed `/nightshift:plan-exit` or `/nightshift:start`. Claude Code
+fires `UserPromptExpansion` for a command the owner types, with `command_name` (`nightshift:plan-exit`),
+`command_source` (`plugin`) and the typed line in `prompt`; the hook removes the marker before the
+command expands. A typed command does not fire `UserPromptSubmit`, and a skill Claude invokes through
+the Skill tool fires neither event, so the model cannot close the room. `ns plan-exit` in a terminal
+is the other exit.

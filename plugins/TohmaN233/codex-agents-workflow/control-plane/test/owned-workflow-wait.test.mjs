@@ -1,7 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {randomUUID,randomBytes} from 'node:crypto';
-import {waitForOwnedWorkflow} from '../lib/execution/owned-workflow-wait.mjs';
+import {waitForOwnedWorkflow,resolveOwnedWorkflowHandoff} from '../lib/execution/owned-workflow-wait.mjs';
+
+test('handoff abort cancels its exact Run before the owning semantic operation settles',async()=>{
+ const controller=new AbortController(),reason=new Error('originating operation aborted');
+ const started={run_id:'exact-run',control_token:'exact-token'};let release,entered,cancelled=0;
+ const ready=new Promise(resolve=>{entered=resolve;});
+ const operation=new Promise(resolve=>{release=resolve;});
+ const service={async call(name,args){assert.equal(name,'cancel');assert.deepEqual(args,started);cancelled++;release({});}};
+ const pending=resolveOwnedWorkflowHandoff(service,started,async()=>{entered();return operation;},{signal:controller.signal});
+ await ready;controller.abort(reason);await assert.rejects(pending,error=>error===reason);assert.equal(cancelled,1);
+});
 
 test('Host continues exact wait objects and returns the controller continuation only when work needs it',async()=>{
  const run_id=randomUUID(),secret=randomBytes(32).toString('hex');

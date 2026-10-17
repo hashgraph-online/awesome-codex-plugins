@@ -140,10 +140,10 @@ export const layoutAndTypographyStyles = css`
     }
 
     .completion-footer {
-      display: grid;
+      display: flex;
+      flex-wrap: wrap;
       min-width: 0;
       flex: none;
-      grid-template-columns: auto minmax(0, 1fr) auto;
       align-items: baseline;
       gap: calc(var(--gp-font-size) * 0.285714);
       margin-top: 0;
@@ -154,22 +154,26 @@ export const layoutAndTypographyStyles = css`
     }
 
     .completion-count {
-      overflow: hidden;
       min-width: 0;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      overflow-wrap: anywhere;
     }
 
     .footer-actions {
       position: static;
       display: inline-flex;
       min-width: 0;
+      max-width: 100%;
       align-items: baseline;
       gap: calc(var(--gp-font-size) * 0.428571);
-      grid-column: 3;
+      padding-inline-start: var(--gp-token-right-shift);
       margin-inline-start: auto;
-      justify-self: end;
       text-align: right;
+    }
+
+    .footer-actions .token {
+      flex: 0 1 auto;
+      white-space: normal;
+      overflow-wrap: anywhere;
     }
 
     .placement-settings {

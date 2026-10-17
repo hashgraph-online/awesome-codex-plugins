@@ -42,6 +42,7 @@ coverage ledger or separate report. Select only the mode relevant to the task.
 |---|---|
 | Explain an API, command, code-map or architecture | Inspect its consumers and source; use [code/API guidance](references/default-mode.md) or [architecture guidance](references/architecture-report.md) when useful. |
 | Create or improve a README | Lead with the user's problem and a working first-use path; preserve useful depth. See [README craft](references/readme-craft.md). |
+| Check an advertised install, upgrade or first-success path | Follow the selected package and current instructions in an authorized disposable environment. See [developer journey](references/developer-journey.md). |
 | Audit or scaffold OSS documentation | Compare existing docs with the requested pack. Create missing files; revise existing files only within the authorized request. See [OSS pack](references/oss-pack.md). |
 | Initialize missing entry documents | Create only explicitly requested missing files; report existing paths as skipped. See [setup examples](references/bootstrap/examples.md). |
 | Preserve a session for another context | Fill the [handoff template](#session-handoff) and deliver it as described there. |

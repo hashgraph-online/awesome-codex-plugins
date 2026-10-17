@@ -3,7 +3,7 @@
 Plugin runtime asset. Loaded by every command skill (`init`, `plan`, `document`,
 `review`) before any gate that may question the user. Normative for every command
 and every track gate (`sdd`, `requirements-cascade`, `decision`, `describe`,
-`actualize`, `experience`). This contract defines when to ask, how many questions,
+`actualize`). This contract defines when to ask, how many questions,
 in what form, and where answers persist. It does not define which questions a gate
 asks — see Ownership.
 
@@ -16,12 +16,21 @@ Consider an interview only when at least one trigger signal is present:
 - two or more viable alternatives exist on one decision;
 - the code and a document conflict.
 
+Entry conditions permit a gate to run; they do not prove that its draft covers
+every material need. When a gate produces a draft, scan the draft after
+grounding even if the request supplied ample context or an upstream document.
+
 Apply the materiality filter to every candidate question: keep it only when it
 concerns architecture, data model, task decomposition, tests, UX behavior,
 operations, or compliance. Drop every candidate that fails the filter. The
 coverage scan behind the `Missing` trigger uses the categories in
 `skills/_shared/coverage-taxonomy.md`; the materiality filter is this
 seven-area list, not that taxonomy.
+
+Drop a candidate whose answer a convention already gives — the codebase's
+existing practice on the same surface, or the protocol's standard behavior,
+such as a 400 response for a malformed request parameter. Record that default in
+the draft, marked `[assumption]`, and ask no question.
 
 If no candidate passes the filter, skip the interview and state that no material
 ambiguity was found.
@@ -36,7 +45,11 @@ yourself from:
 - git history;
 - clarifications already recorded in this invocation or the draft artifact.
 
-Ask only what grounding could not resolve.
+Ask only what applicable grounding could not resolve. A precedent can resolve a
+technical need when its behavior and relevant constraints apply to this task.
+It cannot settle a new user-owned product choice without target-specific
+evidence from the request or accepted canon. A similar example alone is an
+analogy, not evidence of the user's intended behavior.
 
 ## Question form
 
@@ -51,11 +64,11 @@ You MUST NOT ask a question without a stated recommendation.
 
 ## Budget
 
-- Auto mode: hard ceiling of 5 questions per invocation, drawn down across all
-  gates of that invocation. You MUST NOT exceed the ceiling regardless of how
-  many gates run.
-- Expert invocation: per-gate budgets rise up to the maximum the track file
-  declares.
+- A hard ceiling of 5 questions per invocation, drawn down across all gates of
+  that invocation, on every command. You MUST NOT exceed the ceiling regardless
+  of how many gates run or what the request says. A new invocation, including a
+  resume, starts a fresh ceiling; the `budget` field of a resumed state block
+  does not reduce it. A gate's `budget` field caps that gate inside the ceiling.
 - A re-asked disambiguation (see Failure handling) does not count against the
   budget.
 - When candidate questions exceed the remaining budget, rank them by
@@ -79,26 +92,45 @@ MUST NOT contain host-conditional text.
 ## Delegation
 
 - If the user answers "you decide" or "I don't know", adopt the recommended
-  answer and mark it `[assumption]` in the artifact.
+  answer, mark it `[assumption]` in the artifact, and record it under
+  `## Clarifications` as delegated.
 - If the user delegates twice in a row, end the interview and finish the work on
-  recorded assumptions.
+  recorded assumptions. Each material question still unasked counts as
+  explicitly delegated, including for a gate's blocking exit checks: adopt its
+  recommended answer, mark it `[assumption]`, and record it as delegated.
+- If the user tells a stopped gate to proceed anyway ("ship it anyway", "just
+  proceed"), treat every open material question at that gate as explicitly
+  delegated.
+- An `[assumption]` mark alone is not a delegation. A blocking exit check that
+  accepts a delegation reads the delegated record under `## Clarifications`.
 
 ## Write-back
 
 - If the draft artifact does not exist, create it with `create_document` before
   writing clarifications.
+- When a scope question resolves the target, write its answer under
+  `## Clarifications` of the first draft the invocation creates.
 - When a gate closes, write the accepted answers under `## Clarifications` in
   the draft artifact, within the single `update_document` call required by
   `skills/_shared/gate-contract.md`.
 - When the budget is exhausted while material questions remain, record the
   remaining questions in the `deferred` field of the track state block with a
   one-line reason each.
+- Before removing a track state block, report any needs still in `deferred` and
+  the consequence of leaving each unresolved.
 - Update the track state block per `skills/_shared/gate-contract.md`.
 
 ## Failure handling
 
 - If the user interrupts the interview, proceed on the answers recorded so far
-  and mark unresolved material items `[assumption]`.
+  and mark unresolved material items `[assumption]`. At `sdd.design`, an
+  interruption does not resolve a material user-owned choice: record it in
+  `deferred` with the reason `interrupted` and keep that gate open under its
+  blocking exit check.
+- When a blocking exit check stops a gate on an unanswered user-owned choice,
+  report the choice, the behavior it changes, and the three ways to continue:
+  answer it now, delegate it ("you decide"), or proceed anyway. Name the
+  command and the draft title that resume the gate in a later session.
 - If the user rejects the recommended answer without giving an alternative,
   re-ask once with the option list. This re-ask is the re-asked disambiguation
   exempt from the budget.

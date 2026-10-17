@@ -21,6 +21,7 @@ test('Host-owned provider journals valid items, repairs one in the same session,
   let runtime, runId;
   const sessions = [], prompts = [], inputHashes = [], observed = [];
   const manager = new ManagedNativeManager({ configPath, env: {}, getConfig: async () => config,
+    register:async({config})=>config,
     qualify: async () => ({ binary_sha256: 'b'.repeat(64), codex_binary: 'unused', authentication: { mode: 'environment_api_key' } }),
     sessionFactory: async settings => {
       sessions.push(settings);

@@ -16,15 +16,17 @@ too often to trust.
   unless the guidelines ask for them.
 - The manuscript is the Shunn build with `form: short-story` or `form: flash`
   in `story.md` (see Build the manuscript in `SKILL.md`). When a market reads
-  anonymously (its guidelines say so), the Shunn build is not anonymous: its
-  first page carries the author's name, contact block, and byline. The build
-  has no option to drop them, so tell the user to remove all three from the
-  built file in `dist/`, and anything else that names them, such as a page
-  header they added, before sending. Follow the market's own anonymity
-  rules.
+  anonymously (its guidelines say so), add `--anonymous` to the Shunn build
+  (`story build . --format docx --shunn --anonymous`, or
+  `--format shunn --pdf --anonymous`). It leaves out the byline, contact
+  block, and the surname in the running head, which keeps the short title
+  and page number. Ask the user to check the chapter text for their name,
+  and to follow the market's own anonymity rules.
 - Word-count limits are the market's own. `word-count-norms.md` gives the
   usual bands for short story, novelette, and novella; a story that sits
-  over a market's limit does not go to that market.
+  over a market's limit does not go to that market unless the user cuts it
+  first, with `revision-continuity`'s
+  [length pass](../../revision-continuity/references/pass-checklists.md#length-pass).
 - Many markets open only in reading periods or for themed calls. Record the
   window the user gives you in the tracker Notes.
 
@@ -142,9 +144,15 @@ open, holds, entries past their window, and stories with no submission out.
 A collection gathers one author's stories; an anthology gathers several
 authors' stories, usually under an editor. The steps below fit both. Each
 story stays an ordinary Story Skills project; the book is one more project
-with each story as a chapter, titled by a `chapter-heading: "{title}"` label
-and with no `form`. `docs/series.md`, Short-story collections and
-anthologies, gives the layout, the anthology byline, and the builds.
+with each story as a chapter and no `form`. Its `story.md` `labels:` list
+holds `chapter-heading: "{title}"`, so each heading shows the title alone. A
+`labels` entry in a chapter's frontmatter has no effect. In an anthology, put
+the editor in `story.md` `editor` and each story's writer in its chapter's
+`author` (a name, or a list for a co-written story), never in the prose:
+builds print it under the story's title and keep it out of the word count. Ask the user for every name; do
+not guess a byline. Run `story validate .` after setting them.
+`docs/series.md`, Short-story collections and anthologies, gives the
+layout, the bylines, and the builds.
 
 1. **Choose the stories.** List the candidates with each one's word count,
    form, and publication history from the tracker. Ask the user which to
@@ -171,9 +179,9 @@ anthologies, gives the layout, the anthology byline, and the builds.
    that its first publisher allows reprinting in a collection, and list any
    that need the user to confirm. Never add a credit the user has not given.
    In the collection project, put the credits on a back-matter page:
-   `story add matter "Acknowledgements" --placement back`, then write the
-   lines into `matter/acknowledgements.md` and run `story validate .`.
+   `story add matter 'Acknowledgements' --placement back`, then write the
+   lines into `matter/acknowledgements.md`, then run `story reindex .`, `story wordcount . --write`, and `story check .`.
 5. **Check the stories against each other.** In a linked collection, run
-   each story's checks (`story validate .`, `story continuity .`) and compare
+   each story's checks (`story check .`) and compare
    shared names, dates, and facts by reading. Note contradictions for the
    user; fix them with `revision-continuity`.

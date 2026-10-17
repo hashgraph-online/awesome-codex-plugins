@@ -6,6 +6,7 @@ import { createInterface } from 'node:readline';
 import { requireValue } from '../workflow-paths.mjs';
 import { withNativeAgentObserver } from './native-agent-observer.mjs';
 import { canonicalSessionPath } from './local-session-path.mjs';
+import { mainExecutionContext } from './main-execution-policy.mjs';
 
 const modelId = value => typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/.test(value);
 const effortId = value => typeof value === 'string' && /^[a-z][a-z0-9_-]{0,31}$/.test(value);
@@ -21,7 +22,7 @@ export async function readMainTurnContext(thread, home) {
   requireValue(rel && rel !== '..' && !rel.startsWith('..' + sep) && !isAbsolute(rel), 'MAIN_MODEL_SESSION_PATH', 'Caller rollout must be inside the selected Codex home sessions directory');
   const stat = await lstat(path);
   requireValue(stat.isFile() && stat.nlink === 1, 'MAIN_MODEL_SESSION_PATH', 'Caller rollout must be a regular file');
-  let matched = false, selection;
+  let matched = false, selection, turnPayload;
   const input = createReadStream(path);
   const lines = createInterface({ input, crlfDelay: Infinity });
   try {
@@ -36,12 +37,14 @@ export async function readMainTurnContext(thread, home) {
         matched = true;
       } else {
         requireValue(matched && modelId(row.payload?.model), 'MAIN_MODEL_SESSION_SCHEMA', 'Caller turn has no valid model selection');
+        turnPayload = row.payload;
         selection = { model: row.payload.model, effort: row.payload.effort ?? null };
       }
     }
   } finally { lines.close(); input.destroy(); }
   requireValue(matched && selection, 'MAIN_MODEL_SESSION_CONTEXT', 'Caller session has no current turn model selection');
-  return selection;
+  const execution = mainExecutionContext(turnPayload, thread.id);
+  return {...selection,...(execution ? { main_execution_context: execution } : {})};
 }
 
 async function resolvedEffort(client, model, effort) {
@@ -83,6 +86,7 @@ export async function resolveMainModelSelection(record, settings, { env = proces
       selection = { model: settings.main_model || result.config?.model, effort: settings.main_reasoning_effort || result.config?.model_reasoning_effort };
     }
     requireValue(modelId(selection.model), 'MAIN_MODEL_SELECTION', 'Codex has no resolved Main model selection');
-    return { model: selection.model, effort: await resolvedEffort(client, selection.model, selection.effort) };
+    return { model: selection.model, effort: await resolvedEffort(client, selection.model, selection.effort),
+      ...(selection.main_execution_context ? { main_execution_context: selection.main_execution_context } : {}) };
   }, { env });
 }

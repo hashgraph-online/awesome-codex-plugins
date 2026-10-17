@@ -1,5 +1,6 @@
 import { App, applyDocumentTheme, applyHostStyleVariables } from '@modelcontextprotocol/ext-apps';
 import { OpenAIExtensions } from '@openai/mcp-extensions/app';
+import { consoleToken } from './console-token.mjs';
 export { confirmWorkbench } from './mcp-app-dialog';
 import { createBootstrapInbox, type BootstrapInbox } from './mcp-app-bootstrap.js';
 
@@ -78,8 +79,7 @@ const appState = globalState.__codexWorkflowAppState ??= createState();
 export const isMcpAppContext = appState.markerPresent;
 export const isMcpAppResource = appState.markerPresent && appState.markerValue === 'mcp';
 export const hasInvalidMcpAppMarker = appState.markerPresent && appState.markerValue !== 'mcp';
-export const token = isMcpAppContext ? '' : new URLSearchParams(location.hash.slice(1)).get('token') ?? '';
-if (!isMcpAppContext) history.replaceState(null, '', location.pathname);
+export const token = isMcpAppContext ? '' : consoleToken(location,history,sessionStorage);
 
 export function getAppView(): AppView { return appState.view; }
 

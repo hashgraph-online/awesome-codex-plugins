@@ -18,7 +18,6 @@ The first word selects the run: `import` or `refresh`. These two words are the c
 - `import [path]` — convert the repository's authored context into native documents, at all five discovery levels of `lib/sources.md`; a path limits the run to that path. Resumes an open import plan when one exists.
 - `refresh [path or domain]` — re-run on a seeded repo to add facts that appeared since (a new schema, config, or modules) and to retrofit host wiring. A subject scopes the top-up: an existing path wins; otherwise a detected domain slug runs the single-domain pass. Bypasses the "already seeded" early-exit.
 - Depth and scale are not arguments. The preview offers the toggles `depth:light|standard|deep` (default `standard`) and `scale:small|medium|large`, where the user already sees each choice's cost (`lib/seed-compose.md`). Import has no depth.
-- A retired form as the first word — `domain`, or a flag such as `--refresh`, `--depth=deep`, `--scale=large` — starts a plain init; name the current form once: *"`/archcore:init [import|refresh] [path or domain]`; depth and scale are toggles in the preview."*
 
 ## When to use
 
@@ -33,7 +32,7 @@ The first word selects the run: `import` or `refresh`. These two words are the c
 - Planning a feature → `/archcore:plan`.
 - Documenting one module → `/archcore:document`.
 - Codifying a team standard → `/archcore:document` (offers rule + guide continuation).
-- Filing one external material or a finished report → `/archcore:document research`.
+- Filing one external material or a finished report → `/archcore:document <the report or material>`.
 - Reading applicable context before coding → automatic; the code-alignment hook injects it on file edits.
 - Docs health audit → `/archcore:review`.
 
@@ -112,7 +111,7 @@ Call `mcp__archcore__list_documents()` once. **Derive every flag below from loca
 
 **Already-seeded early-exit.** If `has_stack_rule` AND `has_run_guide` AND `has_overview` are all true AND the first word is neither `refresh` nor `import`, reply:
 
-> Init already seeded this repo. Applicable context auto-injects on file edits via the code-alignment hook; use `/archcore:review` for the dashboard. To add facts that appeared since (a new schema, config, or modules), re-run `/archcore:init refresh`; to drill into one domain, `/archcore:init refresh <domain>`; to convert the repo's authored docs and agent instructions, `/archcore:init import`. (Seeded before host wiring existed, or missing the host configs? `refresh` also adds host wiring — MCP config, SessionStart hook, usage hint.)
+> Init already seeded this repo. Applicable context auto-injects on file edits via the code-alignment hook; use `/archcore:review` on a branch with changes. To add facts that appeared since (a new schema, config, or modules), re-run `/archcore:init refresh`; to drill into one domain, `/archcore:init refresh <domain>`; to convert the repo's authored docs and agent instructions, `/archcore:init import`. (Seeded before host wiring existed, or missing the host configs? `refresh` also adds host wiring — MCP config, SessionStart hook, usage hint.)
 
 Then stop. On a `refresh` run, skip this early-exit — every already-present artifact is marked **skip (exists)** in the preview and only missing ones are composed. Resolve a `refresh` subject here: an existing path → path scope; else a detected domain slug → single-domain pass; else ask one question that lists the detected domains.
 
@@ -144,7 +143,7 @@ Print the line in every run, including the run that finds nothing. WHEN the gate
 
 Seed runs close per `lib/seed-compose.md` "Closing message"; host-wiring outcome lines per `lib/host-wiring.md`. Import runs close with: documents created by type, the conflicts list, fidelity departures, rows still open with `/archcore:init import` as the continuation, and — after the last row — the retire offer and the removal of the import plan. Always end with:
 
-> Use `/archcore:review` for the dashboard, `/archcore:review deep` for a health audit.
+> Use `/archcore:review` on a branch with changes, `/archcore:review audit the knowledge base` for a health audit.
 
 ## Result
 

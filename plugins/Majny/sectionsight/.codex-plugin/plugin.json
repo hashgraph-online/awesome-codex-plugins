@@ -1,0 +1,51 @@
+{
+  "name": "sectionsight",
+  "version": "1.0.1",
+  "description": "Sets up cookieless, privacy-first website analytics (time per page section, consent banner, PostHog replay only after consent, Slack or e-mail reports, health alerts) and proves the privacy claims with a headless-browser check.",
+  "author": {
+    "name": "Jakub Dvořák",
+    "url": "https://kubadvorak.com"
+  },
+  "homepage": "https://github.com/Majny/sectionsight",
+  "repository": "https://github.com/Majny/sectionsight",
+  "license": "MIT",
+  "keywords": [
+    "analytics",
+    "web-analytics",
+    "privacy",
+    "cookieless",
+    "consent",
+    "posthog",
+    "slack",
+    "playwright"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "sectionsight",
+    "shortDescription": "Privacy-first website analytics, proven in a real browser",
+    "longDescription": "Ask Codex to add analytics to a site and sectionsight asks the few owner decisions, builds a cookieless tracker that measures time per page section, a same-origin collector, and optionally a consent banner, PostHog replay only after consent, Slack or e-mail reports and health alerts. It drafts the privacy-page text and then runs a Playwright check: nothing stored before consent, no e-mail or token from the URL in any report, private pages silent. It never claims legal compliance.",
+    "developerName": "Jakub Dvořák",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/Majny/sectionsight",
+    "privacyPolicyURL": "https://github.com/Majny/sectionsight/blob/main/SECURITY.md",
+    "termsOfServiceURL": "https://github.com/Majny/sectionsight/blob/main/LICENSE",
+    "defaultPrompt": [
+      "Add privacy-first analytics to this site",
+      "Check that this site stores nothing before consent",
+      "Send me a Slack line for every notable visit"
+    ],
+    "brandColor": "#16A34A",
+    "composerIcon": "./assets/icon.svg",
+    "screenshots": [
+      "./docs/reports-slack.png",
+      "./docs/reports-email.png",
+      "./docs/verify.png"
+    ],
+    "logo": "./assets/icon.svg"
+  }
+}

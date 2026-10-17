@@ -5,6 +5,11 @@ description: Simplify existing code while preserving behavior. Use when asked to
 
 # Forge Cleanup
 
+For a Git target, check `team status --target-dir "{target_dir}"` with Forge’s
+helper before work or resume.
+Follow [team coordination](../zagrosi-forge/references/collaboration.md) when configured or unavailable;
+reuse the same task across phases and delegated agents.
+
 Produce code that is easier to understand and change. Apply the shared
 [engineering standard](../zagrosi-implement/references/engineering.md).
 Fewer concepts and clearer responsibilities matter; line counts are evidence,

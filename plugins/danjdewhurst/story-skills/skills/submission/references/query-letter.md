@@ -34,8 +34,8 @@ incident that sets them moving.}
 lose if they fail. End on the stakes, not the ending.}
 
 {TITLE} is a {word count rounded to the nearest thousand}-word {category and
-genre}, complete at {word count}, that will appeal to readers of {Comp A}
-and {Comp B}.
+genre}, complete at {word count rounded to the nearest thousand}, that will
+appeal to readers of {Comp A} and {Comp B}.
 
 [TODO: author to supply] {Bio: relevant credentials, publications, or lived
 experience. Omit rather than invent.}

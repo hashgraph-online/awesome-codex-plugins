@@ -22,9 +22,9 @@ external messaging, permission choices, or product/governance authority.
 
 The adapter returns exact `agent_type`, freshness, role, expected model/effort, and any
 requested sandbox. A Cooperative Workflow's `workflow_start` or `workflow_native_next`
-returns one scoped packet per real native subagent. Use each `spawn_config` as the
-`spawn_agent` arguments and its prompt as the message. Spawn every released packet,
-then call `workflow_native_spawned_batch` with no arguments. The Host journals its
+returns ordered `spawn_calls` for real native subagents. Invoke each named tool with
+its exact Host-generated `arguments`, including the semantic `message`. Execute all
+released calls, then use the fixed `workflow_native_spawned_batch` acknowledgement adapter. The Host journals its
 precomputed packet indexes and canonical Agent paths, holds the one-hour lifecycle
 event wait, validates exact terminal child turns, releases available slots, joins
 results in dispatch order and seals the completed dispatch internally. The Host

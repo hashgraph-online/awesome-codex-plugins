@@ -1,6 +1,6 @@
 {
   "name": "repopilot",
-  "version": "0.24.3",
+  "version": "0.25.0",
   "description": "Snapshot each session and review what the agent changed before it stops: tests it skipped, focused, removed, or weakened, new lint/type suppressions, relaxed CI gates, removed auth or error handling, and untrusted input reaching risky sinks. Deterministic and local; requires the repopilot CLI.",
   "author": {
     "name": "Mykyta Stelmashenko",

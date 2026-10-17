@@ -46,7 +46,7 @@ def _build_registry() -> "Registry":
     """Build a referencing Registry so $ref between local schemas resolves."""
     registry = Registry()
     for schema_path in SCHEMA_DIR.glob("*.schema.json"):
-        schema = json.loads(schema_path.read_text())
+        schema = json.loads(schema_path.read_text(encoding="utf-8"))
         uri = schema.get("$id")
         if uri:
             registry = registry.with_resource(uri, Resource.from_contents(schema))
@@ -70,7 +70,7 @@ def _read_result(cache: Path, mpn: str, task_id: str) -> "dict | None":
     if not p.exists():
         return None
     try:
-        return json.loads(p.read_text())
+        return json.loads(p.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         return {
             "task_id": task_id,
@@ -154,7 +154,7 @@ def _enrich_source_from_scout(extraction: dict, cache: Path, mpn: str) -> None:
     if not p.exists():
         return
     try:
-        scout = json.loads(p.read_text())
+        scout = json.loads(p.read_text(encoding="utf-8"))
     except json.JSONDecodeError:
         return
     md = scout.get("metadata", {}) or {}
@@ -200,7 +200,7 @@ def merge(cache: Path, mpn: str, *, retry_failed: bool = False) -> int:
     if not plan_path.exists():
         print(f"error: plan not found at {plan_path}", file=sys.stderr)
         return 2
-    plan = json.loads(plan_path.read_text())
+    plan = json.loads(plan_path.read_text(encoding="utf-8"))
     if plan["execution"]["started_at"] is None:
         plan["execution"]["started_at"] = _now_iso()
 
@@ -214,7 +214,7 @@ def merge(cache: Path, mpn: str, *, retry_failed: bool = False) -> int:
         tid = task["task_id"]
         role = task["subagent_role"]
         schema_path = REPO_ROOT / task["schema"]
-        schema = json.loads(schema_path.read_text())
+        schema = json.loads(schema_path.read_text(encoding="utf-8"))
         result = _read_result(cache, mpn, tid)
         status, err = _classify(result, schema)
 

@@ -117,30 +117,3 @@ behind.
 
 Write the values directly. No silent-failure check needed, and blast radius is
 whatever files the change lands in.
-
-## Feeding the controls
-
-Only for an interactive sheet — `references/controls.md`. Four fields, per fork:
-
-| fork | `scale` | `inSystem` | `token` · `uses` |
-|---|---|---|---|
-| Utility | the utility names, in scale order | `'all'` | the config key or `@theme` entry, and the class's grep count |
-| CSS variables | the token values, in order | the same values | `--radius-md`, and the `var()` grep count |
-| SCSS | values read out of `_variables.scss` | the same values | `$radius-md`, and its grep count |
-| CSS-in-JS | values read out of the theme object | the same values | the theme path, `null` if access is interpolated |
-| Blank slate | the default ladder in `references/sweeping.md` | `[]` | **`null`** |
-
-The chip is the only thing standing between a scrub and a one-off value, so keep `uses`
-honest. Where a count can't be stood behind — interpolated access — set `token: null`
-and say so in chat rather than printing a number that isn't true.
-
-## Reporting blast radius
-
-While choosing, one line per specimen:
-
-```
-토큰 그대로 · --radius-md 고침 (23곳) · 새 토큰
-```
-
-Before applying, the real tally: which files, which lines, which tokens, and what else
-moves with them. Scope defaults are in `SKILL.md` — `Ending`.

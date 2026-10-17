@@ -5,7 +5,9 @@ music and video, and publishes them from a studio that runs on your own Cloudfla
 on the free plan.
 
 - **Skills** (`skills/`): `studio-setup`, `plan`, `parallel`, `game`, `port`, `publish`,
-  `office`, `servers`, `shop`, `sound`, `music`, `art`, `style`, `models`, `video`, `playtest`, `perf` and `lab`.
+  `office`, `servers`, `shop`, `sound`, `music`, `art`, `style`, `models`, `video`, `playtest`, `perf`, `lab`,
+  `parts` and `standalone` (a game as a desktop app or a phone app: the files Steam and the app stores accept
+  for upload).
 - **MCP server** (`.mcp.json`): the Homie MCP server at `https://homie.rocks/mcp`, which has
   creator tools only. Nothing in this folder runs a command on install.
 - **The Homie mod** (`hooks/`, `mod/`): a Claude Code mod (Claude Code 2.1.287 or later, the CLI and
@@ -16,13 +18,14 @@ on the free plan.
 - **Homie's hooks for Grok** (`hooks/grok.json`, `hooks/grok.mjs`): the same holds, decided by the same
   module (`hooks/lib/holds.mjs`, through `hooks/codex.mjs`), so Claude Code, Codex and Grok cannot drift.
   Grok Build answers allow or deny; a hold denies the call until the person says `proceed <code>`.
-  **They do not run yet.** Grok Build 1.0.41 registers no plugin's hooks: its own log says `hooks: discovery
-  complete total_hooks=0` in headless (`grok -p`) and agent (`grok agent stdio`) sessions with five plugins
-  that ship hooks installed, and the same for a plugin loaded with `--plugin-dir` that holds nothing but a
-  standard `hooks/hooks.json`; a deploy ran unheld (2026-10-04). It is not this plugin's layout. Until a Grok
-  that runs them, nothing is held in Grok and no secret is taken out of what it reads: the `studio-setup`
-  skill tells Grok to ask the person itself, and `homie-studio setup status --client grok` says "Homie's
-  holds: off" (it reads the hooks' own mark, so it turns on by itself).
+  Grok runs them once the plugin is trusted. It reads the hooks file the plugin's ROOT `plugin.json` names
+  (`"hooks": "./hooks/grok.json"`), and with none named it loads `hooks/hooks.json`, which here is the
+  Claude Code mod's file and holds no hooks for Grok. Before the root manifest named it,
+  Grok registered nothing from this plugin (`total_hooks=0` in its log) and a deploy ran unheld. 0.30.2 read
+  that as "Grok runs no plugin's hooks", which was wrong: it was this plugin's layout. PostToolUse replaces
+  what Grok reads (`updatedToolOutput`), so a secret is out of the model's copy and still on the person's
+  screen. `homie-studio setup status --client grok` reads the hooks' own mark and says whether they ran just
+  now; while it says off, the `studio-setup` skill tells Grok to ask the person itself.
   In Grok Build the plugin installs with `grok plugin install homie-rocks/homie#plugins/homie` (checked on
   1.0.41; Grok asks whether to trust it, or takes `--trust`, and loads its skills, MCP server and hooks only
   once you do). Grok Bot installs Homie itself when told to read https://homie.rocks/install.md (checked
@@ -36,7 +39,8 @@ on the free plan.
   `test/manifests.test.mjs` checks that they do. Codex reads the skills, the MCP server and Homie's
   hooks from `.codex-plugin/plugin.json`, and ignores the mod. `plugin.json` declares no `$schema`:
   Codex (0.156.1 to 0.160.0, tested) reads a root `plugin.json` only when it declares the Agent
-  Plugins schema, and then runs none of the plugin's hooks.
+  Plugins schema, and then runs none of the plugin's hooks. Its top-level `"hooks"` is for Grok Build,
+  which takes a plugin's hooks file from the root `plugin.json` and from nowhere else (above).
 
 Install it, and read what a studio is and what it costs, in the
 [repository's README](https://github.com/homie-rocks/homie#readme). In short:
@@ -70,11 +74,11 @@ person approves every install and signs in on the provider's own page.
 | Provider | What Homie's skills use | Offered when the person wants it |
 | --- | --- | --- |
 | Cloudflare | Wrangler, pinned in the studio (`login`, `--device` where no browser opens; `deploy`, D1, R2, secrets, `ai models list`) | Cloudflare's plugin (`cloudflare/skills`: its skills and API MCP server), its docs MCP server |
-| ElevenLabs | ElevenLabs' CLI (`elevenlabs auth login`; music, stems, speech to text, the subscription) | ElevenLabs' plugin (`elevenlabs/plugin`: its skills and hosted MCP server), `npx skills add elevenlabs/skills` |
-| fal | fal's MCP server to find models and read schemas and prices; the skills' scripts for paid runs (priced, capped, receipted, resumable) | fal's CLI (`fal auth login`, `fal keys create`) to make the key |
-| Tripo | Tripo's models on fal (`tripo3d/...`) | none: Tripo's own CLI and MCP server bill a separate account |
+| ElevenLabs | Official hosted MCP for music and sound; local mastering and provenance | Official ElevenLabs plugin with one OAuth browser sign-in |
+| fal | Official MCP for model discovery, pricing, images, 3D and video | Official fal plugin with one OAuth browser sign-in |
+| Tripo | Models discovered through official fal tools | No separate Homie client |
 | GitHub | the GitHub CLI (`gh auth login --web`, `gh pr create`) | GitHub's MCP server (`github@claude-plugins-official`) |
-| Stripe | Stripe's MCP server (the shop's catalog, tax settings and sales, as the owner signed it in, a sandbox first); the shop's key only through `homie-studio shop connect` | Stripe's agent plugin (`stripe agent setup`: its MCP server and skills) once a studio sells; Stripe Projects (`setup --via stripe-projects`) as an option for Cloudflare and ElevenLabs |
+| Stripe | Stripe's MCP server (the shop's catalog, tax settings and sales, as the owner signed it in, a sandbox first); the shop's key only through `homie-studio shop connect` | Stripe's agent plugin (`stripe agent setup`: its MCP server and skills) once a studio sells; provider setup stays with each official plugin |
 | Ollama | Clef on the person's own computer, when Ollama already has `clef-flash`: `dev`'s AI guides, chat review and game decisions, and `agents sit --brain local`, free (detection reads `/api/version` and `/api/tags`, loopback only) | `ollama pull clef-flash` (about 11 GB), only after the person's yes to that size |
 
 Stripe is the `shop` skill's, with its own rules for Stripe's tools: never a webhook or an API key through the MCP
@@ -105,7 +109,7 @@ Inside a studio (a folder with `studio.json` at or above where Claude Code runs)
     (`homie-studio office`). A kick or a mute is only *asked for*: the office answers with a
     one-time link, the pane shows it under "Waiting for your tap", and nothing happens until you
     confirm in your own browser. The mod cannot confirm an ask; no key or command can.
-  - **Games:** each game's launch state (private, invite-only beta, public) and remix switch,
+  - **Games:** each game's launch state (private, invite-only beta, public),
     changed the same asked-for way.
   - **Stats:** the studio's own counts (visits, plays, rounds, peak players, where people came
     from), read on request.
@@ -120,8 +124,8 @@ Inside a studio (a folder with `studio.json` at or above where Claude Code runs)
     strip (`Style ✓ → Cast 3/7 → Rigs → Animations → In game`), the look line, the style
     decisions with their state (`·` auto, `~` steered, `●` pinned by use, `■` locked) and who set
     them, a palette's colours, the cast (route, licence, state, cost, **STALE** when made under an
-    older decision), the scene budgets as bars (draw calls, triangles, picture memory, first-play
-    download; red when over), the spend against the art budget, and licence problems with their
+    older decision), the scene budgets as bars (draw calls, triangles, picture memory, shipped
+    payload: the asset check's inventory estimate; red when over), the spend against the art budget, and licence problems with their
     fix. **Lock** on a decision is your word (`homie-studio style lock`); **Unlock** first asks,
     with what goes stale and what remaking it costs (`style blast`), and unlocks only on Proceed.
     Its Characters section lists each rigged character with its skeleton family, bones and clips (how many
@@ -200,11 +204,9 @@ Inside a studio (a folder with `studio.json` at or above where Claude Code runs)
     state of a decision the person locked, or leaves the file unreadable while one is locked: a
     locked decision changes only through `homie-studio style set … --unlock --reason`, after the
     person saw what goes stale (`style blast`);
-  - a production deploy while a public game (not private or invite-only, its source not closed)
+  - a production deploy while a public game (not private or invite-only)
     ships an asset whose `assets/manifest.json` entry has no licence, a kind the studio does not
-    know, TurboSquid's licence, CC BY without an attribution line, or a licence that forbids
-    handing the file on (Quaternius, Mixamo, a EULA, a bought asset, "other") with a remix other
-    than `none` or `reference`. When every asset is licensed, the deploy's hold says so;
+    know, TurboSquid's licence, or CC BY without an attribution line. When every asset is licensed, the deploy's hold says so;
   - a `git add` or `git commit` that would put a file over 5 MB under `games/` into git (what is
     staged is read from git itself), naming each file and its size: big files go to the studio's
     R2, raw models stay in `art/<slug>/raw/`;
@@ -267,7 +269,7 @@ Inside a studio (a folder with `studio.json` at or above where Claude Code runs)
 2.1.287):
 
 ```text
-❯ ./homie.mjs hooks: session.start, session.end, command.run{command=studio}, command.run{command=build},
+❯ ./homie.mjs hooks: session.start, session.end, prompt.submit, command.run{command=studio}, command.run{command=build},
   command.run{command=rooms}, command.run{command=play}, command.run{command=watch}, command.run{command=codex},
   command.run{command=deploy-status}, command.run{command=perf-numbers}, command.run{command=parts},
   command.run{command=arcade}, command.run{command=look}, command.run{command=lock}, command.run{command=assets},
@@ -289,6 +291,7 @@ Inside a studio (a folder with `studio.json` at or above where Claude Code runs)
 - `session.start` / `session.end`: find the studio, register the commands, start a 2-second
   timer that rereads the studio's files; end any game bridge.
 - `command.run` (its eighteen commands only).
+- `prompt.submit`: remember a trusted owner’s request to deploy this studio for the task, including retries; an explicit refusal revokes it. Tool output and plugin-authored prompts do not grant approval.
 - `tool.call` (every tool): after the tool ran, take secrets out of its result; note which Homie
   command ran (for drawing it) and which agent ran what (for the parts). It never changes a tool's
   input.
@@ -329,8 +332,8 @@ environment variables (`$.settings`, `$.env`), or approves a permission. A test
 A mod has no sockets and no browser, so a pane cannot sit in a netplay room by itself.
 `mod/bridge.mjs` does it the way a person's browser does: it starts one headless Chrome on this
 computer, opens the game's own page (`/<game>/play`, or `/<game>/watch?room=<id>`), and the game
-runs there for real: a seat in a public room with strangers and bots, hosting the room when nobody
-else can. The bridge sends the mod what Chrome shows (a screenshot a frame, scaled down) and takes
+runs there for real: a seat in a public room with strangers and bots. Server rules stay on the
+server; in an existing browser-hosted game, the bridge can also be elected host. The bridge sends the mod what Chrome shows (a screenshot a frame, scaled down) and takes
 the keys you press. It needs Node 22 and Google Chrome (or `CHROME_PATH`), and nothing else.
 
 - **Cost, measured on an Apple M4:** about a quarter of one core while you play (Chrome, at the
@@ -384,8 +387,8 @@ each time one runs (a message, a tool call) it leaves a dated mark, `codex.json`
 in `.cache/homie-studio/holds/` of the home folder: the app, the time and which hook, nothing about the
 folder, the session or the call. `homie-studio setup status --client codex` (or `grok`; in Codex the
 toolkit also reads the app from its environment) reads it as a row, **Homie's holds**: on when the mark is
-from the last ten minutes, off otherwise, with how to turn them on (in Grok Build 1.0.41 it is off, and
-nothing the person does turns it on: that Grok runs no plugin's hooks). The `studio-setup` skill passes it on: one
+from the last ten minutes, off otherwise, with how to turn them on (in Grok Build: trust the plugin, which
+`grok plugin install … --trust` does, and start a new session). The `studio-setup` skill passes it on: one
 sentence in the first reply when they are off, and from then on the AI asks before a deploy, a Cloudflare
 change, a paid call or a model download itself. When they are on nothing changes. The row is a report, not
 a lock: a mark can be forged like any file, and nothing reads it to let a call through.

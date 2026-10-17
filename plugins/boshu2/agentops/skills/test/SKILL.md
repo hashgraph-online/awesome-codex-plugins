@@ -125,6 +125,10 @@ Load only the guidance needed by the subject:
 - Snapshots: [golden artifacts](references/golden-artifacts.md) and [update strategy](references/golden-artifact-strategy.md)
 - Invariants: [metamorphic testing](references/metamorphic-testing.md)
 - Service integration: [real-service E2E](references/real-service-e2e.md)
+- Selected user journeys: [exploratory QA](references/exploratory-qa.md)
+- Authorized suite maintenance: [suite audit](references/suite-audit.md)
+- Timing, shared-state or concurrency failures: [difficult-failure experiments](../implement/references/difficult-failures.md)
+- Workload baseline and candidate comparison: [subject performance](references/subject-performance.md)
 
 ## Output Specification
 

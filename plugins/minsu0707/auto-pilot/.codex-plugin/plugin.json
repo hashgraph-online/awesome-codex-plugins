@@ -1,0 +1,43 @@
+{
+  "name": "auto-pilot",
+  "version": "0.1.2-dev",
+  "description": "Intake-first autonomous project execution for Codex.",
+  "type": "plugin",
+  "author": {
+    "name": "Minsu",
+    "url": "https://github.com/minsu0707"
+  },
+  "homepage": "https://github.com/minsu0707/auto-pilot",
+  "repository": "https://github.com/minsu0707/auto-pilot",
+  "license": "MIT",
+  "keywords": [
+    "autopilot",
+    "autonomous-execution",
+    "project-intake",
+    "codex"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Auto Pilot",
+    "shortDescription": "Ask once, lock the brief, and keep building",
+    "longDescription": "Local Codex plugin that turns a short project request into an intake-first execution loop with spec lock, blocker triage, and resume support.",
+    "developerName": "Minsu",
+    "category": "Coding",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Start a SaaS MVP with Auto Pilot",
+      "Turn this short brief into an intake-first execution flow",
+      "Continue this project with Auto Pilot"
+    ],
+    "websiteURL": "https://github.com/minsu0707/auto-pilot",
+    "privacyPolicyURL": "https://github.com/minsu0707/auto-pilot/blob/main/PRIVACY.md",
+    "termsOfServiceURL": "https://github.com/minsu0707/auto-pilot/blob/main/TERMS.md",
+    "brandColor": "#0F766E",
+    "composerIcon": "./assets/auto-pilot.png",
+    "logo": "./assets/auto-pilot.png",
+    "screenshots": []
+  }
+}

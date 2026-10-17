@@ -1,7 +1,52 @@
 const authoringKinds=new Set(['authoring_workflow_run','skill_expansion_job']);
-const waitingPhases=new Set(['review_required','ready_to_apply','user_input_required','attention','approval','authentication_required']);
+const waitingPhases=new Set(['completed','review_required','ready_to_apply','user_input_required','attention','approval','authentication_required']);
 
 function recoveryError(code,message){return Object.assign(new Error(message),{code,detail:{code}});}
+
+export async function applyCompletedAuthoring(result,workflowId,saved){
+  if(result?.phase!=='completed')return false;
+  if(result.workflow?.id!==workflowId || result.workflow.status!=='ready' || result.workflow.enabled!==true
+    || result.validation?.launch_ready!==true || typeof result.revision_hash!=='string')
+    throw recoveryError('AUTHORING_COMPLETION_RESULT','Completed authoring did not return the requested enabled launch-ready revision');
+  await saved(result);
+  return true;
+}
+
+export function defaultWorkflowTab(pack){
+  return pack?.workflow?.import_status?.mode==='coarse' ? 'review' : 'canvas';
+}
+
+export async function discoverSavedAuthoring(api,pack,runId){
+  return api('authoring_preview',{workflow_id:pack.workflow.id,revision_hash:pack.revision_hash,...(runId?{run_id:runId}:{})});
+}
+
+// Called only by the human acceptance button. Display/discovery never uses this
+// authority path. Reattach only the reviewed durable result, without dispatch.
+export async function acceptDisplayedAuthoring(api,pack,preview,controllers,onAuthority){
+  const fresh=await discoverSavedAuthoring(api,pack,preview.run_id);
+  if(!preview.preview_identity || JSON.stringify(fresh.preview?.preview_identity)!==JSON.stringify(preview.preview_identity))
+    throw recoveryError('AUTHORING_PREVIEW_CHANGED','The displayed proposal or review changed; reload it before accepting');
+  let checked;
+  try{checked=await inspectControlledAuthoringRun(api,pack,preview.run_id,controllers);}
+  catch(cause){if(cause?.code!=='AUTHORING_RECOVERY_CONTROL_STALE')throw cause;checked={inspected:cause.inspected,controlToken:''};}
+  let {inspected,controlToken}=checked;
+  if(!controlToken){
+    const adopted=await adoptAuthoringRun(api,pack,preview.run_id);
+    controlToken=adopted.adopted.control_token;
+    controllers.set(preview.run_id,controlToken);
+    onAuthority({run_id:preview.run_id,control_token:controlToken});
+    inspected=assessAuthoringRecovery(pack,{provenance:adopted.inspected.provenance},adopted.adopted);
+  }
+  const control={run_id:preview.run_id,control_token:controlToken};
+  if(inspected.state.control_recovery?.errors?.length)throw recoveryError('AUTHORING_RECOVERY_RECONCILIATION','Controller cleanup needs reconciliation before acceptance');
+  const final=inspected.state.nodes.final;
+  if(final?.status==='interrupted'){
+    if(final.active_attempt_id!==preview.preview_identity.final_attempt_id)throw recoveryError('AUTHORING_PREVIEW_CHANGED','The reviewed attempt changed before recovery');
+    await api('recover_strict_result',{...control,node_id:'final',attempt_id:final.active_attempt_id});
+  }
+  if(!['running','succeeded'].includes(inspected.state.status))await api('resume',control);
+  return api('accept_authoring',{...control,accepted:true,preview_identity:preview.preview_identity});
+}
 
 export function shouldPollAuthoring({run,pollEnabled,stopping,error,phase}){
   return !!run&&pollEnabled===true&&!stopping&&!error&&!waitingPhases.has(phase);

@@ -1,0 +1,57 @@
+# Deploy markers (optional): after a successful production deploy, runs the
+# project's small mark-deploy script, which calls markDeploy() from
+# collector.mjs. The weekly digest then lists the deploy, and health alerts
+# end with "after deploy <sha>". Copy to .github/workflows/deploy-marker.yml.
+#
+# MARK_DEPLOY_SCRIPT is written for the project (references/notifications.md,
+# "Deploy markers"): it opens the analytics store with a secret from the
+# environment and calls markDeploy({ store, sha: process.argv[2], timeZone }).
+# Only the commit's first 7 hex characters and the minute are stored. The
+# job never fails the workflow (continue-on-error on the job and on the
+# marker step): a missing marker must not look like a failed deploy.
+#
+# Hosts that post GitHub deployment statuses (Vercel, Netlify, Cloudflare
+# Pages, Railway…) trigger it on deployment_status; for a deploy job of your
+# own, add the same step at its end instead.
+name: deploy-marker
+
+on:
+  deployment_status:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  MARK_DEPLOY_SCRIPT: scripts/mark-deploy.mjs
+  NODE_VERSION: '22'
+  INSTALL_COMMAND: npm ci
+
+jobs:
+  mark:
+    name: mark the deploy
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.deployment_status.state == 'success' &&
+      (github.event.deployment.environment == 'production' || github.event.deployment.production_environment == true))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # No step of this job (checkout, install, the marker) fails the workflow.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.deployment.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install
+        run: sh -c "$INSTALL_COMMAND"
+      - name: Mark the deploy
+        continue-on-error: true
+        env:
+          DEPLOY_SHA: ${{ github.event.deployment.sha || github.sha }}
+          # The store's connection string, as the collector has it (a repository secret).
+          ANALYTICS_STORE_URL: ${{ secrets.ANALYTICS_STORE_URL }}
+        run: node "$MARK_DEPLOY_SCRIPT" "$DEPLOY_SHA"

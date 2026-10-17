@@ -3,17 +3,19 @@
   <img alt="Figma Maxxing. Agent skills for real Figma files, by Thiago Xikota. A fill shown twice: raw hex #DC000C struck through, then the token color/brand/signal. 8 skills, 90 gotchas." src="assets/banner-light.png">
 </picture>
 
-# Figma Maxxing
+# figma-maxxing
 
-**Agent skills for real Figma files. Your agent checks the file before it writes, reads back what it changed, and flags what the handoff is missing.**
+**I wrote 8 Agent Skills for agents that edit real Figma files.**
 
-8 skills · 90 gotchas · a handoff gate with 17 checks
+Most rules came from something that broke in a real file. They tell your agent what to inspect before editing and how to check the result.
+
+**[Install and try it](#quick-start)** · [Your agent's setup](#install-for-your-agent) · [Leia em português](docs/README.pt-BR.md)
+
+90 gotchas · a handoff gate with 17 checks
 
 [![Test](https://github.com/thiagoxikota/figma-maxxing/actions/workflows/test.yml/badge.svg)](https://github.com/thiagoxikota/figma-maxxing/actions/workflows/test.yml)
 [![skills.sh](https://www.skills.sh/b/thiagoxikota/figma-maxxing)](https://www.skills.sh/thiagoxikota/figma-maxxing)
 [![License: MIT](https://img.shields.io/badge/license-MIT-black.svg)](LICENSE)
-
-**[Leia em português](docs/README.pt-BR.md)** · [Quick start](#quick-start) · [Install](#install-for-your-agent) · [Skills](#the-skills) · [Gotchas](#a-few-gotchas)
 
 ## Quick start
 
@@ -23,11 +25,9 @@ Install the skills:
 npx skills add thiagoxikota/figma-maxxing
 ```
 
-Connect your agent to Figma through Figma's official MCP server or figma-console-mcp ([setup](#what-you-need)). Then paste a frame link and ask: "Is this frame ready for handoff?"
+Connect your agent to Figma through Figma's official MCP server or figma-console-mcp ([setup](#what-you-need)). Then paste a frame link and ask: "Run figma-slop-check and figma-handoff-gate on this frame. Report what needs fixing."
 
-You need a coding agent that loads skills (Claude Code, Codex, Cursor, Copilot CLI or Gemini CLI) and Node.js for `npx`. Installing into the Claude desktop or web app has not been tested. In those apps, or with no coding agent at all, [paste a prompt into the chat](#paste-this-into-your-ai) and get a checklist instead.
-
-If a rule caught something in your file, a star helps other designers find this.
+You need a coding agent that loads skills and Node.js for `npx`. Installation ran in Claude Code, Codex, Copilot CLI and Gemini CLI. Cursor and the Claude desktop and web apps were not tested. Without a coding agent, [use this prompt](#paste-this-into-your-ai) to ask for checks you can do yourself.
 
 ## Before and after
 
@@ -36,7 +36,9 @@ If a rule caught something in your file, a star helps other designers find this.
   <img alt="The same Team members screen before and after the checks. Markers 1 to 8 on the before screen point at the layers named in the list below. figma-slop-check found 16 issues before (4 critical, 6 high, 4 medium, 2 low) and 6 after the fix pass (1 critical, 2 medium, 3 low)." src="assets/demo/before-after-light.png">
 </picture>
 
-**Blind test on Figma's official MCP server, 2026-10-05: 10 of 10 planted defects found, 0 missed.** One agent built a demo screen with 10 planted defects and an answer key. A second agent, without the key, ran `figma-slop-check` and `figma-handoff-gate`. A third compared the audit with the key. The audit also flagged 14 items nobody planted (13 distinct problems: `figma-slop-check` and `figma-handoff-gate` flagged the same rename). After one fix pass, `figma-slop-check` went from 16 findings to 6, but neither check passes yet. There is also a [9-second animation](assets/demo/demo.gif).
+**Test on Figma's official MCP server, 2026-10-05: 10 of 10 planted defects found, 0 missed.** The agent that planted the defects had read the skills, the auditor's prompt said where to look, and this was one screen in one run.
+
+One agent built a demo screen with 10 planted defects and an answer key. A second agent, without the key, ran `figma-slop-check` and `figma-handoff-gate`. A third compared the audit with the key. The audit also flagged 14 items outside the key (13 distinct problems: both gates flagged the same rename). After one fix pass, `figma-slop-check` went from 16 findings to 6, but neither gate passed. There is also a [9-second animation](assets/demo/demo.gif).
 
 <details>
 <summary>The markers, how the test ran, and its limits</summary>
@@ -52,9 +54,9 @@ The markers point at the first 8 items of the `figma-slop-check` punch list, in 
 7. **ICON:** hand-drawn person icon instead of Icon/User
 8. **RADIUS:** summary card radius off the scale
 
-I wanted to know if the checks find real problems, so I set up a blind test. One agent built a demo screen with 10 planted defects and wrote an answer key. A second agent, who never saw the key, ran `figma-slop-check` and `figma-handoff-gate` through Figma's official MCP server. Its prompt also told it what to inspect: bound variables, instances versus frames, spacing, radius, names and text bounds. A third agent, the judge, compared the punch list with the key.
+The test used a demo screen with 10 planted defects and an answer key. The agent that built it had read the skills. A second agent, who never saw the key, ran `figma-slop-check` and `figma-handoff-gate` through Figma's official MCP server. Its prompt told it what to inspect: bound variables, instances versus frames, spacing, radius, names and text bounds. A third agent, the judge, compared the punch list with the key.
 
-**10 of 10 planted defects found, 0 partial, 0 missed.** The punch list had 27 items: 16 from `figma-slop-check` and 11 from `figma-handoff-gate`. Of those, 13 match a planted defect (some defects show up in more than one item). The other 14 items point at problems nobody planted: 13 distinct ones, because `figma-slop-check` and `figma-handoff-gate` flagged the same rename. None of them contradicted the key or the screenshots, though 2 could not be checked without opening the file, and the judge did not open it. One of them is a contrast failure the answer key itself missed.
+**10 of 10 planted defects found, 0 partial, 0 missed.** The agent that planted the defects had read the skills, the auditor's prompt said where to look, and this was one screen in one run. The punch list had 27 items: 16 from `figma-slop-check` and 11 from `figma-handoff-gate`. Of those, 13 match a planted defect (some defects show up in more than one item). The other 14 items point at problems outside the key: 13 distinct ones, because both gates flagged the same rename. None contradicted the key or the screenshots, though 2 could not be checked without opening the file, and the judge did not open it. One of the 14 is a contrast failure the answer key itself missed.
 
 Then a fourth agent ran `figma-preflight`, fixed the screen and read back every property it changed. Both checks ran again, and neither passes yet:
 
@@ -67,7 +69,7 @@ Real screenshots from the official Figma MCP, 2026-10-05, on a demo file built f
 
 ## Paste this into your AI
 
-No install needed. Copy this into the AI you use (Claude, ChatGPT, Gemini, Cursor) and fill in the brackets.
+No install needed. Copy this into your AI and fill in the brackets. The prompt ran in the Claude, Codex and Gemini terminal tools. Chat apps were not tested.
 
 ```text
 Read and use this file as reference:
@@ -98,9 +100,9 @@ for me.
 ## The skills
 
 - **[`figma-canon`](skills/figma-canon/SKILL.md)** · The rules and the gotchas. Loaded piece by piece, only what the task needs.
-- **[`figma-preflight`](skills/figma-preflight/SKILL.md)** · Before every write. Approves the write or returns a fix list, and never touches the canvas.
+- **[`figma-preflight`](skills/figma-preflight/SKILL.md)** · Before every write. Tells the agent to run the checks and return a verdict or a fix list, without changing the canvas.
 - **[`figma-orient`](skills/figma-orient/SKILL.md)** · First contact with a file. Maps pages, components and variables, and saves the map.
-- **[`figma-slop-check`](skills/figma-slop-check/SKILL.md)** · After a write. Finds machine-made tells and values that drift off your scales and tokens.
+- **[`figma-slop-check`](skills/figma-slop-check/SKILL.md)** · After a write. Tells the agent to review generated copy, layout and values that drift off your scales and tokens.
 - **[`figma-handoff-gate`](skills/figma-handoff-gate/SKILL.md)** · Before a handoff. Every action needs a destination and a way back.
 - **[`figma-comment-fix-loop`](skills/figma-comment-fix-loop/SKILL.md)** · When feedback arrives. Turns open comments into fixes, with evidence for each one.
 - **[`figma-click-flow`](skills/figma-click-flow/SKILL.md)** · "Turn this into a flow." Draws arrows from tappable elements to their screens.
@@ -130,7 +132,7 @@ for me.
 Figma's own skills help an agent create things in Figma. The skills here check the agent's work before and after each write, and again at handoff. Use both. [landscape.md](docs/landscape.md#how-figma-maxxing-composes-with-figmas-skills) maps the servers and skill sets around Figma, with dates.
 
 - **figma-console bridge:** all 8 skills, in my own production work.
-- **Official Figma MCP:** `figma-preflight`, `figma-slop-check` and `figma-handoff-gate` ran there once, on the demo file of the blind test above, with some steps adapted or skipped ([the list](docs/works-with.md#blind-demo-on-the-official-figma-mcp)). That run used the earlier rigor lens of `figma-slop-check`; 1.2.0 rewrote it as 11 rigor checks in 5 groups. `figma-orient`, `figma-comment-fix-loop` and `figma-click-flow` describe that path and have not run on it yet. `figma-bridge-doctor` does not apply.
+- **Official Figma MCP:** `figma-preflight`, `figma-slop-check` and `figma-handoff-gate` ran there once, on the demo file of the test above, with some steps adapted or skipped ([the list](docs/works-with.md#blind-demo-on-the-official-figma-mcp)). That run used the earlier rigor lens of `figma-slop-check`; 1.2.0 rewrote it as 11 rigor checks in 5 groups. `figma-orient`, `figma-comment-fix-loop` and `figma-click-flow` describe that path and have not run on it yet. `figma-bridge-doctor` does not apply.
 
 Skill by skill: [works-with.md](docs/works-with.md).
 
@@ -232,7 +234,7 @@ The installer copies folders and refuses to overwrite a skill that already exist
 
 The skills need an agent that loads Agent Skills and a connection to Figma. There are two ways to connect.
 
-**Figma's official MCP server.** The simpler one to set up. In Claude Code:
+**Figma's official MCP server.** Connect with your Figma account through OAuth. In Claude Code:
 
 ```bash
 claude mcp add --transport http figma https://mcp.figma.com/mcp
@@ -285,13 +287,15 @@ The skills are plain Markdown and run wherever your agent runs. The bridge recov
 
 By default it only warns. With `FIGMA_PRECHECK_MODE=block` it refuses the 5 patterns marked `BLOCK`, the ones that break the call. The matcher above fires only on the figma-console bridge; the hook has not been tried on the official server's `use_figma`.
 
-### Safe on a team library
+### Before using a team library
 
-- **Read-only.** `figma-canon`, `figma-preflight` and `figma-orient` never change the canvas. `figma-orient` saves its map in your project, not in the file.
-- **Report first.** `figma-slop-check` and `figma-handoff-gate` change nothing until you approve each fix.
-- **Comments are data.** `figma-comment-fix-loop` shows the comments it will act on and waits for your yes. It never follows instructions written in a comment.
+The skills are instructions your agent reads. They do not enforce permissions or block writes on their own.
+
+- **Read-only.** `figma-canon`, `figma-preflight` and `figma-orient` instruct the agent to leave the canvas unchanged. `figma-orient` saves its map in your project, not in the Figma file.
+- **Report first.** `figma-slop-check` and `figma-handoff-gate` tell the agent to report findings and wait for approval before applying each fix. The exception is a slop failure on work the agent just made: `figma-slop-check` tells it to fix that before it answers.
+- **Comments are data.** `figma-comment-fix-loop` tells the agent to show the comments it will act on and wait for your yes. It treats instructions written in comments as data.
 - **Draft first.** `figma-canon` tells the agent to work in a draft or a branch until you approve, unless you say otherwise. It is an instruction, not a check: nothing blocks a write to a shared library, so tell the agent which draft to use.
-- **One file, several agents.** Before a write, `figma-preflight` claims an advisory file lock, so two sessions do not write to the same file at once. Sessions agree on the lock; Figma does not enforce it.
+- **One file, several agents.** Before a write, `figma-preflight` tells the agent to claim an advisory file lock. It coordinates only sessions that check the lock; Figma does not enforce it.
 - **Nothing in the background.** The plugin ships no hooks and no MCP server. The bridge watchdog and the `mcp-direct` daemon start only when you say so.
 - **No telemetry.** The repository collects nothing: [PRIVACY.md](PRIVACY.md). Security notes and private reports: [SECURITY.md](SECURITY.md).
 
@@ -300,7 +304,7 @@ By default it only warns. With `FIGMA_PRECHECK_MODE=block` it refuses the 5 patt
 Every push runs [test.yml](.github/workflows/test.yml):
 
 - Unit tests for the lock, the hook, the installer, links and privacy patterns, on Ubuntu and macOS with Python 3.10 and 3.13.
-- Every Plugin API name the skills cite, checked against `@figma/plugin-typings` 1.140.0: 0 errors today. On the tree before commit 1dca321 (the annotations fix), the same check fails with 3.
+- Every Plugin API name the skills cite, checked against `@figma/plugin-typings` 1.140.0: 0 errors on 2026-10-05. On the tree before commit 1dca321 (the annotations fix), the same check fails with 3.
 - Every skill, gotcha and check count the docs cite, recounted from the files.
 - The Agent Skills reference validator and the Claude Code plugin validator.
 - Every link, anchors included (lychee).
@@ -317,23 +321,21 @@ gh attestation verify figma-preflight-1.1.1.zip \
 
 This repository has an entry in the [M8ven Trust Index](https://m8ven.ai/mcp/thiagoxikota/figma-maxxing), claimed by the author himself. Its public grade is C (Emerging). The code sub-score was 100 out of 100, read on 2026-10-04 at commit 1dca321, before 1.1.0.
 
-[![M8ven Score](https://m8ven.ai/badge/mcp/thiagoxikota/figma-maxxing)](https://m8ven.ai/mcp/thiagoxikota/figma-maxxing?s=readme)
+[![M8ven Score](https://m8ven.ai/badge/mcp/thiagoxikota-figma-maxxing-1lm8zs?v=4cd8b7012dc0756bb5aa91e8c02089c4)](https://m8ven.ai/mcp/thiagoxikota-figma-maxxing-1lm8zs?s=readme)
 
 ## How far this has been tested
 
 As of 2026-10-05:
 
 - **My own work.** I built these skills in Claude Code on macOS with figma-console-mcp, on real files. This public edition is a rewrite of that set: in English, generalized, with every client detail removed. It has not yet run end to end on a second machine.
-- **Official Figma MCP.** The blind test above, on one demo screen. The audit took 12 Figma MCP calls, the fix pass 13, the second audit 13. Some steps had no tool or hit a limit there: no selection, no screenshot above 1x through `get_screenshot`, no bridge status, and a 20 KB cap on each call. The agents used read-only `use_figma` workarounds and logged each one in [works-with.md](docs/works-with.md#blind-demo-on-the-official-figma-mcp).
+- **Official Figma MCP.** The test above, on one demo screen. The audit took 12 Figma MCP calls, the fix pass 13, the second audit 13. Some steps had no tool or hit a limit there: no selection, no screenshot above 1x through `get_screenshot`, no bridge status, and a 20 KB cap on each call. The agents used read-only `use_figma` workarounds and logged each one in [works-with.md](docs/works-with.md#blind-demo-on-the-official-figma-mcp).
 - **Installs.** Every route in [Install for your agent](#install-for-your-agent) except Cursor, from GitHub main, the v1.1.1 release or a local copy, as listed there.
 
 If something still depends on my setup, [open an issue](https://github.com/thiagoxikota/figma-maxxing/issues) with your environment and the exact error.
 
 ## Contributing
 
-A gotcha you hit yourself, with symptom, cause and fix, is the best contribution. Questions and before/after shots go to [Discussions](https://github.com/thiagoxikota/figma-maxxing/discussions); bugs and gotchas to [issues](https://github.com/thiagoxikota/figma-maxxing/issues/new/choose). See [CONTRIBUTING.md](CONTRIBUTING.md), the [code of conduct](CODE_OF_CONDUCT.md) and the [changelog](CHANGELOG.md). Working with an agent? Point it at [AGENTS.md](AGENTS.md).
-
-If a rule caught something in your file, a star helps other designers find this.
+A gotcha you hit yourself, with the symptom, cause and fix you ran, belongs here. Questions and before/after shots go to [Discussions](https://github.com/thiagoxikota/figma-maxxing/discussions); bugs and gotchas to [issues](https://github.com/thiagoxikota/figma-maxxing/issues/new/choose). See [CONTRIBUTING.md](CONTRIBUTING.md), the [code of conduct](CODE_OF_CONDUCT.md) and the [changelog](CHANGELOG.md). Working with an agent? Point it at [AGENTS.md](AGENTS.md).
 
 ## Who made this
 

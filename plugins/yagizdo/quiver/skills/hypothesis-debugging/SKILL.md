@@ -67,6 +67,8 @@ Gather all available context about the bug:
 
 1. **Parse user input.** Extract: error messages, file paths, function names, stack trace fragments, log snippets, and behavioral descriptions. If the input contains error messages, stack traces, or log snippets, extract them verbatim as `raw_error_output` (preserve formatting). If no structured error output is present, note `raw_error_output: none`.
 
+   When the input names a component by description rather than by its name in code -- "the rename button", "my sim alias", "the settings screen" -- identify the exact one before Step 2: search for its label or name, and when more than one candidate matches, ask which one with `AskUserQuestion`. A hypothesis about an assumed component tests code the bug may never run.
+
    When the input carries a screenshot or image, treat it as evidence to measure, not text to read. Before Step 2, describe the anomaly region in measurable terms: where it sits relative to a named element, whether its edges are sharp or soft, whether it is symmetric, and its size as a ratio of a known element's size. Record this as `visual_evidence`; when no image is present, note `visual_evidence: none`. Every hypothesis in Step 2 has to account for this geometry -- one that does not is refuted by it, whatever else supports it.
 
 2. **Search the codebase** using the navigation tier from Step 0.7. Based on extracted keywords:
@@ -183,7 +185,7 @@ Triggered when: all hypotheses are refuted, or symptoms are too vague for meanin
 - Report what was investigated and ruled out.
 - When the refutations share a shape -- the same layer keeps coming back clean, the symptom moves every time a boundary is crossed, every local fix candidate has been eliminated -- name the design assumption behind that shape in one sentence, with the evidence that undercuts it. That is a question for the user about the design, not a hypothesis this skill can test. A bare "this looks architectural" with no named assumption and no evidence is an exit, not a finding -- do not write it.
 - Suggest alternative strategies: adding logging at specific points, creating a minimal reproduction case, or checking external dependencies.
-- Stop.
+- Stop on the Step 8 summary.
 
 ## Step 5 -- Root Cause + Fix Proposals
 
@@ -202,6 +204,8 @@ Generate 1-3 fix proposals (simplest first):
 - Each proposal: what changes, which files, why it fixes the root cause, trade-offs (if any).
 - First proposal MUST be the minimal correct fix.
 - Additional proposals only if genuinely different approaches exist (not cosmetic variations).
+- Each proposal carries a `path:` line in the Step 3a form, `path: <check> -> <observed>`: the observation that puts the user's symptom on the code it changes -- the component the failing screen renders, the shell the user runs, the config the failing process loads. A change with no such line does not fix this bug.
+- A real defect found off that path is listed once under **Not on this bug's path**, one line each. It is never proposed, applied, or folded into the root cause.
 
 ### 5c -- Pushback Re-audit
 
@@ -218,7 +222,7 @@ The user is questioning the diagnosis, and the fastest answer is to test it, not
 
 Dispatch the `fix-reviewer` agent with:
 - Root cause description from Step 5a
-- All fix proposals from Step 5b with their descriptions
+- All fix proposals from Step 5b with their descriptions and `path:` lines
 - File paths and relevant project context (existing patterns in the affected area)
 
 Integrate agent feedback:
@@ -242,7 +246,22 @@ If user selects a proposal:
 
 Neither the reproducing test nor the test runs are a new consent point -- the fix was gated by the `AskUserQuestion` above, the test file is part of the fix the user chose, and a test run changes no files.
 
-If user selects "None": stop with a summary of the root cause.
+If user selects "None": stop on the Step 8 summary. After a fix, step 5's evidence line is followed by the Step 8 summary.
+
+## Step 8 -- Closing Summary
+
+Every run ends on this summary, whichever step it stops at: the Step 4 bound, "None" at Step 7, a verified fix, or a second failed run. For each hypothesis from Step 2 and Step 4 it carries an `H<n> <statement>` line, then every check line Step 3 recorded for that hypothesis, verbatim, or `untested:  H<n>` when there is none. The `path:` line of the proposal that was applied comes last, verbatim:
+
+```
+H<n> <statement>
+refuted:   H<n> -- <check> -> <observed>
+survived:  H<n> -- <check> -> <observed>
+confirmed by: H<n> -- <check> -> <observed>
+untested:  H<n>
+path: <check> -> <observed>
+```
+
+These lines are the only record of which claims were checked and which were assumed. A prose restatement ("the evidence shows") drops the check, and the lines printed mid-run are the ones a long run loses. Include them even when they repeat Step 3 and Step 5a word for word. Omit the `path:` line when no fix was applied.
 
 ---
 
@@ -259,3 +278,4 @@ If user selects "None": stop with a summary of the root cause.
 - Don't write a second patch after a failed fix -- the pull is strong because the failing output looks like a smaller problem than the original bug, but a fix that does not clear its own reproducing test has refuted the diagnosis, not missed a detail. Step 7 sends the run back to Step 2 once.
 - Don't confirm by citation -- an upstream issue, a doc, or a forum answer that matches the symptom is a hypothesis, and the confirmation is its precondition found in this codebase (Step 3a). The pull is strong because the first authoritative-looking match reads like an answer, and it anchors the rest of the run.
 - Don't research before local evidence -- research tests the hypotheses Step 1 produced; a run that opens with a web search produces a diagnosis shaped by whatever was found first.
+- Don't count a defect as part of this bug because it is real -- the pull is strong because a genuine defect found next to the bug reads as more of the same bug. Observed: an alias edited in a shell profile the user's shell never loads, and three widgets the failing screen never renders reported as part of its bug. Step 5b's `path:` line is the check; a defect without one goes under **Not on this bug's path**.

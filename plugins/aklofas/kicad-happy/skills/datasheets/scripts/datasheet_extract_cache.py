@@ -199,7 +199,7 @@ def _load_index(extract_dir):
         if cached and cached[0] == mtime:
             return cached[1]
 
-        with open(index_path) as f:
+        with open(index_path, encoding="utf-8") as f:
             index = json.load(f)
         _index_cache[cache_key] = (mtime, index)
         return index
@@ -223,7 +223,7 @@ def _save_index(extract_dir, index):
 
     new_path = extract_dir / MANIFEST_FILENAME
     tmp = new_path.with_suffix(".tmp")
-    with open(tmp, "w") as f:
+    with open(tmp, "w", encoding="utf-8") as f:
         json.dump(index, f, indent=2)
     tmp.replace(new_path)
 
@@ -270,7 +270,7 @@ def get_cached_extraction(extract_dir, mpn):
         return None
 
     try:
-        with open(json_file) as f:
+        with open(json_file, encoding="utf-8") as f:
             return json.load(f)
     except (json.JSONDecodeError, OSError):
         return None
@@ -308,7 +308,7 @@ def cache_extraction(extract_dir, mpn, extraction, source_pdf=None):
     meta.setdefault("retry_count", 0)
 
     # Write extraction file
-    with open(json_path, "w") as f:
+    with open(json_path, "w", encoding="utf-8") as f:
         json.dump(extraction, f, indent=2)
 
     # Update index
@@ -469,7 +469,7 @@ def update_datasheets_index(datasheets_dir, mpn, extraction):
         return
 
     try:
-        with open(index_path) as f:
+        with open(index_path, encoding="utf-8") as f:
             index = json.load(f)
     except (json.JSONDecodeError, OSError):
         return
@@ -495,7 +495,7 @@ def update_datasheets_index(datasheets_dir, mpn, extraction):
 
     # Write back atomically
     tmp = index_path.with_suffix(".tmp")
-    with open(tmp, "w") as f:
+    with open(tmp, "w", encoding="utf-8") as f:
         json.dump(index, f, indent=2)
     tmp.replace(index_path)
 

@@ -90,6 +90,11 @@ function digest(owner: object, value: string, mime: string | null): ImageDigest 
   return result;
 }
 
+// v0.4: the same digest for an image block of a Claude Code transcript or request (raw base64, not a data URL).
+export function imageDigest(owner: object, value: string, mime: string | null): ImageDigest {
+  return digest(owner, value, mime);
+}
+
 function partDigest(part: Json): ImageDigest | null {
   if (part?.type !== "input_image" && part?.type !== "output_image") return null;
   if (typeof part.file_id === "string") return { contentId: `file:${part.file_id}`, mime: null, base64Chars: 0, width: null, height: null };

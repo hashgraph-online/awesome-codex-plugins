@@ -14,7 +14,6 @@ produces:
 context_rel: []
 skill_api_version: 1
 user-invocable: true
-allowed-tools: Read, Grep, Glob, Bash, Write
 metadata:
   capabilities: [research, codebase_recon, pattern_mining]
   effects: [write_research_report, write_recon_pack, write_pattern_evidence]

@@ -122,7 +122,9 @@ require no new approval. Acceptance changes always require caller authority.
 For an unexplained failure, first match the reported symptom and reduce the
 reproduction. State one causal prediction, test it with a discriminating check,
 and repair the cause supported by the result. Rerun the original scenario.
-Do not keep collecting hypotheses after the cause is understood. This compact
+Do not keep collecting hypotheses after the cause is understood. For intermittent
+verdicts, leaked test state or suspected races, use only the matching experiment
+in [difficult failures](references/difficult-failures.md). This compact
 diagnosis path is informed by
 [Matt Pocock's engineering skills](https://github.com/mattpocock/skills).
 

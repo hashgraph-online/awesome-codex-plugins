@@ -9,13 +9,14 @@ Use this when the user asks how their site is doing, what Loomaly found, or want
 
 ## Tools (Loomaly MCP)
 
+- `get_started`: call this first. An account with no site returns `needsSite`.
 - `sites_list`: sites with `id`, `domain`, `healthScore`, `lastScanAt`, `openIssues` and `scan.phase`.
 - `fix_first` (`siteId`, `limit`): open problems in fix-first order, with `ruleTitle`, `severity`, `affectedPages`, `reason` and `message`.
-- `findings_list` (`siteId`, `severity`, `ruleId`): individual issues, when a problem needs an example page.
+- `findings_list` (`siteId`, `severity`, `ruleId`, `cursor`): individual issues, when a problem needs an example page. Read `total` and follow `nextCursor` until it is null.
 
 ## Steps
 
-1. `sites_list`, and pick the site the user means (ask if it's ambiguous). If `scan.phase` is `finding_pages` or `checking_pages`, say the scan is still running and the numbers will change; `failed` means Loomaly could not read the site (`scan.failure` says why).
+1. `get_started`, and pick the site the user means (ask if it's ambiguous). If `needsSite` is true, find the domain in the repository or in what the user already said and call `add_site` in this turn. Only ask if you cannot find a domain. Wait until `scan.phase` is `done` before summarising; do not report an empty queue as a healthy site. If `scan.phase` is `finding_pages` or `checking_pages`, say the scan is still running and the numbers will change; `failed` means Loomaly could not read the site (`scan.failure` says why).
 2. `fix_first` with `limit: 5`.
 3. Write the summary:
    - The score out of 100 and when the site was last scanned. The score is built from five dimensions (indexability, page basics, content and AI readability, structured data, performance); explain it at https://loomaly.com/docs/scoring if asked.

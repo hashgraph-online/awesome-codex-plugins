@@ -1,13 +1,15 @@
 version: 2
 updates:
-  # "/" covers .github/workflows/. The templates users copy into their story
-  # repositories pin the same actions, so Dependabot scans every *.yml in
-  # templates/github/ too. Grouping by dependency name puts one action's bump
-  # for both directories in a single pull request, which keeps the pins equal.
+  # "/" covers .github/workflows/. Dependabot's github-actions ecosystem reads
+  # /.github/workflows under each directory it is given, so it never reads
+  # templates/github/, which holds no .github/workflows of its own. Those
+  # templates get no bump pull requests here: a bump of an action they use
+  # needs the same SHA in templates/github/ by hand, and the pin check in
+  # test/check-scripts.test.js fails until they match. Grouping by dependency
+  # name puts one action's bump in a single pull request.
   - package-ecosystem: "github-actions"
     directories:
       - "/"
-      - "/templates/github"
     schedule:
       interval: "weekly"
     groups:

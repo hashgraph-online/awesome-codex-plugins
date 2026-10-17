@@ -54,8 +54,7 @@ npx --no-install homie-studio anim preview <id> --asset knight     # looping pre
 ```
 
 Verbs: idle, walk, run, jump, fall, land, attack, attack2, hit, die, emote, win, interact, pickup, cast, shoot,
-block, dodge, crouch, sit, drive, spawn. Clips are baked in place (the game moves bodies; netplay's host moves
-them) at 30 fps; a loop's drift is removed. Look at the preview sheet after retargeting onto a new rig: a shoulder
+block, dodge, crouch, sit, drive, spawn. Clips are baked in place (the rules move bodies; the view draws their predicted or interpolated pose) at 30 fps; a loop's drift is removed. Look at the preview sheet after retargeting onto a new rig: a shoulder
 that flips or a foot through the floor shows there first.
 
 ## In the game: @homie-rocks/studio/animate
@@ -77,7 +76,9 @@ crowd(allCharacters, camera);                                      // far and of
 ```
 
 - Locomotion blends idle, walk and run by the body's ground speed and plays each at the rate its feet need
-  (`walkSpeed`, `runSpeed`: tune them until the feet stop sliding).
+  (`walkSpeed`, `runSpeed`: tune them until the feet stop sliding). The defaults (1.5 and 4.2 m/s) are not measured
+  on your rig: `anim plan` and `anim preview` print the ground speed each character's walk and run cover on its own
+  rig (a guide from its foot bones); start `tune: { runSpeed: <that> }` from it, then look at the feet.
 - An action while moving plays on the upper body (the legs keep running); standing, on all of it.
 - A hit is an additive flinch over whatever plays, with a hit-stop (`hitStopMs`).
 - Jump, fall and land are clips plus springy squash and stretch (`jumpStretch`, `landSquash`, `squashHz`).
@@ -85,6 +86,15 @@ crowd(allCharacters, camera);                                      // far and of
   cape, hair (`spring`), and two-bone foot planting on slopes (`ground: (x, z) => height`).
 - Copy `ANIM_TUNING` (exported) into the game's tunables.json under the "Motion" group; every number is a slider.
 - The `hero-rush-3d` starter shows all of it (`homie-studio game new <id> --from hero-rush-3d`).
+
+In a rules game, use the pose from `room.me` or `room.each`, including `heading`,
+`grounded` and `vel.z`. Rules use z up; three.js uses y up: map `(x, y, z)` to
+`(x, z, y)`. Feed `hero.air(body.grounded, body.vel.z)` and the planar speed to
+`hero.move`. The runtime predicts jumps and eases corrections, and interpolates other
+players' poses and facing. Do not integrate a second jump or gravity in animation.
+Play hit and attack actions from room effects; keep animation time, particles and
+camera shake in the view. Physics tuning belongs in the rules' public tunables.
+
 
 ## Feel: the Game Lab
 
@@ -117,7 +127,7 @@ characters are needed. The `perf` skill's measured run on a phone is the real ga
 - Quaternius: its site licence (QAL v1.0, updated 2026-08-28) forbids redistributing the assets as a pack or template:
   never in the library or a public game's repository; reference only.
 - Mixamo: never in a public repository (raw files may not be redistributed); allowed only in a private studio's
-  shipped build, marked `remix: none`.
+  shipped build.
 - Text-to-motion: almost every open model is non-commercial in effect (trained on AMASS/HumanML3D, or SMPL), so this
   skill offers none of them. HY-Motion is territory-limited (not the EU, the UK or South Korea). Paid services with
   commercial terms (Meshy text to motion on the person's own Meshy plan) are a later phase.

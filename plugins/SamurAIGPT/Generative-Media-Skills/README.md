@@ -22,6 +22,9 @@ A high-performance, schema-driven architecture for AI agents to generate, edit, 
 - [awesome-minimax-h3-prompts](https://github.com/Anil-matcha/awesome-minimax-h3-prompts) — Prompt gallery and runnable examples for the MiniMax H3 skills.
 - [Wan-3.0-API](https://github.com/Anil-matcha/Wan-3.0-API) — Python SDK and MCP server for Wan 3.0-compatible video-generation workflows.
 - [Wan-3.0-Prime-API](https://github.com/Anil-matcha/Wan-3.0-Prime-API) — Python SDK and MCP server for the higher-fidelity Wan 3.0 Prime tier.
+- [Seedance-2-Spicy-API](https://github.com/Anil-matcha/Seedance-2-Spicy-API) — Python SDK and MCP server for the relaxed-moderation Seedance 2 Spicy / 2 Mini Spicy tier.
+- [Seedance-2.5-Spicy-API](https://github.com/Anil-matcha/Seedance-2.5-Spicy-API) — Python SDK and MCP server for the relaxed-moderation Seedance 2.5 Spicy tier.
+- [Wan-3.0-Spicy-API](https://github.com/Anil-matcha/Wan-3.0-Spicy-API) — Python SDK and MCP server for the relaxed-moderation Wan 3.0 Spicy tier.
 - [Open-Generative-AI](https://github.com/Anil-matcha/Open-Generative-AI) — Free self-hosted AI media studio — GUI alternative to these skills for the same model set
 - [Awesome-GPT-Image-2-API-Prompts](https://github.com/Anil-matcha/Awesome-GPT-Image-2-API-Prompts) — Curated GPT-Image-2 prompts to use with these skills
 - [Awesome-Gemini-Omni-API-Prompts](https://github.com/Anil-matcha/Awesome-Gemini-Omni-API-Prompts) — Curated Gemini Omni prompts for video generation

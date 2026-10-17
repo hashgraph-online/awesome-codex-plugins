@@ -1,0 +1,32 @@
+{
+  "name": "self-starter",
+  "version": "0.0.3",
+  "description": "Define custom events in plain language and let Codex act when they happen, with no model tokens spent while waiting.",
+  "author": {
+    "name": "hyprh",
+    "url": "https://github.com/hyprh"
+  },
+  "homepage": "https://hyprh.github.io/self-starter/",
+  "repository": "https://github.com/hyprh/self-starter",
+  "license": "MIT",
+  "keywords": [
+    "custom-events",
+    "triggers",
+    "automation",
+    "background",
+    "agent"
+  ],
+  "skills": "./skills",
+  "scripts": "./bin",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Self-Starter",
+    "shortDescription": "Act on custom events you define",
+    "longDescription": "Describe what should count as an event and what Codex should do. Codex writes a probe for files, logs, commands, services or APIs; Self-Starter checks it without calling a model and brings the task back to your conversation when it fires.",
+    "developerName": "hyprh",
+    "category": "Productivity",
+    "composerIcon": "./assets/icon.svg",
+    "websiteURL": "https://hyprh.github.io/self-starter/",
+    "defaultPrompt": "Watch something for me and act when it happens"
+  }
+}

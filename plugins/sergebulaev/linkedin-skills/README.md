@@ -96,6 +96,15 @@ cd linkedin-skills
 
 The repo ships a `.claude/skills/` mirror of symlinks, so Claude Code finds all 12 skills on its own.
 
+**On Windows** those symlinks check out as twelve one-line text files unless git can create
+them, which needs Developer Mode or an elevated shell plus `git config core.symlinks true`.
+Without that, a plain clone loads no skills at all. Either clone with symlinks enabled, or
+replace the mirror with directory junctions, which need no admin rights:
+
+```cmd
+for /d %s in (skills\*) do mklink /J .claude\skills\%~nxs ..\..\%s
+```
+
 ### Hermes Agent
 
 Hermes Agent (Nous Research) follows the agentskills.io open standard and loads `skills/*/SKILL.md` directly. Clone the bundle into your Hermes skills folder:
@@ -186,12 +195,29 @@ Four of the skills (Comment Drafter, Reply Handler, Hook Extractor, Engagement M
 
 | Use case | Actor | Cost |
 |---|---|---|
-| Post body by URL | `supreme_coder/linkedin-post` | $1 / 1,000 |
+| Post body by URL | `apimaestro/linkedin-post-detail` | $1 / 1,000 |
 | Comments + replies on a post | `apimaestro/linkedin-post-comments-replies-engagements-scraper-no-cookies` | $5 / 1,000 |
 | Your own recent comments | `apimaestro/linkedin-profile-comments` | $5 / 1,000 |
 | Likers + commenters on any post | `scraping_solutions/linkedin-posts-engagers-likers-and-commenters-no-cookies` | $5 / 1,000 |
 
 Setup: drop `APIFY_TOKEN=apify_api_...` into your `.env`. The thin client at `lib/apify_client.py` exposes `fetch_post`, `fetch_post_comments`, `fetch_user_recent_comments`, and `fetch_post_engagers`.
+
+**On claude.ai, use the Apify MCP connector instead of a token.** The Python client reads
+`APIFY_TOKEN` from the environment and runs a process, and claude.ai gives a skill neither.
+Apify now publishes an MCP server, so the reads work there too. Add this as a custom
+connector:
+
+```
+https://mcp.apify.com?actors=apimaestro/linkedin-post-detail,apimaestro/linkedin-post-comments-replies-engagements-scraper-no-cookies,apimaestro/linkedin-profile-comments,scraping_solutions/linkedin-posts-engagers-likers-and-commenters-no-cookies
+```
+
+Sign in with OAuth on first use; no key on disk. Keep the `?actors=` filter: the bare
+`https://mcp.apify.com` also hands the agent `search-actors` and `call-actor`, which can
+run anything in the Apify Store at whatever that actor charges. The filtered URL exposes
+only these four and nothing that picks an actor on its own.
+
+The skills use it automatically when it is there, and still fall back to asking you to
+paste when it is not. Details and the field mapping: `references/mcp-read-layer.md`.
 
 A typical creator running daily comment ops + a weekly engager-analytics sweep stays under $2/month, well inside the free tier.
 

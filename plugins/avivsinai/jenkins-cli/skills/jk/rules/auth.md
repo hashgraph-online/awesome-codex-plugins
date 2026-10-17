@@ -37,8 +37,9 @@ jk auth login <url> [flags]
 | `--no-verify` |  | Skip credential verification against the controller |
 | `--proxy` |  | Proxy URL for this context |
 | `--set-active` |  | Set the context as active after login |
-| `--token` |  | Jenkins API token |
+| `--token` |  | Jenkins API token (visible in the process list; prefer --with-token) |
 | `--username` |  | Jenkins user ID (SSO users: use browser /whoAmI/api/json if unsure) |
+| `--with-token` |  | Read the API token from standard input |
 
 ### Inherited Flags
 

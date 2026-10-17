@@ -63,9 +63,9 @@ mandatory review merely to run an experiment.
 
 | Caller decision | Measurement | What it can establish |
 |---|---|---|
-| Does a natural request load this skill? | `claude plugin eval` with a with-only `tool_used: Skill` grader, or [routing probes](../../evals/routing-probes/README.md) | Whether the description routes; not whether loading helps |
-| Does loading this skill change a specific observable act? | Behavioral probe with `scripts/probe-skill.sh` | Behavior change on that scenario; not correct code or productivity |
-| Does the installed plugin change graded answers end to end? | `claude plugin eval` against its no-plugin baseline | Routing and content together on the selected cases |
+| Does a natural request load this skill? | An authorized available [routing probe](../../evals/routing-probes/README.md) that observes loading; optionally `claude plugin eval` with a with-only `tool_used: Skill` grader when Claude is explicitly authorized | Natural-request loading on the observed host/catalog; not whether loading helps |
+| Does supplied skill text change a specific observable act? | Behavioral probe with the available authorized Codex adapter in `scripts/probe-skill.sh` | Behavior change under forced source injection; not routing, correct code or productivity |
+| Does the installed plugin change graded answers end to end? | `claude plugin eval` against its no-plugin baseline, only when explicitly authorized and available | Routing and content together on the selected cases |
 | Does this package or version improve engineering outcomes at acceptable cost? | Repository-selected controlled coding comparison, such as `evals/skills-rpi` | Endpoint outcomes and cost on selected tasks; independent completion only when required exact-subject evidence exists |
 | Does a qualified memory update help later work? | Separate frozen-versus-updated memory transfer test | Narrow later-task reuse evidence with skill and runtime held fixed |
 | What happened in ordinary runs? | Existing native accounting and acceptance evidence | Observational failures, repairs and cost; not causal skill benefit |
@@ -78,7 +78,15 @@ and the maintenance choice.
 
 ## Runners
 
-`claude plugin eval <plugin-path> --model <id>` is Claude Code's evaluator. It
+Select the intersection of the caller's runtime authority, an available adapter
+and the named question. A runner's presence grants no runtime permission. If no
+route meets all three, return **insufficient evidence** with the missing route;
+do not automatically substitute another runtime or build a replacement runner.
+Forced SKILL.md injection, natural-request routing and installed-package coding
+comparisons answer different questions.
+
+When Claude Code is explicitly authorized and its evaluator is available,
+`claude plugin eval <plugin-path> --model <id>` is an optional route. It
 runs the cases in the plugin's eval directory (`evals/` by default) with the
 plugin and, by default (`--ablation with-without`), without it, scores each
 response with the case graders (LLM graders use `--judge-model`, default haiku)
@@ -91,16 +99,20 @@ to claude.ai and writes results under the plugin's eval directory: pass
 caller-selected storage. Confirm flags with `claude plugin eval --help`.
 
 `scripts/probe-skill.sh` is the repository runner for small behavioral probes.
-It injects the exact SKILL.md bytes (or a declared prelude) into the treatment
-arm of a cross-family producer, grades with a deterministic discriminator and
-replays immutable fixtures. Loading is forced, so it measures the text's effect
-on one act, not routing. Neither runner's result substitutes for the other.
+Its live route uses `scripts/lib/codex-exec.sh`; select it only when Codex and
+the runner's required isolation support are available and authorized. It injects
+the exact SKILL.md bytes (or a declared prelude) into the treatment arm, grades
+with a deterministic discriminator and replays immutable fixtures. Loading is
+forced, so it measures the text's effect on one act, not routing or a complete
+installed package. Neither runner's result substitutes for the other.
 Probe forms, headroom classifications and legacy ledger rules are in
 [behavioral probes](references/behavioral-probes.md).
 
 `scripts/probe-skill.sh`, `evals/` and the probe gates exist only in an
-AgentOps source checkout. Elsewhere, use `claude plugin eval` or the caller's
-runner and say which one replaced the repository runner.
+AgentOps source checkout. Elsewhere, use the caller's authorized existing runner
+if it supports the question and record its identity and limits. With no such
+runner, report the measurement unsupported; do not install a platform or start
+another runtime to replace the missing route.
 
 ## Procedure
 
@@ -122,6 +134,10 @@ runner and say which one replaced the repository runner.
    Exposed incidents are development cases, never unseen holdouts by renaming.
    Broken or leaked cases invalidate affected comparisons; preserve their
    historical disposition when versioning a correction.
+   If the existing capture/readout pipeline is new or changed, check parsing and
+   scoring with a cheap known-input dry run. Consider an A/A control only when
+   noise could change the decision, within the same authorized envelope; neither
+   requires a fixed trial count or a new artifact.
 4. **Run within the selected consumer's bounds.** Coding trials expose the actual
    selected package and required resources. A worktree or a prompt prohibition
    is not runtime isolation. Exclude operator home, production tracker, session

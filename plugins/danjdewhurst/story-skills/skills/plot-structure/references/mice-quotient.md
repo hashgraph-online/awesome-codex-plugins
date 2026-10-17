@@ -26,4 +26,4 @@ mice-threads:
   - character
 ```
 
-The field is agent-facing. `story validate` and `story continuity` do not read it, so closing rules are a manual audit. Use a block list or a flow list such as `[event, character]`.
+The field is agent-facing. `story validate` checks that it is a list, but not which thread types it names. `story continuity` does not read it, so closing rules are a manual audit. Use a block list or a flow list such as `[event, character]`.

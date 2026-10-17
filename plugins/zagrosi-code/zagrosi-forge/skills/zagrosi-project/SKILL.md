@@ -5,6 +5,11 @@ description: Split broad software briefs into dependency-ordered specs for Zagro
 
 # Zagrosi Project
 
+For a Git target, check `team status --target-dir "{target_dir}"` with Forge’s
+helper before work or resume.
+Follow [team coordination](../zagrosi-forge/references/collaboration.md) when configured or unavailable;
+reuse the same task across phases and delegated agents.
+
 Create the fewest independently plannable units. Apply the all-depth
 [engineering standard](../zagrosi-implement/references/engineering.md): include
 necessary cleanup of encountered code and explicit ownership updates.

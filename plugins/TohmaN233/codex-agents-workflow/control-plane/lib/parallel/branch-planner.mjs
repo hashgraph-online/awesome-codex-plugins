@@ -3,6 +3,7 @@ import { nodePermissions } from '../workflow-execution-envelope.mjs';
 import { intersectBoundaries, pathBoundaries } from '../workflow-bindings.mjs';
 import { digest } from '../workflow-revisions.mjs';
 import { requireValue } from '../workflow-paths.mjs';
+import {validateSharedHostPolicy} from '../execution/shared-host-work.mjs';
 
 // A branch workspace belongs to a graph region, not an individual worker. This
 // lets sequential nodes share their own branch results while sibling branches
@@ -10,6 +11,7 @@ import { requireValue } from '../workflow-paths.mjs';
 export function planParallelBranches(workflow, state) {
   const graph = graphInfo(workflow);
   const regions = graph.regions.map(region => {
+    validateSharedHostPolicy(workflow,region.parallel);
     const branches = graph.out.get(region.parallel.id).map(edge => {
       const members = graph.visit(edge.target, region.parallel.join_id);
       const scopes = [...members].filter(id => EXECUTOR_NODES.has(graph.nodes.get(id).type)).map(id => ({ node_id: id, ...nodePermissions(graph.nodes.get(id), state) }));
@@ -23,7 +25,8 @@ export function planParallelBranches(workflow, state) {
       if (paths.length) overlaps.push({ left_branch: branches[left].id, right_branch: branches[right].id, paths });
     }
     return { id: region.parallel.id, join_id: region.parallel.join_id, node_ids: [...region.members].sort(), branches,
-      write_paths: writePaths, isolated: writePaths.length > 0, overlaps };
+      write_paths: writePaths, isolated: writePaths.length > 0 && region.parallel.workspace_policy?.kind!=='host_tool_overlap', overlaps,
+      ...(region.parallel.workspace_policy?{workspace_policy:structuredClone(region.parallel.workspace_policy)}:{}) };
   });
   requireValue(regions.filter(region => region.isolated).reduce((count, region) => count + region.branches.length, 0) <= 64, 'PARALLEL_BRANCH_LIMIT', 'Run contains too many isolated branch workspaces');
   for (const region of regions) {

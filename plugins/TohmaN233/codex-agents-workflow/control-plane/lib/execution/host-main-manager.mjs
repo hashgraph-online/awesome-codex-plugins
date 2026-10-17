@@ -1,24 +1,32 @@
-import { delimiter, dirname, isAbsolute, join, resolve } from 'node:path';
-import { readFile } from 'node:fs/promises';
+import {executeHostMainFanout} from './host-main-fanout.mjs';
+import {normalizeHostMainCodexEvent} from './host-main-codex-events.mjs';
+import { dirname, join, resolve } from 'node:path';
+import { augmentedRuntimeEnvironment } from '../runtime-environment-state.mjs';
+import { observeForegroundPhase } from '../foreground-operation-observation.mjs';
 import { createCodexSession } from './codex-session.mjs';
+import {prepareCodexCommonBatch} from './codex-common-batch-session.mjs';
+import { cooperativeExecutionPolicy } from './main-execution-policy.mjs';
 import { preflightSemanticOutput, correctableCompletionError, boundedCompletionDiagnostic } from './completion-preflight.mjs';
 import { semanticTurnsConsumed } from './completion-turn-budget.mjs';
 import { createHostAuthBroker } from './codex-host-auth.mjs';
 import { createWorkflowResourceBroker, loadNodeSkillSnapshots } from './workflow-resource-broker.mjs';
 import {rejectWorkspaceScope} from './workspace-scope-evidence.mjs';
 import {snapshotWorkspace, changedWorkspacePaths as changedPaths} from './workspace-snapshot.mjs';
-import { qualifiedStrictSettings, validateStrictConfig, codexQualification } from './strict-config.mjs';
+import { qualifiedCooperativeSettings, validateStrictConfig, codexQualification } from './strict-config.mjs';
+import { refreshCodexRegistration } from './codex-runtime-registration.mjs';
 import { hostResultProposalEnvelope, semanticResultSchema, strictAgentOutputSchema } from './host-main-automation.mjs';
 import { authoringReviewIdentity, isAuthoringRunProvenance } from '../authoring/authoring-workflows.mjs';
 import { leaseToken } from '../workflow-execution-envelope.mjs';
 import { canonicalJSON, digest } from '../workflow-revisions.mjs';
-import {materializeNodeInputs} from './node-input-materials.mjs';
+import {prepareHostMainContext, readPinnedNodeResources} from './node-input-materials.mjs';
 import { validateData } from '../workflow-data-schema.mjs';
 import { requireValue } from '../workflow-paths.mjs';
 import { isEnvironmentDisabled } from '../config.mjs';
 import { compactCodexResultEvidence, persistCodexCommandAudits } from './codex-result-evidence.mjs';
 import { assertExecutionAdmission, assertExecutionAttemptAdmission, executionAdmissionOpen } from './attempt-admission.mjs';
 import { resolveMainModelSelection } from './main-model-selection.mjs';
+import {executeWorkerHostCheck,preflightWorkerHostCompletionInputs,workerHostCheckCorrectionPrompt} from './worker-host-check.mjs';
+import {HostToolRunner} from './host-tool-runner.mjs';
 
 const managers = new Map();
 const terminal = new Set(['succeeded', 'failed', 'cancelled', 'stopped']);
@@ -63,23 +71,11 @@ function diagnosticOf(error) {
 function within(path, boundary) {
   return boundary === '.' || path === boundary || path.startsWith(boundary.replaceAll('\\', '/').replace(/\/$/, '') + '/');
 }
-function augmentedEnvironment(env, runtimeEnvironment) {
-  const directories = (runtimeEnvironment?.tools ?? [])
-    .filter(tool => tool.status === 'found' && typeof tool.path === 'string' && isAbsolute(tool.path))
-    .map(tool => dirname(tool.path));
-  const inherited = env.PATH ?? env.Path ?? '';
-  return { ...env, PATH: [...new Set([...directories, ...inherited.split(delimiter).filter(Boolean)])].join(delimiter) };
-}
+
 async function resourceItems(runtime, runId, envelope) {
   if (!envelope.resources.length) return [];
   const record = await runtime.runs.read(runId); const root = join(runtime.runs.directory(runId), 'objects');
-  const resources = [];
-  for (const path of envelope.resources) {
-    const pin = record.pins.root.resources.find(item => item.path === path);
-    requireValue(pin && pin.bytes <= 1024 * 1024, 'HOST_MAIN_RESOURCE', `Pinned resource is unavailable or too large: ${path}`);
-    resources.push({ path, sha256: pin.sha256, bytes: await readFile(join(root, pin.sha256)) });
-  }
-  return resources;
+  return readPinnedNodeResources({ objectDirectory: root, pins: record.pins.root.resources, paths: envelope.resources });
 }
 
 function publicView(entry) {
@@ -104,7 +100,7 @@ export async function closeHostMainManagers() {
   if (failures.length) throw new AggregateError(failures, 'Host Main shutdown requires attention');
 }
 
-const entryHasUnconfirmedExecution = entry => entry.broker?.isQuiescent?.() === false;
+const entryHasUnconfirmedExecution = entry => entry.broker?.isQuiescent?.() === false || (entry.workerChecks?.size??0)>0;
 const entryNeedsRecovery = entry => entry.cleanupPending === true || entryHasUnconfirmedExecution(entry) || Boolean(entry.session);
 async function settleOwnedTask(promise) {
   if (!promise) return;
@@ -125,9 +121,11 @@ async function closeSessionForRecovery(session) {
  * its projected inputs, pinned resources and scoped capability broker.
  */
 export class HostMainManager {
-  constructor({ configPath, getConfig, env = process.env, sessionFactory = createCodexSession, qualify = qualifiedStrictSettings, mainModelSelection = resolveMainModelSelection }) {
+  constructor({ configPath, getConfig, env = process.env, sessionFactory = createCodexSession, prefixFactory = prepareCodexCommonBatch, qualify = qualifiedCooperativeSettings, register = refreshCodexRegistration, mainModelSelection = resolveMainModelSelection, hostToolRunner = new HostToolRunner({env}) }) {
     this.configPath = resolve(configPath); this.getConfig = getConfig; this.env = env;
-    this.sessionFactory = sessionFactory; this.qualify = qualify; this.mainModelSelection = mainModelSelection;
+    this.sessionFactory = sessionFactory; this.prefixFactory = prefixFactory; this.qualify = qualify; this.mainModelSelection = mainModelSelection;
+    this.register = register;
+    this.hostToolRunner=hostToolRunner;
     this.parent = join(dirname(this.configPath), 'host-main-profiles');
     this.entries = new Map(); this.hostAuth = null; this.hostAuthBinary = null; this.accepting = executionAdmissionOpen(this.configPath);
   }
@@ -163,6 +161,19 @@ export class HostMainManager {
     await entry.job; return publicView(entry);
   }
 
+  failureWorker(record) {
+    const state = record?.state; const entry = this.entries.get(entryKey(state?.run_id));
+    if (state?.status !== 'running' || !entry || !['failed', 'audit_or_cleanup_failed'].includes(entry.status)) return null;
+    const binding = entry.failureIdentity; const node = state.nodes[binding?.node_id];
+    const attempt = node?.attempts.find(item => item.id === binding?.attempt_id);
+    if (!binding || node?.active_attempt_id !== binding.attempt_id || !['claimed', 'running'].includes(node.status)
+      || !attempt || !['claimed', 'running'].includes(attempt.status) || attempt.owner !== binding.owner
+      || state.main_actor !== binding.owner || state.control_hash !== binding.control_hash
+      || attempt.lease_hash !== binding.lease_hash) return null;
+    return { run_id: state.run_id, phase: entry.status, node_id: binding.node_id, attempt_id: binding.attempt_id,
+      cleanup_pending: entryNeedsRecovery(entry), ...(entry.error ? { error: structuredClone(entry.error) } : {}) };
+  }
+
   async executeLoop(entry) {
     const assertActive = () => { requireValue(this.accepting && !entry.stopping, 'HOST_MAIN_STOPPED', 'Host Main permission was revoked'); const binding = entry.handoff?.host_binding; if (binding) assertExecutionAttemptAdmission(this.configPath, entry.runId, binding.node_id, binding.attempt_id); else assertExecutionAdmission(this.configPath, entry.runId); };
     let handoff = entry.handoff;
@@ -182,7 +193,7 @@ export class HostMainManager {
       }
       const state = await entry.runtime.get(entry.runId);
       if (terminal.has(state.status)) {
-        entry.status = state.status; entry.outcome = { status: state.status, stop_reason: 'terminal' }; this.compact(entry); return publicView(entry);
+        entry.status = state.status; entry.outcome = { status: state.status, stop_reason: 'terminal',...committedTerminalCompletion(state) }; this.compact(entry); return publicView(entry);
       }
       assertActive();
       handoff = await entry.drive.advanceToMain(entry.runId, {
@@ -198,24 +209,54 @@ export class HostMainManager {
   }
 
   async executeNode(entry, handoff) {
-    const binding = handoff.host_binding; const { runtime, runId } = entry;
-    const record = await runtime.runs.read(runId);
+    const requestedBinding = { ...handoff.host_binding }; const { runtime, runId } = entry;
+    // Snapshot the exact handoff, never select a newer claim after preparation.
+    const selected = { node_id: requestedBinding.node_id, attempt_id: requestedBinding.attempt_id, lease_token: requestedBinding.lease_token };
+    const startupSpans = {};
+    const measure = async (phase, operation) => {
+      const began = process.hrtime.bigint();
+      try { return await operation(); }
+      finally { startupSpans[phase] = Number((process.hrtime.bigint() - began) / 1000000n); }
+    };
+    const { record, envelope, binding: authorizedBinding } = await measure('authorized_execution', () =>
+      runtime.authorizedExecution(runId, { control_token: requestedBinding.control_token }, () => selected));
+    const binding = { ...requestedBinding, ...authorizedBinding };
     const definition = record.pins.root.workflow.nodes.find(node => node.id === binding.node_id);
+    preflightWorkerHostCompletionInputs(record,envelope,definition);
     requireValue(definition?.executor?.kind === 'main' && definition.executor.mode !== 'orchestration', 'HOST_MAIN_NODE', 'Host Main may execute only a logical Main node');
-    const consumed = semanticTurnsConsumed(record.state.nodes[binding.node_id]);
+    const consumed = definition.fanout ? 0 : semanticTurnsConsumed(record.state.nodes[binding.node_id]);
     const remainingTurns = (definition.retry?.max_attempts ?? 3) - consumed;
     requireValue(Number.isSafeInteger(remainingTurns) && remainingTurns > 0, 'RETRY_LIMIT', 'Main node exhausted its pinned semantic attempt limit');
-    const envelope = await runtime.execution(runId, binding);
-    const settings = await this.qualify(await this.getConfig(), this.env);
+    // Preserve the original method lookup before the config await and receiver.
+    const qualify = this.qualify;
+    const qualificationConfig = await this.getConfig();
+    requireValue(envelope.skill_policy?.mode !== 'strict' || qualificationConfig.strict_executor.enabled,
+      'STRICT_DISABLED', 'The user has not enabled the Codex executor');
+    const settings = await observeForegroundPhase('q', async () => {
+      const config = envelope.skill_policy?.mode === 'strict' ? qualificationConfig
+        : await this.register({configPath:this.configPath,config:qualificationConfig,env:this.env,strict:false,
+          qualify:(candidate,env,options)=>Reflect.apply(qualify,this,[candidate,env,options])});
+      return Reflect.apply(qualify, this, [config, this.env]);
+    });
     const reviewer = record.pins.authoring_reviewer ?? record.pins.generation?.reviewer ?? null;
     if (reviewer) {
       const current = (await this.getConfig()).providers.find(provider => provider.id === reviewer.id);
       requireValue(current?.enabled && current.kind === 'native_agent' && current.capabilities.read && canonicalJSON(current.config) === canonicalJSON(reviewer.config),
         'GENERATION_REVIEW_PROVIDER', 'Review binding must match the registered Provider');
     }
-    const { model, effort } = reviewer
-      ? { model: reviewer.config.model, effort: reviewer.config.reasoning_effort }
-      : await this.mainModelSelection(record, settings, { env: this.env });
+    let model = reviewer?.config.model, effort = reviewer?.config.reasoning_effort;
+    const resolveModelSelection = reviewer ? undefined : async client => {
+      // Use the already-owned discovery server for the fresh parent read.
+      const selection = await this.mainModelSelection(record, settings,
+        {env:this.env,observe:action=>action(client)});
+      if(selection.main_execution_context){
+        requireValue(selection.main_execution_context.parent_thread_id===record.state.constraints?.native_parent_thread_id,
+          'MAIN_EXECUTION_POLICY','Main permissions belong to a different initiating thread');
+      }
+      cooperativeExecutionPolicy(envelope.access,selection.main_execution_context);
+      ({model,effort}=selection);
+      return selection;
+    };
     const finalAcceptance = record.pins.root.workflow.finalization?.node_id === definition.id
       && isAuthoringRunProvenance(record.pins.root.provenance);
     const event = (kind, metadata) => runtime.recordExecutorEvent(runId, { ...binding, event: { kind, metadata } });
@@ -238,11 +279,15 @@ export class HostMainManager {
       assertActive();
     };
     await authorize();
-    const material=await materializeNodeInputs({directory:join(envelope.workspace,'work','.workflow-runtime','host-main',runId,binding.attempt_id),
-      envelope:{...envelope,prompt_template:envelope.prompt_template??handoff.agent_packet.prompt}});
-    await event('node_input_materials',{index:0,inputs_path:material.inputs_path,prompt_sha256:material.prompt_sha256,input_count:material.manifest.length});
-    const before = await snapshot('before');
     const resources = await resourceItems(runtime, runId, envelope);
+    if(definition.fanout)return executeHostMainFanout(this,entry,{record,envelope,binding,definition,settings,resources,authorize,assertActive,resolveModelSelection:resolveModelSelection??(async()=>({model,effort}))});
+    const material=await measure('materialization', () => prepareHostMainContext({directory:join(envelope.workspace,'work','.workflow-runtime','host-main',runId,binding.attempt_id),
+      envelope:{...envelope,prompt_template:envelope.prompt_template??handoff.agent_packet.prompt}, resources}));
+    // The existing bounded journal contract points to the complete typed audit;
+    // counts, byte budgets and selection basis live in its hash-bound file.
+    await event('node_input_materials',{index:0,inputs_path:material.preparation_path,manifest_sha256:material.preparation_sha256,
+      prompt_sha256:material.prompt_sha256,input_count:material.audit.bound_input_count});
+    const before = await measure('snapshot', () => snapshot('before'));
     const allowedSkills = await loadNodeSkillSnapshots(runtime, runId, envelope);
     entry.broker = await createWorkflowResourceBroker({
       workspace: envelope.workspace, access: envelope.access, allowedPaths: envelope.effective_allowed_paths,
@@ -255,24 +300,31 @@ export class HostMainManager {
       this.hostAuth = createHostAuthBroker({ binary: settings.codex_binary, cwd: this.parent, env: this.env });
       this.hostAuthBinary = settings.codex_binary;
     }
-    const environment = augmentedEnvironment(this.env, record.state.runtime_environment ?? record.state.constraints?.runtime_environment);
-    entry.session = await this.sessionFactory({
+    const environment = augmentedRuntimeEnvironment(this.env, envelope.constraints?.runtime_environment??record.state.runtime_environment??record.state.constraints?.runtime_environment,{workspace:envelope.workspace});
+    entry.session = await observeForegroundPhase('ss', () => this.sessionFactory({
       parent: this.parent, owner: { run_id: runId, node_id: binding.node_id, attempt_id: binding.attempt_id },
       hostAuth: settings.authentication.mode === 'host_chatgpt' ? this.hostAuth : undefined,
       binary: settings.codex_binary, expectedBinaryHash: settings.binary_sha256, expectedBinaryPath: codexQualification(settings)?.resolved_path,
-      dynamicToolFormat: codexQualification(settings)?.dynamic_tool_format, authentication: settings.authentication, model, effort,
-      cwd: envelope.workspace, access: envelope.access, allowedPaths:envelope.effective_allowed_paths, env: environment, toolBroker: entry.broker, authorize, assertActive,
-      skillPolicy: envelope.skill_policy ?? {mode:"cooperative",implicit:"deny",ambient_allow:[],shadowed_skill_paths:[]}, allowedSkills,
+      dynamicToolFormat: codexQualification(settings)?.dynamic_tool_format, authentication: settings.authentication,
+      rawObservation: codexQualification(settings)?.raw_observation,
+      ...(resolveModelSelection?{resolveModelSelection}:{model,effort}),
+      ephemeral: true,
+      cwd: envelope.workspace, access: envelope.access, hostWorker:true, allowedPaths:envelope.effective_allowed_paths, env: environment, toolBroker: entry.broker, authorize, assertActive,
+      skillPolicy: {...(envelope.skill_policy ?? {mode:"cooperative",ambient_allow:[],shadowed_skill_paths:[]}),implicit:"deny"}, allowedSkills,
       maxTurns: remainingTurns,
       onSessionOwned: session => { entry.session = session; },
       onProfilePrepared: profile => event('profile_owned', { home: profile.home, ...(profile.receipt_home ? {receipt_home:profile.receipt_home} : {}), executable_sha256: profile.binary_sha256 }),
       onModelCatalog: metadata => event('model_catalog', metadata),
+      onObservationBatch: metadata => runtime.recordExecutorObservations(runId,{...binding,
+        events:metadata.map(item=>({kind:'codex_event',metadata:normalizeHostMainCodexEvent(item)}))}),
       onEvent: metadata => {
-        if (!['thread/started', 'turn/started', 'turn/completed', 'thread/tokenUsage/updated', 'item/started', 'item/completed', 'error'].includes(metadata.method)) return;
-        return event('codex_event', metadata);
+        const normalized = normalizeHostMainCodexEvent(metadata);
+        if (normalized) return event('codex_event', normalized);
       },
-    });
+    }));
     assertActive();
+    requireValue(typeof model==='string'&&model.trim()&&typeof effort==='string'&&effort.trim(),
+      'HOST_MAIN_MODEL_SELECTION_UNRESOLVED','Owned Main session did not resolve its model selection before dispatch');
     const authoring = isAuthoringRunProvenance(record.pins.root.provenance) && binding.node_id === record.pins.root.workflow.finalization.node_id
       ? authoringReviewIdentity(record) : null;
     const receipt = {
@@ -280,8 +332,8 @@ export class HostMainManager {
       model, effort, main_actor: record.state.main_actor, session_id: `logical-main-${runId}`, call_chain_id: `workflow-run-${runId}`,
       ...(authoring ? { authoring_review_context: authoring } : {}),
     };
-    await runtime.recordHostMainDispatchReceipt(runId, { ...binding, request_id: `dispatch-${binding.attempt_id}`, receipt });
-    await event('session_state', { status: 'running' });
+    await measure('receipt_commit', () => runtime.recordHostMainDispatchReceipt(runId, { ...binding, request_id: `dispatch-${binding.attempt_id}`, receipt }));
+    await event('session_state', { status: 'running', diagnostic: canonicalJSON({ startup_phase_ms: startupSpans }) });
     const canBlock = definition.decision?.options?.includes('blocked') === true;
     const modelSchema = semanticResultSchema(definition, { finalAcceptance });
     if (canBlock) {
@@ -295,11 +347,23 @@ export class HostMainManager {
       + (canBlock ? ' Set block_reason to an empty string on success. A failed Python/tool call is recoverable: inspect its output, correct the invocation or code, and retry. Use decision=blocked only for a concrete unrecoverable obstacle, with its reason in block_reason.' : '');
     const prompt = material.prompt + instruction;
     let result; let output; let blockReason = ''; let missingArtifacts = []; const usages = [];
-    let correctionPrompt = '';
+    let correctionPrompt = '';let workerHostCheck;let attemptedTurns=0;let failure;let failed=false;
+    const recordTurnUsage=async()=>{
+      const observed=combinedTurnUsage(usages),failures=[];
+      try{await runtime.recordHostMainUsage(runId,{...binding,request_id:`dispatch-${binding.attempt_id}`,
+        usage:hostMainUsage(usages.length===attemptedTurns?observed:{available:false})});}catch(error){failures.push(error);}
+      if(usages.length!==attemptedTurns){
+        const {available,...partial_tokens}=observed;
+        try{await event('session_state',{status:'failed',code:'HOST_MAIN_USAGE_PARTIAL',diagnostic:canonicalJSON({attempted_turns:attemptedTurns,observed_turns:usages.length,observed_available:available,partial_tokens})});}catch(error){failures.push(error);}
+      }
+      if(failures.length===1)throw failures[0];
+      if(failures.length)throw new AggregateError(failures,'Main usage ledger and partial evidence persistence failed');
+    };
     try {
       for (let correction = 0; correction < remainingTurns; correction++) {
         await authorize();
         await runtime.reserveHostMainTurn(runId, binding);
+        attemptedTurns++;
         result = await (correction === 0 ? entry.session.turn(prompt, { output_schema: schema, timeout_ms: settings.inactivity_timeout_ms })
           : entry.session.continueTurn(correctionPrompt, { output_schema: schema, timeout_ms: settings.inactivity_timeout_ms }));
         usages.push(result.usage);
@@ -332,6 +396,18 @@ export class HostMainManager {
           correctionPrompt = `The prior result reported blocked: ${JSON.stringify(blockReason)}. In this same node thread, correct a recoverable command or code error if possible and return the complete declared JSON result. Report blocked only for a concrete unrecoverable obstacle.`;
           continue;
         }
+        if(definition.completion_contract?.host_check){
+          requireValue(typeof entry.session.prepareHostCompletion==='function','CODEX_HOST_COMPLETION_BOUNDARY','Worker session has no command completion boundary');
+          await entry.session.prepareHostCompletion();
+          assertActive();
+          workerHostCheck=await executeWorkerHostCheck(this,entry,binding,output,{authorize,assertActive});
+          if(!workerHostCheck.accepted){
+            const diagnostic=workerHostCheck.diagnostic;
+            await event('completion_invalid',{correction,diagnostic:diagnostic.slice(0,900),thread_id:result.thread_id,turn_id:result.turn_id});
+            requireValue(correction+1<remainingTurns,'MAIN_WORKER_HOST_CHECK_FALSE',`Worker Host completion rejected its last allowed semantic result: ${diagnostic.slice(0,900)}`);
+            correctionPrompt=workerHostCheckCorrectionPrompt(diagnostic,'this same node');continue;
+          }
+        }
         if (definition.required_artifacts?.length) {
           const current = await snapshot();
           const observed = changedPaths(before, current);
@@ -347,24 +423,41 @@ export class HostMainManager {
         }
         break;
       }
-    } catch (error) {
-      if (usages.length) await runtime.recordHostMainUsage(runId, { ...binding, request_id: `dispatch-${binding.attempt_id}`, usage: hostMainUsage(combinedTurnUsage(usages)) });
-      throw error;
-    }
-    await entry.session.close(); entry.session = null;
-    await event('session_state', { status: 'closed' });
+    } catch (error) { failure=error;failed=true; }
+    const retainFailure=(error,message)=>{failure=failed?Object.assign(new AggregateError([failure,error],message),{code:codeOf(failure)}):error;failed=true;};
+    if(attemptedTurns)try{await recordTurnUsage();}catch(error){retainFailure(error,'Main execution and usage persistence failed');}
+    try{await event('session_state',{status:'closing',diagnostic:JSON.stringify({thread_id:result?.thread_id??null,turn_id:result?.turn_id??null})});}
+    catch(error){retainFailure(error,'Main execution and shutdown observation failed');}
+    const completedSession=entry.session;
+    try{await observeForegroundPhase('cl',()=>completedSession.close());entry.session=null;}
+    catch(error){retainFailure(error,'Main execution and closure failed');}
+    // SDK results describe one turn. After closure, retain all settled command
+    // generations, including a prior false-check correction and failed cleanup.
+    let commandAuditArtifact;
+    try{
+      const settled=completedSession.commandAudit?.();
+      if(settled?.length){
+        const keys=new Set(settled.map(item=>item.process_id));
+        result??={};result.command_audit=[...(result.command_audit??[]).filter(item=>!keys.has(item.process_id)),...settled];
+      }
+      commandAuditArtifact=await persistCodexCommandAudits(runtime,runId,`command-audit-${binding.attempt_id}`,
+        [{identity:{thread_id:result?.thread_id??null,turn_id:result?.turn_id??null},result}]);
+    }catch(error){retainFailure(error,'Main closure and command audit persistence failed');}
+    try{await event('session_state',{status:failed?'failed':'closed',diagnostic:JSON.stringify({
+      thread_id:result?.thread_id??null,turn_id:result?.turn_id??null,
+      ...(commandAuditArtifact?{command_audit_artifact:commandAuditArtifact.artifact,command_audit_sha256:commandAuditArtifact.sha256,
+        command_audit_bytes:commandAuditArtifact.bytes}:{})})});}
+    catch(error){retainFailure(error,'Main closure and audit observation failed');}
+    if(failed)throw failure;
     const after = await snapshot(); const changed = changedPaths(before, after);
     const outside = envelope.access === 'read_only' ? changed : changed.filter(path => !envelope.effective_allowed_paths.some(boundary => within(path, boundary)));
     if(outside.length)await rejectWorkspaceScope({runtime,runId,attemptId:binding.attempt_id,code:'HOST_MAIN_SCOPE_VIOLATION',changed,outside,before,after,event});
-    const commandAuditArtifact=await persistCodexCommandAudits(runtime,runId,`command-audit-${binding.attempt_id}`,
-      [{identity:{thread_id:result.thread_id,turn_id:result.turn_id},result}]);
     const completion = hostResultProposalEnvelope(definition, {
       output, summary: `Main completed ${definition.id}`, artifacts: changed, changed_paths: changed, outside_paths: [],
-      evidence: [{ kind: 'host_main_result', thread_id: result.thread_id, turn_id: result.turn_id,
+      evidence: [...(workerHostCheck?[{kind:'worker_host_check',reference:workerHostCheck.reference}]:[]),{ kind: 'host_main_result', thread_id: result.thread_id, turn_id: result.turn_id,
         ...compactCodexResultEvidence(result),
         ...(commandAuditArtifact ? { command_audit_artifact: commandAuditArtifact } : {}) }],
     }, { finalAcceptance });
-    await runtime.recordHostMainUsage(runId, { ...binding, request_id: `dispatch-${binding.attempt_id}`, usage: hostMainUsage(combinedTurnUsage(usages)) });
     if (missingArtifacts.length && completion.structured_output.decision !== 'blocked') {
       await runtime.failNode(runId, { ...binding, error: { code: 'REQUIRED_ARTIFACT_MISSING', message: `Host Main did not produce the declared output paths after correction: ${missingArtifacts.map(item => item.path).join(', ')}` } });
       return { final_acceptance_required: false };
@@ -434,9 +527,12 @@ export class HostMainManager {
   async fail(entry, cause) {
     const unexpected = !entry.stopping;
     entry.stopping = true; entry.broker?.revoke(); const failures = [cause];
+    for(const check of entry.workerChecks??[])check.controller.abort(cause);
     try {
       const binding = entry.handoff?.host_binding;
       if (binding) {
+        entry.failureIdentity = Object.freeze({ run_id: entry.runId, node_id: binding.node_id, attempt_id: binding.attempt_id,
+          owner: binding.owner, control_hash: digest(binding.control_token), lease_hash: digest(binding.lease_token) });
         requireValue(typeof entry.runtime.failAttemptAfterQuiescence === 'function', 'EXECUTION_COORDINATOR_REQUIRED', 'Host Main failure requires exact cleanup coordination');
         await entry.runtime.failAttemptAfterQuiescence(entry.runId, binding,
           { code: codeOf(cause), message: diagnosticOf(cause) }, { originEntry: entry, originManager: this });
@@ -444,6 +540,7 @@ export class HostMainManager {
         requireValue(typeof entry.runtime.quiesceFailedOrigin === 'function', 'EXECUTION_COORDINATOR_REQUIRED', 'Host Main failure requires local cleanup coordination');
         await entry.runtime.quiesceFailedOrigin(entry);
         if (unexpected && entry.controlToken) await entry.runtime.runs.mutate(entry.runId, 'host_main_advance_failed', state => {
+          requireValue(state.control_hash===digest(entry.controlToken),'RUN_AUTHORITY','Host Main failure authority changed during cleanup');
           if (state.status === 'running') {
             state.status = 'failed';
             state.error = { code: 'HOST_MAIN_ADVANCE_FAILED', message: diagnosticOf(cause) };
@@ -454,25 +551,27 @@ export class HostMainManager {
       if (binding) await entry.runtime.recordExecutorEvent(entry.runId, { ...binding, event: { kind: 'session_state', metadata: { status: 'failed', code: codeOf(cause), diagnostic: diagnosticOf(cause) } } });
     } catch (error) { failures.push(error); }
     entry.status = failures.length === 1 ? 'failed' : 'audit_or_cleanup_failed';
-    entry.error = { code: codeOf(cause), diagnostic: diagnosticOf(cause), secondary_codes: failures.slice(1).map(codeOf) };
+    entry.error = { code: codeOf(cause), diagnostic: diagnosticOf(cause), secondary_codes: failures.slice(1).map(codeOf),
+      ...(failures.length > 1 ? { secondary_diagnostic: diagnosticOf(new AggregateError(failures.slice(1), 'Host Main secondary failure')) } : {}) };
     this.compact(entry); return publicView(entry);
   }
 
   compact(entry) {
     if(entry.cleanupPending||entryHasUnconfirmedExecution(entry))return false;
-    entry.session = null; entry.broker = null; entry.handoff = null; entry.runtime = null; entry.drive = null; entry.assertActive = null;
+    entry.session = null; entry.sessions = []; entry.broker = null; entry.brokers = []; entry.handoff = null; entry.runtime = null; entry.drive = null; entry.assertActive = null;
     entry.controlToken = null; entry.owner = null; return true;
   }
 
   fenceRun(runId) {
     const entry = this.entries.get(entryKey(runId));
-    if (entry) { entry.stopping = true; entry.broker?.revoke(); }
+    if (entry) { entry.stopping = true; entry.broker?.revoke();for(const check of entry.workerChecks??[])check.controller.abort(new Error('Host Main fenced')); }
   }
 
   fenceAttempt(runId, nodeId, attemptId) {
     const entry = this.entries.get(entryKey(runId));
     if (entry?.handoff?.host_binding?.node_id === nodeId && entry.handoff.host_binding.attempt_id === attemptId) {
       entry.stopping = true; entry.broker?.revoke();
+      for(const check of entry.workerChecks??[])check.controller.abort(new Error('Host Main attempt fenced'));
     }
   }
 
@@ -485,6 +584,7 @@ export class HostMainManager {
     const entry = this.entries.get(entryKey(runId));
     if (!entry || (terminal.has(entry.status) && !entryNeedsRecovery(entry))) return;
     entry.stopping = true; entry.broker?.revoke();
+    for(const check of entry.workerChecks??[])check.controller.abort(new Error('Host Main stopped'));
     if (entry.session) try { await entry.session.interrupt?.(); } catch (error) {
       entry.interruptError = { code: codeOf(error), diagnostic: diagnosticOf(error) };
     }
@@ -496,13 +596,13 @@ export class HostMainManager {
         'CODEX_BROKER_STOP_UNCONFIRMED','Host Main still owns an unconfirmed Linux execution unit');
     } catch (error) { failures.push(error); }
     if (entry.session) try { await closeSessionForRecovery(entry.session); } catch (error) { failures.push(error); }
-    const brokerBeforeSettle = entry.broker; const sessionBeforeSettle = entry.session;
+    const brokerBeforeSettle = entry.broker; const sessionBeforeSettle = entry.session; const poolVersionBeforeSettle=entry.poolResourceVersion;
     let taskSettled = false;
     if (!failures.length && !entryHasUnconfirmedExecution(entry)) try { await settleOwnedTask(entry.job); taskSettled = true; } catch (error) { failures.push(error); }
     // executeNode may hand off a session while the bounded job-settlement wait
     // is active.  Re-read the current owner and clean it before deciding that
     // cancellation completed; never overwrite a late cleanup failure.
-    if (taskSettled && (entry.broker !== brokerBeforeSettle || entry.session !== sessionBeforeSettle)) {
+    if (taskSettled && (entry.broker !== brokerBeforeSettle || entry.session !== sessionBeforeSettle || entry.poolResourceVersion !== poolVersionBeforeSettle)) {
       entry.broker?.revoke();
       if (entry.session) try { await entry.session.interrupt?.(); } catch (error) {
         entry.interruptError = { code: codeOf(error), diagnostic: diagnosticOf(error) };
@@ -527,3 +627,4 @@ export class HostMainManager {
     this.hostAuth?.clear();
   }
 }
+import {committedTerminalCompletion} from './terminal-output.mjs';

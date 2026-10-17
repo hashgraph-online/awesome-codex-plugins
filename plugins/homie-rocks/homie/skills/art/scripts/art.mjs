@@ -1,33 +1,13 @@
 #!/usr/bin/env node
-/**
- * art.mjs: a game's cover, painted backdrops and textures, made at build time and never while
- * anyone plays. Real frames come from the running game for free; generated images come from fal
- * through the creator's own account, priced first, capped by a budget, receipted the moment fal
- * accepts them.
- *
- *   check                                   ffmpeg, Chrome, the studio, the fal key (a free check)
- *   frame <game> --url <site> [--view tv|play] [--seconds 12] [--slug <art job>]
- *                                           real frames of the game playing, the busiest one picked
- *   cover <game> --from <image> [--focus x,y]
- *                                           the game's cover: 16:9, 1600x900 JPEG, into the game, named in game.json
- *   budget <slug> --cap <usd>               what the person agreed to spend on this art job
- *   price --model <fal model> --input <input.json>
- *   gen <slug> --model <fal model> --input <input.json> --out <file> [--dry-run | --yes]
- *                                           one paid image (or a few), inside the cap, resumable, receipted
- *   tile <image>                            does a texture tile without a seam? numbers and a 2x2 preview
- *   fit <image> --out <file> [--width 1024] [--max-kb 300]
- *                                           a texture or backdrop at a size a phone can download
- *   sheet <folder>                          a labelled contact sheet of every image in a folder
- *
- * Every command takes --json. Run it from inside the studio (the folder with studio.json).
- */
+/** art.mjs: local asset preparation only. Generation, schemas and pricing belong to the official provider MCP.
+ * Read ../SKILL.md for the current workflow. */
 import { spawnSync } from 'node:child_process';
 import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, extname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { SLUG, checkBudget, findStudio, readBudget, readJson, setBudget, writeJson } from '../../music/scripts/lib/studio.mjs';
+import { experienceDir, experienceJson, isServerRules, SLUG, checkBudget, findStudio, readBudget, readJson, setBudget, writeJson } from '../../music/scripts/lib/studio.mjs';
 import { GPU_FLAGS, chromePath, htmlToPng, loadPuppeteer } from '../../video/scripts/lib/browser.mjs';
-import { checkKey, falKey, priceOf, run as falRun } from '../../video/scripts/lib/fal.mjs';
+
 import { decode, stats } from '../../playtest/scripts/lib/pixels.mjs';
 
 const argv = process.argv.slice(2);
@@ -55,45 +35,32 @@ function artDir(root, slug) {
   return d;
 }
 function gameDir(root, game) {
-  const d = join(root, 'games', String(game ?? ''));
-  if (!game || !existsSync(join(d, 'game.json'))) throw new Error('a game in this studio: games/<id>/game.json');
+  const d = experienceDir(root, String(game ?? ''));
+  if (!game || !existsSync(experienceJson(d))) throw new Error('a game in this studio: games/<id>/game.json');
   return d;
 }
 
 /** A receipt line: the job's budget (running total), art/receipts.jsonl, and HOMIE_SPEND_LEDGER when set. */
-function receipt(root, dir, line) {
-  const at = new Date().toISOString();
-  const b = readBudget(dir);
-  if (b) {
-    b.spent = +(b.spent + (Number(line.cost) || 0)).toFixed(6);
-    b.calls.push({ at, provider: line.provider, model: line.model, cost: line.cost, unit: line.unit, requestId: line.requestId ?? null, artifact: line.artifact ?? null });
-    writeJson(join(dir, 'budget.json'), b);
-  }
-  mkdirSync(join(root, 'art'), { recursive: true });
-  appendFileSync(join(root, 'art', 'receipts.jsonl'), `${JSON.stringify({ schema: 'homie.media-receipt/1', at, ...line })}\n`);
-  const ledger = process.env.HOMIE_SPEND_LEDGER;
-  if (ledger) {
-    try { appendFileSync(ledger, `${JSON.stringify({ schema: 'homie.brand-spend/1', at, provider: line.provider, model: line.model, jobId: line.requestId ?? null, units: line.units ?? null, unit: line.unitName ?? line.unit, usd: line.cost, credits: null, unpriced: null, brand: process.env.HOMIE_SPEND_BRAND ?? null, attribution: process.env.HOMIE_SPEND_ATTRIBUTION ?? null, artifact: line.artifact ?? null })}\n`); } catch (e) { process.stderr.write(`could not write the ledger: ${e.message}\n`); }
-  }
-}
+
 
 /* ---------------------------------------------------------------- check */
 
 async function check() {
   const ff = spawnSync('ffmpeg', ['-version']).status === 0;
   const root = findStudio();
-  const key = falKey() ? await checkKey() : { ok: false, why: 'FAL_KEY is not set (only generated images need it; frames, covers, tiles and fitting are free)' };
-  return { ok: ff, command: 'check', ffmpeg: ff, chrome: chromePath(), puppeteer: Boolean(loadPuppeteer(root)), studio: root, fal: key.ok ? 'the key works (checked free)' : key.why };
+  return { ok: ff, command: 'check', ffmpeg: ff, chrome: chromePath(), puppeteer: Boolean(loadPuppeteer(root)), studio: root, generation: 'Use the official fal MCP in your AI client' };
+
 }
 
 /* ---------------------------------------------------------------- frame */
 
 async function frame(root) {
   const game = pos[1];
-  gameDir(root, game);
+  const source = gameDir(root, game);
   const url = String(flags.get('url') ?? '').replace(/\/+$/, '');
   if (!/^https?:\/\//.test(url)) throw new Error('--url <the studio site: http://127.0.0.1:8787 from npm run dev, or the live site>');
-  const view = flags.get('view') === 'play' ? 'play' : 'tv';
+  const serverRules = isServerRules(source);
+  const view = flags.has('view') ? (flags.get('view') === 'play' ? 'play' : 'tv') : serverRules ? 'play' : 'tv';
   const seconds = Math.max(4, Math.min(60, Number(flags.get('seconds') ?? 12)));
   const dir = artDir(root, String(flags.get('slug') ?? 'frames'));
   const puppeteer = loadPuppeteer(root); const exe = chromePath();
@@ -107,7 +74,16 @@ async function frame(root) {
     await page.goto(`${url}/${game}/${view}`, { waitUntil: 'domcontentloaded', timeout: 60_000 });
     // The platform's own furniture never goes into art: the join card, the QR, the status chip, result cards.
     await page.addStyleTag({ content: '.join,.chip,.card,[data-join],[data-chip],[data-results],[data-screen],[data-room-ui],[data-toast]{display:none!important}' }).catch(() => {});
+    await page.waitForSelector('iframe', { timeout: 30000 });
+    const gameFrame = page.frames().find(f => /\/__game\//.test(f.url()));
+    if (!gameFrame) throw new Error('the game frame never loaded');
+    if (serverRules) await gameFrame.waitForFunction(() => Boolean(window.__homieNet), { timeout: 30000 });
+    const before = await gameFrame.evaluate(() => window.__homieNet?.probe?.tick?.() ?? null);
     await sleep(4000);
+    if (serverRules && view === 'tv') {
+      const after = await gameFrame.evaluate(() => window.__homieNet?.probe?.tick?.() ?? null);
+      if (!(after > before)) throw new Error('The server room is paused: a TV is not a participant. Use --view play, or keep a player in this same room, then capture again.');
+    }
     for (let t = 0; t < seconds; t += 2) {
       const png = await page.screenshot({ type: 'png', captureBeyondViewport: false });
       const st = stats(decode(png, 480));
@@ -129,7 +105,7 @@ function cover(root) {
   const gdir = gameDir(root, game);
   const from = resolve(String(flags.get('from') ?? ''));
   if (!existsSync(from)) throw new Error('--from <image>: a frame from `frame`, a painted image from `gen`, or the person\'s own art');
-  const g = readJson(join(gdir, 'game.json'), {});
+  const g = readJson(experienceJson(gdir), {});
   const pub = g.build?.mode === 'static' ? gdir : join(gdir, 'public');
   mkdirSync(pub, { recursive: true });
   const { w, h } = size(from);
@@ -146,7 +122,7 @@ function cover(root) {
     q += 1;
   }
   g.cover = 'cover.jpg';
-  writeFileSync(join(gdir, 'game.json'), `${JSON.stringify(g, null, 2)}\n`);
+  writeFileSync(experienceJson(gdir), `${JSON.stringify(g, null, 2)}\n`);
   const st = stats(decode(out, 480));
   const warn = [];
   if (w < 1200) warn.push(`the source is ${w} px wide: upscaled covers look soft; capture or generate at 1600 px or more`);
@@ -163,43 +139,6 @@ function budget(root) {
   if (!(cap > 0 && cap <= 1000)) throw new Error('--cap <US dollars the person agreed to>');
   const b = setBudget(dir, { provider: 'fal', unit: 'usd', cap });
   return { ok: true, command: 'budget', slug: pos[1], cap: b.cap, spent: b.spent };
-}
-
-function inputOf(file) {
-  const j = readJson(resolve(String(file ?? '')), null);
-  if (!j) throw new Error('--input <file.json>: the model\'s input (its schema is on the model\'s fal page, or the fal MCP get_model_schema)');
-  return j;
-}
-
-async function price() {
-  const model = String(flags.get('model') ?? '');
-  if (!model) throw new Error('--model <fal model id, e.g. fal-ai/flux/dev>');
-  const p = await priceOf(model, inputOf(flags.get('input')));
-  return { ok: true, command: 'price', ...p };
-}
-
-async function gen(root) {
-  const slug = pos[1];
-  const dir = artDir(root, slug);
-  const model = String(flags.get('model') ?? '');
-  if (!model) throw new Error('--model <fal model id>');
-  if (!flags.get('out')) throw new Error('--out <file in this art job, e.g. cover-painted.png>');
-  const input = inputOf(flags.get('input'));
-  const out = resolve(dir, String(flags.get('out')));
-  if (!out.startsWith(`${dir}/`)) throw new Error('--out must stay inside the art job\'s folder');
-  if (existsSync(out)) return { ok: true, command: 'gen', slug, already: rel(root, out) };
-  const p = await priceOf(model, input);
-  if (flags.has('dry-run')) return { ok: true, command: 'gen', dryRun: true, slug, price: p };
-  const resuming = existsSync(`${out}.request`);
-  if (!resuming) {
-    const b = checkBudget(dir, p.usd, { provider: 'fal', unit: 'usd' });
-    if (!flags.has('yes')) return { ok: false, command: 'gen', needs: 'approval', slug, price: p, budget: { cap: b.cap, spent: b.spent }, why: `This call costs about US$${p.usd.toFixed(3)} (${p.basis}); US$${b.spent.toFixed(2)} of US$${b.cap.toFixed(2)} spent so far. Run it with --yes once that is fine.` };
-  }
-  const r = await falRun(model, input, {
-    out, base: dir, uploads: join(dir, 'uploads.json'), price: p, log: (m) => { if (!JSON_OUT) process.stderr.write(`${m}\n`); },
-    onAccepted: async (q) => { receipt(root, dir, { provider: 'fal', model, requestId: q.request_id, cost: p.usd, unit: 'usd', units: p.units, unitName: p.unit, basis: p.basis, artifact: rel(root, out) }); },
-  });
-  return { ok: true, command: 'gen', slug, files: r.files.map((f) => rel(root, f)), requestId: r.requestId, usd: p.usd, spent: readJson(join(dir, 'budget.json'), {}).spent, next: 'look at it before anything else; a second call only with a changed prompt, never a loop' };
 }
 
 /* ---------------------------------------------------------------- tile / fit / sheet */
@@ -271,14 +210,12 @@ async function main() {
     return { ok: true, command: 'help', usage: head.replace(/^#!.*\n\/\*\*?/, '').replace(/^ \* ?/gm, '').trim() };
   }
   if (cmd === 'check') return check();
-  if (cmd === 'price') return price();
   if (cmd === 'tile') return tile();
   if (cmd === 'fit') return fit();
   const root = studioRoot();
   if (cmd === 'frame') return frame(root);
   if (cmd === 'cover') return cover(root);
   if (cmd === 'budget') return budget(root);
-  if (cmd === 'gen') return gen(root);
   if (cmd === 'sheet') return sheet(root);
   return { ok: false, command: cmd, why: `unknown command "${cmd}" (art.mjs help)` };
 }

@@ -26,6 +26,12 @@ record the TDD route, decompose into executable tasks, define verification and
 retirement, self-review, save, then select the execution route. Proceed unless
 a real authorization or safety boundary requires the user.
 
+Bind tasks to the requested user outcomes: object, actions, conditions, and
+deliverables. Include the final delivery step and evidence at the user-visible
+seam, not only implementation/tests. Keep unmet needs and dependencies explicit;
+project-wide goals do not authorize work outside this request. Reuse the
+existing scope/acceptance slots; no extra goal artifact is required.
+
 Escalate from Planless Slice Lane when the work adds a new owner, contract,
 schema, public API, architecture boundary, migration, persistence,
 security/permission, distribution/release surface, or an unclear verification

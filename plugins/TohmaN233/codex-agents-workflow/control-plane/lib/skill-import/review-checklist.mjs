@@ -41,7 +41,8 @@ function findingCheckId(finding) { return /^\[([^\]]+)\]/.exec(finding)?.[1] ?? 
 // Ownership follows the check ID or an explicit assertion that a projected
 // field itself is defective, never a bare substring in explanatory prose.
 const assertedHostProjection = text => /^(?:\[[^\]]+\]\s*)?(?:The\s+)?Host-projected\s+(?:required_artifacts|requirement_ids|input_bindings|resource_refs|source_spans|provider_choice|execution_target)\b/i.test(text)
-  || /^(?:\[[^\]]+\]\s*)?Host projection defect:/i.test(text);
+  || /^(?:\[[^\]]+\]\s*)?Host projection defect:/i.test(text)
+  || /^(?:\[[^\]]+\]\s*)?(?:The\s+)?Host\s+(?:imposes|enforces|adds|projects)\b[^.!?]{0,120}\b(?:artifact(?:[- ]path)?|completion|(?:whole[- ]|entire[- ])?workspace|directory)\s+(?:(?:freshness|immutability|unchanged)\s+)?(?:gate|requirement)s?\b/i.test(text);
 const hostOwnedFinding = finding => hostOwnedReviewIds.has(findingCheckId(finding)) || assertedHostProjection(finding);
 const hostOwnedRow = row => hostOwnedReviewIds.has(row.id) || assertedHostProjection(row.evidence);
 export function routeReviewFindings(findings) {

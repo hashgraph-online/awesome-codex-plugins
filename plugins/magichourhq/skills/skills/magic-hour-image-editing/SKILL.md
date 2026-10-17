@@ -4,7 +4,7 @@ description: Edit an existing image with Magic Hour while protecting details out
 license: MIT
 metadata:
   author: magichourhq
-  version: "1.3.0"
+  version: "1.4.0"
 ---
 
 # Magic Hour image editing
@@ -16,6 +16,8 @@ Infer the edit from the supplied image and plain-language request; recommend one
 ## Establish the edit boundary
 
 Inspect the source. Separate **change** (background, color, lighting, object, framing) from **preserve** (identity, geometry, pose, clothing, exact text, unaffected surroundings). Infer from the request; ask only when ambiguity changes the result. Do not describe unseen details as verified.
+
+If the user names a saved character or reference instead of attaching an image, use `saved_items_list` (or authenticated `GET /v1/saved-items` through the existing API) with the matching type. Match the name, paginate with `next_cursor` as needed and disambiguate multiple matches. Inspect a suitable `IMAGE` asset and reuse its durable `file_path` in `assets.image_file_paths`, without another upload. An explicitly supplied image remains authoritative.
 
 Keep the source as the identity reference. If multiple references are supported, identify each role: subject, setting, or style. A style reference must not replace the subject. Check the chosen model's reference limit rather than assuming the endpoint's maximum applies to every model.
 
@@ -36,7 +38,7 @@ Do not paste the original generation prompt wholesale: it may request the backgr
 
 ## Execute once and compare
 
-Use the connected creation MCP at `https://mcp.magichour.ai/`; [setup](https://github.com/magichourhq/magic-hour-mcp/blob/main/user.md). For API fallback, keep credentials outside chat/source code. Read the [live schema](https://docs.magichour.ai/api-reference/openapi.json) for model eligibility, resolution, aspect ratio, reference count, and cost. Web-app settings do not prove API support.
+Use the connected creation MCP at `https://mcp.magichour.ai/`; [setup](https://github.com/magichourhq/magic-hour-mcp/blob/main/user.md). For API fallback, keep credentials outside chat/source code. Read the [live schema](https://docs.magichour.ai/api-reference/openapi.json) for model eligibility, resolution, aspect ratio, reference count, and cost. Web-app settings do not prove API support. Check both selected settings and omitted-field defaults against the account's effective tier. The current Image Editor default is paid-only; live guidance supplies an explicit Free-compatible combination when it fits the brief. Set those fields explicitly rather than assuming omission is plan-aware. Credits do not unlock paid-only models or resolutions. After a tier restriction, avoid an unchanged retry or blind field removal. Change settings only within delegated choices; ask before changing explicit model/resolution requirements.
 
 For local inputs, call `video_assets_generate_presigned_url`, PUT raw bytes to `upload_url`, verify success, and use its `file_path`. Never send the API bearer token to storage. Direct API creation is `POST /v1/ai-image-editor`; retrieval is `GET /v1/image-projects/{id}`. Retain the ID, use `wait_for_image_project` or retrieve that same job, and never repeat an ambiguous creation request automatically.
 

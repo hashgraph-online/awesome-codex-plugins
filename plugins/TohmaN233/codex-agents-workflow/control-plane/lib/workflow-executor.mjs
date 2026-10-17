@@ -1,16 +1,26 @@
+import {readPinnedObject} from './pinned-object-reader.mjs';
 import { buildCodexThreadAdapter, buildProviderAdapter, invokeOpenAICompatible } from './providers.mjs';
 import { renderTemplate } from './templates.mjs';
 import { requireValue } from './workflow-paths.mjs';
 import { canonicalJSON, digest } from './workflow-revisions.mjs';
 import { isEnvironmentDisabled } from './config.mjs';
 import { controllerAttempt, reattachAttempt } from './workflow-recovery.mjs';
-import { leaseToken, nodePermissions } from './workflow-execution-envelope.mjs';
+import { leaseToken, nodePermissions, bindingContext } from './workflow-execution-envelope.mjs';
 import { threadHandoff } from './thread-handoff.mjs';
-import { HostToolRunner, hostToolContracts } from './execution/host-tool-runner.mjs';
+import { HostToolRunner, hostToolContracts, validateHostToolReceipt, requireHostToolInputCapacity } from './execution/host-tool-runner.mjs';
+import {validateData} from './workflow-data-schema.mjs';
 import { AttemptAdmissionRegistry } from './execution/attempt-admission.mjs';
 import { confirmConnectorExecutionQuiescent } from '../connectors/registry.mjs';
-import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { isOrchestrationMain } from './execution/main-execution-mode.mjs';
+import { saveMainHostCheckSnapshot, requireMainHostCheckFreshness } from './execution/main-host-check-snapshot.mjs';
+import { hostCompletionResourcePaths } from './execution/host-completion-resources.mjs';
+import { hostCompletionInputs } from './execution/main-host-check.mjs';
+import { executeWorkerHostCheck,preflightWorkerHostCompletionInputs,nativeHostCheckSlot } from './execution/worker-host-check.mjs';
+import { resolveMainModelSelection } from './execution/main-model-selection.mjs';
+import {assertOutsideHostRunTransaction,withRunStorePhase} from './workflow-run-store.mjs';
+import {nodeRuntimeScope,runtimeRequirementsForState,runtimeEnvironmentForWorker} from './runtime-environment-state.mjs';
+import {nativeContextExecutionIssue} from './native-binding.mjs';
 
 function promptInputs(inputs) {
   const displayed=structuredClone(inputs ?? {});
@@ -40,9 +50,17 @@ export function compilePrompt(envelope, max) {
     + (expanded.length ? '\nInputs already expanded in the instruction template: ' + expanded.join(', ') + '.' : '')
     + (Object.keys(displayed).length ? '\nInputs:\n' + canonicalJSON(displayed) : '')
     + (envelope.context_projection?.references?.length ? '\nResources:\n' + canonicalJSON(envelope.context_projection.references) : '')
-    + (envelope.completion_contract ? '\nCompletion:\n' + canonicalJSON(envelope.completion_contract) : '');
+    + (envelope.context_projection?.verified_files?.length ? '\nVerified input files:\n' + canonicalJSON(envelope.context_projection.verified_files) : '')
+    + (envelope.completion_contract ? '\nCompletion:\n' + canonicalJSON(modelCompletionContract(envelope.completion_contract)) : '');
   requireValue(prompt.length + extra.length <= max, 'PROMPT_LIMIT', 'Node context exceeds the configured prompt limit');
   return prompt + extra;
+}
+function modelCompletionContract(contract){
+  const displayed=structuredClone(contract);
+  // Mechanical completion belongs to the Host. Exposing its local tool name
+  // invites semantic workers to discover or execute a tool they cannot own.
+  delete displayed.host_check;
+  return displayed;
 }
 const receiptIdentity = task => ({ task_id: task.task_id, connector: task.connector, ...(task.remote_identity ? { remote_identity: task.remote_identity } : {}) });
 // Recovery adds observation metadata without changing the remote task identity.
@@ -71,9 +89,10 @@ function hostNativeExecutionOwner(args, receipt) {
 }
 
 export class WorkflowExecutor {
-  constructor({ runtime, getConfig, registry, strictManager, managedNativeManager, hostToolRunner, attemptAdmission, env = process.env, fetchImpl = globalThis.fetch }) {
+  constructor({ runtime, getConfig, registry, strictManager, managedNativeManager, hostToolRunner, attemptAdmission, nativeMainSelection, env = process.env, fetchImpl = globalThis.fetch }) {
     this.runtime = runtime; this.getConfig = getConfig; this.registry = registry; this.env = env; this.fetchImpl = fetchImpl;
     this.strictManager = strictManager; this.managedNativeManager = managedNativeManager; this.hostToolRunner = hostToolRunner ?? new HostToolRunner({ env });
+    this.nativeMainSelection=nativeMainSelection??(record=>resolveMainModelSelection(record,{}, {env}));
     this.attemptAdmission = attemptAdmission ?? new AttemptAdmissionRegistry();
     this.hostExecutions = this.attemptAdmission.entries;
   }
@@ -98,12 +117,44 @@ export class WorkflowExecutor {
     } catch (error) { throw Object.assign(error, { code: 'HOST_TOOL_CANCEL_INCOMPLETE' }); }
   }
 
-  async executeHostTool(runId, args, { assertActive = () => {} } = {}) {
+  async executeNativeHostCheck(runId,args,output,{item_index=null,native_observation}={}){
+    // The Host observer supplies this exact recorded child/turn/item tuple.
+    // Proposal and worker context validation below recheck its pinned assignment
+    // before any effect. Reserve ownership before that first asynchronous read,
+    // so cancellation also sees checks still preparing their audited intent.
+    const owner=item_index===null?this.attemptAdmission.begin(runId,args.node_id,args.attempt_id,'host_tool')
+      :this.attemptAdmission.beginNativeCheck(runId,args.node_id,args.attempt_id,nativeHostCheckSlot(native_observation,item_index),item_index);
+    let intent=false,quiescent=false,error,result;
+    owner.registerCleanup(async()=>requireValue(quiescent,'HOST_TOOL_CANCEL_INCOMPLETE','Native completion checker termination remains unconfirmed'));
+    try{
+      await this.runtime.recordNativeHostCheckProposal(runId,{...args,native_observation,item_index,output});
+      result=await executeWorkerHostCheck(this,{runtime:this.runtime,runId},args,output,{item_index,native_observation,controller:owner.controller,
+        markIntent:()=>{intent=true;},markQuiescent:()=>{quiescent=true;},
+        authorize:()=>this.runtime.authorizedExecution(runId,args,()=>args),assertActive:()=>owner.assertActive()});
+    }catch(cause){error=cause;}
+    finally{owner.settle(error&&intent&&!quiescent?{error}:{});}
+    if(error){
+      error.native_host_check_failure=true;
+      if(intent&&quiescent&&!owner.controller.signal.aborted){
+        try{const record=await this.runtime.runs.read(runId),attempt=record.state.nodes[args.node_id].attempts.find(item=>item.id===args.attempt_id);
+          await this.runtime.recordUsage(runId,{...args,request_id:attempt.dispatch.request_id,usage:{unknown:true}});
+          await this.runtime.failNode(runId,{...args,error:{code:error.code??'HOST_TOOL_FAILED',message:error.message.slice(0,3900)}});
+        }catch(auditError){throw Object.assign(new AggregateError([error,auditError],'Native checker failed and failure accounting did not complete'),{code:'DISPATCH_AUDIT_FAILED'});}
+      }
+      throw error;
+    }
+    return result;
+  }
+
+  async executeHostTool(runId, args, { assertActive = () => {}, completionOutput } = {}) {
+    assertOutsideHostRunTransaction();
     // Own the attempt before the first await. Cancellation can otherwise miss
     // an operation paused in Run/pin I/O and let it start after the scan.
     const activeHost = this.attemptAdmission.begin(runId, args.node_id, args.attempt_id, 'host_tool');
     activeHost.intent_pending = false;
     activeHost.receipt_recorded = false;
+    activeHost.registerCleanup(async()=>requireValue(!activeHost.intent_pending||activeHost.receipt_recorded,
+      'HOST_TOOL_CANCEL_INCOMPLETE','Host tool intent has no confirmed receipt; retain its exact execution owner for reconciliation'));
     const { controller } = activeHost;
     const assertAdmission = () => {
       activeHost.assertActive();
@@ -112,30 +163,47 @@ export class WorkflowExecutor {
     let activeError = null;
     try {
       assertAdmission();
-      const envelope = await this.runtime.execution(runId, args);
+      const { record, envelope } = await withRunStorePhase('effect_pre',()=>this.runtime.authorizedExecution(runId, args, () => args));
       assertAdmission();
-      requireValue(envelope.executor.kind === 'tool', 'HOST_TOOL_NODE', 'This node is not a host-tool node');
-      const record = await this.runtime.runs.read(runId);
-      assertAdmission();
+      const completionCheck = completionOutput !== undefined;
+      requireValue(completionCheck ? isOrchestrationMain({ executor: envelope.executor }) && envelope.completion_contract?.host_check
+        : envelope.executor.kind === 'tool', 'HOST_TOOL_NODE', 'This node has no applicable pinned host-tool execution');
       const attempt = record.state.nodes[args.node_id]?.attempts.find(item => item.id === args.attempt_id);
       requireValue(attempt, 'HOST_TOOL_NODE', 'Host tool attempt is missing');
-      const contract = hostToolContracts(record.pins.root.workflow).get(envelope.executor.tool);
+      const contract = hostToolContracts(record.pins.root.workflow).get(completionCheck ? envelope.completion_contract.host_check.tool : envelope.executor.tool);
       requireValue(contract, 'HOST_TOOL_CONTRACT', 'Tool node has no pinned host contract');
       const definition=record.pins.root.workflow.nodes.find(node=>node.id===args.node_id);
-      const resources=await Promise.all((definition?.resources??[]).map(async path=>{
+      const input = completionCheck ? { inputs: hostCompletionInputs(definition,bindingContext(record.state),envelope.inputs), output: completionOutput } : envelope.inputs;
+      if (attempt.host_tool) requireValue(attempt.host_tool.contract_sha256 === digest(canonicalJSON(contract))
+        && attempt.host_tool.input_sha256 === digest(canonicalJSON(input)), 'HOST_TOOL_CONFLICT', 'Host tool completion has different pinned semantic input or contract');
+      // Pure rejection is known before any effect intent. Do not turn a schema
+      // mismatch into an uncertain execution that cancellation cannot reconcile.
+      validateData(input,contract.input_schema);requireHostToolInputCapacity(contract,input);
+      const resourcePaths=completionCheck ? hostCompletionResourcePaths(contract,definition?.resources??[]) : definition?.resources??[];
+      const resources=await Promise.all(resourcePaths.map(async path=>{
         const pin=record.pins.root.resources.find(item=>item.path===path);
         requireValue(pin,'WORKFLOW_RESOURCE_PIN',`Host tool resource is absent from the Run pin: ${path}`);
-        const bytes=await readFile(join(this.runtime.runs.directory(runId),'objects',pin.sha256));
-        requireValue(digest(bytes)===pin.sha256,'WORKFLOW_RESOURCE_PIN',`Host tool resource differs from its Run pin: ${path}`);
+        const bytes=await readPinnedObject(join(this.runtime.runs.directory(runId),'objects'),pin);
         return {path,sha256:pin.sha256,bytes};
       }));
-      let receipt = attempt.host_tool?.receipt ?? null; let output = null;
+      let receipt = attempt.host_tool?.receipt ?? null; let output = null; let storedHostOutput = null;
+      const reconcilingCompletion = Boolean(completionCheck && receipt);
+      if (completionCheck && receipt) {
+        validateHostToolReceipt(receipt);
+        requireValue(receipt.run_id === runId && receipt.node_id === args.node_id && receipt.attempt_id === args.attempt_id
+          && receipt.tool === contract.id && receipt.contract_sha256 === digest(canonicalJSON(contract))
+          && receipt.input_sha256 === digest(canonicalJSON(input)), 'HOST_TOOL_RECEIPT', 'Completion check receipt differs from its exact pinned identity and semantic input');
+      }
       if (!receipt) {
-        const preparedEnvironment = await this.runtime.ensureRuntimeEnvironment(runId, {control_token:args.control_token});
-        if (attempt.host_tool) requireValue(attempt.host_tool.idempotency === 'safe', 'HOST_TOOL_RECONCILIATION_REQUIRED', 'Host tool has an uncertain intent and is not declared safe to replay');
+        // The qualified resource broker verifies dependencies at actual launch,
+        // after scratch/materialization effects. This seed authorizes no process.
+        const preparedEnvironment = record.state.constraints?.execution_binding?.kind!=='wsl'&&this.hostToolRunner.hasProgramEnvironmentAdmission?.(contract)
+          ?{environment:runtimeEnvironmentForWorker(record.state,definition,record.pins)}
+          :await this.runtime.ensureNativeRuntimeEnvironmentFromAudit(runId,args,record);
+        if (attempt.host_tool) requireValue(!completionCheck && attempt.host_tool.idempotency === 'safe', 'HOST_TOOL_RECONCILIATION_REQUIRED', 'Host tool has an uncertain intent; automatic completion checks must never replay it');
         assertAdmission();
         activeHost.intent_pending = true;
-        try { await this.runtime.recordHostToolIntent(runId, { ...args, contract, input: envelope.inputs }); }
+        try { await this.runtime.recordHostToolIntent(runId, { ...args, contract, input }); }
         catch (error) {
           // These transition errors prove the intent was rejected before any
           // broker ownership existed; an I/O failure remains uncertain.
@@ -145,7 +213,7 @@ export class WorkflowExecutor {
         // Once intent is durable, a revoked attempt still needs a qualified
         // cancellation receipt. The runner must not invoke the broker's work.
         const fence = () => { try { assertActive(); } catch (error) { controller.abort(error); } };
-        const executed = await this.hostToolRunner.execute(contract, envelope.inputs, {
+        const executed = await this.hostToolRunner.execute(contract, input, {
           run_id: runId,
           node_id: args.node_id,
           attempt_id: args.attempt_id,
@@ -154,26 +222,54 @@ export class WorkflowExecutor {
           task_root: record.state.constraints?.task_workspace ?? envelope.workspace,
           permissions: { access: envelope.access, allowed_paths: envelope.effective_allowed_paths },
           runtime_environment: structuredClone(preparedEnvironment.environment),
-          prepareRuntimeEnvironment: () => this.runtime.ensureRuntimeEnvironment(runId, {control_token:args.control_token}),
+          prepareRuntimeEnvironment: () => this.runtime.ensureRuntimeEnvironment(runId, args),
           execution_binding: structuredClone(record.state.constraints?.execution_binding ?? null),
         }, { signal: controller.signal, assertActive: fence });
         receipt = executed.receipt; output = executed.output;
         if (receipt.status === 'succeeded') {
           requireValue(output !== null && digest(canonicalJSON(output)) === receipt.output_sha256, 'HOST_TOOL_OUTPUT_CORRUPT', 'Qualified broker output differs from its attested digest');
-          const stored = await this.runtime.runs.saveExecutorResult(runId, args.attempt_id, { kind: 'host_tool_output', output });
-          receipt = { ...receipt, output_ref: { ...stored, bytes: Buffer.byteLength(canonicalJSON({ kind: 'host_tool_output', output })) } };
+          storedHostOutput = { kind: 'host_tool_output', output,
+            ...(completionCheck ? { completion_snapshot: await saveMainHostCheckSnapshot(this.runtime,runId,args.attempt_id,envelope.workspace) } : {}) };
         }
-        await this.runtime.recordHostToolReceipt(runId, { ...args, receipt });
+        const commitReceipt=async()=>{
+          if(storedHostOutput){
+            const stored=await this.runtime.runs.saveExecutorResult(runId,args.attempt_id,storedHostOutput);
+            receipt={...receipt,output_ref:{...stored,bytes:Buffer.byteLength(canonicalJSON(storedHostOutput))}};
+          }
+          await this.runtime.recordHostToolReceipt(runId,{...args,receipt});
+        };
+        // The real runner and workspace snapshot have settled. This fixed Main
+        // receipt publication uses one fresh audit; ordinary tool calls retain
+        // their independent full-audit behavior.
+        if(completionCheck)await this.runtime.runs.withHostTransaction(runId,'main_commit',commitReceipt);
+        else await commitReceipt();
         activeHost.receipt_recorded = true;
       }
       if (receipt.status !== 'succeeded') {
+        if (completionCheck) requireValue(false, receipt.status === 'timed_out' ? 'HOST_TOOL_TIMEOUT' : receipt.status === 'cancelled' ? 'HOST_TOOL_CANCELLED' : 'HOST_TOOL_FAILED', receipt.diagnostics.message || `Host tool ${receipt.tool} exited ${receipt.exit_code}`);
         const cancelled = await this.runtime.get(runId); const current = cancelled.nodes[args.node_id]?.attempts.find(item => item.id === args.attempt_id);
         if (cancelled.status === 'cancelled' || current?.status === 'cancelled') return cancelled;
         return this.runtime.failNode(runId, { ...args, error: { code: receipt.status === 'timed_out' ? 'HOST_TOOL_TIMEOUT' : receipt.status === 'cancelled' ? 'HOST_TOOL_CANCELLED' : 'HOST_TOOL_FAILED', message: receipt.diagnostics.message || `Host tool ${receipt.tool} exited ${receipt.exit_code}` } });
       }
       if (output === null) {
-        const stored = await this.runtime.runs.readExecutorResult(runId, args.attempt_id, receipt.output_ref.sha256);
+        const stored = await this.runtime.runs.readExecutorResult(runId, args.attempt_id, receipt.output_ref.sha256); storedHostOutput = stored;
         requireValue(stored?.kind === 'host_tool_output' && digest(canonicalJSON(stored.output)) === receipt.output_sha256, 'HOST_TOOL_OUTPUT_CORRUPT', 'Durable host output differs from its receipt'); output = stored.output;
+      }
+      if (completionCheck) {
+        assertAdmission();
+        // Revalidate the durable lease and pinned input before releasing semantic
+        // completion. A cancelled or superseded attempt cannot accept effects.
+        await withRunStorePhase('effect_post',()=>this.runtime.execution(runId, args));
+        requireValue(output[envelope.completion_contract.host_check.success_field] === true,
+          'MAIN_ORCHESTRATION_HOST_CHECK_FALSE', `Host completion check ${contract.id} did not accept the semantic result`);
+        requireValue(receipt.effects.outside_paths.length === 0, 'HOST_TOOL_SCOPE', 'Host completion check observed writes outside its grant');
+        // Definitive Main acceptance compares this exact snapshot under the
+        // fresh Runtime commit guard. An intermediate whole-workspace capture
+        // here cannot authorize that later commit and only repeats its I/O.
+        // A reused receipt crosses a prior operation boundary: reject stale
+        // effects before constructing another immutable result proposal.
+        if(reconcilingCompletion)await requireMainHostCheckFreshness(this.runtime,runId,envelope.workspace,storedHostOutput?.completion_snapshot);
+        return { receipt, output };
       }
       const cancelled = await this.runtime.get(runId); const current = cancelled.nodes[args.node_id]?.attempts.find(item => item.id === args.attempt_id);
       if (cancelled.status === 'cancelled' || current?.status === 'cancelled') return cancelled;
@@ -215,8 +311,22 @@ export class WorkflowExecutor {
   }
 
   async prepare(runId, args) {
-    const envelope = await this.runtime.execution(runId, args);
+    const authorization = await this.runtime.authorizedExecution(runId,args,()=>args);
     const config = await this.getConfig();
+    return this.#prepareAuthorized(runId,args,authorization,config);
+  }
+  async prepareNativeObservation(runId,args,record,config){
+    const authorization=await this.runtime.nativeProjectionFromAudit(runId,args,record);
+    return this.#prepareAuthorized(runId,args,authorization,config,{observedNative:true});
+  }
+  async #prepareAuthorized(runId,args,{record,envelope},config,{observedNative=false}={}) {
+    const profileIssue=nativeContextExecutionIssue(envelope.provider,{executor:envelope.executor,skillPolicy:envelope.skill_policy,hostManagedNative:args.host_managed_native===true});
+    if(profileIssue)throw Object.assign(new Error(profileIssue.message),profileIssue);
+    if(envelope.executor.context_inheritance==='upstream')requireValue(envelope.executor.kind==='provider'&&envelope.provider?.kind==='native_agent'
+      &&envelope.skill_policy.mode==='cooperative'&&args.host_managed_native!==true,
+      'NATIVE_CONTEXT_EXECUTION_UNSUPPORTED','Upstream native context inheritance requires the Cooperative recorded-child bridge; Strict and managed native sessions cannot implement it');
+    if(envelope.provider?.kind==='native_agent'&&envelope.completion_contract?.host_check)requireValue(envelope.skill_policy.mode==='cooperative'&&args.host_managed_native!==true,
+      'NATIVE_HOST_CHECK_EXECUTION_UNSUPPORTED','Native Host completion checks require the Cooperative recorded-child bridge before any managed session starts');
     requireValue(config.global.enabled && !isEnvironmentDisabled(this.env), 'CONTROL_DISABLED', 'Workflow execution is disabled');
     if (envelope.provider) {
       const current = config.providers.find(provider => provider.id === envelope.provider.id);
@@ -253,12 +363,64 @@ export class WorkflowExecutor {
     const thread_resources = adapter.execution === 'codex_thread'
       ? await this.runtime.threadResourcePacket(runId, args, { max_chars: config.global.max_prompt_chars })
       : [];
+    if(adapter.execution==='native_agent'){
+      const definition=record.pins.root.workflow.nodes.find(node=>node.id===args.node_id);
+      preflightWorkerHostCompletionInputs(record,envelope,definition);
+      if(envelope.executor.context_inheritance==='upstream'){
+        requireValue(adapter.spawn_config.agent_type==='default','NATIVE_CONTEXT_PROFILE_HISTORY',
+          'Upstream context cannot replace a selected fresh native tool context profile');
+        requireValue(record.state.constraints?.native_parent_thread_id,'NATIVE_CONTEXT_PARENT','Upstream inheritance requires the authenticated initiating Main');
+        // The committed envelope digest proves the initial exact parent
+        // selection. Observation revalidates that same pinned projection;
+        // it does not request a new model selection for an existing child.
+        const selection=observedNative?{model:adapter.expected_model,effort:adapter.expected_reasoning_effort}:await this.nativeMainSelection(record);
+        requireValue(selection?.model===adapter.expected_model&&selection?.effort===adapter.expected_reasoning_effort,
+          'NATIVE_CONTEXT_MODEL_MISMATCH','Inherited Main model/effort is unknown or differs from the pinned native Provider');
+        adapter.spawn_config={agent_type:'default',fork_turns:'all'};adapter.fork_turns='all';
+        adapter.context_inheritance={mode:'upstream',parent_thread_id:record.state.constraints.native_parent_thread_id,model:selection.model,effort:selection.effort};
+      }
+    }
     const prepared = { envelope, adapter, prompt };
     if (adapter.execution === 'codex_thread') prepared.thread_handoff = threadHandoff(adapter, envelope, prompt, { resources: thread_resources, max_chars: config.global.max_prompt_chars });
     return prepared;
   }
 
   async dispatch(runId, args) {
+    if(args.host_managed_main===true){
+      // The logical Main handoff performs no remote launch. Load arbitrary
+      // configuration outside the guard, then plan/compile/elect its exact
+      // dispatch from one fresh record. Environment/worktree execution keeps
+      // its original external path below.
+      const config=await this.getConfig();
+      const planned=await this.runtime.runs.withHostTransaction(runId,'main_dispatch',async()=>{
+        const authorization=await this.runtime.authorizedExecution(runId,args,()=>args,{allowInactive:true});
+        const {record,envelope}=authorization;
+        requireValue(envelope.executor.kind==='main','HOST_MAIN_BRIDGE_REQUIRED','Host Main dispatch requires a logical Main node');
+        const requirements=nodeRuntimeScope(record.state,record.pins,args.node_id)?.requirements??runtimeRequirementsForState(record.state);
+        const attempt=record.state.nodes[args.node_id].attempts.find(item=>item.id===args.attempt_id);
+        if(attempt.dispatch){requireValue(attempt.dispatch.receipt,'DISPATCH_UNCERTAIN','Dispatch already has a committed intent without a receipt; reconcile before retrying');
+          return {dispatched:false,idempotent:true,receipt:attempt.dispatch.receipt};}
+        if(requirements.executables.length||record.pins.parallel)return {environment_phase:true,record};
+        const active=await this.runtime.authorizedExecution(runId,args,()=>args);
+        const prepared=await this.#prepareAuthorized(runId,args,active,config),requestId=`dispatch-${prepared.envelope.attempt_id}`;
+        await this.runtime.recordHostMainDispatchIntent(runId,{...args,request_id:requestId,envelope_hash:digest(canonicalJSON(prepared))});
+        return {dispatched:false,handoff_required:true,request_id:requestId,adapter:prepared.adapter,compiled_prompt:prepared.prompt,envelope:prepared.envelope,
+          completion_contract:{required:['status','summary','structured_output','artifacts','evidence','changed_paths','outside_paths'],final_acceptance:prepared.envelope.final_acceptance_required}};
+      });
+      if(!planned.environment_phase)return planned;
+      // Worktree/environment callbacks cannot run under a Run transaction.
+      // The post-verifier transaction reauthorizes and elects this intent once.
+      await this.runtime.parallelManager?.ensureNode(this.runtime,runId,args);
+      return this.runtime.withVerifiedHostExecution(runId,args,planned.record,'main_dispatch',async active=>{
+        const attempt=active.record.state.nodes[args.node_id].attempts.find(item=>item.id===args.attempt_id);
+        if(attempt.dispatch){requireValue(attempt.dispatch.receipt,'DISPATCH_UNCERTAIN','Main dispatch has an uncertain intent');
+          return {dispatched:false,idempotent:true,receipt:attempt.dispatch.receipt};}
+        const prepared=await this.#prepareAuthorized(runId,args,active,config),requestId=`dispatch-${prepared.envelope.attempt_id}`;
+        await this.runtime.recordHostMainDispatchIntent(runId,{...args,request_id:requestId,envelope_hash:digest(canonicalJSON(prepared))});
+        return {dispatched:false,handoff_required:true,request_id:requestId,adapter:prepared.adapter,compiled_prompt:prepared.prompt,envelope:prepared.envelope,
+          completion_contract:{required:['status','summary','structured_output','artifacts','evidence','changed_paths','outside_paths'],final_acceptance:prepared.envelope.final_acceptance_required}};
+      });
+    }
     const initial = await this.runtime.execution(runId, args, { allowInactive: true });
     if (initial.executor?.kind === 'tool') return this.executeHostTool(runId, args);
     const externalKind = initial.provider?.kind === 'builtin_connector' ? 'connector'
@@ -315,13 +477,20 @@ export class WorkflowExecutor {
     // a caller-supplied Provider/envelope. Intent creation is the dispatch election.
     await this.runtime.parallelManager?.ensureNode(this.runtime, runId, args);
     admission?.assertActive();
-    const prepared = await this.prepare(runId, args);
-    admission?.assertActive();
-    const requestId = `dispatch-${prepared.envelope.attempt_id}`;
-    const request = { ...args, request_id: requestId, envelope_hash: digest(canonicalJSON(prepared)) };
-    const intent = prepared.envelope.executor.kind==='main'
-      ? await this.runtime.recordHostMainDispatchIntent(runId,request)
-      : await this.runtime.recordDispatchIntent(runId, request);
+    // Only the fixed logical-Main branch compiles synchronously. Configuration,
+    // environment, worktrees and every external adapter remain outside the Run
+    // transaction. Reauthorize after those callbacks before recording intent.
+    let prepared,request,intent;
+    const recordIntent=async()=>{
+      admission?.assertActive();
+      request={...args,request_id:`dispatch-${prepared.envelope.attempt_id}`,envelope_hash:digest(canonicalJSON(prepared))};
+      intent=prepared.envelope.executor.kind==='main'
+        ?await this.runtime.recordHostMainDispatchIntent(runId,request):await this.runtime.recordDispatchIntent(runId,request);
+    };
+    // Logical Main returns directly from dispatch's fixed Host phase above.
+    // Other adapters keep their external preparation and intent boundaries.
+    prepared=await this.prepare(runId,args);await recordIntent();
+    const requestId=request.request_id;
     admission?.assertActive();
     if (intent.idempotent) {
       const receipt = intent.nodes[args.node_id].attempts.find(item => item.id === args.attempt_id).dispatch.receipt;
@@ -353,7 +522,7 @@ export class WorkflowExecutor {
       const receipt = { invocation_id: requestId, provider_response_id: response.provider_response_id };
       const completion = { status: 'succeeded', summary: 'Advisory response received', structured_output: { text: response.text }, artifacts: [], evidence: [{ kind: 'provider_response', ...receipt, model: response.model }], changed_paths: [], outside_paths: [] };
       const durable = await this.runtime.runs.saveExecutorResult(runId, args.attempt_id, { kind: 'direct_api_response', completion });
-      await this.runtime.recordExecutorEvent(runId, { ...args, event: { kind: 'result_proposed', metadata: { ...durable, final_acceptance_required: envelope.role === 'finalizer' } } });
+      await this.runtime.recordExecutorEvent(runId, { ...args, event: { kind: 'result_proposed', metadata: { ...durable, final_acceptance_required: envelope.final_acceptance_required } } });
       await this.runtime.recordDispatchReceipt(runId, { ...request, receipt });
       await this.runtime.recordUsage(runId, { ...request, usage: normalizedUsage(response.usage) });
       const state = await this.runtime.completeNode(runId, { ...args, completion });
@@ -369,7 +538,7 @@ export class WorkflowExecutor {
     // It must persist the returned exact task identity before reporting completion.
     return { dispatched: false, handoff_required: true, request_id: requestId,
       adapter, compiled_prompt: prompt, envelope,
-      completion_contract: { required: ['status', 'summary', 'structured_output', 'artifacts', 'evidence', 'changed_paths', 'outside_paths'], final_acceptance: envelope.role === 'finalizer' },
+      completion_contract: { required: ['status', 'summary', 'structured_output', 'artifacts', 'evidence', 'changed_paths', 'outside_paths'], final_acceptance: envelope.final_acceptance_required },
     };
   }
 

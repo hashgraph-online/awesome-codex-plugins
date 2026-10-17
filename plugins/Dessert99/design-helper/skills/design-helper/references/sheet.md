@@ -3,6 +3,24 @@
 How a comparison sheet is laid out around its specimens. Captions, the boundary line
 and the recommendation → `references/sweeping.md`.
 
+## Start from the kit
+
+`$WS/sheet.html` is copied from `assets/sheet.html` (`references/liveview.md`). It
+already holds the sheet style, the table of contents with its highlighter, the grid and
+the reloader. Never rewrite the file and never retype those parts. Read it once, then
+insert only what the turn adds, just above its marker:
+
+| marker | what goes above it |
+|---|---|
+| `<!-- dh:head -->` | `<link>` to project stylesheets (`tokens.css`, `$WS/sheet.css`) |
+| `/* dh:style */` | specimen CSS, inside the second `<style>` |
+| `<!-- dh:toc -->` | this turn's `toc-turn` label and section links |
+| `<!-- dh:main -->` | this turn's divider and sections |
+| `<!-- dh:script -->` | control scripts, when a section has them |
+
+Leave the markers in place: the next turn appends above them again. An in-place
+revision edits the section where it is.
+
 ## The section guide
 
 Every section opens, under its title, with a short guide telling the user what this
@@ -80,43 +98,16 @@ that turn added. It gives a long sheet a way back to any earlier comparison.
   is a `<nav>`, never a `<section>` — the reloader counts sections.
 
 ```html
-<body class="has-toc">
-  <nav class="toc">
-    <div class="toc-h">목차</div>
-    <div class="toc-turn">요청 1 · 시트가 화면 폭을 쓰는 방식</div>
-    <a href="#r1-1">시트 폭 — 시안 칸을 화면에 어떻게 채울지</a>
-  </nav>
-  <main> <div class="turn">...</div> <section id="r1-1">...</section> </main>
-</body>
+<!-- above dh:toc -->
+<div class="toc-turn">요청 1 · 시트가 화면 폭을 쓰는 방식</div>
+<a href="#r1-1">시트 폭</a>
+
+<!-- above dh:main -->
+<div class="turn">요청 1 · 시트가 화면 폭을 쓰는 방식</div>
+<section id="r1-1">...</section>
 ```
 
-```css
-.has-toc { display:flex; align-items:flex-start }
-.has-toc > main { flex:1; min-width:0 }
-.toc { flex:none; width:220px; position:sticky; top:0; height:100vh; overflow-y:auto;
-       padding:28px 16px; background:var(--surface); border-right:1px solid var(--line);
-       font-size:12px }
-.toc-h { font-size:11px; font-weight:700; color:var(--muted); letter-spacing:.04em; margin:0 0 14px }
-.toc-turn { font-weight:700; font-size:12.5px; margin:16px 0 4px }
-.toc a { display:block; color:var(--sub); text-decoration:none; padding:4px 8px;
-         margin-left:-8px; border-radius:6px }
-.toc a.cur { background:var(--accent-tint); color:var(--accent); font-weight:600 }
-```
-
-```html
-<script>
-(() => {
-  const links = [...document.querySelectorAll('.toc a')];
-  const io = new IntersectionObserver(es => es.forEach(e => {
-    if (!e.isIntersecting) return;
-    links.forEach(a => a.classList.toggle('cur', a.hash === '#' + e.target.id));
-  }), { rootMargin: '0px 0px -70% 0px' });
-  document.querySelectorAll('section[id]').forEach(s => io.observe(s));
-})();
-</script>
-```
-
-The `var(--...)` tokens come from the sheet style below.
+The sidebar's style and its highlighter are in the kit.
 
 
 ## Filling the width
@@ -124,15 +115,13 @@ The `var(--...)` tokens come from the sheet style below.
 Lay a section's specimens on a grid that shares the page width among its cells, so no
 empty band is left on the right however wide the window is:
 
-```css
-.grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(380px, 1fr)); gap:36px 28px }
-.frame { display:flex; justify-content:center }   /* specimen stays at true size */
-```
+The kit's `.grid` does this with `minmax(380px, 1fr)`; `.frame` centers the specimen.
 
 Only the frame stretches. The specimen inside keeps its real pixel size, centered —
 never scale or `zoom` it to fill the cell, because size is part of what is judged.
 Set the minimum from the specimen's real width plus the frame padding (a 320 screen →
-380). A matrix, whose columns carry meaning, keeps its fixed column count instead.
+380), on the section's own grid when it differs:
+`style="grid-template-columns:repeat(auto-fill, minmax(460px, 1fr))"`. A matrix, whose columns carry meaning, keeps its fixed column count instead.
 
 
 ## Sheet style
@@ -149,47 +138,17 @@ belongs to the sheet, not to the specimens.
 - **Neutral behind specimens.** The frame stays white. When the ordered axis is itself
   surface or background, the context rules in `references/sweeping.md#context` override the frame.
 
-```css
-:root {
-  --page:#f1f1f3; --surface:#ffffff; --line:#e7e7ea; --ink:#1f1f23; --sub:#63636b;
-  --muted:#8b8b93; --accent:#3b5bdb; --accent-tint:rgba(59,91,219,.10); --radius:14px;
-  --float:0 1px 2px rgba(0,0,0,.05), 0 6px 20px rgba(0,0,0,.06);
-}
-*, *::before, *::after { box-sizing:border-box }
-body { margin:0; background:var(--page); color:var(--ink);
-       font:13px/1.6 -apple-system, "Pretendard", "Apple SD Gothic Neo", sans-serif }
-main { padding:8px 44px 64px }
-
-.turn { display:flex; align-items:center; gap:16px; margin:72px 0 0;
-        font-size:14px; font-weight:700; color:var(--ink) }
-.turn::after { content:""; flex:1; height:2px; background:#d4d4d9; border-radius:1px }
-main > .turn:first-child { margin-top:32px }
-
-section h2 { font-size:20px; letter-spacing:-.01em; margin:22px 0 6px }
-.desc { color:var(--sub); margin:0 0 16px; max-width:820px }
-.guide { display:grid; grid-template-columns:auto 1fr; gap:6px 14px; max-width:820px;
-         margin:0 0 26px; padding:14px 18px; background:var(--surface);
-         border:1px solid rgba(0,0,0,.04); border-radius:var(--radius); box-shadow:var(--float) }
-.guide b { color:var(--accent); white-space:nowrap }
-
-.frame { background:var(--surface); border:1px solid rgba(0,0,0,.04);
-         border-radius:var(--radius); box-shadow:var(--float); padding:18px 14px; overflow:hidden }
-.cap { margin-top:12px }
-.cap .n { display:flex; align-items:center; gap:8px; font-weight:700 }
-.badge { display:inline-grid; place-items:center; min-width:22px; height:22px; padding:0 6px;
-         border-radius:6px; background:var(--accent); color:#fff; font-size:12px; font-weight:700 }
-.cost { margin-left:auto; font-size:11.5px; font-weight:500; padding:1px 8px;
-        border-radius:99px; background:var(--page); color:#52525b }
-.cap p { margin:2px 0 0 } .cap .resolved { color:var(--muted) }
-.bound { color:var(--sub); margin:18px 0 0 }
-.gain { color:var(--sub) } .gain b { color:var(--ink); font-weight:600 }
-.pick { display:flex; gap:12px; max-width:820px; margin:14px 0 0; padding:12px 16px;
-        background:var(--surface); border:1px solid rgba(0,0,0,.04);
-        border-radius:var(--radius); box-shadow:var(--float) }
-.pick > b { color:var(--accent); white-space:nowrap }
-```
+The CSS for all of this is the kit's first `<style>`. Specimens use the markup below.
 
 ```html
+<section id="r1-1">
+<h2>카드 그림자 블러</h2>
+<div class="guide">
+  <b>정할 것</b><span>...</span>
+  <b>볼 곳</b><span>...</span>
+  <b>답하기</b><span>...</span>
+</div>
+<div class="grid">
 <div class="spec">
   <div class="frame">...specimen...</div>
   <div class="cap">
@@ -200,6 +159,8 @@ section h2 { font-size:20px; letter-spacing:-.01em; margin:22px 0 6px }
   </div>
 </div>
 ...
+</div>
 <p class="bound">경계 — ...</p>
 <div class="pick"><b>추천 — B</b><span>이유 ...</span></div>
+</section>
 ```

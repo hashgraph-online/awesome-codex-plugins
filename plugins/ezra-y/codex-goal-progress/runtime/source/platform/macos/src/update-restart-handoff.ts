@@ -10,7 +10,8 @@ import {
   type GoalProgressPaths,
   resolveGoalProgressPaths,
 } from "../../../packages/store/src/index.js";
-import { createCodexNormalRelaunchInvocation } from "./cdp-controller.js";
+import { inspectCodexMacosApp } from "./app-discovery.js";
+import { createCodexNormalRelaunchInvocation, stopRunningCodex } from "./cdp-controller.js";
 import {
   type CodexCdpRuntimeState,
   readCodexCdpRuntimeState,
@@ -31,6 +32,7 @@ import {
   submitUpdateWorker,
   type UpdateWorkerLaunchctlRunner,
 } from "./update-worker-launchd.js";
+import { readInstalledManifest, validateCodexIdentity } from "./verified-release.js";
 
 export const GOAL_PROGRESS_UPDATE_RESTART_HANDOFF_COMMAND = "__update-restart-handoff";
 
@@ -119,17 +121,39 @@ async function executeUpdateRestartHandoff(
     if (!installed) {
       throw new Error("GOAL_PROGRESS_UPDATE_INSTALL_VERIFY_FAILED");
     }
-    const runtime = await (
-      options.readRuntime ?? (() => readCodexCdpRuntimeState(options.paths.cdpRuntimePath))
-    )();
-    if (runtime.launchId !== operation.previousCodexLaunchId) {
-      throw new Error("GOAL_PROGRESS_UPDATE_RESTART_LAUNCH_MISMATCH");
+    let runtime: CodexCdpRuntimeState | undefined;
+    try {
+      runtime = await (
+        options.readRuntime ?? (() => readCodexCdpRuntimeState(options.paths.cdpRuntimePath))
+      )();
+    } catch (error) {
+      const code = stableRestartError(error);
+      if (
+        code !== "GOAL_PROGRESS_CDP_TIME_IDENTITY_REBUILD_REQUIRED" &&
+        !(error instanceof Error && "code" in error && error.code === "ENOENT")
+      ) {
+        throw error;
+      }
     }
-    await (options.stopRuntime ?? stopCodexCdpRuntime)(runtime);
-    await (
-      options.removeRuntimeState ?? (() => rm(options.paths.cdpRuntimePath, { force: true }))
-    )();
-    await (options.openCodex ?? openCodex)(runtime.appPath);
+    if (runtime) {
+      if (runtime.launchId !== operation.previousCodexLaunchId) {
+        throw new Error("GOAL_PROGRESS_UPDATE_RESTART_LAUNCH_MISMATCH");
+      }
+      await (options.stopRuntime ?? stopCodexCdpRuntime)(runtime);
+      await (
+        options.removeRuntimeState ?? (() => rm(options.paths.cdpRuntimePath, { force: true }))
+      )();
+      await (options.openCodex ?? openCodex)(runtime.appPath);
+    } else {
+      // 用户已确认重启，重新读取已签名应用和当前进程，不使用旧记录的 PID 停止进程。
+      const installed = await readInstalledManifest(options.paths.installManifestPath);
+      if (!installed) throw new Error("GOAL_PROGRESS_UPDATE_INSTALL_VERIFY_FAILED");
+      validateCodexIdentity(installed.codex);
+      const app = await inspectCodexMacosApp(installed.codex.realAppPath);
+      await stopRunningCodex(app);
+      // 正常打开后沿用启动接管，保留更新激活所需的真实接管和进度恢复证据。
+      await (options.openCodex ?? openCodex)(app.realAppPath);
+    }
     const finishedAt = (options.now ?? (() => new Date()))().toISOString();
     await operationStore.completeRestart({
       operationId: operation.operationId,

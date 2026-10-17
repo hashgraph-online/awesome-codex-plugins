@@ -36,20 +36,23 @@ function runtimeBoundary(absolute){
   return candidates[0] ?? parse(absolute).root;
 }
 
-export async function noSymlinks(path) {
+export async function statNoSymlinks(path) {
   requireValue(isAbsolute(path), 'ABSOLUTE_PATH_REQUIRED', 'Store path must be absolute');
   const absolute = resolve(path);
   const root = runtimeBoundary(absolute);
   const boundary=await lstat(root);
   requireValue(!boundary.isSymbolicLink(), 'WORKFLOW_SYMLINK', `Symlink/reparse path is not allowed: ${root}`);
-  let current = root;
+  let current = root, stat = boundary;
   for (const part of relative(root, absolute).split(sep).filter(Boolean)) {
     current = join(current, part);
     const entry = await lstat(current);
     requireValue(!entry.isSymbolicLink(), 'WORKFLOW_SYMLINK', `Symlink/reparse path is not allowed: ${current}`);
+    stat = entry;
   }
-  return absolute;
+  return {path:absolute,stat};
 }
+
+export async function noSymlinks(path) { return (await statNoSymlinks(path)).path; }
 
 export async function ensureDirectory(path) {
   const absolute = resolve(path);

@@ -26,12 +26,13 @@ benefit from it. Do not force it onto a short answer or one-command check.
 
 Choose exactly one state carrier:
 
-- use a durable `work/` record for medium+ work that actually crosses sessions,
-  needs handoff, or requires resumable state;
+- within this continuation workflow, use a durable `work/` record for
+  medium/high work, or for work of any complexity that actually crosses
+  sessions, needs handoff, or requires resumable state;
 - otherwise keep one inline checkpoint.
 
 Multi-step, todo-driven, possible-compaction, and subagent use do not force
-durable records by themselves. Do not create both carriers or a record per
+durable records for low-complexity work by themselves. Do not create both carriers or a record per
 slice.
 
 ## Required Artifacts
@@ -130,6 +131,10 @@ exists, the state is `needs-verification` or `partial`.
 Resume in this order:
 
 1. Read original intent, parent plan/goal, latest checkpoint and resume hint.
+   Reconcile current user instructions: continuation, amendment, pause, or
+   replacement. Preserve outstanding deliverables; update authorized scope
+   before treating a valid amendment as drift. Internal milestones are not
+   substitutes for the user's delivered result.
 2. Re-read required baseline refs and relevant active `CONTEXT.md` language.
 3. Read the `Execution Readiness View` when present.
 4. Compare checkpoint branch/HEAD, completed commits, evidence refs, and claims

@@ -1,6 +1,21 @@
 import { authoringSourcePath } from './authoring-source.mjs';
+import { requireValue } from '../workflow-paths.mjs';
 
 const slug = value => String(value ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 48) || 'section';
+
+// Evidence is a union of selected source lines. Collapse overlap and nested
+// observations without spanning gaps or joining adjacent selected sections.
+export function disjointSourceSpans(spans) {
+  for(const span of spans)requireValue(span&&Object.keys(span).length===3&&typeof span.resource==='string'&&span.resource&&Number.isInteger(span.start_line)&&Number.isInteger(span.end_line)&&span.start_line>=1&&span.end_line>=span.start_line,'EXPANSION_SOURCE_SPAN','Evidence normalization requires valid source ranges');
+  const ordered=spans.map(span=>structuredClone(span)).sort((a,b)=>(a.resource<b.resource?-1:a.resource>b.resource?1:0)||a.start_line-b.start_line||b.end_line-a.end_line);
+  const result=[];
+  for(const span of ordered){
+    const previous=result.at(-1);
+    if(previous?.resource===span.resource && span.start_line<=previous.end_line)previous.end_line=Math.max(previous.end_line,span.end_line);
+    else result.push(span);
+  }
+  return result;
+}
 
 function sourceLines(resources) {
   const bytes = resources?.[authoringSourcePath(resources)];

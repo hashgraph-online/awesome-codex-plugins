@@ -1,6 +1,6 @@
 {
   "name": "sendpaper",
-  "version": "1.0.2",
+  "version": "1.0.7",
   "description": "Print and mail real postcards and letters to US addresses via USPS First-Class. The agent drafts the mail and shows an exact print preview; you pay on Sendpaper's checkout page, or approve a one-time Stripe Link payment.",
   "author": {
     "name": "Sendpaper",
@@ -27,6 +27,7 @@
     "category": "Communication",
     "capabilities": [
       "Create postcard and letter orders",
+      "Send USPS Certified Mail",
       "Show print previews",
       "Check order status",
       "Cancel unpaid orders"
@@ -54,13 +55,13 @@
               "description": "Create a 4×6 birthday postcard and return the preview and checkout link",
               "prompt": "Send a 4×6 birthday postcard to Dana Kim, 12 Oak St, Austin TX 78701, saying I'll call Sunday. It's from Alex Kim, 88 Pine Ave, Denver CO 80202.",
               "tools_triggered": "create_postcard",
-              "expected_behavior": "Reads back the addresses and message, calls create_postcard, and returns the print preview link and a checkout link for $2.99. Nothing is charged or mailed until the user pays."
+              "expected_behavior": "Reads back the addresses and message, calls create_postcard, and returns the print preview link and a checkout link for the order's price ($2.99 list, less any first-order discount, which the order's discount field shows). Nothing is charged or mailed until the user pays."
             },
             {
               "description": "Draft and create a short letter",
               "prompt": "Write a short thank-you letter to my contractor, Sam Lee, 500 Main St, Boston MA 02110, for fixing our roof, and mail it. My address is Alex Kim, 88 Pine Ave, Denver CO 80202.",
               "tools_triggered": "create_letter",
-              "expected_behavior": "Drafts the letter, shows it for approval, then calls create_letter and returns the preview and a $4.99 checkout link."
+              "expected_behavior": "Drafts the letter, shows it for approval, then calls create_letter and returns the preview and a checkout link for the order's price ($4.99 list, less any first-order discount, which the order's discount field shows)."
             },
             {
               "description": "Answer a pricing question",
@@ -104,7 +105,7 @@
         "countries": [
           "US"
         ],
-        "release_notes": "Initial release: create postcards and letters with an exact print preview, pay on Sendpaper's checkout, check status and cancel unpaid orders."
+        "release_notes": "Send the same postcard or letter to up to 25 people with one payment (recipients). Earlier: postcards and letters with an exact print preview, PDF letters, Certified Mail, express, agent payments, status and cancel."
       }
     }
   }

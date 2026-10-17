@@ -30,6 +30,8 @@ async function directoriesFor(env,extraDirectories,knownDirectories){
  const pathDirectories=(env.PATH||env.Path||'').split(delimiter).filter(isAbsolute);
  const condaBases=['Miniconda3','miniconda3','anaconda3'].map(name=>join(home,name));
  const roots=[...condaBases.flatMap(base=>[base,join(base,'Scripts'),join(base,'Library','bin'),join(base,'bin')]),join(home,'scoop','shims'),join(home,'.local','bin'),join(home,'.cargo','bin'),join(home,'.bun','bin'),join(home,'AppData','Local','Microsoft','WinGet','Links'),join(home,'AppData','Roaming','npm')];
+ const chromeInstallRoots=[env.ProgramFiles,env['ProgramFiles(x86)'],env.ProgramW6432,env.LOCALAPPDATA,join(home,'AppData','Local')].filter(value=>value&&isAbsolute(value));
+ roots.push(...chromeInstallRoots.map(base=>join(base,'Google','Chrome','Application')));
  async function children(base){
   if(!base||!isAbsolute(base))return [];
   let entries;try{entries=await readdir(base,{withFileTypes:true});}catch(error){if(['ENOENT','ENOTDIR'].includes(error.code))return [];throw error;}

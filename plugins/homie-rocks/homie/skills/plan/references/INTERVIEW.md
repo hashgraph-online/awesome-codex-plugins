@@ -1,6 +1,6 @@
 # Plan interview: questions with options
 
-Ask two or three at a time, each with options and your pick. Adapt the options to what the person has
+Only for a person who explicitly requests an interview. Otherwise infer these choices from the premise and continue building. Adapt the options to what the person has
 said; these are starting points, not a script.
 
 ## 1. Game type and genre
@@ -19,7 +19,7 @@ said; these are starting points, not a script.
 - "Day or night, cosy or tense, bright or moody?" Then propose a palette of four or five colours.
 - Fonts: suggest one display font that fits (pixel: "Press Start 2P", "Silkscreen"; storybook: "Fraunces";
   sci-fi: "Orbitron", "Exo 2"; clean: "Inter").
-- Ask once: "Do you want to steer the look closely (I'll show you three directions, drawn by the game itself,
+- If they want to discuss it: "Do you want to steer the look closely (I'll show you three directions, drawn by the game itself,
   and you lock what you like), or should I pick and show you?" Hands-on: the `style` skill's board. Pick for me:
   `style init` with their words, then one line about the look.
 - And once: "Art budget: free only (the starter library and the engine), a small budget on your own fal account
@@ -35,14 +35,14 @@ said; these are starting points, not a script.
 
 ## 4. Players and rooms
 
-- "How many in a room: 2 to 4 for a duel feel, 6 to 8 for a party, up to 32 for chaos?"
+- "How many in a room: 2 to 4 for a duel feel, 6 to 8 for a party, larger rooms for a crowd?"
 - "Rounds of 60 seconds, 90, or longer?" (Short rounds keep strangers.)
 - "Bots fill empty seats. Should they be easy, or play to win?"
 - "Someone who joins mid-round takes a bot's place. Do they keep the bot's score or start at zero?"
 
 ## 5. Progress and saves
 
-Always ask: **"Does progress need to persist across sessions or devices?"** Then, if it does:
+For an explicitly requested interview only: **"Does progress need to persist across sessions or devices?"** Then, if it does:
 
 - "What does a player keep between visits: a character and its level, an inventory, unlocks, a collection,
   their settings? I'd keep the hero in one save, so it always saves whole."

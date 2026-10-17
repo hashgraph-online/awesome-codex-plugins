@@ -644,6 +644,36 @@ Phase 6. The extension is not done until the Phase 6 gate passes.
         templates and open the body with:
         > *Surfaced by the VillageSQL Extension Builder skill while
         > building `<extension-name>`.*
+        Then label it as "Labels on filed issues" below says.
+
+   **Labels on filed issues.** Every issue this skill files or drafts
+   gets labels. Put the labels in every draft, so that a user who
+   files it by hand adds them too.
+
+   | Repo | Issue | Labels |
+   |---|---|---|
+   | `villagesql/villagesql-server` | VEF limitation | `area/vef`, `kind/feature` |
+   | `villagesql/villagesql-server` | server defect found while building | `area/vef`, `kind/bug` |
+   | `villagesql/villagesql-server` | extension announcement (step 4) | `area/extension`, `kind/feature` |
+   | `villagesql/vsql-rust-sdk` | crate or `cargo vsql` gap | `enhancement`, or `bug` for a defect |
+   | `villagesql/villagesql-skills` | skill retrospective | `documentation` |
+
+   On `villagesql-server`, a bot marks each new issue `needs-area` and
+   `needs-kind` until it has one `area/` label and one `kind/` label.
+   Anyone can add them, with no write access. After you file the
+   issue, post one comment that holds the two commands on separate
+   lines:
+
+   ```text
+   /area vef
+   /kind feature
+   ```
+
+   On the other repos, pass the label when you create the issue
+   (`--label` for `gh issue create`, `labels` for the MCP tool).
+   GitHub lets only users with triage access set labels. If the
+   created issue has no label, do not retry. Tell the user which label
+   a maintainer should add.
 
    **Gate:** For every entry in `limitations.md`, record: both search
    queries used, all hits inspected with pass/fail reasoning, whether
@@ -664,6 +694,8 @@ Phase 6. The extension is not done until the Phase 6 gate passes.
    `[Community Extension] <extension-name>`. If the agent files it, the
    body must open with:
    > *Filed by the VillageSQL Extension Builder skill.*
+
+   Label it as "Labels on filed issues" in step 3 says.
 
 5. **Verify skill vocabulary is absent.** The Phase 4 critic already
    checked for this across all shipped files. Re-run a final grep over
@@ -831,6 +863,8 @@ runs?" If yes, file to `villagesql/villagesql-skills` with title
 `[skill-feedback] <extension-name>: <one-line summary>` and the
 structured note as the body. If the MCP call fails (permissions), use
 `gh issue create`; if that fails too, offer the note as copy-paste text.
+Label every issue from this pass as "Labels on filed issues" in Phase 6
+step 3 says.
 
 ---
 

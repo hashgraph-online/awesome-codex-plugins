@@ -7,6 +7,16 @@ description: Compile bounded, task-specific GrayMatter context and inspect autho
 
 Compile the smallest useful authorized context for the current task instead of loading broad memory exhaust.
 
+## Compilation effects and recovery
+
+`context_compile` is a write operation: it creates a task-scoped ContextPage and retrieval receipt from authorized sources. A request to compile context does not authorize durable-memory mutations, scope changes, or release approval.
+
+If the host presents a confirmation, use that existing prompt without asking for a separate GrayMatter approval. A verified security or authorization denial stops that operation; do not evade it by rewriting the request, stripping invocation syntax, changing tools or accounts, widening permissions, or substituting searches.
+
+A missing tool, transient connection/server error, or model statement that a call was "blocked" is not by itself a verified security denial or a permanent ban on testing. Inspect the actual tool outcome and authorized receipts, distinguish reported prose from surfaced errors, and repair the implicated layer. Normal same-account OAuth refresh, metadata refresh, or an in-scope bug fix may be followed by at most two controlled validation attempts per recovery episode, using the same native client, account, scopes, and original task. A user-authorized diagnostic may also test an unverified failure through that unchanged path. Record every attempt; stop on a surfaced security/authorization denial or if recovery still fails.
+
+Compilation is not idempotent. For a timeout or uncertain write outcome, inspect existing authorized receipts/effects before another attempt and disclose uncertainty rather than claiming no execution or replaying blindly. Respect a completed tool result whose retrieval policy requires clarification, repair, retry, or denial. A manual search summary is not compiled context and has no compilation receipt; never count it as a compiler pass. Historical failures remain failures; a later successful retest needs its own useful nonempty ContextPage and new authorized receipt.
+
 ## Workflow
 
 1. For an authorized context request, call `context_compile` with the original user task text unchanged as `task`, preserving all explicit constraints. Do not expand, paraphrase, or add invented evidence checklists, conditions, or exclusions. Set the token budget and procedure/rating controls separately. Scope and secret restrictions still take precedence.

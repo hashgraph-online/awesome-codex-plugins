@@ -160,7 +160,7 @@ before it may collapse to a single-root claim.
 | `single-root-multi-symptom` | A → B, C, D | Layer Ceiling Proof at A | fix A, symptoms self-resolve |
 | `chain` | A → B → C → symptom | Layer Ceiling Proof at A | drill to A, fix A |
 | `independent-compound` | A and Y are both active in the same incident; each independently produces an anchored manifestation; A ⊥ Y | prove same-incident activity, each root's Gate 1/2/5, and no shared upstream | fix **all active roots**; missing one leaves its causal path |
-| `conjunctive-cluster` | A ∧ B ∧ C → symptom (each necessary, none sufficient) | enumerate members, necessity test each, sufficiency test the set, anti-disguise check | fix **all** members; missing one leaves symptom |
+| `conjunctive-cluster` | A ∧ B ∧ C → symptom (each necessary, none sufficient) | enumerate members, necessity test each, sufficiency test the set, anti-disguise check | break the conjunction at the correct defective owner; removing any necessary condition stops this path |
 | `disjunctive-or` | A ∨ B can cause symptom; current evidence shows one or an unknown active disjunct | identify the incident's active root and enumerate alternatives | fix the observed active root; enumerate alternatives for defense-in-depth |
 
 Classification boundary: `independent-compound` requires evidence that two or
@@ -184,6 +184,13 @@ other claimed members present, conceptually remove this member. If the symptom
 still occurs, the member is not necessary for that cluster. The full set must
 also pass a **sufficiency test** by explaining every observed manifestation,
 not only the headline failure.
+
+Necessary conditions are not necessarily defects: ordinary traffic or a
+required cache may enable the incident without needing removal. Choose the
+smallest owner-correct repair that breaks the conjunction while preserving
+required behavior. Repair additional defective members only when their own
+correctness obligations justify it; do not infer an all-members repair from
+AND causality. Verify with the other enabling conditions still present.
 
 #### Independent compound proof
 

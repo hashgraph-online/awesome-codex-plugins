@@ -34,7 +34,32 @@ export function redactKnownCredentials(text, { sourcePath = '' } = {}) {
   // quoted literal assignments (including typed Python assignments) everywhere;
   // inspect unquoted values only in data and shell assignment contexts.
   const quoted = new RegExp(String.raw`(\b${key}["']?[ \t]*(?::[ \t]*[A-Za-z_][A-Za-z0-9_.\[\] |,]*[ \t]*)?(?:=(?!=)|:)[ \t]*)(["'])((?:\\.|(?!\2)[^\\\r\n])*)\2`, 'g');
-  sanitized = sanitized.replace(quoted, (match, prefix, quote, value) => value && !placeholder(value) ? replace(match, prefix + quote) + quote : match);
+  sanitized = sanitized.replace(quoted, (match, prefix, quote, value, offset) => {
+    if (!value || placeholder(value)) return match;
+    const replacement=replace(match,prefix+quote)+quote;
+    // A one-character test sentinel is not an external credential only when
+    // the exact use has static evidence: selection-only assertion, or a local
+    // rejecting fetch stub restored by finally. A test filename alone proves
+    // nothing, and real credential forms/long literals never qualify.
+    if (/(?:^|[\\/])(?:test|tests)[\\/].*\.(?:test|spec)\.[cm]?js$/i.test(sourcePath) && /^[A-Za-z0-9]$/.test(value)) {
+      const line=sanitized.slice(sanitized.lastIndexOf('\n',offset)+1,sanitized.indexOf('\n',offset)===-1?undefined:sanitized.indexOf('\n',offset));
+      let kind=null;
+      if (/^\s*assert\.equal\([A-Za-z_$][\w$]*\([^;\n]+\)\.name,\s*['"][\w-]+['"]\);\s*$/.test(line)) kind='selection_assertion';
+      const begin=sanitized.lastIndexOf('\ntest(',offset);
+      const end=sanitized.indexOf('\ntest(',offset);
+      const block=sanitized.slice(begin<0?0:begin,end<0?undefined:end);
+      const before=sanitized.slice(begin<0?0:begin,offset);
+      const stub=/globalThis\.fetch\s*=\s*async\s*\(\)\s*=>\s*\{\s*throw new (?:TypeError|Error)\(['"][^'"\n]*['"]\);?\s*\};\s*try\s*\{/;
+      if(stub.test(before) && /const\s+(\w+)\s*=\s*globalThis\.fetch\s*;/.test(block)) {
+        const saved=/const\s+(\w+)\s*=\s*globalThis\.fetch\s*;/.exec(block)[1];
+        const after=sanitized.slice(offset,end<0?undefined:end);
+        if(new RegExp('finally\\s*\\{\\s*globalThis\\.fetch\\s*=\\s*'+saved+'\\s*;\\s*\\}').test(after)
+          && !/globalThis\.fetch\s*=/.test(before.slice(before.search(stub)+stub.exec(before)[0].length)))kind='rejecting_fetch_fixture';
+      }
+      if(kind)findings.at(-1).synthetic_evidence={version:1,kind,literal_length:1};
+    }
+    return replacement;
+  });
   const code = /\.(?:py|pyi|[cm]?js|jsx|tsx?|java|cs|go|rs|c|h|cpp|hpp|rb|swift|kt)$/i.test(sourcePath);
   const codeLanguage = /^(?:python|py|javascript|js|typescript|ts|tsx|jsx|java|csharp|cs|go|rust|rs|c|cpp|ruby|rb|swift|kotlin)$/i;
   const bare = new RegExp(String.raw`^([ \t]*(?:export[ \t]+)?["']?${key}["']?[ \t]*(?:=(?!=)|:)[ \t]*)([^\s"'\x60,;\]}]+)`, 'gm');
@@ -45,6 +70,7 @@ export function redactKnownCredentials(text, { sourcePath = '' } = {}) {
     if (code || fence?.code) return line;
     return line.replace(bare, (match, prefix, value) => placeholder(value) ? match : replace(match, prefix));
   }).join('');
+  for(const finding of findings)if(finding.synthetic_evidence)finding.synthetic_evidence.resource_sha256=digest(Buffer.from(sanitized));
   return { text: sanitized, findings };
 }
 const credentialFile = path => !/(?:^|\/)\.env\.(?:example|template)$/i.test(path) && /(?:^|\/)(?:\.env(?:\..*)?|auth\.json|credentials(?:\.json)?|cookies?(?:\.json|\.txt)?|id_rsa|id_ed25519|[^/]+\.(?:key|p12|pfx|pem))$/i.test(path);

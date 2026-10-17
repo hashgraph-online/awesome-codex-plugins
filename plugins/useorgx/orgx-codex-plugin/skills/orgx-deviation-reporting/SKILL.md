@@ -26,8 +26,12 @@ tokens.
 
 ## How to record
 
-Direct HTTP POST through the OpenClaw bridge or via `orgx.post_skill_deviation`
-MCP tool:
+Use the documented HTTP endpoint through an already authorized OrgX runtime or
+OpenClaw bridge. This plugin's `commander` MCP profile does not expose a skill
+deviation operation. Do not invent `orgx.post_skill_deviation`, translate this
+write into an unrelated tool, or send credentials in chat. If no authorized
+transport is available, record the deviation in the task's local evidence and
+report that OrgX delivery is pending.
 
 ```
 POST /api/v1/skills/{skill_id}/deviations

@@ -20,9 +20,9 @@ published, and update the date here.
   updated 8/28/2026: "No attribution is required", but you may not "extract, repackage, sublicense, sell, or otherwise
   redistribute the Assets (in original or modified form) as a standalone asset, asset pack, stock file, template, or
   similar product". Its Universal Animation Library is not in the starter library; a public game's repository may not
-  hold it (a remix source reads as a template). A remixer gets a reference to its origin.
+  hold it, and it is never in a shared part.
 - **Mixamo** (Adobe): royalty-free in a game, but raw files may not be redistributed as standalone assets: never in a
-  public repository; a private studio's shipped build only, recorded `remix: none`.
+  public repository; a private studio's shipped build only, and never in a shared part.
 
 ## Generated on the person's own account
 

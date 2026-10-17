@@ -9,12 +9,12 @@ Rankings that don't convert are worth nothing, and a sitewide audit gives no ide
 
 ## Tools (Loomaly MCP)
 
-- `sites_list`: find the site id.
+- `get_started` or `sites_list`: find the site id. If `needsSite` is true, find the domain in the repository or in what the user said and call `add_site`, then wait until the scan finishes before the weekly loop. Don't ask for the domain when you can see it.
 - `focus_page` (`siteId`): the owner's brief (what the site sells, to whom, what counts as a conversion), the focus page's Search Console numbers (last 28 days vs the 28 before), its open issues, a conversion checkup (the page read against the brief), and the change log, each change with a `verdict`. With no focus page it returns `candidates` instead.
 - `fix_prompt` (`findingId`): instructions for one open issue on the page.
 - `log_change` (`siteId`, `summary`, `shippedOn`, `ref`, optional `conversionsBefore` / `conversionsAfter`): record a change once it is live.
 - `set_focus_page` (`siteId`, `page`) and `set_brief` (`siteId`, `offer`, `customer`, `conversion`): save the owner's choice of page and their brief.
-- `mark_fixed` / `verify`: close an issue the change fixed.
+- `mark_fixed` (`siteId` plus `findingId` or `ruleId` and `pathTemplate`, `ref`) records the claim and does not use a fix check. `verify` re-checks the live page after deploy and is what uses a fix check.
 
 ## Steps
 

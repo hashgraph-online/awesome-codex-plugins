@@ -58,3 +58,20 @@ test('legacy Role metadata is inert and never enters a Workflow Run closure',asy
   assert.equal(Object.hasOwn(closure,'roles'),false);
   assert.equal(Object.hasOwn(closure.context,'roles'),false);
 });
+
+test('same-phase root resource bytes bypass duplicate store reads and reject mismatched collections',async t=>{
+  const f=await fixture(t);
+  const pack=await f.store.create({...createDraft('same-phase-root','Same phase root')},{resources:{'source.txt':'exact bytes'}});
+  const loaded=await f.store.snapshotWithResources(pack.workflow.id,pack.revision_hash);
+  let snapshotReads=0,resourceReads=0;
+  const snapshot=f.store.snapshot.bind(f.store),resources=f.store.resources.bind(f.store);
+  f.store.snapshot=async(...args)=>{snapshotReads++;return snapshot(...args);};
+  f.store.resources=async(...args)=>{resourceReads++;return resources(...args);};
+  const closure=await resolveWorkflowPins(f.store,loaded.snapshot,{rootResources:loaded.resources});
+  assert.equal(closure.blobs.get(digest('exact bytes')).toString(),'exact bytes');
+  assert.equal(snapshotReads,0);
+  assert.equal(resourceReads,0);
+  await assert.rejects(resolveWorkflowPins(f.store,loaded.snapshot,{rootResources:{}}),{code:'RUN_RESOURCE_SET'});
+  await assert.rejects(resolveWorkflowPins(f.store,loaded.snapshot,{rootResources:{'source.txt':Buffer.from('changed bytes')}}),{code:'RESOURCE_CORRUPT'});
+  await assert.rejects(resolveWorkflowPins(f.store,loaded.snapshot,{rootResources:{'source.txt':Buffer.from('exact bytes'),'extra.txt':Buffer.from('extra')}}),{code:'RUN_RESOURCE_SET'});
+});

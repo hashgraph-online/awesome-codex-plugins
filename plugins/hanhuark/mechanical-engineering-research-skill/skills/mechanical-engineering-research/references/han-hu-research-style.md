@@ -31,6 +31,20 @@ For an abstract, introduction, conclusion, or other high-level passage, make the
 
 For conclusions, state what the study did, what was learned, and how the finding should be used. Keep numerical detail to the one or two findings that carry the take-home message. Do not cite figures in the conclusion unless the citation is necessary to resolve genuine ambiguity. Do not repeat the detailed methods, a catalog of assumptions, or the figure-by-figure results discussion.
 
+## Reader-Side Interrogation
+
+Before accepting a title, abstract, introduction, conclusion, or other high-level passage, temporarily read it as an informed reader who has not followed the project. Treat the following questions as a required clarity gate rather than an optional copy-editing exercise:
+
+- **Title:** What is the research object, what was actually done, and what will the reader reasonably expect to find? Does the title imply a direct measurement, prediction, validation, or causal finding that the evidence does not support? Remove geographic, methodological, or descriptive words that merely repeat information already conveyed elsewhere in the title.
+- **Method labels:** What does each central label such as `screening`, `assessment`, `framework`, `scenario`, `priority`, or `validation` mean in this particular study? If an informed reader cannot answer from the first one or two sentences, use a more ordinary term or define the label by its inputs, calculation, and decision purpose.
+- **Specialized terms:** Is the term established in the target field and necessary for the argument? If it is a convenient internal phrase, replace it with the physical quantity, analysis, decision, or uncertainty it denotes. Do not retain a coined label merely because it is grammatically compact.
+- **Scope:** Does the passage distinguish estimated, modeled, screening-level, and measured quantities? If the title is intentionally concise, state the decisive scope limitation and the missing evidence in the abstract and conclusion rather than forcing every qualification into the title.
+- **Usefulness:** Does each sentence tell the reader what the analysis was used to determine, compare, or support? A list of datasets or a statement that information was combined is not a contribution without the resulting analytical purpose.
+
+For assumption-based analysis, define an `assumption case` or `scenario` at first use as a specified set of input choices. State whether the cases are sensitivity tests, bounds, probabilities, or projections. Do not let an energy-planning term such as `scenario` imply a forecast or likelihood when the work only varies deterministic inputs.
+
+After this interrogation, ask one final question: could a domain colleague explain the paper's purpose, principal result, and appropriate use after reading only the title, abstract, and conclusion? If not, revise the structure and terminology before adding more detail.
+
 Use [paper-writing-style.md](paper-writing-style.md) for paper structure, [literature-review.md](literature-review.md) for synthesis, and [manuscript-revision-submission.md](manuscript-revision-submission.md) for revision/submission details. Do not duplicate their checklists here.
 
 ## Figure And Caption Preferences

@@ -30,6 +30,12 @@ type Words = {
   heading: (id: string, label: string | null, state: string, fields: string[]) => string;
   plain: (id: string) => string; duplicate: (id: string, where: string) => string; note: string;
   autoPlain: (id: string) => string; autoNote: string; copy: (id: string) => string; fetch: FetchWords;
+  // v0.4, Claude Code only (claude-rewrite.ts): what the note adds about tool results, and the short note that follows
+  // each message holding omitted images, naming them.
+  toolNote: string; here: (list: string) => string; hereAuto: (list: string) => string; listItem: (id: string, name: string | null, kind: string) => string;
+  // v0.5, Claude Code only: after a compaction summary, the images from before it, which of them are not sent this
+  // time, and how to get one back.
+  compacted: (list: string, missing: string | null, auto: boolean) => string;
 };
 
 // The image sits in the history, so the model concludes it never saw it and takes back what it said about it (user
@@ -64,6 +70,33 @@ const WORDS: Record<Lang, Words> = {
       "用 cam_view_image 取回的图片只在本轮提供，下一轮又会换回占位文字；之后还需要时，再调用一次。标着“已提供”或“取回的原图”的图片现在就在你面前：被问到它时，直接看图回答，不要说看不到。",
     ].join("\n"),
     copy: (id) => `[${id} 的原图：模型当时用 cam_view_image 取回，只在那一轮提供，现在已省略]`,
+    // v0.4: in Claude Code desktop tests (Haiku 5.5, 2026-10-09) the model read a placeholder inside a Read result as
+    // what the tool had returned, said it had never seen the image and took back its correct description; the same
+    // words inside the tool result were not believed ("I should not follow the placeholder"). With the note right after
+    // the message holding the image, it answered as intended. So each such message is followed by a short note.
+    // 2026-10-10, Haiku 5.5, tool images, 3 runs per language: it kept its answers and guessed nothing, but asked for
+    // the image by number in 2 of 3 Chinese runs (as an option) and in no English run; a question about a detail it
+    // never described got "I can't answer that". The note now says when to write "需要 IMG-xxx", and why.
+    toolNote: "工具结果里的图片也一样：那次工具调用当时返回的是原图，你当时看到了；工具结果里的占位文字是后来才换上的，不是工具当时的返回。",
+    here: (list) => `上下文管理说明：上面这条消息里的 ${list} 当时是原图，你当时看过；你之前对它们的描述和据此做出的判断仍然有效，不要收回，也不要说成是猜测或编造。那里的占位文字是这次请求才换上的，不是当时的内容。现在你看不到它们：被问到时，如实说现在看不到（被用户省略了），不要补充之前没说过的细节。问题得看其中某张图才能回答时，不要只说答不了，在回复里单独写一行“需要 IMG-xxx”（写出编号，几张就都写上）：用户看到这一行才知道该勾回哪张图，勾回后原图回到原处，你就能看着回答。`,
+    hereAuto: (list) => `上下文管理说明：上面这条消息里的 ${list} 当时是原图，你当时看过；你之前对它们的描述和据此做出的判断仍然有效，不要收回，也不要说成是猜测或编造。那里的占位文字是这次请求才换上的（自动选图），不是当时的内容。之前说过的内容不够用时，调用 cam_view_image 取回原图；不要补充之前没说过的细节。`,
+    listItem: (id, name, kind) => `${id}（${[name, kind].filter(Boolean).join("，")}）`,
+    // 2026-10-12, Haiku 5.5: while this note sat inside the user message holding the summary, unchecking an image that
+    // had been sent again made the model take back what it had said looking at it ("没有依据的数字，应当撤回") and ask
+    // for it to be provided again, also once the note named it and said not to. Like v0.4's notes, it now follows that
+    // message as a system message, after the full note when something is left out (compactedNote). Same test, with all
+    // checked again: the model looked for the image it had asked for in the user's new message ("这次消息里没有附上"),
+    // as GPT-6 Luna did in v0.1-25; with nothing left out the full note is not there to say where it comes back. Once it
+    // answered from it, it called its earlier "需要 IMG-001" a mistake ("一直在我的上下文里"), in both languages.
+    compacted: (list, missing, auto) => [
+      `${missing === null ? "上下文管理说明（来自用户安装的上下文素材管理工具）：" : "上下文管理说明："}上面这条消息里，摘要之前的对话中有这些图片：${list}。压缩对话时它们被移出了上下文；这个工具把用户${auto ? "固定发送" : "勾选要发送"}的那些放回了摘要后面，前面标着“[图片 IMG-xxx 已提供…]”，紧接着就是原图：它们现在就在你面前，被问到时直接看图回答，不要说看不到。${missing === null ? `即使它之前被省略过${auto ? "" : "、或者正是你要过的图"}，也是这样：用户${auto ? "固定发送" : "勾回"}的图回到这里，不会出现在用户的新消息里，不要让用户重新附上。` : ""}这一段是这个工具每次请求时重新放的：图被省略的那些请求里，这里并没有它；它现在出现在你之前的回复前面，只是因为这次放了回来。所以你之前说看不到哪张图，当时是实情，不是错误，不用纠正。`,
+      ...(missing === null ? [] : [
+        `这次没有提供的是 ${missing}（${auto ? "自动选图开着，之前各轮的图默认不发" : "用户取消了勾选"}，为了节省上下文）：摘要后面它们的位置换成了“[图片 IMG-xxx 已省略…]”这样的占位文字，那是这次请求才换上的。你之前看过它们的原图：在压缩之前的对话里，有的在压缩之后也提供过；你对它们的描述和据此做出的判断，不管是在摘要里还是在后面的回复里，都是看着原图做出的，仍然有效，不要收回，也不要说成是猜测或编造。${auto ? "现在你看不到它们，不要补充之前没说过的细节。" : "现在你看不到它们：被问到时，如实说现在看不到（被用户省略了），不要补充之前没说过的细节。"}`,
+        auto
+          ? "之前说过的内容不够用时，调用 cam_view_image 工具，传入编号取回原图；不要让用户重新上传。"
+          : "问题得看其中某张图才能回答时，不要只说答不了，在回复里单独写一行“需要 IMG-xxx”（写出编号，几张就都写上）：用户看到这一行才知道该勾回哪张图，勾回后原图回到它的位置，你就能看着回答；不要让用户重新上传或重新提供。",
+      ]),
+    ].join("\n"),
     fetch: {
       title: "查看被省略的图片",
       description: "查看这个任务里一张或几张被省略的图片的原图。被省略的图片在对话里显示为“[图片 IMG-xxx 已省略…]”。只在回答需要看图、而你之前对它说过的内容不够用时调用；取回的原图只在本轮提供。",
@@ -100,6 +133,19 @@ const WORDS: Record<Lang, Words> = {
       "An image you get with cam_view_image is included only in this turn; from the next turn on it is a placeholder again. Call the tool again if you need it later. An image marked \"included\" or \"fetched original\" is in front of you now: when asked about it, look at it and answer from it, and do not say you cannot see it.",
     ].join("\n"),
     copy: (id) => `[Original of ${id}: fetched by the model with cam_view_image, included only in that turn, now omitted]`,
+    toolNote: "The same holds for images in tool results: the tool call returned the original image at the time and you saw it; a placeholder inside a tool result was put there later, it is not what the tool returned.",
+    here: (list) => `Context management note: in the message above, ${list} were original images at the time, and you looked at them then; what you said about them and the judgments you based on it remain valid, so do not take them back or call them guesses or made up. The placeholder text there was put in only for this request; it is not what was there at the time. You cannot see them now: if asked, say so truthfully (the user left them out), and do not add details you did not mention before. When a question can only be answered by looking at one of them, do not just say you cannot answer; write a line "need IMG-xxx" in your reply (with its number; list each one needed): that line is how the user learns which image to check again, and once they do, the original comes back in its place and you can answer from it.`,
+    hereAuto: (list) => `Context management note: in the message above, ${list} were original images at the time, and you looked at them then; what you said about them and the judgments you based on it remain valid, so do not take them back or call them guesses or made up. The placeholder text there was put in only for this request (automatic image selection); it is not what was there at the time. When what you said before is not enough, fetch the original with cam_view_image; do not add details you did not mention before.`,
+    listItem: (id, name, kind) => `${id} (${[name, kind].filter(Boolean).join(", ")})`,
+    compacted: (list, missing, auto) => [
+      `${missing === null ? "Context management note (from the context asset manager the user installed): " : "Context management note: "}in the message above, the conversation before the summary had these images: ${list}. Compacting the conversation took them out of context; this tool put the ones the user ${auto ? "pinned" : "checked to send"} back right after the summary, each marked "[Image IMG-xxx included…]" with the original image right after it. They are in front of you now: when asked about one, look at it and answer from it, and do not say you cannot see it.${missing === null ? ` This holds even for an image omitted before${auto ? "" : " or one you asked for"}: an image the user ${auto ? "pins" : "checks again"} comes back there, not in the user's new message, so do not ask for it to be attached again.` : ""} This tool rebuilds this part for every request: in the requests where an image was left out, it was not here; it shows up before your earlier replies now only because it was put back for this request. So if you said before that you could not see an image, that was true then, not a mistake; do not correct it.`,
+      ...(missing === null ? [] : [
+        `Not included this time: ${missing} (${auto ? "automatic image selection is on, so images from earlier turns are left out by default" : "the user unchecked them"}, to save context). After the summary, where they would be, there is placeholder text such as "[Image IMG-xxx omitted…]", put in only for this request. You saw their originals: in the conversation before the compaction, and some also after it. What you said about them and the judgments you based on it, in the summary or in your later replies, were made looking at the original images and remain valid; do not take them back or call them guesses or made up. ${auto ? "You cannot see them now, so do not add details you did not mention before." : "You cannot see them now: if asked, say so truthfully (the user left them out), and do not add details you did not mention before."}`,
+        auto
+          ? "When what you said before is not enough, call the cam_view_image tool with the id to fetch the original; do not ask the user to upload it again."
+          : "When a question can only be answered by looking at one of them, do not just say you cannot answer; write a line \"need IMG-xxx\" in your reply (with its number; list each one needed): that line is how the user learns which image to check again, and once they do, the original comes back in its place and you can answer from it. Do not ask the user to upload or provide it again.",
+      ]),
+    ].join("\n"),
     fetch: {
       title: "View omitted images",
       description: "View the originals of one or more omitted images in this task. Omitted images appear in the conversation as \"[Image IMG-xxx omitted…]\". Call it only when an answer needs to look at an image and what you said about it before is not enough; the originals are included only in this turn.",
@@ -144,6 +190,29 @@ export function includedLabel(image: Described, lang: Lang = "zh"): string {
 // v0.3: automatic selection.
 export const autoNote = (lang: Lang) => WORDS[lang].autoNote;
 export const fetchWords = (lang: Lang): FetchWords => WORDS[lang].fetch;
+// v0.4: the same words for a Claude Code request (claude-rewrite.ts).
+export const copyNote = (id: string, lang: Lang) => WORDS[lang].copy(id);
+export const newImageWord = (lang: Lang) => WORDS[lang].newImage;
+
+// v0.4, Claude Code only: the note also speaks of tool results, and a short note follows each message holding omitted
+// images, naming them. Codex's words stay as they are.
+export const claudeNote = (lang: Lang, auto = false) => `${auto ? WORDS[lang].autoNote : WORDS[lang].note}\n${WORDS[lang].toolNote}`;
+export function hereNote(images: Described[], lang: Lang = "zh", auto = false): string {
+  const words = WORDS[lang];
+  const list = images.map((image) => words.listItem(image.id, image.name, words.kind[image.kind])).join(words.separator);
+  return auto ? words.hereAuto(list) : words.here(list);
+}
+
+// v0.5, Claude Code only: the note after the message holding a compaction summary, listing the images from before it
+// and naming the ones not sent this time. Their placeholders are the first in the request, so the full note comes
+// first, as it does after the first message holding placeholders (claude-rewrite.ts).
+export function compactedNote(images: Described[], sent: Set<string>, lang: Lang = "zh", auto = false): string {
+  const words = WORDS[lang];
+  const list = (some: Described[]) => some.map((image) => words.listItem(image.id, image.name, words.kind[image.kind])).join(words.separator);
+  const missing = images.filter((image) => !sent.has(image.id));
+  const own = words.compacted(list(images), missing.length ? list(missing) : null, auto);
+  return missing.length ? `${claudeNote(lang, auto)}\n${own}` : own;
+}
 
 export function autoPlaceholder(image: Described, lang: Lang = "zh"): string {
   const words = WORDS[lang];

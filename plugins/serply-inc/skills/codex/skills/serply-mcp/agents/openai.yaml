@@ -1,0 +1,14 @@
+interface:
+  display_name: "Serply Search"
+  short_description: "Live Google, news, Scholar, Maps and Reddit results through Serply"
+  default_prompt: "Use $serply-mcp to research this topic with current sources."
+
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "serply"
+      description: "Serply search and scraping MCP server"
+      transport: "streamable_http"
+
+policy:
+  allow_implicit_invocation: true

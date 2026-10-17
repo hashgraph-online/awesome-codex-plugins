@@ -1,0 +1,30 @@
+{
+  "name": "posteverywhere",
+  "version": "1.1.3",
+  "description": "Write, schedule and publish social media posts to Instagram, TikTok, YouTube, LinkedIn, Facebook, X, Threads, Pinterest, Bluesky, Telegram, Discord and WordPress, plan a content calendar, cross-post video and see how posts performed.",
+  "author": {
+    "name": "PostEverywhere Ltd",
+    "email": "support@posteverywhere.ai",
+    "url": "https://posteverywhere.ai"
+  },
+  "homepage": "https://posteverywhere.ai",
+  "repository": "https://github.com/posteverywhere/codex-plugin",
+  "license": "MIT",
+  "keywords": [
+    "social media scheduler",
+    "schedule social media posts",
+    "content calendar",
+    "social media management",
+    "social media automation",
+    "instagram",
+    "tiktok",
+    "linkedin",
+    "youtube",
+    "x",
+    "threads",
+    "mcp",
+    "posteverywhere"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json"
+}

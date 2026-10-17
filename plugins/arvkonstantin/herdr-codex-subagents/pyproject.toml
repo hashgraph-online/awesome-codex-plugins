@@ -1,6 +1,6 @@
 [project]
 name = "herdr-codex-subagents"
-version = "0.1.5"
+version = "0.1.6"
 description = "Disposable Herdr panes for Codex subagents"
 requires-python = ">=3.10"
 license = "MIT"

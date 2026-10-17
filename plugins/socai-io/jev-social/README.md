@@ -100,6 +100,14 @@ The report model defaults to `openai/gpt-4o-mini` and may incur normal provider 
 
 The complete field limits, file permissions, provider-retention boundary, browser-session boundary, and recovery procedure are documented in [Security and data flow](SECURITY.md#data-flow-credentials-and-retention).
 
+## Local Reel imports
+
+The import-only API accepts versioned, already processed Reel collections and
+stores their normalized transcripts, classifications and nullable metrics in the
+isolated local state directory. See the [version 1 contract](docs/reels-import.md)
+for the schema, identity rules, endpoints and offline validation. A library UI
+and automated collection are outside this first slice.
+
 ## Recorded evidence
 
 | Recorded run | Captured result | Elapsed time | Verification boundary |

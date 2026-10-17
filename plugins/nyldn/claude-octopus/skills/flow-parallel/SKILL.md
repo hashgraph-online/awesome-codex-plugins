@@ -143,6 +143,7 @@ cat > .octo/parallel/wbs.json << 'WBSEOF'
       "expected_outputs": ["<list of files this WP should produce>"],
       "dependencies": [],
       "wave": 1,
+      "branch": "<a branch name unique to this work package>",
       "status": "pending"
     }
   ]
@@ -334,6 +335,12 @@ cat > ".octo/parallel/WP-N/instructions.md" << 'INSTREOF'
 - Verify your changes work by running or testing them before completing
 - If you break existing tests, fix them — do not delete or skip them
 
+## Committing (MANDATORY if you changed any file)
+- Commit your work to this package's own branch before you finish. The worktree is removed once
+  your commit exists and the tree is clean. Uncommitted work is retained for recovery.
+- Stage explicit paths. Never `git add -A` or `git add .` — the coordination directory and other
+  packages' stray files must not enter your commit.
+
 ## Dependency Context
 - This WP depends on: <list of dependency WP IDs, or "none">
 - Outputs from completed dependencies will be provided below when available
@@ -349,41 +356,77 @@ INSTREOF
 ```bash
 cat > ".octo/parallel/WP-N/launch.sh" << 'LAUNCHEOF'
 #!/bin/bash
-set -e
 SCRIPT_DIR="$(cd "$(dirname "${0}")" && pwd)"
 PROJECT_ROOT="<absolute-project-root-path>"
 WP_ID="WP-N"
-WORKTREE_DIR="${PROJECT_ROOT}/../.octo-worktree-${WP_ID}"
+WP_BRANCH="<wp-branch-name>"
+BASE_REF="<base-ref>"
 REGISTRY="${HOME}/.claude-octopus/plugin/scripts/agent-registry.sh"
 
-# v8.44.0: Create isolated worktree for this work package
-cd "$PROJECT_ROOT"
-CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-git worktree add "$WORKTREE_DIR" "$CURRENT_BRANCH" 2>/dev/null || {
-    # Worktree may already exist from a retry — reuse it
-    if [[ -d "$WORKTREE_DIR" ]]; then
-        cd "$WORKTREE_DIR" && git checkout "$CURRENT_BRANCH" && git pull --ff-only 2>/dev/null || true
-    else
-        echo "ERROR: Failed to create worktree at $WORKTREE_DIR" >&2
-        echo 1 > "$SCRIPT_DIR/exit-code"
-        touch "$SCRIPT_DIR/.done"
-        exit 1
+# Every exit path must leave exit-code and .done behind, or the orchestrator's
+# monitor loop waits for a marker that never arrives and only the wave timeout
+# ends the run.
+fail() {
+    echo "${1}" >&2
+    if [[ -x "$REGISTRY" ]]; then
+        "$REGISTRY" update "$WP_ID" --status failed --error "${1}" 2>/dev/null || true
     fi
+    echo "${2:-1}" > "$SCRIPT_DIR/exit-code"
+    touch "$SCRIPT_DIR/.done"
+    exit "${2:-1}"
 }
+
+# A retry must not inherit the previous run's completion status.
+rm -f "$SCRIPT_DIR/.done" "$SCRIPT_DIR/exit-code" || fail "ERROR: cannot clear completion markers"
+# Hook environments can otherwise redirect Git away from PROJECT_ROOT.
+while IFS= read -r git_var; do unset "$git_var"; done < <(git rev-parse --local-env-vars)
+
+# v8.44.0: Create isolated worktree for this work package.
+# Each package checks out its OWN branch. git refuses to check one branch out
+# in two worktrees, so reusing the session branch fails every package after the
+# first, and a shared branch would also pile unrelated packages onto one ref.
+cd "$PROJECT_ROOT" || fail "ERROR: cannot enter $PROJECT_ROOT"
+PROJECT_ROOT="$(pwd -P)"
+WORKTREE_DIR="${PROJECT_ROOT}/../.octo-worktree-${PROJECT_ROOT##*/}-${WP_ID}"
+COMMON_DIR="$(git rev-parse --git-common-dir)" || fail "ERROR: not a Git repository"
+COMMON_DIR="$(cd "$COMMON_DIR" && pwd -P)" || fail "ERROR: cannot resolve repository identity"
+git worktree prune 2>/dev/null || true
+if [[ -d "$WORKTREE_DIR" ]]; then
+    # Retry: reuse the existing worktree instead of discarding the work in it.
+    cd "$WORKTREE_DIR" || fail "ERROR: cannot enter $WORKTREE_DIR"
+else
+    git worktree add -b "$WP_BRANCH" "$WORKTREE_DIR" "$BASE_REF" \
+        > "$SCRIPT_DIR/worktree.log" 2>&1 ||
+        git worktree add "$WORKTREE_DIR" "$WP_BRANCH" \
+            >> "$SCRIPT_DIR/worktree.log" 2>&1 ||
+        fail "ERROR: failed to create worktree at $WORKTREE_DIR (see worktree.log)"
+fi
+
+# Reject stale directories from another project, branch, or non-worktree path.
+cd "$WORKTREE_DIR" || fail "ERROR: cannot enter $WORKTREE_DIR"
+WORKTREE_DIR="$(pwd -P)"
+WORKTREE_TOP="$(git rev-parse --show-toplevel)" || fail "ERROR: not a Git worktree"
+WORKTREE_TOP="$(cd "$WORKTREE_TOP" && pwd -P)" || fail "ERROR: cannot resolve worktree root"
+WORKTREE_COMMON_DIR="$(git rev-parse --git-common-dir)" || fail "ERROR: cannot identify worktree repository"
+WORKTREE_COMMON_DIR="$(cd "$WORKTREE_COMMON_DIR" && pwd -P)" || fail "ERROR: cannot resolve worktree repository"
+WORKTREE_BRANCH="$(git symbolic-ref --quiet --short HEAD)" || fail "ERROR: worktree has detached HEAD"
+[[ "$WORKTREE_TOP" == "$WORKTREE_DIR" && "$WORKTREE_COMMON_DIR" == "$COMMON_DIR" && \
+   "$WORKTREE_BRANCH" == "$WP_BRANCH" ]] || fail "ERROR: worktree repository or branch does not match this package"
 
 # Register agent in registry
 if [[ -x "$REGISTRY" ]]; then
-    "$REGISTRY" register "$WP_ID" "$CURRENT_BRANCH" "$WORKTREE_DIR" 2>/dev/null || true
+    "$REGISTRY" register "$WP_ID" "$WP_BRANCH" "$WORKTREE_DIR" 2>/dev/null || true
 fi
 
-cd "$WORKTREE_DIR"
+cd "$WORKTREE_DIR" || fail "ERROR: cannot enter $WORKTREE_DIR"
 unset CLAUDECODE
 # v8.32.0: Credential isolation — work packages don't need provider keys
 unset OPENAI_API_KEY AGY_AUTH_TOKEN ANTIGRAVITY_API_KEY OPENROUTER_API_KEY PERPLEXITY_API_KEY
-cat "$SCRIPT_DIR/instructions.md" | claude -p > "$SCRIPT_DIR/output.md" 2>"$SCRIPT_DIR/agent.log"
+# No `set -e` around this call: a non-zero claude -p must still record its exit
+# code and .done rather than abort the script before either is written.
+claude -p < "$SCRIPT_DIR/instructions.md" > "$SCRIPT_DIR/output.md" 2>"$SCRIPT_DIR/agent.log"
 EXIT_CODE=$?
 echo $EXIT_CODE > "$SCRIPT_DIR/exit-code"
-touch "$SCRIPT_DIR/.done"
 
 # Update agent registry with completion status
 if [[ -x "$REGISTRY" ]]; then
@@ -394,17 +437,41 @@ if [[ -x "$REGISTRY" ]]; then
     fi
 fi
 
-# Clean up worktree (agent finished, changes are in output.md not the worktree)
+# Discard the worktree only once its work is committed to the package's branch.
+# A force-remove over uncommitted edits destroys everything the package built;
+# the commits themselves survive removal, because they are already in the
+# shared object store on WP_BRANCH.
+UNCOMMITTED="$(git -C "$WORKTREE_DIR" status --porcelain 2>/dev/null)" ||
+    fail "ERROR: cannot inspect worktree status; retained $WORKTREE_DIR"
+COMMITS="$(git -C "$WORKTREE_DIR" rev-list --count "$BASE_REF..HEAD" 2>/dev/null)" ||
+    fail "ERROR: cannot inspect worktree commits; retained $WORKTREE_DIR"
+echo "$COMMITS" > "$SCRIPT_DIR/commit-count"
 cd "$PROJECT_ROOT"
-git worktree remove "$WORKTREE_DIR" --force 2>/dev/null || true
+if [[ -z "$UNCOMMITTED" && "$COMMITS" -gt 0 ]]; then
+    git worktree remove "$WORKTREE_DIR" 2>/dev/null ||
+        fail "ERROR: cannot remove worktree; retained $WORKTREE_DIR"
+elif [[ -n "$UNCOMMITTED" ]]; then
+    echo "KEPT $WORKTREE_DIR: uncommitted work present on $WP_BRANCH" \
+        >> "$SCRIPT_DIR/agent.log"
+else
+    echo "KEPT $WORKTREE_DIR: no commits beyond $BASE_REF on $WP_BRANCH" \
+        >> "$SCRIPT_DIR/agent.log"
+fi
+touch "$SCRIPT_DIR/.done"
 LAUNCHEOF
 
 chmod +x ".octo/parallel/WP-N/launch.sh"
 ```
 
-**You MUST replace `<absolute-project-root-path>`** with the actual project root (use `pwd` to determine it).
+**You MUST replace all three placeholders:** `<absolute-project-root-path>` with the actual project
+root (use `pwd`), `<wp-branch-name>` with this package's own branch from the WBS, and `<base-ref>`
+with the ref every package branches from (normally `origin/<trunk>`, so the packages land as
+independent branches rather than stacked on the session branch).
 
-**Worktree fallback:** If git worktree is unavailable (shallow clone, detached HEAD), the agent falls back to running in the project root. The error is logged but execution continues.
+**Worktree fallback:** if git worktree is unavailable (shallow clone, detached HEAD), the launch
+script fails closed and records a non-zero exit code plus `.done`, so the wave reports the failure
+instead of hanging. A worktree that still holds uncommitted work is kept, not removed, and the
+reason is appended to `agent.log`.
 
 **Validation gate: `instructions_written`** — Verify all instruction files exist:
 
@@ -497,6 +564,8 @@ print(' '.join(wp.get('dependencies',[])))
   for WP_ID in $WAVE_WPS; do
     WP_NUM="${WP_ID#WP-}"
     echo "Launching $WP_ID at $(date '+%H:%M:%S')..."
+    # Clear before background launch, so the monitor cannot see a stale result.
+    rm -f ".octo/parallel/$WP_ID/.done" ".octo/parallel/$WP_ID/exit-code" || exit 1
     bash ".octo/parallel/$WP_ID/launch.sh" &
     WP_PID=$!
     echo "$WP_PID" > ".octo/parallel/$WP_ID/pid"

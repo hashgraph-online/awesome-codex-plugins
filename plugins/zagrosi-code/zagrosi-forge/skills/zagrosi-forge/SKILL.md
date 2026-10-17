@@ -5,6 +5,11 @@ description: Take a software request through the appropriate Forge workflow, fro
 
 # Forge
 
+For a Git target, check `team status --target-dir "{target_dir}"` with Forge’s
+helper before work or resume.
+Follow [team coordination](references/collaboration.md) when configured or unavailable;
+reuse the same task across phases and delegated agents.
+
 Choose the shortest route that completes the user's request. Inspect repository
 instructions, the working tree, relevant callers/tests, and any existing Forge
 artifacts before creating new ones. Preserve unrelated work.

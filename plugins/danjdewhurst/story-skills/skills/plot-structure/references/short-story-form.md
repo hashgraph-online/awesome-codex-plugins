@@ -4,7 +4,7 @@ Short fiction runs on different physics than novels. Plan accordingly.
 
 ## Record the Form
 
-Set `form` in `story.md` so the CLI knows the length it is checking against. New projects: `story init "{Title}" --form short-story` (or `flash`, `novelette`), which also sets a default `target-words` when none is given (flash 1,000, short story 5,000, novelette 12,000). Existing projects: add `form: short-story` to `story.md`. `story validate .` warns when `target-words` falls outside the form's usual range, and `story report .` shows the form.
+Set `form` in `story.md` so the CLI knows the length it is checking against. New projects: `story init '{Title}' --form short-story` (or `flash`, `novelette`), which also sets a default `target-words` when none is given (flash 1,000, short story 5,000, novelette 12,000). Existing projects: add `form: short-story` to `story.md`. `story validate .` warns when `target-words` falls outside the form's usual range, and `story report .` shows the form.
 
 ## One Dominant Change
 

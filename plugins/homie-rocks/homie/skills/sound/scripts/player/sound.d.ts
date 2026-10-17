@@ -19,3 +19,15 @@ export interface Sound {
   state(): SoundState;
 }
 export function createSound(options?: { base?: string; manifest?: string; maxPerName?: number; maxVoices?: number }): Sound;
+/**
+ * The capture log (see the head of sound.js): a frame-by-frame recorder sets `window.__homieSoundCapture = { events: [] }`
+ * before the page's scripts run, and every sound scheduled is pushed onto `events`. `t` is performance.now() in ms,
+ * `delay` and `fade` are seconds, `url` is absolute. A game with its own audio code may push the same events.
+ */
+export type SoundCaptureEvent =
+  | { t: number; type: 'start'; id: number; bus: 'sfx' | 'music'; name: string; url: string; gain: number; rate: number; pan: number; loop: boolean; delay: number; fadeIn: number; bar?: number }
+  | { t: number; type: 'stop'; id: number; delay: number; fade: number; curve: 'cut' | 'linear' | 'target' }
+  | { t: number; type: 'duck'; to: number; seconds: number }
+  | { t: number; type: 'levels'; master: number; sfx: number; music: number; muted: boolean }
+  | { t: number; type: 'drop'; name: string; why: 'locked' | 'missing' | 'loading' | 'voices' };
+declare global { interface Window { __homieSoundCapture?: { events: SoundCaptureEvent[] } } }

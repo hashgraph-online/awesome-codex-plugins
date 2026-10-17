@@ -1,11 +1,15 @@
 import { open, readFile, lstat, readdir, mkdir, rename, unlink, rm, rmdir } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
-import { dirname, join, resolve, isAbsolute } from 'node:path';
+import { basename, dirname, join, resolve, isAbsolute } from 'node:path';
+import { performance } from 'node:perf_hooks';
 import { ensureDirectory, noSymlinks, packDirectory, insideRoot, requireValue, workflowId } from './workflow-paths.mjs';
 import { canonicalJSON, digest, LIMITS, prepareResources, revisionHash, validateManifest } from './workflow-revisions.mjs';
 import { validateWorkflowShape } from './workflow-schema.mjs';
 import { validateWorkflowGraph } from './workflow-validator.mjs';
 import { requireWorkflowSnapshotIntegrity } from './workflow-ready-validation.mjs';
+import {queuedRunAdmission} from './run-admission-queue.mjs';
+import {retireOwnedFile,retirementErrorDetails} from './owned-file-retirement.mjs';
+import {AsyncLocalStorage} from 'node:async_hooks';
 
 export async function syncDirectory(path) {
   // Windows does not provide portable directory fsync through Node. File fsync and
@@ -28,6 +32,129 @@ async function readBounded(path, max) {
   const data = await readFile(path);
   requireValue(data.length <= max, 'WORKFLOW_FILE_LIMIT', 'Store file grew during read');
   return data;
+}
+
+export const admissionTrace = diagnostic => console.error('[workflow-run-admission] ' + canonicalJSON(diagnostic));
+const admissionObservers=new AsyncLocalStorage();
+const observerKey=root=>process.platform==='win32'?resolve(root).toLowerCase():resolve(root);
+function admissionObserver(root){
+ const scoped=admissionObservers.getStore();
+ return scoped?.active&&scoped.root===observerKey(root)?scoped.onWait:admissionTrace;
+}
+// Host diagnostic transport can observe one admission root without replacing
+// default logging elsewhere or explicit per-call onWait callbacks. Await the
+// original sync/async observer contract; callback failures remain failures.
+export async function withRunAdmissionObserver({admissionRoot,onWait},action){
+ requireValue(isAbsolute(admissionRoot)&&typeof onWait==='function'&&typeof action==='function',
+  'RUN_STORE_ADMISSION_OBSERVER','Admission observer requires exact root and callable boundaries');
+ const scoped={root:observerKey(admissionRoot),onWait,active:true};
+ try{return await admissionObservers.run(scoped,action);}finally{scoped.active=false;}
+}
+const pauseAdmission = () => new Promise(resolveWait => setTimeout(resolveWait,25));
+const busyWriter = (path,message) => Object.assign(new Error(`${message}: ${path}`),{code:'WORKFLOW_STORE_BUSY',lock_path:path});
+const exactAdmissionPath=(path,expected)=>typeof path==='string'&&(process.platform==='win32'
+  ?resolve(path).toLowerCase()===resolve(expected).toLowerCase():resolve(path)===resolve(expected));
+
+async function writerOpenObservation(lock){
+  // Evidence only: do not retry an unexplained permission/sharing error or
+  // alter the denied file. No owner token or unverified file body is emitted.
+  let info;
+  try{info=await lstat(lock);}
+  catch(error){return error.code==='ENOENT'?{lock_exists:false}:{lock_exists:null,inspection_error_code:error.code??'UNKNOWN'};}
+  const result={lock_exists:true,lock_kind:info.isSymbolicLink()?'symlink':info.isFile()?'file':info.isDirectory()?'directory':'other',lock_bytes:info.size};
+  if(!info.isFile()||info.nlink!==1||info.size>4096)return result;
+  try{
+    const owner=JSON.parse((await readBounded(lock,4096)).toString('utf8'));
+    result.owner_record_valid=owner&&typeof owner==='object'&&!Array.isArray(owner)&&Number.isSafeInteger(owner.pid)&&owner.pid>0
+      &&typeof owner.created_at==='string'&&Number.isFinite(Date.parse(owner.created_at))
+      &&typeof owner.token==='string'&&/^[a-f0-9-]{36}$/.test(owner.token)
+      &&Object.keys(owner).every(key=>['pid','token','created_at','operation'].includes(key))
+      &&(!Object.hasOwn(owner,'operation')||typeof owner.operation==='string'&&/^[a-z_]{1,32}$/.test(owner.operation));
+    if(result.owner_record_valid){
+      result.observed_owner_pid=owner.pid;
+      if(owner.operation)result.observed_owner_operation=owner.operation;
+      try{process.kill(owner.pid,0);result.observed_owner_alive=true;}
+      catch(error){result.observed_owner_alive=error.code==='ESRCH'?false:null;if(error.code!=='ESRCH')result.owner_probe_error_code=error.code??'UNKNOWN';}
+    }
+  }catch(error){result.inspection_error_code=error.code??(error instanceof SyntaxError?'INVALID_OWNER_JSON':'UNKNOWN');}
+  return result;
+}
+
+async function acquireWriter(root, admission) {
+  const lock=join(root,'.writer.lock'),recovery=join(root,'.recovery.lock'),started=performance.now();
+  let observed=null,initialized=null,waited=false;
+  const diagnostic = phase => ({phase,lock_path:lock,owner_pid:observed?.pid??null,
+    created_at:observed?.created_at??initialized?.created_at??null,waited_ms:Math.floor(performance.now()-started),
+    ...(observed?.operation?{owner_operation:observed.operation}:{})});
+  const reject = (code,message,cause) => Object.assign(new Error(`${message}: ${lock}`),{code,...diagnostic('failed'),...(cause?{cause}: {})});
+  for (;;) {
+    if(admission&&waited&&performance.now()-started>=admission.timeoutMs)throw reject('RUN_STORE_ADMISSION_TIMEOUT','Run admission timed out waiting for its active owner');
+    try {
+      await lstat(recovery);
+      if(admission)throw Object.assign(reject('RUN_STORE_ADMISSION_RECOVERY_REQUIRED','Run admission recovery is in progress or requires inspection'),{lock_path:recovery});
+      throw busyWriter(recovery,'Writer recovery is in progress or requires inspection');
+    } catch(error){if(error.code!=='ENOENT')throw error;}
+    try {return {handle:await open(lock,'wx',0o600),trace:waited?diagnostic('acquired'):null};}
+    catch(error){
+      if(error.code!=='EEXIST'){
+        if(!admission)throw error;
+        const observation=await writerOpenObservation(lock);
+        const detail={...diagnostic('open_failed'),...observation,open_error_code:error.code??'UNKNOWN',open_syscall:error.syscall??'open',
+          ...(Number.isSafeInteger(error.errno)?{open_errno:error.errno}:{})};
+        const failure=Object.assign(reject('RUN_STORE_ADMISSION_OPEN_FAILED','Run admission exclusive writer could not be opened',error),detail,
+          {details:{admission:{...detail,observation_basis:'after_failed_open',wait_basis:'exclusive_writer_acquisition'}}});
+        try{await admission.onWait(detail);}
+        catch(traceError){throw new AggregateError([failure,traceError],'Run writer opening and its failure diagnostic both failed');}
+        throw failure;
+      }
+      if(!admission)throw busyWriter(lock,'Workflow store has a writer or interrupted transaction; inspect the lock before recovery');
+    }
+    let info,bytes;
+    try {await noSymlinks(lock);info=await lstat(lock);bytes=await readBounded(lock,4096);}
+    catch(error){
+      if(error.code==='ENOENT'&&exactAdmissionPath(error.path,lock))continue; // Exact owner released while being inspected.
+      throw reject('RUN_STORE_ADMISSION_READ_FAILED','Run admission owner cannot be read safely',error);
+    }
+    if(!bytes.length){
+      // wx publication precedes the tiny owner write. Only a recent EMPTY file
+      // receives this bounded initialization grace; invalid nonempty JSON and
+      // permission errors never share this path and never become retry success.
+      const created=info.birthtimeMs>0?info.birthtimeMs:info.ctimeMs;
+      if(!initialized||initialized.dev!==info.dev||initialized.ino!==info.ino)initialized={dev:info.dev,ino:info.ino,started:performance.now(),created_at:new Date(created).toISOString()};
+      if(Date.now()-created>admission.initializationMs||performance.now()-initialized.started>=admission.initializationMs)
+        throw reject('RUN_STORE_ADMISSION_INITIALIZATION_TIMEOUT','Run admission owner initialization did not complete');
+    }else{
+      let owner;
+      try {owner=JSON.parse(bytes.toString('utf8'));}
+      catch{throw reject('RUN_STORE_ADMISSION_MALFORMED','Run admission owner JSON is malformed');}
+      requireValue(owner&&typeof owner==='object'&&!Array.isArray(owner)&&Object.keys(owner).every(key=>['pid','token','created_at','operation'].includes(key))
+        &&Number.isSafeInteger(owner.pid)&&owner.pid>0&&typeof owner.token==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(owner.token)
+        &&typeof owner.created_at==='string'&&owner.created_at.length<=64&&Number.isFinite(Date.parse(owner.created_at))
+        &&(!Object.hasOwn(owner,'operation')||typeof owner.operation==='string'&&/^[a-z_]{1,32}$/.test(owner.operation)),
+      'RUN_STORE_ADMISSION_MALFORMED',`Run admission requires an exact bounded PID/creation record: ${lock}`,diagnostic('failed'));
+      const changed=observed?.pid!==owner.pid||observed?.created_at!==owner.created_at;
+      observed={pid:owner.pid,created_at:owner.created_at,...(owner.operation?{operation:owner.operation}:{})};
+      try {process.kill(owner.pid,0);}
+      catch(error){
+        // The inspected owner can release and exit before the PID probe. Prove
+        // the exact bytes still belong to that owner before diagnosing an
+        // orphan; a changed/released lock only returns to acquisition.
+        let current;
+        try {current=await readBounded(lock,4096);}
+        catch(readError){
+          if(readError.code==='ENOENT'&&exactAdmissionPath(readError.path,lock))continue;
+          throw reject('RUN_STORE_ADMISSION_READ_FAILED','Run admission owner cannot be rechecked safely',readError);
+        }
+        if(!current.equals(bytes))continue;
+        if(error.code==='ESRCH')throw reject('RUN_STORE_ADMISSION_ORPHANED','Run admission owner is dead; inspectWriter/recoverWriter requires explicit maintenance');
+        throw reject('RUN_STORE_ADMISSION_OWNER_UNVERIFIED','Run admission owner liveness could not be verified',error);
+      }
+      if(!waited||changed)await admission.onWait(diagnostic('waiting'));
+    }
+    waited=true;
+    if(performance.now()-started>=admission.timeoutMs)throw reject('RUN_STORE_ADMISSION_TIMEOUT','Run admission timed out waiting for its active owner');
+    await pauseAdmission();
+  }
 }
 
 async function purgePackHistory(pack, keepRevision, keepObjects) {
@@ -79,34 +206,66 @@ export class WorkflowStore {
     return this;
   }
 
-  async withWriter(action) {
+  withWriter(action) { return this.#withWriter(action); }
+  // Fresh configuration contenders wait only for this bounded, validated
+  // writer acquisition. Ordinary transactions retain fail-fast admission.
+  withConfigBootstrapWriter(action) {
+    requireValue(typeof action==='function','CONFIG_BOOTSTRAP_ACTION','Config bootstrap requires a callable transaction');
+    return this.#withWriter(action,{timeoutMs:5000,initializationMs:250,onWait:admissionObserver(this.root),operation:'config_bootstrap'});
+  }
+  // Append-only diagnostics have their own writer lane. They must neither
+  // acquire the configuration writer nor fail on a concurrent healthy append.
+  async withAuditWriter(action) {
+    requireValue(basename(this.root)==='.audit-writer','AUDIT_WRITER_SCOPE','Audit append requires its dedicated writer directory');
+    await ensureDirectory(this.root);
+    return this.#withWriter(action,{timeoutMs:5000,initializationMs:250,onWait:admissionObserver(this.root),operation:'audit'});
+  }
+  // The fixed read-only single-Run observer has no ancestor/creation callback
+  // and takes no global writer admission. Wait only on its exact Run guard;
+  // retain the original bounded owner/recovery/liveness validation.
+  withRunObservationGuard(action){
+    requireValue(/[/\\]\.run-locks[/\\]run-[^/\\]+$/.test(this.root),
+      'RUN_STORE_ADMISSION_SCOPE','Run observation requires its exact dedicated guard');
+    return this.#withWriter(action,{timeoutMs:5000,initializationMs:250,onWait:admissionObserver(this.root),operation:'native_wait'});
+  }
+
+  withRunAdmission(action,{timeoutMs=5000,initializationMs=250,onWait=admissionObserver(this.root),operation}={}) {
+    requireValue(basename(this.root)==='.store-operation'&&basename(dirname(this.root))==='.run-locks',
+      'RUN_STORE_ADMISSION_SCOPE','Only the dedicated Run transaction admission may wait for an active writer');
+    requireValue(Number.isInteger(timeoutMs)&&timeoutMs>0&&timeoutMs<=30000&&Number.isInteger(initializationMs)&&initializationMs>0&&initializationMs<=1000
+      &&typeof onWait==='function'&&(operation===undefined||typeof operation==='string'&&/^[a-z_]{1,32}$/.test(operation)),
+      'RUN_STORE_ADMISSION_OPTIONS','Run admission requires bounded deadlines, typed operation and diagnostics');
+    return queuedRunAdmission(this.root,{timeoutMs,initializationMs,onWait},options=>this.#withWriter(action,{...options,operation}));
+  }
+
+  async #withWriter(action,admission=null) {
     await noSymlinks(this.root);
-    try {
-      await lstat(join(this.root, '.recovery.lock'));
-      throw Object.assign(new Error('Writer recovery is in progress or requires inspection'), { code: 'WORKFLOW_STORE_BUSY' });
-    } catch (error) { if (error.code !== 'ENOENT') throw error; }
     const lock = join(this.root, '.writer.lock');
-    let handle;
-    try { handle = await open(lock, 'wx', 0o600); }
-    catch (error) {
-      if (error.code === 'EEXIST') throw Object.assign(new Error('Workflow store has a writer or interrupted transaction; inspect the lock before recovery'), { code: 'WORKFLOW_STORE_BUSY' });
-      throw error;
-    }
+    const {handle,trace}=await acquireWriter(this.root,admission);
     const token = randomUUID();
+    const ownerRecord=canonicalJSON({pid:process.pid,token,created_at:new Date().toISOString(),...(admission?.operation?{operation:admission.operation}:{})});
     let result; let failure;
     try {
-      await handle.writeFile(canonicalJSON({ pid: process.pid, token, created_at: new Date().toISOString() }));
+      await handle.writeFile(ownerRecord);
       await handle.sync();
+      if(admission?.onAcquired)await admission.onAcquired();
+      if(trace)await admission.onWait(trace);
       result = await action();
     } catch (error) { failure = error; }
     const cleanup = [];
     try { await handle.close(); } catch (error) { cleanup.push(error); }
     try {
-      const owner = JSON.parse(await readBounded(lock, 4096));
-      requireValue(owner.token === token, 'LOCK_OWNERSHIP', 'Writer lock ownership changed');
-      await unlink(lock);
+      await retireOwnedFile(lock,{stagingRoot:join(this.root,'.pending'),validate:bytes=>{
+        const owner=JSON.parse(bytes);
+        requireValue(canonicalJSON(owner)===ownerRecord,'LOCK_OWNERSHIP','Writer lock ownership changed');
+        return owner.pid;
+      }});
     } catch (error) { cleanup.push(error); }
-    if (cleanup.length) throw new AggregateError([...(failure ? [failure] : []), ...cleanup], 'Store transaction/lock cleanup failed');
+    if (cleanup.length) {
+      const failures=[...(failure ? [failure] : []), ...cleanup];
+      throw Object.assign(new AggregateError(failures, 'Store transaction/lock cleanup failed'),
+        {details:retirementErrorDetails(failures)});
+    }
     if (failure) throw failure;
     return result;
   }
@@ -148,7 +307,10 @@ export class WorkflowStore {
     }
   }
 
-  async snapshot(id, revision) {
+  // Metadata is a verified immutable definition and resource manifest, not a
+  // resource integrity grant. Candidate discovery uses it; execution and
+  // ordinary audits must still call snapshot for the complete object check.
+  async metadata(id, revision) {
     const pack = packDirectory(this.root, id);
     await noSymlinks(pack);
     let document;
@@ -161,11 +323,52 @@ export class WorkflowStore {
     requireValue(snapshot.workflow.id === id && Number.isSafeInteger(snapshot.workflow.revision) && snapshot.workflow.revision > 0, 'WORKFLOW_ID_MISMATCH', 'Pack identity or revision number is invalid');
     validateManifest(snapshot.resources);
     requireValue(revisionHash(snapshot) === revision_hash, 'REVISION_CORRUPT', 'Workflow revision hash mismatch');
-    for (const resource of snapshot.resources) {
+    return document;
+  }
+
+  async snapshot(id, revision) {
+    const document=await this.metadata(id,revision),pack=packDirectory(this.root,id);
+    for (const resource of document.resources) {
       const bytes = await readBounded(join(pack, 'objects', resource.sha256), LIMITS.resource);
       requireValue(bytes.length === resource.bytes && digest(bytes) === resource.sha256, 'RESOURCE_CORRUPT', `Resource content hash mismatch: ${resource.path}`);
     }
     return document;
+  }
+
+  // Startup pin resolution needs both an immutable definition and its exact
+  // object bytes. Read each object once, verify it, then return that same byte
+  // buffer for pinning; snapshot()+resources() would audit and reread it.
+  async snapshotWithResources(id, revision) {
+    const started=performance.now();
+    const scan={workflow_id:id,revision_hash:revision??null,resource_count:0,object_read_count:0,verified_resource_bytes:0};
+    let phase='metadata';
+    const report=(status,error)=>{
+      const result={
+        ...scan,status,phase,...(error?{error_code:error.code??error.name??'UNKNOWN'}:{}),elapsed_ms:Number((performance.now()-started).toFixed(3)),
+      };
+      console.error('[workflow-resource-scan] '+canonicalJSON(result));
+      return result;
+    };
+    try {
+      const snapshot=await this.metadata(id,revision);
+      scan.revision_hash=snapshot.revision_hash;
+      scan.resource_count=snapshot.resources.length;
+      phase='resources';
+      const resources=Object.create(null),pack=packDirectory(this.root,id);
+      for(const resource of snapshot.resources){
+        const bytes=await readBounded(join(pack,'objects',resource.sha256),LIMITS.resource);
+        scan.object_read_count++;
+        requireValue(bytes.length===resource.bytes&&digest(bytes)===resource.sha256,'RESOURCE_CORRUPT',`Resource content hash mismatch: ${resource.path}`);
+        resources[resource.path]=bytes;
+        scan.verified_resource_bytes+=bytes.length;
+      }
+      phase='complete';
+      const resource_scan=report('verified');
+      return {snapshot,resources,resource_scan};
+    }catch(error){
+      report('failed',error);
+      throw error;
+    }
   }
 
   async resources(id, revision) {
@@ -193,14 +396,18 @@ export class WorkflowStore {
     return history.sort((a, b) => b.revision - a.revision || a.revision_hash.localeCompare(b.revision_hash));
   }
 
-  async list() {
+  async list() { return this.#listSnapshots(id=>this.snapshot(id)); }
+
+  async listMetadata() { return this.#listSnapshots(id=>this.metadata(id)); }
+
+  async #listSnapshots(readSnapshot) {
     await noSymlinks(this.root);
     const result = [];
     for (const entry of await readdir(this.root, { withFileTypes: true })) {
       if (['.writer.lock', '.recovery.lock', '.pending', '.trash'].includes(entry.name)) { await noSymlinks(join(this.root, entry.name)); continue; }
       requireValue(entry.isDirectory() && !entry.isSymbolicLink() && /^wf-.+\.pack$/.test(entry.name), 'UNKNOWN_STORE_ENTRY', `Unexpected store entry: ${entry.name}`);
       const id = workflowId(entry.name.slice(3, -5));
-      result.push(await this.snapshot(id));
+      result.push(await readSnapshot(id));
     }
     return result.sort((a, b) => a.workflow.id < b.workflow.id ? -1 : 1);
   }
@@ -300,6 +507,35 @@ export class WorkflowStore {
     });
   }
 
+  async requireAuthoringCleanupBeforeReady(id,snapshot,previous){
+    if(snapshot.workflow.status!=='ready')return;
+    const pack=packDirectory(this.root,id);
+    const matches=identity=>identity?.source_workflow_id===id&&[previous,snapshot].some(candidate=>
+      candidate.provenance?.kind==='workflow_conversion'
+      &&candidate.provenance.conversion?.source_revision===identity.source_revision
+      &&candidate.provenance.conversion?.proposal_hash===identity.proposal_hash);
+    // Deferred source-history cleanup is committed with the deployment itself,
+    // before the full authoring cleanup ledger can be written.
+    const history=await optionalJSON(join(pack,'history-purge.json'));
+    if(history?.state==='prepared'){
+      const deployed=await this.snapshot(id,history.revision_hash),conversion=deployed.provenance?.conversion;
+      if(deployed.provenance?.kind==='workflow_conversion'&&matches({source_workflow_id:id,source_revision:conversion?.source_revision,proposal_hash:conversion?.proposal_hash}))
+        requireValue(false,'AUTHORING_CLEANUP_PENDING','Ready requires the exact deployed source-history cleanup to finish',{workflow_id:id,deployed_revision:history.revision_hash,cleanup_state:'source_history_pending'});
+    }
+    let entries;
+    try{entries=await readdir(join(pack,'authoring-cleanup'),{withFileTypes:true});}
+    catch(error){if(error.code==='ENOENT')return;throw error;}
+    for(const entry of entries){
+      if(!entry.name.endsWith('.json'))continue;
+      const journal=await optionalJSON(join(pack,'authoring-cleanup',entry.name));
+      if(!matches(journal?.identity))continue;
+      requireValue(journal.status==='complete'&&['library','workspace','job','run'].every(step=>journal.steps?.[step]===true)
+        &&Object.values(journal.steps).every(value=>value===true),'AUTHORING_CLEANUP_PENDING',
+        'Ready requires the exact accepted authoring cleanup transaction to finish',
+        {workflow_id:id,run_id:journal.identity.run_id,deployed_revision:journal.identity.deployed_revision,cleanup_status:journal.status,cleanup_steps:journal.steps});
+    }
+  }
+
   async save(id, workflow, options = {}) {
     requireValue(options && typeof options==='object' && !Array.isArray(options)
       && Object.keys(options).every(key=>['expected_revision','resources','provenance','import_report','history_purge'].includes(key)),
@@ -321,6 +557,7 @@ export class WorkflowStore {
         workflow: { ...workflow, revision: previous.workflow.revision + 1 }, resources: resourceData.manifest,
         provenance: provenance ?? previous.provenance, import_report: import_report ?? previous.import_report,
       };
+      await this.requireAuthoringCleanupBeforeReady(id,snapshot,previous);
       this.validate(snapshot.workflow);
       requireWorkflowSnapshotIntegrity(snapshot, { previous });
       const pack = packDirectory(this.root, id);
@@ -364,19 +601,28 @@ export class WorkflowStore {
       const directory=join(packDirectory(this.root,id),'authoring-cleanup');await ensureDirectory(directory);
       const path=join(directory,`${record.identity.run_id}.json`),existing=await optionalJSON(path);
       if(existing){requireValue(canonicalJSON(existing.identity)===canonicalJSON(record.identity),'AUTHORING_CLEANUP_IDENTITY','Cleanup retry belongs to a different accepted deployment');return existing;}
-      const created={schema_version:1,status:'pending',identity:structuredClone(record.identity),targets:structuredClone(record.targets),steps:{library:false,workspace:false,job:false,run:false},created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
+      const created={schema_version:1,status:'pending',identity:structuredClone(record.identity),targets:structuredClone(record.targets),steps:{library:false,workspace:false,job:false,run:false,...((record.targets.siblings??[]).length?{siblings:false}:{})},created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
       await replaceJSON(path,created);return created;
     });
   }
 
   async markAuthoringCleanup(id,runId,identity,step){
-    requireValue(['library','workspace','job','run'].includes(step),'AUTHORING_CLEANUP_STEP','Unknown authoring cleanup step');
+    requireValue(['library','workspace','job','run','siblings'].includes(step),'AUTHORING_CLEANUP_STEP','Unknown authoring cleanup step');
     return this.withWriter(async()=>{
       const path=join(packDirectory(this.root,id),'authoring-cleanup',`${workflowId(runId)}.json`),current=await optionalJSON(path);
       requireValue(current&&canonicalJSON(current.identity)===canonicalJSON(identity),'AUTHORING_CLEANUP_IDENTITY','Cleanup record identity changed');
       current.steps[step]=true;current.updated_at=new Date().toISOString();
       if(Object.values(current.steps).every(Boolean)){current.status='complete';current.completed_at=current.updated_at;}
       await replaceJSON(path,current);return current;
+    });
+  }
+
+  async markAuthoringCompletion(id,runId,identity,revision){
+    return this.withWriter(async()=>{
+      const path=join(packDirectory(this.root,id),'authoring-cleanup',`${workflowId(runId)}.json`),current=await optionalJSON(path);
+      requireValue(current&&current.status==='complete'&&canonicalJSON(current.identity)===canonicalJSON(identity),'AUTHORING_CLEANUP_IDENTITY','Ready completion requires the exact completed cleanup transaction');
+      requireValue(!current.ready_revision||current.ready_revision===revision,'AUTHORING_COMPLETION_CONFLICT','Ready completion revision changed');
+      current.ready_revision=revision;current.ready_at=new Date().toISOString();await replaceJSON(path,current);return current;
     });
   }
 

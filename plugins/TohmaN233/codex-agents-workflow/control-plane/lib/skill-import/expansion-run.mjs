@@ -1,5 +1,8 @@
+import { SHARED_PREFIX_SCHEMA } from '../execution/shared-prefix-contract.mjs';
+import { authoringCompletionPolicy } from './completion-policy.mjs';
 import { reviewSchema } from './review-checklist.mjs';
 import { validateGenerationSettings } from './routing-rules.mjs';
+import { GENERATION_EXECUTOR_POLICY } from '../authoring/generation-executor-policy.mjs';
 import { requireValue } from '../workflow-paths.mjs';
 import { canonicalJSON } from '../workflow-revisions.mjs';
 import { expansionPacket } from './semantic-expander.mjs';
@@ -8,7 +11,7 @@ import { bindingPointers } from '../workflow-bindings.mjs';
 import { CONVERSION_CONTRACT } from './conversion-contract.mjs';
 import { authoringSourcePath } from './authoring-source.mjs';
 import { SEMANTIC_BLUEPRINT_SCHEMA, CURRENT_AUTHORING_SEMANTIC_BLUEPRINT_SCHEMA, SEMANTIC_REPAIR_SCHEMA, SEMANTIC_BLUEPRINT_CONTRACT, AUTHORING_NODE_PROMPT_MAX_LENGTH } from '../authoring/blueprint-contract.mjs';
-import { AUTHORING_PLANNER_PROMPT_V27, AUTHORING_REVIEW_PROMPT_V22, authoringWorkflowForPack, instantiateAuthoringWorkflow, storedAuthoringBindings } from '../authoring/authoring-workflows.mjs';
+import { AUTHORING_PLANNER_PROMPT_CURRENT, AUTHORING_REVIEW_PROMPT_CURRENT, authoringWorkflowForPack, instantiateAuthoringWorkflow, storedAuthoringBindings } from '../authoring/authoring-workflows.mjs';
 import { LOOP_REGION_SCHEMA } from '../workflow-schema.mjs';
 import { WORKSPACE_SOURCE_LOCATIONS } from '../workspace-source-locations.mjs';
 
@@ -19,8 +22,10 @@ const id = { type: 'string', minLength: 1, maxLength: 128 };
 const stringList = (max = 128) => ({ type: 'array', maxItems: max, items: { type: 'string', minLength: 1, maxLength: 1024 } });
 const sourceSpan = { type: 'object', required: ['resource', 'start_line', 'end_line'], additionalProperties: false, properties: { resource: { type: 'string', minLength: 1, maxLength: 1024 }, start_line: { type: 'integer', minimum: 1 }, end_line: { type: 'integer', minimum: 1 } } };
 const details = { type: 'object', additionalProperties: false, properties: { artifact_path: { type: 'string', minLength: 1, maxLength: 1024 }, interface_terms: stringList(32), rule_text: { type: 'string', minLength: 1, maxLength: 1000 }, executable: { type: 'string', minLength: 1, maxLength: 100 }, version:{type:'string',minLength:1,maxLength:256}, python_modules:stringList(128), phase: { type: 'string', enum: ['unconditional', 'conditional', 'artifact_only'] }, source_quote:{type:'string',minLength:1,maxLength:2000}, host_preparation_observation_ids:stringList(32), source_contract_ids:stringList(64) } };
-const requirement = { type: 'object', required: ['requirement_id', 'requirement_kind', 'source_spans', 'trigger', 'required_result', 'resource_refs'], additionalProperties: false, properties: { requirement_id: id, requirement_kind: { type: 'string', enum: ['knowledge', 'agent_judgment', 'script_operation', 'registered_tool', 'approval', 'user_input', 'data_dependency', 'artifact_path', 'artifact_schema', 'canonicalization', 'method_rule', 'dependency'] }, source_spans: { type: 'array', minItems: 1, maxItems: 32, items: sourceSpan }, trigger: { type: 'string', minLength: 1, maxLength: 1000 }, required_result: { type: 'string', minLength: 1, maxLength: 2000 }, resource_refs: stringList(64), details } };
+const requirement = { type: 'object', required: ['requirement_id', 'requirement_kind', 'source_spans', 'trigger', 'required_result', 'resource_refs'], additionalProperties: false, properties: { requirement_id: id, requirement_kind: { type: 'string', enum: ['knowledge', 'agent_judgment', 'script_operation', 'registered_tool', 'approval', 'user_input', 'data_dependency', 'artifact_path', 'artifact_schema', 'canonicalization', 'method_rule', 'dependency'] }, source_spans: { type: 'array', minItems: 1, maxItems: 32, items: sourceSpan }, trigger: { type: 'string', minLength: 1, maxLength: 1000 }, required_result: { type: 'string', minLength: 1, maxLength: 2000 }, resource_refs: stringList(4096), details } };
 const mapping = { type: 'object', required: ['requirement_id', 'node_ids', 'binding_names', 'runtime_guards', 'resource_refs', 'status', 'rationale'], additionalProperties: false, properties: { requirement_id: id, node_ids: { type: 'array', maxItems: 64, items: id }, binding_names: { type: 'array', maxItems: 64, items: id }, runtime_guards: stringList(64), resource_refs: stringList(64), status: { type: 'string', enum: ['compiled', 'agent_assisted', 'unsupported'] }, rationale: { type: 'string', minLength: 1, maxLength: 2000 } } };
+mapping.properties.resource_refs=stringList(4096);
+mapping.properties.runtime_activation={type:'object',required:['condition_node_id','branch_label'],additionalProperties:false,properties:{condition_node_id:id,branch_label:{type:'string',minLength:1,maxLength:256}}};
 const disposition = { type: 'object', required: ['section_id', 'disposition', 'node_ids', 'requirement_ids', 'rationale'], additionalProperties: false, properties: { section_id: id, disposition: { type: 'string', enum: ['workflow', 'conditional', 'reference', 'omit'] }, node_ids: { type: 'array', maxItems: 64, items: id }, requirement_ids: { type: 'array', maxItems: 128, items: id }, trigger: { type: 'string', minLength: 1, maxLength: 1000 }, rationale: { type: 'string', minLength: 1, maxLength: 2000 } } };
 // A finite recursive meta-schema: enough for nested artifact dictionaries,
 // arrays and numeric report fields, without an untyped object escape hatch.
@@ -43,10 +48,12 @@ function outputSchemaAt(depth) {
 const outputSchema = outputSchemaAt(4);
 const completionContract={type:'object',required:['on_missing','outcome'],additionalProperties:false,properties:{on_missing:{type:'string',enum:['block']},outcome:{type:'string',enum:['artifact','validated_artifact','decision','review','none']},fail_on_false:{type:'array',minItems:1,maxItems:128,items:id}}};
 const subagentCount={enum:['auto',...Array.from({length:32},(_,index)=>index+1)]};
-const fanout={type:'object',required:['input','item_name','result_output','distribution','scheduling','join'],additionalProperties:false,properties:{input:id,item_name:id,result_output:id,distribution:{type:'string',enum:['one_per_item','partition']},scheduling:{type:'string',const:'parallel'},join:{type:'string',const:'all_required'},batch_size:{type:'integer',minimum:1,maximum:32},max_concurrency:{type:'integer',minimum:1,maximum:32},result_mode:{type:'string',const:'per_item'},item_delivery:{type:'string',const:'incremental'},write_paths_field:id}};
+const fanout={type:'object',required:['input','item_name','result_output','distribution','scheduling','join'],additionalProperties:false,properties:{input:id,item_name:id,result_output:id,distribution:{type:'string',enum:['one_per_item','partition']},scheduling:{type:'string',const:'parallel'},join:{type:'string',const:'all_required'},batch_size:{type:'integer',minimum:1,maximum:32},max_concurrency:{type:'integer',minimum:1,maximum:32},result_mode:{type:'string',const:'per_item'},item_delivery:{type:'string',const:'incremental'},write_paths_field:id,shared_prefix:SHARED_PREFIX_SCHEMA}};
 const requiredArtifact={type:'object',required:['requirement_id','path'],additionalProperties:false,properties:{requirement_id:id,path:{type:'string',minLength:1,maxLength:1024}}};
-const node = { type: 'object', required: ['id', 'type', 'confidence', 'source_span'], additionalProperties: false, properties: { id, semantic_key:id, name: { type: 'string', minLength: 1, maxLength: 256 }, type: { type: 'string', enum: ['agent', 'human_gate', 'condition', 'parallel', 'join', 'tool'] }, operation_mode: { type: 'string', enum: ['read', 'write'] }, task_type: { type: 'string', minLength: 1, maxLength: 128 }, routing_reason: { type: 'string', minLength: 1,maxLength:1000 }, execution_target: { type: 'string', enum: ['main', 'thread', 'subagent'] }, main_mode: {type:'string',enum:['worker','orchestration']}, provider_choice: id, thread_lifecycle: { type: 'string', enum: ['start', 'continue'] }, thread_source_node: id, prompt_template: { type: 'string', minLength: 1, maxLength: AUTHORING_NODE_PROMPT_MAX_LENGTH }, outputs_schema: outputSchema, output_validators:{type:'object',additionalProperties:{type:'string',const:WORKSPACE_SOURCE_LOCATIONS}}, completion_contract:completionContract, subagent_count:subagentCount, fanout, required_artifacts:{type:'array',maxItems:64,items:requiredArtifact}, cases: { type: 'array', maxItems: 64, items: { type: 'object', required: ['label', 'when'], additionalProperties: false, properties: { label: id, when: { type: 'object' } } } }, default_label: id, join_id: id, parallel_id: id, failure_policy: { type: 'string', enum: ['fail_fast', 'collect'] }, tool: id, input_bindings: { type: 'object' }, resource_refs: stringList(256), requirement_ids: { type: 'array', maxItems: 128, items: id }, retry_max_attempts:{type:'integer',minimum:1,maximum:5}, confidence: { type: 'number', minimum: 0, maximum: 1 }, source_span: sourceSpan, source_spans:{type:'array',minItems:1,maxItems:128,items:sourceSpan} } };
+const workspacePolicy={type:'object',required:['kind','tool_node_id','main_node_id','read_inputs'],additionalProperties:false,properties:{kind:{type:'string',const:'host_tool_overlap'},tool_node_id:id,main_node_id:id,read_inputs:{type:'array',minItems:1,maxItems:16,uniqueItems:true,items:id},semantic_rejection:{type:'string',const:'defer_to_join'}}};
+const node = { type: 'object', required: ['id', 'type', 'confidence', 'source_span'], additionalProperties: false, properties: { id, semantic_key:id, name: { type: 'string', minLength: 1, maxLength: 256 }, type: { type: 'string', enum: ['agent', 'human_gate', 'condition', 'parallel', 'join', 'tool'] }, operation_mode: { type: 'string', enum: ['read', 'write'] }, task_type: { type: 'string', minLength: 1, maxLength: 128 }, routing_reason: { type: 'string', minLength: 1,maxLength:1000 }, execution_target: { type: 'string', enum: ['main', 'thread', 'subagent'] }, main_mode: {type:'string',enum:['worker','orchestration']}, provider_choice: id, thread_lifecycle: { type: 'string', enum: ['start', 'continue'] }, thread_source_node: id, prompt_template: { type: 'string', minLength: 1, maxLength: AUTHORING_NODE_PROMPT_MAX_LENGTH }, outputs_schema: outputSchema, output_validators:{type:'object',additionalProperties:{type:'string',const:WORKSPACE_SOURCE_LOCATIONS}}, completion_contract:completionContract, subagent_count:subagentCount, fanout, required_artifacts:{type:'array',maxItems:64,items:requiredArtifact}, cases: { type: 'array', maxItems: 64, items: { type: 'object', required: ['label', 'when'], additionalProperties: false, properties: { label: id, when: { type: 'object' } } } }, default_label: id, join_id: id, parallel_id: id, failure_policy: { type: 'string', enum: ['fail_fast', 'collect'] }, workspace_policy:workspacePolicy, tool: id, input_bindings: { type: 'object' }, resource_refs: stringList(256), requirement_ids: { type: 'array', maxItems: 128, items: id }, retry_max_attempts:{type:'integer',minimum:1,maximum:5}, confidence: { type: 'number', minimum: 0, maximum: 1 }, source_span: sourceSpan, source_spans:{type:'array',minItems:1,maxItems:128,items:sourceSpan} } };
 const edge = { type: 'object', required: ['id', 'source', 'target', 'confidence', 'source_span'], additionalProperties: false, properties: { id, source: id, target: id, on: { type: 'string', enum: ['success', 'failure'] }, label: id, confidence: { type: 'number', minimum: 0, maximum: 1 }, source_span: sourceSpan, source_spans:{type:'array',minItems:1,maxItems:128,items:sourceSpan} } };
+node.properties.resource_refs=stringList(4096);
 
 // Current planners emit semantic choices only. The Host expands these into the
 // strict persisted proposal below; old full proposals remain readable for
@@ -177,12 +184,22 @@ function expandSemanticProposal(proposal,sourceInventory,expectedRevision,repair
   return {source_revision:expectedRevision ?? '',source_requirements:semanticRequirements,requirement_mappings:[...semanticMappings,...observedMappings],source_dispositions,nodes,edges,planning_analysis};
 }
 
-export function decodeGeneratedProposalDetailed(output, expectedRevision = null, { requirePlanningAnalysis = false, requireSourceDispositions = false, requireRuntimeDependencies = false, sourceInventory = null } = {}) {
+export function decodeGeneratedProposalDetailed(output, expectedRevision = null, { requirePlanningAnalysis = false, requireSourceDispositions = false, requireRuntimeDependencies = false, sourceInventory = null, hostRequirementIds = [] } = {}) {
   let proposal=decodeGeneratedEnvelope(output);
   requireValue(proposal && typeof proposal === 'object' && !Array.isArray(proposal), 'GENERATION_PROPOSAL_JSON', 'proposal_json must decode to one JSON object');
   if(requireRuntimeDependencies&&proposal.contract===SEMANTIC_BLUEPRINT_CONTRACT)requireValue(Array.isArray(proposal.runtime_dependencies),'GENERATION_DEPENDENCY_ASSESSMENT','Current authoring plans must explicitly decide runtime_dependencies, including []');
   const repairs=[];
   try{proposal=expandSemanticProposal(proposal,sourceInventory,expectedRevision,repairs);}catch(error){requireValue(false,'GENERATION_PROPOSAL_CONTRACT',error.message);}
+  // Call interfaces are Host facts derived from the pinned source. Durable
+  // proposals may echo them, but neither their shape nor their contents are
+  // model authority. Strip only exact known IDs before the legacy model gate;
+  // projectObservedRequirements restores every canonical fact afterwards.
+  const hostIds=new Set(hostRequirementIds);
+  if(hostIds.size&&Array.isArray(proposal.source_requirements)){
+    const echoed=proposal.source_requirements.filter(item=>hostIds.has(item?.requirement_id));
+    proposal.source_requirements=proposal.source_requirements.filter(item=>!hostIds.has(item?.requirement_id));
+    if(echoed.length)repairs.push({kind:'host_callables_rederived',requirement_ids:echoed.map(item=>item.requirement_id)});
+  }
   // `details` is a typed extension bag, not a semantic decision. Keep the
   // planner contract minimal and canonicalize its absent representation here.
   if (Array.isArray(proposal.source_requirements)) for (const requirement of proposal.source_requirements) {
@@ -211,7 +228,7 @@ export function decodeGeneratedProposal(output, expectedRevision = null, options
   return decodeGeneratedProposalDetailed(output,expectedRevision,options).proposal;
 }
 
-export function authoringRunPack(pack, resources, provider, id, routingRules, _automatic = false, reviewer = null, providers = [], authoringTemplate = null) {
+export function authoringRunPack(pack, resources, provider, id, routingRules, _automatic = false, reviewer = null, providers = [], authoringTemplate = null, completionPreference = 'automatic') {
   // Every authoring Run carries the same review contract. The service-level
   // automatic flag controls Host advancement/repair only; it cannot weaken the
   // pinned Workflow or turn checklist review into an optional execution mode.
@@ -237,11 +254,11 @@ export function authoringRunPack(pack, resources, provider, id, routingRules, _a
   // read on identical text. Referenced sibling files remain available.
   const plannerResources = Object.keys(planningResources).filter(path => path !== authoringSourcePath(resources) && path!=='analysis/review-request.txt').sort();
   const reviewResources = Object.keys(planningResources).filter(path => path !== authoringSourcePath(resources) && path!=='analysis/request.txt').sort();
-  const plannerPrompt=AUTHORING_PLANNER_PROMPT_V27;
-  const reviewPrompt=AUTHORING_REVIEW_PROMPT_V22;
+  const plannerPrompt=AUTHORING_PLANNER_PROMPT_CURRENT;
+  const reviewPrompt=AUTHORING_REVIEW_PROMPT_CURRENT;
   const workflow=instantiateAuthoringWorkflow({definition:authoring,templateWorkflow:authoringTemplate?.workflow,id,sourceName:pack.workflow.name,planner:provider,reviewer,generation,planningResources,plannerResources,reviewResources,plannerSchema:AUTHORING_RUNTIME_ENVELOPE_SCHEMA,plannerPrompt,reviewSchema:generation?reviewSchema(CONVERSION_CONTRACT.version):null,reviewPrompt});
   return { workflow, resources: planningResources,
-    provenance: { kind: 'authoring_workflow_run', legacy_kind:'skill_expansion_job', authoring_workflow_id:authoring.id, authoring_contract:authoringTemplate?.workflow.authoring?.contract??authoring.contract, ...(authoringTemplate?{authoring_workflow_revision:authoringTemplate.revision_hash}:{}), source_kind:authoring.source_kind, ...(generation ? {generation,review_contract_version:CONVERSION_CONTRACT.version} : {}), source_workflow_id: pack.workflow.id, source_revision: pack.revision_hash, selected_provider_id: provider.id, review_provider_id:reviewer.id, ...(routingRules ? { routing_rules: structuredClone(routingRules), routing_catalog:packet.routing_catalog } : {}) },
+    provenance: { generation_executor_policy:GENERATION_EXECUTOR_POLICY, callable_inventory_policy:'workflow-callable-inventory/v1', completion_policy:authoringCompletionPolicy(completionPreference), kind: 'authoring_workflow_run', legacy_kind:'skill_expansion_job', authoring_workflow_id:authoring.id, authoring_contract:authoringTemplate?.workflow.authoring?.contract??authoring.contract, ...(authoringTemplate?{authoring_workflow_revision:authoringTemplate.revision_hash}:{}), source_kind:authoring.source_kind, ...(generation ? {generation,review_contract_version:CONVERSION_CONTRACT.version} : {}), source_workflow_id: pack.workflow.id, source_revision: pack.revision_hash, selected_provider_id: provider.id, review_provider_id:reviewer.id, ...(routingRules ? { routing_rules: structuredClone(routingRules), routing_catalog:packet.routing_catalog } : {}) },
     import_report: null };
 }
 

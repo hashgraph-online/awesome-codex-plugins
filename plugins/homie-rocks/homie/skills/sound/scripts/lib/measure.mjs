@@ -3,7 +3,8 @@
  * loudness (EBU R128, and again through a phone-speaker curve), true peak, clipping, DC, how late
  * the sound starts, silences and gaps, where the energy sits (five bands and the share below
  * 300 Hz that phone speakers throw away), stereo correlation and what folding to mono costs,
- * onset density, steady narrow tones (a hum), and a loudness arc over time.
+ * onset density, narrow tones with their level and how much of the time they are there (a steady one
+ * is a hum), and a loudness arc over time.
  *
  * ffmpeg decodes and does R128; everything else is plain JavaScript over the decoded samples.
  */
@@ -114,6 +115,7 @@ export function measure(file, { rate = 48000, silenceDb = -50, gapSeconds = 0.4,
   const mean = new Float64Array(N / 2);
   const flux = [];
   let prev = null; let frames = 0;
+  const spectra = []; // every frame's power spectrum, kept so a narrow tone can be asked how OFTEN it is there
   const reL = new Float64Array(N); const imL = new Float64Array(N); const reR = new Float64Array(N); const imR = new Float64Array(N);
   for (let s = 0; s + N <= n; s += hop) {
     for (let i = 0; i < N; i++) { reL[i] = L[s + i] * hann[i]; imL[i] = 0; reR[i] = R[s + i] * hann[i]; imR[i] = 0; }
@@ -133,6 +135,7 @@ export function measure(file, { rate = 48000, silenceDb = -50, gapSeconds = 0.4,
     }
     if (prev) { let f = 0; for (let k = 1; k < N / 2; k++) { const d = mag[k] - prev[k]; if (d > 0) f += d; } flux.push(f); }
     prev = mag; frames++;
+    const pw = new Float32Array(N / 2); for (let k = 1; k < N / 2; k++) pw[k] = mag[k] * mag[k]; spectra.push(pw);
   }
   const bands = Object.fromEntries(BANDS.map((b, i) => [b.id, r(bandE[i] / (total || 1), 3)]));
   const monoLossDb = Object.fromEntries(BANDS.map((b, i) => [b.id, lrBandE[i] > 0 ? r(10 * Math.log10(Math.max(1e-20, monoBandE[i]) / lrBandE[i]), 1) : null]));
@@ -140,13 +143,38 @@ export function measure(file, { rate = 48000, silenceDb = -50, gapSeconds = 0.4,
   const fm = med(flux); const mad = med(flux.map((v) => Math.abs(v - fm)));
   const onsets = flux.filter((v, i) => v > fm + 3 * mad && v > (flux[i - 1] ?? 0) && v >= (flux[i + 1] ?? 0)).length;
   const hopSeconds = hop / rate;
-  // Steady narrow tones: a bin 10 dB over its neighbourhood in the average spectrum (a hum, a whine, a held drone).
+  // Narrow tones: a bin 10 dB over its neighbourhood in the AVERAGE spectrum. That alone is only "narrow": a melody's
+  // high partial that sounds for two seconds of sixteen is narrow too, and so is any single note. Three more numbers
+  // say whether it is a hum (a whine, a stuck voice), which is steady and audible:
+  //   levelDb        how loud the tone is, in dBFS (its RMS as a sine, averaged over the file): prominence is
+  //                  relative, and a filter that lowers a tone lowers its neighbours with it and leaves it unchanged
+  //   energyShare    the tone's share of all the energy between 20 Hz and 20 kHz
+  //   presentShare   the share of the file's frames in which the tone stands 10 dB over its neighbours and is
+  //                  above -70 dBFS: a hum is there nearly all the time, a note is not
+  // A Hann-windowed sine of amplitude A puts A² · N²/16 · 1.5 of power across its main lobe (1.5 = the window's
+  // noise bandwidth in bins), so three bins summed and divided by that give A² back.
+  const lobe = (N * N / 16) * 1.5;
+  const toneFloor = 10 ** (-70 / 10) * 2; // A² of a sine at -70 dBFS RMS
   const lines = [];
   for (let k = 4; k < N / 2 - 4; k++) {
     const hz = (k * rate) / N;
     if (hz < 40 || hz > 16000) continue;
     const local = (mean[k - 4] + mean[k - 3] + mean[k + 3] + mean[k + 4]) / 4;
-    if (local > 0 && mean[k] > local * 10 && mean[k] >= mean[k - 1] && mean[k] >= mean[k + 1]) lines.push({ hz: r(hz, 1), prominenceDb: r(10 * Math.log10(mean[k] / local), 1) });
+    if (!(local > 0 && mean[k] > local * 10 && mean[k] >= mean[k - 1] && mean[k] >= mean[k + 1])) continue;
+    let present = 0;
+    for (const pw of spectra) {
+      const near = (pw[k - 4] + pw[k - 3] + pw[k + 3] + pw[k + 4]) / 4;
+      const a2 = (pw[k - 1] + pw[k] + pw[k + 1]) / lobe;
+      if (a2 > toneFloor && pw[k] > near * 10) present++;
+    }
+    const three = mean[k - 1] + mean[k] + mean[k + 1];
+    const a2mean = three / Math.max(1, frames) / lobe;
+    lines.push({
+      hz: r(hz, 1), prominenceDb: r(10 * Math.log10(mean[k] / local), 1),
+      levelDb: r(10 * Math.log10(Math.max(1e-20, a2mean / 2)), 1),
+      energyShare: r(three / (total || 1), 4),
+      presentShare: r(present / Math.max(1, frames), 3),
+    });
   }
   lines.sort((a, b) => b.prominenceDb - a.prominenceDb);
   const corr = ll > 0 && rr > 0 ? lr / Math.sqrt(ll * rr) : null;
@@ -184,6 +212,18 @@ export function measure(file, { rate = 48000, silenceDb = -50, gapSeconds = 0.4,
   };
 }
 
+/**
+ * What makes a narrow tone a steady one, a hum rather than a note: it stands well over its neighbours, it is
+ * loud enough to hear, and it is there most of the time. A melody's brief high partial passes the first test
+ * and often the second, never the third; a tone under the level floor is prominent only because nothing else
+ * is near it.
+ */
+export const STEADY = { prominenceDb: 25, levelDb: -60, presentShare: 0.6 };
+/** The most prominent narrow tone that is steady by STEADY's three tests, or null. Older measurements without the two new numbers are never called steady. */
+export function steadyTone(m) {
+  return (m.narrowTones ?? []).find((t) => t.prominenceDb > STEADY.prominenceDb && (t.levelDb ?? -Infinity) > STEADY.levelDb && (t.presentShare ?? 0) >= STEADY.presentShare) ?? null;
+}
+
 /** Plain-words warnings from a measurement: what a person will hear wrong. `kind` sfx | music | capture. */
 export function warnings(m, kind = 'music') {
   const w = [];
@@ -198,7 +238,8 @@ export function warnings(m, kind = 'music') {
   if (kind === 'sfx' && m.startMs !== null && m.startMs > 15) w.push(`the sound starts ${m.startMs} ms late: a hit feels laggy; trim the head`);
   if (kind !== 'sfx' && m.gaps.length) w.push(`${m.gaps.length} gap(s) of silence inside it (first at ${m.gaps[0].at} s, ${m.gaps[0].seconds} s long)`);
   if (kind === 'music' && m.loudness.lufs !== null && (m.loudness.lufs > -9 || m.loudness.lufs < -24)) w.push(`integrated loudness ${m.loudness.lufs} LUFS is outside -24..-9: a web page or a game bed usually sits at -14 to -20`);
-  if (m.narrowTones.length && m.narrowTones[0].prominenceDb > 25 && kind === 'capture') w.push(`a steady tone at ${m.narrowTones[0].hz} Hz stands ${m.narrowTones[0].prominenceDb} dB over its neighbours: a hum or a stuck voice?`);
+  const hum = steadyTone(m);
+  if (hum && kind === 'capture') w.push(`a steady tone at ${hum.hz} Hz: there ${Math.round(hum.presentShare * 100)}% of the time at ${hum.levelDb} dBFS (${(hum.energyShare * 100).toFixed(1)}% of the energy), ${hum.prominenceDb} dB over its neighbours: a hum or a stuck voice?`);
   return w;
 }
 

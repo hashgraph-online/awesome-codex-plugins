@@ -31,9 +31,10 @@ export function canonicalizeWorkflowProviderIds(workflow) {
 
 export async function migrateStoredWorkflowProviderIds(store) {
   const migrations = [];
-  for (const pack of await store.list()) {
-    const migrated = canonicalizeWorkflowProviderIds(pack.workflow);
+  for (const metadata of await store.listMetadata()) {
+    const migrated = canonicalizeWorkflowProviderIds(metadata.workflow);
     if (!migrated.changes.length) continue;
+    const pack=await store.snapshot(metadata.workflow.id,metadata.revision_hash);
     const importReport = certificateForPublishedWorkflow({ ...pack, workflow: migrated.workflow });
     const saved = await store.save(pack.workflow.id, migrated.workflow, {
       expected_revision: pack.revision_hash,

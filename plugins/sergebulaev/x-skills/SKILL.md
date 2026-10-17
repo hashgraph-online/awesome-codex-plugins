@@ -43,6 +43,14 @@ The skills work out of the box. No API keys, no signup. Every approved draft is
 returned as a copy-paste block with the target X URL. Great for trying the
 skills before committing to any backend.
 
+### Reading X data (orthogonal to the tiers above)
+
+`x-audience-insights`, `x-hook-extractor` and `x-reply-drafter` read real tweets
+when they can. Two ways in: `APIFY_TOKEN` in the environment, or Apify's MCP
+server as a custom connector, which is the only one available on claude.ai.
+Filtered URL, tool name, input shapes and the mapping back to the library's
+records: `references/mcp-read-layer.md`. With neither, they ask for a paste.
+
 ### Tier 1 - Publora auto-post (recommended, ~2 min)
 
 On approval, the writer and thread skills auto-publish to X via the

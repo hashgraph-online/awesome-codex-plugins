@@ -227,9 +227,23 @@ literal prompt-envelope tag to a `BLOCKED_` sentinel, and caps the length. A TAG
 block payload is invisible in every mainstream renderer and reaches a tokenizer
 byte for byte, which is why the strip matters more than it looks.
 
-**To SysKnife's own planner**, in `planner.rs`, every tool result is wrapped in
+Read-only tool output also replaces plaintext credential values with
+`<redacted>` before normalisation and truncation, and repeats the screen after
+normalisation. The screen recognizes password, token, secret and key values in
+`KEY=value`, `--key=value`, `--key value` and JSON-style assignments, Bearer values,
+common provider-key shapes, and complete or unterminated PEM private-key blocks.
+Quoted assignment values stop at the line boundary even if a quote is not closed,
+so malformed log records cannot hide later records. SendGrid, Hugging Face and npm
+tokens require their provider formats; generic `key:` file paths, ordinary system
+facts and SSH public keys are preserved. This is a pattern screen: arbitrary
+unlabelled passwords, encoded credentials and unrecognized formats can still
+reach a provider. Do not use read tools to collect secret files.
+
+**To SysKnife's own planner**, in `planner.rs`, host query results are wrapped in
 an `<untrusted_tool_output source="...">` envelope, capped at 8 KiB, and the
-system prompt tells the model that text inside the envelope is data.
+system prompt tells the model that text inside the envelope is data. All tool
+result content, including local feedback and errors, is screened for the same
+plaintext patterns before being retained for subsequent provider calls.
 
 **To the calling assistant over MCP**, in `mcp_server.rs`, read-only query
 results get the same envelope with a 64 KiB cap, and every free-text field of

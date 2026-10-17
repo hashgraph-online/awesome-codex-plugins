@@ -33,6 +33,7 @@ bolt on a second pipeline.
    for native changes)
 5. **Run pre-submission checklist** (gate: all items pass before submitting):
    - [ ] Privacy manifests (iOS): all required API reasons declared
+   - [ ] iOS third-party SDKs on [Apple's required list](https://developer.apple.com/support/third-party-SDK-requirements/): bundled privacy manifests present; binary SDKs signed
    - [ ] Permissions: only what you use, with clear usage descriptions
    - [ ] Metadata: screenshots current, descriptions accurate (`fastlane/metadata/`)
    - [ ] Version/build numbers: incremented correctly
@@ -41,9 +42,14 @@ bolt on a second pipeline.
    - [ ] Push notifications: working in production config
    - [ ] Crash-free rate: > 99% on staging before promoting
    - [ ] Bundle size: within limits, no large accidental assets
+   - [ ] Android targeting API 35+: verify 16 KB page-size support on 64-bit devices;
+         inspect bundled native libraries (including SDKs) and test in a 16 KB environment
+         ([Android guidance](https://developer.android.com/guide/practices/page-sizes))
    - [ ] Offline behavior: handles no-network gracefully
 6. **iOS submission** — `fastlane deliver`/`pilot`: TestFlight (internal → external) →
-   App Store review. (gate: metadata complete; privacy manifests present)
+   App Store review. Before external testing, provide TestFlight test information and submit
+   the first build for TestFlight App Review; testing starts after approval. Later builds
+   for the same version may also require review. (gate: metadata complete; privacy manifests present)
 7. **Android submission** — `fastlane supply` with a Play service-account JSON:
    internal → closed/open beta → staged production rollout starting at 5-10%.
    (gate: data safety form complete; crash rate stable)

@@ -6,7 +6,9 @@ ships until a frame-by-frame check says the mouths, the words and the hits land.
 
 ## 0. The song and the grid
 
-The song comes from the `music` skill (its render keeps every sung word's time). Then:
+The song comes from the `music` skill. Use word timestamps if the official MCP returns them,
+or obtain timings through an available official transcription capability and check them by ear.
+The local grid needs timing metadata; generation alone does not guarantee it. Then:
 
 ```sh
 node <video.mjs> grid <slug> --song <music slug>
@@ -31,8 +33,8 @@ type then pops on the consonant. Plan everything in these numbers.
 
 ## 2. Character and set sheets
 
-One image call per sheet (the `gen` command with an image model; prices are per image or per
-megapixel). A character sheet is one invented person or creature on a plain ground: front,
+One image call per sheet through the official fal MCP: discover a model, inspect its schema
+and price the requested size before calling `run_model`. A character sheet is one invented person or creature on a plain ground: front,
 three-quarter and profile, their palette, one prop that tells who they are. A set sheet is a
 place, empty, lit the way the style says. Look at each; redo the ones that break the style before
 anything moves. Keep the prompts in `videos/<slug>/prompts/`.
@@ -47,31 +49,22 @@ other. Price the whole list before generating anything: shots x price, against t
 
 ## 4. Bases
 
-For each shot, a clip from a reference-to-video model (Seedance 2.5 on fal:
-`bytedance/seedance-2.5/reference-to-video`; read its schema with the fal MCP
-`get_model_schema`). A performance shot:
+For each shot, discover a reference-to-video model through the official fal MCP and read
+`get_model_schema`. Use `upload_file` for local references and pass its returned URLs in the
+fields supported by that model. Never pass Homie's former `@file:` shorthand.
 
-```json
-{
-  "prompt": "Flat cel-shaded animation in exactly the style of @Image1. The singer from @Image2 sings the vocal of @Audio1 with precise lip sync, mouth closed when @Audio1 is silent. Static camera. No text appears. One continuous shot.",
-  "image_urls": ["@file:work/keyframes/s03.png", "@file:work/sheets/singer.png"],
-  "audio_urls": ["@file:work/audio/s03.wav"],
-  "resolution": "480p",
-  "duration": "6",
-  "aspect_ratio": "16:9",
-  "generate_audio": true
-}
-```
+A performance prompt can ask for the singer from the character reference to sing the supplied
+audio, with a still camera, closed mouth during silence, no text and one continuous shot.
+Reference syntax, audio support and lip sync controls depend on the discovered model.
 
-- The audio reference is exactly the shot's slice of the song:
+- Slice the exact shot audio locally:
   `node <video.mjs> slice <slug> --from <shot start> --to <shot end> --out work/audio/<shot>.wav`.
-- Always an explicit `duration` (a whole number of seconds that covers the shot): "auto" cannot
-  be priced, so `gen` refuses it.
-- 480p or 720p is enough under a draw-over; 1080p costs about twice 720p and is only worth it
-  where the base itself is seen.
-- Picture shots: image-to-video from a keyframe, `generate_audio: false`.
-- A keyframe that comes back off-style (the wrong season, a photoreal face, the subject too small
-  to read a mouth) is redone before its clip is made: an image is cents, a clip is dollars.
+- Choose an explicit supported duration covering the shot and quote it before submitting.
+- Price the supported resolutions. Use a lower resolution under a draw-over when it survives
+  review; use more detail where the base itself is seen.
+- Picture shots need image-to-video from a keyframe; disable generated audio if supported.
+- Review the keyframe before paying for its clip. Save the accepted job ID and retrieve that
+  job's output without submitting it twice. Import outputs with provenance and their consumer.
 
 ## 5. The sync check on every base
 

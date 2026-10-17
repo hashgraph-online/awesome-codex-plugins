@@ -21,6 +21,21 @@ async function cancelAndPropagate(service, started, originalCancellation) {
   throw originalCancellation;
 }
 
+/** The originating start owns cancellation through its semantic handoff resolution. */
+export async function resolveOwnedWorkflowHandoff(service,started,resolve,{signal}={}){
+ if(started?.status==='environment_attention')return resolve();
+ if(signal?.aborted)return cancelAndPropagate(service,started,abortReason(signal));
+ let cancellation=null;
+ const abort=()=>{cancellation??=cancelAndPropagate(service,started,abortReason(signal)).then(()=>null,error=>error);};
+ signal?.addEventListener('abort',abort,{once:true});
+ try{
+  const result=await resolve();
+  if(cancellation)throw await cancellation;
+  return result;
+ }catch(error){if(cancellation)throw await cancellation;throw error;}
+ finally{signal?.removeEventListener('abort',abort);}
+}
+
 // Continue ordinary event waits in code. If the Host stops for a native handoff,
 // return the exact controller continuation that the caller must execute.
 export async function waitForOwnedWorkflow(service,started,{signal}={}) {
