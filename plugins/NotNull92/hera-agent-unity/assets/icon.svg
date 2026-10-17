@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Hera Unity">
+  <rect width="512" height="512" rx="112" fill="#111827"/>
+  <path d="M256 88 402 172v168L256 424 110 340V172z" fill="none" stroke="#35e0b7" stroke-width="34" stroke-linejoin="round"/>
+  <path d="M168 184v144m176-144v144M168 256h176" fill="none" stroke="#f8fafc" stroke-width="30" stroke-linecap="round"/>
+</svg>

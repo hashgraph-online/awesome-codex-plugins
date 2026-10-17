@@ -1,0 +1,5 @@
+interface:
+  display_name: "Phone a friend"
+  short_description: "Get a cross-model second opinion on a plan or code change"
+policy:
+  allow_implicit_invocation: false

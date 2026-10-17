@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "workflow-kit"
+version = "0.3.0"
+description = "Full product lifecycle plugin for Claude Code and other AI dev tools"
+requires-python = ">=3.9"
+dependencies = ["pyyaml", "python-dotenv"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["workflow_kit*"]

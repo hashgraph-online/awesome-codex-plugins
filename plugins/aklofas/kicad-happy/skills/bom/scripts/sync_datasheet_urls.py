@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Sync datasheet URLs from datasheets/index.json back into KiCad schematic properties.
+"""Sync datasheet URLs from datasheets/manifest.json back into KiCad schematic properties.
 
 After running datasheet sync scripts (DigiKey, LCSC, element14), this script
-reads the datasheets/index.json manifest and writes the discovered datasheet
-URLs back into the schematic's Datasheet properties.
+reads the datasheets/manifest.json file (legacy name index.json still supported)
+and writes the discovered datasheet URLs back into the schematic's Datasheet
+properties.
 
 Opportunistic: only fills in missing/empty URLs by default. Warns about
 mismatched URLs without overwriting unless --overwrite is specified.
@@ -172,21 +173,23 @@ def sync_datasheet_urls(
         print("  Run a datasheet sync first (DigiKey, LCSC, or element14).", file=sys.stderr)
         return {"error": "no datasheets directory"}
 
-    index_path = ds_dir / "index.json"
+    index_path = ds_dir / "manifest.json"
     if not index_path.exists():
-        print(f"Error: {index_path} not found", file=sys.stderr)
-        print("  Run a datasheet sync first to generate the index.", file=sys.stderr)
-        return {"error": "no index.json"}
+        index_path = ds_dir / "index.json"
+    if not index_path.exists():
+        print(f"Error: {ds_dir / 'manifest.json'} not found", file=sys.stderr)
+        print("  Run a datasheet sync first to generate the manifest.", file=sys.stderr)
+        return {"error": "no manifest"}
 
     with open(index_path, "r") as f:
         index = json.load(f)
 
-    # Build ref→url mapping from index
+    # Build ref→url mapping from manifest
     ref_url_map = build_ref_url_map(index)
     if not ref_url_map:
-        print("No datasheet URLs available in index.json (no parts with status=ok).",
+        print("No datasheet URLs available in manifest (no parts with status=ok).",
               file=sys.stderr)
-        return {"error": "no urls in index"}
+        return {"error": "no urls in manifest"}
 
     # Collect schematic files
     sch_files = collect_schematic_files(schematic_path, recursive)

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Thermal-Fluid Analysis"
+  short_description: "Analyze thermal-fluid systems with physical rigor."
+  default_prompt: "Analyze this thermal-fluid engineering problem. State assumptions, validity limits, mechanisms, uncertainty, and the evidence needed to support the conclusion."

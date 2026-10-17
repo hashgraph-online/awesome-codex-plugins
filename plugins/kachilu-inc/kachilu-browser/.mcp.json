@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "kachilu_browser": {
+      "command": "node",
+      "args": [
+        "./scripts/mcp-server.mjs"
+      ],
+      "connectionTimeoutMs": 60000
+    }
+  }
+}

@@ -1,0 +1,6 @@
+transport:
+  type: http
+  url: {{API_HOST}}
+  endpoint: api/v1/lineage?dataProductId={{DATA_PRODUCT_ID}}&outputPortId={{OUTPUT_PORT_NAME}}
+  auth:
+    type: api_key

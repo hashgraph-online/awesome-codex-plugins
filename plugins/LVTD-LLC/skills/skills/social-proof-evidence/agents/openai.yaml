@@ -1,0 +1,4 @@
+interface:
+  display_name: "Social Proof"
+  short_description: "Use credible proof"
+  default_prompt: "Use $social-proof-evidence to improve this persuasion task ethically."

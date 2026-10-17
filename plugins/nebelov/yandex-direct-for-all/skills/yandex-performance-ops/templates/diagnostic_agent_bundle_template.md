@@ -1,57 +1,33 @@
-# Diagnostic Bundle Template
+# Комплект ручной диагностики
 
-Используй этот шаблон, когда нужно провести полный ручной аудит кампаний по уже собранным raw-данным.
+Используйте шаблон для проверки уже сохранённых данных без обращения к записи в кабинете.
 
-## Input
+## Вход
 
-- Клиент: `<client_key>`
-- Аккаунт / login: `<login>`
-- Scope: `<campaign ids / aliases>`
-- Local overlay: `<path>`
-- Raw files:
-  - `<reports/search_query_30d.tsv>`
-  - `<management/campaign.json>`
-  - `<ads/ad dump>`
-  - `<metrika or roistat raw>`
-- Local rules:
-  - `<product catalog path>`
-  - `<landing rules path>`
-  - `<protected words path>`
+- понятное название области клиента: `<client-name>`;
+- логин берётся только из `YANDEX_DIRECT_CLIENT_LOGIN` и не копируется в отчёт;
+- область: `<campaign names or aliases>`;
+- исходные файлы внутри закрытого каталога проекта;
+- карта продукта, посадочных страниц и защищённых слов;
+- состояния полноты и контрольные суммы источников.
 
-## Hard Rules
+Не указывайте токены, абсолютные домашние пути, рабочие номера и содержимое каталога доступов.
 
-1. Не использовать analysis-скрипты.
-2. Не делать live apply.
-3. Не придумывать данные, которых нет в raw-файлах.
-4. Все выводы делать только по сохранённым raw-артефактам.
-5. Если Roistat подключён, считать его первичным по лидам/продажам.
+## Правила
 
-## Required Outputs
+1. Не выполнять запись и не создавать утверждённый пакет записи.
+2. Не придумывать отсутствующие данные и не скрывать неполноту источника.
+3. Каждое заключение связывать с исходной строкой и её контрольной суммой.
+4. Различать данные Директа, Метрики, аналитического отчёта, сырых сделок и коллтрекинга.
+5. Все смысловые изменения оставлять кандидатами с пустым ручным решением.
 
-1. `search_queries_audit.md`
-   - waste
-   - missing negatives
-   - missing target coverage
-   - manual notes by campaign/adgroup
-2. `ad_components_audit.md`
-   - alignment with adgroup intent
-   - gaps in sitelinks/callouts/assets
-   - duplicate copy risks
-3. `bids_audit.md`
-   - budget caps
-   - CPC/CPA issues
-   - monitor-only zones
-4. `structure_audit.md`
-   - mixed intent groups
-   - missing routing
-   - cluster collisions
-5. `tasks.tsv`
-   - only concrete API actions
-   - each task must be verifiable
+## Результаты
 
-## Output Discipline
+- проверка поисковых запросов;
+- проверка компонентов объявлений;
+- проверка ставок и ограничений бюджета;
+- проверка структуры и маршрутизации;
+- таблица кандидатов по договору `tasks_format.md`;
+- перечень отсутствующих или неполных данных.
 
-- Сначала findings по severity.
-- Потом open questions / assumptions.
-- Потом action plan.
-- Никаких summary вместо конкретики.
+Сначала приводятся подтверждённые находки, затем вопросы и кандидаты. Внутренние ссылки на объекты хранятся только в закрытом машинном приложении.

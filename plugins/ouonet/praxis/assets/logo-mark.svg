@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Praxis icon">
+  <title>Praxis</title>
+
+  <!-- Hexagon badge (pointy-top, R=30, centre 32 32) -->
+  <polygon points="32,2 57,17 57,47 32,62 7,47 7,17" fill="#7C3AED"/>
+
+  <!-- Subtle inner ring -->
+  <polygon points="32,7 52,18.5 52,45.5 32,57 12,45.5 12,18.5"
+           fill="none" stroke="#9F67F0" stroke-width="1" opacity="0.5"/>
+
+  <!-- ── Routing / triage tree ── -->
+  <!-- Input node (top) -->
+  <circle cx="32" cy="13" r="3" fill="#EDE9FE"/>
+
+  <!-- Stem: input → junction -->
+  <line x1="32" y1="16" x2="32" y2="25"
+        stroke="#EDE9FE" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- Junction node -->
+  <circle cx="32" cy="28" r="4.5" fill="white"/>
+
+  <!-- Left branch -->
+  <line x1="29.2" y1="31.5" x2="17" y2="44"
+        stroke="white" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="16" cy="45.5" r="3" fill="#C4B5FD"/>
+
+  <!-- Centre branch (dashed = optional path) -->
+  <line x1="32" y1="32.5" x2="32" y2="47"
+        stroke="white" stroke-width="1.8" stroke-linecap="round" opacity="0.55"
+        stroke-dasharray="3 2.5"/>
+  <circle cx="32" cy="49" r="2.5" fill="#C4B5FD" opacity="0.55"/>
+
+  <!-- Right branch -->
+  <line x1="34.8" y1="31.5" x2="47" y2="44"
+        stroke="white" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="48" cy="45.5" r="3" fill="#C4B5FD"/>
+</svg>

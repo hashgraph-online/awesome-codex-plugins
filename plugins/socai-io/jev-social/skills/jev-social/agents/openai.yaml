@@ -1,0 +1,5 @@
+interface:
+  display_name: "Jev Social"
+  short_description: "Run browser-grounded social research"
+  brand_color: "#ff4fc8"
+  default_prompt: "Use $jev-social to research this social-media question in my local browser and return source-linked evidence."

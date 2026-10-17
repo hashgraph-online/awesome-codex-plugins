@@ -1,0 +1,4 @@
+interface:
+  display_name: "学习"
+  short_description: "围绕可验收成果筛选核心概念，通过逐题练习、倒讲查漏和间隔测验学到能用"
+  default_prompt: "用 $learn-core 带我学习这个领域：先明确目标与核心概念，默认一次一题、错误只给提示，等我作答并检验独立能力。"

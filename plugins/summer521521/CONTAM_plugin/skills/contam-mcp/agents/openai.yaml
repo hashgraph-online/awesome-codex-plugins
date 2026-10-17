@@ -1,0 +1,4 @@
+interface:
+  display_name: "CONTAM MCP"
+  short_description: "Control CONTAM through a local MCP server"
+  default_prompt: "Find and run a CONTAM project through MCP."

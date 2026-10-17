@@ -1,0 +1,158 @@
+{
+  "context_id": "clean-context-example",
+  "task_id": "task-example",
+  "created_at": "2024-01-01T00:00:00Z",
+  "target_profile": "speckit-feature-folder",
+  "native_artifacts": [
+    "specs/<feature-id>/spec.md - feature specification",
+    "specs/<feature-id>/plan.md - technical plan",
+    "specs/<feature-id>/tasks.md - executable work items"
+  ],
+  "formatting_rules": [
+    "Use prioritized user stories with Given/When/Then acceptance scenarios."
+  ],
+  "goal_contract": {
+    "goal_id": "goal-task-example",
+    "intent": "clean-room-reimplementation",
+    "success_definition": "Build a behavior-compatible clean implementation from approved clean specs.",
+    "destination_kind": "new-project",
+    "target_stack": {
+      "language": "javascript",
+      "runtime": "node",
+      "framework": null,
+      "package_manager": "npm",
+      "test_framework": "node:test"
+    },
+    "destination_license": "MIT",
+    "dependency_policy": {
+      "allow_new_dependencies": true,
+      "prefer_stdlib": true,
+      "require_user_approval_for_native_deps": true,
+      "blocked_dependencies": []
+    },
+    "compatibility_policy": {
+      "mirror_public_behavior": true,
+      "mirror_public_api_names": true,
+      "mirror_private_structure": false,
+      "mirror_comments_or_internal_names": false,
+      "allowed_exactness": [
+        "public API names",
+        "CLI flags",
+        "serialized outputs",
+        "public error codes"
+      ]
+    },
+    "feature_policy": {
+      "preserve_features": [
+        "example observable flow"
+      ],
+      "remove_features": [],
+      "add_features": [],
+      "non_goals": []
+    },
+    "output_policy": {
+      "assumed_output_directory": "implementation/",
+      "write_mode": "create-or-preserve-existing"
+    }
+  },
+  "code_hygiene_policy": {
+    "max_lines_per_code_file": 500,
+    "max_lines_per_test_file": 800,
+    "max_files_per_iteration": 12,
+    "split_large_files_by": [
+      "module boundary",
+      "public type",
+      "feature area"
+    ],
+    "exceptions": [
+      "fixtures",
+      "snapshots",
+      "generated files"
+    ],
+    "forbidden_patterns": [
+      "god file",
+      "source-shaped layout"
+    ]
+  },
+  "clean_artifacts": {
+    "clean_root": "clean-artifacts/",
+    "handoff_package": "handoff-package.json",
+    "behavior_specs": [
+      "behavior-spec.json"
+    ],
+    "skeleton_manifest": "skeleton-manifest.json",
+    "implementation_plan": "implementation-plan.json",
+    "implementation_report": "implementation-report.json",
+    "qc_report": "qc-report.json",
+    "polish_report": "polish-report.json",
+    "open_questions": [
+      "open-questions.json"
+    ],
+    "abstract_delta_tickets": [
+      "abstract-delta-tickets.json"
+    ]
+  },
+  "implementation": {
+    "implementation_root_refs": [
+      {
+        "root_id": "implementation-root-1",
+        "env_ref": "CLEAN_ROOM_IMPLEMENTATION_ROOTS[0]",
+        "access": "read-write-for-agent-3"
+      }
+    ],
+    "planner_role": "clean-architect",
+    "implementer_role": "clean-qa-editor",
+    "polish_reviewer_role": "clean-polish-reviewer",
+    "shell_verification": {
+      "agent3_shell_allowed": true,
+      "cwd_policy": "implementation-root"
+    },
+    "polish_commit": {
+      "agent4_shell_allowed": true,
+      "cwd_policy": "implementation-root",
+      "git_policy": "local-init-and-commit-only"
+    }
+  },
+  "coordination_boundary": {
+    "agent0_to_clean_roles": "durable-sanitized-artifacts-only",
+    "agent3_to_agent0": "terminal-report-only",
+    "interim_agent3_reports": false
+  },
+  "approved_public_reference_roots": [
+    "public-refs/"
+  ],
+  "clean_isolation": {
+    "mode": "clean-workspace",
+    "clean_agents_start_cwd": "clean_root",
+    "source_mounted": false
+  },
+  "execution_policy": {
+    "backend": "host",
+    "preferred_container_profile": "node22",
+    "network_policy": "off",
+    "dependency_install_policy": "locked",
+    "allow_native_toolchain": false,
+    "resource_limits": {
+      "cpus": 2,
+      "memory_mb": 2048,
+      "timeout_seconds": 300
+    }
+  },
+  "model_preferences": {
+    "default_model": "runtime-default",
+    "domain_overrides": {
+      "clean": "runtime-clean-model"
+    },
+    "role_overrides": [
+      {
+        "role": "clean-qa-editor",
+        "model": "runtime-high-reasoning-model"
+      }
+    ]
+  },
+  "user_rules": {
+    "clean_safe": [
+      "Use concise acceptance criteria."
+    ]
+  }
+}

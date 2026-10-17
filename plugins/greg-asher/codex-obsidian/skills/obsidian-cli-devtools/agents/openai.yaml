@@ -1,0 +1,6 @@
+interface:
+  display_name: "Obsidian CLI Devtools"
+  short_description: "Debug Obsidian runtime through official CLI developer commands with explicit execution guardrails."
+  default_prompt: "Use the official desktop Obsidian CLI developer commands to diagnose runtime issues. Prefer read-only diagnostics first, classify risk, and only run eval or dev:cdp when explicitly requested with full command transparency."
+policy:
+  allow_implicit_invocation: false

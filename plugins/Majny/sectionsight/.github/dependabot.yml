@@ -1,0 +1,12 @@
+# The dev dependencies (tests only) are pinned to exact versions; this keeps
+# them current. The skill itself has no dependencies.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

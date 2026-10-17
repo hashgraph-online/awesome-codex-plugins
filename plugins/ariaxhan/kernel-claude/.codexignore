@@ -1,0 +1,29 @@
+# Paths that are NOT part of the shipped KERNEL plugin bundle.
+# The bundle is: .codex-plugin/, skills/, agents/, hooks/, orchestration/,
+# rules/, schemas/, workflows/, packs/, governance/, scripts/, and the
+# top-level docs (README.md, AGENTS.md, LICENSE, SECURITY.md, llms.txt).
+
+# Repo-internal run state: chronicles, research notes, logs, agentdb snapshots.
+_meta/
+
+# Test suite and fixtures.
+tests/
+
+# Contributor docs and the marketing site source.
+docs/
+frontend/
+
+# Generated analysis output.
+graphify-out/
+
+# Editor and local agent configuration.
+.obsidian/
+.claude/
+.agents/
+
+# Development-only retrieval-quality harness for agentdb.
+orchestration/agentdb/eval/
+
+# Caches
+**/__pycache__/
+*.pyc

@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "ejentum": {
+      "command": "npx",
+      "args": ["-y", "ejentum-mcp"],
+      "env": {
+        "EJENTUM_API_KEY": "${EJENTUM_API_KEY}"
+      }
+    }
+  }
+}

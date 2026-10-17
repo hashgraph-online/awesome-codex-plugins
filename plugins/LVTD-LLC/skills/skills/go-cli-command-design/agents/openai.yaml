@@ -1,0 +1,4 @@
+interface:
+  display_name: "Go CLI Command Design"
+  short_description: "Design clear and composable Go CLI commands"
+  default_prompt: "Use $go-cli-command-design to design a clear, composable command-line interface in Go."

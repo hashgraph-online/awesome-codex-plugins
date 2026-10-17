@@ -1,0 +1,20 @@
+{
+  "name": "reviewable-html-workbench-local",
+  "interface": {
+    "displayName": "Reviewable HTML Workbench"
+  },
+  "plugins": [
+    {
+      "name": "reviewable-html-workbench",
+      "source": {
+        "source": "local",
+        "path": "./plugins/reviewable-html-workbench"
+      },
+      "policy": {
+        "installation": "INSTALLED_BY_DEFAULT",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

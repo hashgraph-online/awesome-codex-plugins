@@ -1,0 +1,44 @@
+{
+  "name": "lacuna-music",
+  "version": "1.0.0",
+  "description": "Generate original music with the Lacuna MCP server.",
+  "author": {
+    "name": "JOYLINK LTD",
+    "email": "support@lacuna.fm",
+    "url": "https://www.lacuna.fm/about"
+  },
+  "homepage": "https://www.lacuna.fm/docs/mcp",
+  "repository": "https://github.com/JOYLINK-LTD/lacuna-plugin",
+  "license": "MIT",
+  "keywords": [
+    "lacuna",
+    "ai-music",
+    "music-generation",
+    "mcp",
+    "audio",
+    "songwriting"
+  ],
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Lacuna Music",
+    "shortDescription": "Generate AI music from prompts or lyrics",
+    "longDescription": "Generate original instrumentals or vocal songs from natural-language style directions and lyrics through Lacuna's MCP server. Submit a task, wait for its result, and receive hosted audio URLs in Codex.",
+    "developerName": "JOYLINK LTD",
+    "category": "Creativity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://www.lacuna.fm",
+    "privacyPolicyURL": "https://www.lacuna.fm/privacy",
+    "termsOfServiceURL": "https://www.lacuna.fm/terms",
+    "defaultPrompt": [
+      "Create a mellow instrumental lo-fi track for a late-night coding session.",
+      "Turn these lyrics into an upbeat indie-pop song with a female lead vocal.",
+      "Check whether my Lacuna music generation is ready and return its audio links."
+    ],
+    "brandColor": "#F9243D",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/logo.png"
+  }
+}

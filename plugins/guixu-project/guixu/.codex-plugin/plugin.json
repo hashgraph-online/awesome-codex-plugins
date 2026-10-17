@@ -1,0 +1,7 @@
+{
+  "name": "guixu",
+  "version": "0.1.0",
+  "description": "Dataset discovery, valuation, and acquisition for AI agents. Search, evaluate, and purchase datasets from Kaggle, HuggingFace, IPFS, and more.",
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json"
+}

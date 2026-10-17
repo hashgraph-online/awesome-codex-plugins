@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulink Initialization Profiling Report</title>
+<style>
+  :root {
+    --bg: #f5f7fa;
+    --card: #ffffff;
+    --border: #e1e4e8;
+    --text: #24292e;
+    --muted: #586069;
+    --red: #d73a49;
+    --red-bg: #ffeef0;
+    --yellow: #b08800;
+    --yellow-bg: #fff8e1;
+    --green: #28a745;
+    --green-bg: #e6ffed;
+    --blue: #0366d6;
+    --blue-bg: #e8f0fe;
+    --flame-bg: #1a1a2e;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+  .container { max-width: 1060px; margin: 0 auto; padding: 2rem; }
+  h1 { font-size: 1.8rem; margin-bottom: 0.25rem; }
+  .subtitle { color: var(--muted); font-size: 0.95rem; margin-bottom: 2rem; }
+  h2 { font-size: 1.3rem; margin: 2rem 0 1rem; border-bottom: 2px solid var(--border); padding-bottom: 0.4rem; }
+  h3 { font-size: 1.05rem; margin: 1.2rem 0 0.5rem; }
+
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem 1.5rem; margin-bottom: 1rem; }
+
+  .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.75rem; margin-bottom: 1.5rem; }
+  .summary-item { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.25rem; text-align: center; }
+  .summary-item .value { font-size: 1.6rem; font-weight: 700; }
+  .summary-item .label { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 0.78rem; font-weight: 600; margin-right: 6px; vertical-align: middle; }
+  .badge-red { background: var(--red-bg); color: var(--red); }
+  .badge-yellow { background: var(--yellow-bg); color: var(--yellow); }
+  .badge-green { background: var(--green-bg); color: var(--green); }
+  .badge-blue { background: var(--blue-bg); color: var(--blue); }
+
+  table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; font-size: 0.9rem; }
+  th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { background: #f6f8fa; font-weight: 600; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.3px; color: var(--muted); }
+  tr:last-child td { border-bottom: none; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td code { background: #f0f2f5; padding: 2px 6px; border-radius: 4px; font-size: 0.85rem; word-break: break-all; }
+
+  a { color: var(--blue); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* Flamegraph section */
+  .flame-section { background: var(--flame-bg); border-radius: 8px; padding: 1.25rem 1.5rem; margin-bottom: 1rem; color: #e0e0e0; }
+  .flame-section h3 { color: #fff; margin: 0 0 0.5rem; border: none; font-size: 1.1rem; }
+  .flame-toolbar { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.6rem; }
+  .flame-toolbar button { background: #0f3460; color: #fff; border: none; border-radius: 4px; padding: 0.3rem 0.9rem; cursor: pointer; font-size: 0.82rem; }
+  .flame-toolbar button:hover { background: #1a5276; }
+  .flame-toolbar .breadcrumb { font-size: 0.82rem; color: #8899aa; }
+  .flame-toolbar .breadcrumb span { color: #53c0f0; cursor: pointer; }
+  .flame-toolbar .breadcrumb span:hover { text-decoration: underline; }
+  #flamechart { overflow-x: auto; }
+
+  .tooltip {
+    position: fixed; pointer-events: none; background: rgba(0,0,0,0.92); color: #fff;
+    padding: 8px 12px; border-radius: 6px; font-size: 0.82rem; line-height: 1.5;
+    max-width: 420px; z-index: 1000; display: none; border: 1px solid #444;
+  }
+  .tooltip .tt-name { font-weight: 700; margin-bottom: 2px; }
+  .tooltip .tt-dur { color: #53c0f0; }
+  .tooltip .tt-pct { color: #f0ad4e; }
+
+  .footer { margin-top: 2.5rem; padding-top: 1rem; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.8rem; text-align: center; }
+
+  svg text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+
+  /* Collapsible sections */
+  details summary { cursor: pointer; font-weight: 600; padding: 0.4rem 0; }
+  details summary:hover { color: var(--blue); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <h1>🔍 Initialization Profiling Report</h1>
+  <p class="subtitle">Compile-phase profiling &amp; bottleneck analysis &mdash; Generated: {{DATE}}</p>
+
+  <!-- ============ SUMMARY ============ -->
+  <div class="summary-grid">
+    {{SUMMARY_ITEMS}}
+  </div>
+
+  <!-- ============ MODEL INFORMATION ============ -->
+  <h2>Model Information</h2>
+  <div class="card">
+    <table>
+      {{MODEL_INFO_ROWS}}
+    </table>
+  </div>
+
+  <!-- ============ FLAMEGRAPH ============ -->
+  <h2>🔥 Compile Phase Flamegraph</h2>
+  <div class="flame-section">
+    <h3>Interactive — click a bar to zoom in, use Reset or breadcrumbs to zoom out</h3>
+    <div class="flame-toolbar">
+      <button id="btnReset">Reset Zoom</button>
+      <div class="breadcrumb" id="breadcrumb"></div>
+    </div>
+    <div id="flamechart"></div>
+  </div>
+  <div class="tooltip" id="tooltip"></div>
+
+  <!-- ============ TOP PHASES TABLE ============ -->
+  <h2><span class="badge badge-red">Critical</span> Top Compile Phases by Duration</h2>
+  <div class="card">
+    <p style="margin-bottom:0.5rem;color:var(--muted);font-size:0.88rem;">Phases with ≥0.5% of total wall time ({{TOTAL_TIME}} s). See flamegraph above for nested hierarchy.</p>
+    <table>
+      <thead><tr><th>Phase</th><th>Duration (s)</th><th>% of Total</th></tr></thead>
+      <tbody>
+        {{PHASE_TABLE_ROWS}}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ============ USER PROFILER ============ -->
+  <h2><span class="badge badge-red">Critical</span> User Code Bottlenecks</h2>
+
+  <!-- Profiler flamegraph (user code only) -->
+  <div class="flame-section">
+    <h3>🔥 User Code Call Tree — MathWorks shipping code collapsed. Click to zoom.</h3>
+    <div class="flame-toolbar">
+      <button id="btnResetProfiler">Reset Zoom</button>
+      <div class="breadcrumb" id="breadcrumbProfiler"></div>
+    </div>
+    <div id="flamechartProfiler"></div>
+  </div>
+  <div class="tooltip" id="tooltipProfiler"></div>
+
+  <div class="card">
+    <p style="margin-bottom:0.5rem;color:var(--muted);font-size:0.88rem;">Top 20 user-authored functions by self-time. Total user self-time: <strong>{{USER_TOTAL}} s</strong> ({{USER_PCT}}%).</p>
+    <table>
+      <thead><tr><th>Rank</th><th>Function</th><th>Self Time (s)</th><th>Total Time (s)</th><th>Calls</th><th>File</th></tr></thead>
+      <tbody>
+        {{USER_PROFILER_ROWS}}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ============ SHIPPING PROFILER ============ -->
+  <h2><span class="badge badge-yellow">Warning</span> Shipping Code Hot Spots</h2>
+  <div class="card">
+    <details>
+      <summary>Top 20 MathWorks-internal functions by self-time (for awareness)</summary>
+      <table>
+        <thead><tr><th>Rank</th><th>Function</th><th>Self Time (s)</th><th>Total Time (s)</th><th>Calls</th><th>File</th></tr></thead>
+        <tbody>
+          {{SHIP_PROFILER_ROWS}}
+        </tbody>
+      </table>
+    </details>
+  </div>
+
+  <!-- ============ MODEL REF REBUILD ============ -->
+  <h2><span class="badge badge-yellow">Warning</span> ModelRefRebuild Setting</h2>
+  {{MRR_SECTION}}
+
+  <div class="footer">
+    Simulink Initialization Profiling Report &mdash; Generated by Amp &mdash; {{DATE}}
+  </div>
+
+</div>
+
+<!-- ============ FLAMEGRAPH SCRIPT ============ -->
+<script>
+(function() {
+  const DATA = {{FLAMEGRAPH_DATA}};
+
+  const ROW_HEIGHT = 22;
+  const MIN_WIDTH_PX = 2;
+  const TEXT_MIN_WIDTH = 50;
+
+  const chart = document.getElementById('flamechart');
+  const tooltipEl = document.getElementById('tooltip');
+  const breadcrumbEl = document.getElementById('breadcrumb');
+
+  const COLORS = [
+    '#e25822','#e8702a','#f09030','#f0a030','#d94f00',
+    '#cc5500','#e06020','#d47b2e','#c96830','#e88828',
+    '#b85a18','#d06818','#c07828','#e07828','#d09038',
+    '#c08040','#b07030','#d08030','#c07020','#e09038'
+  ];
+
+  function colorForName(name) {
+    var hash = 0;
+    for (var i = 0; i < name.length; i++) {
+      hash = ((hash << 5) - hash + name.charCodeAt(i)) | 0;
+    }
+    return COLORS[Math.abs(hash) % COLORS.length];
+  }
+
+  function maxDepth(node) {
+    if (!node.children || node.children.length === 0) return 1;
+    var md = 0;
+    for (var i = 0; i < node.children.length; i++) md = Math.max(md, maxDepth(node.children[i]));
+    return md + 1;
+  }
+
+  var zoomStack = [DATA];
+
+  function currentRoot() {
+    return zoomStack[zoomStack.length - 1];
+  }
+
+  function render() {
+    var root = currentRoot();
+    var depth = maxDepth(root);
+    var svgWidth = chart.clientWidth || 900;
+    var svgHeight = depth * ROW_HEIGHT + 4;
+    var totalDur = root.duration;
+
+    chart.innerHTML = '';
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', svgWidth);
+    svg.setAttribute('height', svgHeight);
+    svg.style.display = 'block';
+    chart.appendChild(svg);
+
+    function renderNode(node, left, width, level) {
+      var y = svgHeight - (level + 1) * ROW_HEIGHT;
+      var pct = (node.duration / DATA.duration * 100);
+      var pctOfView = (node.duration / totalDur * 100);
+
+      if (width < MIN_WIDTH_PX) return;
+
+      var rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      rect.setAttribute('x', left);
+      rect.setAttribute('y', y);
+      rect.setAttribute('width', Math.max(width - 0.5, 0.5));
+      rect.setAttribute('height', ROW_HEIGHT - 1);
+      rect.setAttribute('rx', 2);
+      rect.setAttribute('fill', colorForName(node.name));
+      rect.setAttribute('stroke', 'rgba(0,0,0,0.3)');
+      rect.setAttribute('stroke-width', 0.5);
+      rect.style.cursor = node.children && node.children.length ? 'pointer' : 'default';
+      svg.appendChild(rect);
+
+      if (width > TEXT_MIN_WIDTH) {
+        var text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', left + 4);
+        text.setAttribute('y', y + 15);
+        text.setAttribute('fill', '#fff');
+        text.setAttribute('font-size', '11');
+        text.setAttribute('pointer-events', 'none');
+        var label = node.name;
+        var charW = 6.5;
+        var maxChars = Math.floor((width - 8) / charW);
+        if (label.length > maxChars) label = label.substring(0, maxChars - 1) + '\u2026';
+        text.textContent = label;
+        svg.appendChild(text);
+      }
+
+      rect.addEventListener('mouseenter', function() {
+        tooltipEl.style.display = 'block';
+        tooltipEl.innerHTML =
+          '<div class="tt-name">' + escapeHtml(node.name) + '</div>' +
+          '<div class="tt-dur">Duration: ' + node.duration.toFixed(3) + ' s</div>' +
+          '<div class="tt-pct">' + pct.toFixed(1) + '% of total (' + pctOfView.toFixed(1) + '% of view)</div>';
+      });
+      rect.addEventListener('mousemove', function(ev) {
+        tooltipEl.style.left = Math.min(ev.clientX + 12, window.innerWidth - 440) + 'px';
+        tooltipEl.style.top = (ev.clientY + 16) + 'px';
+      });
+      rect.addEventListener('mouseleave', function() {
+        tooltipEl.style.display = 'none';
+      });
+
+      rect.addEventListener('click', function(ev) {
+        ev.stopPropagation();
+        if (node.children && node.children.length > 0 && node !== currentRoot()) {
+          zoomStack.push(node);
+          render();
+        }
+      });
+
+      if (node.children && node.children.length > 0) {
+        var sorted = node.children.slice().sort(function(a, b) { return a.start - b.start; });
+        for (var i = 0; i < sorted.length; i++) {
+          var child = sorted[i];
+          var childLeft = left + ((child.start - node.start) / node.duration) * width;
+          var childWidth = (child.duration / node.duration) * width;
+          renderNode(child, childLeft, childWidth, level + 1);
+        }
+      }
+    }
+
+    renderNode(root, 0, svgWidth, 0);
+    updateBreadcrumb();
+  }
+
+  function updateBreadcrumb() {
+    var html = '';
+    for (var i = 0; i < zoomStack.length; i++) {
+      if (i > 0) html += ' \u203A ';
+      var node = zoomStack[i];
+      if (i < zoomStack.length - 1) {
+        html += '<span data-idx="' + i + '">' + escapeHtml(node.name) + '</span>';
+      } else {
+        html += escapeHtml(node.name);
+      }
+    }
+    breadcrumbEl.innerHTML = html;
+    breadcrumbEl.querySelectorAll('span').forEach(function(el) {
+      el.addEventListener('click', function() {
+        var idx = parseInt(this.getAttribute('data-idx'));
+        zoomStack = zoomStack.slice(0, idx + 1);
+        render();
+      });
+    });
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  document.getElementById('btnReset').addEventListener('click', function() {
+    zoomStack = [DATA];
+    render();
+  });
+
+  window.addEventListener('resize', render);
+  render();
+})();
+</script>
+
+<!-- ============ PROFILER FLAMEGRAPH SCRIPT ============ -->
+<script>
+(function() {
+  var DATA2 = {{PROFILER_FLAMEGRAPH_DATA}};
+
+  var ROW_HEIGHT = 22;
+  var MIN_WIDTH_PX = 2;
+  var TEXT_MIN_WIDTH = 50;
+
+  var chart = document.getElementById('flamechartProfiler');
+  var tooltipEl = document.getElementById('tooltipProfiler');
+  var breadcrumbEl = document.getElementById('breadcrumbProfiler');
+
+  var COLORS = [
+    '#2980b9','#3498db','#1abc9c','#16a085','#27ae60',
+    '#2ecc71','#2c82c9','#3b9fc9','#1e8bc3','#4aa3df',
+    '#36d7b7','#2abb9b','#68c3a3','#1ba39c','#3fc380',
+    '#4ecdc4','#26a65b','#2c3e50','#336e7b','#22a7f0'
+  ];
+
+  function colorForName(name) {
+    var hash = 0;
+    for (var i = 0; i < name.length; i++) {
+      hash = ((hash << 5) - hash + name.charCodeAt(i)) | 0;
+    }
+    return COLORS[Math.abs(hash) % COLORS.length];
+  }
+
+  function maxDepth(node) {
+    if (!node.children || node.children.length === 0) return 1;
+    var md = 0;
+    for (var i = 0; i < node.children.length; i++) md = Math.max(md, maxDepth(node.children[i]));
+    return md + 1;
+  }
+
+  var zoomStack = [DATA2];
+
+  function currentRoot() {
+    return zoomStack[zoomStack.length - 1];
+  }
+
+  function render() {
+    var root = currentRoot();
+    var depth = maxDepth(root);
+    var svgWidth = chart.clientWidth || 900;
+    var svgHeight = depth * ROW_HEIGHT + 4;
+    var totalDur = root.duration;
+
+    chart.innerHTML = '';
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', svgWidth);
+    svg.setAttribute('height', svgHeight);
+    svg.style.display = 'block';
+    chart.appendChild(svg);
+
+    function renderNode(node, left, width, level) {
+      var y = svgHeight - (level + 1) * ROW_HEIGHT;
+      var pct = (node.duration / DATA2.duration * 100);
+      var pctOfView = (node.duration / totalDur * 100);
+
+      if (width < MIN_WIDTH_PX) return;
+
+      var rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      rect.setAttribute('x', left);
+      rect.setAttribute('y', y);
+      rect.setAttribute('width', Math.max(width - 0.5, 0.5));
+      rect.setAttribute('height', ROW_HEIGHT - 1);
+      rect.setAttribute('rx', 2);
+      rect.setAttribute('fill', colorForName(node.name));
+      rect.setAttribute('stroke', 'rgba(0,0,0,0.3)');
+      rect.setAttribute('stroke-width', 0.5);
+      rect.style.cursor = node.children && node.children.length ? 'pointer' : 'default';
+      svg.appendChild(rect);
+
+      if (width > TEXT_MIN_WIDTH) {
+        var text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', left + 4);
+        text.setAttribute('y', y + 15);
+        text.setAttribute('fill', '#fff');
+        text.setAttribute('font-size', '11');
+        text.setAttribute('pointer-events', 'none');
+        var label = node.name;
+        var charW = 6.5;
+        var maxChars = Math.floor((width - 8) / charW);
+        if (label.length > maxChars) label = label.substring(0, maxChars - 1) + '\u2026';
+        text.textContent = label;
+        svg.appendChild(text);
+      }
+
+      rect.addEventListener('mouseenter', function() {
+        tooltipEl.style.display = 'block';
+        tooltipEl.innerHTML =
+          '<div class="tt-name">' + escapeHtml(node.name) + '</div>' +
+          '<div class="tt-dur">Duration: ' + node.duration.toFixed(3) + ' s</div>' +
+          '<div class="tt-pct">' + pct.toFixed(1) + '% of total (' + pctOfView.toFixed(1) + '% of view)</div>';
+      });
+      rect.addEventListener('mousemove', function(ev) {
+        tooltipEl.style.left = Math.min(ev.clientX + 12, window.innerWidth - 440) + 'px';
+        tooltipEl.style.top = (ev.clientY + 16) + 'px';
+      });
+      rect.addEventListener('mouseleave', function() {
+        tooltipEl.style.display = 'none';
+      });
+
+      rect.addEventListener('click', function(ev) {
+        ev.stopPropagation();
+        if (node.children && node.children.length > 0 && node !== currentRoot()) {
+          zoomStack.push(node);
+          render();
+        }
+      });
+
+      if (node.children && node.children.length > 0) {
+        var sorted = node.children.slice().sort(function(a, b) { return a.start - b.start; });
+        for (var i = 0; i < sorted.length; i++) {
+          var child = sorted[i];
+          var childLeft = left + ((child.start - node.start) / node.duration) * width;
+          var childWidth = (child.duration / node.duration) * width;
+          renderNode(child, childLeft, childWidth, level + 1);
+        }
+      }
+    }
+
+    renderNode(root, 0, svgWidth, 0);
+    updateBreadcrumb();
+  }
+
+  function updateBreadcrumb() {
+    var html = '';
+    for (var i = 0; i < zoomStack.length; i++) {
+      if (i > 0) html += ' \u203A ';
+      var node = zoomStack[i];
+      if (i < zoomStack.length - 1) {
+        html += '<span data-idx="' + i + '">' + escapeHtml(node.name) + '</span>';
+      } else {
+        html += escapeHtml(node.name);
+      }
+    }
+    breadcrumbEl.innerHTML = html;
+    breadcrumbEl.querySelectorAll('span').forEach(function(el) {
+      el.addEventListener('click', function() {
+        var idx = parseInt(this.getAttribute('data-idx'));
+        zoomStack = zoomStack.slice(0, idx + 1);
+        render();
+      });
+    });
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  document.getElementById('btnResetProfiler').addEventListener('click', function() {
+    zoomStack = [DATA2];
+    render();
+  });
+
+  window.addEventListener('resize', render);
+  render();
+})();
+</script>
+</body>
+</html>

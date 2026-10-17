@@ -1,100 +1,25 @@
 {
-  "client_key": "acme",
-  "notes": "Do not store secrets here. Use env vars for tokens and API keys.",
-  "analytics": {
-    "source_priority": ["roistat", "metrika", "direct_reports", "wordstat"],
-    "roistat_first": true,
-    "manual_analysis_required": true,
-    "roistat_attribution": ["first_click", "last_click"]
-  },
-  "analysis": {
-    "keywords_manual_only": true,
-    "analysis_scripts_forbidden": true,
-    "roistat_keyword_analysis_manual_only": true
-  },
+  "client_key": "example-client",
+  "notes": "Секреты здесь запрещены; используйте локальные переменные и защищённые файлы.",
   "direct": {
-    "login": "client-login-or-empty",
-    "tracking_params": "utm_source=yandex&utm_medium=cpc&utm_campaign={campaign_name}&utm_content={ad_id}&utm_term={keyword}",
-    "regions": [225],
-    "counter_ids": [12345678],
-    "priority_goals": [
-      {
-        "goal_id": 987654321,
-        "value_micros": 30000000,
-        "is_metrika_source_of_value": "NO"
-      }
-    ],
-    "campaign_defaults": {
-      "daily_budget_micros": 500000000,
-      "negative_keywords": ["скачать", "бесплатно", "вакансия"],
-      "time_targeting": {
-        "days": [1, 2, 3, 4, 5, 6, 7],
-        "start_hour": 7,
-        "end_hour": 22
-      },
-      "search_placement_types": {
-        "SearchResults": "YES",
-        "ProductGallery": "NO",
-        "DynamicPlaces": "YES",
-        "Maps": "NO",
-        "SearchOrganizationList": "NO"
-      },
-      "network_strategy": "SERVING_OFF",
-      "offer_retargeting": "NO"
-    }
+    "access_file_env": "YANDEX_DIRECT_ACCESS_FILE",
+    "campaign_names": []
   },
   "metrika": {
-    "counter_id": "12345678",
-    "goal_id": "987654321"
+    "access_file_env": "YANDEX_METRIKA_ACCESS_FILE",
+    "counter_name": ""
   },
   "wordstat": {
-    "regions": [225],
+    "regions": [],
     "devices": ["all"]
   },
-  "roistat": {
-    "enabled": true,
-    "api_key_env": "ROISTAT_API_KEY",
-    "project_env": "ROISTAT_PROJECT",
-    "base_url": "https://cloud.roistat.com/api/v1",
-    "marker_level_1": "direct3",
-    "marker_level_2_search": "search"
-  },
-  "yougile": {
-    "project_id": "uuid",
-    "legacy_board_id": "uuid",
-    "boards": [
-      {
-        "alias": "intake",
-        "title": "Яндекс.Директ — Intake и маршрутизация",
-        "purpose": "Новые входящие задачи и human approval.",
-        "board_id": "uuid",
-        "columns": {
-          "inbox": "uuid",
-          "needs_context": "uuid",
-          "ready_for_agent": "uuid",
-          "awaiting_approval": "uuid",
-          "blocked": "uuid"
-        }
-      }
-    ]
-  },
-  "search_routing": {
-    "routing_map_path": "",
-    "cluster_map_path": "semantics/acme/cluster-map.tsv",
-    "campaign_id_map_path": "",
-    "campaign_ids": {
-      "search_main": 123456789
-    }
-  },
-  "collector_defaults": {
-    "operational_window_days": 2,
-    "goal_id": 987654321,
-    "rsya_campaign_ids": [111111111, 222222222]
+  "analytics": {
+    "source_priority": ["roistat", "metrika", "direct_reports", "wordstat"],
+    "manual_analysis_required": true
   },
   "references": {
-    "product_maps": ["semantics/acme/00-product-map.md"],
-    "local_skill_paths": [".claude/skills/direct-optimization/SKILL.md"],
-    "rules": ["claude/docs/negative-axioms.md"],
-    "docs": ["claude/docs/direct-notes.md"]
+    "product_maps": [],
+    "rules": [],
+    "docs": []
   }
 }

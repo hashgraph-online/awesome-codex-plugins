@@ -1,0 +1,20 @@
+{
+  "name": "codex-goal-progress-local",
+  "interface": {
+    "displayName": "Codex Goal Progress Local"
+  },
+  "plugins": [
+    {
+      "name": "codex-goal-progress",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

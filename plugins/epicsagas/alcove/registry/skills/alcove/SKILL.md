@@ -1,0 +1,328 @@
+---
+name: alcove
+description: "HTTP API-based documentation server (always running). Questions about project architecture, conventions, decisions, code structure, tech debt, env config, progress, or doc health. Also: store and recall agent memory (global memory/ + per-project <project>/memory/ inside the docs vault), init project, audit docs, lint, validate, promote note, update index, search vaults."
+---
+
+# Alcove
+
+HTTP API-based documentation server (always running). Auto-detects project by matching CWD against `DOCS_ROOT` folders.
+
+## Paths
+
+All paths are resolved at runtime. `ALCOVE_HOME` env var overrides the default `~/.alcove`.
+
+| Name | Resolved Path | Description |
+|------|---------------|-------------|
+| ALCOVE_HOME | `~/.alcove` | Root of all alcove data |
+| Docs Root | `~/.alcove/docs` | Project documentation directories |
+| Vaults Root | `~/.alcove/vaults` | Knowledge base vaults |
+| Config | `~/.alcove/config.toml` | Global configuration file |
+| Project Docs | `~/.alcove/docs/{project}/` | Per-project documentation |
+
+Quick resolution from CLI:
+```bash
+alcove path              # show all resolved paths
+alcove path --json       # JSON output (for scripts/AI)
+alcove path docs         # docs root only
+alcove path vaults       # vaults root only
+```
+
+## Prerequisites
+
+The alcove API server must be running. Check and start with:
+
+```bash
+alcove api status   # check if server is running
+alcove api start    # start if not running
+```
+
+Resolve URL and token once at the start of every session:
+```bash
+eval $(alcove api env)
+# sets ALCOVE_URL=http://127.0.0.1:<port>  (always)
+# sets ALCOVE_TOKEN=<token>                (only if configured)
+```
+All commands below use `$ALCOVE_URL`. If `$ALCOVE_TOKEN` is set, add `-H "Authorization: Bearer $ALCOVE_TOKEN"` to every request.
+
+## Arguments
+
+| Arg | Action |
+|-----|--------|
+| `verify` / `rag status` | 1) `alcove api status` — check daemon is running<br>2) `eval $(alcove api env)` — resolve URL + token<br>3) `curl -s $ALCOVE_URL/health` — print health response |
+
+## When to Use
+
+Any question about project design, status, conventions, decisions, env config, tech debt, code structure, or doc health. **Check alcove before answering, not after.**
+
+## Document Routing
+
+**IMPORTANT**: This table maps question types to document filenames. When users ask these questions, **SEARCH first** — do not directly fetch files.
+
+| Question | Search Keywords |
+|----------|------------------|
+| "What does this do?" | product requirements PRD |
+| "How is this built?" / code structure | architecture code structure CODE_INDEX |
+| "What's the status?" | progress PROGRESS status |
+| "Why was X chosen?" | decisions DECISIONS rationale |
+| "What style to use?" | conventions CONVENTIONS style guide |
+| "What env vars needed?" | SECRETS_MAP env vars environment |
+| "Any known issues?" | technical debt DEBT backlog issues |
+
+**Workflow**: Search → read results. Never fetch `PRD.md`, `ARCHITECTURE.md` etc. directly based on this table alone.
+
+## API Reference
+
+### Search & Discovery
+
+#### Query Construction
+
+**Extract 2-3 key terms from the question.** Avoid natural language filler.
+
+| Question | Key Terms | Query |
+|----------|-----------|-------|
+| "code structure" | code, structure | `q=code+structure` |
+| "Why was X chosen?" | why, chosen | `q=decision` (use DECISIONS.md) |
+| "Any known issues?" | issues, bugs | `q=debt` (use DEBT.md) |
+| "architecture documentation" | architecture | `q=architecture` |
+
+Default: 1-2 keywords from the question.
+
+Use the search endpoint. Project is auto-detected from CWD.
+
+```bash
+# Search current project (default)
+curl -s '$ALCOVE_URL/search?q=QUERY'
+
+# Search with options
+curl -s '$ALCOVE_URL/search?q=QUERY&limit=10&mode=hybrid'
+
+# Search a specific project
+curl -s '$ALCOVE_URL/search?q=QUERY&project=PROJ'
+
+# Search across all projects
+curl -s '$ALCOVE_URL/search?q=QUERY&limit=20'
+
+# POST search (JSON body)
+curl -s -X POST $ALCOVE_URL/v1/search \
+  -H 'Content-Type: application/json' \
+  -d '{"q": "QUERY", "limit": 10, "project": "proj", "mode": "hybrid"}'
+```
+
+Response: `{"query": "...", "results": [...], "mode": "...", "truncated": false}`
+
+### Project Operations
+
+```bash
+# List projects
+curl -s $ALCOVE_URL/projects
+
+# Init project
+curl -s -X POST $ALCOVE_URL/projects \
+  -H 'Content-Type: application/json' \
+  -d '{"project_name": "myproj", "project_path": "/abs/path"}'
+
+# Project docs overview (with sizes and classification)
+curl -s $ALCOVE_URL/projects/PROJECT/docs
+
+# Audit doc health
+curl -s $ALCOVE_URL/projects/PROJECT/audit
+
+# Validate against policy.toml
+curl -s $ALCOVE_URL/projects/PROJECT/validate
+
+# Configure project settings
+curl -s -X PUT $ALCOVE_URL/projects/PROJECT/config \
+  -H 'Content-Type: application/json' \
+  -d '{"core_files": ["PRD.md", "ARCHITECTURE.md"]}'
+
+# Read a doc file
+curl -s '$ALCOVE_URL/docs/PRD.md?project=PROJECT'
+curl -s '$ALCOVE_URL/docs/reports/weekly.md?project=PROJECT&offset=0&limit=2000'
+
+# Index code structure
+curl -s -X POST $ALCOVE_URL/index-code \
+  -H 'Content-Type: application/json' \
+  -d '{"source_path": "/abs/path/src", "language": "rust", "project": "PROJECT"}'
+```
+
+| Action | Method | Endpoint |
+|--------|--------|----------|
+| List projects | GET | `/projects` |
+| Init project | POST | `/projects` |
+| Project docs overview | GET | `/projects/{name}/docs` |
+| Audit project | GET | `/projects/{name}/audit` |
+| Validate docs | GET | `/projects/{name}/validate` |
+| Configure project | PUT | `/projects/{name}/config` |
+| Read doc file | GET | `/docs/{path}?project=name` |
+| Index code | POST | `/index-code` |
+
+### Index & Maintenance
+
+```bash
+# Update index — incremental (changed/added/deleted files only), all projects
+curl -s -X POST $ALCOVE_URL/index
+# ↑ DEFAULT for "make new docs searchable" or "rebuild index"
+
+# Update index — single project only
+curl -s -X POST $ALCOVE_URL/projects/PROJECT/index
+# ↑ ONLY when explicitly targeting a specific project
+
+# Check changed files since last index
+curl -s '$ALCOVE_URL/changes?auto_rebuild=true'
+
+# Lint docs
+curl -s '$ALCOVE_URL/lint?project=PROJECT'
+```
+
+**Rule**: Default to `/index` (global). Use `/projects/{name}/index` only when task specifies a single project.
+
+**⚠️ NEVER run `alcove rebuild` / `alcove vault rebuild` (CLI) to make new docs searchable** — they DELETE the entire index and vectors, then re-embed everything, leaving search on grep fallback until done. `/index` above is incremental (unchanged files are skipped) and is the only update path agents ever need. The rebuild CLI only runs in an interactive terminal (y/N approval, no flag bypass) — agents cannot run it at all.
+
+| Action | Method | Endpoint |
+|--------|--------|----------|
+| Update index (all projects) | POST | `/index` |
+| Update index (single project) | POST | `/projects/{name}/index` |
+| Check changes | GET | `/changes?auto_rebuild=true` |
+| Lint project | GET | `/lint?project=name` |
+
+### Vault Operations
+
+```bash
+# List vaults
+curl -s $ALCOVE_URL/vaults
+
+# Search vaults
+curl -s '$ALCOVE_URL/vaults/search?q=QUERY&vault=*&limit=20'
+
+# Backup vault
+curl -s -X POST $ALCOVE_URL/vaults/backup \
+  -H 'Content-Type: application/json' \
+  -d '{"vault_name": "myvault"}'
+
+# Promote document into doc-repo
+curl -s -X POST $ALCOVE_URL/promote \
+  -H 'Content-Type: application/json' \
+  -d '{"source": "/abs/path/notes.md", "project": "PROJECT", "copy": true}'
+```
+
+| Action | Method | Endpoint |
+|--------|--------|----------|
+| List vaults | GET | `/vaults` |
+| Search vault | GET | `/vaults/search?q=...` |
+| Backup vault | POST | `/vaults/backup` |
+| Promote doc | POST | `/promote` |
+
+### Agent Memory (#37)
+
+Durable cross-session memory stored INSIDE the docs vault — global notes in `<docs_root>/memory/`, project notes in `<docs_root>/<project>/memory/`. Plain markdown, git-versioned with the vault, indexed on store. `valid_until` (ISO 8601) makes time-sensitive facts drop out of recall automatically.
+
+Scope routing:
+- Facts about the user, tools, or environment → global (omit `project`)
+- Facts tied to one project → include `"project": "<name>"` (folder must exist under docs_root)
+
+```bash
+# Store global memory (title defaults to first line)
+curl -s -X POST $ALCOVE_URL/memory/store \
+  -H 'Content-Type: application/json' \
+  -d '{"content": "user prefers turbofish syntax", "valid_until": "2027-01-01T00:00:00Z"}'
+
+# Store project-scoped memory
+curl -s -X POST $ALCOVE_URL/memory/store \
+  -H 'Content-Type: application/json' \
+  -d '{"content": "uses rustls, never openssl", "project": "alcove"}'
+
+# Recall — global + merged project scope, one ranked list (hybrid BM25 + vector)
+curl -s '$ALCOVE_URL/memory/recall?q=syntax+preference&project=alcove&limit=10'
+```
+
+| Action | Method | Endpoint |
+|--------|--------|----------|
+| Store memory | POST | `/memory/store` |
+| Recall memories | GET | `/memory/recall?q=...&project=...` |
+
+Notes are editable/removable directly in those folders; changes are picked up on next store (which re-indexes). `memory/` folders are excluded from the main project index — `/memory/recall` is the only search path for them. The former separate `~/.alcove/vaults/memory` vault is superseded.
+### Doc Graph (backlinks/related) — requires `doc-graph` feature
+
+```bash
+# Docs linking TO a file (backlinks)
+curl -s '$ALCOVE_URL/docs/backlinks?file=PROJECT/PRD.md'
+
+# Docs a file links TO (related)
+curl -s '$ALCOVE_URL/docs/related?file=PROJECT/PRD.md'
+
+# Stamp last_verified=now on a doc
+curl -s -X POST '$ALCOVE_URL/docs/verify?file=PROJECT/PRD.md'
+
+# Count docs excluded from recall by expiry
+curl -s $ALCOVE_URL/docs/expired
+```
+
+| Action | Method | Endpoint |
+|--------|--------|----------|
+| Backlinks | GET | `/docs/backlinks?file=...` |
+| Related docs | GET | `/docs/related?file=...` |
+| Verify doc | POST | `/docs/verify?file=...` |
+| Expired count | GET | `/docs/expired` |
+
+Expired docs (valid_until in the past) are excluded from backlinks/related recall in both directions.
+
+### MCP Proxy (Legacy)
+
+The JSON-RPC proxy remains available for MCP clients:
+
+```bash
+curl -s -X POST $ALCOVE_URL/mcp \
+  -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"TOOL_NAME","arguments":{}}}'
+```
+
+### Health Check
+
+```bash
+curl -s $ALCOVE_URL/health
+# → {"status": "ok", "version": "x.y.z", "docs_root_configured": true, "projects": N}
+```
+
+## Rules
+
+### Scope
+**Default: current project.** Ambiguous → ask. Global only on explicit request.
+
+### Before writing code
+1. `CONVENTIONS.md` → project-specific rules
+2. `CODE_INDEX.md` → compact module/type/function overview (avoids reading dozens of source files)
+3. For research/reference material → search vaults via `GET /vaults/search?q=...`
+
+### Answering questions
+**Never answer from memory.** Call `GET /projects/{name}/docs` → `GET /docs/{path}?project=name` for the relevant file → summarize. Do not dump full files unless asked.
+
+### Doc status disambiguation
+| User says | Endpoint |
+|-----------|----------|
+| validate, policy, compliance | `GET /projects/{name}/validate` |
+| lint, broken link, orphan, stale | `GET /lint?project=name` |
+| audit, organize, cleanup, what's missing | `GET /projects/{name}/audit` (runs both validate + lint) |
+| changed, stale index, new files | `GET /changes?auto_rebuild=true` |
+
+Ambiguous → call `audit_project` (broadest).
+
+### Acting on audit results
+- **alcove → project repo**: OK for public-facing docs derived from internal content
+- **project repo → alcove**: OK to restructure reference materials
+- **Internal docs → project repo**: **NEVER** expose PRD/ARCHITECTURE/etc.
+- **Always confirm** before moving/deleting files
+- Re-run validate + lint after cleanup
+
+### Promoting notes
+Path provided → act immediately: `POST /promote` with the source path. No matching project → `inbox/`. Then `POST /index`.
+
+### After development
+Proactively capture at natural stopping points:
+- Architecture change → `ARCHITECTURE.md`
+- Decision rationale → `DECISIONS.md`
+- Bug/workaround → `DEBT.md`
+- Coding pattern → `CONVENTIONS.md`
+- Env var → `SECRETS_MAP.md`
+- Progress → `PROGRESS.md`
+
+Read → append with date → `POST /index`.

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Zagrosi Forge</title>
+  <desc id="desc">A flat forge furnace icon with a lit arched chamber.</desc>
+  <rect width="512" height="512" rx="96" fill="#0B1F1E"/>
+  <rect x="32" y="32" width="448" height="448" rx="74" fill="none" stroke="#5EEAD4" stroke-opacity=".22" stroke-width="4"/>
+
+  <path d="M190 104h132v52H190Z" fill="#F8FAFC"/>
+  <path d="M144 156h224l36 254H108Z" fill="#F8FAFC"/>
+  <path d="M174 410V262c0-54 37-98 82-98s82 44 82 98v148Z" fill="#0F766E"/>
+  <path d="M202 410V272c0-38 24-70 54-70s54 32 54 70v138Z" fill="#082F2C"/>
+
+  <path d="M208 344h96v66h-96Z" fill="#F97316"/>
+  <path d="M226 314h60l18 30h-96Z" fill="#F97316"/>
+  <path d="M238 410v-54l18-30 18 30v54Z" fill="#FEF3C7"/>
+
+  <path d="M156 196h64M292 196h64M145 246h44M323 246h44M137 388h48M327 388h48" fill="none" stroke="#0F766E" stroke-width="12" stroke-linecap="square"/>
+</svg>

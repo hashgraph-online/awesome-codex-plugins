@@ -1,0 +1,5 @@
+interface:
+  display_name: "Refactor"
+  short_description: "Audit a project, rank findings, and apply approved refactors in verified tranches"
+policy:
+  allow_implicit_invocation: false

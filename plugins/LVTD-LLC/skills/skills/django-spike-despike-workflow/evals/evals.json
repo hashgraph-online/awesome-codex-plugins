@@ -1,0 +1,19 @@
+{
+  "skill_name": "django-spike-despike-workflow",
+  "evals": [
+    {
+      "id": 1,
+      "name": "magic-link-despike",
+      "prompt": "I spiked passwordless login in Django and it works, but the code is messy. How do I de-spike it with tests?",
+      "expected_output": "Captures spike learning, writes functional/integration behavior, reverts or quarantines spike code, rebuilds in slices, and fakes only email delivery.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "prototype-to-production",
+      "prompt": "This Django branch has a quick prototype for invitations. I want to keep the learning but not the implementation.",
+      "expected_output": "Separates learned facts from code, defines behavior tests, rebuilds working-state-to-working-state, and includes cleanup/verification.",
+      "files": []
+    }
+  ]
+}

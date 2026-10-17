@@ -1,0 +1,51 @@
+aliases:
+  ppwr:
+    canonical: "packaging and packaging waste regulation"
+    hints:
+      - "opakowania i odpady opakowaniowe"
+      - "PPWR"
+  cbam:
+    canonical: "carbon border adjustment mechanism"
+    hints:
+      - "CBAM"
+      - "import cementu spoza UE"
+      - "rozporządzenie 2023/956"
+  eudr:
+    canonical: "deforestation-free products regulation"
+    hints:
+      - "EUDR"
+      - "wylesianie"
+  espr:
+    canonical: "ecodesign for sustainable products regulation"
+    hints:
+      - "ESPR"
+      - "ekoprojekt"
+  csrd:
+    canonical: "corporate sustainability reporting directive"
+    hints:
+      - "CSRD"
+      - "raportowanie zrównoważonego rozwoju"
+  csddd:
+    canonical: "corporate sustainability due diligence directive"
+    hints:
+      - "CSDDD"
+      - "due diligence łańcucha dostaw"
+  gpsr:
+    canonical: "general product safety regulation"
+    hints:
+      - "GPSR"
+      - "bezpieczeństwo produktów"
+  ai-act:
+    canonical: "artificial intelligence act"
+    hints:
+      - "AI Act"
+      - "sztuczna inteligencja"
+  batteries:
+    canonical: "batteries regulation"
+    hints:
+      - "rozporządzenie bateryjne"
+      - "baterie"
+
+notes:
+  - "Aliasy są pomocnicze. CELEX i ELI zawsze potwierdzaj w źródłach urzędowych."
+

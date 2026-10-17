@@ -1,0 +1,44 @@
+{
+  "description": "Restore active Goal Progress sessions, inject runtime identity, and observe bounded lifecycle signals.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "^(?:startup|resume|compact)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/sh \"$PLUGIN_ROOT/runtime/run-bootstrap.sh\" hook",
+            "timeout": 3,
+            "additionalContextLimit": 128
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "^(?:goal_progress_|.*[^A-Za-z0-9]goal_progress[^A-Za-z0-9]+goal_progress_)(?:activate|initialize|get|update|rescope|set_phase)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/sh \"$PLUGIN_ROOT/runtime/run-bootstrap.sh\" hook",
+            "timeout": 1
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "^update_goal$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/sh \"$PLUGIN_ROOT/runtime/run-bootstrap.sh\" hook",
+            "timeout": 2,
+            "async": true,
+            "additionalContextLimit": 64
+          }
+        ]
+      }
+    ]
+  }
+}

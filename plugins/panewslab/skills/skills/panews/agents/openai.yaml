@@ -1,7 +1,7 @@
 interface:
   display_name: "PANews"
-  short_description: "Structured PANews cryptocurrency and blockchain news discovery across articles, rankings, topics, columns, series, events, and calendars"
-  default_prompt: "Use $panews for structured PANews cryptocurrency and blockchain news discovery, including briefings, article search, rankings, topics, columns, series, events, calendars, and editorial picks."
+  short_description: "Structured PANews cryptocurrency and blockchain news discovery across articles, rankings, topics, columns, series, events, calendars, and Polymarket smart money boards"
+  default_prompt: "Use $panews for structured PANews cryptocurrency and blockchain news discovery, including briefings, article search, rankings, topics, columns, series, events, calendars, editorial picks, and Polymarket smart money leaderboard reading such as latest boards, board highlights, top addresses, and board comparisons."
 
 policy:
   allow_implicit_invocation: true

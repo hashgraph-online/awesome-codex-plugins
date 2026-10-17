@@ -1,0 +1,4 @@
+interface:
+  display_name: "GrayMatter Memory"
+  short_description: "Search and maintain secure durable agent memory"
+  default_prompt: "Use GrayMatter memory safely for this task."

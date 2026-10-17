@@ -1,0 +1,10 @@
+{
+  "incident_id": "incident-example",
+  "detected_at": "2000-01-01T00:00:00Z",
+  "artifact": "behavior-spec.json",
+  "blocked_material_type": "private_identifier",
+  "action": "quarantined",
+  "clean_context_invalidated": true,
+  "reported_by_role": "clean-qa-editor",
+  "notes": "Example contamination incident record."
+}

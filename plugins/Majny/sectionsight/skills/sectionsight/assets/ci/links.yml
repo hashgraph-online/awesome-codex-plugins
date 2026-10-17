@@ -1,0 +1,96 @@
+# Broken links: lychee (https://lychee.cli.rs) in GitHub Actions. Copy it to
+# .github/workflows/links.yml and edit the env block below.
+#
+#   Pull requests  build the site and check the links between its own pages
+#                  in the built HTML, offline (fast, never flaky).
+#   Weekly         read the live pages listed in PAGES and check every link
+#                  on them, other sites' included (slow and sometimes flaky,
+#                  so not on every pull request). Also on demand.
+#
+# A failed weekly run is e-mailed by GitHub to whoever last changed the cron
+# line. Uptime is a different job: see references/verify.md (Upptime,
+# Uptime Kuma).
+name: links
+
+on:
+  pull_request:
+  schedule:
+    - cron: '23 4 * * 1' # Mondays, 04:23 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '22'
+  INSTALL_COMMAND: npm ci
+  BUILD_COMMAND: npm run build
+  # Where the build writes its HTML (dist, out, public, _site, build…).
+  BUILD_DIR: dist
+  # The live site, and the pages whose links the weekly run checks.
+  BASE_URL: https://www.example.com
+  PAGES: / /pricing /privacy
+  # Links to paths the built HTML has no file for (served only by the app,
+  # e.g. /account or an API route), as lychee --exclude regexes, separated
+  # by spaces. Example: '/account(/|$) /api/'
+  EXCLUDE: ''
+
+jobs:
+  internal:
+    name: internal links (built site)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install and build the site
+        run: |
+          sh -c "$INSTALL_COMMAND"
+          sh -c "$BUILD_COMMAND"
+      - name: List the excluded paths
+        id: exclude
+        run: |
+          args=""
+          for e in $EXCLUDE; do args="$args --exclude '$e'"; done
+          echo "args=$args" >> "$GITHUB_OUTPUT"
+      - name: Check links between the site's own pages
+        uses: lycheeverse/lychee-action@v2
+        with:
+          fail: true
+          # --fallback-extensions and --index-files: a link to /pricing is
+          # fine when the build wrote pricing.html or pricing/index.html.
+          args: >-
+            --offline
+            --no-progress
+            --root-dir ${{ github.workspace }}/${{ env.BUILD_DIR }}
+            --fallback-extensions html,htm
+            --index-files index.html,index.htm
+            ${{ steps.exclude.outputs.args }}
+            '${{ env.BUILD_DIR }}/**/*.html'
+
+  external:
+    name: all links (live site, weekly)
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: List the pages
+        id: pages
+        run: |
+          urls=""
+          for p in $PAGES; do urls="$urls ${BASE_URL%/}$p"; done
+          echo "urls=$urls" >> "$GITHUB_OUTPUT"
+      - name: Check every link on them
+        uses: lycheeverse/lychee-action@v2
+        with:
+          fail: true
+          args: >-
+            --no-progress
+            --max-retries 3
+            --accept 200..=299,429
+            ${{ steps.pages.outputs.urls }}

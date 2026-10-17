@@ -1,0 +1,4 @@
+interface:
+  display_name: "AI Regression Testing"
+  short_description: "为 AI 辅助开发补齐防回归测试策略"
+  default_prompt: "Use $ai-regression-testing to identify regression-prone paths, add targeted tests, and verify the fix survives the same AI blind spots that caused the bug."

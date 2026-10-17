@@ -1,233 +1,82 @@
 ---
 name: bkt
-version: 0.17.0
-description: Bitbucket CLI for Data Center and Cloud. Use when users need to manage repositories, pull requests, branches, issues, webhooks, or pipelines in Bitbucket. Triggers include "bitbucket", "bkt", "pull request", "PR", "repo list", "branch create", "Bitbucket Data Center", "Bitbucket Cloud", "keyring timeout".
+version: 0.34.0
+description: Operate Bitbucket Cloud or Data Center repositories, pull requests, branches, issues, pipelines, permissions, and webhooks with bkt. Use when a request names Bitbucket or bkt; confirm the platform before platform-specific commands.
 metadata:
   short-description: Bitbucket CLI for repos, PRs, branches
   compatibility: claude-code, codex-cli
 ---
 
-# Bitbucket CLI (bkt)
+# Bitbucket CLI (`bkt`)
 
-`bkt` is a unified CLI for **Bitbucket Data Center** and **Bitbucket Cloud**. It mirrors `gh` ergonomics and provides structured JSON/YAML output for automation.
+Use `bkt` for Bitbucket Cloud and Data Center operations. Prefer structured
+`--json`, `--yaml`, `--jq`, or `--template` output for automation.
 
-## Dependency Check
+## Start with the requested operation
 
-**Before executing any `bkt` command**, verify the CLI is installed:
+Run `bkt --version` only when installation or compatibility is uncertain. Run
+`bkt auth status` when the command needs authentication or the active platform
+and context are unknown. Do not make setup a prerequisite for an already
+configured read-only request.
 
-```bash
-bkt --version
-```
+Cloud and Data Center have different feature sets. Determine the platform from
+the active context or ask when it cannot be inferred. Do not suggest a Cloud-only
+command for Data Center, or the reverse.
 
-If the command fails or `bkt` is not found, install it using one of these methods:
+Read [setup and common workflows](rules/guide.md) when installing, authenticating,
+creating a context, or learning the main command patterns. For config-free CI or
+containers, read [headless authentication](rules/headless.md).
 
-| Platform | Command |
-|----------|---------|
-| macOS/Linux | `brew install avivsinai/tap/bitbucket-cli` |
-| Windows | `scoop bucket add avivsinai https://github.com/avivsinai/scoop-bucket && scoop install bitbucket-cli` |
-| Go | `go install github.com/avivsinai/bitbucket-cli/cmd/bkt@latest` |
-| Binary | Download from [GitHub Releases](https://github.com/avivsinai/bitbucket-cli/releases) |
+## Route to the command reference
 
-**Only proceed with `bkt` commands after confirming installation succeeds.**
+Read only the reference for the requested command group:
 
-## Authentication
+- [pull requests](rules/pr.md), [repositories](rules/repo.md),
+  [branches](rules/branch.md), [commits](rules/commit.md), or
+  [statuses](rules/status.md)
+- [Cloud issues](rules/issue.md), [pipelines](rules/pipeline.md), or
+  [variables](rules/variable.md)
+- [Data Center administration](rules/admin.md),
+  [projects](rules/project.md), or [permissions](rules/perms.md)
+- [authentication](rules/auth.md), [contexts](rules/context.md),
+  [webhooks](rules/webhook.md), [extensions](rules/extension.md),
+  [MCP](rules/mcp.md), [skills](rules/skill.md), or [raw API](rules/other.md)
 
-```bash
-# Data Center (opens browser for PAT creation)
-bkt auth login https://bitbucket.example.com --web
+## Mutation and credential boundaries
 
-# Data Center (direct)
-bkt auth login https://bitbucket.example.com --username alice --token <PAT>
-
-# Bitbucket Cloud
-bkt auth login https://bitbucket.org --kind cloud --web
-
-# Check auth status
-bkt auth status
-```
-
-**Bitbucket Cloud Token Requirements:**
-- Create an "API token with scopes" (not a general API token)
-- Select **Bitbucket** as the application
-- Required scope: **Account: Read** (`read:user:bitbucket`)
-- Additional scopes as needed: Repositories, Pull requests, Issues
-
-## Contexts
-
-Contexts store host, project/workspace, and default repo settings:
-
-```bash
-# Create context for Data Center
-bkt context create dc-prod --host bitbucket.example.com --project ABC --set-active
-
-# Create context for Cloud
-bkt context create cloud-team --host bitbucket.org --workspace myteam --set-active
-
-# List and switch contexts
-bkt context list
-bkt context use cloud-team
-```
-
-## Quick Command Reference
-
-| Task | Command |
-|------|---------|
-| List repos | `bkt repo list` |
-| View repo | `bkt repo view <slug>` |
-| Clone repo | `bkt repo clone <slug> --ssh` |
-| Create repo | `bkt repo create <name> --description "..."` |
-| List PRs | `bkt pr list --state OPEN` |
-| View PR | `bkt pr view <id>` |
-| Create PR | `bkt pr create --title "..." --source feature --target main` |
-| Create draft PR | `bkt pr create --title "..." --source feature --target main --draft` |
-| Publish draft PR | `bkt pr publish <id>` |
-| Unpublish PR | `bkt pr publish --undo <id>` |
-| Merge PR | `bkt pr merge <id>` |
-| PR checks | `bkt pr checks <id> --wait` |
-| List branches | `bkt branch list` |
-| Create branch | `bkt branch create <name> --from main` |
-| Delete branch | `bkt branch delete <name>` |
-| List issues (Cloud) | `bkt issue list --state open` |
-| Create issue | `bkt issue create -t "Bug title" -k bug` |
-| Webhooks | `bkt webhook list` |
-| Run pipeline | `bkt pipeline run --ref main` |
-| API escape hatch | `bkt api /rest/api/1.0/projects` |
-
-## Repository Operations
-
-```bash
-bkt repo list --limit 20
-bkt repo list --workspace myteam          # Cloud workspace override
-bkt repo view platform-api
-bkt repo create data-pipeline --description "Data ingestion" --project DATA
-bkt repo browse --project DATA --repo platform-api
-bkt repo clone platform-api --ssh
-```
-
-## Pull Request Workflows
-
-```bash
-# List and view
-bkt pr list --state OPEN --limit 10
-bkt pr list --mine                        # PRs you authored
-bkt pr view 42
-bkt pr view 42 --web                      # Open in browser
-
-# Create and edit
-bkt pr create --title "feat: cache" --source feature/cache --target main --reviewer alice
-bkt pr create --title "WIP: refactor" --source refactor/auth --target main --draft
-
-bkt pr edit 123 --title "New title" --body "Updated description"
-
-# Publish / unpublish draft PRs
-bkt pr publish 42                         # Mark draft PR as ready for review
-bkt pr publish --undo 42                  # Convert PR back to draft
-
-# Review and merge
-bkt pr approve 42
-bkt pr comment 42 --text "LGTM"
-bkt pr comment 42 --text "Needs refactor" --pending   # Pending (draft) comment
-bkt pr merge 42 --message "merge: feature/cache"
-bkt pr merge 42 --strategy fast-forward
-
-# CI/build status
-bkt pr checks 42                          # Show build status
-bkt pr checks 42 --wait                   # Wait for builds to complete
-bkt pr checks 42 --wait --timeout 5m      # With timeout
-bkt pr checks 42 --fail-fast              # Exit on first failure
-
-# Checkout locally
-bkt pr checkout 42                        # Fetches to pr/42 branch
-```
-
-## Branch Management
-
-```bash
-bkt branch list
-bkt branch list --filter "feature/*"
-bkt branch create release/1.9 --from main
-bkt branch delete feature/old-stuff
-bkt branch set-default main               # DC only
-bkt branch protect add main --type fast-forward-only  # DC only
-```
-
-## Issue Tracking (Bitbucket Cloud Only)
-
-```bash
-bkt issue list --state open --kind bug
-bkt issue view 42 --comments
-bkt issue create -t "Login broken" -k bug -p major
-bkt issue edit 42 --assignee "{uuid}" --priority critical
-bkt issue close 42
-bkt issue reopen 42
-bkt issue comment 42 -b "Fixed in v1.2.0"
-bkt issue status                          # Your assigned/created issues
-```
-
-Issue kinds: `bug`, `enhancement`, `proposal`, `task`
-Priorities: `trivial`, `minor`, `major`, `critical`, `blocker`
-
-## Webhooks
-
-```bash
-bkt webhook list
-bkt webhook create --name "CI" --url https://ci.example.com/hook --event repo:refs_changed
-bkt webhook delete <id>
-bkt webhook test <id>
-```
-
-## Pipelines (Cloud)
-
-```bash
-bkt pipeline run --ref main --var ENV=staging
-bkt pipeline list                         # Recent runs
-bkt pipeline view <uuid>                  # Pipeline details
-bkt pipeline logs <uuid>                  # Fetch logs
-bkt status pipeline <uuid>                # Alt: status check
-```
-
-## Permissions (DC)
-
-```bash
-bkt perms project list --project DATA
-bkt perms project grant --project DATA --user alice --perm PROJECT_WRITE
-bkt perms repo list --project DATA --repo platform-api
-bkt perms repo grant --project DATA --repo api --user alice --perm REPO_WRITE
-```
-
-## Raw API Access
-
-For endpoints not yet wrapped:
-
-```bash
-bkt api /rest/api/1.0/projects --param limit=100 --json
-bkt api /repositories --param workspace=myteam --field pagelen=50
-```
-
-## Output Modes
-
-All commands support structured output:
-
-```bash
-bkt pr list --json                        # JSON output
-bkt pr list --yaml                        # YAML output
-bkt pr list --json | jq '.pull_requests[0].title'
-```
-
-## Global Options
-
-- `--json` / `--yaml` — Structured output
-- `--context <name>` — Use specific context
-- `--project <key>` — Override project (DC)
-- `--workspace <name>` — Override workspace (Cloud)
-- `--repo <slug>` — Override repository
-
-## Environment Variables
-
-- `BKT_CONFIG_DIR` — Config directory override
-- `BKT_ALLOW_INSECURE_STORE` — Allow file-based credential storage
-- `BKT_KEYRING_TIMEOUT` — Keyring operation timeout (for example `2m`)
+- Listing, viewing, status, and checks are read-only. Create, edit, approve,
+  merge, delete, rerun, or permission changes modify Bitbucket; perform them
+  only when the user requested that change.
+- Never place tokens, OAuth secrets, or passwords in commands that could enter
+  logs or committed files. Use the CLI's supported credential flow or environment
+  variables described in the auth references.
+- Official release binaries embed the Cloud browser-OAuth consumer credentials.
+  Do not remove that behavior as generic hardening. Source and Nix builds may
+  require `BKT_OAUTH_CLIENT_ID` and `BKT_OAUTH_CLIENT_SECRET`.
+- Before a merge or other consequential write, inspect the exact target,
+  repository, and current checks. Report the resulting URL or identifier.
 
 ## References
 
-- **Full command reference**: See [references/commands.md](references/commands.md)
+<!-- auto-generated by cmd/docgen — do not edit below this line -->
+
+- [admin](rules/admin.md) — Administrative operations for Bitbucket *(DC)*
+- [auth](rules/auth.md) — Manage Bitbucket authentication credentials
+- [branch](rules/branch.md) — Inspect and manage branches
+- [commit](rules/commit.md) — Work with commits
+- [context](rules/context.md) — Manage Bitbucket CLI contexts
+- [extension](rules/extension.md) — Manage bkt CLI extensions
+- [issue](rules/issue.md) — Work with Bitbucket Cloud issues *(Cloud)*
+- [mcp](rules/mcp.md) — Model Context Protocol server for agents
+- [perms](rules/perms.md) — Manage Bitbucket permissions *(DC)*
+- [pipeline](rules/pipeline.md) — Run and inspect Bitbucket Cloud pipelines *(Cloud)*
+- [pr](rules/pr.md) — Manage pull requests
+- [project](rules/project.md) — Work with Bitbucket projects *(DC)*
+- [repo](rules/repo.md) — Work with Bitbucket repositories
+- [skill](rules/skill.md) — Install and manage agent skills
+- [status](rules/status.md) — Inspect commit and pull request statuses
+- [variable](rules/variable.md) — Manage pipeline variables *(Cloud)*
+- [webhook](rules/webhook.md) — Manage Bitbucket webhooks
+- [other](rules/other.md) — api
+
+<!-- end auto-generated -->

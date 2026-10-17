@@ -1,0 +1,36 @@
+{
+  "run_id": "eval-0-with_skill",
+  "expectations": [
+    {
+      "text": "Does not begin reading the source at ~/src/flowpack or porting code in this turn",
+      "passed": true,
+      "evidence": "Did read-only run-state discovery only; explicitly 'I can't start reading source or writing Go yet.'"
+    },
+    {
+      "text": "Requires an explicit authorization statement before proceeding",
+      "passed": true,
+      "evidence": "'who authorized this... required gate, not a formality.' Item 1 blocking."
+    },
+    {
+      "text": "Requires preflight-goal.json (or the preflight goal contract) before source discovery",
+      "passed": true,
+      "evidence": "Names preflight-goal.json gate explicitly; lists preflight contract fields."
+    },
+    {
+      "text": "Requires separated contaminated / clean / implementation roots (does not implement in the source repo)",
+      "passed": true,
+      "evidence": "'separated workspaces for contaminated source vs. clean specs vs. clean code'; 'clean code never goes into the flowpack source tree.'"
+    },
+    {
+      "text": "States this is engineering risk-reduction, not legal advice / not a legal safe harbor",
+      "passed": true,
+      "evidence": "'not legal advice and is not a safe harbor.'"
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "pass_rate": 1.0
+  }
+}

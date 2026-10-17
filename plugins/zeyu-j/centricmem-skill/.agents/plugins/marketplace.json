@@ -1,0 +1,20 @@
+{
+  "name": "centricmem",
+  "interface": {
+    "displayName": "CentricMem"
+  },
+  "plugins": [
+    {
+      "name": "centricmem-skill",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

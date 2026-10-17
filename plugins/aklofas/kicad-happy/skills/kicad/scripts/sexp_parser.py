@@ -8,8 +8,25 @@ Usage:
     from sexp_parser import parse_file, find_all, find_first, get_property
 """
 
+import re
 import sys
 from typing import Any
+
+# KiCad brace-escape sequences (common/string_utils.cpp)
+_BRACE_ESCAPES = {
+    "{dblquote}": '"', "{quote}": "'", "{lt}": "<", "{gt}": ">",
+    "{backslash}": "\\", "{slash}": "/", "{bar}": "|", "{colon}": ":",
+    "{space}": " ", "{amp}": "&", "{tab}": "\t", "{newline}": "\n",
+    "{return}": "\r", "{brace}": "{",
+}
+_BRACE_RE = re.compile(r"\{[a-z]+\}")
+
+
+def _unescape_braces(s: str) -> str:
+    """Replace KiCad {brace_escape} sequences with their characters."""
+    if "{" not in s:
+        return s
+    return _BRACE_RE.sub(lambda m: _BRACE_ESCAPES.get(m.group(0), m.group(0)), s)
 
 
 def parse(text: str) -> list:
@@ -34,6 +51,10 @@ def _tokenize(text: str) -> list[str]:
         c = text[i]
         if c in " \t\n\r":
             i += 1
+        elif c == "#":
+            # Line comment — skip to end of line
+            while i < n and text[i] != "\n":
+                i += 1
         elif c == "(":
             tokens.append("(")
             i += 1
@@ -50,14 +71,17 @@ def _tokenize(text: str) -> list[str]:
                     break
                 else:
                     j += 1
-            tokens.append(text[i + 1 : j].replace('\\"', '"').replace("\\\\", "\\"))
+            raw = text[i + 1 : j]
+            # Unescape: \\→placeholder first, then known sequences, then restore
+            raw = raw.replace("\\\\", "\x00").replace('\\"', '"').replace("\\n", "\n").replace("\\r", "\r").replace("\x00", "\\")
+            tokens.append(_unescape_braces(raw))
             i = j + 1
         else:
             # Unquoted atom
             j = i
             while j < n and text[j] not in " \t\n\r()\"":
                 j += 1
-            tokens.append(text[i:j])
+            tokens.append(_unescape_braces(text[i:j]))
             i = j
     return tokens
 
@@ -130,16 +154,23 @@ def get_value(node: list, keyword: str) -> str | None:
 def get_property(node: list, prop_name: str) -> str | None:
     """Get the value of a named property (exact case match).
 
+    Handles KiCad 9+ ``(property private "Name" "Value" ...)`` format
+    where ``private`` shifts the name/value indices by one.
+
     Example: get_property(symbol, "Reference") -> "C7"
     """
     for child in node:
-        if isinstance(child, list) and len(child) >= 3 and child[0] == "property" and child[1] == prop_name:
-            return str(child[2])
+        if isinstance(child, list) and len(child) >= 3 and child[0] == "property":
+            off = 1 if child[1] == "private" else 0
+            if len(child) >= 3 + off and child[1 + off] == prop_name:
+                return str(child[2 + off])
     return None
 
 
 def get_properties(node: list) -> dict[str, str]:
     """Return all properties of a node as a case-normalised dict.
+
+    Handles KiCad 9+ ``(property private ...)`` format.
 
     Keys are lowercased so callers can do case-insensitive lookups without
     enumerating every possible capitalisation variant.
@@ -151,7 +182,9 @@ def get_properties(node: list) -> dict[str, str]:
     result: dict[str, str] = {}
     for child in node:
         if isinstance(child, list) and len(child) >= 3 and child[0] == "property":
-            result[child[1].lower()] = str(child[2])
+            off = 1 if child[1] == "private" else 0
+            if len(child) >= 3 + off:
+                result[child[1 + off].lower()] = str(child[2 + off])
     return result
 
 
@@ -174,8 +207,21 @@ def get_xy(node: list) -> tuple[float, float] | None:
 
 
 def has_flag(node: list, flag: str) -> bool:
-    """Check if a node contains a flag like 'hide' or 'yes'."""
-    return flag in node
+    """Check if a node contains a flag like 'hide' or 'yes'.
+
+    Handles three KiCad forms:
+    - Bare token:    (pin ... hide ...)        — legacy (KiCad 5/6/early 7)
+    - Boolean yes:   (pin ... (hide yes) ...)  — post-20241004
+    - Boolean no:    (pin ... (hide no) ...)   — post-20241004 (returns False)
+
+    Absent flag returns False.
+    """
+    if flag in node:
+        return True
+    for child in node:
+        if isinstance(child, list) and len(child) >= 2 and child[0] == flag:
+            return str(child[1]).lower() in ("yes", "true")
+    return False
 
 
 if __name__ == "__main__":

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Swagger Doc Skill"
+  short_description: "Query, export, and integrate Swagger APIs"
+  default_prompt: "Use $swagger-doc-skill to query modules, endpoints, type definitions, integration examples, or export a full Markdown API document from this Swagger URL."

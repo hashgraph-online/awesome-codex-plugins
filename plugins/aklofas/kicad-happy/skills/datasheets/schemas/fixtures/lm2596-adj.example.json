@@ -1,0 +1,507 @@
+{
+  "base": {
+    "absolute_max": {
+      "TJ_max": [
+        {
+          "condition": "Maximum junction temperature",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 5,
+            "section": "7.1 Absolute Maximum Ratings"
+          },
+          "max": 150,
+          "min": null,
+          "notes": null,
+          "typ": null,
+          "unit": "\u00b0C"
+        }
+      ],
+      "Tstg": [
+        {
+          "condition": "Storage temperature",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 5,
+            "section": "7.1 Absolute Maximum Ratings"
+          },
+          "max": 150,
+          "min": -65,
+          "notes": null,
+          "typ": null,
+          "unit": "\u00b0C"
+        }
+      ],
+      "VIN_max": [
+        {
+          "condition": "Maximum supply voltage (VIN)",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 5,
+            "section": "7.1 Absolute Maximum Ratings"
+          },
+          "max": 45,
+          "min": null,
+          "notes": null,
+          "typ": null,
+          "unit": "V"
+        }
+      ]
+    },
+    "compliance": [],
+    "description": "150-kHz, 3-A adjustable step-down (buck) voltage regulator",
+    "esd": {
+      "HBM": [
+        {
+          "condition": "Human-body model (HBM), per ANSI/ESDA/JEDEC JS-001; rating is \u00b12000 V",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 5,
+            "section": "7.2 ESD Ratings"
+          },
+          "max": null,
+          "min": null,
+          "notes": null,
+          "typ": 2000,
+          "unit": "V"
+        }
+      ]
+    },
+    "family": "step-down switching regulator",
+    "moisture_sensitivity": null,
+    "package": {
+      "body_mm": null,
+      "code": "TO-263-5 (KTT)",
+      "evidence": {
+        "confidence": "high",
+        "method": "table",
+        "page": 1,
+        "section": "Package Information"
+      },
+      "pin_count": 5,
+      "pitch_mm": null,
+      "thermal_pad": true
+    },
+    "pin_relationships": [],
+    "pinout": [
+      {
+        "absolute_max": null,
+        "alt_functions": [],
+        "description": "This is the positive input supply for the IC switching regulator. A suitable input bypass capacitor must be present at this pin to minimize voltage transients and to supply the switching currents required by the regulator.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 4,
+          "section": "Pin Configuration and Functions"
+        },
+        "is_5v_tolerant": null,
+        "name": "VIN",
+        "notes": null,
+        "numbers": [
+          "1"
+        ],
+        "power_domain": "VIN",
+        "recommended": null,
+        "subtype": null,
+        "type": "power_in"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [],
+        "description": "Internal switch. The voltage at this pin switches between approximately (+VIN \u2212 VSAT) and approximately \u22120.5 V, with a duty cycle of VOUT / VIN. To minimize coupling to sensitive circuitry, the PCB copper area connected to this pin must be kept to a minimum.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 4,
+          "section": "Pin Configuration and Functions"
+        },
+        "is_5v_tolerant": null,
+        "name": "Output",
+        "notes": "PCB copper area connected to this pin must be kept to a minimum to reduce coupling to sensitive circuitry.",
+        "numbers": [
+          "2"
+        ],
+        "power_domain": "VIN",
+        "recommended": null,
+        "subtype": "switching",
+        "type": "output"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [],
+        "description": "Circuit ground.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 4,
+          "section": "Pin Configuration and Functions"
+        },
+        "is_5v_tolerant": null,
+        "name": "Ground",
+        "notes": null,
+        "numbers": [
+          "3"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "power_in"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [],
+        "description": "Senses the regulated output voltage to complete the feedback loop.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 4,
+          "section": "Pin Configuration and Functions"
+        },
+        "is_5v_tolerant": null,
+        "name": "Feedback",
+        "notes": null,
+        "numbers": [
+          "4"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "input"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [],
+        "description": "Allows the switching regulator circuit to be shut down using logic signals thus dropping the total input supply current to approximately 80 \u00b5A. Pulling this pin below a threshold voltage of approximately 1.3 V turns the regulator on, and pulling this pin above 1.3 V (up to a maximum of 25 V) shuts the regulator down. If this shutdown feature is not required, the ON/OFF pin can be wired to the ground pin or it can be left open. In either case, the regulator will be in the ON condition.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 4,
+          "section": "Pin Configuration and Functions"
+        },
+        "is_5v_tolerant": null,
+        "name": "ON/OFF",
+        "notes": "Active-low shutdown. Pull below ~1.3 V to enable, above ~1.3 V (max 25 V) to shut down. Tie to GND or leave floating to keep regulator ON.",
+        "numbers": [
+          "5"
+        ],
+        "power_domain": "VIN",
+        "recommended": null,
+        "subtype": null,
+        "type": "input"
+      }
+    ],
+    "recommended_operating": {
+      "TA": [
+        {
+          "condition": "Operating ambient temperature",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 5,
+            "section": "7.3 Operating Conditions"
+          },
+          "max": 125,
+          "min": -40,
+          "notes": null,
+          "typ": null,
+          "unit": "\u00b0C"
+        }
+      ],
+      "VIN": [
+        {
+          "condition": "Supply voltage",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 5,
+            "section": "7.3 Operating Conditions"
+          },
+          "max": 40,
+          "min": 4.5,
+          "notes": null,
+          "typ": null,
+          "unit": "V"
+        }
+      ]
+    },
+    "thermal": {
+      "theta_ja": [
+        {
+          "condition": "TO-263 (KTW), 5 pins, tab soldered to 0.5 in\u00b2 of 1-oz copper, single-sided board",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 5,
+            "section": "7.4 Thermal Information"
+          },
+          "max": null,
+          "min": null,
+          "notes": "TO-263 (KTT/KTW) variant; thermal impedance per JESD 51-7",
+          "typ": 50,
+          "unit": "\u00b0C/W"
+        },
+        {
+          "condition": "TO-263 (KTW), 5 pins, larger copper area",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 5,
+            "section": "7.4 Thermal Information"
+          },
+          "max": null,
+          "min": null,
+          "notes": "TO-263 variant, increased copper",
+          "typ": 30,
+          "unit": "\u00b0C/W"
+        },
+        {
+          "condition": "TO-263 (KTW), 5 pins, largest copper area",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 5,
+            "section": "7.4 Thermal Information"
+          },
+          "max": null,
+          "min": null,
+          "notes": "TO-263 variant, maximum copper",
+          "typ": 20,
+          "unit": "\u00b0C/W"
+        },
+        {
+          "condition": "TO-220 (NDZ), 5 pins, mounted vertically, leads soldered to 1 in\u00b2 of 1-oz copper, 4-layer JEDEC board, no heatsink",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 5,
+            "section": "7.4 Thermal Information"
+          },
+          "max": null,
+          "min": null,
+          "notes": "TO-220 (NDZ/NDH) variant",
+          "typ": 50,
+          "unit": "\u00b0C/W"
+        }
+      ],
+      "theta_jc": [
+        {
+          "condition": "Junction-to-case (top), TO-263 (KTW)",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 5,
+            "section": "7.4 Thermal Information"
+          },
+          "max": null,
+          "min": null,
+          "notes": null,
+          "typ": 2,
+          "unit": "\u00b0C/W"
+        },
+        {
+          "condition": "Junction-to-case (top), TO-220 (NDZ)",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 5,
+            "section": "7.4 Thermal Information"
+          },
+          "max": null,
+          "min": null,
+          "notes": null,
+          "typ": 2,
+          "unit": "\u00b0C/W"
+        }
+      ]
+    }
+  },
+  "categories": [
+    "regulator"
+  ],
+  "extraction": {
+    "extracted_at": "2026-04-25T20:40:19Z",
+    "extractor_schema_version": "1.0",
+    "extractor_scout": null,
+    "plan_ref": "LM2596-ADJ.plan.json",
+    "quality_score": 98
+  },
+  "regulator": {
+    "cin_min": [
+      {
+        "condition": "Aluminum electrolytic, 50 V, low-ESR (Nichicon PL series); recommended in adjustable typical application",
+        "evidence": {
+          "confidence": "high",
+          "method": "prose",
+          "page": 27,
+          "section": "9.2.2 LM2596 Adjustable Output Series Buck Regulator"
+        },
+        "max": null,
+        "min": null,
+        "notes": null,
+        "typ": 0.00047,
+        "unit": "F"
+      }
+    ],
+    "compensation_pin": null,
+    "cout_min": [
+      {
+        "condition": "Low-ESR electrolytic range; low-ESR solid tantalum alternative is 10 \u00b5F to 470 \u00b5F",
+        "evidence": {
+          "confidence": "high",
+          "method": "prose",
+          "page": 24,
+          "section": "9.2.1.2.3 Output Capacitor Selection (COUT)"
+        },
+        "max": 0.00082,
+        "min": 8.2e-05,
+        "notes": null,
+        "typ": null,
+        "unit": "F"
+      }
+    ],
+    "dropout": null,
+    "enable_pin": "5",
+    "feedback_pin": "4",
+    "inductor_range": [
+      {
+        "condition": "Inductor selection nomograph for LM2596-ADJ (Figure 9-8), 0.6 A to 3 A load, Vin up to 40 V",
+        "evidence": {
+          "confidence": "high",
+          "method": "curve",
+          "page": 20,
+          "section": "9.1.5 Inductor Selection (Figure 9-8 LM2596-ADJ)"
+        },
+        "max": 0.00015,
+        "min": 2.2e-05,
+        "notes": null,
+        "typ": null,
+        "unit": "H"
+      }
+    ],
+    "iout_max": [
+      {
+        "condition": "DC output load current, full operating range",
+        "evidence": {
+          "confidence": "high",
+          "method": "prose",
+          "page": 1,
+          "section": "1 Features / 3 Description"
+        },
+        "max": 3,
+        "min": null,
+        "notes": null,
+        "typ": null,
+        "unit": "A"
+      }
+    ],
+    "line_regulation": null,
+    "load_regulation": null,
+    "power_good_pin": null,
+    "psrr": null,
+    "reference_voltage": [
+      {
+        "condition": "VFB feedback voltage, Vout programmed for 3 V, TJ = 25\u00b0C",
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 6,
+          "section": "7.8 Electrical Characteristics \u2013 Adjustable Voltage Version"
+        },
+        "max": 1.267,
+        "min": 1.193,
+        "notes": null,
+        "typ": 1.23,
+        "unit": "V"
+      }
+    ],
+    "sequencing": null,
+    "stability_conditions": {
+      "cap_types_allowed": [
+        "electrolytic",
+        "tantalum"
+      ],
+      "esr_range": null,
+      "evidence": {
+        "confidence": "high",
+        "method": "prose",
+        "page": 24,
+        "section": "9.2.1.2.3 Output Capacitor Selection (COUT)"
+      },
+      "notes": "Output capacitor must be low-ESR electrolytic (82 \u00b5F to 820 \u00b5F) or low-ESR solid tantalum (10 \u00b5F to 470 \u00b5F). TI does not recommend electrolytic capacitors below \u221225\u00b0C; solid tantalum recommended below \u221225\u00b0C. Caution with ceramics on input."
+    },
+    "switching_freq": [
+      {
+        "condition": "Oscillator frequency, TJ = 25\u00b0C",
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 7,
+          "section": "7.9 Electrical Characteristics \u2013 All Output Voltage Versions"
+        },
+        "max": 173000,
+        "min": 127000,
+        "notes": null,
+        "typ": 150000,
+        "unit": "Hz"
+      }
+    ],
+    "topology": "buck",
+    "vin_range": [
+      {
+        "condition": "Adjustable version operating range",
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 6,
+          "section": "7.8 Electrical Characteristics \u2013 Adjustable Voltage Version"
+        },
+        "max": 40,
+        "min": 4.5,
+        "notes": null,
+        "typ": null,
+        "unit": "V"
+      }
+    ],
+    "vout_range": [
+      {
+        "condition": "\u00b14% over line and load, adjustable version",
+        "evidence": {
+          "confidence": "high",
+          "method": "prose",
+          "page": 1,
+          "section": "1 Features"
+        },
+        "max": 37,
+        "min": 1.2,
+        "notes": null,
+        "typ": null,
+        "unit": "V"
+      }
+    ]
+  },
+  "schema_version": {
+    "base": "1.0",
+    "categories": {
+      "regulator": "0.3"
+    }
+  },
+  "source": {
+    "datasheet_date": "November 1999 \u2013 Revised March 2023",
+    "datasheet_revision": "SNVS124G",
+    "family_ref": null,
+    "local_path": "datasheets/LM2596-ADJ.pdf",
+    "manufacturer": "Texas Instruments",
+    "mpn": "LM2596-ADJ",
+    "page_count": 36,
+    "sha256": "sha256:a3ecb47736422dc1579c85ba229d85ef70be3da706a0524beb9c85753073ce26",
+    "source_url": null
+  }
+}

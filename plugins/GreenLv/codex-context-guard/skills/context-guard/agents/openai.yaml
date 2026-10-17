@@ -1,0 +1,4 @@
+interface:
+  display_name: "Context Guard"
+  short_description: "Preserve long-task context across Codex compaction"
+  default_prompt: "Use $context-guard to protect this long-running task from context loss."

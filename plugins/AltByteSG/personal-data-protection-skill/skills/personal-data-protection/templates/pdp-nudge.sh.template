@@ -1,0 +1,84 @@
+#!/bin/sh
+# Reference material only — not legal advice. See ../DISCLAIMER.md. Verify with a qualified DPO / lawyer.
+
+# Personal Data Protection compliance nudge — fired by .claude/settings.json PostToolUse hook on
+# Edit/Write/MultiEdit. If the edited file matches a PDP-sensitive path, emit
+# a stderr line that lands in the conversation, prompting Claude to consult
+# the `personal-data-protection` skill before finalising.
+#
+# Non-blocking: never exits non-zero. False negatives are preferred to false
+# positives that train Claude to ignore the channel.
+#
+# SETUP (Claude Code only — no Codex CLI equivalent at time of writing):
+#
+#   1. Copy this file to your project:
+#        cp templates/pdp-nudge.sh.template .claude/hooks/pdp-nudge.sh
+#        chmod +x .claude/hooks/pdp-nudge.sh
+#
+#   2. Customise the path patterns below to match your repo's PDP-sensitive
+#      paths (the defaults are illustrative).
+#
+#   3. Wire it into .claude/settings.json:
+#        {
+#          "hooks": {
+#            "PostToolUse": [
+#              {
+#                "matcher": "Edit|Write|MultiEdit",
+#                "hooks": [
+#                  {
+#                    "type": "command",
+#                    "command": "\"$(git rev-parse --show-toplevel)/.claude/hooks/pdp-nudge.sh\" || true"
+#                  }
+#                ]
+#              }
+#            ]
+#          }
+#        }
+
+f="${TOOL_INPUT_file_path:-}"
+[ -z "$f" ] && exit 0
+
+nudge() {
+  printf '[pdpa-nudge] %s\n' "$1" >&2
+}
+
+skill_msg='Touched a PDP-sensitive path — consult skill `personal-data-protection` (.claude/skills/personal-data-protection/SKILL.md) before finalising. Match the change against the relevant layer + the active jurisdiction(s) obligation files.'
+
+case "$f" in
+  # ─── Public-facing legal documents ──────────────────────────────
+  # Customise to your project's privacy policy / terms paths.
+  */privacy.html|*/PRIVACY.md|*/terms.html|*/TERMS.md|*/_headers)
+    nudge "$skill_msg Layer: 06-disclosure. Verify sub-processors, retention table, and the 'Last updated' date." ;;
+
+  # ─── Auth + signup surface ──────────────────────────────────────
+  # Customise to your project's auth / signup screen paths.
+  */auth_gate.dart|*/SignupScreen.tsx|*/signup_screen.dart|*/auth/login.tsx|*/auth/signup.tsx)
+    nudge "$skill_msg Layer: 05-feature-ux (signup, OAuth, age gate, T&C consent)." ;;
+
+  # ─── Settings + account-deletion screens ────────────────────────
+  */settings/*|*/account/delete*|*/account/export*)
+    nudge "$skill_msg Layer: 05-feature-ux. Verify withdrawal symmetry and consent record write paths." ;;
+
+  # ─── Server-side functions / handlers (PDP-sensitive) ──────────
+  # Customise to your project's structure. Examples:
+  # - Supabase Edge Functions:     */supabase/functions/*/index.ts
+  # - AWS Lambda handlers:         */lambda/*.py, */lambda/*.ts
+  # - Express / Fastify routes:    */routes/*.ts, */api/*.ts
+  # - Rails controllers:           */app/controllers/**/*.rb
+  # - Django views:                */views/*.py
+  */functions/*/index.ts|*/lambda/*.py|*/lambda/*.ts|*/api/*.ts|*/routes/*.ts)
+    nudge "$skill_msg Layer: 04-controls-and-processes. Verify console / log calls run user data through safeError() / redactPII() / redactId() helpers." ;;
+
+  # ─── Admin tooling ──────────────────────────────────────────────
+  */admin/*|*/internal/*)
+    nudge "$skill_msg Layer: 04-controls-and-processes. Admin role check at every layer. Read endpoints returning PII must be audit-logged with throttle." ;;
+
+  # ─── SQL migrations — only nudge when content suggests personal-data-protection touch
+  # Customise to your project's migration directory.
+  */migrations/*.sql|*/db/migrate/*.sql|*/migrations/*.rb)
+    if grep -qiE 'consent|delete_account|export_user_data|retention|cleanup_|audit_log|notifications_enabled|email_notifications|tos_version|deleted_accounts|admin_get_|admin_update_|admin_delete_|location|latitude|longitude|birthday|RLS|SECURITY DEFINER|search_path' "$f" 2>/dev/null; then
+      nudge "$skill_msg Layer: 03-data-model + 04-controls-and-processes. Verify: per-user isolation enabled on new tables, audit logging on admin endpoints, retention rule wired into the canonical sweep, backwards-compat for any in-flight client versions."
+    fi ;;
+esac
+
+exit 0

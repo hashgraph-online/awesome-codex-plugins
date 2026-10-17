@@ -1,0 +1,30 @@
+[
+  {
+    "query": "we licensed a copy of a competitor's invoicing engine and i need to build our own version in python that produces byte-identical PDF output but legally can't reuse any of their code. where do i even start",
+    "should_trigger": true
+  },
+  {
+    "query": "got the decompiled jar of an old vendor library we lost the source for, need a clean reimplementation in kotlin that our lawyers will sign off on with no copied code",
+    "should_trigger": true
+  },
+  {
+    "query": "porting flowpack (a go CLI a contractor wrote under a restrictive license) to rust for our team, has to stay CLI-compatible but we want clean IP ownership",
+    "should_trigger": true
+  },
+  {
+    "query": "my team read through a competitor's open-source SDK and now we're writing our own payment lib. how do i make sure we're not accidentally copying their implementation",
+    "should_trigger": true
+  },
+  {
+    "query": "refactor my own auth module in src/auth into smaller files, it's gotten huge and hard to test",
+    "should_trigger": false
+  },
+  {
+    "query": "reverse engineer this undocumented REST API by sniffing the traffic so i can write a client wrapper for it",
+    "should_trigger": false
+  },
+  {
+    "query": "migrate our postgres 12 database to postgres 16, whats the safest upgrade path with minimal downtime",
+    "should_trigger": false
+  }
+]

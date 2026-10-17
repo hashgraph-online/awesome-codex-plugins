@@ -1,0 +1,11 @@
+{
+  "nullcost-provider-catalog": {
+    "command": "node",
+    "args": [
+      "${CLAUDE_PLUGIN_ROOT}/scripts/run-provider-server.mjs"
+    ],
+    "env": {
+      "NULLCOST_API_BASE_URL": "https://nullcost.xyz"
+    }
+  }
+}

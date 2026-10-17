@@ -1,0 +1,1326 @@
+---
+name: codiris-agentizer
+description: >-
+  This skill should be used when the user asks to "agentize a website",
+  "transform a website", "create an agentfront", "build a WWA app",
+  "make an agent-first website", "turn a website into an agent experience",
+  "agentizer", "wwa transform", or mentions "agentfront" in context of
+  building one from a URL.
+version: 2.0.0
+allowed-tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - Agent
+  - WebFetch
+  - WebSearch
+argument-hint: <website-url>
+---
+
+# Codiris Agentizer v2 — Intelligent Website-to-Agentfront
+
+Transform any website into a custom AI-powered agentfront. The skill deeply analyzes the company — its market, products, value proposition, customers — then builds a tailored experience. NOT a template copy-paste.
+
+## Core Principle
+
+**Understand the company first, build second.** Every company is different:
+- Stripe sells APIs to developers → show API products, code examples, pricing tiers
+- Nike sells shoes to consumers → show product catalog, categories, shopping
+- Visa sells payment cards → show card tiers, comparisons, benefits
+- Salesforce sells enterprise SaaS → show solutions by industry, case studies, demos
+
+The agentfront must reflect what the company ACTUALLY is, not what Visa is.
+
+## Template Location
+`./template/` relative to this SKILL.md — the skill directory (typically `~/.claude/skills/agentizer/` after install) contains the Next.js template. Content is generated custom per company. After `cp -R`, run the template's `npx next build` once to confirm nothing regressed in the template itself.
+
+## Reference Implementation
+**https://wwa.visa.codiris.app** — live demo of a finished agentfront (payment card company). Source for the template is at https://github.com/Humiris/wwa-transform/tree/main/template.
+
+If any template file looks incomplete or broken, inspect the live demo via WebFetch for visual reference, then apply the `visaCards → productItems` / `VisaCard → ProductItem` / `annualFee → price` renames — don't try to fix the template stub in place.
+
+---
+
+## PHASE 1: Deep Company Intelligence
+
+### Step 1.1: Crawl Multiple Pages
+
+Use `WebFetch` on at minimum:
+1. **Homepage** — hero, value prop, main CTAs, navigation
+2. **Products/Features page** — what they actually sell
+3. **Pricing page** (if exists) — how they charge, what tiers
+4. **About page** — company story, mission, stats
+
+For EACH page, ask WebFetch:
+```
+Extract everything: brand name, tagline, ALL image URLs (full absolute), 
+colors (hex from buttons/headers/CSS), navigation items, products/features 
+with descriptions, pricing tiers, stats/numbers, customer logos, 
+testimonials, CTAs, form fields. Be exhaustive.
+```
+
+### Step 1.2: AI Company Analysis
+
+After crawling, THINK deeply about the company. Answer these questions BEFORE writing any code:
+
+**Market Understanding:**
+- What industry is this company in? (Fintech, SaaS, E-commerce, Healthcare, etc.)
+- Who are their customers? (Developers, Enterprises, Consumers, SMBs)
+- What problem do they solve?
+- Who are their competitors?
+
+**Product Understanding:**
+- What do they sell? (APIs, Physical products, Subscriptions, Services, Cards)
+- How many products/tiers do they have?
+- How do they charge? (Per-transaction, Subscription, One-time, Usage-based, Free)
+- Do they have a free tier or trial?
+
+**Content Structure:**
+- What sections make sense for THIS company's homepage?
+- What navigation items should exist?
+- What categories should products be organized by?
+- Should there be a "cards" section? (Only if they sell cards/plans/tiers)
+- Should there be a pricing grid? A product catalog? Case studies?
+
+**Value Proposition:**
+- What's their main headline?
+- What stats are impressive? (Users, revenue, uptime, countries)
+- What social proof do they have? (Customer logos, testimonials)
+
+**Typography (CRITICAL — match brand aesthetic):**
+
+The template uses Geist by default. You MUST change fonts to match the brand:
+
+| Brand Type | Fonts to Use | Implementation |
+|------------|--------------|----------------|
+| Luxury fashion (Dior, Hermès, Chanel) | Playfair Display + Inter | Serif headings, clean body |
+| Tech/SaaS (Stripe, Notion, Linear) | Inter or Geist | Modern sans-serif |
+| Premium/Editorial (Apple, Aesop) | SF Pro / Helvetica Neue / system fonts | Clean, minimal |
+| Fintech (Visa, Chase) | Geist / Inter | Professional sans |
+| E-commerce (Amazon, Walmart) | Inter / Roboto | Readable, utilitarian |
+
+Update `src/app/layout.tsx`:
+```tsx
+import { Playfair_Display, Inter } from "next/font/google";
+
+const serif = Playfair_Display({ variable: "--font-serif", subsets: ["latin"] });
+const sans = Inter({ variable: "--font-sans", subsets: ["latin"] });
+
+// In body: className={`${serif.variable} ${sans.variable} font-sans`}
+```
+
+Update `src/app/globals.css`:
+```css
+:root {
+  --brand-primary: #000000;    /* match brand color */
+  --brand-secondary: #C9A96E;
+  --font-serif-brand: var(--font-serif), "Didot", "Bodoni MT", "Georgia", serif;
+}
+
+h1, h2, .font-serif {
+  font-family: var(--font-serif-brand);
+  letter-spacing: -0.01em;
+}
+```
+
+**User Intent (CRITICAL — drives CTAs and modals):**
+Analyze what users ACTUALLY do on this site. Map to correct CTA:
+
+| Company Type | Primary Intent | CTA Text | Modal Type |
+|--------------|---------------|----------|------------|
+| E-commerce (Dior, Nike, Apple) | Shop / Buy products | "Shop Now" | Cart / Product detail |
+| SaaS/API (Stripe, Notion) | Try / Book demo | "Start Free" or "Book a Demo" | Demo booking form |
+| Enterprise (Salesforce) | Contact sales | "Contact Sales" | Sales form |
+| Financial (Visa, banks) | Apply / Get card | "Apply Now" | Application form |
+| Marketplace — Listings (Airbnb, Booking, Uber) | Search / Book | "Start Searching" | Search UI |
+| Marketplace — C2C (Vinted, Depop, Etsy, eBay) | Sell AND Browse (dual intent) | "Sell Now" + "Start Browsing" | Seller signup modal (personal / pro) |
+| Services (Consulting) | Contact / Meeting | "Book a Call" | Calendar booking |
+| Content (Netflix, Spotify) | Subscribe / Try | "Start Free Trial" | Signup form |
+
+**NEVER use "Book a Demo" for e-commerce.** E-commerce brands want you to SHOP, not schedule a meeting.
+
+Update these files based on intent:
+- `brand-config.ts` → `ctaPrimary` and `ctaSecondary`
+- `hero-section.tsx` → button text
+- `solution-detail-panel.tsx` → button text
+- `book-demo-modal.tsx` → rename, change fields to match intent (e-commerce = Contact Client Services, Cart, or remove entirely)
+- `actions.ts` system prompt → what the agent offers users
+
+### Step 1.3: Define the Page Architecture
+
+Based on your analysis, decide which sections the homepage should have. Choose from:
+
+| Section | Use When | Example |
+|---------|----------|---------|
+| Hero Carousel | Always | Rotating through top products/features |
+| Stats Bar | Company has impressive numbers | "$1.9T processed", "99.999% uptime" |
+| Product Grid | 3+ distinct products | API products, SaaS modules |
+| Pricing Tiers | Clear pricing tiers exist | Free/Pro/Enterprise |
+| Feature Showcase | Key differentiators | With images and descriptions |
+| Customer Logos | Has notable customers | "Trusted by Amazon, Shopify..." |
+| Solution Categories | Products grouped by use case | "For Startups", "For Enterprise" |
+| Code Example | Developer-focused company | Interactive code snippet |
+| Card Catalog | Sells cards/plans consumers browse | Credit cards, subscription plans |
+| CTA Banner | Always | "Book a Demo" / "Get Started" / "Start Free" |
+| World Map | Company has global presence story | Payment networks, logistics, international SaaS |
+
+**DO NOT include sections that don't apply:**
+- API company → NO credit card tiers, NO card comparison
+- E-commerce → NO API docs, NO code examples
+- SaaS without global story → NO world map (make `handleShowMap` a no-op in page.tsx)
+- Company without browsable products → leave `productItems` array empty, the browse section won't render
+
+---
+
+## PHASE 2: Download Assets
+
+### Step 2.1: Download ALL Images
+
+**MANDATORY.** The agentfront is useless without real images.
+
+> ❗ **The single biggest bug in past transforms** is shipping images from the wrong brand — a generic "sneaker" photo from Unsplash that happens to show a Nike Swoosh on an adidas site, or a "handbag" photo that's clearly Chanel on a Dior site. Mis-branded imagery destroys credibility instantly.
+>
+> **Rule**: Every image that represents a **specific named product or franchise** (e.g. "Samba OG", "Air Max 90", "Lady Dior") MUST come from a source that lets you verify it shows the correct brand. Generic-category Unsplash photos are banned for these slots. They are OK only for brand-agnostic shots (lifestyle hero, category tiles with no named product, abstract backgrounds).
+>
+> **And every image MUST pass visual verification (Step 2.3) before you write its path into `cards.ts` / `solutions.ts`.**
+
+```bash
+mkdir -p ~/wwa.{domain}/public/images/cards
+
+# Use browser headers to bypass CDN blocks
+curl -L -o "public/images/{name}.jpg" "{url}" \
+  -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36" \
+  -H "Referer: https://{domain}/" \
+  -H "Accept: image/*"
+```
+
+**Download at minimum:**
+- Logo (SVG preferred, PNG fallback)
+- Hero/banner image
+- 1 image per product/solution (6-10 total)
+- 2-4 lifestyle/feature images
+- Customer logos if available
+- Product screenshots/UI images
+
+### Image Source Priority (USE IN THIS ORDER)
+
+**For e-commerce catalogs (fashion retailers, beauty retailers, online-only fashion), always try method 0 FIRST:**
+
+**0. Scrape the brand's SSR catalog JSON via Chrome MCP** — modern e-commerce sites (Zara, H&M, ASOS, Nordstrom, Sephora, etc.) ship the full product grid as a JSON blob inside a `<script>` tag on every category page. Server-side curl gets WAF-blocked, but Chrome MCP with an organic-looking tab has no trouble reading the DOM.
+
+Two flavors to look for:
+
+- **JSON-LD `<script type="application/ld+json">`** (cleanest — H&M, many schemas). Has `@type: Product` entries with `name`, `image[]`, `offers.price` ready to `JSON.parse`.
+- **Raw hydration JSON** (Zara, ASOS — biggest `<script>` that contains the brand's CDN hostname). Not always valid JSON; regex out the image URL pattern (e.g. `/static\.zara\.net\/photos\/[^"'\s]+\.jpg/g` or `/products\/[a-z0-9-]+\/\d+-\d+[a-z0-9-]*/gi`) and dedupe by product id.
+
+Pattern that works today (verified on Zara 259 · H&M 216 · ASOS 365 · Uniqlo 54 scrapes):
+
+```js
+// In Chrome MCP, navigate to e.g. https://www.zara.com/uk/en/woman-dresses-l1066.html, then:
+(() => {
+  const scripts = Array.from(document.querySelectorAll('script'));
+  // JSON-LD path (H&M-style): cleanest
+  const ld = document.querySelector('script[type="application/ld+json"]');
+  if (ld && ld.textContent.includes('"@type":"Product"')) {
+    return JSON.parse(ld.textContent);
+  }
+  // Raw-hydration path (Zara/ASOS): regex
+  const big = scripts.find(s => (s.textContent || '').includes('<brand-cdn-hostname>'));
+  const text = big.textContent;
+  // Adjust regex per brand URL shape
+  const urls = [...new Set((text.match(/https:\/\/static\.zara\.net\/[^"'\s]+\.jpg/g) || []))];
+  return urls;
+})();
+```
+
+Then get the result out of Chrome via a `Blob` download:
+
+```js
+const blob = new Blob([JSON.stringify(catalog)], { type: 'application/json' });
+const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'catalog.json' });
+document.body.appendChild(a); a.click();
+// File lands in ~/Downloads/catalog.json — move to project, feed to cards.ts rewrite
+```
+
+**Hotlink don't download.** Once you have the URLs, put them directly in `cards.ts`'s `image` field — the browser will load them via `<img src>` (no CORS issue on img tags). No local copy needed. Server-side curl typically fails with 403 / 000 (WAF), but that doesn't matter because production serves from users' browsers.
+
+**For named products/franchises** (Samba, Air Jordan 1, Stan Smith, Lady Dior, Birkin, etc.) where you need individual-product photos not a catalog:
+
+1. Brand's own CDN (works for most sportswear — Nike, adidas, Puma, Asics, New Balance)
+2. **Wikipedia / Wikimedia Commons** — the category page `commons.wikimedia.org/wiki/Category:{Brand}_{Product}` has real, licensed product photos for every iconic sneaker, boot, bag, watch, perfume, etc.
+3. Industry publication CDN for the brand's segment (WWD for fashion, Fragrantica for perfume, SneakerNews/Hypebeast for sneakers)
+4. **DROP THE PRODUCT from `productItems`** if none of 1–3 yields a verified photo. A site with 6 real products is infinitely better than a site with 8 and two wrong-brand frauds.
+
+**Unsplash is BANNED for named-product slots.** It's OK only for: hero lifestyle shots (action/atmosphere, no named product), brand-agnostic category tiles, abstract backgrounds. If you use it, still run Step 2.3 verification — generic sneaker/bag photos on Unsplash very frequently show competitor logos.
+
+Most premium brand sites (Dior, Apple, Notion, Vercel, Hermès) AGGRESSIVELY BLOCK curl. Do NOT waste time trying to download from the brand's CDN. Skip directly to the fallback.
+
+**Sportswear CDNs are hit-or-miss** — Puma, Nike, Adidas, Asics, Under Armour, New Balance, Reebok sometimes serve real JPEGs on their public CDNs, but **you have to know the exact style code** and the match rate is worse than you'd expect. Observed on recent transforms:
+
+- **adidas** (`assets.adidas.com`) — returned 0 bytes on every style code tried (Apr 2026)
+- **Nike** (`static.nike.com`) — works for some products, requires inspecting a product page's `<img srcset>` to get the right hash
+- **New Balance** (`nb.scene7.com`) — works with a Referer header, but style codes are hard to guess; ~50% hit rate even for the most popular models
+- **Puma** (`images.puma.com`) — most reliable of the sportswear CDNs
+
+**Rule of thumb**: try the brand CDN once with a single well-known SKU. If it returns real bytes (>20KB), map your remaining products; if it 0-bytes or errors, drop straight to Wikimedia Commons. Don't spend 10 minutes guessing style codes.
+
+| Brand | CDN pattern | How to get the `{styleId}` |
+|-------|-------------|----------------------------|
+| Puma | `https://images.puma.com/image/upload/f_auto,q_auto,w_800,h_800/global/{styleId}/01/sv01/fnd/PNA/fmt/png/{slug}` | The number after `/pd/slug/` on a product page |
+| Nike | `https://static.nike.com/a/images/t_PDP_1280_v1/f_auto,q_auto:eco/{hash}/{slug}.jpg` | Inspect a product page's `<img srcset>` |
+| Adidas | `https://assets.adidas.com/images/w_600,f_auto,q_auto/{styleId}/{slug}.jpg` | Often blocked — try once, fall back to Wikimedia |
+| New Balance | `https://nb.scene7.com/is/image/NB/{styleId}_nb_02_i?wid=1200&hei=1200` | Match the style id on the product page (e.g. `m1906rcd`) |
+
+Always include `-H "Referer: https://{brand-domain}/"` — the Cloudinary-style CDNs behind most sportswear brands accept the request with referrer, 404 it without.
+
+**Remember**: even when the CDN works, you still MUST run Step 2.3 visual verification on the downloaded bytes — CDNs occasionally return placeholder/blank images with a 200 status.
+
+**1. Brand's own CDN** (always try first for sportswear/athletic; ~30% of premium luxury sites; skip straight to #3 for most editorial/luxury brands)
+```bash
+curl -sL -o public/images/{name}.jpg "{url}" \
+  -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36" \
+  -H "Referer: https://{domain}/"
+```
+
+**2. Wikipedia / Wikimedia Commons** — works for famous brands, logos, iconic products
+```bash
+curl -sL -o public/images/brand-logo.svg \
+  "https://upload.wikimedia.org/wikipedia/commons/{path}/{file}.svg" \
+  -H "User-Agent: Mozilla/5.0"
+```
+Use WebSearch: "{brand} logo SVG wikimedia commons"
+
+**2.5. INDUSTRY PUBLICATIONS — USE THIS FOR FASHION BRANDS**
+Fashion/luxury brands block their own CDN, but fashion PUBLICATIONS host real runway photos:
+
+```bash
+# WWD (Women's Wear Daily) — 2-3MB runway photos, works without auth
+# Pattern: https://wwd.com/wp-content/uploads/{YYYY}/{MM}/{brand}-{collection}-{location}-GG-{01-80}.jpg
+
+curl -sL -o public/images/runway.jpg \
+  "https://wwd.com/wp-content/uploads/2025/05/dior-cruise-2026-rome-GG-01.jpg" \
+  -H "User-Agent: Mozilla/5.0"
+
+# Fragrantica CDN — real perfume bottle photos, works without auth
+# Pattern: https://fimgs.net/mdimg/perfume/375x500.{perfume_id}.jpg
+# Find IDs via WebSearch: "{perfume name} fragrantica"
+
+curl -sL -o public/images/jadore.jpg \
+  "https://fimgs.net/mdimg/perfume/375x500.210.jpg" \
+  -H "User-Agent: Mozilla/5.0"
+```
+
+Other working fashion/beauty publication CDNs:
+- **wwd.com/wp-content/uploads/** — runway, backstage, beauty product shots
+- **fimgs.net/mdimg/perfume/** — perfume bottles (Fragrantica)
+- **nowfashion.com/wp-content/uploads/** — runway photos
+- **showstudio.com/** — editorial fashion content
+- **vogue.com/photos/** — often requires auth
+- **fashionography.com/wp-content/uploads/** — runway archives
+
+**IMPORTANT:** Sample a couple of images first (~2-3MB each). On macOS use `sips -Z 1200 input.jpg -o output.jpg` to resize before committing.
+
+### Brand Videos for Hero Backgrounds
+
+Many luxury brands have hero video loops that dramatically elevate the feel. Look for them:
+
+```bash
+# Brand-hosted videos often work with proper headers
+curl -sL -o public/videos/hero.webm "{brand-video-url}" \
+  -H "User-Agent: Mozilla/5.0" \
+  -H "Referer: https://{domain}/"
+```
+
+**Finding brand video URLs:**
+- Dior: `diorama.dam-broadcast.com/...` — works publicly
+- Apple: `apple.com/assets-www/...` — often public
+- Most fashion houses have `dam-broadcast` or `.cdn.` video CDNs
+- Inspect the brand's homepage for `<video>` or `<source>` tags with `.webm` / `.mp4`
+- WebSearch: "{brand} hero video webm" or check Dam broadcast networks
+
+**Implementation in hero-section.tsx:**
+```tsx
+<video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover" poster="/images/hero-image.jpg">
+  <source src="/videos/hero.webm" type="video/webm" />
+</video>
+<div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/70" />
+```
+
+Video hero is essential for luxury brands. Fall back to static image if video can't be obtained. Keep videos under 10MB (resize with ffmpeg if needed).
+
+**American heritage brands (Ralph Lauren, Levi's, L.L. Bean, J.Crew, Tommy Hilfiger) rarely expose public video CDNs.** Plan for a static full-bleed runway or editorial hero with a subtle 1.04 scale-on-mount or parallax effect instead — don't waste time hunting for a video that isn't there.
+
+**3. Unsplash (MANDATORY FALLBACK — always works, real product photos)**
+```bash
+# Search URL pattern: https://images.unsplash.com/photo-{id}?w=800&q=80
+# DO NOT make up IDs — use these tested working IDs by category:
+
+# Luxury perfume / fragrance bottle
+curl -sL -o public/images/perfume.jpg "https://images.unsplash.com/photo-1541643600914-78b084683601?w=800&q=80" -H "User-Agent: Mozilla/5.0"
+
+# Men's cologne / dark bottle  
+curl -sL -o public/images/cologne.jpg "https://images.unsplash.com/photo-1594035910387-fea47794261f?w=800&q=80" -H "User-Agent: Mozilla/5.0"
+
+# Pink/feminine perfume
+curl -sL -o public/images/miss.jpg "https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=800&q=80" -H "User-Agent: Mozilla/5.0"
+
+# Luxury handbag
+curl -sL -o public/images/bag.jpg "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=800&q=80" -H "User-Agent: Mozilla/5.0"
+
+# Canvas tote
+curl -sL -o public/images/tote.jpg "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=800&q=80" -H "User-Agent: Mozilla/5.0"
+
+# Leather bag
+curl -sL -o public/images/leather-bag.jpg "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=800&q=80" -H "User-Agent: Mozilla/5.0"
+
+# Red lipstick
+curl -sL -o public/images/lipstick.jpg "https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=800&q=80" -H "User-Agent: Mozilla/5.0"
+
+# Foundation / makeup
+curl -sL -o public/images/foundation.jpg "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=800&q=80" -H "User-Agent: Mozilla/5.0"
+
+# Skincare cream
+curl -sL -o public/images/skincare.jpg "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=800&q=80" -H "User-Agent: Mozilla/5.0"
+
+# Luxury skincare bottles
+curl -sL -o public/images/serum.jpg "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=800&q=80" -H "User-Agent: Mozilla/5.0"
+
+# Gold jewelry / rings
+curl -sL -o public/images/jewelry.jpg "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800&q=80" -H "User-Agent: Mozilla/5.0"
+
+# Fashion / clothing
+curl -sL -o public/images/fashion.jpg "https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=800&q=80" -H "User-Agent: Mozilla/5.0"
+
+# Building / atelier (hero/about)
+curl -sL -o public/images/building.jpg "https://images.unsplash.com/photo-1519643225200-94e79e383724?w=800&q=80" -H "User-Agent: Mozilla/5.0"
+
+# SaaS / tech product screenshot
+curl -sL -o public/images/saas-ui.jpg "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&q=80" -H "User-Agent: Mozilla/5.0"
+
+# Abstract tech / code
+curl -sL -o public/images/tech.jpg "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&q=80" -H "User-Agent: Mozilla/5.0"
+
+# ═══════ ATHLETIC / SPORTSWEAR (verified on Puma transform) ═══════
+
+# Running / runner silhouette
+curl -sL -o public/images/running.jpg "https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?w=800&q=80" -H "User-Agent: Mozilla/5.0"
+
+# Training / gym / lifting
+curl -sL -o public/images/training.jpg "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&q=80" -H "User-Agent: Mozilla/5.0"
+
+# Football / soccer
+curl -sL -o public/images/football.jpg "https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?w=800&q=80" -H "User-Agent: Mozilla/5.0"
+
+# Motorsport / racing
+curl -sL -o public/images/motorsport.jpg "https://images.unsplash.com/photo-1504276048855-f3d60e69632f?w=800&q=80" -H "User-Agent: Mozilla/5.0"
+
+# Kids athletic
+curl -sL -o public/images/kids.jpg "https://images.unsplash.com/photo-1503944583220-79d8926ad5e2?w=800&q=80" -H "User-Agent: Mozilla/5.0"
+
+# Athletic fashion / streetwear runner
+curl -sL -o public/images/athleisure.jpg "https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=800&q=80" -H "User-Agent: Mozilla/5.0"
+```
+
+> **Unsplash ID format caveat:** stick to the timestamp-hex pattern (`photo-1508685096489-7aacd43bd3b1`). Modern Unsplash URLs use slug-style IDs (`hEIHXXic3yI`) that **do NOT work** with `https://images.unsplash.com/photo-{slug}`. If an ID you find is 11 random characters instead of the classic timestamp-hex form, you need the old numeric pattern or the image will 404.
+
+**Verify downloads:** Check file size with `ls -la`. Files under 1KB are failures. Failed downloads return ~29 bytes (Unsplash not-found) or ~300 bytes (error page). Re-download with different ID if under 1KB.
+
+**4. Placehold.co** — LAST RESORT ONLY if Unsplash also fails
+```bash
+curl -sL -o public/images/{name}.jpg "https://placehold.co/800x400/{hex_no_hash}/white?text={Product}"
+```
+
+### Required Downloads
+
+Every project MUST have (minimum):
+- Logo (SVG from Wikipedia or brand CDN)
+- Hero image (brand or category-matched Unsplash)
+- 1 image per solution (category-matched Unsplash)
+- 1 image per product (category-matched Unsplash)
+- Favicon from `https://www.google.com/s2/favicons?domain={domain}&sz=64`
+
+### Catalog size — minimum item count per brand type (REQUIRED)
+
+A thin catalog kills the demo. Every e-commerce, retail, or fashion brand transform MUST ship at least **100 real product items** spread across the brand's natural segments. The agent needs enough depth to recommend and compare realistically; an 8-item catalog makes every filter / category / chat prompt dead-end immediately.
+
+| Brand type | Minimum items | Split guidance |
+|------------|---------------|----------------|
+| Fashion mono-brand (Zara, H&M, Uniqlo, Ralph Lauren, Dior RTW) | **100+** | 40 Woman / 30 Man / 15 Kids / 10 Accessories / 5 Home — adjust to brand reality |
+| Fashion multi-brand retailer (Nordstrom, Net-A-Porter, Farfetch, Zalando) | **150+** | 50 Woman / 40 Man / 25 Kids / 20 Shoes / 15 Bags — plus 20+ brand catalogue entries |
+| Beauty multi-brand retailer (Sephora, Ulta, LookFantastic) | **120+** | 30 Skincare / 30 Makeup / 25 Fragrance / 15 Hair / 10 Body / 10 Men — plus 20+ brands |
+| Beauty mono-brand (L'Oréal, Estée Lauder, MAC) | **80+** | 25 Skincare / 25 Makeup / 15 Fragrance / 10 Hair / 5 Men |
+| Outerwear / Technical (Canada Goose, Arc'teryx, Patagonia) | **60+** | 25 Men / 20 Women / 10 Kids / 5 Accessories — fewer items OK because parkas are expensive/curated |
+| Luxury mono-brand (Hermès, Chanel — no RTW catalog online) | **50+** | Scale to what's published; bags + fragrance + leather small goods heavy |
+| Sportswear (Nike, Puma, Adidas, Under Armour) | **100+** | 30 Men / 30 Women / 20 Kids / 15 Footwear / 5 Accessories |
+| Marketplace listings (Airbnb, Booking) | **100+ stays × 40+ destinations** | destinations.ts covers the cities, cards.ts covers the stays |
+| Marketplace C2C (Vinted, Depop, Etsy) | **80+ feature tiles + category mock listings** | cards.ts holds features/flows, not individual listings |
+| Fintech / SaaS | 6-12 products is fine | Few products is brand-accurate (Visa has ~8 tiers, Stripe has ~10 products) |
+
+**How to reach 100+ on an e-commerce transform:**
+1. Start by listing the brand's real product segments (Woman/Man/Kids/Home/Beauty for Zara; Skincare/Makeup/Fragrance for Sephora). Write the minimum count per segment before downloading images.
+2. Scrape representative products from the brand's own site when possible, even if names are paraphrased — the image + name + price + material gives the agent enough to recommend.
+3. When the brand CDN blocks (Zara, Dior, etc.), fall through to Unsplash with segment-matched searches. Each segment needs 30+ unique photos; guard against duplicates.
+4. Every product entry in `cards.ts` MUST be a real-looking record with: name + price + segment (gender/category) + material/size + badge. Agent recommendations against a half-populated catalog feel hollow.
+
+**Per-section rendering rule (NEW, critical — addresses "there's not a lot of items on Men's" feedback):**
+
+The catalog-size rule above covers `cards.ts` data depth. The **rendering cap** is a separate trap: template components often render `homes.slice(0, 12)` or similar, so even with 100+ items in data, the user sees a thin 8-tile grid.
+
+- **Homepage carousel rows**: 12-16 tiles OK (carousel UX, user scrolls horizontally).
+- **Category / gender inner pages** (when user clicks "Men's" or "Woman" from nav or a tile): **MUST render the full filtered catalog, no slice cap.** If the brand has 30 Men's items, the Men's page shows 30, not 12. Minimum per-section display:
+  - Woman / Man: 30+ tiles visible on the inner page
+  - Kids / Baby: 15+ tiles
+  - Accessories / Home / Beauty: 10+ tiles
+- **Fix pattern**: in `inner-page.tsx` (or equivalent), the category grid must `productItems.filter(p => p.issuer === gender)` without a trailing `.slice()`. If the page feels too long, use pagination / "Load more" — not a silent truncation.
+- Grep check before shipping: `grep -rnE '\.slice\(0,\s*(6|8|12)' src/components/inner-page.tsx src/components/hero-section.tsx src/app/page.tsx` — if caps are present on gender/category paths, they're bugs.
+
+**Quality gate (add to Phase 4 verification):**
+- `curl https://wwa.{slug}.codiris.app/mcp -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"search_products","arguments":{}}}'` → `count: 100+` for any e-commerce brand type.
+- Curl the rendered HTML of the Men's / Woman's category pages and count `<img` tags for product tiles. Must be 30+ each (for mono-brand fashion) or 40+ (for multi-brand fashion). If below threshold, UI has a rendering cap that needs removal — the transform is incomplete.
+
+**Post-deploy smoke check (catches stale-alias bugs):** after `vercel alias set`, always re-verify that the alias points to the LATEST deploy. A common failure mode: you fix the code locally, run `npx vercel --prod`, but forget to re-alias — so `wwa.{slug}.codiris.app` continues pointing to the previous (broken) deploy. The Zara/Uniqlo/H&M/ASOS retrofit pass uncovered 4 stale aliases where the uncap code was already correct in git but not reflected live. Always run:
+
+```bash
+npx vercel --prod --yes 2>&1 | tee /tmp/deploy.log
+DEPLOY_URL=$(grep -oE 'https://[a-z0-9-]+\.vercel\.app' /tmp/deploy.log | head -1)
+npx vercel alias set "$DEPLOY_URL" wwa.{slug}.codiris.app
+# Then verify:
+curl -s https://wwa.{slug}.codiris.app/ | grep -c 'aspect-\[3/4\]\|aspect-\[4/5\]\|aspect-square'  # rough product-tile count
+```
+
+**MANDATORY: push API keys from a sibling project before declaring "deployed" (catches silent-AI-fallback bug):** every brand-new Vercel project starts with **zero env vars**. Without `GEMINI_API_KEY` / `GOOGLE_GENERATIVE_AI_API_KEY` / `OPENAI_API_KEY`, the AI panel silently falls back to canned `assistant-shared.tsx` strings ("I can help you find..."), and the user thinks the AI is dumb. Caught on the Joivy deploy after the user complained the AI was "stupid". The 200-response on `/api/gemini-key` is the actual smoke check — until that endpoint returns a real key, the demo is broken even if every page renders correctly.
+
+```bash
+# Pull keys from any sibling project that already has them (wwa-vinted is reliable)
+mkdir -p /tmp/sibling-env && cd /tmp/sibling-env && mkdir -p .vercel
+cat > .vercel/project.json << 'EOF'
+{"projectId":"prj_eoF8zwRk4i3blOS7Cy95N9Zn5I1s","orgId":"team_CVjPPr2WoqlNcN6zmRDjk04Q","projectName":"wwa-vinted"}
+EOF
+npx vercel env pull .env.production --environment=production --yes
+
+# Push to the new project via Vercel API
+TOKEN=$(python3 -c "import json; print(json.load(open('/Users/joel/Library/Application Support/com.vercel.cli/auth.json')).get('token',''))")
+TEAM="team_CVjPPr2WoqlNcN6zmRDjk04Q"
+PID=$(cat /tmp/wwa.{slug}/.vercel/project.json | python3 -c "import sys,json; print(json.load(sys.stdin)['projectId'])")
+for k in GEMINI_API_KEY GOOGLE_GENERATIVE_AI_API_KEY OPENAI_API_KEY; do
+  v=$(grep "^${k}=" /tmp/sibling-env/.env.production | head -1 | cut -d= -f2- | sed 's/^"//;s/"$//')
+  curl -s -X POST "https://api.vercel.com/v10/projects/$PID/env?teamId=$TEAM" \
+    -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+    -d "$(python3 -c "import json,sys; print(json.dumps({'key':'$k','value':'$v','type':'encrypted','target':['production','preview','development']}))")"
+done
+
+# REDEPLOY + RE-ALIAS so the new envs take effect (env changes don't apply to existing builds)
+cd /tmp/wwa.{slug} && npx vercel --prod --yes
+# Then alias the new deploy.
+
+# Smoke check — this is the line that proves the AI works:
+curl -s -X POST https://wwa.{slug}.codiris.app/api/gemini-key -H "Content-Type: application/json" -w "\n%{http_code}\n"
+# Must return {"key":"AIza..."} and HTTP 200. Anything else = AI is silently degraded.
+```
+
+### Matching Unsplash Photos to Categories
+
+| Company Type | Use These Photos |
+|--------------|-----------------|
+| Luxury/Fashion (Dior, Hermès, LV) | Perfume + handbag + lipstick + jewelry + fashion |
+| Cosmetics (Sephora, Fenty) | Lipstick + foundation + makeup brushes |
+| Tech/SaaS (Stripe, Notion) | SaaS UI screenshots + tech + abstract |
+| E-commerce (Amazon, Shopify) | Product shots + packaging + shopping |
+| Fintech (Visa, Chase) | Cards + phone + wallet |
+
+### Step 2.2: Download Favicon
+
+```bash
+curl -L -o "public/favicon.ico" "https://www.google.com/s2/favicons?domain={domain}&sz=64"
+```
+
+### Step 2.3: Visual verification — MANDATORY before writing any image path into `cards.ts` / `solutions.ts`
+
+You are a multimodal model. You can see images. **Use the `Read` tool on every downloaded file** and visually inspect what it actually depicts. Do this BEFORE referencing the image from any data file.
+
+```
+Read file_path=/absolute/path/to/public/images/samba.jpg
+```
+
+For each image, verify the following before approving it:
+
+1. **Brand match.** If the image represents a named product, does it show the correct brand's logo, wordmark, or trademark graphic?
+   - Nike → Swoosh visible and no other brand logos
+   - adidas → 3-Stripes and/or Trefoil visible, no Swoosh, no "N", no Brooks, no Puma cat
+   - Dior → "Dior" wordmark or CD monogram
+   - Hermès → "H" clasp or Kelly/Birkin silhouette with Hermès marking
+   - Apple → Apple logo, no Samsung/Google/other
+2. **Product match.** If the image is tied to a specific franchise in `solutions.ts` (e.g. "Air Max"), does the shoe in the photo actually look like an Air Max (visible Air unit) vs. a random sneaker?
+3. **No competitor logos.** If you can see **any** competitor's logo anywhere in the frame (even on a background wall, a bystander's shirt, the box the product is sitting on), reject the image.
+4. **No off-brand props.** A Nike shoebox in the corner of an adidas product shot → reject.
+
+**If verification fails**, in order:
+
+1. Retry with a different source from the priority list (Wikimedia Commons almost always has a clean product shot).
+2. If still no luck, **remove that product from `productItems` / that franchise from `solutions`** rather than ship the bad image.
+3. NEVER "just swap the filename" and hope — the file on disk is what ships.
+
+**Checklist to run at the end of Phase 2:**
+
+```bash
+# List every image file with its size
+ls -la public/images/*.jpg public/images/*.png public/images/*.svg 2>/dev/null
+```
+
+Then, for EACH non-logo image, use `Read` on it and log either `VERIFIED: shows real <brand> <product>` or `REJECTED: shows <what-it-actually-is>`. If any rejected image is still referenced from `cards.ts` / `solutions.ts`, **you have failed this step** — fix it before proceeding to Phase 3.
+
+**For sizing**: if an image is ≥ 3MB, resize on macOS with `sips -Z 1200 input.jpg -o output.jpg` or `sips -Z 1200 --setProperty formatOptions 80 input.jpg -o output.jpg` to keep page weight reasonable.
+
+---
+
+## PHASE 3: Build the Project
+
+### Step 3.1: Copy Framework
+
+```bash
+# From inside the cloned skill (typically ~/.claude/skills/agentizer):
+mkdir -p ~/wwa.{domain}
+cp -R ./template/. ~/wwa.{domain}/
+cd ~/wwa.{domain} && npm install
+```
+
+Do NOT copy from absolute maintainer paths like `/Users/joel/wwa-skill/template/` — that path only exists on the maintainer's machine. Always copy `./template/.` relative to the skill directory that contains this SKILL.md.
+
+**Template naming:** The template uses `ProductItem`/`productItems` (not VisaCard/visaCards) as generic names for browsable items. The navbar component is `brand-navbar.tsx`, the map is `world-map.tsx`. All imports in page.tsx already use these names.
+
+### Step 3.1b: Sweep Visa color tokens (MANDATORY, run once, before everything else)
+
+The template ships with Visa's blue (`#1A1F71`), navy hover (`#141963`), and light blue (`#1434CB`) hardcoded in ~8 components — `solution-detail-panel.tsx`, `solution-slider.tsx`, `generated-view.tsx`, `agent-panel.tsx`, `account-panel.tsx`, `live-session-overlay.tsx`, and others. **Delegating component rewrites to parallel subagents always leaves some of these files unedited**, and the Step 3.6 audit catches it every time. Save yourself the re-roll — run this sweep FIRST, right after `cp -R ./template/.`:
+
+```bash
+cd ~/wwa.{domain}
+
+# Replace Visa blue (primary), navy (hover), and light blue (accent) with brand colors.
+# Pick hex codes that match your brand-config.ts primary/secondary/accent.
+find src -name "*.tsx" -o -name "*.ts" | xargs sed -i '' \
+  -e 's/#1A1F71/{BRAND_PRIMARY}/g' \
+  -e 's/#141963/{BRAND_PRIMARY_DARK}/g' \
+  -e 's/#1434CB/{BRAND_ACCENT}/g'
+
+# Verify zero remaining
+grep -rn "#1A1F71\|#141963\|#1434CB" src/
+```
+
+Example for a black-primary brand: replace with `#000000`, `#000000`, `#CF0A2C`. For Dior (gold on black): `#0A0A0A`, `#000000`, `#C9A96E`.
+
+After the sweep, subagents can focus on rewriting content (copy, data) without worrying about color hunts. Re-run the grep at the end of Phase 3 to confirm nothing crept back in.
+
+### Step 3.2: Write Brand Config
+
+Write `src/lib/brand-config.ts` with ALL company data from Phase 1. This drives the entire app.
+
+### Step 3.3: Write Solutions Data
+
+Write `src/lib/solutions.ts` — these are the company's ACTUAL products/services. Each must have:
+- Real name, real description from their website
+- Real features from their product pages
+- Image pointing to downloaded file
+- Appropriate category for THIS company (not Visa's categories)
+
+### Step 3.4: Write Products/Cards Data (ONLY IF APPLICABLE)
+
+Write `src/lib/cards.ts` — ONLY if the company sells browsable items (plans, cards, products with prices).
+
+**For API companies (Stripe, Twilio):** Use pricing tiers as "cards" — Free, Growth, Enterprise
+**For e-commerce (Nike, Apple):** Use actual products as cards
+**For SaaS (Salesforce, HubSpot):** Use subscription plans as cards
+**For companies with no browsable products:** Leave the array EMPTY and the browse section won't show
+
+### Step 3.5: Rewrite EVERY Content Component
+
+**CRITICAL: Do not sed-replace. REWRITE each file understanding the company.**
+
+**`src/components/hero-section.tsx`** — Rewrite completely:
+- Stats must be THIS company's real stats
+- "Card Tiers" section: REMOVE if company doesn't have tiers. Replace with what makes sense (e.g., "Choose your plan", "Explore by use case", customer logos grid)
+- "Why {Brand}" section: Write real value props from their website, not Visa's
+- "Find your card" CTA: Change to whatever CTA makes sense ("Start Building", "Get Started", "Shop Now", "Request Demo")
+- Hero images should use downloaded images
+
+**`src/components/inner-page.tsx`** — Rewrite ALL pages:
+- Navigation pages must match THIS company's nav (from brand-config)
+- Each page content must be written from crawled data
+- Remove any pages that don't apply (Stripe doesn't need "Travel" or "Personal")
+- Add pages that DO apply (Stripe needs "Developers", "Pricing")
+
+**`src/components/wwa-panel.tsx`** — Update:
+- SUGGESTIONS array: Write 6-8 suggestions relevant to THIS company
+- Card/solution detection keywords: Based on THIS company's product names
+- Chat tab label: "{Brand} Agent"
+- Category labels in browse section
+
+**`src/components/assistant-shared.tsx`** — Rewrite ALL fallback responses:
+- Every response must be about THIS company's products
+- Use real product names, real features, real pricing
+- Reference actual pages/docs from their website
+
+**`src/app/actions.ts`** — **Always a full rewrite, regardless of peer clone.** Both the chat `SYSTEM_PROMPT` and the `CODE_GEN_PROMPT` bake brand knowledge in deep (named buildings, founding years, signature products, ambassadors, specific exhibition venues) that a simple `grep "ralph\|polo"` misses. Example: a Ralph Lauren → Zara peer clone caught the obvious brand names but left phrases like "Rhinelander Mansion", "1978 fragrance launches", "Jack Shainman Gallery" in the system prompt — these shipped silently until end-to-end prompt re-read. Re-read this file line-by-line after any peer clone.
+- Identity: "{Brand} Agent" specialist in their actual domain
+- Product knowledge from crawled data
+- Stats from their actual numbers
+- Zero references to any prior brand's specific places, years, products, people, or institutions — these don't grep cleanly
+
+**`src/app/page.tsx`** — Update:
+- Category grid: Use THIS company's actual categories (not Travel/Cash Back/Business)
+- Section titles and descriptions
+- Remove any sections that don't apply
+
+**`src/components/book-demo-modal.tsx`** — Update:
+- Product interests: THIS company's actual products
+- Company types relevant to their market
+- Form copy
+
+For **luxury e-commerce / heritage brands**, rewrite the whole modal as "Request a Private Appointment" with three fields — the B2B fields (company size, revenue range, country dropdown, SKU picker) are inappropriate. Keep it short:
+- Name + email
+- Preferred boutique (dropdown of real flagships from brand-config / flagships.ts)
+- Occasion + interests (free text — "wedding gift", "wardrobe refresh", "home", etc.)
+Submit CTA: "Request Appointment" — not "Book a Demo".
+
+**`src/components/live-session-overlay.tsx`** — CRITICAL:
+- Replace the SVG logo paths (appears 2 times: header + animated center) with the brand's logo
+- Update the viewBox to match the brand's SVG
+- The voice call should show the BRAND logo, not any other brand
+
+**`src/components/assistant-shared.tsx`** — CRITICAL:
+- The `EmptyState` component shows welcome screen with brand logo
+- The logo IS the call button — clicking it starts the voice call. NO separate "Start Voice Call" text button
+- Pattern: `<button onClick={onOpen}><img src="/images/brand-logo.svg" /></button>`
+- Must use brand's logo image file (not inline SVG — renders badly)
+
+**`src/components/agent-panel.tsx`** — CRITICAL (often forgotten):
+- Rename ALL skill names: "visa-search" → "{brand}-search", etc.
+- Rename CLI commands: "visa-agent" → "{brand}-agent"
+- Rename MCP package: "visa-agent-mcp" → "{brand}-agent-mcp"
+- Update AgentNet command: "agentnet add {brand}-agent"
+- Update skill descriptions to match brand's products
+- Update CLI example commands to be relevant to brand
+- MCP URL and Claude Code/Codex install commands read from `BRAND.mcpUrl` + `BRAND.mcpServerName` automatically — no string edits needed here as long as brand-config is correct.
+
+**`src/app/mcp/route.ts`** — REAL MCP ENDPOINT (ships with template):
+- The template serves a working MCP Streamable HTTP endpoint at `/mcp` on the same origin as the agentfront. JSON-RPC 2.0, stateless, CORS-enabled.
+- Default tools read from `productItems` (cards.ts) and `solutions` (solutions.ts): `search_products`, `compare_products`, `get_product`, `get_solutions`, `recommend_product`.
+- The `mcpTools` list shown in agent-panel.tsx is already synced with these 5 default tools.
+- To add brand-specific tools (e.g. `find_boutique` for luxury, `compare_tiers` for financial, `estimate_fees` for SaaS): append to the `TOOLS` array and add a `case` in `callTool`. Mirror the addition in agent-panel's `mcpTools` list.
+- **Brand-config keys to set:**
+  - `mcpUrl`: `"https://wwa.{brand}.codiris.app/mcp"` (same origin as deployed agentfront)
+  - `mcpServerName`: `"{brand}-agent"` (CLI identifier for `claude mcp add`)
+- **Verify after deploy:** `curl -X POST https://wwa.{brand}.codiris.app/mcp -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'` — must return the tool list with 200.
+- **Recommended brand-specific tools by type** (append to `TOOLS` in route.ts and to `mcpTools` in agent-panel.tsx):
+  - Heritage brand (Ralph Lauren, Rolex, Hermès, Patek Philippe): `get_heritage(yearFrom?, yearTo?)` from `src/lib/heritage.ts`, `find_flagship(city?, country?)` from `src/lib/flagships.ts`
+  - Multi-house luxury group (Dior, Chanel, Armani): `get_houses()`, `get_house(id)`
+  - Restaurant / hospitality arm (Ralph Lauren Polo Bar, Bulgari hotels, Armani Caffè): `find_restaurant(city?)`
+  - SaaS with usage pricing (Stripe, Twilio): `estimate_cost(usage)`, `check_availability(region)`
+  - Fintech with tiered benefits (Visa, Mastercard, Amex): `compare_tiers(tiers[])`
+  - Luxury fragrance house: `get_fragrance_notes(productId)`, `find_boutique(city?)`
+  - Marketplace / C2C (Vinted, Depop, Etsy, eBay): `list_markets(region?)`, `list_categories()`, `get_seller_flow(personal|pro)`, `estimate_fees(price, category)` — sellers and buyers want different info from the same API, and marketplaces have operational data (markets live, fee structure) that doesn't fit search/compare/recommend alone.
+  - Marketplace / Listings (Booking, Airbnb, VRBO, Expedia, Agoda): `search_stays(destination?, checkIn?, checkOut?, guests?, category?, priceMax?)` returning mocked stay results with price/currency/rating/reviewCount (no need to hit real inventory APIs), `list_destinations(region?, country?)` backed by `src/lib/destinations.ts`, and optionally `get_host_flow()` for the host-onboarding path.
+  - Marketplace / Rentals — Residential (Joivy, Spotahome, HousingAnywhere, Uniplaces): `search_rentals(city?, duration_months?, room_type?, max_rent?, available_from?)` — different param shape from `search_stays` (months not nights, single move-in date not check-in/check-out range, room type not category). `find_co_living(city?, age_range?)` translation tool. `book_viewing(propertyId, date)` for tour scheduling — no "reserve" semantics. `get_lease_terms(propertyId)` — minimum lease, deposit, notice period, utilities included. `list_destinations(country?)` backed by `destinations.ts`. Skip `search_stays` / `find_experience` / `find_boutique` — wrong domain.
+  - Marketplace / Rentals — Flex (Habyt Flex, Cove, Sonder, Outsite, Mindspace Living, Selina Co-Live): `search_stays(city?, checkIn?, checkOut?, guests?, unitType?, maxRent?, minNights?)` — uses **check-in/check-out range** like Booking, NOT residential-style `duration_months`. Listings carry both per-night AND per-month prices (`nightlyRent` + `monthlyRent` fields). `find_flex_living(preference)` translation tool. `book_stay(propertyId, checkIn, checkOut, guests)` supports days OR months in one tool — NOT `book_viewing`. `get_lease_terms(propertyId)` repurposed for stay terms (free-cancellation window, min nights). `get_living_spaces(propertyId)` for amenities/common-area inventory (rooftop, café, gym, coworking). Skip `search_rentals` / `find_co_living` / `book_viewing` — those are residential-only, wrong domain.
+  - Retail / Multi-brand (Sephora, Nordstrom, Net-A-Porter, Farfetch): `list_brands(category?, featuredOnly?)` backed by `src/lib/brands.ts`, `find_shade_match(undertone?, coverage?, finish?)` for beauty, `get_routine(skinType?, concern?, budget?)` for skincare, `get_fragrance_notes(productId)` backed by `src/lib/fragrances.ts`. Extend `search_products` with a `brand?` arg — customers ask "foundations from Rare Beauty under €50" and the default signature doesn't support that.
+  - Outerwear / Technical (Canada Goose, Arc'teryx, Moncler, The North Face, Patagonia): `check_warmth(temperature_c, activity)` — a **translation tool** (conditions → product); `compare_parkas(ids[])` extended for fill-power/weight/TEI spec axes; `get_heritage(yearFrom?, yearTo?)` from `heritage.ts`; `find_store(city?, country?)` for flagships with `note` field carrying experiential-retail differentiator ("Cold Room", "Pinnacle Room", "Worn Wear repair"); `get_sustainability(productId?)` returning sourcing + materials detail. Extend `search_products` with `gender?` and `tei?` args.
+  - Fashion editorial-minimalist (Zara, COS, ARKET, & Other Stories, Massimo Dutti): `list_collections()` — parallel capsule sub-lines from `src/lib/collections.ts`; `find_fit(bodyShape?, occasion?, season?)` translation tool (sibling to `check_warmth`); `get_size_guide(category, gender)` returning EU/UK/US matrices — **new MCP tool pattern** for any mass-fashion brand with real size charts. Skip for luxury (bespoke) and beauty (shades instead). Extend `search_products` with `gender?`, `collection?`, `material?`.
+  - Fashion mass-market pop (H&M, Uniqlo, Gap, Mango, Primark, Forever 21): same core tool set as editorial-minimalist, PLUS extend `search_products` with a **`tech?` arg** for proprietary material technologies (HEATTECH / AIRism / Supima / Ultra Light Down / BlockTech for Uniqlo; CONSCIOUS / Recycled / Organic Cotton for H&M). Critical because customers ask "HEATTECH base layer for -10°C" and the natural query needs the tech axis to resolve — don't overload `material` with it.
+  - Fashion marketplace online (ASOS, Shein, Nasty Gal, Boohoo): `list_brands(category?, featuredOnly?)` backed by `src/lib/brands.ts`; `list_collections()` for own-label sub-lines; `find_fit(bodyShape?, occasion?, season?, sizeRange?)` — extend with sizeRange for size-inclusive brands; `get_size_guide(category, gender, sizeRange?)` — per-range cut measurements (curve cut ≠ petite cut, not just number); **`check_delivery(postcode?, country?)`** — NEW translation tool for Premier/Prime/Saver eligibility (service-eligibility translator, sibling to `check_warmth`). Extend `search_products` with `brand?`, `gender?`, **`sizeRange?`** (`"curve" | "petite" | "tall" | "maternity" | "standard"`).
+  - **NEW TOOL CATEGORY — "translation tools"** (conditions → product): `check_warmth(temp, activity)` is the first. Other candidates across brand types: footwear `check_fit(usSize, width, foot-shape)`; skincare `check_compatibility(drug, pregnancy)`; luggage `check_airline_allowance(airline, class)`. These are neither `search` nor `recommend` nor `compare` — they translate external conditions into product filters. Document as a sibling to the three classic MCP verbs.
+
+**`src/lib/brand-config.ts`** — Logo:
+- Download logo via WebSearch: "{brand} logo SVG wikipedia" or "{brand} press kit"
+- Set `logoSvg: ""` and `logoImage: "/images/brand-logo.svg"`
+- ALWAYS prefer logo image file over inline SVG to avoid rendering issues
+
+**`src/components/world-map.tsx`** — Update stats or remove if not relevant
+
+**`src/components/card-3d.tsx`** — ONLY for credit card companies (Visa, Mastercard). 
+- For ALL other companies: the template already uses product image cards instead of Card3D
+- The `cards-browse-panel.tsx` and `wwa-panel.tsx` CardCarousel show product images with name/price overlay
+- Do NOT use Card3D for fashion, SaaS, e-commerce, or any non-card company — it renders a credit card with chip and magnetic stripe
+- The file contains hardcoded Visa SVG paths and a `1-800-VISA` customer-service phone. Even if the component is never rendered, the audit grep will still flag those strings. For non-card brands, either **delete `card-3d.tsx` entirely** or scrub the hardcoded Visa strings before running the audit.
+- **Specific residue check** — `template/src/components/wwa-panel.tsx` line ~68 still renders `<Card3D card={card} size="sm" onClick={...} />` inside the `CardCarousel` component. Every non-card transform MUST replace that line with a photo tile (e.g. `<img src={card.image} .../>` wrapped in a button). Confirmed on Airbnb sim — the template ships with this leak and it has to be edited in-place.
+
+**`src/components/cards-browse-panel.tsx`** — PRODUCT DETAIL VIEW (non-credit-card companies):
+
+The template has credit-card-specific labels throughout the detail view. You MUST rewrite ALL of these for non-card brands:
+
+| Credit-card term | E-commerce/SaaS replacement |
+|------------------|----------------------------|
+| "Back to Cards" | "Back to Products" / "Back to Collection" |
+| "Issued by" | "From" / remove for brand-native products |
+| "Annual fee:" | "Price:" |
+| "Card Tier" | "Collection" / "Tier" / "Plan" |
+| "Card Highlights" | "Product Highlights" / "Features" |
+| "Card Details" | "Details" / "Specifications" |
+| "REWARDS / WELCOME BONUS / APR" | Remove entirely — not applicable |
+| "Ready to apply?" | "Ready to shop?" / "Ready to get started?" |
+| "Apply Now" | "Add to Bag" / "Buy Now" / "Subscribe" |
+| "Compare Other Cards" | "Explore Collection" / "Continue Shopping" |
+| "Application Submitted!" | "Order Confirmed!" / "Welcome!" |
+| "Quick application with instant decision" | "Complete your purchase" / "Get started in seconds" |
+| "Browse More Cards" | "Continue Shopping" / "Explore More" |
+| "Annual Income *" | "Shipping Notes" / remove |
+| "credit history" | Remove the credit check reference entirely |
+| `{annualFee}/yr` | `{price}` |
+| "Secure Application" | "Secure Checkout" |
+
+Also: the detail view renders the product with a dark gradient background and centered 3D card — change to a white background with image on left + details on right for product-style layout.
+
+**`src/components/hero-section.tsx`** — VISUAL STYLE BY BRAND TYPE:
+
+The default template uses a SaaS/tech aesthetic (split layout, colored gradient tiles, tech-y feature grid). This is WRONG for luxury/editorial brands. Adapt per brand:
+
+**LUXURY / EDITORIAL — FRENCH / EUROPEAN (Dior, Hermès, Chanel, Gucci, Aesop):**
+- **Hero**: Full-bleed image or video, black/white overlay, centered text, serif heading, no split
+- **CTAs**: Square buttons (no rounded-full), white-on-image, "Discover" / "Shop the Collection"
+- **Stats**: Minimal, no gradient background, serif numbers, uppercase labels with wide tracking
+- **Collections**: Large 2-col tiles with full product imagery, gradient overlay, serif headings
+- **Category grid**: Aspect 4:5 tiles with real product images as backgrounds (NOT colored gradients)
+- **Fonts**: Playfair Display / Didot-style serif for all headings
+- **Typography**: `tracking-[0.3em]` on uppercase labels, `font-normal` (not bold) on headings
+- **Colors**: Black, white, cream, gold — no blue/purple accents
+- **Motion**: Slow, gentle (1-2s transitions), long fade-ins
+
+**FASHION — EDITORIAL MINIMALIST (Zara, COS, ARKET, & Other Stories, Massimo Dutti):**
+
+Mono-brand mono-color fashion with rapid-turn seasonal drops, no heritage narrative, maximal typography contrast. The pure-B&W editorial-gallery aesthetic. Distinct from its mass-market cousin (H&M / Uniqlo / Gap / Mango) which uses color-friendly pop aesthetics.
+
+- **Palette**: **pure black + pure white, NO accent color**. This is the signature — monochrome is the brand. Don't use the Visa-navy / Sephora-red / any-color pattern; resist the instinct to add an accent. Zara's brand voice IS the restraint.
+- **Typography**: **condensed elongated display serif** for headlines (free equivalents: `Big Shoulders Display`, `Oswald`, `Abril Fatface` — pick the one that matches the brand's wordmark shape). Inter or Helvetica for body. The *contrast* between massive display headlines and tiny body copy is the brand signature — don't temper it.
+- **Hero**: oversized display text (4-8 rem+) over a **single** full-bleed editorial photo. NOT a carousel (RL/Dior pattern), NOT a search form (marketplace), NOT a split (SaaS). One big photo, scroll for the next editorial block. Massive negative space between sections.
+- **Buttons**: sharp-cornered (border-radius 0), uppercase wide-tracking tiny text, black-on-white or white-on-black only. The button text reads `ADD` or `SHOP NOW →` — never more.
+- **Navigation**: pure text, tiny size, pure black. The navbar is lean — Woman / Man / Kids / Home / Beauty / Join Life or similar brand-specific top facets. No icons, no dropdowns.
+- **Product grid**: large rectangular tiles, no pills, no "guest favorite" badges, no discount flags during a normal season. Just photo + product name + price.
+- **Product detail view** — DISTINCT from all other sub-types:
+  - Huge display-serif product name (not bold sans, not Didot — the condensed elongated serif)
+  - Price: small but bold, under the name. No strikethrough unless genuinely on sale.
+  - **Size picker = single `<select>` dropdown**, not a grid (Zara does this deliberately — minimalism)
+  - Color chips: small circles, inline
+  - **Single "ADD" button**, no "Wishlist", no "Request consultation" — just ADD
+  - Body-copy paragraph (not an accordion) with material + care text
+  - "YOU MAY ALSO LIKE" row at bottom
+  - No trust badges, no reviews, no "Recommended for you" personalization chrome
+- **Animations**: restrained — quick fades only. NO scale-on-hover, NO slide-ins. The minimalism applies to motion too.
+- **Collection sub-lines**: most editorial-fast-fashion brands run 4-8 parallel sub-capsules (Zara's Main/Studio/SRPLS/Origins/TRF/Limited Edition/Athleticz/Join Life; Uniqlo's Main/U/C/J; H&M's Main/Studio/Home/Conscious). Add `src/lib/collections.ts` + a `list_collections()` MCP tool — these don't map onto gender/category axes.
+- **MCP tools** specific to editorial-minimalist fashion:
+  - `list_collections()` — parallel capsule sub-lines from `collections.ts`
+  - `find_fit(bodyShape?, occasion?, season?)` — translation tool (sibling to Canada Goose's `check_warmth`; conditions → curated picks)
+  - `get_size_guide(category, gender)` — EU/UK/US size matrix with measurements. This is a **new MCP tool pattern** for any mass-fashion brand with real size charts (Zara, Uniqlo, H&M, Gap, ASOS). Luxury brands skip it (bespoke); beauty retailers skip it (shades instead).
+  - `find_store(city?, country?)` — flagship physical presence
+
+**FASHION — MASS-MARKET POP (H&M, Uniqlo, Gap, Mango, Primark, Forever 21):**
+
+Cousin to editorial-minimalist but color-friendly and accessible. Distinguished from Zara/COS/ARKET by: bold brand accent color (H&M red, Uniqlo red, Gap navy), pop-magazine aesthetic (pink/olive/cream seasonal backgrounds, NOT pure B&W), entry-level pricing (£4.99–£14.99 basics vs Zara's £19.95 floor), youth-dedicated sub-line (H&M's Divided, Gap's Teen), and first-class Baby + Home categories.
+
+- **Palette**: brand-color primary + accessible pastels. H&M red `#E50010`, Uniqlo red `#E30A18`, Gap navy `#00256C`, Mango camel. Seasonal backgrounds use soft pink / olive / cream / camel — a color accent is expected and welcome (opposite of the Zara rule).
+- **Typography**: **bold chunky sans** (Inter Bold Extended, Helvetica Bold, Noto Sans) — NOT condensed elongated serif. The mass-market signal is confidence and clarity, not editorial drama.
+- **Hero**: color-block rotating panels (2-3 panels, each a different hero offer) OR a "shop-by-trend" tile row (Y2K / Boho / Workwear / Festival / Preppy). Multiple narratives surfaced, not a single editorial moment.
+- **Navigation** includes: Ladies/Woman, Men, Youth sub-line (Divided/Teen), **Kids, Baby, Home** — Baby and Home are first-class top-nav entries, not nested under Kids/Lifestyle. Uniqlo Baby sizing goes 50-100cm.
+- **Product detail view** — like editorial-minimalist but with:
+  - Color swatches as prominent circles (not discrete)
+  - Size grid XS–XXXL PLUS numerical EU 34-46 both shown
+  - **Members price** strikethrough shown ("£29.99 / H&M Member £24.99")
+  - Tech-feature badges where applicable (HEATTECH / AIRism / Supima / Ultra Light Down for Uniqlo; CONSCIOUS / RECYCLED / ORGANIC for H&M)
+  - Accessible price ladder on every tile (entry + aspirational side-by-side)
+- **Product grid** is denser than editorial-minimalist, merch-oriented, with badge flags (NEW / SAVE / BESTSELLER / CONSCIOUS) that would be too loud for Zara but are on-brand here.
+- **Loyalty programme** is first-class chrome: H&M Members, Uniqlo IQ, Gap Good Rewards. Surface in the navbar, the PDP price block, and the book-demo-modal (rewrite as loyalty signup per SKILL.md residues).
+- **Technical-functional tech features** are product-level filters: Uniqlo's HEATTECH/AIRism/Supima/Ultra Light Down/BlockTech/PUFFTECH. Extend `search_products` with a `tech?` arg so customers can filter by proprietary material tech ("HEATTECH base layer for -10°C"). Don't overload `material` with it.
+- **MCP tools** — same as editorial-minimalist plus:
+  - `search_products` extended with `tech?` arg (HEATTECH / Supima / CONSCIOUS / Organic Cotton / Recycled)
+  - `list_collections()` — Uniqlo's Main/U/C/J/+J/JW Anderson/Marimekko; H&M's Main/Studio/Divided/Conscious Exclusive + designer collabs
+
+**FASHION MARKETPLACE — ONLINE (ASOS, Shein, Nasty Gal, Boohoo, Zalando):**
+
+Pure-play online retailers with substantial own-label catalogues + stocked external brands. Distinct from `RETAIL — MULTI-BRAND` (Sephora / Nordstrom / Net-A-Porter) which are primarily curated external-brand retailers. Distinct from `marketplace-listings` (Booking / Airbnb) which is host-traveler dynamics.
+
+- **Palette**: dark-minimalist with an electric accent. ASOS true black + neon yellow; Shein black + pink; Zalando white + orange. The neon/electric accent is the "online-only youth" signal.
+- **Typography**: bold chunky sans with confident presence. Inter Bold Extended or Helvetica Bold Extended.
+- **Signature nav pattern** — **size-inclusive top-level entries**: Curve & Plus / Petite / Tall / Maternity as first-class nav categories alongside Women / Men / Kids. This is unique to online-only fashion marketplaces (ASOS pioneered it; Boohoo / Nasty Gal followed). SKIP this for Zalando/Nordstrom/Net-A-Porter which keep size ranges as filter chips instead.
+- **Hero**: weekly editorial cover ("Trending now", "Fit of the week", "We're obsessed with…") + a "shop-by-size-range" tile row. Model-led street-style photography, NOT studio white-background.
+- **Product detail view**:
+  - Prominent brand badge above product name ("NIKE · Air Max 90")
+  - Size + fit info block ("Model wears UK 8 / size S, 5'10"") — ASOS-signature
+  - Stock indicator ("Only 3 left in size M")
+  - Star rating + review count from the brand's own reviews
+  - Premier / Prime / Saver delivery eligibility teaser
+- **Required `src/lib/brands.ts`** + `list_brands(category?, featuredOnly?)` MCP tool (same convention as multi-brand beauty retail — ASOS stocks 850+ brands).
+- **Required `src/lib/collections.ts`** for own-label sub-lines (ASOS Design / Edition / 4505 / Weekend Collective / Made In / Topshop / Topman).
+- **MCP tools** — substantial extension:
+  - `search_products` extended with `brand?`, `sizeRange?` (`"curve" | "petite" | "tall" | "maternity" | "standard"`), `gender?`
+  - `list_brands(category?, featuredOnly?)`
+  - `list_collections()`
+  - `find_fit(bodyShape?, occasion?, season?, sizeRange?)` — extended with sizeRange
+  - `get_size_guide(category, gender, sizeRange?)` — UK/EU/US PLUS per-range cut measurements (curve cut differs from petite cut, not just the number)
+  - `check_delivery(postcode?, country?)` — NEW translation tool (conditions → Premier / Saver / Standard eligibility). Sibling to Canada Goose's `check_warmth`. General pattern: a translation tool for service eligibility is a third category beside product-search and product-recommend.
+
+**LUXURY — AMERICAN HERITAGE / PREP (Ralph Lauren, Tommy Hilfiger, J.Crew, L.L. Bean, Brooks Brothers):**
+- **Hero**: Full-bleed runway OR editorial lifestyle photograph (equestrian, sailing, library, cabin interior — NOT Paris-minimalist void). Static image with 1.04 scale-on-mount is fine — most of these brands have no public video CDN.
+- **CTAs**: Square buttons, uppercase-wide tracking, "Shop the Collection" / "Request an Appointment" / "Visit the Flagship"
+- **Stats**: Minimal, serif numbers, uppercase labels — same as French luxury
+- **Collections**: 2- or 3-col grid of portrait 3:4 or 4:5 images with serif captions
+- **Fonts**: Caslon / Garamond / Playfair Display — NOT Didot (that reads as French and wrong)
+- **Typography**: Wide-tracked uppercase labels in burgundy or navy, italic body for pullquotes, never all-caps long-form
+- **Colors**: Navy primary, burgundy accent, cream surface, racing green or tartan secondary, antique gold highlight — avoid stark black/white/gold (that's French)
+- **Motion**: Slower than French luxury (1200–1600ms), no scale transforms beyond 1.04
+
+**TECH / SAAS (Stripe, Notion, Linear):**
+- Split hero with copy left + product screenshot right
+- Colored CTAs (rounded-full), "Start Building" / "Book a Demo"
+- Stats on dark background with bold numbers
+- Feature grid with icons (not images)
+- Code snippets as visual elements
+
+**CONSUMER (Apple, Nike, Spotify):**
+- Full-bleed hero with big bold text, keep sans-serif
+- Single prominent CTA, bold colors
+- Product-focused imagery, minimal copy
+
+**FINTECH / FINANCIAL (Visa, Chase, Robinhood):**
+- Keep current template style (split, colored tiers, card visuals)
+- Blue/navy color palette
+- Stats-heavy design, trust signals
+
+**MARKETPLACE / C2C (Vinted, Depop, Etsy, eBay, Poshmark):**
+- **Hero**: carousel of category solutions with lifestyle photography (real people + items — NOT isolated product shots). Hero copy is short and action-oriented ("Dresses, tops, denim, and outerwear — secondhand").
+- **CTAs**: dual-intent, always two buttons — primary "Sell Now" (solid brand color) + secondary "Start Browsing" (outline or darker brand color). Never "Shop Now" alone; a marketplace's sellers are half the audience.
+- **Stats bar**: members / markets / lifetime GMV / seller-fees. Example from Vinted: "80M+ Members · 26 Markets · €10.8B Annual GMV · 0% Selling fees". The zero-fees or low-fees stat is often the single most persuasive number — lead with it if true.
+- **Navigation**: the brand's real category tree (Women / Men / Designer / Kids / Home), plus a "Sell" item that routes to the seller flow.
+- **Feature tiles** (instead of product grid): Buyer Protection, Ship Fast, Designer Authentication, Bundle Discounts, Zero Fees, Wallet — these are *trust & flow* features, not products.
+- **Fonts**: utility sans-serif (Inter, Geist). Marketplaces are utility-first; serif reads luxury and is wrong.
+- **Colors**: most marketplaces use a single bold color (Vinted teal `#09B1BA`, Depop red, Etsy orange, Poshmark pink). Use the brand color boldly — stats band, hero CTAs, feature icons.
+- **No `book-demo-modal` in the classic B2B shape** — see the marketplace variant in the `book-demo-modal.tsx` guidance below.
+
+**MARKETPLACE / LISTINGS (Booking, Airbnb, VRBO, Trivago, Expedia, Hotels.com, Agoda):**
+
+Similar to C2C marketplaces but asymmetric — travellers/buyers are the primary audience, hosts/sellers are the B-side. Different hero + CTA pattern:
+
+- **Hero**: large photographic hero (city skyline / destination / accommodation) with a **search form overlay** — not a static CTA button. The search form IS the primary interaction. Standard fields: destination, check-in, check-out, guests.
+- **CTAs — asymmetric, NOT dual-intent**:
+  - Primary: "Search Stays" / "Find a Hotel" / "Search Flights" — large, solid brand color, near the search form
+  - Secondary: "List Your Property" / "Become a Host" — small outline button in nav or footer, routes to a host-onboarding modal
+  - Do NOT paste dual CTAs side-by-side like C2C. The search form is a primary-heavy pattern.
+- **Two signature grids** — SHIP BOTH on the homepage:
+  1. **Trending inventory grid** — 18-26 tiles of individual stays/cities/routes with real photography (Paris boutique, Tokyo capsule, Santorini cave, Maldives villa). Each tile shows image + name + price indicator ("from €180/night") + city label.
+  2. **Destinations / categories grid** — 24-36 tiles of countries/cities/regions with iconic destination photos (Eiffel, skyline, monument). Each tile shows image + destination name + property count ("12,450 stays").
+  - Both grids are what travellers actually scroll through. Skipping either breaks the marketplace feel.
+- **Stats bar**: properties / countries / languages / support. Example from Booking: "3M+ Properties · 220+ Countries · 40+ Languages · 24/7 Support".
+- **Navigation**: Hotels · Apartments · Villas · Hostels · B&Bs · Holiday homes · Resorts · plus "List your property" as the host entry.
+- **`src/lib/cards.ts` repurposing**: the 9-15 `productItems` represent stay categories (Hotels/Apartments/Villas/etc.), NOT individual properties — the same repurposing convention as C2C features but with category shape.
+- **Optional `src/lib/destinations.ts`**: listings marketplaces almost always have a destinations catalog. Create this file with `{ id, city, country, region, heroImage, propertyCount }[]` and wire a `list_destinations(region?)` MCP tool to it. Vinted uses `list_markets(region?)` for country markets; Booking uses `list_destinations(region?)` for cities; Uber would use `list_cities(country?)`. Same shape, different primary axis.
+- **Optional `src/lib/experiences.ts`** (for brands that sell **activities** alongside stays — Airbnb Experiences, Klook, Viator, GetYourGuide, Hotels.com Spots): `{ id, city, title, type, price, duration, image }[]`. Experiences aren't stays (no overnight axis) and aren't destinations (they're bookable events) — they need their own dataset. Wire a `find_experience(city?, type?)` MCP tool. Skip this file if the brand only sells stays.
+- **Premium tier within the marketplace** — Airbnb Luxe, Booking Genius, VRBO Premier Partner, Expedia One Key. These are *tiers-within-the-marketplace* that carry extra service slots (trip designer, pre-stocked pantry, airport transfer, priority support). The flat `productItems[].tier` field in the template captures the label but not the extras. If the premium tier matters to the brand story, create a `premium-tier.ts` with `{ features: string[], amenities: string[], support: string }` and add a fifth MCP tool `get_premium_tier()`. Otherwise just flag the tier with a single card in `productItems` and accept the simplification.
+- **Fonts**: utility sans-serif (Inter, Geist). Same as C2C.
+- **Colors**: a confident primary color (Booking blue `#003580`, Airbnb red `#FF5A5F`, Expedia yellow `#FFC72C`) — the primary drives the search form, stats bar, and trending grid chrome.
+
+When transforming, EXPLICITLY adapt the hero and category grid to match the brand's visual DNA. Don't just update text — change the layout pattern.
+
+**MARKETPLACE / RENTALS — RESIDENTIAL (Joivy, Spotahome, HousingAnywhere, Uniplaces, The Student Hotel, Kabute, Casavo):**
+
+**Distinct from listings-marketplace (Booking/Airbnb)** — long-term residential rentals (1–24 months), not nightly stays. The vocabulary, pricing model, transaction flow, and visual surfaces are different enough that listings-marketplace guidance leads you wrong. Verified across the Joivy transform.
+
+- **Vocabulary swap (CRITICAL — do a sweep)**:
+  - "Stay" → "Rental" or "Tenancy"
+  - "Night" / "Nights" → "Month" / "Months"
+  - "Check-in / check-out" → "Move-in date / Move-out date"
+  - "Guests" → "Tenants" / "Residents" (or "Roommates" for co-living)
+  - "Reserve" / "Book this stay" → **"Schedule a viewing"** or "Apply" or "Request a tour"
+  - "Free cancellation" → "Lease flexibility" / "Notice period" (typically 30-60 days)
+  - "Trip" / "Vacation" → just remove
+  - "Hotel" / "Resort" → "Building" / "Residence" / "Apartment block"
+- **Hero / search form fields** (different from Booking's destination/check-in/check-out/guests):
+  - **City** (dropdown of live markets)
+  - **Move-in date** (single date picker, not a range — open-ended duration)
+  - **Duration** — radio or pills: 1-3 mo / 3-6 mo / 6-12 mo / 12+ mo
+  - **Room type** — Entire studio / 1-bed / Co-living room / Shared apartment / Family suite
+  - **Monthly budget** (single slider — €400-€2,500 typical range)
+  - Primary CTA: "Find a home" or "Search rentals" — not "Search stays"
+- **Stats bar** (different metrics): markets · cities · operating since · average move-in time. Example for Joivy: "8 countries · 50+ cities · since 2007 (DoveVivo) · 24h average viewing booking".
+- **`src/lib/cards.ts` repurposing — DIFFERENT FROM LISTINGS**: `productItems` represent **rental categories** (Studio · Co-living room · 1-bed apartment · 2-bed apartment · Student studio · Shared apartment · Family suite · Pro suite), NOT stay categories (Hotels/Villas). Field mapping:
+  - `issuer` → city/country (not gender, not house — for residential the city is the primary filter)
+  - `tier` → lease duration ("Short-term 1-3 mo" / "Medium 3-6 mo" / "Long-term 6-12 mo" / "Annual 12+ mo")
+  - `annualFee` → monthly rent ("€650 / month")
+  - `apr` → utilities + furnishing ("Utilities included · Furnished" / "Bills excluded · Unfurnished")
+  - `rewardRate` → minimum lease ("3 month minimum")
+  - `signUpBonus` → onboarding offer ("First month -50%" / "No deposit" / "Free Wi-Fi" / "Move in same week")
+  - `applyUrl` → property URL on the brand's site
+- **Property detail view** — **NOT the Airbnb gallery + booking card**. Use:
+  - Photo gallery (room + common spaces + building exterior + neighborhood)
+  - Header: building name + address + city + monthly rent + utilities-included badge
+  - **Lease terms block** (essential — lease duration, deposit amount, notice period, what's included, available-from date)
+  - **Building amenities** (Wi-Fi, kitchen, gym, common lounge, washing machine, bike storage)
+  - **Nearby** (universities, transit, supermarkets — text list, not just a map pin)
+  - **"Schedule a viewing"** primary CTA + "Apply now" secondary
+  - No "Reserve" button. No nightly price calculator. No "guests" picker.
+- **`src/lib/destinations.ts`** stays useful — same shape as listings-marketplace, just `propertyCount` is larger (Joivy has ~5,000 rooms in Milan).
+- **MCP tools** specific to residential rentals:
+  - `search_rentals(city?, duration_months?, room_type?, max_rent?, available_from?)` — instead of `search_stays`. Different param shape.
+  - `find_co_living(city?, age_range?)` — translation tool (sibling to `check_warmth`, `find_fit`, `check_delivery`). Conditions → property pick.
+  - `book_viewing(propertyId, date)` — schedule a tour, NOT a stay reservation.
+  - `get_lease_terms(propertyId)` — minimum lease, deposit, notice period, included utilities. Documenting the contract is the equivalent of Booking's "free cancellation" trust signal.
+  - `get_property(propertyId)`, `compare_properties(ids[])` — same as listings.
+  - **Skip**: `search_stays`, `find_experience`, `find_boutique` — wrong domain.
+- **Fonts**: clean sans-serif (Inter, Söhne). Joivy uses ABC Diatype-adjacent.
+- **Colors**: residential brands lean toward **trust-warm palettes** — deep teal (Joivy `#015962`), forest green, terracotta, navy. NOT bright vacation-marketing colors (Booking blue, Airbnb red, Expedia yellow). The vibe is "your home", not "your getaway".
+
+**MARKETPLACE / RENTALS — FLEX (Habyt Flex, Cove, Sonder, Mindspace Living, Outsite, Selina Co-Live):**
+
+**Distinct from residential rentals (Joivy)** — flex-living = stays for **days OR months**, not 1+ month minimum. Habyt's pitch is "a stay that moves with you" — book 3 nights or 8 months in the same building, with free cancellation. Verified across the Habyt transform.
+
+- **Vocabulary swap (different from residential)**: keep "stay" and "guests" (NOT "rental" / "tenants"). "Book" or "Book now" (NOT "Schedule a viewing"). "Free cancellation" is the headline trust signal, not "lease flexibility". The whole grammar is closer to extended-stay-hotel than to residential lease.
+- **Hero / search form fields** (closer to Booking's stay form than Joivy's rental form):
+  - **City** (dropdown of live properties, NOT live cities — flex brands often have just 1-3 active buildings)
+  - **Check-in date + Check-out date** (range picker, like Booking) — NOT a single move-in date
+  - **Guests** (1-4 typical)
+  - **Unit type** — Studio / 1-Bed / 2-Bed / Suite (per-property)
+  - Primary CTA: **"Book now"** or **"Search"** — NOT "Find a home" (that's residential).
+- **Pricing model — DUAL TIER**: every listing carries BOTH a per-night price (`€95/night`) AND a per-month price (`€1,450/mo`). The PDP and the booking card need to surface both. Discount messaging: "Stay 7+ nights for X% off", "Stay 30+ nights for X% off". `cards.ts` should have `monthlyRent` AND `nightlyRent` fields (or a single `priceTiers` object).
+- **Tier mapping** (different from residential): `tier` field becomes the stay-length tier — `"Flex 1-3 nights"` / `"Short stay 7+ nights"` / `"Monthly stay"` / `"Long stay 6+ months"` — instead of lease duration.
+- **Property catalog tends to be SMALL**: Habyt Flex has 2 active properties globally (Berlin Waterfront, Truliving Vallecas Madrid). Don't fake a 50-property catalog. Generate 5-10 unit-type variants per real property (different floors, views, slight price spread) for a 20-30 card catalog. Then list "coming soon" cities with `comingSoon: true` flags + a coming-soon UI badge.
+- **`destinations.ts` shape**: add `comingSoon: boolean` and `propertyCount: 0` for non-active cities. The world-map and city grid then render those with a muted "Coming soon" treatment instead of a fake property count.
+- **MCP tools** specific to flex-living (different signatures from residential):
+  - `search_stays(city?, checkIn?, checkOut?, guests?, unitType?, maxRent?, minNights?)` — uses **check-in/check-out range** like Booking, NOT `duration_months` like Joivy. Both nightly + monthly results in one response.
+  - `find_flex_living(preference)` — translation tool (sibling to `find_co_living`). Natural-language → property + unit pick. Includes nights vs. months parsing.
+  - `book_stay(propertyId, checkIn, checkOut, guests)` — supports days OR months in one tool. NOT `book_viewing`.
+  - `get_lease_terms(propertyId)` — repurposed for "stay terms" — free cancellation window (typically 24-48h before), minimum nights, deposit, what's included.
+  - `get_living_spaces(propertyId)` — list amenities + common spaces (rooftop pool, café, cinema room, gym, coworking — Habyt Vallecas style).
+  - `get_property(propertyId)`, `compare_properties(ids[])`, `list_destinations(country?)` — same as residential.
+  - **Skip**: `search_rentals`, `find_co_living`, `book_viewing`, `find_experience` — wrong domain (residential or hotel).
+- **No 3D Matterport tours** typically — flex brands lean on photography + video walkthrough instead. The tours.json should be `{}` and `hasTour()` returns false; the PDP's 3D-tour pill must be conditional (`{tourAvailable && <pill/>}`) so it silently disappears, not breaks.
+- **Hero subhead**: "A stay that moves with you" / "Flexible living, anywhere you go" / "Book for days or months" — emphasize flexibility, NOT permanence.
+- **Trust badges** (real Habyt order): `Free cancellation · Flexible stay · Best price` — these go above the price on the PDP booking card AND on listing tiles.
+- **Colors**: flex-living brands lean **darker, more luxurious** than residential — Habyt is forest green `#00271A` + terracotta `#572411` + cream `#FFFBF1`. NOT trust-warm teal (that's residential). The vibe is "boutique extended-stay hotel", not "your home" or "your getaway".
+- **Fonts**: same clean modern sans (Inter, Söhne) but allow a serif accent for headings on luxury-skewed flex brands (Habyt uses a humanist sans throughout).
+
+**RETAIL — MULTI-BRAND (Sephora, Nordstrom, Net-A-Porter, Farfetch, Selfridges, MatchesFashion):**
+
+Different from mono-brand luxury (Dior/Hermès) because they stock hundreds of external brands and have to surface those brands as first-class entities. Different from marketplace (Vinted/Airbnb) because they carry real inventory, not user listings.
+
+- **Hero**: large campaign carousel (3-4 slides) with brand collaborations or seasonal themes — less minimalist than luxury, more editorial/commercial.
+- **Navigation**: by category (Makeup, Skincare, Fragrance, Hair, Men, Gifts) AND by brand (dedicated "Brands" entry in the nav).
+- **Signature sections** on homepage:
+  1. Nouveautés / New in — 16+ products
+  2. Bestsellers — 16+ products
+  3. Shop by category — 6-8 large tiles
+  4. Featured brands — horizontal row of 20+ brand cards (logos + "shop the brand")
+  5. Curated routine / look builder — 3-4 step walkthrough (Nettoyer → Tonifier → Traiter → Hydrater for beauty)
+- **`src/lib/brands.ts`** — REQUIRED for multi-brand retail. `{ id, name, logo, origin, categories[], featured }[]` + `list_brands(category?, featuredOnly?)` MCP tool. Sephora stocks 340+ brands and without this the agent can't answer "what brands do you stock from Korea".
+- **Product detail view** — e-commerce shape (NOT Airbnb listing card, NOT credit-card detail):
+  - Gallery strip (hero + 3 thumbs; thumbs can repeat with product variants)
+  - Brand name (prominent, above title) + product title + star rating + review count + trust badges ("Clean at Sephora", "Cruelty-free", "Vegan")
+  - Price row (with strikethrough if discounted)
+  - **Shade / swatch picker** — 8-12 color chips with hover labels (required for makeup; skincare skips this)
+  - Quantity selector + "Add to bag" / "Ajouter au panier" button in the brand accent color
+  - Accordion sections: Ingredients, How to use, Benefits, Reviews
+  - "Recommandés pour vous" / "You might also like" — 4-card row filtered to same category
+  - No booking card, no application form — pure e-commerce
+- **Fonts**: utility sans-serif (Inter / Helvetica Neue). Matches beauty/retail flat-minimalism.
+- **Colors**: most beauty retailers use a stark black/white palette (Sephora, Net-A-Porter) with a single accent (Sephora red `#DE1F29`). Tom Ford / Charlotte Tilbury do black + gold. Farfetch does black + editorial color blocks.
+- **MCP tools** specific to beauty retail:
+  - `list_brands(category?, featuredOnly?)` — filter 340+ brands by category
+  - `find_shade_match(undertone?, coverage?, finish?, skinTone?)` — foundation/lipstick recommendation
+  - `get_routine(skinType?, concern?, budget?)` — 3-4 step skincare routine
+  - `get_fragrance_notes(productId)` — top/heart/base notes per fragrance
+  - `search_products` extended with `brand?` and `skinType?` args
+
+**OUTERWEAR / TECHNICAL (Canada Goose, Arc'teryx, Moncler, The North Face, Patagonia, Mammut):**
+
+Mono-brand, premium/luxury, with technical-spec-forward product detail. Sits at the intersection of American heritage (narrative-heavy, made-in-X provenance) and sportswear (gender/fit/activity filter axes). Neither the Dior shape nor the Sephora shape nor the Ralph Lauren shape fits cleanly — it's its own pattern.
+
+- **Hero**: photographic — cold/arctic/mountain landscape with a single figure in the brand's flagship product. Headline anchored in conditions ("Built for the coldest place on earth", "Made for the alpine", "Tested at -40°C"). Primary CTA = "Shop [Flagship Product]"; secondary = "Discover the Heritage".
+- **Stats bar**: founding year · Made-in-[country] · Lifetime Warranty · sustainability badge (HUMANE DOWN / RECYCLED / BLUESIGN).
+- **Signature sections on homepage**: 1) Shop the flagship product line (16+ tiles with warmth/weight indicator per tile); 2) Explore by collection (Expedition, Black Label, Eco-line, Lightweight); 3) Heritage timeline (wire to `heritage.ts`); 4) "Built for explorers" — 4 story cards featuring real-world users (scientist, mountaineer, ranger, conservationist).
+- **Product detail view — NEITHER the Airbnb booking card NOR the Sephora shade picker NOR the credit-card detail**. New shape:
+  - Gallery strip (hero + 3-4 thumbs)
+  - Breadcrumb: Home > [Gender] > [Category] > [Collection] > [Style]
+  - Style name + collection line ("Expedition Parka") + price
+  - **Color swatches** (circles, 6-8 colorways) — not shade chips, smaller
+  - **Size selector grid** (XS–XXL, with sold-out strikethrough on unavailable)
+  - **Warmth / technical rating bar** — horizontal 1-5 scale (Canada Goose TEI, Arc'teryx has similar tier naming, North Face has similar). Label where this product sits.
+  - **Trust badge row** — 3 pills like HUMANE DOWN · MADE IN CANADA · LIFETIME WARRANTY
+  - Single "Add to Bag" button in brand color
+  - Accordions: Details (fill power, shell fabric, weight in g/kg), Sizing, Care, Sustainability
+  - "Fit" editorial block (how it's cut)
+  - "You might also like" — 4 cards
+- **Fonts**: utility sans-serif, often condensed (Helvetica Neue, Inter, Neue Haas).
+- **Colors**: the brand's dominant hero color (Canada Goose black, Moncler navy, Patagonia earth-tone) + a single flag-adjacent accent (Canada red, French blue, etc.).
+- **MCP tools** specific to outerwear / technical:
+  - `check_warmth(temperature_c, activity)` — a **translation tool** (conditions → product suggestion) that's neither search nor recommend nor compare. Pattern: customer asks "what works at -25°C hiking", tool returns TEI band + matching products. **This shape is new** — document it as a category, other brand types will need translation tools too (e.g. shoes "what fits size 10 UK narrow"; skincare "what's safe during pregnancy").
+  - `compare_parkas(ids[])` — extended comparison exposing the technical-spec axes (fill power, weight, TEI, shell fabric).
+  - `get_heritage(yearFrom?, yearTo?)` — from `heritage.ts`.
+  - `find_store(city?, country?)` — flagship + experiential retail; use `flagships.ts`'s `note` field for retail-differentiator metadata ("Cold Room try-on", "Arc'teryx Pinnacle Room", "Patagonia Worn Wear repair").
+  - `get_sustainability(productId?)` — sourcing + materials detail; customers ask this more than the other verticals.
+
+**`src/components/wwa-panel.tsx`** — ACCOUNT CREATION FLOW:
+
+The template's account creation asks for "annual income" (makes sense for credit card applications, wrong for everything else). For non-financial brands, replace the income question with something contextually relevant:
+
+| Brand Type | Replace "annual income" with |
+|------------|------------------------------|
+| Luxury/Fashion | "What categories interest you most? (Fragrance, Bags, Fashion, Jewelry)" |
+| E-commerce | "What styles do you prefer?" |
+| SaaS | "What's your role/team size?" |
+| Enterprise | "What's your company size?" |
+| Content/Media | "What genres do you like?" |
+| Financial | Keep "annual income" — it's relevant |
+| Marketplace / C2C | "Are you mostly buying or selling?" + follow-up category interest. Ask BOTH because the primary flow branches on this. |
+
+Also update:
+- `lastAssistantMsg.includes("annual income")` → check for the new question
+- Welcome message: "Apply for any card" → "Shop" / "Start using" / appropriate verb
+- Summary line: "💰 $income" → "✨ Interests: preferences"
+- Avatar background color: `1A1F71` (Visa blue) → brand primary color
+
+**`src/components/wwa-panel.tsx`** — BUY/CHECKOUT MESSAGES:
+
+Replace credit-card phrasing in the buy intent responses:
+- "apply for" → "order" / "shop" / "checkout"
+- "card" → "product" / "item"
+- "annual fee" → "price"
+- "Quick apply" → "Quick checkout" / "Fast order"
+- "I'll fill the form for you" → "I'll place the order for you"
+
+**`src/components/world-map.tsx`** — REGIONAL STATS:
+
+The template has credit-card network stats (`merchants: "12M+"`, `banks: "5,000+"`, `cards: "800M+"`). Replace with brand-appropriate stats:
+
+| Brand Type | Regional Stats |
+|------------|----------------|
+| Luxury/Fashion | Boutiques per region, artisans, flagship locations |
+| SaaS | Data centers, enterprise customers, API regions |
+| Retail | Stores, distribution centers, warehouses |
+| Finance | Banks, merchants, cards (keep default) |
+
+Also update GLOBAL_STATS: `"4B+ Cards worldwide"` must match the brand's reality.
+
+**`src/components/card-comparison.tsx`** — TIER BENEFITS:
+
+The template has 20+ Visa-specific credit card benefits (Zero Liability, Auto Rental CDW, Trip Delay, Global Entry Credit, etc). REMOVE all of these and write tier benefits that apply to the brand:
+
+| Brand Type | Tier Benefit Examples |
+|------------|----------------------|
+| Luxury/Fashion | Free shipping, gift wrap, personalization, private shopping, birthday gift, archive access |
+| SaaS | API calls/mo, support SLA, seats, priority features, dedicated account manager |
+| Retail | Free shipping threshold, returns window, early access, member pricing |
+| Subscription | Streaming quality, devices, downloads, family sharing, ad-free |
+
+Tier names `Traditional / Signature / Infinite` are Visa-specific — rename to match the brand's tier system (e.g., Free/Pro/Enterprise for SaaS, Essentials/Signature/Élite for luxury).
+
+### Step 3.6: Verify Zero Original References
+
+Three comprehensive checks. ALL must pass before deploying:
+
+```bash
+# 0. RE-RUN Step 2.3 visual verification for every image referenced from cards.ts / solutions.ts.
+#    Open each file in Read and confirm it still shows the correct brand. Do not trust
+#    earlier verification — if an agent rewrote data files during Phase 3, image paths may
+#    have been shuffled. This check is fast (8-12 Read calls) and catches the #1 UX bug.
+grep -oE '"/images/[^"]+"' src/lib/cards.ts src/lib/solutions.ts | sort -u
+# For each path listed, Read it and confirm brand match.
+
+# 1. Check for any Visa-brand text leaks
+grep -rn "Visa\|visa\.\|#1A1F71\|#141963\|#1434CB" src/ --include="*.tsx" --include="*.ts" | grep -v visaCards | grep -v VisaCard
+
+# 2. Check for credit-card terminology that doesn't fit non-card brands
+grep -rn "annual fee\|annual income\|card tier\|Apply Now\|cardholder\|APR\|Reward Rate\|Sign-Up Bonus\|issued by\|Zero Liability\|credit check\|credit history\|Traditional, Signature, and Infinite\|Issuer opt\." src/ --include="*.tsx" --include="*.ts" -i | grep -v node_modules
+```
+
+Fix every remaining line before deployment. The `card-3d.tsx` component is allowed to keep credit-card text because it's only rendered for actual credit card brands (Visa/Mastercard).
+
+### Known template residues — scrub before deploy
+
+These files ship in the template with Visa-shaped placeholders that the ordinary Phase 3 rewrites don't always catch. Verify each one explicitly before deploying:
+
+| File | What to scrub |
+|------|---------------|
+| `src/components/book-demo-modal.tsx` | Ships with B2B fields (CompanySize, AnnualRevenue, Country dropdown, SKU picker) AND an inline Visa wordmark SVG in the header. For luxury / e-commerce brands, rewrite as "Request a Private Appointment" per the luxury pattern above. For SaaS keep B2B but relabel products. For consumer, replace entirely with a newsletter/contact form. **For marketplace / C2C brands**, rewrite as "Open your seller account" — fields: name + email + username + preferred market (dropdown of the brand's live markets only, NOT all countries) + account type (Personal vs Pro) + main category + expected item volume. Drop B2B revenue/size fields entirely. **For marketplace / Listings brands** (Booking, Airbnb, VRBO, Expedia), rewrite instead as "List your property" — fields: contact name + email + phone + property type (Hotel / Apartment / Villa / B&B / Holiday home / Cabin) + number of rooms + destination (city/country) + property name + short description + partner-terms opt-in. Primary audience of this modal is hosts, not buyers — the buyer surface is the search form in the hero. Drop B2B revenue/size fields. **For retail / multi-brand brands** (Sephora, Nordstrom, Net-A-Porter, Farfetch), rewrite as a loyalty signup — fields: name + email + birthday (short format MM-DD for anniversary gifts) + preferred categories (multi-select chips: Makeup / Skincare / Fragrance / Hair / Men / Gifts) + occasion dropdown ("For myself" / "As a gift" / "Wedding" / "Event") + GDPR/marketing consent checkbox. The loyalty programme name and tiers go in the header copy (e.g. Sephora's Blanche/Or/Noire, Nordstrom's Nordy Club). Drop B2B revenue/size fields. In all cases, replace the header SVG with `<img src={BRAND.logoImage} className="brightness-0 invert" />`. The hero's main CTA opens this modal — an untouched modal ships the wrong form and the wrong logo on the most-clicked button. |
+| `src/lib/cards.ts` field repurposing per brand type | The `ProductItem` interface is finance-shaped (`issuer`/`tier`/`annualFee`/`apr`/`rewardRate`/`signUpBonus`/`applyUrl`) but the field names are stable — semantics repurpose per brand. Keep a comment block at top of `cards.ts` documenting the mapping so the next maintainer doesn't report them as Visa leaks. **Per brand type:** marketplace C2C → `annualFee: "Free" / "€5 shipping"`, `apr: "All markets"`, `rewardRate: headline benefit`, `signUpBonus: incentive`. Marketplace Listings → `annualFee: "from €180/night"`, `apr: "Entire place"`, `rewardRate: "★ 4.9"`, `signUpBonus: "Free cancellation"`. Retail Multi-brand Beauty → `issuer: brand name` (e.g. "Fenty Beauty"), `tier: collection/line`, `annualFee: price (€)`, `apr: shade / finish` ("50 shades · Matte finish"), `rewardRate: "★ 4.6 (1.2K reviews)"`, `signUpBonus: badge` ("Clean at Sephora" / "Award winner"), `applyUrl: product URL`. Luxury mono-brand → `issuer: House name`, `tier: line` (Lady Dior / Book Tote), `annualFee: price`, `apr: material/size`, `signUpBonus: included` (engraving / monogram). **Outerwear / Technical** → `issuer: **gender line**` ("Men's" / "Women's" / "Kids'" / "Unisex") — NOTE this is the inverse of beauty where `issuer` holds the brand name. For technical apparel the gender axis is the primary filter, so `issuer` carries it; the brand is implicit (mono-brand). `tier: collection` ("Expedition" / "Black Label" / "Lightweight"), `annualFee: price`, `apr: warmth rating / weight` ("TEI 4 · 2.05 kg"), `rewardRate: fill-power` ("625 fill"), `signUpBonus: sustainability badge` ("HUMANE DOWN" / "RECYCLED" / "MADE IN CANADA"). **Fashion editorial-minimalist / fast-fashion** → `issuer: gender line` ("Woman" / "Man" / "Kids" — same inversion as outerwear; mono-brand fashion uses issuer for gender, not brand). `tier: collection sub-line` ("Main" / "Studio" / "SRPLS" / "Origins" / "TRF" / "Limited Edition" / "Join Life"), `annualFee: price`, `apr: material/composition` ("100% linen" / "Wool blend"), `rewardRate: size range` ("XS – XXL"), `signUpBonus: badge` ("NEW" / "JOIN LIFE" / "LIMITED" / "BESTSELLER"). Also add `src/lib/collections.ts` for the parallel capsule sub-lines. Don't rename the interface properties unless you're willing to update ~12 component references. For listings marketplaces also create `src/lib/destinations.ts`; for multi-brand retail also create `src/lib/brands.ts` (brand catalogue) and optionally `src/lib/fragrances.ts` (notes + perfumer); for heritage + outerwear reuse the template's `src/lib/heritage.ts` + `src/lib/flagships.ts` stubs. |
+| `src/components/assistant-shared.tsx` EmptyState | The welcome-screen logo is **the call button** (clicking it starts the voice call). Ships with an inline Visa wordmark SVG — which means the FIRST FRAME a customer sees before any interaction shows a Visa logo. Replace the `<svg><path d="..." /></svg>` inside the EmptyState button with `<img src={BRAND.logoImage} alt={BRAND.name} />`. Without this fix, every brand transform launches on a Visa logo. |
+| `src/components/live-session-overlay.tsx` | Two inline SVG references render the Visa wordmark in the voice-call overlay (header + animated center). Replace with `<img src={BRAND.logoImage} alt={BRAND.name} />` or swap the SVG path — otherwise the voice call shows Visa. Also rewrite the system-prompt text (role, CTAs, "local banks in 200+ countries") per brand, BUT keep the "TOOL USE IS MANDATORY" block verbatim — it's what makes Gemini Live actually drive the left panel. |
+| `src/lib/gemini-live-client.ts` | The `show_card` / `show_solution` tool descriptions include example IDs (`'chase-sapphire-preferred'`, `'tap-to-pay'`). Gemini Live reads these as strong hints about what valid IDs look like. If you leave them unchanged on a non-Visa brand, the voice call will refuse to invoke the tools or will call them with made-up IDs — and the left panel stays empty during the call. Replace both example IDs with real ids from your brand's `cards.ts` / `solutions.ts` (e.g. `'jadore-edp'`, `'cruise-2026'`). This is the single most common reason voice calls "just talk" without updating the visible panel. |
+| `src/components/agent-panel.tsx` | The mock API key uses the prefix `vsk_live_` (Visa-derived). Change to a brand-neutral `api_live_` or a brand-specific prefix (`hsk_`, `drk_`, etc). Runs through `Math.random().toString(36)` — easy to miss. |
+| `src/lib/cards.ts` | The `ProductItem` interface fields (`annualFee`, `apr`, `rewardRate`, `signUpBonus`, `issuer`, `applyUrl`) all bias toward credit cards. For non-card brands, either repurpose them (document with a comment block at the top of cards.ts — e.g. `annualFee` → price, `apr` → material, `rewardRate` → craftsmanship) or rename the interface properly (updates ~12 components). The audit grep cannot tell a repurposed field from a leak. |
+| `src/components/hero-section.tsx` | Often still contains hardcoded `STATS` / `CARD_TIERS` arrays instead of reading from `BRAND.stats`. Replace with `BRAND.stats.map(...)` so stats come from brand-config. |
+| `src/components/inner-page.tsx` | Contains `PersonalPage`, `BusinessPage`, `TravelPage` route shapes that assume a payments-brand nav. Rename / re-shape to match `BRAND.navItems` or delete and let `page.tsx` route dynamically. |
+
+---
+
+## PHASE 4: Build, Deploy, Verify
+
+### Step 4.0: Generate a unique, safe slug (REQUIRED)
+
+**Every transform MUST deploy under a `project-*` slug, not the raw brand name.** Two reasons:
+
+1. **Safe Browsing safety** — Chrome's brand-phishing classifier flags any subdomain that looks like a well-known brand (`booking.codiris.app`, `apple.codiris.app`, `nike.codiris.app`). Using `project-<brand>-<unique>` breaks that exact-match heuristic. This is a hard requirement for new transforms since the Booking incident (2026-04-21).
+2. **Collision avoidance** — multiple customers transforming the same brand would race for one subdomain. A unique suffix guarantees every customer's deploy has its own URL.
+
+**The required slug shape:**
+
+```
+project-<short-brand>-<4char-hex>
+```
+
+- `<short-brand>` — 3-8 letters, lowercase, pointing at the brand but not the full domain. Drop the word most associated with the real brand if the full name is too recognizable. Examples:
+  - `booking.com` → `book24` (NOT `booking`)
+  - `airbnb.com` → `abnb`
+  - `dior.com` → `dior` is fine (not a phishing target yet)
+  - `nike.com` → `nk` or `nike` (borderline — prefer `nk`)
+  - `chase.com` → `chs` (fintech = high-risk — always obfuscate)
+- `<4char-hex>` — generated from `openssl rand -hex 2` (4 hex chars = 65,536 combinations). Never reuse.
+
+**Generate at the start of Phase 4:**
+
+```bash
+SHORT_BRAND="book24"     # replace per brand
+RANDOM_ID=$(openssl rand -hex 2)
+SLUG="project-${SHORT_BRAND}-${RANDOM_ID}"
+echo "Your slug: $SLUG"
+# e.g. project-book24-a4f2
+```
+
+Save this value — you'll use it in `brand-config.ts`, as the Vercel project name, as the Cloudflare CNAME, and as the alias.
+
+**Collision check against the registry:**
+
+```bash
+curl -s -o /tmp/claim.json -w "%{http_code}\n" "https://codiris.app/api/wwa/registry/$SLUG"
+```
+
+- **HTTP 404** — slug is free (expected when using the 4-char random suffix). Continue.
+- **HTTP 200** — astronomically unlikely collision. Regenerate `RANDOM_ID` and try again.
+
+**Update brand-config.ts** so every runtime reference to the deploy URL is correct:
+
+```ts
+export const BRAND: BrandConfig = {
+  // ...
+  mcpUrl: `https://wwa.${SLUG}.codiris.app/mcp`,   // replace ${SLUG} with your generated value
+  mcpServerName: `${SLUG}-agent`,                   // used in MCP server name + CLI install command
+};
+```
+
+**Exceptions (grandfathered):** the original 7 brands on `codiris.app/skills` (visa, stripe, dior, ralphlauren, hermes, puma, vinted) still live at `wwa.<brand>.codiris.app` — they pre-date this policy. Do NOT add new transforms at raw-brand subdomains; every new one gets a `project-*` slug.
+
+**After a successful deploy,** open a PR to `public/wwa-registry.json` in `wwwtowwa` adding your entry:
+
+```json
+{
+  "slug": "{short-brand}",
+  "domain": "{brand}.com",
+  "deployed_url": "https://wwa.{slug-with-random}.codiris.app",
+  "mcp_url": "https://wwa.{slug-with-random}.codiris.app/mcp",
+  "type": "{luxury-french|luxury-heritage|fintech|saas|marketplace|marketplace-listings|sportswear|consumer}",
+  "color": "{brand primary hex}",
+  "first_claimed_at": "YYYY-MM-DD",
+  "owner": "{your-handle-or-email}"
+}
+```
+
+Note: the registry `slug` field is the **short brand** (e.g. `booking`) so the showcase lookup groups all deploys of that brand together, while `deployed_url` carries the full `project-<brand>-<hex>` subdomain that's unique per transform.
+
+### Step 4.1: Build
+```bash
+npm run build
+```
+Fix ALL errors. Common: unterminated strings, missing images, type mismatches.
+
+### Step 4.2: Deploy
+
+Create `.env.local` in your new project with the keys below. A stub `.env.example` ships in the template — `cp .env.example .env.local` and fill in your own values.
+
+```
+OPENAI_API_KEY=sk-…          # from https://platform.openai.com (fallback chat model)
+GEMINI_API_KEY=AIza…         # from https://aistudio.google.com/apikey (primary)
+GOOGLE_GENERATIVE_AI_API_KEY=AIza…  # same value as GEMINI_API_KEY (the voice client reads this name)
+```
+
+The MCP endpoint renders without these keys — only the AI chat + voice call need them.
+
+```bash
+npx vercel --prod --yes
+
+# Push env vars to Vercel
+source .env.local
+echo "$OPENAI_API_KEY"               | npx vercel env add OPENAI_API_KEY               production --force
+echo "$GEMINI_API_KEY"               | npx vercel env add GEMINI_API_KEY               production --force
+echo "$GOOGLE_GENERATIVE_AI_API_KEY" | npx vercel env add GOOGLE_GENERATIVE_AI_API_KEY production --force
+
+npx vercel --prod --yes
+```
+
+### Step 4.2b: Disable Vercel Deployment Protection (if the deploy returns 401)
+
+New Vercel projects under some team accounts default to **Standard Protection** (SSO-required). Symptom: `curl https://wwa{brand}.vercel.app` returns **HTTP 401** with a Vercel SSO login page. Happens silently — no warning from the CLI.
+
+Check with `curl -s -o /dev/null -w "%{http_code}\n" https://{your-vercel-url}`. If you see 401, disable protection via the Vercel API:
+
+```bash
+# Read the Vercel CLI's auth token (macOS path)
+TOKEN=$(cat "$HOME/Library/Application Support/com.vercel.cli/auth.json" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("token",""))')
+PROJECT_ID=$(python3 -c "import json; print(json.load(open('.vercel/project.json'))['projectId'])")
+TEAM_ID=$(python3 -c "import json; print(json.load(open('.vercel/project.json'))['orgId'])")
+
+curl -s -X PATCH "https://api.vercel.com/v9/projects/$PROJECT_ID?teamId=$TEAM_ID" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"ssoProtection":null,"passwordProtection":null}' \
+  | python3 -c "import sys,json; r=json.load(sys.stdin); print('sso:', r.get('ssoProtection'), '| pw:', r.get('passwordProtection'))"
+```
+
+Expected output: `sso: None | pw: None`. The change takes effect within seconds — no redeploy needed.
+
+Linux path: `$HOME/.local/share/com.vercel.cli/auth.json`. Windows path: `%APPDATA%\com.vercel.cli\auth.json`.
+
+### Step 4.3: Custom subdomain (OPTIONAL — requires Cloudflare token)
+
+The `wwa.{brand}.codiris.app` alias requires a Cloudflare API token scoped to the `codiris.app` zone. **This token is not shipped with the skill** — it's private infrastructure. Two paths:
+
+**A. You have the token** (maintainer, or coordinated with Iris Lab):
+```bash
+export CLOUDFLARE_API_TOKEN=…  # scoped to codiris.app zone, DNS edit permission
+
+ZONE_ID=$(curl -s "https://api.cloudflare.com/client/v4/zones?name=codiris.app" \
+  -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['result'][0]['id'])")
+curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records" \
+  -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"type":"CNAME","name":"wwa.{domain}","content":"cname.vercel-dns.com","proxied":false,"ttl":1}'
+npx vercel domains add wwa.{domain}.codiris.app
+npx vercel --prod --yes
+```
+
+**B. You don't have the token** (most customers):
+Skip this step. Your Vercel default URL (`https://<project>.vercel.app`) is a fully working agentfront — the MCP endpoint, chat, and all pages work there. Update `brand-config.ts` `mcpUrl` to the Vercel URL so the displayed install command matches. Ask the registry owner (open an issue at github.com/Humiris/wwa-transform) to provision the `wwa.{brand}.codiris.app` alias when you're ready to ship under the shared subdomain.
+
+### Step 4.4: Verify
+1. Check HTTP 200: `curl -s -o /dev/null -w "%{http_code}" https://wwa.{domain}.codiris.app`
+2. Use WebFetch to read the deployed page — check NO wrong-company content
+3. Check images load
+4. **MCP round-trip**: `curl -s -m 20 -X POST https://wwa.{domain}.codiris.app/mcp -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'` — must return the tool list with 200
+5. Report URL to user
+
+**Preview-tool caveat:** the `preview_start` MCP tool detects `package.json` from your **session cwd**, not from `.claude/launch.json` in the target project. If your session cwd is not the target project (e.g. you're working on `wwa.ralphlauren` from a session rooted at `wwa.visa`), `preview_start` will start the wrong dev server. Verify via `curl` against the deployed URL instead of local screenshots when working cross-project.
+
+---
+
+## QUALITY CHECKLIST
+
+Before saying "done", verify:
+- [ ] Hero shows THIS company's real value prop and images
+- [ ] Stats are THIS company's real numbers
+- [ ] Products/solutions are from THIS company's website
+- [ ] Categories make sense for THIS company (no "Travel Cards" for Stripe)
+- [ ] Navigation matches THIS company's actual sections
+- [ ] Inner pages have real content from THIS company
+- [ ] Chat suggestions are relevant to THIS company
+- [ ] Fallback responses reference THIS company's real products
+- [ ] All images are downloaded and loading
+- [ ] Zero references to any other company (Visa, etc.)
+- [ ] The page structure makes sense for THIS type of company
+- [ ] CTAs match what the company actually wants users to do
+- [ ] **Catalog depth meets the minimum for this brand type** (see Phase 2 "Catalog size" table). For e-commerce: 100+ product entries in `cards.ts`, spread across the brand's real segments (Woman/Man/Kids/etc). Verify with `search_products` returning `count ≥ 100` via MCP.

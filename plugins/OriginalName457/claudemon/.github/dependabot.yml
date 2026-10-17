@@ -1,0 +1,14 @@
+version: 2
+updates:
+  # Keep GitHub Actions pinned-SHA versions current.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  # npm — Claudemon ships zero runtime deps, but this watches devDependencies
+  # and the lockfile if any are added later.
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"

@@ -1,0 +1,40 @@
+{
+  "name": "talivia-agent-kit",
+  "version": "0.1.0",
+  "description": "Set up Talivia revenue-first website analytics and verify real traffic and revenue attribution from Codex.",
+  "author": {
+    "name": "Talivia",
+    "url": "https://talivia.com"
+  },
+  "homepage": "https://talivia.com/ai-agent-kit",
+  "repository": "https://github.com/talivia-group/agent",
+  "license": "MIT",
+  "skills": "./SKILL.md",
+  "mcpServers": {
+    "talivia": {
+      "type": "http",
+      "url": "https://talivia.com/mcp"
+    }
+  },
+  "interface": {
+    "displayName": "Talivia Agent Kit",
+    "shortDescription": "Install and verify revenue-first analytics.",
+    "longDescription": "Connect Codex to Talivia to install website analytics, connect visits to revenue, and verify that real traffic and attribution data are flowing.",
+    "developerName": "Talivia",
+    "category": "Developer Tools",
+    "capabilities": [
+      "MCP",
+      "Skills",
+      "Write"
+    ],
+    "websiteURL": "https://talivia.com/ai-agent-kit",
+    "privacyPolicyURL": "https://talivia.com/privacy-policy",
+    "termsOfServiceURL": "https://talivia.com/terms-of-service",
+    "defaultPrompt": [
+      "Connect Talivia and list my websites.",
+      "Install Talivia analytics in this app and verify it.",
+      "Finish revenue attribution setup for this website."
+    ],
+    "brandColor": "#2563EB"
+  }
+}

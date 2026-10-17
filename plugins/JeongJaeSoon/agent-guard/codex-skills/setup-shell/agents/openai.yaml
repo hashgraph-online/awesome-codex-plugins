@@ -1,0 +1,4 @@
+interface:
+  display_name: "Set Up Agent Guard Shell"
+  short_description: "Install or refresh shell command masking"
+  default_prompt: "Use $setup-shell to install or refresh Agent Guard shell command masking."

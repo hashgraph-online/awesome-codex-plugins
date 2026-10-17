@@ -1,0 +1,14 @@
+<!-- MailAgent logo mark — 512×512, silver gradient tile + black envelope -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="MailAgent">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#d5d5d5" />
+      <stop offset="100%" stop-color="#8b8b8b" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)" />
+  <g fill="none" stroke="#0a0a0a" stroke-width="46" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="79" y="112" width="351" height="286" rx="48" />
+    <path d="M99 128l175.5 143 175.5-143" />
+  </g>
+</svg>

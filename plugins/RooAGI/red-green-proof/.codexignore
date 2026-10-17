@@ -1,0 +1,6 @@
+# Repository metadata and development-only files are not part of the installed skill.
+.git/
+.github/
+.DS_Store
+*.pyc
+__pycache__/

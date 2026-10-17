@@ -1,0 +1,7 @@
+interface:
+  display_name: "Dryforge ready"
+  short_description: "Turn anything into an intent you approve."
+  default_prompt: "Use Dryforge ready to turn this into an intent to approve: "
+
+policy:
+  allow_implicit_invocation: false

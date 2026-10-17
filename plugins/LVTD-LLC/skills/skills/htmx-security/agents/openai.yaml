@@ -1,0 +1,7 @@
+interface:
+  display_name: "htmx Security"
+  short_description: "Harden htmx apps against XSS, CSRF, and CSP"
+  icon_small: "./assets/icons8-code.svg"
+  icon_large: "./assets/icons8-code.svg"
+  brand_color: "#424E5C"
+  default_prompt: "Use $htmx-security to review security risks in an htmx server-rendered feature."

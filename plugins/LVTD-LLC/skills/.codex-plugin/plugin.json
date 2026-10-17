@@ -1,0 +1,42 @@
+{
+  "name": "lvtd-skills",
+  "version": "0.1.2",
+  "description": "Cross-host Agent Skills catalog for coding, marketing, traction, SEO, and publishing workflows.",
+  "author": {
+    "name": "LVTD",
+    "url": "https://github.com/LVTD-LLC"
+  },
+  "homepage": "https://github.com/LVTD-LLC/skills",
+  "repository": "https://github.com/LVTD-LLC/skills",
+  "license": "MIT",
+  "keywords": [
+    "agent-skills",
+    "codex",
+    "claude-code",
+    "skills",
+    "django",
+    "rust",
+    "cookiecutter",
+    "seo",
+    "traction",
+    "publishing"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "LVTD Skills",
+    "shortDescription": "Reusable Agent Skills for Codex, Claude Code, and compatible clients.",
+    "longDescription": "LVTD Skills is a cross-host Agent Skills catalog with reusable SKILL.md directories plus generated Codex and Claude Code marketplace adapters. It includes guidance for Django, Rust backend services, Cookiecutter templates, SEO, traction, product marketing, and nonfiction publishing workflows.",
+    "developerName": "LVTD",
+    "category": "Development & Workflow",
+    "capabilities": [
+      "Interactive",
+      "Read"
+    ],
+    "websiteURL": "https://github.com/LVTD-LLC/skills",
+    "defaultPrompt": "Use LVTD Skills when you need reusable Agent Skills for Django, Rust, Cookiecutter, SEO, traction, product marketing, or nonfiction publishing workflows.",
+    "brandColor": "#FF4057",
+    "composerIcon": "./assets/app-icon.png",
+    "logo": "./assets/app-icon.png",
+    "screenshots": []
+  }
+}

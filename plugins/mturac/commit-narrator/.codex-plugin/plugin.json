@@ -1,0 +1,38 @@
+{
+  "name": "commit-narrator",
+  "version": "0.1.0",
+  "description": "Generate semantic commit message from staged diff.",
+  "author": {
+    "name": "Mehmet Turac",
+    "url": "https://github.com/mturac"
+  },
+  "homepage": "https://github.com/mturac/pluginpool-commit-narrator",
+  "repository": "https://github.com/mturac/pluginpool-commit-narrator",
+  "license": "MIT",
+  "keywords": [
+    "git",
+    "commit",
+    "conventional-commits",
+    "codex-plugin"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Commit Narrator",
+    "shortDescription": "Generate semantic commit message from staged diff.",
+    "longDescription": "Generates conventional commit messages from `git diff --cached`, including the *why* behind changes. Deterministic Python helper (stdlib only) wrapped as a slash command.",
+    "developerName": "Mehmet Turac",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/mturac/pluginpool-commit-narrator",
+    "privacyPolicyURL": "https://github.com/mturac/pluginpool-commit-narrator/blob/main/LICENSE",
+    "termsOfServiceURL": "https://github.com/mturac/pluginpool-commit-narrator/blob/main/LICENSE",
+    "defaultPrompt": [
+      "Use Commit Narrator to generate semantic commit message from staged diff."
+    ],
+    "brandColor": "#7c3aed",
+    "composerIcon": "./assets/icon.svg"
+  }
+}

@@ -23,9 +23,9 @@ Documentation of the SPICE models used across all phases — ideal models, per-p
 
 When the skill encounters an active component (opamp, LDO, comparator), it resolves the model through this cascade:
 
-1. **Project cache** — `<project>/spice/models/index.json` stores previously resolved models (instant, no network)
+1. **Project cache** — `<project>/spice/models/manifest.json` (legacy name: `index.json`) stores previously resolved models (instant, no network)
 2. **Distributor API parametric data** — queries LCSC (no auth), DigiKey, element14, Mouser for real electrical specs like GBW, slew rate, offset voltage. Structured JSON, no PDF parsing.
-3. **Structured datasheet extraction** — reads pre-extracted specs from `<project>/datasheets/extracted/<MPN>.json`. Cached JSON produced by Claude reading PDF datasheets, scored 0-10 for completeness. See `kicad` skill's `references/datasheet-extraction.md`.
+3. **Structured datasheet extraction** — reads pre-extracted specs from `<project>/datasheets/extracted/<MPN>.json`. Cached JSON produced by the `datasheets` skill, scored 0-10 for completeness. See `skills/datasheets/references/extraction-schema.md` and `skills/datasheets/references/quality-scoring.md`.
 4. **Datasheet PDF regex extraction** — reads downloaded PDFs from `<project>/datasheets/`, extracts specs via text pattern matching. Requires `pdftotext`. Last-resort fallback.
 5. **Built-in lookup table** — `spice_part_library.py` has ~100 common parts with datasheet-verified specs. Offline safety net.
 6. **Ideal model fallback** — generic model with fixed parameters (e.g., 10 MHz GBW for opamps)
@@ -410,7 +410,7 @@ Parasitics are only injected when significant relative to the circuit:
 The SPICE skill consumes data from multiple analyzer outputs:
 
 ### From Schematic Analyzer (`analyze_schematic.py`)
-- **signal_analysis** — all 21+ subcircuit detections
+- **findings[]** — all 21+ subcircuit detections (grouped by `detector` field)
 - **Component MPN** — `det["value"]` used for behavioral model lookup
 - **Power rail nets** — for opamp supply inference
 - **Regulator output capacitors** — values, package sizes, ESR estimates

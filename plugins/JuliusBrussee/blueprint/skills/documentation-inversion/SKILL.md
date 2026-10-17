@@ -447,7 +447,7 @@ themselves in unfamiliar code and contribute meaningfully without step-by-step h
 ## Cross-References
 
 - **context-architecture** -- The progressive disclosure pattern that CLAUDE.md hierarchy implements
-- **methodology** -- How documentation inversion fits into the broader Blueprint lifecycle
+- **methodology** -- How documentation inversion fits into the broader Cavekit lifecycle
 - **spec-writing** -- Specs and CLAUDE.md files share the same structural principles
 - **brownfield-adoption** -- When adopting SDD on an existing codebase, CLAUDE.md files are step 1
 - **impl-tracking** -- Implementation tracking documents are a form of inverted documentation

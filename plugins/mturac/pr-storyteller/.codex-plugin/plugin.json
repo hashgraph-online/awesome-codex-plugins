@@ -1,0 +1,38 @@
+{
+  "name": "pr-storyteller",
+  "version": "0.1.0",
+  "description": "PR title + body + test plan from commits and diff vs base.",
+  "author": {
+    "name": "Mehmet Turac",
+    "url": "https://github.com/mturac"
+  },
+  "homepage": "https://github.com/mturac/pluginpool-pr-storyteller",
+  "repository": "https://github.com/mturac/pluginpool-pr-storyteller",
+  "license": "MIT",
+  "keywords": [
+    "git",
+    "pr",
+    "github",
+    "codex-plugin"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "PR Storyteller",
+    "shortDescription": "PR title + body + test plan from commits and diff vs base.",
+    "longDescription": "Generates a complete PR description (title, body, test plan) from commits and the diff vs base branch.",
+    "developerName": "Mehmet Turac",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/mturac/pluginpool-pr-storyteller",
+    "privacyPolicyURL": "https://github.com/mturac/pluginpool-pr-storyteller/blob/main/LICENSE",
+    "termsOfServiceURL": "https://github.com/mturac/pluginpool-pr-storyteller/blob/main/LICENSE",
+    "defaultPrompt": [
+      "Use PR Storyteller to pr title + body + test plan from commits and diff vs base."
+    ],
+    "brandColor": "#7c3aed",
+    "composerIcon": "./assets/icon.svg"
+  }
+}

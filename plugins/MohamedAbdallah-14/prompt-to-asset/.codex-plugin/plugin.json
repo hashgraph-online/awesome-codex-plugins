@@ -1,0 +1,5 @@
+{
+  "name": "prompt-to-asset",
+  "version": "0.1.0",
+  "entry": "packages/mcp-server/dist/index.js"
+}

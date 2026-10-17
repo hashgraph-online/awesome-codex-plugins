@@ -1,0 +1,6 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "liendeadline": { "type": "stdio", "command": "npx", "args": ["-y", "liendeadline-mcp@0.5.3"] }
+  }
+}

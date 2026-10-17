@@ -1,0 +1,19 @@
+interface:
+  display_name: CentricMem
+  short_description: Memory across agents
+  default_prompt:
+    - Search my shelves for the last architecture decision on this project.
+    - Load today's memory for this project and tell me where I left off.
+    - File a decision on my project shelf: we chose Streamable HTTP, not GET SSE.
+dependencies:
+  tools:
+    - type: mcp
+      value: centricmem
+      description: Hosted CentricMem librarian
+      transport: streamable_http
+      url: https://mem.centricmem.com/mcp
+policy:
+  products:
+    - CHAT
+    - CODEX
+  allow_implicit_invocation: true

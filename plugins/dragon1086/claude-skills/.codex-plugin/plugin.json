@@ -1,0 +1,44 @@
+{
+  "name": "tool-advisor",
+  "version": "3.5.1",
+  "description": "Meta-skill that discovers your full tool environment (MCP servers, skills, plugins, CLI) and suggests optimal tool compositions as non-binding options. Amplifies prompts with capability awareness; never replaces model judgment.",
+  "author": {
+    "name": "dragon1086",
+    "url": "https://github.com/dragon1086"
+  },
+  "homepage": "https://github.com/dragon1086/claude-skills",
+  "repository": "https://github.com/dragon1086/claude-skills",
+  "license": "MIT",
+  "keywords": [
+    "openai-codex",
+    "codex-cli",
+    "codex-plugin",
+    "tool-advisor",
+    "meta-skill",
+    "tool-selection",
+    "workflow",
+    "productivity",
+    "discovery",
+    "amplifier"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Tool Advisor",
+    "shortDescription": "Discover tools and suggest best workflows",
+    "longDescription": "Tool Advisor is a read-only meta-skill that scans your active environment — MCP servers, skills, plugins, CLI tools — and produces up to three ranked approach options (Methodical / Fast / Deep) for any task, with a Quick Action table of copy-paste first steps. Iron rules prevent advisor-to-executor drift: it never edits, installs, or executes. Designed as a cross-agent amplifier for Claude Code and Codex power users who want faster, better-informed tool selection without giving up control.",
+    "developerName": "dragon1086",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive"
+    ],
+    "websiteURL": "https://github.com/dragon1086/claude-skills",
+    "privacyPolicyURL": "https://github.com/dragon1086/claude-skills/blob/main/LICENSE",
+    "termsOfServiceURL": "https://github.com/dragon1086/claude-skills/blob/main/LICENSE",
+    "defaultPrompt": [
+      "Use $tool-advisor to analyze this task and suggest the best tool composition.",
+      "tool-advisor, how should I tackle this refactor?",
+      "What's the best approach for this migration? Use tool-advisor."
+    ],
+    "brandColor": "#0F766E"
+  }
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Build Backend"
+  short_description: "Build reliable APIs and backend services"
+  default_prompt: "Use $build-backend to design and implement this backend change with contract tests."

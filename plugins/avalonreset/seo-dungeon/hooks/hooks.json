@@ -1,0 +1,20 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/hooks/run-python-hook.js",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/validate-schema.py",
+              "${tool_input.file_path}"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

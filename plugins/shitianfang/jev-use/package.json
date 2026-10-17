@@ -1,0 +1,70 @@
+{
+  "name": "jev-use",
+  "mcpName": "io.github.shitianfang/jev-use",
+  "version": "0.8.0",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.harness.json",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build",
+    "smoke": "npm run build && node scripts/smoke.mjs",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "jev",
+    "typesafe-ai",
+    "system-one",
+    "agent-loop",
+    "judgment",
+    "verifier",
+    "router",
+    "claude-code",
+    "codex",
+    "pi",
+    "mcp",
+    "pi-package"
+  ],
+  "author": "shitianfang",
+  "license": "MIT",
+  "description": "Claude Code / Codex / pi plugin that hands the agent steps needing no text output to Jev (TypeSafe's judgment model) — measured p50 ~230 ms and ~$0.02 per 1,000 judgments, with typed escalation back to the LLM.",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11"
+  },
+  "type": "module",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "jev-use": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "src",
+    "harness",
+    "skills",
+    "docs",
+    ".mcp.json",
+    ".claude-plugin",
+    "examples",
+    "README.md",
+    "README.zh-CN.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shitianfang/jev-use.git"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "pi": {
+    "extensions": [
+      "./harness/pi/jev-use.ts"
+    ]
+  }
+}

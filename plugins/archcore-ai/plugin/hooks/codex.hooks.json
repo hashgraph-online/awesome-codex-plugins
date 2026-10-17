@@ -1,0 +1,39 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "ARCHCORE_HOST=codex \"${PLUGIN_ROOT}\"/bin/session-start"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|apply_patch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "ARCHCORE_HOST=codex \"${PLUGIN_ROOT}\"/bin/pre-tool-use",
+            "timeout": 2
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "mcp__archcore__create_document|mcp__plugin_archcore_archcore__create_document|mcp__archcore__update_document|mcp__plugin_archcore_archcore__update_document|mcp__archcore__remove_document|mcp__plugin_archcore_archcore__remove_document|mcp__archcore__add_relation|mcp__plugin_archcore_archcore__add_relation|mcp__archcore__remove_relation|mcp__plugin_archcore_archcore__remove_relation",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "ARCHCORE_HOST=codex \"${PLUGIN_ROOT}\"/bin/post-tool-use",
+            "timeout": 4
+          }
+        ]
+      }
+    ]
+  }
+}

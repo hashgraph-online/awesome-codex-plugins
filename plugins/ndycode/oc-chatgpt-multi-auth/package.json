@@ -1,40 +1,66 @@
 {
-  "name": "oc-chatgpt-multi-auth",
-  "version": "5.4.9",
-  "description": "OpenCode plugin for using ChatGPT Plus/Pro in GPT-5 and Codex workflows with OAuth login, multi-account rotation, and guided setup",
+  "name": "oc-codex-multi-auth",
+  "version": "6.29.0",
+  "description": "OpenCode plugin for ChatGPT Plus/Pro OAuth with Codex/GPT-5 routing, multi-account rotation, account switching, health checks, diagnostics, and recovery tools",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./rotation": {
+      "types": "./dist/lib/custom-rotation/contract.d.ts",
+      "import": "./dist/lib/custom-rotation/contract.js"
+    },
+    "./tui": {
+      "types": "./dist/tui.d.ts",
+      "import": "./dist/tui.js"
+    }
+  },
   "type": "module",
   "license": "MIT",
-  "author": "Numman Ali",
+  "author": "ndycode",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ndycode/oc-chatgpt-multi-auth.git"
+    "url": "git+https://github.com/ndycode/oc-codex-multi-auth.git"
   },
   "keywords": [
-    "typescript",
-    "nodejs",
     "opencode",
     "opencode-plugin",
+    "opencode-auth",
     "openai",
     "chatgpt",
     "chatgpt-plus",
     "chatgpt-pro",
     "oauth",
     "oauth2",
+    "oauth-login",
     "pkce",
-    "gpt-5",
     "codex",
+    "codex-auth",
+    "codex-oauth",
+    "gpt-5",
+    "gpt-5-5",
     "multi-account",
+    "account-rotation",
+    "account-switching",
+    "account-health",
+    "health-checks",
+    "quota-management",
+    "diagnostics",
+    "recovery-tools",
+    "terminal-ui",
     "developer-tools",
-    "terminal"
+    "typescript",
+    "nodejs"
   ],
-  "homepage": "https://github.com/ndycode/oc-chatgpt-multi-auth#readme",
+  "homepage": "https://github.com/ndycode/oc-codex-multi-auth#readme",
   "bugs": {
-    "url": "https://github.com/ndycode/oc-chatgpt-multi-auth/issues"
+    "url": "https://github.com/ndycode/oc-codex-multi-auth/issues"
   },
   "scripts": {
-    "build": "tsc && node scripts/copy-oauth-success.js",
+    "build": "node scripts/clean-dist.js && tsc && node scripts/copy-oauth-success.js",
     "typecheck": "tsc --noEmit",
     "lint": "npm run lint:ts && npm run lint:scripts",
     "lint:ts": "eslint . --ext .ts",
@@ -51,11 +77,12 @@
     "audit:all": "npm audit --audit-level=high",
     "audit:dev:allowlist": "node scripts/audit-dev-allowlist.js",
     "audit:ci": "npm run audit:prod && npm run audit:dev:allowlist",
+    "bench": "npm run build && node --expose-gc test/perf/bench.mjs",
     "prepublishOnly": "npm run build",
     "prepare": "husky"
   },
   "bin": {
-    "oc-chatgpt-multi-auth": "scripts/install-opencode-codex-auth.js"
+    "oc-codex-multi-auth": "scripts/install-oc-codex-multi-auth.js"
   },
   "files": [
     "dist/",
@@ -74,40 +101,55 @@
     ]
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22.19.0"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "devDependencies": {
     "@fast-check/vitest": "^0.2.4",
-    "@opencode-ai/sdk": "^1.2.10",
+    "@opencode-ai/sdk": ">=1.2.10 <1.14.42",
     "@types/node": "^25.3.0",
+    "@types/proper-lockfile": "^4.1.4",
     "@typescript-eslint/eslint-plugin": "^8.56.0",
     "@typescript-eslint/parser": "^8.56.0",
-    "@vitest/coverage-v8": "^4.0.18",
-    "@vitest/ui": "^4.0.18",
+    "@vitest/coverage-v8": "^4.1.11",
+    "@vitest/ui": "^4.1.11",
     "eslint": "^10.0.0",
     "fast-check": "^4.5.3",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
     "typescript": "^5.9.3",
     "typescript-language-server": "^5.1.3",
-    "vitest": "^4.0.18"
+    "vitest": "^4.1.11"
   },
   "dependencies": {
-    "@openauthjs/openauth": "^0.4.3",
-    "@opencode-ai/plugin": "^1.2.9",
-    "hono": "4.12.8",
+    "@ai-sdk/openai": "^3.0.117",
+    "@napi-rs/keyring": "~1.2.0",
+    "@opencode-ai/plugin": ">=1.14.22 <1.14.42",
+    "@opencode/plugin": "^2.0.16",
+    "@opentui/solid": "^0.5.12",
+    "proper-lockfile": "^4.1.2",
+    "solid-js": "^1.9.11",
     "zod": "^4.3.6"
   },
   "overrides": {
-    "flatted": "3.4.2",
-    "hono": "4.12.8",
-    "rollup": "4.60.0",
-    "vite": "^7.3.1",
+    "esbuild": "^0.28.1",
+    "vite": "^7.3.5",
+    "yaml": "^2.8.3",
+    "@babel/core": "^7.29.6",
+    "ajv@<6.14.0": "^6.14.0",
+    "brace-expansion": "^5.0.9",
+    "seroval@<=1.5.2": "^1.5.6",
+    "seroval-plugins@<=1.5.2": "^1.5.6",
+    "minimatch@<9.0.7": "^9.0.7",
+    "minimatch@>=10.0.0 <10.2.3": "^10.2.3",
+    "nanoid": "^3.3.18",
+    "picomatch@<2.3.2": "^2.3.2",
+    "picomatch@>=4.0.0 <4.0.4": "^4.0.4",
+    "postcss@<8.5.24": "^8.5.24",
     "@typescript-eslint/typescript-estree": {
-      "minimatch": "^9.0.5"
+      "minimatch": "^9.0.7"
     }
   }
 }

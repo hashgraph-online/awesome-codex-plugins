@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/orwa-mahmoud/nightshift/main/plugins/nightshift/skills/nightshift/references/schemas/v1/plan-learning.json",
+  "title": "Nightshift plan learning",
+  "description": "Private project-local learning from receipts. Improves effort estimates and ranking; never silently invents owner policy. Stored at .nightshift/plan-learning.json.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "updatedAt", "contracts"],
+  "properties": {
+    "schemaVersion": { "type": "integer", "enum": [1] },
+    "updatedAt": { "type": "string", "minLength": 1 },
+    "contracts": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/definitions/contractLearning" }
+    },
+    "rejectedFindings": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "suppressedContracts": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "definitions": {
+    "contractLearning": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "actualDurationMinutes": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "toolRuntimesSeconds": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "successfulOutcomes": { "type": "integer", "minimum": 0 },
+        "failedOutcomes": { "type": "integer", "minimum": 0 },
+        "averageEffortMinutes": { "type": ["integer", "null"] }
+      }
+    }
+  }
+}

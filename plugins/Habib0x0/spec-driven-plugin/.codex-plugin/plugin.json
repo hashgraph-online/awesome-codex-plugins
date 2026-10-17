@@ -1,0 +1,48 @@
+{
+  "name": "spec-driven",
+  "version": "5.3.3",
+  "description": "Spec-driven development workflow with structured requirements, design, tasks, and autonomous execution.",
+  "author": {
+    "name": "habib0x",
+    "url": "https://github.com/Habib0x0"
+  },
+  "homepage": "https://github.com/Habib0x0/spec-driven-plugin",
+  "repository": "https://github.com/Habib0x0/spec-driven-plugin",
+  "license": "MIT",
+  "keywords": [
+    "specs",
+    "requirements",
+    "design",
+    "planning",
+    "workflow",
+    "EARS",
+    "codex"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Spec Driven",
+    "composerIcon": "./assets/spec-driven-icon.svg",
+    "shortDescription": "Turn feature ideas into requirements, design docs, tasks, and execution loops.",
+    "longDescription": "A structured spec-driven development workflow for Codex. It guides features through brainstorming, EARS requirements, technical design, task breakdown, validation, execution, and post-completion review.",
+    "developerName": "habib0x",
+    "category": "Development",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/Habib0x0/spec-driven-plugin",
+    "privacyPolicyURL": "https://github.com/Habib0x0/spec-driven-plugin/blob/main/PRIVACY.md",
+    "termsOfServiceURL": "https://github.com/Habib0x0/spec-driven-plugin/blob/main/LICENSE",
+    "defaultPrompt": [
+      "$spec create a spec for this feature.",
+      "$spec-loop run the implementation loop.",
+      "$spec-exec run one implementation iteration.",
+      "$spec-status check spec progress.",
+      "$spec-validate validate the current spec.",
+      "$spec-brainstorm explore this idea before formalizing.",
+      "$spec-bugfix analyze this bug and plan a fix.",
+      "$spec-refine update requirements or design."
+    ],
+    "brandColor": "#0F766E"
+  }
+}

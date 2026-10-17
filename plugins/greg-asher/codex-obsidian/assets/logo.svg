@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 240" role="img" aria-label="Codex Obsidian logo">
+  <defs>
+    <linearGradient id="panel" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6E55C8"/>
+      <stop offset="100%" stop-color="#2E234F"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="240" rx="36" fill="#15111F"/>
+  <rect x="24" y="24" width="592" height="192" rx="28" fill="url(#panel)"/>
+  <g transform="translate(58 46)">
+    <rect width="148" height="148" rx="28" fill="#1E1731"/>
+    <path d="M74 18 40 42v70l34 28 36-28V40L74 18Zm0 17 19 13v55l-19 15-17-14V48l17-13Z" fill="#F3EEFF"/>
+    <path d="M45 50 74 30l29 20-10 10-19-13-19 13-10-10Zm10 55 19 15 19-15v11l-19 15-19-15v-11Z" fill="#B9A9F0"/>
+  </g>
+  <g fill="#F8F5FF">
+    <text x="234" y="102" font-family="Helvetica, Arial, sans-serif" font-size="42" font-weight="700">codex-obsidian</text>
+    <text x="234" y="146" font-family="Helvetica, Arial, sans-serif" font-size="20">Local Obsidian workflows through the official desktop CLI</text>
+  </g>
+</svg>

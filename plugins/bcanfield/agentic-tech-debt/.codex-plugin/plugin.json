@@ -1,0 +1,30 @@
+{
+  "name": "debt-ops",
+  "version": "0.10.0",
+  "description": "Every shortcut your coding agent takes, saved to your repo as it happens. Fix them when you're ready.",
+  "author": {
+    "name": "Brandin Canfield",
+    "email": "brandincanfield@gmail.com"
+  },
+  "homepage": "https://github.com/bcanfield/agentic-tech-debt",
+  "repository": "https://github.com/bcanfield/agentic-tech-debt",
+  "license": "MIT",
+  "keywords": [
+    "tech-debt",
+    "code-health",
+    "hotspots",
+    "adr",
+    "productivity"
+  ],
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json",
+  "interface": {
+    "displayName": "debt-ops",
+    "shortDescription": "Catches AI-introduced tech debt at write-time",
+    "longDescription": "Every \"I'll fix this later,\" shortcut, and punt your AI agent writes lands in a folder in your repo. Architectural calls get a short ADR. When you're ready to clean up, a review skill ranks the backlog by how often each file changes, so you pay down the debt that actually hurts first. Plain Python, fully local, no network calls.",
+    "developerName": "Brandin Canfield",
+    "category": "Coding",
+    "composerIcon": "./assets/icon.svg",
+    "brandColor": "#d97757"
+  }
+}

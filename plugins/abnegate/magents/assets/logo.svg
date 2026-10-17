@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="magents">
+  <rect width="512" height="512" fill="#FAFAF7"/>
+  <g fill="none" stroke="#111111" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="196" cy="210" r="42"/>
+    <circle cx="316" cy="210" r="42"/>
+    <circle cx="196" cy="210" r="10" fill="#111111" stroke="none"/>
+    <circle cx="316" cy="210" r="10" fill="#111111" stroke="none"/>
+    <path d="M238 210 C256 190 256 190 274 210"/>
+    <path d="M170 248 C160 268 152 278 148 286"/>
+    <path d="M342 248 C352 268 360 278 364 286"/>
+  </g>
+  <text x="256" y="360" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="42" font-weight="500" letter-spacing="6" fill="#111111">magents</text>
+  <rect x="248" y="380" width="10" height="10" fill="#FF8FAB"/>
+</svg>

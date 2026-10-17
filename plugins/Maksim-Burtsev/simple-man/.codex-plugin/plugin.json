@@ -1,0 +1,40 @@
+{
+  "name": "simple-man",
+  "version": "0.3.2",
+  "description": "Concise, low-noise Agent Skill for Codex without reduced work quality.",
+  "author": {
+    "name": "Maksim Burtsev",
+    "url": "https://github.com/Maksim-Burtsev"
+  },
+  "homepage": "https://github.com/Maksim-Burtsev/simple-man",
+  "repository": "https://github.com/Maksim-Burtsev/simple-man",
+  "license": "MIT",
+  "keywords": [
+    "communication",
+    "brevity",
+    "agent-skill",
+    "coding-agent",
+    "concise-output",
+    "technical-communication",
+    "token-efficiency",
+    "productivity"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Simple Man",
+    "shortDescription": "Minimum user-facing words; same work quality.",
+    "longDescription": "Professional communication skill for Codex. When activated, it removes filler from user-facing responses without reducing repository search, validation, or implementation effort.",
+    "developerName": "Maksim Burtsev",
+    "category": "Development & Workflow",
+    "capabilities": [
+      "Write"
+    ],
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png",
+    "websiteURL": "https://github.com/Maksim-Burtsev/simple-man",
+    "defaultPrompt": [
+      "Use Simple Man: minimum user-facing words; same work quality."
+    ],
+    "brandColor": "#2563EB"
+  }
+}

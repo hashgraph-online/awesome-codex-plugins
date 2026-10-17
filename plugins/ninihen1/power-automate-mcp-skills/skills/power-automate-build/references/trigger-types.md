@@ -93,6 +93,40 @@ Access any field dynamically: `@triggerBody()?['anyField']`
 
 ---
 
+## Manual (Copilot Studio Skills)
+
+Use the Skills trigger when the flow is meant to be called by a Copilot Studio
+agent tool. Keep the trigger schema explicit so the agent receives predictable
+input names and types.
+
+```json
+"manual": {
+  "type": "Request",
+  "kind": "Skills",
+  "inputs": {
+    "schema": {
+      "type": "object",
+      "properties": {
+        "itemId": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "required": ["itemId"]
+    }
+  },
+  "metadata": {
+    "operationMetadataId": "<stable-guid>"
+  }
+}
+```
+
+After deploying a production Skills-triggered flow, call
+`add_live_flow_to_solution` with the target `solutionId`; Copilot Studio agent
+tool discovery expects the flow to be solution-aware. To test it from MCP, call
+`trigger_live_flow` with the inputs in `body` — Skills triggers run through the
+connector runtime the same way Button and PowerApps triggers do.
+
+---
+
 ## Automated (SharePoint Item Created)
 
 ```json

@@ -1,0 +1,51 @@
+{
+  "run_id": "eval-1-without_skill",
+  "expectations": [
+    {
+      "text": "Concludes the draft is NOT safe to hand off / must be quarantined or rewritten",
+      "passed": true,
+      "evidence": "'No. This draft is not safe to pass to the clean implementation team.'"
+    },
+    {
+      "text": "Flags private source identifiers (e.g. parseFooInternal, RetryScheduler, retryLater, failCount)",
+      "passed": true,
+      "evidence": "Lists RetryScheduler, parseFooInternal, retryLater, _flushBuffer, failCount, buf."
+    },
+    {
+      "text": "Flags the copied comment and/or Jira tag FLOW-1234",
+      "passed": true,
+      "evidence": "'copied source comment with an internal ticket ID (FLOW-1234).'"
+    },
+    {
+      "text": "Flags source-shaped code or pseudocode (the for-loop or 'if x == 7')",
+      "passed": true,
+      "evidence": "compatibility_notes 'pseudocode to copy' flagged as the anti-pattern; for-loop flagged."
+    },
+    {
+      "text": "Flags the exact log string and/or magic value",
+      "passed": true,
+      "evidence": "Flags log string and 0xDEADBEEF copied literal."
+    },
+    {
+      "text": "Flags the copied source test name TestParseFooInternal_Mode7",
+      "passed": true,
+      "evidence": "'test name embeds the private function name.'"
+    },
+    {
+      "text": "Challenges the false public_surface entry (_flushBuffer)",
+      "passed": true,
+      "evidence": "'_flushBuffer is mislabeled public... private method name smuggled in under a public label.'"
+    },
+    {
+      "text": "Notes leakage_review.reviewer_role should be contaminated-handoff-sanitizer",
+      "passed": true,
+      "evidence": "'analyst self-approved... approval must come from Agent 1.5, reviewer_role: contaminated-handoff-sanitizer.'"
+    }
+  ],
+  "summary": {
+    "passed": 8,
+    "failed": 0,
+    "total": 8,
+    "pass_rate": 1.0
+  }
+}

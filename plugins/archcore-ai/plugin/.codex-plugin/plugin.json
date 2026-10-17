@@ -1,0 +1,62 @@
+{
+  "name": "archcore",
+  "description": "Spec-driven development and context engineering for AI coding agents, backed by project context in Git.",
+  "version": "0.10.3",
+  "author": {
+    "name": "Archcore",
+    "url": "https://archcore.ai"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://archcore.ai/plugin",
+  "repository": "https://github.com/archcore-ai/archcore",
+  "keywords": [
+    "codex",
+    "codex-cli",
+    "agents-md",
+    "mcp",
+    "ai-agents",
+    "ai-coding",
+    "coding-agents",
+    "project-context",
+    "context",
+    "context-engineering",
+    "architecture",
+    "adr",
+    "knowledge-management",
+    "rules",
+    "decisions",
+    "conventions",
+    "git-native",
+    "skills",
+    "subagents",
+    "spec-driven-development",
+    "documentation",
+    "specs"
+  ],
+  "skills": "./skills/",
+  "hooks": "./hooks/codex.hooks.json",
+  "mcpServers": "./.codex.mcp.json",
+  "interface": {
+    "displayName": "Archcore",
+    "shortDescription": "Spec-driven development and context engineering for AI coding agents.",
+    "longDescription": "Archcore brings spec-driven development and automatic project context to Codex. Specs, architecture, decisions, rules, and plans live in Git and are applied as the agent works.",
+    "developerName": "Archcore",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://archcore.ai",
+    "privacyPolicyURL": "https://archcore.ai/privacy",
+    "termsOfServiceURL": "https://github.com/archcore-ai/archcore/blob/main/docs/TERMS.md",
+    "defaultPrompt": [
+      "Use Archcore to review this work against project decisions",
+      "Use Archcore to plan this change",
+      "Use Archcore to check whether source edits need doc updates"
+    ],
+    "brandColor": "#2563EB",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/logo.png",
+    "screenshots": []
+  }
+}

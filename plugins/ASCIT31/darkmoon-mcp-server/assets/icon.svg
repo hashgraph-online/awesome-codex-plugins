@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Darkmoon">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6366F1"/>
+      <stop offset="1" stop-color="#2F3FD0"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="#0B0B12"/>
+  <circle cx="256" cy="256" r="150" fill="url(#g)"/>
+  <circle cx="318" cy="222" r="128" fill="#0B0B12"/>
+</svg>

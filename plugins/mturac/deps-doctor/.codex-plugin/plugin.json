@@ -1,0 +1,38 @@
+{
+  "name": "deps-doctor",
+  "version": "0.1.0",
+  "description": "Multi-ecosystem dependency audit (npm, pip, cargo, go).",
+  "author": {
+    "name": "Mehmet Turac",
+    "url": "https://github.com/mturac"
+  },
+  "homepage": "https://github.com/mturac/pluginpool-deps-doctor",
+  "repository": "https://github.com/mturac/pluginpool-deps-doctor",
+  "license": "MIT",
+  "keywords": [
+    "security",
+    "dependencies",
+    "audit",
+    "codex-plugin"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Deps Doctor",
+    "shortDescription": "Multi-ecosystem dependency audit (npm, pip, cargo, go).",
+    "longDescription": "One unified dependency audit report across npm, pip, cargo, and go ecosystems.",
+    "developerName": "Mehmet Turac",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/mturac/pluginpool-deps-doctor",
+    "privacyPolicyURL": "https://github.com/mturac/pluginpool-deps-doctor/blob/main/LICENSE",
+    "termsOfServiceURL": "https://github.com/mturac/pluginpool-deps-doctor/blob/main/LICENSE",
+    "defaultPrompt": [
+      "Use Deps Doctor to multi-ecosystem dependency audit (npm, pip, cargo, go)."
+    ],
+    "brandColor": "#7c3aed",
+    "composerIcon": "./assets/icon.svg"
+  }
+}

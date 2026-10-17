@@ -1,0 +1,33 @@
+{
+  "name": "universal-design-principles",
+  "version": "1.0.0",
+  "description": "A cross-agent UX and product-design skill collection covering perception, cognition, interaction, aesthetics, accessibility, robustness, and process.",
+  "author": {
+    "name": "Hunter D",
+    "email": "hunterd107@gmail.com"
+  },
+  "homepage": "https://github.com/HDeibler/universal-design-principles",
+  "repository": "https://github.com/HDeibler/universal-design-principles",
+  "license": "MIT",
+  "keywords": [
+    "design",
+    "ux",
+    "ui",
+    "accessibility",
+    "product-design",
+    "agent-skills"
+  ],
+  "skills": "./plugins/",
+  "interface": {
+    "displayName": "Universal Design Principles",
+    "shortDescription": "UX and product-design skills for AI agents.",
+    "developerName": "Hunter D",
+    "category": "Design",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "longDescription": "A cross-agent UX and product-design skill collection covering perception, cognition, interaction, aesthetics, accessibility, robustness, and process.",
+    "websiteURL": "https://github.com/HDeibler/universal-design-principles"
+  }
+}

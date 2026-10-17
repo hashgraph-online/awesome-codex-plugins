@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulink Profiler Report — {{MODEL_NAME}}</title>
+<style>
+  :root {
+    --bg: #f5f7fa;
+    --card: #ffffff;
+    --border: #e1e4e8;
+    --text: #24292e;
+    --muted: #586069;
+    --red: #d73a49;
+    --red-bg: #ffeef0;
+    --yellow: #b08800;
+    --yellow-bg: #fff8e1;
+    --green: #28a745;
+    --green-bg: #e6ffed;
+    --blue: #0366d6;
+    --blue-bg: #e8f0fe;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 2rem; }
+  h1 { font-size: 1.8rem; margin-bottom: 0.25rem; }
+  .subtitle { color: var(--muted); font-size: 0.95rem; margin-bottom: 2rem; }
+  h2 { font-size: 1.3rem; margin: 2rem 0 1rem; border-bottom: 2px solid var(--border); padding-bottom: 0.4rem; }
+
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem 1.5rem; margin-bottom: 1rem; }
+
+  .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; margin-bottom: 1.5rem; }
+  .summary-item { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.25rem; text-align: center; }
+  .summary-item .value { font-size: 1.6rem; font-weight: 700; }
+  .summary-item .label { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 0.78rem; font-weight: 600; margin-right: 6px; vertical-align: middle; }
+  .badge-red { background: var(--red-bg); color: var(--red); }
+  .badge-yellow { background: var(--yellow-bg); color: var(--yellow); }
+  .badge-green { background: var(--green-bg); color: var(--green); }
+  .badge-blue { background: var(--blue-bg); color: var(--blue); }
+
+  table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; font-size: 0.9rem; }
+  th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { background: #f6f8fa; font-weight: 600; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.3px; color: var(--muted); }
+  tr:last-child td { border-bottom: none; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td code { background: #f0f2f5; padding: 2px 6px; border-radius: 4px; font-size: 0.85rem; word-break: break-all; }
+
+  .bar-container { width: 100%; height: 20px; background: #eee; border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; }
+
+  .rec-item { padding: 0.6rem 0; border-bottom: 1px solid var(--border); }
+  .rec-item:last-child { border-bottom: none; }
+  .rec-item strong { color: var(--red); }
+
+  details summary { cursor: pointer; font-weight: 600; padding: 0.4rem 0; }
+  details summary:hover { color: var(--blue); }
+
+  .footer { margin-top: 2.5rem; padding-top: 1rem; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.8rem; text-align: center; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <h1>📊 Simulink Profiler Report</h1>
+  <p class="subtitle">Model: <strong>{{MODEL_NAME}}</strong> &mdash; Total time: <strong>{{TOTAL_TIME}} s</strong> &mdash; Generated: {{DATE}}</p>
+
+  <!-- ============ SUMMARY ============ -->
+  <div class="summary-grid">
+    {{SUMMARY_ITEMS}}
+  </div>
+
+  <!-- ============ PHASE BREAKDOWN ============ -->
+  <h2>Phase Breakdown</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Phase</th><th>Time (s)</th><th>Self (s)</th><th>Calls</th><th>% of Total</th><th style="width:30%">Distribution</th></tr></thead>
+      <tbody>
+        {{PHASE_ROWS}}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ============ BLOCK HOTSPOTS ============ -->
+  <h2><span class="badge badge-red">Critical</span> Top Block Hotspots</h2>
+  <div class="card">
+    <p style="margin-bottom:0.5rem;color:var(--muted);font-size:0.88rem;">Top blocks by self time — these are the actual compute bottlenecks.</p>
+    <table>
+      <thead><tr><th>#</th><th>Block Path</th><th>Total (s)</th><th>Self (s)</th><th>Calls</th><th>Self/Call (ms)</th></tr></thead>
+      <tbody>
+        {{BLOCK_ROWS}}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ============ EXEC TREE HOTSPOTS ============ -->
+  <h2><span class="badge badge-yellow">Warning</span> Execution Method Hotspots</h2>
+  <div class="card">
+    <details open>
+      <summary>Top execution nodes by self time</summary>
+      <table>
+        <thead><tr><th>#</th><th>Method</th><th>Object</th><th>Total (s)</th><th>Self (s)</th><th>Calls</th><th>Self/Call (ms)</th></tr></thead>
+        <tbody>
+          {{EXEC_ROWS}}
+        </tbody>
+      </table>
+    </details>
+  </div>
+
+  <!-- ============ FINDINGS & RECOMMENDATIONS ============ -->
+  <h2><span class="badge badge-blue">Analysis</span> Findings &amp; Recommendations</h2>
+  {{FINDINGS_SECTION}}
+
+  <div class="footer">
+    Simulink Profiler Report &mdash; Generated by Amp &mdash; {{DATE}}
+  </div>
+
+</div>
+</body>
+</html>

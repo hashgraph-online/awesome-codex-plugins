@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json",
+  "title": "SpecValue",
+  "description": "A single electrical or physical specification value with provenance. Every numeric datasheet fact is stored as an array of SpecValue entries (a field with one value still uses a one-element array).",
+  "type": "object",
+  "required": ["unit", "evidence"],
+  "additionalProperties": false,
+  "properties": {
+    "min": {
+      "type": ["number", "null"],
+      "description": "Minimum value as published in the datasheet. null when not specified."
+    },
+    "typ": {
+      "type": ["number", "null"],
+      "description": "Typical value. null when not specified."
+    },
+    "max": {
+      "type": ["number", "null"],
+      "description": "Maximum value. null when not specified."
+    },
+    "unit": {
+      "type": ["string", "null"],
+      "enum": ["V", "A", "C", "s", "Hz", "Ω", "F", "H", "K", "W", "°C", "%", "ppm", "K/W", "°C/W", "V/s", "dB", null],
+      "description": "Canonical SI unit. Extraction converts datasheet units (µA, mV, kΩ, kHz, µF, nC, etc.) before caching — consumers never parse unit prefixes. Compound units K/W and °C/W are allowed for thermal resistance (θJA, θJC, ψJT). C (coulombs) for gate charge. V/s for slew rate (store 0.6V/µs as 6e5 V/s). dB for CMRR/PSRR/open-loop gain. null for dimensionless quantities (e.g. hFE current gain, power factor)."
+    },
+    "condition": {
+      "type": ["string", "null"],
+      "description": "Test conditions under which the value holds (e.g. 'VIN=5V, IL=100mA, TJ=25°C'). Free-form string."
+    },
+    "notes": {
+      "type": ["string", "null"],
+      "description": "Additional notes, including the original symbolic form if a symbolic expression was resolved at extraction (e.g. 'VOH = VCC − 0.4V resolved with VCC=3.3V')."
+    },
+    "evidence": {
+      "type": "object",
+      "required": ["page", "confidence", "method"],
+      "additionalProperties": false,
+      "properties": {
+        "page": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "PDF page number (1-based) where the fact was found."
+        },
+        "section": {
+          "type": ["string", "null"],
+          "description": "Datasheet section label (e.g. '6.4 Electrical Characteristics') when available."
+        },
+        "confidence": {
+          "type": "string",
+          "enum": ["high", "medium", "low"],
+          "description": "Extractor confidence in this fact. Pivots consumer trust gating."
+        },
+        "method": {
+          "type": "string",
+          "enum": ["table", "prose", "curve", "calculated", "derived"],
+          "description": "How the value was captured. 'table' = direct from a parameter table. 'prose' = pulled from narrative text. 'curve' = read off a graph (lower confidence). 'calculated' = resolved from a symbolic expression. 'derived' = inferred from other datasheet facts."
+        }
+      }
+    }
+  }
+}

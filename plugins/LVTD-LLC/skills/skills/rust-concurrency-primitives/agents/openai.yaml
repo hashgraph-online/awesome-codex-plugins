@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rust Concurrency Primitives"
+  short_description: "Choose and review Rust thread synchronization primitives"
+  default_prompt: "Review this Rust concurrent code for the right thread, lock, channel, and atomic patterns."

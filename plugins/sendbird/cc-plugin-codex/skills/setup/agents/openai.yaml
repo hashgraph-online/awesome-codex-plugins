@@ -1,0 +1,5 @@
+interface:
+  display_name: "Claude Code Setup"
+  short_description: "Args: --enable-review-gate, --disable-review-gate. Verify Claude Code setup or toggle the review gate."
+policy:
+  allow_implicit_invocation: false

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Dryforge go"
+  short_description: "Carry out the approved intent and verify it."
+  default_prompt: "Use Dryforge go to carry out the approved intent."
+
+policy:
+  allow_implicit_invocation: false

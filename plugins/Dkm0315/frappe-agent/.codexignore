@@ -1,0 +1,14 @@
+.git/
+.claude/settings.local.json
+.env
+.env.*
+dist/
+build/
+node_modules/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+*.pyc
+*.pyo
+*.pyd
+.DS_Store

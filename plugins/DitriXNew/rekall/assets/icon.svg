@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Rekall">
+  <rect width="512" height="512" rx="112" fill="#6750A4"/>
+  <g fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M380 184a144 144 0 1 0 12 124" stroke-width="28"/>
+    <path d="M312 184h68v-68" stroke-width="28"/>
+    <path d="M204 218h104M204 256h104M204 294h72" stroke-width="20"/>
+  </g>
+</svg>

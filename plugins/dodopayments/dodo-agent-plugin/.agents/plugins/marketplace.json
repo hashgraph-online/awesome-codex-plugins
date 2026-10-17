@@ -1,0 +1,20 @@
+{
+    "name": "dodopayments",
+    "interface": {
+        "displayName": "Dodo Payments"
+    },
+    "plugins": [
+        {
+            "name": "dodopayments",
+            "source": {
+                "source": "local",
+                "path": "./plugins/dodopayments"
+            },
+            "policy": {
+                "installation": "AVAILABLE",
+                "authentication": "ON_INSTALL"
+            },
+            "category": "Developer Tools"
+        }
+    ]
+}

@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Codex How To</title>
+  <desc id="desc">A verified engineering loop ending in a check mark.</desc>
+  <defs>
+    <linearGradient id="background" x1="48" y1="48" x2="464" y2="464" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#091527"/>
+      <stop offset="1" stop-color="#0d3034"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="122" y1="146" x2="390" y2="370" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#65e4cb"/>
+      <stop offset="1" stop-color="#6aa9ff"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#background)"/>
+  <path
+    d="M362 164a148 148 0 1 0 13 169"
+    fill="none"
+    stroke="url(#accent)"
+    stroke-linecap="round"
+    stroke-width="44"
+  />
+  <path
+    d="m220 264 52 52 112-128"
+    fill="none"
+    stroke="#f4f8ff"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-width="42"
+  />
+</svg>

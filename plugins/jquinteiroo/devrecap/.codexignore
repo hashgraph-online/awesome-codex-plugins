@@ -1,0 +1,9 @@
+.devrecap/
+reports/
+node_modules/
+.env
+.env.*
+*.log
+*.sqlite
+*.sqlite3
+coverage/

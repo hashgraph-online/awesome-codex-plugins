@@ -1,0 +1,41 @@
+{
+  "name": "rekall",
+  "version": "0.3.2",
+  "description": "Deliberate Codex context compaction with a verified handoff and one-time continuation.",
+  "author": {
+    "name": "Dmytro Sherstobitov",
+    "url": "https://github.com/DitriXNew"
+  },
+  "homepage": "https://github.com/DitriXNew/rekall#readme",
+  "repository": "https://github.com/DitriXNew/rekall",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "context",
+    "compaction",
+    "handoff",
+    "mcp"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Rekall",
+    "shortDescription": "Compact context and continue from a verified handoff.",
+    "longDescription": "Schedule native Codex context compaction at a deliberate checkpoint, retain a verified task handoff, and optionally resume authorized work once.",
+    "developerName": "Dmytro Sherstobitov",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Local MCP tools",
+      "Context handoff",
+      "One-time continuation"
+    ],
+    "websiteURL": "https://github.com/DitriXNew/rekall",
+    "defaultPrompt": [
+      "Compact this thread with a handoff, then continue the remaining work once.",
+      "Check whether this thread is ready for deliberate compaction.",
+      "Compact this completed task without starting another turn."
+    ],
+    "brandColor": "#6750A4",
+    "composerIcon": "./assets/icon.svg"
+  }
+}

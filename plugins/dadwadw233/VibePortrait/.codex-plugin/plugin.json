@@ -28,7 +28,10 @@
     "longDescription": "Analyzes your conversation history with AI coding assistants and generates a self-contained HTML personality portrait featuring MBTI type, radar charts, famous person match, developer rating, and more.",
     "developerName": "dadwadw233",
     "category": "Productivity",
-    "capabilities": ["Read", "Write"],
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
     "websiteURL": "https://github.com/dadwadw233/VibePortrait",
     "defaultPrompt": [
       "Use $vibe-portrait to analyze my conversation history and generate my developer personality portrait.",

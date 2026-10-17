@@ -1,0 +1,22 @@
+{
+  "name": "equibles",
+  "interface": {
+    "displayName": "Equibles"
+  },
+  "plugins": [
+    {
+      "name": "equibles",
+      "displayName": "Equibles",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Research",
+      "description": "US stock research from SEC filings, financial statements, earnings call transcripts, insider trades and 13F holdings through the hosted Equibles MCP server."
+    }
+  ]
+}

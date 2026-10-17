@@ -1,0 +1,37 @@
+{
+  "name": "test-gap",
+  "version": "0.1.0",
+  "description": "Find lines in your diff lacking test coverage.",
+  "author": {
+    "name": "Mehmet Turac",
+    "url": "https://github.com/mturac"
+  },
+  "homepage": "https://github.com/mturac/pluginpool-test-gap",
+  "repository": "https://github.com/mturac/pluginpool-test-gap",
+  "license": "MIT",
+  "keywords": [
+    "testing",
+    "coverage",
+    "codex-plugin"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Test Gap",
+    "shortDescription": "Find lines in your diff lacking test coverage.",
+    "longDescription": "Identifies lines in your diff lacking test coverage from Cobertura, lcov, or coverage.json formats.",
+    "developerName": "Mehmet Turac",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/mturac/pluginpool-test-gap",
+    "privacyPolicyURL": "https://github.com/mturac/pluginpool-test-gap/blob/main/LICENSE",
+    "termsOfServiceURL": "https://github.com/mturac/pluginpool-test-gap/blob/main/LICENSE",
+    "defaultPrompt": [
+      "Use Test Gap to find lines in your diff lacking test coverage."
+    ],
+    "brandColor": "#7c3aed",
+    "composerIcon": "./assets/icon.svg"
+  }
+}

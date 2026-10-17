@@ -1,0 +1,4 @@
+interface:
+  display_name: "Technical Manuscript Verification"
+  short_description: "Verify technical drafts actually work"
+  default_prompt: "Use $technical-manuscript-verification to audit this technical manuscript for runnable accuracy."

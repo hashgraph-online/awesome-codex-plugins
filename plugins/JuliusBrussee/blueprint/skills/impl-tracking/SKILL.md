@@ -353,7 +353,7 @@ For structured handoffs between sessions (especially when different humans or au
 
 - **Between human-managed sessions:** When a human starts each session and needs to know what happened
 - **Automation handoffs:** When an orchestration system decides what to work on next
-- **Work queue generation:** The `/bp:next-session` command consumes this feedback to generate prioritized work items
+- **Work queue generation:** The `/ck:next-session` command consumes this feedback to generate prioritized work items
 
 > For the full session feedback protocol reference, see `references/session-feedback-protocol.md`.
 
@@ -407,21 +407,21 @@ This removes the orientation cost at the start of each session — agents begin 
 
 ## Integration with Other Skills
 
-### With `bp:blueprint-writing`
+### With `ck:cavekit-writing`
 
 Implementation tracking references specs by requirement ID. When a task is completed, its acceptance criteria map back to spec requirements. When dead ends are found, they may reveal spec gaps that need revision.
 
-### With `bp:validation-first`
+### With `ck:validation-first`
 
 Test health in the tracking document reflects validation gate results. Failing tests indicate which gates are not passing. The tracking document records which gates each task must clear.
 
-### With `bp:context-architecture`
+### With `ck:context-architecture`
 
 Implementation tracking documents live in `context/impl/`. When files grow too large, archive to `context/impl/archive/`. The CLAUDE.md in `context/impl/` instructs agents on tracking conventions.
 
-### With `bp:methodology`
+### With `ck:methodology`
 
-Implementation tracking is used primarily during the Implement and Iterate phases of DABI. The iteration loop reads and updates tracking documents every pass. The Monitor phase reviews tracking documents for progress signals.
+Implementation tracking is used primarily during the Implement and Iterate phases of the Hunt. The iteration loop reads and updates tracking documents every pass. The Monitor phase reviews tracking documents for progress signals.
 
 ---
 

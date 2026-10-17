@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="PDF Monster">
+  <rect width="64" height="64" rx="14" fill="#DC2626"/>
+  <path d="M18 12h21l10 10v30H18z" fill="#fff"/>
+  <path d="M39 12v11h10z" fill="#FCA5A5"/>
+  <path d="M23 31h18v4H23zm0 8h14v4H23z" fill="#111827"/>
+  <circle cx="25" cy="24" r="2.5" fill="#111827"/>
+  <circle cx="37" cy="24" r="2.5" fill="#111827"/>
+  <path d="M27 50l4-6 4 6 4-6 4 6z" fill="#DC2626"/>
+</svg>

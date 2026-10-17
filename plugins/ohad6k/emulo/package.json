@@ -1,0 +1,11 @@
+{
+  "name": "emulo-site",
+  "private": true,
+  "description": "Tests for the browser-side pages under site/. The Python package is built and tested separately; this exists only so the pages have a harness that can execute them.",
+  "scripts": {
+    "test": "node --test site/scan.test.cjs site/scan.ui.test.cjs site/placebo.test.cjs site/fable.test.cjs"
+  },
+  "devDependencies": {
+    "jsdom": "^26.0.0"
+  }
+}

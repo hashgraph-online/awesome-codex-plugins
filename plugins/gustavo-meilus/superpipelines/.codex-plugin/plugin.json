@@ -1,0 +1,33 @@
+{
+  "name": "superpipelines",
+  "version": "2.5.0",
+  "description": "Design, generate, and run multi-agent AI pipelines — scope-aware, multi-pipeline, spec-driven, write/review-isolated. Codex App/CLI target (Tier 1d: native parallel subagents, up to 6 concurrent).",
+  "author": {
+    "name": "Gustavo Meilus",
+    "url": "https://github.com/gustavo-meilus"
+  },
+  "homepage": "https://github.com/gustavo-meilus/superpipelines",
+  "repository": "https://github.com/gustavo-meilus/superpipelines",
+  "license": "MIT",
+  "skills": "../.agents/skills/",
+  "interface": {
+    "displayName": "Superpipelines",
+    "shortDescription": "Design and run multi-agent AI pipelines.",
+    "longDescription": "Spec-driven, write/review-isolated multi-agent orchestration across Claude Code, OpenCode, Codex, and Cursor/Windsurf/Cline.",
+    "composerIcon": "./assets/superpowers-small.svg",
+    "developerName": "Gustavo Meilus",
+    "category": "Development",
+    "capabilities": [],
+    "websiteURL": "https://github.com/gustavo-meilus/superpipelines",
+    "privacyPolicyURL": "https://github.com/gustavo-meilus/superpipelines/blob/main/PRIVACY.md",
+    "termsOfServiceURL": "https://github.com/gustavo-meilus/superpipelines/blob/main/LICENSE"
+  },
+  "keywords": [
+    "ai-pipelines",
+    "subagents",
+    "skills",
+    "spec-driven-development",
+    "orchestration",
+    "codex"
+  ]
+}

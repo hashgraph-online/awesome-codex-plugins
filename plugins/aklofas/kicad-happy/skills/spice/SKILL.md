@@ -1,6 +1,17 @@
 ---
 name: spice
-description: Run automatic SPICE simulations on detected subcircuits from KiCad schematic analysis — validates filter frequencies, divider ratios, opamp gains, LC resonance, and crystal load capacitance against simulation results. Supports ngspice, LTspice, and Xyce (auto-detected). Generates testbenches, runs them in batch mode, and produces a structured pass/warn/fail report. Use this skill whenever the user asks to simulate, verify, or validate any analog subcircuit — RC filters, LC filters, voltage dividers, opamp circuits, crystal oscillators. Also use when the user says things like "simulate my circuit", "run spice", "verify with simulation", "check my filter cutoff", "does this divider actually give 1.65V", "what's the actual bandwidth of this opamp stage", "validate the analyzer's calculations", or wants to go beyond static analysis to dynamic SPICE verification. Use during design reviews whenever the schematic analyzer detects simulatable subcircuits and a SPICE simulator is available — simulation adds a layer of confidence that calculated values (fc, gain, Vout) match real circuit behavior. Even if the user doesn't explicitly ask for simulation, consider suggesting it when the kicad skill's analysis reports RC filters, opamp circuits, or feedback networks where a numerical validation would catch errors.
+description: >-
+  Run automatic SPICE simulations on subcircuits detected from KiCad schematic
+  analysis — validates filter frequencies, divider ratios, opamp gains, LC
+  resonance, and crystal load capacitance. Supports ngspice, LTspice, and Xyce
+  (auto-detected). Generates testbenches, runs batch mode, produces structured
+  pass/warn/fail report. Use when the user asks to simulate, verify, or
+  validate any analog subcircuit — RC filters, LC filters, voltage dividers,
+  opamp circuits, crystal oscillators. Also for "simulate my circuit", "run
+  spice", "verify with simulation", "check my filter cutoff", "does this
+  divider give the right voltage", "what's the bandwidth of this opamp stage".
+  Consider suggesting simulation during design reviews when the schematic
+  analyzer reports simulatable subcircuits and a SPICE simulator is available.
 ---
 
 # SPICE Simulation Skill
@@ -20,7 +31,7 @@ This skill inverts the typical simulation workflow: instead of requiring users t
 | `element14` | Parametric specs (international), datasheet downloads |
 | `emc` | EMC pre-compliance — uses this skill's simulator infrastructure for SPICE-enhanced PDN impedance and EMI filter analysis |
 
-**Handoff guidance:** The `kicad` skill's `analyze_schematic.py` produces the analysis JSON with `signal_analysis` detections. This skill reads that JSON, generates SPICE testbenches for simulatable subcircuits, runs the detected simulator (ngspice/LTspice/Xyce), and produces a structured verification report. Always run the schematic analyzer first. During a design review, run simulation after the analyzer and before writing the final report — simulation results should appear as a verification section in the report. The `emc` skill reuses this skill's simulator backend for SPICE-enhanced PDN impedance and EMI filter insertion loss checks — when ngspice is available, the EMC skill's `--spice-enhanced` flag activates these checks automatically.
+**Handoff guidance:** The `kicad` skill's `analyze_schematic.py` produces the analysis JSON with subcircuit detections in the flat `findings[]` array (filtered by `detector` field). This skill reads that JSON, generates SPICE testbenches for simulatable subcircuits, runs the detected simulator (ngspice/LTspice/Xyce), and produces a structured verification report. Always run the schematic analyzer first. During a design review, run simulation after the analyzer and before writing the final report — simulation results should appear as a verification section in the report. The `emc` skill reuses this skill's simulator backend for SPICE-enhanced PDN impedance and EMI filter insertion loss checks — when ngspice is available, the EMC skill's `--spice-enhanced` flag activates these checks automatically.
 
 ## Requirements
 
@@ -29,7 +40,7 @@ This skill inverts the typical simulation workflow: instead of requiring users t
   - **LTspice** — free from analog.com/ltspice. Popular on Windows, works via wine on Linux.
   - **Xyce** — from xyce.sandia.gov. Parallel SPICE for large circuits.
   - Override with `--simulator ngspice|ltspice|xyce` or `SPICE_SIMULATOR` env var.
-- **Python 3.8+** — stdlib only, no pip dependencies
+- **Python 3.10+** — stdlib only, no pip dependencies
 - **Schematic analyzer JSON** — from `analyze_schematic.py --output`
 
 If no simulator is installed, skip simulation gracefully and note it in the report. Do not treat a missing simulator as an error — it's an optional enhancement.
@@ -39,26 +50,34 @@ If no simulator is installed, skip simulation gracefully and note it in the repo
 ### Step 1: Run the schematic analyzer
 
 ```bash
-python3 <kicad-skill-path>/scripts/analyze_schematic.py design.kicad_sch --output analysis.json
+python3 <kicad-skill-path>/scripts/analyze_schematic.py design.kicad_sch --analysis-dir analysis/
 ```
 
 ### Step 2: Run SPICE simulations
 
+Pass `--analysis-dir analysis/` — the script auto-resolves `schematic.json`
+from the manifest's current run, writes `spice.json` into the same run
+folder, and parks intermediate `.cir` / `.raw` files at
+`<run>/spice_work/` by default.
+
 ```bash
-# Simulate all supported subcircuit types
+# Recommended: auto-resolve schematic + write spice.json into the current run
+python3 <skill-path>/scripts/simulate_subcircuits.py --analysis-dir analysis/
+
+# Explicit form — positional or --schematic path
 python3 <skill-path>/scripts/simulate_subcircuits.py analysis.json --output sim_report.json
 
 # Simulate specific types only
-python3 <skill-path>/scripts/simulate_subcircuits.py analysis.json --types rc_filters,voltage_dividers
+python3 <skill-path>/scripts/simulate_subcircuits.py --analysis-dir analysis/ --types rc_filters,voltage_dividers
 
-# Keep simulation files for debugging (default: temp dir, cleaned up)
-python3 <skill-path>/scripts/simulate_subcircuits.py analysis.json --workdir ./spice_runs
+# Keep simulation files for debugging (default: <run>/spice_work/ when --analysis-dir is set, else a temp dir)
+python3 <skill-path>/scripts/simulate_subcircuits.py --analysis-dir analysis/ --workdir ./spice_runs
 
 # Increase timeout for complex circuits (default: 5s per subcircuit)
-python3 <skill-path>/scripts/simulate_subcircuits.py analysis.json --timeout 10
+python3 <skill-path>/scripts/simulate_subcircuits.py --analysis-dir analysis/ --timeout 10
 
 # Omit file paths from output (cleaner for reports)
-python3 <skill-path>/scripts/simulate_subcircuits.py analysis.json --compact
+python3 <skill-path>/scripts/simulate_subcircuits.py --analysis-dir analysis/ --compact
 ```
 
 ### Step 2b (optional): PCB parasitic-aware simulation
@@ -110,7 +129,7 @@ Read the JSON report and incorporate findings into the design review. See the "I
 
 ## What Gets Simulated
 
-The script selects subcircuits from the analyzer's `signal_analysis` section. Not every detection is simulatable — the script skips configurations that can't produce meaningful results (comparators, open-loop opamps, active oscillators).
+The script selects subcircuits from the analyzer's `findings[]` array (grouped by detector type). Not every detection is simulatable — the script skips configurations that can't produce meaningful results (comparators, open-loop opamps, active oscillators).
 
 | Detector | Analysis | What's Measured | Model Fidelity | Trustworthiness |
 |----------|----------|-----------------|----------------|-----------------|
@@ -277,7 +296,7 @@ For detailed information about the behavioral models used, their accuracy envelo
 | Script | Purpose |
 |--------|---------|
 | `scripts/simulate_subcircuits.py` | Main orchestrator — CLI entry point, reads JSON, generates testbenches, runs simulator, produces report |
-| `scripts/spice_templates.py` | Testbench generators per detector type — one function per signal_analysis key |
+| `scripts/spice_templates.py` | Testbench generators per detector type — one function per detector name |
 | `scripts/spice_models.py` | Behavioral model definitions (ideal opamp, generic semiconductors), net sanitization, engineering notation formatting |
 | `scripts/spice_results.py` | Simulation output parsing and per-type evaluation with pass/warn/fail/skip logic |
 | `scripts/spice_simulator.py` | Simulator backends — ngspice, LTspice, Xyce auto-detection and batch execution |
@@ -285,19 +304,20 @@ For detailed information about the behavioral models used, their accuracy envelo
 | `scripts/spice_model_generator.py` | Parameterized behavioral .subckt generation from specs dicts |
 | `scripts/spice_model_cache.py` | Project-local model cache in `spice/models/` next to the schematic |
 | `scripts/spice_spec_fetcher.py` | Queries distributor APIs (LCSC, DigiKey, element14, Mouser), structured datasheet extractions, and PDF regex for parametric specs |
-| `scripts/extract_parasitics.py` | Compute trace R, via L, coupling C from PCB analysis JSON (Phase 3) |
+| `scripts/extract_parasitics.py` | Compute trace R, via L, coupling C from PCB analysis JSON |
 
-## Per-Part Behavioral Models (Phase 2)
+## Per-Part Behavioral Models
 
 When the analyzer detects an opamp with a recognized MPN (e.g., LM358, TL072, MCP6002), the skill uses a **per-part behavioral model** instead of the generic ideal opamp. The model captures the actual GBW, slew rate, input offset, and output swing from the part's datasheet.
 
 Model resolution cascade:
 1. **Project cache** (`<project>/spice/models/`) — previously resolved models
-2. **Distributor API specs** — queries LCSC (no auth), DigiKey, element14, Mouser for real parametric data
-3. **Structured datasheet extraction** — reads pre-extracted specs from `<project>/datasheets/extracted/` (cached JSON with SPICE-relevant parameters, scored for quality)
-4. **Datasheet PDF regex extraction** — reads from `<project>/datasheets/`, extracts via text pattern matching (last resort)
-5. **Built-in lookup table** — ~100 common parts as offline fallback
-6. **Ideal model fallback** — if the MPN isn't recognized by any source
+2. **v1.4 typed datasheet facts** — via `lookup(mpn, cache_dir=<project>/datasheets/extracted)` from the `datasheets` skill. Returns `DatasheetFacts` with `opamp.gbw`, `opamp.slew_rate`, etc. as `SpecValue` instances with trust gating. Recommended source when present.
+3. **Distributor API specs** — queries LCSC (no auth), DigiKey, element14, Mouser for real parametric data
+4. **v1.3 structured datasheet extraction** — reads pre-extracted specs from `<project>/datasheets/extracted/` (legacy dict-shaped JSON, scored for quality). Dual-read compat path; still consulted when v1.4 cache misses.
+5. **Datasheet PDF regex extraction** — reads from `<project>/datasheets/`, extracts via text pattern matching (last resort)
+6. **Built-in lookup table** — ~100 common parts as offline fallback
+7. **Ideal model fallback** — if the MPN isn't recognized by any source
 
 The `model_note` field in the report indicates which model was used: `"LM358 behavioral (lookup:LM358, GBW=1.0MHz)"` vs `"ideal opamp (Aol=1e6, GBW~10MHz)"`.
 

@@ -1,0 +1,22 @@
+[
+  {"query": "we licensed a copy of a competitor's invoicing engine and i need to build our own version in python that produces byte-identical PDF output but legally can't reuse any of their code. where do i even start", "should_trigger": true},
+  {"query": "got the decompiled jar of an old vendor library we lost the source for, need a clean reimplementation in kotlin that our lawyers will sign off on with no copied code", "should_trigger": true},
+  {"query": "porting flowpack (a go CLI a contractor wrote under a restrictive license) to rust for our team, has to stay CLI-compatible but we want clean IP ownership", "should_trigger": true},
+  {"query": "my team read through a competitor's open-source SDK and now we're writing our own payment lib. how do i make sure we're not accidentally copying their implementation", "should_trigger": true},
+  {"query": "need to rebuild this abandoned npm package behavior-for-behavior in a fresh repo so we own it outright, without lifting their source", "should_trigger": true},
+  {"query": "reverse engineer the behavior of this proprietary firmware and produce a spec plus a clean implementation, we already have written authorization from the vendor", "should_trigger": true},
+  {"query": "we want a compatibility rewrite of a legacy COBOL payroll system into java, but the original is under a license that forbids derivative works", "should_trigger": true},
+  {"query": "i only have screenshots of a competitor's dashboard, no source, and want to build something with the same behavior cleanly without ripping their exact design", "should_trigger": true},
+  {"query": "set up a chinese wall process between the engineer who reads the old source and the one who writes the replacement so we have an audit trail", "should_trigger": true},
+  {"query": "migrating an internal tool but legal flagged that the original author retained copyright, so we need a documented clean-room rebuild", "should_trigger": true},
+  {"query": "refactor my own auth module in src/auth into smaller files, it's gotten huge and hard to test", "should_trigger": false},
+  {"query": "reverse engineer this undocumented REST API by sniffing the traffic so i can write a client wrapper for it", "should_trigger": false},
+  {"query": "migrate our postgres 12 database to postgres 16, whats the safest upgrade path with minimal downtime", "should_trigger": false},
+  {"query": "port my own python script from last year to typescript, it's all my code i just want it in TS now", "should_trigger": false},
+  {"query": "help me clean up this room-booking app's messy component tree, the nesting is out of control", "should_trigger": false},
+  {"query": "write unit tests for the behavioral spec i already wrote, the spec is in docs/spec.md", "should_trigger": false},
+  {"query": "we're rewriting our own legacy billing service from scratch with a fresh architecture, no external constraints, where should i start", "should_trigger": false},
+  {"query": "do a code review of this PR that reimplements our sorting logic, mainly worried about edge cases", "should_trigger": false},
+  {"query": "explain how this open source library implements its retry/backoff logic so i actually understand what it's doing", "should_trigger": false},
+  {"query": "migrate our CI pipeline from jenkins to github actions, we have like 12 jobs to move over", "should_trigger": false}
+]

@@ -1,7 +1,7 @@
 {
   "name": "panews",
-  "version": "0.1.0",
-  "description": "PANews Agent Toolkit for crypto news discovery, PANews creator workflows, and PANews page-to-Markdown reading.",
+  "version": "0.3.0",
+  "description": "PANews Agent Toolkit for crypto news discovery, Polymarket smart money leaderboard reading, PANews creator workflows, and PANews page-to-Markdown reading.",
   "author": {
     "name": "Seven Du",
     "email": "seven@panony.com",
@@ -14,14 +14,16 @@
     "crypto",
     "blockchain",
     "news",
+    "polymarket",
+    "leaderboards",
     "publishing",
     "panews"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "PANews Agent Toolkit",
-    "shortDescription": "Crypto news discovery, PANews creator publishing, and PANews page reading.",
-    "longDescription": "PANews Agent Toolkit helps users follow cryptocurrency and blockchain narratives through PANews coverage, manage authenticated PANews creator workflows, and read PANews pages as Markdown with metadata.",
+    "shortDescription": "Crypto news discovery, smart money leaderboards, PANews creator publishing, and PANews page reading.",
+    "longDescription": "PANews Agent Toolkit helps users follow cryptocurrency and blockchain narratives through PANews coverage, inspect public Polymarket smart money leaderboards, manage authenticated PANews creator workflows, and read PANews pages as Markdown with metadata.",
     "developerName": "PANews",
     "category": "News",
     "capabilities": [
@@ -34,6 +36,7 @@
     "termsOfServiceURL": "https://www.panewslab.com/en/user-agreement",
     "defaultPrompt": [
       "What are the biggest crypto stories today?",
+      "Show me the latest Polymarket smart money boards.",
       "Help me publish this article to PANews.",
       "Read this PANews page as Markdown."
     ],

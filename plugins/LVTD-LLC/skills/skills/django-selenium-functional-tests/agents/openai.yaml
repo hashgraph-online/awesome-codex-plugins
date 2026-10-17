@@ -1,0 +1,4 @@
+interface:
+  display_name: "Django Selenium Functional Tests"
+  short_description: "Stabilize Django browser tests"
+  default_prompt: "Use $django-selenium-functional-tests to make this Django Selenium test stable and user-focused."

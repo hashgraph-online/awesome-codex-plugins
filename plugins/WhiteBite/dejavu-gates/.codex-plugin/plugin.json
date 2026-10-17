@@ -1,0 +1,30 @@
+{
+  "name": "dejavu-gates",
+  "version": "2.49.0",
+  "description": "Cross-session error gates for AI coding agents: recurring tool-call failures are promoted into enforced remind-first, block-on-repeat gates via PreToolUse/PostToolUse hooks.",
+  "author": {
+    "name": "WhiteBite",
+    "url": "https://github.com/WhiteBite"
+  },
+  "homepage": "https://github.com/WhiteBite/dejavu-gates",
+  "repository": "https://github.com/WhiteBite/dejavu-gates",
+  "license": "MIT",
+  "keywords": [
+    "hooks",
+    "error-gates",
+    "guardrails",
+    "reliability",
+    "cross-session",
+    "codex-cli"
+  ],
+  "interface": {
+    "displayName": "dejavu",
+    "shortDescription": "Error gates that turn recurring tool-call failures into enforced reminders and blocks",
+    "longDescription": "dejavu watches tool-call failures and promotes a recurring pattern (3 failures across 2 distinct sessions) into an enforced gate: a reminder with a correction on the next attempt, a hard block on same-session repeat offense. Diagnostics never block, they annotate. Gates persist across sessions and share one harness-neutral store across Codex CLI, Claude Code, OpenCode, Gemini CLI, Cursor, Copilot CLI, Crush, Devin CLI, Kiro and Cline.",
+    "developerName": "WhiteBite",
+    "category": "Coding",
+    "capabilities": [],
+    "websiteURL": "https://github.com/WhiteBite/dejavu-gates",
+    "composerIcon": "./assets/icon.svg"
+  }
+}

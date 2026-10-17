@@ -1,0 +1,5 @@
+.git/
+.github/
+server.json
+gemini-extension.json
+llms-install.md

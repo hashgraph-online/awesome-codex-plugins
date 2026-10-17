@@ -1,0 +1,54 @@
+{
+  "name": "graymatter",
+  "version": "0.3.3+codex.20260909171430",
+  "description": "Persistent, secure memory and shared context for AI agents.",
+  "author": {
+    "name": "Valkyr Labs Inc.",
+    "email": "support@valkyrlabs.com",
+    "url": "https://valkyrlabs.com/"
+  },
+  "homepage": "https://github.com/ValkyrLabs/GrayMatter",
+  "repository": "https://github.com/ValkyrLabs/GrayMatter",
+  "license": "Proprietary",
+  "keywords": [
+    "graymatter",
+    "secure-memory",
+    "durable-memory",
+    "shared-context",
+    "mcp",
+    "retrieval-receipts",
+    "context-pages",
+    "agent-memory",
+    "graymatter-light",
+    "valoride",
+    "openclaw",
+    "codex",
+    "chatgpt"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "apps": "./.app.json",
+  "interface": {
+    "displayName": "GrayMatter",
+    "shortDescription": "Persistent, secure memory and shared context for AI agents",
+    "longDescription": "GrayMatter gives ChatGPT, Codex, ValorIDE, OpenClaw, and other MCP-compatible agents secure durable memory, bounded task-specific context, reusable procedures, retrieval receipts, a bundled mcp-server, and optional GrayMatter Light local mode while preserving api-0 authentication, RBAC, ACL, and tenant isolation.",
+    "developerName": "Valkyr Labs Inc.",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://valkyrlabs.com/",
+    "privacyPolicyURL": "https://valkyrlabs.com/privacy-policy",
+    "termsOfServiceURL": "https://valkyrlabs.com/terms",
+    "composerIcon": "./assets/graymatter-logo.png",
+    "logo": "./assets/graymatter-logo.png",
+    "defaultPrompt": [
+      "Search GrayMatter before asking me to repeat context.",
+      "Compile task-specific context from GrayMatter.",
+      "Save this durable decision in GrayMatter."
+    ],
+    "brandColor": "#245B4A"
+  }
+}

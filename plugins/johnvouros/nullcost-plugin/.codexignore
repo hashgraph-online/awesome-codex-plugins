@@ -1,0 +1,7 @@
+node_modules/
+*.tgz
+.env*
+.DS_Store
+docs/assets/*.gif
+docs/assets/*.png
+docs/assets/*.webm

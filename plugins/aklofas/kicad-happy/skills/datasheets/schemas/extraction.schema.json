@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kicad-happy.local/datasheets/schemas/extraction.schema.json",
+  "title": "DatasheetExtraction",
+  "description": "Top-level per-MPN extraction file. One file per part in datasheets/extracted/<MPN>.json. Composes base + zero-or-more category extensions.",
+  "type": "object",
+  "required": ["schema_version", "source", "extraction", "base"],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": {
+      "type": "object",
+      "required": ["base"],
+      "additionalProperties": false,
+      "properties": {
+        "base": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+$",
+          "description": "Base block schema version (MAJOR.MINOR)."
+        },
+        "categories": {
+          "type": "object",
+          "description": "Per-category schema versions, keyed by category name. E.g. {'regulator': '0.3', 'mcu': '1.0'}.",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[0-9]+\\.[0-9]+$"
+          }
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "required": ["manufacturer", "mpn", "sha256"],
+      "additionalProperties": false,
+      "properties": {
+        "manufacturer": {"type": "string"},
+        "mpn": {"type": "string"},
+        "datasheet_revision": {"type": ["string", "null"]},
+        "datasheet_date": {"type": ["string", "null"]},
+        "source_url": {"type": ["string", "null"]},
+        "local_path": {"type": ["string", "null"]},
+        "sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "description": "PDF SHA-256 (sha256: prefix)."
+        },
+        "page_count": {"type": ["integer", "null"], "minimum": 1},
+        "family_ref": {
+          "type": ["string", "null"],
+          "description": "Path to a family file in datasheets/extracted/_families/ when this MPN is a variant. Reserved for v1.5 Tier 2 dedup; always null in v1.4."
+        }
+      }
+    },
+    "extraction": {
+      "type": "object",
+      "required": ["extracted_at", "extractor_schema_version"],
+      "additionalProperties": false,
+      "properties": {
+        "extracted_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO-8601 UTC timestamp of extraction."
+        },
+        "extractor_scout": {
+          "type": ["string", "null"],
+          "description": "Identifier of the scout subagent / model that produced the orchestration plan. Opaque string (tier mapping lives in .kicad-happy.json)."
+        },
+        "extractor_schema_version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+$",
+          "description": "Version of the overall extraction pipeline that produced this file. Independent of base/category schema versions."
+        },
+        "quality_score": {
+          "type": ["integer", "null"],
+          "minimum": 0, "maximum": 100,
+          "description": "Overall quality score 0–100. Populated by datasheet_score.py after extraction."
+        },
+        "plan_ref": {
+          "type": ["string", "null"],
+          "description": "Relative path to the orchestration plan JSON (datasheets/extracted/<MPN>.plan.json)."
+        }
+      }
+    },
+    "base": {"$ref": "https://kicad-happy.local/datasheets/schemas/base.schema.json"},
+    "categories": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "List of active category extensions for this MPN (e.g. ['regulator'] or ['regulator', 'supervisor'] for a PMIC). Each entry must match a sibling key carrying that category's extension payload."
+    },
+    "regulator": {"$ref": "https://kicad-happy.local/datasheets/schemas/regulator.schema.json"}
+  }
+}

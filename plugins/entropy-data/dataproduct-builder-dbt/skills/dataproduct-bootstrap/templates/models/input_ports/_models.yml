@@ -1,0 +1,22 @@
+version: 2
+
+# Declare external sources you read from in per-agreement files alongside
+# this one, named after the provider output port id:
+#
+#   models/input_ports/<provider-output-port-id>.source.yaml
+#
+# Each file holds a single `sources:` entry corresponding to one active
+# access agreement (run `entropy-data access list --consumer-dataproduct
+# <DATA_PRODUCT_ID> -o json` to list them). Example:
+#
+# version: 2
+# sources:
+#   - name: <provider-data-product-id>_<provider-output-port-id>
+#     database: <catalog>
+#     schema: <schema>
+#     config:
+#       meta:
+#         data_contract:
+#           id: <provider-contract-id>   # provider's contract is not stored in this repo; id only
+#     tables:
+#       - name: <table>   # from the contract's `models:` key

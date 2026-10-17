@@ -1,6 +1,6 @@
 # Langfuse MCP Tool Reference
 
-Complete documentation for all 25 Langfuse MCP tools.
+Reference documentation for all Langfuse MCP tools. The top-level README also lists the current tool inventory.
 
 ## Tools by Category
 
@@ -8,10 +8,14 @@ Complete documentation for all 25 Langfuse MCP tools.
 |----------|-------|
 | Traces | fetch_traces, fetch_trace |
 | Observations | fetch_observations, fetch_observation |
+| Routing | find_route_decisions, get_route_decision, summarize_route_decisions, find_low_confidence_route_decisions |
 | Sessions | fetch_sessions, get_session_details, get_user_sessions |
 | Exceptions | find_exceptions, find_exceptions_in_file, get_exception_details, get_error_count |
 | Prompts | list_prompts, get_prompt, get_prompt_unresolved, create_text_prompt*, create_chat_prompt*, update_prompt_labels* |
-| Datasets | list_datasets, get_dataset, list_dataset_items, get_dataset_item, create_dataset*, create_dataset_item*, delete_dataset_item* |
+| Datasets | list_datasets, get_dataset, list_dataset_items, get_dataset_item, create_dataset*, create_dataset_item*, delete_dataset_item*, list_dataset_runs, get_dataset_run, list_dataset_run_items, create_dataset_run_item*, delete_dataset_run* |
+| Annotation Queues | list_annotation_queues, create_annotation_queue*, get_annotation_queue, list_annotation_queue_items, get_annotation_queue_item, create_annotation_queue_item*, update_annotation_queue_item*, delete_annotation_queue_item*, create_annotation_queue_assignment*, delete_annotation_queue_assignment* |
+| Scores | list_scores_v2, get_score_v2 |
+| Metrics | query_metrics, get_metrics_schema |
 | Schema | get_data_schema |
 
 *\*Tools marked with \* are disabled in read-only mode (`--read-only` or `LANGFUSE_MCP_READ_ONLY=true`).*
@@ -26,9 +30,9 @@ Some tools support output modes via the `output_mode` parameter:
 | `full_json_string` | Complete data as JSON string (returns string, not object) |
 | `full_json_file` | Save to file, return summary with path |
 
-**Tools with output_mode:** `fetch_traces`, `fetch_trace`, `fetch_observations`, `fetch_observation`, `fetch_sessions`, `get_session_details`, `get_user_sessions`, `find_exceptions_in_file`, `get_exception_details`, `list_dataset_items`, `get_dataset_item`
+**Tools with output_mode:** `fetch_traces`, `fetch_trace`, `fetch_observations`, `fetch_observation`, `find_route_decisions`, `get_route_decision`, `find_low_confidence_route_decisions`, `fetch_sessions`, `get_session_details`, `get_user_sessions`, `find_exceptions_in_file`, `get_exception_details`, `list_dataset_items`, `get_dataset_item`, `get_dataset_run`, `list_dataset_run_items`, `query_metrics`
 
-**Tools without output_mode:** `find_exceptions`, `get_error_count`, `list_prompts`, `get_prompt`, `get_prompt_unresolved`, `create_text_prompt`, `create_chat_prompt`, `update_prompt_labels`, `list_datasets`, `get_dataset`, `create_dataset`, `create_dataset_item`, `delete_dataset_item`, `get_data_schema`
+Other tools do not accept `output_mode`.
 
 ## Filter Semantics
 
@@ -51,9 +55,9 @@ Sort order depends on the Langfuse API. Traces and observations are typically so
 
 Some tools support pagination via `page` and `limit` parameters. Check individual tool docs.
 
-**Tools with pagination:** `fetch_traces`, `fetch_observations`, `fetch_sessions`, `list_prompts`, `list_datasets`, `list_dataset_items`
+**Tools with pagination:** `fetch_traces`, `fetch_observations`, `find_route_decisions`, `summarize_route_decisions`, `find_low_confidence_route_decisions`, `fetch_sessions`, `list_prompts`, `list_datasets`, `list_dataset_items`, `list_dataset_runs`, `list_dataset_run_items`, `list_annotation_queues`, `list_annotation_queue_items`, `list_scores_v2`
 
-**Tools without pagination:** `find_exceptions`, `find_exceptions_in_file`, `get_exception_details`, `get_user_sessions`
+Other tools do not accept `page` and `limit`.
 
 **Tip:** For large results, use `output_mode="full_json_file"` to avoid context overflow.
 
@@ -76,7 +80,7 @@ Search and filter traces with pagination.
 | `tags` | string | No | null | Tag or comma-separated list of tags |
 | `page` | int | No | 1 | Page number for pagination (starts at 1) |
 | `limit` | int | No | 50 | Maximum traces per page |
-| `include_observations` | bool | No | false | Include full observation objects instead of just IDs |
+| `include_observations` | bool | No | false | Add the full observation objects (omitted entirely when false) |
 | `output_mode` | string | No | "compact" | Output format |
 
 **Returns:** List of trace objects with metadata including pagination info.
@@ -112,13 +116,13 @@ fetch_trace(trace_id="abc-123", include_observations=true, output_mode="full_jso
 
 ### fetch_observations
 
-Search and filter observations (spans, generations, events).
+Search and filter observations (spans, generations, events, tool calls, agent steps, and more).
 
 **Parameters:**
 | Name | Type | Required | Default | Description |
 |------|------|----------|---------|-------------|
 | `age` | int | Yes | - | Look back window in minutes from now. Max 10080 (7 days). |
-| `type` | string | No | null | Filter by type: "SPAN", "GENERATION", or "EVENT" |
+| `type` | string | No | null | Filter by type: `SPAN`, `GENERATION`, `EVENT`, `AGENT`, `TOOL`, `CHAIN`, `RETRIEVER`, `EVALUATOR`, `EMBEDDING`, or `GUARDRAIL` |
 | `name` | string | No | null | Name filter (passed to API) |
 | `user_id` | string | No | null | User ID filter (exact match) |
 | `trace_id` | string | No | null | Trace ID filter (exact match) |
@@ -150,6 +154,19 @@ Fetch a specific observation by ID.
 
 ---
 
+## Routing
+
+These tools read SPAN observations whose metadata has `schema_version="mcp.route_decision.v1"`. The optional `trace_id`, `session_id`, `router_name`, `provider`, and `capability_id` filters narrow route decisions; `age` defaults to 10080 minutes.
+
+| Tool | Use and key parameters |
+|------|------------------------|
+| `find_route_decisions` | List decisions; also accepts `decision_id`, `page=1`, `limit=50`, and `output_mode="compact"`. |
+| `get_route_decision` | Fetch one decision by required `decision_id`; accepts `age` and `output_mode`. |
+| `summarize_route_decisions` | Count decisions by router, provider, capability, and callable state; report confidence. Accepts `max_confidence=0.5`, `page=1`, and `limit=200`. |
+| `find_low_confidence_route_decisions` | Find decisions at or below `max_confidence=0.5`; `include_uncallable=True` also includes uncallable decisions. Accepts `page=1`, `limit=50`, and `output_mode`. |
+
+---
+
 ## Sessions
 
 ### fetch_sessions
@@ -176,7 +193,7 @@ Get detailed session info by ID.
 | Name | Type | Required | Default | Description |
 |------|------|----------|---------|-------------|
 | `session_id` | string | Yes | - | The session ID to fetch |
-| `include_observations` | bool | No | false | Include full observation objects instead of just IDs |
+| `include_observations` | bool | No | false | Add the full observation objects (omitted entirely when false) |
 | `output_mode` | string | No | "compact" | Output format |
 
 **Returns:** Session object with all traces.
@@ -192,7 +209,7 @@ Get all sessions for a user.
 |------|------|----------|---------|-------------|
 | `user_id` | string | Yes | - | The user ID to look up |
 | `age` | int | Yes | - | Look back window in minutes from now. Max 10080 (7 days). |
-| `include_observations` | bool | No | false | Include full observation objects instead of just IDs |
+| `include_observations` | bool | No | false | Add the full observation objects (omitted entirely when false) |
 | `output_mode` | string | No | "compact" | Output format |
 
 **Returns:** List of sessions for the user.
@@ -203,17 +220,17 @@ Get all sessions for a user.
 
 ### find_exceptions
 
-Find exceptions grouped by file, function, or type.
+Find error-level observations grouped by file, function, type, observation name, or observation type.
 
 **Parameters:**
 | Name | Type | Required | Default | Description |
 |------|------|----------|---------|-------------|
 | `age` | int | Yes | - | Look back window in minutes from now. Max 10080 (7 days). |
-| `group_by` | string | No | "file" | How to group: "file", "function", or "type" |
+| `group_by` | string | No | "file" | How to group: "file", "function", "type", "name", or "observation_type" |
 
-**Returns:** List of `{group: string, count: int}` objects, sorted by count descending (top 50).
+**Returns:** List of `{group: string, count: int, observation_id: string|null, trace_id: string|null}` objects, sorted by count descending (top 50). Each group carries a representative observation/trace ID.
 
-**Note:** Does not support `output_mode` parameter.
+**Note:** Does not support `output_mode` parameter. Counts describe error-level observations (`level=ERROR`), NOT individual exception events — the standard observation listing does not expose events. Missing recorded metadata groups as `"unknown"`.
 
 **Example:**
 ```
@@ -224,7 +241,7 @@ find_exceptions(age=1440, group_by="type")
 
 ### find_exceptions_in_file
 
-Find exceptions in a specific file.
+Find error-level observations recorded against a specific file.
 
 **Parameters:**
 | Name | Type | Required | Default | Description |
@@ -233,10 +250,14 @@ Find exceptions in a specific file.
 | `age` | int | Yes | - | Look back window in minutes from now. Max 10080 (7 days). |
 | `output_mode` | string | No | "compact" | Output format |
 
-**Returns:** List of exception details (top 10, newest first):
+**Returns:** List of error records (top 10, newest first):
 - `observation_id`, `trace_id`, `timestamp`
-- `exception_type`, `exception_message`, `exception_stacktrace`
+- `exception_type`, `exception_message`, `exception_stacktrace` (null when not recorded)
 - `function`, `line_number`
+- `level`, `observation_type`, `status_message`
+- `event_id`, `event_name` (always null — events are not retrievable via the API)
+
+**Note:** Only matches observations whose recorded `code.filepath` equals the argument; an empty result means no matching ERROR observations were found, not that the file is error-free.
 
 **Example:**
 ```
@@ -247,22 +268,22 @@ find_exceptions_in_file(filepath="src/ai/chat.py", age=1440)
 
 ### get_exception_details
 
-Get detailed exception info for a trace/span.
+Get detailed error info for a trace/span.
 
 **Parameters:**
 | Name | Type | Required | Default | Description |
 |------|------|----------|---------|-------------|
 | `trace_id` | string | Yes | - | The trace ID to analyze |
-| `span_id` | string | No | null | Optional span ID to filter by |
+| `span_id` | string | No | null | Optional observation ID to filter by (across all observation types) |
 | `output_mode` | string | No | "compact" | Output format |
 
-**Returns:** List of exceptions with full context including observation details.
+**Returns:** List of error records with full context including observation details. Fields as in `find_exceptions_in_file` plus `filepath` and `observation_name`.
 
 ---
 
 ### get_error_count
 
-Get total error count.
+Get counts of error-level observations in the lookback window.
 
 **Parameters:**
 | Name | Type | Required | Default | Description |
@@ -278,13 +299,13 @@ Get total error count.
     "to_timestamp": "2024-01-15T10:30:00Z",
     "trace_count": 5,
     "observation_count": 12,
-    "exception_count": 18
+    "exception_count": null
   },
-  "metadata": {...}
+  "metadata": {"count_basis": "error_level_observations", "note": "..."}
 }
 ```
 
-**Note:** Does not support `output_mode` parameter.
+**Note:** Does not support `output_mode` parameter. `exception_count` is always null — individual exception events are not retrievable from the standard observation listing; `observation_count` counts error-level observations.
 
 ---
 
@@ -601,6 +622,67 @@ delete_dataset_item(item_id="item-abc-123")
 
 ---
 
+### Dataset runs and experiments
+
+Dataset-run reads use the experiments API with `langfuse>=4.13.1`; older servers can use the legacy read routes. An older SDK whose legacy read route is gone raises `ERR_LANGFUSE_EXPERIMENTS_SDK_UPGRADE`.
+
+| Tool | Use and key parameters |
+|------|------------------------|
+| `list_dataset_runs` | List a required `dataset_name`; accepts `page=1` and `limit=50`. |
+| `get_dataset_run` | Fetch `dataset_name` and `run_name`, including items; accepts `output_mode="compact"`. |
+| `list_dataset_run_items` | List items by required `dataset_id` and `run_name`; accepts `page=1`, `limit=50`, and `output_mode="compact"`. |
+| `create_dataset_run_item` | Link an existing `dataset_item_id` to `run_name`; optional `run_description`, `metadata`, `observation_id`, and `trace_id`. |
+| `delete_dataset_run` | Delete by `dataset_name` and `run_name`; `delete_traces=False` by default. |
+
+`create_dataset_run_item` uses a legacy link route. After Langfuse Cloud removes it on 2026-11-16, the tool raises `ERR_LANGFUSE_RUN_ITEM_CREATE_REMOVED`; use the SDK experiment runner or OTel ingestion to create new experiment data.
+
+`delete_dataset_run` uses the legacy delete route while it works. After removal, `delete_traces=True` is required; it deletes the run's traces, observations, and related scores. Without opt-in, no traces are deleted.
+
+---
+
+## Annotation Queues
+
+Queue writes are disabled in read-only mode.
+
+| Tool | Use and key parameters |
+|------|------------------------|
+| `list_annotation_queues` | List queues with `page=1` and `limit=50`. |
+| `create_annotation_queue` | Create a queue with required `name`; optional `description` and `score_config_ids`. |
+| `get_annotation_queue` | Fetch a queue by `queue_id`. |
+| `list_annotation_queue_items` | List items by `queue_id`, `page=1`, and `limit=50`. |
+| `get_annotation_queue_item` | Fetch an item by `queue_id` and `item_id`. |
+| `create_annotation_queue_item` | Add `object_id` and `object_type` to `queue_id`; optional `status`. |
+| `update_annotation_queue_item` | Set an item's `status` by `queue_id` and `item_id`. |
+| `delete_annotation_queue_item` | Remove an item by `queue_id` and `item_id`. |
+| `create_annotation_queue_assignment` | Assign `user_id` to `queue_id`. |
+| `delete_annotation_queue_assignment` | Unassign `user_id` from `queue_id`. |
+
+---
+
+## Scores
+
+Score reads use Scores API v3 with `langfuse>=4.8.1`; if an older SDK cannot use v3 and the old route is gone, they raise `ERR_LANGFUSE_SCORES_V2_REMOVED`.
+
+| Tool | Use and key parameters |
+|------|------------------------|
+| `list_scores_v2` | List scores with `page=1`, `limit=50`, and optional `name`, `from_timestamp`, `to_timestamp`, `environment`, `source`, `score_ids`, `config_id`, `session_id`, `trace_id`, `queue_id`, `user_id`, `trace_tags`, `operator`, `value`, and `data_type` filters. |
+| `get_score_v2` | Fetch a score by required `score_id`. |
+
+With `operator="="` and `value`, an omitted `data_type` defaults to `NUMERIC`; pass `data_type="BOOLEAN"` for boolean scores. The response metadata includes `data_type_hint` when this default applies. `user_id` and `trace_tags` need the old v2 route, which Langfuse Cloud removes on 2026-11-16.
+
+---
+
+## Metrics
+
+| Tool | Use and key parameters |
+|------|------------------------|
+| `query_metrics` | Aggregate a required `view` (`observations`, `scores-numeric`, or `scores-categorical`) and required `metrics` list. Optional `dimensions`, `filters`, `age`, `from_timestamp`, `to_timestamp`, `time_granularity`, `order_by`, and `output_mode="compact"`. |
+| `get_metrics_schema` | Read the supported views, measures, dimensions, filter operators, and query shape. |
+
+Use `get_metrics_schema` before building a new query. `query_metrics` defaults to a 24-hour window when no time range is given. The v2 metrics endpoint is Cloud-only; a server that returns 404 can use the legacy metrics route.
+
+---
+
 ## Schema
 
 ### get_data_schema
@@ -648,20 +730,23 @@ Returns a **string** containing serialized JSON (not an object). Parse it if you
       "id": "trace-abc-123",
       "name": "chat-completion",
       "user_id": "user-456",
-      "timestamp": "2024-01-15T10:30:00Z",
-      "observations": ["obs-1", "obs-2"]
+      "timestamp": "2024-01-15T10:30:00Z"
     }
   ],
   "metadata": {
     "item_count": 1,
-    "page": 1,
-    "total": 47,
     "next_page": 2,
     "file_path": null,
     "file_info": null
   }
 }
 ```
+
+On Observations API v2, `fetch_traces` no longer returns `total_cost`, `scores`, or an
+`observations` field by default — pass `include_observations=true` to add an `observations`
+field with the full observation objects (not just IDs), and use `query_metrics` for cost and
+score aggregates. Pagination is cursor-based, so `metadata` carries `next_page` but no `total`
+or `page` count.
 
 ## Example Response (full_json_file)
 

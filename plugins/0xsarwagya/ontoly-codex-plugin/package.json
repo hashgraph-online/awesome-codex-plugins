@@ -1,0 +1,26 @@
+{
+  "name": "ontoly-codex-plugin",
+  "version": "0.1.0",
+  "description": "Codex plugin wrapper for Ontoly Software Graph workflows.",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/0xsarwagya/ontoly-codex-plugin.git"
+  },
+  "homepage": "https://oss.sarwagya.wtf/ontoly",
+  "bugs": {
+    "url": "https://github.com/0xsarwagya/ontoly-codex-plugin/issues"
+  },
+  "keywords": [
+    "ontoly",
+    "codex-plugin",
+    "software-graph",
+    "agent-skills",
+    "typescript"
+  ],
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

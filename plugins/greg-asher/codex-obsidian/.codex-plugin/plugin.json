@@ -1,0 +1,44 @@
+{
+  "name": "codex-obsidian",
+  "version": "0.1.0",
+  "description": "Codex plugin for local Obsidian workflows through the official desktop CLI.",
+  "author": {
+    "name": "Greg Asher"
+  },
+  "homepage": "https://github.com/greg-asher/codex-obsidian",
+  "repository": "https://github.com/greg-asher/codex-obsidian",
+  "license": "MIT",
+  "keywords": [
+    "obsidian",
+    "obsidian-cli",
+    "codex",
+    "agent-skill",
+    "knowledge-management"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Codex Obsidian",
+    "shortDescription": "Local Obsidian workflows through the official desktop CLI.",
+    "longDescription": "Install focused Codex skills for local Obsidian note workflows, Bases/Bookmarks operations, runtime administration, devtools diagnostics, Sync operations, capability-gated Publish operations, workspace/navigation workflows, and named one-command orchestration workflows through documented official desktop CLI commands.",
+    "developerName": "Greg Asher",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Read a note from my Obsidian vault using the official desktop obsidian CLI.",
+      "Query a base view in JSON and list bookmarks using official Obsidian CLI commands.",
+      "List enabled community plugins and hotkeys in Obsidian through official CLI runtime-admin commands.",
+      "Use Obsidian CLI developer commands to inspect runtime errors and take a debug screenshot.",
+      "Check Obsidian Sync status and determine whether publish commands are available before any publish action.",
+      "Load a saved workspace, inspect tabs and recents, and open the target note in a new tab.",
+      "Run workflow_id=tasks.rollup mode=preview output=json using the obsidian-cli-workflows skill.",
+      "Run workflow_id=daily.bootstrap mode=preview and only apply after explicit confirmation."
+    ],
+    "brandColor": "#5C43A8",
+    "websiteURL": "https://github.com/greg-asher/codex-obsidian",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/logo.svg"
+  }
+}

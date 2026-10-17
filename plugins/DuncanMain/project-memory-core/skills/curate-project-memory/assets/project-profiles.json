@@ -1,0 +1,8 @@
+{
+  "software": ["architecture", "security", "testing", "deployment", "operations"],
+  "research": ["questions", "methods", "evidence", "findings", "limitations"],
+  "client-engagement": ["objectives", "stakeholders", "deliverables", "risks", "approvals"],
+  "grant-work-package": ["tasks", "deliverables", "milestones", "dependencies", "evidence"],
+  "product-development": ["discovery", "requirements", "design", "delivery", "metrics"],
+  "personal-learning": ["goals", "concepts", "exercises", "references", "next-steps"]
+}

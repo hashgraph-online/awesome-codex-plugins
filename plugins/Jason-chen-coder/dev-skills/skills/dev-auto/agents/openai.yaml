@@ -1,0 +1,6 @@
+interface:
+  display_name: "Dev Auto"
+  short_description: "Navigate the dev-skills workflow from current evidence"
+  default_prompt: "Use $dev-auto to identify the next useful step for this task."
+policy:
+  allow_implicit_invocation: false

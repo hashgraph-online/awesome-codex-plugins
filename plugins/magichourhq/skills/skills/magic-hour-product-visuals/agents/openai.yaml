@@ -1,0 +1,4 @@
+interface:
+  display_name: "Magic Hour Product Visuals"
+  short_description: "Create controlled product and brand imagery"
+  default_prompt: "Use $magic-hour-product-visuals to create a polished product hero image with accurate branding and space for website copy."

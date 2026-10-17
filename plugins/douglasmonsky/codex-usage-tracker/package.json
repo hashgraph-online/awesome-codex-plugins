@@ -1,0 +1,20 @@
+{
+  "name": "codex-usage-tracker-kernel-integration",
+  "version": "0.28.0",
+  "private": true,
+  "type": "module",
+  "description": "Kernel Evidence Console build and verification tooling.",
+  "scripts": {
+    "console:build": "node scripts/build_kernel_console.mjs",
+    "console:build:check": "node scripts/build_kernel_console.mjs --check",
+    "console:lint": "node --check frontend/kernel-console/app.js && node --check frontend/kernel-console/model.js && node scripts/check_kernel_console.mjs",
+    "console:typecheck": "tsc -p frontend/kernel-console/tsconfig.json",
+    "console:test": "node --test tests/frontend/kernel_console.test.mjs",
+    "console:verify": "npm run console:build:check && npm run console:lint && npm run console:typecheck && npm run console:test",
+    "console:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.0",
+    "typescript": "7.0.2"
+  }
+}

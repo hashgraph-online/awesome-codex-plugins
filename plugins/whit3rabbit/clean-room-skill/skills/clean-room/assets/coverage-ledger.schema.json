@@ -1,0 +1,234 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Clean-Room Coverage Ledger",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "ledger_id",
+    "task_id",
+    "updated_by_role",
+    "source_units",
+    "behavior_spec_refs",
+    "coverage_status",
+    "abstract_delta_tickets",
+    "review_history"
+  ],
+  "properties": {
+    "ledger_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "task_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "updated_by_role": {
+      "const": "contaminated-manager-verifier"
+    },
+    "source_units": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "unit_id",
+          "coverage_state",
+          "evidence_refs"
+        ],
+        "properties": {
+          "unit_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "coverage_state": {
+            "enum": [
+              "not-started",
+              "in-progress",
+              "covered",
+              "gap",
+              "out-of-scope",
+              "blocked"
+            ]
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^evidence-ledger:"
+            }
+          },
+          "public_surface_coverage": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "ref",
+                "status",
+                "evidence_refs"
+              ],
+              "properties": {
+                "ref": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "status": {
+                  "enum": [
+                    "not-started",
+                    "in-progress",
+                    "covered",
+                    "gap",
+                    "blocked",
+                    "deferred",
+                    "out-of-scope"
+                  ]
+                },
+                "evidence_refs": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^evidence-ledger:"
+                  }
+                },
+                "work_item_refs": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "verification_refs": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "notes": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "discovery_leads": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "lead_id",
+                "source_ref",
+                "description",
+                "priority",
+                "status"
+              ],
+              "properties": {
+                "lead_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_ref": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "priority": {
+                  "enum": [
+                    "high",
+                    "medium",
+                    "low"
+                  ]
+                },
+                "status": {
+                  "enum": [
+                    "open",
+                    "resolved",
+                    "deferred"
+                  ]
+                }
+              }
+            }
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "behavior_spec_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "coverage_status": {
+      "enum": [
+        "complete",
+        "partial",
+        "blocked"
+      ]
+    },
+    "abstract_delta_tickets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ticket_id",
+          "unit_id",
+          "summary",
+          "status"
+        ],
+        "properties": {
+          "ticket_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "unit_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "enum": [
+              "open",
+              "resolved",
+              "deferred"
+            ]
+          }
+        }
+      }
+    },
+    "review_history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "reviewer_role",
+          "status",
+          "notes"
+        ],
+        "properties": {
+          "reviewer_role": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "type": "string",
+            "minLength": 1
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

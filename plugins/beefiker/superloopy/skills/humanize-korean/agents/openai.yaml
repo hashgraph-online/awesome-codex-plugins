@@ -1,0 +1,4 @@
+interface:
+  display_name: "Humanize Korean"
+  short_description: "Human Korean rewrite with AI-tone audit"
+  default_prompt: "Use $humanize-korean to make Korean prose sound naturally human while preserving facts, register, protected spans, and meaning; validate file-backed output with the bundled audit script."

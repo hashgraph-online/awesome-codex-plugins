@@ -1,307 +1,208 @@
 # Agent Message Queue (AMQ)
 
+**Messaging between coding agents.**
+
 [![CI](https://github.com/avivsinai/agent-message-queue/actions/workflows/ci.yml/badge.svg)](https://github.com/avivsinai/agent-message-queue/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/avivsinai/agent-message-queue)](https://github.com/avivsinai/agent-message-queue/releases/latest)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**A local, file-based interoperability bus for agent sessions and adapters.**
+AMQ lets two coding agents exchange messages through a shared directory.
+One agent asks for a review; the other reads the message and replies in the
+same thread. Messages are plain files, so the local queue needs no messaging
+server or database—and you do not have to relay each request yourself.
 
-AMQ manages the conversation: agent-to-agent messaging, thread continuity, cross-session and cross-project routing, handoff state, and operational visibility. It does not try to own task decomposition, worktree management, dependency scheduling, or scheduler execution; Claude Code teams, Codex, Kanban, Symphony, and similar orchestrators stay one layer above it.
+Try the queue in a fresh shell on macOS. This example uses two mailbox names;
+it does not start agents. [Other installation methods →](INSTALL.md)
 
-## Why AMQ?
+```bash
+brew install avivsinai/tap/amq
+amq init --root .agent-mail/demo --agents alice,bob  # Create two mailboxes for demo.
+amq send --root .agent-mail/demo --me alice --to bob --body "Please review the parser."
+amq drain --root .agent-mail/demo --me bob --include-body
+```
 
-Modern AI-assisted development often involves multiple agents working on the same codebase. But without coordination:
-- Agents duplicate work or create conflicts
-- Reviews require human intermediation
-- Context switching kills productivity
+![AMQ terminal messaging demo](docs/assets/demo.gif)
 
-AMQ gives agents a **local interoperability bus**: they can send messages, reply in threads, share status, and optionally consume adapter-emitted events through the same queue primitives. The core product stays intentionally small: file-based messages first, lightweight adapters second.
+- **Keep the conversation together.** Reply in threads, attach context, and
+  route messages between sessions or projects.
+- **Know what happened to a message.** Receipts distinguish a queued message
+  from one the recipient drained.
+- **Bring your own agents.** Use the CLI from agent tools or scripts;
+  optional wake notifications prompt running agents to check their inboxes.
+- **Keep control of the workflow.** AMQ handles messages. You and your
+  orchestration tools own tasks, worktrees, permissions, and merges.
 
-### Key Features
+<a id="quick-start"></a>
 
-- **Zero infrastructure** — Pure file-based. No server, no daemon, no database. Works anywhere files work.
-- **Crash-safe** — Atomic Maildir delivery (tmp→new→cur). Messages are never partially written or lost.
-- **Human-readable** — JSON frontmatter + Markdown body. Inspect with `cat`, debug with `grep`, version with `git`.
-- **Real-time notifications** — `amq wake` injects terminal notifications when messages arrive (experimental).
-- **Built for agents** — Priority levels, message kinds, threading, acknowledgments—all the primitives agents need.
-- **Cross-project federation** — Route messages across peer repos, preserve reply routing, and run decision threads that span projects.
-- **Swarm mode** — Join Claude Code Agent Teams, claim tasks, and bridge task notifications into AMQ.
-- **Optional adapters** — Lightweight Symphony hooks and an experimental Kanban bridge can emit normal AMQ messages with structured metadata.
-- **Operational diagnostics** — `amq doctor --ops` shows queue depth, DLQ state, presence freshness, pending acks, and integration hints.
+## Getting started
 
-![AMQ Demo — Claude and Codex collaborating via split-pane terminal](docs/assets/demo.gif)
+This walkthrough connects **Claude Code** and **Codex CLI** on one machine.
+Install both agent CLIs and put `claude` and `codex` on `PATH` first.
+Use macOS or Linux; on Windows, use WSL with the Linux binary for this
+terminal workflow. Native Windows has a verified subset of queue and adapter
+support; see the [platform matrix](INSTALL.md#platform-capability-matrix).
 
-## Installation
+### 1. Install the binary
 
-### 1. Install Binary
+On macOS:
 
-**macOS (Homebrew):**
 ```bash
 brew install avivsinai/tap/amq
 ```
 
-**macOS/Linux (script):**
+Or on macOS/Linux, review and run the [installer](scripts/install.sh):
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/avivsinai/agent-message-queue/main/scripts/install.sh | bash
 ```
 
-Installs to `~/.local/bin` or `~/go/bin` (no sudo required). Verify: `amq --version`
-
-**One-liner with skill:**
-```bash
-curl -fsSL https://raw.githubusercontent.com/avivsinai/agent-message-queue/main/scripts/install.sh | bash -s -- --skill
-```
-
-Review the script before running; it verifies release checksums when possible.
+The script installs to a user-local directory without `sudo` and checks the
+release checksum before extraction. Confirm the install with `amq --version`.
+See [Installation](INSTALL.md) for manual downloads and source builds.
 
 ### 2. Install Skill
 
-**Via skills** (recommended):
+Install the agent instructions so each agent knows how to use AMQ:
+
 ```bash
 npx skills add avivsinai/agent-message-queue -g -y
 ```
 
-**Or via skild:**
+Restart the agents after installing. [Other skill installation methods](INSTALL.md)
+are available if you do not use npm.
+
+### 3. Set up the project
+
+In the repository where the agents will work:
+
 ```bash
-npx skild install @avivsinai/amq-cli -t claude -y
+amq setup
 ```
 
-For manual installation or troubleshooting, see [INSTALL.md](INSTALL.md).
+Select the agents and launcher, then confirm the preview. Setup writes the
+project configuration and creates the default session and its mailboxes.
 
-### Updating
+### 4. Start both agents
 
 ```bash
-amq upgrade
+amq launch
 ```
 
-## Quick Start
+The first launch asks you to trust the launch plan. With `tmux`, `cmux`, or
+`ghostty`, AMQ starts the agents in that terminal app. With the `commands`
+backend, it prints one command per agent and exits with code `6` (action
+required). Paste each complete command into a separate terminal; do not
+shorten or rebuild it.
 
-### 1. Initialize Project
+Optional, for Claude Code: `amq wake install-dialog-hook` keeps the wake from
+typing into an open AskUserQuestion, plan, or permission dialog.
+
+Start both agents before sending the first message. Messages that arrive
+before a recipient's wake starts remain unread but do not trigger that new
+wake. The recipient can still get them with `amq drain --include-body`.
+
+### Control a session from Buzz
+
+Inside a running Claude Code session, type `/amq-remote`; inside Codex, invoke
+the skill as `$amq-remote` (Codex does not register `/` commands for skills).
+The first
+time, import that session's agent into Buzz Desktop. Each session has its own
+agent; the ACP model `amq-remote:<name>` selects it. DM that agent from the
+Buzz app or Desktop, and the DM runs in that session.
+`/amq-remote off` disconnects it. See [amq-remote](cmd/amq-remote/README.md).
+
+<a id="messaging"></a>
+
+### 5. Exchange a message
+
+Ask Claude to run this command through its shell tool:
 
 ```bash
-amq coop init
+amq send --to codex --subject "Hello" --body "Can you see this?"
 ```
 
-Creates `.amqrc`, mailboxes for `claude` and `codex`, and updates `.gitignore`.
-
-Optionally add shell aliases (`amc` for Claude, `amx` for Codex):
-```bash
-eval "$(amq shell-setup)"
-```
-
-### 2. Start Agent Sessions
+Ask Codex to check its inbox if it has not already responded to the notification:
 
 ```bash
-# Terminal 1 — Claude Code
-amc
-
-# Terminal 2 — Codex CLI
-amx
-```
-
-Each alias sets up the environment, starts wake notifications, and launches the agent. For isolated sessions (multiple pairs working on different features):
-
-```bash
-amc feature-a          # Claude in feature-a session
-amx feature-a          # Codex in feature-a session
-```
-
-Without aliases, use `amq coop exec` directly:
-```bash
-amq coop exec claude -- --dangerously-skip-permissions
-amq coop exec --session feature-a codex
-```
-
-### 3. Send & Receive
-
-```bash
-# Send a message
-amq send --to codex --subject "Review needed" --kind review_request \
-  --body "Please review internal/cli/send.go"
-
-# Check inbox
 amq list --new
-
-# Filter by priority or sender
-amq list --new --priority urgent
-amq list --new --from codex --kind review_request
-
-# Read all messages (one-shot, moves to cur, auto-acks)
 amq drain --include-body
-
-# Reply to a message
-amq reply --id <msg_id> --kind review_response --body "LGTM with comments"
 ```
 
-### 4. Inspect Health
+`list` previews new messages. `drain` reads them, moves them out of the new
+inbox, and writes receipts. The output includes the sender and message body.
+To reply in the same thread, use the ID from that output:
 
 ```bash
-amq doctor
-amq doctor --ops
-amq doctor --ops --json
+amq reply --id "<message-id>" --body "Yes, I can see it."
 ```
 
-## Message Kinds & Priority
+The launched agents already have their identity and session set. You do not
+need to repeat `--me` or `--root` inside those sessions.
 
-AMQ messages support kinds (`review_request`, `question`, `todo`, etc.) and priority levels (`urgent`, `normal`, `low`). See [COOP.md](COOP.md) for the full protocol.
+## How it works
 
-## Co-op Mode
+Each agent has an inbox and an outbox under a local queue root. A message
+contains a JSON header and a Markdown body. AMQ writes and syncs a temporary
+file, then publishes it with a rename: a reader sees a complete message or
+no message, not a partly written body.
 
-For real-time Claude Code + Codex CLI collaboration patterns, roles, and phased workflows, see [COOP.md](COOP.md).
+A session is a separate queue. Routing checks help prevent a shell pinned
+to one session from changing another by mistake. A wake notification asks an
+agent to check its inbox; it is not evidence that the agent read or completed
+the request. See [routing](docs/session-routing.md) and
+[message tracing](docs/trace.md) for those contracts.
 
-## Cross-Project Federation
+Optional [priority holds](docs/wake-operations.md#hold-by-priority) can delay
+the first notification for routine mail while urgent mail skips the hold. Wake
+[live settings](docs/wake-operations.md#live-settings) have a machine default
+for this user (`amq wake config --machine --hold-normal 5m`) and per-agent
+overrides; use `amq wake config --me <handle> --hold-normal 5m` to change a
+running wake.
 
-AMQ can route messages across repositories, not just across agents in one checkout. Add a project name plus peer roots to `.amqrc`:
+AMQ is for local agent coordination, not a distributed broker. The optional
+[bridge companion](cmd/amq-bridge/README.md) exchanges messages between hosts;
+each host keeps control of its own queue.
 
-```json
-{
-  "root": ".agent-mail",
-  "project": "app",
-  "peers": {
-    "infra-lib": "/Users/me/src/infra-lib/.agent-mail"
-  }
-}
-```
+### Remote
 
-Then send directly to another project:
-
-```bash
-amq send --to codex --project infra-lib --body "Can you review the shared API change?"
-amq send --to codex@infra-lib:collab --thread decision/release-v0.24 --kind decision \
-  --labels "decision:proposal,project:app,project:infra-lib" \
-  --body "Proposal: align both repos on v0.24"
-```
-
-Replies route back automatically with the stamped `reply_project` metadata. When `from` matches your own handle, inspect `from_project` before treating the message as an echo; the same handle in a different project is a legitimate cross-project sender. This shipped in v0.22.0 and is the recommended way to coordinate multi-repo agent work without adding a broker.
-
-## Swarm Mode (Claude Code Agent Teams)
-
-External agents (Codex, etc.) can join Claude Code Agent Teams via `amq swarm join`, claim tasks, and receive notifications through `amq swarm bridge`. Note: the bridge delivers task notifications only; direct messages require relay through the team leader.
-
-For the full command reference, see [CLAUDE.md](CLAUDE.md).
-
-## Global Root Fallback
-
-Most AMQ commands resolve the queue root from the project `.amqrc` or the default `.agent-mail` layout in the current tree. For agents launched outside the repo root by external orchestrators, you can configure a global fallback instead:
-
-```bash
-export AMQ_GLOBAL_ROOT="$HOME/.agent-mail"
-```
-
-Or create `~/.amqrc`:
-
-```json
-{"root": ".agent-mail"}
-```
-
-Root resolution precedence is:
-
-```text
-flags > AM_ROOT > project .amqrc > AMQ_GLOBAL_ROOT > ~/.amqrc > auto-detect
-```
-
-Auto-detect covers the default `.agent-mail` layout, including `.agent-mail/<session>` session roots without `.amqrc`. Custom root names and peer config still require `.amqrc` or explicit flags/env.
-This same chain is used by `amq env`, `amq doctor`, and the integration commands, so Symphony and Kanban-launched agents can find the correct queue even when they are not started from the project directory.
-
-## Integrations
-
-AMQ transports **messages**, not remote task state. The integration layer is intentionally narrow: optional adapters convert external lifecycle or task events into normal AMQ messages. Integration messages are self-delivered (`from=<me>`, `to=<me>`) so an agent monitoring its own inbox can react without polling another tool directly.
-
-### Symphony
-
-Symphony support is a lightweight hook recipe for Codex workspaces orchestrated through `WORKFLOW.md`:
-
-```bash
-amq integration symphony init --me codex
-amq integration symphony init --me codex --check
-amq integration symphony emit --event after_run --me codex
-```
-
-`init` patches an AMQ-managed fragment into `WORKFLOW.md`. `emit` is hook-friendly and supports `after_create`, `before_run`, `after_run`, and `before_remove`. This stays intentionally small: AMQ does not try to become a Symphony control plane. Current limitation: because `WORKFLOW.md` is parsed and rewritten as structured YAML/Markdown, comments and formatting inside the frontmatter may be normalized.
-
-### Cline Kanban Bridge
-
-The Kanban bridge is **experimental**. Use it when you want runtime session transitions and review handoffs mirrored into AMQ, with the understanding that it depends on a fast-moving preview WebSocket surface:
-
-```bash
-amq integration kanban bridge --me codex
-amq integration kanban bridge --me codex --workspace-id my-workspace
-```
-
-The bridge connects to `ws://127.0.0.1:3484/api/runtime/ws` by default, bootstraps from `snapshot`, refreshes from `workspace_state_updated`, and emits notifications only for task session transitions plus `task_ready_for_review`.
-
-### Integration Metadata
-
-The built-in adapters share a versioned contract under `context.orchestrator`. See [docs/adapter-contract.md](docs/adapter-contract.md) for the formal v1 envelope and stability expectations.
-
-Integration messages also carry standard labels such as:
-
-- `orchestrator`
-- `orchestrator:symphony` or `orchestrator:kanban`
-- `task-state:<state>`
-- `handoff` for review-ready transitions
-- `blocking` for failed or interrupted work
-
-That makes integration traffic filterable with existing AMQ primitives such as `amq list --label orchestrator --label handoff`.
-
-## Command Reference
-
-Common command groups:
-
-| Area | Commands |
-|------|----------|
-| Core messaging | `init`, `send`, `list`, `read`, `drain`, `reply`, `thread`, `ack`, `watch`, `monitor` |
-| Collaboration | `coop init`, `coop exec`, `swarm list`, `swarm join`, `swarm tasks`, `swarm bridge` |
-| Integrations | `integration symphony init`, `integration symphony emit`, `integration kanban bridge` |
-| Operations | `presence set`, `presence list`, `who`, `doctor`, `doctor --ops`, `cleanup`, `dlq *`, `upgrade`, `env`, `shell-setup` |
-
-For the full CLI syntax, examples, and message schema, see [CLAUDE.md](CLAUDE.md).
-
-## How It Works
-
-AMQ uses the battle-tested [Maildir](https://cr.yp.to/proto/maildir.html) format:
-
-1. **Write** — Message written to `tmp/` directory
-2. **Sync** — File fsynced to disk
-3. **Deliver** — Atomic rename to `new/` (never partial)
-4. **Process** — Reader moves to `cur/` after reading
-
-This guarantees crash-safety: if the process dies mid-write, no corrupt message appears in the inbox. See [CLAUDE.md](CLAUDE.md) for the full directory layout.
+The optional [remote companion](cmd/amq-remote/README.md) connects a running
+session to its own Buzz agent. The default path is the session mailbox: a DM
+arrives as an AMQ message from `buzz`, and the agent's reply is the answer.
+`--native` and the relay are the other paths. It is a separate binary: `amq`
+gains no socket. The Homebrew `amq` formula installs `amq`, `amq-acp`,
+`amq-remote`, `amq-owner-sign`, and `amq-bridge`. Commands, flags, and exit codes are in that README. The design is
+[the remote-control ADR](docs/adr-remote-control.md); pinned seams are
+[the compatibility manifest](docs/remote-compat.md).
 
 ## Documentation
 
-- [INSTALL.md](INSTALL.md) — Alternative installation methods
-- [docs/adapter-contract.md](docs/adapter-contract.md) — Formal v1 adapter contract for integration messages
-- [COOP.md](COOP.md) — Co-op mode protocol & best practices
-- [CLAUDE.md](CLAUDE.md) — Agent instructions, CLI reference, architecture
+| I want to… | Read |
+| --- | --- |
+| Install, update, or use another platform | [Installation](INSTALL.md) |
+| Run agent pairs, isolate sessions, or supervise notifications | [Co-op operations](COOP.md) |
+| Batch routine wake notifications by priority | [Wake operations](docs/wake-operations.md#hold-by-priority) |
+| Look up a command or flag | [CLI reference](docs/cli.md) |
+| Diagnose delivery or wake problems | [Wake operations](docs/wake-operations.md) · [Trace](docs/trace.md) |
+| Attach to a running harness session | [amq-remote](cmd/amq-remote/README.md) |
+| Build an integration or understand the design | [Documentation index](docs/README.md) |
+| Understand the trust model | [Security](SECURITY.md) |
 
-## Development
+<a id="extension-metadata"></a>
 
-```bash
-git clone https://github.com/avivsinai/agent-message-queue.git
-cd agent-message-queue
-make build   # Build binary
-make test    # Run tests
-make ci      # Full CI: vet + lint + test + smoke
-```
+Building on AMQ? Use the [adapter contract](docs/adapter-contract.md),
+[launch API](docs/launch-api.md), and [extension metadata](docs/adr-layer-extensions.md).
+[amq-squad](https://github.com/omriariav/amq-squad) is a role-aware team launcher
+built on these primitives.
 
-## FAQ
+## Contributing
 
-**Why not just use a database?**
-Files are universal, debuggable, and work everywhere. No connection strings, no migrations, no ORM. Just files.
-
-**Why not Redis/RabbitMQ/etc?**
-Those require infrastructure. AMQ is for local inter-process communication where agents share a filesystem. No server to configure or keep running.
-
-**What about Windows?**
-The core queue works on Windows. The `amq wake` notification feature requires WSL.
-
-**Is this production-ready?**
-For local development workflows, yes. AMQ is intentionally simple—it's not trying to be a distributed message broker.
-
-**How does AMQ compare to other multi-agent tools?**
-Tools like [MCP Agent Mail](https://github.com/Dicklesworthstone/mcp_agent_mail) (server-based coordination + SQLite), [Gas Town](https://github.com/steveyegge/gastown) (tmux-based orchestration), and others offer richer features. AMQ is intentionally minimal: single binary, no server, Maildir delivery. Best for 2-3 agents on one machine.
+See the [contribution guide](CONTRIBUTING.md) for development and review.
+Contributor clones should install the git hooks
+(`./scripts/install-hooks.sh`) so pushes run the static checks locally.
+Use [GitHub issues](https://github.com/avivsinai/agent-message-queue/issues)
+for questions and bug reports. Follow the [code of conduct](CODE_OF_CONDUCT.md)
+and report security issues through the [security policy](SECURITY.md).
 
 ## License
 
-MIT
+[MIT](LICENSE).

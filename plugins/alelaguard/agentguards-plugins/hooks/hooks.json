@@ -1,0 +1,51 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${PLUGIN_ROOT}/scripts/run-hook.sh\" UserPromptSubmit",
+            "statusMessage": "Checking prompt with AgentGuards",
+            "commandWindows": "powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"${PLUGIN_ROOT}\\scripts\\agentguards_codex_hook.ps1\" UserPromptSubmit"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${PLUGIN_ROOT}/scripts/run-hook.sh\" PreToolUse",
+            "statusMessage": "Authorizing command with AgentGuards",
+            "commandWindows": "powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"${PLUGIN_ROOT}\\scripts\\agentguards_codex_hook.ps1\" PreToolUse"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${PLUGIN_ROOT}/scripts/run-hook.sh\" PostToolUse",
+            "commandWindows": "powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"${PLUGIN_ROOT}\\scripts\\agentguards_codex_hook.ps1\" PostToolUse"
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${PLUGIN_ROOT}/scripts/run-hook.sh\" PermissionRequest",
+            "statusMessage": "Authorizing command with AgentGuards",
+            "commandWindows": "powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"${PLUGIN_ROOT}\\scripts\\agentguards_codex_hook.ps1\" PermissionRequest"
+          }
+        ]
+      }
+    ]
+  }
+}

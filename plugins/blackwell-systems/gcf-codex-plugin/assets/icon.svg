@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="64" fill="#09090b"/>
+  <g transform="translate(256,210) scale(0.75)">
+    <path d="M-160,20 C-160,-60 -100,-100 -40,-100 L0,-100 C30,-100 50,-80 50,-50 C50,-20 30,0 0,0 L-20,0 C-40,0 -50,10 -50,30 C-50,50 -40,60 -20,60 L0,60 C30,60 50,40 50,10" stroke="#00d4ff" stroke-width="28" fill="none" stroke-linecap="round"/>
+    <path d="M60,20 C60,-60 120,-100 180,-100 L220,-100 C250,-100 270,-80 270,-50 C270,-20 250,0 220,0 L200,0 C180,0 170,10 170,30 C170,50 180,60 200,60 L220,60 C250,60 270,40 270,10" stroke="#00d4ff" stroke-width="28" fill="none" stroke-linecap="round"/>
+    <path d="M280,-100 L340,-100 L340,60 M280,-20 L320,-20" stroke="#00d4ff" stroke-width="28" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <text x="256" y="380" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-weight="bold" font-size="36" fill="#ffffff">71% fewer tokens</text>
+  <text x="256" y="420" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="22" fill="#a1a1aa">1,700+ LLM evaluations</text>
+</svg>

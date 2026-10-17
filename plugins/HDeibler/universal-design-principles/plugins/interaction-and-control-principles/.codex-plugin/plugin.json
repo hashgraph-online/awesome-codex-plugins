@@ -1,0 +1,35 @@
+{
+  "name": "interaction-and-control-principles",
+  "version": "1.0.0",
+  "description": "Framework-agnostic design principles for interaction, affordance, feedback, errors, and user control. Covers Fitts's Law, Affordance, Forgiveness, Feedback Loop, Errors, Constraint, Mapping, Expectation Effect, and Control.",
+  "author": {
+    "name": "Hunter D",
+    "email": "hunterd107@gmail.com"
+  },
+  "homepage": "https://github.com/HDeibler/universal-design-principles",
+  "repository": "https://github.com/HDeibler/universal-design-principles",
+  "license": "MIT",
+  "keywords": [
+    "design",
+    "ux",
+    "interaction",
+    "affordance",
+    "feedback",
+    "errors",
+    "controls",
+    "fitts"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Interaction & Control Principles",
+    "shortDescription": "Affordance, feedback, errors, controls, and user agency.",
+    "developerName": "Hunter D",
+    "category": "Design",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "longDescription": "Framework-agnostic design principles for interaction, affordance, feedback, errors, and user control. Covers Fitts's Law, Affordance, Forgiveness, Feedback Loop, Errors, Constraint, Mapping, Expectation Effect, and Control.",
+    "websiteURL": "https://github.com/HDeibler/universal-design-principles"
+  }
+}

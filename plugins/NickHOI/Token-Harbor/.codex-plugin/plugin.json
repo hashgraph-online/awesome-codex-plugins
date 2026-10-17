@@ -1,0 +1,45 @@
+{
+  "name": "token-harbor",
+  "version": "0.1.0",
+  "description": "Turn Codex usage into航力 and grow one shared harbor world while agents work.",
+  "homepage": "https://github.com/NickHOI/Token-Harbor",
+  "repository": "https://github.com/NickHOI/Token-Harbor",
+  "license": "MIT",
+  "author": {
+    "name": "Token Harbor"
+  },
+  "keywords": [
+    "game",
+    "productivity",
+    "codex",
+    "focus",
+    "harbor"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Token Harbor",
+    "shortDescription": "Let every Codex task grow your shared harbor world.",
+    "longDescription": "Token Harbor quietly converts local Codex token usage into航力. Spend it during agent wait time to open ports, launch voyages, complete orders, and grow one persistent archipelago shared by every project.",
+    "developerName": "Token Harbor",
+    "category": "Productivity",
+    "capabilities": [
+      "Local data",
+      "Game",
+      "Codex status"
+    ],
+    "defaultPrompt": [
+      "Open my Token Harbor.",
+      "Show my harbor status and available 航力."
+    ],
+    "brandColor": "#0B6E75",
+    "websiteURL": "https://github.com/NickHOI/Token-Harbor",
+    "privacyPolicyURL": "https://github.com/NickHOI/Token-Harbor#privacy--trust",
+    "termsOfServiceURL": "https://github.com/NickHOI/Token-Harbor/blob/main/LICENSE",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/logo.svg",
+    "screenshots": [
+      "./assets/guia-lighthouse-pixel.png"
+    ]
+  },
+  "mcpServers": "./.mcp.json"
+}

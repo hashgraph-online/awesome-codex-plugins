@@ -1,0 +1,50 @@
+{
+  "name": "resume-tailor",
+  "version": "1.1.0",
+  "description": "Evidence-based resume tailoring and candidate profile onboarding. Review job fit, factual reliability and document quality separately; optionally export PDF or DOCX.",
+  "author": {
+    "name": "Oleg Gaidukov",
+    "url": "https://www.linkedin.com/in/ahaidukof/"
+  },
+  "homepage": "https://github.com/olegvg/resume-tailor-plugin",
+  "repository": "https://github.com/olegvg/resume-tailor-plugin",
+  "license": "MIT",
+  "keywords": [
+    "resume",
+    "cv",
+    "ats",
+    "job-application",
+    "career",
+    "cover-letter",
+    "job-search",
+    "hiring"
+  ],
+  "skills": [
+    "./skills/resume-tailor",
+    "./skills/onboarding"
+  ],
+  "interface": {
+    "displayName": "Resume Tailor",
+    "shortDescription": "Tailor resumes and organize candidate profiles",
+    "longDescription": "Evidence-based resume tailoring and candidate profile onboarding. Review job fit, factual reliability and document quality separately; optionally export PDF or DOCX.",
+    "developerName": "Oleg Gaidukov",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/olegvg/resume-tailor-plugin",
+    "privacyPolicyURL": "https://github.com/olegvg/resume-tailor-plugin/blob/master/PRIVACY.md",
+    "termsOfServiceURL": "https://github.com/olegvg/resume-tailor-plugin/blob/master/LICENSE",
+    "defaultPrompt": [
+      "Tailor this candidate resume for the supplied job description.",
+      "Create a candidate master profile from these career notes.",
+      "Review this resume for readability and evidence gaps."
+    ],
+    "brandColor": "#0F766E",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg",
+    "screenshots": []
+  }
+}

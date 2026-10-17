@@ -1,0 +1,44 @@
+{
+  "name": "writers-loop",
+  "version": "0.1.0",
+  "description": "A portable writing workflow for planning, critique, revision, style distillation, translation, and local preference learning.",
+  "author": {
+    "name": "Writer's Loop contributors",
+    "url": "https://github.com/xxsang/writers-loop"
+  },
+  "homepage": "https://github.com/xxsang/writers-loop",
+  "repository": "https://github.com/xxsang/writers-loop",
+  "license": "MIT",
+  "keywords": [
+    "writing",
+    "skills",
+    "planning",
+    "critique",
+    "revision",
+    "style",
+    "translation",
+    "preference-learning"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Writer's Loop",
+    "shortDescription": "Plan, critique, revise, and learn writing preferences locally",
+    "longDescription": "Writer's Loop guides substantial writing through framing, plan checkpoints, drafts, critique, targeted edits, style distillation, translation, and optional local preference learning.",
+    "developerName": "Writer's Loop contributors",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/xxsang/writers-loop",
+    "defaultPrompt": [
+      "Use $writers-loop to help me write this document.",
+      "Use $writers-loop to critique and revise this draft.",
+      "Use $writers-loop to distill style from these files."
+    ],
+    "brandColor": "#256D5A",
+    "screenshots": [],
+    "privacyPolicyURL": "https://github.com/xxsang/writers-loop/blob/main/PRIVACY.md"
+  }
+}

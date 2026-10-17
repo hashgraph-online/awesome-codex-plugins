@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "taskScheduler": {
+      "command": "python",
+      "args": [
+        "./scripts/mcp_server.py"
+      ],
+      "cwd": ".",
+      "env": {
+        "PYTHONUTF8": "1"
+      },
+      "startup_timeout_sec": 20,
+      "tool_timeout_sec": 60
+    }
+  }
+}

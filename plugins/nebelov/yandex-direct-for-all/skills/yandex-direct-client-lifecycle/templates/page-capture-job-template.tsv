@@ -1,2 +1,2 @@
-capture_id	source_url	brand	keyword	layer	enabled	notes
-cmp-001	https://example.com/product-page	Example Brand	sport-general	organic_serp	1	Second-pass page capture after Yandex-native discovery
+capture_id	source_url	brand	keyword	source_row_sha256	search_query	search_region	serp_page_url	domain	site_page_url	layer	enabled	status	skip_reason	notes
+template-capture		example.invalid	пример запроса		пример запроса	пример региона		example.invalid		organic_serp	0	unverified		Шаблон выключен; source_url и site_page_url заполняются одним фактически найденным адресом.

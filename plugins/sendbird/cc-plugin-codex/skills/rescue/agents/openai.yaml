@@ -1,0 +1,3 @@
+interface:
+  display_name: "Claude Code Rescue"
+  short_description: "Args: --background, --wait, --resume, --resume-last, --fresh, --write, --model <model>, --effort <low|medium|high|max>, --prompt-file <path>, [task text]. Delegate substantial work through the built-in rescue subagent path."

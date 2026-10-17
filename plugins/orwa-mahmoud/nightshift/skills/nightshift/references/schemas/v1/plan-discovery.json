@@ -1,0 +1,150 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/orwa-mahmoud/nightshift/main/plugins/nightshift/skills/nightshift/references/schemas/v1/plan-discovery.json",
+  "title": "Nightshift plan discovery input",
+  "description": "Read-only inputs for shift-planner: applicable catalog contracts, evidence, overlaps, dependencies, and optional learning adjustments. Written by composition helpers or frozen fixtures; never mutated by the planner.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "workMode", "workTarget", "candidates"],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "enum": [1]
+    },
+    "workMode": {
+      "type": "string",
+      "enum": ["repository", "artifact"]
+    },
+    "workTarget": {
+      "type": "string",
+      "minLength": 1
+    },
+    "branch": {
+      "type": ["string", "null"]
+    },
+    "workspace": {
+      "type": ["string", "null"]
+    },
+    "authority": {
+      "type": ["string", "null"]
+    },
+    "toolingPolicy": {
+      "type": "string",
+      "enum": ["existing-tools", "review-missing", "auto-add"]
+    },
+    "shiftPolicy": {
+      "type": "object"
+    },
+    "resourceBudgets": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "rejectedFindings": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "candidates": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/candidate" }
+    },
+    "overlaps": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/overlap" }
+    }
+  },
+  "definitions": {
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contractId",
+        "title",
+        "ending",
+        "applicable",
+        "impact",
+        "evidenceStrength",
+        "confidence",
+        "effortMinutes",
+        "reversibility"
+      ],
+      "properties": {
+        "contractId": { "type": "string", "minLength": 1 },
+        "title": { "type": "string", "minLength": 1 },
+        "ending": { "type": "string", "enum": ["finite", "open-ended"] },
+        "applicable": { "type": "boolean" },
+        "evidence": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "impact": { "type": "integer", "minimum": 0, "maximum": 5 },
+        "evidenceStrength": { "type": "integer", "minimum": 0, "maximum": 5 },
+        "confidence": { "type": "integer", "minimum": 0, "maximum": 5 },
+        "effortMinutes": { "type": "integer", "minimum": 0 },
+        "reversibility": { "type": "integer", "minimum": 0, "maximum": 5 },
+        "dependencyValue": { "type": "integer", "minimum": 0, "maximum": 5 },
+        "recurrence": { "type": "integer", "minimum": 0, "maximum": 5 },
+        "priorResult": {
+          "type": ["string", "null"],
+          "enum": ["success", "partial", "failed", null]
+        },
+        "overlapGroup": { "type": ["string", "null"] },
+        "prerequisites": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "sharedRoots": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "blockers": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "clusterId": { "type": ["string", "null"] },
+        "capabilityStatus": {
+          "type": "string",
+          "enum": [
+            "available-and-verified",
+            "available-but-failing",
+            "provisionable",
+            "fallback-only",
+            "unavailable"
+          ]
+        },
+        "fallback": { "type": ["string", "null"] },
+        "artifactOnly": { "type": "boolean" },
+        "repositoryOnly": { "type": "boolean" },
+        "resourceNeeds": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        },
+        "typicalHoursMin": { "type": ["number", "null"] },
+        "typicalHoursMax": { "type": ["number", "null"] },
+        "risks": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "unsupportedSurfaces": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "overlap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["group", "finding", "candidates"],
+      "properties": {
+        "group": { "type": "string" },
+        "finding": { "type": "string" },
+        "candidates": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}

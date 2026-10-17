@@ -1,0 +1,37 @@
+{
+  "name": "todo-harvest",
+  "version": "0.1.0",
+  "description": "TODO/FIXME/HACK scan with git blame.",
+  "author": {
+    "name": "Mehmet Turac",
+    "url": "https://github.com/mturac"
+  },
+  "homepage": "https://github.com/mturac/pluginpool-todo-harvest",
+  "repository": "https://github.com/mturac/pluginpool-todo-harvest",
+  "license": "MIT",
+  "keywords": [
+    "todo",
+    "code-quality",
+    "codex-plugin"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "TODO Harvest",
+    "shortDescription": "TODO/FIXME/HACK scan with git blame.",
+    "longDescription": "Scans codebase for TODO, FIXME, and HACK comments with git blame author and age.",
+    "developerName": "Mehmet Turac",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/mturac/pluginpool-todo-harvest",
+    "privacyPolicyURL": "https://github.com/mturac/pluginpool-todo-harvest/blob/main/LICENSE",
+    "termsOfServiceURL": "https://github.com/mturac/pluginpool-todo-harvest/blob/main/LICENSE",
+    "defaultPrompt": [
+      "Use TODO Harvest to todo/fixme/hack scan with git blame."
+    ],
+    "brandColor": "#7c3aed",
+    "composerIcon": "./assets/icon.svg"
+  }
+}

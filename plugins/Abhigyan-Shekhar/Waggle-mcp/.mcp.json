@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "waggle": {
+      "command": "node",
+      "cwd": "./plugins/waggle",
+      "args": [
+        "./plugins/waggle/bin/waggle-server-launcher.js",
+        "serve",
+        "--transport",
+        "stdio"
+      ],
+      "env": {
+        "WAGGLE_BACKEND": "sqlite",
+        "WAGGLE_DB_PATH": "~/.waggle/waggle.db",
+        "WAGGLE_DEFAULT_TENANT_ID": "local-default",
+        "WAGGLE_MODEL": "deterministic",
+        "WAGGLE_STARTUP_MODE": "normal",
+        "WAGGLE_TRANSPORT": "stdio"
+      }
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "artifact": "",
+  "version": "",
+  "code_commit": "",
+  "environment": "",
+  "input_sources": [
+    {
+      "source_id": "",
+      "version": "",
+      "checksum": ""
+    }
+  ],
+  "commands": [],
+  "generated_outputs": [],
+  "tests": [
+    {
+      "command": "",
+      "result": "not-run"
+    }
+  ],
+  "limitations": [],
+  "verification_date": ""
+}

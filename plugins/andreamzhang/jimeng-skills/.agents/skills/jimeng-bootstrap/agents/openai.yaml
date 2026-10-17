@@ -1,0 +1,4 @@
+interface:
+  display_name: "即梦分镜师 Bootstrap"
+  short_description: "用 jimeng-bootstrap 初始化项目"
+  default_prompt: "用 jimeng-bootstrap 初始化项目"

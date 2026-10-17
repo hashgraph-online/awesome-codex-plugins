@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Codex Obsidian icon">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6E55C8"/>
+      <stop offset="100%" stop-color="#2E234F"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="url(#bg)"/>
+  <path d="M63 20 39 38v50l24 20 26-20V37L63 20Zm0 12 14 10v39L63 92 51 82V42l12-10Z" fill="#F3EEFF"/>
+  <path d="M43 44 63 30l20 14-7 7-13-9-13 9-7-7Zm7 39 13 10 13-10v8L63 102 50 91v-8Z" fill="#B9A9F0"/>
+</svg>

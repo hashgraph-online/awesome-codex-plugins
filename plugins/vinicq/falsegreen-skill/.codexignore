@@ -1,0 +1,30 @@
+# Files that are not part of the Codex plugin surface. Codex loads the plugin
+# with a ~32 KiB host-context budget, so keeping build output, CI config,
+# contributor metadata, and other hosts' packaging out of the bundle leaves the
+# budget for the protocol itself (AGENTS.md, SKILL.md, reference.md, fragments/).
+
+# Build output and dependencies
+dist/
+node_modules/
+
+# CI and repository automation
+.github/
+
+# Contributor and release metadata
+.all-contributorsrc
+CHANGELOG.md
+CITATION.cff
+CODE_OF_CONDUCT.md
+CONTRIBUTING.md
+CREDITS.md
+RELEASE.md
+
+# Other hosts' packaging and entry points
+.claude/
+.claude-plugin/
+.cursor/
+.gemini/
+.antigravity-plugin/
+gemini-extension.json
+CLAUDE.md
+GEMINI.md

@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "severity": ["info", "low", "medium", "high", "critical"],
+  "confidence": ["low", "medium", "high"],
+  "impact": ["none", "developer", "user", "production"],
+  "status": [
+    "open",
+    "in-progress",
+    "fixed",
+    "rejected",
+    "unavailable",
+    "human-only",
+    "unsupported",
+    "unmeasured"
+  ],
+  "ladder": [
+    "declared",
+    "observed",
+    "reproduced",
+    "measured",
+    "verified-after-change",
+    "human-accepted"
+  ],
+  "lifecycleDomains": ["baseline", "checkpoint"],
+  "details": {
+    "baseline": ["command", "environmentDigest", "rawDigest", "scope", "seen", "sourceClass", "versions"],
+    "checkpoint": [
+      "artifacts",
+      "baseline",
+      "head",
+      "plan",
+      "rollback",
+      "touched",
+      "worktreeDigest"
+    ]
+  },
+  "required": [
+    "schemaVersion",
+    "id",
+    "domain",
+    "sourceClass",
+    "source",
+    "scope",
+    "severity",
+    "confidence",
+    "impact",
+    "status",
+    "ladder",
+    "locator",
+    "digest",
+    "firstSeen",
+    "lastChecked",
+    "action",
+    "host",
+    "workTarget"
+  ],
+  "optional": [
+    "sourceTool",
+    "sources",
+    "duplicateOf",
+    "rootCauseKey",
+    "established",
+    "message"
+  ]
+}

@@ -1,0 +1,37 @@
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directory: /cli
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: America/New_York
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: deps(go)
+    groups:
+      go-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:30"
+      timezone: America/New_York
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: deps(actions)
+    groups:
+      actions-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch

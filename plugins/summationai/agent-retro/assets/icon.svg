@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <pattern id="dots" width="22" height="22" patternUnits="userSpaceOnUse"><circle cx="11" cy="11" r="5.2" fill="#ffe14a"/></pattern>
+    <radialGradient id="fade" cx="0.5" cy="0.5" r="0.5"><stop offset="0.35" stop-color="#fff"/><stop offset="1" stop-color="#000"/></radialGradient>
+    <mask id="blob"><rect width="512" height="512" fill="#000"/><circle cx="420" cy="92" r="190" fill="url(#fade)"/></mask>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="#1d1b3f"/>
+  <rect width="512" height="512" rx="96" fill="url(#dots)" mask="url(#blob)" opacity="0.9"/>
+  <g transform="translate(-20,0)">
+  <g transform="translate(-9,-7)" fill="#1f6fd1"><path d="M112 256 L256 150 L256 362 Z M272 256 L416 150 L416 362 Z"/></g>
+  <g transform="translate(13,11)" fill="#ff4fae"><path d="M112 256 L256 150 L256 362 Z M272 256 L416 150 L416 362 Z"/></g>
+  <g fill="#ffe14a"><path d="M112 256 L256 150 L256 362 Z M272 256 L416 150 L416 362 Z"/></g>
+  </g>
+</svg>

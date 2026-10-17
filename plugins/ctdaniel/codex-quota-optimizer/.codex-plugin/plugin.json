@@ -1,0 +1,36 @@
+{
+  "name": "codex-quota-optimizer",
+  "version": "0.2.2",
+  "description": "A zero-friction Codex usage governor with task-aware routing, soft budgets, focused context, local audits, and layered verification.",
+  "author": {
+    "name": "Daniel Chen",
+    "url": "https://github.com/ctdaniel"
+  },
+  "homepage": "https://github.com/ctdaniel/codex-quota-optimizer",
+  "repository": "https://github.com/ctdaniel/codex-quota-optimizer",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "quota",
+    "usage-optimization",
+    "skills",
+    "developer-tools"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Codex Quota Optimizer",
+    "shortDescription": "Spend less Codex allowance without sacrificing engineering quality.",
+    "longDescription": "A zero-friction Codex usage governor that routes tasks economically, applies soft budgets without blocking execution, keeps context and patches focused, and offers optional local task audits.",
+    "developerName": "Daniel Chen",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Optimize this Codex task for the lowest practical usage while preserving correctness.",
+      "Use the smallest reliable context, model, and verification scope for this task."
+    ],
+    "composerIcon": "./assets/icon.svg"
+  }
+}

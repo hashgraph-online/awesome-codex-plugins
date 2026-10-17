@@ -1,0 +1,252 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kicad-happy.local/datasheets/schemas/mcu.schema.json",
+  "title": "MCUExtension",
+  "description": "Category extension for microcontrollers — catalog tier (identity-level facts: core, memory, peripheral counts, package, supply, debug interface, reset pin, temperature grades). Per-peripheral instance and pin-mux detail is Tier 2, deferred to v1.5 (mcu_peripherals.schema.json). Layered on top of base per spec §7. Version 1.0. Field union from ATmega328P-AU (Atmel/Microchip 8-bit AVR, TQFP-32, 32K flash) + STM32F103C8T6 (ST Cortex-M3 32-bit, LQFP-48, 64K flash).",
+  "x-schema-version": "1.0",
+  "type": "object",
+  "required": ["core_family"],
+  "additionalProperties": false,
+  "properties": {
+    "core_family": {
+      "type": "string",
+      "description": "CPU core family identifier. Open string — not an enum — to accommodate future cores. Examples: 'cortex_m0', 'cortex_m0plus', 'cortex_m3', 'cortex_m4', 'cortex_m4f', 'cortex_m7', 'cortex_m33', 'avr_8bit', 'avr_8bit_atmega', 'avr_8bit_attiny', 'pic16', 'pic32', 'riscv_rv32', '8051', 'mips'. Always lowercase with underscores."
+    },
+    "core_speed_max": {
+      "type": ["integer", "null"],
+      "description": "Maximum CPU clock frequency in Hz. Plain integer — NOT a SpecValue list (single-point spec, no min/typ spread). Store MHz as Hz (e.g. 72MHz → 72000000). Null when not determinable."
+    },
+    "flash_size": {
+      "type": ["integer", "null"],
+      "description": "Internal flash memory size in bytes. Plain integer. Store KB as bytes (e.g. 32K → 32768, 64K → 65536). Null when no internal flash (e.g. external-flash-only parts)."
+    },
+    "ram_size": {
+      "type": ["integer", "null"],
+      "description": "Internal SRAM size in bytes. Plain integer. Store KB as bytes (e.g. 20K → 20480). Null when not determinable."
+    },
+    "eeprom_size": {
+      "type": ["integer", "null"],
+      "description": "Internal EEPROM size in bytes. 0 when the part has no EEPROM (e.g. most Cortex-M parts). Null when not determinable. For AVR parts with EEPROM, store actual byte count (e.g. ATmega328P 1K EEPROM → 1024)."
+    },
+    "pin_count": {
+      "type": ["integer", "null"],
+      "description": "Total package pin count. Plain integer. Null when the part is sold in multiple packages and the target package is unknown."
+    },
+    "gpio_count": {
+      "type": ["integer", "null"],
+      "description": "Number of general-purpose I/O pins (GPIO). Plain integer. Null when not determinable."
+    },
+    "nvic_priorities": {
+      "type": ["integer", "null"],
+      "description": "Number of Cortex-M NVIC interrupt priority levels. For Cortex-M3: 16 levels (4-bit priority field). Null for non-Cortex-M cores (AVR, PIC, 8051, classic RISC-V without NVIC)."
+    },
+    "vdd_range": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Main power supply voltage range (unit: V). For most MCUs this is VDD or VCC. Condition carries operating frequency dependencies when relevant (e.g. AVR 20MHz requires 4.5–5.5V)."
+    },
+    "vddio_range": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Separate I/O supply voltage range (unit: V), when the I/O power domain is independent of VDD. Null when I/O supply is shared with VDD (most single-supply MCUs)."
+    },
+    "vdda_range": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Analog supply voltage range (unit: V) for ADC/DAC/PLL supplies (AVCC, VDDA, AVDD). Null when analog supply is shared with VDD and no separate spec is given."
+    },
+    "peripheral_counts": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "description": "Peripheral instance counts. Catalog tier only — captures HOW MANY of each peripheral, not per-peripheral configuration. Use 0 for peripherals the part lacks (not null). Per-instance pin-mux and configuration is Tier 2 (mcu_peripherals.schema.json, deferred to v1.5).",
+      "properties": {
+        "uart": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of UART/USART interfaces. Count each independent channel."
+        },
+        "spi": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of SPI interfaces."
+        },
+        "i2c": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of I2C interfaces."
+        },
+        "can": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of CAN interfaces. 0 for most low-end MCUs."
+        },
+        "usb": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of USB interfaces. Count peripheral instances, not endpoints."
+        },
+        "ethernet": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of Ethernet MAC interfaces. 0 for most MCUs without on-chip MAC."
+        },
+        "dac": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of DAC peripheral instances (NOT channel count). 0 when no DAC is present."
+        },
+        "timer_general": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of general-purpose timer instances (basic + general timers; exclude advanced-control timers)."
+        },
+        "timer_advanced": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of advanced-control timer instances (with complementary PWM outputs, dead-time, etc.)."
+        }
+      }
+    },
+    "adc": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "description": "ADC overall summary — catalog tier (single summary covering all ADC channels on the part, not per-peripheral detail). Null when the part has no ADC. Per-ADC instance configuration is Tier 2.",
+      "properties": {
+        "bit_depth": {
+          "type": ["integer", "null"],
+          "description": "ADC resolution in bits (e.g. 10, 12, 16). Null when not determinable."
+        },
+        "channel_count": {
+          "type": ["integer", "null"],
+          "description": "Total number of ADC input channels (all muxed channels combined across all ADC peripherals). Null when not determinable."
+        },
+        "sample_rate_max_hz": {
+          "type": ["number", "null"],
+          "description": "Maximum sample rate in Hz across all ADC channels (e.g. 76900 for ATmega at 76.9 ksps, 1000000 for STM32 at 1 MSPS). Null when not determinable."
+        }
+      }
+    },
+    "dac": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "description": "DAC overall summary — catalog tier. Null when the part has no DAC (set peripheral_counts.dac=0 in that case). Per-DAC instance configuration is Tier 2.",
+      "properties": {
+        "bit_depth": {
+          "type": ["integer", "null"],
+          "description": "DAC resolution in bits (e.g. 8, 10, 12). Null when not determinable."
+        },
+        "channel_count": {
+          "type": ["integer", "null"],
+          "description": "Total number of DAC output channels. Null when not determinable."
+        },
+        "sample_rate_max_hz": {
+          "type": ["number", "null"],
+          "description": "Maximum DAC update rate in Hz. Null when not determinable."
+        }
+      }
+    },
+    "boot_pins": {
+      "type": ["array", "null"],
+      "description": "Boot configuration pins (BOOT0, BOOT1, etc.) that control startup mode. Empty array when the part has no boot pins (e.g. AVR uses fuse-controlled boot section, not a pin). Null when not determinable.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["pin_number", "function"],
+        "properties": {
+          "pin_number": {
+            "type": "string",
+            "description": "Pin number string (matches base.pinout[*].numbers)."
+          },
+          "function": {
+            "type": "string",
+            "description": "Boot pin function label from the datasheet (e.g. 'BOOT0', 'BOOT1')."
+          }
+        }
+      }
+    },
+    "debug_interface": {
+      "type": ["string", "null"],
+      "enum": ["swd", "jtag", "swd_jtag", "debugwire", "pdi", "spi_isp", "none", null],
+      "description": "Primary debug/programming interface. swd_jtag for Cortex-M parts supporting both SWD and JTAG. debugwire for AVR parts with debugWIRE. pdi for XMEGA. spi_isp for older AVR/PIC parts programmed via SPI. none for parts without on-chip debug."
+    },
+    "reset_pin": {
+      "type": ["string", "null"],
+      "description": "RESET/NRST pin number string (matches base.pinout[*].numbers). Null when not determinable or when the part has no dedicated reset pin. For ATmega328P-AU TQFP-32: '29'. For STM32F103C8T6 LQFP-48: '7'."
+    },
+    "temperature_grades": {
+      "type": ["array", "null"],
+      "items": {
+        "type": "string"
+      },
+      "description": "Operating temperature grade strings from the datasheet. Free-form, e.g. 'commercial: 0 to +70', 'industrial: -40 to +85', 'automotive: -40 to +125'. Multiple entries when a part has multiple grades."
+    },
+    "thermal_resistance": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "description": "Thermal resistance characteristics. Null when not published in the datasheet. Inner fields follow the diode/transistor/opamp convention.",
+      "properties": {
+        "rtheta_ja": {
+          "type": ["array", "null"],
+          "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+          "description": "Junction-to-ambient thermal resistance (K/W or °C/W). Condition may specify board and copper area conditions."
+        },
+        "rtheta_jc": {
+          "type": ["array", "null"],
+          "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+          "description": "Junction-to-case thermal resistance (K/W or °C/W). Null when not specified."
+        },
+        "rtheta_jl": {
+          "type": ["array", "null"],
+          "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+          "description": "Junction-to-lead thermal resistance (K/W or °C/W). Common for some SMD packages. Null for most MCU packages."
+        }
+      }
+    },
+    "package": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "description": "Package physical characteristics. body_mm uses nested object shape (Phase 3b option A convention — inner keys align with base.schema.json body_mm shape).",
+      "required": ["evidence"],
+      "properties": {
+        "code": {
+          "type": ["string", "null"],
+          "description": "Datasheet package code (e.g. 'TQFP-32', 'LQFP-48', 'QFN-32', 'DIP-28', 'SOIC-8')."
+        },
+        "pin_count": {
+          "type": ["integer", "null"],
+          "description": "Number of leads/pins."
+        },
+        "pitch_mm": {
+          "type": ["number", "null"],
+          "description": "Lead pitch in millimeters. Null when not applicable (e.g. BGA)."
+        },
+        "body_mm": {
+          "type": ["object", "null"],
+          "additionalProperties": false,
+          "description": "Package body dimensions in millimeters. Nested object per Phase 3b option A convention. Inner keys (length/width/height) align with base.schema.json's body_mm shape.",
+          "properties": {
+            "length": {
+              "type": "number",
+              "description": "Body length in millimeters along the longest axis."
+            },
+            "width": {
+              "type": "number",
+              "description": "Body width in millimeters along the perpendicular-to-length axis."
+            },
+            "height": {
+              "type": "number",
+              "description": "Body height in millimeters (package thickness / standoff direction)."
+            }
+          }
+        },
+        "thermal_pad": {
+          "type": ["boolean", "null"],
+          "description": "True when the package has an exposed thermal pad on the bottom (common for QFN). Null when not determinable."
+        },
+        "evidence": {
+          "$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json#/properties/evidence"
+        }
+      }
+    }
+  }
+}

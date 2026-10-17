@@ -1,0 +1,4 @@
+interface:
+  display_name: "Reciprocity Offers"
+  short_description: "Design value-first offers"
+  default_prompt: "Use $reciprocity-offer-design to improve this persuasion task ethically."

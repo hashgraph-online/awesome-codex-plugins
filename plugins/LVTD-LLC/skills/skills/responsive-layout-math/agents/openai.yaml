@@ -1,0 +1,4 @@
+interface:
+  display_name: "Responsive Layout Math"
+  short_description: "Fluid responsive layout formulas"
+  default_prompt: "Use $responsive-layout-math to design a fluid container, spacing, and breakpoint system for this CSS layout."

@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kicad-happy.local/datasheets/schemas/scout.schema.json",
+  "title": "ScoutOutput",
+  "description": "Fat-scout subagent output. Identifies metadata, target categories, per-task page lists, and a quality verdict gating extraction.",
+  "x-schema-version": "1.0",
+  "type": "object",
+  "required": ["mpn", "metadata", "categories", "extraction_pages", "quality_verdict"],
+  "additionalProperties": false,
+  "properties": {
+    "mpn": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Target MPN string. Must match the MPN passed into plan_extraction.py."
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["manufacturer", "page_count"],
+      "additionalProperties": false,
+      "properties": {
+        "manufacturer": {"type": "string"},
+        "datasheet_revision": {"type": ["string", "null"]},
+        "datasheet_date": {"type": ["string", "null"]},
+        "page_count": {"type": "integer", "minimum": 1},
+        "source_url": {"type": ["string", "null"]},
+        "is_family_pdf": {"type": "boolean"},
+        "family_member_mpns": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      }
+    },
+    "categories": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["regulator", "mcu", "opamp", "transistor", "diode", "crystal", "supervisor"]
+      },
+      "description": "List of category extensions applicable to this MPN. Phase 3a supports regulator only; other values reserved for 3b."
+    },
+    "extraction_pages": {
+      "type": "object",
+      "required": ["base", "pinout"],
+      "additionalProperties": {
+        "type": "array",
+        "items": {"type": "integer", "minimum": 1}
+      },
+      "properties": {
+        "base": {"type": "array", "items": {"type": "integer", "minimum": 1}},
+        "pinout": {"type": "array", "items": {"type": "integer", "minimum": 1}}
+      },
+      "description": "Per-task page lists. base + pinout always present; one extra key per category. Page numbers are 1-indexed."
+    },
+    "quality_verdict": {
+      "type": "object",
+      "required": ["verdict"],
+      "additionalProperties": false,
+      "properties": {
+        "verdict": {
+          "type": "string",
+          "enum": ["extractable", "low_quality", "skip"]
+        },
+        "reason": {"type": ["string", "null"]}
+      },
+      "description": "Fat-scout quality gate. 'skip' bails before extractor dispatch (saves cost on bad PDFs); 'low_quality' continues with reduced quality_score floor."
+    }
+  }
+}

@@ -1,0 +1,6 @@
+interface:
+  display_name: Be Serious
+  short_description: Use serious scholarly prose in this session.
+  default_prompt: Use be-serious for this session.
+policy:
+  allow_implicit_invocation: true

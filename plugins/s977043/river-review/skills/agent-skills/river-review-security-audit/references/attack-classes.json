@@ -1,0 +1,220 @@
+{
+  "kind": "SecurityAttackClassRegistry",
+  "version": "0.1.0",
+  "semantics": {
+    "purpose": "Plan security-audit investigation surfaces without treating checklist completion as proof of safety.",
+    "coverageUnit": "subsystem × trust boundary × applicable attack class",
+    "zeroFindingsRule": "Zero findings never proves that an attack class is covered.",
+    "applicabilityRule": "Plan only attack classes supported by reconnaissance evidence; non-applicable classes must be explained rather than silently omitted."
+  },
+  "evidenceContract": {
+    "required": [
+      "principal",
+      "inputOrAction",
+      "control",
+      "boundary",
+      "affectedResourceOrPrincipal",
+      "securityOutcome"
+    ],
+    "rule": "A candidate without a concrete boundary failure or security outcome remains an unresolved hypothesis or open question."
+  },
+  "classes": [
+    {
+      "id": "injection",
+      "title": "Injection and unsafe interpretation",
+      "question": "Can attacker-controlled input cross a parser, interpreter, query, template, shell, or serialization boundary with insufficient control?",
+      "appliesWhen": [
+        "untrusted input reaches SQL, NoSQL, shell, template, HTML, expression, path, or deserialization sinks",
+        "dynamic query, command, template, or code construction exists"
+      ],
+      "skillHints": ["security-basic"],
+      "reviewerHints": ["security-scanner"],
+      "investigate": [
+        "trace source-to-sink data flow",
+        "identify encoding, validation, parameterization, escaping, or allowlist controls",
+        "verify the control is applied on every relevant path"
+      ],
+      "notSufficient": [
+        "presence of validation somewhere in the subsystem",
+        "absence of an obvious exploit string"
+      ]
+    },
+    {
+      "id": "authn-authz",
+      "title": "Authentication and authorization",
+      "question": "Can a principal authenticate as another identity, exceed its granted authority, or invoke a privileged operation without the intended authorization decision?",
+      "appliesWhen": [
+        "authentication, session, token, role, permission, policy, or privileged-operation code exists",
+        "identity or authorization claims cross service boundaries"
+      ],
+      "skillHints": ["trust-boundaries-authz", "security-basic"],
+      "reviewerHints": ["security-scanner"],
+      "investigate": [
+        "trace identity establishment and propagation",
+        "identify authorization decision points and default-deny behavior",
+        "verify object- and action-level checks at the enforcement boundary"
+      ],
+      "notSufficient": ["authentication success alone", "UI-level hiding of privileged actions"]
+    },
+    {
+      "id": "tenant-isolation",
+      "title": "Tenant and account isolation",
+      "question": "Can one tenant, account, workspace, or organization read or mutate another tenant's resources through identifier, query, cache, storage, or policy confusion?",
+      "appliesWhen": [
+        "multi-tenant, organization, workspace, account, or namespace concepts exist",
+        "tenant-scoped identifiers or shared storage are used"
+      ],
+      "skillHints": ["multitenancy-isolation", "trust-boundaries-authz"],
+      "reviewerHints": ["security-scanner"],
+      "investigate": [
+        "trace tenant context from entry point to storage and cache keys",
+        "verify tenant ownership is enforced independently of caller-supplied identifiers",
+        "inspect background jobs and cross-service calls for lost tenant context"
+      ],
+      "notSufficient": [
+        "tenant id existing in the request",
+        "database rows containing a tenant column without enforced scoping"
+      ]
+    },
+    {
+      "id": "data-lifecycle",
+      "title": "Sensitive data lifecycle",
+      "question": "Can sensitive data be exposed, retained, logged, replicated, exported, or deleted inconsistently with its intended protection and lifecycle?",
+      "appliesWhen": [
+        "personal, credential, financial, confidential, regulated, or otherwise sensitive data is stored or transmitted",
+        "retention, deletion, export, backup, logging, encryption, or residency behavior exists"
+      ],
+      "skillHints": ["security-privacy-design", "security-basic"],
+      "reviewerHints": ["security-scanner"],
+      "investigate": [
+        "map collection, storage, transit, logs, backups, exports, and deletion paths",
+        "identify encryption and access controls at each boundary",
+        "verify deletion and retention semantics include derived and replicated data where relevant"
+      ],
+      "notSufficient": [
+        "encryption at one layer",
+        "a documented retention policy without matching source behavior"
+      ]
+    },
+    {
+      "id": "supply-chain",
+      "title": "Software supply chain",
+      "question": "Can untrusted dependency, artifact, build input, package lifecycle behavior, or provenance gap alter trusted output or execution?",
+      "appliesWhen": [
+        "third-party dependencies, plugins, actions, containers, generated artifacts, or package lifecycle hooks exist",
+        "build or release inputs cross external trust boundaries"
+      ],
+      "skillHints": ["security-basic"],
+      "reviewerHints": ["dependency-reviewer", "ci-cd-reviewer"],
+      "investigate": [
+        "identify externally controlled build and dependency inputs",
+        "inspect pinning, integrity, provenance, and update boundaries",
+        "trace whether install or build hooks can execute with privileged credentials"
+      ],
+      "notSufficient": [
+        "dependency version freshness alone",
+        "lockfile presence without integrity or provenance analysis"
+      ]
+    },
+    {
+      "id": "cloud-deployment",
+      "title": "Cloud and deployment boundary",
+      "question": "Can deployment configuration, IAM, secret distribution, network exposure, or environment separation grant unintended access or execution capability?",
+      "appliesWhen": [
+        "cloud infrastructure, containers, deployment manifests, IAM, secrets, CI/CD, or environment configuration exists",
+        "production or shared infrastructure boundaries are represented in source"
+      ],
+      "skillHints": ["security-basic", "trust-boundaries-authz"],
+      "reviewerHints": ["ci-cd-reviewer", "security-scanner"],
+      "investigate": [
+        "trace identities and privileges used by build, deploy, and runtime components",
+        "inspect public exposure and network trust assumptions",
+        "verify secret and environment boundaries do not collapse across stages"
+      ],
+      "notSufficient": [
+        "private repository status",
+        "cloud-provider defaults assumed to be secure without source evidence"
+      ]
+    },
+    {
+      "id": "rpc-messaging",
+      "title": "RPC and messaging trust boundaries",
+      "question": "Can messages, events, jobs, webhooks, or RPC calls cross a trust boundary without authenticated origin, authorization, integrity, replay, ordering, or schema controls required by the operation?",
+      "appliesWhen": [
+        "queues, events, jobs, RPC, webhooks, callbacks, or service-to-service messages exist",
+        "asynchronous or remote actions can mutate state"
+      ],
+      "skillHints": ["trust-boundaries-authz", "security-basic"],
+      "reviewerHints": ["security-scanner", "bug-hunter"],
+      "investigate": [
+        "identify sender and receiver principals",
+        "trace message authentication, authorization, integrity, freshness, and idempotency controls",
+        "verify privileged effects are re-authorized at the consumer boundary"
+      ],
+      "notSufficient": [
+        "network location alone as sender identity",
+        "schema validation alone for privileged messages"
+      ]
+    },
+    {
+      "id": "resource-exhaustion",
+      "title": "Resource exhaustion and abuse",
+      "question": "Can an untrusted principal force disproportionate CPU, memory, storage, process, queue, network, token, or external-service consumption across a shared boundary?",
+      "appliesWhen": [
+        "user-controlled work can fan out, recurse, allocate, enqueue, upload, query, or invoke paid/external resources",
+        "shared quotas or multi-tenant capacity exist"
+      ],
+      "skillHints": ["security-basic"],
+      "reviewerHints": ["security-scanner", "bug-hunter"],
+      "investigate": [
+        "trace attacker-controlled amplification factors",
+        "identify quotas, bounds, timeouts, cancellation, and backpressure at the controlling boundary",
+        "check whether one principal can consume resources assigned to others"
+      ],
+      "notSufficient": [
+        "average-case performance",
+        "a timeout that does not bound upstream or queued work"
+      ]
+    },
+    {
+      "id": "browser-client",
+      "title": "Browser and client trust boundary",
+      "question": "Can browser, mobile, desktop, extension, or other client-controlled state be trusted as an authorization, integrity, confidentiality, or origin guarantee?",
+      "appliesWhen": [
+        "browser or client code handles security-sensitive state, tokens, redirects, messaging, storage, or privileged requests",
+        "server decisions depend on client-supplied claims or UI state"
+      ],
+      "skillHints": ["security-basic", "trust-boundaries-authz"],
+      "reviewerHints": ["frontend-reviewer", "security-scanner"],
+      "investigate": [
+        "separate client convenience checks from server enforcement",
+        "inspect origin, redirect, storage, token, cross-window, and cross-site boundaries",
+        "trace whether client-modifiable state can authorize server-side effects"
+      ],
+      "notSufficient": [
+        "disabled or hidden UI controls",
+        "client-side validation as an authorization boundary"
+      ]
+    },
+    {
+      "id": "ai-agent-security",
+      "title": "AI and agent security",
+      "question": "Can untrusted model input, retrieved content, tool output, memory, or delegated instruction cross into privileged tool use, secret access, data mutation, or policy bypass?",
+      "appliesWhen": [
+        "LLMs, agents, tool calling, retrieval, prompt assembly, memory, MCP/plugins, or autonomous actions exist",
+        "model-controlled output can influence privileged operations"
+      ],
+      "skillHints": ["security-basic", "trust-boundaries-authz", "adversarial-review"],
+      "reviewerHints": ["security-scanner"],
+      "investigate": [
+        "map instruction and data trust boundaries separately",
+        "trace model-controlled values into tools, credentials, files, network, and state mutation",
+        "verify capability scoping, confirmation, provenance, and output validation at tool boundaries"
+      ],
+      "notSufficient": [
+        "system-prompt wording alone as a security boundary",
+        "model refusal behavior without deterministic capability controls"
+      ]
+    }
+  ]
+}

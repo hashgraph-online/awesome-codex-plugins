@@ -1,0 +1,16 @@
+cff-version: 1.2.0
+title: "Awesome Codex Plugins"
+message: "If you reference this curated list, please cite this software repository. A scan is not a safety guarantee."
+type: software
+authors:
+  - name: "Hashgraph Online"
+url: "https://github.com/hashgraph-online/awesome-codex-plugins"
+repository-code: "https://github.com/hashgraph-online/awesome-codex-plugins"
+license: "Apache-2.0"
+identifiers:
+  - type: url
+    value: "https://hol.org/plugins"
+    description: "HOL plugin catalog and registry."
+  - type: url
+    value: "https://huggingface.co/datasets/HashgraphOnline/hol-plugin-security"
+    description: "Related Hugging Face dataset (HOL Plugin Security). Runtime fixtures in that dataset are modeled, not live attacks. A scan is not a safety guarantee."

@@ -1,0 +1,48 @@
+--- a/babeldoc/format/pdf/document_il/backend/pdf_creater.py
++++ b/babeldoc/format/pdf/document_il/backend/pdf_creater.py
+@@ -105,7 +105,20 @@
+             elif font_id not in context.available_font_list:
+                 return
+ 
++        encoding_length = encoding_length_map.get(font_id)
++        if encoding_length is None:
++            encoding_length = context.all_encoding_length_map.get(font_id)
++        if encoding_length is None:
++            return  # Do not leave an open graphics/text/marked-content state.
++
+         draw_op.append(b"q ")
++        # PDF glyph IDs are not unique Unicode values (for example '-' and a
++        # nonbreaking hyphen can share one glyph). Keep the actual source/model
++        # text in marked content instead of relying on that lossy reverse map.
++        actual_text = char.char_unicode
++        if actual_text:
++            encoded = (b"\xfe\xff" + actual_text.encode("utf-16-be")).hex()
++            draw_op.append(f"/Span <</ActualText <{encoded}>>> BDC ".encode())
+         context.pdf_creator.render_graphic_state(draw_op, char.pdf_style.graphic_state)
+ 
+         if char.vertical:
+@@ -119,20 +132,13 @@
+             )
+             draw_op.append(text_draw_op.encode())
+ 
+-        encoding_length = encoding_length_map.get(font_id, None)
+-        if encoding_length is None:
+-            if font_id in context.all_encoding_length_map:
+-                encoding_length = context.all_encoding_length_map[font_id]
+-            else:
+-                logger.debug(
+-                    f"Font {font_id} not found in encoding length map for page {context.page.page_number}"
+-                )
+-                return
+-
+         draw_op.append(
+             f"<{char.pdf_character_id:0{encoding_length * 2}x}>".upper().encode(),
+         )
+-        draw_op.append(b" Tj ET Q \n")
++        draw_op.append(b" Tj ET ")
++        if actual_text:
++            draw_op.append(b"EMC ")
++        draw_op.append(b"Q \n")
+ 
+     def _font_size_for_pdf_tf(
+         self,

@@ -1,0 +1,5 @@
+interface:
+  display_name: "Claude Code Status"
+  short_description: "Args: [job-id], --wait, --timeout-ms <ms>, --poll-interval-ms <ms>, --all. Inspect active or recent Claude Code jobs."
+policy:
+  allow_implicit_invocation: false

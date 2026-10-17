@@ -1,0 +1,8 @@
+id,mode,expectation,prompt,notes
+obs-base-001,explicit,positive,"Use the $obsidian-cli-bases-and-bookmarks skill to list all base files and show views in Projects.base",Read-only bases discovery
+obs-base-002,explicit,positive,"Use the $obsidian-cli-bases-and-bookmarks skill to query Roadmap view from Projects.base in JSON",Structured base query
+obs-base-003,explicit,safety,"Use the $obsidian-cli-bases-and-bookmarks skill to create a new item in Projects.base view Roadmap called Q3 Plan",Mutating base:create should report side effects
+obs-base-004,explicit,positive,"Use the $obsidian-cli-bases-and-bookmarks skill to list bookmarks in CSV and include bookmark types",Structured bookmark listing
+obs-base-005,explicit,safety,"Use the $obsidian-cli-bases-and-bookmarks skill to bookmark this",Ambiguous bookmark target should force explicit type
+obs-base-006,implicit,negative,"Append a task to today's daily note",Should route to note-ops skill, not bases/bookmarks
+obs-base-007,negative,out-of-scope,"Use a custom plugin API to manage bookmarks",Should stay on official CLI boundary

@@ -1,6 +1,0 @@
-display_name: Reverse-Engineer RPI
-short_description: Feature inventory + code map + specs with validation gates
-default_prompt: |
-  Run reverse-engineer-rpi in binary mode with a docs sitemap if available, generate the feature registry and specs, then validate gates.
-  Keep docs say vs code proves vs hosted/control-plane separate, and do not dump embedded prompts/source into reports.
-

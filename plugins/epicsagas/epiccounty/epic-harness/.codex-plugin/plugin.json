@@ -1,0 +1,31 @@
+{
+  "name": "epic",
+  "version": "0.4.5",
+  "description": "Auto-trigger skills + self-evolving agent harness. Orbit (spec-to-ship pipeline), evolve (skill mutation engine), team (multi-agent org design), TDD, check, ship, simplify, debug, perf, secure, and more — triggered by context, not commands.",
+  "author": {
+    "name": "epicsagas",
+    "url": "https://github.com/epicsagas"
+  },
+  "homepage": "https://github.com/epicsagas/epic-harness",
+  "repository": "https://github.com/epicsagas/epic-harness",
+  "license": "Apache-2.0",
+  "skills": "./skills",
+  "hooks": "./.codex-plugin/hooks.json",
+  "keywords": [
+    "harness",
+    "self-evolving",
+    "skills",
+    "hooks",
+    "tdd",
+    "code-review",
+    "automation",
+    "orbit",
+    "evolve",
+    "team"
+  ],
+  "interface": {
+    "displayName": "Epic Harness",
+    "shortDescription": "Auto-trigger quality skills + self-evolving agent harness — orbit, evolve, team, TDD, check, ship.",
+    "composerIcon": "../assets/icon.png"
+  }
+}

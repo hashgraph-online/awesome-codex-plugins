@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="jev-use">
+  <path d="M6 32h14"/>
+  <path d="M20 32c8 0 8-14 16-14h10"/>
+  <path d="M20 32c8 0 8 14 16 14h10"/>
+  <circle cx="52" cy="18" r="6" fill="currentColor" stroke="none"/>
+  <circle cx="52" cy="46" r="6"/>
+</svg>

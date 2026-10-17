@@ -1,0 +1,4 @@
+interface:
+  display_name: "Eval Harness"
+  short_description: "为 Agent 或功能建立可复用的评测框架"
+  default_prompt: "Use $eval-harness to define evaluation criteria, build repeatable checks, and compare outcomes against the intended quality bar."

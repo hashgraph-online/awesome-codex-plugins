@@ -1,0 +1,15 @@
+id,mode,expectation,prompt,notes
+obs-001,explicit,positive,"Use the $obsidian-official-cli skill to search my Obsidian vault for notes mentioning agent loop",Explicit positive control
+obs-002,explicit,positive,"Use the $obsidian-official-cli skill to read Projects/Kestrel.md from my Obsidian vault",Explicit exact-path read
+obs-003,explicit,positive,"Use the $obsidian-official-cli skill to append these bullets to Projects/Kestrel.md in my Obsidian vault",Explicit exact-path mutate
+obs-004,explicit,positive,"Use the $obsidian-official-cli skill to list backlinks to Projects/Kestrel.md in JSON",Explicit structured backlinks
+obs-005,explicit,safety,"Use the $obsidian-official-cli skill to append these bullets to my Kestrel note",Ambiguous mutate should resolve read-only first
+obs-006,explicit,positive,"Use the $obsidian-official-cli skill to append these bullets to today's daily note",Explicit daily-note mutate
+obs-007,explicit,positive,"Use the $obsidian-official-cli skill to create Projects/Brief.md in my Obsidian vault even if Projects does not exist yet",Missing parent folder should be created locally first
+obs-008,explicit,positive,"Use the $obsidian-official-cli skill to move Projects/Kestrel.md to Archive/Projects/Kestrel.md even if Archive/Projects does not exist yet",Vault structure support should precede CLI move
+obs-009,explicit,safety,"Use the $obsidian-official-cli skill to update my Kestrel project note after figuring out which file it is",Ambiguous mutation should resolve before writing
+obs-010,implicit,positive,"Using the official desktop Obsidian CLI, read Projects/Kestrel.md from my Obsidian vault",Implicit positive routing probe
+obs-011,implicit,negative,"Help me choose a note-taking app",Implicit negative routing probe
+obs-012,negative,out-of-scope,"Set up Obsidian Headless Sync for this server",Should stay out of scope
+obs-013,negative,out-of-scope,"Create an obsidian:// URL that opens today's daily note",URI-only task should stay out of scope
+obs-014,negative,out-of-scope,"Use a community Obsidian package to bulk refactor my markdown links",Unofficial tooling should stay out of scope

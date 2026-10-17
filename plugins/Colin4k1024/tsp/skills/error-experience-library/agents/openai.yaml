@@ -1,0 +1,59 @@
+name: error-experience-library-agent
+description: >
+  Error pattern library specialist. Captures, queries, and updates error root-cause
+  and solution patterns for continuous learning from mistakes.
+version: "1.0"
+entry: docs/runbooks/error-experience-usage.md
+
+inputs:
+  - name: query
+    type: string
+    description: Error message snippet or keyword to search
+    required: false
+  - name: action
+    type: string
+    enum: [search, record, feedback]
+    description: Operation to perform
+    required: false
+  - name: pattern_data
+    type: object
+    description: Pattern data for recording
+    required: false
+  - name: pattern_id
+    type: string
+    description: Pattern ID for feedback
+    required: false
+  - name: success
+    type: boolean
+    description: Whether the solution worked
+    required: false
+
+outputs:
+  - name: matched_patterns
+    type: array
+    description: List of matched error patterns ranked by success rate
+  - name: saved_pattern
+    type: object
+    description: The saved pattern confirmation
+  - name: feedback_result
+    type: object
+    description: Feedback confirmation
+  - name: error
+    type: string
+    description: Error message if operation failed
+
+tool_calls:
+  - name: search_error_patterns
+    description: Search error patterns by keyword
+    arguments:
+      query: string
+      limit: integer
+  - name: save_error_pattern
+    description: Save a new error pattern
+    arguments:
+      pattern: object
+  - name: record_pattern_feedback
+    description: Record success/failure feedback for a pattern
+    arguments:
+      pattern_id: string
+      success: boolean

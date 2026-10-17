@@ -1,0 +1,4 @@
+# Legacy local-MCP iteration (pre-hosted server) — excluded from plugin packaging
+toda_mcp.py
+config.json
+package.json

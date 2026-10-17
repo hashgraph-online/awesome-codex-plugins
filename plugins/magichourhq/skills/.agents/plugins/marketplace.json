@@ -1,0 +1,12 @@
+{
+  "name": "magic-hour",
+  "interface": { "displayName": "Magic Hour" },
+  "plugins": [
+    {
+      "name": "magic-hour",
+      "source": { "source": "local", "path": "./" },
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_USE" },
+      "category": "Design"
+    }
+  ]
+}

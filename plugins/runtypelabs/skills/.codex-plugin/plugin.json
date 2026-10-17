@@ -1,0 +1,14 @@
+{
+  "name": "runtype-skills",
+  "displayName": "Runtype Skills",
+  "description": "Supercharge your coding agent for AI product development — build, deploy, and operate agents, flows, tools, and surfaces on Runtype's managed edge runtime.",
+  "version": "0.2.0",
+  "publisher": "runtypelabs",
+  "repository": "https://github.com/runtypelabs/skills",
+  "license": "MIT",
+  "skills": "skills/",
+  "interface": {
+    "composerIcon": "./assets/icon.svg",
+    "brandColor": "#4C00FF"
+  }
+}

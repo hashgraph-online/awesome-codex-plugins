@@ -1,3 +1,2 @@
-mask	level	cluster	intent	priority	source	status	rationale	note
-example-root	L1	general	target	high	product_map	draft	root semantic mask	
-example product	L2	general	target	high	product_map	draft	product mask	
+mask_id	mask	level	product_uid	intent	priority	source	source_row_sha256	status	rationale	notes
+template-mask		L1	example-product			product-map		unverified		Заполнить после подтверждения карты продукта и географии.

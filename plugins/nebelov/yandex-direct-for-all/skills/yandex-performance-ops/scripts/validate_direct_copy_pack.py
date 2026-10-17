@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import re
 from pathlib import Path
 from typing import Dict, List
 
@@ -48,6 +49,22 @@ def split_callouts(text: str) -> List[str]:
     return [norm(item) for item in (text or "").split("|") if norm(item)]
 
 
+def validate_display_link(value: str) -> List[str]:
+    value = norm(value).lower()
+    errors: List[str] = []
+    if not value:
+        return ["display_link: empty"]
+    if re.search(r"[a-zA-Z]", value):
+        errors.append("display_link: must be Russian, not Latin")
+    if not re.search(r"[а-яё]", value):
+        errors.append("display_link: must contain Russian text")
+    if re.search(r"[^а-яё0-9/%#-]", value):
+        errors.append("display_link: unsupported characters")
+    if value.endswith(("-", "/")):
+        errors.append("display_link: looks truncated")
+    return errors
+
+
 def validate_row(row: Dict[str, str]) -> Dict[str, object]:
     violations: List[str] = []
     lengths: Dict[str, int] = {}
@@ -57,6 +74,8 @@ def validate_row(row: Dict[str, str]) -> Dict[str, object]:
         lengths[field] = len(value)
         if len(value) > FIELD_LIMITS[field]:
             violations.append(f"{field}: {len(value)} > {FIELD_LIMITS[field]}")
+        if field == "display_link":
+            violations.extend(validate_display_link(value))
         if field in MAX_WORD:
             longest = longest_word_length(value)
             lengths[f"{field}_max_word"] = longest
@@ -185,6 +204,7 @@ def write_markdown(path: Path, rows: List[Dict[str, object]], source_name: str) 
         "2. Заголовок 2: до 30 знаков.",
         "3. Описание: до 81 знака.",
         "4. Отображаемая ссылка: до 20 знаков.",
+        "   Только русский текст, цифры и знаки `-`, `/`, `%`, `#`; без латиницы и обрезанного хвоста.",
         "5. Текст быстрой ссылки: до 30 знаков.",
         "6. Описание быстрой ссылки: до 60 знаков.",
         "7. Уточнение: до 25 знаков.",

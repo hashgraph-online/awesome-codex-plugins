@@ -1,0 +1,721 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Clean-Room Clean Run Context",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "context_id",
+    "task_id",
+    "created_at",
+    "target_profile",
+    "native_artifacts",
+    "formatting_rules",
+    "goal_contract",
+    "code_hygiene_policy",
+    "clean_artifacts",
+    "implementation",
+    "coordination_boundary",
+    "approved_public_reference_roots",
+    "clean_isolation",
+    "model_preferences",
+    "user_rules"
+  ],
+  "properties": {
+    "context_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "task_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "target_profile": {
+      "$ref": "#/$defs/target_profile"
+    },
+    "native_artifacts": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "formatting_rules": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "goal_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "goal_id",
+        "intent",
+        "success_definition",
+        "destination_kind",
+        "target_stack",
+        "destination_license",
+        "dependency_policy",
+        "compatibility_policy",
+        "feature_policy",
+        "output_policy"
+      ],
+      "properties": {
+        "goal_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "intent": {
+          "type": "string",
+          "minLength": 1
+        },
+        "success_definition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "destination_kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_stack": {
+          "$ref": "#/$defs/target_stack"
+        },
+        "destination_license": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dependency_policy": {
+          "$ref": "#/$defs/dependency_policy"
+        },
+        "compatibility_policy": {
+          "$ref": "#/$defs/compatibility_policy"
+        },
+        "feature_policy": {
+          "$ref": "#/$defs/feature_policy"
+        },
+        "output_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "assumed_output_directory",
+            "write_mode"
+          ],
+          "properties": {
+            "assumed_output_directory": {
+              "type": "string",
+              "minLength": 1
+            },
+            "write_mode": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "code_hygiene_policy": {
+      "$ref": "#/$defs/code_hygiene_policy"
+    },
+    "clean_artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "clean_root",
+        "handoff_package",
+        "behavior_specs",
+        "skeleton_manifest",
+        "implementation_plan",
+        "implementation_report",
+        "qc_report"
+      ],
+      "properties": {
+        "clean_root": {
+          "$ref": "#/$defs/clean_path"
+        },
+        "handoff_package": {
+          "$ref": "#/$defs/clean_path"
+        },
+        "behavior_specs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/clean_path"
+          }
+        },
+        "skeleton_manifest": {
+          "$ref": "#/$defs/clean_path"
+        },
+        "implementation_plan": {
+          "$ref": "#/$defs/clean_path"
+        },
+        "implementation_report": {
+          "$ref": "#/$defs/clean_path"
+        },
+        "qc_report": {
+          "$ref": "#/$defs/clean_path"
+        },
+        "polish_report": {
+          "$ref": "#/$defs/clean_path"
+        },
+        "open_questions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/clean_path"
+          }
+        },
+        "abstract_delta_tickets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/clean_path"
+          }
+        }
+      }
+    },
+    "implementation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "implementation_root_refs",
+        "planner_role",
+        "implementer_role",
+        "shell_verification"
+      ],
+      "properties": {
+        "implementation_root_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "root_id",
+              "env_ref",
+              "access"
+            ],
+            "properties": {
+              "root_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "env_ref": {
+                "type": "string",
+                "pattern": "^CLEAN_ROOM_IMPLEMENTATION_ROOTS\\[[0-9]+\\]$"
+              },
+              "access": {
+                "enum": [
+                  "read-only-for-agent-2",
+                  "read-write-for-agent-3"
+                ]
+              }
+            }
+          }
+        },
+        "planner_role": {
+          "const": "clean-architect"
+        },
+        "implementer_role": {
+          "const": "clean-qa-editor"
+        },
+        "polish_reviewer_role": {
+          "const": "clean-polish-reviewer"
+        },
+        "shell_verification": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "agent3_shell_allowed",
+            "cwd_policy"
+          ],
+          "properties": {
+            "agent3_shell_allowed": {
+              "type": "boolean"
+            },
+            "cwd_policy": {
+              "const": "implementation-root"
+            }
+          }
+        },
+        "polish_commit": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "agent4_shell_allowed",
+            "cwd_policy",
+            "git_policy"
+          ],
+          "properties": {
+            "agent4_shell_allowed": {
+              "type": "boolean"
+            },
+            "cwd_policy": {
+              "const": "implementation-root"
+            },
+            "git_policy": {
+              "enum": [
+                "local-init-and-commit-only",
+                "disabled"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "coordination_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "agent0_to_clean_roles",
+        "agent3_to_agent0",
+        "interim_agent3_reports"
+      ],
+      "properties": {
+        "agent0_to_clean_roles": {
+          "const": "durable-sanitized-artifacts-only"
+        },
+        "agent3_to_agent0": {
+          "const": "terminal-report-only"
+        },
+        "interim_agent3_reports": {
+          "const": false
+        }
+      }
+    },
+    "context_management": {
+      "$ref": "#/$defs/context_management"
+    },
+    "approved_public_reference_roots": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/clean_path"
+      }
+    },
+    "clean_isolation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "clean_agents_start_cwd",
+        "source_mounted"
+      ],
+      "properties": {
+        "mode": {
+          "const": "clean-workspace"
+        },
+        "clean_agents_start_cwd": {
+          "const": "clean_root"
+        },
+        "source_mounted": {
+          "const": false
+        }
+      }
+    },
+    "execution_policy": {
+      "$ref": "#/$defs/execution_policy"
+    },
+    "model_preferences": {
+      "$ref": "#/$defs/model_preferences"
+    },
+    "user_rules": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "clean_safe"
+      ],
+      "properties": {
+        "clean_safe": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "context_management": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "enforcement",
+        "fresh_context_required",
+        "budgets"
+      ],
+      "properties": {
+        "mode": {
+          "const": "role-session-briefs"
+        },
+        "enforcement": {
+          "enum": [
+            "advisory",
+            "strict"
+          ]
+        },
+        "fresh_context_required": {
+          "const": true
+        },
+        "budgets": {
+          "$ref": "#/$defs/context_budgets"
+        }
+      }
+    },
+    "context_budgets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_prompt_chars",
+        "max_brief_chars",
+        "max_artifact_refs",
+        "max_referenced_artifact_bytes"
+      ],
+      "properties": {
+        "max_prompt_chars": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_brief_chars": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_artifact_refs": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_referenced_artifact_bytes": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "clean_path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!.*(?:source-index|visual-index|coverage-ledger|evidence-ledger|task-manifest|preflight-goal)\\.json).+"
+    },
+    "target_profile": {
+      "enum": [
+        "openspec-delta",
+        "gsd-planning-package",
+        "speckit-feature-folder",
+        "kiro-spec-folder"
+      ]
+    },
+    "target_stack": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "language",
+        "runtime",
+        "framework",
+        "package_manager",
+        "test_framework"
+      ],
+      "properties": {
+        "language": {
+          "type": "string",
+          "minLength": 1
+        },
+        "runtime": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "framework": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "package_manager": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "test_framework": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "dependency_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "allow_new_dependencies",
+        "prefer_stdlib",
+        "require_user_approval_for_native_deps",
+        "blocked_dependencies"
+      ],
+      "properties": {
+        "allow_new_dependencies": {
+          "type": "boolean"
+        },
+        "prefer_stdlib": {
+          "type": "boolean"
+        },
+        "require_user_approval_for_native_deps": {
+          "type": "boolean"
+        },
+        "blocked_dependencies": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "compatibility_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mirror_public_behavior",
+        "mirror_public_api_names",
+        "mirror_private_structure",
+        "mirror_comments_or_internal_names",
+        "allowed_exactness"
+      ],
+      "properties": {
+        "mirror_public_behavior": {
+          "type": "boolean"
+        },
+        "mirror_public_api_names": {
+          "type": "boolean"
+        },
+        "mirror_private_structure": {
+          "const": false
+        },
+        "mirror_comments_or_internal_names": {
+          "const": false
+        },
+        "allowed_exactness": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "feature_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "preserve_features",
+        "remove_features",
+        "add_features",
+        "non_goals"
+      ],
+      "properties": {
+        "preserve_features": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "remove_features": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "add_features": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "non_goals": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "code_hygiene_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_lines_per_code_file",
+        "max_lines_per_test_file",
+        "max_files_per_iteration",
+        "split_large_files_by",
+        "exceptions"
+      ],
+      "properties": {
+        "max_lines_per_code_file": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_lines_per_test_file": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_files_per_iteration": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "split_large_files_by": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "exceptions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "forbidden_patterns": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "role": {
+      "enum": [
+        "clean-architect",
+        "clean-qa-editor"
+      ]
+    },
+    "execution_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "backend",
+        "preferred_container_profile",
+        "network_policy",
+        "dependency_install_policy",
+        "allow_native_toolchain",
+        "resource_limits"
+      ],
+      "properties": {
+        "backend": {
+          "enum": [
+            "host",
+            "docker",
+            "podman"
+          ]
+        },
+        "preferred_container_profile": {
+          "enum": [
+            "node22",
+            "python312",
+            "go126",
+            "rust-stable"
+          ]
+        },
+        "network_policy": {
+          "enum": [
+            "off",
+            "deps-only",
+            "on"
+          ]
+        },
+        "dependency_install_policy": {
+          "enum": [
+            "offline",
+            "locked",
+            "allow-new"
+          ]
+        },
+        "allow_native_toolchain": {
+          "type": "boolean"
+        },
+        "resource_limits": {
+          "$ref": "#/$defs/resource_limits"
+        }
+      }
+    },
+    "resource_limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cpus",
+        "memory_mb",
+        "timeout_seconds"
+      ],
+      "properties": {
+        "cpus": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "memory_mb": {
+          "type": "integer",
+          "minimum": 128,
+          "maximum": 65536
+        },
+        "timeout_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 600
+        }
+      }
+    },
+    "model_preferences": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "default_model"
+      ],
+      "properties": {
+        "default_model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "domain_overrides": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "clean": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "role_overrides": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "role",
+              "model"
+            ],
+            "properties": {
+              "role": {
+                "$ref": "#/$defs/role"
+              },
+              "model": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

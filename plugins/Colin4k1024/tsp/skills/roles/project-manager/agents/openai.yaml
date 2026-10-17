@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project Manager（项目管理）"
+  short_description: "负责排期、依赖协调、风险跟踪、里程碑推进与跨角色节奏管理。"
+  default_prompt: "Use $project-manager to take the lead on the Project Manager（项目管理） responsibilities for this task."

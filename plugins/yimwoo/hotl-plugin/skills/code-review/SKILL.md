@@ -28,10 +28,13 @@ User-facing entry point for getting a code review. Dispatches the full `code-rev
 
 **Detect workflow file:**
 
-- Glob for `hotl-workflow-*.md` in project root
-- One match: use it
-- Multiple matches: prefer most recently modified, unless the user named one
-- No matches: proceed without workflow context
+- First, glob for canonical workflows in `docs/plans/*-workflow.md`
+- If one canonical match: use it
+- If multiple canonical matches: prefer the most recently modified canonical workflow, unless the user named one
+- If no canonical matches: glob for legacy `hotl-workflow-*.md` in project root
+- If one legacy match: use it
+- If multiple legacy matches: prefer the most recently modified legacy workflow, unless the user named one
+- If no matches: proceed without workflow context
 
 **Extract contracts** from workflow frontmatter if available (intent, constraints, success_criteria, risk_level).
 

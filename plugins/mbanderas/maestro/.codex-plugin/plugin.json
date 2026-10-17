@@ -1,0 +1,39 @@
+{
+  "name": "maestro",
+  "version": "1.15.0",
+  "description": "Maestro Frontier model-panel fusion with Opus 5, current Codex models, validated effort control, Codex skills, and optional lifecycle hooks.",
+  "author": {
+    "name": "Mark Laursen",
+    "url": "https://github.com/mbanderas"
+  },
+  "homepage": "https://github.com/mbanderas/maestro#readme",
+  "repository": "https://github.com/mbanderas/maestro",
+  "license": "MIT",
+  "keywords": [
+    "frontier",
+    "multi-agent",
+    "codex",
+    "hooks",
+    "skills"
+  ],
+  "skills": "./codex-skills/",
+  "interface": {
+    "displayName": "Maestro",
+    "shortDescription": "Frontier panel composition, Codex skills, and lifecycle hooks",
+    "longDescription": "Install Maestro in Codex as a plugin: direct /maestro slash hub to compose an Opus 5 and Codex model panel, set validated effort, and run the local read-only Frontier fusion engine. Optional discipline hooks remain independent and off by default.",
+    "developerName": "Mark Laursen",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/mbanderas/maestro",
+    "brandColor": "#5B82D6",
+    "composerIcon": "./assets/icon.png",
+    "defaultPrompt": [
+      "/maestro frontier catalog",
+      "/maestro frontier compose --models opus,sol --effort xhigh --dry-run",
+      "/maestro frontier status"
+    ]
+  }
+}

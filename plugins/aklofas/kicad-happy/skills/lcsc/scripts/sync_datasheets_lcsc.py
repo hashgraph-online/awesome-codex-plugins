@@ -3,9 +3,10 @@
 
 Extracts components with MPNs or LCSC codes from a KiCad schematic (or
 pre-computed analyzer JSON), searches jlcsearch for datasheet URLs,
-downloads missing PDFs, and maintains an index.json manifest.
+downloads missing PDFs, and maintains a manifest.json file (legacy name index.json
+still read for backward compat).
 
-The index.json format matches across distributor skills so they can
+The manifest.json format matches across distributor skills so they can
 contribute to the same datasheets directory. The source field
 distinguishes which distributor provided the datasheet.
 
@@ -22,6 +23,8 @@ Usage:
     python3 sync_datasheets_lcsc.py <analyzer_output.json> --output ./datasheets
     python3 sync_datasheets_lcsc.py <file.kicad_sch> --force     # retry failures
     python3 sync_datasheets_lcsc.py <file.kicad_sch> --dry-run   # preview only
+    python3 sync_datasheets_lcsc.py --mpn-list mpns.txt --dry-run
+    python3 sync_datasheets_lcsc.py --mpn-list mpns.txt --output ./datasheets
 
 Dependencies:
     - requests (pip install requests) — strongly recommended
@@ -48,6 +51,7 @@ from fetch_datasheet_lcsc import (
     try_alternative_sources,
     verify_datasheet,
     search_lcsc,
+    enrich_with_wmsc,
     _get_datasheet_url,
     _get_mpn,
     _get_lcsc_code,
@@ -117,11 +121,24 @@ def friendly_filename(mpn: str, description: str = "", manufacturer: str = "") -
 
 
 # ---------------------------------------------------------------------------
-# Manifest (index.json) management
+# Manifest management (manifest.json; legacy index.json read for backward compat)
 # ---------------------------------------------------------------------------
 
+MANIFEST_FILENAME = "manifest.json"
+LEGACY_MANIFEST_FILENAME = "index.json"
+
+
+def _manifest_path(out_dir: Path) -> Path:
+    new = out_dir / MANIFEST_FILENAME
+    old = out_dir / LEGACY_MANIFEST_FILENAME
+    if new.exists() or not old.exists():
+        return new
+    return old
+
+
 def load_index(path: Path) -> dict:
-    """Load existing index.json or return empty structure."""
+    """Load existing manifest.json (or legacy index.json) or return empty."""
+    path = _manifest_path(path.parent) if path.name in (MANIFEST_FILENAME, LEGACY_MANIFEST_FILENAME) else path
     if path.exists():
         try:
             with open(path, "r") as f:
@@ -132,12 +149,21 @@ def load_index(path: Path) -> dict:
 
 
 def save_index(path: Path, index: dict):
-    """Write index.json atomically."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(".tmp")
+    """Write manifest atomically. Always writes manifest.json; removes any
+    legacy index.json sibling after a successful write."""
+    parent = path.parent
+    parent.mkdir(parents=True, exist_ok=True)
+    new_path = parent / MANIFEST_FILENAME
+    tmp = new_path.with_suffix(".tmp")
     with open(tmp, "w") as f:
         json.dump(index, f, indent=2)
-    tmp.rename(path)
+    tmp.replace(new_path)
+    old_path = parent / LEGACY_MANIFEST_FILENAME
+    if old_path.exists() and old_path != new_path:
+        try:
+            old_path.unlink()
+        except OSError:
+            pass
 
 
 # ---------------------------------------------------------------------------
@@ -211,6 +237,16 @@ def extract_parts(analyzer_output: dict) -> list[dict]:
 
         has_mpn = is_real_mpn(mpn)
         has_distributor_pn = bool(lcsc_pn or digikey_pn or mouser_pn)
+        # F2: fall back to Value field when MPN is empty but the Value
+        # looks MPN-shaped (and the symbol isn't a generic Device:R/C/L).
+        mpn_from_value = ""
+        if not has_mpn and not has_distributor_pn:
+            value = entry.get("value", "").strip()
+            lib_id = entry.get("lib_id", "")
+            if is_real_mpn(value) and not lib_id.startswith("Device:"):
+                mpn_from_value = value
+                mpn = value
+                has_mpn = True
         if not has_mpn and not has_distributor_pn:
             continue
 
@@ -227,6 +263,55 @@ def extract_parts(analyzer_output: dict) -> list[dict]:
             "mouser": mouser_pn,
         })
 
+    return parts
+
+
+def load_mpn_list(path: Path) -> list[dict]:
+    """Read MPNs from a text file, one per line (KH-312).
+
+    Skips blank lines, full-line comments (``# ...``), and inline
+    ``# ...`` comments. Filters non-MPN strings via ``is_real_mpn()``
+    and de-duplicates. Returns minimal part dicts compatible with
+    ``extract_parts()`` output — distributor PN fields are empty since
+    MPN-list mode drives searches via MPN lookup only.
+
+    Intended for batch workflows (harness, bulk datasheet seeding)
+    that don't have a KiCad project to point at.
+
+    Note: MPNs containing a literal ``#`` character are not supported
+    (they would be silently truncated by the inline-comment stripper).
+    Use the positional schematic/JSON input for such parts instead.
+    """
+    parts: list[dict] = []
+    seen: set[str] = set()
+    with open(path, "r", encoding="utf-8") as f:
+        for raw in f:
+            line = raw.strip()
+            if not line or line.startswith("#"):
+                continue
+            if "#" in line:
+                line = line.split("#", 1)[0].strip()
+                if not line:
+                    continue
+            if not is_real_mpn(line):
+                print(f"  Skipping '{line}': doesn't look like a real MPN",
+                      file=sys.stderr)
+                continue
+            if line in seen:
+                continue
+            seen.add(line)
+            parts.append({
+                "mpn": line,
+                "manufacturer": "",
+                "value": "",
+                "description": "",
+                "datasheet": "",
+                "references": [],
+                "type": "",
+                "lcsc": "",
+                "digikey": "",
+                "mouser": "",
+            })
     return parts
 
 
@@ -286,12 +371,14 @@ def sync_one_part(
     time.sleep(delay)
     print(f"  Searching LCSC for '{search_term}'...", file=sys.stderr)
     component = search_lcsc(search_term)
+    component = enrich_with_wmsc(component)
 
     # If LCSC code search failed but we have an MPN, try that
     if component is None and lcsc_pn and mpn:
         time.sleep(delay)
         print(f"  LCSC code not found, trying MPN '{mpn}'...", file=sys.stderr)
         component = search_lcsc(mpn)
+        component = enrich_with_wmsc(component)
 
     if component is not None:
         ds_url = _get_datasheet_url(component)
@@ -378,7 +465,7 @@ def sync_one_part(
 
 
 def sync_datasheets(
-    input_path: str,
+    input_path: str | None = None,
     output_dir: str | None = None,
     force: bool = False,
     force_all: bool = False,
@@ -386,37 +473,51 @@ def sync_datasheets(
     parallel: int = 1,
     dry_run: bool = False,
     as_json: bool = False,
+    mpn_list: str | None = None,
 ) -> dict:
     """Main sync function. Returns summary dict."""
-    input_path = Path(input_path).resolve()
+    if input_path is None and mpn_list is None:
+        return {"error": "Must provide either input_path or mpn_list"}
+    if input_path is not None and mpn_list is not None:
+        return {"error": "Cannot provide both input_path and mpn_list"}
 
     if output_dir:
         out_dir = Path(output_dir)
+    elif input_path:
+        out_dir = Path(input_path).resolve().parent / "datasheets"
     else:
-        out_dir = input_path.parent / "datasheets"
+        out_dir = Path.cwd() / "datasheets"
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    index_path = out_dir / "index.json"
+    index_path = out_dir / MANIFEST_FILENAME
     index = load_index(index_path)
 
-    print(f"Analyzing {input_path.name}...", file=sys.stderr)
-    analyzer_output = get_analyzer_output(input_path)
-    if analyzer_output is None:
-        return {"error": "Failed to analyze schematic"}
+    if mpn_list:
+        mpn_list_path = Path(mpn_list).resolve()
+        print(f"Loading MPNs from {mpn_list_path.name}...", file=sys.stderr)
+        parts = load_mpn_list(mpn_list_path)
+        print(f"Loaded {len(parts)} unique MPNs", file=sys.stderr)
+        skipped_no_id = 0
+    else:
+        resolved_input = Path(input_path).resolve()
+        print(f"Analyzing {resolved_input.name}...", file=sys.stderr)
+        analyzer_output = get_analyzer_output(resolved_input)
+        if analyzer_output is None:
+            return {"error": "Failed to analyze schematic"}
 
-    parts = extract_parts(analyzer_output)
-    all_bom = analyzer_output.get("bom", [])
-    skipped_no_id = sum(
-        1 for e in all_bom
-        if not e.get("dnp") and e.get("type", "") not in _SKIP_TYPES
-        and not is_real_mpn(e.get("mpn", ""))
-        and not e.get("lcsc", "").strip()
-        and not e.get("digikey", "").strip()
-        and not e.get("mouser", "").strip()
-    )
+        parts = extract_parts(analyzer_output)
+        all_bom = analyzer_output.get("bom", [])
+        skipped_no_id = sum(
+            1 for e in all_bom
+            if not e.get("dnp") and e.get("type", "") not in _SKIP_TYPES
+            and not is_real_mpn(e.get("mpn", ""))
+            and not e.get("lcsc", "").strip()
+            and not e.get("digikey", "").strip()
+            and not e.get("mouser", "").strip()
+        )
 
-    print(f"Found {len(parts)} unique parts with identifiers "
-          f"({skipped_no_id} skipped without any identifier)", file=sys.stderr)
+        print(f"Found {len(parts)} unique parts with identifiers "
+              f"({skipped_no_id} skipped without any identifier)", file=sys.stderr)
 
     to_download = []
     already_present = []
@@ -465,7 +566,7 @@ def sync_datasheets(
         if skipped_failed:
             msg += f" {len(skipped_failed)} previous failures (use --force to retry)."
         print(msg, file=sys.stderr)
-        index["schematic"] = str(input_path)
+        index["schematic"] = str(mpn_list or input_path)
         index["last_sync"] = datetime.now(timezone.utc).isoformat()
         save_index(index_path, index)
         return {"downloaded": 0, "already_present": len(already_present),
@@ -507,7 +608,7 @@ def sync_datasheets(
                     print(f"  {result['status'].upper()}: {result.get('error', '')}",
                           file=sys.stderr)
 
-                index["schematic"] = str(input_path)
+                index["schematic"] = str(mpn_list or input_path)
                 index["last_sync"] = datetime.now(timezone.utc).isoformat()
                 save_index(index_path, index)
 
@@ -539,7 +640,7 @@ def sync_datasheets(
                       file=sys.stderr)
 
             # Save after each download so progress is preserved on interrupt
-            index["schematic"] = str(input_path)
+            index["schematic"] = str(mpn_list or input_path)
             index["last_sync"] = datetime.now(timezone.utc).isoformat()
             save_index(index_path, index)
 
@@ -589,13 +690,23 @@ def main():
     parser = argparse.ArgumentParser(
         description="Sync datasheets for a KiCad project via LCSC/jlcsearch (no API key needed)",
     )
-    parser.add_argument(
+    input_group = parser.add_mutually_exclusive_group(required=True)
+    input_group.add_argument(
         "input",
+        nargs="?",
         help="Path to .kicad_sch file or pre-computed analyzer JSON",
+    )
+    input_group.add_argument(
+        "--mpn-list",
+        metavar="FILE",
+        help=("Path to a text file with one MPN per line (KH-312 batch mode). "
+              "Skips blank lines and '#' comments. Output defaults to "
+              "./datasheets/ in cwd when --output is not given."),
     )
     parser.add_argument(
         "--output", "-o",
-        help="Output directory (default: datasheets/ next to input file)",
+        help=("Output directory (default: datasheets/ next to input, "
+              "or ./datasheets/ in cwd when --mpn-list is used)"),
     )
     parser.add_argument(
         "--force", action="store_true",
@@ -632,6 +743,7 @@ def main():
         parallel=args.parallel,
         dry_run=args.dry_run,
         as_json=args.json,
+        mpn_list=args.mpn_list,
     )
 
     if "error" in result:

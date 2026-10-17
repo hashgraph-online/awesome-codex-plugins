@@ -3,9 +3,10 @@
 # POSIX sh compatible — no bashisms
 
 set -e
+umask 077
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" \&\& pwd)"
-SKILL_DIR="$(cd "$SCRIPT_DIR/../.." \&\& pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SKILL_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 PROJECT_ROOT="${YANDEX_METRIKA_PROJECT_ROOT:-$PWD}"
 CONFIG_FILE="${YANDEX_METRIKA_CONFIG_FILE:-$PROJECT_ROOT/.codex/yandex-metrika.env}"
 CACHE_DIR="${YANDEX_METRIKA_CACHE_DIR:-$PROJECT_ROOT/.codex/cache/yandex-metrika}"
@@ -20,6 +21,11 @@ mkdir -p "$METRIKA_TMPDIR"
 
 load_config() {
     if [ -f "$CONFIG_FILE" ]; then
+        _config_mode=$(stat -f '%Lp' "$CONFIG_FILE" 2>/dev/null || stat -c '%a' "$CONFIG_FILE" 2>/dev/null || true)
+        if [ "$_config_mode" != "600" ]; then
+            echo "Error: Metrika config file must have mode 0600: $CONFIG_FILE" >&2
+            exit 1
+        fi
         # shellcheck disable=SC1090
         . "$CONFIG_FILE"
     fi
@@ -30,8 +36,15 @@ load_config() {
         echo "See: $SKILL_DIR/references/metrika/CONFIG.md" >&2
         exit 1
     fi
+    case "$YANDEX_METRIKA_TOKEN" in
+        *[!A-Za-z0-9._~-]*)
+            echo "Error: YANDEX_METRIKA_TOKEN has invalid characters." >&2
+            exit 1
+            ;;
+    esac
 
     mkdir -p "$CACHE_DIR"
+    chmod 700 "$CACHE_DIR"
 }
 
 # --------------- Cache helpers ---------------
@@ -73,13 +86,14 @@ metrika_get() {
     shift
     _mg_url="${METRIKA_API}${_mg_path}"
     _mg_headers="${METRIKA_TMPDIR}/metrika_headers_$$.txt"
+    _mg_config="${METRIKA_TMPDIR}/metrika_curl_$$.conf"
+    printf 'header = "Authorization: OAuth %s"\nheader = "Accept-Charset: utf-8"\n' "$YANDEX_METRIKA_TOKEN" > "$_mg_config"
+    chmod 600 "$_mg_config"
 
-    _mg_body=$(curl -s -G -D "$_mg_headers" \
-        -H "Authorization: OAuth $YANDEX_METRIKA_TOKEN" \
-        -H "Accept-Charset: utf-8" \
+    _mg_body=$(curl --config "$_mg_config" -s -G -D "$_mg_headers" \
         "$@" \
         "$_mg_url") || {
-        rm -f "$_mg_headers"
+        rm -f "$_mg_headers" "$_mg_config"
         echo "Error: curl failed for $_mg_url" >&2
         return 1
     }
@@ -88,7 +102,7 @@ metrika_get() {
     _mg_status=$(head -1 "$_mg_headers" | grep -o '[0-9][0-9][0-9]' | head -1)
     if [ "$_mg_status" = "429" ]; then
         _mg_retry=$(grep -i 'Retry-After' "$_mg_headers" | sed 's/[^0-9]//g' | head -1)
-        rm -f "$_mg_headers"
+        rm -f "$_mg_headers" "$_mg_config"
         # Only retry once (guard via env var)
         if [ -z "${_METRIKA_RETRY_DONE:-}" ] && [ -n "$_mg_retry" ] && [ "$_mg_retry" -le 60 ] 2>/dev/null; then
             _mg_jitter=$(awk 'BEGIN{srand(); printf "%d", rand()*3}')
@@ -106,13 +120,13 @@ metrika_get() {
 
     # Check for HTTP errors
     if [ -n "$_mg_status" ] && [ "$_mg_status" -ge 400 ] 2>/dev/null; then
-        rm -f "$_mg_headers"
+        rm -f "$_mg_headers" "$_mg_config"
         echo "Error: HTTP $_mg_status from $_mg_url" >&2
         echo "$_mg_body" >&2
         return 1
     fi
 
-    rm -f "$_mg_headers"
+    rm -f "$_mg_headers" "$_mg_config"
     printf '%s' "$_mg_body"
 }
 
@@ -124,14 +138,15 @@ metrika_get_csv() {
     shift 2
     _mgc_url="${METRIKA_API}${_mgc_path}"
     _mgc_headers="${METRIKA_TMPDIR}/metrika_headers_$$.txt"
+    _mgc_config="${METRIKA_TMPDIR}/metrika_curl_$$.conf"
+    printf 'header = "Authorization: OAuth %s"\nheader = "Accept-Charset: utf-8"\n' "$YANDEX_METRIKA_TOKEN" > "$_mgc_config"
+    chmod 600 "$_mgc_config"
 
-    curl -s -G -D "$_mgc_headers" \
-        -H "Authorization: OAuth $YANDEX_METRIKA_TOKEN" \
-        -H "Accept-Charset: utf-8" \
+    curl --config "$_mgc_config" -s -G -D "$_mgc_headers" \
         -o "$_mgc_output" \
         "$@" \
         "$_mgc_url" || {
-        rm -f "$_mgc_headers"
+        rm -f "$_mgc_headers" "$_mgc_config"
         echo "Error: curl failed for $_mgc_url" >&2
         return 1
     }
@@ -139,7 +154,7 @@ metrika_get_csv() {
     _mgc_status=$(head -1 "$_mgc_headers" | grep -o '[0-9][0-9][0-9]' | head -1)
     if [ "$_mgc_status" = "429" ]; then
         _mgc_retry=$(grep -i 'Retry-After' "$_mgc_headers" | sed 's/[^0-9]//g' | head -1)
-        rm -f "$_mgc_headers"
+        rm -f "$_mgc_headers" "$_mgc_config"
         if [ -z "${_METRIKA_RETRY_DONE:-}" ] && [ -n "$_mgc_retry" ] && [ "$_mgc_retry" -le 60 ] 2>/dev/null; then
             _mgc_jitter=$(awk 'BEGIN{srand(); printf "%d", rand()*3}')
             _mgc_wait=$(( _mgc_retry + _mgc_jitter ))
@@ -154,13 +169,13 @@ metrika_get_csv() {
     fi
 
     if [ -n "$_mgc_status" ] && [ "$_mgc_status" -ge 400 ] 2>/dev/null; then
-        rm -f "$_mgc_headers"
+        rm -f "$_mgc_headers" "$_mgc_config"
         echo "Error: HTTP $_mgc_status" >&2
         cat "$_mgc_output" >&2
         return 1
     fi
 
-    rm -f "$_mgc_headers"
+    rm -f "$_mgc_headers" "$_mgc_config"
     return 0
 }
 

@@ -1,0 +1,42 @@
+{
+  "name": "skill-sync-publisher",
+  "version": "0.1.0",
+  "description": "Safely synchronize a Codex skill across GitHub and public agent-skill registries.",
+  "author": {
+    "name": "liuyewang",
+    "url": "https://github.com/liuyewang"
+  },
+  "homepage": "https://github.com/liuyewang/skill-sync-publisher",
+  "repository": "https://github.com/liuyewang/skill-sync-publisher",
+  "license": "MIT",
+  "keywords": [
+    "skill",
+    "sync",
+    "publishing",
+    "registries",
+    "codex"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Skill Sync Publisher",
+    "shortDescription": "Publish skills safely across registries",
+    "longDescription": "Validate a local skill, remember platform choices, gate authentication, and synchronize the source across GitHub and public agent-skill registries with dry-runs and resumable status.",
+    "developerName": "liuyewang",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/liuyewang/skill-sync-publisher",
+    "defaultPrompt": [
+      "Preflight this skill and show a multi-platform sync plan",
+      "Synchronize this skill to its enabled registries",
+      "Show which registry submissions are blocked or pending"
+    ],
+    "brandColor": "#2563EB",
+    "composerIcon": "./assets/skill-sync-publisher.svg",
+    "logo": "./assets/skill-sync-publisher.svg",
+    "screenshots": []
+  }
+}

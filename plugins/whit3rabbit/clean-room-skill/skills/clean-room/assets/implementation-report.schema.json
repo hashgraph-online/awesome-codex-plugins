@@ -1,0 +1,333 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Clean-Room Implementation Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "report_id",
+    "task_id",
+    "plan_ref",
+    "implementer_role",
+    "updated_at",
+    "implementation_status",
+    "agent0_reporting",
+    "completed_work_items",
+    "blocked_work_items",
+    "changed_paths",
+    "verification_results",
+    "findings",
+    "abstract_delta_tickets",
+    "final_status"
+  ],
+  "properties": {
+    "report_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "task_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "plan_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "implementer_role": {
+      "const": "clean-qa-editor"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "implementation_status": {
+      "enum": [
+        "not-started",
+        "in-progress",
+        "complete",
+        "blocked",
+        "quarantined"
+      ]
+    },
+    "agent0_reporting": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "report_state",
+        "terminal_report_target",
+        "interim_updates_allowed"
+      ],
+      "properties": {
+        "report_state": {
+          "enum": [
+            "internal-draft",
+            "terminal-report"
+          ]
+        },
+        "terminal_report_target": {
+          "const": "agent_0"
+        },
+        "interim_updates_allowed": {
+          "const": false
+        }
+      }
+    },
+    "completed_work_items": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "blocked_work_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "work_item_id",
+          "reason"
+        ],
+        "properties": {
+          "work_item_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "changed_paths": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "kind",
+          "work_item_ids"
+        ],
+        "properties": {
+          "path": {
+            "$ref": "#/$defs/relative_path"
+          },
+          "kind": {
+            "enum": [
+              "code",
+              "test",
+              "config",
+              "docs",
+              "other"
+            ]
+          },
+          "work_item_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "verification_results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "command",
+          "cwd",
+          "status",
+          "output_summary"
+        ],
+        "properties": {
+          "command": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "cwd": {
+            "$ref": "#/$defs/implementation_root_ref"
+          },
+          "status": {
+            "enum": [
+              "passed",
+              "failed",
+              "not-run"
+            ]
+          },
+          "output_summary": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/finding"
+      }
+    },
+    "abstract_delta_tickets": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/abstract_delta_ticket"
+      }
+    },
+    "final_status": {
+      "enum": [
+        "complete",
+        "partial",
+        "blocked",
+        "quarantined"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "implementation_status": {
+            "enum": [
+              "not-started",
+              "in-progress"
+            ]
+          }
+        },
+        "required": [
+          "implementation_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "agent0_reporting": {
+            "properties": {
+              "report_state": {
+                "const": "internal-draft"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "implementation_status": {
+            "enum": [
+              "complete",
+              "blocked",
+              "quarantined"
+            ]
+          }
+        },
+        "required": [
+          "implementation_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "agent0_reporting": {
+            "properties": {
+              "report_state": {
+                "const": "terminal-report"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "implementation_root_ref": {
+      "type": "string",
+      "pattern": "^CLEAN_ROOM_IMPLEMENTATION_ROOTS\\[[0-9]+\\]$"
+    },
+    "relative_path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$)).+"
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "severity",
+        "category",
+        "summary"
+      ],
+      "properties": {
+        "severity": {
+          "enum": [
+            "info",
+            "low",
+            "medium",
+            "high",
+            "blocker"
+          ]
+        },
+        "category": {
+          "enum": [
+            "schema",
+            "leakage",
+            "implementation",
+            "verification",
+            "coverage",
+            "ambiguity",
+            "process"
+          ]
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "affected_paths": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relative_path"
+          }
+        },
+        "recommended_action": {
+          "type": "string"
+        }
+      }
+    },
+    "abstract_delta_ticket": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ticket_id",
+        "summary",
+        "requested_clean_change",
+        "status"
+      ],
+      "properties": {
+        "ticket_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requested_clean_change": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "open",
+            "resolved",
+            "deferred"
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "name": "codex-tools-bridge",
+  "version": "0.1.0",
+  "description": "Set up and diagnose an experimental macOS-first MCP bridge from ChatGPT Web to native local Codex tools.",
+  "author": {
+    "name": "KunHcz",
+    "url": "https://github.com/KunHcz"
+  },
+  "homepage": "https://github.com/KunHcz/codex-tools-bridge#readme",
+  "repository": "https://github.com/KunHcz/codex-tools-bridge",
+  "license": "MIT",
+  "keywords": [
+    "chatgpt",
+    "codex",
+    "mcp",
+    "local-tools",
+    "tunnel"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Codex Tools Bridge",
+    "shortDescription": "Set up and diagnose the ChatGPT-to-Codex MCP bridge.",
+    "longDescription": "An installation and diagnostic skill for Codex Tools Bridge. ChatGPT Web owns reasoning and conversation context; the separately configured local host executes native tools with configured permissions by default. Installing this skill does not start a tunnel or grant tool access. Experimental and macOS-first; an independent project, not an official OpenAI product.",
+    "developerName": "KunHcz",
+    "category": "Productivity",
+    "websiteURL": "https://github.com/KunHcz/codex-tools-bridge",
+    "privacyPolicyURL": "https://github.com/KunHcz/codex-tools-bridge/blob/main/SECURITY.md",
+    "defaultPrompt": [
+      "Help me set up Codex Tools Bridge in a fresh dedicated workspace."
+    ],
+    "brandColor": "#10B981",
+    "composerIcon": "./assets/icon.svg"
+  }
+}

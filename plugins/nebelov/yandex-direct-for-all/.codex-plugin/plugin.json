@@ -1,7 +1,7 @@
 {
   "name": "yandex-direct-for-all",
-  "version": "0.2.0",
-  "description": "Self-contained Codex plugin for Yandex Direct, Wordstat, Metrika, Roistat, and Yandex Search workflows.",
+  "version": "1.1.0",
+  "description": "Переносимый набор для безопасной работы с Яндекс.Директом, Метрикой, Wordstat v2, Roistat и поиском.",
   "author": {
     "name": "Vitaliy Travin",
     "email": "vitalijtravin@gmail.com",
@@ -24,21 +24,20 @@
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Yandex Direct For All",
-    "shortDescription": "Portable Direct, Wordstat, Metrika and Roistat ops bundle.",
-    "longDescription": "Repo-local Codex plugin with bundled skills, MCP servers, templates, docs, and install scripts for Yandex performance marketing workflows.",
+    "shortDescription": "Безопасная авторизация, чтение, анализ и контролируемые изменения.",
+    "longDescription": "Единый навык, общие приложения авторизации Директа и Метрики, Wordstat v2, проверяемая установка и разделение чтения с записью.",
     "developerName": "Vitaliy Travin",
     "category": "Marketing",
     "capabilities": [
-      "Interactive",
-      "Write"
+      "Interactive"
     ],
     "websiteURL": "https://github.com/nebelov/yandex-direct-for-all",
     "privacyPolicyURL": "https://github.com/nebelov/yandex-direct-for-all/blob/main/PRIVACY.md",
     "termsOfServiceURL": "https://github.com/nebelov/yandex-direct-for-all/blob/main/TERMS.md",
     "defaultPrompt": [
-      "Собери Wordstat wave и подготовь human-readable report.",
-      "Проверь кампании Direct и собери safe apply-pack.",
-      "Собери Roistat report-pack без использования UI."
+      "Собери исходные данные Wordstat v2 и подготовь проверяемый отчёт.",
+      "Проверь кампании Директа без записи и подготовь пакет предложений.",
+      "Собери отчёт Roistat через программный интерфейс."
     ],
     "brandColor": "#D62828",
     "composerIcon": "./assets/icon.png",

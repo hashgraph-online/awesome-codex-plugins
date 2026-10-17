@@ -1,587 +1,594 @@
 <p align="center">
-  <img src=".codex-plugin/logo.svg" alt="Blueprint" height="80">
+  <img src="https://em-content.zobj.net/source/apple/391/rock_1faa8.png" width="120" />
 </p>
 
-<h3 align="center">Specification-driven development for AI coding agents</h3>
+<h1 align="center">cavekit</h1>
 
 <p align="center">
-  A Claude Code plugin that turns natural language into blueprints,<br>
-  blueprints into parallel build plans, and build plans into working software —<br>
-  with automated iteration, validation, and dual-model adversarial review via Codex.
+  <strong>why agent guess when agent can know</strong>
 </p>
 
 <p align="center">
-  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
+  <a href="https://github.com/JuliusBrussee/cavekit/stargazers"><img src="https://img.shields.io/github/stars/JuliusBrussee/cavekit?style=flat&color=yellow" alt="Stars"></a>
+  <a href="https://github.com/JuliusBrussee/cavekit/commits/main"><img src="https://img.shields.io/github/last-commit/JuliusBrussee/cavekit?style=flat" alt="Last Commit"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/JuliusBrussee/cavekit?style=flat" alt="License"></a>
   <a href="https://docs.anthropic.com/en/docs/claude-code"><img src="https://img.shields.io/badge/Claude_Code-plugin-blueviolet" alt="Claude Code Plugin"></a>
-  <img src="https://img.shields.io/badge/version-2.2.0-green" alt="Version 2.2.0">
 </p>
 
 <p align="center">
-  <a href="#install">Install</a> &middot;
-  <a href="#how-it-works">How It Works</a> &middot;
-  <a href="#quick-start">Quick Start</a> &middot;
-  <a href="#parallel-execution">Parallel Execution</a> &middot;
-  <a href="#codex-adversarial-review">Codex Review</a> &middot;
-  <a href="#commands">Commands</a> &middot;
-  <a href="#methodology">Methodology</a> &middot;
+  <a href="#the-loop">The loop</a> •
+  <a href="#install">Install</a> •
+  <a href="#your-first-run">Your first run</a> •
+  <a href="#adding-to-an-existing-repo">Existing repo</a> •
+  <a href="#commands">Commands</a> •
+  <a href="#how-it-works">How it works</a> •
   <a href="example.md">Examples</a>
 </p>
 
----
-
-## The Problem
-
-AI coding agents are powerful, but they fail in predictable ways:
-
-- **They lose context.** Ask an agent to build a full-stack feature and it forgets what it said three steps ago.
-- **They skip validation.** Code gets written but never verified against the original intent.
-- **They can't parallelize.** One agent, one task, one branch — even when the work is independent.
-- **They don't iterate.** A single pass produces a rough draft, not production code.
-
-Blueprint fixes all of this.
+<p align="center">
+  <strong>🪨 Caveman Ecosystem</strong> &nbsp;·&nbsp;
+  <a href="https://github.com/JuliusBrussee/caveman">caveman</a> <em>talk less</em> &nbsp;·&nbsp;
+  <a href="https://github.com/JuliusBrussee/cavemem">cavemem</a> <em>remember more</em> &nbsp;·&nbsp;
+  <strong>cavekit</strong> <em>build better</em> <sub>(you are here)</sub>
+</p>
 
 ---
 
-## The Idea
+A Cavekit bundle for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) and [Codex](https://developers.openai.com/codex/skills) that turns natural language into **specs**, specs into **parallel build plans**, and build plans into **working software** — with an autonomous loop, validation gates, and optional cross-model review.
 
-Instead of prompting an agent and hoping for the best, Blueprint introduces a **specification layer** between your intent and the code. You describe what you want. The system decomposes it into domain blueprints with numbered requirements and testable acceptance criteria. Then it builds from those blueprints — not from memory, not from vibes — in an automated loop that validates every step.
-
-```
-                        ┌─── Task 1 ─── Agent A ───┐
-                        │                           │
-You ── /bp:draft ──► Blueprints ── /bp:architect ──► Build Site ──┤─── Task 2 ─── Agent B ───┤──► done
-                        │                           │
-                        └─── Task 3 ─── Agent C ───┘
-```
-
-The blueprints are the source of truth. Agents read them, build from them, and validate against them. When something breaks, the system traces the failure back to the blueprint — not the code.
+You describe what you want. Cavekit writes the contract. Agents build from the contract. Every line of code traces to a requirement. Every requirement has acceptance criteria.
 
 ---
 
-## Without Blueprint vs. With Blueprint
-
-<table>
-<tr><th width="50%">Without Blueprint</th><th width="50%">With Blueprint</th></tr>
-<tr>
-<td>
+## The Loop
 
 ```
-> Build me a task management API
-
-  (agent writes 2000 lines)
-  (no tests)
-  (forgot the auth middleware)
-  (wrong database schema)
-  (you spend 3 hours fixing it)
+/ck:sketch   →   /ck:map   →   /ck:make   →   /ck:check
+ what to         how to        build it       verify
+  build          build it                       it
 ```
 
-One shot. No validation. No traceability.
-The agent guessed what you wanted.
+Four commands. In that order. That is the whole main cycle.
 
-</td>
-<td>
+- **`/ck:sketch`** — decompose your project into domains, write kits with R-numbered requirements and testable acceptance criteria.
+- **`/ck:map`** — read kits, generate a tiered build site with a task dependency graph.
+- **`/ck:make`** — autonomous parallel build loop. Ready tasks grouped into packets, validated, merged wave by wave. Runs until all tasks are done or a budget trips.
+- **`/ck:check`** — gap analysis against kits + peer review of the code. Produces an APPROVE / REVISE / REJECT verdict and auto-amends kits when gaps appear.
 
-```
-> /bp:draft
-  4 blueprints, 22 requirements, 69 criteria
-
-> /bp:architect
-  34 tasks across 5 dependency tiers
-
-> /bp:build
-  18 iterations — each validated against
-  the blueprint before committing
-
-  BLUEPRINT COMPLETE
-```
-
-Every line of code traces to a requirement.
-Every requirement has acceptance criteria.
-
-</td>
-</tr>
-</table>
+One shortcut: **`/ck:ship "<description>"`** runs all four end-to-end with no user gates. For tiny features and throwaways — the guided path is better for anything non-trivial, because the design conversation is where the value is.
 
 ---
 
 ## Install
 
 ```bash
-git clone https://github.com/JuliusBrussee/blueprint.git ~/.blueprint
-cd ~/.blueprint && ./install.sh
+git clone https://github.com/JuliusBrussee/cavekit.git ~/.cavekit
+cd ~/.cavekit && ./install.sh
 ```
 
-This registers the Blueprint plugin with Claude Code, syncs it into your local Codex plugin marketplace, links Codex prompt files into `~/.codex/prompts/`, and installs the `blueprint` CLI. Restart Claude Code and Codex after installing.
+Configures Cavekit for Claude Code, links the Codex bundle, and installs the `cavekit` CLI. Restart Claude Code and Codex after installing.
 
-**Requirements:** [Claude Code](https://docs.anthropic.com/en/docs/claude-code), git, macOS/Linux.
+### Agent Surfaces
 
-**Optional:** [Codex](https://github.com/openai/codex) (`npm install -g @openai/codex`) — enables adversarial review at the design, build, and command levels. Blueprint works without it, but Codex makes it significantly harder to ship flawed specs and broken code.
+- **Claude Code**: Cavekit is consumed primarily as slash commands and subagents. Anthropic's public docs describe project and user commands under `.claude/commands/` and subagents under `.claude/agents/`.
+- **Codex**: Cavekit is consumed as Codex skills and plugin-bundled assets. OpenAI's docs describe skills as `SKILL.md`-based workflows, with plugins as the installable distribution unit.
+- Cavekit ships both surfaces so the same methodology can be used from Claude Code and Codex, but they are **not** the same extension mechanism under the hood.
+
+**Requires:** [Claude Code](https://docs.anthropic.com/en/docs/claude-code), git, macOS/Linux.
+
+**Optional:** [Codex](https://github.com/openai/codex) (`npm install -g @openai/codex`) — adds adversarial review. Cavekit works without it.
 
 ---
 
-## How It Works
+## Your First Run
 
-Blueprint follows four phases — **Draft, Architect, Build, Inspect** — each driven by a slash command inside Claude Code. An optional **Research** phase grounds the design in real evidence before blueprints are written. A standalone `/bp:design` command creates and maintains a **DESIGN.md** design system that becomes a cross-cutting constraint enforced throughout all phases.
-
-```
-  RESEARCH         DRAFT            ARCHITECT           BUILD                INSPECT
-  ────────         ─────            ─────────           ─────                ───────
-  (optional)       "What are we     Break into tasks,   Auto-parallel:       Gap analysis:
-  Multi-agent       building?"      map dependencies,    /bp:build            built vs.
-  codebase +                        organize into        groups work          intended.
-  web research     Produces:        tiered build site    into adaptive        Peer review.
-                   blueprints       + dependency graph   subagent packets     Trace to specs.
-  Produces:        with R-numbered                       tier by tier
-  research brief   requirements     Produces:                                 Produces:
-  in context/refs                   task graph           Codex reviews        findings report
-                   Codex challenges                      every tier gate
-                   the design                            (speculative +
-                                                         synchronous)
-
-  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  /bp:design (standalone)  →  DESIGN.md  →  design tokens referenced in blueprints + tasks
-                                             design-reviewer enforces across build + inspect
-  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-```
-
-### 0. Research — ground the design (optional)
+Greenfield. New repo. You want a task-management API.
 
 ```
-/bp:research "build a C+ compiler"
+> /ck:init
+  Context hierarchy created. Capabilities detected.
+  Next: /ck:sketch
+
+> /ck:sketch
+  What are you building?
+
+> A REST API for task management. Users, projects, tasks with
+  priorities and due dates. PostgreSQL.
+
+  (design conversation — research if warranted, domain decomposition,
+   acceptance criteria refinement)
+
+  4 kits, 22 requirements, 69 acceptance criteria.
+  Next: /ck:map
+
+> /ck:map
+  34 tasks across 5 tiers. Coverage: 69/69 criteria mapped.
+  Next: /ck:make
+
+> /ck:make
+  Loop active — 34 tasks, 20 max iterations.
+  Wave 1 (3 tasks), Wave 2 (4 tasks), …
+  ALL TASKS DONE. Build passes. Tests pass.
+  Next: /ck:check
+
+> /ck:check
+  Coverage: 100%. Verdict: APPROVE.
+  CAVEKIT COMPLETE
 ```
 
-Dispatches 2–8 parallel subagents to explore the codebase and search the web for current best practices, library landscape, reference implementations, and common pitfalls. A synthesizer agent cross-validates findings and produces a research brief in `context/refs/`. Research is also offered inline during `/bp:draft` when the project involves unfamiliar technology or architectural decisions with multiple viable approaches.
+That is the experience.
 
-### /bp:design — establish the design system (standalone)
+## Adding to an Existing Repo
 
-```
-/bp:design
-```
-
-Creates or imports a **DESIGN.md** design system that becomes a cross-cutting constraint layer across the entire pipeline. Once present, every blueprint references its design tokens, every task carries a Design Ref, and every build result is audited for design violations.
-
-Four sub-commands:
-
-- `/bp:design create` — generate a new DESIGN.md from scratch via guided Q&A
-- `/bp:design import` — extract a DESIGN.md from an existing codebase
-- `/bp:design audit` — check current implementation against DESIGN.md, report violations
-- `/bp:design update` — revise DESIGN.md and log the change to `context/designs/design-changelog.md`
-
-When DESIGN.md exists, the **design-reviewer agent** validates UI changes during build and inspect, flagging `DESIGN VIOLATION` statuses for any task that drifts from the tokenized system. Design changes are tracked in a changelog so intent is never lost across build cycles.
-
-### 1. Draft — define the what
+Same loop, different first command.
 
 ```
-/bp:draft
+> /ck:sketch --from-code
+  Scanning repo… Next.js 14, Prisma, NextAuth.
+  6 kits reverse-engineered. 4 requirements flagged as gaps (not yet implemented).
+  Next: /ck:map --filter collaboration   (or whichever domain you're adding to)
+
+> /ck:map --filter collaboration
+  8 tasks, 3 tiers.
+  Next: /ck:make
+
+> /ck:make
+  …
+
+> /ck:check
+  Verdict: APPROVE. Design-system compliance: 100%.
 ```
 
-You describe what you're building in natural language. Blueprint decomposes it into **domain blueprints** — structured documents with numbered requirements (R1, R2, ...) and testable acceptance criteria. Each blueprint is stack-independent and human-readable.
-
-When the project would benefit from it, the draft phase offers to run [deep research](#0-research--ground-the-design-optional) before design Q&A — grounding clarifying questions and approach proposals in real evidence rather than LLM priors.
-
-After the internal reviewer approves, blueprints are sent to Codex for a [design challenge](#design-challenge--catch-spec-flaws-before-building) — an adversarial review that catches decomposition flaws, missing requirements, and ambiguous criteria before any code is written.
-
-For existing codebases, `/bp:draft --from-code` reverse-engineers blueprints from your code and identifies gaps.
-
-### 2. Architect — plan the order
-
-```
-/bp:architect
-```
-
-Reads all blueprints, breaks requirements into tasks, maps dependencies, and organizes everything into a **tiered build site** — a dependency graph where Tier 0 has no dependencies, Tier 1 depends only on Tier 0, and so on. The build site includes a **Coverage Matrix** that maps every individual acceptance criterion to its task(s), ensuring nothing specified in the blueprints gets lost in translation. This is what the build loop consumes.
-
-### 3. Build — run the loop
-
-```
-/bp:build
-```
-
-Before starting, a **pre-flight coverage check** validates that the build site covers all blueprint acceptance criteria — gaps are flagged before any code is written. After completion, a **post-flight blueprint verification** cross-references what was built against the original blueprints, adding remediation tasks for any criteria that slipped through.
-
-The Ralph Loop. Each iteration:
-
-```
-  ┌──────────────────────────────────────────────────────────┐
-  │                                                          │
-  │  Read build site → Find next unblocked task              │
-  │       │                                                  │
-  │       ▼                                                  │
-  │  Load relevant blueprint + acceptance criteria           │
-  │       │                                                  │
-  │       ▼                                                  │
-  │  Implement the task                                      │
-  │       │                                                  │
-  │       ▼                                                  │
-  │  Validate (build + tests + acceptance criteria)          │
-  │       │                                                  │
-  │       ├── PASS → commit → mark done → next task ──┐     │
-  │       │                                            │     │
-  │       └── FAIL → diagnose → fix → revalidate      │     │
-  │                                                    │     │
-  │  ◄─────────────────────────────────────────────────┘     │
-  │                                                          │
-  │  Loop until: all tasks done OR iteration limit reached   │
-  └──────────────────────────────────────────────────────────┘
-```
-
-At every tier boundary, [Codex adversarial review](#codex-adversarial-review) gates advancement — P0/P1 findings must be fixed before the next tier starts. With speculative review enabled (default), this adds near-zero latency because the review runs in the background while the next tier builds.
-
-### 4. Inspect — verify the result
-
-```
-/bp:inspect
-```
-
-Gap analysis compares what was built against what was specified. Peer review checks for bugs, security issues, and missed requirements. Everything traced back to blueprint requirements.
-
----
-
-## Quick Start
-
-**Greenfield project:**
-
-```
-> /bp:draft
-What are you building?
-
-> A REST API for task management. Users, projects, tasks with priorities
-  and due dates, assignments. PostgreSQL.
-
-Created 4 blueprints (22 requirements, 69 acceptance criteria)
-Next: /bp:architect
-
-> /bp:architect
-Generated build site: 34 tasks, 5 tiers
-Next: /bp:build
-
-> /bp:build
-Loop activated — 34 tasks, 20 max iterations.
-...
-All tasks done. Build passes. Tests pass.
-BLUEPRINT COMPLETE — 34 tasks in 18 iterations.
-```
-
-**Existing codebase:**
-
-```
-> /bp:draft --from-code
-Exploring codebase... Next.js 14, Prisma, NextAuth.
-Created 6 blueprints — 4 requirements are gaps (not yet implemented).
-
-> /bp:architect --filter collaboration
-Generated build site: 8 tasks, 3 tiers
-
-> /bp:build
-Loop activated — 8 tasks.
-...
-BLUEPRINT COMPLETE — 8 tasks in 8 iterations.
-```
-
-See [example.md](example.md) for full annotated conversations.
-
----
-
-## Parallel Execution
-
-`/bp:build` automatically parallelizes. When multiple tasks are ready (no unmet dependencies), it groups them into a few coherent work packets based on shared files, subsystem, and task complexity, then runs those packets in parallel.
-
-```
-> /bp:build
-═══ Wave 1 ═══
-3 task(s) ready:
-  T-001: Database schema (tier 0, deps: none)
-  T-002: Auth middleware (tier 0, deps: none)
-  T-003: Config loader (tier 0, deps: none)
-
-Dispatching 2 grouped subagents...
-All 3 tasks complete. Merging...
-
-═══ Wave 2 ═══
-2 task(s) ready:
-  T-004: User endpoints (tier 1, deps: T-001, T-002)
-  T-005: Health check (tier 1, deps: T-003)
-
-Dispatching 2 grouped subagents...
-All done.
-
-═══ BUILD COMPLETE ═══
-Waves: 2 | Tasks: 5/5
-```
-
-How it works:
-- Reads the build site and computes the **frontier** — all tasks whose dependencies are complete
-- Groups the ready frontier into coherent work packets before delegating
-- Uses parallel subagents where file ownership and task size make that worthwhile
-- After all complete, merges results and computes the next frontier
-- Repeats wave-by-wave until all tasks are done — no manual intervention between tiers
-
-Circuit breakers prevent infinite loops: 3 test failures → task marked BLOCKED, all tasks blocked → stop and report.
-
----
-
-## Codex Adversarial Review
-
-Blueprint uses [Codex](https://github.com/openai/codex) (OpenAI's coding agent) as an adversarial reviewer — a second model with a fundamentally different perspective that catches blind spots Claude cannot see in its own output. This dual-model approach operates at three levels:
-
-### Design Challenge — catch spec flaws before building
-
-After Claude drafts blueprints and the internal reviewer approves them, the entire blueprint set is sent to Codex for a **design challenge** — an adversarial review focused exclusively on architecture-level concerns:
-
-```
-  Claude drafts            Blueprint           Codex challenges         User reviews
-  blueprints ──────► reviewer approves ──────► the design ──────► blueprints + findings
-                                                    │
-                                          Checks:   │
-                                          • Domain decomposition quality
-                                          • Missing requirements
-                                          • Ambiguous acceptance criteria
-                                          • Implicit assumptions
-                                          • Cross-domain coherence
-```
-
-Codex returns structured findings categorized as **critical** (must fix before building) or **advisory** (worth considering). Critical findings trigger an auto-fix loop — Claude addresses them, Codex re-challenges, up to 2 cycles. Advisory findings are presented alongside blueprints at the user review gate.
-
-The design challenge is purpose-built to prohibit implementation feedback. No framework suggestions, no file path opinions — only design-level concerns that would cause real problems during the build phase.
-
-### Tier Gate — catch code defects between build tiers
-
-During `/bp:build`, every completed tier triggers a Codex adversarial code review before advancing:
-
-```
-  ═══ Tier 0 Complete ═══
-  Codex reviews diff (T-001, T-002, T-003) ...
-  Review: 2 findings (1 P0, 1 P3)
-  Gate: BLOCKED → fix cycle 1/2
-
-  Fixing P0: nil pointer in auth middleware ...
-  Re-review ...
-  Gate: PROCEED
-
-  ═══ Tier 1 starting ═══
-```
-
-The **severity-based gate** classifies findings by impact:
-
-| Severity | Behavior |
-|----------|----------|
-| P0 (critical) | Blocks tier advancement. Fix task generated automatically. |
-| P1 (high) | Blocks tier advancement. Fix task generated automatically. |
-| P2 (medium) | Deferred. Logged but does not block. |
-| P3 (low) | Deferred. Logged but does not block. |
-
-Gate modes are configurable: `severity` (default — P0/P1 block), `strict` (all findings block), `permissive` (nothing blocks), or `off`.
-
-The review-fix cycle runs up to 2 iterations per tier. After that, the build advances with a warning — the system never deadlocks.
-
-### Speculative Review — eliminate gate latency
-
-By default, Blueprint runs the Codex review of the *previous* tier in the background while Claude builds the *current* tier:
-
-```
-  Tier 0 complete ───────────────────────────────► Tier 1 complete
-       │                                                │
-       └── Codex reviews Tier 0 (background) ──────────►│
-                                                        │
-                              Results ready ◄───────────┘
-                              before gate runs
-```
-
-When the current tier finishes and the gate checks for the previous tier's review, the results are already available — cutting tier gate latency to near-zero. If the background review isn't done yet, the system waits (with a configurable timeout) and falls back to synchronous review if needed.
-
-### Command Safety Gate
-
-A PreToolUse hook intercepts every Bash command before execution and classifies its safety:
-
-```
-  Agent runs bash command
-       │
-       ▼
-  Fast-path check ──► allowlist (50+ safe commands) → approve
-       │           └► blocklist (rm -rf, force push, DROP TABLE, ...) → block
-       │
-       ▼ (ambiguous)
-  Codex classifies ──► safe → approve
-       │            └► warn → approve + log
-       │            └► block → prevent execution
-       │
-       ▼ (cached)
-  Verdict cache ──► normalized pattern match → reuse verdict
-```
-
-The gate integrates with Claude Code's permission system — commands already allowed or blocked in settings bypass the gate entirely. Verdicts are cached by normalized command pattern within the session to avoid redundant API calls. When Codex is unavailable, the gate falls back to static rules only — it never blocks a command solely because the classifier is unreachable.
-
-### Graceful degradation
-
-All Codex features are **additive**. When Codex is not installed:
-
-- Design challenge is skipped — the internal blueprint reviewer still runs
-- Tier gate is skipped — the build loop proceeds without review pauses
-- Command gate falls back to static allowlist/blocklist only
-- A one-time install nudge appears: `Tip: Install Codex for adversarial code review`
-
-Blueprint works the same as before. Codex makes it harder to ship bad blueprints and bad code.
-
-### Configuration
-
-Blueprint settings can live in two places:
-
-- User default: `~/.blueprint/config`
-- Project override: `.blueprint/config`
-
-Precedence is: project override > user default > built-in default.
-
-| Setting | Values | Default | Purpose |
-|---------|--------|---------|---------|
-| `bp_model_preset` | `expensive` `quality` `balanced` `fast` | `quality` | Resolve `reasoning`, `execution`, and `exploration` models for Blueprint commands |
-| `codex_review` | `auto` `off` | `auto` | Enable/disable Codex reviews |
-| `codex_model` | model string | (Codex default) | Model for Codex calls |
-| `tier_gate_mode` | `severity` `strict` `permissive` `off` | `severity` | How findings gate tier advancement |
-| `command_gate` | `all` `interactive` `off` | `all` | Which sessions get command gating |
-| `command_gate_timeout` | milliseconds | `3000` | Timeout for Codex safety classification |
-| `speculative_review` | `on` `off` | `on` | Background review of previous tier |
-| `speculative_review_timeout` | seconds | `300` | Max wait for speculative results |
-
-Built-in model presets:
-
-| Preset | Reasoning | Execution | Exploration |
-|--------|-----------|-----------|-------------|
-| `expensive` | `opus` | `opus` | `opus` |
-| `quality` | `opus` | `opus` | `sonnet` |
-| `balanced` | `opus` | `sonnet` | `haiku` |
-| `fast` | `sonnet` | `sonnet` | `haiku` |
-
-Use `/bp:config` to inspect or change the active preset.
-
-Examples:
-
-```bash
-/bp:config
-/bp:config list
-/bp:config preset balanced
-/bp:config preset fast --global
-```
+See [example.md](example.md) for fully annotated sessions.
 
 ---
 
 ## Commands
 
-### Claude Code slash commands
+The main cycle is four commands. Everything else is optional.
 
-| Command | Phase | Description |
-|---------|-------|-------------|
-| `/bp:research` | Research | Deep multi-agent research — codebase + web, produces research brief |
-| `/bp:design` | Design | Create, import, audit, or update DESIGN.md — establishes a tokenized design system enforced across the pipeline |
-| `/bp:draft` | Draft | Decompose requirements into domain blueprints (offers research if warranted) |
-| `/bp:architect` | Architect | Generate a tiered build site from blueprints |
-| `/bp:build` | Build | Auto-parallel build — dispatches independent tasks concurrently, progresses through tiers autonomously |
-| `/bp:inspect` | Inspect | Gap analysis + peer review against blueprints |
-| `/bp:config` | — | Show or update the active Blueprint execution preset |
-| `/bp:codex-review` | — | Run standalone Codex adversarial review on current diff |
-| `/bp:progress` | — | Check build site progress |
-| `/bp:gap-analysis` | — | Compare built vs. intended |
-| `/bp:revise` | — | Trace manual fixes back into blueprints |
-| `/bp:help` | — | Show usage guide |
+### Core
 
-### CLI commands
+| Command | Phase | What it does |
+|---------|-------|--------------|
+| `/ck:sketch` | Draft | Decompose into domains; write kits with R-numbered requirements and testable acceptance criteria |
+| `/ck:map` | Architect | Generate a tiered build site (task dependency graph) from kits |
+| `/ck:make` | Build | Autonomous parallel build loop; validates each task against its criteria |
+| `/ck:check` | Inspect | Gap analysis + peer review; verdict APPROVE / REVISE / REJECT |
+| `/ck:ship` | End-to-end | One-shot sketch → map → make → check, no user gates. Tiny features only. |
 
-| Command | Description |
-|---------|-------------|
-| `blueprint version` | Print version |
+### Auxiliary
 
----
+| Command | What it does |
+|---------|--------------|
+| `/ck:init` | Bootstrap `context/` and `.cavekit/` runtime state. `--tools-only` re-detects capabilities. |
+| `/ck:design` | Create / import / update / audit `DESIGN.md` (9-section visual system) |
+| `/ck:research` | Parallel multi-agent research → brief in `context/refs/` |
+| `/ck:revise` | Trace manual fixes back into kits. `--trace` runs the single-failure backpropagation protocol (auto-invoked on test failure). |
+| `/ck:review` | Branch review: kit compliance + code quality. `--mode gap`, `--codex`, `--tier`, `--strict` narrow scope. |
+| `/ck:status` | Task frontier and runtime state. `--watch` tails the live dashboard. |
+| `/ck:config` | Execution presets and runtime keys. `--global` writes to `~/.cavekit/config`. |
+| `/ck:resume` | Recover an interrupted loop. |
+| `/ck:team` | Multi-person / multi-device coordination (opt-in). See [Teams](#teams). |
+| `/ck:help` | Command reference. |
 
-## File Structure
+Run `/ck:help` for flag-level detail on any command.
 
-```
-context/
-├── blueprints/               # Domain blueprints (persist across cycles)
-│   ├── blueprint-overview.md
-│   └── blueprint-{domain}.md
-├── designs/                  # Design system artifacts
-│   ├── DESIGN.md                  # Tokenized design system (colors, typography, spacing, components)
-│   └── design-changelog.md        # Audit log of design decisions and changes
-├── sites/                    # Build sites (one per plan)
-│   ├── build-site-*.md
-│   └── archive/
-├── impl/                     # Implementation tracking
-│   ├── impl-{domain}.md
-│   ├── impl-review-findings.md   # Codex review findings ledger
-│   ├── impl-speculative-log.md   # Speculative review timing data
-│   ├── loop-log.md
-│   └── archive/
-└── refs/                     # Reference materials (PRDs, API docs)
-    ├── research-brief-{topic}.md   # Synthesized research brief
-    └── research-{topic}/           # Raw findings + findings board
+### CLI
 
-scripts/
-├── bp-config.sh              # Canonical Blueprint config + model preset resolver
-├── codex-detect.sh           # Codex binary and plugin detection
-├── codex-config.sh           # Backward-compatible wrapper for bp-config.sh
-├── codex-review.sh           # Adversarial code review invocation
-├── codex-findings.sh         # Structured finding management
-├── codex-gate.sh             # Severity-based tier gating + fix cycle
-├── codex-design-challenge.sh # Design challenge for blueprint drafts
-├── codex-speculative.sh      # Background speculative review pipeline
-└── command-gate.sh           # PreToolUse command safety gate
-```
+| Command | What it does |
+|---------|--------------|
+| `cavekit monitor` | Interactive launcher — pick build sites, launch in tmux |
+| `cavekit status` | Build site progress |
+| `cavekit kill` | Stop all sessions, clean up worktrees |
+| `cavekit version` | Print version |
+| `cavekit reset` | Clear persisted state |
 
 ---
 
-## Methodology
+## How It Works
 
-Blueprint is built on a simple observation: LLMs are non-deterministic, but software engineering doesn't have to be. By applying the **scientific method** — hypothesize, test, observe, refine — we extract reliable outcomes from a stochastic process.
+Four phases. Each one a slash command.
 
-| Concept | Role |
-|---------|------|
-| **Blueprints** | The hypothesis — what you expect the software to do |
-| **Validation gates** | Controlled conditions — build, tests, acceptance criteria |
-| **Convergence loops** | Repeated trials — iterate until stable |
-| **Implementation tracking** | Lab notebook — what was tried, what worked, what failed |
-| **Revision** | Update the hypothesis — trace bugs back to blueprints |
+### 1. Sketch — define the what
 
-The plugin ships with 9 specialized agents (including a **design-reviewer** that validates UI changes against DESIGN.md), a multi-agent research system, and 15 deep-dive skills covering the full methodology. When Codex is installed, the system operates as a **dual-model architecture** — Claude builds and Codex reviews — catching classes of errors that single-model self-review cannot detect.
+Describe what you're building in natural language. Cavekit decomposes it into **domain kits** — structured documents with numbered requirements (R1, R2, …) and testable acceptance criteria. Stack-independent. Human-readable.
+
+If Codex is installed, kits go through a [design challenge](#codex-review-modes) — adversarial review that catches decomposition flaws before any code is written.
+
+Brownfield: `/ck:sketch --from-code` reverse-engineers kits from your code and flags gaps.
+
+### 2. Map — plan the order
+
+Reads every kit. Breaks requirements into tasks. Maps dependencies. Organizes into a **tiered build site** — a dependency graph where Tier 0 has no deps, Tier 1 depends only on Tier 0, and so on. Includes a Coverage Matrix mapping every acceptance criterion to its task(s). Nothing specified gets lost in translation.
+
+### 3. Make — run the loop
+
+Pre-flight coverage check validates all acceptance criteria are covered. Then the loop runs:
+
+```
+┌──────────────────────────────────────────────────────┐
+│  Read build site → Find next unblocked task          │
+│       ▼                                              │
+│  Load kit + acceptance criteria                      │
+│       ▼                                              │
+│  Implement task                                      │
+│       ▼                                              │
+│  Validate (build + tests + acceptance criteria)      │
+│       ▼                                              │
+│  PASS → commit → mark done → next ──┐                │
+│  FAIL → diagnose → fix → revalidate │                │
+│  ◄──────────────────────────────────┘                │
+│                                                      │
+│  Loop until: all tasks done OR budget exhausted      │
+└──────────────────────────────────────────────────────┘
+```
+
+`/ck:make` parallelizes automatically. Multiple ready tasks get grouped into coherent work packets and dispatched concurrently:
+
+```
+═══ Wave 1 ═══
+3 task(s) ready:
+  T-001: Database schema   (tier 0)
+  T-002: Auth middleware   (tier 0)
+  T-003: Config loader     (tier 0)
+
+Dispatching 2 grouped subagents…
+All 3 tasks complete. Merging…
+
+═══ Wave 2 ═══
+2 task(s) ready:
+  T-004: User endpoints    (tier 1, deps: T-001, T-002)
+  T-005: Health check      (tier 1, deps: T-003)
+…
+```
+
+Circuit breakers prevent infinite loops: 3 test failures → task BLOCKED; all blocked → stop and report.
+
+At every tier boundary, optional [Codex review](#codex-review-modes) gates advancement. P0/P1 findings must be fixed before the next tier starts. Speculative review (default) adds near-zero latency.
+
+### 4. Check — verify the result
+
+Gap analysis: built vs. specified. Peer review: bugs, security, missed requirements. Everything traced back to kit requirements. Verdict: APPROVE / REVISE / REJECT. Gaps feed back as remediation tasks.
+
+---
+
+## Design System (optional)
+
+If the project has UI, run `/ck:design` first. It creates or imports `DESIGN.md` — a 9-section Google-Stitch-format design system. Every kit then references its design tokens; every UI task carries a Design Ref; every build result is audited for design violations during `/ck:check`.
+
+```
+/ck:design                       # interactive
+/ck:design --import vercel       # start from a known system
+/ck:design --from-site <url>     # extract tokens from a live site
+/ck:design --audit               # gap-check an existing DESIGN.md
+```
+
+---
+
+## Configuration
+
+Settings live in two places:
+
+| Location | Scope |
+|----------|-------|
+| `~/.cavekit/config` | User default |
+| `.cavekit/config` | Project override (takes precedence) |
+
+### Model Presets
+
+| Preset | Reasoning | Execution | Exploration |
+|--------|-----------|-----------|-------------|
+| `expensive` | opus | opus | opus |
+| `quality` | opus | opus | sonnet |
+| `balanced` | opus | sonnet | haiku |
+| `fast` | sonnet | sonnet | haiku |
+
+```
+/ck:config                       # show current
+/ck:config preset balanced       # change preset for this repo
+/ck:config preset fast --global  # change default for all repos
+```
 
 <details>
-<summary><strong>View all skills</strong></summary>
+<summary><strong>All configuration keys</strong></summary>
 
-- **[Design System](skills/design-system)** — how to create and maintain a DESIGN.md that agents enforce
-- **[UI Craft](skills/ui-craft)** — component patterns, animation playbook, accessibility checklist, and review checklist for UI work
-- **[Blueprint Writing](skills/blueprint-writing)** — how to write blueprints agents can consume
-- **[Convergence Monitoring](skills/convergence-monitoring)** — detecting when iterations plateau
-- **[Peer Review](skills/peer-review)** — six modes for cross-model review
-- **[Validation-First Design](skills/validation-first)** — every requirement must be verifiable
-- **[Context Architecture](skills/context-architecture)** — progressive disclosure for agent context
-- **[Revision](skills/revision)** — tracing bugs upstream to blueprints
-- **[Brownfield Adoption](skills/brownfield-adoption)** — adding Blueprint to an existing codebase
-- **[Speculative Pipeline](skills/speculative-pipeline)** — overlapping phases for faster builds
-- **[Prompt Pipeline](skills/prompt-pipeline)** — designing the prompts that drive each phase
-- **[Implementation Tracking](skills/impl-tracking)** — living records of build progress
-- **[Documentation Inversion](skills/documentation-inversion)** — docs for agents, not just humans
-- **[Peer Review Loop](skills/peer-review-loop)** — combining Ralph Loop with cross-model review
-- **[Core Methodology](skills/methodology)** — the full DABI lifecycle
+| Setting | Values | Default | Purpose |
+|---------|--------|---------|---------|
+| `bp_model_preset` | `expensive` `quality` `balanced` `fast` | `quality` | Model selection |
+| `codex_review` | `auto` `off` | `auto` | Enable/disable Codex reviews |
+| `codex_model` | model string | (Codex default) | Model for Codex calls |
+| `tier_gate_mode` | `severity` `strict` `permissive` `off` | `severity` | How findings gate tier advancement |
+| `command_gate` | `all` `interactive` `off` | `all` | Command-gating scope |
+| `command_gate_timeout` | ms | `3000` | Codex classification timeout |
+| `speculative_review` | `on` `off` | `on` | Background review of previous tier |
+| `speculative_review_timeout` | s | `300` | Max wait for speculative results |
+| `caveman_mode` | `on` `off` | `on` | Token-compressed output (~75% savings) |
+| `caveman_phases` | comma-separated | `build,inspect` | Which phases use caveman-speak |
+| `session_budget` | tokens | `500000` | Loop token cap before auto-halt |
+| `max_iterations` | integer | `60` | Stop-hook iteration cap |
+| `task_budget_quick` | tokens | `8000` | Per-task budget for `depth: quick` |
+| `task_budget_standard` | tokens | `20000` | Per-task budget for `depth: standard` |
+| `task_budget_thorough` | tokens | `45000` | Per-task budget for `depth: thorough` |
+| `auto_backprop` | `on` `off` | `on` | Trigger backpropagation on test failure |
+| `tool_cache` | `on` `off` | `on` | Cache read-only tool results |
+| `tool_cache_ttl_ms` | ms | `120000` | TTL for cached tool results |
+| `test_filter` | `on` `off` | `on` | Condense test output around failures |
+| `progress_tracker` | `on` `off` | `on` | Write `.cavekit/.progress.json` |
+| `parallelism_max_agents` | integer | `3` | Max concurrent subagents per wave |
+| `parallelism_max_per_repo` | integer | `2` | Max concurrent subagents writing the same repo |
+| `model_routing` | `on` `off` | `on` | Score-based tier routing |
+| `graphify_enabled` | `on` `off` | `off` | Use knowledge-graph queries |
 
 </details>
 
 ---
 
-## Why "Blueprint"
+## Teams
 
-Most AI coding tools treat the agent as a black box — you prompt, it generates, you hope. Blueprint inverts this. **The specification is the product. The code is a derivative.** When the spec is clear, the code follows. When the code is wrong, the spec tells you why.
+Cavekit has an **opt-in team mode** that lets multiple people — or the same person on multiple devices — safely share one build site without stepping on each other.
 
-This matters because AI agents are getting better every month, but the fundamental problem remains: without a specification, there's nothing to validate against. Blueprint gives every agent — current and future — a contract to build from and a standard to meet.
+It is *not* a server. It's a CAS-backed ledger on its own git ref plus a pre-commit guard, so the coordination state travels with the repo and nothing else needs to be hosted.
 
-With Codex adversarial review, Blueprint goes further: a second model with different training and different blind spots reviews both the specification and the implementation. Two models disagreeing is a signal. Two models agreeing is confidence.
+### Setup
+
+```bash
+cavekit team init   # once, per repo — creates the ledger ref on origin and installs a pre-commit hook
+cavekit team join   # in every other checkout / clone / machine
+```
+
+### What it gives you
+
+- **Claims on tasks** — `cavekit team claim T-013` reserves a task for your identity. Teammates see it and `team next` skips it.
+- **Path-scoped claims** — two people can share one task if their file footprints are disjoint: `claim T-013 --paths "src/auth/**,tests/auth/**"`.
+- **Automatic path scoping from kits** — if the build site declares a `Files` column, claims default to those globs. No one has to guess.
+- **Pre-commit guard** — a local hook refuses to commit files another teammate has actively claimed. Emergency override: `CAVEKIT_TEAM_OVERRIDE=1 git commit …` (recorded in the ledger).
+- **Offline-safe** — claims and releases queue locally if you can't reach origin, and drain on the next successful op.
+- **No feature-branch pollution** — the ledger lives on `refs/heads/cavekit/team`, not on your working branch.
+
+### Declaring file footprints in kits (`Files` column)
+
+Add an optional trailing `Files` column to any build-site table. When present, the scheduler uses it for real path-overlap detection and `claim` auto-defaults to these globs:
+
+```markdown
+## Tier 0 — No Dependencies
+
+| Task  | Title       | Spec     | Requirement | Effort | Files                         |
+|-------|-------------|----------|-------------|--------|-------------------------------|
+| T-001 | Auth module | spec.md  | R1          | S      | src/auth/**, tests/auth/**    |
+
+## Tier 1 — Depends on Tier 0
+
+| Task  | Title   | Spec    | Requirement | blockedBy | Effort | Files                           |
+|-------|---------|---------|-------------|-----------|--------|---------------------------------|
+| T-003 | DB layer| spec.md | R2          | T-001     | M      | internal/db/**; migrations/**   |
+```
+
+Separate globs with commas (or semicolons if a pattern itself contains a comma). Kits without a `Files` column keep working — the scheduler falls back to coarser heuristics for those tasks.
+
+### Day-to-day
+
+```bash
+cavekit team status              # active claims, recent activity, idle members
+cavekit team status --conflicts  # add race/override/outbox diagnostics
+cavekit team next --json         # best unclaimed path-safe task for you
+cavekit team claim T-013         # paths default to the kit's Files column
+cavekit team release T-013 --complete
+cavekit team sync --timeout 5    # fetch ledger + drain offline outbox
+```
+
+`/ck:make` integrates automatically — when team mode is active, it claims packets before dispatch, runs a background heartbeat, and releases on merge or failure.
+
+Configuration lives in `.cavekit/team/config.json` (`lease_ttl_seconds`, `heartbeat_interval_seconds`, `allow_offline`, …). Exit codes and troubleshooting are in `/ck:team --help` and [`commands/team.md`](commands/team.md).
 
 ---
+
+<details>
+<summary><strong>Codex review modes</strong></summary>
+
+Cavekit uses [Codex](https://github.com/openai/codex) as an adversarial reviewer — a second model with different training and different blind spots. Three levels:
+
+### Design Challenge — catch spec flaws before building
+
+After kits are drafted and internally reviewed, the full set goes to Codex.
+
+| Finding type | Behavior |
+|--------------|----------|
+| **Critical** | Must fix before building. Auto-fix loop, up to 2 cycles. |
+| **Advisory** | Presented alongside kits at user review gate. |
+
+Only design-level concerns. No implementation feedback.
+
+### Tier Gate — catch code defects between tiers
+
+Every completed tier triggers a Codex code review before advancing.
+
+| Severity | Behavior |
+|----------|----------|
+| **P0** (critical) | Blocks advancement. Auto-generates fix task. |
+| **P1** (high) | Blocks advancement. Auto-generates fix task. |
+| **P2** (medium) | Logged, does not block. |
+| **P3** (low) | Logged, does not block. |
+
+Gate modes: `severity` (default — P0/P1 block), `strict` (all block), `permissive` (nothing blocks), `off`.
+
+Fix cycle runs up to 2 iterations per tier. After that, advances with warning. Never deadlocks.
+
+### Speculative Review — eliminate gate latency
+
+Codex reviews the previous tier in the background while Claude builds the current tier. Results are ready when the gate checks. Near-zero latency. Falls back to synchronous if needed.
+
+### Command Safety Gate
+
+PreToolUse hook intercepts every Bash command. Fast-path allowlist (50+ safe commands) / blocklist (rm -rf, force push, DROP TABLE). Ambiguous commands → Codex classifies → safe / warn / block. Verdict cached per session. Falls back to static rules when Codex is unavailable — never blocks solely because classifier is unreachable.
+
+### Graceful Degradation
+
+Without Codex installed: design challenge skipped, tier gate skipped, command gate falls back to static allowlist. Cavekit works the same; Codex makes it harder to ship bad specs and bad code.
+
+</details>
+
+<details>
+<summary><strong>Autonomous runtime internals</strong></summary>
+
+`/ck:make` is an autonomous loop. A Claude Code **Stop hook** drives the session iteration by iteration until every task is complete or a budget trips a circuit breaker.
+
+- **`hooks/stop-hook.sh`** — state-machine driver. Fires on every Stop event, routes the next prompt, returns `{"decision":"block"}` so the session continues.
+- **`hooks/token-monitor.sh`** — PostToolUse budget guard. Warns at 80% of per-task budget, halts at 100%.
+- **`hooks/tool-cache.js` / `tool-cache-store.js`** — 120s TTL cache for read-only commands (`git status`, `ls`, `Read`, `Grep`, `Glob`).
+- **`hooks/test-output-filter.js`** — condenses test output around failures.
+- **`hooks/auto-backprop.js`** — on test failure, writes a flag file; next iteration prepends a trace directive.
+- **`hooks/progress-tracker.js`** — zero-stdout snapshot writer for `/ck:status --watch`.
+- **`scripts/cavekit-tools.cjs`** — orchestration engine: state machine, heartbeat lock, token ledger, task registry, routing, capability discovery, checkpoints, artifact summaries.
+- **`scripts/cavekit-router.cjs`** — model-tier router. Scores tasks across five axes, maps to haiku/sonnet/opus within each role's band, demotes under budget pressure.
+
+Runtime state under `<project>/.cavekit/`:
+
+```
+.cavekit/
+├── config.json
+├── state.md
+├── .loop.json
+├── .loop.lock
+├── token-ledger.json
+├── task-status.json
+├── capabilities.json
+├── .progress.json
+├── .auto-backprop-pending.json
+├── history/backprop-log.md
+└── tool-cache/
+```
+
+Agents end the loop cleanly by emitting `<promise>CAVEKIT COMPLETE</promise>` on its own line. Debug with `CAVEKIT_DEBUG=1`. Recover with `/ck:resume`.
+
+### Per-phase runtime calls
+
+| Phase | Runtime call |
+|-------|--------------|
+| `/ck:init` | `cavekit-tools init` + `discover`; seeds `.cavekit/` and `.gitignore` |
+| `/ck:sketch` | dispatches `ck:complexity` per kit to auto-fill `complexity:` |
+| `/ck:map` | writes `.cavekit/tasks.json` + `init-registry` + `cavekit-router` |
+| `/ck:make` | `setup-build.sh` calls `setup-loop`; stop-hook drives waves |
+| `/ck:check` | dispatches `ck:verifier` for goal-backward check |
+| `/ck:review` | two-pass review; fix-cycle emits fix tasks back into the loop |
+| `/ck:revise` | routes each manual fix through the single-failure trace |
+| `/ck:status` | prints live runtime status; `--watch` tails snapshots |
+| `/ck:resume` | steals stale locks, validates state, re-enters the loop |
+| `/ck:config` | surfaces runtime keys alongside preset controls |
+
+Opt in per repo with `/ck:init`. Commands fall back to the pre-3.0 path when `.cavekit/` is absent.
+
+</details>
+
+<details>
+<summary><strong>File structure</strong></summary>
+
+```
+context/                       # Project artifacts (persist across cycles)
+├── kits/
+│   ├── cavekit-overview.md
+│   └── cavekit-{domain}.md
+├── designs/
+│   ├── DESIGN.md
+│   └── design-changelog.md
+├── plans/
+│   └── build-site.md
+├── impl/
+│   ├── impl-{domain}.md
+│   ├── impl-review-findings.md
+│   └── loop-log.md
+└── refs/
+
+.cavekit/                      # Runtime state (machine-managed)
+├── config.json
+├── state.md
+├── .loop.json
+├── .loop.lock
+├── token-ledger.json
+├── task-status.json
+├── capabilities.json
+├── .progress.json
+├── .auto-backprop-pending.json
+├── history/backprop-log.md
+└── tool-cache/
+```
+
+</details>
+
+<details>
+<summary><strong>Skills</strong></summary>
+
+| Skill | What it covers |
+|-------|----------------|
+| [Methodology](skills/methodology) | Core Hunt lifecycle |
+| [Design System](skills/design-system) | Create and maintain DESIGN.md |
+| [UI Craft](skills/ui-craft) | Component patterns, animation, accessibility, review checklist |
+| [Cavekit Writing](skills/cavekit-writing) | Write kits agents can consume |
+| [Peer Review](skills/peer-review) | Six review modes + Codex Loop Mode |
+| [Validation-First Design](skills/validation-first) | Every requirement must be verifiable |
+| [Context Architecture](skills/context-architecture) | Progressive disclosure for agent context |
+| [Revision](skills/revision) | Trace bugs upstream to kits (includes automated backprop) |
+| [Convergence Monitoring](skills/convergence-monitoring) | Detect when iterations plateau |
+| [Impl Tracking](skills/impl-tracking) | Living records of build progress |
+| [Brownfield Adoption](skills/brownfield-adoption) | Add Cavekit to existing codebases |
+| [Speculative Pipeline](skills/speculative-pipeline) | Overlap phases for faster builds |
+| [Prompt Pipeline](skills/prompt-pipeline) | Design the prompts driving each phase |
+| [Documentation Inversion](skills/documentation-inversion) | Docs for agents, not just humans |
+| [Karpathy Guardrails](skills/karpathy-guardrails) | Think-before-code, simplicity, surgical changes |
+| [Autonomous Loop](skills/autonomous-loop) | State machine, sentinels, lock protocol |
+| [Caveman](skills/caveman) | Token-compressed output (~75% savings) |
+
+</details>
+
+<details>
+<summary><strong>Methodology</strong></summary>
+
+Cavekit applies the **scientific method** to AI-generated code. LLMs are non-deterministic. Software engineering does not have to be.
+
+| Concept | Role |
+|---------|------|
+| **Kits** | The hypothesis — what you expect the software to do |
+| **Validation gates** | Controlled conditions — build, tests, acceptance criteria |
+| **Convergence loops** | Repeated trials — iterate until stable |
+| **Implementation tracking** | Lab notebook — what was tried, what worked, what failed |
+| **Revision** | Update the hypothesis — trace bugs back to kits |
+
+Ships with specialized agents (including **design-reviewer** for UI validation against DESIGN.md), a multi-agent research system, and 21 skills. With Codex, operates as a **dual-model architecture** — Claude builds, Codex reviews — catching errors single-model self-review cannot.
+
+**The spec is the product. The code is a derivative.**
+
+When the spec is clear, the code follows. When the code is wrong, the spec tells you why.
+
+Two models disagreeing is a signal. Two models agreeing is confidence.
+
+</details>
+
+---
+
+## Star This Repo
+
+If cavekit save you mass debug time — leave star.
+
+[![Star History Chart](https://api.star-history.com/svg?repos=JuliusBrussee/cavekit&type=Date)](https://star-history.com/#JuliusBrussee/cavekit&Date)
+
+---
+
+## 🪨 The Caveman Ecosystem
+
+Three tools. One philosophy: **agent do more with less**.
+
+| Repo | What | One-liner |
+|------|------|-----------|
+| [**caveman**](https://github.com/JuliusBrussee/caveman) | Output compression skill | *why use many token when few do trick* — ~75% fewer output tokens across Claude Code, Cursor, Gemini, Codex |
+| [**cavemem**](https://github.com/JuliusBrussee/cavemem) | Cross-agent persistent memory | *why agent forget when agent can remember* — compressed SQLite + MCP, local by default |
+| [**cavekit**](https://github.com/JuliusBrussee/cavekit) *(you are here)* | Spec-driven autonomous build loop | *why agent guess when agent can know* — natural language → kits → parallel build → verified |
+
+They compose: **cavekit** orchestrates the build, **caveman** compresses what the agent *says* (bundled, on by default for build/inspect phases), **cavemem** compresses what the agent *remembers* across sessions. Install one, some, or all — each stands alone.
+
+## Also by Julius Brussee
+
+- **[Revu](https://github.com/JuliusBrussee/revu-swift)** — local-first macOS study app with FSRS spaced repetition. [revu.cards](https://revu.cards)
 
 ## License
 
 MIT
-
----
-
-## Also by Julius Brussee
-
-- **[Caveman](https://github.com/JuliusBrussee/caveman)** — Claude Code skill that cuts ~75% of output tokens by talking like caveman. Same accuracy, way less fluff. `npx skills add JuliusBrussee/caveman`
-- **[Revu](https://github.com/JuliusBrussee/revu-swift)** — local-first macOS study app with FSRS spaced repetition, decks, exams, and study guides. [revu.cards](https://revu.cards)

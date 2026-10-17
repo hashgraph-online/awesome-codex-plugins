@@ -1,0 +1,18 @@
+# Local Codex scanner ignore list for the public connector package.
+
+.DS_Store
+.env
+.env.*
+!.env.example
+*.log
+*.pem
+*.key
+*.p12
+*.pfx
+node_modules/
+.next/
+dist/
+build/
+coverage/
+tmp/
+temp/

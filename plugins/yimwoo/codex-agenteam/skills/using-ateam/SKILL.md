@@ -22,8 +22,13 @@ If ANY of these exist, config is present — skip auto-init.
 **If ALL are missing**, initialize immediately:
 
 ```bash
-PLUGIN_DIR="$(find ~/.codex/plugins/cache -path '*/ateam' -type d 2>/dev/null | head -1)"
-if [ -d "$PLUGIN_DIR/local" ]; then PLUGIN_DIR="$PLUGIN_DIR/local"; fi
+RUNTIME_PATH="$(find ~/.codex/plugins/cache -type f \
+  \( -path '*/ateam/*/runtime/agenteam_rt.py' \
+     -o -path '*/ateam/*/local/runtime/agenteam_rt.py' \) \
+  2>/dev/null | sort -V | tail -1)"
+PLUGIN_DIR="${RUNTIME_PATH%/runtime/agenteam_rt.py}"
+test -f "$PLUGIN_DIR/runtime/agenteam_rt.py"
+test -f "$PLUGIN_DIR/templates/agenteam.yaml.template"
 mkdir -p .agenteam
 cp "$PLUGIN_DIR/templates/agenteam.yaml.template" .agenteam/config.yaml
 python3 "$PLUGIN_DIR/runtime/agenteam_rt.py" generate
@@ -66,6 +71,14 @@ Your team is ready! Talk to any role directly:
 Or use @ATeam to run the full pipeline or manage the team.
 ```
 
+After the roster/examples, append:
+
+```
+If the new roles do not show up in the `@` picker right away, first confirm this
+project now has `.codex/agents/*.toml` files, then open a new thread or restart
+Codex to reload workspace agents from `.codex/agents/`.
+```
+
 **For existing projects** (source files detected), append:
 
 ```
@@ -94,7 +107,9 @@ Match the user's request to a skill. **You must invoke the skill, not do the wor
 
 | User Says | Invoke |
 |-----------|--------|
-| "run the pipeline", "full workflow on X", "build X end-to-end", "let's start building X", "start a new project", "build a new project called X", "continue the pipeline", "keep going on X" | `$ateam:run` |
+| "run the pipeline", "full workflow on X", "build X end-to-end", "let's start building X", "start a new project", "build a new project called X" | `$ateam:run` |
+| "resume the run", "continue the interrupted run", "continue the pipeline", "keep going on X" | `$ateam:resume` |
+| "repair CI", "fix CI", "CI is failing" | `$ateam:ci-repair` |
 | "reconfigure team", "customize team", "change team settings" | `$ateam:init` |
 | "status", "progress", "what's happening" | `$ateam:status` |
 | "add a role", "add a member", "new team member" | `$ateam:add-member` |
@@ -121,6 +136,9 @@ But still handle the request if they ask through @ATeam.
 | standup | `$ateam:standup` | Quick project status report (<2s) |
 | deepdive | `$ateam:deepdive` | Full specialist analysis (30-60s) |
 | generate | `$ateam:generate` | Regenerate .codex/agents/*.toml |
+| resume | `$ateam:resume` | Resume a persisted attempt or interrupted run |
+| ci-repair | `$ateam:ci-repair` | Run a bounded CI diagnose-repair-verify loop |
+| share-config | `$ateam:share-config` | Promote reviewed team settings |
 
 ## Built-in Roles (available as @Agent)
 

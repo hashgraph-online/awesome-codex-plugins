@@ -1,0 +1,206 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Clean-Room Role Session Brief",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "brief_id",
+    "task_id",
+    "created_at",
+    "role",
+    "phase",
+    "unit_id",
+    "spec_slice_ref",
+    "fresh_context_required",
+    "compact_status",
+    "next_action",
+    "allowed_artifacts",
+    "forbidden_inputs"
+  ],
+  "properties": {
+    "brief_id": {
+      "$ref": "#/$defs/id"
+    },
+    "task_id": {
+      "$ref": "#/$defs/id"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "maxLength": 40
+    },
+    "role": {
+      "$ref": "#/$defs/role"
+    },
+    "phase": {
+      "$ref": "#/$defs/phase"
+    },
+    "unit_id": {
+      "$ref": "#/$defs/id"
+    },
+    "spec_slice_ref": {
+      "$ref": "#/$defs/ref"
+    },
+    "fresh_context_required": {
+      "const": true
+    },
+    "context_budget": {
+      "$ref": "#/$defs/context_budget"
+    },
+    "compact_status": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1200
+    },
+    "next_action": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 800
+    },
+    "allowed_artifacts": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "$ref": "#/$defs/artifact_ref"
+      }
+    },
+    "forbidden_inputs": {
+      "type": "array",
+      "maxItems": 40,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200
+      }
+    },
+    "blockers": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 400
+      }
+    },
+    "notes": {
+      "type": "string",
+      "maxLength": 1200
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
+    },
+    "ref": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "sha256": {
+      "type": "string",
+      "maxLength": 64,
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "role": {
+      "enum": [
+        "contaminated-manager-verifier",
+        "contaminated-source-analyst",
+        "contaminated-handoff-sanitizer",
+        "clean-architect",
+        "clean-qa-editor",
+        "clean-polish-reviewer"
+      ]
+    },
+    "phase": {
+      "enum": [
+        "contaminated-analysis",
+        "sanitize-handoff",
+        "clean-plan",
+        "clean-implement-qc",
+        "clean-polish-review",
+        "contaminated-coverage-verify"
+      ]
+    },
+    "context_budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_prompt_chars",
+        "max_brief_chars",
+        "max_artifact_refs",
+        "max_referenced_artifact_bytes"
+      ],
+      "properties": {
+        "max_prompt_chars": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_brief_chars": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_artifact_refs": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_referenced_artifact_bytes": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "artifact_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_id",
+        "artifact_type",
+        "path",
+        "sha256"
+      ],
+      "properties": {
+        "artifact_id": {
+          "$ref": "#/$defs/id"
+        },
+        "artifact_type": {
+          "enum": [
+            "clean-run-context",
+            "behavior-spec",
+            "handoff-package",
+            "implementation-plan",
+            "implementation-report",
+            "polish-report",
+            "qc-report",
+            "coverage-ledger-summary",
+            "open-questions",
+            "test-plan",
+            "abstract-delta-ticket",
+            "controller-status",
+            "role-session-brief",
+            "other"
+          ]
+        },
+        "path": {
+          "$ref": "#/$defs/path"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "max_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "required": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

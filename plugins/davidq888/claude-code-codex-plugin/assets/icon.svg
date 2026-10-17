@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Claude Code Codex Plugin</title>
+  <desc id="desc">Interlocking terminal and chat shapes for a Claude Code integration.</desc>
+  <rect width="512" height="512" rx="96" fill="#111827"/>
+  <path fill="#38bdf8" d="M128 152h256c22 0 40 18 40 40v128c0 22-18 40-40 40H128c-22 0-40-18-40-40V192c0-22 18-40 40-40Zm0 32c-4 0-8 4-8 8v128c0 4 4 8 8 8h256c4 0 8-4 8-8V192c0-4-4-8-8-8H128Z"/>
+  <path fill="#f8fafc" d="m169 232 45 32-45 32-18-25 11-7-11-7 18-25Zm77 52h104v32H246v-32Z"/>
+  <path fill="#a78bfa" d="M176 104h160c18 0 34 10 42 26l11 22h-36l-4-8c-3-5-8-8-13-8H176c-22 0-40 18-40 40v8h-32v-8c0-40 32-72 72-72Zm160 304H176c-18 0-34-10-42-26l-11-22h36l4 8c3 5 8 8 13 8h160c22 0 40-18 40-40v-8h32v8c0 40-32 72-72 72Z"/>
+</svg>

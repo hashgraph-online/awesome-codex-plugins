@@ -1,0 +1,2 @@
+landing_id	domain	site_page_url	page_type	intent	title	offer	geo	form_present	phone_present	price_present	status_code	capture_status	evidence_path	artifact_sha256	reviewer	reviewed_at	status	notes
+template-landing	example.invalid		unverified									unverified					unverified	Заполнить по сохранённой странице; не подставлять корень домена вместо точной страницы.

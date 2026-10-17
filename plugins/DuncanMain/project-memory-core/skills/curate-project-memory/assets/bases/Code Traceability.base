@@ -1,0 +1,14 @@
+filters:
+  and:
+    - 'code_paths.isEmpty() == false'
+views:
+  - type: table
+    name: Code traceability
+    order:
+      - file.name
+      - project_id
+      - status
+      - implementation_status
+      - code_paths
+      - applies_to_branch
+      - applies_to_revision

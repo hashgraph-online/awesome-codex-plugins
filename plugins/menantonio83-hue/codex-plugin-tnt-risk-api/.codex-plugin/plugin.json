@@ -1,0 +1,43 @@
+{
+  "name": "tnt-house-risk-data-api",
+  "version": "1.14.0",
+  "description": "Solana token risk-scoring for AI trading agents. One call returns a 0-100 safety score, on-chain insider wallet cluster detection, mint/freeze authority status, honeypot risk, and LP-lock status for any Solana token mint.",
+  "author": {
+    "name": "TNT House",
+    "url": "https://tnt-audit.com/risk-api"
+  },
+  "homepage": "https://tnt-audit.com/risk-api",
+  "repository": "https://github.com/menantonio83-hue/codex-plugin-tnt-risk-api",
+  "license": "MIT",
+  "keywords": [
+    "solana",
+    "risk-scoring",
+    "token-safety",
+    "rug-detection",
+    "honeypot-detection",
+    "insider-clusters",
+    "trading-agents",
+    "x402",
+    "mcp",
+    "defi-security"
+  ],
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "TNT House Risk-Data API",
+    "shortDescription": "Solana token risk scoring for AI trading agents",
+    "longDescription": "Before an agent buys a Solana token, one call to this MCP server returns a 0-100 safety score, insider wallet cluster detection (wallets sharing a first funder), mint/freeze authority status, honeypot risk, and LP-lock status. check_token_risk works with no API key for the first 3 calls/day per IP (a real anonymous trial, not a locked demo). Higher-volume tools (batch checks, historical data) and higher rate limits need a free API key from tnt-audit.com/risk-api. x402 pay-per-call ($0.02/call in USDC) is also available for fully autonomous agents.",
+    "developerName": "TNT House",
+    "category": "Productivity",
+    "capabilities": [
+      "Read"
+    ],
+    "websiteURL": "https://tnt-audit.com/risk-api",
+    "defaultPrompt": [
+      "Check the risk of this Solana token before I buy it: <mint address>",
+      "Does this Solana token have any insider wallet clusters?",
+      "Run a batch risk check on these Solana token mints."
+    ],
+    "brandColor": "#8B5CF6",
+    "composerIcon": "./assets/icon.svg"
+  }
+}

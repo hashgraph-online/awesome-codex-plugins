@@ -1,114 +1,58 @@
 ---
 name: amocrm-api-control
-description: Use when the task is to get or use amoCRM OAuth access, inspect pipelines/statuses/fields, work with amoCRM data over API, prepare full-control private integrations, or build amoCRM-driven retargeting automation for Yandex Audiences and VK Ads without relying on the web UI except for one-time OAuth setup.
+description: "Безопасная OAuth-авторизация amoCRM, чтение схемы аккаунта и сверка заявок по источнику, времени, статусу, ответственному и внешней ссылке."
 ---
 
-# amoCRM API Control
+# Управление amoCRM через программный интерфейс
 
-Use this skill for amoCRM/kommo API work when the goal is durable OAuth access and programmatic control.
+## Граница задачи
 
-## When to use
+Навык предназначен для получения и обновления OAuth-токенов, чтения воронок, статусов и полей, а также сверки заявок. Любые изменения бизнес-данных требуют отдельного плана, точной области, подтверждения и чтения после записи.
 
-- The user wants full amoCRM API control.
-- The user wants `pipeline/stage -> retargeting audience` automation.
-- You need to inspect pipelines, statuses, fields, contacts, leads, or account schema via API.
-- You need to obtain or refresh amoCRM OAuth tokens.
+## Перед созданием интеграции
 
-## Important risk
+1. Используй уже существующую интеграцию, если она есть.
+2. Создание закрытой интеграции в нетехническом аккаунте может иметь последствия для технической поддержки; покажи владельцу актуальное предупреждение из интерфейса amoCRM.
+3. `redirect_uri` должен точно совпадать с адресом интеграции. Местный приёмник слушает только `127.0.0.1` и проверяет точные путь и `state`.
 
-Official amoCRM docs state that creating a private integration on a non-technical account can require an irreversible waiver of part of amoCRM technical support. Do not hide this. If the user explicitly accepts the private-integration path, proceed; otherwise stop.
+## Закрытые файлы
 
-## Canonical setup path
+Все файлы интеграции, `state`, кода авторизации и токенов должны иметь права `0600`, а их папки — `0700`. Секрет, код и токен не передавай аргументом и не печатай.
 
-1. Prefer an existing integration if one already exists.
-2. If the project already has a local amo seed/credentials file, prefer that over repeating browser OAuth.
-3. For `amoCRM stage -> VK Ads audience`, prefer the native amoCRM Digital Pipeline integration `Реклама ВКонтакте` before designing any custom sync.
-4. If a new integration is required and the user wants full control, a private integration is acceptable.
-5. For a single-account technical setup, prefer a local callback listener you control from this machine.
-6. Exchange `authorization_code` to `access_token/refresh_token`.
-7. Save credentials locally.
-8. Fetch and persist account schema read-only before writing any business logic.
+Ожидаемая схема файла интеграции:
 
-## Redirect URI rule
-
-- `redirect_uri` must exactly match the value stored in the amoCRM integration.
-- Do not use placeholder domains like `example.com`.
-- For single-account local technical control, the default technical callback is:
-
-`http://localhost:8031/callback`
-
-Use it only if the UI accepts it. If amoCRM rejects non-SSL localhost in this account, stop and switch to a real managed HTTPS domain.
-
-## Scripts
-
-### Exchange or refresh tokens
-
-`scripts/exchange_amocrm_token.py`
-
-Examples:
-
-```bash
-python3 scripts/exchange_amocrm_token.py \
-  --subdomain pksclimat2 \
-  --client-id XXX \
-  --client-secret XXX \
-  --redirect-uri http://localhost:8031/callback \
-  --code XXX \
-  --output /abs/path/amocrm_oauth_credentials.json
+```json
+{
+  "subdomain": "ACCOUNT_SUBDOMAIN",
+  "client_id": "PUBLIC_INTEGRATION_ID",
+  "client_secret": "PRIVATE_INTEGRATION_SECRET",
+  "redirect_uri": "EXACT_REGISTERED_REDIRECT_URI"
+}
 ```
 
-```bash
-python3 scripts/exchange_amocrm_token.py \
-  --subdomain pksclimat2 \
-  --client-id XXX \
-  --client-secret XXX \
-  --redirect-uri http://localhost:8031/callback \
-  --refresh-token XXX \
-  --output /abs/path/amocrm_oauth_credentials.json
-```
+## Порядок OAuth
 
-### Local callback listener
+1. Создай случайное состояние и сохрани его в закрытом файле.
+2. Запусти `scripts/amocrm_local_callback_server.py` с явными `--state-file` и `--output`.
+3. Открой адрес согласия, содержащий тот же `state`.
+4. Приёмник сохранит только код, а не полный адрес.
+5. Запусти `scripts/exchange_amocrm_token.py` с `--integration-file`, `--authorization-code-file` и `--token-file`. Для обновления используй `--refresh` без файла кода.
+6. После успешного первого обмена удали одноразовый файл кода.
 
-`scripts/amocrm_local_callback_server.py`
+## Чтение схемы и сверка
 
-Use this when you need a temporary local callback URL for the authorization-code flow.
+`scripts/fetch_amocrm_schema.py` проходит постраничную выдачу и сохраняет схему аккаунта в закрытой папке. Повтор той же страницы считается ошибкой.
 
-### Read-only schema dump
+Для сверки каждая строка обязана иметь поля:
 
-`scripts/fetch_amocrm_schema.py`
+- `source` — источник;
+- `occurred_at` — время события;
+- `status` — статус;
+- `responsible` — ответственный;
+- `external_link` — внешняя ссылка, используемая как ключ сопоставления.
 
-Example:
+Результат разделяет совпадение, расхождение и строку, присутствующую только во втором источнике.
 
-```bash
-python3 scripts/fetch_amocrm_schema.py \
-  --credentials /abs/path/amocrm_oauth_credentials.json \
-  --output-dir /abs/path/amocrm-schema
-```
+## Граница публикации
 
-## Minimal working pattern
-
-For a new account:
-
-1. Confirm whether private integration is acceptable.
-2. If yes, use the local callback listener path first.
-3. Save credentials JSON to disk.
-4. Dump pipelines, statuses, lead fields, and contact fields.
-5. Only then plan mutations or automation.
-
-## Retargeting automation pattern
-
-For `stage -> audience` sync:
-
-- amoCRM source of truth: pipeline + status + lead/contact identifiers
-- Yandex Audiences target: hashed email/phone CSV batches or API uploads
-- VK Ads target: custom audience uploads or native platform audience sync
-- If the requirement is specifically `certain funnel + certain stage -> VK audience`, check the native amoCRM trigger `Реклама ВКонтакте` first. It keeps contacts in `Active` while the deal is in the configured stage and moves them to `Inactive` when the deal leaves the stage or the user dismisses the ad.
-- Native amoCRM/VK limitation: once the contact lands in `Inactive`, a later return to the same stage will not move them back to `Active`.
-- add/remove logic must be explicit per status transition
-- always handle dedupe and re-entry into a stage
-
-## References
-
-Read as needed:
-
-- `references/official-notes.md`
+Не публикуй поддомены аккаунтов, учётные данны, токены, контакты, заявки, домены и местные пути. Для испытаний используй только синтетические данны.

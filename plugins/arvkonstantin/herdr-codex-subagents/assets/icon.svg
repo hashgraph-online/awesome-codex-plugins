@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-labelledby="title desc">
+  <title id="title">Herdr Codex Subagents</title>
+  <desc id="desc">Three terminal panes connected from left to right</desc>
+  <rect x="4" y="4" width="152" height="152" rx="32" fill="#111827"/>
+  <rect x="23" y="39" width="48" height="82" rx="8" fill="#0b1020" stroke="#e2e8f0" stroke-width="3"/>
+  <rect x="80" y="51" width="27" height="58" rx="6" fill="#0b1020" stroke="#e2e8f0" stroke-width="3"/>
+  <rect x="116" y="60" width="21" height="40" rx="5" fill="#0b1020" stroke="#e2e8f0" stroke-width="3"/>
+  <path d="M33 52h28M33 62h18M89 64h9M89 74h9M123 72h7M123 82h7" stroke="#94a3b8" stroke-width="3" stroke-linecap="round"/>
+  <path d="M71 80h9M107 80h9" stroke="#22d3ee" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="76" cy="80" r="4" fill="#22d3ee"/>
+  <circle cx="112" cy="80" r="4" fill="#22d3ee"/>
+</svg>

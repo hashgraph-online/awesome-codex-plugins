@@ -1,0 +1,4 @@
+interface:
+  display_name: "SEO Persona Intent Mapping"
+  short_description: "Map personas, intent, funnel stage, and SEO content."
+  default_prompt: "Map our personas and search intent into an SEO content plan."

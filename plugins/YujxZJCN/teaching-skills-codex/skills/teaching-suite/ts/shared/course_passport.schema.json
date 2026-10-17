@@ -1,0 +1,198 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/YujxZJCN/teaching-skills/shared/course_passport.schema.json",
+  "title": "Course Passport",
+  "description": "Machine-checkable structure for course_passport.yaml. Prose contract: shared/course_passport_schema.md. Cross-reference invariants the schema cannot express (id mirrors, weight sums) live in scripts/check_passport.py.",
+  "type": "object",
+  "required": ["passport_version", "course", "learning_outcomes", "assessment_plan", "schedule", "gates"],
+  "properties": {
+    "passport_version": { "type": "string" },
+    "course": {
+      "type": "object",
+      "required": ["code", "title"],
+      "properties": {
+        "code": { "type": "string" },
+        "title": { "type": "string" },
+        "discipline": { "type": "string" },
+        "level": { "type": "string" },
+        "credits": { "type": ["number", "null"] },
+        "modality": {
+          "anyOf": [
+            { "enum": ["in-person", "online-sync", "online-async", "hybrid", "flipped"] },
+            { "const": "" },
+            { "type": "null" }
+          ]
+        },
+        "class_size": { "type": ["integer", "null"] },
+        "contact_hours_per_week": { "type": ["number", "null"] },
+        "weeks": { "type": ["integer", "null"] },
+        "language_of_instruction": { "type": "string" },
+        "prerequisites": { "type": "array", "items": { "type": "string" } },
+        "institution_constraints": { "type": "array" }
+      },
+      "additionalProperties": true
+    },
+    "learner_profile": {
+      "type": "object",
+      "properties": {
+        "prior_knowledge": { "type": "string" },
+        "motivation_context": { "type": "string" },
+        "known_difficulties": { "type": "array", "items": { "type": "string" } },
+        "accessibility_needs": { "type": "string" },
+        "cohort_evidence": {
+          "type": ["object", "null"],
+          "description": "Aggregates only from cohort-analyst; no individual student data (enforced by check_passport.py P11).",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "term_calendar": {
+      "type": "object",
+      "properties": {
+        "start_date": { "type": ["string", "null"] },
+        "end_date": { "type": ["string", "null"] },
+        "holidays": { "type": "array" },
+        "exam_weeks": { "type": "array", "items": { "type": "string", "pattern": "^W\\d+$" } },
+        "add_drop_deadline": { "type": ["string", "null"] },
+        "withdrawal_deadline": { "type": ["string", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "learning_outcomes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "statement", "bloom_level"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^LO\\d+$" },
+          "statement": { "type": "string", "minLength": 1 },
+          "bloom_level": { "enum": ["remember", "understand", "apply", "analyze", "evaluate", "create"] },
+          "assessed_by": { "type": "array", "items": { "type": "string", "pattern": "^A\\d+$" } },
+          "taught_in": { "type": "array", "items": { "type": "string", "pattern": "^W\\d+$" } }
+        },
+        "additionalProperties": true
+      }
+    },
+    "assessment_plan": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "title", "weight", "outcomes_assessed"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^A\\d+$" },
+          "type": { "enum": ["exam", "quiz", "project", "paper", "presentation", "participation", "portfolio", "homework", "lab", "other"] },
+          "title": { "type": "string", "minLength": 1 },
+          "weight": { "type": "number", "minimum": 0, "maximum": 100 },
+          "outcomes_assessed": { "type": "array", "items": { "type": "string", "pattern": "^LO\\d+$" } },
+          "week": { "type": ["string", "null"], "description": "Week id (W8) or free text for series (e.g. 'W2-W13, none in W8'). Authoritative due weeks are schedule[].assessments_due." },
+          "ai_resilience": { "enum": ["not_reviewed", "reviewed", "redesigned"] },
+          "artifact_ref": { "type": ["string", "null"] }
+        },
+        "additionalProperties": true
+      }
+    },
+    "schedule": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "topic"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^W\\d+$" },
+          "topic": { "type": "string", "minLength": 1 },
+          "tag": { "enum": ["logistics"] },
+          "outcomes": { "type": "array", "items": { "type": "string", "pattern": "^LO\\d+$" } },
+          "activities": { "type": "array" },
+          "assessments_due": { "type": "array", "items": { "type": "string", "pattern": "^A\\d+$" } },
+          "artifact_refs": { "type": "array", "items": { "type": "string" } }
+        },
+        "additionalProperties": true
+      }
+    },
+    "policies": {
+      "type": "object",
+      "properties": {
+        "grading_scheme": { "type": "string" },
+        "late_policy": { "type": "string" },
+        "ai_use_policy": { "type": "string" },
+        "integrity_policy": { "type": "string" },
+        "attendance_policy": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "workload_audit": {
+      "type": "object",
+      "properties": {
+        "estimated_hours_per_week": { "type": ["number", "null"] },
+        "credit_hour_target": { "type": ["number", "null"] },
+        "status": { "enum": ["not_audited", "within_range", "overloaded", "underloaded"] },
+        "constants_used": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "gates": {
+      "type": "object",
+      "required": ["alignment_gate", "quality_gate"],
+      "properties": {
+        "alignment_gate": { "$ref": "#/$defs/gate" },
+        "quality_gate": { "$ref": "#/$defs/gate" }
+      },
+      "additionalProperties": false
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "type"],
+        "properties": {
+          "path": { "type": "string" },
+          "type": { "type": "string" },
+          "produced_by": { "type": "string" },
+          "stage": { "type": ["integer", "number", "string"] },
+          "confirmed_by_professor": { "type": "boolean" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "iteration_history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["term"],
+        "properties": {
+          "term": { "type": "string" },
+          "changes": { "type": "array", "items": { "type": "string" } },
+          "evidence": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "gate": {
+      "type": "object",
+      "required": ["status"],
+      "properties": {
+        "status": { "enum": ["not_run", "pass", "fail"] },
+        "last_run": { "type": ["string", "null"] },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["check_id", "severity", "detail"],
+            "properties": {
+              "check_id": { "type": "string" },
+              "severity": { "enum": ["BLOCK", "WARN", "NOT_EVALUABLE"] },
+              "detail": { "type": "string" },
+              "affected_ids": { "type": "array", "items": { "type": "string" } },
+              "dismissed": { "type": "string" }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

@@ -1,0 +1,3 @@
+display_name: Codex 学习教练
+short_description: 用诊断、练习、反馈和复习带你学技能。
+default_prompt: 进入学习模式。先判断我的水平，再用练习和反馈带我学习。

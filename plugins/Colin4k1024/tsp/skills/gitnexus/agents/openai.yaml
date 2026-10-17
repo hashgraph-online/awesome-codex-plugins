@@ -1,0 +1,4 @@
+interface:
+  display_name: "GitNexus Code Intelligence"
+  short_description: "用 GitNexus 补齐 brownfield MCP 查询与影响面证据"
+  default_prompt: "Use $gitnexus when brownfield work needs MCP-backed code intelligence, impact analysis, detect_changes, or multi-repo graph evidence. Keep GitNexus optional, preserve existing AGENTS/CLAUDE contracts, and feed findings back into /team-plan, /team-execute, or /team-review."

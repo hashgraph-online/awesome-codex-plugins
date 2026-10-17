@@ -1,0 +1,4 @@
+interface:
+  display_name: "Strategic Compact"
+  short_description: "在逻辑边界点主动做上下文压缩"
+  default_prompt: "Use $strategic-compact to identify the right compaction boundary, preserve critical context, and avoid losing execution momentum."

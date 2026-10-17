@@ -1,0 +1,4 @@
+interface:
+  display_name: "JavaScript UI Math"
+  short_description: "JavaScript number math for UI"
+  default_prompt: "Use $javascript-ui-math to fix the rounding, wrapping, or numeric edge cases in this UI behavior."

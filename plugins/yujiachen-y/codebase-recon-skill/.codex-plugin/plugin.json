@@ -1,0 +1,40 @@
+{
+  "name": "codebase-recon",
+  "version": "1.0.0",
+  "description": "Analyze git history to understand a codebase before reading any code. Reveals hotspots, risk areas, team structure, and development momentum.",
+  "author": {
+    "name": "Jiachen Yu",
+    "url": "https://github.com/yujiachen-y"
+  },
+  "homepage": "https://github.com/yujiachen-y/codebase-recon-skill",
+  "repository": "https://github.com/yujiachen-y/codebase-recon-skill",
+  "license": "MIT",
+  "keywords": [
+    "git",
+    "codebase",
+    "recon",
+    "onboarding",
+    "code-health",
+    "bus-factor",
+    "hotspots"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Codebase Recon",
+    "shortDescription": "Analyze git history to understand a codebase before reading any code.",
+    "longDescription": "Reveals project health, risk areas, team structure, and development momentum by analyzing git history. Auto-scales analysis windows for small/medium/large repos and cross-references hotspots with bug magnets to identify high-risk files.",
+    "developerName": "Jiachen Yu",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/yujiachen-y/codebase-recon-skill",
+    "defaultPrompt": [
+      "Run codebase recon on this repository.",
+      "Use codebase-recon to assess this codebase before I dive in.",
+      "Show me hotspots, bug magnets, and bus factor for this repo."
+    ],
+    "brandColor": "#0E7490"
+  }
+}

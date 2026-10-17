@@ -1,0 +1,7 @@
+interface:
+  display_name: "Tool Advisor"
+  short_description: "Discover tools and suggest best workflows"
+  default_prompt: "Use $tool-advisor to analyze this task and suggest the best tool composition."
+
+policy:
+  allow_implicit_invocation: true

@@ -11,7 +11,7 @@ If you prefer manual configuration over `claude mcp add`:
   "mcpServers": {
     "langfuse": {
       "command": "uvx",
-      "args": ["--python", "3.11", "langfuse-mcp"],
+      "args": ["langfuse-mcp"],
       "env": {
         "LANGFUSE_PUBLIC_KEY": "pk-...",
         "LANGFUSE_SECRET_KEY": "sk-...",
@@ -44,16 +44,16 @@ Never commit credentials to version control.
 
 ### Python Version Errors
 
-If MCP fails to connect, check your Python version. The Langfuse SDK requires Python 3.13 or earlier (due to Pydantic v1 dependency).
+If MCP fails to connect, check your Python version. Langfuse MCP requires Python 3.10 or newer and CI currently verifies Python 3.10 through 3.14.
 
-Fix by pinning Python in the uvx command:
+If your default interpreter is older than Python 3.10, pin a CI-verified Python in the uvx command:
 ```bash
-uvx --python 3.11 langfuse-mcp
+uvx --python 3.14 langfuse-mcp
 ```
 
 Or verify manually:
 ```bash
-uvx --python 3.11 langfuse-mcp --help
+uvx --python 3.14 langfuse-mcp --help
 ```
 
 ### Timeout Errors
@@ -67,10 +67,10 @@ claude mcp add \
   --env LANGFUSE_PUBLIC_KEY=pk-... \
   --env LANGFUSE_SECRET_KEY=sk-... \
   --env LANGFUSE_HOST=https://cloud.langfuse.com \
-  langfuse -- uvx --python 3.11 langfuse-mcp --timeout 60
+  langfuse -- uvx langfuse-mcp --timeout 60
 
 # Or in .mcp.json
-"args": ["--python", "3.11", "langfuse-mcp", "--timeout", "60"]
+"args": ["langfuse-mcp", "--timeout", "60"]
 ```
 
 ### Empty Results
@@ -128,9 +128,14 @@ langfuse-mcp --tools traces,prompts
 |-------|-------|
 | `traces` | fetch_traces, fetch_trace |
 | `observations` | fetch_observations, fetch_observation |
+| `routing` | find_route_decisions, get_route_decision, summarize_route_decisions, find_low_confidence_route_decisions |
 | `sessions` | fetch_sessions, get_session_details, get_user_sessions |
 | `exceptions` | find_exceptions, find_exceptions_in_file, get_exception_details, get_error_count |
 | `prompts` | list_prompts, get_prompt, get_prompt_unresolved, create_text_prompt, create_chat_prompt, update_prompt_labels |
+| `datasets` | list_datasets, get_dataset, list_dataset_items, get_dataset_item, create_dataset, create_dataset_item, delete_dataset_item, list_dataset_runs, get_dataset_run, list_dataset_run_items, create_dataset_run_item, delete_dataset_run |
+| `annotation_queues` | list_annotation_queues, create_annotation_queue, get_annotation_queue, list_annotation_queue_items, get_annotation_queue_item, create_annotation_queue_item, update_annotation_queue_item, delete_annotation_queue_item, create_annotation_queue_assignment, delete_annotation_queue_assignment |
+| `scores` | list_scores_v2, get_score_v2 |
+| `metrics` | query_metrics, get_metrics_schema |
 | `schema` | get_data_schema |
 
 ---
@@ -146,6 +151,7 @@ langfuse-mcp --tools traces,prompts
 | `LANGFUSE_MCP_TOOLS` | Comma-separated tool groups to load |
 | `LANGFUSE_MCP_LOG_FILE` | Log file path (default: `/tmp/langfuse_mcp.log`) |
 | `LANGFUSE_MCP_READ_ONLY` | Set to `true` to disable write tools (safer observability mode) |
+| `LANGFUSE_MCP_DEFAULT_OUTPUT_MODE` | Default MCP tool `output_mode` (`compact`, `full_json_string`, `full_json_file`) |
 
 ---
 

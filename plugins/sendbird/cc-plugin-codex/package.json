@@ -1,0 +1,68 @@
+{
+  "name": "cc-plugin-codex",
+  "version": "1.5.0",
+  "description": "Claude Code Plugin for Codex by Sendbird",
+  "type": "module",
+  "author": {
+    "name": "Sendbird, Inc.",
+    "email": "jin.ku@sendbird.com",
+    "url": "https://sendbird.com/"
+  },
+  "homepage": "https://github.com/sendbird/cc-plugin-codex",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sendbird/cc-plugin-codex.git"
+  },
+  "bin": "scripts/installer-cli.mjs",
+  "bugs": {
+    "url": "https://github.com/sendbird/cc-plugin-codex/issues"
+  },
+  "license": "Apache-2.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    ".codex-plugin",
+    "CHANGELOG.md",
+    "LICENSE",
+    "NOTICE",
+    "README.md",
+    "agents",
+    "assets",
+    "hooks",
+    "internal-skills",
+    "package.json",
+    "prompts",
+    "schemas",
+    "scripts",
+    "skills"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.json",
+    "check:changelog": "node scripts/check-changelog.mjs",
+    "check:version-sync": "node scripts/check-version-sync.mjs",
+    "sync:plugin-version": "node scripts/sync-plugin-version.mjs",
+    "check": "npm run check:version-sync && npm run check:changelog && npm run lint && npm run typecheck && npm run test && npm run test:integration && npm run test:e2e",
+    "install:codex": "node scripts/installer-cli.mjs install",
+    "prepack": "npm run check:version-sync && npm run check:changelog",
+    "setup:git-hooks": "node scripts/setup-git-hooks.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "test:cross-platform": "node --test tests/args.test.mjs tests/changelog.test.mjs tests/claude-cli.test.mjs tests/fs.test.mjs tests/prompts.test.mjs tests/render.test.mjs tests/sandbox-modes.test.mjs tests/skills-contracts.test.mjs tests/structured-output.test.mjs tests/version-sync.test.mjs",
+    "test:integration": "node --test tests/integration/*.test.mjs",
+    "test:e2e": "node --test tests/e2e/*.test.mjs",
+    "uninstall:codex": "node scripts/installer-cli.mjs uninstall",
+    "update:codex": "node scripts/installer-cli.mjs update",
+    "version": "npm run sync:plugin-version && npm run check:version-sync && npm run check:changelog"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.1.1",
+    "eslint": "^10.2.0",
+    "globals": "^17.5.0",
+    "typescript": "^7.0.2"
+  }
+}

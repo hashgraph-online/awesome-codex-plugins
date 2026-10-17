@@ -1,0 +1,20 @@
+{
+  "name": "token-harbor",
+  "interface": {
+    "displayName": "Token Harbor"
+  },
+  "plugins": [
+    {
+      "name": "token-harbor",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review Code"
+  short_description: "Find consequential defects in code changes"
+  default_prompt: "Use $review-code to review this branch for bugs, regressions, security risks, and missing tests."

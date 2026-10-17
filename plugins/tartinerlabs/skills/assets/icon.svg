@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Tartiner Labs">
+  <title>Tartiner Labs</title>
+  <path
+    d="M486 256 L371 56.8 L141 56.8 L26 256 L141 455.2 L371 455.2 Z"
+    fill="#ECAE45"
+    stroke="#D9982F"
+    stroke-width="26"
+    stroke-linejoin="round"
+  />
+  <g fill="none" stroke="#2A1E14" stroke-width="44" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M240 182 V340 H362" />
+    <path d="M150 182 H362" />
+  </g>
+</svg>

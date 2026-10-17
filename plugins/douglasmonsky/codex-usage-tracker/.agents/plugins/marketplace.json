@@ -1,0 +1,20 @@
+{
+  "interface": {
+    "displayName": "Codex Usage Tracker"
+  },
+  "name": "codex-usage-tracker",
+  "plugins": [
+    {
+      "category": "Productivity",
+      "name": "codex-usage-tracker",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": ".",
+        "source": "local"
+      }
+    }
+  ]
+}

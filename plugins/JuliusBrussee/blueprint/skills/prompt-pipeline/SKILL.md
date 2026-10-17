@@ -1,16 +1,16 @@
 ---
 name: prompt-pipeline
 description: >
-  How to design the numbered prompt pipeline that drives DABI phases in Blueprint.
+  How to design the numbered prompt pipeline that drives Hunt phases in Cavekit.
   Covers greenfield 3-prompt patterns, rewrite 6-9 prompt patterns, shared principles,
   prompt engineering best practices, task templates, and time guards.
-  Trigger phrases: "prompt pipeline", "design prompts for SDD", "create DABI prompts",
+  Trigger phrases: "prompt pipeline", "design prompts for SDD", "create Hunt prompts",
   "pipeline prompts", "how many prompts do I need"
 ---
 
 # Prompt Pipeline Design
 
-The prompt pipeline is the engine of SDD. Each numbered prompt drives one phase of the DABI lifecycle (Spec, Plan, Implement, Iterate, Monitor). Prompts are structured markdown files that instruct an AI agent to perform a specific phase, with detailed information delegated to specs, plans, and reference materials.
+The prompt pipeline is the engine of SDD. Each numbered prompt drives one phase of the Hunt lifecycle (Spec, Plan, Implement, Iterate, Monitor). Prompts are structured markdown files that instruct an AI agent to perform a specific phase, with detailed information delegated to specs, plans, and reference materials.
 
 **Core principle:** Prompts should be as lightweight and systemic as possible. They define the *process*, not the *content* -- specs and plans hold the content.
 
@@ -31,13 +31,13 @@ Pipeline Flow:
 
 | Prompt File | Lifecycle Stage | Reads From | Writes To | Description |
 |-------------|----------------|------------|-----------|-------------|
-| `001-generate-specs-from-refs.md` | **Spec** | `context/refs/` | `context/blueprints/` | Reads reference materials, decomposes into domain-specific specs with cross-references and testable acceptance criteria |
-| `002-generate-plans-from-specs.md` | **Plan** | `context/blueprints/` + `context/impl/` | `context/plans/` | Reads specs plus implementation progress, creates framework-specific plans with feature dependencies, test strategies, and acceptance criteria |
-| `003-generate-impl-from-plans.md` | **Implement** | `context/plans/` + `context/blueprints/` | `src/`, `tests/`, `context/impl/` | Implements the highest-priority unblocked work from plans, runs tests, updates implementation tracking |
+| `001-generate-specs-from-refs.md` | **Spec** | `context/refs/` | `context/kits/` | Reads reference materials, decomposes into domain-specific specs with cross-references and testable acceptance criteria |
+| `002-generate-plans-from-specs.md` | **Plan** | `context/kits/` + `context/impl/` | `context/plans/` | Reads specs plus implementation progress, creates framework-specific plans with feature dependencies, test strategies, and acceptance criteria |
+| `003-generate-impl-from-plans.md` | **Implement** | `context/plans/` + `context/kits/` | `src/`, `tests/`, `context/impl/` | Implements the highest-priority unblocked work from plans, runs tests, updates implementation tracking |
 
 ### Key behaviors
 
-- **Prompt 001** runs once or a few times to stabilize specs. It reads `context/refs/` and produces `context/blueprints/`.
+- **Prompt 001** runs once or a few times to stabilize specs. It reads `context/refs/` and produces `context/kits/`.
 - **Prompt 002** reads specs and any existing implementation tracking (`context/impl/`). It produces plans that sequence the work.
 - **Prompt 003** reads plans and specs, implements code, runs validation gates, and updates `context/impl/` with progress.
 - **Prompts 002 and 003 modify each other's files.** This bidirectional flow is expected and healthy -- it is how the system self-corrects.
@@ -57,14 +57,14 @@ Read all files in `context/refs/`. These are the source of truth.
 
 ## Task
 Decompose the reference materials into domain-specific specifications:
-1. Create `context/blueprints/blueprint-overview.md` as the index file
-2. Create one `context/blueprints/spec-{domain}.md` per domain
+1. Create `context/kits/cavekit-overview.md` as the index file
+2. Create one `context/kits/spec-{domain}.md` per domain
 3. Each spec must include: Scope, Requirements with Acceptance Criteria, Dependencies, Out of Scope, Cross-References
 
 ## Exit Criteria
 - [ ] All domains from reference materials have corresponding spec files
 - [ ] Every requirement has at least one testable acceptance criterion
-- [ ] blueprint-overview.md indexes all spec files with one-line summaries
+- [ ] cavekit-overview.md indexes all spec files with one-line summaries
 - [ ] Cross-references link related specs
 
 ## Completion Signal
@@ -95,7 +95,7 @@ Pipeline Flow:
 | Prompt File | Lifecycle Stage | Reads From | Writes To |
 |-------------|----------------|------------|-----------|
 | `001-generate-refs-from-code.md` | Pre-Spec | Old application source | `shared-context/reference/` (API docs, data models, UI components) |
-| `002-generate-specs.md` | Spec | Feature scope + reference materials | `shared-context/blueprints/` (implementation-agnostic specs) |
+| `002-generate-specs.md` | Spec | Feature scope + reference materials | `shared-context/kits/` (implementation-agnostic specs) |
 | `003-validate-specs.md` | Spec QA | Reference + specs | Validation report (specs match old behavior) |
 | `004-create-plans.md` | Plan | Specs + framework research | `context/plans/` (framework-specific plans) |
 | `005-implement.md` | Implement | Plans + specs | `src/` + `tests/` + `context/impl/` |
@@ -116,7 +116,7 @@ These principles apply regardless of whether the pipeline is greenfield, rewrite
 
 | Principle | Detail |
 |-----------|--------|
-| **One prompt per DABI phase** | Each prompt maps to exactly one phase. Do not combine phases. |
+| **One prompt per Hunt phase** | Each prompt maps to exactly one phase. Do not combine phases. |
 | **Explicit input/output directories** | Every prompt declares what it reads and what it writes. No implicit side effects. |
 | **Git-based continuity** | Agents read git history (`git log`, `git diff`, `git status`) between iterations to understand what was done before. |
 | **Explicit done-conditions with termination markers** | Every prompt concludes with a verifiable checklist of conditions and a distinct output token that the iteration loop uses to detect completion. |
@@ -128,13 +128,13 @@ These principles apply regardless of whether the pipeline is greenfield, rewrite
 
 ```
 Prompt 002 (Plans):
-  READS:  context/blueprints/     (what to build)
+  READS:  context/kits/     (what to build)
   READS:  context/impl/      (what has been built, what failed)
   WRITES: context/plans/     (how to build it)
 
 Prompt 003 (Implement):
   READS:  context/plans/     (how to build it)
-  READS:  context/blueprints/     (acceptance criteria)
+  READS:  context/kits/     (acceptance criteria)
   WRITES: src/, tests/       (the code)
   WRITES: context/impl/      (progress tracking)
   WRITES: context/plans/     (updates to plans based on implementation reality)
@@ -169,16 +169,16 @@ Agent Team Structure:
   Lead (delegate mode -- never writes code directly)
   +-- Teammate A: domain-auth
   |   Owns: src/auth/*, context/impl/impl-auth.md
-  |   Dispatch: Agent tool with isolation: "worktree"
+  |   Dispatch: Agent tool
   +-- Teammate B: domain-data
   |   Owns: src/data/*, context/impl/impl-data.md
-  |   Dispatch: Agent tool with isolation: "worktree"
+  |   Dispatch: Agent tool
   +-- Teammate C: domain-ui
       Owns: src/ui/*, context/impl/impl-ui.md
-      Dispatch: Agent tool with isolation: "worktree"
+      Dispatch: Agent tool
 ```
 
-**Why:** Agents need to understand their role and what they own. Dispatch subagents with `isolation: "worktree"` via the Agent tool for filesystem isolation. After merging a subagent's branch, the caller must clean up: `git worktree remove <path>` then `git branch -D <branch>`. Claude Code only auto-cleans worktrees when agents make no changes.
+**Why:** Agents need to understand their role and what they own. Dispatch subagents via the Agent tool. After merging a subagent's branch, the caller must clean up: `git branch -D <branch>`.
 
 ### 4.3 Batching Rules
 
@@ -241,11 +241,11 @@ You are implementing {DOMAIN} for the {PROJECT_NAME} project.
 
 ### Your Role
 - You own: {FILE_PATTERNS}
-- Isolation: dispatched via Agent tool with `isolation: "worktree"`
+- Dispatched via the Agent tool
 - Your impl tracking: context/impl/impl-{DOMAIN}.md
 
 ### Context to Read First
-1. context/blueprints/spec-{DOMAIN}.md (WHAT to build)
+1. context/kits/spec-{DOMAIN}.md (WHAT to build)
 2. context/plans/plan-{DOMAIN}.md (HOW to build it)
 3. context/impl/impl-{DOMAIN}.md (what has been done)
 4. git log --oneline -20 (recent history)
@@ -446,6 +446,6 @@ The iteration loop handles: iteration counting, timeouts, nudging idle agents, d
 
 - **Prompt engineering details:** See `references/prompt-engineering.md` for the complete reference on runtime inputs, spawn templates, task templates, time guards, and file ownership.
 - **Agent team patterns:** See `references/agent-team-patterns.md` for coordination patterns, batching, agent isolation, and merge protocol.
-- **Convergence monitoring:** See `bp:convergence-monitoring` skill for detecting when the iteration loop should stop.
-- **Revision:** See `bp:revision` skill for how prompt 006 traces bugs back to specs.
-- **Context architecture:** See `bp:context-architecture` skill for the directory structure that prompts read from and write to.
+- **Convergence monitoring:** See `ck:convergence-monitoring` skill for detecting when the iteration loop should stop.
+- **Revision:** See `ck:revision` skill for how prompt 006 traces bugs back to specs.
+- **Context architecture:** See `ck:context-architecture` skill for the directory structure that prompts read from and write to.

@@ -4,10 +4,12 @@ description: >
   Patterns for using a second AI agent or model to challenge the primary builder agent's work.
   Covers six review modes (Diff Critique, Design Challenge, Threaded Debate, Delegated Scrutiny,
   Deciding Vote, Coverage Audit), how to set up peer review with any model via MCP server,
-  peer review iteration loops that alternate builder and reviewer prompts, and prompt templates for
+  peer review iteration loops that alternate builder and reviewer prompts, the Codex Loop Mode
+  (Cavekit + Ralph Loop + Codex as reviewer via CLI or MCP fallback), and prompt templates for
   each strategy. The peer reviewer's job is to find what the builder missed, not to agree.
   Triggers: "peer review", "peer review agent", "use another model to review",
-  "second opinion on code", "cross-model review".
+  "second opinion on code", "cross-model review", "peer review loop", "ralph loop with codex",
+  "cavekit ralph", "cross-model loop", "codex peer reviewer".
 ---
 
 # Peer Review
@@ -41,10 +43,10 @@ interpretation biases.
 - Architectural over-engineering or under-engineering
 - Missing error handling patterns
 - Security vulnerabilities the builder didn't consider
-- Blueprint requirements that were technically met but poorly implemented
+- Cavekit requirements that were technically met but poorly implemented
 - Dead code, unused imports, and unnecessary complexity
 - Performance pitfalls that only manifest at scale
-- Missing edge cases not covered by the blueprint
+- Missing edge cases not covered by the cavekit
 
 ---
 
@@ -167,7 +169,7 @@ You are a senior code reviewer. Review the following code changes critically.
 - Security vulnerabilities (injection, auth bypass, data exposure)
 - Missing error handling and edge cases
 - Performance issues (N+1 queries, unnecessary allocations, blocking calls)
-- Blueprint compliance: does this implementation match the requirements?
+- Cavekit compliance: does this implementation match the requirements?
 - Code quality: naming, structure, unnecessary complexity
 
 ## What NOT to do:
@@ -175,8 +177,8 @@ You are a senior code reviewer. Review the following code changes critically.
 - Do not suggest stylistic changes unless they affect readability significantly
 - Do not rewrite the code -- describe the problem and where it is
 
-## Blueprint requirements for this feature:
-{BLUEPRINT_REQUIREMENTS}
+## Cavekit requirements for this feature:
+{CAVEKIT_REQUIREMENTS}
 
 ## Code changes:
 {DIFF_CONTENT}
@@ -196,9 +198,9 @@ For each finding:
 
 **Process:**
 1. Builder agent drafts an architecture or plan
-2. Send the plan + blueprints to the peer review model
+2. Send the plan + kits to the peer review model
 3. Peer reviewer proposes alternative approaches or critiques the plan
-4. Builder validates both approaches against blueprints
+4. Builder validates both approaches against kits
 5. Human makes the final decision if there is a genuine trade-off
 
 **Architecture Review Prompt Template:**
@@ -207,14 +209,14 @@ You are a systems architect reviewing a proposed design. Your goal is to
 find weaknesses, over-engineering, missing considerations, and better
 alternatives.
 
-## Blueprints (what must be built):
-{BLUEPRINT_CONTENT}
+## Kits (what must be built):
+{CAVEKIT_CONTENT}
 
 ## Proposed architecture:
 {PLAN_CONTENT}
 
 ## Evaluate:
-1. Does this architecture satisfy all blueprint requirements?
+1. Does this architecture satisfy all cavekit requirements?
 2. Is it over-engineered for the scope?
 3. Are there simpler alternatives that meet the same requirements?
 4. What failure modes exist? How does the system recover?
@@ -292,9 +294,9 @@ explain what additional information would break the tie.
 **Process:**
 1. Run test coverage analysis on the codebase
 2. Generate a coverage report (which files/functions are covered)
-3. Send the coverage report + blueprints to the peer review model
+3. Send the coverage report + kits to the peer review model
 4. Peer reviewer identifies: untested edge cases, missing integration tests,
-   blueprint requirements without corresponding tests
+   cavekit requirements without corresponding tests
 5. Builder adds missing tests
 
 ---
@@ -320,22 +322,22 @@ Create two prompt files:
 
 **`prompts/build.md`** -- The builder prompt:
 ```markdown
-Implement the requirements in the blueprint. Read implementation tracking for
+Implement the requirements in the cavekit. Read implementation tracking for
 context on what has been done. Read any review findings and address them.
 
-Input: blueprints/, plans/, impl/, review-findings.md (if exists)
+Input: kits/, plans/, impl/, review-findings.md (if exists)
 Output: source code, updated impl tracking
-Exit: all blueprint requirements implemented, all review findings addressed
+Exit: all cavekit requirements implemented, all review findings addressed
 ```
 
 **`prompts/review.md`** -- The reviewer prompt:
 ```markdown
-Review the current implementation against the blueprint. Be critical. Find
+Review the current implementation against the cavekit. Be critical. Find
 bugs, missing requirements, security issues, and quality problems.
 
-Input: blueprints/, plans/, source code, impl/
+Input: kits/, plans/, source code, impl/
 Output: review-findings.md
-Exit: all source files reviewed against all blueprint requirements
+Exit: all source files reviewed against all cavekit requirements
 ```
 
 ### Running Peer Review Iteration
@@ -357,7 +359,7 @@ builder's latest committed code; the builder reads the reviewer's latest
 The peer review loop has converged when:
 - The reviewer's findings drop to zero or only LOW severity items remain
 - The builder's diffs between iterations are minimal
-- All blueprint requirements have been reviewed and confirmed as met
+- All cavekit requirements have been reviewed and confirmed as met
 
 ---
 
@@ -407,15 +409,15 @@ from diverse perspectives.
 
 ---
 
-## Integration with Blueprint Lifecycle
+## Integration with Cavekit Lifecycle
 
-Peer review fits into the DABI lifecycle at multiple points:
+Peer review fits into the Hunt lifecycle at multiple points:
 
-| DABI Phase | Peer Review Role |
+| Hunt Phase | Peer Review Role |
 |-------------|-----------------|
-| **Draft** | Review blueprints for completeness, ambiguity, missing edge cases |
+| **Draft** | Review kits for completeness, ambiguity, missing edge cases |
 | **Architect** | Architecture Review: challenge the plan before implementation begins |
-| **Build** | Code Review: review implementation against blueprints after each feature |
+| **Build** | Code Review: review implementation against kits after each feature |
 | **Inspect** | Peer Review iteration loop: alternate build/review convergence |
 | **Monitor** | Test Coverage Review: validate that monitoring covers all failure modes |
 
@@ -428,6 +430,169 @@ that neither automated tests nor single-agent convergence loops find.
 
 - **convergence-monitoring** -- How to detect when peer review iterations have converged
 - **validation-first** -- Peer review is Gate 6 (human/agent review) in the validation pipeline
-- **prompt-pipeline** -- How to structure builder and reviewer prompts in the DABI pipeline
-- **revision** -- When the peer reviewer finds a blueprint gap, revise the fix into blueprints
+- **prompt-pipeline** -- How to structure builder and reviewer prompts in the Hunt pipeline
+- **revision** -- When the peer reviewer finds a cavekit gap, revise the fix into kits
 - **impl-tracking** -- Record peer review findings in implementation tracking documents
+
+---
+
+## Codex Loop Mode — Cavekit + Ralph Loop + Codex Peer Reviewer
+
+The most rigorous automated quality process available: run a Cavekit cavekit through a Ralph Loop where Claude builds and Codex adversarially reviews every few iterations. A completely different model (different training data, different biases, different blind spots) challenges your implementation.
+
+### Why This Works
+
+| Factor | Single-Model Loop | Codex Loop Mode |
+|--------|-------------------|-----------------|
+| Blind spots | Same model, same blind spots every iteration | Two models catch different classes of issues |
+| Cavekit drift | Builder may silently deviate from cavekit | Peer reviewer checks cavekit compliance explicitly |
+| Quality floor | Converges to "good enough for one model" | Converges to "survives cross-examination" |
+| Dead ends | May retry failed approaches | Peer reviewer flags repeated patterns |
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────┐
+│                   Ralph Loop                         │
+│  (Stop hook feeds same prompt each iteration)        │
+│                                                      │
+│  ┌──────────┐    ┌──────────────┐    ┌────────────┐ │
+│  │  Claude   │───▶│ Build from   │───▶│  Commit    │ │
+│  │  (Build)  │    │ cavekit      │    │  changes   │ │
+│  └──────────┘    └──────────────┘    └──────┬─────┘ │
+│       ▲                                      │       │
+│       │                                      ▼       │
+│  ┌──────────┐    ┌──────────────┐    ┌────────────┐ │
+│  │  Fix      │◀──│ Parse        │◀──│  Codex CLI │ │
+│  │  findings │    │ findings     │    │  (Review)  │ │
+│  └──────────┘    └──────────────┘    └────────────┘ │
+│                                                      │
+│  Completion: all cavekit requirements met +         │
+│              no CRITICAL/HIGH findings               │
+└─────────────────────────────────────────────────────┘
+```
+
+### Review Invocation: Codex CLI (primary) vs MCP (legacy)
+
+1. **Codex CLI delegation (primary)** — `scripts/codex-review.sh` calls `codex` directly in `--approval-mode full-auto` with a structured review prompt. Faster, no MCP server overhead. Findings parsed and appended to `context/impl/impl-review-findings.md`.
+2. **MCP server (legacy fallback)** — Codex configured as an MCP server in `.mcp.json`. Claude calls the MCP tool on review iterations. Used only when Codex CLI delegation is unavailable.
+
+`setup-build.sh` auto-detects: if `codex-review.sh` is present and `codex` CLI is available, CLI delegation is used. Otherwise, falls back to MCP configuration.
+
+### Activation
+
+```bash
+/ck:make --peer-review                       # activates Codex Loop Mode (default interval: every 2nd iteration)
+/ck:make --peer-review --review-interval 1   # review every iteration (maximum rigor)
+/ck:make --peer-review --codex-model gpt-5.4-mini   # faster, cheaper reviewer
+```
+
+### What `--peer-review` Does
+
+1. **Validates** Codex CLI is installed (or MCP fallback is configured).
+2. **Configures** Codex as an MCP server in `.mcp.json` if CLI delegation is unavailable.
+3. **Builds** a Ralph Loop prompt that embeds:
+   - The cavekit path and related plan/impl files.
+   - Instructions to alternate between build and review iterations.
+   - The peer review prompt template for Codex.
+   - Completion criteria tied to cavekit acceptance criteria.
+4. **Starts** the Ralph Loop via the stop hook mechanism.
+
+### Codex CLI Invocation (what runs on review iterations)
+
+```bash
+source scripts/codex-review.sh
+bp_codex_review --base main
+```
+
+The CLI path produces structured findings with severity levels (P0–P3) and handles fallback gracefully if Codex is unavailable.
+
+### MCP Fallback Configuration
+
+```json
+{
+  "mcpServers": {
+    "codex-reviewer": {
+      "command": "codex",
+      "args": ["mcp-server", "-c", "model=\"gpt-5.4\""]
+    }
+  }
+}
+```
+
+### Iteration Pattern
+
+```
+Iteration 1: BUILD  — Read cavekit, implement first requirement
+Iteration 2: REVIEW — Call Codex CLI (or MCP fallback), get findings, fix CRITICAL/HIGH
+Iteration 3: BUILD  — Continue implementing, address remaining findings
+Iteration 4: REVIEW — Call Codex CLI again, new findings on new code
+...
+Iteration N: BUILD  — All requirements met, all findings fixed
+             → outputs <promise>CAVEKIT COMPLETE</promise>
+```
+
+Default review interval: every 2nd iteration. `--review-interval 1` = review every iteration.
+
+### Peer Review Findings File
+
+Review findings tracked in `context/impl/impl-review-findings.md`:
+
+```markdown
+# Peer Review Findings
+
+## Latest Review: Iteration 4 — 2026-03-14T10:30:00Z
+### Reviewer: Codex (gpt-5.4)
+
+| # | Severity | File | Issue | Status |
+|---|----------|------|-------|--------|
+| 1 | CRITICAL | src/auth.ts:L42 | Missing input validation on token | FIXED |
+| 2 | HIGH | src/auth.ts:L67 | Race condition in session refresh | FIXED |
+| 3 | MEDIUM | src/auth.ts:L15 | Unused import | NEW |
+| 4 | LOW | src/auth.ts:L3 | Comment typo | WONTFIX |
+
+## History
+### Iteration 2
+| # | Severity | File | Issue | Status |
+|---|----------|------|-------|--------|
+| 1 | CRITICAL | src/auth.ts:L20 | SQL injection in login query | FIXED |
+```
+
+### Completion Criteria (Codex Loop Mode)
+
+The loop exits when the completion promise is output. The prompt instructs Claude to ONLY output it when ALL of these are true:
+
+- All cavekit requirements (R-numbers) have been implemented.
+- All acceptance criteria pass.
+- No CRITICAL or HIGH peer review findings remain unfixed.
+- Build passes.
+- Tests pass.
+- At least one review iteration completed with no new CRITICAL/HIGH findings.
+
+### Review-Only Mode
+
+For reviewing existing code against a cavekit without building:
+
+```bash
+/ck:review --codex     # single Codex-only review (see /ck:review command)
+```
+
+Each iteration calls Codex to review existing code against the cavekit, then fixes issues found.
+
+### Prerequisites (Codex Loop Mode)
+
+1. **Codex CLI installed:** `npm install -g @openai/codex`
+2. **OpenAI API key configured:** Codex needs authentication (via `codex login` or env var).
+3. **Cavekit context directory:** Cavekit file must exist at the given path.
+
+### Convergence Signals (Codex Loop Mode)
+
+The peer review loop has converged when:
+- Codex's findings drop to zero or only LOW/MEDIUM severity.
+- Code diffs between iterations are minimal.
+- All cavekit requirements confirmed as met by both Claude and Codex.
+
+If the loop hits max iterations without converging:
+- Check `context/impl/impl-review-findings.md` for persistent issues.
+- Consider whether the cavekit needs clarification.
+- Run `/ck:revise --trace` to trace issues back to kits.

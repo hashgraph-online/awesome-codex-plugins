@@ -1,0 +1,116 @@
+ObjC.import("AppKit");
+ObjC.import("Foundation");
+ObjC.bindFunction("kill", ["int", ["int", "int"]]);
+
+const SIGSTOP = 17;
+const SIGCONT = 19;
+
+function stringValue(value) {
+  return value ? ObjC.unwrap(value) : "";
+}
+
+function writeLine(value) {
+  const data = $(JSON.stringify(value) + "\n").dataUsingEncoding($.NSUTF8StringEncoding);
+  $.NSFileHandle.fileHandleWithStandardOutput.writeData(data);
+}
+
+function requestResponse(socketPath) {
+  const task = $.NSTask.alloc.init;
+  const output = $.NSPipe.pipe;
+  task.executableURL = $.NSURL.fileURLWithPath("/usr/bin/nc");
+  task.arguments = ["-w", "20", "-U", socketPath];
+  task.standardInput = $.NSFileHandle.fileHandleWithNullDevice;
+  task.standardOutput = output;
+  task.standardError = $.NSFileHandle.fileHandleWithNullDevice;
+  const error = Ref();
+  if (!task.launchAndReturnError(error)) {
+    return null;
+  }
+  task.waitUntilExit;
+  const data = output.fileHandleForReading.readDataToEndOfFile;
+  const text = stringValue($.NSString.alloc.initWithDataEncoding(data, $.NSUTF8StringEncoding)).trim();
+  if (!text) {
+    return null;
+  }
+  try {
+    return JSON.parse(text.split(/\r?\n/u)[0]);
+  } catch {
+    return null;
+  }
+}
+
+function observeApplicationLaunches(center, handler) {
+  // JXA null becomes NSNull (a specific sender); $() is Objective-C nil (any sender).
+  // Pass the JS callback directly so the bridge gives it the notification argument.
+  return center.addObserverForNameObjectQueueUsingBlock(
+    $.NSWorkspaceWillLaunchApplicationNotification,
+    $(),
+    $.NSOperationQueue.mainQueue,
+    handler,
+  );
+}
+
+function run(argv) {
+  if (!Array.isArray(argv) || argv.length !== 4) {
+    throw new Error("usage: startup-listener.jxa <bundle-id> <app-path> <executable-path> <socket-path>");
+  }
+  const [bundleId, appPath, executablePath, socketPath] = argv;
+  const formatter = $.NSISO8601DateFormatter.alloc.init;
+  let pendingPid = null;
+
+  const handler = (notification) => {
+    const info = notification.userInfo;
+    const application = info ? info.objectForKey($.NSWorkspaceApplicationKey) : null;
+    if (!application || pendingPid !== null) {
+      return;
+    }
+    if (
+      stringValue(application.bundleIdentifier) !== bundleId ||
+      stringValue(application.bundleURL.path) !== appPath ||
+      stringValue(application.executableURL.path) !== executablePath
+    ) {
+      return;
+    }
+    const pid = Number(application.processIdentifier);
+    if (!Number.isSafeInteger(pid) || pid <= 1 || Number($.kill(pid, SIGSTOP)) !== 0) {
+      return;
+    }
+    pendingPid = pid;
+    const launchedAt = application.launchDate
+      ? stringValue(formatter.stringFromDate(application.launchDate))
+      : new Date().toISOString();
+    writeLine({
+      schemaVersion: 1,
+      event: "codex.willLaunch",
+      pid,
+      bundleId,
+      appPath,
+      executablePath,
+      launchedAt,
+      deadlineAtMs: Date.now() + 20_000,
+    });
+
+    const response = requestResponse(socketPath);
+    if (
+      !response ||
+      response.schemaVersion !== 1 ||
+      response.pid !== pid ||
+      (response.action !== "continue" && response.action !== "complete")
+    ) {
+      $.kill(pid, SIGCONT);
+    } else if (response.action === "continue") {
+      $.kill(pid, SIGCONT);
+    }
+    pendingPid = null;
+  };
+
+  const center = $.NSWorkspace.sharedWorkspace.notificationCenter;
+  const token = observeApplicationLaunches(center, handler);
+  writeLine({
+    schemaVersion: 1,
+    event: "listener.ready",
+    pid: Number($.NSProcessInfo.processInfo.processIdentifier),
+  });
+  $.NSRunLoop.mainRunLoop.run;
+  center.removeObserver(token);
+}

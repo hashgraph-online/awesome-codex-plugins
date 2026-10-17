@@ -1,0 +1,21 @@
+{
+  "name": "amq-pi-bridge",
+  "private": true,
+  "description": "pi extension that makes a live pi session reachable by amq-remote target kind pi",
+  "license": "MIT",
+  "type": "module",
+  "keywords": [
+    "pi-package"
+  ],
+  "pi": {
+    "extensions": [
+      "./integrations/pi/amq-bridge.ts"
+    ]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "scripts": {
+    "test": "node --test integrations/pi/amq-bridge.test.ts"
+  }
+}

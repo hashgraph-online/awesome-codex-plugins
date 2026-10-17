@@ -1,0 +1,75 @@
+--- a/babeldoc/format/pdf/high_level.py
++++ b/babeldoc/format/pdf/high_level.py
+@@ -1051,6 +1051,7 @@
+                 result.mono_pdf_path,
+                 mono_watermark_first_page_doc_bytes,
+                 translation_config,
++                page_index=0 if translation_config.only_include_translated_page else docs.page[0].page_number,
+             )
+             result.mono_pdf_path = mono_watermark_pdf
+     except Exception:
+@@ -1061,6 +1062,7 @@
+                 result.dual_pdf_path,
+                 dual_watermark_first_page_doc_bytes,
+                 translation_config,
++                page_index=0 if translation_config.only_include_translated_page else docs.page[0].page_number,
+             )
+             result.dual_pdf_path = dual_watermark_pdf
+     except Exception:
+@@ -1078,14 +1080,20 @@
+     mediabox_data: dict[int, Any] | None = None,
+ ) -> (io.BytesIO, io.BytesIO):
+     first_page_doc = Document()
+-    first_page_doc.insert_pdf(mupdf, from_page=0, to_page=0)
++    source_page = doc_il.page[0].page_number
++    first_page_doc.insert_pdf(mupdf, from_page=source_page, to_page=source_page)
+ 
+     il_only_first_page_doc = il_version_1.Document()
+     il_only_first_page_doc.total_pages = 1
+     il_only_first_page_doc.page = [copy.deepcopy(doc_il.page[0])]
++    il_only_first_page_doc.page[0].page_number = 0
++    if mediabox_data is not None:
++        mediabox_data = {0: mediabox_data[source_page]} if source_page in mediabox_data else {}
+ 
+     watermarked_config = copy.copy(translation_config)
+     watermarked_config.watermark_output_mode = WatermarkOutputMode.Watermarked
++    watermarked_config.pages = "1"
++    watermarked_config.page_ranges = [(1, 1)]
+     try:
+         watermarked_config.progress_monitor.disable = True
+         watermarked_temp_pdf_path = watermarked_config.get_working_file_path(
+@@ -1093,7 +1101,7 @@
+         )
+         safe_save(first_page_doc, watermarked_temp_pdf_path)
+ 
+-        Typesetting(watermarked_config).typsetting_document(il_only_first_page_doc)
++        Typesetting(watermarked_config).typesetting_document(il_only_first_page_doc)
+         pdf_creater = PDFCreater(
+             watermarked_temp_pdf_path.as_posix(),
+             il_only_first_page_doc,
+@@ -1126,6 +1134,7 @@
+     no_watermark_pdf_path: pathlib.PosixPath,
+     watermark_first_page_pdf_bytes: io.BytesIO,
+     translation_config: TranslationConfig,
++    page_index: int = 0,
+ ) -> pathlib.PosixPath:
+     if not no_watermark_pdf_path.exists():
+         raise FileNotFoundError(
+@@ -1137,12 +1146,12 @@
+         )
+ 
+     no_watermark_pdf = Document(no_watermark_pdf_path.as_posix())
+-    no_watermark_pdf.delete_page(0)
+-
+     watermark_first_page_pdf = Document("pdf", watermark_first_page_pdf_bytes)
+-    no_watermark_pdf.insert_pdf(
+-        watermark_first_page_pdf, from_page=0, to_page=0, start_at=0
+-    )
++    # Alternating dual output needs both pages replaced, regardless of order.
++    count = len(watermark_first_page_pdf)
++    start = page_index * count
++    no_watermark_pdf.delete_pages(from_page=start, to_page=start + count - 1)
++    no_watermark_pdf.insert_pdf(watermark_first_page_pdf, start_at=start)
+ 
+     new_save_path = no_watermark_pdf_path.with_name(
+         no_watermark_pdf_path.name.replace(".no_watermark", "")

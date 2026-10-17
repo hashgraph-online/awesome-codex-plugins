@@ -1,0 +1,181 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kicad-happy.local/datasheets/schemas/base.schema.json",
+  "title": "BaseBlock",
+  "description": "Universal per-IC facts present for every datasheet regardless of category. Referenced from extraction.schema.json under the 'base' key. Category-specific facts live in <category>.schema.json extensions.",
+  "type": "object",
+  "required": ["family", "package", "absolute_max", "recommended_operating", "pinout"],
+  "additionalProperties": false,
+  "properties": {
+    "family": {
+      "type": "string",
+      "description": "Human-readable functional family (e.g. 'step-down switching regulator', 'ARM Cortex-M4 MCU', 'rail-to-rail opamp'). Prose, not enum."
+    },
+    "description": {
+      "type": ["string", "null"],
+      "description": "One-line part description (e.g. '3A, 150 kHz adjustable buck regulator')."
+    },
+    "package": {
+      "type": "object",
+      "required": ["code"],
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "Datasheet package code (e.g. 'SOIC-8', 'LQFP-64', 'WLCSP-25')."
+        },
+        "pin_count": {"type": ["integer", "null"], "minimum": 1},
+        "pitch_mm": {"type": ["number", "null"], "minimum": 0},
+        "body_mm": {
+          "type": ["object", "null"],
+          "additionalProperties": false,
+          "properties": {
+            "length": {"type": "number", "description": "Body length in millimeters along the longest axis."},
+            "width": {"type": "number", "description": "Body width in millimeters along the perpendicular-to-length axis."},
+            "height": {"type": "number", "description": "Body height in millimeters (package thickness / standoff direction)."}
+          }
+        },
+        "thermal_pad": {"type": ["boolean", "null"]},
+        "evidence": {
+          "type": ["object", "null"],
+          "required": ["page", "confidence", "method"],
+          "additionalProperties": false,
+          "properties": {
+            "page": {"type": "integer", "minimum": 1, "description": "PDF page number (1-based) where the fact was sourced."},
+            "section": {"type": ["string", "null"], "description": "Datasheet section label (e.g. '6.4 Electrical Characteristics') when available."},
+            "confidence": {"type": "string", "enum": ["high", "medium", "low"], "description": "Extractor confidence in this fact. Pivots consumer trust gating."},
+            "method": {"type": "string", "enum": ["table", "prose", "curve", "calculated", "derived"], "description": "How the fact was captured. 'table' = parameter table. 'prose' = narrative text. 'curve' = read off a graph. 'calculated' / 'derived' = inferred from other facts."}
+          }
+        }
+      }
+    },
+    "thermal": {
+      "type": ["object", "null"],
+      "description": "Thermal characteristics keyed by parameter name (e.g. 'theta_ja', 'theta_jc', 'psi_jt'). Values are SpecValue[] in K or °C.",
+      "additionalProperties": {
+        "type": "array",
+        "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"}
+      }
+    },
+    "absolute_max": {
+      "type": "object",
+      "description": "Absolute-maximum ratings keyed by parameter name (e.g. 'VIN_max', 'TJ_max', 'IOUT_max'). Values are SpecValue[]. Exceeding these kills the part.",
+      "additionalProperties": {
+        "type": "array",
+        "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"}
+      }
+    },
+    "recommended_operating": {
+      "type": "object",
+      "description": "Recommended operating conditions keyed by parameter name (e.g. 'VIN', 'TA', 'VDDIO'). Values are SpecValue[]. Spec behavior guaranteed only within these.",
+      "additionalProperties": {
+        "type": "array",
+        "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"}
+      }
+    },
+    "esd": {
+      "type": ["object", "null"],
+      "description": "ESD ratings keyed by test model (e.g. 'HBM', 'CDM', 'MM'). Values are SpecValue[] in V.",
+      "additionalProperties": {
+        "type": "array",
+        "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"}
+      }
+    },
+    "moisture_sensitivity": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "msl": {
+          "type": ["integer", "null"],
+          "minimum": 1, "maximum": 6,
+          "description": "JEDEC Moisture Sensitivity Level (1–6)."
+        },
+        "peak_reflow_c": {"type": ["number", "null"]},
+        "evidence": {
+          "type": ["object", "null"],
+          "required": ["page", "confidence", "method"],
+          "additionalProperties": false,
+          "properties": {
+            "page": {"type": "integer", "minimum": 1, "description": "PDF page number (1-based) where the fact was sourced."},
+            "section": {"type": ["string", "null"], "description": "Datasheet section label (e.g. '6.4 Electrical Characteristics') when available."},
+            "confidence": {"type": "string", "enum": ["high", "medium", "low"], "description": "Extractor confidence in this fact. Pivots consumer trust gating."},
+            "method": {"type": "string", "enum": ["table", "prose", "curve", "calculated", "derived"], "description": "How the fact was captured. 'table' = parameter table. 'prose' = narrative text. 'curve' = read off a graph. 'calculated' / 'derived' = inferred from other facts."}
+          }
+        }
+      }
+    },
+    "compliance": {
+      "type": "array",
+      "description": "Compliance / qualification marks (e.g. AEC-Q100 grade, IEC 62368 rating, ISO 13485).",
+      "items": {
+        "type": "object",
+        "required": ["mark"],
+        "additionalProperties": false,
+        "properties": {
+          "mark": {
+            "type": "string",
+            "description": "Compliance mark or standard name (e.g. 'AEC-Q100', 'IEC 62368', 'ISO 13485')."
+          },
+          "rating": {
+            "type": ["string", "null"],
+            "description": "Rating within the mark when applicable (e.g. 'Grade 1' for AEC-Q100)."
+          },
+          "evidence": {
+            "type": ["object", "null"],
+            "required": ["page", "confidence", "method"],
+            "additionalProperties": false,
+            "properties": {
+              "page": {"type": "integer", "minimum": 1, "description": "PDF page number (1-based) where the fact was sourced."},
+              "section": {"type": ["string", "null"], "description": "Datasheet section label (e.g. '6.4 Electrical Characteristics') when available."},
+              "confidence": {"type": "string", "enum": ["high", "medium", "low"], "description": "Extractor confidence in this fact. Pivots consumer trust gating."},
+              "method": {"type": "string", "enum": ["table", "prose", "curve", "calculated", "derived"], "description": "How the fact was captured. 'table' = parameter table. 'prose' = narrative text. 'curve' = read off a graph. 'calculated' / 'derived' = inferred from other facts."}
+            }
+          }
+        }
+      }
+    },
+    "pinout": {
+      "$ref": "https://kicad-happy.local/datasheets/schemas/pinout.schema.json",
+      "description": "Full pinout array. Defers to pinout.schema.json so pin shape evolves independently."
+    },
+    "pin_relationships": {
+      "type": "array",
+      "description": "Structured cross-pin relationships (optional). Free-form relationships go in pin.notes.",
+      "items": {
+        "type": "object",
+        "required": ["type", "pins"],
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Relationship kind. Closed starter vocabulary for v1.4 — adding a new kind requires a minor schema bump (see schemas/CHANGELOG.md). Consumers should tolerate unknown kinds by ignoring the relationship, not erroring.",
+            "enum": [
+              "compensation_network", "matched_pair",
+              "requires_pullup", "requires_pulldown",
+              "current_programming", "stacked_internal",
+              "exclusive_with", "timing_critical"
+            ]
+          },
+          "pins": {
+            "type": "array",
+            "minItems": 1,
+            "items": {"type": "string"},
+            "description": "Pin numbers involved in this relationship."
+          },
+          "notes": {"type": ["string", "null"]},
+          "evidence": {
+            "type": ["object", "null"],
+            "required": ["page", "confidence", "method"],
+            "additionalProperties": false,
+            "properties": {
+              "page": {"type": "integer", "minimum": 1, "description": "PDF page number (1-based) where the fact was sourced."},
+              "section": {"type": ["string", "null"], "description": "Datasheet section label (e.g. '6.4 Electrical Characteristics') when available."},
+              "confidence": {"type": "string", "enum": ["high", "medium", "low"], "description": "Extractor confidence in this fact. Pivots consumer trust gating."},
+              "method": {"type": "string", "enum": ["table", "prose", "curve", "calculated", "derived"], "description": "How the fact was captured. 'table' = parameter table. 'prose' = narrative text. 'curve' = read off a graph. 'calculated' / 'derived' = inferred from other facts."}
+            }
+          }
+        }
+      }
+    }
+  }
+}

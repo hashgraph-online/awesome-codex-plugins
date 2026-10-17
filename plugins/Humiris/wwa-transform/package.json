@@ -1,0 +1,49 @@
+{
+  "name": "codiris-agentizer",
+  "version": "2.1.1",
+  "description": "Agentizer — Turn any website into an agent-first experience. Works with Claude Code, Codex, Cursor, Antigravity, or as a standalone CLI.",
+  "license": "MIT",
+  "homepage": "https://codiris.app/skills",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Humiris/wwa-transform.git"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "agentizer": "./bin/agentizer.js",
+    "wwa-transform": "./bin/agentizer.js"
+  },
+  "files": [
+    "bin",
+    "cli/dist",
+    "cli/package.json",
+    "SKILL.md",
+    "AGENTS.md",
+    "README.md",
+    "assets",
+    "template"
+  ],
+  "scripts": {
+    "prepare": "cd cli && npm install --no-audit --no-fund --silent && npm run build --silent",
+    "build": "cd cli && npm run build",
+    "test:cli": "node bin/agentizer.js"
+  },
+  "keywords": [
+    "agentizer",
+    "wwa",
+    "agentfront",
+    "ai",
+    "transform",
+    "website",
+    "mcp",
+    "claude-code",
+    "codex",
+    "cursor"
+  ],
+  "workspaces": [
+    "cli",
+    "template"
+  ]
+}

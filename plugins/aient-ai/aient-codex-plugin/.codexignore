@@ -1,0 +1,12 @@
+.git/
+.github/
+.pytest_cache/
+.ruff_cache/
+.turbo/
+.venv/
+node_modules/
+dist/
+build/
+coverage/
+*.log
+*.tmp

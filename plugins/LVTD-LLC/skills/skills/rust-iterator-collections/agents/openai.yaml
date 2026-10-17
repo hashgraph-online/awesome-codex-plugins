@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rust Iterator Collections"
+  short_description: "Write idiomatic Rust iterator and collection code"
+  default_prompt: "Refactor this Rust collection code to use clearer iterator and map/set patterns."

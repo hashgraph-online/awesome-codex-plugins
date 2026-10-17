@@ -1,0 +1,15 @@
+{
+  "name": "fast",
+  "version": 2,
+  "risk": "low",
+  "use": "No automated checks: items and receipts only.",
+  "rules": {},
+  "shiftDefaults": {
+    "verificationProfile": "fast",
+    "toolingPolicy": "existing-tools",
+    "execution": "run-direct"
+  },
+  "gates": {
+    "itemGate": []
+  }
+}

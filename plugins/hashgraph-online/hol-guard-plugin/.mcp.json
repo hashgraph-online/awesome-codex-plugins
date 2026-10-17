@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "hol-guard": {
+      "command": "hol-guard",
+      "args": ["mcp", "serve", "--stdio"]
+    }
+  }
+}

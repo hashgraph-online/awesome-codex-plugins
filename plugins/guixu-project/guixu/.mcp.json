@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "guixu": {
+      "command": "guixu",
+      "args": ["mcp"],
+      "description": "Guixu dataset discovery and acquisition MCP server"
+    }
+  }
+}

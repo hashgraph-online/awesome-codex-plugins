@@ -7,6 +7,38 @@ description: Use when a Codex execution should report progress, artifacts, block
 
 Use this skill when Codex should keep OrgX updated during execution.
 
+## Reporting contract
+
+This plugin requests the explicit `commander` runtime profile. Verify its
+actual callable tools before using a name below. If the inventory mismatches,
+refresh the connection or report the mismatch; do not guess an alias. Condensed
+`orgx_submit_receipt` reporting and portable `orgx_submit_work_receipt` document
+import have different schemas and semantics. Migrate the payload before changing
+tools. Gateway terminal delivery and passive hook reporting use separate paths.
+
+There are two reporting paths:
+
+- **Active path:** call OrgX MCP tools during the work when you know the
+  initiative, task, decision, blocker, or artifact context.
+- **Chronicle readout:** for operator reporting, call
+  `get_operator_chronicle` first when available and present
+  `chronicle.reportingNarrative.briefMarkdown` before drilling into individual entities.
+- **Stale-client fallback:** if bootstrap or docs advertise
+  `get_operator_chronicle` but the current AI client session has not refreshed
+  its callable tool list, call `orgx_recommend` only when
+  that name is present in the actual callable list, with `mode: "morning_brief"`,
+  and present the returned
+  `chronicle.reportingNarrative.briefMarkdown`. Do not ask the user to reconnect before
+  giving the report.
+- **Passive backstop:** Codex runtime hooks installed by `orgx-wizard hooks
+  install` record compact session events and run summary-only local Work Graph
+  reconciliation on `Stop`.
+
+Do not treat hook presence as a substitute for intentional OrgX writes. Hooks
+answer whether OrgX was used and can write a local report automatically; MCP
+calls, or an explicitly opted-in successful Work Graph post, make the work
+durable in OrgX while the session is still fresh.
+
 ## Workflow
 
 1. Resolve available IDs from args, env, or the current OrgX context:
@@ -16,26 +48,66 @@ Use this skill when Codex should keep OrgX updated during execution.
 - `ORGX_RUN_ID`
 - `ORGX_CORRELATION_ID`
 
-2. Emit activity at meaningful milestones:
+2. For reporting questions, retrieve the operator chronicle:
+- Use `get_operator_chronicle` with `period: "30d"` for broad clarity when it
+  is callable in the current client.
+- Use `period: "day"` or `period: "week"` when the user asks for yesterday or
+  this week.
+- If `get_operator_chronicle` is not callable in the current client, use the
+  existing `orgx_recommend` fallback when callable, with
+  `mode: "morning_brief"` and the broadest supported period. Treat the direct
+  tool as preferred, but do not block on client schema refresh.
+- Lead with `chronicle.reportingNarrative.briefMarkdown` for either reporting
+  tool, then call out
+  gaps and the next action.
+
+3. Emit activity at meaningful milestones:
 - `intent`
 - `execution`
 - `handoff`
 - `blocked`
 - `completed`
 
-3. Register proof of work:
+4. Register proof of work:
 - When you produce a file, diff, document, screenshot, or report, register it as an artifact with a concrete summary.
 
-4. Handle blockers structurally:
+5. Handle blockers structurally:
 - If judgment is required, request a decision with explicit options.
+- A decision waits on a person: report the blocker as waiting on them with the
+  decision's `review_url`. `orgx_decide` approve/reject only returns that link;
+  never report a decision as approved or rejected yourself.
 - If context is missing, report the exact missing dependency.
 
-5. Close execution cleanly:
+6. Close execution cleanly:
 - When the task is complete and verified, emit completion activity and update entity state if the task ID is available.
+
+7. If no OrgX IDs are available:
+- Continue the work, but make the final response easy for the hook reconciler to
+  classify: name decisions, artifacts, blockers, next actions, and verification.
+- Do not claim OrgX was updated unless an MCP tool or API call actually
+  succeeded.
+- Do not claim delegated or spawned work finished because the spawn call
+  succeeded: that only means it started. Check it with `orgx_command_status`
+  (`kind: "run"` and the returned run ID) until `next_poll_after_ms` is `null`.
+
+8. Preserve Work Graph continuity:
+- When a Work Graph report is generated, include its `work_graph_fingerprint`
+  and `signup_hydration.hydration_key` in summaries or artifacts that are safe
+  to store.
+- Automatic Stop-hook reconciliation writes the latest local report to
+  `~/.config/useorgx/wizard/hooks/reports/latest-work-graph-report.json`.
+- Stop-hook posting requires `ORGX_HOOK_RECONCILE_POST=true` or
+  `ORGX_WIZARD_HOOK_RECONCILE_POST=true` plus `ORGX_API_KEY`.
+- Treat the fingerprint as the durable claim key that lets OrgX hydrate
+  pre-signup audit value into a user's future workspace.
+- Never derive the fingerprint from secrets or raw transcripts that would need
+  to leave the local machine.
 
 ## Quality bar
 
 - Never post empty status updates.
 - Messages must be evidence-based and specific.
 - Include OrgX IDs whenever available.
-- Use `source_client=codex`.
+- Use `source_client=codex` only when the advertised input supports it.
+- Preserve secrets: never emit tokens, cookies, API keys, or storage state into
+  activity, retro, hook summaries, or final reports.

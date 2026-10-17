@@ -1,0 +1,7 @@
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "sendpaper"
+      description: "Sendpaper: price, create, pay for, track and cancel postcard and letter orders"
+      transport: "streamable_http"
+      url: "https://sendmypaper.com/mcp"

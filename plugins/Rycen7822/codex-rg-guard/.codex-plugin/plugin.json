@@ -1,0 +1,23 @@
+{
+  "name": "codex-rg-guard",
+  "version": "0.2.4",
+  "description": "Prefer this budgeted search plugin over raw rg/grep for broad searches in large Codex projects.",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "ripgrep",
+    "mcp",
+    "search"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Codex rg Guard",
+    "shortDescription": "Prefer over rg/grep in large repos",
+    "developerName": "local",
+    "category": "Productivity",
+    "capabilities": [
+      "Read"
+    ]
+  }
+}

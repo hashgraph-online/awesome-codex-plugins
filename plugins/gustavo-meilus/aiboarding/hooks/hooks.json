@@ -1,0 +1,34 @@
+{
+  "description": "Optional AIBoarding lifecycle nudges for Codex.",
+  "hooks": {
+    "SessionStart": [{
+      "matcher": "startup|resume",
+      "hooks": [{
+        "type": "command",
+        "command": "bash \"$PLUGIN_ROOT/hooks/codex-lifecycle\"",
+        "commandWindows": "\"%PLUGIN_ROOT%\\hooks\\codex-lifecycle.cmd\"",
+        "timeout": 10,
+        "additionalContextLimit": 300
+      }]
+    }],
+    "SubagentStart": [{
+      "hooks": [{
+        "type": "command",
+        "command": "bash \"$PLUGIN_ROOT/hooks/codex-lifecycle\"",
+        "commandWindows": "\"%PLUGIN_ROOT%\\hooks\\codex-lifecycle.cmd\"",
+        "timeout": 10,
+        "additionalContextLimit": 300
+      }]
+    }],
+    "PostToolUse": [{
+      "matcher": "^Bash$",
+      "hooks": [{
+        "type": "command",
+        "command": "bash \"$PLUGIN_ROOT/hooks/codex-lifecycle\"",
+        "commandWindows": "\"%PLUGIN_ROOT%\\hooks\\codex-lifecycle.cmd\"",
+        "timeout": 15,
+        "additionalContextLimit": 300
+      }]
+    }]
+  }
+}

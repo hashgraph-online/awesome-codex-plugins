@@ -1,0 +1,5 @@
+interface:
+  display_name: "Claude Code Result"
+  short_description: "Args: [job-id]. Show the stored output for a finished Claude Code job."
+policy:
+  allow_implicit_invocation: false

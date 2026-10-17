@@ -1,0 +1,241 @@
+---
+type: architecture
+outputFor: [tech-lead, scrum-master, frontend, backend, devops]
+dependencies: [prd]
+---
+
+# 系统架构文档
+
+## 文档信息
+- **功能名称**：{{FEATURE_NAME}}
+- **版本**：1.0
+- **创建日期**：{{DATE}}
+- **作者**：Architect Agent
+
+## 摘要
+
+> 下游 Agent 请优先阅读本节，需要细节时再查阅完整文档。
+
+- **架构模式**：[单体/前后端分离/微服务]
+- **技术栈**：[前端 / 后端 / 数据库 / 部署]
+- **核心设计决策**：[最重要的 2-3 个技术选型及理由]
+- **主要风险**：[关键技术风险]
+- **项目结构**：[目录约定]
+
+---
+
+## 1. 架构概述
+
+### 1.1 系统架构图
+
+```mermaid
+graph TB
+    subgraph 前端
+        UI[用户界面]
+        State[状态管理]
+    end
+    subgraph 后端
+        API[API 网关]
+        Service[业务服务]
+    end
+    subgraph 数据层
+        DB[(数据库)]
+        Cache[(缓存)]
+    end
+    UI --> State
+    State --> API
+    API --> Service
+    Service --> DB
+    Service --> Cache
+```
+
+### 1.2 架构决策
+
+| 决策 | 选项 | 选择 | 原因 |
+|------|------|------|------|
+| 前端框架 | React/Vue/Svelte | [选择] | [原因] |
+| 后端框架 | Node.js/Go/Python | [选择] | [原因] |
+| 数据库 | PostgreSQL/MySQL/MongoDB | [选择] | [原因] |
+
+---
+
+## 2. 技术栈
+
+| 层级 | 技术 | 版本 | 说明 |
+|------|------|------|------|
+| 前端框架 | {{FRONTEND_TECH}} | {{VERSION}} | [说明] |
+| UI 库 | {{UI_LIB}} | {{VERSION}} | [说明] |
+| 后端框架 | {{BACKEND_TECH}} | {{VERSION}} | [说明] |
+| 数据库 | {{DATABASE}} | {{VERSION}} | [说明] |
+| 缓存 | {{CACHE}} | {{VERSION}} | [说明] |
+
+---
+
+## 3. 目录结构
+
+```
+{{PROJECT_NAME}}/
+├── src/
+│   ├── components/         # UI 组件
+│   │   ├── common/         # 通用组件
+│   │   └── features/       # 功能组件
+│   ├── pages/              # 页面/路由
+│   ├── services/           # API 服务
+│   │   └── api/            # API 客户端
+│   ├── stores/             # 状态管理
+│   ├── hooks/              # 自定义 Hooks
+│   ├── utils/              # 工具函数
+│   ├── types/              # 类型定义
+│   └── styles/             # 全局样式
+├── tests/                  # 测试文件
+│   ├── unit/               # 单元测试
+│   └── integration/        # 集成测试
+├── public/                 # 静态资源
+├── docs/                   # 文档
+└── package.json
+```
+
+---
+
+## 4. 数据模型
+
+### 4.1 实体关系图
+
+```mermaid
+erDiagram
+    {{ENTITY1}} ||--o{ {{ENTITY2}} : has
+    {{ENTITY1}} {
+        string id PK
+        string name
+        datetime createdAt
+        datetime updatedAt
+    }
+    {{ENTITY2}} {
+        string id PK
+        string entity1Id FK
+        string data
+        datetime createdAt
+    }
+```
+
+### 4.2 数据字典
+
+#### 表：{{TABLE_NAME}}
+| 字段 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| id | UUID | 是 | auto | 主键 |
+| name | VARCHAR(255) | 是 | - | 名称 |
+| createdAt | TIMESTAMP | 是 | now() | 创建时间 |
+| updatedAt | TIMESTAMP | 是 | now() | 更新时间 |
+
+---
+
+## 5. API 设计
+
+### 5.1 接口概览
+
+| 方法 | 路径 | 描述 | 认证 |
+|------|------|------|------|
+| GET | /api/v1/{{RESOURCE}} | 获取列表 | 是 |
+| GET | /api/v1/{{RESOURCE}}/:id | 获取详情 | 是 |
+| POST | /api/v1/{{RESOURCE}} | 创建 | 是 |
+| PUT | /api/v1/{{RESOURCE}}/:id | 更新 | 是 |
+| DELETE | /api/v1/{{RESOURCE}}/:id | 删除 | 是 |
+
+### 5.2 接口详情
+
+#### GET /api/v1/{{RESOURCE}}
+
+**描述**：获取资源列表
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| page | number | 否 | 页码，默认 1 |
+| limit | number | 否 | 每页条数，默认 20 |
+| sort | string | 否 | 排序字段 |
+
+**响应**：
+```json
+{
+  "success": true,
+  "data": {
+    "items": [],
+    "total": 0,
+    "page": 1,
+    "limit": 20
+  }
+}
+```
+
+---
+
+## 6. 安全设计
+
+### 6.1 认证方案
+- **方案**：JWT / Session / OAuth2
+- **Token 存储**：HttpOnly Cookie / LocalStorage
+- **过期策略**：[描述]
+
+### 6.2 授权模型
+- **模型**：RBAC / ABAC
+- **角色定义**：
+  - Admin：[权限]
+  - User：[权限]
+
+### 6.3 安全措施
+- [ ] HTTPS 强制
+- [ ] CORS 配置
+- [ ] XSS 防护
+- [ ] CSRF 防护
+- [ ] SQL 注入防护
+- [ ] 速率限制
+
+---
+
+## 7. 部署架构
+
+### 7.1 环境
+
+| 环境 | 用途 | URL | 说明 |
+|------|------|-----|------|
+| 开发 | 本地开发 | localhost:3000 | 开发调试 |
+| 测试 | 测试验证 | test.example.com | 功能测试 |
+| 生产 | 正式服务 | example.com | 对外服务 |
+
+### 7.2 部署流程
+
+```mermaid
+graph LR
+    A[代码提交] --> B[CI 构建]
+    B --> C[测试]
+    C --> D{通过?}
+    D -->|是| E[部署]
+    D -->|否| F[通知]
+```
+
+---
+
+## 8. 性能考虑
+
+### 8.1 性能目标
+| 指标 | 目标值 | 说明 |
+|------|--------|------|
+| 首屏加载 | < 3s | FCP |
+| API 响应 | < 200ms | P99 |
+| 并发用户 | 1000 | 同时在线 |
+
+### 8.2 优化策略
+- [ ] 代码分割
+- [ ] 懒加载
+- [ ] 缓存策略
+- [ ] CDN 加速
+- [ ] 数据库索引
+
+---
+
+## 变更记录
+
+| 版本 | 日期 | 作者 | 变更内容 |
+|------|------|------|----------|
+| 1.0 | {{DATE}} | Architect Agent | 初始版本 |

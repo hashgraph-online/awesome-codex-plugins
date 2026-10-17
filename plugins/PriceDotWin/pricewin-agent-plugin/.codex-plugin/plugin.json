@@ -1,0 +1,42 @@
+{
+  "name": "pricewin",
+  "version": "1.0.4",
+  "description": "Live hotel and flight prices compared across Booking.com, Agoda, Trip.com and Traveloka, in USD, through the PriceWin MCP server. Includes the pricewin-travel-search skill. Can send a booking request to a direct-listed hotel (nothing is charged; the guest pays at the property).",
+  "author": {
+    "name": "PriceWin",
+    "email": "support@price.win",
+    "url": "https://www.price.win/"
+  },
+  "homepage": "https://www.price.win/",
+  "repository": "https://github.com/PriceDotWin/pricewin-agent-plugin",
+  "license": "MIT",
+  "keywords": [
+    "travel",
+    "hotels",
+    "flights",
+    "price-comparison",
+    "booking",
+    "mcp"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "PriceWin",
+    "shortDescription": "Live hotel and flight prices across OTAs",
+    "longDescription": "Compare live hotel and flight prices across Booking.com, Agoda, Trip.com and Traveloka, in USD, with links to book at the source. Runs on PriceWin's hosted MCP server: no account, no API key.",
+    "developerName": "PriceWin",
+    "category": "Travel",
+    "capabilities": [
+      "Interactive"
+    ],
+    "defaultPrompt": [
+      "Compare hotel prices in Da Nang for 2 adults from November 10 to 12."
+    ],
+    "logo": "./assets/pricewin-logo-400.png",
+    "composerIcon": "./assets/pricewin-logo-400.png",
+    "websiteURL": "https://www.price.win/",
+    "privacyPolicyURL": "https://www.price.win/en/privacy-policy",
+    "termsOfServiceURL": "https://www.price.win/en/terms-of-service",
+    "supportURL": "https://mcp.price.win/support"
+  }
+}

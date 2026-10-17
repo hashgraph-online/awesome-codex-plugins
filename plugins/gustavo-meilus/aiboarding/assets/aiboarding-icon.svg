@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">AIBoarding icon</title>
+  <desc id="desc">Layered onboarding document with a route marker and check mark.</desc>
+  <defs>
+    <linearGradient id="page" x1="96" y1="64" x2="416" y2="448" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f8fafc"/>
+      <stop offset="1" stop-color="#dbeafe"/>
+    </linearGradient>
+    <linearGradient id="mark" x1="142" y1="126" x2="386" y2="386" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#14b8a6"/>
+      <stop offset="1" stop-color="#2563eb"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="104" fill="#101828"/>
+  <path d="M156 84h162l74 74v270H156z" fill="#1d2939"/>
+  <path d="M128 68h190l66 66v294c0 14-11 25-25 25H153c-14 0-25-11-25-25z" fill="url(#page)"/>
+  <path d="M318 68v58c0 10 8 18 18 18h48z" fill="#bfdbfe"/>
+  <path d="M184 184h144M184 232h104M184 280h72" fill="none" stroke="#475467" stroke-width="22" stroke-linecap="round"/>
+  <path d="M336 280c0 63-80 134-80 134s-80-71-80-134a80 80 0 1 1 160 0z" fill="url(#mark)"/>
+  <circle cx="256" cy="280" r="34" fill="#eff6ff"/>
+  <path d="m238 280 14 14 28-34" fill="none" stroke="#0f766e" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

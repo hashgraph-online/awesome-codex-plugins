@@ -1,0 +1,41 @@
+{
+  "name": "honeydew-ai",
+  "version": "1.0.3",
+  "description": "Skills and tools powered by the Honeydew MCP that help coding agents query data and build semantic models",
+  "author": {
+    "name": "Honeydew AI",
+    "email": "support@honeydew.ai",
+    "url": "https://honeydew.ai"
+  },
+  "homepage": "https://honeydew.ai/docs/integration/mcp",
+  "repository": "https://github.com/honeydew-ai/honeydew-ai-coding-agents-plugins",
+  "license": "Apache-2.0",
+  "keywords": [
+    "semantic-layer",
+    "data-modeling",
+    "honeydew",
+    "analytics",
+    "data-analysis",
+    "querying"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Honeydew AI",
+    "shortDescription": "Query data and build Honeydew semantic models from Codex.",
+    "longDescription": "Honeydew AI provides Codex skills for exploring semantic models, querying governed data, creating entities, attributes, metrics, relations, and domains, and validating modeling changes through the Honeydew MCP.",
+    "developerName": "Honeydew AI",
+    "category": "Productivity",
+    "capabilities": ["Interactive", "Write"],
+    "websiteURL": "https://honeydew.ai",
+    "privacyPolicyURL": "https://honeydew.ai/privacy-policy",
+    "termsOfServiceURL": "https://honeydew.ai/terms-of-service",
+    "defaultPrompt": [
+      "Show me revenue by region for last quarter.",
+      "Create an orders entity from my warehouse table.",
+      "Validate the metric I just added."
+    ],
+    "brandColor": "#04B8A6",
+    "logo": "./assets/logo.svg"
+  }
+}

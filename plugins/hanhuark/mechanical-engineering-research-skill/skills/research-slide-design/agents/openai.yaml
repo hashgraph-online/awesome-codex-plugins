@@ -1,0 +1,4 @@
+interface:
+  display_name: "Research Slide Design"
+  short_description: "Build graphics-first technical presentations."
+  default_prompt: "Design this research presentation with a clear slide-to-slide logic, figure-focused storytelling, clean visual grouping, and speaker notes that complement the slides."

@@ -1,0 +1,20 @@
+{
+  "name": "chatgpt-agent",
+  "interface": {
+    "displayName": "ChatGPT Agent"
+  },
+  "plugins": [
+    {
+      "name": "chatgpt-agent",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

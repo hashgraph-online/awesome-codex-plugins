@@ -1,0 +1,47 @@
+{
+  "report_id": "implementation-report-example",
+  "task_id": "task-example",
+  "plan_ref": "implementation-plan.json",
+  "implementer_role": "clean-qa-editor",
+  "updated_at": "2024-01-01T00:00:00Z",
+  "implementation_status": "complete",
+  "agent0_reporting": {
+    "report_state": "terminal-report",
+    "terminal_report_target": "agent_0",
+    "interim_updates_allowed": false
+  },
+  "completed_work_items": [
+    "work-example-flow"
+  ],
+  "blocked_work_items": [],
+  "changed_paths": [
+    {
+      "path": "src/example-flow.js",
+      "kind": "code",
+      "work_item_ids": [
+        "work-example-flow"
+      ]
+    },
+    {
+      "path": "test/example-flow.test.js",
+      "kind": "test",
+      "work_item_ids": [
+        "work-example-flow"
+      ]
+    }
+  ],
+  "verification_results": [
+    {
+      "command": [
+        "npm",
+        "test"
+      ],
+      "cwd": "CLEAN_ROOM_IMPLEMENTATION_ROOTS[0]",
+      "status": "passed",
+      "output_summary": "Example verification passed."
+    }
+  ],
+  "findings": [],
+  "abstract_delta_tickets": [],
+  "final_status": "complete"
+}

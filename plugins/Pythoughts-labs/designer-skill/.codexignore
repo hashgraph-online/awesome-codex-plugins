@@ -1,0 +1,6 @@
+# Exclude the main-s subproject from plugin scanning.
+# main-s is a separate browser-extension + site project that lives in this
+# repo for convenience; its Chrome extension devtools use
+# chrome.devtools.inspectedWindow.eval(), which is legitimate browser-extension
+# API usage but trips the DANGEROUS_DYNAMIC_EXECUTION scanner rule.
+main-s/

@@ -1,0 +1,47 @@
+{
+  "name": "contam-plugin",
+  "version": "0.1.0",
+  "description": "Public CONTAM plugin with a local MCP server, Codex workflow skill, project guard, and contam_chinese linkage.",
+  "type": "module",
+  "bin": {
+    "contam-plugin": "./bin/contam-mcp.js",
+    "contam-mcp": "./bin/contam-mcp.js"
+  },
+  "files": [
+    ".codex-plugin/",
+    ".mcp.json",
+    "bin/",
+    "skills/",
+    "README.md",
+    "LICENSE",
+    "docs/",
+    "scripts/Invoke-ContamProjectGuard.ps1",
+    "scripts/link-contam-chinese.ps1",
+    "scripts/start-contam-plugin-mcp.ps1",
+    "contam-mcp/src/",
+    "contam-mcp/scripts/",
+    "contam-mcp/README.md"
+  ],
+  "os": [
+    "win32"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node ./bin/contam-mcp.js",
+    "plugin:check": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/start-contam-plugin-mcp.ps1 -Check",
+    "contam-chinese:check": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/link-contam-chinese.ps1 -Check",
+    "setup:contamxpy": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/install-contamxpy.ps1",
+    "privacy:check": "node ./contam-mcp/scripts/check-repo-privacy.mjs",
+    "regression:contamxpy": "node ./contam-mcp/scripts/regression-contamxpy.mjs",
+    "regression:case-matrix": "node ./contam-mcp/scripts/regression-case-matrix.mjs",
+    "regression:cottage": "node ./contam-mcp/scripts/regression-cottage.mjs",
+    "regression:medium-office": "node ./contam-mcp/scripts/regression-medium-office.mjs",
+    "regression:official": "npm run regression:cottage && npm run regression:medium-office"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "zod": "^3.25.76"
+  }
+}

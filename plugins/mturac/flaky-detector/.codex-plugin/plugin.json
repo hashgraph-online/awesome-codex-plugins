@@ -1,0 +1,37 @@
+{
+  "name": "flaky-detector",
+  "version": "0.1.0",
+  "description": "Per-test flakiness % from N runs.",
+  "author": {
+    "name": "Mehmet Turac",
+    "url": "https://github.com/mturac"
+  },
+  "homepage": "https://github.com/mturac/pluginpool-flaky-detector",
+  "repository": "https://github.com/mturac/pluginpool-flaky-detector",
+  "license": "MIT",
+  "keywords": [
+    "testing",
+    "flaky-tests",
+    "codex-plugin"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Flaky Detector",
+    "shortDescription": "Per-test flakiness % from N runs.",
+    "longDescription": "Runs a test command N times and reports per-test flakiness percentage.",
+    "developerName": "Mehmet Turac",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/mturac/pluginpool-flaky-detector",
+    "privacyPolicyURL": "https://github.com/mturac/pluginpool-flaky-detector/blob/main/LICENSE",
+    "termsOfServiceURL": "https://github.com/mturac/pluginpool-flaky-detector/blob/main/LICENSE",
+    "defaultPrompt": [
+      "Use Flaky Detector to per-test flakiness % from n runs."
+    ],
+    "brandColor": "#7c3aed",
+    "composerIcon": "./assets/icon.svg"
+  }
+}

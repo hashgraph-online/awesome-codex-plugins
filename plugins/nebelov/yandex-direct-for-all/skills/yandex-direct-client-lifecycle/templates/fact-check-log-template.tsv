@@ -1,0 +1,2 @@
+fact_id	fact	source_id	status	evidence_path	reviewer	reviewed_at	expires_at	contradiction_ref	notes
+template-fact			unverified						Пустой шаблон; не считать подтверждённым фактом.

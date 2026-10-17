@@ -1,6 +1,6 @@
 {
   "name": "langfuse",
-  "version": "0.6.5",
+  "version": "0.13.0",
   "description": "Langfuse observability - query traces, debug exceptions, analyze sessions, manage prompts via MCP tools",
   "author": {
     "name": "Aviv Sinai",
@@ -22,6 +22,7 @@
   ],
   "interface": {
     "displayName": "Langfuse Observability",
+    "composerIcon": "./assets/langfuse-icon.svg",
     "shortDescription": "Query traces, debug exceptions, analyze sessions, and manage prompts via MCP",
     "longDescription": "Inspect Langfuse traces, observations, sessions, exceptions, prompts, and datasets from Codex via bundled skills and MCP workflows.",
     "developerName": "Aviv Sinai",

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "aient": {
+      "type": "http",
+      "url": "https://aient.ai/mcp"
+    }
+  }
+}

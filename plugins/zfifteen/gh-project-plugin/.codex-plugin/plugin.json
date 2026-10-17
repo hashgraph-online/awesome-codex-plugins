@@ -1,0 +1,26 @@
+{
+  "name": "gh-project-plugin",
+  "version": "1.0.0",
+  "description": "Create GitHub repositories with low-friction defaults and native Codex menu prompts.",
+  "keywords": [
+    "codex",
+    "github",
+    "repository",
+    "github-cli",
+    "native-menus"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "GH Project",
+    "shortDescription": "Create GitHub repos with native menus",
+    "longDescription": "A Codex plugin bundle that packages the gh-project skill and plugin metadata for creating GitHub repositories with inferred defaults, explicit confirmation, and native request_user_input menus when the Codex host exposes that surface.",
+    "developerName": "Velocity Works",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": "Use GH Project to create a new GitHub repository with low-friction defaults.",
+    "brandColor": "#0969DA"
+  }
+}

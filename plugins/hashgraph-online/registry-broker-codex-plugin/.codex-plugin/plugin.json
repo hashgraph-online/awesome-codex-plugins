@@ -42,7 +42,7 @@
       "Delegate this bounded task through Registry Broker and keep the session trail."
     ],
     "brandColor": "#0F766E",
-    "composerIcon": "./assets/icon.svg",
+    "composerIcon": "./assets/icon.png",
     "logo": "./assets/logo.svg",
     "screenshots": [
       "./assets/screenshot-summon.png",

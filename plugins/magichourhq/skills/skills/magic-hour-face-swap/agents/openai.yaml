@@ -1,0 +1,4 @@
+interface:
+  display_name: "Magic Hour Face Swap"
+  short_description: "Recast a clip while keeping its performance"
+  default_prompt: "Use $magic-hour-face-swap to put my face into this clip, preserve the performance and show me the finished video."

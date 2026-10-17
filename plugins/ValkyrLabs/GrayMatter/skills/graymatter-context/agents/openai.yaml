@@ -1,0 +1,4 @@
+interface:
+  display_name: "GrayMatter Context"
+  short_description: "Compile bounded task context with retrieval receipts"
+  default_prompt: "Compile relevant GrayMatter context for this task."

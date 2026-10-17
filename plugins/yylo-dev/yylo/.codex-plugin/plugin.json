@@ -1,0 +1,42 @@
+{
+  "name": "yylo",
+  "version": "0.2.3-rc.3",
+  "description": "Command-line orchestrator for coding agents that creates a dedicated branch/worktree per task, delegates to Pi and Codex subagents, and enforces typed task, validation, merge, and release-readiness boundaries with receipt-backed repository changes.",
+  "author": {
+    "name": "YYLO contributors",
+    "url": "https://github.com/yylo-dev"
+  },
+  "homepage": "https://github.com/yylo-dev/yylo",
+  "repository": "https://github.com/yylo-dev/yylo",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "agents",
+    "orchestration",
+    "cli",
+    "worktree",
+    "workflow",
+    "code-review"
+  ],
+  "skills": "./.claude/skills/",
+  "interface": {
+    "displayName": "YYLO",
+    "shortDescription": "Orchestrate coding agents in per-task worktrees",
+    "longDescription": "YYLO plans and runs each task in a dedicated branch and worktree, delegates implementation to Pi and Codex subagents, and enforces typed task, validation, merge, and release-readiness boundaries with receipt-backed repository changes.",
+    "developerName": "YYLO contributors",
+    "category": "Coding",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/yylo-dev/yylo",
+    "defaultPrompt": [
+      "Use yylo to plan and run this task in a fresh worktree.",
+      "Use yylo to check merge and release readiness for this branch.",
+      "Use yylo to review the validation receipts for the last change."
+    ],
+    "brandColor": "#4F46E5",
+    "screenshots": []
+  }
+}

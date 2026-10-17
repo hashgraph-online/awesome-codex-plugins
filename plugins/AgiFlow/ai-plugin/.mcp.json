@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "agiflow": {
+      "type": "http",
+      "url": "https://agiflow.io/api/v1/mcp-app",
+      "headers": {
+        "x-agiflow-mcp-consumer": "plugin"
+      }
+    }
+  }
+}

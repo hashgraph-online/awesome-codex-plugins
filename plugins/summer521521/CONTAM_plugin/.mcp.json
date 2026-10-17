@@ -1,0 +1,13 @@
+{
+  "contam": {
+    "command": "powershell.exe",
+    "args": [
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-File",
+      "./scripts/start-contam-mcp.ps1"
+    ],
+    "tool_timeout_sec": 300
+  }
+}

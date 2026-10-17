@@ -1,0 +1,6 @@
+interface:
+  display_name: "KERNEL Landing Page"
+  short_description: "Build a landing page when explicitly requested"
+  default_prompt: "Run the KERNEL landing-page workflow."
+policy:
+  allow_implicit_invocation: false

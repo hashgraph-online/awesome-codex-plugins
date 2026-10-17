@@ -1,0 +1,16 @@
+{
+  "name": "rag-reviewer",
+  "interface": {"displayName": "RAG Reviewer"},
+  "plugins": [
+    {
+      "name": "rag-reviewer",
+      "source": {"source": "local", "path": "./plugin"},
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL",
+        "products": ["CODEX"]
+      },
+      "category": "Productivity"
+    }
+  ]
+}

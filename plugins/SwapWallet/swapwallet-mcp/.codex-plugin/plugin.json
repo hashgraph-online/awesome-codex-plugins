@@ -1,0 +1,51 @@
+{
+  "name": "swapwallet",
+  "version": "1.0.0",
+  "description": "SwapWallet crypto wallet in Codex: balances, P&L and history, plus swaps, transfers and withdrawals that run only after you approve them in Telegram.",
+  "author": {
+    "name": "SwapWallet",
+    "email": "support@swapwallet.app",
+    "url": "https://swapwallet.app"
+  },
+  "homepage": "https://swapwallet.app/docs/mcp",
+  "repository": "https://github.com/SwapWallet/swapwallet-mcp",
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "crypto",
+    "wallet",
+    "exchange",
+    "portfolio",
+    "finance",
+    "telegram",
+    "oauth",
+    "codex-plugin"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "SwapWallet",
+    "shortDescription": "Your SwapWallet crypto account, with Telegram approval for every money move.",
+    "longDescription": "Read balances, profit and loss, transaction history and deposit addresses from your SwapWallet account, and request swaps, transfers and withdrawals. No tool moves money by itself: each request is priced and sent to your Telegram, and runs only after you approve it there. Connects to SwapWallet's hosted MCP server over OAuth 2.1.",
+    "developerName": "SwapWallet",
+    "category": "Finance",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://swapwallet.app",
+    "privacyPolicyURL": "https://swapwallet.app/privacy",
+    "termsOfServiceURL": "https://swapwallet.app/terms",
+    "defaultPrompt": [
+      "What's my total SwapWallet balance?",
+      "Show my profit and loss on BTC and TON.",
+      "Swap 50 USDT to TON."
+    ],
+    "brandColor": "#1E5BF5",
+    "composerIcon": "./assets/icon-256.png",
+    "logo": "./assets/logo-512.png",
+    "screenshots": [
+      "./assets/screenshot-ai-page.png"
+    ]
+  }
+}

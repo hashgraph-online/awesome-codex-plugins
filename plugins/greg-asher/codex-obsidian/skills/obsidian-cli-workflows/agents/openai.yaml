@@ -1,0 +1,6 @@
+interface:
+  display_name: "Obsidian CLI Workflows"
+  short_description: "Run named one-command Obsidian workflows with preview-first orchestration across domain skills."
+  default_prompt: "Run an Obsidian one-command workflow by command ID in preview mode first, show risk and step plan, then apply only after explicit confirmation for mutating steps."
+policy:
+  allow_implicit_invocation: false

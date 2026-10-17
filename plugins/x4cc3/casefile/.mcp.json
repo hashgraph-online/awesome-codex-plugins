@@ -1,0 +1,28 @@
+{
+  "mcpServers": {
+    "casefile": {
+      "command": "bun",
+      "args": [
+        "run",
+        "./mcp/server.ts"
+      ],
+      "cwd": ".",
+      "env": {
+        "CASEFILE_SCOPE": "project"
+      },
+      "env_vars": [
+        "CASEFILE_PATH",
+        "CASEFILE_SCOPE",
+        "CASEFILE_WORKSPACE_ROOT",
+        "CODEX_CASEFILE_PATH",
+        "CODEX_CASEFILE_SCOPE",
+        "CODEX_WORKSPACE_ROOT",
+        "CODEX_PROJECT_ROOT",
+        "PI_CASEFILE_PATH",
+        "PI_CASEFILE_SCOPE",
+        "PI_WORKSPACE_ROOT",
+        "PI_PROJECT_ROOT"
+      ]
+    }
+  }
+}

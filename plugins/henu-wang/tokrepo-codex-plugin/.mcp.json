@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "tokrepo": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["tokrepo-mcp-server"]
+    }
+  }
+}

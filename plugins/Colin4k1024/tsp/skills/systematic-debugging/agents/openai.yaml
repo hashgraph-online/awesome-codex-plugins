@@ -1,0 +1,4 @@
+interface:
+  display_name: "Systematic Debugging"
+  short_description: "用根因定位替代猜测式修复"
+  default_prompt: "Use $systematic-debugging to structure evidence collection, hypothesis testing, and root-cause validation before we propose a fix."

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "reviewer": {
+      "command": "/bin/bash",
+      "args": ["-lc", "uvx --from rag-reviewer reviewer-mcp"]
+    }
+  }
+}

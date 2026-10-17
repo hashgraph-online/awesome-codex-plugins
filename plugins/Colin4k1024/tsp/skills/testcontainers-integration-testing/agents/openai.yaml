@@ -1,0 +1,4 @@
+interface:
+  display_name: "Testcontainers Integration Testing"
+  short_description: "用容器化依赖验证 Java 集成链路"
+  default_prompt: "Use $testcontainers-integration-testing to define a containerized integration test strategy for the real dependencies involved in this Java change."

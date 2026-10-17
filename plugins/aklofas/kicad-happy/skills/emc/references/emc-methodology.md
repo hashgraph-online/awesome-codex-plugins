@@ -15,9 +15,9 @@ The EMC analyzer is a **consumer** of the kicad skill's analysis output. It does
 ## Data Flow
 
 ### From schematic JSON
-- `signal_analysis.power_regulators` → switching frequencies, topologies
-- `signal_analysis.crystal_circuits` → clock frequencies
-- `signal_analysis.protection_devices` → ESD/TVS inventory
+- `findings[] (detector: power_regulators)` → switching frequencies, topologies
+- `findings[] (detector: crystal_circuits)` → clock frequencies
+- `findings[] (detector: protection_devices)` → ESD/TVS inventory
 - `design_analysis.buses` → bus topology (I2C, SPI, UART, CAN)
 
 ### From PCB JSON

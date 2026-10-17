@@ -1,0 +1,30 @@
+{
+  "name": "@xberg-io/opencode-crawlberg",
+  "version": "0.2.3",
+  "description": "Web crawling and scraping with HTML→Markdown and headless-Chrome fallback.",
+  "keywords": [
+    "web-scraping",
+    "crawling",
+    "html-to-markdown",
+    "headless-chrome"
+  ],
+  "homepage": "https://xberg.io",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xberg-io/plugins"
+  },
+  "license": "MIT",
+  "type": "module",
+  "main": ".opencode/plugins/crawlberg.js",
+  "exports": {
+    ".": "./.opencode/plugins/crawlberg.js"
+  },
+  "files": [
+    ".opencode/",
+    "assets/",
+    "README.md"
+  ],
+  "dependencies": {
+    "@opencode-ai/plugin": "^1.17.8"
+  }
+}

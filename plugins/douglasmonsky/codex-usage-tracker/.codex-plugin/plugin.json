@@ -1,0 +1,25 @@
+{
+  "author": {
+    "name": "Douglas Monsky"
+  },
+  "bundle": {
+    "digest": "sha256:de41ec1d4346879913560bab92ad81ccc1a2bf260f356a19b3c4651bff2eba3b",
+    "publishable": true,
+    "runtime_version": "0.28.0",
+    "schema": "codex-usage-tracker.kernel-plugin-bundle.v1"
+  },
+  "description": "Fast, exact, local-first Codex usage facts and evidence.",
+  "homepage": "https://github.com/douglasmonsky/codex-usage-tracker",
+  "keywords": [
+    "codex",
+    "tokens",
+    "usage",
+    "mcp"
+  ],
+  "license": "MIT",
+  "mcpServers": "./.mcp.json",
+  "name": "codex-usage-tracker",
+  "repository": "https://github.com/douglasmonsky/codex-usage-tracker",
+  "skills": "./skills/",
+  "version": "0.28.0"
+}

@@ -1,0 +1,64 @@
+{
+  "config_id": "init-example",
+  "created_at": "2024-01-01T00:00:00Z",
+  "artifact_base_root": "~/Documents/CleanRoom/task-example",
+  "root_preferences": {
+    "source_roots": [
+      "/authorized/source"
+    ],
+    "contaminated_artifact_root": "~/Documents/CleanRoom/task-example/contaminated",
+    "clean_root": "~/Documents/CleanRoom/task-example/clean",
+    "implementation_roots": [
+      "~/Documents/CleanRoom/task-example/implementation"
+    ],
+    "quarantine_root": "~/Documents/CleanRoom/task-example/quarantine",
+    "approved_public_reference_roots": [
+      "~/Documents/CleanRoom/task-example/public-refs"
+    ]
+  },
+  "target_profile": "speckit-feature-folder",
+  "model_preferences": {
+    "default_model": "runtime-default",
+    "domain_overrides": {
+      "clean": "runtime-clean-model"
+    },
+    "role_overrides": [
+      {
+        "role": "clean-qa-editor",
+        "model": "runtime-high-reasoning-model"
+      }
+    ]
+  },
+  "clean_isolation": {
+    "mode": "clean-workspace",
+    "clean_agents_start_cwd": "clean_root",
+    "source_mounted": false,
+    "notes": "Clean agents start from the clean root and do not receive source mounts."
+  },
+  "execution_policy": {
+    "backend": "host",
+    "preferred_container_profile": "node22",
+    "network_policy": "off",
+    "dependency_install_policy": "locked",
+    "allow_native_toolchain": false,
+    "resource_limits": {
+      "cpus": 2,
+      "memory_mb": 2048,
+      "timeout_seconds": 300
+    }
+  },
+  "user_rules": {
+    "clean_safe": [
+      "Use concise acceptance criteria."
+    ],
+    "contaminated_only": [
+      "Source-specific private notes stay on the contaminated side."
+    ]
+  },
+  "reconfiguration_policy": {
+    "root_changes_require_confirmation": true,
+    "schema_changes_require_confirmation": true,
+    "model_changes_require_confirmation": true,
+    "artifact_root_changes_start_new_generation": true
+  }
+}

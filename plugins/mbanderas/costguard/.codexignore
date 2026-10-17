@@ -1,0 +1,22 @@
+# Files excluded from the Codex plugin bundle.
+# The plugin ships the prebuilt dist/, the costguard skill, the manifest,
+# and the icon — development and test sources are not needed at runtime.
+
+node_modules/
+src/
+tests/
+coverage/
+docs/
+
+# Tooling / CI config
+.github/
+.githooks/
+.actrc
+eslint.config.*
+tsconfig*.json
+vitest.config.*
+
+# Misc
+*.log
+*.tsbuildinfo
+.DS_Store

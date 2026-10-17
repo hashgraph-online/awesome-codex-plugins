@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rust Reverse Engineering"
+  short_description: "Reverse engineer Rust binaries and libraries"
+  default_prompt: "Use $rust-reverse-engineering to triage this Rust binary and map likely crate boundaries."

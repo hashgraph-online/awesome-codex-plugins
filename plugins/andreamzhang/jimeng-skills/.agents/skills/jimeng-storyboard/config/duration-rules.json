@@ -1,0 +1,53 @@
+{
+  "name": "台词时长计算规则",
+  "version": "1.3",
+  "description": "根据台词字数、语速系数计算每条台词所需时长。v1.3: 移除所有符号依赖（延长语调、句间停顿），纯字数×语速",
+
+  "base_speed": {
+    "chars_per_second": 5,
+    "description": "基准语速：每秒5个汉字"
+  },
+
+  "rounding": {
+    "method": "ceil_to_0.5",
+    "description": "向上取整到0.5秒的倍数"
+  },
+
+  "speed_coefficients": {
+    "极快": { "coefficient": 0.7, "label": "极快" },
+    "快": { "coefficient": 0.85, "label": "快" },
+    "中等": { "coefficient": 1.0, "label": "中等" },
+    "缓慢": { "coefficient": 1.3, "label": "缓慢" },
+    "极慢": { "coefficient": 1.5, "label": "极慢" }
+  },
+
+  "special_rules": {
+    "interjection_chars": ["嗯", "啊", "唉", "哦", "咦", "啧", "呵", "哼", "喂", "哎呀"],
+    "interjection_count": 1,
+    "description_interjection": "语气词每个算1个字",
+
+    "punctuation_ignore": true,
+    "description_punctuation": "标点符号不计入字数，不参与任何时长判断"
+  },
+
+  "duration_constraints": {
+    "pure_dialogue": {
+      "short": { "max_chars": 10, "duration": 2, "label": "短台词（≤10字）" },
+      "medium": { "min_chars": 10, "max_chars": 20, "duration_range": "3-4", "label": "中等台词（10-20字）" },
+      "long": { "min_chars": 20, "duration_range": "5-8", "label": "长台词（>20字）" }
+    },
+    "action_dialogue": { "duration_range": "5-10", "label": "动作+台词" },
+    "pure_action": { "duration_range": "1-3", "label": "纯动作/反应" },
+    "environment": { "duration_range": "2-3", "label": "环境交代" }
+  },
+
+  "usage": {
+    "description": "大模型在分镜编写时，台词时长由 calc_duration.py 的 --from-storyboard 模式从分镜实际台词计算，本 JSON 仅定义计算规则",
+    "flow": [
+      "1. 母镜头填写完成后运行 calc_duration.py --from-storyboard 计算每条台词精确时长",
+      "2. 结合动作链需要，为子镜头分配时长",
+      "3. 确保子镜头时长之和 = 母镜头总时长",
+      "4. 台词时长 + 动作余量 = 台词类子镜头时长"
+    ]
+  }
+}

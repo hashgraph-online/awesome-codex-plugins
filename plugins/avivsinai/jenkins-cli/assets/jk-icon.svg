@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Jenkins CLI icon</title>
+  <desc id="desc">A Jenkins CLI icon with a jk monogram and build status dots.</desc>
+  <rect width="512" height="512" rx="96" fill="#111827"/>
+  <rect x="88" y="126" width="336" height="260" rx="34" fill="#f9fafb"/>
+  <path d="M88 188h336" stroke="#d1d5db" stroke-width="18"/>
+  <circle cx="134" cy="157" r="14" fill="#d33833"/>
+  <circle cx="178" cy="157" r="14" fill="#f6c344"/>
+  <circle cx="222" cy="157" r="14" fill="#1f9d55"/>
+  <circle cx="390" cy="82" r="38" fill="#d33833"/>
+  <circle cx="436" cy="126" r="20" fill="#335d8e"/>
+  <text x="256" y="300" fill="#111827" font-family="Arial, Helvetica, sans-serif" font-size="142" font-weight="800" text-anchor="middle">jk</text>
+  <path d="M145 349h222" stroke="#d33833" stroke-width="22" stroke-linecap="round"/>
+</svg>

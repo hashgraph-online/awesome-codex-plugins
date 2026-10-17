@@ -1,0 +1,4 @@
+interface:
+  display_name: "SEO Roadmap Prioritization"
+  short_description: "Prioritize SEO roadmaps, resources, and executive planning."
+  default_prompt: "Prioritize these SEO initiatives into a roadmap."

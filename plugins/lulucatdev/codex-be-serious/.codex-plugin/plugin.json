@@ -1,7 +1,7 @@
 {
   "name": "be-serious",
-  "version": "0.2.0",
-  "description": "Enforce formal, textbook-grade written register across all Codex agent output. Suppresses slang, sycophancy, filler words, emoji, enthusiasm markers, marketing adjectives, forced informality, anthropomorphization, and Chinese colloquial buzzwords.",
+  "version": "0.4.0",
+  "description": "Enforce serious, scholarly, textbook-grade written register across Codex agent output. Reinjects the constraint after startup, resume, clear, and context compaction. Provides a style profile, core and extended imitation examples, and an active review skill for prose audit and rewriting.",
   "author": {
     "name": "lulucatdev",
     "email": "lucas@lulucat.com",
@@ -10,21 +10,31 @@
   "homepage": "https://github.com/lulucatdev/codex-be-serious",
   "repository": "https://github.com/lulucatdev/codex-be-serious",
   "license": "MIT",
-  "keywords": ["formal", "register", "writing", "style", "textbook", "prose", "chinese"],
+  "keywords": [
+    "formal",
+    "scholarly",
+    "register",
+    "writing",
+    "style",
+    "textbook",
+    "prose",
+    "chinese"
+  ],
   "skills": "./skills/",
-  "hooks": "./hooks.json",
   "interface": {
     "displayName": "Be Serious",
-    "shortDescription": "Formal writing register for agent output",
-    "longDescription": "Constrains all natural-language output to the register of a well-edited university textbook. Prohibits slang, sycophantic expressions, enthusiasm markers, filler phrases, anthropomorphization, forced informality, and Chinese colloquial buzzwords (闭环, 痛点, 砍一刀, 拍板, etc.). Includes calibration examples in English and Chinese, plus self-monitoring instructions.",
+    "shortDescription": "Scholarly textbook register for agent output",
+    "longDescription": "Constrains natural-language output to the register of a serious scholar writing in well-edited university textbook prose. Prohibits slang, sycophantic expressions, enthusiasm markers, filler phrases, anthropomorphization, forced informality, and Chinese colloquial buzzwords (闭环, 痛点, 砍一刀, 拍板, etc.). Reinjects the constraint, a style profile, and core imitation examples after startup, resume, clear, and context compaction. Includes be-serious-review for prose audit and rewriting.",
     "developerName": "lulucatdev",
     "category": "Productivity",
-    "capabilities": ["Interactive"],
+    "capabilities": [
+      "Interactive"
+    ],
     "websiteURL": "https://github.com/lulucatdev/codex-be-serious",
     "privacyPolicyURL": "https://github.com/lulucatdev/codex-be-serious/blob/main/LICENSE",
     "termsOfServiceURL": "https://github.com/lulucatdev/codex-be-serious/blob/main/LICENSE",
     "defaultPrompt": [
-      "Enforce formal register for this session.",
+      "Use serious scholarly prose for this session.",
       "Rewrite the following in textbook-grade prose.",
       "Review my draft for colloquial language."
     ],

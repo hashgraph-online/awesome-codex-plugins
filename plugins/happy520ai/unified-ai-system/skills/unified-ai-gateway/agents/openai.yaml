@@ -1,0 +1,4 @@
+interface:
+  display_name: "Unified AI Gateway"
+  short_description: "Inspect and operate the local AI gateway safely"
+  default_prompt: "Check Unified AI System health and show the safest next action."

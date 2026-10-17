@@ -7,15 +7,20 @@ description: Use when executing an implementation plan linearly with explicit hu
 
 Execute the plan task by task. Pause after every 3 tasks for human review.
 
+This remains the explicit manual-checkpoint profile. New host-native or fallback runs may enter through `governed-execution`; when they do, use its selected driver for lifecycle calls, sensitive-action decisions, budgets, receipts, and reconciliation while preserving every checkpoint in this skill.
+
 ## Workflow File Resolution
 
 Resolve which workflow file to execute:
 
 1. If the user specified a filename → use that file
-2. Else, glob for `hotl-workflow*.md` in project root:
+2. Else, glob for canonical workflows in `docs/plans/*-workflow.md`:
+   - **One match** → use it automatically
+   - **Multiple matches** → if one is clearly the newest revision for the same semantic slug, prefer it; otherwise list them and ask the user to pick
+3. If no canonical matches, glob for legacy `hotl-workflow*.md` in project root:
    - **One match** → use it automatically
    - **Multiple matches** → list them and ask the user to pick
-   - **No matches** → check `docs/plans/*.md` as fallback
+4. **No matches** → stop and ask the user to create or name a workflow file
 
 ## Branch/Worktree Preflight
 
@@ -28,8 +33,10 @@ After resolving the workflow file, run this preflight **before executing any ste
 
 2. Check for uncommitted changes
    - First, exclude HOTL-owned transient artifacts from the dirty check:
-     • hotl-workflow-*.md (workflow plan files)
-     • docs/plans/*-design.md (design docs from brainstorming)
+     • docs/plans/*-workflow.md (canonical workflow files)
+     • hotl-workflow-*.md (legacy workflow files)
+     • docs/designs/*.md (canonical design docs from brainstorming)
+     • docs/plans/*-design.md, docs/plans/*-plan.md (legacy design docs from brainstorming)
      • .hotl/ (runtime state, reports, cache)
    - If only HOTL artifacts are dirty → treat as clean, continue
    - If non-HOTL dirty files exist:
@@ -42,21 +49,45 @@ After resolving the workflow file, run this preflight **before executing any ste
 
 3. Determine branch name
    - If branch: field exists in workflow frontmatter → use it
-   - Otherwise → derive hotl/<slug> from hotl-workflow-<slug>.md
+   - Otherwise → derive `hotl/<slug>` from the workflow filename
+     • Canonical: strip `YYYY-MM-DD-` prefix and `-workflow.md` suffix from `docs/plans/YYYY-MM-DD-<slug>-workflow.md`
+     • Legacy: strip `hotl-workflow-` prefix and `.md` suffix from `hotl-workflow-<slug>.md`
 
-4. Check if branch already exists locally
-   - Exists, same HEAD    → ask: reuse, delete+recreate, or abort
-   - Exists, different HEAD → ask: delete+recreate, or abort
-   - Does not exist        → create (no prompt)
+4. Capture authoring origin
+   - Record the current branch name (if any) and current `HEAD` commit as the workflow's authoring origin
+   - If the current branch is neither `main` nor `master`, and the workflow frontmatter does not already set `branch:` or `worktree:`, PAUSE and ask:
+     a. Continue on the current branch in this checkout
+        → set `branch: <current-branch>` and `worktree: false`
+     b. Use HOTL's isolated execution branch/worktree (recommended)
+        → leave `worktree: true` and let HOTL derive `hotl/<slug>` unless the user wants a custom branch name
+     c. Use a custom execution branch
+        → set `branch: <user-branch>` and keep worktree isolation unless the user explicitly opts out
+   - Explain clearly: the authoring checkout and the execution checkout can differ. HOTL can execute in a separate worktree while leaving the current checkout untouched
 
-5. Create branch/worktree
-   - If worktree: true in frontmatter → create git worktree with the branch
-   - Otherwise → create branch and checkout in current directory
+5. Determine isolation mode
+   - If `worktree: host` in frontmatter → stay on the current checkout's current feature branch exactly as provided by the host tool; reject `main` and `master`
+   - If `worktree: false` in frontmatter → stay in the current checkout and use a dedicated branch there
+   - If the current checkout is already a named linked git worktree, and the workflow frontmatter does not set `branch:` or `worktree:`, use host mode automatically to avoid stacking another worktree
+   - Otherwise → use an isolated git worktree by default
+
+6. Check if the target branch/worktree already exists locally
+   - Current helper behavior: existing branch/worktree collisions are a hard stop, not an interactive reuse/recreate flow
+   - If the helper reports an existing branch/worktree conflict, stop and ask the user whether to reuse manually, delete+recreate manually, or abort
+   - Does not exist → create (no prompt)
+
+7. Resolve the execution root with `scripts/hotl-prepare-execution-root.sh <workflow-file> --executor-mode <mode>`
+   - The helper returns JSON with: `branch`, `repo_root`, `execution_root`, `workflow_path`, `source_workflow_path`, `source_branch`, `source_head`, `worktree_path`
+   - By default it creates a linked git worktree for the branch, copies the current workflow into that worktree, and returns that worktree as `execution_root`
+   - If `worktree: false` in frontmatter → create/switch to the dedicated branch in the current checkout and return the repo root as `execution_root`
+   - If `worktree: host` in frontmatter → keep the current branch and return the current checkout as `execution_root`; if `branch:` is set, it must match the current branch
+   - If `branch:` matches the currently checked-out branch while worktree isolation is still enabled, the helper must STOP with a clear message telling the user to set `worktree: false` or `worktree: host` for same-branch continuity
+8. Change into `execution_root`
+   - Every later git command, runtime call, Codex helper call, and review command for this run MUST execute from that directory
 ```
 
 **Rules:**
 - No auto-stash. Hidden state mutation weakens governance.
-- Existing branch always prompts, even at the same HEAD.
+- Existing branch/worktree collisions do not currently auto-prompt; treat them as a stop-and-ask condition until interactive reuse/recreate is implemented.
 - Non-git repos skip entirely — HOTL works without git ceremony.
 - Run HOTL structural lint (`scripts/document-lint.sh`) automatically on the workflow file before any git mutation or step execution. If lint fails, STOP and show all errors. If lint passes, continue silently.
 
@@ -72,14 +103,18 @@ The `verify` field supports 4 types. A scalar string is shorthand for `type: she
 
 ## Execution State Persistence
 
-All state persistence is handled by the `hotl-rt` shared runtime (`runtime/hotl-rt`). This executor calls `hotl-rt` for all state transitions:
+All state persistence is handled by the `hotl-rt` shared runtime (`runtime/hotl-rt`). This executor calls `hotl-rt` for all state transitions and keeps the claimed controller token in `HOTL_OWNER_TOKEN`:
 
-- `hotl-rt init <workflow-file>` — at run start
-- `hotl-rt step N start` — before each step
-- `hotl-rt step N verify` — after each step's action
-- `hotl-rt step N retry` / `hotl-rt step N block --reason "..."` — on failure
-- `hotl-rt gate N approved|rejected` — at gate steps
-- `hotl-rt finalize --json` — at run completion
+- `hotl-rt init <workflow-file> --require-owner --executor-mode executing-plans ...` — at run start
+- `hotl-rt owner claim ...` and renewable `hotl-rt owner heartbeat ...` — controller coordination
+- `hotl-rt step N start --run-id <run-id>` — before each step
+- `hotl-rt step N verify --run-id <run-id>` — after each step's action
+- `hotl-rt step N retry --run-id <run-id>` / `hotl-rt step N block --reason "..." --run-id <run-id>` — on failure
+- `hotl-rt gate N approved|rejected --run-id <run-id>` — at gate steps
+- `hotl-rt action request|decide|begin|complete|reconcile ...` — sensitive authorization and effect evidence
+- `hotl-rt budget check --run-id <run-id>` — before another costly or long action when telemetry is relevant
+- `hotl-rt finalize --json --run-id <run-id>` — after all execution evidence is complete; successful runs become `ready_to_finish`
+- `hotl-rt finish <disposition> --run-id <run-id>` — after the user selects the explicit disposition; successful runs then become `completed`
 
 The runtime owns `.hotl/state/<run-id>.json` and `.hotl/reports/<run-id>.md`. Agents do not manage these files directly. Runtime calls happen before the corresponding chat or progress UI update.
 
@@ -89,21 +124,30 @@ To resume an interrupted executing-plans run, use the host tool's native resume 
 - **Codex:** ask me to use `$hotl:resuming` on the workflow file
 - **Claude Code:** `/hotl:resume <workflow-file>`
 
+### Long-running controller and effect rules
+
+- Immediately after init, run `hotl-rt owner claim --owner <stable-controller-id> --lease-seconds <bounded-lease> --run-id <run-id>`, parse its one-time token without displaying it, export it as `HOTL_OWNER_TOKEN`, and heartbeat before and after long actions and at batch boundaries. Every later mutation inherits the token.
+- If control must move, use explicit `owner handoff`, `owner release`, or reviewed `owner takeover`. Age alone is never takeover authority.
+- Host goals, automations, background sessions, handoffs, and hooks provide scheduling and liveness only. HOTL state, verification, ownership, and receipts remain authoritative.
+- For each sensitive effect, use `action request` with a stable idempotency key, human `action decide`, then `action begin` before the external operation and `action complete` with evidence afterward. If the outcome is interrupted or uncertain, inspect the target and use `action reconcile`; do not replay it blindly.
+
 ## Process
 
-1. Resolve and read the plan (see above)
-2. Run Branch/Worktree Preflight (see above)
-3. Run `hotl-rt init <workflow-file>` to initialize state and report
-4. Execute tasks in order, 3 at a time:
-   - `hotl-rt step N start` before each step
+1. Resolve and read the workflow (see above)
+2. Run Branch/Worktree Preflight (see above), capture its JSON result, and change into `execution_root`
+3. Run `hotl-rt init <workflow-file> --require-owner --executor-mode executing-plans --repo-root <repo-root> --execution-root <execution-root> --source-workflow-path <source-workflow-path> --source-branch <source-branch|null> --source-head <source-head|null> --worktree-path <worktree-path|null> --branch <branch>` to initialize state and report
+4. Capture the run id, claim ownership, retain the raw token only as `HOTL_OWNER_TOKEN`, and pass `--run-id <run-id>` (or set `HOTL_RUN_ID=<run-id>`) on every later runtime/helper call for this run
+5. Execute tasks in order, 3 at a time:
+   - `hotl-rt step N start --run-id <run-id>` before each step
    - Execute the action
-   - `hotl-rt step N verify` to run typed verification
-   - If verify reports `human review required: ...`, pause and do not continue until `hotl-rt gate N approved|rejected --mode human` succeeds
-   - On failure: `hotl-rt step N retry` or `hotl-rt step N block --reason "..."`
-   - On gate: `hotl-rt gate N approved|rejected`
-5. After each batch: run review checkpoint (see below), then show what was done, ask "Continue to next batch?"
-6. On failure: stop and report — never silently skip a failed step
-7. When complete: run final review checkpoint (see below), invoke `hotl:verification-before-completion`, then `hotl-rt finalize --json`, render the final summary via `scripts/render-execution-summary.sh`
+   - `hotl-rt step N verify --run-id <run-id>` to run typed verification
+   - If verify reports `human review required: ...`, pause and do not continue until `hotl-rt gate N approved|rejected --mode human --run-id <run-id>` succeeds
+   - On failure: `hotl-rt step N retry --run-id <run-id>` or `hotl-rt step N block --reason "..." --run-id <run-id>`
+   - On gate: `hotl-rt gate N approved|rejected --run-id <run-id>`
+6. After each batch: run review checkpoint (see below), then show what was done, ask "Continue to next batch?"
+7. On failure: stop and report — never silently skip a failed step
+8. When execution evidence is complete: run final review checkpoint (see below), invoke `hotl:verification-before-completion`, then `hotl-rt finalize --json --run-id <run-id>`. Treat `ready_to_finish` as awaiting disposition, render the verified-step summary, and invoke `hotl:finishing-a-development-branch` with the same `run_id` and owner token.
+9. After explicit finish moves a successful run to `completed`, release ownership, require a sufficient receipt, and only then claim completion.
 
 ## Review Checkpoints
 

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Spellbook Skills icon</title>
+  <desc id="desc">A stylized open book with a small spark above it.</desc>
+  <rect width="512" height="512" rx="96" fill="#111820"/>
+  <path d="M104 140c0-19 15-34 34-34h84c25 0 48 10 66 27 18-17 41-27 66-27h20c19 0 34 15 34 34v238c0 15-12 28-27 28h-40c-29 0-57 8-81 24l-4 3-4-3c-24-16-52-24-81-24h-40c-15 0-27-13-27-28V140z" fill="#f5efe0"/>
+  <path d="M136 146c0-6 5-10 10-10h76c28 0 50 22 50 50v195c-16-8-34-12-53-12h-83V146z" fill="#d9ad5f"/>
+  <path d="M304 186c0-28 22-50 50-50h12c6 0 10 4 10 10v223h-83c-19 0-37 4-53 12V186z" fill="#16a394"/>
+  <path d="M256 146v252" stroke="#111820" stroke-width="20" stroke-linecap="round"/>
+  <path d="M168 190h54M168 232h54M168 274h54M344 190h-54M344 232h-54M344 274h-54" stroke="#111820" stroke-width="18" stroke-linecap="round" opacity=".72"/>
+  <path d="M386 80l18 39 39 18-39 18-18 39-18-39-39-18 39-18 18-39z" fill="#c65c54"/>
+</svg>

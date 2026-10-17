@@ -1,0 +1,22 @@
+{
+  "name": "qatom",
+  "version": "1.0.0",
+  "description": "Use and publish paywalled API tools on the Qatom marketplace. Call marketplace tools with automatic per-call payments via your agent twin wallet, or register your own APIs and earn per-call revenue. Powered by the hosted Qatom MCP server (mcp.m.todaq.net) on the TODAQ protocol.",
+  "homepage": "https://github.com/TODAQmicro/qatom-skill",
+  "license": "MIT",
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "author": {
+    "name": "TODAQ Micro",
+    "url": "https://todaq.net"
+  },
+  "keywords": [
+    "payments",
+    "marketplace",
+    "mcp",
+    "todaq",
+    "agentic-commerce",
+    "micropayments"
+  ],
+  "repository": "https://github.com/TODAQmicro/qatom-skill"
+}

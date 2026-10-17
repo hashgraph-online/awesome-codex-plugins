@@ -1,0 +1,7 @@
+interface:
+  display_name: 'Tool Error Design'
+  short_description: 'Design errors an agent can recover from'
+  brand_color: '#6D5EF7'
+  default_prompt: "Use $tool-design-errors to classify this tool's failures and write recovery guidance for each."
+policy:
+  allow_implicit_invocation: true

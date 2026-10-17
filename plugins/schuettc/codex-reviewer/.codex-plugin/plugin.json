@@ -1,7 +1,12 @@
 {
   "name": "codex-reviewer",
-  "version": "0.4.0",
-  "description": "Structured review workflows for plans, implementations, and shipped notes. Posts reviews directly on GitHub PRs via gh CLI.",
+  "version": "0.9.0",
+  "description": "External reviewer for feature plans and implementations. Posts reviews directly on GitHub PRs via gh CLI.",
+  "author": {
+    "name": "schuettc",
+    "url": "https://github.com/schuettc"
+  },
+  "homepage": "https://github.com/schuettc/codex-reviewer",
   "repository": "https://github.com/schuettc/codex-reviewer",
   "license": "MIT",
   "keywords": [
@@ -14,17 +19,17 @@
   "interface": {
     "displayName": "Codex Reviewer",
     "shortDescription": "Second-pass review for Claude-driven work.",
-    "longDescription": "Review plans, implementations, and shipped summaries with a stricter findings-first Codex pass.",
+    "longDescription": "Review feature plans and implementations with a findings-first Codex pass. Posts reviews directly on GitHub draft PRs.",
     "developerName": "schuettc",
     "category": "Productivity",
     "capabilities": [
-      "Read",
-      "Write"
+      "Reviews feature plans before implementation",
+      "Reviews feature implementations against the plan",
+      "Posts verdicts and inline findings on GitHub draft PRs"
     ],
     "defaultPrompt": [
-      "Review this feature plan for hidden risks and missing tests.",
-      "Review this implementation against the approved feature plan.",
-      "Check whether this shipped summary overstates what the code does."
+      "Review the plan at <pr-url> for feature <id>.",
+      "Review the implementation at <pr-url> for feature <id>."
     ],
     "brandColor": "#0F766E"
   }

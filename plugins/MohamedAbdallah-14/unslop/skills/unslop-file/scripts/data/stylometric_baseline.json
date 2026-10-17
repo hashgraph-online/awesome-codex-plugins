@@ -1,0 +1,211 @@
+{
+  "metadata": {
+    "human_corpus": "benchmarks/corpus/human",
+    "llm_corpus": "benchmarks/corpus/llm",
+    "n_human": 3,
+    "n_llm": 4,
+    "note": "Small development seed corpus (3 human, 4 LLM). Not a published or genre-calibrated release corpus."
+  },
+  "fields": {
+    "avg_commas_per_sentence": {
+      "human_p25": 0.53,
+      "human_median": 0.79,
+      "human_p75": 0.81,
+      "llm_p25": 0.715,
+      "llm_median": 0.78,
+      "llm_p75": 0.92,
+      "human_range": 0.56,
+      "llm_range": 0.7
+    },
+    "colon_rate": {
+      "human_p25": 2.05,
+      "human_median": 4.1,
+      "human_p75": 8.65,
+      "llm_p25": 5.6525,
+      "llm_median": 7.13,
+      "llm_p75": 8.6725,
+      "human_range": 13.2,
+      "llm_range": 3.56
+    },
+    "contraction_rate": {
+      "human_p25": 0.0,
+      "human_median": 0.0,
+      "human_p75": 3.3,
+      "llm_p25": 11.875,
+      "llm_median": 17.37,
+      "llm_p75": 25.0125,
+      "human_range": 6.6,
+      "llm_range": 25.25
+    },
+    "em_dash_rate": {
+      "human_p25": 0.0,
+      "human_median": 0.0,
+      "human_p75": 0.0,
+      "llm_p25": 11.0275,
+      "llm_median": 15.42,
+      "llm_p75": 18.1975,
+      "human_range": 0.0,
+      "llm_range": 18.36
+    },
+    "first_person_rate": {
+      "human_p25": 31.195,
+      "human_median": 40.98,
+      "human_p75": 50.195,
+      "llm_p25": 24.21,
+      "llm_median": 25.15,
+      "llm_p75": 26.76,
+      "human_range": 38.0,
+      "llm_range": 7.26
+    },
+    "fragment_rate": {
+      "human_p25": 0.142,
+      "human_median": 0.154,
+      "human_p75": 0.235,
+      "llm_p25": 0.2037,
+      "llm_median": 0.2145,
+      "llm_p75": 0.2497,
+      "human_range": 0.186,
+      "llm_range": 0.139
+    },
+    "function_word_rate": {
+      "human_p25": 0.3765,
+      "human_median": 0.386,
+      "human_p75": 0.4635,
+      "llm_p25": 0.345,
+      "llm_median": 0.3635,
+      "llm_p75": 0.3808,
+      "human_range": 0.174,
+      "llm_range": 0.056
+    },
+    "latinate_ratio": {
+      "human_p25": 0.0395,
+      "human_median": 0.059,
+      "human_p75": 0.06,
+      "llm_p25": 0.0607,
+      "llm_median": 0.0665,
+      "llm_p75": 0.0695,
+      "human_range": 0.041,
+      "llm_range": 0.02
+    },
+    "parenthetical_rate": {
+      "human_p25": 0.0,
+      "human_median": 0.0,
+      "human_p75": 0.0,
+      "llm_p25": 0.0,
+      "llm_median": 0.0,
+      "llm_p75": 1.0675,
+      "human_range": 0.0,
+      "llm_range": 4.27
+    },
+    "passive_voice_approx": {
+      "human_p25": 14.485,
+      "human_median": 19.8,
+      "human_p75": 20.145,
+      "llm_p25": 2.2575,
+      "llm_median": 4.245,
+      "llm_p75": 5.5375,
+      "human_range": 11.32,
+      "llm_range": 5.71
+    },
+    "second_person_rate": {
+      "human_p25": 1.65,
+      "human_median": 3.3,
+      "human_p75": 30.34,
+      "llm_p25": 7.165,
+      "llm_median": 9.755,
+      "llm_p75": 11.0775,
+      "human_range": 57.38,
+      "llm_range": 8.42
+    },
+    "semicolon_rate": {
+      "human_p25": 0.0,
+      "human_median": 0.0,
+      "human_p75": 1.53,
+      "llm_p25": 0.0,
+      "llm_median": 0.0,
+      "llm_p75": 0.0,
+      "human_range": 3.06,
+      "llm_range": 0.0
+    },
+    "sentence_length_cv": {
+      "human_p25": 0.5875,
+      "human_median": 0.637,
+      "human_p75": 0.6665,
+      "llm_p25": 0.6365,
+      "llm_median": 0.687,
+      "llm_p75": 0.7445,
+      "human_range": 0.158,
+      "llm_range": 0.18
+    },
+    "sentence_length_mean": {
+      "human_p25": 11.275,
+      "human_median": 13.17,
+      "human_p75": 15.19,
+      "llm_p25": 11.615,
+      "llm_median": 11.72,
+      "llm_p75": 12.0775,
+      "human_range": 7.83,
+      "llm_range": 1.55
+    },
+    "sentence_length_stdev": {
+      "human_p25": 6.72,
+      "human_median": 8.39,
+      "human_p75": 10.185,
+      "llm_p25": 7.8025,
+      "llm_median": 8.26,
+      "llm_p75": 8.7425,
+      "human_range": 6.93,
+      "llm_range": 1.84
+    },
+    "sentences": {
+      "human_p25": 21.0,
+      "human_median": 23.0,
+      "human_p75": 24.5,
+      "llm_p25": 17.25,
+      "llm_median": 23.5,
+      "llm_p75": 29.5,
+      "human_range": 7.0,
+      "llm_range": 16.0
+    },
+    "starts_with_and_but": {
+      "human_p25": 0.0,
+      "human_median": 0.0,
+      "human_p75": 0.0,
+      "llm_p25": 0.0,
+      "llm_median": 0.0,
+      "llm_p75": 0.0,
+      "human_range": 0.0,
+      "llm_range": 0.0
+    },
+    "total_words": {
+      "human_p25": 273.5,
+      "human_median": 303.0,
+      "human_p75": 315.0,
+      "llm_p25": 219.25,
+      "llm_median": 283.0,
+      "llm_p75": 340.25,
+      "human_range": 83.0,
+      "llm_range": 190.0
+    },
+    "type_token_ratio": {
+      "human_p25": 0.559,
+      "human_median": 0.581,
+      "human_p75": 0.6155,
+      "llm_p25": 0.5765,
+      "llm_median": 0.5865,
+      "llm_p75": 0.604,
+      "human_range": 0.113,
+      "llm_range": 0.077
+    },
+    "word_length_stdev": {
+      "human_p25": 1.4775,
+      "human_median": 1.528,
+      "human_p75": 2.0895,
+      "llm_p25": 1.2205,
+      "llm_median": 1.457,
+      "llm_p75": 1.7152,
+      "human_range": 1.224,
+      "llm_range": 1.319
+    }
+  }
+}

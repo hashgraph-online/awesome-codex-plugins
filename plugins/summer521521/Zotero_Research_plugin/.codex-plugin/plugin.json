@@ -1,0 +1,38 @@
+{
+  "name": "zotero-research-tools",
+  "version": "0.1.5",
+  "description": "Codex plugin for searching, reading, summarizing, citing, and organizing Zotero library items through Zotero MCP.",
+  "author": {
+    "name": "summer521521",
+    "url": "https://github.com/summer521521"
+  },
+  "homepage": "https://github.com/summer521521/Zotero_Research_plugin",
+  "repository": "https://github.com/summer521521/Zotero_Research_plugin",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "mcp",
+    "zotero",
+    "research"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Zotero Research Tools",
+    "shortDescription": "Search and manage Zotero via MCP.",
+    "composerIcon": "./assets/icon.svg",
+    "longDescription": "Packages a local Zotero MCP launcher with a research skill for reading metadata, full text, notes, annotations, tags, and collections. Treats llm-for-zotero as a separate Zotero desktop add-on and can diagnose saved MinerU Markdown cache visibility.",
+    "developerName": "summer521521",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Search my Zotero library.",
+      "Summarize this Zotero paper.",
+      "Find papers by citation key."
+    ],
+    "brandColor": "#B91C1C"
+  }
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Frontend UI/UX System"
+  short_description: "统一产品视觉、交互与体验门禁"
+  default_prompt: "Use $frontend-ui-ux-system to lock product style, design tokens, responsive behavior, interaction feedback, and UI quality gates for this frontend task."

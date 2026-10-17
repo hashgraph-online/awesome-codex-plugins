@@ -140,7 +140,7 @@ Iteration 4:  ██████████████████████
 |-----------|---------|-----|
 | **Fuzzy specs** | Agent interprets requirements differently each iteration | Make specs more precise; add concrete acceptance criteria |
 | **Weak validation** | Agent cannot verify correctness, so it keeps changing things | Add build/test/lint gates; strengthen acceptance criteria |
-| **Fighting sub-agents** | Multiple agents change the same code in conflicting ways | Add file ownership tables; dispatch subagents with `isolation: "worktree"` via the Agent tool |
+| **Fighting sub-agents** | Multiple agents change the same code in conflicting ways | Add file ownership tables; dispatch subagents via the Agent tool |
 | **Contradictory requirements** | Spec A says X, spec B says not-X | Resolve contradictions in specs; add explicit priority/precedence |
 | **Missing exit criteria** | Agent does not know when it is done | Add explicit exit criteria checklists and completion signals |
 | **Over-broad scope** | Too much work for one prompt/iteration | Split into smaller, focused prompts with clear boundaries |
@@ -369,7 +369,7 @@ Do not keep running. More iterations will not help.
 |-----------|-----|
 | Fuzzy specs | Rewrite ambiguous requirements with concrete acceptance criteria |
 | Weak validation | Add build/test/lint gates to the prompt |
-| File conflicts | Add file ownership tables; dispatch subagents with `isolation: "worktree"` via the Agent tool |
+| File conflicts | Add file ownership tables; dispatch subagents via the Agent tool |
 | Over-broad scope | Split into smaller prompts; reduce concurrent agents |
 | External dependency | Mock the dependency; or resolve it before resuming |
 
@@ -407,7 +407,7 @@ With revision:
 ## Cross-References
 
 - **Convergence patterns reference:** See `references/convergence-patterns.md` for the complete convergence pattern catalog with examples.
-- **Revision:** See `bp:revision` skill for how tracing bugs to specs improves convergence.
-- **Prompt pipeline:** See `bp:prompt-pipeline` skill for designing prompts with proper exit criteria and completion signals.
-- **Validation-first design:** See `bp:validation-first` skill for building validation gates that provide convergence signals.
-- **Impl tracking:** See `bp:impl-tracking` skill for tracking progress and detecting ceiling conditions.
+- **Revision:** See `ck:revision` skill for how tracing bugs to specs improves convergence.
+- **Prompt pipeline:** See `ck:prompt-pipeline` skill for designing prompts with proper exit criteria and completion signals.
+- **Validation-first design:** See `ck:validation-first` skill for building validation gates that provide convergence signals.
+- **Impl tracking:** See `ck:impl-tracking` skill for tracking progress and detecting ceiling conditions.

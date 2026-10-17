@@ -1,0 +1,4 @@
+interface:
+  display_name: "Graph Engineer（图谱工程师）"
+  short_description: "负责代码图谱构建、依赖分析、影响面评估、架构可视化与重构安全评估，为架构决策和…"
+  default_prompt: "Use $graph-engineer to take the lead on the Graph Engineer（图谱工程师） responsibilities for this task. Start with $codegraph, $graphify, $gitnexus, $hexagonal-architecture when those shared capabilities apply. Pull in $systematic-debugging when deeper engineering execution or verification guidance is needed."

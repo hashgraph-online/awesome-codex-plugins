@@ -1,0 +1,20 @@
+{
+  "name": "kevin592-codex-workflows",
+  "interface": {
+    "displayName": "kevin592 Codex Workflows"
+  },
+  "plugins": [
+    {
+      "name": "full-stack-development",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

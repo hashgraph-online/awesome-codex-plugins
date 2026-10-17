@@ -1,0 +1,4 @@
+interface:
+  display_name: "CSS Math Units"
+  short_description: "CSS units, calc, and box math"
+  default_prompt: "Use $css-math-units to simplify this CSS unit calculation and make it responsive."

@@ -1,0 +1,16 @@
+# Runtime data and credentials must stay outside distributed plugin bundles.
+jobs/
+*.handoff.json
+live-handoff.json
+config.before.toml
+.env
+.env.*
+
+# Local build and dependency artifacts are not plugin source.
+.git/
+node_modules/
+*.tgz
+coverage/
+dist/
+npm-debug.log*
+.DS_Store

@@ -181,6 +181,37 @@ def search_lcsc_direct(lcsc_code: str) -> dict | None:
     return component
 
 
+def enrich_with_wmsc(component: dict) -> dict:
+    """Fill datasheet URL / MPN / manufacturer from LCSC's product-detail
+    endpoint when a jlcsearch hit lacks them (jlcsearch dropped its `extra`
+    block in 2026-09 — KH-405). Keeps jlcsearch's stock/price."""
+    if not component or _get_datasheet_url(component):
+        return component
+    code = _get_lcsc_code(component)
+    if not code:
+        return component
+    direct = search_lcsc_direct(code)
+    if not direct:
+        return component
+    merged = dict(component)
+    direct_extra = direct.get("extra") or {}
+    component_extra = _parse_extra(component) or {}
+    merged_extra = {**direct_extra, **component_extra}
+    # The shallow merge above lets component_extra['datasheet'] clobber
+    # wmsc's — including an empty {} block a stale jlcsearch hit carries
+    # (KH-405). Fall through to wmsc's datasheet block when the
+    # component's own has no pdf URL.
+    component_ds = component_extra.get("datasheet")
+    if not (isinstance(component_ds, dict) and component_ds.get("pdf")):
+        direct_ds = direct_extra.get("datasheet")
+        if isinstance(direct_ds, dict) and direct_ds.get("pdf"):
+            merged_extra["datasheet"] = direct_ds
+    merged["extra"] = merged_extra
+    if not merged.get("datasheet") and direct.get("datasheet"):
+        merged["datasheet"] = direct["datasheet"]
+    return merged
+
+
 def _get_datasheet_url(component: dict) -> str:
     """Extract the best datasheet URL from a jlcsearch component.
 
@@ -466,6 +497,7 @@ def main():
 
     if args.search:
         component = search_lcsc(args.search)
+        component = enrich_with_wmsc(component)
         if not component and re.match(r"^C\d+$", args.search, re.IGNORECASE):
             print(f"jlcsearch returned no results for {args.search}, trying wmsc API...",
                   file=sys.stderr)

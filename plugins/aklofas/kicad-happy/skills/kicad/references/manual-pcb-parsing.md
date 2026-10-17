@@ -235,6 +235,7 @@ for line in lines:
             m_nn = re.search(r'\(net\s+"([^"]+)"\)', buf)
             via_type = 'through'
             if '(via blind' in buf: via_type = 'blind'
+            elif '(via buried' in buf: via_type = 'buried'
             elif '(via micro' in buf: via_type = 'micro'
             if all([m_at, m_sz, m_dr]) and (m_n or m_nn):
                 vias.append({

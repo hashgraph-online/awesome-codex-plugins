@@ -1,0 +1,112 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${PLUGIN_ROOT}/registry/scripts/hooks/run.mjs session-start"
+          }
+        ],
+        "description": "Restore previous session context + load project memory and evolved skills"
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${PLUGIN_ROOT}/registry/scripts/hooks/run.mjs guard"
+          }
+        ],
+        "description": "Block dangerous commands (force push, prod DB drop, rm -rf /)"
+      },
+      {
+        "matcher": "apply_patch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${PLUGIN_ROOT}/registry/scripts/hooks/run.mjs guard"
+          }
+        ],
+        "description": "Multi-agent pause directives and concurrent write-conflict warnings"
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${PLUGIN_ROOT}/registry/scripts/hooks/run.mjs observe"
+          }
+        ],
+        "description": "Record Bash tool result for evolution loop"
+      },
+      {
+        "matcher": "apply_patch|Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${PLUGIN_ROOT}/registry/scripts/hooks/run.mjs observe"
+          },
+          {
+            "type": "command",
+            "command": "node ${PLUGIN_ROOT}/registry/scripts/hooks/run.mjs polish"
+          }
+        ],
+        "description": "Edits (apply_patch carries Write/Edit as matcher aliases) — observe for evolution loop + auto-format/typecheck"
+      }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${PLUGIN_ROOT}/registry/scripts/hooks/run.mjs observe"
+          }
+        ],
+        "description": "Record subagent start for orchestration state and the dashboard"
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${PLUGIN_ROOT}/registry/scripts/hooks/run.mjs observe"
+          }
+        ],
+        "description": "Record subagent completion for orchestration state and the dashboard"
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${PLUGIN_ROOT}/registry/scripts/hooks/run.mjs snapshot"
+          }
+        ],
+        "description": "Snapshot session state before context compaction so resume can restore it"
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${PLUGIN_ROOT}/registry/scripts/hooks/run.mjs reflect"
+          }
+        ],
+        "description": "Analyze session observations -> evolve skills -> gate mutations"
+      }
+    ]
+  }
+}

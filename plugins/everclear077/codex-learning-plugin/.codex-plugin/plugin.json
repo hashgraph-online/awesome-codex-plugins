@@ -1,0 +1,36 @@
+{
+  "name": "core-learning",
+  "version": "1.0.0",
+  "description": "用可验收目标、核心拆解、五种独立家教模式和间隔回忆，把有限时间投入可验证的能力与交付物。",
+  "author": {
+    "name": "Codex Learning Plugin contributors"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "学习",
+    "shortDescription": "先抓核心，再练到能做、能讲、隔天还记得",
+    "longDescription": "综合20小时学习冲刺、主动回忆、费曼倒讲、掌握学习与近期学习技能的实践设计。限定5–9个核心概念，默认一次一题、错误只给提示，分开运行苏格拉底练习、倒讲查漏、刷题提速、项目评审和间隔测验；保存学习证据，支持Anki导出与FSRS使用流程。",
+    "developerName": "Codex Learning Plugin contributors",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": [
+      "用学习带我入门一个领域：先定义可验收成果，拆出核心概念，然后一次一题带我练。",
+      "用学习帮我做20小时冲刺，把大部分时间留给练习，并在结束前做出可演示作品。",
+      "继续上次学习，先闭卷测验，再根据我的实际错误决定今天练什么。"
+    ],
+    "brandColor": "#147D73",
+    "composerIcon": "./assets/icon.svg",
+    "websiteURL": "https://github.com/everclear077/codex-learning-plugin",
+    "privacyPolicyURL": "https://github.com/everclear077/codex-learning-plugin/blob/main/PRIVACY.md"
+  },
+  "homepage": "https://github.com/everclear077/codex-learning-plugin",
+  "repository": "https://github.com/everclear077/codex-learning-plugin",
+  "license": "MIT",
+  "keywords": [
+    "learning",
+    "tutoring",
+    "active-recall",
+    "codex",
+    "skills"
+  ]
+}

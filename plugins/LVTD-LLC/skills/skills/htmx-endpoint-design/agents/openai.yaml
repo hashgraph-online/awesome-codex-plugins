@@ -1,0 +1,7 @@
+interface:
+  display_name: "htmx Endpoint Design"
+  short_description: "Design htmx fragment endpoints"
+  icon_small: "./assets/icons8-code.svg"
+  icon_large: "./assets/icons8-code.svg"
+  brand_color: "#424E5C"
+  default_prompt: "Use $htmx-endpoint-design to design an htmx request and fragment response contract."

@@ -4,10 +4,10 @@
 
 | Version | Supported |
 | ------- | --------- |
-| main    | ✅        |
+| master  | ✅        |
 | tags    | ✅        |
 
-We support the latest release and the `main` branch. Older tags are archived as
+We support the latest release and the `master` branch. Older tags are archived as
 read-only snapshots.
 
 ## Reporting a vulnerability

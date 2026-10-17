@@ -1,0 +1,40 @@
+{
+  "name": "codex-howto",
+  "version": "0.5.0",
+  "description": "Model-adaptive Codex workflows for engineering and review-first knowledge maintenance.",
+  "author": {
+    "name": "Phelan164",
+    "url": "https://github.com/Phelan164"
+  },
+  "homepage": "https://github.com/Phelan164/codex-howto",
+  "repository": "https://github.com/Phelan164/codex-howto",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "engineering",
+    "skills",
+    "workflows",
+    "knowledge-management"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Codex How To",
+    "shortDescription": "Engineering-first Codex workflows",
+    "composerIcon": "./assets/icon.svg",
+    "longDescription": "A progressive guide, reusable engineering skills, and a review-first living knowledge workflow for Codex.",
+    "developerName": "Phelan164",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/Phelan164/codex-howto",
+    "defaultPrompt": [
+      "Choose the smallest engineering workflow for my task.",
+      "Run an evidence-driven engineering loop.",
+      "Review this change against its requirements.",
+      "Query or maintain the Codex Living Wiki."
+    ]
+  }
+}

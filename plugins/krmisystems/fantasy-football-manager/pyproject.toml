@@ -1,0 +1,41 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "fantasy-football-manager"
+version = "0.4.0"
+description = "ESPN draft and lineup tools for Codex and other MCP clients, with approval modes and per-team limits."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [{name = "krmisystems"}]
+dependencies = ["mcp>=2.2,<3", "pydantic>=2.11,<3", "filelock>=3.32,<4"]
+keywords = ["mcp", "espn", "fantasy-football", "codex", "draft", "lineup", "browser-automation"]
+
+[project.optional-dependencies]
+server = ["psycopg[binary]>=3.3,<4"]
+session-import = ["cryptography>=44,<51"]
+browser = ["playwright>=1.62,<2"]
+
+[project.urls]
+Repository = "https://github.com/krmisystems/fantasy-football-manager"
+Issues = "https://github.com/krmisystems/fantasy-football-manager/issues"
+
+[project.scripts]
+fantasy-football-manager = "fantasy_football_manager.mcp_server:main"
+fantasy-football-espn = "fantasy_football_manager.espn_mcp:main"
+fantasy-football-server = "fantasy_football_manager.server:main"
+fantasy-football-archive = "fantasy_football_manager.archive:main"
+fantasy-football-portfolio = "fantasy_football_manager.portfolio_mcp:main"
+fantasy-football-dashboard = "fantasy_football_manager.dashboard:main"
+
+[dependency-groups]
+dev = ["pytest>=8,<10", "pytest-asyncio>=0.24,<2", "build>=1.2,<2", "twine>=7,<8", "playwright>=1.62,<2", "cryptography>=44,<51"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/fantasy_football_manager"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

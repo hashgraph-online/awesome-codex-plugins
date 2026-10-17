@@ -1,0 +1,9 @@
+interface:
+  display_name: "Codex Quota Optimizer"
+  short_description: "Zero-friction Codex usage governor with smarter routing, focused context, soft budgets, and layered verification."
+  icon_small: "../assets/icon.svg"
+  icon_large: "../assets/icon.svg"
+  brand_color: "#4FD4A4"
+  default_prompt: "Optimize this Codex task with zero-friction usage discipline: keep context focused, use soft budgets, preserve correctness, and never add blocking overhead just to save quota."
+policy:
+  allow_implicit_invocation: true

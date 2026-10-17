@@ -1,0 +1,4 @@
+interface:
+  display_name: "Validate TUI in Codex"
+  short_description: "Visual TUI proof without desktop takeover"
+  default_prompt: "Use $validate-tui-in-codex to interact with this TUI and attach visual validation evidence."

@@ -1,0 +1,7 @@
+interface:
+  display_name: 'Tool Security Design'
+  short_description: 'Secrets, permissions, scope, and audit for tools'
+  brand_color: '#6D5EF7'
+  default_prompt: 'Use $tool-design-security to lock down credentials, permission checks, and boundaries for this tool.'
+policy:
+  allow_implicit_invocation: true

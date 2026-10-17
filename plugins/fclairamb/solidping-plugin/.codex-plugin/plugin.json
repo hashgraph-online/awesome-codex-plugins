@@ -1,0 +1,52 @@
+{
+  "name": "solidping",
+  "version": "1.0.0",
+  "description": "Uptime monitoring through the SolidPing MCP server: checks, results, incidents, status pages and maintenance windows.",
+  "author": {
+    "name": "Florent Clairambault",
+    "email": "florent@solidping.io",
+    "url": "https://github.com/fclairamb"
+  },
+  "homepage": "https://www.solidping.io",
+  "repository": "https://github.com/fclairamb/solidping-plugin",
+  "license": "MIT",
+  "keywords": [
+    "monitoring",
+    "uptime",
+    "status-page",
+    "incidents",
+    "observability",
+    "mcp",
+    "codex"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "SolidPing",
+    "shortDescription": "Uptime checks, incidents and status pages from the SolidPing MCP server.",
+    "longDescription": "SolidPing is open-source uptime monitoring (AGPL-3.0): 40+ check types, multi-region workers, incidents, on-call escalation and status pages. This plugin connects Codex to its remote MCP server (OAuth 2.1) and adds a skill: read checks, results and incidents, diagnose a failing check, and create or change checks, status pages and maintenance windows after you confirm. Works with the hosted service at solidping.io; a self-hosted instance serves the same endpoint.",
+    "developerName": "Florent Clairambault",
+    "category": "Tools & Integrations",
+    "websiteURL": "https://www.solidping.io",
+    "composerIcon": "./assets/icon.svg",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "logo": "./assets/icon.svg",
+    "screenshots": [
+      "./assets/checks-list.png",
+      "./assets/check-detail.png",
+      "./assets/check-form.png"
+    ],
+    "privacyPolicyURL": "https://www.solidping.io/saas/privacy",
+    "termsOfServiceURL": "https://www.solidping.io/terms",
+    "defaultPrompt": [
+      "Which of my SolidPing checks are down right now?",
+      "Why is this check failing? Diagnose it with SolidPing.",
+      "Add an HTTPS check on this URL every minute from two regions."
+    ],
+    "brandColor": "#F9296B"
+  }
+}

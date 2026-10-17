@@ -1,0 +1,13 @@
+filters:
+  or:
+    - 'type == "current-state"'
+    - 'type == "handoff"'
+    - 'type == "promotion-inbox"'
+views:
+  - type: table
+    name: Current work
+    order:
+      - file.name
+      - project_id
+      - updated
+      - review_after

@@ -1,0 +1,51 @@
+{
+  "run_id": "eval-1-with_skill",
+  "expectations": [
+    {
+      "text": "Concludes the draft is NOT safe to hand off / must be quarantined or rewritten",
+      "passed": true,
+      "evidence": "'Verdict: NOT safe to hand off.'"
+    },
+    {
+      "text": "Flags private source identifiers (e.g. parseFooInternal, RetryScheduler, retryLater, failCount)",
+      "passed": true,
+      "evidence": "Flags RetryScheduler, parseFooInternal, retryLater, _flushBuffer, failCount as private/blocked."
+    },
+    {
+      "text": "Flags the copied comment and/or Jira tag FLOW-1234",
+      "passed": true,
+      "evidence": "'copied comment // HACK ... FLOW-1234 ... Blocked outright.'"
+    },
+    {
+      "text": "Flags source-shaped code or pseudocode (the for-loop or 'if x == 7')",
+      "passed": true,
+      "evidence": "compatibility_notes pseudocode flagged 'one of the most explicit violations'; for-loop flagged."
+    },
+    {
+      "text": "Flags the exact log string and/or magic value",
+      "passed": true,
+      "evidence": "Flags literal log string + 0xDEADBEEF hex magic value."
+    },
+    {
+      "text": "Flags the copied source test name TestParseFooInternal_Mode7",
+      "passed": true,
+      "evidence": "'TestParseFooInternal_Mode7 copies a source test name and private identifier.'"
+    },
+    {
+      "text": "Challenges the false public_surface entry (_flushBuffer)",
+      "passed": true,
+      "evidence": "'_flushBuffer is not public... Remove it.'"
+    },
+    {
+      "text": "Notes leakage_review.reviewer_role should be contaminated-handoff-sanitizer",
+      "passed": true,
+      "evidence": "Process problem 1: self-approved; valid value reviewer_role: contaminated-handoff-sanitizer."
+    }
+  ],
+  "summary": {
+    "passed": 8,
+    "failed": 0,
+    "total": 8,
+    "pass_rate": 1.0
+  }
+}

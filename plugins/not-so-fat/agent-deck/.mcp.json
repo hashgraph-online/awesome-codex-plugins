@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "agent-deck": {
+      "type": "stdio",
+      "command": "agent-deck",
+      "args": [
+        "mcp-launch"
+      ]
+    }
+  }
+}

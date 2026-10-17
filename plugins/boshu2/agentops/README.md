@@ -1,617 +1,680 @@
 <div align="center">
 
+<img src="docs/assets/logo.svg" alt="AgentOps" width="72" height="72">
+
 # AgentOps
 
+**DevOps discipline for AI coding agents.**
+
 [![Validate](https://github.com/boshu2/agentops/actions/workflows/validate.yml/badge.svg?branch=main)](https://github.com/boshu2/agentops/actions/workflows/validate.yml)
-[![Nightly](https://github.com/boshu2/agentops/actions/workflows/nightly.yml/badge.svg)](https://github.com/boshu2/agentops/actions/workflows/nightly.yml)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![Latest release](https://img.shields.io/github/v/release/boshu2/agentops)](https://github.com/boshu2/agentops/releases/latest)
+[![Skills](https://img.shields.io/badge/skills-catalog-black.svg)](docs/SKILL-ROUTER.md)
 
-### Every session starts where the last one left off.
-
-Validation, memory, lifecycle gates, and briefing-first control for coding agents. AgentOps acts as a software-factory control plane: bounded context goes in, validated code and durable learning come out.
-
-[Start Here](#start-here) · [Install](#install) · [See It Work](#see-it-work) · [Skills](#skills) · [CLI](#the-ao-cli) · [FAQ](#faq) · [Newcomer Guide](docs/newcomer-guide.md)
+[Install](#quickstart) · [The loop](#the-operational-loop) ·
+[Goals](#goals) · [Try it](#try-it) · [Skills](#skills-at-a-glance) ·
+[Make it yours](#make-it-yours) · [Evidence](#evidence) ·
+[Beyond AgentOps](#beyond-agentops)
 
 </div>
 
-<p align="center">
-<img src="docs/assets/swarm-6-rpi.png" alt="Agents running full development cycles in parallel with validation gates and a coordinating team leader" width="800">
-</p>
+DevOps makes software delivery repeatable through shared practices, automated
+checks and feedback. AgentOps brings that discipline to agentic coding sessions:
+paved paths your agents can follow from intent to checked results, with memory
+to carry useful context into the next task.
 
----
+Those paths combine [skills](docs/SKILL-ROUTER.md) with the [`ao` CLI](#optional-ao-cli)
+and your existing engineering tools. [Plan](skills/plan/SKILL.md) clarifies the
+expected behavior; [Test](skills/test/SKILL.md) helps check it;
+[Validate](skills/validate/SKILL.md) adds independent judgment where needed.
+Skills guide the agent's decisions; executable gates check specific contracts.
+[Beads](https://github.com/gastownhall/beads) preserves the work graph, decisions,
+results and project memories. [Memory](skills/memory/SKILL.md) curates supported
+findings into linked project knowledge, connecting lessons to the work and
+sources behind them. The next session can use that record instead of starting over.
 
-## What AgentOps Gives You
+The skills are a kit, and you are expected to change it. Each skill is one
+Markdown file of instructions. Keep the ones that fit how you work, rewrite the
+ones that almost fit, delete the rest, and add skills you write yourself or find
+in other libraries. What you end up with is your own operating model for agents,
+which is the reason this project exists. [Make it yours](#make-it-yours) shows
+how.
 
-Session 1, your agent spends 2 hours debugging a timeout bug. Session 15, a new agent finds the answer in 10 seconds — because `/retro` captured the lesson and the flywheel promoted it. Three capabilities make this work:
+Use these paths with Claude Code, Codex, Cursor, OpenCode, Gemini CLI, Pi and
+other coding agents, or personal assistants such as OpenClaw and Grok Bot.
+Start with [one useful task](#try-it); follow the [operational loop](#the-operational-loop)
+for a change or the [goal workflow](#goals) for work across sessions. When you
+need a larger software factory, [extend the same practices](#beyond-agentops)
+with Gas City or tools from the Agentic Coding Flywheel.
 
-1. **Judgment validation** — agents get risk context that challenges the plan and the code *before* shipping.
-2. **Durable learning** — solved problems stay solved. Your repo accumulates institutional knowledge across sessions, agents, and runtimes.
-3. **Loop closure** — completed work produces better next work, stronger rules, and richer future context.
+<a id="why-these-skills-exist"></a>
 
-Every skill, hook, and CLI command exists to deliver one of these three. They form a single [lifecycle contract](docs/context-lifecycle.md), not separate features.
+## Why use AgentOps?
 
-Operationally, that means AgentOps behaves like a software factory:
+A [software factory](https://learn.microsoft.com/en-us/archive/msdn-magazine/2006/december/service-station-web-service-software-factory)
+makes engineering practices reusable through tools, guidance and repeatable
+workflows. AgentOps brings that approach into the coding session: clear intent,
+automated checks, recorded decisions and a feedback loop into later work. Pick
+the path your task needs and use the same practices when you change agents.
 
-- briefings and startup context prepare the work order
-- RPI runs the delivery line
-- validation gates accept or reject output
-- the flywheel turns completed work into future advantage
+[Behavior-driven development (BDD)](https://dannorth.net/introducing-bdd/)
+starts by agreeing on what the software should do in a concrete situation.
+For retries, that could mean: “If a completed job arrives again, return its
+result and charge the customer only once.” The same behavior guides the
+implementation, its tests and any review. [Plan](skills/plan/SKILL.md) helps you
+settle those expectations before the agent starts editing.
 
-See [Software Factory Surface](docs/software-factory.md) for the explicit operator lane.
+| When you need to… | AgentOps adds |
+|---|---|
+| Get the agent to build what you meant | [Plan](skills/plan/SKILL.md) makes the expected behavior clear enough to implement and test. [Domain](skills/domain/SKILL.md) keeps the same names for concepts in the request, code and tests. |
+| Keep a project moving after the chat ends | [Interview](skills/interview/SKILL.md) settles a large goal with you. [Beads](https://github.com/gastownhall/beads) preserves its intent, decisions and results in a searchable work graph, with persistent project memories for later sessions. [Navigate](skills/navigate/SKILL.md) identifies ready work, blockers and gaps in the goal. |
+| Check whether the finished change meets the request | [Test](skills/test/SKILL.md) helps write checks for the intended behavior. Ordinary changes finish on checks and CI; [Validate](skills/validate/SKILL.md) adds one fresh review when requested, hard to undo, or uncovered by a deterministic check. |
+| Turn earlier work into useful context | [Research](skills/research/SKILL.md) traces the code and cites what it finds. [Memory](skills/memory/SKILL.md) can draw on Beads handoffs, Git changes and check results to explain a decision in a report, or curate supported lessons into reviewed project documents. Later agents can recall the lesson and follow its sources. |
+| Make a useful method repeatable | [Skill Builder](skills/skill-builder/SKILL.md) turns supported expertise into guidance with clear inputs, actions and limits. [Skill Eval](skills/skill-eval/SKILL.md) measures whether that guidance helps a named task, so it can be retained, revised or removed. |
 
-| Capability | What you get |
-|-----|---------------|
-| Judgment validation | `/pre-mortem` challenges your plan before build; `/vibe` + `/council` validate code before commit |
-| Durable learning | Repo-native memory via `.agents/` — lessons compound across sessions, agents, and runtimes |
-| Loop closure | Every cycle produces artifacts, issues, and next-work suggestions the next session acts on |
+<a id="install"></a>
 
----
+## Quickstart
 
-## Install
+Pick one method per agent: a plugin plus npx on the same agent gives you every
+skill twice.
+
+<details>
+<summary><strong>Claude Code</strong></summary>
+
+<a id="claude-code"></a>
 
 ```bash
-# Claude Code (recommended): marketplace + plugin install
 claude plugin marketplace add boshu2/agentops
 claude plugin install agentops@agentops-marketplace
-
-# Codex CLI (0.110.0+ native plugin)
-curl -fsSL https://raw.githubusercontent.com/boshu2/agentops/main/scripts/install-codex.sh | bash
-
-# OpenCode
-curl -fsSL https://raw.githubusercontent.com/boshu2/agentops/main/scripts/install-opencode.sh | bash
-
-# Other Skills-compatible agents (agent-specific, install only what you need)
-# Example (Cursor):
-npx skills@latest add boshu2/agentops --cursor -g
+claude plugin details agentops@agentops-marketplace
 ```
 
-On Linux, also install system `bubblewrap` so Codex uses it directly:
+Check that `agentops` appears in the plugin inventory. The bundle includes
+skills, four agents and [tool-call guards](#optional-admission-control-hooks).
+
+</details>
+
+<details>
+<summary><strong>Codex</strong></summary>
+
+<a id="codex"></a>
 
 ```bash
-sudo apt-get install -y bubblewrap
+codex plugin marketplace add boshu2/agentops
+codex plugin add agentops@agentops-marketplace
+codex plugin list --json
 ```
 
-### Install ao CLI (optional)
+Check that `agentops` appears in the inventory. Skills use the `agentops:` prefix;
+custom roles and read limits have [separate setup](docs/install-day2-ops.md#install-and-update-runtime-plugins).
 
-Skills work standalone. The `ao` CLI unlocks the full repo-native layer: knowledge extraction, retrieval and injection, maturity scoring, goals, and control-plane workflows.
+</details>
 
-#### Homebrew (recommended)
+<details>
+<summary><strong>Everything else</strong> (Cursor, OpenCode, Gemini CLI, Pi, OpenClaw, Grok Bot)</summary>
+
+<a id="everything-else"></a>
+
+With Node.js installed, run from your project directory, then pick your agents
+and skills:
 
 ```bash
-brew tap boshu2/agentops https://github.com/boshu2/homebrew-agentops
+npx skills@latest add boshu2/agentops
+```
+
+Add `-g` for a user-level install. In scripts, name the agents:
+`npx skills@latest add boshu2/agentops -g -a cursor opencode -y`
+(`-y` without `-a` can install into every agent the installer knows).
+Installer targets include `cursor`, `opencode`, `gemini-cli`, `antigravity`,
+`pi`, `grok` (Grok Build) and `openclaw`. Grok Bot has no installer target; add
+the same `SKILL.md` folders through [its skill settings](https://docs.x.ai/grok-bot/skills-routines-and-automations).
+Some skills need extra tools ([install guide](docs/install-day2-ops.md)); what
+each host has been tested for is in [host coverage and limits](docs/contracts/multi-runtime-tier-charter.md#host-and-install-surface-mapping).
+
+</details>
+
+Start a new session so the skills load. Most skills need only your coding
+agent; a few use the [`ao` CLI](#optional-ao-cli) when it is installed. Invocation names
+vary by agent: this README shows Claude Code's `/agentops:<skill>`; Codex uses
+`$agentops:<skill>`.
+
+<a id="workflow"></a>
+
+## The operational loop
+
+Each change is shaped, built and checked. Use one fresh review when requested,
+when a mistake cannot be cheaply undone, or when no deterministic check covers
+the changed behavior. You (or Plan) write intent as
+behavior ([BDD](https://dannorth.net/introducing-bdd/)), using one word per
+concept ([DDD](https://martinfowler.com/bliki/DomainDrivenDesign.html)'s
+[ubiquitous language](https://martinfowler.com/bliki/UbiquitousLanguage.html)).
+For a system that calls queued work a **Job**, in [Gherkin](https://cucumber.io/docs/gherkin/reference/):
+
+```gherkin
+Feature: Job redelivery is idempotent
+  A Job is one unit of queued work. Delivering it again never repeats its side effect.
+
+  Scenario: A completed Job is delivered again
+    Given Job "J-42" completed and charged the customer $20
+    When the worker receives Job "J-42" again
+    Then it returns the completed result of "J-42"
+    And the customer has been charged $20 exactly once
+
+  Scenario: A Job that failed before charging is delivered again
+    Given Job "J-43" failed before charging the customer $20
+    When the worker receives Job "J-43" again
+    Then Job "J-43" completes
+    And the customer has been charged $20 exactly once
+```
+
+The feature defines the domain term once; each scenario has concrete data, one
+action and an observable result. Keep scenarios in the issue or conversation;
+no `.feature` file is required.
+
+<p align="center">
+  <img src="docs/assets/agentops-routes.svg" alt="Clear accepted intent goes straight to Implement; unclear intent goes to Plan first. Implement runs native checks and CI. Ordinary changes finish on those checks. Use one fresh author-distinct review when requested, when a mistake cannot be cheaply undone, or when no deterministic check covers the changed behavior. An existing change can enter at review. Repair findings within scope and confirm with affected checks; another review requires a caller request. NOT_PROVEN reports missing evidence without claiming PASS. The optional learning loop sends a result to a protected draft, fresh support and disclosure review, reviewed .context/ pages, and later work." width="100%">
+</p>
+
+| Step | Skill | What it does with the scenarios |
+|---|---|---|
+| Shape | [`plan`](skills/plan/SKILL.md) | Turns the request into scenarios for one small change. Skip it when intent is clear. |
+| Build | [`implement`](skills/implement/SKILL.md) | Makes the change and tests both scenarios. |
+| Judge when needed | [`validate`](skills/validate/SKILL.md) | A new session that didn't write it returns `PASS`, `FAIL` or `NOT_PROVEN` against the same scenarios. |
+| Learn | [`memory`](skills/memory/SKILL.md) | Optional: reviewed `.context/` pages that later work can query. |
+
+Enter at the step you need. An existing change can enter at Validate when an
+acceptance judgment is needed. Ordinary changes finish on checks and CI. Review
+is one round: repair findings and confirm with affected checks; review again only
+when you ask. Report `NOT_PROVEN` with its gaps. The author cannot issue its own
+`PASS`. Merging and releasing follow your repo's rules.
+
+<a id="goals-many-rpis-over-a-bead-graph"></a>
+
+## Goals
+
+[`rpi`](skills/rpi/SKILL.md) runs Plan → Implement → checks, with Validate where a
+mistake is costly, for one outcome
+without check-ins (your agent's permission prompts still apply) and stops at
+acceptance, a blocker or a spent limit. Bigger work becomes a goal (it
+needs Beads: `brew install beads`, then `bd init` in your repo):
+
+1. **[Interview](skills/interview/SKILL.md).** One question at a time, each with
+   a recommended answer. You settle the outcome, its examples, domain terms,
+   non-goals, authority and budget before agents go autonomous.
+2. **[Craft Goal](skills/craft-goal/SKILL.md).** Returns `SAFE_TO_CREATE` plus a
+   prompt to paste into `/goal` (Claude Code or Codex), `USE_RPI` (small enough
+   for `rpi`), or `UNSAFE_GOAL` plus what's undecided. It creates nothing itself.
+3. **[Navigate](skills/navigate/SKILL.md) each round.** Picks a few ready work
+   items (beads); each gets one RPI, checks and CI, with one fresh Validate
+   when requested, hard to undo, or uncovered by a deterministic check. The goal ends
+   `ACHIEVED`, `NOT_ACHIEVED` or `NEEDS_OPERATOR`.
+
+<p align="center">
+  <img src="docs/assets/agentops-goal-graph.svg" alt="A goal observes the Beads work graph, picks ready beads, consumes checks and any verdicts, then ratchets or stops. Each bead gets one RPI: Plan when unclear, Implement, and checks. When delegation is authorized, each fresh worker starts with one bead. Validate runs in a separate fresh context only when requested, when a mistake is hard to undo, or when no deterministic check covers the change. Results and notes return to the bead." width="100%">
+</p>
+
+**Beads remembers the work.** [Beads](https://github.com/gastownhall/beads) (`bd`)
+keeps the goal and its history outside any conversation. The root epic holds
+acceptance; child beads carry the scoped work, design decisions, handoffs and
+result notes. Record which checks ran and link any review evidence to the same
+bead. That connects the original intent to the checked output, so the next
+session can continue from the record instead of reconstructing the chat.
+`bd ready` finds unblocked work; search and history help explain earlier choices.
+
+Beads also has a [persistent memory store](https://github.com/gastownhall/beads/blob/main/docs/cli-reference/remember.md).
+`bd remember` saves project facts, `bd memories` searches them, `bd recall`
+retrieves one by key, and `bd prime` brings stored memories into session context.
+The work graph and the memory store serve different needs: one preserves what
+happened; the other keeps selected facts easy to find again.
+
+[Memory](skills/memory/SKILL.md) helps you use that material: recall relevant
+context, examine recorded decisions and outcomes, or draft a report with links
+to its evidence. When you want a reusable project document, it curates supported
+findings into reviewed `.context/` pages or an external document bundle. Beads
+keeps the work record; Git and the original evidence locations keep the code and
+check artifacts. Reusable documents link back to those sources.
+
+```bash
+bd search "redelivery" --status all     # include finished work
+bd show <bead-id>                        # intent, notes and relationships
+bd history <bead-id>                     # how the record changed
+bd remember "Redelivery returns the stored Job result" --key job-redelivery
+bd recall job-redelivery                # retrieve the saved project fact
+```
+
+**One bead per worker.** When the goal delegates, the orchestrator holds the
+graph and results, and each worker starts with one bead instead of the
+orchestrator's transcript. Reviewers, when needed, start fresh.
+
+```bash
+bd create "Job redelivery is idempotent" -t epic
+bd create "Return the completed result on redelivery" --parent <epic-id>
+bd dep add <later-id> <earlier-id>         # real ordering only
+bd ready --parent <epic-id>                # the frontier
+```
+
+Navigate shows `bd` commands; another tracker with status, dependencies and
+notes works if you map them. AgentOps never builds a second work index.
+
+## Try it
+
+Start read-only in any repo, then swap the Job example for your own change.
+
+```text
+# First look (changes nothing)
+/agentops:research how does this repo validate input? cite files and lines, change nothing
+
+# One change
+/agentops:plan make Job redelivery return the completed result without repeating the side effect
+/agentops:implement
+/agentops:validate     # when requested, hard to undo, or uncovered by checks; use a new session
+
+# One outcome, end to end
+/agentops:rpi make Job redelivery return the completed result without repeating the side effect
+
+# A goal
+/agentops:interview make the job worker safe under redelivery, retries and crash recovery
+/agentops:craft-goal   # then paste its prompt into /goal
+```
+
+<a id="how-independent-review-works"></a>
+
+<details>
+<summary><strong>Validate an existing change</strong></summary>
+
+Pick a finished change whose accepted behavior is recorded in an issue or
+conversation. Run the required checks and keep the candidate unchanged.
+[Installing `ao`](#optional-ao-cli) is optional; it gives Validate a content
+manifest for the change. Then open a **new conversation**, fill in the
+references and paste:
+
+```text
+Use the AgentOps Validate skill to judge this finished change.
+Original accepted behavior: [issue link or original request text]
+Candidate: [commit, branch or working tree; list every changed path]
+Author context ID: [task/session ID that made the change]
+Checks run: [commands and results]
+I opened this new conversation for fresh review. Derive the exact subject
+identity at the start and end, inspect every changed path against the original
+behavior, and do not modify the candidate. Report PASS, FAIL or NOT_PROVEN with
+evidence for each criterion, checked, not_checked, author and reviewer context
+IDs, and freshness attestation.
+```
+
+`PASS` needs evidence for every criterion and an empty `not_checked`. `FAIL`
+names failed behavior or an out-of-scope change. Missing proof, identity or
+path coverage is `NOT_PROVEN`.
+
+</details>
+
+<a id="try-one-task"></a>
+
+<details>
+<summary><strong>Read-only skill-loading smoke test</strong></summary>
+
+Paste this in an agent conversation in your project. It needs no `ao` CLI.
+
+```text
+Use the AgentOps Research skill to trace how this repository validates user
+input. Follow one path from the input through its checks and tests. Cite the
+files and line numbers, explain one edge case, and identify missing coverage.
+Name the Research skill file you loaded. Answer here without changing files.
+```
+
+The reported skill path catches missing or duplicate installs. Invoke Research
+directly with `/agentops:research` in Claude Code, `$agentops:research` in
+Codex, or `/` and the installed Research entry in Cursor.
+
+</details>
+
+<a id="choose-skills-by-the-work"></a>
+
+## Skills at a glance
+
+All skills are optional. Load one when it answers a specific question. Full
+catalog: **[docs/SKILL-ROUTER.md](docs/SKILL-ROUTER.md)**.
+
+| Group | Skills | What it covers |
+|---|---|---|
+| Operational loop | [`plan`](skills/plan/SKILL.md) [`implement`](skills/implement/SKILL.md) [`validate`](skills/validate/SKILL.md) | Shape and build a change; judge it where a mistake is costly |
+| Autonomous | [`rpi`](skills/rpi/SKILL.md) | One outcome, end to end |
+| Goals | [`interview`](skills/interview/SKILL.md) [`craft-goal`](skills/craft-goal/SKILL.md) [`navigate`](skills/navigate/SKILL.md) | Shape, write and walk a goal over the bead graph |
+| Coordination | [`orchestrate`](skills/orchestrate/SKILL.md) [`agent-native`](skills/agent-native/SKILL.md) | Fresh workers per bead, disjoint scopes, integration |
+| On demand | [`research`](skills/research/SKILL.md) [`domain`](skills/domain/SKILL.md) [`test`](skills/test/SKILL.md) [`refactor`](skills/refactor/SKILL.md) [`review`](skills/review/SKILL.md) [`security`](skills/security/SKILL.md) [`doc`](skills/doc/SKILL.md) [`reverse-engineer`](skills/reverse-engineer/SKILL.md) | Reached for when a specific question comes up |
+| Learning | [`memory`](skills/memory/SKILL.md) | Curated `.context/` pages safe to commit |
+| Judgment strategies | [`council`](skills/council/SKILL.md) [`premortem`](skills/premortem/SKILL.md) [`postmortem`](skills/postmortem/SKILL.md) [`reality-check`](skills/reality-check/SKILL.md) [`idea-genie`](skills/idea-genie/SKILL.md) | Multi-model councils (debates, idea duels, interview panels), idea brainstorms, plan challenges, postmortems and claim audits |
+| Runtimes and factories | [`codex-exec`](skills/codex-exec/SKILL.md) [`claude-exec`](skills/claude-exec/SKILL.md) [`agy-native`](skills/agy-native/SKILL.md) [`using-gc`](skills/using-gc/SKILL.md) | Selected executors and Gas City integration |
+| Skill craft | [`skill-builder`](skills/skill-builder/SKILL.md) [`skill-eval`](skills/skill-eval/SKILL.md) | Author skills and measure whether they help |
+
+## Make it yours
+
+Every skill here is a folder with one `SKILL.md`: plain instructions an agent
+loads when a task calls for them. No skill depends on the full set, and coding
+with none of them still works. That makes the library easy to take apart, and
+you should. The 29 skills are a starting point for an operating model that fits
+your work.
+
+- **Start small.** Install two or three skills that match work you already do.
+  Add another when a real task asks for it.
+- **Cut what you override.** If you or the agent keep ignoring a rule, change
+  the rule or remove the skill. `npx skills` lets you pick skills per agent, and
+  [`ao skills link --skill <name>`](docs/install-day2-ops.md#install-source-checkout)
+  links an exact subset from a checkout.
+- **Rewrite what almost fits.** Fork this repository, edit the `SKILL.md` and
+  install from your fork with the same commands, or link a checkout so every
+  agent on your machine reads your edits. A plugin update replaces the installed
+  copy, so keep your changes in a repository you control.
+- **Write your own.** When you have explained the same thing to an agent three
+  times, it is a skill. [Skill Builder](skills/skill-builder/SKILL.md) drafts the
+  package, and tells you when a note in an existing file is enough.
+- **Mix libraries.** Run these next to your company's skills, the
+  [Agentic Coding Flywheel](#agentic-coding-flywheel) tools or any other
+  library. `ao skills link` never replaces a skill it did not install.
+- **Change the workflows too.** The [operational loop](#the-operational-loop)
+  and the [goal workflow](#goals) are defaults. Skip the steps your work does
+  not need, reorder them, or write your own. The Claude Code workflow scripts in
+  [`workflows/`](workflows/) link into a project with
+  [`ao workflows link`](docs/install-day2-ops.md#workflows-claude-code-only).
+- **Measure what you change.** `claude plugin eval` compares an agent with and
+  without a plugin on the same request. To measure one edit, run the old and
+  the new version as two plugins. [Skill Eval](skills/skill-eval/SKILL.md)
+  covers how to read the result, and [Evidence](#evidence) shows the cases this
+  repository runs; copy them for your own skills.
+
+## Evidence
+
+A skill is a page of instructions, so the test is whether an agent does anything
+differently with it installed. AgentOps runs that test on Claude Code's own
+evaluator, `claude plugin eval`: one realistic request per skill, three runs
+with the plugin and three without, each answer graded against four or five
+criteria taken from the practice the skill teaches. For Test, one criterion is
+that a regression test is shown failing without the fix.
+
+On Claude Opus 5.5, measured 2026-10-05:
+
+| | No plugin | AgentOps 3.9.0 | AgentOps 3.10 |
+|---|---:|---:|---:|
+| Practice criteria met on 28 requests | 269 of 372 (72%) | 292 of 372 (78%) | 349 of 372 (94%) |
+| Matching skill loaded on a blind request | | 11 of 48 runs | 29 of 48 runs |
+
+Fourteen of the 29 skills moved their case by 0.15 or more. Craft Goal, Claude
+Exec, Plan, Memory and Skill Builder gained the most. The other 15 made no
+measurable difference, and for eight of those the agent already met every
+criterion with no plugin.
+
+Read the limits before you quote these numbers:
+
+- One request per skill, three runs, one model. A difference under 0.15 is
+  noise.
+- The 28 requests in the first row were also used to tune the 3.10
+  descriptions, which flatters 3.10. The blind requests in the second row were
+  written without sight of the descriptions.
+- The criteria come from each skill's own rules. A pass shows the rule landed on
+  that request. It says nothing about the outcome of a real task, and an earlier
+  [coding pilot](PRODUCT.md#evidence-and-claim-limits) found no end-to-end
+  difference.
+- Loading is the weak point. Nine skills did not load on a request they had
+  never seen, and Implement does not load on a quick fix. Name the skill when
+  you want its rules applied.
+
+The [full report](docs/evals/2026-10-05-plugin-eval-opus-5-5.md) has every case,
+the method and what was rerun. The cases live in
+[`evals/plugin-eval/`](evals/plugin-eval/README.md): run them against your own
+changes, or copy the layout to test your own skills.
+
+## Where AgentOps fits
+
+AgentOps grew from applying DevOps experience and established engineering
+practice to agents. The [Practice Registry](PRACTICE-REGISTRY.md) records the
+lineage; [how it works](docs/how-it-works.md) covers responsibilities.
+
+<details>
+<summary>Compare libraries, trackers and agent factories</summary>
+
+| Project or tool | Role alongside AgentOps |
+|---|---|
+| [Compound Engineering](https://github.com/EveryInc/compound-engineering-plugin) | A connected development workflow and reusable solution records |
+| [Matt Pocock's skills](https://github.com/mattpocock/skills) | Composable practices for intent, domain modeling, TDD and review |
+| [Beads](https://github.com/gastownhall/beads) or your existing tracker | Owns work status, dependencies and handoffs |
+| Factories such as [Gas City](skills/using-gc/SKILL.md) | Own agent coordination and execution through their native control plane |
+
+Choose which workflow leads the task. Carry accepted behavior and evidence
+into checks, and into [independent judgment](skills/validate/SKILL.md) where a
+mistake would be costly. Shared practices are not
+proof that every combination has been tested.
+
+</details>
+
+<a id="optional-ao-cli"></a>
+
+## `ao` CLI (optional)
+
+Most skills need only your coding agent. With `ao` installed, Validate binds
+the exact change it judges to a content manifest; without it, Validate names
+the commit and the changed paths.
+
+```bash
+brew tap boshu2/agentops
+brew trust --tap boshu2/agentops
 brew install agentops
-which ao
 ao version
 ```
 
-Or install via [release binaries](https://github.com/boshu2/agentops/releases) or [build from source](cli/README.md).
+With Go installed: `go install github.com/boshu2/agentops/cli/cmd/ao@latest`.
+`ao init` is optional evidence setup; `ao config --show` inspects configuration;
+`ao gate check` runs this repository's own gates (mainly for contributors). See the [command reference](cli/docs/COMMANDS.md) and
+[installation guide](docs/install-day2-ops.md).
 
-Then type `/quickstart` in your agent chat.
-
-In Claude Code, `CLAUDE.md` is the startup surface. Installed hooks stay
-silent: `SessionStart` prepares runtime state and can stage factory goal or
-briefing files, while `UserPromptSubmit` can capture first-prompt intake
-without injecting additional context into the session.
-
----
-
-## Start Here
-
-Three commands, zero methodology. Pick one and go:
-
-```bash
-/council validate this PR          # Multi-model code review — immediate value
-/research "how does auth work"     # Codebase exploration with memory
-/implement "fix the login bug"     # Full lifecycle for one task
-```
-
-When you're ready for more:
-
-```bash
-/plan → /crank                     # Decompose into issues, parallel-execute
-/rpi "add retry backoff"           # Full pipeline: research → plan → build → validate → learn
-/evolve                            # Fitness-scored improvement loop — walk away, come back to better code
-```
-
-Every skill works alone. Compose them however you want. Full catalog: [Skills](#skills).
-
-If you want the explicit operator lane instead of individual primitives:
-
-```bash
-ao factory start --goal "fix auth startup"
-/rpi "fix auth startup"           # or: ao rpi phased "fix auth startup"
-ao codex stop
-```
-
-That path keeps briefing, runtime startup, delivery, and loop closure on one surface. See [Software Factory Surface](docs/software-factory.md).
-
----
-
-## How It Works
-
-Each phase delivers one or more of the three capabilities — judgment, learning, loop closure:
-
-| Phase | Primary skills | What you get |
-|------|----------------|---------------------|
-| Discovery | `/brainstorm` -> `/research` -> `/plan` -> `/pre-mortem` | Repo context, scoped work, known risks, execution packet |
-| Implementation | `/crank` -> `/swarm` -> `/implement` | Closed issues, validated wave outputs, ratchet checkpoints |
-| Validation + learning | `/validation` -> `/vibe` -> `/post-mortem` -> `/retro` -> `/forge` | Findings, learnings, next work, stronger prevention artifacts |
-
-`/rpi` orchestrates all three phases. `/evolve` keeps running `/rpi` against `GOALS.md` so the worst fitness gap gets addressed next. The output is code + state + memory + gates.
-
-The explicit CLI operator surface around that line is:
-
-- `ao factory start` for briefing-first startup
-- `/rpi` or `ao rpi phased` for delivery
-- `ao codex stop` for explicit loop closure
-
-| Pattern | Chain | When |
-|---------|-------|------|
-| **Quick fix** | `/implement` | One issue, clear scope |
-| **Validated fix** | `/implement` → `/vibe` | One issue, want confidence |
-| **Planned epic** | `/plan` → `/pre-mortem` → `/crank` → `/post-mortem` | Multi-issue, structured |
-| **Full pipeline** | `/rpi` (chains all above) | End-to-end, autonomous |
-| **Evolve loop** | `/evolve` (chains `/rpi` repeatedly) | Fitness-scored improvement |
-| **PR contribution** | `/pr-research` → `/pr-plan` → `/pr-implement` → `/pr-validate` → `/pr-prep` | External repo |
-| **Knowledge query** | `ao search` → `/research` (if gaps) | Understanding before building |
-| **Standalone review** | `/council validate <target>` | Ad-hoc multi-judge review |
-
-### Primitive chains underneath it
-
-- **Mission and fitness**: `GOALS.md`, `ao goals`, `/evolve`
-- **Discovery chain**: `/brainstorm` -> `ao search` / `ao lookup` -> `/research` -> `/plan` -> `/pre-mortem`
-- **Execution chain**: `/crank` -> `/swarm` -> `/implement` -> `/vibe` -> ratchet checkpoints
-- **Compiled prevention chain**: findings registry -> planning rules / pre-mortem checks / constraints -> later planning and validation
-- **Continuity chain**: session hooks + phased manifests + `/handoff` + `/recover`
-
-Each cycle adds new rules, learnings, and constraints — without anyone shipping new code. See [Primitive Chains](docs/architecture/primitive-chains.md) for the audited map.
-
-### How Agent Memory Works
-
-Session 50 starts with 50 sessions of accumulated wisdom.
-
-`.agents/` is a directory in your repo that stores what your agents learned — as plain files. Grep replaces RAG. Plain text you can diff, review in PRs, and open in Obsidian.
-
-```
-┌──────────────────────────────────────────────────────────────────────────┐
-│   Traditional Cache          .agents/ Knowledge Store                    │
-│  ┌────────────────────┐    ┌──────────────────────────────────────────┐  │
-│  │ Stores results     │    │ Stores extracted lessons                 │  │
-│  │ Hit = skip compute │    │ Hit = skip the 2-hour debugging          │  │
-│  │ Flat key-value     │    │ Hierarchical: learning → pattern → rule  │  │
-│  │ Static after write │    │ Promotes through tiers over time         │  │
-│  │ One consumer       │    │ Any agent, any runtime, any session      │  │
-│  └────────────────────┘    └──────────────────────────────────────────┘  │
-└──────────────────────────────────────────────────────────────────────────┘
-```
-
-**How it compounds:** Session 1, your agent hits a timeout bug and spends 2 hours debugging. `/retro` captures the lesson. `/athena` promotes it to a pattern. Session 15, a new agent greps "timeout" and finds the answer in 2 operations — turning a 2-hour investigation into a 10-second lookup. Session 20, a planning rule gates plans that omit timeout checks. That's institutional knowledge that survives agent death.
-
-```
-┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐
-│  1. WORK   │─>│  2. FORGE  │─>│  3. POOL   │─>│ 4. PROMOTE │
-│  Session   │  │  Extract   │  │  Score &   │  │  Graduate  │
-└────────────┘  └────────────┘  └────────────┘  └────────────┘
-     ^                                                │
-     │         ┌────────────┐  ┌────────────┐         │
-     └─────────│  6. INJECT │<─│5. LEARNINGS│<────────┘
-               │  Surface   │  │  Permanent │
-               └────────────┘  └────────────┘
-```
-
-```text
-> /research "retry backoff strategies"
-
-[lookup] 3 prior learnings found (freshness-weighted):
-  - Token bucket with Redis (established, high confidence)
-  - Rate limit at middleware layer, not per-handler (pattern)
-  - /login endpoint was missing rate limiting (decision)
-[research] Found prior art in your codebase + retrieved context
-           Recommends: exponential backoff with jitter, reuse existing Redis client
-```
-
-Stale insights decay automatically. Useful ones compound.
-Measure it with `ao flywheel status`.
-
-| What it looks like | What it actually does |
-|--------------------|----------------------|
-| Markdown files | Knowledge scored by freshness, auto-decayed, and deduplicated |
-| `grep` | Contextual retrieval with relevance scoring and phase-aware injection |
-| Git commits | Provenance tracking, audit trail, diffable knowledge evolution |
-
-Deep dive: [The Knowledge Flywheel](docs/knowledge-flywheel.md)
-
-### Why engineers choose it
-
-- **Your repo remembers everything.** Knowledge survives session resets, agent turnover, and runtime changes. Every session inherits every prior session's lessons.
-- **Local-only** — all state lives on your disk. Grep it, diff it, review it in PRs.
-- **Auditable** — plans, verdicts, learnings, and patterns are plain files. Open `.agents/` as an Obsidian vault for full browsability.
-- **Multi-runtime** — Claude Code and Codex CLI (first-class), Cursor and OpenCode (experimental).
-- **More stable** — tracked issues and validation gates anchor the repo across every session and every agent.
-
-Everything is [open source](cli/) — audit it yourself.
-
----
-
-## What I've Observed Using This
-
-After five months of daily use across dozens of repos, a few things stuck:
-
-- Agents are fast and surprisingly capable, but forgetful and inconsistent. A great prompt helps. Workflow helps more.
-- The biggest gains came from giving agents the right context at the right time — targeted injection over prompt stuffing.
-- Agents produce their best work on small, well-bounded tasks with clear ownership.
-- Self-reported success is unreliable. Agents need tests, checks, and external validation.
-- Parallel agents are powerful when each one has clear ownership and non-overlapping files.
-- Raw chat history is noise. It becomes knowledge only when you distill it into rules, playbooks, and briefings.
-- The real compounding effect: your environment gets smarter. The model stays the same; the context around it improves.
-
-The git history tells its own story. Early commits are skill scaffolding — building `/research`, `/plan`, `/implement`. Later commits are meta-capabilities: session intelligence, quality signals, closure audits, prediction tracking. The system started spending more time improving itself and less time on raw features. That is the flywheel working.
-
-Compressed into one sentence: good agent work comes from boundaries, validation, reusable lessons, and the right context.
-
-Deep dive: [Philosophy](docs/philosophy.md)
-
----
+## Updating and advanced setup
 
 <details>
-<summary><b>OpenCode</b> — plugin + skills</summary>
+<summary><strong>Upgrading to 3.10</strong></summary>
 
-Installs 7 hooks (tool enrichment, audit logging, compaction resilience) and symlinks all skills. Restart OpenCode after install. Details: [.opencode/INSTALL.md](.opencode/INSTALL.md)
+<a id="upgrading-to-310"></a>
+<a id="upgrading-to-39"></a>
+<a id="upgrading-to-38"></a>
+<a id="upgrading-to-37"></a>
+
+Version 3.10 keeps every 3.9 command and skill name. It rewrites the skill
+descriptions so skills load on plain requests, adds
+[`claude-exec`](skills/claude-exec/SKILL.md) and lets Validate run without `ao`.
+Read the [3.10 release notes](docs/releases/2026-10-05-v3.10.0-notes.md). Use the
+[plugin update instructions](docs/install-day2-ops.md#install-and-update-runtime-plugins)
+or, for npx installs, `npx skills@latest update` ([update notes](docs/install-day2-ops.md#update)).
+For Homebrew: `brew update && brew upgrade agentops`. In a source checkout, run
+`git pull --ff-only`, then rerun `ao skills link` with the selectors you used
+before, adding `--skill claude-exec` for the new skill; without selectors it
+links every skill. Start a new session afterward; new installs do not silently
+remove obsolete copies.
+
+**Upgrading from 3.8 or earlier:** version 3.9 removed ten bundled external tool
+skills, retired three delivery workflows, deleted the old curl installers and
+changed the Codex plugin to read `skills/` directly. Read the
+[3.9 release notes](docs/releases/2026-10-03-v3.9.0-notes.md) first.
+
+**Upgrading from 3.6 or earlier:** read the [migration guide](docs/MIGRATION.md).
+Version 3.7 removed commands and skill names, including `learn`, `codebase-recon`
+and `swarm`; their current owners are `memory`, `research` and `agent-native`.
+See the [3.7 removals](docs/releases/2026-09-13-v3.7.0-notes.md).
 
 </details>
 
 <details>
-<summary><b>Configuration</b> — environment variables</summary>
+<summary><strong>Skill dependencies</strong></summary>
 
-All optional. AgentOps works out of the box with no configuration. Full reference: [docs/ENV-VARS.md](docs/ENV-VARS.md)
+<a id="other-installation-paths"></a>
 
-</details>
+Skill installation does not install tool dependencies:
 
-**What AgentOps touches:**
-
-| What | Where | Reversible? |
-|------|-------|:-----------:|
-| Skills | Global skill homes (`~/.agents/skills` for Codex/OpenAI-documented installs, plus compatibility caches outside your repo; for Claude Code: `~/.claude/skills/`) | `rm -rf ~/.claude/skills/ ~/.agents/skills/ ~/.codex/skills/ ~/.codex/plugins/cache/agentops-marketplace/agentops/` |
-| Knowledge artifacts | `.agents/` in your repo (git-ignored by default) | `rm -rf .agents/` |
-| Hook registration | `.claude/settings.json` | Delete entries from `.claude/settings.json` |
-
-Nothing modifies your source code.
-
-Troubleshooting: [docs/troubleshooting.md](docs/troubleshooting.md)
-
----
-
-## See It Work
-
-**1. One command** — validate a PR:
-
-```text
-> /council validate this PR
-
-[council] 3 judges spawned (independent, no anchoring)
-[judge-1] PASS — token bucket implementation correct
-[judge-2] WARN — rate limiting missing on /login endpoint
-[judge-3] PASS — Redis integration follows middleware pattern
-Consensus: WARN — add rate limiting to /login before shipping
-```
-
-**2. Full pipeline** — research through post-mortem, one command:
-
-```text
-> /rpi "add retry backoff to rate limiter"
-
-[research]    Found 3 prior learnings on rate limiting (injected)
-[plan]        2 issues, 1 wave → epic ag-0058
-[pre-mortem]  Council validates plan → PASS (knew about Redis choice)
-[crank]       Parallel agents: Wave 1 ██ 2/2
-[vibe]        Council validates code → PASS
-[post-mortem] 2 new learnings → .agents/
-[flywheel]    Next: /rpi "add circuit breaker to external API calls"
-```
-
-**3. The endgame** — `/evolve`: define goals, walk away, come back to a better codebase:
-
-```text
-> /evolve
-
-[evolve] GOALS.md: 18 gates loaded, score 77.0% (14/18 passing)
-
-[cycle-1]     Worst: wiring-closure (weight 6) + 3 more
-              /rpi "Fix failing goals" → score 93.3% (25/28) ✓
-
-              ── the agent naturally organizes into phases ──
-
-[cycle-2-35]  Coverage blitz: 17 packages from ~85% → ~97% avg
-              Table-driven tests, edge cases, error paths
-[cycle-38-59] Benchmarks added to all 15 internal packages
-[cycle-60-95] Complexity annihilation: zero functions >= 8
-              (was dozens >= 20 — extracted helpers, tested independently)
-[cycle-96-116] Modernization: sentinel errors, exhaustive switches,
-              Go 1.26-compatible idioms (slices, cmp.Or, range-over-int)
-
-[teardown]    203 files changed, 20K+ lines, 116 cycles
-              All tests pass. Go vet clean. Avg coverage 97%.
-              /post-mortem → 33 learnings extracted
-              Ready for next /evolve — the floor is now the ceiling.
-```
-
-That ran overnight — ~7 hours, unattended. Regression gates auto-reverted anything that broke a passing goal. The agent naturally organized into the right order: build a safety net (tests), refactor aggressively (complexity), then polish.
-
-<details>
-<summary><b>More examples</b> — swarm, session continuity, different workflows</summary>
-
-<br>
-
-**Parallelize anything** with `/swarm`:
-
-```text
-> /swarm "research auth patterns, brainstorm rate limiting improvements"
-
-[swarm] 3 agents spawned — each gets fresh context
-[agent-1] /research auth — found JWT + session patterns, 2 prior learnings
-[agent-2] /research rate-limiting — found token bucket, middleware pattern
-[agent-3] /brainstorm improvements — 4 approaches ranked
-[swarm] Complete — artifacts in .agents/
-```
-
-**Session continuity across compaction or restart:**
-```text
-> /handoff
-[handoff] Saved: 3 open issues, current branch, next action
-         Continuation prompt written to .agents/handoffs/
-
---- next session ---
-
-> /recover
-[recover] Found in-progress epic ag-0058 (2/5 issues closed)
-          Branch: feature/rate-limiter
-          Next: /implement ag-0058.3
-```
-
-**Different developers, different setups:**
-
-| Workflow | Commands | What happens |
-|----------|----------|-------------|
-| **PR reviewer** | `/council validate this PR` | One command, actionable feedback |
-| **Team lead** | `/research` → `/plan` → `/council validate` | Compose skills manually, stay in control |
-| **Solo dev** | `/rpi "add user auth"` | Research through post-mortem, walk away |
-| **Platform team** | `/swarm` + `/evolve` | Parallel pipelines + fitness-scored improvement loop |
-
-</details>
-
-Unsure which skill to run? See the [Skill Router](docs/SKILL-ROUTER.md).
-
----
-
-## Skills
-
-Every skill works alone. Compose them however you want.
-
-**Core skills** — where most users spend their time:
-
-| Skill | What it does |
-|-------|-------------|
-| `/council` | Independent judges (Claude + Codex) debate, surface disagreement, converge. The validation primitive everything else builds on. |
-| `/research` | Deep codebase exploration — produces structured findings with memory |
-| `/implement` | Full lifecycle for one task — research, plan, build, validate, learn |
-| `/vibe` | Code quality review — complexity + multi-model council + domain checklists |
-| `/evolve` | Measure goals, fix the worst gap, regression-gate everything, repeat overnight |
-
-**Full catalog:**
-
-<details>
-<summary><b>Judgment</b> — the foundation everything validates against</summary>
-
-| Skill | What it does |
-|-------|-------------|
-| `/council` | Independent judges (Claude + Codex) debate, surface disagreement, converge. Auto-extracts findings into flywheel. `--preset=security-audit`, `--perspectives`, `--debate` |
-| `/vibe` | Code quality review — complexity + council + finding classification (CRITICAL vs INFORMATIONAL) + suppression framework + domain checklists (SQL, LLM, concurrency) |
-| `/pre-mortem` | Validate plans — error/rescue mapping, scope modes (Expand/Hold/Reduce), temporal interrogation, prediction tracking with downstream correlation |
-| `/post-mortem` | Wrap up work — council validates, prediction accuracy scoring (HIT/MISS/SURPRISE), session streak tracking, persistent retro history |
+| Skill | Needs | Why |
+|---|---|---|
+| `rpi` | `ao`, conditional | delegates exact-subject checks to Validate; only persists `verdict.v2` when requested |
+| `plan` | `ao`, conditional | runs `ao provenance snapshot-intent` with an explicit evidence root when the intent source is not durable |
+| `implement` | `ao`, conditional | at an integration boundary whose changed paths affect bound evidence, runs `ao provenance evidence-orphans` |
+| `validate` | `ao`, optional | with `ao`, derives exact subject identity from a content manifest and uses `ao provenance store-verdict` when persistence is requested; without it, names the commit and changed paths |
+| `reality-check` | `ao`, conditional | inspect selected goal measurements with `ao goals` or evidence-store facts with `ao status` |
+| `using-gc` | `ao` | rig prep runs `ao gc prepare` and `ao gc check` |
+| `doc` | `ao`, optional | a requested continuity handoff may use `ao session handoff`/`rehydrate` |
+| `reverse-engineer` | `python3` | Phase 1's mechanical teardown runs `scripts/reverse_engineer.py` |
+| `skill-builder` | `ao` 3.9 or later outside a source checkout, Go inside one; `python3`, conditional | build, check, heal and audit run through `ao skills`; build (without `--init-only`) and heal's fix mode also run `scripts/generate-skill-mesh.py`, and `audit.sh --legacy` needs PyYAML |
+| `memory` | `python3`, conditional | a selected toil investigation can use the repository helper `scripts/toil-mining/recent_human.py` on cleared Codex sources |
+| `security` | `python3`, conditional | the composable suite and offline redteam surfaces run `security_suite.py` when that scan type is selected |
 
 </details>
 
 <details>
-<summary><b>Execution</b> — research, plan, build, ship</summary>
+<summary><strong>Shared project context</strong></summary>
 
-| Skill | What it does |
-|-------|-------------|
-| `/research` | Deep codebase exploration — produces structured findings |
-| `/plan` | Decompose a goal into trackable issues with dependency waves |
-| `/implement` | Full lifecycle for one task — research, plan, build, validate, learn |
-| `/crank` | Parallel agents in dependency-ordered waves, fresh context per worker |
-| `/swarm` | Parallelize any skill — run research, brainstorms, implementations in parallel |
-| `/rpi` | Full pipeline: discovery (research + plan + pre-mortem) → implementation (crank) → validation (vibe + post-mortem) |
-| `/evolve` | The endgame: measure goals, fix the worst gap, regression-gate everything, learn, repeat overnight |
+<a id="shared-project-context"></a>
 
-</details>
+[Memory](skills/memory/SKILL.md) can read reviewed `.context/` notes with ordinary
+filesystem tools; no `ao` or Beads is needed. See this repo's [context map](.context/README.md).
 
-<details>
-<summary><b>Knowledge</b> — the flywheel that makes sessions compound</summary>
-
-| Skill | What it does |
-|-------|-------------|
-| `/retro` | Capture a decision, pattern, or lesson learned |
-| `/forge` | Extract learnings from completed work into `.agents/` |
-| `/flywheel` | Monitor knowledge health — velocity, staleness, pool depths |
+Adding notes requires authorized sources and fresh review of factual support
+and disclosure before Git admission. Drafts and evidence stay in protected
+external storage. These procedures do not enforce access permissions or prove
+that saved notes improve later work. See [Memory's storage rules](skills/memory/SKILL.md#access-storage-and-honest-limits).
 
 </details>
 
 <details>
-<summary><b>Supporting skills</b> — onboarding, session, traceability, product, utility</summary>
+<summary><strong>Permissions, optional hooks, and removal</strong></summary>
 
-| | |
+<a id="optional-admission-control-hooks"></a>
+
+The Claude Code plugin includes PreToolUse guards for private tracker data in
+commits, manual provenance-ledger edits and installed-skill overwrites. Installing
+only `ao` does not add hooks; other paths can opt in through the [native hook installer](scripts/install-policy-dispatch.sh).
+Read-budget guards, Codex roles and trusted Codex hooks have [separate setup](docs/install-day2-ops.md#install-and-update-runtime-plugins).
+
+Disable Claude's plugin with `/plugin disable agentops`. Remove it with
+`claude plugin uninstall agentops@agentops-marketplace`; for Codex, use
+`codex plugin remove agentops@agentops-marketplace`; for npx installs, use
+`npx skills@latest remove`.
+
+</details>
+
+<details>
+<summary><strong>Architecture and saved review evidence</strong></summary>
+
+AgentOps is the operations layer for agentic engineering. Its federated integration graph
+connects evidence while Git owns content, the tracker owns work and the coding
+runtime or selected factory owns execution. Your repository owns delivery.
+
+Native execution requires zero AgentOps skills. [RPI](skills/rpi/SKILL.md),
+[Gas City](skills/using-gc/SKILL.md) and [Agentic Coding Flywheel](https://agent-flywheel.com)
+are optional; their completion reports do not replace required checks or judgment.
+
+On request, Validate can save `verdict.v2` with exact content, checked scope and
+evidence. New proof belongs in selected, protected storage outside Git;
+existing evidence is preserved.
+
+Read the [architecture](docs/ARCHITECTURE.md), [operating contract](docs/agent-workflow-reference.md)
+and [storage rules](docs/adr/ADR-0016-state-tiers.md).
+
+</details>
+
+## Troubleshooting
+
+<details>
+<summary>Common problems and how to report one</summary>
+
+| Symptom | What to check |
 |---|---|
-| **Onboarding** | `/quickstart`, `/using-agentops` |
-| **Session** | `/handoff`, `/recover`, `/status` |
-| **Traceability** | `/trace`, `/provenance` |
-| **Product** | `/product`, `/goals`, `/release`, `/readme`, `/doc` |
-| **Utility** | `/brainstorm`, `/bug-hunt`, `/complexity` |
+| `plugin` is not recognized | Update your agent to a version with plugin support |
+| A skill is missing | Check its inventory or picker, then start a new session |
+| `ao` is not found | Install the CLI and check PATH; Go installs usually use `$(go env GOPATH)/bin` |
+| A skill needs another tool | Check its dependencies in the installation guide |
+| An old skill name fails | Check the [migration guide](docs/MIGRATION.md#skills) and stale copies |
+
+[Report a reproducible issue](https://github.com/boshu2/agentops/issues) with your
+runtime version, install method, command or prompt, and observed result.
+Share only evidence you are authorized to disclose.
 
 </details>
 
-Full reference: [docs/SKILLS.md](docs/SKILLS.md)
+## Limits
 
-<details>
-<summary><b>Cross-runtime orchestration</b> — mix Claude, Codex, OpenCode</summary>
-
-AgentOps orchestrates across runtimes. Claude can lead a team of Codex workers. Codex judges can review Claude's output.
-
-| Spawning Backend | How it works | Best for |
-|-----------------|-------------|----------|
-| **Native teams** | `TeamCreate` + `SendMessage` — built into Claude Code | Tight coordination, debate |
-| **Background tasks** | `Task(run_in_background=true)` — last-resort fallback | When no team APIs available |
-| **Codex sub-agents** | `/codex-team` — Claude orchestrates Codex workers | Cross-vendor validation |
-
-</details>
-
-<details>
-<summary><b>Custom agents</b> — why AgentOps ships its own</summary>
-
-Two read-only agents fill the gap between Claude Code's `Explore` (no commands) and `general-purpose` (full write, expensive):
-
-| Agent | Model | Can do | Best for |
-|-------|-------|--------|----------|
-| `agentops:researcher` | haiku | Read, search, run commands | `/research` exploration |
-| `agentops:code-reviewer` | sonnet | Read, search, `git diff`, structured findings | `/vibe` code review |
-
-Skills spawn these automatically — `/research` uses the researcher, `/vibe` uses the code-reviewer.
-
-</details>
-
----
-
-## Deep Dive
-
-`.agents/` is an append-only ledger — every learning, verdict, pattern, and decision is a dated file. Write once, score by freshness, inject the best, prune the rest. The [formal model](docs/the-science.md) is cache eviction with freshness decay. Full lifecycle: [Context Lifecycle](docs/context-lifecycle.md).
-
-<details>
-<summary><b>Phase details</b> — what each step does</summary>
-
-1. **`/research`** — Explores your codebase. Produces a research artifact with findings and recommendations.
-
-2. **`/plan`** — Decomposes the goal into issues with dependency waves. Creates a [beads](https://github.com/steveyegge/beads) epic (git-native issue tracking).
-
-3. **`/pre-mortem`** — Judges simulate failures before you write code. FAIL? Re-plan with feedback (max 3 retries).
-
-4. **`/crank`** — Spawns parallel agents in dependency-ordered waves. Each worker gets fresh context. Lead validates and commits. `--test-first` for spec-first TDD.
-
-5. **`/vibe`** — Judges validate the code. FAIL? Re-crank with failure context and re-vibe (max 3).
-
-6. **`/post-mortem`** — Council validates the implementation. Retro extracts learnings. **Suggests the next `/rpi` command.**
-
-`/rpi "goal"` runs all six end to end. Use `--interactive` for human gates at research and plan.
-
-</details>
-
-| Topic | Where |
-|-------|-------|
-| Phased RPI (fresh context per phase) | [How It Works](docs/how-it-works.md) |
-| Parallel RPI (N epics in isolated worktrees) | [How It Works](docs/how-it-works.md) |
-| Setting up `/evolve` (GOALS.md, fitness loop) | [Evolve Setup](docs/evolve-setup.md) |
-| Science, systems theory, prior art | [The Science](docs/the-science.md) |
-
-<details>
-<summary><b>Built on</b> — Ralph Wiggum, Multiclaude, beads, CASS, MemRL</summary>
-
-[Ralph Wiggum](https://ghuntley.com/ralph/) (fresh context per agent) · [Multiclaude](https://github.com/dlorenc/multiclaude) (validation gates) · [beads](https://github.com/steveyegge/beads) (git-native issues) · [CASS](https://github.com/Dicklesworthstone/coding_agent_session_search) (session search) · [MemRL](https://arxiv.org/abs/2601.03192) (cross-session memory)
-
-</details>
-
----
-
-## The `ao` CLI
-
-The `ao` CLI adds the knowledge flywheel (extract, inject, decay, maturity) and terminal-based RPI that runs without an active chat session.
-
-```bash
-ao seed                                        # Plant AgentOps in any repo (auto-detects project type)
-ao rpi loop --supervisor --max-cycles 1        # Canonical autonomous cycle (policy-gated landing)
-ao rpi loop --supervisor "fix auth bug"        # Single explicit-goal supervised cycle
-ao rpi phased --from=implementation "ag-058"   # Resume a specific phased run at build phase
-ao rpi parallel --manifest epics.json          # Run N epics concurrently in isolated worktrees
-ao rpi status --watch                          # Monitor active/terminal runs
-```
-
-Walk away, come back to committed code + extracted learnings.
-
-```bash
-ao search "query"              # Search session history and repo-local .agents/ knowledge
-ao lookup --query "topic"      # Retrieve curated knowledge artifacts by relevance
-ao notebook update             # Merge latest session insights into MEMORY.md
-ao memory sync                 # Sync session history to MEMORY.md (cross-runtime: Codex, OpenCode)
-ao context assemble            # Build 5-section context briefing for a task
-ao feedback-loop               # Close the MemRL feedback loop (citation → utility → maturity)
-ao metrics health              # Flywheel health: sigma, rho, delta, escape velocity
-ao dedup                       # Detect near-duplicate learnings (--merge for auto-resolution)
-ao contradict                  # Detect potentially contradictory learnings
-ao demo                        # Interactive demo
-```
-
-`ao search` searches session history (via [CASS](https://github.com/Dicklesworthstone/coding_agent_session_search) if installed) and repo-local `.agents/` knowledge — learnings, patterns, findings, and research. Use `ao lookup` for curated knowledge artifacts by relevance.
-
-<details>
-<summary><b>Second Brain + Obsidian vault</b> — semantic search over all your sessions</summary>
-
-`.agents/` is plain text — open it as an Obsidian vault for browsing and linking. For semantic search, pair with [Smart Connections](https://github.com/brianpetro/obsidian-smart-connections) (local embeddings, MCP server for agent retrieval).
-
-</details>
-
-Full reference: [CLI Commands](cli/docs/COMMANDS.md)
-
----
-
-## Architecture
-
-One recursive shape at every scale:
-
-```
-/implement ── one worker, one issue, one verify cycle
-    └── /crank ── waves of /implement (FIRE loop)
-        └── /rpi ── research → plan → crank → validate → learn
-            └── /evolve ── fitness-gated /rpi cycles
-```
-
-Each level treats the one below as a black box: spec in, validated result out. Workers get fresh context per wave, communicate through the filesystem, and never commit — the lead commits. See the [Ralph Wiggum Pattern](https://ghuntley.com/ralph/) for the rationale. Orchestrators stay in the main session; workers fork into subagents. See [`SKILL-TIERS.md`](skills/SKILL-TIERS.md) for the full classification.
-
-| Topic | Where |
-|-------|-------|
-| Five pillars, operational invariants | [Architecture](docs/ARCHITECTURE.md) |
-| Brownian Ratchet, Ralph Wiggum, context windowing | [How It Works](docs/how-it-works.md) |
-| Orchestrator vs worker fork rules | [Skill Tiers](skills/SKILL-TIERS.md) |
-| Injection philosophy, freshness decay, MemRL | [The Science](docs/the-science.md) |
-| Primitive chains (audited map) | [Primitive Chains](docs/architecture/primitive-chains.md) |
-| Context lifecycle, three-tier injection | [Context Lifecycle](docs/context-lifecycle.md) |
-
----
-
-## How AgentOps Fits With Other Tools
-
-| Alternative | What it does well | What AgentOps adds |
-|-------------|-------------------|-------------------------------------|
-| **[GSD](https://github.com/glittercowboy/get-shit-done)** | Clean subagent spawning, fights context rot | Cross-session memory — GSD keeps context fresh *within* a session; AgentOps carries knowledge *between* sessions |
-| **[Compound Engineer](https://github.com/EveryInc/compound-engineering-plugin)** | Knowledge compounding, structured loop | Multi-model councils and validation gates — independent judges debating before and after code ships |
-
-[Detailed comparisons →](docs/comparisons/)
-
----
+Skills guide agents; installation alone does not enforce their instructions.
+A green test suite or an agreeing model can still miss a defect. Missing proof
+stays `NOT_PROVEN`. Saving notes does not establish improved outcomes or
+automatic knowledge compounding. See [product evidence and limits](PRODUCT.md).
 
 ## FAQ
 
-[docs/FAQ.md](docs/FAQ.md) — comparisons, limitations, subagent nesting, PRODUCT.md, uninstall.
-
----
-
-## Contributing
-
 <details>
-<summary><b>Issue tracking</b> — Beads / bd</summary>
+<summary>CLI, reviewer model and storage questions</summary>
 
-Git-native issues in `.beads/`. `bd onboard` (setup) · `bd ready` (find work) · `bd show <id>` · `bd close <id>` · `bd vc status` (optional Dolt state check; JSONL auto-sync is automatic). More: [AGENTS.md](AGENTS.md)
+**Do I need the CLI, an orchestrator or several agents?**
+
+No. Start with one coding agent and a skill such as Research, Test or Refactor.
+Use checks and CI for ordinary changes. Obtain one fresh, author-distinct
+judgment when requested, hard to undo, or uncovered by a deterministic check. The Validate skill
+requires `ao`; native independent review does not.
+
+**Must the reviewer use another model provider?**
+
+No. The default is a fresh context from the author's model family. Cross-model
+review is an explicit choice; independence still matters.
+
+**Must durable work live in Git?**
+
+No. Keep source in Git, handoffs in your tracker and requested proof in protected
+external storage, following each owner's access and retention rules.
 
 </details>
 
-See [CONTRIBUTING.md](docs/CONTRIBUTING.md). If AgentOps helped you ship something, post in [Discussions](https://github.com/boshu2/agentops?tab=discussions).
+## Beyond AgentOps
 
-## License
+Start with one agent and a paved path. When work needs several agents, a factory
+can add scheduling, coordination and runtime supervision. Install AgentOps
+skills into its agent runtimes to carry the same behavior, testing and review
+practices into each task. The factory runs the agents; your checks and any
+required independent judgment establish what the result proves.
 
-Apache-2.0 · [Docs](docs/INDEX.md) · [Philosophy](docs/philosophy.md) · [How It Works](docs/how-it-works.md) · [FAQ](docs/FAQ.md) · [Glossary](docs/GLOSSARY.md) · [Architecture](docs/ARCHITECTURE.md) · [Configuration](docs/ENV-VARS.md) · [CLI Reference](cli/docs/COMMANDS.md) · [Changelog](docs/CHANGELOG.md)
+### Gas City
+
+[Gas City](https://github.com/gastownhall/gascity), from the organization behind
+[Beads](https://github.com/gastownhall/beads), provides configurable building
+blocks for multi-agent software factories: runtime providers, work routing,
+workflow formulas, packs and supervision. AgentOps ships a
+[Gas City adapter](skills/using-gc/SKILL.md) and an
+[executor integration pack](packs/agentops-executor/pack.toml). Use the adapter
+to work through Gas City's native coordinator and observe its runs; workers can
+use AgentOps skills for implementation, tests and validation.
+
+### Agentic Coding Flywheel
+
+[Agentic Coding Flywheel](https://agent-flywheel.com) is Jeffrey Emanuel's
+([Dicklesworthstone](https://github.com/Dicklesworthstone)) ecosystem of tools
+and workflows for operating coding agents. Its
+[setup project](https://github.com/Dicklesworthstone/agentic_coding_flywheel_setup)
+assembles a multi-agent development environment. You can also adopt individual
+tools alongside AgentOps:
+
+| Need | Upstream tool | How it fits |
+|---|---|---|
+| Block covered destructive shell operations | [Destructive Command Guard (`dcg`)](https://github.com/Dicklesworthstone/destructive_command_guard) | Checks commands before execution through its configured integration. Adds mechanical protection alongside agent guidance. |
+| Find an earlier investigation or solution | [Coding Agent Session Search (`cass`)](https://github.com/Dicklesworthstone/coding_agent_session_search) | Indexes and searches agent session histories. Retrieve relevant episodes as evidence for Memory or a new investigation. |
+| Turn session evidence into reusable skills | [Meta Skill (`ms`)](https://github.com/Dicklesworthstone/meta_skill) | Can mine selected CASS sessions into skill candidates with source links. Review the guidance and test it on another task before relying on it. |
+
+For example, use CASS to find how a recurring migration failure was resolved.
+Use [Memory](skills/memory/SKILL.md) to examine the supported lesson and curate
+project context. If the method belongs in a repeatable path,
+[Skill Builder](skills/skill-builder/SKILL.md) can help package it and
+[Skill Eval](skills/skill-eval/SKILL.md) can measure whether it helps later work.
+This connects session history to guidance you can inspect and improve.
+
+Gas City, the Flywheel and these tools are independent projects. AgentOps ships
+its own Gas City adapter and pack; install external tools and their skills from
+their authors. Follow their native workflows, integrations and distribution terms.
+
+## Contributing
+
+Contributions are welcome: documentation fixes, reproducible bug reports,
+tests, CLI improvements and skills. Read the [contribution guide](docs/CONTRIBUTING.md);
+to work on skills from a checkout, link them with
+[`ao skills link`](docs/install-day2-ops.md#install-source-checkout).
+
+Licensed under [Apache-2.0](LICENSE).

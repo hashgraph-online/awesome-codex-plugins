@@ -1,0 +1,498 @@
+{
+  "base": {
+    "absolute_max": {
+      "IFRM": [
+        {
+          "condition": "Peak Repetitive Forward Current, rated VR, square wave 20 kHz, TC = 80\u00b0C",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 2,
+            "section": "MAXIMUM RATINGS"
+          },
+          "max": 10,
+          "min": null,
+          "notes": null,
+          "typ": null,
+          "unit": "A"
+        }
+      ],
+      "IFSM": [
+        {
+          "condition": "Non-Repetitive Peak Surge Current, halfwave single phase 60 Hz",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 2,
+            "section": "MAXIMUM RATINGS"
+          },
+          "max": 190,
+          "min": null,
+          "notes": null,
+          "typ": null,
+          "unit": "A"
+        }
+      ],
+      "IF_AV": [
+        {
+          "condition": "Average Rectified Forward Current, at rated VR, TC = 105\u00b0C",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 2,
+            "section": "MAXIMUM RATINGS"
+          },
+          "max": 5,
+          "min": null,
+          "notes": null,
+          "typ": null,
+          "unit": "A"
+        }
+      ],
+      "TJ": [
+        {
+          "condition": "Operating Junction Temperature",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 2,
+            "section": "MAXIMUM RATINGS"
+          },
+          "max": 150,
+          "min": -65,
+          "notes": "Heat dissipation governed by dPD/dTJ < 1/R\u03b8JA",
+          "typ": null,
+          "unit": "\u00b0C"
+        }
+      ],
+      "Tstg": [
+        {
+          "condition": "Storage Temperature Range",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 2,
+            "section": "MAXIMUM RATINGS"
+          },
+          "max": 150,
+          "min": -65,
+          "notes": null,
+          "typ": null,
+          "unit": "\u00b0C"
+        }
+      ],
+      "VRRM": [
+        {
+          "condition": "Peak Repetitive Reverse Voltage",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 2,
+            "section": "MAXIMUM RATINGS"
+          },
+          "max": 40,
+          "min": null,
+          "notes": "Also applies as Working Peak Reverse Voltage (VRWM) and DC Blocking Voltage (VR)",
+          "typ": null,
+          "unit": "V"
+        }
+      ]
+    },
+    "compliance": [
+      {
+        "evidence": {
+          "confidence": "high",
+          "method": "prose",
+          "page": 1,
+          "section": "Features"
+        },
+        "mark": "RoHS"
+      },
+      {
+        "evidence": {
+          "confidence": "high",
+          "method": "prose",
+          "page": 1,
+          "section": "Features"
+        },
+        "mark": "Pb-Free"
+      },
+      {
+        "evidence": {
+          "confidence": "high",
+          "method": "prose",
+          "page": 1,
+          "section": "Features"
+        },
+        "mark": "Halogen-Free"
+      },
+      {
+        "evidence": {
+          "confidence": "high",
+          "method": "prose",
+          "page": 1,
+          "section": "Features"
+        },
+        "mark": "AEC-Q101"
+      }
+    ],
+    "description": "5.0 A, 40 V surface mount Schottky power rectifier, SMC package",
+    "esd": {
+      "HBM": [
+        {
+          "condition": "Human Body Model, Class 3B (> 8000 V)",
+          "evidence": {
+            "confidence": "high",
+            "method": "prose",
+            "page": 1,
+            "section": "Mechanical Characteristics \u2014 ESD Rating"
+          },
+          "max": null,
+          "min": 8000,
+          "notes": null,
+          "typ": null,
+          "unit": "V"
+        }
+      ],
+      "MM": [
+        {
+          "condition": "Machine Model, Class C (> 400 V)",
+          "evidence": {
+            "confidence": "high",
+            "method": "prose",
+            "page": 1,
+            "section": "Mechanical Characteristics \u2014 ESD Rating"
+          },
+          "max": null,
+          "min": 400,
+          "notes": null,
+          "typ": null,
+          "unit": "V"
+        }
+      ]
+    },
+    "family": "surface mount Schottky barrier power rectifier",
+    "moisture_sensitivity": {
+      "evidence": {
+        "confidence": "high",
+        "method": "prose",
+        "page": 1,
+        "section": "Mechanical Characteristics"
+      },
+      "msl": 1,
+      "peak_reflow_c": null
+    },
+    "package": {
+      "body_mm": {
+        "height": 2.28,
+        "length": 5.9,
+        "width": 6.875
+      },
+      "code": "SMC",
+      "evidence": {
+        "confidence": "high",
+        "method": "table",
+        "page": 5,
+        "section": "PACKAGE DIMENSIONS \u2014 SMC 2-LEAD CASE 403AC"
+      },
+      "pin_count": 2,
+      "pitch_mm": null,
+      "thermal_pad": false
+    },
+    "pin_relationships": [],
+    "pinout": [
+      {
+        "absolute_max": null,
+        "alt_functions": [],
+        "description": "Anode terminal of Schottky power rectifier. SMC 2-lead package; lead without polarity band.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "prose",
+          "page": 1,
+          "section": "Mechanical Characteristics / Marking Diagram"
+        },
+        "is_5v_tolerant": null,
+        "name": "Anode",
+        "notes": "Polarity band on plastic body indicates cathode lead; unmarked lead is anode.",
+        "numbers": [
+          "A"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "power_in"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [],
+        "description": "Cathode terminal of Schottky power rectifier. Identified by polarity band on plastic body of SMC package.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "prose",
+          "page": 1,
+          "section": "Mechanical Characteristics"
+        },
+        "is_5v_tolerant": null,
+        "name": "Cathode",
+        "notes": "Polarity Band on Plastic Body Indicates Cathode Lead. SMC CASE 403AC, 2-lead.",
+        "numbers": [
+          "K"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "power_out"
+      }
+    ],
+    "recommended_operating": {},
+    "thermal": {
+      "theta_ja": [
+        {
+          "condition": "Surface mounted on minimum pad size recommended",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 2,
+            "section": "THERMAL CHARACTERISTICS"
+          },
+          "max": null,
+          "min": null,
+          "notes": "Junction-to-Ambient",
+          "typ": 111,
+          "unit": "\u00b0C/W"
+        }
+      ],
+      "theta_jl": [
+        {
+          "condition": "Surface mounted on minimum pad size recommended",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 2,
+            "section": "THERMAL CHARACTERISTICS"
+          },
+          "max": null,
+          "min": null,
+          "notes": "Junction-to-Lead",
+          "typ": 12,
+          "unit": "\u00b0C/W"
+        }
+      ]
+    }
+  },
+  "categories": [
+    "diode"
+  ],
+  "diode": {
+    "breakdown_voltage": null,
+    "cd": null,
+    "diode_type": "schottky",
+    "if_max": [
+      {
+        "condition": "IF(AV), average rectified, rated VR, TC=105\u00b0C",
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 2,
+          "section": "MAXIMUM RATINGS"
+        },
+        "max": 5.0,
+        "min": null,
+        "notes": null,
+        "typ": null,
+        "unit": "A"
+      },
+      {
+        "condition": "IFRM, peak repetitive, rated VR, square wave 20kHz, TC=80\u00b0C",
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 2,
+          "section": "MAXIMUM RATINGS"
+        },
+        "max": 10.0,
+        "min": null,
+        "notes": null,
+        "typ": null,
+        "unit": "A"
+      }
+    ],
+    "ifsm": [
+      {
+        "condition": "halfwave single phase 60Hz surge",
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 2,
+          "section": "MAXIMUM RATINGS"
+        },
+        "max": 190.0,
+        "min": null,
+        "notes": null,
+        "typ": null,
+        "unit": "A"
+      }
+    ],
+    "ir": [
+      {
+        "condition": "rated DC voltage (VR=40V), TC=25\u00b0C",
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 2,
+          "section": "ELECTRICAL CHARACTERISTICS"
+        },
+        "max": 0.0003,
+        "min": null,
+        "notes": null,
+        "typ": null,
+        "unit": "A"
+      },
+      {
+        "condition": "rated DC voltage (VR=40V), TC=100\u00b0C",
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 2,
+          "section": "ELECTRICAL CHARACTERISTICS"
+        },
+        "max": 0.015,
+        "min": null,
+        "notes": null,
+        "typ": null,
+        "unit": "A"
+      }
+    ],
+    "marking_code": "B540G",
+    "package": {
+      "body_mm": {
+        "height": 2.61,
+        "length": 6.25,
+        "width": 7.15
+      },
+      "code": "SMC",
+      "evidence": {
+        "confidence": "high",
+        "method": "table",
+        "page": 5,
+        "section": "PACKAGE DIMENSIONS"
+      },
+      "pin_count": 2,
+      "pitch_mm": null,
+      "thermal_pad": false
+    },
+    "polarity_marking_convention": "Polarity band on plastic body indicates cathode lead",
+    "power_dissipation": null,
+    "thermal_resistance": {
+      "rtheta_ja": [
+        {
+          "condition": "surface mounted on minimum pad size recommended",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 2,
+            "section": "THERMAL CHARACTERISTICS"
+          },
+          "max": 111.0,
+          "min": null,
+          "notes": null,
+          "typ": null,
+          "unit": "\u00b0C/W"
+        }
+      ],
+      "rtheta_jc": null,
+      "rtheta_jl": [
+        {
+          "condition": "surface mounted on minimum pad size recommended",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 2,
+            "section": "THERMAL CHARACTERISTICS"
+          },
+          "max": 12.0,
+          "min": null,
+          "notes": null,
+          "typ": null,
+          "unit": "\u00b0C/W"
+        }
+      ]
+    },
+    "tj_max": [
+      {
+        "condition": "operating junction temperature TJ",
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 2,
+          "section": "MAXIMUM RATINGS"
+        },
+        "max": 150.0,
+        "min": -65.0,
+        "notes": null,
+        "typ": null,
+        "unit": "\u00b0C"
+      }
+    ],
+    "trr": null,
+    "vf": [
+      {
+        "condition": "iF=5.0A, TC=25\u00b0C",
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 2,
+          "section": "ELECTRICAL CHARACTERISTICS"
+        },
+        "max": 0.5,
+        "min": null,
+        "notes": null,
+        "typ": null,
+        "unit": "V"
+      }
+    ],
+    "vr_max": [
+      {
+        "condition": "VRRM peak repetitive / VRWM working peak / VR DC blocking (all 40V)",
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 2,
+          "section": "MAXIMUM RATINGS"
+        },
+        "max": 40.0,
+        "min": null,
+        "notes": null,
+        "typ": null,
+        "unit": "V"
+      }
+    ],
+    "vz": null
+  },
+  "extraction": {
+    "extracted_at": "2026-04-27T20:53:49Z",
+    "extractor_schema_version": "1.0",
+    "extractor_scout": null,
+    "plan_ref": "MBRS540T3G.plan.json",
+    "quality_score": 82
+  },
+  "schema_version": {
+    "base": "1.0",
+    "categories": {
+      "diode": "1.0"
+    }
+  },
+  "source": {
+    "datasheet_date": "2017-06",
+    "datasheet_revision": "Rev. 10",
+    "family_ref": null,
+    "local_path": "datasheets/MBRS540T3G.pdf",
+    "manufacturer": "ON Semiconductor",
+    "mpn": "MBRS540T3G",
+    "page_count": 5,
+    "sha256": "sha256:1064a599f53ed9cbb6fd5f349b98aa0bcb6eaa1cd434acec5911321a83a08f31",
+    "source_url": "https://www.onsemi.com"
+  }
+}

@@ -24,7 +24,7 @@ npm i -g codex-multi-auth
 ## First login
 
 ```bash
-codex auth login
+codex-multi-auth login
 ```
 
 Default flow:
@@ -37,18 +37,18 @@ Default flow:
 ## Verify health and routing
 
 ```bash
-codex auth status
-codex auth list
-codex auth check
-codex auth forecast --live
+codex-multi-auth status
+codex-multi-auth list
+codex-multi-auth check
+codex-multi-auth forecast --live
 ```
 
 Use these next when managing multiple accounts:
 
 ```bash
-codex auth switch 2
-codex auth verify-flagged
-codex auth doctor --fix
+codex-multi-auth switch 2
+codex-multi-auth verify-flagged
+codex-multi-auth doctor --fix
 ```
 
 ## Alternate login paths
@@ -56,16 +56,16 @@ codex auth doctor --fix
 Use these when browser launch is blocked or the shell is headless:
 
 ```bash
-codex auth login --manual
-CODEX_AUTH_NO_BROWSER=1 codex auth login
+codex-multi-auth login --manual
+CODEX_AUTH_NO_BROWSER=1 codex-multi-auth login
 ```
 
 ## Troubleshooting
 
-- Run `where codex` if `codex auth` is not recognized.
+- Run `where codex-multi-auth` if `codex-multi-auth` is not recognized.
 - Free port `1455` and retry if the OAuth callback server cannot bind.
-- Re-run `codex auth login` if the active account is stale or the wrong account was selected.
-- Use `codex auth doctor --fix` followed by `codex auth check` for a fast recovery loop.
+- Re-run `codex-multi-auth login` if the active account is stale or the wrong account was selected.
+- Use `codex-multi-auth doctor --fix` followed by `codex-multi-auth check` for a fast recovery loop.
 - See `docs/getting-started.md`, `docs/configuration.md`, `docs/troubleshooting.md`, and `docs/reference/commands.md` for the full command and config docs.
 
 ## Usage boundaries

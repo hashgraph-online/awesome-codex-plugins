@@ -1,0 +1,4 @@
+interface:
+  display_name: "Harness Audit"
+  short_description: "Harness 平台 7 维度能力审计与评分"
+  default_prompt: "Use $harness-audit to evaluate agent coverage, skill completeness, hooks, rules, commands, docs, and integration depth."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Authority Credibility"
+  short_description: "Use authority signals safely"
+  default_prompt: "Use $authority-credibility to improve this persuasion task ethically."

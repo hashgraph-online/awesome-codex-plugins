@@ -1,0 +1,18 @@
+# Files excluded from Codex plugin packaging and default context
+projects/
+**/node_modules/
+**/.env
+**/.env.*
+**/*.pem
+**/.ssh/**
+**/.aws/**
+tests/
+web/
+cli/
+docs/
+.github/
+agent-tools/
+*.pyc
+__pycache__/
+.DS_Store
+Thumbs.db

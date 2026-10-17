@@ -1,0 +1,7 @@
+.git/
+.codex/
+artifacts/
+build/
+**/*.log
+**/*.tmp
+**/*.pdb

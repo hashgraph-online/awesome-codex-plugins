@@ -1,0 +1,45 @@
+{
+  "name": "separateweb-capture",
+  "version": "1.1.2",
+  "description": "Website screenshot and UI crop extraction for Codex using Playwright and Sharp.",
+  "type": "module",
+  "license": "MIT",
+  "keywords": [
+    "capture",
+    "screenshot",
+    "website-screenshot",
+    "web-page-capture",
+    "playwright",
+    "playwright-screenshot",
+    "ui-extraction",
+    "ui-crops",
+    "visual-qa",
+    "frontend-reference",
+    "codex",
+    "claude"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "separateweb": "./scripts/capture.mjs",
+    "separateweb-capture": "./scripts/capture.mjs"
+  },
+  "files": [
+    ".codex-plugin",
+    "assets",
+    "CLAUDE.md",
+    "LICENSE",
+    "README.md",
+    "scripts",
+    "skills"
+  ],
+  "scripts": {
+    "capture": "node ./scripts/capture.mjs capture",
+    "check": "node --check ./scripts/capture.mjs && find ./scripts/lib -name '*.mjs' -print0 | xargs -0 -n1 node --check"
+  },
+  "dependencies": {
+    "playwright": "1.60.0",
+    "sharp": "0.34.5"
+  }
+}

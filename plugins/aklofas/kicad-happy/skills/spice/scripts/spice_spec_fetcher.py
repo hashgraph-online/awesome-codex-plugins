@@ -430,9 +430,9 @@ def fetch_specs_mouser(mpn):
 def fetch_specs_from_datasheet(mpn, project_dir):
     """Extract specs from a downloaded datasheet PDF.
 
-    Looks for the datasheet in <project_dir>/datasheets/ using the index.json
-    manifest. If found, reads the PDF and extracts electrical specs from the
-    first few pages.
+    Looks for the datasheet in <project_dir>/datasheets/ using the
+    manifest.json file (legacy index.json still supported). If found, reads
+    the PDF and extracts electrical specs from the first few pages.
 
     This is a text-based heuristic extraction — not AI-powered. It looks for
     common datasheet table patterns like "Gain Bandwidth Product ... 1 ... MHz"
@@ -450,8 +450,9 @@ def fetch_specs_from_datasheet(mpn, project_dir):
 
     from pathlib import Path
     ds_dir = Path(project_dir) / "datasheets"
-    index_path = ds_dir / "index.json"
-
+    index_path = ds_dir / "manifest.json"
+    if not index_path.exists():
+        index_path = ds_dir / "index.json"
     if not index_path.exists():
         return None
 
@@ -550,7 +551,9 @@ def fetch_specs_from_extraction(mpn, project_dir):
         return None
     from pathlib import Path
     extract_dir = Path(project_dir) / "datasheets" / "extracted"
-    index_path = extract_dir / "index.json"
+    index_path = extract_dir / "manifest.json"
+    if not index_path.exists():
+        index_path = extract_dir / "index.json"
     if not index_path.exists():
         return None
     try:
@@ -575,6 +578,10 @@ def fetch_specs_from_extraction(mpn, project_dir):
         with open(json_file) as f:
             extraction = json.load(f)
     except (json.JSONDecodeError, OSError):
+        return None
+    # Trust gate: skip low-quality extractions
+    meta = extraction.get("meta", {})
+    if meta.get("extraction_score", 0) < 6.0:
         return None
     spice = extraction.get("spice_specs", {})
     if not spice:

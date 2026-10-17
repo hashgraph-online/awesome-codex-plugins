@@ -3,14 +3,19 @@
 <p align="center"><em>GitHub CLI–style workflows for Jenkins controllers</em></p>
 
 <p align="center">
+  <a href="https://github.com/avivsinai/jenkins-cli/releases/latest"><img src="https://img.shields.io/github/v/release/avivsinai/jenkins-cli" alt="Latest release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
-  <a href="go.mod"><img src="https://img.shields.io/badge/Go-1.25+-00ADD8.svg" alt="Go Version"></a>
+  <a href="go.mod"><img src="https://img.shields.io/badge/Go-1.26+-00ADD8.svg" alt="Go Version"></a>
   <a href="https://github.com/avivsinai/jenkins-cli/actions/workflows/ci.yml"><img src="https://github.com/avivsinai/jenkins-cli/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/avivsinai/jenkins-cli/actions/workflows/gitleaks.yml"><img src="https://github.com/avivsinai/jenkins-cli/actions/workflows/gitleaks.yml/badge.svg" alt="Security"></a>
   <a href="https://scorecard.dev/viewer/?uri=github.com/avivsinai/jenkins-cli"><img src="https://api.scorecard.dev/projects/github.com/avivsinai/jenkins-cli/badge" alt="OpenSSF Scorecard"></a>
 </p>
 
-`jk` gives developers and operators a modern, scriptable interface to Jenkins: inspect runs, stream logs, manage credentials, and administer controllers from a single cross-platform binary.
+`jk` is a single Go binary for Jenkins operators. Search jobs across folders, trigger and follow runs, stream logs, download artifacts, and manage credentials, nodes, queues, and plugins. Output is human, JSON, or YAML.
+
+This is not the official Jenkins CLI (`jenkins-cli.jar`; [jenkins.io](https://www.jenkins.io/doc/book/managing/cli/)).
+
+**Status ([v0.0.36](https://github.com/avivsinai/jenkins-cli/releases/tag/v0.0.36), 11 Aug 2026):** released and tested against stock Jenkins LTS REST APIs. Auth, contexts, search, jobs, runs, logs, artifacts, tests, credentials, nodes, queue, and plugins ship today. Companion plugin, JCasC, events, and metrics are not in this binary. The version stays 0.x for that reason.
 
 ## Features
 
@@ -24,6 +29,8 @@
 - **GitHub CLI parity** – command structure and UX mirror `gh`, easing adoption in developer toolchains.
 
 ## Installation
+
+Install the `jk` binary from the paths below. Homebrew uses [`avivsinai/tap`](https://github.com/avivsinai/homebrew-tap) (`jk`); Scoop uses [`avivsinai/scoop-bucket`](https://github.com/avivsinai/scoop-bucket). There is no Nix package and no PyPI project for this CLI.
 
 ### Homebrew (macOS/Linux)
 
@@ -45,14 +52,14 @@ scoop install jk
 go install github.com/avivsinai/jenkins-cli/cmd/jk@latest
 
 # Or install specific version
-go install github.com/avivsinai/jenkins-cli/cmd/jk@v0.0.29
+go install github.com/avivsinai/jenkins-cli/cmd/jk@v0.0.36
 ```
 
 Binary will be installed to `$GOPATH/bin` (or `$HOME/go/bin` by default).
 
 ### Binary Downloads
 
-Download prebuilt binaries for your platform from [GitHub Releases](https://github.com/avivsinai/jenkins-cli/releases).
+Download prebuilt binaries (macOS, Linux, Windows) or `.deb` packages from [GitHub Releases](https://github.com/avivsinai/jenkins-cli/releases).
 
 ### From Source
 
@@ -103,7 +110,7 @@ npx skild install @avivsinai/jk -t claude -y
 
 ```bash
 git clone https://github.com/avivsinai/jenkins-cli.git
-cp -r jenkins-cli/.claude/skills/jk ~/.claude/skills/
+cp -r jenkins-cli/skills/jk ~/.claude/skills/
 ```
 
 </details>
@@ -116,7 +123,7 @@ Find jobs fast with `jk search` (alias for `jk run search`) before drilling into
 jk auth login https://jenkins.company.example      # authenticate and create a context
 jk context ls                                      # list available contexts
 jk search --job-glob '*deploy-*' --limit 5 --json               # discover job paths across folders
-jk job create auth-relay --folder platform/services --repo-owner playg --repository taboola-sales-skills --script-path services/auth-relay/Jenkinsfile --credentials bitbucket-ro
+jk job create auth-relay --folder platform/services --repo-owner playg --repository my-service-repo --script-path services/auth-relay/Jenkinsfile --credentials bitbucket-ro
 jk job config platform/services/auth-relay | rg scriptPath
 jk job configure platform/services/auth-relay --script-path services/auth-relay/Jenkinsfile
 jk job config platform/services/auth-relay | jk job configure platform/services/auth-relay --stdin
@@ -124,11 +131,62 @@ jk job scan platform/services/auth-relay
 jk run ls team/app/pipeline --filter result=SUCCESS --since 7d --limit 5 --json --with-meta
 jk run ls team/app/pipeline --include-queued   # include queued builds (shown as qN)
 jk run params team/app/pipeline                    # inspect inferred parameter metadata
-jk run view team/app/pipeline 128 --follow         # stream logs until completion
+jk log team/app/pipeline 128 --follow              # stream logs until completion
 jk artifact download team/app/pipeline 128 -p "**/*.xml" -o out/
 ```
 
-Structured `jk search` output already includes lightweight search metadata; `--with-meta` is only needed for `jk run ls`.
+### Jenkins SSO / Google OAuth
+
+`jk` uses Jenkins API tokens for scripted clients. If your controller uses Google OAuth, OpenID Connect, Okta, Azure AD, or another browser-based SSO realm, sign in to Jenkins in the browser first, open `/me/configure`, create a Jenkins API token, then run:
+
+```bash
+jk auth login https://jenkins.company.example --username <jenkins-user-id> --with-token < jenkins-token.txt
+```
+
+`--with-token` reads the token from standard input, so it never shows in the process list. `--token <JENKINS_API_TOKEN>` also works, but `ps` shows it.
+
+Use your Jenkins user ID for `--username`. For many Google/OIDC setups that is your email address, but some SSO realms use an opaque provider ID instead. If you are unsure, sign in to Jenkins in the browser and open `<jenkins-url>/whoAmI/api/json`; use the returned `name` value. If it reports `anonymous`, sign in first. Do not paste a Google OAuth access token into `--token` — Jenkins REST calls expect a Jenkins API token.
+
+This works because Jenkins validates API tokens before consulting the security realm, so SSO realms such as the `google-login` plugin do not block token-based CLI access (covered by an end-to-end test against a google-login controller).
+
+`jk auth login` verifies the credentials against the controller before finishing:
+
+- On success it reports the authenticated user (`Logged in to <url> as <user>`).
+- If Jenkins rejects the credentials (or treats them as anonymous), the login fails and the previous context, token, and active-context selection are restored — a typo can't clobber a working login. The error explains the API-token workflow and points to the browser `whoAmI` check above.
+- If the request is redirected to a sign-in page (Jenkins form login, `securityRealm/commenceLogin`, or an external identity provider), `jk` reports that the request never authenticated instead of failing on an HTML response. The same detection applies to every `jk` command, so an expired token against an SSO-fronted controller produces an actionable error.
+- If the controller cannot be reached, the credentials are saved unverified with a warning. Use `--no-verify` to skip the check entirely (for example when bootstrapping configuration before the controller is up).
+
+Service accounts cannot authenticate through a browser-based SSO realm like `google-login` — they never become Jenkins users, so they cannot hold API tokens. Jenkins itself still needs a Jenkins API token; a front door in front of Jenkins can admit the service account (see below).
+
+### Front door (WAF, SSO proxy, Google IAP)
+
+Some controllers sit behind a front door that needs its own credential before a request reaches Jenkins (the controller answers by IP, but not through its DNS name). Add a `front_door` block to the context in `config.yaml`. `jk` keeps Jenkins Basic auth unchanged and also sends `<header>: Bearer <token>`, where the token is the output of `token_command`:
+
+```yaml
+contexts:
+  prod:
+    url: https://jenkins.example.com
+    username: alice@example.com
+    front_door:
+      mode: proxy-bearer-command
+      header: Proxy-Authorization
+      token_command: [gcloud, auth, print-identity-token, --audiences=<IAP_CLIENT_ID>]
+```
+
+- `token_command` is an argv list. `jk` runs it without a shell before the first request, trims the output, and runs it again when the token is older than 30 minutes. For a service account, add `--impersonate-service-account=<sa-email>` to the gcloud command.
+- The header goes on every request to the context's host, including login verification and CSRF crumb requests. Redirects to other hosts (for example artifact downloads from object storage) do not get it.
+- `header` cannot be `Authorization`, because `jk` sends the Jenkins API token there. Google IAP accepts `Proxy-Authorization`.
+- If the command fails, the error names the context and the command. `jk` never prints the token.
+- If a first `jk auth login` is rejected with a 401, 403, or 407 that has no `X-Jenkins` header, the response came from the front door and the login error adds a hint pointing here.
+- Configure `front_door` in `config.yaml` first, then run `jk auth login <url> --name prod ...`. Login keeps the existing `front_door` block and verifies through the front door.
+
+### Secret Storage
+
+By default, `jk` stores API tokens in the OS keychain. `--allow-insecure-store` or `JK_ALLOW_INSECURE_STORE=1` selects the encrypted file backend instead of trying native keyring backends. `KEYRING_BACKEND` remains an explicit backend override for advanced use.
+
+For noninteractive file-backend use, set `JK_KEYRING_PASSPHRASE` before running `jk`; compatible fallback variables are `KEYRING_FILE_PASSWORD` and `KEYRING_PASSWORD`.
+
+Structured `jk search` output already includes lightweight search metadata; `--with-meta` is only needed for `jk run ls` (`jk search` accepts it as a no-op for flag parity).
 
 Add `--json`, `--yaml`, or `--format json|yaml` to supported commands for machine-readable output. Use `--jq` or `--template` to select or reshape JSON results.
 
@@ -142,17 +200,21 @@ jk run view team/app/pipeline 128 --format json --template 'Result={{.result}}'
 
 ## Job Commands
 
-Current job provisioning and config management is focused on Multibranch Pipeline workflows:
+Job provisioning and config management:
 
 ```bash
 # Create a Bitbucket-backed Multibranch Pipeline job
 jk job create auth-relay \
   --folder platform/services \
   --repo-owner playg \
-  --repository taboola-sales-skills \
+  --repository my-service-repo \
   --script-path services/auth-relay/Jenkinsfile \
   --credentials bitbucket-ro \
   --branch-strategy all
+
+# Create a job of any type (Pipeline, Freestyle, Folder, ...) from a full config.xml
+jk job config platform/services/auth-relay > auth-relay.config.xml
+jk job create auth-relay-copy --folder platform/services --file auth-relay.config.xml
 
 # Fetch raw config.xml (stdout is always XML)
 jk job config platform/services/auth-relay > auth-relay.config.xml

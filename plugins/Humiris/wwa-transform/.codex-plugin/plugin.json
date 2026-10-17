@@ -1,0 +1,56 @@
+{
+  "name": "codiris-agentizer",
+  "version": "2.1.1",
+  "description": "Turn any website into an AI-powered agentfront — crawl, generate, deploy in one command.",
+  "author": {
+    "name": "Iris Lab",
+    "email": "hello@codiris.app",
+    "url": "https://codiris.app"
+  },
+  "homepage": "https://codiris.app/skills",
+  "repository": "https://github.com/Humiris/wwa-transform",
+  "license": "MIT",
+  "keywords": [
+    "codiris",
+    "agentizer",
+    "agentfront",
+    "transform",
+    "website",
+    "ai-agent",
+    "deploy",
+    "crawl",
+    "wwa"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Codiris Agentizer",
+    "shortDescription": "Transform any website into an AI-powered agentfront",
+    "longDescription": "Codiris Agentizer crawls any website, analyzes the company (market, products, customers), downloads real images, generates a full Next.js agentfront with AI chat, voice calls, 3D cards, conversational checkout, and deploys to {domain}.codiris.app. Works with any type of company: SaaS, e-commerce, fintech, enterprise.",
+    "developerName": "Iris Lab / Codiris",
+    "category": "Development",
+    "capabilities": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash",
+      "Glob",
+      "Grep",
+      "WebFetch"
+    ],
+    "websiteURL": "https://codiris.app",
+    "privacyPolicyURL": "https://codiris.app/privacy",
+    "termsOfServiceURL": "https://codiris.app/terms",
+    "defaultPrompt": [
+      "Agentize https://stripe.com",
+      "Create an agentfront for notion.com",
+      "Turn shopify.com into an AI-powered website"
+    ],
+    "brandColor": "#635BFF",
+    "logo": "./assets/logo-256.png",
+    "logoLarge": "./assets/logo-1024.png",
+    "icon": "./assets/logo-256.png",
+    "thumbnail": "./assets/logo-1024.png",
+    "logoSmall": "./assets/logo-64.png",
+    "logoMedium": "./assets/logo-128.png"
+  }
+}

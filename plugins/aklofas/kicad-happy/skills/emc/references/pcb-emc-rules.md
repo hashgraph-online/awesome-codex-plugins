@@ -10,6 +10,7 @@ Quantitative design rules used by the EMC analyzer. Each rule has a threshold, r
 - **Rationale:** Return current must detour around the gap, creating a large loop antenna. Even "slow" signals have fast edge rates (SPI at 10 MHz has ~10 ns edges = 35 MHz bandwidth).
 - **Source:** Hubing, T.H. "Common PCB Layout Mistakes that Cause EMC Compliance Failures." AltiumLive 2022 Keynote. Identified as the #1 PCB layout cause of EMC failures.
 - **Fix:** Route signal around the gap, or fill the void. If a split is intentional, bridge it with a capacitor.
+- **Touch pad exception:** Nets belonging to capacitive-touch pads (identified from CP-003 findings in the PCB analyzer) are reported at INFO severity with `is_touch_net: true`. Pour clearance under a touch pad is intentional for capacitive coupling; the recommendation is to preserve the void rather than fill it.
 
 ### GP-002: No ground plane zones
 - **Severity:** CRITICAL
@@ -263,8 +264,8 @@ Source: Goldfarb, E. & Pucha, R. "Modeling Via Grounds in Microstrip." IEEE Micr
 ## PDN Impedance
 
 ### PD-001: PDN anti-resonance exceeds target
-- **Severity:** HIGH
-- **Threshold:** Parallel capacitor network impedance exceeds Z_target = V × 5% / (0.5 × I_transient) at any anti-resonance peak
+- **Severity:** HIGH when an anti-resonance peak exceeding the target impedance occurs at or below 200 MHz (`PDN_RELEVANT_FMAX_HZ`); INFO when all exceeding peaks lie above that frequency band (listed under `out_of_band_peaks`)
+- **Threshold:** Parallel capacitor network impedance exceeds Z_target = V × 5% / (0.5 × I_transient) at any anti-resonance peak, where I_transient defaults to 2× the regulator's estimated output current (capped at 5 A), or 0.5 A if regulator current is unavailable. When set in `.kicad-happy.json`, `project.pdn_transient_current_a` overrides the default. Capacitances are reported in engineering units (µF, nF, pF).
 - **Rationale:** Anti-resonance peaks between capacitors of different values create impedance spikes that can cause voltage ripple exceeding spec.
 - **Source:** Bogatin, *Signal and Power Integrity — Simplified*, Ch. 10.
 

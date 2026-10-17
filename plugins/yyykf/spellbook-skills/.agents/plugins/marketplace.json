@@ -1,0 +1,19 @@
+{
+  "name": "spellbook-marketplace",
+  "interface": {
+    "displayName": "Spellbook Skills Marketplace"
+  },
+  "plugins": [
+    {
+      "name": "spellbook-skills",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/yyykf/spellbook-skills.git"
+      },
+      "policy": {
+        "installation": "AVAILABLE"
+      },
+      "category": "Coding"
+    }
+  ]
+}

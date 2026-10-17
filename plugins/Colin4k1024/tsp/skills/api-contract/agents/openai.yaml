@@ -1,0 +1,4 @@
+interface:
+  display_name: "API Contract"
+  short_description: "锁定接口与兼容性约束"
+  default_prompt: "Use $api-contract to define the request, response, errors, and compatibility rules for this API."

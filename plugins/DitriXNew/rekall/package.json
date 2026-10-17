@@ -1,0 +1,17 @@
+{
+  "name": "@ditrixnew/rekall",
+  "version": "0.3.2",
+  "description": "Deliberate Codex context compaction with a verified handoff and one-time continuation.",
+  "type": "module",
+  "exports": {".": "./bridge.mjs", "./handoff": "./handoff.mjs", "./ipc": "./ipc.mjs"},
+  "scripts": {"start": "node ./bridge.mjs mcp", "test": "node --test", "prepack": "npm test", "release:check": "node ./scripts/release.mjs validate", "release:build": "node ./scripts/release.mjs build"},
+  "files": [".codex-plugin/", ".mcp.json", "assets/", "skills/", "AGENTS.md", "README.md", "SECURITY.md", "live-verification.json", "LICENSE", "bridge.mjs", "compatibility.mjs", "handoff.mjs", "ipc.mjs"],
+  "engines": {"node": ">=20"},
+  "repository": {"type": "git", "url": "git+https://github.com/DitriXNew/rekall.git"},
+  "homepage": "https://github.com/DitriXNew/rekall#readme",
+  "bugs": {"url": "https://github.com/DitriXNew/rekall/issues"},
+  "keywords": ["codex", "mcp", "context-compaction", "handoff"],
+  "author": "Dmytro Sherstobitov",
+  "license": "MIT",
+  "publishConfig": {"access": "public", "provenance": true}
+}

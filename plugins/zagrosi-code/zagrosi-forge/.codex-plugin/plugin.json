@@ -1,0 +1,45 @@
+{
+  "name": "zagrosi-forge",
+  "version": "0.4.0",
+  "description": "Lean project decomposition, planning, and test-first implementation.",
+  "author": {
+    "name": "Zagrosi",
+    "url": "https://github.com/zagrosi-code"
+  },
+  "homepage": "https://github.com/zagrosi-code/zagrosi-forge",
+  "repository": "https://github.com/zagrosi-code/zagrosi-forge",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "planning",
+    "tdd",
+    "implementation",
+    "code-review",
+    "skills"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Zagrosi Forge",
+    "shortDescription": "Lean plans and test-first delivery",
+    "longDescription": "One entry point for compact plans, verified implementation, and behavior-preserving cleanup; shared with Claude Code.",
+    "developerName": "Zagrosi",
+    "category": "Coding",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "composerIcon": "./assets/icon.svg",
+    "websiteURL": "https://github.com/zagrosi-code/zagrosi-forge",
+    "privacyPolicyURL": "https://github.com/zagrosi-code/zagrosi-forge",
+    "termsOfServiceURL": "https://github.com/zagrosi-code/zagrosi-forge",
+    "defaultPrompt": [
+      "Use $zagrosi-forge:zagrosi-forge to take this task through the appropriate Forge workflow",
+      "Use $zagrosi-forge:zagrosi-cleanup to simplify this code while preserving behavior"
+    ],
+    "brandColor": "#0F766E",
+    "screenshots": [
+      "./assets/readme-hero.svg",
+      "./assets/readme-workflow.svg"
+    ]
+  }
+}

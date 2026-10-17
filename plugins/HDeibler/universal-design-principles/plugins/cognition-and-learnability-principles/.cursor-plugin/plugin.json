@@ -1,0 +1,17 @@
+{
+  "name": "cognition-and-learnability-principles",
+  "displayName": "Cognition & Learnability Principles",
+  "version": "1.0.0",
+  "description": "Framework-agnostic design principles for cognition, mental models, complexity reduction, and learnability. Covers Hick's Law, Wayfinding, Progressive Disclosure, 80/20 Rule, Chunking, Mental Model, Recognition Over Recall, Consistency, Mimicry, and Iconic Representation.",
+  "author": {
+    "name": "Hunter D",
+    "email": "hunterd107@gmail.com"
+  },
+  "homepage": "https://github.com/HDeibler/universal-design-principles",
+  "repository": "https://github.com/HDeibler/universal-design-principles",
+  "license": "MIT",
+  "keywords": ["design", "ux", "cognition", "mental-models", "learnability", "memory", "consistency", "wayfinding"],
+  "category": "design",
+  "tags": ["cognition", "mental-models", "memory", "learnability", "iconography", "consistency"],
+  "skills": "./skills/"
+}

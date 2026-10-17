@@ -1,0 +1,4 @@
+interface:
+  display_name: "E2E Testing"
+  short_description: "用 Playwright 设计并执行关键路径端到端测试"
+  default_prompt: "Use $e2e-testing to define critical user flows, implement robust Playwright coverage, and surface flakiness or missing assertions."

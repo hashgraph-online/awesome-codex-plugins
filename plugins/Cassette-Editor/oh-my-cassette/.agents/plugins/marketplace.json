@@ -1,0 +1,21 @@
+{
+  "name": "cassette-editor",
+  "interface": {
+    "displayName": "Cassette Editor"
+  },
+  "plugins": [
+    {
+      "name": "oh-my-cassette",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/Cassette-Editor/oh-my-cassette.git",
+        "ref": "release"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

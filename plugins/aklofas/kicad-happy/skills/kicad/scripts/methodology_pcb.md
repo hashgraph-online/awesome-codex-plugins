@@ -415,6 +415,11 @@ Legacy KiCad 5 net class definitions (stored in PCB file): default and named cla
 
 ```json
 {
+    "analyzer_type": "pcb",
+    "summary": { "total_findings": 42, "by_severity": { "error": 2, "warning": 15, "info": 25 } },
+    "findings": [{ "detector", "rule_id", "category", "severity", "confidence",
+                    "summary", "description", "components", "nets", "recommendation",
+                    "report_context": { "section", "impact", "standard_ref" }, ... }],
     "file": "path/to/board.kicad_pcb",
     "kicad_version": "9.0.0",
     "statistics": { "footprint_count", "smd_count", "tht_count", "copper_layers_used",
@@ -430,23 +435,22 @@ Legacy KiCad 5 net class definitions (stored in PCB file): default and named cla
     "vias": { "count", "size_distribution", "via_analysis": { "type_breakdown", "annular_ring",
               "via_in_pad", "fanout_patterns", "current_capacity" } },
     "zones": [...],
-    "connectivity": { "fully_routed", "unrouted", "partially_routed", "routing_complete" },
+    "connectivity": { "fully_routed", "partially_routed", "routing_complete" },
     "net_lengths": [{ "net", "total_length_mm", "layers", "via_count" }],
     "power_net_routing": [...],
     "decoupling_placement": [...],
     "ground_domains": { "domains", "multi_domain_components" },
-    "current_capacity": { "power_ground_nets", "narrow_signal_nets" },
-    "thermal_analysis": { "zone_stitching", "thermal_pads" },
     "layer_transitions": [...],
-    "placement_analysis": { "courtyard_overlaps", "edge_clearance_warnings", "density" },
     "silkscreen": { "board_texts", "refs_visible", "hidden_refs", "documentation_warnings" },
     "board_metadata": { "title", "rev", "date", ... },
-    "dfm": { "dfm_tier", "metrics", "violations" },
-    "tombstoning_risk": [...],
-    "thermal_pad_vias": [...],
-    "copper_presence": [...]
+    "dfm_summary": { "dfm_tier", "metrics", "violation_count", "ipc_class_compliance" },
+    "placement_density": { ... },
+    "copper_presence_summary": { ... },
+    "board_thickness_mm": 1.6
 }
 ```
+
+Sections previously at top level (`thermal_analysis`, `thermal_pad_vias`, `tombstoning_risk`, `placement_analysis`, `current_capacity`, `copper_presence`, `dfm`) are now flattened into `findings[]`. Summary data is preserved in `dfm_summary`, `placement_density`, `copper_presence_summary`, and `board_thickness_mm`.
 
 ---
 

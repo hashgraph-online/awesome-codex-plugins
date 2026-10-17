@@ -1,0 +1,20 @@
+{
+  "name": "unified-ai-system",
+  "interface": {
+    "displayName": "Unified AI System"
+  },
+  "plugins": [
+    {
+      "name": "unified-ai-system",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

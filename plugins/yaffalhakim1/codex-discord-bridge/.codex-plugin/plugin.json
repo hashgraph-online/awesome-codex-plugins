@@ -1,0 +1,35 @@
+{
+  "name": "codex-discord-bridge",
+  "version": "0.1.0",
+  "description": "Control Codex CLI from Discord. A Rust serenity bridge that connects a Discord bot to the Codex app-server over WebSocket: mention the bot, it spawns a Codex thread, output streams back live, approvals arrive as buttons, and every Discord thread maps 1:1 to a Codex conversation.",
+  "author": {
+    "name": "Yafi Alhakim",
+    "url": "https://github.com/yaffalhakim1"
+  },
+  "homepage": "https://github.com/yaffalhakim1/codex-discord-bridge",
+  "repository": "https://github.com/yaffalhakim1/codex-discord-bridge",
+  "license": "MIT",
+  "keywords": [
+    "discord",
+    "bridge",
+    "remote-control",
+    "mobile",
+    "chatops",
+    "serenity"
+  ],
+  "interface": {
+    "displayName": "Codex Discord Bridge",
+    "composerIcon": "./assets/composer-icon.svg",
+    "shortDescription": "Control Codex CLI from Discord, from anywhere",
+    "longDescription": "Run Codex without sitting at your PC. This plugin documents and validates the codex-discord-bridge setup: a Discord bot (Rust, serenity) that speaks JSON-RPC over WebSocket to the Codex app-server on your machine. Messages in a Discord thread become Codex turns, agent output streams back live, approval requests appear as Discord buttons, and the Discord thread to Codex thread mapping survives disconnects via a bounded supervisor.",
+    "developerName": "Yafi Alhakim",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive"
+    ],
+    "websiteURL": "https://github.com/yaffalhakim1/codex-discord-bridge",
+    "defaultPrompt": [
+      "Help me set up the codex-discord-bridge bot for my Discord server"
+    ]
+  }
+}

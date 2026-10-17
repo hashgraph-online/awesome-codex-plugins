@@ -1,0 +1,17 @@
+{
+  "name": "aesthetics-and-emotion-principles",
+  "displayName": "Aesthetics & Emotion Principles",
+  "version": "1.0.0",
+  "description": "Framework-agnostic design principles for aesthetics, perceived quality, brand personality, and emotional response. Covers Aesthetic-Usability Effect, Archetypes, Form Follows Function, Wabi-Sabi, Exposure Effect, and Immersion.",
+  "author": {
+    "name": "Hunter D",
+    "email": "hunterd107@gmail.com"
+  },
+  "homepage": "https://github.com/HDeibler/universal-design-principles",
+  "repository": "https://github.com/HDeibler/universal-design-principles",
+  "license": "MIT",
+  "keywords": ["design", "ux", "aesthetics", "emotion", "brand", "archetypes", "wabi-sabi", "immersion"],
+  "category": "design",
+  "tags": ["aesthetics", "emotion", "brand", "archetypes", "flow", "wabi-sabi"],
+  "skills": "./skills/"
+}

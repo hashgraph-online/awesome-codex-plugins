@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title>AutoCAD Tianzheng Tools</title>
+  <rect width="512" height="512" rx="96" fill="#0f766e"/>
+  <path d="M128 384 256 96l128 288h-72l-24-58h-64l25-60h14l-7-17-56 135h-72Z" fill="#ffffff"/>
+  <path d="M330 144h54v54h-54zM330 229h54v54h-54z" fill="#99f6e4"/>
+</svg>

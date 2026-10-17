@@ -1,0 +1,48 @@
+{
+  "name": "spec-superflow",
+  "version": "2.0.1",
+  "description": "Lean spec workflow with direct or planned execution, evidence-based completion, and opt-in delegation or worktrees.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "ssf": "./scripts/spec-superflow.mjs",
+    "spec-superflow": "./scripts/spec-superflow.mjs"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "test": "node scripts/run-tests.mjs",
+    "test:raw-mode": "node --test tests/lib/raw-mode-smoke.test.mjs",
+    "validate": "node scripts/validate-artifacts",
+    "version": "node scripts/spec-superflow.mjs version $npm_new_version && node scripts/check-version-consistency.mjs && git add -A",
+    "check-versions": "node scripts/check-version-consistency.mjs",
+    "setup-hooks": "node scripts/install-git-hooks.mjs"
+  },
+  "keywords": [
+    "spec-driven-development",
+    "tdd",
+    "workflow",
+    "skills",
+    "contract-driven",
+    "claude-code",
+    "cursor",
+    "trae",
+    "codex",
+    "gemini-cli",
+    "copilot-cli",
+    "opencode",
+    "workbuddy"
+  ],
+  "author": "MageByte",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MageByte-Zero/spec-superflow"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
+  }
+}

@@ -1,0 +1,5 @@
+interface:
+  display_name: "Architecture"
+  short_description: "Review system architecture, simplify boundaries, or compare..."
+policy:
+  allow_implicit_invocation: false

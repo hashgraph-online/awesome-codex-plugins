@@ -1,0 +1,14 @@
+{
+  "about": "A walkthrough of an ordinary page: no game, a scroll, a hover, a click and some typing. \"url\" is any address; captions become captions.vtt for the video page.",
+  "url": "https://example.com/",
+  "device": "computer",
+  "tail": 2,
+  "steps": [
+    { "wait": 1200, "caption": "The page as a visitor sees it" },
+    { "scroll": 400 },
+    { "hover": "a", "caption": "Its one link" },
+    { "wait": 800 },
+    { "scroll": -400 },
+    { "wait": 800 }
+  ]
+}

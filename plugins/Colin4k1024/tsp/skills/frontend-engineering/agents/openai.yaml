@@ -1,0 +1,4 @@
+interface:
+  display_name: "Frontend Engineering"
+  short_description: "统一 React/Next 优先的前端工程规范"
+  default_prompt: "Use $frontend-engineering to define the component boundaries, state flow, accessibility baseline, and performance constraints for this frontend task."

@@ -1,0 +1,51 @@
+{
+  "name": "citadel",
+  "version": "1.0.0",
+  "description": "Codex-native agent orchestration harness for durable campaigns, skills, hooks, telemetry, and parallel work.",
+  "author": {
+    "name": "Citadel",
+    "url": "https://github.com/SethGammon/Citadel"
+  },
+  "repository": "https://github.com/SethGammon/Citadel",
+  "homepage": "https://sethgammon.github.io/Citadel/",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "openai",
+    "agent",
+    "harness",
+    "orchestration",
+    "skills",
+    "hooks",
+    "mcp",
+    "automation"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "hooks": "./hooks/hooks.json",
+  "interface": {
+    "displayName": "Citadel Harness",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg",
+    "websiteURL": "https://sethgammon.github.io/Citadel/",
+    "screenshots": ["./assets/citadel-overview.png"],
+    "shortDescription": "Codex-native orchestration: 46 skills, campaigns, fleet coordination, quality gates",
+    "longDescription": "Citadel adds durable planning state, reusable skills, lifecycle hooks, telemetry, PR triage, and coordinated multi-agent workflows to Codex.",
+    "developerName": "Citadel",
+    "category": "Developer Tools",
+    "capabilities": [
+      "orchestration",
+      "campaigns",
+      "parallel-agents",
+      "quality-gates",
+      "telemetry",
+      "intent-routing",
+      "mcp",
+      "codex-hooks"
+    ],
+    "defaultPrompt": [
+      "Use Citadel to route this task through the right skill and verification loop.",
+      "Use Citadel to continue the active campaign and report current state."
+    ]
+  }
+}

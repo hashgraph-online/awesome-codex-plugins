@@ -1,6 +1,6 @@
 ---
 name: document-review
-description: Optional utility for reviewing existing docs, external specs, hand-authored plans, or non-HOTL documents. HOTL design docs and workflow plans get structural lint + AI review; other documents get AI-only review with a generic rubric.
+description: Optional utility for reviewing existing docs, external specs, hand-authored notes, or non-HOTL documents. HOTL design docs and workflows get structural lint + AI review; other documents get AI-only review with a generic rubric.
 ---
 
 # HOTL Document Review
@@ -19,12 +19,15 @@ Before doing anything else, classify the input into one of four categories:
 
 | Category | Detection | Review Path |
 |---|---|---|
-| **HOTL markdown** | Filename matches `docs/plans/*-design.md` or `hotl-workflow-*.md` | Phase 1 (HOTL lint) → Phase 2 (HOTL AI review) |
-| **Generic text/markdown** | Any other `.md`, `.txt`, or pasted text | Skip Phase 1 → Phase 2 (generic AI review) |
+| **HOTL workflow** | Canonical `docs/plans/*-workflow.md` or legacy `hotl-workflow-*.md` | Phase 1 (HOTL lint, hard gate) → Phase 2 (HOTL AI review) |
+| **HOTL design doc (marked)** | A design-doc-shaped file (canonical `docs/designs/*.md` or legacy `*-design.md` / `*-plan.md`) whose YAML frontmatter declares `design_type:` (one of `feature \| phase \| initiative \| architecture \| contract \| reference`) OR `hotl_managed: true` | Phase 1 (HOTL lint) → Phase 2 (HOTL AI review) |
+| **Generic text/markdown** | Any other `.md`, `.txt`, or pasted text — including design-shaped files in `docs/designs/` that lack an HOTL marker | Skip Phase 1 → Phase 2 (generic AI review) |
 | **PDF** | `.pdf` extension | If the current runtime can read/extract the content, treat as generic text and review. Otherwise, ask the user for a text, markdown, or PDF-text export. |
 | **DOCX / PPTX / binary** | `.docx`, `.pptx`, or other binary formats | **STOP.** Ask the user for a markdown, plain text, or PDF export. Do not attempt conversion. |
 
-**Announce the classification:** e.g., "Classified as HOTL design doc — running lint + HOTL review." or "Classified as generic markdown — skipping lint, running generic review."
+**Phase 1.6 opt-in rule:** Path alone does NOT classify a file as HOTL. A design-shaped Markdown file in `docs/designs/` without an HOTL frontmatter marker (`design_type:` or `hotl_managed: true`) is treated as generic markdown — `document-lint.sh` will SKIP it cleanly, and this skill routes it through Phase 2's generic-rubric AI review. To opt a hand-authored design doc into HOTL strict review, add `design_type: <recognized-value>` or `hotl_managed: true` to its frontmatter.
+
+**Announce the classification:** e.g., "Classified as HOTL design doc (marked via design_type) — running lint + HOTL review." or "Classified as generic markdown — skipping lint, running generic review."
 
 ## Phase 1: Structural Lint (HOTL Documents Only)
 
@@ -47,19 +50,32 @@ Resolve `document-lint.sh` in this order:
 
 Do not assume `scripts/document-lint.sh` exists in the repo being reviewed. The lint script lives in the HOTL install, not in arbitrary user projects.
 
+#### Resolving `hotl-config.sh`
+
+`hotl-config.sh` (the canonical reader for `.hotl/config.yml`) follows the same six-location resolution order as `document-lint.sh`:
+
+1. If you are working in the `hotl-plugin` repo itself, use `scripts/hotl-config.sh`
+2. Codex native-skills install: `~/.codex/hotl/scripts/hotl-config.sh`
+3. Codex plugin install: `~/.codex/plugins/hotl-source/scripts/hotl-config.sh`
+4. Codex plugin cache fallback: `~/.codex/plugins/cache/codex-plugins/hotl/*/scripts/hotl-config.sh`
+5. Cline install fallback: `~/.cline/hotl/scripts/hotl-config.sh`
+6. Claude Code plugin fallback: `~/.claude/plugins/hotl/scripts/hotl-config.sh`
+
+Do not assume `scripts/hotl-config.sh` exists in the repo being reviewed. Callers that do not know their install location should invoke `scripts/hotl-config-resolve.sh` (a thin command proxy that locates `hotl-config.sh` and forwards argv).
+
 **If lint FAILS:** STOP. Show all errors. The author MUST fix structural issues before AI review runs. Do not proceed.
 
 **If lint PASSES:** Continue to Phase 2 (HOTL AI review).
 
 ### What Lint Checks
 
-**Design docs (*-design.md):**
+**Design docs (canonical `docs/designs/*.md`, plus legacy `*-design.md` / `*-plan.md` tactical docs):**
 - Intent Contract with intent, constraints, success_criteria, risk_level
 - Verification Contract with at least one verify step
 - Governance Contract with approval_gates and rollback
 - risk_level is low, medium, or high
 
-**Workflow files (hotl-workflow-*.md):**
+**Workflow files (canonical `docs/plans/*-workflow.md`, plus legacy `hotl-workflow-*.md`):**
 - YAML frontmatter with intent, success_criteria, risk_level
 - Every step has action and loop fields
 - Every looped step (loop: until) has verify and max_iterations

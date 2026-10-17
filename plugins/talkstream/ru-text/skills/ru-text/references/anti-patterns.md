@@ -3,7 +3,7 @@
 Catalog of common mistakes organized by severity. Format: wrong|correct.
 
 ## Contents
-- [Critical: Typography (16 entries)](#critical-typography-16-entries)
+- [Critical: Typography (15 entries)](#critical-typography-15-entries)
 - [Critical: Канцелярит и номинализация (32 entries)](#critical-канцелярит-и-номинализация-32-entries)
 - [High: Vague Adjectives (11 entries)](#high-vague-adjectives-11-entries)
 - [High: Passive Voice (10 entries)](#high-passive-voice-10-entries)
@@ -15,7 +15,7 @@ Catalog of common mistakes organized by severity. Format: wrong|correct.
 - [Low: Overly Formal (5 entries)](#low-overly-formal-5-entries)
 - [Summary](#summary)
 
-## Critical: Typography (16 entries)
+## Critical: Typography (15 entries)
 
 Full typography rules: see [typography.md](typography.md). Top 5 most frequent crimes:
 
@@ -24,47 +24,24 @@ Wrong|Correct
 Дефис вместо тире: "Москва - столица"|Москва -- столица (em-dash)
 Три точки "..."|Многоточие … (U+2026, single glyph)
 Знак номера: "No." или "#"|№ (знак номера)
-CAPS LOCK ДЛЯ ВЫДЕЛЕНИЯ|**Полужирный** или *курсив*
+ЭТО НУЖНО СДЕЛАТЬ СЕГОДНЯ, ИНАЧЕ РЕЛИЗ СОРВЁТСЯ|Обычный регистр; одно-два слова прописными не трогать — правило и его карв-ауты в AD-18
 
-Remaining 11: nested quotes, en-dash in ranges, double dashes, space before comma, no space after period, latin x vs multiplication sign, inconsistent ё, double spaces, tight % sign, (c) vs ©, minus vs em-dash in text. All covered in [typography.md](typography.md).
+Remaining 10: nested quotes (R4), en-dash in ranges (R21–R26), double dashes (R14), space before comma (R40), no space after period (R41), latin x vs multiplication sign (R82), (c) vs © (R87), minus vs em-dash in text (R28) — all in [typography.md](typography.md). ⚠ Two of the ten are NOT in `typography.md` and were claimed to be. **Double spaces** have no rule anywhere in the corpus — they stay as hygiene the Quality Checklist asks for. **Inconsistent ё** is governed, but by [ux-writing.md](ux-writing.md) § L.3–L.5, not here. ⚠ An earlier repair of this sentence said the corpus has no rule for either, and that was the same error one layer down.
 
 ## Critical: Канцелярит и номинализация (32 entries)
 
-Bureaucratic constructions and verb-hidden-inside-noun patterns. Named by K. Chukovsky, elaborated by N. Gal.
+Bureaucratic constructions and verb-hidden-inside-noun patterns. Anti-bureaucratic tradition: named by K. Chukovsky and N. Gal, operationalized for modern web/info-style by M. Ilyakhov.
+
+Top 5 most frequent:
 
 Wrong|Correct
 Осуществлять деятельность|Работать
-Произвести/производить оплату|Оплатить / Заплатить
-Выполнить/осуществлять доставку|Доставить / Доставлять
-Провести мероприятие|Организовать [конкретику]
-В целях недопущения|Чтобы не допустить
-Был осуществлён выход|Вышли
-Производить полив|Поливать
-Вопрос решается в рабочем порядке|Решим до [дата]
-Имеет место быть|Есть / Произошло
-Является обязательным условием|Обязательно
+Произвести оплату|Оплатить / Заплатить
 В настоящее время|Сейчас
-На постоянной основе|Постоянно / Регулярно
-В связи с тем, что|Потому что / Так как
-По причине того, что|Потому что
-С целью повышения|Чтобы повысить
-Надлежащим образом|Хорошо / Правильно / Как нужно
-Задействовать ресурсы|Использовать [что конкретно]
-Находился в состоянии усталости|Устал
-Нести ответственность|Отвечать (за)
-Дать соответствующее указание|Поручить / Попросить
-Осуществлять контроль|Контролировать
 Принимать участие|Участвовать
-Оказывать влияние|Влиять
-Давать оценку|Оценивать
-Вести наблюдение|Наблюдать
-Проводить исследование|Исследовать
-Производить ремонт|Ремонтировать / Чинить
-Вести подготовку|Готовить / Готовиться
-Совершать покупку|Покупать
-Делать выводы|Заключать / Считать
-Приносить извинения|Извиняться
-Оказывать помощь|Помогать
+Нести ответственность|Отвечать (за)
+
+Remaining 27 (split-predicate verb+noun → verb, plus officialese phrases): full dead→live catalog in [editorial-grammar.md](editorial-grammar.md) §H.2; the stop-word form of канцелярит is also in [info-style.md](info-style.md) §B.
 
 ## High: Vague Adjectives (11 entries)
 
@@ -86,6 +63,8 @@ Vague|Fix
 ## High: Passive Voice (10 entries)
 
 Passive hides the actor, making text evasive and bureaucratic.
+
+Carve-out -- the passive says how the product behaves, not what a person did. Not flagged where the verb is something the product, tool or service does by itself and the sentence carries nothing but that: «Предупреждение выводится один раз за сессию», «Токены перестанут приниматься первого сентября», «Поле `updated_at` меняется при каждой записи». Naming the actor there only repeats the thing the page is already about. The verb decides first, so no heading buys the exemption: deciding, checking, reviewing, approving, notifying and sending are done by people, and «информация подлежит рассмотрению в установленные сроки» stays a finding -- naming the регламент beside it names nobody. A passive carried inside a larger point is not a behaviour line -- more of the same behaviour alongside keeps the exemption, an instruction, an inference or a person's commitment in the same sentence breaks it: «сколько запросов обрабатывается», set inside a sentence about what the real question is, stays a finding. A message shown to the reader is the message, not documentation about one: «Ваш запрос не может быть обработан» withholds the cause and the next step -- «Не смогли обработать запрос: истёк срок токена». Nothing else changes, including the default that the passive is fine when the agent is unknown or irrelevant. No row of the table below is exempt -- not one names a machine.
 
 Passive|Active
 Было принято решение|Мы решили / Руководитель решил
@@ -141,40 +120,27 @@ False Intensifier|Fix
 
 Tautology: same meaning repeated (масло масляное). Pleonasm: redundant word already contained in neighbor (подняться вверх).
 
+Top 5 most frequent:
+
 Redundant|Fix
 Свободная вакансия|Вакансия
-Памятный сувенир|Сувенир
-Прейскурант цен|Прейскурант
-Народный фольклор|Фольклор
-Своя автобиография|Автобиография
-Впервые дебютировать|Дебютировать
-Подняться вверх|Подняться
-Спуститься вниз|Спуститься
-В январе месяце|В январе
-Совместное сотрудничество|Сотрудничество
 Главный приоритет|Приоритет
-Полностью завершить|Завершить
-Другая альтернатива|Альтернатива
-Внутренний интерьер|Интерьер
-Ответная реакция|Реакция
-Передовой авангард|Авангард
-Период времени|Период
-Полный аншлаг|Аншлаг
-Краткое резюме|Резюме (в значении "итог")
-Предупредить заранее|Предупредить
-Масло масляное|(remove one word)
+Подняться вверх / спуститься вниз|Подняться / спуститься
+Масло масляное|(убрать повтор)
 Спросить вопрос|Задать вопрос / Спросить
+
+Remaining 17 (период времени, передовой авангард, краткое резюме, совместное сотрудничество, другая альтернатива, ответная реакция, etc.): full catalog in [editorial-grammar.md](editorial-grammar.md) §E.1 (pleonasms) and §E.2 (cognate repeats).
 
 ## Low: Anglicisms (11 entries)
 
 Use Russian when it carries the same meaning. Some anglicisms have no precise equivalent -- those are fine.
 
-Anglicism|Russian|When anglicism OK
-Дедлайн|Срок / Крайний срок|IT context
+Anglicism|Russian|Replace when
+Дедлайн|Срок / Крайний срок|Non-IT context
 Фидбэк|Обратная связь / Отзыв|Non-IT audience
 Митинг|Встреча / Совещание|General business
 Апрувить|Утвердить / Согласовать|Any formal text
-Кейс|Случай / Пример / Ситуация|Legal/marketing term
+Кейс|Случай / Пример / Ситуация|Outside legal/marketing use
 Ворк-шоп|Мастерская / Практикум|General audience
 Тимлид|Руководитель группы|Formal HR documents
 Коллаборация|Сотрудничество|General text
@@ -208,7 +174,7 @@ Formal|Appropriate
 ## Summary
 
 Severity|Category|Entries
-Critical|Typography|16
+Critical|Typography|15
 Critical|Канцелярит и номинализация|32
 High|Vague adjectives|11
 High|Passive voice|10
@@ -218,4 +184,4 @@ Medium|Tautology/pleonasm|22
 Low|Anglicisms|11
 Low|Archaic|6
 Low|Overly formal|5
-**Total**||**139**
+**Total**||**138**

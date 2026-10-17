@@ -34,23 +34,8 @@ _VALUE_KEYS = {
     "henries": "inductor",
 }
 
-# Primary output metric per subcircuit type (used for sensitivity analysis)
-PRIMARY_METRIC = {
-    "rc_filter": "fc_hz",
-    "lc_filter": "resonant_hz",
-    "voltage_divider": "vout_V",
-    "opamp_circuit": "gain_dB",
-    "crystal_circuit": "load_capacitance_pF",
-    "feedback_network": "fb_voltage_V",
-    "current_sense": "i_at_100mV_A",
-    "regulator_feedback": "vfb_V",
-    "transistor_circuit": "vth_V",
-    "decoupling": "z_min_ohms",
-    "rf_matching": "z_min_ohms",
-    "bridge_circuit": "vth_low_side_V",
-    "bms_balance": "i_balance_mA",
-    "snubber_circuit": "z_min_ohms",
-}
+# Primary metric per detection type — from unified schema
+from detection_schema import get_primary_metric as _schema_get_primary_metric
 
 
 def resolve_tolerance(det_component: dict, component_type: str) -> float:
@@ -131,83 +116,30 @@ def _get_nested(d: dict, path: list):
     return obj
 
 
-def _recalc_derived(det: dict):
+def _recalc_derived(det: dict, det_type: str = None) -> None:
     """Recalculate derived fields after perturbing component values.
 
-    Updates cutoff_hz, ratio, resonant_hz, impedance_ohms, and
-    effective_load_pF so evaluators see consistent expected values.
+    When det_type is provided, uses schema-driven dispatch.
+    When None, falls back to trying all applicable schemas (backward compat).
     """
-    pi2 = 2.0 * math.pi
+    from detection_schema import recalc_derived as _schema_recalc, SCHEMAS
 
-    # RC filter: cutoff_hz = 1 / (2*pi*R*C)
-    if "resistor" in det and "capacitor" in det:
-        r = det["resistor"].get("ohms")
-        c = det["capacitor"].get("farads")
-        if r and c and r > 0 and c > 0:
-            det["cutoff_hz"] = round(1.0 / (pi2 * r * c), 2)
+    if det_type:
+        _schema_recalc(det, det_type)
+        return
 
-    # Voltage divider / feedback network: ratio = R_bot / (R_top + R_bot)
-    if "r_top" in det and "r_bottom" in det:
-        r_top = det["r_top"].get("ohms")
-        r_bot = det["r_bottom"].get("ohms")
-        if r_top and r_bot and (r_top + r_bot) > 0:
-            det["ratio"] = round(r_bot / (r_top + r_bot), 6)
-
-    # LC filter: resonant_hz = 1 / (2*pi*sqrt(L*C))
-    if "inductor" in det and "capacitor" in det:
-        l = det["inductor"].get("henries")
-        c = det["capacitor"].get("farads")
-        if l and c and l > 0 and c > 0:
-            f0 = 1.0 / (pi2 * math.sqrt(l * c))
-            det["resonant_hz"] = round(f0, 2)
-            det["impedance_ohms"] = round(math.sqrt(l / c), 2)
-
-    # Crystal load caps: effective_load_pF = (C1*C2)/(C1+C2) + stray
-    if "load_caps" in det and isinstance(det["load_caps"], list):
-        caps = det["load_caps"]
-        if len(caps) >= 2:
-            c1 = caps[0].get("farads", 0)
-            c2 = caps[1].get("farads", 0)
-            if c1 > 0 and c2 > 0:
-                c_series = (c1 * c2) / (c1 + c2)
-                stray_pf = det.get("stray_capacitance_pF", 3.0)
-                det["effective_load_pF"] = round(c_series * 1e12 + stray_pf, 2)
-
-    # Feedback divider inside regulator detection
-    if "feedback_divider" in det and isinstance(det["feedback_divider"], dict):
-        fd = det["feedback_divider"]
-        if "r_top" in fd and "r_bottom" in fd:
-            r_top = fd["r_top"].get("ohms")
-            r_bot = fd["r_bottom"].get("ohms")
-            if r_top and r_bot and (r_top + r_bot) > 0:
-                fd["ratio"] = round(r_bot / (r_top + r_bot), 6)
-
-    # Opamp gain recalculation
-    if "feedback_resistor" in det and "input_resistor" in det:
-        rf = det["feedback_resistor"].get("ohms")
-        ri = det["input_resistor"].get("ohms")
-        if rf and ri and ri > 0:
-            config = det.get("configuration", "")
-            if "inverting" in config:
-                det["gain"] = round(-rf / ri, 4)
-            elif "non-inverting" in config or "non_inverting" in config:
-                det["gain"] = round(1.0 + rf / ri, 4)
-            else:
-                det["gain"] = round(rf / ri, 4)
-            gain = det["gain"]
-            if gain != 0:
-                det["gain_dB"] = round(20.0 * math.log10(abs(gain)), 2)
-
-    # Current sense: max current at sense voltages
-    if "shunt" in det and isinstance(det["shunt"], dict):
-        r = det["shunt"].get("ohms")
-        if r and r > 0:
-            det["max_current_50mV_A"] = round(0.050 / r, 4)
-            det["max_current_100mV_A"] = round(0.100 / r, 4)
+    # Fallback: run all recalc functions (safe — each checks structural keys)
+    seen = set()
+    for _dt, schema in SCHEMAS.items():
+        for df in schema.derived:
+            fn_id = id(df.recalc)
+            if fn_id not in seen:
+                df.recalc(det)
+                seen.add(fn_id)
 
 
 def sample_detection(det: dict, components: list, rng: random.Random,
-                     distribution: str = "gaussian") -> dict:
+                     distribution: str = "gaussian", det_type: str = None) -> dict:
     """Create a deep copy of det with randomized component values.
 
     Args:
@@ -231,7 +163,7 @@ def sample_detection(det: dict, components: list, rng: random.Random,
         new_val = max(nominal * factor, nominal * 1e-6)
         _set_nested(sampled, key_path, new_val)
 
-    _recalc_derived(sampled)
+    _recalc_derived(sampled, det_type=det_type)
     return sampled
 
 
@@ -253,7 +185,8 @@ def _pearson_r(xs: list, ys: list) -> float:
 def aggregate_mc_results(nominal_result: dict, mc_results: list,
                          components: list, sampled_values: list,
                          subcircuit_type: str, n_requested: int,
-                         distribution: str, seed: int) -> dict:
+                         distribution: str, seed: int,
+                         det_type: str = None) -> dict:
     """Compute statistical summary from N Monte Carlo simulation results.
 
     Args:
@@ -265,6 +198,7 @@ def aggregate_mc_results(nominal_result: dict, mc_results: list,
         n_requested: Number of MC trials requested
         distribution: "gaussian" or "uniform"
         seed: Random seed used
+        det_type: Plural detection type key (e.g., "rc_filters") for schema lookup
 
     Returns:
         Dict with n_samples, components, statistics, sensitivity
@@ -304,7 +238,7 @@ def aggregate_mc_results(nominal_result: dict, mc_results: list,
 
     # Collect all simulated metric values across MC runs
     # Try the primary metric first, then fall back to all metrics
-    primary = PRIMARY_METRIC.get(subcircuit_type)
+    primary = _schema_get_primary_metric(det_type) if det_type else _schema_get_primary_metric(subcircuit_type)
     nominal_sim = nominal_result.get("simulated", {})
     metrics_to_analyze = []
 

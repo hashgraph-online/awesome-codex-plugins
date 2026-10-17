@@ -1,0 +1,15 @@
+[project]
+name = "bub-hol-guard"
+version = "0.1.0"
+description = "HOL Guard policy gate for Bub tool calls"
+readme = "README.md"
+requires-python = ">=3.12,<4.0"
+license = { text = "Apache-2.0" }
+dependencies = ["bub"]
+
+[project.entry-points.bub]
+hol-guard = "bub_hol_guard.plugin"
+
+[build-system]
+requires = ["uv_build>=0.9.7,<0.10.0"]
+build-backend = "uv_build"

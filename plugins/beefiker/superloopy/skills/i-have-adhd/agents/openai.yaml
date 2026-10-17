@@ -1,0 +1,7 @@
+interface:
+  display_name: "I Have ADHD"
+  short_description: "Action-first output for ADHD-friendly reading"
+  default_prompt: "Use $superloopy:i-have-adhd to make this response action-first and easy to execute."
+
+policy:
+  allow_implicit_invocation: false

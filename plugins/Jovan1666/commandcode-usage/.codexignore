@@ -1,0 +1,10 @@
+# 让 Codex 在这个目录里干活时少读两份没用的东西。
+#
+# scripts/cc-usage.mjs 是 core/cc-usage.mjs 的同步产物（scripts/sync-core.mjs
+# 生成，逐字节相同，只有顶部多两行横幅）。要看实现就看 core 里那份，改也只改
+# 那一份——这里这份改了会在 CI 的同步检查里被打回。
+scripts/cc-usage.mjs
+
+# 依赖产物，不是源码。
+node_modules/
+.devdeps/

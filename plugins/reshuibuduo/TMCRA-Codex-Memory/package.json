@@ -1,0 +1,20 @@
+{
+  "name": "tmcra-local-memory",
+  "version": "0.1.1",
+  "private": true,
+  "description": "Owner-local TMCRA lifecycle hooks for Codex",
+  "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "verify": "node --check hooks/run_hook.mjs && node --check lib/local_memory.mjs && node --check scripts/configure.mjs && npm test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/reshuibuduo/TMCRA-Codex-Memory.git"
+  },
+  "author": "Yu Haoxin",
+  "license": "Apache-2.0"
+}

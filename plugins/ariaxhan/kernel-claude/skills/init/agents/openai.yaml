@@ -1,0 +1,6 @@
+interface:
+  display_name: "KERNEL Init"
+  short_description: "Set up KERNEL after explicit confirmation"
+  default_prompt: "Run KERNEL init for this machine."
+policy:
+  allow_implicit_invocation: false

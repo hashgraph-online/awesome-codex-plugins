@@ -1,0 +1,6 @@
+{
+  "name": "mobazha",
+  "version": "0.1.1",
+  "type": "module",
+  "main": ".opencode/plugins/mobazha.js"
+}

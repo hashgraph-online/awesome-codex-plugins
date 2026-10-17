@@ -1,0 +1,12 @@
+{
+  "name": "rekall",
+  "interface": {"displayName": "Rekall"},
+  "plugins": [
+    {
+      "name": "rekall",
+      "source": {"source": "local", "path": "./"},
+      "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
+      "category": "Developer Tools"
+    }
+  ]
+}

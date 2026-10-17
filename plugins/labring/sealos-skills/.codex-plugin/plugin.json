@@ -1,0 +1,46 @@
+{
+  "name": "sealos",
+  "version": "2.0.0",
+  "description": "Deploy and operate Sealos Cloud apps through one interactive skill and a Brain managed workflow.",
+  "author": {
+    "name": "Sealos",
+    "url": "https://sealos.io/"
+  },
+  "homepage": "https://github.com/labring/sealos-skills",
+  "repository": "https://github.com/labring/sealos-skills",
+  "license": "MIT",
+  "keywords": [
+    "sealos",
+    "deployment",
+    "kubernetes",
+    "codex",
+    "skills",
+    "database",
+    "object-storage"
+  ],
+  "skills": "./plugins/sealos/skills/",
+  "interface": {
+    "displayName": "Sealos",
+    "shortDescription": "Deploy and operate apps on Sealos Cloud",
+    "longDescription": "Use Sealos to deploy from the template store, container images, or source code; provision cloud databases and S3-compatible storage; inspect and troubleshoot workloads. Brain managed mode uses its dedicated deploy and Kaniko skills.",
+    "developerName": "Sealos",
+    "category": "Coding",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://sealos.io/",
+    "privacyPolicyURL": "https://sealos.io/docs/msa/privacy-policy/",
+    "termsOfServiceURL": "https://sealos.io/docs/msa/terms-of-service/",
+    "defaultPrompt": [
+      "Deploy this repo to Sealos Cloud.",
+      "Deploy an app from the Sealos template store.",
+      "Create a Sealos database or private object storage bucket."
+    ],
+    "brandColor": "#15B8A6",
+    "composerIcon": "./plugins/sealos/assets/logo.svg",
+    "logo": "./plugins/sealos/assets/logo.svg",
+    "screenshots": []
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "name": "@talivia/agent",
+  "version": "0.1.0",
+  "description": "Revenue-first web analytics installed and verified by AI agents through MCP",
+  "type": "module",
+  "main": "src/index.js",
+  "mcpName": "io.github.talivia-group/agent",
+  "homepage": "https://talivia.com/ai-agent-kit",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/talivia-group/agent.git"
+  },
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "bin": {
+    "talivia": "src/cli.js"
+  },
+  "files": [
+    ".codex-plugin",
+    "assets",
+    "glama.json",
+    "LICENSE",
+    "README.md",
+    "server.json",
+    "SKILL.md",
+    "src"
+  ],
+  "scripts": {
+    "check": "node --check src/config.js && node --check src/setup.js && node --check src/client.js && node --check src/index.js && node --check src/cli.js && node --check src/mcp.js",
+    "test": "node --test test/*.test.js"
+  },
+  "keywords": [
+    "talivia",
+    "revenue-analytics",
+    "web-analytics",
+    "website-analytics",
+    "web-analytics-for-founders",
+    "open-source-analytics",
+    "self-hosted-analytics",
+    "saas-analytics",
+    "revenue-attribution",
+    "marketing-attribution",
+    "stripe-revenue-attribution",
+    "visitor-journey-analytics",
+    "ai-agent-analytics",
+    "website-analytics-mcp",
+    "mcp-analytics-server",
+    "ai-agent",
+    "ai-agent-tools",
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "codex",
+    "claude-code",
+    "chatgpt-connector",
+    "analytics-automation",
+    "openclaw"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "author": "Talivia",
+  "bugs": {
+    "url": "https://github.com/talivia-group/agent/issues"
+  },
+  "directories": {
+    "test": "test"
+  }
+}

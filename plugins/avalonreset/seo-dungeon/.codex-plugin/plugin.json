@@ -1,0 +1,61 @@
+{
+  "name": "legends-seo-dungeon",
+  "version": "2.2.5",
+  "description": "Legends SEO Dungeon is a Codex-first SEO game and portable skill suite with a structured local CLI bridge. 25 sub-skills (21 core + 1 orchestrator + 1 framework integration + 2 extension mirrors), 18 sub-agents, and 23 Codex profiles backed by the v2.2.5 SEO engine.",
+  "author": {
+    "name": "Avalon Reset",
+    "email": "avalonreset@users.noreply.github.com",
+    "url": "https://github.com/avalonreset"
+  },
+  "homepage": "https://seodungeon.com",
+  "repository": "https://github.com/avalonreset/legends-seo-dungeon",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "codex-cli",
+    "codex-skills",
+    "seo",
+    "ai-seo",
+    "technical-seo",
+    "content-quality",
+    "schema-markup",
+    "core-web-vitals",
+    "local-seo",
+    "generative-engine-optimization",
+    "ai-search",
+    "sitemap",
+    "image-optimization",
+    "google-search-console",
+    "dataforseo",
+    "mcp",
+    "pagespeed",
+    "crux",
+    "backlinks",
+    "semantic-clustering",
+    "sxo",
+    "drift-monitoring",
+    "ecommerce-seo",
+    "automation",
+    "marketing-automation"
+  ],
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json",
+  "interface": {
+    "displayName": "Legends SEO Dungeon",
+    "shortDescription": "Run Legends SEO Dungeon audits and SEO workflows in Codex.",
+    "longDescription": "Legends SEO Dungeon is an open-source Codex-first gamified SEO analysis suite with portable skill prompts, shared cache artifacts, optional SEO data integrations, and a dungeon crawler UI.",
+    "developerName": "Avalon Reset",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://seodungeon.com",
+    "defaultPrompt": [
+      "Audit this website for SEO issues.",
+      "Check schema and Core Web Vitals for this URL.",
+      "Build an SEO action plan for this business."
+    ],
+    "brandColor": "#D4AF37"
+  }
+}

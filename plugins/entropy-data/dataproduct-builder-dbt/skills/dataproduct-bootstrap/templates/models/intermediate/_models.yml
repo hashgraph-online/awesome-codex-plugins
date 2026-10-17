@@ -1,0 +1,6 @@
+version: 2
+
+# Reusable joined/shaped views. Prefix with int_.
+# models:
+#   - name: int_customer_activity
+#     description: Joined customer + activity grain.

@@ -230,7 +230,7 @@ In multi-agent setups, speculative-pipeline applies at the pipeline level, not t
 Pipeline Level (speculative-pipeline timing):
   Stage 1 (Specs)     → Single agent or agent team
   Stage 2 (Plans)     → Single agent or agent team (starts after delay)
-  Stage 3 (Implement) → Agent team dispatched with `isolation: "worktree"` via Agent tool (starts after delay)
+  Stage 3 (Implement) → Agent team dispatched via Agent tool (starts after delay)
 ```
 
 Each stage can internally use agent teams (multiple teammates working in parallel on different
@@ -263,6 +263,6 @@ When setting up a speculative-pipeline pipeline:
 
 - **prompt-pipeline** -- How to design the prompt files that each stage executes
 - **convergence-monitoring** -- How to detect convergence vs ceiling in each stage
-- **methodology** -- Where speculative-pipeline fits in the DABI lifecycle
+- **methodology** -- Where speculative-pipeline fits in the Hunt lifecycle
 - **validation-first** -- Validation gates that run after each stage completes
 - **context-architecture** -- Directory structure that stages read from and write to

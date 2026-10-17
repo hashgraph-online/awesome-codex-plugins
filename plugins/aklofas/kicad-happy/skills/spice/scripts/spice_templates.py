@@ -148,7 +148,7 @@ def generate_rc_filter(det, output_file, context=None, parasitics=None):
     """Generate testbench for an RC filter detection.
 
     Args:
-        det: Dict from signal_analysis.rc_filters[] with keys:
+        det: Finding dict from findings[] — detector:rc_filters[] with keys:
              resistor{ref,ohms}, capacitor{ref,farads}, type,
              cutoff_hz, input_net, output_net, ground_net
         output_file: Path for ASCII results file
@@ -239,7 +239,7 @@ def generate_lc_filter(det, output_file, context=None, parasitics=None):
     """Generate testbench for an LC filter detection.
 
     Args:
-        det: Dict from signal_analysis.lc_filters[] with keys:
+        det: Finding dict from findings[] — detector:lc_filters[] with keys:
              inductor{ref,henries}, capacitor{ref,farads},
              resonant_hz, impedance_ohms, shared_net
         output_file: Path for ASCII results file
@@ -297,7 +297,7 @@ def generate_voltage_divider(det, output_file, vin=3.3, context=None, parasitics
     """Generate testbench for a voltage divider detection.
 
     Args:
-        det: Dict from signal_analysis.voltage_dividers[] with keys:
+        det: Finding dict from findings[] — detector:voltage_dividers[] with keys:
              r_top{ref,ohms}, r_bottom{ref,ohms}, top_net, mid_net,
              bottom_net, ratio
         output_file: Path for ASCII results file
@@ -356,7 +356,7 @@ def generate_opamp_circuit(det, output_file, context=None, parasitics=None):
     """Generate testbench for an opamp circuit detection.
 
     Args:
-        det: Dict from signal_analysis.opamp_circuits[] with keys:
+        det: Finding dict from findings[] — detector:opamp_circuits[] with keys:
              reference, value, configuration, output_net,
              inverting_input_net, non_inverting_input_net,
              gain, gain_dB, feedback_resistor{ref,ohms},
@@ -597,7 +597,7 @@ def generate_crystal_circuit(det, output_file, context=None, parasitics=None):
     Colpitts/Pierce analysis.
 
     Args:
-        det: Dict from signal_analysis.crystal_circuits[] with keys:
+        det: Finding dict from findings[] — detector:crystal_circuits[] with keys:
              reference, value, frequency, type, load_caps[{ref,farads,net}],
              effective_load_pF
         output_file: Path for ASCII results file
@@ -785,7 +785,7 @@ def generate_feedback_network(det, output_file, vin=3.3, context=None, parasitic
     set a regulator's output voltage, so errors here are critical.
 
     Args:
-        det: Dict from signal_analysis.feedback_networks[] — same structure
+        det: Finding dict from findings[] — detector:feedback_networks[] — same structure
              as voltage_dividers with additional is_feedback flag
         output_file: Path for ASCII results file
 
@@ -841,7 +841,7 @@ def generate_transistor_circuit(det, output_file, context=None, parasitics=None)
     expected operating region (on/off for switches, active for amplifiers).
 
     Args:
-        det: Dict from signal_analysis.transistor_circuits[] with keys
+        det: Finding dict from findings[] — detector:transistor_circuits[] with keys
              varying by type (mosfet/bjt). See signal_detectors.py.
         output_file: Path for ASCII results file
 
@@ -1067,7 +1067,7 @@ def generate_current_sense(det, output_file, context=None, parasitics=None):
     confirming the voltage drop at specified current levels.
 
     Args:
-        det: Dict from signal_analysis.current_sense[] with keys:
+        det: Finding dict from findings[] — detector:current_sense[] with keys:
              shunt{ref,ohms}, sense_ic{ref,value,type}, high_net,
              low_net, max_current_50mV_A, max_current_100mV_A
         output_file: Path for ASCII results file
@@ -1126,7 +1126,7 @@ def generate_protection_device(det, output_file, context=None, parasitics=None):
     manufacturer-specific models.
 
     Args:
-        det: Dict from signal_analysis.protection_devices[] with keys:
+        det: Finding dict from findings[] — detector:protection_devices[] with keys:
              ref, value, type, protected_net, clamp_net
         output_file: Path for ASCII results file
 
@@ -1179,7 +1179,7 @@ def generate_decoupling(det, output_file, context=None, parasitics=None):
     to capture self-resonant frequency behavior.
 
     Args:
-        det: Dict from signal_analysis.decoupling_analysis[] with keys:
+        det: Finding dict from findings[] — detector:decoupling_analysis[] with keys:
              rail, capacitors[{ref,farads,self_resonant_hz}], cap_count
         output_file: Path for ASCII results file
 
@@ -1271,7 +1271,7 @@ def generate_regulator_feedback(det, output_file, context=None, parasitics=None)
     FB pin, confirming the regulator's output voltage setpoint.
 
     Args:
-        det: Dict from signal_analysis.power_regulators[] with keys:
+        det: Finding dict from findings[] — detector:power_regulators[] with keys:
              feedback_divider{r_top{ref,ohms}, r_bottom{ref,ohms}, ratio},
              assumed_vref, estimated_vout, output_rail
         output_file: Path for ASCII results file
@@ -1342,7 +1342,7 @@ def generate_rf_matching(det, output_file, context=None, parasitics=None):
     frequency and minimum impedance point. No target frequency required.
 
     Args:
-        det: Dict from signal_analysis.rf_matching[] with keys:
+        det: Finding dict from findings[] — detector:rf_matching[] with keys:
              topology, components[{ref,type,farads,henries,ohms}]
         output_file: Path for ASCII results file
 
@@ -1478,7 +1478,7 @@ def generate_bridge_circuit(det, output_file, context=None, parasitics=None):
     drain current.
 
     Args:
-        det: Dict from signal_analysis.bridge_circuits[] with keys:
+        det: Finding dict from findings[] — detector:bridge_circuits[] with keys:
              topology, half_bridges[{high_side, low_side, power_net,
              ground_net, high_side_type, low_side_type}]
         output_file: Path for ASCII results file
@@ -1555,7 +1555,7 @@ def generate_bms_balance(det, output_file, context=None, parasitics=None):
     to verify current and power dissipation are within component ratings.
 
     Args:
-        det: Dict from signal_analysis.bms_systems[] with keys:
+        det: Finding dict from findings[] — detector:bms_systems[] with keys:
              bms_reference, cell_count, balance_resistors[{reference,ohms}]
         output_file: Path for ASCII results file
 
@@ -1671,7 +1671,7 @@ def generate_rf_chain(det, output_file, context=None, parasitics=None):
     heuristic per-stage gain/loss values.
 
     Args:
-        det: Dict from signal_analysis.rf_chains[] with keys:
+        det: Finding dict from findings[] — detector:rf_chains[] with keys:
              operating_frequency_hz, gain_budget_dB, stage_gains,
              component_roles, transceivers, total_rf_components
         output_file: Path for ASCII results file
@@ -1729,12 +1729,12 @@ TEMPLATE_REGISTRY = {
 }
 
 
-# Top-level types (not under signal_analysis)
+# Top-level types (not under findings[])
 TOPLEVEL_REGISTRY = {
     "inrush_analysis": ("rails", generate_inrush),
 }
 
 
 def list_supported_types():
-    """Return list of all keys that can be simulated (signal_analysis + top-level)."""
+    """Return list of all keys that can be simulated (findings + top-level)."""
     return list(TEMPLATE_REGISTRY.keys()) + list(TOPLEVEL_REGISTRY.keys())

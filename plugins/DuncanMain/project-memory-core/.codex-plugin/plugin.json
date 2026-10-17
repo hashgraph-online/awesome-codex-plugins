@@ -1,0 +1,41 @@
+{
+  "name": "project-memory-core",
+  "version": "1.1.0",
+  "description": "Give Codex lasting project context in an Obsidian vault you control.",
+  "author": {
+    "name": "Duncan Main",
+    "url": "https://github.com/DuncanMain"
+  },
+  "license": "MIT",
+  "homepage": "https://duncanmain.github.io/project-memory-core/",
+  "repository": "https://github.com/DuncanMain/project-memory-core",
+  "keywords": [
+    "project-memory",
+    "obsidian",
+    "knowledge-management",
+    "documentation"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "PMC",
+    "shortDescription": "Give Codex lasting context",
+    "longDescription": "Stop explaining the same project to Codex in every task. PMC creates a clear home for your project in Obsidian, captures approved decisions and discoveries, prepares handoffs, recalls relevant context, and checks whether your notes have gone stale. Setup is conversational, every durable write stays under your control, and your knowledge remains private local Markdown—with no account, telemetry, raw transcript capture, or developer server.",
+    "developerName": "Duncan Main",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "brandColor": "#5966D9",
+    "websiteURL": "https://duncanmain.github.io/project-memory-core/",
+    "privacyPolicyURL": "https://duncanmain.github.io/project-memory-core/privacy.html",
+    "termsOfServiceURL": "https://duncanmain.github.io/project-memory-core/terms.html",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/logo.svg",
+    "defaultPrompt": [
+      "Set up lasting memory for this project in my Obsidian vault.",
+      "Remember the decisions from this task.",
+      "Check whether this project's Obsidian notes are out of date."
+    ]
+  }
+}

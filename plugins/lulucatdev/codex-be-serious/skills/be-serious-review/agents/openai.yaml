@@ -1,0 +1,6 @@
+interface:
+  display_name: Be Serious Review
+  short_description: Review prose against the scholarly register.
+  default_prompt: Review this text with be-serious.
+policy:
+  allow_implicit_invocation: true

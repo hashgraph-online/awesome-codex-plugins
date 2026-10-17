@@ -9,11 +9,16 @@ signal_detectors.py which handles core passive/active circuit analysis
 Each detector takes an AnalysisContext (ctx) and returns its detection results.
 """
 
+from __future__ import annotations
+
 import re
+from collections import Counter
 
 from kicad_types import AnalysisContext
 from kicad_utils import lookup_regulator_vref, parse_value, parse_voltage_from_net_name
 from signal_detectors import _get_net_components
+from detector_helpers import get_components_by_type, index_two_pin_components, match_ic_keywords, get_unique_ics
+from finding_schema import make_finding, make_provenance
 
 
 def detect_buzzer_speakers(ctx: AnalysisContext, transistor_circuits: list[dict]) -> list[dict]:
@@ -69,6 +74,19 @@ def detect_buzzer_speakers(ctx: AnalysisContext, transistor_circuits: list[dict]
             "type": comp["type"],
             "signal_net": signal_net,
             "has_transistor_driver": has_transistor_driver,
+            "detector": "detect_buzzer_speakers",
+            "rule_id": "BZ-DET",
+            "category": "audio",
+            "severity": "info",
+            "confidence": "deterministic",
+            "evidence_source": "topology",
+            "summary": f"{comp['type']} {ref} ({comp.get('value', '')}) on {signal_net}",
+            "description": f"Detected {comp['type']} {ref} driven via {signal_net}.",
+            "components": [ref],
+            "nets": [signal_net] if signal_net else [],
+            "pins": [],
+            "recommendation": "",
+            "report_context": {"section": "Audio", "impact": "", "standard_ref": ""},
         }
         if driver_ic_ref:
             entry["driver_ic"] = driver_ic_ref
@@ -79,6 +97,7 @@ def detect_buzzer_speakers(ctx: AnalysisContext, transistor_circuits: list[dict]
             }
         if not has_transistor_driver and driver_ic_ref:
             entry["direct_gpio_drive"] = True
+        entry["provenance"] = make_provenance("buzzer_topology", "deterministic", claimed_components=[ref])
         buzzer_speaker_circuits.append(entry)
     return buzzer_speaker_circuits
 
@@ -130,6 +149,20 @@ def detect_key_matrices(ctx: AnalysisContext) -> list[dict]:
                 "switches_on_matrix": switch_count,
                 "diodes_on_matrix": diode_count,
                 "detection_method": "net_name",
+                "detector": "detect_key_matrices",
+                "rule_id": "KM-DET",
+                "category": "human_interface",
+                "severity": "info",
+                "confidence": "deterministic",
+                "evidence_source": "topology",
+                "summary": f"Key matrix {len(row_nets)}x{len(col_nets)} ({estimated_keys} keys)",
+                "description": f"Detected {len(row_nets)}x{len(col_nets)} key matrix with {estimated_keys} estimated keys.",
+                "components": [],
+                "nets": list(row_nets.values()) + list(col_nets.values()),
+                "pins": [],
+                "recommendation": "",
+                "report_context": {"section": "Human Interface", "impact": "", "standard_ref": ""},
+                "provenance": make_provenance("keymatrix_diode_grid", "deterministic"),
             })
 
     # Topology-based detection: find switch-diode pairs and group by shared nets
@@ -188,7 +221,6 @@ def detect_key_matrices(ctx: AnalysisContext) -> list[dict]:
                 # KH-197c: Resolve ambiguous nets that appear in both sets
                 ambiguous = topo_row_nets & topo_col_nets
                 if ambiguous:
-                    from collections import Counter
                     row_votes = Counter(p["row_net"] for p in switch_diode_pairs)
                     col_votes = Counter(p["col_net"] for p in switch_diode_pairs)
                     for net in ambiguous:
@@ -210,6 +242,20 @@ def detect_key_matrices(ctx: AnalysisContext) -> list[dict]:
                         "switches_on_matrix": len(switch_diode_pairs),
                         "diodes_on_matrix": len(switch_diode_pairs),
                         "detection_method": "topology",
+                        "detector": "detect_key_matrices",
+                        "rule_id": "KM-DET",
+                        "category": "human_interface",
+                        "severity": "info",
+                        "confidence": "deterministic",
+                        "evidence_source": "topology",
+                        "summary": f"Key matrix {len(topo_row_nets)}x{len(topo_col_nets)} ({len(switch_diode_pairs)} keys, topology)",
+                        "description": f"Detected {len(topo_row_nets)}x{len(topo_col_nets)} key matrix via topology analysis.",
+                        "components": [],
+                        "nets": sorted(topo_row_nets) + sorted(topo_col_nets),
+                        "pins": [],
+                        "recommendation": "",
+                        "report_context": {"section": "Human Interface", "impact": "", "standard_ref": ""},
+                        "provenance": make_provenance("keymatrix_diode_grid", "deterministic"),
                     })
 
     return key_matrices
@@ -281,20 +327,36 @@ def detect_isolation_barriers(ctx: AnalysisContext) -> list[dict]:
                     iso_pins = ctx.ref_pins.get(iso_ref, {})
                     if len(iso_pins) < 4:
                         continue
-                    # Split pins into two halves (primary/secondary)
+                    # Split pins into primary/secondary halves.
+                    # Prefer VDD/GND pin names to identify sides (works for
+                    # asymmetric parts like ADuM1201).  Fall back to
+                    # pin-number bisection for parts without named power pins.
                     pin_nums = sorted(iso_pins.keys(),
                                       key=lambda x: int(x) if x.isdigit() else 0)
-                    mid = len(pin_nums) // 2
-                    primary_pins = pin_nums[:mid]
-                    secondary_pins = pin_nums[mid:]
+                    # Try name-based side detection: VDD1/GND1 = side A, VDD2/GND2 = side B
+                    side_a_pins: list[str] = []
+                    side_b_pins: list[str] = []
+                    comp_obj = ctx.comp_lookup.get(iso_ref, {})
+                    for pin in comp_obj.get("pins", []):
+                        pname = pin.get("name", "").upper()
+                        pnum = pin.get("number", "")
+                        if any(pname.endswith(s) for s in ("1", "A", "_A", "_IN")):
+                            side_a_pins.append(pnum)
+                        elif any(pname.endswith(s) for s in ("2", "B", "_B", "_OUT")):
+                            side_b_pins.append(pnum)
+                    # Fall back to pin-number bisection if name detection didn't split
+                    if not side_a_pins or not side_b_pins:
+                        mid = len(pin_nums) // 2
+                        side_a_pins = pin_nums[:mid]
+                        side_b_pins = pin_nums[mid:]
                     # Collect ground nets reachable from each side (1 hop)
                     primary_grounds: set[str] = set()
                     secondary_grounds: set[str] = set()
-                    for pnum in primary_pins:
+                    for pnum in side_a_pins:
                         net, _ = iso_pins.get(pnum, (None, None))
                         if net and ctx.is_ground(net):
                             primary_grounds.add(net)
-                    for pnum in secondary_pins:
+                    for pnum in side_b_pins:
                         net, _ = iso_pins.get(pnum, (None, None))
                         if net and ctx.is_ground(net):
                             secondary_grounds.add(net)
@@ -305,6 +367,7 @@ def detect_isolation_barriers(ctx: AnalysisContext) -> list[dict]:
                             "shared_ground_nets": sorted(shared),
                         })
 
+                iso_refs = [c["reference"] for c in isolation_components]
                 entry = {
                     "ground_domains": {d: gnets for d, gnets in ground_domains.items()},
                     "isolation_components": isolation_components,
@@ -313,9 +376,26 @@ def detect_isolation_barriers(ctx: AnalysisContext) -> list[dict]:
                         "Isolation barrier detected — verify creepage/clearance "
                         "on PCB layout (IEC 60664-1)"
                     ),
+                    "detector": "detect_isolation_barriers",
+                    "rule_id": "IB-DET",
+                    "category": "isolation",
+                    "severity": "info",
+                    "confidence": "deterministic",
+                    "evidence_source": "topology",
+                    "summary": f"Isolation barrier: {len(ground_domains)} ground domains, {len(isolation_components)} isolation component(s)",
+                    "description": f"Detected galvanic isolation with {len(ground_domains)} ground domains.",
+                    "components": iso_refs,
+                    "nets": isolated_power_rails,
+                    "pins": [],
+                    "recommendation": "",
+                    "report_context": {"section": "Isolation", "impact": "", "standard_ref": ""},
                 }
                 if shared_ground_warnings:
                     entry["shared_ground_warnings"] = shared_ground_warnings
+                _iso_evidence = "isolation_optocoupler" if any(
+                    ic.get("type") == "optocoupler" for ic in isolation_components
+                ) else "isolation_digital"
+                entry["provenance"] = make_provenance(_iso_evidence, "deterministic", claimed_components=iso_refs)
                 isolation_barriers.append(entry)
     return isolation_barriers
 
@@ -402,7 +482,7 @@ def detect_ethernet_interfaces(ctx: AnalysisContext) -> list[dict]:
             visited_refs = {phy["reference"]}
             found_magnetics = []
             found_connectors = []
-            frontier = list(phy_diff_nets)
+            frontier = sorted(phy_diff_nets)
 
             for _ in range(4):  # max 4 hops
                 if not frontier:
@@ -450,6 +530,81 @@ def detect_ethernet_interfaces(ctx: AnalysisContext) -> list[dict]:
             if not found_connectors:
                 found_connectors = eth_connectors
 
+            # Bob Smith termination: ~75Ω from transformer center tap via cap to chassis GND
+            # Reduces common-mode noise on Ethernet cable for EMC compliance
+            bob_smith = None
+            for mag in found_magnetics:
+                if bob_smith:
+                    break
+                mag_ref = mag["reference"]
+                # Check all nets this transformer connects to
+                for (ref, pnum), (net_name, _) in ctx.pin_net.items():
+                    if ref != mag_ref or not net_name:
+                        continue
+                    if ctx.is_power_net(net_name) or ctx.is_ground(net_name):
+                        continue
+                    if net_name not in ctx.nets:
+                        continue
+                    # Look for a ~75Ω resistor on this net
+                    for p in ctx.nets[net_name]["pins"]:
+                        rc = ctx.comp_lookup.get(p["component"])
+                        if not rc or rc["type"] != "resistor":
+                            continue
+                        r_val = ctx.parsed_values.get(p["component"])
+                        if not r_val or not (60 <= r_val <= 100):  # 75Ω ±33%
+                            continue
+                        # Check if the other end goes to ground (direct or via cap)
+                        rn1, rn2 = ctx.get_two_pin_nets(p["component"])
+                        r_other = rn2 if rn1 == net_name else rn1
+                        if not r_other:
+                            continue
+                        if ctx.is_ground(r_other):
+                            bob_smith = {
+                                "resistor_ref": p["component"],
+                                "resistor_value": rc.get("value", ""),
+                                "ohms": r_val,
+                                "transformer_ref": mag_ref,
+                            }
+                            break
+                        # Check for cap in between (R → cap → GND)
+                        if r_other in ctx.nets:
+                            for cp in ctx.nets[r_other]["pins"]:
+                                cc = ctx.comp_lookup.get(cp["component"])
+                                if cc and cc["type"] == "capacitor":
+                                    cn1, cn2 = ctx.get_two_pin_nets(cp["component"])
+                                    c_other = cn2 if cn1 == r_other else cn1
+                                    if c_other and ctx.is_ground(c_other):
+                                        bob_smith = {
+                                            "resistor_ref": p["component"],
+                                            "resistor_value": rc.get("value", ""),
+                                            "ohms": r_val,
+                                            "cap_ref": cp["component"],
+                                            "cap_value": cc.get("value", ""),
+                                            "transformer_ref": mag_ref,
+                                        }
+                                        break
+                        if bob_smith:
+                            break
+                    if bob_smith:
+                        break
+
+            # Impedance advisory: magnetics provide both isolation and 100Ω
+            # differential impedance matching for Ethernet
+            has_magnetics = bool(found_magnetics)
+            if not has_magnetics:
+                impedance_advisory = {
+                    "status": "warning",
+                    "detail": ("No magnetics/transformer detected between PHY and connector. "
+                               "Ethernet requires magnetic isolation and impedance matching "
+                               "(100\u03A9 differential)."),
+                }
+            else:
+                impedance_advisory = {
+                    "status": "pass",
+                    "detail": "Magnetics present for impedance matching and isolation",
+                }
+
+            eth_comps = [phy["reference"]] + [m["reference"] for m in found_magnetics] + [c["reference"] for c in found_connectors]
             ethernet_interfaces.append({
                 "phy_reference": phy["reference"],
                 "phy_value": phy["value"],
@@ -462,6 +617,22 @@ def detect_ethernet_interfaces(ctx: AnalysisContext) -> list[dict]:
                     {"reference": c["reference"], "value": c["value"]}
                     for c in found_connectors
                 ],
+                "bob_smith_termination": bob_smith,
+                "impedance_advisory": impedance_advisory,
+                "detector": "detect_ethernet_interfaces",
+                "rule_id": "ET-DET",
+                "category": "networking",
+                "severity": "info",
+                "confidence": "deterministic",
+                "evidence_source": "topology",
+                "summary": f"Ethernet PHY {phy['reference']} ({phy['value']})",
+                "description": f"Detected Ethernet interface with PHY {phy['reference']}.",
+                "components": eth_comps,
+                "nets": [],
+                "pins": [],
+                "recommendation": "",
+                "report_context": {"section": "Networking", "impact": "", "standard_ref": ""},
+                "provenance": make_provenance("eth_phy_magjack", "deterministic", claimed_components=[phy["reference"]]),
             })
     return ethernet_interfaces
 
@@ -489,6 +660,20 @@ def detect_hdmi_dvi_interfaces(ctx: AnalysisContext) -> list[dict]:
                 "type": "bridge_ic",
                 "reference": comp["reference"],
                 "value": comp.get("value", ""),
+                "detector": "detect_hdmi_dvi_interfaces",
+                "rule_id": "HD-DET",
+                "category": "video",
+                "severity": "info",
+                "confidence": "deterministic",
+                "evidence_source": "topology",
+                "summary": f"HDMI/DVI bridge IC {comp['reference']} ({comp.get('value', '')})",
+                "description": f"Detected HDMI/DVI bridge IC {comp['reference']}.",
+                "components": [comp["reference"]],
+                "nets": [],
+                "pins": [],
+                "recommendation": "",
+                "report_context": {"section": "Video", "impact": "", "standard_ref": ""},
+                "provenance": make_provenance("hdmi_tmds_topology", "deterministic", claimed_components=[comp["reference"]]),
             })
 
     # HDMI/DVI connector detection
@@ -536,15 +721,171 @@ def detect_hdmi_dvi_interfaces(ctx: AnalysisContext) -> list[dict]:
                     "connector": conn["reference"],
                     "connector_value": conn.get("value", ""),
                     "series_resistors": len(series_resistors),
+                    "detector": "detect_hdmi_dvi_interfaces",
+                    "rule_id": "HD-DET",
+                    "category": "video",
+                    "severity": "info",
+                    "confidence": "deterministic",
+                    "evidence_source": "topology",
+                    "summary": f"PIO-DVI connector {conn['reference']} ({conn.get('value', '')})",
+                    "description": f"Detected PIO-DVI pattern on connector {conn['reference']}.",
+                    "components": [conn["reference"]],
+                    "nets": [],
+                    "pins": [],
+                    "recommendation": "",
+                    "report_context": {"section": "Video", "impact": "", "standard_ref": ""},
+                    "provenance": make_provenance("hdmi_tmds_topology", "deterministic", claimed_components=[conn["reference"]]),
                 })
         elif not any(e.get("connector") == conn["reference"] for e in hdmi_dvi):
             hdmi_dvi.append({
                 "type": "hdmi_connector",
                 "connector": conn["reference"],
                 "connector_value": conn.get("value", ""),
+                "detector": "detect_hdmi_dvi_interfaces",
+                "rule_id": "HD-DET",
+                "category": "video",
+                "severity": "info",
+                "confidence": "deterministic",
+                "evidence_source": "topology",
+                "summary": f"HDMI/DVI connector {conn['reference']} ({conn.get('value', '')})",
+                "description": f"Detected HDMI/DVI connector {conn['reference']}.",
+                "components": [conn["reference"]],
+                "nets": [],
+                "pins": [],
+                "recommendation": "",
+                "report_context": {"section": "Video", "impact": "", "standard_ref": ""},
+                "provenance": make_provenance("hdmi_tmds_topology", "deterministic", claimed_components=[conn["reference"]]),
             })
 
+    # TMDS differential termination check: look for ~100Ω resistors on
+    # TMDS data/clock nets connected to HDMI connectors or bridge ICs
+    _tmds_pin_re = re.compile(
+        r'(TMDS|D\d[+-]|CLK[+-]|CK[+-]|HPD|HDMI_D|HDMI_CLK|DVI_D|DVI_CLK)',
+        re.IGNORECASE)
+    for entry in hdmi_dvi:
+        # Determine the component reference to scan
+        comp_ref = entry.get("reference") or entry.get("connector")
+        if not comp_ref:
+            continue
+        comp = ctx.comp_lookup.get(comp_ref)
+        if not comp:
+            continue
+
+        # Gather signal nets from this component's TMDS-related pins
+        tmds_nets: set[str] = set()
+        for pin in comp.get("pins", []):
+            pname = pin.get("name", "")
+            if _tmds_pin_re.search(pname):
+                net_name, _ = ctx.pin_net.get(
+                    (comp_ref, pin["number"]), (None, None))
+                if net_name and not ctx.is_ground(net_name) and not ctx.is_power_net(net_name):
+                    tmds_nets.add(net_name)
+        # Fallback: scan nets for pin names or TMDS-related net names
+        if not tmds_nets:
+            _tmds_net_re = re.compile(r'(TMDS|HDMI_D|HDMI_CLK|DVI_D)', re.IGNORECASE)
+            for net_name, ndata in ctx.nets.items():
+                if ctx.is_ground(net_name) or ctx.is_power_net(net_name):
+                    continue
+                for p in ndata.get("pins", []):
+                    if p.get("component") == comp_ref:
+                        pname = p.get("pin_name", "")
+                        if _tmds_pin_re.search(pname) or _tmds_net_re.search(net_name):
+                            tmds_nets.add(net_name)
+                            break
+
+        # Search for termination resistors (80–120Ω) on those nets
+        term_resistors: list[dict] = []
+        seen_term_refs: set[str] = set()
+        for net_name in sorted(tmds_nets):
+            if net_name not in ctx.nets:
+                continue
+            for p in ctx.nets[net_name]["pins"]:
+                rc = ctx.comp_lookup.get(p["component"])
+                if not rc or rc["type"] != "resistor":
+                    continue
+                if rc["reference"] in seen_term_refs:
+                    continue
+                rv = ctx.parsed_values.get(rc["reference"])
+                if rv and 80 <= rv <= 120:
+                    term_resistors.append({
+                        "reference": rc["reference"],
+                        "value": rc.get("value", ""),
+                        "ohms": rv,
+                    })
+                    seen_term_refs.add(rc["reference"])
+
+        if term_resistors:
+            entry["termination"] = {
+                "status": "pass",
+                "detail": f"{len(term_resistors)} termination resistor(s) found on TMDS nets",
+                "resistors": term_resistors,
+            }
+        elif tmds_nets:
+            entry["termination"] = {
+                "status": "warning",
+                "detail": ("No ~100\u03A9 differential termination resistors detected "
+                           "on TMDS nets. HDMI/DVI requires 100\u03A9 differential "
+                           "impedance matching."),
+            }
+        # If no TMDS nets were identified, skip termination check silently
+
     return hdmi_dvi
+
+
+def detect_lvds_interfaces(ctx: AnalysisContext) -> list[dict]:
+    """Detect LVDS serializer/deserializer ICs and flag impedance requirements."""
+    lvds_interfaces: list[dict] = []
+
+    _lvds_keywords = (
+        "ds90", "fpdlink", "fpd-link", "fpd_link", "lvds",
+        "sn65lvds", "thc63", "max9217", "max9247",
+        "ub924", "ub925",
+    )
+    _serializer_hints = ("ser", "driver", "transmit", "tx", "encoder", "ub925")
+    _deserializer_hints = ("des", "receiver", "rx", "decoder", "ub924")
+
+    for comp in ctx.components:
+        if comp["type"] != "ic":
+            continue
+        val_lib = (comp.get("value", "") + " " + comp.get("lib_id", "")).lower()
+        if not any(k in val_lib for k in _lvds_keywords):
+            continue
+
+        # Classify role
+        role = "unknown"
+        if any(h in val_lib for h in _serializer_hints):
+            role = "serializer"
+        elif any(h in val_lib for h in _deserializer_hints):
+            role = "deserializer"
+        else:
+            # Heuristic: DS90Cx8xx — even last digit = serializer, odd = deserializer
+            # e.g., DS90C124 (ser), DS90C125 (des), DS90CR286 (ser), DS90CF386 (des)
+            # Not perfectly reliable, so leave as "unknown" if no strong hint
+            pass
+
+        lvds_interfaces.append({
+            "reference": comp["reference"],
+            "value": comp.get("value", ""),
+            "lib_id": comp.get("lib_id", ""),
+            "role": role,
+            "impedance_required": "100\u03A9 differential (LVDS standard)",
+            "detector": "detect_lvds_interfaces",
+            "rule_id": "LV-DET",
+            "category": "video",
+            "severity": "info",
+            "confidence": "deterministic",
+            "evidence_source": "topology",
+            "summary": f"LVDS {role} {comp['reference']} ({comp.get('value', '')})",
+            "description": f"Detected LVDS {role} IC {comp['reference']}.",
+            "components": [comp["reference"]],
+            "nets": [],
+            "pins": [],
+            "recommendation": "",
+            "report_context": {"section": "Video", "impact": "", "standard_ref": ""},
+            "provenance": make_provenance("lvds_pair_topology", "deterministic", claimed_components=[comp["reference"]]),
+        })
+
+    return lvds_interfaces
 
 
 def detect_memory_interfaces(ctx: AnalysisContext) -> list[dict]:
@@ -597,12 +938,27 @@ def detect_memory_interfaces(ctx: AnalysisContext) -> list[dict]:
                 })
 
         if connected_processors:
+            proc_refs = [p["reference"] for p in connected_processors]
             memory_interfaces.append({
                 "memory_reference": mem["reference"],
                 "memory_value": mem["value"],
                 "memory_lib_id": mem.get("lib_id", ""),
                 "connected_processors": connected_processors,
                 "total_pins": len(mem_nets),
+                "detector": "detect_memory_interfaces",
+                "rule_id": "MI-DET",
+                "category": "memory",
+                "severity": "info",
+                "confidence": "deterministic",
+                "evidence_source": "topology",
+                "summary": f"Memory {mem['reference']} ({mem['value']}) connected to {len(connected_processors)} processor(s)",
+                "description": f"Detected memory IC {mem['reference']} paired with processor(s).",
+                "components": [mem["reference"]] + proc_refs,
+                "nets": [],
+                "pins": [],
+                "recommendation": "",
+                "report_context": {"section": "Memory", "impact": "", "standard_ref": ""},
+                "provenance": make_provenance("memory_ic_topology", "deterministic", claimed_components=[mem["reference"]]),
             })
     return memory_interfaces
 
@@ -759,7 +1115,7 @@ def detect_rf_chains(ctx: AnalysisContext) -> list[dict]:
         for i, ref_a in enumerate(rf_ref_list):
             for ref_b in rf_ref_list[i+1:]:
                 shared = rf_nets_map.get(ref_a, set()) & rf_nets_map.get(ref_b, set())
-                signal_shared = [n for n in shared if not n.startswith("__unnamed_")]
+                signal_shared = sorted(n for n in shared if not n.startswith("__unnamed_"))
                 if shared:
                     connections.append({
                         "from": ref_a,
@@ -796,6 +1152,11 @@ def detect_rf_chains(ctx: AnalysisContext) -> list[dict]:
                 return "balun"
             return "unknown"
 
+        all_rf_chain_refs = [c["reference"] for c in (
+            rf_switches + rf_mixers + rf_amplifiers + rf_transceivers +
+            rf_filters + rf_baluns + rf_attenuators + rf_couplers +
+            rf_power_detectors + rf_freq_multipliers
+        )]
         rf_chains.append({
             "switches": [
                 {"reference": c["reference"], "value": c["value"],
@@ -851,8 +1212,22 @@ def detect_rf_chains(ctx: AnalysisContext) -> list[dict]:
             "total_rf_components": rf_component_count,
             "connections": connections,
             "component_roles": {
-                ref: _rf_role(ref) for ref in all_rf_refs
+                ref: _rf_role(ref) for ref in sorted(all_rf_refs)
             },
+            "detector": "detect_rf_chains",
+            "rule_id": "RF-DET",
+            "category": "rf",
+            "severity": "info",
+            "confidence": "deterministic",
+            "evidence_source": "topology",
+            "summary": f"RF chain: {rf_component_count} components",
+            "description": f"Detected RF signal chain with {rf_component_count} components.",
+            "components": all_rf_chain_refs,
+            "nets": [],
+            "pins": [],
+            "recommendation": "",
+            "report_context": {"section": "RF", "impact": "", "standard_ref": ""},
+            "provenance": make_provenance("rf_chain_topology", "heuristic", claimed_components=all_rf_chain_refs),
         })
 
         # Enrich with operating frequency and gain budget
@@ -1006,7 +1381,7 @@ def detect_rf_matching(ctx: AnalysisContext) -> list[dict]:
         visited_nets = set(ant_nets)
         visited_refs = {ant["reference"]}
         matching_components = []
-        frontier = list(ant_nets)
+        frontier = sorted(ant_nets)
         target_ic = None
 
         for _ in range(6):  # Max 6 hops
@@ -1126,11 +1501,25 @@ def detect_rf_matching(ctx: AnalysisContext) -> list[dict]:
         else:
             topology = "matching_network"
 
+        rm_comps = [ant["reference"]] + ([target_ic] if target_ic else []) + [mc["ref"] for mc in matching_components]
         entry = {
             "antenna": ant["reference"],
             "antenna_value": ant.get("value", ""),
             "topology": topology,
             "components": matching_components,
+            "detector": "detect_rf_matching",
+            "rule_id": "RM-DET",
+            "category": "rf",
+            "severity": "info",
+            "confidence": "deterministic",
+            "evidence_source": "topology",
+            "summary": f"RF {topology} matching network at {ant['reference']}",
+            "description": f"Detected RF {topology} matching network near antenna {ant['reference']}.",
+            "component_refs": rm_comps,
+            "nets": [],
+            "pins": [],
+            "recommendation": "",
+            "report_context": {"section": "RF", "impact": "", "standard_ref": ""},
         }
         if target_ic:
             entry["target_ic"] = target_ic
@@ -1148,6 +1537,7 @@ def detect_rf_matching(ctx: AnalysisContext) -> list[dict]:
             "schematic — check PCB layout"
         ]
 
+        entry["provenance"] = make_provenance("rf_match_topology", "deterministic", claimed_components=[ant["reference"]])
         rf_matching.append(entry)
 
     return rf_matching
@@ -1232,7 +1622,7 @@ def detect_bms_systems(ctx: AnalysisContext) -> list[dict]:
 
         balance_resistors = []
         cell_net_names = {cp["net"] for cp in valid_cell_pins}
-        for net_name in cell_net_names:
+        for net_name in sorted(cell_net_names):
             if net_name not in ctx.nets:
                 continue
             for p in ctx.nets[net_name]["pins"]:
@@ -1265,7 +1655,7 @@ def detect_bms_systems(ctx: AnalysisContext) -> list[dict]:
                     seen_fet_refs.add(p["component"])
 
         ntc_sensors = []
-        for net_name in bms_nets:
+        for net_name in sorted(bms_nets):
             if not net_name or net_name not in ctx.nets:
                 continue
             for p in ctx.nets[net_name]["pins"]:
@@ -1286,6 +1676,7 @@ def detect_bms_systems(ctx: AnalysisContext) -> list[dict]:
 
         cell_count = max(cell_numbers) if cell_numbers else 0
 
+        bms_comps = [ref] + [r["reference"] for r in balance_resistors] + [f["reference"] for f in chg_dsg_fets]
         bms_systems.append({
             "bms_reference": ref,
             "bms_value": bms_ic["value"],
@@ -1297,6 +1688,20 @@ def detect_bms_systems(ctx: AnalysisContext) -> list[dict]:
             "balance_resistor_count": len(balance_resistors),
             "charge_discharge_fets": chg_dsg_fets,
             "ntc_sensors": unique_ntcs,
+            "detector": "detect_bms_systems",
+            "rule_id": "BM-DET",
+            "category": "battery",
+            "severity": "info",
+            "confidence": "deterministic",
+            "evidence_source": "topology",
+            "summary": f"BMS {ref} ({bms_ic['value']}) {cell_count}-cell",
+            "description": f"Detected Battery Management System IC {ref} monitoring {cell_count} cells.",
+            "components": bms_comps,
+            "nets": sorted(cell_net_names),
+            "pins": [],
+            "recommendation": "",
+            "report_context": {"section": "Battery", "impact": "", "standard_ref": ""},
+            "provenance": make_provenance("bms_ic_topology", "deterministic", claimed_components=[ref]),
         })
     return bms_systems
 
@@ -1469,12 +1874,26 @@ def detect_battery_chargers(ctx: AnalysisContext) -> list[dict]:
                 "charger_type": charger_type,
                 "input_rail": vin_net,
                 "battery_net": bat_net,
+                "detector": "detect_battery_chargers",
+                "rule_id": "BC-DET",
+                "category": "battery",
+                "severity": "info",
+                "confidence": "deterministic",
+                "evidence_source": "topology",
+                "summary": f"Battery charger {ref} ({c.get('value', '')}) [{charger_type}]",
+                "description": f"Detected {charger_type} battery charger IC {ref}.",
+                "components": [ref],
+                "nets": [n for n in (vin_net, bat_net) if n],
+                "pins": [],
+                "recommendation": "",
+                "report_context": {"section": "Battery", "impact": "", "standard_ref": ""},
             }
             if prog_info:
                 entry["charge_current"] = prog_info
             if status_pins:
                 entry["status_pins"] = status_pins
 
+            entry["provenance"] = make_provenance("charger_ic_topology", "deterministic", claimed_components=[ref])
             chargers.append(entry)
 
     # --- Phase 2: Find cell protection ICs ---
@@ -1532,6 +1951,7 @@ def detect_battery_chargers(ctx: AnalysisContext) -> list[dict]:
                     for ch in chargers if ch.get("cell_protection")}
     for prot in protection_ics:
         if prot["protection_ic"] not in linked_prots:
+            prot_ref = prot["protection_ic"]
             chargers.append({
                 "charger_reference": None,
                 "charger_value": None,
@@ -1540,6 +1960,20 @@ def detect_battery_chargers(ctx: AnalysisContext) -> list[dict]:
                 "input_rail": None,
                 "battery_net": None,
                 "cell_protection": prot,
+                "detector": "detect_battery_chargers",
+                "rule_id": "BC-DET",
+                "category": "battery",
+                "severity": "info",
+                "confidence": "deterministic",
+                "evidence_source": "topology",
+                "summary": f"Standalone cell protection IC {prot_ref}",
+                "description": f"Detected standalone cell protection IC {prot_ref} without paired charger.",
+                "components": [prot_ref],
+                "nets": [],
+                "pins": [],
+                "recommendation": "",
+                "report_context": {"section": "Battery", "impact": "", "standard_ref": ""},
+                "provenance": make_provenance("charger_ic_topology", "deterministic", claimed_components=[prot_ref]),
             })
 
     return chargers
@@ -1583,7 +2017,11 @@ _MOTOR_OUTPUT_PIN_NAMES = {"OUT1", "OUT2", "OUT3", "OUT4",
                            "AOUT", "BOUT", "COUT",
                            "PHASE_A", "PHASE_B", "PHASE_C",
                            "MOT_A", "MOT_B",
-                           "OUT_A+", "OUT_A-", "OUT_B+", "OUT_B-"}
+                           "OUT_A+", "OUT_A-", "OUT_B+", "OUT_B-",
+                           # 3-phase UVW notation (BLDC/PMSM)
+                           "U", "V", "W", "UH", "UL", "VH", "VL", "WH", "WL",
+                           # Gate driver high/low side notation
+                           "AH", "AL", "BH", "BL", "CH", "CL"}
 
 _GATE_OUTPUT_PIN_NAMES = {"HO", "LO", "HO1", "LO1", "HO2", "LO2",
                           "HO3", "LO3", "HIN", "LIN",
@@ -1759,6 +2197,7 @@ def detect_motor_drivers(ctx: AnalysisContext) -> list[dict]:
                 if any(kw in net_upper for kw in _INDUCTIVE_LOAD_KEYWORDS):
                     missing_freewheeling.append(out_net)
 
+        md_comps = [ref] + [f["reference"] for f in external_fets] + [d["reference"] for d in freewheeling_diodes]
         entry: dict = {
             "driver_reference": ref,
             "driver_value": c.get("value", ""),
@@ -1771,10 +2210,25 @@ def detect_motor_drivers(ctx: AnalysisContext) -> list[dict]:
             "bootstrap_caps": bootstrap_caps,
             "freewheeling_diodes": freewheeling_diodes,
             "external_fets": external_fets,
+            "detector": "detect_motor_drivers",
+            "rule_id": "MD-DET",
+            "category": "motor_control",
+            "severity": "info",
+            "confidence": "deterministic",
+            "evidence_source": "topology",
+            "summary": f"Motor driver {ref} ({c.get('value', '')}) [{driver_type}]",
+            "description": f"Detected {driver_type} motor driver IC {ref}.",
+            "components": md_comps,
+            "nets": [power_supply] if power_supply else [],
+            "pins": [],
+            "recommendation": "",
+            "report_context": {"section": "Motor Control", "impact": "", "standard_ref": ""},
         }
         if missing_freewheeling:
             entry["missing_freewheeling"] = missing_freewheeling
 
+        _motor_evidence = "motor_hbridge" if driver_type == "dc_brushed_h_bridge" else "motor_driver_ic"
+        entry["provenance"] = make_provenance(_motor_evidence, "deterministic", claimed_components=[ref])
         drivers.append(entry)
 
     return drivers
@@ -1894,6 +2348,19 @@ def detect_addressable_leds(ctx: AnalysisContext) -> list[dict]:
             "led_type": first_comp.get("value", ""),
             "estimated_current_mA": len(chain_refs) * per_led_ma,
             "components": chain_refs,
+            "detector": "detect_addressable_leds",
+            "rule_id": "AL-DET",
+            "category": "led_control",
+            "severity": "info",
+            "confidence": "deterministic",
+            "evidence_source": "topology",
+            "summary": f"Addressable LED chain: {len(chain_refs)} LEDs ({protocol})",
+            "description": f"Detected addressable LED chain of {len(chain_refs)} {first_comp.get('value', '')} LEDs.",
+            "nets": [led_din_net.get(chain_refs[0], "")] if led_din_net.get(chain_refs[0]) else [],
+            "pins": [],
+            "recommendation": "",
+            "report_context": {"section": "LED Control", "impact": "", "standard_ref": ""},
+            "provenance": make_provenance("aled_data_chain", "deterministic", claimed_components=[chain_refs[0]]),
         })
 
     # Also pick up single LEDs not in a chain
@@ -1911,6 +2378,19 @@ def detect_addressable_leds(ctx: AnalysisContext) -> list[dict]:
                 "led_type": comp.get("value", ""),
                 "estimated_current_mA": per_led_ma,
                 "components": [led_ref],
+                "detector": "detect_addressable_leds",
+                "rule_id": "AL-DET",
+                "category": "led_control",
+                "severity": "info",
+                "confidence": "deterministic",
+                "evidence_source": "topology",
+                "summary": f"Addressable LED {led_ref} ({comp.get('value', '')}) [{protocol}]",
+                "description": f"Detected single addressable LED {led_ref} ({comp.get('value', '')}).",
+                "nets": [led_din_net.get(led_ref, "")] if led_din_net.get(led_ref) else [],
+                "pins": [],
+                "recommendation": "",
+                "report_context": {"section": "LED Control", "impact": "", "standard_ref": ""},
+                "provenance": make_provenance("aled_data_chain", "deterministic", claimed_components=[led_ref]),
             })
 
     return chains
@@ -2008,6 +2488,9 @@ def audit_esd_protection(ctx: AnalysisContext,
             protected_nets_set.add(net)
             net_to_esd.setdefault(net, []).append(pd["ref"])
 
+    # Quick lookup from ref -> protection_device entry
+    pd_lookup: dict[str, dict] = {pd["ref"]: pd for pd in protection_devices}
+
     results: list[dict] = []
 
     for comp in ctx.components:
@@ -2045,6 +2528,21 @@ def audit_esd_protection(ctx: AnalysisContext,
             ref for n in prot for ref in net_to_esd.get(n, [])
         })
 
+        # Build detailed info for each ESD device
+        esd_device_details: list[dict] = []
+        for esd_ref in esd_refs:
+            esd_comp = ctx.comp_lookup.get(esd_ref, {})
+            detail: dict = {
+                "ref": esd_ref,
+                "value": esd_comp.get("value", ""),
+                "lib_id": esd_comp.get("lib_id", ""),
+            }
+            # Pull protection_type from the protection_devices entry
+            pd_entry = pd_lookup.get(esd_ref)
+            if pd_entry:
+                detail["protection_type"] = pd_entry.get("type", "")
+            esd_device_details.append(detail)
+
         results.append({
             "connector_ref": comp["reference"],
             "connector_value": comp.get("value", ""),
@@ -2055,6 +2553,21 @@ def audit_esd_protection(ctx: AnalysisContext,
             "unprotected_nets": unprot,
             "coverage": coverage,
             "esd_devices": esd_refs,
+            "esd_device_details": esd_device_details,
+            "detector": "audit_esd_protection",
+            "rule_id": "EP-AUD",
+            "category": "protection",
+            "severity": "info",
+            "confidence": "deterministic",
+            "evidence_source": "topology",
+            "summary": f"ESD audit {comp['reference']} ({interface_type}): {coverage} coverage",
+            "description": f"ESD protection audit for {interface_type} connector {comp['reference']}: {coverage} coverage.",
+            "components": [comp["reference"]] + esd_refs,
+            "nets": signal_nets,
+            "pins": [],
+            "recommendation": "",
+            "report_context": {"section": "ESD Protection", "impact": "", "standard_ref": ""},
+            "provenance": make_provenance("esd_coverage_audit", "deterministic", claimed_components=[comp["reference"]]),
         })
 
     return results
@@ -2225,6 +2738,7 @@ def detect_debug_interfaces(ctx: AnalysisContext) -> list[dict]:
 
         status = "pass" if not missing_pins else "incomplete"
 
+        di_comps = [comp["reference"]] + ([target_ic] if target_ic else [])
         results.append({
             "connector_ref": comp["reference"],
             "connector_value": comp.get("value", ""),
@@ -2234,6 +2748,20 @@ def detect_debug_interfaces(ctx: AnalysisContext) -> list[dict]:
             "floating_pins": floating_pins,
             "target_ic": target_ic,
             "status": status,
+            "detector": "detect_debug_interfaces",
+            "rule_id": "DI-DET",
+            "category": "debug",
+            "severity": "info",
+            "confidence": "deterministic",
+            "evidence_source": "topology",
+            "summary": f"Debug interface {comp['reference']} ({interface_type}): {status}",
+            "description": f"Detected {interface_type} debug interface on connector {comp['reference']}.",
+            "components": di_comps,
+            "nets": [],
+            "pins": [],
+            "recommendation": "",
+            "report_context": {"section": "Debug", "impact": "", "standard_ref": ""},
+            "provenance": make_provenance(f"debug_{interface_type}", "deterministic", claimed_components=[comp["reference"]]),
         })
 
     return results
@@ -2406,6 +2934,103 @@ def detect_power_path(ctx: AnalysisContext) -> list[dict]:
             entry["cc_nets"] = cc_nets
             entry["sbu_nets"] = sbu_nets
 
+            # USB-C CC resistor validation
+            # UFP (sink) requires 5.1kΩ ±10% pull-down on each CC pin to GND
+            # DFP (source) uses 56kΩ (default USB), 22kΩ (1.5A), or 10kΩ (3A)
+            # PD controller IC on CC nets means discrete resistors not required
+            cc_resistor_findings = []
+            has_pd_controller = bool(entry.get("pd_controller"))
+
+            if cc_nets and not has_pd_controller:
+                for cc_net in cc_nets:
+                    if cc_net not in ctx.nets:
+                        continue
+                    cc_resistors = []
+                    for pin in ctx.nets[cc_net].get("pins", []):
+                        comp = ctx.comp_lookup.get(pin["component"])
+                        if not comp or comp["type"] != "resistor":
+                            continue
+                        r_val = ctx.parsed_values.get(pin["component"])
+                        if r_val is None:
+                            continue
+                        # Check which net the other pin connects to
+                        n1, n2 = ctx.get_two_pin_nets(pin["component"])
+                        other_net = n2 if n1 == cc_net else n1
+                        if other_net and ctx.is_ground(other_net):
+                            cc_resistors.append({
+                                "ref": pin["component"],
+                                "ohms": r_val,
+                                "value": comp.get("value", ""),
+                                "to_net": other_net,
+                            })
+
+                    if not cc_resistors:
+                        cc_resistor_findings.append({
+                            "net": cc_net,
+                            "status": "missing",
+                            "message": f"No pull-down resistor on {cc_net} — "
+                                       f"required for USB-C sink (UFP) role",
+                        })
+                    else:
+                        for cr in cc_resistors:
+                            r = cr["ohms"]
+                            # 5.1kΩ ±10% for sink (UFP)
+                            if 4590 <= r <= 5610:
+                                cc_resistor_findings.append({
+                                    "net": cc_net,
+                                    "ref": cr["ref"],
+                                    "ohms": r,
+                                    "status": "correct_sink",
+                                    "message": f"{cr['ref']} ({cr['value']}) on {cc_net} — "
+                                               f"correct for UFP/sink role",
+                                })
+                            elif 50400 <= r <= 61600:  # 56kΩ ±10% = default USB
+                                cc_resistor_findings.append({
+                                    "net": cc_net, "ref": cr["ref"], "ohms": r,
+                                    "status": "source_default",
+                                    "message": f"{cr['ref']} ({cr['value']}) — "
+                                               f"DFP source, default USB current",
+                                })
+                            elif 19800 <= r <= 24200:  # 22kΩ ±10% = 1.5A
+                                cc_resistor_findings.append({
+                                    "net": cc_net, "ref": cr["ref"], "ohms": r,
+                                    "status": "source_1_5A",
+                                    "message": f"{cr['ref']} ({cr['value']}) — "
+                                               f"DFP source, 1.5A advertisement",
+                                })
+                            elif 9000 <= r <= 11000:  # 10kΩ ±10% = 3A
+                                cc_resistor_findings.append({
+                                    "net": cc_net, "ref": cr["ref"], "ohms": r,
+                                    "status": "source_3A",
+                                    "message": f"{cr['ref']} ({cr['value']}) — "
+                                               f"DFP source, 3A advertisement",
+                                })
+                            else:
+                                cc_resistor_findings.append({
+                                    "net": cc_net, "ref": cr["ref"], "ohms": r,
+                                    "status": "unexpected_value",
+                                    "message": f"{cr['ref']} ({cr['value']}) = {r:.0f}Ω on {cc_net} — "
+                                               f"not a standard USB-C CC value "
+                                               f"(expected 5.1kΩ sink or 56k/22k/10k source)",
+                                })
+
+            if cc_resistor_findings:
+                entry["cc_resistor_check"] = cc_resistor_findings
+
+        entry.setdefault("detector", "detect_power_path")
+        entry.setdefault("rule_id", "PP-DET")
+        entry.setdefault("category", "power_management")
+        entry.setdefault("severity", "info")
+        entry.setdefault("confidence", "deterministic")
+        entry.setdefault("evidence_source", "topology")
+        entry.setdefault("summary", f"Power path {ref} ({comp.get('value', '')}) [{entry.get('type', device_type)}]")
+        entry.setdefault("description", f"Detected {device_type} power path component {ref}.")
+        entry.setdefault("components", [ref])
+        entry.setdefault("nets", [])
+        entry.setdefault("pins", [])
+        entry.setdefault("recommendation", "")
+        entry.setdefault("report_context", {"section": "Power Management", "impact": "", "standard_ref": ""})
+        entry["provenance"] = make_provenance("ppath_topology", "deterministic", claimed_components=[ref])
         results.append(entry)
 
     return results
@@ -2553,7 +3178,22 @@ def detect_adc_circuits(ctx: AnalysisContext,
             "output_voltage": vref_v,
             "output_net": output_net,
             "consumers": [],
+            "detector": "detect_adc_circuits",
+            "rule_id": "AD-DET",
+            "category": "analog",
+            "severity": "info",
+            "confidence": "deterministic",
+            "evidence_source": "topology",
+            "summary": f"Voltage reference {ref} ({comp.get('value', '')})" + (f" {vref_v}V" if vref_v else ""),
+            "description": f"Detected voltage reference IC {ref}.",
+            "components": [ref],
+            "nets": [output_net] if output_net else [],
+            "pins": [],
+            "recommendation": "",
+            "report_context": {"section": "Analog", "impact": "", "standard_ref": ""},
         }
+
+        entry["provenance"] = make_provenance("adc_ic_topology", "deterministic", claimed_components=[ref])
 
         if output_net:
             vref_output_nets[output_net] = ref
@@ -2650,6 +3290,7 @@ def detect_adc_circuits(ctx: AnalysisContext,
                 })
                 break  # one protection device per channel
 
+        adc_comps = [ref] + ([vref_source["ref"]] if vref_source else [])
         entry = {
             "ref": ref,
             "value": comp.get("value", ""),
@@ -2657,6 +3298,19 @@ def detect_adc_circuits(ctx: AnalysisContext,
             "resolution_bits": resolution,
             "interface": interface,
             "input_channels": input_channels,
+            "detector": "detect_adc_circuits",
+            "rule_id": "AD-DET",
+            "category": "analog",
+            "severity": "info",
+            "confidence": "deterministic",
+            "evidence_source": "topology",
+            "summary": f"ADC {ref} ({comp.get('value', '')})" + (f" {resolution}-bit" if resolution else ""),
+            "description": f"Detected external ADC {ref}" + (f" ({resolution}-bit)" if resolution else "") + ".",
+            "components": adc_comps,
+            "nets": [],
+            "pins": [],
+            "recommendation": "",
+            "report_context": {"section": "Analog", "impact": "", "standard_ref": ""},
         }
         if vref_source:
             entry["vref_source"] = vref_source
@@ -2665,6 +3319,7 @@ def detect_adc_circuits(ctx: AnalysisContext,
         if input_protection:
             entry["input_protection"] = input_protection
 
+        entry["provenance"] = make_provenance("adc_ic_topology", "deterministic", claimed_components=[ref])
         results.append(entry)
 
     return results
@@ -2780,6 +3435,7 @@ def detect_reset_supervisors(ctx: AnalysisContext) -> list[dict]:
             # Infer threshold voltage from part number
             threshold_v, _ = lookup_regulator_vref(comp.get("value", ""), comp.get("lib_id", ""))
 
+            sup_comps = [ref] + ([target_ic] if target_ic else [])
             results.append({
                 "ref": ref,
                 "value": comp.get("value", ""),
@@ -2789,6 +3445,20 @@ def detect_reset_supervisors(ctx: AnalysisContext) -> list[dict]:
                 "reset_net": reset_net,
                 "target_ic": target_ic,
                 "reset_active_low": reset_active_low,
+                "detector": "detect_reset_supervisors",
+                "rule_id": "RS-DET",
+                "category": "power_management",
+                "severity": "info",
+                "confidence": "deterministic",
+                "evidence_source": "topology",
+                "summary": f"Voltage supervisor {ref} ({comp.get('value', '')})" + (f" monitoring {monitored_rail}" if monitored_rail else ""),
+                "description": f"Detected voltage supervisor IC {ref}.",
+                "components": sup_comps,
+                "nets": [n for n in (monitored_rail, reset_net) if n],
+                "pins": [],
+                "recommendation": "",
+                "report_context": {"section": "Power Management", "impact": "", "standard_ref": ""},
+                "provenance": make_provenance("reset_supervisor_ic", "deterministic", claimed_components=[ref]),
             })
 
         elif is_watchdog:
@@ -2799,6 +3469,7 @@ def detect_reset_supervisors(ctx: AnalysisContext) -> list[dict]:
                     wdi_net = net
                     break
 
+            wd_comps = [ref] + ([target_ic] if target_ic else [])
             results.append({
                 "ref": ref,
                 "value": comp.get("value", ""),
@@ -2806,6 +3477,20 @@ def detect_reset_supervisors(ctx: AnalysisContext) -> list[dict]:
                 "wdi_net": wdi_net,
                 "reset_net": reset_net,
                 "target_ic": target_ic,
+                "detector": "detect_reset_supervisors",
+                "rule_id": "RS-DET",
+                "category": "power_management",
+                "severity": "info",
+                "confidence": "deterministic",
+                "evidence_source": "topology",
+                "summary": f"Watchdog {ref} ({comp.get('value', '')})",
+                "description": f"Detected watchdog IC {ref}.",
+                "components": wd_comps,
+                "nets": [n for n in (wdi_net, reset_net) if n],
+                "pins": [],
+                "recommendation": "",
+                "report_context": {"section": "Power Management", "impact": "", "standard_ref": ""},
+                "provenance": make_provenance("reset_supervisor_ic", "deterministic", claimed_components=[ref]),
             })
 
     # Phase 2: Detect RC reset networks
@@ -2850,6 +3535,20 @@ def detect_reset_supervisors(ctx: AnalysisContext) -> list[dict]:
                 "reset_net": net_name,
                 "time_constant_ms": round(tau_s * 1000, 3),
                 "target_ic": target_ic,
+                "detector": "detect_reset_supervisors",
+                "rule_id": "RS-DET",
+                "category": "power_management",
+                "severity": "info",
+                "confidence": "deterministic",
+                "evidence_source": "topology",
+                "summary": f"RC reset network on {net_name} ({round(tau_s * 1000, 3)} ms)",
+                "description": f"Detected RC reset network on net {net_name}.",
+                "components": [r["ref"], c["ref"]] + ([target_ic] if target_ic else []),
+                "nets": [net_name],
+                "pins": [],
+                "recommendation": "",
+                "report_context": {"section": "Power Management", "impact": "", "standard_ref": ""},
+                "provenance": make_provenance("reset_supervisor_ic", "deterministic", claimed_components=[r["ref"], c["ref"]]),
             })
 
     return results
@@ -2895,16 +3594,37 @@ def _find_series_termination(ctx: AnalysisContext, net_name: str,
 
 def _trace_clock_consumers(ctx: AnalysisContext, net_name: str,
                             source_ref: str) -> list[str]:
-    """Find IC consumers on a clock net, excluding the source."""
+    """Find IC consumers on a clock net, excluding the source.
+
+    When ctx.nq is available, traces through clock buffers to find
+    downstream consumers (e.g., SI5351 → MCU, FPGA).
+    """
     consumers: list[str] = []
     if net_name not in ctx.nets:
         return consumers
+    seen: set[str] = {source_ref}
     for p in ctx.nets[net_name]["pins"]:
-        if p["component"] == source_ref:
+        ref = p["component"]
+        if ref in seen:
             continue
-        comp = ctx.comp_lookup.get(p["component"])
-        if comp and comp["type"] == "ic" and p["component"] not in consumers:
-            consumers.append(p["component"])
+        comp = ctx.comp_lookup.get(ref)
+        if not comp or comp["type"] != "ic":
+            continue
+        seen.add(ref)
+        # Check if this IC is a clock buffer — trace through to outputs
+        if ctx.nq:
+            val_lib = (comp.get("value", "") + " " + comp.get("lib_id", "")).lower()
+            if any(kw in val_lib for kw in _CLOCK_BUFFER_KEYWORDS):
+                for out_net in ctx.nq.trace_through(net_name, ref):
+                    if ctx.is_ground(out_net) or ctx.is_power_net(out_net):
+                        continue
+                    for downstream in ctx.nq.ics_on_net(out_net, exclude_ref=ref):
+                        dref = downstream["reference"]
+                        if dref not in seen:
+                            seen.add(dref)
+                            consumers.append(dref)
+                continue
+        consumers.append(ref)
     return consumers
 
 
@@ -2979,12 +3699,26 @@ def detect_clock_distribution(ctx: AnalysisContext,
             "ref": ref,
             "value": comp.get("value", ""),
             "type": device_type,
+            "detector": "detect_clock_distribution",
+            "rule_id": "CD-DET",
+            "category": "timing",
+            "severity": "info",
+            "confidence": "deterministic",
+            "evidence_source": "topology",
+            "summary": f"Clock {device_type} {ref} ({comp.get('value', '')})",
+            "description": f"Detected {device_type} IC {ref}.",
+            "components": [ref],
+            "nets": [],
+            "pins": [],
+            "recommendation": "",
+            "report_context": {"section": "Timing", "impact": "", "standard_ref": ""},
         }
         if ref_input:
             entry["reference_input"] = ref_input
         if outputs:
             entry["outputs"] = outputs
 
+        entry["provenance"] = make_provenance("clock_buffer_topology", "deterministic", claimed_components=[ref])
         results.append(entry)
 
     # Phase 2: Trace standalone oscillator outputs from crystal_circuits
@@ -3013,6 +3747,20 @@ def detect_clock_distribution(ctx: AnalysisContext,
             "output_net": output_net,
             "consumers": consumers,
             "series_termination": term,
+            "detector": "detect_clock_distribution",
+            "rule_id": "CD-DET",
+            "category": "timing",
+            "severity": "info",
+            "confidence": "deterministic",
+            "evidence_source": "topology",
+            "summary": f"Oscillator output {osc_ref} ({xc.get('value', '')})" + (f" {xc.get('frequency_hz', '')/1e6:.3g} MHz" if xc.get("frequency_hz") else ""),
+            "description": f"Detected active oscillator {osc_ref} driving clock output.",
+            "components": [osc_ref] + consumers,
+            "nets": [output_net] if output_net else [],
+            "pins": [],
+            "recommendation": "",
+            "report_context": {"section": "Timing", "impact": "", "standard_ref": ""},
+            "provenance": make_provenance("clock_buffer_topology", "deterministic", claimed_components=[osc_ref]),
         })
 
     return results
@@ -3113,20 +3861,20 @@ def detect_display_interfaces(ctx: AnalysisContext) -> list[dict]:
 
             # Find control pins
             dc_net = None
-            for pname in _DISPLAY_CONTROL_PINS:
+            for pname in sorted(_DISPLAY_CONTROL_PINS):
                 if pname in pin_nets:
                     dc_net = pin_nets[pname]
                     break
 
             reset_net = None
-            for pname in _DISPLAY_RESET_PINS:
+            for pname in sorted(_DISPLAY_RESET_PINS):
                 if pname in pin_nets:
                     reset_net = pin_nets[pname]
                     break
 
             # Find backlight
             backlight = None
-            for pname in _BACKLIGHT_PINS:
+            for pname in sorted(_BACKLIGHT_PINS):
                 if pname in pin_nets:
                     bl_net = pin_nets[pname]
                     backlight = {"pin": pname, "net": bl_net}
@@ -3151,6 +3899,20 @@ def detect_display_interfaces(ctx: AnalysisContext) -> list[dict]:
                 "dc_pin_net": dc_net,
                 "reset_net": reset_net,
                 "backlight": backlight,
+                "detector": "detect_display_interfaces",
+                "rule_id": "DP-DET",
+                "category": "display",
+                "severity": "info",
+                "confidence": "deterministic",
+                "evidence_source": "topology",
+                "summary": f"Display {ref} ({comp.get('value', '')}) [{display_type}/{interface}]",
+                "description": f"Detected {display_type} display controller IC {ref}.",
+                "components": [ref],
+                "nets": [n for n in (dc_net, reset_net) if n],
+                "pins": [],
+                "recommendation": "",
+                "report_context": {"section": "Display", "impact": "", "standard_ref": ""},
+                "provenance": make_provenance("display_controller", "deterministic", claimed_components=[ref]),
             })
 
         elif is_touch:
@@ -3172,7 +3934,7 @@ def detect_display_interfaces(ctx: AnalysisContext) -> list[dict]:
                     break
 
             reset_net = None
-            for pname in _DISPLAY_RESET_PINS:
+            for pname in sorted(_DISPLAY_RESET_PINS):
                 if pname in pin_nets:
                     reset_net = pin_nets[pname]
                     break
@@ -3185,6 +3947,20 @@ def detect_display_interfaces(ctx: AnalysisContext) -> list[dict]:
                 "interrupt_net": interrupt_net,
                 "interrupt_connected": interrupt_connected,
                 "reset_net": reset_net,
+                "detector": "detect_display_interfaces",
+                "rule_id": "DP-DET",
+                "category": "display",
+                "severity": "info",
+                "confidence": "deterministic",
+                "evidence_source": "topology",
+                "summary": f"Touch controller {ref} ({comp.get('value', '')}) [{interface}]",
+                "description": f"Detected touch controller IC {ref}.",
+                "components": [ref],
+                "nets": [n for n in (interrupt_net, reset_net) if n],
+                "pins": [],
+                "recommendation": "",
+                "report_context": {"section": "Display", "impact": "", "standard_ref": ""},
+                "provenance": make_provenance("display_controller", "deterministic", claimed_components=[ref]),
             })
 
     return results
@@ -3294,6 +4070,20 @@ def detect_sensor_interfaces(ctx: AnalysisContext) -> list[dict]:
             "interface": interface,
             "interrupt_pins": interrupt_pins,
             "bus_peers": [],  # filled in clustering pass
+            "detector": "detect_sensor_interfaces",
+            "rule_id": "SI-DET",
+            "category": "sensors",
+            "severity": "info",
+            "confidence": "deterministic",
+            "evidence_source": "topology",
+            "summary": f"Sensor {ref} ({comp.get('value', '')}) [{sensor_type}/{interface}]",
+            "description": f"Detected {sensor_type} sensor IC {ref}.",
+            "components": [ref],
+            "nets": bus_nets,
+            "pins": [],
+            "recommendation": "",
+            "report_context": {"section": "Sensors", "impact": "", "standard_ref": ""},
+            "provenance": make_provenance("sensor_ic_topology", "heuristic", claimed_components=[ref]),
         })
 
     # Clustering pass: find sensors sharing bus nets
@@ -3323,6 +4113,10 @@ _LEVEL_SHIFTER_KEYWORDS = (
     "txb0", "txs0", "tca9", "lsf0", "sn74lvc", "sn74avc",
     "sn74cb3", "sn74cbt", "nlsx", "nts0", "fxl", "adg320",
     "max395", "gtl2", "pca960", "tca641", "fxma", "txu0",
+    # 4.1 expansion (rc.2): SparkFun + Manas reviews
+    "lvc1t45", "lvc2t45", "lvc8t45",  # 74LVC*T45 / SN74LVC*T45 translator family
+    "nvt20",                          # NXP NVT200x autobus translator
+    "pca9306", "pca9517",             # NXP/TI I2C bus repeaters with level translation
 )
 
 _VCCA_PINS = {"VCCA", "VA", "VCC_A", "VREF1", "VREF_A", "VIN_A", "VDDA"}
@@ -3360,6 +4154,17 @@ def detect_level_shifters(ctx: AnalysisContext) -> list[dict]:
 
         if not any(kw in combined for kw in _LEVEL_SHIFTER_KEYWORDS):
             continue
+
+        # KH-227: Exclude pure logic gates (not level shifters)
+        _val_lib = (comp.get("value", "") + " " + comp.get("lib_id", "")).lower()
+        _logic_gate_patterns = ("1g00", "1g02", "1g04", "1g08", "1g14", "1g32",
+                                "1g86", "2g00", "2g02", "2g04", "2g08", "2g14",
+                                "2g32", "2g86", "3g14",
+                                "inverter", "nand_gate", "nor_gate", "and_gate",
+                                "or_gate", "xor_gate", "schmitt")
+        if any(g in _val_lib for g in _logic_gate_patterns):
+            continue
+
         matched_refs.add(ref)
 
         pin_nets = _build_pin_net_map(ctx, ref)
@@ -3368,11 +4173,11 @@ def detect_level_shifters(ctx: AnalysisContext) -> list[dict]:
         # Find supply pins
         vcca_net = None
         vccb_net = None
-        for pname in _VCCA_PINS:
+        for pname in sorted(_VCCA_PINS):
             if pname in pin_nets:
                 vcca_net = pin_nets[pname]
                 break
-        for pname in _VCCB_PINS:
+        for pname in sorted(_VCCB_PINS):
             if pname in pin_nets:
                 vccb_net = pin_nets[pname]
                 break
@@ -3425,6 +4230,20 @@ def detect_level_shifters(ctx: AnalysisContext) -> list[dict]:
             "side_b": side_b,
             "shifted_nets": sorted(shifted_nets),
             "channel_count": len(shifted_nets) // 2 or len(shifted_nets),
+            "detector": "detect_level_shifters",
+            "rule_id": "LS-DET",
+            "category": "signal_integrity",
+            "severity": "info",
+            "confidence": "deterministic",
+            "evidence_source": "topology",
+            "summary": f"Level shifter {ref} ({comp.get('value', '')}) [{direction}]",
+            "description": f"Detected {direction} level shifter IC {ref}.",
+            "components": [ref],
+            "nets": sorted(shifted_nets),
+            "pins": [],
+            "recommendation": "",
+            "report_context": {"section": "Signal Integrity", "impact": "", "standard_ref": ""},
+            "provenance": make_provenance("levelshift_topology", "deterministic", claimed_components=[ref]),
         })
 
     # Phase 2: Discrete BSS138 level shifters
@@ -3496,6 +4315,7 @@ def detect_level_shifters(ctx: AnalysisContext) -> list[dict]:
             source_pullup, drain_pullup = drain_pullup, source_pullup
             source_net, drain_net = drain_net, source_net
 
+        ls_sig_nets = sorted({drain_net, source_net} - {gate_net})
         results.append({
             "ref": ref,
             "value": comp.get("value", ""),
@@ -3503,7 +4323,21 @@ def detect_level_shifters(ctx: AnalysisContext) -> list[dict]:
             "gate_net": gate_net,
             "side_a": {"pullup_ref": source_pullup["ref"], "supply_net": source_pullup["supply_net"]},
             "side_b": {"pullup_ref": drain_pullup["ref"], "supply_net": drain_pullup["supply_net"]},
-            "signal_nets": sorted({drain_net, source_net} - {gate_net}),
+            "signal_nets": ls_sig_nets,
+            "detector": "detect_level_shifters",
+            "rule_id": "LS-DET",
+            "category": "signal_integrity",
+            "severity": "info",
+            "confidence": "deterministic",
+            "evidence_source": "topology",
+            "summary": f"Discrete level shifter {ref} ({comp.get('value', '')})",
+            "description": f"Detected discrete BSS138-style level shifter using {ref}.",
+            "components": [ref, source_pullup["ref"], drain_pullup["ref"]],
+            "nets": ls_sig_nets,
+            "pins": [],
+            "recommendation": "",
+            "report_context": {"section": "Signal Integrity", "impact": "", "standard_ref": ""},
+            "provenance": make_provenance("levelshift_topology", "deterministic", claimed_components=[ref]),
         })
 
     return results
@@ -3642,11 +4476,25 @@ def detect_audio_circuits(ctx: AnalysisContext) -> list[dict]:
                 "amplifier_class": amp_class,
                 "interface": interface,
                 "output_nets": output_nets,
+                "detector": "detect_audio_circuits",
+                "rule_id": "AU-DET",
+                "category": "audio",
+                "severity": "info",
+                "confidence": "deterministic",
+                "evidence_source": "topology",
+                "summary": f"Audio amplifier {ref} ({comp.get('value', '')}) [{amp_class}/{interface}]",
+                "description": f"Detected {amp_class} audio amplifier IC {ref}.",
+                "components": [ref],
+                "nets": output_nets,
+                "pins": [],
+                "recommendation": "",
+                "report_context": {"section": "Audio", "impact": "", "standard_ref": ""},
             }
             if output_load:
                 entry["output_load"] = output_load
             if amp_class == "class_d":
                 entry["has_output_filter"] = has_output_filter
+            entry["provenance"] = make_provenance("audio_codec_topology", "deterministic", claimed_components=[ref])
             results.append(entry)
 
         elif is_codec:
@@ -3661,9 +4509,23 @@ def detect_audio_circuits(ctx: AnalysisContext) -> list[dict]:
                 "has_adc": has_adc,
                 "has_dac": has_dac,
                 "output_nets": output_nets,
+                "detector": "detect_audio_circuits",
+                "rule_id": "AU-DET",
+                "category": "audio",
+                "severity": "info",
+                "confidence": "deterministic",
+                "evidence_source": "topology",
+                "summary": f"Audio codec {ref} ({comp.get('value', '')}) [{interface}]",
+                "description": f"Detected audio codec IC {ref}.",
+                "components": [ref],
+                "nets": output_nets,
+                "pins": [],
+                "recommendation": "",
+                "report_context": {"section": "Audio", "impact": "", "standard_ref": ""},
             }
             if output_load:
                 entry["output_load"] = output_load
+            entry["provenance"] = make_provenance("audio_codec_topology", "deterministic", claimed_components=[ref])
             results.append(entry)
 
     return results
@@ -3744,7 +4606,7 @@ def detect_led_driver_ics(ctx: AnalysisContext) -> list[dict]:
 
         # Find current set resistor
         current_set = None
-        for pname in _LED_CURRENT_SET_PINS:
+        for pname in sorted(_LED_CURRENT_SET_PINS):
             if pname in pin_nets:
                 net = pin_nets[pname]
                 if net in ctx.nets:
@@ -3765,12 +4627,26 @@ def detect_led_driver_ics(ctx: AnalysisContext) -> list[dict]:
             "value": comp.get("value", ""),
             "type": driver_type,
             "interface": interface,
+            "detector": "detect_led_driver_ics",
+            "rule_id": "LI-DET",
+            "category": "led_control",
+            "severity": "info",
+            "confidence": "deterministic",
+            "evidence_source": "topology",
+            "summary": f"LED driver {ref} ({comp.get('value', '')}) [{driver_type}]",
+            "description": f"Detected {driver_type} LED driver IC {ref}.",
+            "components": [ref],
+            "nets": [],
+            "pins": [],
+            "recommendation": "",
+            "report_context": {"section": "LED Control", "impact": "", "standard_ref": ""},
         }
         if channels > 0:
             entry["channels"] = channels
         if current_set:
             entry["current_set"] = current_set
 
+        entry["provenance"] = make_provenance("led_resistor_topology", "deterministic", claimed_components=[ref])
         results.append(entry)
 
     return results
@@ -3844,7 +4720,7 @@ def detect_rtc_circuits(ctx: AnalysisContext,
         external_crystal = crystal_by_ic.get(ref)
         # Also check by scanning crystal pins on this IC
         if not external_crystal:
-            for pname in all_pins:
+            for pname in sorted(all_pins):
                 if any(k in pname for k in ("XTAL", "OSC", "X1", "X2", "XI", "XO",
                                              "X32K", "XT1", "XT2")):
                     net = pin_nets[pname]
@@ -3861,7 +4737,7 @@ def detect_rtc_circuits(ctx: AnalysisContext,
 
         # Battery backup
         battery_backup = None
-        for pname in _VBAT_PINS:
+        for pname in sorted(_VBAT_PINS):
             if pname in pin_nets:
                 vbat_net = pin_nets[pname]
                 if vbat_net in ctx.nets:
@@ -3883,7 +4759,7 @@ def detect_rtc_circuits(ctx: AnalysisContext,
         # Interrupt pin
         interrupt_net = None
         interrupt_connected = False
-        for pname in _RTC_INT_PINS:
+        for pname in sorted(_RTC_INT_PINS):
             if pname in pin_nets:
                 interrupt_net = pin_nets[pname]
                 if interrupt_net in ctx.nets:
@@ -3898,11 +4774,12 @@ def detect_rtc_circuits(ctx: AnalysisContext,
 
         # SQW/CLKOUT pin
         sqw_net = None
-        for pname in _RTC_SQW_PINS:
+        for pname in sorted(_RTC_SQW_PINS):
             if pname in pin_nets:
                 sqw_net = pin_nets[pname]
                 break
 
+        rtc_comps = [ref] + ([external_crystal] if external_crystal else [])
         entry: dict = {
             "ref": ref,
             "value": comp.get("value", ""),
@@ -3910,6 +4787,19 @@ def detect_rtc_circuits(ctx: AnalysisContext,
             "interface": interface,
             "has_internal_oscillator": has_internal_osc,
             "external_crystal": external_crystal,
+            "detector": "detect_rtc_circuits",
+            "rule_id": "RT-DET",
+            "category": "timing",
+            "severity": "info",
+            "confidence": "deterministic",
+            "evidence_source": "topology",
+            "summary": f"RTC {ref} ({comp.get('value', '')}) [{interface}]",
+            "description": f"Detected RTC IC {ref}.",
+            "components": rtc_comps,
+            "nets": [],
+            "pins": [],
+            "recommendation": "",
+            "report_context": {"section": "Timing", "impact": "", "standard_ref": ""},
         }
         if battery_backup:
             entry["battery_backup"] = battery_backup
@@ -3919,6 +4809,7 @@ def detect_rtc_circuits(ctx: AnalysisContext,
         if sqw_net:
             entry["sqw_net"] = sqw_net
 
+        entry["provenance"] = make_provenance("rtc_crystal_topology", "deterministic", claimed_components=[ref])
         results.append(entry)
 
     return results
@@ -3934,6 +4825,14 @@ _LED_VF = {
     "green": 3.2, "blue": 3.2, "white": 3.2, "uv": 3.5,
 }
 
+# Per-color Vf floor — the MINIMUM forward voltage below which an LED of
+# this color will not light at all. Used by LA-004 to flag LEDs on rails
+# that are below their color's floor. rc.2 4.1 expansion (Manas review).
+_LED_VF_FLOOR = {
+    "red": 1.85, "orange": 2.0, "yellow": 2.0, "amber": 2.0,
+    "green": 2.1, "blue": 3.0, "white": 3.0, "uv": 3.2,
+}
+
 
 def _estimate_led_vf(comp: dict) -> float:
     """Estimate LED forward voltage from value/lib_id color hints."""
@@ -3942,6 +4841,16 @@ def _estimate_led_vf(comp: dict) -> float:
         if color in combined:
             return vf
     return 2.0  # default to red/generic
+
+
+def _detect_led_color(comp: dict) -> str | None:
+    """Return the lowercase color string for an LED, or None if no color
+    hint is present in value/lib_id."""
+    combined = (comp.get("value", "") + " " + comp.get("lib_id", "")).lower()
+    for color in _LED_VF.keys():
+        if color in combined:
+            return color
+    return None
 
 
 def audit_led_circuits(ctx: AnalysisContext,
@@ -3966,10 +4875,14 @@ def audit_led_circuits(ctx: AnalysisContext,
     addr_keywords = ("ws2812", "ws2813", "ws2815", "sk6812", "sk6805", "sk6803",
                      "apa102", "apa104", "sk9822", "ws2811", "neopixel", "dotstar")
 
+    _seen_refs = set()
     for comp in ctx.components:
         if comp["type"] != "led":
             continue
         ref = comp["reference"]
+        if ref in _seen_refs:
+            continue
+        _seen_refs.add(ref)
         if ref in driven_led_refs:
             continue
 
@@ -4100,11 +5013,25 @@ def audit_led_circuits(ctx: AnalysisContext,
         else:
             drive_method = "direct_drive"
 
+        la_comps = [ref] + ([series_resistor["ref"]] if series_resistor else []) + ([driver_source] if driver_source else [])
         entry: dict = {
             "ref": ref,
             "value": comp.get("value", ""),
             "type": "indicator_led",
             "drive_method": drive_method,
+            "detector": "audit_led_circuits",
+            "rule_id": "LA-AUD",
+            "category": "led_control",
+            "severity": "info",
+            "confidence": "deterministic",
+            "evidence_source": "topology",
+            "summary": f"LED {ref} ({comp.get('value', '')}) [{drive_method}]",
+            "description": f"LED audit: {ref} using {drive_method} drive method.",
+            "components": la_comps,
+            "nets": [supply_net] if supply_net else [],
+            "pins": [],
+            "recommendation": "",
+            "report_context": {"section": "LED Audit", "impact": "", "standard_ref": ""},
         }
 
         if series_resistor:
@@ -4129,7 +5056,56 @@ def audit_led_circuits(ctx: AnalysisContext,
         elif drive_method == "resistor_unparsed":
             entry["issue"] = "has_resistor_unparsed_value"
 
+        entry["provenance"] = make_provenance("led_audit", "deterministic", claimed_components=[ref])
         results.append(entry)
+
+        # LA-004 — rail-Vf floor check: if v_supply is below the LED's
+        # color floor, the LED can't forward-bias at all. rc.2 4.1
+        # expansion (Manas review).
+        if supply_net:
+            v_supply = parse_voltage_from_net_name(supply_net)
+            color = _detect_led_color(comp)
+            floor = _LED_VF_FLOOR.get(color) if color else None
+            if v_supply is not None and floor is not None and v_supply < floor:
+                results.append({
+                    "ref": ref,
+                    "type": "indicator_led",
+                    "detector": "audit_led_circuits",
+                    "rule_id": "LA-004",
+                    "category": "led_control",
+                    "severity": "warning",
+                    "confidence": "heuristic",
+                    "evidence_source": "topology",
+                    "summary": (f"LED {ref} ({color}) on {supply_net}: "
+                                f"rail {v_supply:.2f}V is below the "
+                                f"{color}-LED Vf floor of {floor:.2f}V "
+                                f"— LED will not light"),
+                    "description": (f"LED {ref} is a {color} LED on rail "
+                                    f"{supply_net} ({v_supply:.2f}V). "
+                                    f"The minimum forward voltage for a "
+                                    f"{color} LED is ~{floor:.2f}V; below "
+                                    f"this the diode does not forward-bias "
+                                    f"and no light is emitted."),
+                    "components": [ref],
+                    "nets": [supply_net],
+                    "pins": [],
+                    "supply_net": supply_net,
+                    "supply_voltage": v_supply,
+                    "color": color,
+                    "color_vf_floor": floor,
+                    "recommendation": (
+                        f"Either move {ref} to a rail at or above "
+                        f"{floor:.2f}V, or select a {color} LED variant "
+                        f"with a lower-than-typical Vf (specialty parts "
+                        f"exist down to ~1.8V for red)."
+                    ),
+                    "report_context": {
+                        "section": "LED Audit",
+                        "impact": "Indicator LED never lights",
+                        "standard_ref": "",
+                    },
+                    "provenance": make_provenance("led_audit", "heuristic", claimed_components=[ref]),
+                })
 
     return results
 
@@ -4209,13 +5185,27 @@ def detect_thermocouple_rtd(ctx: AnalysisContext) -> list[dict]:
                 "interface": interface,
                 "cold_junction_compensation": "internal" if has_cjc else "external",
                 "sensor_input_nets": sensor_nets,
+                "detector": "detect_thermocouple_rtd",
+                "rule_id": "TC-DET",
+                "category": "sensors",
+                "severity": "info",
+                "confidence": "deterministic",
+                "evidence_source": "topology",
+                "summary": f"Thermocouple amplifier {ref} ({comp.get('value', '')}) [{interface}]",
+                "description": f"Detected thermocouple amplifier IC {ref}.",
+                "components": [ref],
+                "nets": sensor_nets,
+                "pins": [],
+                "recommendation": "",
+                "report_context": {"section": "Sensors", "impact": "", "standard_ref": ""},
+                "provenance": make_provenance("thermo_ic_topology", "deterministic", claimed_components=[ref]),
             })
 
         elif is_rtd:
             # RTD interface
             # Find reference resistor
             ref_resistor = None
-            for pname in _RTD_REF_PINS:
+            for pname in sorted(_RTD_REF_PINS):
                 if pname in pin_nets:
                     net = pin_nets[pname]
                     if net in ctx.nets:
@@ -4246,11 +5236,25 @@ def detect_thermocouple_rtd(ctx: AnalysisContext) -> list[dict]:
             for pname in sorted(all_pins & (_RTD_FORCE_PINS | _TC_INPUT_PINS)):
                 sensor_nets.append(pin_nets[pname])
 
+            rtd_comps = [ref] + ([ref_resistor["ref"]] if ref_resistor else [])
             entry: dict = {
                 "ref": ref,
                 "value": comp.get("value", ""),
                 "type": "rtd_interface",
                 "interface": interface,
+                "detector": "detect_thermocouple_rtd",
+                "rule_id": "TC-DET",
+                "category": "sensors",
+                "severity": "info",
+                "confidence": "deterministic",
+                "evidence_source": "topology",
+                "summary": f"RTD interface {ref} ({comp.get('value', '')})" + (f" [{sensor_type}]" if sensor_type else ""),
+                "description": f"Detected RTD interface IC {ref}.",
+                "components": rtd_comps,
+                "nets": sensor_nets,
+                "pins": [],
+                "recommendation": "",
+                "report_context": {"section": "Sensors", "impact": "", "standard_ref": ""},
             }
             if ref_resistor:
                 entry["reference_resistor"] = ref_resistor
@@ -4259,6 +5263,7 @@ def detect_thermocouple_rtd(ctx: AnalysisContext) -> list[dict]:
             if sensor_nets:
                 entry["sensor_input_nets"] = sensor_nets
 
+            entry["provenance"] = make_provenance("thermo_ic_topology", "deterministic", claimed_components=[ref])
             results.append(entry)
 
     return results
@@ -4269,8 +5274,10 @@ def detect_thermocouple_rtd(ctx: AnalysisContext) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 _EN_PIN_NAMES = {"EN", "ENABLE", "ON", "ON/OFF", "CE", "SHDN", "SHUTDOWN",
-                 "EN1", "EN2", "EN3"}
-_PG_PIN_NAMES = {"PG", "PGOOD", "PG1", "PG2", "POWER_GOOD", "POK", "nPG"}
+                 "EN1", "EN2", "EN3",
+                 "~{EN}", "~{SHDN}", "~{ENABLE}", "~{CE}"}
+_PG_PIN_NAMES = {"PG", "PGOOD", "PG1", "PG2", "POWER_GOOD", "POK", "nPG",
+                 "~{PG}", "~{PGOOD}", "~{POWER_GOOD}", "~{POK}"}
 
 
 def validate_power_sequencing(ctx: AnalysisContext,
@@ -4309,6 +5316,32 @@ def validate_power_sequencing(ctx: AnalysisContext,
     source_en_nets: dict[str, str | None] = {}  # ref -> en_net
     source_pg_nets: dict[str, str | None] = {}  # ref -> pg_net
 
+    def _match_pin(pin_nets: dict[str, str], names: set[str]) -> str | None:
+        """Match a pin name from *pin_nets* against a set of canonical names.
+
+        KiCad 6+ overbar markup (``~{EN}``) is stripped before comparison so
+        that both ``EN`` and ``~{EN}`` match the canonical ``"EN"`` entry.
+        Trailing digits are also stripped for base-name matching (e.g.
+        ``EN1`` matches if ``"EN"`` is in *names*).
+        """
+        # First pass: direct lookup (fast path for exact matches). Sorted so
+        # that multi-channel parts (EN1/EN2/EN3 all present) resolve to the
+        # same pin on every run instead of following set hash order.
+        for pname in sorted(names):
+            if pname in pin_nets:
+                return pin_nets[pname]
+        # Second pass: normalize raw pin names and match against base names
+        # KH-223: strip ~{ } overbar wrappers and retry
+        for raw_pname, net in pin_nets.items():
+            norm = raw_pname.replace("~{", "").replace("}", "")
+            if norm in names:
+                return net
+            # Also try with trailing digits stripped (EN1 → EN)
+            base = norm.rstrip("0123456789")
+            if base and base in names:
+                return net
+        return None
+
     for src in all_sources:
         ref = src["ref"]
         pin_nets = _build_pin_net_map(ctx, ref)
@@ -4316,18 +5349,11 @@ def validate_power_sequencing(ctx: AnalysisContext,
         # EN pin
         en_net = src.get("enable_net")  # load switches already have this
         if not en_net:
-            for pname in _EN_PIN_NAMES:
-                if pname in pin_nets:
-                    en_net = pin_nets[pname]
-                    break
+            en_net = _match_pin(pin_nets, _EN_PIN_NAMES)
         source_en_nets[ref] = en_net
 
         # PG pin
-        pg_net = None
-        for pname in _PG_PIN_NAMES:
-            if pname in pin_nets:
-                pg_net = pin_nets[pname]
-                break
+        pg_net = _match_pin(pin_nets, _PG_PIN_NAMES)
         source_pg_nets[ref] = pg_net
 
     # Build PG→EN cross-reference: which PG net drives which EN net
@@ -4458,6 +5484,7 @@ def validate_power_sequencing(ctx: AnalysisContext,
 
     result: dict = {
         "power_tree": power_tree,
+        "provenance": make_provenance("pseq_enable_chain", "heuristic"),
     }
     if enable_chains:
         result["enable_chains"] = enable_chains
@@ -4465,3 +5492,670 @@ def validate_power_sequencing(ctx: AnalysisContext,
         result["issues"] = issues
 
     return result
+
+
+# ---------------------------------------------------------------------------
+# Connector Ground Pin Distribution Audit
+# ---------------------------------------------------------------------------
+
+def audit_connector_ground_distribution(ctx: AnalysisContext) -> list[dict]:
+    """Check ground pin distribution on multi-pin connectors.
+
+    Professional rule: ground pins every 2-3 signal pins for EMI control.
+    Flags connectors with >4 signal pins per ground pin or no ground pins.
+    """
+    results: list[dict] = []
+    for comp in ctx.components:
+        if comp.get("type") != "connector":
+            continue
+        pin_nets = comp.get("pin_nets", {})
+        # Also build from ref_pins if pin_nets not populated on the component
+        if not pin_nets:
+            rp = ctx.ref_pins.get(comp["reference"], {})
+            pin_nets = {pn: net for pn, (net, _) in rp.items() if net}
+        if len(pin_nets) < 5:
+            continue
+
+        ref = comp["reference"]
+        gnd_count = 0
+        signal_count = 0
+        for pin_num, net in pin_nets.items():
+            if isinstance(net, tuple):
+                net = net[0]  # handle (net_name, pin_info) tuples
+            if not net:
+                continue
+            if ctx.is_ground(net):
+                gnd_count += 1
+            elif not ctx.is_power_net(net):
+                signal_count += 1
+
+        if signal_count == 0:
+            continue
+
+        if gnd_count == 0:
+            results.append({
+                "ref": ref, "value": comp.get("value", ""),
+                "total_pins": len(pin_nets), "ground_pins": 0,
+                "signal_pins": signal_count,
+                "status": "warning",
+                "detail": f"{ref}: {len(pin_nets)}-pin connector has no ground pins",
+                "detector": "audit_connector_ground_distribution",
+                "rule_id": "CG-AUD",
+                "category": "connectors",
+                "severity": "warning",
+                "confidence": "deterministic",
+                "evidence_source": "topology",
+                "summary": f"Connector {ref} has no ground pins ({len(pin_nets)} pins)",
+                "description": f"Connector {ref} has {signal_count} signal pins but no ground pins.",
+                "components": [ref],
+                "nets": [],
+                "pins": [],
+                "recommendation": "Add ground pin(s) for EMI control.",
+                "report_context": {"section": "Connector Ground", "impact": "", "standard_ref": ""},
+                "provenance": make_provenance("cg_ground_audit", "deterministic", claimed_components=[ref]),
+            })
+        else:
+            ratio = signal_count / max(gnd_count, 1)
+            if ratio > 4:
+                results.append({
+                    "ref": ref, "value": comp.get("value", ""),
+                    "total_pins": len(pin_nets), "ground_pins": gnd_count,
+                    "signal_pins": signal_count, "signal_per_ground": round(ratio, 1),
+                    "status": "advisory",
+                    "detail": (f"{ref}: {ratio:.0f} signal pins per ground pin "
+                               f"(recommended: \u22643 for EMI control)"),
+                    "detector": "audit_connector_ground_distribution",
+                    "rule_id": "CG-AUD",
+                    "category": "connectors",
+                    "severity": "info",
+                    "confidence": "deterministic",
+                    "evidence_source": "topology",
+                    "summary": f"Connector {ref}: {ratio:.0f}:1 signal-to-ground ratio",
+                    "description": f"Connector {ref} has {ratio:.1f} signal pins per ground pin.",
+                    "components": [ref],
+                    "nets": [],
+                    "pins": [],
+                    "recommendation": "Add more ground pins (target \u22643 signal pins per ground).",
+                    "report_context": {"section": "Connector Ground", "impact": "", "standard_ref": ""},
+                    "provenance": make_provenance("cg_ground_audit", "deterministic", claimed_components=[ref]),
+                })
+    return results
+
+
+# ---------------------------------------------------------------------------
+# Certification Suggestion
+# ---------------------------------------------------------------------------
+
+def suggest_certifications(ctx: AnalysisContext, signal_analysis: dict) -> list[dict]:
+    """Suggest applicable certifications based on design characteristics.
+
+    Cross-references existing domain detections to identify likely
+    required standards/certifications.
+    """
+    suggestions: list[dict] = []
+
+    # Wireless modules / RF → FCC/CE/IC
+    rf_chains = signal_analysis.get("rf_chains", [])
+    if rf_chains:
+        suggestions.append({
+            "standard": "FCC Part 15",
+            "region": "US",
+            "reason": f"RF transceiver detected ({len(rf_chains)} chain(s))",
+            "components": [c.get("reference", c.get("ref", "")) for c in rf_chains[:3]],
+        })
+        suggestions.append({
+            "standard": "CE RED (Radio Equipment Directive)",
+            "region": "EU",
+            "reason": "RF transceiver detected",
+        })
+
+    # WiFi/BT modules
+    for comp in ctx.components:
+        val_lib = (comp.get("value", "") + " " + comp.get("lib_id", "")).lower()
+        if any(k in val_lib for k in ("esp32", "esp8266", "nrf52", "cc254",
+                                       "wl18", "cyw43", "ap621", "bcm43")):
+            if not any(s["standard"] == "FCC Part 15" for s in suggestions):
+                suggestions.append({
+                    "standard": "FCC Part 15",
+                    "region": "US",
+                    "reason": f"Wireless module detected: {comp['reference']}",
+                })
+            break
+
+    # Battery/charger → safety standards
+    battery_chargers = signal_analysis.get("battery_chargers", [])
+    bms_systems = signal_analysis.get("bms_systems", [])
+    if battery_chargers or bms_systems:
+        suggestions.append({
+            "standard": "IEC 62133 / UL 2054",
+            "region": "International",
+            "reason": "Battery charging/management circuitry detected",
+        })
+        suggestions.append({
+            "standard": "UN 38.3",
+            "region": "International (shipping)",
+            "reason": "Lithium battery transport safety testing",
+        })
+
+    # USB → USB-IF compliance
+    usb_compliance = signal_analysis.get("usb_compliance", [])
+    if usb_compliance:
+        suggestions.append({
+            "standard": "USB-IF Compliance",
+            "region": "International",
+            "reason": "USB interface detected",
+        })
+
+    # Ethernet → EMC
+    ethernet = signal_analysis.get("ethernet_interfaces", [])
+    if ethernet:
+        suggestions.append({
+            "standard": "IEEE 802.3 / CISPR 32",
+            "region": "International",
+            "reason": "Ethernet interface detected — EMC compliance required",
+        })
+
+    # High voltage detection (>60V)
+    rail_voltages = signal_analysis.get("rail_voltages", {})
+    max_voltage = max((v for v in rail_voltages.values()
+                       if isinstance(v, (int, float))), default=0)
+    if max_voltage > 60:
+        suggestions.append({
+            "standard": "IEC 62368-1 (Safety)",
+            "region": "International",
+            "reason": f"High voltage detected: {max_voltage:.0f}V (>60V safety threshold)",
+        })
+
+    # General EMC (all products)
+    if not any(s["standard"].startswith("FCC") for s in suggestions):
+        suggestions.append({
+            "standard": "FCC Part 15 Subpart B (Unintentional Radiator)",
+            "region": "US",
+            "reason": "All electronic devices require unintentional radiator compliance",
+        })
+    if not any("CISPR" in s["standard"] or "CE" in s["standard"]
+               for s in suggestions):
+        suggestions.append({
+            "standard": "CISPR 32 / CE EMC Directive",
+            "region": "EU",
+            "reason": "All electronic devices require EMC compliance for EU market",
+        })
+
+    # Annotate each suggestion with finding metadata so the trust_summary
+    # doesn't flag them as unknown confidence/evidence.
+    for s in suggestions:
+        s.setdefault('detector', 'suggest_certifications')
+        s.setdefault('rule_id', 'CERT-001')
+        s.setdefault('category', 'certification')
+        s.setdefault('severity', 'info')
+        s.setdefault('confidence', 'heuristic')
+        s.setdefault('evidence_source', 'topology')
+        s.setdefault('summary', s.get('reason', ''))
+        s.setdefault('description', f"{s.get('standard', '')}: {s.get('reason', '')}")
+        s.setdefault('components', s.get('components', []))
+        s.setdefault('nets', [])
+        s.setdefault('pins', [])
+        s.setdefault('recommendation', '')
+        s.setdefault('report_context', {
+            'section': 'Certifications', 'impact': '', 'standard_ref': ''})
+
+    return suggestions
+
+
+def _get_pin_net_domain(ctx: AnalysisContext, ref: str, pin_names: tuple) -> str | None:
+    """Find net connected to a pin matching names (domain_detectors version)."""
+    pins = ctx.ref_pins.get(ref, {})
+    for pnum, (net, _) in pins.items():
+        comp = ctx.comp_lookup.get(ref)
+        if not comp:
+            continue
+        for p in comp.get('pins', []):
+            if p.get('number') == pnum and p.get('name', '').upper() in pin_names:
+                return net
+    for pnum, (net, _) in pins.items():
+        if not net or net not in ctx.nets:
+            continue
+        for np in ctx.nets[net]['pins']:
+            if np['component'] == ref and np.get('pin_name', '').upper() in pin_names:
+                return net
+    return None
+
+
+# ---------------------------------------------------------------------------
+# WL-001: Wireless module validation
+# ---------------------------------------------------------------------------
+
+_WIFI_BLE_KEYWORDS = (
+    'esp32', 'esp8266', 'esp32s', 'esp32c', 'esp32h',
+    'nrf52', 'nrf53', 'nrf91', 'nrf7002',
+    'cc2640', 'cc2652', 'cc1352', 'cc3220',
+    'cyw43', 'cyw20',
+    'da1469', 'da1458',
+    'stm32wb', 'stm32wl', 'stm32wba',
+    'rp2040w', 'pico_w',
+    'atecc', 'atwinc', 'atwilc',
+    'bg22', 'bg24', 'mg24',
+)
+
+_LORA_KEYWORDS = (
+    'sx1276', 'sx1278', 'sx1262', 'sx1261', 'sx1280',
+    'rfm95', 'rfm96', 'rfm98', 'rfm69',
+    'ra01', 'ra02',
+    'llcc68',
+    'lr1110', 'lr1120', 'lr1121',
+    'stm32wl',
+)
+
+_CELLULAR_KEYWORDS = (
+    'sim7000', 'sim7600', 'sim7080', 'sim800', 'sim900',
+    'bg96', 'bg77', 'bc66', 'bc95',
+    'sara', 'lara', 'toby',
+    'mc60', 'mc20',
+    'a7670', 'a7608',
+)
+
+_GPS_KEYWORDS = (
+    'neo6m', 'neo7m', 'neo8m', 'neom8', 'neom9', 'zed',
+    'l76', 'l86', 'l96',
+    'sam_m8q', 'sam_m10',
+    'gps', 'gnss',
+    'pa1010', 'pa1616',
+)
+
+_ANTENNA_PIN_NAMES = ('ANT', 'ANTENNA', 'RF', 'RF_OUT', 'RF_IN', 'RFIO', 'ANT_SW')
+_SIM_PIN_NAMES = ('SIM_VCC', 'SIM_RST', 'SIM_IO', 'SIM_CLK', 'SIM_DET')
+
+
+def detect_wireless_modules(ctx: AnalysisContext) -> list[dict]:
+    """WL-001: Detect WiFi/BLE, LoRa, cellular, and GPS modules."""
+    results: list[dict] = []
+    for ic in get_unique_ics(ctx):
+        ref = ic['reference']
+        val = ic.get('value', '')
+        wl_type = None
+        if match_ic_keywords(ic, _WIFI_BLE_KEYWORDS):
+            wl_type = 'wifi_ble'
+        elif match_ic_keywords(ic, _LORA_KEYWORDS):
+            wl_type = 'lora'
+        elif match_ic_keywords(ic, _CELLULAR_KEYWORDS):
+            wl_type = 'cellular'
+        elif match_ic_keywords(ic, _GPS_KEYWORDS):
+            wl_type = 'gps'
+        if not wl_type:
+            continue
+
+        ant_net = _get_pin_net_domain(ctx, ref, _ANTENNA_PIN_NAMES)
+        entry = {
+            'detector': 'detect_wireless_modules', 'rule_id': 'WL-001',
+            'category': 'wireless', 'reference': ref, 'value': val,
+            'wireless_type': wl_type, 'antenna_net': ant_net,
+            'severity': 'info', 'confidence': 'deterministic',
+            'evidence_source': 'topology',
+            'summary': f'{wl_type.replace("_", "/")} module {ref} ({val})',
+            'description': f'Detected {wl_type} wireless module {ref} ({val}).',
+            'components': [ref], 'nets': [ant_net] if ant_net else [],
+            'pins': [], 'recommendation': '',
+            'report_context': {'section': 'Wireless', 'impact': '', 'standard_ref': ''},
+        }
+        if wl_type == 'cellular':
+            sim_nets = {}
+            for sn in _SIM_PIN_NAMES:
+                net = _get_pin_net_domain(ctx, ref, (sn,))
+                if net:
+                    sim_nets[sn] = net
+            entry['sim_pins'] = sim_nets
+            if not sim_nets:
+                entry['severity'] = 'warning'
+                entry['recommendation'] = 'Verify SIM card connections for cellular module.'
+        entry['provenance'] = make_provenance('wireless_antenna_match', 'heuristic', claimed_components=[ref])
+        results.append(entry)
+    return results
+
+
+# ---------------------------------------------------------------------------
+# TF-001: Transformer-coupled SMPS feedback
+# ---------------------------------------------------------------------------
+
+_FLYBACK_CONTROLLER_KEYWORDS = (
+    'uc3842', 'uc3843', 'uc3844', 'uc3845', 'uc284', 'uc384',
+    'lt3748', 'lt3573', 'lt3798',
+    'top2', 'top3', 'tnr', 'tny2', 'tny3',
+    'viper', 'viper22', 'viper53',
+    'lnk3', 'lnk6',
+    'ob2263', 'ob2269',
+    'mp15', 'mp17',
+    'ap393', 'fsd2',
+)
+
+_OPTOCOUPLER_KEYWORDS = (
+    'pc817', 'el817', 'tlp', 'sfh6', 'hcpl', 'acpl', 'cny17',
+    'ps2501', 'ps2561', '4n25', '4n35', 'moc3',
+    'fod8', 'fod3', 'vo618', 'vo3120',
+)
+
+_TL431_KEYWORDS = ('tl431', 'tlv431', 'lm431', 'ka431', 'az431', 'lmv431')
+
+
+def detect_transformer_feedback(ctx: AnalysisContext) -> list[dict]:
+    """TF-001: Detect isolated SMPS feedback loops (optocoupler + TL431)."""
+    results: list[dict] = []
+    controllers = [ic for ic in get_unique_ics(ctx) if match_ic_keywords(ic, _FLYBACK_CONTROLLER_KEYWORDS)]
+    optocouplers = [c for c in ctx.components
+                    if match_ic_keywords(c, _OPTOCOUPLER_KEYWORDS)
+                    or 'optocoupler' in (c.get('lib_id', '') + c.get('value', '')).lower()]
+    tl431s = [c for c in ctx.components
+              if match_ic_keywords(c, _TL431_KEYWORDS) or 'tl431' in c.get('value', '').lower()]
+
+    if not controllers:
+        return results
+
+    for ctrl in controllers:
+        ref = ctrl['reference']
+        entry = {
+            'detector': 'detect_transformer_feedback', 'rule_id': 'TF-001',
+            'category': 'isolated_power', 'reference': ref, 'value': ctrl.get('value', ''),
+            'controller_type': 'flyback', 'optocoupler': None, 'shunt_reference': None,
+            'severity': 'info', 'confidence': 'heuristic', 'evidence_source': 'topology',
+            'summary': f'Isolated SMPS controller {ref} ({ctrl.get("value", "")})',
+            'description': f'Detected flyback/isolated SMPS controller {ref}.',
+            'components': [ref], 'nets': [], 'pins': [], 'recommendation': '',
+            'report_context': {'section': 'Isolated Power', 'impact': '', 'standard_ref': ''},
+        }
+        fb_net = _get_pin_net_domain(ctx, ref, ('FB', 'COMP', 'VFB', 'OPTO'))
+        if fb_net:
+            for opto in optocouplers:
+                opto_ref = opto['reference']
+                for pnum, (net, _) in ctx.ref_pins.get(opto_ref, {}).items():
+                    if net == fb_net:
+                        entry['optocoupler'] = {'ref': opto_ref, 'value': opto.get('value', '')}
+                        entry['components'].append(opto_ref)
+                        break
+        if entry['optocoupler']:
+            opto_ref = entry['optocoupler']['ref']
+            for pnum, (net, _) in ctx.ref_pins.get(opto_ref, {}).items():
+                if not net:
+                    continue
+                for tl in tl431s:
+                    tl_ref = tl['reference']
+                    for tp, (tnet, _) in ctx.ref_pins.get(tl_ref, {}).items():
+                        if tnet == net:
+                            entry['shunt_reference'] = {'ref': tl_ref, 'value': tl.get('value', '')}
+                            entry['components'].append(tl_ref)
+                            break
+            entry['confidence'] = 'deterministic'
+            entry['description'] = (
+                f'Isolated SMPS {ref} with optocoupler feedback via {entry["optocoupler"]["ref"]}'
+                f'{" and " + entry["shunt_reference"]["ref"] + " shunt reference" if entry["shunt_reference"] else ""}.'
+            )
+        entry['provenance'] = make_provenance('smps_transformer_topology', 'deterministic', claimed_components=[ref])
+        results.append(entry)
+    return results
+
+
+# ---------------------------------------------------------------------------
+# IA-001: I2C address conflict detection
+# ---------------------------------------------------------------------------
+
+_I2C_DEVICE_ADDRESSES = {
+    'ina219': {'base': 0x40, 'pins': ('A0', 'A1')},
+    'ina226': {'base': 0x40, 'pins': ('A0', 'A1')},
+    'ina228': {'base': 0x40, 'pins': ('A0', 'A1')},
+    'pca9685': {'base': 0x40, 'pins': ('A0', 'A1', 'A2', 'A3', 'A4', 'A5')},
+    'ads1115': {'base': 0x48, 'pins': ('ADDR',)},
+    'ads1015': {'base': 0x48, 'pins': ('ADDR',)},
+    'bme280': {'base': 0x76, 'pins': ('SDO',)},
+    'bmp280': {'base': 0x76, 'pins': ('SDO',)},
+    'sht3': {'base': 0x44, 'pins': ('ADDR',)},
+    'mcp4725': {'base': 0x60, 'pins': ('A0', 'A1', 'A2')},
+    'at24c': {'base': 0x50, 'pins': ('A0', 'A1', 'A2')},
+    'pcf8574': {'base': 0x20, 'pins': ('A0', 'A1', 'A2')},
+    'pcf8575': {'base': 0x20, 'pins': ('A0', 'A1', 'A2')},
+    'mcp23017': {'base': 0x20, 'pins': ('A0', 'A1', 'A2')},
+    'ds1307': {'base': 0x68, 'pins': ()},
+    'ds3231': {'base': 0x68, 'pins': ()},
+}
+
+
+def _resolve_addr_pin(ctx: AnalysisContext, ref: str, pin_name: str) -> str:
+    net = _get_pin_net_domain(ctx, ref, (pin_name,))
+    if not net:
+        return 'unknown'
+    if ctx.is_ground(net):
+        return 'gnd'
+    if ctx.is_power_net(net):
+        return 'vcc'
+    net_lower = net.lower()
+    if 'sda' in net_lower:
+        return 'sda'
+    if 'scl' in net_lower:
+        return 'scl'
+    return 'unknown'
+
+
+def detect_i2c_address_conflicts(ctx: AnalysisContext) -> list[dict]:
+    """IA-001: Detect I2C devices with potentially conflicting addresses."""
+    results: list[dict] = []
+    buses: dict = {}
+
+    for ic in get_unique_ics(ctx):
+        ref = ic['reference']
+        combined = (ic.get('value', '') + ' ' + ic.get('lib_id', '')).lower()
+        device_type = None
+        for keyword in _I2C_DEVICE_ADDRESSES:
+            if keyword in combined:
+                device_type = keyword
+                break
+        if not device_type:
+            continue
+        sda_net = _get_pin_net_domain(ctx, ref, ('SDA', 'I2C_SDA'))
+        scl_net = _get_pin_net_domain(ctx, ref, ('SCL', 'I2C_SCL'))
+        if not sda_net or not scl_net:
+            continue
+        dev_info = _I2C_DEVICE_ADDRESSES[device_type]
+        addr_config = {pin: _resolve_addr_pin(ctx, ref, pin) for pin in dev_info['pins']}
+        buses.setdefault((sda_net, scl_net), []).append({
+            'ref': ref, 'value': ic.get('value', ''), 'device_type': device_type,
+            'addr_config': addr_config, 'base_addr': dev_info['base'],
+        })
+
+    for (sda_net, scl_net), devices in buses.items():
+        addr_groups: dict = {}
+        for dev in devices:
+            config_str = f"{dev['device_type']}:{','.join(f'{k}={v}' for k, v in sorted(dev['addr_config'].items()))}"
+            addr_groups.setdefault(config_str, []).append(dev)
+        for config_str, group in addr_groups.items():
+            if len(group) < 2:
+                continue
+            refs = [d['ref'] for d in group]
+            dev_type = group[0]['device_type']
+            base = group[0]['base_addr']
+            results.append(make_finding(
+                detector='detect_i2c_address_conflicts', rule_id='IA-001', category='protocol_integrity',
+                summary=f'I2C address conflict: {len(refs)}x {dev_type} at same address on {sda_net}/{scl_net}',
+                description=f'{len(refs)} instances of {dev_type} ({", ".join(refs)}) have identical address configs ({config_str.split(":", 1)[1]}).',
+                severity='error', confidence='deterministic', evidence_source='topology',
+                components=refs, nets=[sda_net, scl_net],
+                recommendation='Reconfigure address pins (A0/A1/A2) to assign unique addresses.',
+                fix_params={'type': 'swap_connection', 'components': refs[1:], 'change': 'Rewire address pins', 'basis': f'{dev_type} base 0x{base:02X}'},
+                impact='Bus corruption — multiple devices respond to same address',
+                provenance=make_provenance('i2c_addr_conflict', 'deterministic', claimed_components=refs),
+            
+                source=ctx.source,))
+    return results
+
+
+# ---------------------------------------------------------------------------
+# SC-001: Supercapacitor / energy harvesting
+# ---------------------------------------------------------------------------
+
+_HARVESTER_KEYWORDS = (
+    'bq25570', 'bq25504', 'bq25505',
+    'ltc3108', 'ltc3109', 'ltc3588',
+    'spv1040', 'spv1050',
+    'adp5090', 'adp5091', 'adp5092',
+    'max20361',
+    'ab1815',
+    'mb39c', 'mb39d',
+    'e_peas', 'aem1094', 'aem3094',
+)
+
+_SUPERCAP_KEYWORDS = ('supercap', 'edlc', 'ultracap', 'gold_cap', 'super_cap')
+
+
+def detect_energy_harvesting(ctx: AnalysisContext) -> list[dict]:
+    """SC-001: Detect energy harvesting ICs and supercapacitor circuits."""
+    results: list[dict] = []
+    for ic in get_unique_ics(ctx):
+        if not match_ic_keywords(ic, _HARVESTER_KEYWORDS):
+            continue
+        ref = ic['reference']
+        results.append({
+            'detector': 'detect_energy_harvesting', 'rule_id': 'SC-001',
+            'category': 'energy_harvesting', 'reference': ref, 'value': ic.get('value', ''),
+            'harvester_type': 'energy_harvesting_ic',
+            'severity': 'info', 'confidence': 'deterministic', 'evidence_source': 'topology',
+            'summary': f'Energy harvesting IC {ref} ({ic.get("value", "")})',
+            'description': f'Detected energy harvesting PMIC {ref} ({ic.get("value", "")}).',
+            'components': [ref], 'nets': [], 'pins': [], 'recommendation': '',
+            'report_context': {'section': 'Energy Harvesting', 'impact': '', 'standard_ref': ''},
+            'provenance': make_provenance('eharvest_topology', 'heuristic', claimed_components=[ref]),
+        })
+    for comp in ctx.components:
+        if comp['type'] != 'capacitor':
+            continue
+        val = comp.get('value', '').lower()
+        lib = comp.get('lib_id', '').lower()
+        combined = val + ' ' + lib
+        farads = ctx.parsed_values.get(comp['reference'])
+        is_supercap = any(k in combined for k in _SUPERCAP_KEYWORDS)
+        if not is_supercap and farads is not None and farads >= 0.1:
+            is_supercap = True
+        if is_supercap:
+            results.append({
+                'detector': 'detect_energy_harvesting', 'rule_id': 'SC-001',
+                'category': 'energy_harvesting', 'reference': comp['reference'],
+                'value': comp.get('value', ''), 'harvester_type': 'supercapacitor',
+                'capacitance_F': farads,
+                'severity': 'info', 'confidence': 'deterministic', 'evidence_source': 'topology',
+                'summary': f'Supercapacitor {comp["reference"]} ({comp.get("value", "")})',
+                'description': f'Detected supercapacitor {comp["reference"]}.',
+                'components': [comp['reference']], 'nets': [], 'pins': [], 'recommendation': '',
+                'report_context': {'section': 'Energy Harvesting', 'impact': '', 'standard_ref': ''},
+                'provenance': make_provenance('eharvest_topology', 'heuristic', claimed_components=[comp['reference']]),
+            })
+    return results
+
+
+# ---------------------------------------------------------------------------
+# PL-001: PWM LED dimming topology
+# ---------------------------------------------------------------------------
+
+def detect_pwm_led_dimming(ctx: AnalysisContext, transistor_circuits: list[dict]) -> list[dict]:
+    """PL-001: Detect transistor-driven LED circuits.
+
+    Finds transistors whose load_type is 'led' or whose collector/drain net
+    connects to LEDs. Covers both MOSFET and BJT LED drivers.
+    """
+    results: list[dict] = []
+    for tc in transistor_circuits:
+        ref = tc.get('reference', '')
+        leds_on_load: list[str] = []
+
+        if tc.get('load_type') == 'led':
+            for net_key in ('collector_net', 'drain_net'):
+                load_net = tc.get(net_key, '')
+                if load_net and load_net in ctx.nets:
+                    for p in ctx.nets[load_net]['pins']:
+                        comp = ctx.comp_lookup.get(p['component'])
+                        if comp and comp['type'] == 'led' and p['component'] not in leds_on_load:
+                            leds_on_load.append(p['component'])
+
+        if not leds_on_load:
+            continue
+
+        sense_r = tc.get('emitter_resistor') or tc.get('source_resistor')
+        load_net = tc.get('collector_net', tc.get('drain_net', ''))
+
+        results.append({
+            'detector': 'detect_pwm_led_dimming', 'rule_id': 'PL-001',
+            'category': 'led_control', 'reference': ref,
+            'transistor_type': tc.get('type', ''),
+            'leds': leds_on_load,
+            'sense_resistor': sense_r,
+            'severity': 'info', 'confidence': 'deterministic', 'evidence_source': 'topology',
+            'summary': f'Transistor-driven LED: {ref} driving {", ".join(leds_on_load)}',
+            'description': (
+                f'Transistor {ref} ({tc.get("value", "")}) drives LED(s) '
+                f'{", ".join(leds_on_load)} {"with" if sense_r else "without"} '
+                f'current sense resistor.'
+            ),
+            'components': [ref] + leds_on_load, 'nets': [load_net] if load_net else [],
+            'pins': [],
+            'recommendation': '' if sense_r else 'Consider adding a current sense resistor for LED current regulation.',
+            'report_context': {'section': 'LED Control', 'impact': '', 'standard_ref': ''},
+            'provenance': make_provenance('pwm_led_topology', 'deterministic', claimed_components=[ref]),
+        })
+    return results
+
+
+# ---------------------------------------------------------------------------
+# AH-001: Audio headphone jack switch detection
+# ---------------------------------------------------------------------------
+
+_AUDIO_CODEC_KEYWORDS = (
+    'wm8', 'wm8960', 'wm8978', 'wm8731', 'wm8994',
+    'sgtl5000', 'tlv320', 'cs42', 'cs43', 'cs47',
+    'es8388', 'es8311', 'es7210',
+    'max9', 'max98',
+    'ssm26', 'adau17',
+    'ak4', 'ak5',
+    'pcm51', 'pcm17', 'pcm29', 'pcm31',
+    'tas2', 'tas5', 'tas6',
+    'nau88',
+)
+
+_HP_JACK_KEYWORDS = ('headphone', 'hp_jack', 'audio_jack', 'phone_jack', 'trrs', 'trs')
+_HP_DET_PIN_NAMES = ('HP_DET', 'HPDET', 'JACKDET', 'JACK_DET', 'DETECT', 'DET', 'SENSE', 'SW')
+
+
+def detect_headphone_jack(ctx: AnalysisContext) -> list[dict]:
+    """AH-001: Detect headphone jack insertion detection and codec wiring."""
+    results: list[dict] = []
+    codecs = [ic for ic in get_unique_ics(ctx) if match_ic_keywords(ic, _AUDIO_CODEC_KEYWORDS)]
+    hp_jacks = [c for c in ctx.components if c['type'] == 'connector'
+                and any(k in (c.get('value', '') + ' ' + c.get('lib_id', '')).lower() for k in _HP_JACK_KEYWORDS)]
+    if not hp_jacks:
+        return results
+
+    for jack in hp_jacks:
+        ref = jack['reference']
+        det_net = _get_pin_net_domain(ctx, ref, _HP_DET_PIN_NAMES)
+        entry = {
+            'detector': 'detect_headphone_jack', 'rule_id': 'AH-001',
+            'category': 'audio', 'reference': ref, 'value': jack.get('value', ''),
+            'detection_pin_net': det_net, 'associated_codec': None,
+            'severity': 'info', 'confidence': 'heuristic', 'evidence_source': 'topology',
+            'summary': f'Headphone jack {ref} ({jack.get("value", "")})',
+            'description': f'Detected headphone jack {ref}.',
+            'components': [ref], 'nets': [], 'pins': [], 'recommendation': '',
+            'report_context': {'section': 'Audio', 'impact': '', 'standard_ref': ''},
+        }
+        jack_pins = ctx.ref_pins.get(ref, {})
+        for codec in codecs:
+            codec_ref = codec['reference']
+            codec_nets = set(net for net, _ in ctx.ref_pins.get(codec_ref, {}).values() if net)
+            jack_nets = set(net for net, _ in jack_pins.values() if net)
+            shared = {n for n in (codec_nets & jack_nets) if n and not ctx.is_power_net(n) and not ctx.is_ground(n)}
+            if shared:
+                entry['associated_codec'] = {'ref': codec_ref, 'value': codec.get('value', '')}
+                entry['components'].append(codec_ref)
+                entry['nets'] = sorted(shared)[:5]
+                break
+        if not det_net and entry['associated_codec']:
+            entry['recommendation'] = (
+                f'Headphone jack {ref} has no insertion detection pin connected. '
+                f'Consider connecting switch pin to codec {entry["associated_codec"]["ref"]} HP_DET input.'
+            )
+        entry['provenance'] = make_provenance('headphone_jack_topology', 'deterministic', claimed_components=[ref])
+        results.append(entry)
+    return results

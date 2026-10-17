@@ -1,0 +1,58 @@
+name: parallel-execution-agent
+description: >
+  Parallel execution specialist. Manages task decomposition, Git worktree
+  orchestration, and dynamic scaling for parallel workloads.
+version: "1.0"
+entry: docs/runbooks/parallel-execution-usage.md
+
+inputs:
+  - name: task_description
+    type: string
+    description: Task to decompose and execute in parallel
+    required: true
+  - name: strategy
+    type: string
+    enum: [auto, scale_out, cascade, worktree]
+    description: Parallelization strategy
+    required: false
+  - name: max_instances
+    type: integer
+    description: Maximum number of parallel instances
+    required: false
+
+outputs:
+  - name: task_decomposition
+    type: array
+    description: List of decomposed subtasks
+  - name: execution_results
+    type: array
+    description: Results from parallel execution
+  - name: summary
+    type: object
+    description: Aggregated execution summary
+  - name: error
+    type: string
+    description: Error message if execution failed
+
+tool_calls:
+  - name: decompose_task
+    description: Decompose a task into parallelizable subtasks
+    arguments:
+      task: string
+  - name: create_worktree
+    description: Create a new Git worktree for parallel work
+    arguments:
+      path: string
+      branch: string
+  - name: list_worktrees
+    description: List all Git worktrees
+    arguments: {}
+  - name: execute_parallel
+    description: Execute multiple tasks in parallel
+    arguments:
+      tasks: array
+      max_instances: integer
+  - name: aggregate_results
+    description: Aggregate results from parallel execution
+    arguments:
+      results: array

@@ -1,0 +1,32 @@
+{
+  "name": "kachilu-browser",
+  "version": "0.0.7",
+  "description": "Browser automation CLI and MCP tools for AI agents, with human-like browser control and WSL2 Windows Chrome support.",
+  "author": {
+    "name": "Kachilu Inc."
+  },
+  "homepage": "https://github.com/kachilu-inc/kachilu-browser",
+  "repository": "https://github.com/kachilu-inc/kachilu-browser",
+  "license": "SEE LICENSE IN LICENSE",
+  "keywords": [
+    "browser",
+    "automation",
+    "chrome",
+    "mcp",
+    "agent"
+  ],
+  "skills": "./skills",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Kachilu Browser",
+    "shortDescription": "Automate a real browser through OpenClaw MCP tools.",
+    "longDescription": "Kachilu Browser gives OpenClaw agents a local browser automation control plane with accessibility snapshots, visible UI actions, CAPTCHA-aware workflows, and WSL2 Windows Chrome support.",
+    "developerName": "Kachilu Inc.",
+    "category": "Productivity",
+    "capabilities": [
+      "Browser Automation",
+      "MCP Tools"
+    ],
+    "websiteURL": "https://github.com/kachilu-inc/kachilu-browser"
+  }
+}

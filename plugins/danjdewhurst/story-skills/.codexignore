@@ -1,0 +1,11 @@
+node_modules/
+coverage/
+dist/
+evals/outputs/
+evals/baseline/
+.env
+.env.*
+*.swp
+*.swo
+*~
+.DS_Store

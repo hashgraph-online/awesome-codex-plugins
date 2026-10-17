@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rust SQLx Postgres Service"
+  short_description: "Build safe SQLx/Postgres service layers"
+  default_prompt: "Add or review SQLx/Postgres persistence for this Rust service."

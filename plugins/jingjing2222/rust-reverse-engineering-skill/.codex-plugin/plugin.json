@@ -1,0 +1,41 @@
+{
+  "name": "rust-reverse-engineering",
+  "version": "0.1.0",
+  "description": "Reverse engineer Rust binaries and libraries: triage targets, demangle symbols, recover crate boundaries, and map FFI, panic, unwind, and async paths.",
+  "author": {
+    "name": "jingjing2222",
+    "email": "hj.jingjing2222@gmail.com",
+    "url": "https://github.com/jingjing2222"
+  },
+  "homepage": "https://github.com/jingjing2222/rust-reverse-engineering-skill",
+  "repository": "https://github.com/jingjing2222/rust-reverse-engineering-skill",
+  "license": "Apache-2.0",
+  "keywords": [
+    "rust",
+    "reverse-engineering",
+    "binary-analysis",
+    "ffi",
+    "demangling",
+    "security"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Rust Reverse Engineering",
+    "shortDescription": "Triage and analyze Rust binaries without source code",
+    "longDescription": "Use this plugin to triage Rust executables and libraries, recover likely crate namespaces, demangle symbols, and map panic, unwind, async, and FFI paths across ELF, Mach-O, and PE targets.",
+    "developerName": "jingjing2222",
+    "category": "Coding",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Reverse engineer this Rust binary and summarize the main namespaces.",
+      "Demangle symbols in this Rust library and find likely FFI boundaries.",
+      "Triage this ELF or PE and tell me if it looks Rust-built."
+    ],
+    "brandColor": "#C96442",
+    "screenshots": []
+  }
+}

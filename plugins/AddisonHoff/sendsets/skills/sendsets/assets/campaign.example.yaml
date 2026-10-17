@@ -1,0 +1,25 @@
+name: Product-led outreach
+intent: draft
+senders:
+  mode: auto
+daily_limit: 20
+stop_on_reply: true
+opt_out_enabled: true
+steps:
+  - name: Build prospect report
+    type: app_action
+    app_action:
+      connection: app # Replace with a tested connection to your product.
+      path: /reports # Replace with the product's actual action path.
+      output_key: report
+      inputs:
+        domain: "{{.Company}}"
+  - name: Report introduction
+    variants:
+      - subject: "A report for {{.Company}}"
+        body_plain: |-
+          Hi {{.FirstName}},
+
+          I put together a useful result for your team: {{.App.report.url}}
+
+          Want me to walk you through it?

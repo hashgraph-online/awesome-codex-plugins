@@ -1,0 +1,47 @@
+{
+  "name": "@sitemd-cc/sitemd",
+  "version": "0.1.3",
+  "description": "Websites from Markdown. Built for AI coding assistants.",
+  "bin": {
+    "sitemd": "sitemd/sitemd"
+  },
+  "scripts": {
+    "postinstall": "node sitemd/install.js || true"
+  },
+  "files": [
+    "sitemd/",
+    "site.md",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE.md"
+  ],
+  "keywords": [
+    "static-site-generator",
+    "markdown",
+    "mcp",
+    "mcp-server",
+    "claude-code",
+    "codex",
+    "gemini",
+    "copilot",
+    "agent-skills",
+    "ai-coding-agent",
+    "website-builder"
+  ],
+  "license": "Elastic-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sitemd-cc/sitemd"
+  },
+  "homepage": "https://sitemd.cc",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@resvg/resvg-js": "^2.6.2",
+    "lucide-static": "^1.0.1",
+    "satori": "^0.26.0",
+    "sharp": "^0.34.5",
+    "simple-icons": "^16.13.0"
+  }
+}

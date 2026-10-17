@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "routes": {
+    "packet.inspect": {
+      "role": ["reviewer", "advisor", "editor", "implementer"],
+      "source": "packet",
+      "target": ["chat_reply", "local_artifact"],
+      "profile": "none",
+      "status": "implemented",
+      "alternative_route": null
+    },
+    "local.review": {
+      "role": ["reviewer"],
+      "source": "local_workspace",
+      "target": ["chat_reply", "local_artifact"],
+      "profile": "review",
+      "status": "implemented",
+      "alternative_route": "packet.inspect"
+    },
+    "local.plan": {
+      "role": ["advisor"],
+      "source": "local_workspace",
+      "target": ["chat_reply", "local_artifact"],
+      "profile": "plan",
+      "status": "implemented",
+      "alternative_route": "packet.inspect"
+    },
+    "local.implement": {
+      "role": ["implementer", "editor"],
+      "source": "local_workspace",
+      "target": ["local_worktree", "local_artifact"],
+      "profile": "implement",
+      "status": "implemented",
+      "alternative_route": null,
+      "safety": {
+        "expected_file_hash": true,
+        "atomic_write": true,
+        "arbitrary_shell": false
+      }
+    },
+    "github.review": {
+      "role": ["reviewer", "advisor"],
+      "source": "github_remote",
+      "target": ["chat_reply", "local_artifact"],
+      "profile": "github_read",
+      "status": "host_adapter_beta",
+      "alternative_route": "packet.inspect"
+    },
+    "github.implement": {
+      "role": ["implementer", "editor"],
+      "source": "github_remote",
+      "target": ["github_branch", "github_pull_request"],
+      "profile": "github_branch_write",
+      "status": "host_adapter_beta",
+      "alternative_route": null,
+      "safety": {
+        "default_branch_write": false,
+        "force_push": false,
+        "auto_merge": false,
+        "expected_base_sha": true
+      }
+    }
+  }
+}

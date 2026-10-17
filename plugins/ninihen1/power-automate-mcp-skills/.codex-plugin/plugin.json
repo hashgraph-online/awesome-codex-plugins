@@ -1,9 +1,9 @@
 {
   "name": "flowstudio-power-automate",
-  "version": "1.0.0",
-  "description": "Power Automate build, debug, and operations toolkit via FlowStudio MCP.",
+  "version": "1.0.1",
+  "description": "Debug, build, manage, and govern Power Automate cloud flows via FlowStudio MCP. Five skills for diagnostics, deployment, tenant-wide monitoring, and compliance metadata.",
   "author": {
-    "name": "Flow Studio",
+    "name": "FlowStudio",
     "url": "https://flowstudio.app"
   },
   "homepage": "https://mcp.flowstudio.app",
@@ -14,24 +14,32 @@
     "mcp",
     "power-platform",
     "debugging",
-    "flow-studio"
+    "flow-studio",
+    "governance",
+    "monitoring",
+    "audit",
+    "compliance"
   ],
   "skills": "./skills/",
   "interface": {
-    "displayName": "Flow Studio Power Automate",
-    "shortDescription": "Give your AI agent portal-level visibility into Power Automate flows",
-    "longDescription": "The Graph API only returns top-level run status. Flow Studio MCP exposes action-level inputs, outputs, loop iterations, and nested child flow failures so your agent can diagnose issues, compare runs, and deploy fixes. Three bundled skills: power-automate-mcp (operations), power-automate-debug (diagnostics), power-automate-build (deploy flows from scratch).",
-    "developerName": "Flow Studio",
+    "displayName": "FlowStudio Power Automate",
+    "shortDescription": "Debug, build, manage, and govern Power Automate flows with AI agents",
+    "longDescription": "Give your AI agent the same visibility you have in the Power Automate portal — plus tenant-wide governance and monitoring. The Graph API only returns top-level run status. FlowStudio MCP exposes action-level inputs, outputs, loop iterations, and nested child flow failures. Five bundled skills: power-automate-mcp (operations), power-automate-debug (diagnostics), power-automate-build (deployment), power-automate-monitoring (Pro+ tenant health), power-automate-governance (Pro+ compliance metadata).",
+    "developerName": "FlowStudio",
     "category": "cloud-services",
     "capabilities": [
-      "Power Automate flow management",
-      "Run debugging with action-level detail",
-      "Flow definition deployment"
+      "Power Automate flow operations and debugging",
+      "Action-level inputs, outputs, and loop iteration inspection",
+      "Flow definition build and deployment from natural language",
+      "Tenant-wide monitoring and health dashboards (Pro+)",
+      "Governance metadata and compliance auditing (Pro+)"
     ],
     "defaultPrompt": [
       "List my Power Automate flows",
       "Debug why this flow failed",
-      "Build a new flow that sends form data via email"
+      "Build a new flow that sends form data via email",
+      "Show me the top failing flows in my tenant this week",
+      "Tag this flow as business-critical"
     ],
     "websiteURL": "https://mcp.flowstudio.app",
     "brandColor": "#0078D4"

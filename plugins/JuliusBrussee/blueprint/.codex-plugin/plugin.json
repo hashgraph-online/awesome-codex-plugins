@@ -1,16 +1,16 @@
 {
-  "name": "bp",
+  "name": "ck",
   "version": "2.0.0",
-  "description": "Blueprint Framework for Codex and Claude Code. Draft blueprints, architect build sites, and execute adaptive build waves with validation and peer review.",
+  "description": "Cavekit Framework for Codex and Claude Code. Draft kits, architect build sites, and execute adaptive build waves with validation and peer review.",
   "author": {
     "name": "Julius Brussee",
     "url": "https://github.com/JuliusBrussee"
   },
-  "homepage": "https://github.com/JuliusBrussee/sdd-os",
-  "repository": "https://github.com/JuliusBrussee/sdd-os",
+  "homepage": "https://github.com/JuliusBrussee/cavekit",
+  "repository": "https://github.com/JuliusBrussee/cavekit",
   "license": "MIT",
   "keywords": [
-    "blueprint",
+    "cavekit",
     "agents",
     "codex",
     "claude-code",
@@ -20,9 +20,9 @@
   "agents": "./agents/",
   "commands": "./commands/",
   "interface": {
-    "displayName": "Blueprint",
-    "shortDescription": "Blueprint-driven software delivery for coding agents",
-    "longDescription": "Turn natural language into blueprints, blueprints into build sites, and build sites into validated code with adaptive parallel execution.",
+    "displayName": "Cavekit",
+    "shortDescription": "Cavekit-driven software delivery for coding agents",
+    "longDescription": "Turn natural language into kits, kits into build sites, and build sites into validated code with adaptive parallel execution.",
     "developerName": "Julius Brussee",
     "category": "Productivity",
     "capabilities": [
@@ -34,10 +34,10 @@
     "screenshots": [],
     "privacyPolicyURL": "./.codex-plugin/PRIVACY.md",
     "termsOfServiceURL": "./.codex-plugin/TERMS.md",
-    "websiteURL": "https://github.com/JuliusBrussee/sdd-os",
+    "websiteURL": "https://github.com/JuliusBrussee/cavekit",
     "defaultPrompt": [
-      "Draft blueprints for a feature from my repo context.",
-      "Architect the current blueprints into a build site.",
+      "Draft kits for a feature from my repo context.",
+      "Architect the current kits into a build site.",
       "Build the current site with adaptive parallel work packets."
     ],
     "brandColor": "#1F4B99"

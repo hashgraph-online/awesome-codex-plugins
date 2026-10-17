@@ -1,0 +1,19 @@
+{
+  "skill_name": "contrast-framing",
+  "evals": [
+    {
+      "id": 1,
+      "name": "pricing-proposal-contrast",
+      "prompt": "Restructure this pricing proposal so the comparison is clear and not misleading.",
+      "expected_output": "Identifies relevant Influence principle, checks evidence, flags ethical risks, and provides concrete recommendations or rewrites without inventing proof.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "meaningful-reason-request",
+      "prompt": "Improve this request by adding a meaningful reason, not filler.",
+      "expected_output": "Identifies relevant Influence principle, checks evidence, flags ethical risks, and provides concrete recommendations or rewrites without inventing proof.",
+      "files": []
+    }
+  ]
+}

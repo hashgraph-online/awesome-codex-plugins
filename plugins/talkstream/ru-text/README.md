@@ -1,194 +1,168 @@
 # ru-text
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Claude Code Plugin](https://img.shields.io/badge/Claude_Code-Plugin-blue?logo=anthropic)](https://claude.com/plugins) [![GitHub Sponsors](https://img.shields.io/badge/Sponsor-30363D?logo=GitHub-Sponsors&logoColor=EA4AAA)](https://github.com/sponsors/talkstream) [![Last Updated](https://img.shields.io/github/last-commit/talkstream/ru-text/main?label=updated)](https://github.com/talkstream/ru-text)
+[![Version](https://img.shields.io/github/v/release/talkstream/ru-text?label=version&color=2ea44f)](https://github.com/talkstream/ru-text/releases/latest) [![License](https://img.shields.io/github/license/talkstream/ru-text?label=license&color=blue)](LICENSE) [![GitHub stars](https://img.shields.io/github/stars/talkstream/ru-text?style=flat&label=stars)](https://github.com/talkstream/ru-text)
 
-**Languages:** English | [Русский](README.ru.md)
+[English](README.en.md) · [Установка](INSTALL.md) · [Что изменилось](CHANGELOG.md) · [Источники](skills/ru-text/references/sources.md)
 
-**Russian text quality plugin for Claude Code, Codex CLI, Gemini CLI, and Cursor** — typography, information style, editorial standards, UX writing, and business correspondence.
+ИИ-агент уже записывает ваши мысли по-русски, и это видно: прямые кавычки вместо ёлочек, дефис вместо тире, «в целях повышения эффективности», «Отличный вопрос!». Мысль ваша, а звучит как машина.
 
-~1040 independently formulated rules informed by 16 canonical Russian-language sources. All formulations are original — no verbatim quotes, full attribution.
+ru-text — навык вычитки русского текста для ИИ-агентов. Он работает внутри агента и чистит это по ходу дела: типографику, канцелярит и 17 признаков машинного текста (нейрослоп). На каждую правку даёт цитату и правило, по которому она сделана.
 
-## Acknowledgments
+Ваши слова, стиль и тон он не трогает: это не ошибки. И ваш файл он не перепишет, пока вы сами не попросите.
 
-This plugin exists because a handful of people decided that Russian text on the internet deserves better. They wrote the books, built the tools, maintained the guides, and set the standards that thousands of editors, writers, and designers now rely on every day. Their work fundamentally changed how Russian text is written, formatted, and read on screens. I am deeply grateful to every one of them. If this plugin saves you time, please buy their books and use their tools — they earned it.
+## Установка
 
+Дайте эту фразу своему ИИ-агенту:
 
-## What it does
+> Установи навык https://github.com/talkstream/ru-text глобально и вызывай его, когда работа идёт над качеством русского текста: вычитка, типографика, очистка от нейрослопа, редактура, UX-тексты, деловая переписка — или по прямому упоминанию ru-text.
 
-ru-text gives your AI coding assistant a deep understanding of Russian text quality. It auto-activates when the assistant produces or edits Russian text, applying typography rules instantly and loading domain-specific knowledge on demand.
+Обычно этого достаточно: где его площадка держит навыки, агент знает лучше, чем инструкция, написанная год назад. Работает в Claude Code, Codex и ChatGPT, Cursor, GitHub Copilot, Gemini CLI, Google Antigravity, Windsurf, Continue.dev, Cline, JetBrains Junie, OpenClaw и Notion.
 
-Works with Claude Code, Codex CLI, Gemini CLI, and Cursor.
+Если привычнее команда — навык ставят два установщика: `npx skills add talkstream/ru-text` кладёт в проект все три навыка, `npx skillsbd add talkstream/ru-text/ru-text` — один, в свой каталог. Подробности и флаги — в [INSTALL.md](INSTALL.md#одной-командой).
 
-- **~1040 rules** across 7 domains, packed into 9 reference files + addenda
-- **Auto-activation** — no need to remember to turn it on
-- **Covers everything** — from em dashes and guillemets to UX microcopy and business email tone
-- **Non-dogmatic** — your explicit style request always overrides default rules
+В ChatGPT эта фраза не нужна — там есть карточка в каталоге плагинов:
 
-## Use cases
+[![Установить в ChatGPT и Codex](https://img.shields.io/badge/%D0%A3%D1%81%D1%82%D0%B0%D0%BD%D0%BE%D0%B2%D0%B8%D1%82%D1%8C_%D0%B2_ChatGPT_%D0%B8_Codex-000000?style=for-the-badge)](https://chatgpt.com/plugins/plugins_6a6b66a0142c81918659256b4a12adba)
 
-**This README.** Every dash, quote, and space you see here follows the plugin's own rules. This document was written with ru-text active.
+Откройте её и нажмите «плюс». Навык станет доступен в ChatGPT — в браузере, в десктопном приложении и на телефоне. В Codex он работает внутри того же десктопного приложения; в Codex CLI его ставит фраза выше.
 
-**UX microcopy.** Writing buttons, errors, empty states for a Russian app. The plugin loads 217 UX rules: "Отмена" not "Нет", error structure (what happened + what to do), placeholders as examples, not instructions.
+Агент подхватывает навыки при старте сессии, поэтому начните новую. Проверьте на живом тексте: дайте агенту абзац и попросите «вычитай». В ответе придут исправленный вариант и список правок. Списка нет — навык не поднялся, смотрите [INSTALL.md](INSTALL.md).
 
-**Business email.** Drafting an email to colleagues or clients. The plugin kills bureaucratic language ("довожу до сведения" → "сообщаю"), structures subject + first sentence + call to action, and suggests respectful tone without being servile.
+## Как это выглядит в работе
 
-**Landing page copy.** Writing an "About" section for an IT company. The plugin replaces cliches ("команда профессионалов", "индивидуальный подход") with specific facts and numbers.
+Каждый день — три коротких действия.
 
-**README and documentation.** Writing docs for an open-source project in Russian. Proper typography (guillemets, em dashes, non-breaking spaces), no filler words, clear inverted-pyramid structure.
+**Пишете сами — просите вычитать.** «Вычитай это письмо». Вернётся исправленный текст и список: что заменено и по какому правилу. Согласиться можно не со всем, правило названо и спорить есть с чем.
 
-**Text quality scoring.** Want to know how your text measures up? `/ru-text:ru-score` evaluates text across 5 dimensions (typography, clarity, grammar, structure, reader precision) and returns a 0.0–10.0 score with specific issues per dimension.
+**Пишет агент — он чистит на ходу.** В тексте, который агент пишет сам, типографику навык ставит молча: кавычки, тире, неразрывные пробелы. Это норма языка, и сообщать о ней нечего.
 
-**AI agent quality.** Building AI features in your product? Uncertain how the agent will phrase responses in Russian? ru-text ensures predictable, high-quality Russian text from any Claude-powered agent: consistent typography, no bureaucratic language, reader-first structure.
+**Перед публикацией — просите балл.** «Оцени этот текст по ru-text»: 0–10 по пяти шкалам, к каждому замечанию — цитата и правило. Балл можно проверить построчно и оспорить.
 
-## Quick start
+Рубрика печатает и то, чего она не мерила: фактическую точность, попадание в аудиторию, авторский голос, оригинальность, эффективность, соответствие брифу. Голос в балл не входит: 8,0 у осторожного текста и 8,0 у резкого значат одно и то же.
 
-### Claude Code
+Два верхних ярлыка, «Эталонный» и «Хороший», не достаются документу, который остался стенограммой чата или писался для поисковика: такой текст бывает чист в каждой фразе и бесполезен целиком.
+
+В Claude Code у этих действий есть команды: `/ru-text:ru-check` — разбор с правилом на каждую находку, `/ru-text:ru-score` — балл. На остальных площадках достаточно слов. Команда `/ru-text:ru-check` идёт на последней версии Sonnet; если Sonnet вам недоступен, переключитесь на последнюю версию Opus (`/model opus`) — подробности в [INSTALL.md](INSTALL.md#claude-code).
+
+## Что он ловит
+
+Ловить модель по словарю бесполезно: словарь у неё наш. Выдаёт её манера. Она хвалит ваш вопрос и спорит с тем, чего никто не говорил.
+
+Вот пять предложений, в которых нет ни одного факта:
+
+> Отличный вопрос! Сейчас всё объясню — коротко, без воды и по делу. Скажу честно: тут есть нюанс. Давайте разберёмся, как это работает. Дело не в скорости, а в предсказуемости.
+
+Тот же ответ, когда автору есть что сказать:
+
+> Под нагрузкой система замедляется предсказуемо: очередь растёт линейно до 800 запросов в секунду, дальше отказы. Вот замеры.
+
+Приёмы по порядку:
+
+- «Отличный вопрос!» — сервисная реплика ассистента;
+- «коротко, без воды и по делу» — похвала себе за краткость;
+- «скажу честно» — объявленная искренность;
+- «давайте разберёмся» — пустой зачин;
+- «дело не в скорости, а в предсказуемости» — ложная антитеза: отрицается то, чего никто не утверждал.
+
+Первый вариант я вижу каждый день — в чужих README и в своих черновиках. Он читается гладко и ничего не сообщает.
+
+Прежде чем сделать замечание, навык смотрит оговорки. В цитате, в разборе чужого текста и в юридической формуле приём законен. А триада, любимый у модели ритм из трёх, законна, когда элементов правда три.
+
+Всего таких признаков 17. Два предъявляются документу целиком, потому что правкой на месте не лечатся: текст, оставшийся стенограммой диалога с нейросетью, и текст, который писали под поисковый запрос.
+
+Канцелярит навык разбирает так же: «в целях повышения эффективности взаимодействия» становится «чтобы отделы работали быстрее», «осуществляется контроль» — «следит Петрова». Отглагольные существительные снова становятся глаголами, у безличного контроля появляется фамилия. Фактов навык не сочиняет: фамилию он спросит у вас.
+
+Кроме прозы он знает интерфейсы и переписку: кнопка называет действие — «Отмена» вместо «Нет»; ошибка говорит, что случилось и что делать дальше; тема письма начинается с дела; «довожу до сведения» разворачивается в «сообщаю».
+
+В лендинге и документации вместо «команды профессионалов» встаёт то, что можно проверить, вывод поднимается наверх, а ссылка говорит, куда ведёт.
+
+## Что решаете вы
+
+**Правила уступают вашей просьбе.** Скажете «пиши разговорно» — будет разговорно. Академический, юридический, SEO, литературный — то же. Это умолчания, ваша прямая просьба их отменяет.
+
+**Мандат выдаёте вы.** Фраза установки просит вызывать навык, когда работа идёт над качеством русского текста или когда вы прямо упоминаете ru-text. Нужен мандат поуже: «вызывай ru-text, только когда я прошу вычитку». Нужен пошире: «вызывай ru-text на любом русском тексте». Агент исполняет вашу формулировку.
+
+**Ничего не переписывается молча.** При проверке навык возвращает исправленный вариант и список изменений; правит файл, только если вы прямо об этом попросили.
+
+**Чужой текст остаётся чужим.** Цитаты, код, чужие фрагменты внутри вашего документа воспроизводятся как есть: замечание — возможно, правка — никогда.
+
+**Выключается одной командой.** В Claude Code — `/plugin`; на остальных площадках удалите каталог навыка.
+
+## Сколько это стоит контекста
+
+ru-text не гоняет корпус целиком на каждый абзац: это было бы расточительством за ваш счёт.
+
+Постоянно в контексте висит один файл (4 килобайта): таблица типографики и верхушка стоп-слов. Справочники лежат рядом и подгружаются, когда до них доходит дело. Скажете «вычитай» — навык читает весь корпус.
+
+Когда агент проверяет себя сам, идёт быстрый проход: типографика и стоп-слова — то, что решается по одной строке. Наберётся пять замечаний или мелькнёт след машинного текста — проход сам разворачивается в полную вычитку. Признаки машинного текста он не судит: у каждого есть оговорка, где приём законен, а оговорки живут только в полном справочнике. И полной вычиткой быстрый проход себя никогда не называет.
+
+## Корпус
+
+Более 2 000 лингвистических атомов: правил, пар «плохо → хорошо», словарных статей и исключений. Это пол, а не точное число, и он считается командой:
 
 ```bash
-# Add the community marketplace (one-time setup)
-/plugin marketplace add anthropics/claude-plugins-community
-
-# Install the plugin
-/plugin install ru-text
+tools/extract-atoms.sh skills/ru-text | wc -l
 ```
 
-Available in the [Anthropic plugin marketplace](https://claude.com/plugins). Works in Claude Code CLI, VS Code, JetBrains, Web, and Desktop.
+Раньше я вписывал это число руками, оно разъехалось по девяти файлам, и в записи о правке я ошибся даже в числе файлов. Теперь его печатает скрипт.
 
-### Codex CLI
+Корпус лежит в 10 справочниках, они подгружаются по запросу. Откройте любой и посчитайте правила сами.
 
-```bash
-codex install talkstream/ru-text
-```
+- [`typography.md`](skills/ru-text/references/typography.md) — кавычки, тире, неразрывные пробелы, разрядка чисел, сокращения
+- [`info-style.md`](skills/ru-text/references/info-style.md) — каталог из 92 стоп-слов, структура текста, факты вместо оценок
+- [`editorial-punctuation.md`](skills/ru-text/references/editorial-punctuation.md) — сложные предложения, запятые-ловушки, вводные слова
+- [`editorial-grammar.md`](skills/ru-text/references/editorial-grammar.md) — согласование, плеоназмы, управление, деепричастия, омофоны
+- [`ux-writing.md`](skills/ru-text/references/ux-writing.md) — кнопки, ошибки, пустые состояния, формы, уведомления, диалоги подтверждения
+- [`business-writing.md`](skills/ru-text/references/business-writing.md) — письма, мессенджеры, тон, заметки к встречам
+- [`anti-patterns.md`](skills/ru-text/references/anti-patterns.md) — пары «плохо → хорошо» по степени серьёзности
+- [`addenda.md`](skills/ru-text/references/addenda.md) — 17 признаков машинного текста с оговорками и правило о капслоке
+- [`scoring.md`](skills/ru-text/references/scoring.md) — рубрика оценки: измерения, веса, нижние границы
+- [`sources.md`](skills/ru-text/references/sources.md) — источники и атрибуция
 
-### Gemini CLI
+## Что нового в 2.10
 
-```bash
-gemini extensions install https://github.com/talkstream/ru-text
-```
+Эта версия освежает README и собирает в одном месте главное из версий 2.4–2.9.
 
-### Cursor
+- **Разбор в Claude Code идёт на Sonnet.** В `SKILL.md` команды `/ru-text:ru-check` записаны `model: sonnet` и `effort: medium`, и он велит читать справочники по прямому пути; поиск остался запасным ходом.
+- **Процент в общем и веб-тексте пишется слитно с числом:** `100%`, а не `100 %`. Обычный пробел разрешает перенос, и знак может уехать в начало следующей строки. Правило стоит в постоянной таблице. Типографика самих инструкций (например, шаблона с `100 %`) — привычка, а не просьба о стиле.
+- **Многоточие внутри предложения ставится без пробела перед ним и с пробелом после.** В начале и в конце предложения многоточие примыкает к слову без пробела. Пропуск в цитате набирается так же, как пауза. Противоречие двух правил о многоточии снято.
+- **Разряды и десятичная запятая больше не спорят.** В `1,500,000` две запятые: они уходят, встают пробелы. Одиночную запятую правило снимать запрещает: это может быть десятичная дробь.
+- **Точка после единицы измерения остаётся, когда на ней кончается предложение:** «Вес 5 кг.» не сливается со следующей фразой.
+- **Неразрывный пробел ставится после всех восьми однобуквенных слов:** в, к, с, о, у, и, а, я. Краткие пересказы правила теряли «я», теперь проверка репозитория сверяет их с правилом.
+- **Запись таблицы плеоназмов — находка, а не автоправка.** Лишнее слово может нести противопоставление, и тогда его удаление меняет смысл.
 
-Copy the skill to your project:
+Полный список — в [CHANGELOG](CHANGELOG.md).
 
-```bash
-git clone https://github.com/talkstream/ru-text.git
-cp -r ru-text/skills/ru-text .agents/skills/ru-text
-```
+## Обновление
 
-### Any platform via skills CLI
+У разовой установки нет механизма обновления: агент поставил навык и забыл о нём. Сигнал один — релизы репозитория: Watch → Custom → Releases. Когда придёт письмо, попросите агента обновить навык. Повторять команду копирования из установки бесполезно: она не обновляет, а вкладывает новую версию внутрь старой. Команды для каждой площадки — в [INSTALL.md](INSTALL.md#обновление).
 
-```bash
-npx skills add talkstream/ru-text
-```
+В community-маркетплейсе Claude Code ru-text отстаёт от свежей версии на месяцы. Установленную версию покажет `claude plugins list`; если она старая, поставьте навык копированием: три команды в [INSTALL.md](INSTALL.md#общий-каталог).
 
-### From source
+## Источники и благодарности
 
-```bash
-git clone https://github.com/talkstream/ru-text.git
-```
+Эти книги, гайды и инструменты научили меня работать с русским текстом. Если ru-text экономит вам время — купите эти книги и пользуйтесь этими инструментами.
 
-Then add the repo as a plugin source per your platform's docs.
+**Типографика и вёрстка.** Артём Горбунов, «Типографика и вёрстка» · [Советы Бюро Горбунова](https://bureau.ru/soviet/) · А. Э. Мильчин, Л. К. Чельцова, «Справочник издателя и автора» · [Типографская раскладка Ильи Бирмана](https://ilyabirman.ru/typography-layout/) · [Журнал Type.today](https://type.today)
 
-Start writing Russian text — the plugin takes over automatically. If ru-text makes your products better, consider [sponsoring](https://github.com/sponsors/talkstream) continued development.
+**Информационный стиль.** Максим Ильяхов, «Пиши, сокращай» и «Ясно, понятно» · [Редполитика Т—Ж](https://journal.tinkoff.ru/manual/) · [Гайды Контура](https://guides.kontur.ru) · [Яндекс Gravity UI](https://gravity-ui.com)
 
-## Domains
+**Язык и письмо.** Артемий Лебедев, «[Ководство](https://www.artlebedev.ru/kovodstvo/)» · Нора Галь, «[Слово живое и мёртвое](http://lib.ru/TRANSLATORS/NORA_GAL/slowo.txt)» · справочники Д. Э. Розенталя · М. Ильяхов, Л. Сарычева, «Новые правила деловой переписки» · [UX-практики Ozon](https://habr.com/ru/companies/ozontech/articles/821383/) · ГОСТ Р 7.0.12-2011 и ГОСТ 7.12-93
 
-| Domain | Rules | What it covers |
-|---|---|---|
-| Typography | 96 | Quotes (guillemets, lapki), dashes, non-breaking spaces, digit grouping, special characters, abbreviations |
-| Information style | 197 | Stop-words (97 entries), text structure, facts over adjectives, register, T-Zh editorial principles |
-| Editorial: punctuation | 88 | Complex sentences, 57 comma-trap constructions, introductory words, semicolons |
-| Editorial: grammar | 171 | Capitalization, agreement, 50+ pleonasms, list formatting, clean language principles |
-| UX writing | 217 | 51 button labels, error messages, empty states, forms, notifications, dialogs, onboarding |
-| Business writing | 128 | Email structure, messenger etiquette, tone, 43 clean phrase patterns, meeting notes |
-| Anti-patterns | 139 | Wrong-to-right pairs organized by severity: bureaucratic language, passive voice, bloat |
+Полный список и вклад каждого источника — в [`sources.md`](skills/ru-text/references/sources.md). Рядом стоят и инструменты: [Главред](https://glvrd.ru), [Типограф Лебедева](https://www.artlebedev.ru/typograf/), [Орфограммка](https://orfogrammka.ru).
 
-## Commands
+## Правовая справка
 
-| Command | Description |
-|---|---|
-| `/ru-text` | Activate the skill manually (auto-activation covers most cases) |
-| `/ru-text:ru-check` | Run a comprehensive text quality check on provided text or recent output |
-| `/ru-text:ru-score` | Score text quality on a 0.0–10.0 scale across 5 dimensions |
+ru-text — самостоятельное авторское произведение Арсения Камышева. Правила в нём — то, как автор понимает стандарты русской типографики и редактуры; это понимание сложилось за годы практики и чтения перечисленных источников. Формулировки оригинальные, дословных цитат нет. Сами принципы (правила типографики, нормы грамматики, приёмы редактуры) авторским правом не охраняются: ст. 1259(5) ГК РФ, 17 USC §102(b), Бернская конвенция.
 
-## Style priority
+Авторы и издатели перечисленных источников этот навык не одобряли и не рецензировали. Ссылки — для удобства читателя. Названия продуктов принадлежат их правообладателям.
 
-If you explicitly request a specific style — casual, academic, SEO, literary, legal — your prompt overrides the default rules. The plugin provides quality defaults, not mandates.
+## Автор
 
-## Technical quality
+Арсений Камышев — [nafigator@gmail.com](mailto:nafigator@gmail.com) · [Telegram](https://t.me/nafigator) · [GitHub](https://github.com/talkstream)
 
-Built to Anthropic's Claude Code plugin specs:
-- SKILL.md: 560 words, 84 lines (guideline: under 2 000 words, under 500 lines)
-- 9 reference files load on demand, never at session start
-- ~1 040 rules organized into 7 thematic areas with progressive disclosure
+Дальше хочу телеграм-бота и расширение для браузера. Идеи и замечания — в [issues](https://github.com/talkstream/ru-text/issues) или [обсуждениях](https://github.com/talkstream/ru-text/discussions). Нашли неверное правило? Напишите: корпус растёт и от таких находок. В CHANGELOG я ставлю имя автора находки.
 
-## Intellectual property notice
+Если ru-text сэкономил вам время на вычитке — [GitHub Sponsors](https://github.com/sponsors/talkstream).
 
-This plugin is an independent, original work by Arseniy Kamyshev.
-
-The rules and principles contained herein represent the author's personal
-understanding of Russian typography, editorial, and writing standards, gained
-from years of professional practice and study of published sources listed below.
-
-All formulations are original. No text is quoted verbatim from any source.
-The underlying principles (typography rules, grammar norms, editorial methods)
-are not subject to copyright under Article 1259(5) of the Russian Civil Code,
-17 USC §102(b), and the Berne Convention.
-
-The authors and publishers of the listed sources have not endorsed, reviewed,
-or approved this plugin. Source references are provided for reader convenience
-and further study.
-
-Product names mentioned are trademarks of their respective owners, used here
-for informational purposes only.
-
-## Sources and credits
-
-### Typography
-
-| # | Source | Contribution | Link |
-|---|---|---|---|
-| 1 | **Artyom Gorbunov "Typography and Layout"** (2017) | Core typography rules: dashes, quotes, spacing, screen typography | [bureau.ru/projects/book-typography/](https://bureau.ru/projects/book-typography/) |
-| 2 | **Bureau Gorbunov "Tips"** (2005–present, 4809+ tips) | Practical micro-advice on typography, editing, design | [bureau.ru/soviet/](https://bureau.ru/soviet/) |
-| 3 | **A. Milchin, L. Cheltsova "Publisher's and Author's Handbook"** (2021, 6th ed.) | Punctuation, abbreviations, number formatting, editorial conventions | [store.artlebedev.com](https://store.artlebedev.com) |
-| 4 | **Ilya Birman — Typography Layout** (2007–present) | Keyboard layout for typing correct typographic characters | [ilyabirman.ru/typography-layout/](https://ilyabirman.ru/typography-layout/) |
-| 5 | **Type.today — Journal** (2016–present) | Cyrillic typeface design, font pairing, readability | [type.today](https://type.today) |
-
-### Information style and clear writing
-
-| # | Source | Contribution | Link |
-|---|---|---|---|
-| 6 | **Maxim Ilyakhov "Write, Shorten"** (2017, updated 2025) | Foundation of info-style: removing filler, fighting bureaucratic language, reader-first writing | [book.glvrd.ru](https://book.glvrd.ru) |
-| 7 | **Maxim Ilyakhov "Clear and Understandable"** (2019) | Advanced info-style: text structure, persuasion, visual-textual integration | [book.glvrd.ru](https://book.glvrd.ru) |
-| 8 | **T-Zh editorial policy** (2017–present, 56+ pages) | Tone of voice, formatting, numbers, business writing standards | [journal.tinkoff.ru/manual/](https://journal.tinkoff.ru/manual/) |
-| 9 | **Kontur Guides** (2020–present) | UX writing for B2B software: interface text, errors, onboarding | [guides.kontur.ru](https://guides.kontur.ru) |
-| 10 | **Yandex Gravity UI** (2023–present) | Design system with content guidelines for Russian UI text | [gravity-ui.com](https://gravity-ui.com) |
-
-### Writing and language
-
-| # | Source | Contribution | Link |
-|---|---|---|---|
-| 11 | **M. Ilyakhov, L. Sarycheva "New Rules of Business Correspondence"** (2018) | Email structure, respectful tone, messenger etiquette | [book.glvrd.ru](https://book.glvrd.ru) |
-| 12 | **Nora Gal "Living Word and Dead Word"** (1972, reprints) | Original critique of bureaucratic language, nominalization abuse, passive voice | [lib.ru](http://lib.ru/TRANSLATORS/NORA_GAL/slowo.txt) |
-| 13 | **D. Rozental — Spelling and Style References** (1960s–2000s) | Authoritative Russian grammar, punctuation, orthography baseline | widely available |
-| 14 | **Artemy Lebedev "Mandership"** (1998–present) | Screen typography, dashes and quotes, design-text readability | [artlebedev.ru/kovodstvo/](https://www.artlebedev.ru/kovodstvo/) |
-| 15 | **Ozon UX Writing Practices** (2021–present) | UX writing at scale: buttons, notifications, errors, product copy | [habr.com](https://habr.com/ru/companies/ozontech/articles/821383/) |
-| 16 | **GOST R 7.0.12-2011, GOST 7.12-93** (Rosstandart) | Official standards for bibliographic abbreviations in Russian | GOST databases |
-
-### Online tools
-
-- **Glavred** ([glvrd.ru](https://glvrd.ru)) — checks text for info-style quality, highlights filler, scores 0–10
-- **Lebedev Typograf** ([typograf.artlebedev.ru](https://typograf.artlebedev.ru)) — auto-fixes typography: quotes, dashes, non-breaking spaces
-- **Orfogrammka** ([orfogrammka.ru](https://orfogrammka.ru)) — grammar, spelling, and punctuation checker
-
-## Author
-
-**Arseniy Kamyshev** — [nafigator@gmail.com](mailto:nafigator@gmail.com) — [Telegram](https://t.me/nafigator) — [GitHub](https://github.com/talkstream)
-
-## Support
-
-I have spent my life working on social projects. This is where I make the biggest difference for people and communities, so I **always** need financial support. If ru-text makes your products better, consider [sponsoring me on GitHub](https://github.com/sponsors/talkstream).
-
-## License
-
-[MIT](LICENSE) | [Privacy Policy](PRIVACY_POLICY.md)
+[MIT](LICENSE) · [Политика конфиденциальности](PRIVACY_POLICY.md) · навык не делает сетевых запросов и не собирает данные. Эта страница вычитана текущей версией ru-text.

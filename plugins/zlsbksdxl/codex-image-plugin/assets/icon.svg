@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Codex Image Plugin</title>
+  <desc id="desc">A gradient image frame with a sparkle.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#111827"/>
+      <stop offset="1" stop-color="#2563eb"/>
+    </linearGradient>
+    <linearGradient id="sunset" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fbbf24"/>
+      <stop offset="1" stop-color="#f97316"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <rect x="92" y="112" width="328" height="288" rx="32" fill="#f8fafc" opacity=".96"/>
+  <circle cx="178" cy="190" r="30" fill="#fbbf24"/>
+  <path d="M118 354 220 244l64 66 42-48 68 92H118Z" fill="url(#sunset)"/>
+  <path d="M388 92v56M360 120h56M374 106l28 28M402 106l-28 28" stroke="#fff" stroke-linecap="round" stroke-width="16"/>
+</svg>

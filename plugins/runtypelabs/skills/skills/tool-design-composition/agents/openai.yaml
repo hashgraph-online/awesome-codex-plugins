@@ -1,0 +1,7 @@
+interface:
+  display_name: 'Tool Composition Design'
+  short_description: 'Organize a tool set agents can compose and discover'
+  brand_color: '#6D5EF7'
+  default_prompt: 'Use $tool-design-composition to find bundle, batch, and preview-mode candidates in my tool set.'
+policy:
+  allow_implicit_invocation: true

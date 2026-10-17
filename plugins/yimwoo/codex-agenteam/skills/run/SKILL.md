@@ -13,7 +13,8 @@ dispatches your specialists.
 
 ### 1. Auto-Init Guard
 
-Check for `.agenteam/config.yaml` (or legacy `agenteam.yaml`) in the project root. If missing:
+Check for `.agenteam/config.yaml`, `.agenteam.team/config.yaml`, or legacy
+`agenteam.yaml` in the project root. If all are missing:
 - Create config dir: `mkdir -p .agenteam`
 - Copy the template: `cp <plugin-dir>/templates/agenteam.yaml.template .agenteam/config.yaml`
 - Set the team name to the project directory name
@@ -392,6 +393,41 @@ For each stage in the ordered stage list:
       python3 <runtime>/agenteam_rt.py stage-baseline --run-id <run_id> \
         --stage <stage> --action capture
 
+  a1. Check if stage should be skipped (docs-only pre-dispatch skip):
+
+     After a writing stage completes and before dispatching the next
+     stage, check whether the changes warrant the upcoming stage:
+
+     1. Get changed files since baseline:
+        ```bash
+        git diff --name-only <baseline>
+        ```
+     2. Classify: **docs-only** if ALL files match `docs/**`, `*.md`,
+        `README*`, `CHANGELOG*`, `LICENSE*`, `.gitignore`.
+        Otherwise: **code-or-config**.
+     3. If next stage is `test` AND change set is docs-only:
+        - Transition: `pending → skipped`
+          ```bash
+          python3 <runtime>/agenteam_rt.py transition --run-id <run_id> \
+            --stage <stage> --to skipped
+          python3 <runtime>/agenteam_rt.py set-stage-field --run-id <run_id> \
+            --stage <stage> --field skip_reason --value "docs_only_change"
+          python3 <runtime>/agenteam_rt.py set-stage-field --run-id <run_id> \
+            --stage <stage> --field skipped_at --value "<ISO timestamp>"
+          python3 <runtime>/agenteam_rt.py event append --run-id <run_id> \
+            --type stage_completed --stage <stage> \
+            --data '{"result": "skipped", "reason": "docs_only_change"}'
+          ```
+        - Announce: "⊘ Skipping test stage (docs-only change, no tests needed)"
+        - Continue to next stage (review) or completion
+     4. Otherwise: dispatch normally (continue to step a below)
+
+     **Rules:**
+     - Never skip `implement` or `review` stages
+     - Never skip in collaborative discovery mode
+     - Only skip `test` stage, only for docs-only changes
+     - Config files (*.yaml, *.toml, *.json) are NOT docs-only
+
   a. Get dispatch plan:
      python3 <runtime>/agenteam_rt.py dispatch <stage> \
        --task "<task>" --run-id <run_id>
@@ -509,10 +545,15 @@ For each stage in the ordered stage list:
           python3 <runtime>/agenteam_rt.py scope-audit \
             --run-id <run_id> --stage <stage> --baseline $BASELINE
        6. If audit fails:
-          - git reset --hard $BASELINE
-          - Log: "Scope containment violation. Falling back to serial."
-          - Re-dispatch entire stage serially (flat dispatch, one at a time)
-          - Break out of group loop
+          - Save the complete diff as
+            `.agenteam/runs/<run_id>/<stage>/scope-violation.patch` before
+            taking any recovery action.
+          - Log: "Scope containment violation. Preserved evidence and stopped
+            the stage; no checkout content was reset."
+          - Do not modify or discard the dirty checkout. A serial replay must
+            start in a new clean branch/worktree from `$BASELINE`.
+          - Ask before creating that replay because it may duplicate
+            non-idempotent role work. Break out of the group loop.
      - The agent file is at the path in the dispatch plan (e.g.,
        .codex/agents/architect.toml)
      - Pass the task description and any outputs from previous stages
@@ -522,12 +563,21 @@ For each stage in the ordered stage list:
      - You must launch actual Codex subagents. Do not keep the work in the
        lead agent and do not simulate what a role "would" say.
 
-  d. Emit stage_dispatched event (after agents launch successfully):
+  d. Emit stage_dispatched event and progress snapshot:
      ```bash
      python3 <runtime>/agenteam_rt.py event append --run-id <run_id> \
        --type stage_dispatched --stage <stage> \
        --data '{"roles": ["<role1>", ...], "isolation": "<mode>"}'
+     python3 <runtime>/agenteam_rt.py status <run_id> --progress
      ```
+     Display the progress snapshot to the user so they can see
+     pipeline progress during execution.
+
+     **Progress emission rule:** After every stage transition (dispatch,
+     verify result, gate decision, completion, skip), emit the progress
+     snapshot via `status --progress`. This gives users in-thread
+     visibility into pipeline state without requiring a separate
+     terminal or polling loop.
 
   d2. Collect outputs:
      - Gather each role's output
@@ -597,17 +647,25 @@ For each stage in the ordered stage list:
        Go back to verify
      - If failed and attempts >= max_retries (or no legal repair role):
        Log "Verification failed after N attempts."
-       Offer rollback:
+       Offer non-destructive recovery:
          result = agenteam_rt.py stage-baseline --run-id <run_id> \
            --stage <stage> --action rollback
          If result.allowed:
            Show: git diff --stat <baseline>..HEAD
-           Ask: "Rollback to pre-stage state? (yes/skip)"
-           If yes: git reset --hard <baseline>
-           Log: "Rolled back stage <stage>"
+           Save the current diff to
+           `.agenteam/runs/<run_id>/<stage>/failed-attempt.patch`.
+           Ask: "Create a clean recovery branch/worktree from the baseline?"
+           Never discard the current checkout automatically. Recovery runs in
+           the new isolated workspace, and the preserved patch remains reviewable.
          If not result.allowed (isolation:none):
            Log: "Rollback not available in scoped parallel mode."
        Show failure output to user. Do NOT advance.
+
+  **Long-running harness invariant:** Treat runtime state as authoritative.
+  Persist the active attempt, `thread_id`, last heartbeat, wall/idle budgets,
+  retry count, and stop reason. Emit `status --progress` at least once per
+  heartbeat interval. After controller interruption, invoke `$ateam:resume`;
+  do not silently launch a replacement agent.
 
   f. Gate criteria check (if stage has criteria):
      result = agenteam_rt.py gate-eval --run-id <run_id> --stage <stage>

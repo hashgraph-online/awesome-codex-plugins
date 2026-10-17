@@ -1,0 +1,4 @@
+interface:
+  display_name: "Backend Engineer（后端开发）"
+  short_description: "负责服务端业务逻辑、接口、数据访问、集成与后端自测的实现。"
+  default_prompt: "Use $backend-engineer to take the lead on the Backend Engineer（后端开发） responsibilities for this task. Start with $api-contract, $doc-architecture when those shared capabilities apply. Pull in $karpathy-guidelines, $java-unit-test, $maven-qa, $mysql-query, $systematic-debugging, $pairwise-test-design, $testcontainers-integration-testing, $langfuse-coding-trace when deeper engineering execution or verification guidance is needed."

@@ -1,20 +1,33 @@
 # KiCad Analysis Scripts — Developer Reference
 
-This directory contains three analysis scripts, shared utilities, and a parser. Each script outputs structured JSON for the AI agent to consume during design reviews.
+This directory contains the core analysis scripts, shared utilities, the S-expression parser, and the rich-finding/trust-summary infrastructure. Each analyzer outputs a structured JSON envelope for the AI agent to consume during design reviews.
 
 | Script | Input | Size | Purpose |
 |--------|-------|------|---------|
-| `analyze_schematic.py` | `.kicad_sch` / `.sch` | ~5200 LOC | Component extraction, net building, subcircuit detection, signal/power/BOM/DFM analysis |
-| `analyze_pcb.py` | `.kicad_pcb` | ~3200 LOC | Footprint inventory, routing, signal integrity, power, thermal, placement, manufacturing, DFM |
-| `analyze_gerbers.py` | Gerber dir (`.gbr`/`.drl`) | ~1100 LOC | Layer completeness, drill holes, apertures, coordinate alignment, X2 attributes |
-| `sexp_parser.py` | — | ~160 LOC | S-expression parser shared by schematic and PCB analyzers |
-| `kicad_utils.py` | — | ~460 LOC | Shared utilities: component classification, value parsing, net name detection |
-| `kicad_types.py` | — | ~60 LOC | Typed dataclass (`AnalysisContext`) shared between analysis functions |
-| `signal_detectors.py` | — | ~2400 LOC | Signal path detector functions extracted from `analyze_signal_paths()` |
+| `analyze_schematic.py` | `.kicad_sch` / `.sch` | ~9,300 LOC | Component extraction, net building, subcircuit detection, signal/power/BOM/DFM analysis, audit detectors |
+| `analyze_pcb.py` | `.kicad_pcb` | ~6,600 LOC | Footprint inventory, routing, signal integrity, power, thermal, placement, manufacturing, DFM, union-find connectivity graph, assembly/DFM checks |
+| `analyze_gerbers.py` | Gerber dir (`.gbr`/`.drl`) | ~1,400 LOC | Layer completeness, drill holes, apertures, coordinate alignment, X2 attributes |
+| `analyze_thermal.py` | schematic + PCB JSON | ~910 LOC | Junction-temperature estimator with package θJA, thermal via correction, proximity warnings |
+| `cross_analysis.py` | schematic + PCB JSON | ~430 LOC | Cross-domain checks: CC-001 connector current, EG-001 ESD gaps, DA-001 decoupling adequacy, XV-001..003, PCB intelligence (NR/RP/TW/PS/VS/DP-005) |
+| `lifecycle_audit.py` | schematic JSON + distributor API | ~855 LOC | Component obsolescence, temperature audit (LC-001..006, LT-001) |
+| `sexp_parser.py` | — | ~220 LOC | S-expression parser shared by schematic and PCB analyzers |
+| `kicad_utils.py` | — | ~860 LOC | Shared utilities: component classification, value parsing, net detection, switching-frequency table, Vref lookup |
+| `kicad_types.py` | — | ~110 LOC | Typed dataclass (`AnalysisContext`) shared across detectors |
+| `signal_detectors.py` | — | ~4,400 LOC | Core signal path detectors (regulators, filters, opamps, dividers, crystals, transistors, bridges, protection), plus v1.3 audit detectors (RS-001, LB-001, PP-001) |
+| `domain_detectors.py` | — | ~6,100 LOC | Domain-specific detectors (RF, Ethernet, HDMI, memory, BMS, battery chargers, motor drivers, wireless modules, etc.) |
+| `validation_detectors.py` | — | ~1,000 LOC | Validation detectors (PU-001, VM-001, PR-001..004, PS-001, LR-001, FS-001) |
+| `finding_schema.py` | — | ~330 LOC | `make_finding()` factory, `Det.*` constants, `get_findings()` / `group_findings()` helpers, `trust_summary` aggregation, `sort_findings()` determinism |
+| `output_filters.py` | — | ~460 LOC | Stage/audience filtering (`--stage schematic/layout/pre_fab/bring_up`, `--audience designer/reviewer/manager`) |
+| `pcb_connectivity.py` | — | ~300 LOC | Union-find over pads/tracks/vias/zone fills for per-net island detection (used by `analyze_pcb.py --full`) |
+| `project_config.py` | — | ~870 LOC | `.kicad-happy.json` loader, suppression matching, design intent resolution |
+| `analysis_cache.py` | — | ~510 LOC | Analysis-folder convention, manifest-based run tracking, SHA-256 staleness detection |
+| `diff_analysis.py` | two analyzer JSONs | ~950 LOC | Diff-aware design comparison (component/signal/EMC/SPICE) |
+| `what_if.py` | analyzer JSON + patch spec | ~1,500 LOC | Parameter sweep + automated fix suggestions (inverse solvers with E-series snapping) |
+| `summarize_findings.py` | analysis/manifest.json | ~200 LOC | Cross-run severity × count rollup |
 
 Detailed methodology documentation for each analyzer:
-- `methodology_schematic.md` — parsing pipeline, net building, component classification, all 21 signal detectors
-- `methodology_pcb.md` — extraction, union-find connectivity, DFM scoring, thermal/placement/SI analysis
+- `methodology_schematic.md` — parsing pipeline, net building, component classification, detector inventory
+- `methodology_pcb.md` — extraction, union-find connectivity, DFM scoring, thermal/placement/SI analysis, assembly/DFM checks
 - `methodology_gerbers.md` — RS-274X/Excellon parsing, X2 attributes, layer identification, completeness/alignment checks
 
 ---
@@ -191,7 +204,12 @@ analyze_ic_pinouts()          -- Per-IC pin connectivity summary
 compute_statistics()          -- Counts, BOM dedup
     |
     v
-JSON output
+Output harmonization           -- All detections → flat findings[] with rich envelopes
+                                  (detector, rule_id, severity, confidence, recommendation)
+                                  rail_voltages/net_classifications promoted to top level
+    |
+    v
+JSON output                    -- {analyzer_type, summary, findings[], components, nets, ...}
 ```
 
 ### Key Data Structures
@@ -207,7 +225,7 @@ JSON output
 Full support. S-expression format parsed by `sexp_parser.py`.
 
 ### Legacy `.sch` (KiCad 4/5)
-Line-based format. Components, wires, labels, power symbols parsed. **No pin-to-net mapping** — would require parsing `.lib` symbol library files to know pin positions, which isn't implemented. Net names come from labels and power symbols only.
+Line-based format. Components, wires, labels, power symbols parsed. `.lib` symbol libraries are parsed for pin definitions (`parse_legacy_lib()`), enabling pin-to-net mapping via geometric snapping. Library resolution searches cache-lib, sym-lib-table, LIBS: directives, and built-in defaults. Pin geometry uses a snapping radius (up to 12mm) when parsed symbols are incomplete — results are heuristic and carry reduced confidence compared to KiCad 6+ native pin data.
 
 ### Eagle `.sch`
 Not supported (binary and XML formats). Returns 0 components gracefully.
@@ -345,24 +363,27 @@ Many detectors use keyword lists to identify component types from value/lib_id s
 
 3. **Filter high-fanout nets**. Power rails (+3V3, GND) connect to many components. Most detection patterns should skip or special-case nets with >4-6 connections, or nets identified as power/ground by `is_power_net()`/`is_ground()`.
 
-4. **Test against the batch suite**. Run `cd batchtest && cat results/all_schematics.txt | while read f; do python3 ../skills/kicad/scripts/analyze_schematic.py "$f" --compact > /dev/null 2>&1 || echo "FAIL: $f"; done` — must be 1053/1053 pass.
+4. **Test against the harness**. See `kicad-happy-testharness` repo — `run_tests.py --smoke` runs the 565-test PR-gate subset in ~30s with no corpus dependency, `run_tests.py --quick-sanity` runs 5-repo assertions, and `run/run_schematic.py --jobs 16` runs the full 5,829-repo corpus regression (~30 min).
 
-5. **Count detections across the batch** to calibrate sensitivity. Too many detections (>500 for a specific pattern across 1053 files) suggests false positives. Too few (<5) might mean overly narrow keywords.
+5. **Count detections across the corpus** to calibrate sensitivity. Too many detections (>1000 for a specific pattern across the 36,000+ schematic files) suggests false positives. Too few (<5) might mean overly narrow keywords. Use `run/run_schematic.py --cross-section smoke` or `--cross-section quick_200` for faster calibration passes.
 
 6. **Validate manually** against 2-3 known schematics where the pattern definitely exists. Check that component references, net names, and computed values match what you see in the raw schematic.
 
-## Batch Test Suite
+## Test Harness
 
-Location: `~/Projects/sandbox/batchtest/`
-- 1,053 schematics from 167 cloned GitHub KiCad projects
-- Split: 715 legacy `.sch` + 338 modern `.kicad_sch`
-- Runner: `batchtest/run_analysis.sh`
-- Schematic list: `batchtest/results/all_schematics.txt`
-- Current pass rate: 1053/1053 (100%)
+Location: `kicad-happy-testharness` sibling repo.
+
+- 5,829 open-source KiCad projects spanning KiCad 5 through 10
+- ~36,500 schematic files, ~18,700 PCB files, ~5,500 gerber dirs
+- 2M+ regression assertions at 99.98%+ pass, 565-test smoke subset, 5-repo quick-sanity
+- Schema drift tests across all 8 analyzer types
+- Equation audit (107 tagged equations), constants audit (105+ switching freqs), bugfix guards
+
+The harness is the authoritative validation layer. For the legacy `batchtest` directory some older scripts reference — the 1,053-file subset that lived under `~/Projects/sandbox/batchtest/` — is retired. All new detector work validates against the harness corpus.
 
 ## Known Remaining Limitations
 
-- **Legacy pin mapping**: `.sch` files have no pin-to-net mapping (needs `.lib` parser)
+- **Legacy pin mapping**: `.sch` pin-to-net mapping uses heuristic geometry snapping (up to 12mm radius) when `.lib` symbols are incomplete or resolved from fallback sources
 - **Vout estimation**: Feedback divider Vout uses hardcoded Vref guesses (0.6, 0.8, 1.0, 1.22, 1.25V) without a component database
 - **Regulator output_rail**: Switching regulators sometimes show null output_rail when the power net is on the inductor output side
 - **Eagle files**: Not parseable — output 0 components

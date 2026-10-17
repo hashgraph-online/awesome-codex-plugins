@@ -1,0 +1,10 @@
+.git/
+.codex-remote-attachments/
+*.log
+*.tmp
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+node_modules/

@@ -1,0 +1,17 @@
+version: 2
+
+# Published output port tables. Each version directory (v1/, v2/, ...) holds
+# both the SQL models and the ODCS contract that governs them, so the contract
+# lives next to the implementation it commits to.
+# One model per output port. The model name should match the output port table name.
+# Each model carries a `meta.data_contract` reference so tooling (dbt-docs,
+# lineage, `dbt list --select config.meta.data_contract.id:<id>`) can link the
+# model back to the ODCS file that governs its schema.
+# models:
+#   - name: {{TABLE}}
+#     description: {{PURPOSE}}
+#     config:
+#       meta:
+#         data_contract:
+#           id: {{CONTRACT_ID}}
+#           file: models/output_ports/v1/{{CONTRACT_FILE}}

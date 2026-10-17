@@ -1,0 +1,95 @@
+{
+  "schema_version": {
+    "base": "1.0",
+    "categories": {}
+  },
+  "source": {
+    "manufacturer": "Acme Semiconductor",
+    "mpn": "ACME-TEST-001",
+    "sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    "datasheet_revision": null,
+    "datasheet_date": null,
+    "source_url": null,
+    "local_path": null,
+    "page_count": null,
+    "family_ref": null
+  },
+  "extraction": {
+    "extracted_at": "2026-04-19T00:00:00Z",
+    "extractor_schema_version": "1.0",
+    "extractor_scout": null,
+    "quality_score": null,
+    "plan_ref": null
+  },
+  "base": {
+    "family": "test part",
+    "package": {
+      "code": "SOIC-8",
+      "pin_count": null,
+      "pitch_mm": null,
+      "body_mm": null,
+      "thermal_pad": null,
+      "evidence": null
+    },
+    "absolute_max": {
+      "VIN_max": [
+        {
+          "unit": "V",
+          "evidence": {
+            "page": 1,
+            "confidence": "high",
+            "method": "table",
+            "section": null
+          },
+          "min": null,
+          "typ": null,
+          "max": 20,
+          "condition": null,
+          "notes": null
+        }
+      ]
+    },
+    "recommended_operating": {
+      "VIN": [
+        {
+          "unit": "V",
+          "evidence": {
+            "page": 1,
+            "confidence": "high",
+            "method": "table",
+            "section": null
+          },
+          "min": 4.5,
+          "typ": null,
+          "max": 18,
+          "condition": null,
+          "notes": null
+        }
+      ]
+    },
+    "pinout": [
+      {
+        "numbers": ["1"],
+        "name": "VIN",
+        "type": "power_in",
+        "subtype": null,
+        "description": null,
+        "power_domain": null,
+        "alt_functions": [],
+        "is_5v_tolerant": null,
+        "absolute_max": null,
+        "recommended": null,
+        "drive_strength": null,
+        "notes": null,
+        "evidence": null
+      }
+    ],
+    "description": null,
+    "thermal": null,
+    "esd": null,
+    "moisture_sensitivity": null,
+    "compliance": [],
+    "pin_relationships": []
+  },
+  "categories": []
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Computer Usage Summary"
+  short_description: "Local activity reports with apps, timelines, and browser pages"
+  default_prompt: "Use $computer-usage-summary to summarize my recent Mac activity in local-time copyable tables, including daily work, apps, and foreground browser pages."

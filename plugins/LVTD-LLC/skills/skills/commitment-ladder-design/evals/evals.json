@@ -1,0 +1,19 @@
+{
+  "skill_name": "commitment-ladder-design",
+  "evals": [
+    {
+      "id": 1,
+      "name": "onboarding-commitment-ladder",
+      "prompt": "Design an onboarding sequence that gets users to make small authentic commitments before asking for a subscription.",
+      "expected_output": "Identifies relevant Influence principle, checks evidence, flags ethical risks, and provides concrete recommendations or rewrites without inventing proof.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "pricing-lowball-audit",
+      "prompt": "Audit this pricing flow for lowball tactics and commitment traps; suggest a cleaner version.",
+      "expected_output": "Identifies relevant Influence principle, checks evidence, flags ethical risks, and provides concrete recommendations or rewrites without inventing proof.",
+      "files": []
+    }
+  ]
+}

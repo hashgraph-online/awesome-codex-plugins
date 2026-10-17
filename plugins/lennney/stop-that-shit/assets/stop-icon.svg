@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Stop That Shit icon</title>
+  <desc id="desc">A red square audit stamp containing the word STOP.</desc>
+  <g fill="none" stroke="#E52B2B" stroke-linejoin="round" transform="rotate(-2 256 256)">
+    <rect x="34" y="104" width="444" height="304" rx="22" stroke-width="28"/>
+    <rect x="58" y="128" width="396" height="256" rx="8" stroke-width="7" opacity="0.9"/>
+  </g>
+  <text x="256" y="320" fill="#E52B2B" font-family="Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif" font-size="162" font-weight="900" letter-spacing="1" text-anchor="middle" transform="rotate(-2 256 256)">STOP</text>
+</svg>

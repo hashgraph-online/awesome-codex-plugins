@@ -1,0 +1,36 @@
+{
+  "name": "morning-ai",
+  "version": "1.4.1",
+  "description": "AI news tracking system. Tracks 80+ AI entities across 5 automated sources + agent X/Twitter search and generates daily structured reports.",
+  "author": {
+    "name": "octo-patch",
+    "url": "https://github.com/octo-patch"
+  },
+  "homepage": "https://github.com/octo-patch/MorningAI",
+  "repository": "https://github.com/octo-patch/MorningAI",
+  "license": "MIT",
+  "keywords": [
+    "ai",
+    "news",
+    "tracking",
+    "daily-report",
+    "multi-source",
+    "scheduled",
+    "cron",
+    "automated"
+  ],
+  "skills": "./",
+  "interface": {
+    "displayName": "Morning AI",
+    "shortDescription": "Track 80+ AI entities across 5 automated sources + agent X/Twitter search with daily scored reports",
+    "longDescription": "Daily-scheduled AI news tracker. Collects updates from 80+ AI entities across Reddit, HN, GitHub, HuggingFace, arXiv, and agent X/Twitter search. Generates scored, deduplicated Markdown reports with optional cover infographics.",
+    "developerName": "octo-patch",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/octo-patch/MorningAI",
+    "defaultPrompt": "Track today's AI news and generate a scored daily report"
+  }
+}

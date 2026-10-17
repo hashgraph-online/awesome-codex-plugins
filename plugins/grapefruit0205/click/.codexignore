@@ -1,0 +1,19 @@
+# Files the Codex plugin package does not need at runtime. The plugin is the
+# repository root: `.codex-plugin/`, `.agents/`, `hooks/`, `skills/` and
+# `assets/` stay in; tests, documentation, benchmarks, generated distributions
+# for other hosts, CI configuration and local state stay out.
+.github/
+.claude/
+.click/
+benchmarks/
+dist/
+docs/
+evals/
+platforms/
+scripts/
+tests/
+__pycache__/
+*.pyc
+*.log
+.env
+.env.*

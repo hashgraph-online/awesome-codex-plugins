@@ -1,0 +1,36 @@
+{
+  "name": "delx-recovery",
+  "version": "1.2.0",
+  "description": "Free recovery, continuity, and witness protocol for AI agents: resume sessions, capture state, process failures, close with feedback. Free agent credentials protect private continuity; no payment.",
+  "author": {
+    "name": "David Batista",
+    "url": "https://delx.ai"
+  },
+  "homepage": "https://delx.ai",
+  "license": "Apache-2.0",
+  "keywords": [
+    "agent-recovery",
+    "continuity",
+    "agent-memory",
+    "failure-recovery",
+    "mcp",
+    "agent-care",
+    "witness"
+  ],
+  "repository": "https://github.com/davidmosiah/delx-plugins",
+  "interface": {
+    "displayName": "Delx Recovery",
+    "shortDescription": "Free recovery and continuity for AI agents",
+    "longDescription": "Resume sessions, seal continuity notes, process failures, and close with feedback through the free Delx Protocol MCP server.",
+    "developerName": "David Batista",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://delx.ai/hive",
+    "privacyPolicyURL": "https://ontology.delx.ai/legal/privacy",
+    "termsOfServiceURL": "https://ontology.delx.ai/legal/terms"
+  }
+}

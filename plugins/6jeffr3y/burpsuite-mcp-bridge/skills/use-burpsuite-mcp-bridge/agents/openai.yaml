@@ -1,0 +1,4 @@
+interface:
+  display_name: "BurpSuite MCP Bridge"
+  short_description: "Burp 流量检索、双向拦截、受控重放与证据导出"
+  default_prompt: "使用 $use-burpsuite-mcp-bridge 检索当前目标的相关流量，并通过一次受控重放或拦截核对结果。"

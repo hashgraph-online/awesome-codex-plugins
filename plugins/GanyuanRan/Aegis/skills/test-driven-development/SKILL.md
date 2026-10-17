@@ -1,0 +1,488 @@
+---
+name: test-driven-development
+description: "Use when the user explicitly requests strict or test-first TDD, or when the current conversation already contains an explicit `TDD Route: strict` decision from another Aegis workflow."
+---
+
+# Execute
+
+→ False-positive entry on a native-direct-skill host? → **Exit immediately unless the user explicitly asked for TDD or the conversation already contains `TDD Route: strict`.**
+  In `off` mode, do not start RED / GREEN / REFACTOR from generic bugfix, contract, shared-module, or risky-code wording alone.
+  Hand control back to `using-aegis`, `systematic-debugging`, `writing-plans`, or the fast path with verification.
+→ Implementing a feature or bugfix under TDD Route `strict`? → **No production code without a failing test first.**
+  Gate: medium/high complexity? → route to brainstorming or writing-plans first.
+  Mode: default `off` disables automatic TDD, not completion verification; `auto` chooses strict/light/skipped by risk.
+  Change Necessity: before strict RED/GREEN enters production edits, confirm the slice really needs a code change.
+  Cycle: RED (write test → watch it fail) → GREEN (minimal code → watch it pass) → REFACTOR (clean up → keep green)
+  Regression: shared module → related tests. contract change → producer + consumer. core logic → old + new tests.
+  Ripple signal hit → cover producer+consumer or real user path before claiming green.
+  GREEN proves the currently expressed behavior slice only.
+  GREEN does not by itself prove parent-task acceptance, business-value completion, or final completion.
+→ Done when: chosen TDD Route is recorded, strict-route tests pass, TDD preflight gate passed when applicable, pre-edit complexity risk was checked for non-trivial source edits, and `verification-before-completion` has fresh evidence.
+
+# Test-Driven Development (TDD)
+
+## Overview
+
+Under `TDD Route: strict`, write the test first. Watch it fail. Write minimal
+code to pass.
+
+If you didn't watch the test fail, you don't know if it tests the right thing.
+
+TDD Mode has two values: `off` and `auto`. The default `off` mode disables
+automatic TDD routing but never disables `verification-before-completion`.
+`auto` lets Aegis choose a `TDD Route` by task risk.
+
+On native-direct-skill hosts, automatic entry must stay anchored to literal
+conversation markers such as `TDD Route: strict`, `strict TDD`, `test-first`,
+or `RED / GREEN / REFACTOR`, not generic risky-implementation wording.
+
+## When to Use
+
+Only enter this skill after one of these explicit entry signals exists:
+
+- the user explicitly asks for strict TDD, test-first development, or RED / GREEN / REFACTOR
+- the current conversation already contains `TDD Route: strict` from another Aegis workflow
+
+Typical strict-route shapes once entry is already justified: new features, bug
+fixes, refactoring, behavior or logic changes, interface/data contract changes,
+cross-module or shared-module changes, and core logic refactors.
+
+Exceptions (ask your human partner): throwaway prototypes, generated code, config files, pure docs cleanup, read-only diagnosis, comment-only changes.
+
+## TDD Mode and Route
+
+Before source edits, decide:
+
+```text
+Aegis Visibility:
+- Why this TDD route is strict, light, or skipped:
+- What RED/GREEN proves:
+- What still needs verification:
+
+TDD Route:
+- Mode: auto | off
+- Decision: strict | light | skipped
+- Strict authority: explicit user/project request | recorded auto decision | not applicable
+- Test posture: diagnostic reproduction | post-change regression | strict RED test
+- Reason:
+- Verification:
+```
+
+In `auto`, use `strict` for behavior, bugfix, contract, shared/core, producer /
+consumer, persistence, permission, migration, or meaningful regression risk.
+Use `light` for tiny low-risk edits with an obvious readback or command check.
+Use `skipped` for read-only, docs-only, generated, throwaway, comment-only, or
+environment-bound work where TDD does not fit.
+
+In `off`, do not automatically require TDD, create a strict route, or infer one
+from risk alone. Explicit user/project TDD requests still apply; risky work may
+still need regression coverage and `verification-before-completion` before any
+completion claim.
+For plan or execution review, `Mode: off / Decision: skipped` is the normal
+record unless an explicit user/project strict request overrides it. That record
+does not load this skill or turn a diagnostic reproduction into RED. An
+approved plan does not supply strict authority by itself.
+If this skill was loaded anyway without an explicit TDD request or a visible
+`TDD Route: strict` marker, exit instead of improvising an automatic strict
+route from risk words alone.
+
+Keep `Aegis Visibility` task-specific: explain the route decision and the
+regression boundary, not a generic claim that TDD was used.
+
+## Preflight Gate
+
+TDD is the implementation discipline for an approved behavior or atomic task.
+It is not a substitute for task routing, product clarification, or planning.
+
+Before writing tests or production code, stop and route to brainstorming or
+writing-plans if the current request has any medium- or high-complexity signal:
+
+- multiple files, modules, pages, screens, services, or owners
+- user-visible flows such as navigation, onboarding, checkout, lifecycle, or
+  recovery paths
+- state transitions, routing rules, API or data contracts, compatibility
+  boundaries, migrations, permissions, or persistence
+- more than one acceptance path or manual/visual verification requirement
+- unclear product behavior, competing constraints, or long-running execution
+
+For these tasks, require a baseline read-set, plan, and atomic tasks before TDD.
+High-complexity or ambiguous tasks also need a spec/design review before
+planning. Only proceed directly with TDD for low-complexity work whose intent,
+owner, compatibility boundary, verification path, and slice goal / success
+evidence are already clear.
+
+## Change Necessity
+
+Before strict RED/GREEN enters production code edits, make the code-change
+decision visible. Any new source-code path needs this check before RED/GREEN
+normalizes it as work to implement. This is the "should code change at all?"
+check; it is not a new artifact and does not belong in the `using-aegis` hot
+path.
+
+This is behavior-triggered, not prompt-triggered. If strict TDD is about to add
+any new source-code path or enter production source edits, expose a natural
+readback even when the user did not ask for it. A tiny helper, small guard, new
+branch, fallback, adapter, or owner is not exempt. Example: "Code necessity
+check: a non-code path is insufficient because <reason>; the minimum change
+boundary is <owner/files>, so the decision is code-change."
+
+```text
+Change Necessity:
+- User-visible need:
+- No-change / non-code option:
+- Why code change is necessary:
+- Minimum change boundary:
+- Decision: no-change | docs/config-only | code-change | needs-clarification
+```
+
+If the decision is `no-change`, do not write tests or production code for a
+non-change. If the decision is `docs/config-only`, route to that narrower
+surface and verify it. If the decision is `needs-clarification`, pause before
+RED/GREEN. If the decision is `code-change`, carry the minimum boundary into
+`TDD Route`, RED, and regression scope.
+
+## Complexity Budget
+
+Before strict TDD on non-trivial work, record the planned complexity budget so
+RED/GREEN does not silently normalize a wrong or overloaded owner.
+
+```text
+Complexity Budget:
+- Artifact class:
+- Current pressure:
+- Projected post-change pressure:
+- Planned governance:
+```
+
+Use `using-aegis/references/complexity-governance.md` for shared artifact
+classes, pressure signals, and the meaning of planned governance.
+
+## Pre-Edit Complexity Check
+
+Before production code edits, check whether the intended source edit would add
+logic to an overloaded or wrong owner. Tiny edits can keep this to one line.
+
+Use `using-aegis/references/complexity-governance.md` for shared pressure
+signals and the meaning of `over-budget`.
+
+```text
+Pre-Edit Complexity Check:
+- Target edit file:
+- Existing pressure signal:
+- Owner fit:
+- Safer edit boundary:
+- Decision: edit-in-place | extract helper | add owner file | split task | pause for plan update
+
+Pre-Edit Owner-Fit Decision:
+- Edit intent: wiring-only | move-out / extract-first | local-fix-without-new-responsibility | new-responsibility | emergency / compatibility patch
+- Owner fit:
+- Safer edit boundary:
+- Decision: edit-in-place | extract helper | add owner file | split task | pause for plan update
+```
+
+If the decision is `pause for plan update`, stop TDD and return to
+`writing-plans` or `brainstorming` with the evidence.
+
+If the predicted result is that this slice would push a maintained artifact
+over budget and the slice does not also govern that overrun, do not continue
+with RED/GREEN as if the task were safely scoped. Pause and update the plan.
+
+When the target edit file is over-budget or mixed-purpose, classify edit intent
+before production source edits. `new-responsibility` must not be added in place
+by default. `wiring-only`, `move-out / extract-first`, and
+`local-fix-without-new-responsibility` may proceed only when they do not add a
+new responsibility and the verification boundary is clear. `emergency /
+compatibility patch` requires residual risk and a retirement trigger.
+
+When a medium- or high-complexity task needs project records, use configured Aegis workspace support
+lazily. Prefer the installed Aegis workspace helper
+(`python <aegis-workspace-helper> init --root <target-project-root>`) when it
+is available. If the task needs a process trail under `work/`, prefer
+`python <aegis-workspace-helper> new-work --root <target-project-root> ...`
+so the intent, checkpoint, drift, and evidence paths are indexed and
+structurally checkable:
+
+```text
+docs/aegis/
+  README.md
+  INDEX.md
+  BASELINE-GOVERNANCE.md
+  adr/
+  baseline/
+  specs/
+  plans/
+  work/YYYY-MM-DD-<task-slug>/
+    10-intent.md
+    20-checkpoint.md
+    90-evidence.md
+    99-reflection.md
+```
+
+Do not promote reusable project facts, decisions, specs, or plans into those
+directories unless the workflow needs them and no existing project authority
+already owns them.
+
+## Red-Green-Refactor
+
+### RED - Write Failing Test
+
+State: input | output | boundary | acceptance criteria. Check existing test coverage first. Write one minimal test showing what should happen.
+A minimal test anchors the next behavior slice; it does not by itself define
+whole-task completeness unless the parent acceptance is already fully pinned.
+
+<Good>
+```typescript
+test('retries failed operations 3 times', async () => {
+  let attempts = 0;
+  const operation = () => {
+    attempts++;
+    if (attempts < 3) throw new Error('fail');
+    return 'success';
+  };
+
+  const result = await retryOperation(operation);
+
+  expect(result).toBe('success');
+  expect(attempts).toBe(3);
+});
+```
+Clear name, tests real behavior, one thing
+</Good>
+
+<Bad>
+```typescript
+test('retry works', async () => {
+  const mock = jest.fn()
+    .mockRejectedValueOnce(new Error())
+    .mockRejectedValueOnce(new Error())
+    .mockResolvedValueOnce('success');
+  await retryOperation(mock);
+  expect(mock).toHaveBeenCalledTimes(3);
+});
+```
+Vague name; exercises real retry code but asserts only callback count, not the returned result
+</Bad>
+
+**Requirements:**
+- One behavior
+- Clear name
+- Real code (no mocks unless unavoidable)
+- If a new feature changes user-observable behavior, prefer one minimal
+  end-to-end or integration test for the main path before narrower unit tests
+- For user-visible work, cover the main journey and the highest-risk experience
+  or operational floor before treating unit tests as sufficient
+- Add unit tests for core rules, boundary conditions, and error branches
+
+### Verify RED - Watch It Fail
+
+**MANDATORY. Never skip.**
+
+```bash
+npm test path/to/test.test.ts
+```
+
+Confirm:
+- Test fails (not errors)
+- Failure message is expected
+- Fails because feature missing (not typos)
+
+**Test passes before production edits?** Inspect the reproduction and assertions.
+If they miss the requested behavior, correct the test. If the behavior already
+exists, reassess Change Necessity; keep useful regression evidence without
+claiming a RED/GREEN cycle. Do not break or delete existing code to force RED.
+
+**Test errors?** Fix error, re-run until it fails correctly.
+
+### GREEN - Minimal Code
+
+Write simplest code to pass the test.
+
+<Good>
+```typescript
+async function retryOperation<T>(fn: () => Promise<T>): Promise<T> {
+  for (let i = 0; i < 3; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      if (i === 2) throw e;
+    }
+  }
+  throw new Error('unreachable');
+}
+```
+Just enough to pass
+</Good>
+
+<Bad>
+```typescript
+async function retryOperation<T>(
+  fn: () => Promise<T>,
+  options?: {
+    maxRetries?: number;
+    backoff?: 'linear' | 'exponential';
+    onRetry?: (attempt: number) => void;
+  }
+): Promise<T> {
+  // YAGNI
+}
+```
+Over-engineered
+</Bad>
+
+Don't add features, refactor other code, or "improve" beyond the test.
+
+Fix the real owner of the behavior. Do not add a new fallback, adapter, or
+branch unless the debugging or design workflow identifies why it is necessary
+and what old path retires.
+
+### Verify GREEN - Watch It Pass
+
+**MANDATORY.**
+
+```bash
+npm test path/to/test.test.ts
+```
+
+Confirm:
+- Test passes
+- Other tests still pass
+- Output pristine (no errors, warnings)
+
+**Test fails?** Fix code, not test.
+
+**Other tests fail?** Fix now.
+
+### REFACTOR - Clean Up
+
+After green only:
+- Remove duplication
+- Improve names
+- Extract helpers
+
+Keep tests green. Don't add behavior.
+
+### Repeat
+
+Next failing test for next feature.
+
+## Regression Scope
+
+At minimum, run the target test you just changed or added. Broaden regression
+based on impact:
+
+- Shared module change -> related module tests
+- Interface or data contract change -> producer and consumer tests
+- Cross-module behavior change -> integration or end-to-end path
+- Core logic refactor -> old behavior regression tests plus new behavior tests
+- Ripple Signal Triage fired -> producer+consumer or real user path that proves
+  the downstream effect remains bounded
+
+If the current environment cannot run automated tests, state the blocker and provide reproducible manual verification steps.
+
+## Good Tests
+
+| Quality | Good | Bad |
+|---------|------|-----|
+| **Minimal** | One thing. "and" in name? Split it. | `test('validates email and domain and whitespace')` |
+| **Clear** | Name describes behavior | `test('test1')` |
+| **Shows intent** | Demonstrates desired API | Obscures what code should do |
+
+## Strict-Route Red Flags - STOP and Diagnose
+
+These red flags apply only after this skill has validly entered under
+`TDD Route: strict`. Do not project them onto debugging or regression work
+whose route is `light` or `skipped`.
+
+- Code before test
+- Test after implementation
+- Test passes immediately without an explanation of existing behavior
+- Can't explain why test failed
+- Tests added "later"
+- Rationalizing "just this once"
+- "I already manually tested it"
+- "Tests after achieve the same purpose"
+- "It's about spirit not ritual"
+- "Keep as reference" or "adapt existing code"
+- "Already spent X hours, deleting is wasteful"
+- "TDD is dogmatic, I'm being pragmatic"
+- "This is different because..."
+
+Stop and establish which case applies. If you wrote task-owned production code
+before the required failing test, remove only that premature implementation
+and restart from the behavior test. Preserve pre-existing code and user edits;
+if changes are interleaved, isolate ownership before recovery. A test that
+passes before any production edit needs the test/Change Necessity diagnosis
+above, not code deletion. Missing evidence alone does not authorize a reset.
+
+## Example: Bug Fix
+
+**Bug:** Empty email accepted
+
+**RED**
+```typescript
+test('rejects empty email', async () => {
+  const result = await submitForm({ email: '' });
+  expect(result.error).toBe('Email required');
+});
+```
+
+**Verify RED**
+```bash
+$ npm test
+FAIL: expected 'Email required', got undefined
+```
+
+**GREEN**
+```typescript
+function submitForm(data: FormData) {
+  if (!data.email?.trim()) {
+    return { error: 'Email required' };
+  }
+  // ...
+}
+```
+
+**Verify GREEN**
+```bash
+$ npm test
+PASS
+```
+
+**REFACTOR**
+Extract validation for multiple fields if needed.
+
+## Strict-Route Verification Checklist
+
+- [ ] Defined input, output, boundaries, compatibility, acceptance criteria
+- [ ] Each new behavior has a test observed failing before implementation;
+      helpers extracted during GREEN refactoring may use that existing test
+- [ ] All tests pass, output pristine
+- [ ] Regression: shared/contract/core changes ran related tests
+- [ ] Ripple signal hit: downstream or real user path covered
+- [ ] If automation blocked → blocker + manual steps documented
+- [ ] GREEN treated as local behavior proof only, not final completion
+- [ ] If `TaskIntentDraft`, parent plan/spec, or `Slice Card` exists, covered and uncovered scope are explicit before any done claim
+
+Can't check all applicable boxes? Diagnose the gap before claiming strict-route completion.
+
+## Exploration and Emergency Exceptions
+
+Exploratory spikes are allowed only as throwaway learning. When the spike ends,
+convert confirmed behavior into tests before formal implementation.
+
+Emergency hotfixes may prioritize the smallest safe repair when delay is more
+dangerous than incomplete TDD. Record the reason, keep the change narrow, and
+add the missing regression test in the same slice or the next nearest slice.
+
+## When Stuck
+
+Don't know how to test → write wished-for API first. Test too complicated → simplify design. Must mock everything → reduce coupling.
+
+## Debugging Integration
+
+Bug found? Start with `systematic-debugging`: reproduce, trace the owner, and
+choose the smallest proof that supports the diagnosis. Under recorded
+`TDD Route: strict`, the reproduction becomes the required failing test before
+production edits. With `TDD Mode: off` and no strict route, use diagnostic
+reproduction and targeted post-change regression as fit the repair; do not
+start RED / GREEN by inference.

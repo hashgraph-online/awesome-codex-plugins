@@ -1,0 +1,6 @@
+{
+  "archcore": {
+    "command": "archcore",
+    "args": ["mcp"]
+  }
+}

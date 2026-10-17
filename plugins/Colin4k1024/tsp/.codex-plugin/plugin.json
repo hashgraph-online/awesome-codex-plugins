@@ -1,0 +1,24 @@
+{
+  "name": "team-skills-platform",
+  "version": "2.5.5",
+  "description": "开源角色化 Team Skills 平台，含 ECC harness skeleton、前端工程与 UI/UX 治理能力",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Team Skills Platform",
+    "shortDescription": "角色化团队平台 + ECC harness 增强层",
+    "longDescription": "通过 Tech Lead 编排与专业角色分工统一需求、方案、研发、测试和发布协作，并提供 ECC 风格的 specialist agents、commands、rules、hooks skeleton 与前端治理能力。",
+    "developerName": "Engineering Team",
+    "category": "Engineering",
+    "capabilities": [
+      "Read",
+      "Write",
+      "Interactive"
+    ],
+    "defaultPrompt": [
+      "让 Tech Lead 帮我拆解一个新需求。",
+      "调用 Planner 和 Frontend Engineer 规划一次 UI 改版。",
+      "用 Code Reviewer 和 Security Reviewer 检查当前方案。"
+    ],
+    "brandColor": "#0F766E"
+  }
+}

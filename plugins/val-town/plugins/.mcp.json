@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "valtown": {
+      "type": "http",
+      "url": "https://api.val.town/v3/mcp"
+    }
+  }
+}

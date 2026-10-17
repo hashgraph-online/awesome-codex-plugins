@@ -1,0 +1,49 @@
+{
+  "name": "placecall",
+  "version": "6.1.0",
+  "description": "PlaceCall makes AI phone calls that book, confirm, and reach any business. It places a real outbound call and returns a structured outcome plus a full transcript. Sign in on first use, no API key needed.",
+  "author": {
+    "name": "VOYGR",
+    "email": "support@voygr.tech",
+    "url": "https://voygr.tech"
+  },
+  "homepage": "https://github.com/voygr-tech/placecall",
+  "repository": "https://github.com/voygr-tech/placecall",
+  "license": "MIT",
+  "keywords": [
+    "phone",
+    "calls",
+    "voice",
+    "telephony",
+    "booking",
+    "reservations",
+    "appointments"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "PlaceCall",
+    "shortDescription": "Real phone calls to businesses",
+    "longDescription": "PlaceCall places real outbound phone calls to US businesses for your agent: book or cancel a table or an appointment, ask a question, check stock, get a quote. It works through phone menus and hold, then returns a verified outcome and the full transcript. With no number at hand, it can find places worth calling first. It connects to the PlaceCall MCP server at api.voygr.tech, where you sign in once in a browser; no API key needed to find places and place calls. An API key from https://api.voygr.tech/checkout adds recording options and cancelling. US numbers only. By default, every call opens with a notice that the line is recorded.",
+    "developerName": "VOYGR",
+    "category": "Productivity",
+    "capabilities": [
+      "Place phone calls",
+      "Find places to call",
+      "Read call outcomes and transcripts"
+    ],
+    "websiteURL": "https://voygr.tech/placecall/",
+    "defaultPrompt": [
+      "Call this restaurant and ask what time the kitchen closes tonight.",
+      "Find a florist in Chicago with fresh peonies today and call them.",
+      "Book a table for two tomorrow at 7pm under the name Alex."
+    ],
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png"
+  },
+  "mcpServers": {
+    "placecall": {
+      "type": "http",
+      "url": "https://api.voygr.tech/mcp"
+    }
+  }
+}

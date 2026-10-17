@@ -1,2 +1,2 @@
-site_id	base_url	include_keywords	enabled	notes
-cmp-001	https://example.com	sport,stadion,tennis,football,warehouse,production	1	Sitemap discovery after domain-level competitor discovery
+site_id	domain	base_url	include_keywords	source_row_sha256	enabled	status	skip_reason	notes
+template-site	example.invalid	https://example.invalid			0	unverified		Шаблон выключен; адрес заменяется фактически найденным источником.

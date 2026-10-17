@@ -1,0 +1,2090 @@
+{
+  "base": {
+    "absolute_max": {
+      "IIO_per_pin": [
+        {
+          "condition": "Output current sourced/sunk by any I/O and control pin",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 37,
+            "section": "Table 7 Absolute maximum ratings"
+          },
+          "max": 0.025,
+          "min": -0.025,
+          "notes": "+/- 25 mA.",
+          "typ": null,
+          "unit": "A"
+        }
+      ],
+      "IVDD": [
+        {
+          "condition": "Total current into VDD/VDDA power lines",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 37,
+            "section": "Table 7 Absolute maximum ratings"
+          },
+          "max": 0.15,
+          "min": null,
+          "notes": "150 mA max.",
+          "typ": null,
+          "unit": "A"
+        }
+      ],
+      "IVSS": [
+        {
+          "condition": "Total current out of VSS ground lines",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 37,
+            "section": "Table 7 Absolute maximum ratings"
+          },
+          "max": 0.15,
+          "min": null,
+          "notes": "150 mA max.",
+          "typ": null,
+          "unit": "A"
+        }
+      ],
+      "TJ": [
+        {
+          "condition": "Maximum junction temperature (absolute maximum)",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 37,
+            "section": "Table 8 Absolute maximum ratings"
+          },
+          "max": 150.0,
+          "min": null,
+          "notes": "Operating TJ max is 105 C for suffix-6.",
+          "typ": null,
+          "unit": "\u00b0C"
+        }
+      ],
+      "TSTG": [
+        {
+          "condition": "Storage temperature range",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 37,
+            "section": "Table 8 Absolute maximum ratings"
+          },
+          "max": 150.0,
+          "min": -65.0,
+          "notes": null,
+          "typ": null,
+          "unit": "\u00b0C"
+        }
+      ],
+      "VDD": [
+        {
+          "condition": "External main supply voltage including VDDA and VDD",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 37,
+            "section": "Table 6 Absolute maximum ratings"
+          },
+          "max": 4.0,
+          "min": -0.3,
+          "notes": "VDD - VSS range.",
+          "typ": null,
+          "unit": "V"
+        }
+      ],
+      "delta_VDD": [
+        {
+          "condition": "Variations between different VDD power pins",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 37,
+            "section": "Table 6 Absolute maximum ratings"
+          },
+          "max": 0.05,
+          "min": null,
+          "notes": "|delta-VDD| max 50 mV.",
+          "typ": null,
+          "unit": "V"
+        }
+      ],
+      "delta_VSS": [
+        {
+          "condition": "Variations between ground pins; |VSSX - VSS|",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 37,
+            "section": "Table 6 Absolute maximum ratings"
+          },
+          "max": 0.05,
+          "min": null,
+          "notes": "max 50 mV.",
+          "typ": null,
+          "unit": "V"
+        }
+      ]
+    },
+    "compliance": [
+      {
+        "evidence": {
+          "confidence": "medium",
+          "method": "prose",
+          "page": 1,
+          "section": "Cover"
+        },
+        "mark": "RoHS"
+      }
+    ],
+    "description": "Medium-density 64KB Flash, 20KB SRAM, 72 MHz Cortex-M3 MCU with USB, CAN, 7 timers, 2 ADCs, and 9 communication interfaces in LQFP-48.",
+    "esd": {
+      "CDM": [
+        {
+          "condition": "TA=+25C, ANSI/ESD STM5.3.1, Class II",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 59,
+            "section": "Table 32 ESD"
+          },
+          "max": 500.0,
+          "min": null,
+          "notes": null,
+          "typ": null,
+          "unit": "V"
+        }
+      ],
+      "HBM": [
+        {
+          "condition": "TA=+25C, JESD22-A114, Class 2",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 59,
+            "section": "Table 32 ESD"
+          },
+          "max": 2000.0,
+          "min": null,
+          "notes": null,
+          "typ": null,
+          "unit": "V"
+        }
+      ]
+    },
+    "family": "ARM Cortex-M3 32-bit microcontroller, medium-density performance line",
+    "moisture_sensitivity": null,
+    "package": {
+      "body_mm": {
+        "height": 1.6,
+        "length": 7.0,
+        "width": 7.0
+      },
+      "code": "LQFP-48",
+      "evidence": {
+        "confidence": "high",
+        "method": "table",
+        "page": 101,
+        "section": "Table 61 LQFP48 mechanical data"
+      },
+      "pin_count": 48,
+      "pitch_mm": 0.5,
+      "thermal_pad": false
+    },
+    "pin_relationships": [],
+    "pinout": [
+      {
+        "absolute_max": null,
+        "alt_functions": [],
+        "description": "Backup battery supply for RTC and backup registers.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 28,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": false,
+        "name": "VBAT",
+        "notes": null,
+        "numbers": [
+          "1"
+        ],
+        "power_domain": "VBAT",
+        "recommended": null,
+        "subtype": null,
+        "type": "power_in"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [
+          {
+            "af_code": null,
+            "name": "TAMPER-RTC",
+            "peripheral": "RTC",
+            "role": "TAMPER"
+          }
+        ],
+        "description": "GPIO Port C bit 13. Alt: TAMPER/RTC alarm.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 28,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": false,
+        "name": "PC13-TAMPER-RTC",
+        "notes": "Output speed limited to 2 MHz max load 30 pF; cannot source current.",
+        "numbers": [
+          "2"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "bidirectional"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [
+          {
+            "af_code": null,
+            "name": "OSC32_IN",
+            "peripheral": "LSE",
+            "role": "OSC32_IN"
+          }
+        ],
+        "description": "GPIO Port C bit 14. Alt: LSE oscillator input.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 28,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": false,
+        "name": "PC14-OSC32_IN",
+        "notes": null,
+        "numbers": [
+          "3"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "bidirectional"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [
+          {
+            "af_code": null,
+            "name": "OSC32_OUT",
+            "peripheral": "LSE",
+            "role": "OSC32_OUT"
+          }
+        ],
+        "description": "GPIO Port C bit 15. Alt: LSE oscillator output.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 28,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": false,
+        "name": "PC15-OSC32_OUT",
+        "notes": null,
+        "numbers": [
+          "4"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "bidirectional"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [
+          {
+            "af_code": null,
+            "name": "PD0",
+            "peripheral": "GPIO",
+            "role": null
+          }
+        ],
+        "description": "HSE oscillator input. PD0 GPIO via remap.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 28,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": false,
+        "name": "PD0-OSC_IN",
+        "notes": null,
+        "numbers": [
+          "5"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "input"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [
+          {
+            "af_code": null,
+            "name": "PD1",
+            "peripheral": "GPIO",
+            "role": null
+          }
+        ],
+        "description": "HSE oscillator output. PD1 GPIO via remap.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 28,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": false,
+        "name": "PD1-OSC_OUT",
+        "notes": null,
+        "numbers": [
+          "6"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "output"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [],
+        "description": "System reset input (active low). Internal pull-up.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 28,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": false,
+        "name": "NRST",
+        "notes": null,
+        "numbers": [
+          "7"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "input"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [],
+        "description": "Analog supply ground reference.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 28,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": false,
+        "name": "VSSA",
+        "notes": "Must be connected to VSS.",
+        "numbers": [
+          "8"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "power_in"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [],
+        "description": "Analog supply voltage for ADC, RC oscillator, PLL.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 28,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": false,
+        "name": "VDDA",
+        "notes": null,
+        "numbers": [
+          "9"
+        ],
+        "power_domain": "VDDA",
+        "recommended": null,
+        "subtype": null,
+        "type": "power_in"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [
+          {
+            "af_code": null,
+            "name": "WKUP",
+            "peripheral": "PWR",
+            "role": "WKUP"
+          },
+          {
+            "af_code": null,
+            "name": "USART2_CTS",
+            "peripheral": "USART2",
+            "role": "CTS"
+          },
+          {
+            "af_code": null,
+            "name": "ADC12_IN0",
+            "peripheral": "ADC12",
+            "role": "IN0"
+          },
+          {
+            "af_code": null,
+            "name": "TIM2_CH1_ETR",
+            "peripheral": "TIM2",
+            "role": "CH1_ETR"
+          }
+        ],
+        "description": "GPIO Port A bit 0. Wakeup pin.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 29,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": false,
+        "name": "PA0-WKUP",
+        "notes": null,
+        "numbers": [
+          "10"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "bidirectional"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [
+          {
+            "af_code": null,
+            "name": "USART2_RTS",
+            "peripheral": "USART2",
+            "role": "RTS"
+          },
+          {
+            "af_code": null,
+            "name": "ADC12_IN1",
+            "peripheral": "ADC12",
+            "role": "IN1"
+          },
+          {
+            "af_code": null,
+            "name": "TIM2_CH2",
+            "peripheral": "TIM2",
+            "role": "CH2"
+          }
+        ],
+        "description": "GPIO Port A bit 1.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 29,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": false,
+        "name": "PA1",
+        "notes": null,
+        "numbers": [
+          "11"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "bidirectional"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [
+          {
+            "af_code": null,
+            "name": "USART2_TX",
+            "peripheral": "USART2",
+            "role": "TX"
+          },
+          {
+            "af_code": null,
+            "name": "ADC12_IN2",
+            "peripheral": "ADC12",
+            "role": "IN2"
+          },
+          {
+            "af_code": null,
+            "name": "TIM2_CH3",
+            "peripheral": "TIM2",
+            "role": "CH3"
+          }
+        ],
+        "description": "GPIO Port A bit 2.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 29,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": false,
+        "name": "PA2",
+        "notes": null,
+        "numbers": [
+          "12"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "bidirectional"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [
+          {
+            "af_code": null,
+            "name": "USART2_RX",
+            "peripheral": "USART2",
+            "role": "RX"
+          },
+          {
+            "af_code": null,
+            "name": "ADC12_IN3",
+            "peripheral": "ADC12",
+            "role": "IN3"
+          },
+          {
+            "af_code": null,
+            "name": "TIM2_CH4",
+            "peripheral": "TIM2",
+            "role": "CH4"
+          }
+        ],
+        "description": "GPIO Port A bit 3.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 29,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": false,
+        "name": "PA3",
+        "notes": null,
+        "numbers": [
+          "13"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "bidirectional"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [
+          {
+            "af_code": null,
+            "name": "SPI1_NSS",
+            "peripheral": "SPI1",
+            "role": "NSS"
+          },
+          {
+            "af_code": null,
+            "name": "USART2_CK",
+            "peripheral": "USART2",
+            "role": "CK"
+          },
+          {
+            "af_code": null,
+            "name": "ADC12_IN4",
+            "peripheral": "ADC12",
+            "role": "IN4"
+          }
+        ],
+        "description": "GPIO Port A bit 4.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 29,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": false,
+        "name": "PA4",
+        "notes": null,
+        "numbers": [
+          "14"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "bidirectional"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [
+          {
+            "af_code": null,
+            "name": "SPI1_SCK",
+            "peripheral": "SPI1",
+            "role": "SCK"
+          },
+          {
+            "af_code": null,
+            "name": "ADC12_IN5",
+            "peripheral": "ADC12",
+            "role": "IN5"
+          }
+        ],
+        "description": "GPIO Port A bit 5.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 29,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": false,
+        "name": "PA5",
+        "notes": null,
+        "numbers": [
+          "15"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "bidirectional"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [
+          {
+            "af_code": null,
+            "name": "SPI1_MISO",
+            "peripheral": "SPI1",
+            "role": "MISO"
+          },
+          {
+            "af_code": null,
+            "name": "ADC12_IN6",
+            "peripheral": "ADC12",
+            "role": "IN6"
+          },
+          {
+            "af_code": null,
+            "name": "TIM3_CH1",
+            "peripheral": "TIM3",
+            "role": "CH1"
+          },
+          {
+            "af_code": null,
+            "name": "TIM1_BKIN",
+            "peripheral": "TIM1",
+            "role": "BKIN"
+          }
+        ],
+        "description": "GPIO Port A bit 6.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 29,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": false,
+        "name": "PA6",
+        "notes": null,
+        "numbers": [
+          "16"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "bidirectional"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [
+          {
+            "af_code": null,
+            "name": "SPI1_MOSI",
+            "peripheral": "SPI1",
+            "role": "MOSI"
+          },
+          {
+            "af_code": null,
+            "name": "ADC12_IN7",
+            "peripheral": "ADC12",
+            "role": "IN7"
+          },
+          {
+            "af_code": null,
+            "name": "TIM3_CH2",
+            "peripheral": "TIM3",
+            "role": "CH2"
+          },
+          {
+            "af_code": null,
+            "name": "TIM1_CH1N",
+            "peripheral": "TIM1",
+            "role": "CH1N"
+          }
+        ],
+        "description": "GPIO Port A bit 7.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 29,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": false,
+        "name": "PA7",
+        "notes": null,
+        "numbers": [
+          "17"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "bidirectional"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [
+          {
+            "af_code": null,
+            "name": "ADC12_IN8",
+            "peripheral": "ADC12",
+            "role": "IN8"
+          },
+          {
+            "af_code": null,
+            "name": "TIM3_CH3",
+            "peripheral": "TIM3",
+            "role": "CH3"
+          },
+          {
+            "af_code": null,
+            "name": "TIM1_CH2N",
+            "peripheral": "TIM1",
+            "role": "CH2N"
+          }
+        ],
+        "description": "GPIO Port B bit 0.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 29,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": false,
+        "name": "PB0",
+        "notes": null,
+        "numbers": [
+          "18"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "bidirectional"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [
+          {
+            "af_code": null,
+            "name": "ADC12_IN9",
+            "peripheral": "ADC12",
+            "role": "IN9"
+          },
+          {
+            "af_code": null,
+            "name": "TIM3_CH4",
+            "peripheral": "TIM3",
+            "role": "CH4"
+          },
+          {
+            "af_code": null,
+            "name": "TIM1_CH3N",
+            "peripheral": "TIM1",
+            "role": "CH3N"
+          }
+        ],
+        "description": "GPIO Port B bit 1.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 29,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": false,
+        "name": "PB1",
+        "notes": null,
+        "numbers": [
+          "19"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "bidirectional"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [
+          {
+            "af_code": null,
+            "name": "BOOT1",
+            "peripheral": "SYS",
+            "role": "BOOT1"
+          }
+        ],
+        "description": "GPIO Port B bit 2. Alt: BOOT1.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 30,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": true,
+        "name": "PB2",
+        "notes": null,
+        "numbers": [
+          "20"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "bidirectional"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [
+          {
+            "af_code": null,
+            "name": "I2C2_SCL",
+            "peripheral": "I2C2",
+            "role": "SCL"
+          },
+          {
+            "af_code": null,
+            "name": "USART3_TX",
+            "peripheral": "USART3",
+            "role": "TX"
+          },
+          {
+            "af_code": null,
+            "name": "TIM2_CH3",
+            "peripheral": "TIM2",
+            "role": "CH3"
+          }
+        ],
+        "description": "GPIO Port B bit 10.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 30,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": true,
+        "name": "PB10",
+        "notes": null,
+        "numbers": [
+          "21"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "bidirectional"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [
+          {
+            "af_code": null,
+            "name": "I2C2_SDA",
+            "peripheral": "I2C2",
+            "role": "SDA"
+          },
+          {
+            "af_code": null,
+            "name": "USART3_RX",
+            "peripheral": "USART3",
+            "role": "RX"
+          },
+          {
+            "af_code": null,
+            "name": "TIM2_CH4",
+            "peripheral": "TIM2",
+            "role": "CH4"
+          }
+        ],
+        "description": "GPIO Port B bit 11.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 30,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": true,
+        "name": "PB11",
+        "notes": null,
+        "numbers": [
+          "22"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "bidirectional"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [],
+        "description": "Digital ground supply.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 30,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": false,
+        "name": "VSS_1",
+        "notes": null,
+        "numbers": [
+          "23"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "power_in"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [],
+        "description": "Digital supply voltage.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 30,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": false,
+        "name": "VDD_1",
+        "notes": null,
+        "numbers": [
+          "24"
+        ],
+        "power_domain": "VDD",
+        "recommended": null,
+        "subtype": null,
+        "type": "power_in"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [
+          {
+            "af_code": null,
+            "name": "SPI2_NSS",
+            "peripheral": "SPI2",
+            "role": "NSS"
+          },
+          {
+            "af_code": null,
+            "name": "USART3_CK",
+            "peripheral": "USART3",
+            "role": "CK"
+          },
+          {
+            "af_code": null,
+            "name": "TIM1_BKIN",
+            "peripheral": "TIM1",
+            "role": "BKIN"
+          }
+        ],
+        "description": "GPIO Port B bit 12.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 30,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": true,
+        "name": "PB12",
+        "notes": null,
+        "numbers": [
+          "25"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "bidirectional"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [
+          {
+            "af_code": null,
+            "name": "SPI2_SCK",
+            "peripheral": "SPI2",
+            "role": "SCK"
+          },
+          {
+            "af_code": null,
+            "name": "USART3_CTS",
+            "peripheral": "USART3",
+            "role": "CTS"
+          },
+          {
+            "af_code": null,
+            "name": "TIM1_CH1N",
+            "peripheral": "TIM1",
+            "role": "CH1N"
+          }
+        ],
+        "description": "GPIO Port B bit 13.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 30,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": true,
+        "name": "PB13",
+        "notes": null,
+        "numbers": [
+          "26"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "bidirectional"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [
+          {
+            "af_code": null,
+            "name": "SPI2_MISO",
+            "peripheral": "SPI2",
+            "role": "MISO"
+          },
+          {
+            "af_code": null,
+            "name": "USART3_RTS",
+            "peripheral": "USART3",
+            "role": "RTS"
+          },
+          {
+            "af_code": null,
+            "name": "TIM1_CH2N",
+            "peripheral": "TIM1",
+            "role": "CH2N"
+          }
+        ],
+        "description": "GPIO Port B bit 14.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 30,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": true,
+        "name": "PB14",
+        "notes": null,
+        "numbers": [
+          "27"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "bidirectional"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [
+          {
+            "af_code": null,
+            "name": "SPI2_MOSI",
+            "peripheral": "SPI2",
+            "role": "MOSI"
+          },
+          {
+            "af_code": null,
+            "name": "TIM1_CH3N",
+            "peripheral": "TIM1",
+            "role": "CH3N"
+          }
+        ],
+        "description": "GPIO Port B bit 15.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 30,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": true,
+        "name": "PB15",
+        "notes": null,
+        "numbers": [
+          "28"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "bidirectional"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [
+          {
+            "af_code": null,
+            "name": "USART1_CK",
+            "peripheral": "USART1",
+            "role": "CK"
+          },
+          {
+            "af_code": null,
+            "name": "TIM1_CH1",
+            "peripheral": "TIM1",
+            "role": "CH1"
+          },
+          {
+            "af_code": null,
+            "name": "MCO",
+            "peripheral": "RCC",
+            "role": "MCO"
+          }
+        ],
+        "description": "GPIO Port A bit 8.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 31,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": true,
+        "name": "PA8",
+        "notes": null,
+        "numbers": [
+          "29"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "bidirectional"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [
+          {
+            "af_code": null,
+            "name": "USART1_TX",
+            "peripheral": "USART1",
+            "role": "TX"
+          },
+          {
+            "af_code": null,
+            "name": "TIM1_CH2",
+            "peripheral": "TIM1",
+            "role": "CH2"
+          }
+        ],
+        "description": "GPIO Port A bit 9.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 31,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": true,
+        "name": "PA9",
+        "notes": null,
+        "numbers": [
+          "30"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "bidirectional"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [
+          {
+            "af_code": null,
+            "name": "USART1_RX",
+            "peripheral": "USART1",
+            "role": "RX"
+          },
+          {
+            "af_code": null,
+            "name": "TIM1_CH3",
+            "peripheral": "TIM1",
+            "role": "CH3"
+          }
+        ],
+        "description": "GPIO Port A bit 10.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 31,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": true,
+        "name": "PA10",
+        "notes": null,
+        "numbers": [
+          "31"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "bidirectional"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [
+          {
+            "af_code": null,
+            "name": "USART1_CTS",
+            "peripheral": "USART1",
+            "role": "CTS"
+          },
+          {
+            "af_code": null,
+            "name": "CANRX",
+            "peripheral": "CAN",
+            "role": "RX"
+          },
+          {
+            "af_code": null,
+            "name": "USBDM",
+            "peripheral": "USB",
+            "role": "DM"
+          },
+          {
+            "af_code": null,
+            "name": "TIM1_CH4",
+            "peripheral": "TIM1",
+            "role": "CH4"
+          }
+        ],
+        "description": "GPIO Port A bit 11.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 31,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": true,
+        "name": "PA11",
+        "notes": null,
+        "numbers": [
+          "32"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "bidirectional"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [
+          {
+            "af_code": null,
+            "name": "USART1_RTS",
+            "peripheral": "USART1",
+            "role": "RTS"
+          },
+          {
+            "af_code": null,
+            "name": "CANTX",
+            "peripheral": "CAN",
+            "role": "TX"
+          },
+          {
+            "af_code": null,
+            "name": "USBDP",
+            "peripheral": "USB",
+            "role": "DP"
+          },
+          {
+            "af_code": null,
+            "name": "TIM1_ETR",
+            "peripheral": "TIM1",
+            "role": "ETR"
+          }
+        ],
+        "description": "GPIO Port A bit 12.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 31,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": true,
+        "name": "PA12",
+        "notes": null,
+        "numbers": [
+          "33"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "bidirectional"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [
+          {
+            "af_code": null,
+            "name": "JTMS/SWDIO",
+            "peripheral": "JTAG",
+            "role": "TMS"
+          }
+        ],
+        "description": "GPIO Port A bit 13. Default: JTMS/SWDIO.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 31,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": true,
+        "name": "PA13",
+        "notes": null,
+        "numbers": [
+          "34"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "bidirectional"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [],
+        "description": "Digital ground supply.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 31,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": false,
+        "name": "VSS_2",
+        "notes": null,
+        "numbers": [
+          "35"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "power_in"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [],
+        "description": "Digital supply voltage.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 31,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": false,
+        "name": "VDD_2",
+        "notes": null,
+        "numbers": [
+          "36"
+        ],
+        "power_domain": "VDD",
+        "recommended": null,
+        "subtype": null,
+        "type": "power_in"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [
+          {
+            "af_code": null,
+            "name": "JTCK/SWCLK",
+            "peripheral": "JTAG",
+            "role": "TCK"
+          }
+        ],
+        "description": "GPIO Port A bit 14. Default: JTCK/SWCLK.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 32,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": true,
+        "name": "PA14",
+        "notes": null,
+        "numbers": [
+          "37"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "bidirectional"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [
+          {
+            "af_code": null,
+            "name": "JTDI",
+            "peripheral": "JTAG",
+            "role": "TDI"
+          },
+          {
+            "af_code": null,
+            "name": "TIM2_CH1_ETR",
+            "peripheral": "TIM2",
+            "role": "CH1_ETR"
+          },
+          {
+            "af_code": null,
+            "name": "SPI1_NSS",
+            "peripheral": "SPI1",
+            "role": "NSS"
+          }
+        ],
+        "description": "GPIO Port A bit 15. Default: JTDI.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 32,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": true,
+        "name": "PA15",
+        "notes": null,
+        "numbers": [
+          "38"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "bidirectional"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [
+          {
+            "af_code": null,
+            "name": "JTDO",
+            "peripheral": "JTAG",
+            "role": "TDO"
+          },
+          {
+            "af_code": null,
+            "name": "TIM2_CH2",
+            "peripheral": "TIM2",
+            "role": "CH2"
+          },
+          {
+            "af_code": null,
+            "name": "SPI1_SCK",
+            "peripheral": "SPI1",
+            "role": "SCK"
+          }
+        ],
+        "description": "GPIO Port B bit 3. Default: JTDO.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 32,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": true,
+        "name": "PB3",
+        "notes": null,
+        "numbers": [
+          "39"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "bidirectional"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [
+          {
+            "af_code": null,
+            "name": "JNTRST",
+            "peripheral": "JTAG",
+            "role": "TRST"
+          },
+          {
+            "af_code": null,
+            "name": "TIM3_CH1",
+            "peripheral": "TIM3",
+            "role": "CH1"
+          },
+          {
+            "af_code": null,
+            "name": "SPI1_MISO",
+            "peripheral": "SPI1",
+            "role": "MISO"
+          }
+        ],
+        "description": "GPIO Port B bit 4. Default: JNTRST.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 32,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": true,
+        "name": "PB4",
+        "notes": null,
+        "numbers": [
+          "40"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "bidirectional"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [
+          {
+            "af_code": null,
+            "name": "I2C1_SMBAI",
+            "peripheral": "I2C1",
+            "role": "SMBAI"
+          },
+          {
+            "af_code": null,
+            "name": "TIM3_CH2",
+            "peripheral": "TIM3",
+            "role": "CH2"
+          },
+          {
+            "af_code": null,
+            "name": "SPI1_MOSI",
+            "peripheral": "SPI1",
+            "role": "MOSI"
+          }
+        ],
+        "description": "GPIO Port B bit 5.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 32,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": false,
+        "name": "PB5",
+        "notes": null,
+        "numbers": [
+          "41"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "bidirectional"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [
+          {
+            "af_code": null,
+            "name": "I2C1_SCL",
+            "peripheral": "I2C1",
+            "role": "SCL"
+          },
+          {
+            "af_code": null,
+            "name": "TIM4_CH1",
+            "peripheral": "TIM4",
+            "role": "CH1"
+          },
+          {
+            "af_code": null,
+            "name": "USART1_TX",
+            "peripheral": "USART1",
+            "role": "TX"
+          }
+        ],
+        "description": "GPIO Port B bit 6.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 32,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": true,
+        "name": "PB6",
+        "notes": null,
+        "numbers": [
+          "42"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "bidirectional"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [
+          {
+            "af_code": null,
+            "name": "I2C1_SDA",
+            "peripheral": "I2C1",
+            "role": "SDA"
+          },
+          {
+            "af_code": null,
+            "name": "TIM4_CH2",
+            "peripheral": "TIM4",
+            "role": "CH2"
+          },
+          {
+            "af_code": null,
+            "name": "USART1_RX",
+            "peripheral": "USART1",
+            "role": "RX"
+          }
+        ],
+        "description": "GPIO Port B bit 7.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 32,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": true,
+        "name": "PB7",
+        "notes": null,
+        "numbers": [
+          "43"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "bidirectional"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [],
+        "description": "Boot mode selection pin.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 32,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": false,
+        "name": "BOOT0",
+        "notes": null,
+        "numbers": [
+          "44"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "input"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [
+          {
+            "af_code": null,
+            "name": "TIM4_CH3",
+            "peripheral": "TIM4",
+            "role": "CH3"
+          },
+          {
+            "af_code": null,
+            "name": "I2C1_SCL",
+            "peripheral": "I2C1",
+            "role": "SCL"
+          },
+          {
+            "af_code": null,
+            "name": "CANRX",
+            "peripheral": "CAN",
+            "role": "RX"
+          }
+        ],
+        "description": "GPIO Port B bit 8.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 33,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": true,
+        "name": "PB8",
+        "notes": null,
+        "numbers": [
+          "45"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "bidirectional"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [
+          {
+            "af_code": null,
+            "name": "TIM4_CH4",
+            "peripheral": "TIM4",
+            "role": "CH4"
+          },
+          {
+            "af_code": null,
+            "name": "I2C1_SDA",
+            "peripheral": "I2C1",
+            "role": "SDA"
+          },
+          {
+            "af_code": null,
+            "name": "CANTX",
+            "peripheral": "CAN",
+            "role": "TX"
+          }
+        ],
+        "description": "GPIO Port B bit 9.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 33,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": true,
+        "name": "PB9",
+        "notes": null,
+        "numbers": [
+          "46"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "bidirectional"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [],
+        "description": "Digital ground supply.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 33,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": false,
+        "name": "VSS_3",
+        "notes": null,
+        "numbers": [
+          "47"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "power_in"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [],
+        "description": "Digital supply voltage.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 33,
+          "section": "Table 5 Pin Definitions"
+        },
+        "is_5v_tolerant": false,
+        "name": "VDD_3",
+        "notes": null,
+        "numbers": [
+          "48"
+        ],
+        "power_domain": "VDD",
+        "recommended": null,
+        "subtype": null,
+        "type": "power_in"
+      }
+    ],
+    "recommended_operating": {
+      "TA": [
+        {
+          "condition": "Ambient temperature, suffix-6 (C8T6) max power dissipation mode",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 38,
+            "section": "Table 9 General operating conditions"
+          },
+          "max": 85.0,
+          "min": -40.0,
+          "notes": "Suffix-6 industrial range.",
+          "typ": null,
+          "unit": "\u00b0C"
+        }
+      ],
+      "VBAT": [
+        {
+          "condition": "Backup domain operating voltage",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 38,
+            "section": "Table 9 General operating conditions"
+          },
+          "max": 3.6,
+          "min": 1.8,
+          "notes": null,
+          "typ": null,
+          "unit": "V"
+        }
+      ],
+      "VDD": [
+        {
+          "condition": "Standard operating voltage",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 38,
+            "section": "Table 9 General operating conditions"
+          },
+          "max": 3.6,
+          "min": 2.0,
+          "notes": null,
+          "typ": null,
+          "unit": "V"
+        }
+      ],
+      "VDDA": [
+        {
+          "condition": "Analog operating voltage; same potential as VDD",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 38,
+            "section": "Table 9 General operating conditions"
+          },
+          "max": 3.6,
+          "min": 2.0,
+          "notes": "When ADC is used, VDDA min rises to 2.4 V.",
+          "typ": null,
+          "unit": "V"
+        }
+      ]
+    },
+    "thermal": {
+      "theta_ja": [
+        {
+          "condition": "LQFP48 7x7 mm / 0.5 mm pitch, natural convection (JESD51-2)",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 104,
+            "section": "Table 62 Thermal characteristics"
+          },
+          "max": null,
+          "min": null,
+          "notes": "From Table 62.",
+          "typ": 55.0,
+          "unit": "\u00b0C/W"
+        }
+      ]
+    }
+  },
+  "categories": [
+    "mcu"
+  ],
+  "extraction": {
+    "extracted_at": "2026-04-27T22:01:39Z",
+    "extractor_schema_version": "1.0",
+    "extractor_scout": null,
+    "plan_ref": "STM32F103C8T6.plan.json",
+    "quality_score": 86
+  },
+  "mcu": {
+    "adc": {
+      "bit_depth": 12,
+      "channel_count": 10,
+      "sample_rate_max_hz": 1000000
+    },
+    "boot_pins": [
+      {
+        "function": "BOOT0",
+        "pin_number": "44"
+      }
+    ],
+    "core_family": "cortex_m3",
+    "core_speed_max": 72000000,
+    "dac": null,
+    "debug_interface": "swd_jtag",
+    "eeprom_size": 0,
+    "flash_size": 65536,
+    "gpio_count": 37,
+    "nvic_priorities": 16,
+    "package": {
+      "body_mm": {
+        "height": 1.4,
+        "length": 7.0,
+        "width": 7.0
+      },
+      "code": "LQFP-48",
+      "evidence": {
+        "confidence": "high",
+        "method": "table",
+        "page": 101,
+        "section": "Table 61 \u2014 LQFP48 mechanical data"
+      },
+      "pin_count": 48,
+      "pitch_mm": 0.5,
+      "thermal_pad": false
+    },
+    "peripheral_counts": {
+      "can": 1,
+      "dac": 0,
+      "ethernet": 0,
+      "i2c": 2,
+      "spi": 2,
+      "timer_advanced": 1,
+      "timer_general": 3,
+      "uart": 3,
+      "usb": 1
+    },
+    "pin_count": 48,
+    "ram_size": 20480,
+    "reset_pin": "7",
+    "temperature_grades": [
+      "industrial: -40 to +85"
+    ],
+    "thermal_resistance": {
+      "rtheta_ja": [
+        {
+          "condition": "LQFP48 7x7 mm / 0.5 mm pitch, natural convection (JESD51-2)",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 104,
+            "section": "Table 62 \u2014 Package thermal characteristics"
+          },
+          "max": null,
+          "min": null,
+          "notes": null,
+          "typ": 55.0,
+          "unit": "\u00b0C/W"
+        }
+      ],
+      "rtheta_jc": null,
+      "rtheta_jl": null
+    },
+    "vdd_range": [
+      {
+        "condition": "standard operating voltage",
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 38,
+          "section": "Table 9 \u2014 General operating conditions"
+        },
+        "max": 3.6,
+        "min": 2.0,
+        "notes": null,
+        "typ": null,
+        "unit": "V"
+      }
+    ],
+    "vdda_range": [
+      {
+        "condition": "analog supply, ADC not used; min rises to 2.4 V when ADC is used",
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 38,
+          "section": "Table 9 \u2014 General operating conditions"
+        },
+        "max": 3.6,
+        "min": 2.0,
+        "notes": null,
+        "typ": null,
+        "unit": "V"
+      }
+    ],
+    "vddio_range": null
+  },
+  "schema_version": {
+    "base": "1.0",
+    "categories": {
+      "mcu": "1.0"
+    }
+  },
+  "source": {
+    "datasheet_date": "March 2022",
+    "datasheet_revision": "DS5319 Rev 18",
+    "family_ref": null,
+    "local_path": "datasheets/STM32F103C8T6.pdf",
+    "manufacturer": "STMicroelectronics",
+    "mpn": "STM32F103C8T6",
+    "page_count": 116,
+    "sha256": "sha256:0596dd57693c93d214c9cb69186429883c853bad8650926def57c1ed3cdf2e9f",
+    "source_url": "https://www.st.com/resource/en/datasheet/stm32f103c8.pdf"
+  }
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pairwise Test Design"
+  short_description: "在组合爆炸场景下压缩测试矩阵并保留有效覆盖"
+  default_prompt: "Use $pairwise-test-design to identify the key dimensions, constraints, and pairwise coverage set for this testing problem."

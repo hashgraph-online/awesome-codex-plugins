@@ -51,9 +51,9 @@
   },
   "packageManager": "pnpm@10.24.0",
   "dependencies": {
-    "@hol-org/rb-client": "^0.1.172",
+    "@hol-org/rb-client": "^0.1.181",
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "fastmcp": "^3.22.0",
+    "fastmcp": "^4.0.0",
     "zod": "^4.1.12"
   },
   "pnpm": {
@@ -63,15 +63,15 @@
     }
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.1",
-    "@types/node": "^25.5.0",
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^25.6.0",
     "@vitest/coverage-v8": "^3.2.4",
-    "eslint": "^10.1.0",
+    "eslint": "^10.2.1",
     "globals": "^17.4.0",
     "tsup": "^8.5.0",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.58.0",
+    "typescript-eslint": "^8.59.0",
     "vitest": "^3.2.4"
   }
 }

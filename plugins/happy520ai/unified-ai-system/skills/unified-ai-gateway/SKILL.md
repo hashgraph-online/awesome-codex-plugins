@@ -1,0 +1,289 @@
+---
+name: unified-ai-gateway
+description: Operate and evaluate Unified AI System through fifteen governed MCP tools, including provider-free prompt enhancement, while preserving fake-provider, authorization, and evidence boundaries.
+license: Apache-2.0
+metadata:
+  author: happy520ai
+  category: ai-ml
+  date_added: "2026-08-01"
+  license_source: https://github.com/happy520ai/unified-ai-system/blob/master/LICENSE
+  risk: critical
+  source: https://github.com/happy520ai/unified-ai-system/tree/master/skills/unified-ai-gateway
+  source_repo: happy520ai/unified-ai-system
+  source_type: official
+  tags: "ai-gateway, codex, mcp, self-hosted, governance"
+  tools: codex
+---
+
+# Unified AI Gateway
+
+## Overview
+
+Use the official `unified-ai-system` MCP server to inspect and exercise a local
+AI gateway without provider credentials. This skill file provides operating
+guidance; it does not install the server or change Codex configuration by
+itself. The official Codex plugin bundles the MCP definition, while skill-only
+installations require the manual setup below.
+
+## Version Note
+
+These are two different things and they are not equal today:
+
+- **Current release: `v0.8.0`.** It declares and ships fifteen tool names, and the
+  [60-second demo command](https://github.com/happy520ai/unified-ai-system#try-it-in-60-seconds)
+  in the README names that version. Read it live with
+  `node tools/verify-image-roster.mjs 0.8.0`, which reports the roster from the
+  image bytes rather than from this file. That command needs a clone of the
+  repository, run from its root: the script ships with the source, not inside an
+  installed skill bundle. Without a clone, the same roster is published at
+  https://happy520ai.github.io/unified-ai-system/verify-mcp-docker-image.html.
+- **Newest content review: `0.8.0`** ([review](https://github.com/happy520ai/unified-ai-system/blob/master/docs/security/mcp-image-review-0.8.0.md)),
+  read from the published layer tarballs with `node tools/inspect-image-filesystem.mjs 0.8.0` - no Docker
+  engine and nothing executed. It found one thing worth knowing before you pull: the `linux/arm64` tag carries
+  x86-64 native modules, including `better_sqlite3.node`, so request `--platform linux/amd64`.
+- **Reviewed and pinned below: `0.4.9`.** The inspection procedure in this file
+  pins that image's recorded digests because `0.4.9` is the newest version reviewed by that procedure, which
+  exports a container filesystem with Docker. The 0.8.0 review above uses a different method and pins its own
+  digests, so the table below still describes 0.4.9 until it is rewritten against a 0.8.0 export.
+  `0.4.9` carries 9 of the fifteen names: the model-backed enhancement, knowledge
+  retrieval and workflow execution tools arrived at 0.5.0, and the three
+  governance tools at 0.8.0.
+
+Do not substitute a mutable tag for a pinned digest, and do not move the pin to a
+newer version just because this file looks out of date: a new content review is
+required first, and the pinned identity is only as good as the review that backs it.
+
+## Prerequisites And Setup
+
+1. Confirm that Codex CLI and Docker are installed and Docker is running.
+2. If the nine tools are already visible, skip setup and do not register a
+   duplicate server.
+3. Explain the first stage: it downloads one reviewed platform from the
+   immutable `0.4.9` multi-platform index into Docker's cache, inspects its
+   metadata and layer history, creates but never starts a temporary container,
+   exports its root filesystem, removes that temporary container, and writes an
+   inspection inventory to a temporary directory. The reviewed platforms are
+   linux/amd64 and linux/arm64. Obtain explicit user approval for those download
+   and inspection changes only.
+4. After that first approval, pull the reviewed platform manifest and complete
+   the inspection. Do not execute the image or register it yet:
+
+```bash
+IMAGE='ghcr.io/happy520ai/unified-ai-system/mcp-server@sha256:751a0d32acd2d6b1da6ad9ac67987fbd1ff36ce26b7160014d8605f18b7907b3'
+PLATFORM='linux/amd64' # Use linux/arm64 only on a reviewed ARM64 engine.
+REVIEW_DIR="$(mktemp -d)"
+
+docker pull --platform "$PLATFORM" "$IMAGE"
+docker image inspect "$IMAGE" --format 'Id={{.Id}} OS={{.Os}} Architecture={{.Architecture}} User={{json .Config.User}} Entrypoint={{json .Config.Entrypoint}} Cmd={{json .Config.Cmd}} Labels={{json .Config.Labels}}'
+docker image history --no-trunc "$IMAGE" > "$REVIEW_DIR/image-history.txt"
+
+REVIEW_CONTAINER="$(docker create --platform "$PLATFORM" --pull never --entrypoint /bin/true "$IMAGE")"
+docker export --output "$REVIEW_DIR/rootfs.tar" "$REVIEW_CONTAINER"
+docker rm "$REVIEW_CONTAINER"
+
+tar -tf "$REVIEW_DIR/rootfs.tar" > "$REVIEW_DIR/rootfs-files.txt"
+mkdir -p "$REVIEW_DIR/rootfs"
+tar --same-permissions -xf "$REVIEW_DIR/rootfs.tar" -C "$REVIEW_DIR/rootfs"
+find "$REVIEW_DIR/rootfs/app" -type f -print > "$REVIEW_DIR/app-files.txt"
+: > "$REVIEW_DIR/app-links.txt"
+while IFS= read -r -d '' APP_LINK; do
+  ls -ld -- "$APP_LINK" >> "$REVIEW_DIR/app-links.txt"
+done < <(find "$REVIEW_DIR/rootfs/app" \( -type l -o -type f -links +1 \) -print0)
+: > "$REVIEW_DIR/native-binaries.sha256"
+while IFS= read -r -d '' NATIVE_BINARY; do
+  sha256sum -- "$NATIVE_BINARY" >> "$REVIEW_DIR/native-binaries.sha256"
+done < <(find "$REVIEW_DIR/rootfs/app" -type f -name '*.node' -print0)
+find "$REVIEW_DIR/rootfs" -type f \( -perm -0100 -o -perm -0010 -o -perm -0001 \) -print > "$REVIEW_DIR/executable-files.txt"
+find "$REVIEW_DIR/rootfs" -type f \( -perm -4000 -o -perm -2000 \) -print > "$REVIEW_DIR/suid-sgid-files.txt"
+find "$REVIEW_DIR/rootfs/app" -type f \( -name '.env' -o -name '.env.*' -o -name '*.pem' -o -name '*.key' -o -name '*.p12' -o -name '*.pfx' -o -path '*/.ssh/id_*' \) -print > "$REVIEW_DIR/credential-like-files.txt"
+grep -RInHE --include='package.json' '"(preinstall|install|postinstall|prepare|prepack|postpack)"' "$REVIEW_DIR/rootfs/app" > "$REVIEW_DIR/lifecycle-hooks.txt"
+grep -RInE 'child_process|spawn\(|fetch\(|AI_GATEWAY_MCP_URL|process\.env|writeFile|appendFile|unlink|rm\(' "$REVIEW_DIR/rootfs/app/packages/mcp-server/src" "$REVIEW_DIR/rootfs/app/packages/shared-sdk/src" > "$REVIEW_DIR/runtime-sensitive-code.txt"
+```
+
+If `sha256sum` is unavailable, use the platform's SHA-256 utility and preserve
+the same report. Keep the review directory until the report is accepted; its
+deletion is another filesystem change and requires approval for the exact path.
+
+5. Read every generated inventory and report the inspection before proceeding.
+   Compare it with the versioned
+   [image content review](https://github.com/happy520ai/unified-ai-system/blob/master/docs/security/mcp-image-review-0.4.9.md).
+   Require OCI index digest
+   `sha256:751a0d32acd2d6b1da6ad9ac67987fbd1ff36ce26b7160014d8605f18b7907b3`.
+   For linux/amd64, require manifest digest
+   `sha256:ff6cf988b01d5fb2e97aabe8e952f6a303dcffe650df5b4dcb0ba3d51ee88c06`
+   and config digest
+   `sha256:0c2c0c7b9c7fb7ca24c73d9a903bcf719b079a0b285a3a3269ee3ae059905e97`.
+   For linux/arm64, require manifest digest
+   `sha256:90318b9e373820f863c1c1addc759be4b5ce186f2ecb6232ee502fad7c6613de`
+   and config digest
+   `sha256:c2047eb63fdc42bcb16d53fca17d78a4a6fb355cf6320b9aa6688e594371054f`.
+   Require source `https://github.com/happy520ai/unified-ai-system`, revision
+   `342a47313927870bcc696be13c9e5fb922062dac`, version `0.4.9`, license
+   `Apache-2.0`, entrypoint `docker-entrypoint.sh`, and command
+   `node packages/mcp-server/src/index.js`.
+
+   Report these reviewed risks explicitly: the image uses the default root
+   user; includes Debian shell/package utilities and 11 base-image SUID/SGID
+   files; contains 522 internal pnpm links, three native Node binaries, and eight
+   lifecycle-hook declarations; and starts a child gateway with loopback HTTP.
+   The optional `AI_GATEWAY_MCP_URL` can make an HTTP or HTTPS connection only
+   when explicitly passed. The registered command below passes no host files,
+   environment variables, or ports and disables container networking. Stop on
+   any mismatch, unexpected link, credential-like file, native binary, hook,
+   privileged file, or sensitive-code behavior.
+6. Explain the second stage: it persists a Codex MCP configuration and permits
+   Codex to launch the inspected image in a later task. Obtain a separate
+   explicit approval for registration and activation; the download approval
+   does not carry over.
+7. After that second approval, register the reviewed platform digest with
+   pulling, container networking, Linux capabilities, and privilege escalation
+   disabled, then inspect the stored configuration:
+
+```bash
+IMAGE='ghcr.io/happy520ai/unified-ai-system/mcp-server@sha256:751a0d32acd2d6b1da6ad9ac67987fbd1ff36ce26b7160014d8605f18b7907b3'
+PLATFORM='linux/amd64' # Match the reviewed platform inspected above.
+codex mcp add unified-ai-system -- docker run --rm -i --pull never --platform "$PLATFORM" --network none --cap-drop ALL --security-opt no-new-privileges "$IMAGE"
+codex mcp get unified-ai-system --json
+```
+
+8. Restart Codex or open a new task, then use `/mcp verbose` to confirm that all
+   nine tools are available - the pinned `0.4.9` image ships nine of the fifteen
+   names the current release declares. Remove the registration when it is no longer
+   wanted:
+
+```bash
+codex mcp remove unified-ai-system
+```
+
+Removing the registration does not remove the pulled image from Docker's
+cache. Treat image-cache deletion as a separate host-state change and obtain
+approval before doing it.
+
+## When to Use This Skill
+
+- Use when a user asks whether Unified AI System is healthy or ready.
+- Use when a user wants a credential-free gateway chat proof.
+- Use when a user asks about the gateway's knowledge, workflow, or workforce
+  surfaces.
+- Use when a user wants evidence from the bundled MCP tools rather than a claim
+  inferred from documentation or process exit codes.
+
+Do not use this skill for generic model comparisons, unrelated MCP servers, or
+deploying a production gateway.
+
+## Workflow
+
+1. Confirm that the `unified-ai-system` MCP tools are available in the current
+   task. If they are absent, follow the approved setup above and wait for a
+   restarted or new task.
+2. Call `gateway_health`, then `gateway_readiness`, before attempting chat.
+3. Select the narrowest additional tool that answers the request.
+4. Report returned provider, execution mode, readiness, and blockers exactly.
+5. Separate transport success from product, production-readiness, autonomy, or
+   AGI claims.
+
+## Tool Map
+
+Nine of these ship in the reviewed `0.4.9` image below; the six marked 0.5.0 and
+0.8.0 are in the current release and are absent from that older image.
+
+Status and boundaries:
+
+- `gateway_health`: gateway health, provider mode, and the real-provider safety flag
+- `gateway_readiness`: first-run readiness for chat and the local gateway runtime
+- `knowledge_readiness`: knowledge infrastructure without loading or changing data
+- `workflow_health`: the governed workflow subsystem without starting a workflow
+- `workflow_actions`: workflow action definitions without invoking any action
+- `workforce_health`: the workforce subsystem without planning or executing work
+- `workforce_agents`: configured workforce agent descriptors without dispatching them
+
+Doing work locally, still with no provider call:
+
+- `gateway_prompt_enhance`: structures a plain-language request into a prompt
+  locally, without provider credentials or provider calls
+- `gateway_prompt_enhance_llm` *(0.5.0)*: semantic rewriting through a provider
+  when one is configured, falling back to the deterministic local engine when none is
+- `knowledge_retrieve` *(0.5.0)*: keyword search over the local knowledge base,
+  returning ranked chunks with citations; calls no provider
+- `workflow_run` *(0.5.0)*: the 3-step local workflow - retrieve knowledge, compose
+  a Markdown report, write a controlled artifact; calls no provider
+- `gateway_chat`: one chat request, accepted only when the gateway proves real
+  providers are disabled
+
+The governed Agent surface, read-only *(0.8.0)*:
+
+- `agent_governance_status`: governance status through the authenticated Gateway
+  identity; no tenant override is accepted and it fails closed when that identity is
+  not authorized for platform status
+- `agent_governance_list`: only the governed Agents visible to that tenant, with no
+  tenant or owner override argument
+- `agent_governance_describe` (takes `agentId`): one Agent as seen by that tenant;
+  cross-tenant and missing identifiers stay indistinguishable on purpose
+
+Creating, executing, revoking, approving or activating anything in that surface
+remains a human REST/SDK/CLI operation and is not exposed to the model at all.
+
+## Example
+
+```text
+User: Check whether the local gateway is ready, then prove chat works safely.
+
+Agent:
+1. Call gateway_health.
+2. Call gateway_readiness.
+3. Call gateway_chat only if both results prove fake-provider mode.
+4. Report provider, model, execution mode, response, and every blocker.
+```
+
+## Safety Boundaries
+
+- Keep the credential-free local fake provider as the default.
+- Never request, read, or transmit provider credentials through this skill.
+- Do not enable or call a real provider without explicit scoped authorization.
+- Treat MCP registration, image pulls, container creation, networking, and
+  teardown as host-state changes that require informed user approval.
+- Never substitute a mutable tag, a different OCI index, or an unreviewed
+  platform manifest for the reviewed `0.4.9` identities. Keep download and
+  inspection approval separate from registration and activation approval.
+- Keep `--pull never` in the registered command. If the reviewed image is
+  absent from the local cache, fail closed and return to the first approval
+  stage.
+- Keep `--network none`, `--cap-drop ALL`, and
+  `--security-opt no-new-privileges` in the registered command.
+- Do not claim production readiness, L5 autonomy, or AGI from a healthy handshake.
+- Treat a zero exit code as transport evidence, not proof that readiness gates
+  passed.
+
+## Limitations
+
+- This skill file does not bundle the MCP server, Docker image, or Codex
+  configuration. It only operates tools supplied by the separately installed
+  official integration.
+- It does not deploy, benchmark, or certify the gateway for production use.
+- The credential-free chat tool proves only the deterministic local fake path.
+- It does not configure real providers or handle provider credentials.
+- The published MCP image requires Docker.
+- The reviewed `0.4.9` path covers linux/amd64 and linux/arm64. Do not activate
+  another platform image without a separate content review.
+- The image runs as the container's default root user and bundles the gateway
+  source, package-manager tooling, native dependencies, and base-image
+  SUID/SGID files. The registered command drops capabilities, prevents new
+  privileges, disables networking, and leaves the image in Docker's cache.
+- Existing Codex tasks may not hot-load a newly installed MCP configuration.
+
+## Troubleshooting
+
+- If the tools are missing after approved registration, inspect
+  `codex mcp get unified-ai-system --json`, then restart Codex or start a new
+  task.
+- If readiness is blocked, report the returned blocker instead of retrying chat
+  blindly.
+- If the runtime might use a real provider, stop before chat and keep the
+  session read-only.
+
+## Additional Resources
+
+- [Unified AI System](https://github.com/happy520ai/unified-ai-system)
+- [60-second Codex MCP quickstart](https://github.com/happy520ai/unified-ai-system/blob/master/docs/codex-mcp-quickstart.md)
+- [MCP server guide](https://github.com/happy520ai/unified-ai-system/blob/master/packages/mcp-server/README.md)
+- [MCP image content review](https://github.com/happy520ai/unified-ai-system/blob/master/docs/security/mcp-image-review-0.4.9.md)

@@ -1,0 +1,36 @@
+{
+  "name": "perception-and-hierarchy-principles",
+  "version": "1.0.0",
+  "description": "Framework-agnostic design principles for visual perception and hierarchy: how the eye groups elements, where it lands first, and what makes a composition read as ordered. Covers Hierarchy, Proximity, Signal-to-Noise Ratio, Color, Alignment, Legibility, Readability, Gestalt Similarity, Closure, and Figure-Ground Relationship.",
+  "author": {
+    "name": "Hunter D",
+    "email": "hunterd107@gmail.com"
+  },
+  "homepage": "https://github.com/HDeibler/universal-design-principles",
+  "repository": "https://github.com/HDeibler/universal-design-principles",
+  "license": "MIT",
+  "keywords": [
+    "design",
+    "ux",
+    "ui",
+    "perception",
+    "gestalt",
+    "visual-hierarchy",
+    "layout",
+    "typography",
+    "color"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Perception & Hierarchy Principles",
+    "shortDescription": "Visual perception, hierarchy, layout, and attention.",
+    "developerName": "Hunter D",
+    "category": "Design",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "longDescription": "Framework-agnostic design principles for visual perception and hierarchy: how the eye groups elements, where it lands first, and what makes a composition read as ordered. Covers Hierarchy, Proximity, Signal-to-Noise Ratio, Color, Alignment, Legibility, Readability, Gestalt Similarity, Closure, and Figure-Ground Relationship.",
+    "websiteURL": "https://github.com/HDeibler/universal-design-principles"
+  }
+}

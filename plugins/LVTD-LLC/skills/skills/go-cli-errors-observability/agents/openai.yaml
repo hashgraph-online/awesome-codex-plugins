@@ -1,0 +1,4 @@
+interface:
+  display_name: "Go CLI Errors and Observability"
+  short_description: "Build safe Go CLI errors and diagnostics"
+  default_prompt: "Use $go-cli-errors-observability to design recoverable errors, structured logs, and privacy-safe diagnostics."

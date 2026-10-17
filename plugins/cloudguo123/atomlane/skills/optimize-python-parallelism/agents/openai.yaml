@@ -1,0 +1,4 @@
+interface:
+  display_name: "AtomLane Python Advisor"
+  short_description: "Find safe Python parallelism candidates"
+  default_prompt: "Use $optimize-python-parallelism to analyze this long-running Python entrypoint and verify semantics before proposing a parallel refactor."

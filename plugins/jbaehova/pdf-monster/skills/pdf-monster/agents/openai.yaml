@@ -1,0 +1,4 @@
+interface:
+  display_name: "PDF Monster"
+  short_description: "Analyze PDFs via text, OCR, and page images"
+  default_prompt: "Use $pdf-monster to analyze this PDF without leaving generated files in the working directory."

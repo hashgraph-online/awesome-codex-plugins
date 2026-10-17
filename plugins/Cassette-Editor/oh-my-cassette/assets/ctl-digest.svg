@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="445" viewBox="0 0 760 445">
+<rect width="760" height="445" rx="12" fill="#07080b"/>
+<rect width="760" height="445" rx="12" fill="none" stroke="#2a2b32"/>
+<circle cx="24" cy="22" r="5" fill="#2a2b32"/><circle cx="42" cy="22" r="5" fill="#2a2b32"/><circle cx="60" cy="22" r="5" fill="#2a2b32"/>
+<g font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13">
+<text x="24" y="46" fill="#61626b" font-size="11" letter-spacing="2">CTL — ALIGNED PROFILE (cassette_timeline)</text>
+<text x="24" y="68" xml:space="preserve" fill="#f7f7f8">TIMELINE try-session-e2e-1784770819 v7 16:9 1080p30 00:04.0</text>
+<text x="24" y="87" xml:space="preserve" fill="#b3b5bd">V1 | [A &quot;Local E2E&quot;  00:00.0-00:00.0]</text>
+<text x="24" y="106" xml:space="preserve" fill="#b3b5bd">   | [B &quot;The End&quot;  00:02.8-00:04.0]</text>
+<text x="24" y="125" xml:space="preserve" fill="#b3b5bd">V2 | [A &quot;Local E2E&quot;  00:00.0-00:02.8]</text>
+<text x="24" y="144" xml:space="preserve" fill="#b3b5bd">V3 | [A chinese-text-fonts-three-distinct-auto.mp4  00:00.0-00:02.8]</text>
+<text x="24" y="163" xml:space="preserve" fill="#b3b5bd">   | [B chinese-text-fonts-three-distinct-auto.mp4  00:02.8-00:04.0]</text>
+<text x="24" y="182" xml:space="preserve" fill="#b3b5bd">FX | dissolve A-&gt;B @00:02.8</text>
+<text x="24" y="219" fill="#61626b" font-size="11" letter-spacing="2">GATEWAY PROFILE (proportional-font chats)</text>
+<text x="24" y="241" xml:space="preserve" fill="#f7f7f8">TIMELINE v7 · 00:04.0 · 16:9</text>
+<text x="24" y="260" xml:space="preserve" fill="#b3b5bd">V1: &quot;Local E2E&quot; 0–0 → &quot;The End&quot; 2.8–4</text>
+<text x="24" y="279" xml:space="preserve" fill="#b3b5bd">V2: &quot;Local E2E&quot; 0–2.8</text>
+<text x="24" y="298" xml:space="preserve" fill="#b3b5bd">V3: chinese-text-fonts-three-distinct-auto.mp4 0–2.8 → chinese-text-fonts-three-distinct-auto.mp4 2.8–4</text>
+<text x="24" y="335" fill="#61626b" font-size="11" letter-spacing="2">DELTA (timeline_delta / cassette_edit result)</text>
+<text x="24" y="357" xml:space="preserve" fill="#f7f7f8">CHANGES v6 -&gt; v7  (3 changes)</text>
+<text x="24" y="376" xml:space="preserve" fill="#20c55d">+ V1/A &quot;Local E2E&quot;  00:00.0-00:00.0</text>
+<text x="24" y="395" xml:space="preserve" fill="#20c55d">+ V1/B &quot;The End&quot;  00:02.8-00:04.0</text>
+<text x="24" y="414" xml:space="preserve" fill="#20c55d">+ V2/A &quot;Local E2E&quot;  00:00.0-00:02.8</text>
+</g>
+</svg>

@@ -1,0 +1,20 @@
+{
+  "name": "rust-reverse-engineering-local",
+  "interface": {
+    "displayName": "Rust Reverse Engineering Local"
+  },
+  "plugins": [
+    {
+      "name": "rust-reverse-engineering",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Coding"
+    }
+  ]
+}

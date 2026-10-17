@@ -1,0 +1,13 @@
+{
+  "zotero": {
+    "command": "powershell.exe",
+    "args": [
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-File",
+      "./scripts/start-zotero-mcp.ps1"
+    ],
+    "tool_timeout_sec": 300
+  }
+}

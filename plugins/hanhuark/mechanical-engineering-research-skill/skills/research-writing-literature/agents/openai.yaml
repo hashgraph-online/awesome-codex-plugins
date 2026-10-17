@@ -1,0 +1,4 @@
+interface:
+  display_name: "Research Writing And Literature"
+  short_description: "Write research narratives and critical literature reviews."
+  default_prompt: "Draft or revise this research section with clear paragraph logic, accurate citations, critical literature synthesis, and evidence-bounded claims."

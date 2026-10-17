@@ -1,0 +1,37 @@
+{
+  "mcpServers": {
+    "dataforseo": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "dataforseo-mcp-server"
+      ],
+      "env": {
+        "DATAFORSEO_USERNAME": "${DATAFORSEO_USERNAME}",
+        "DATAFORSEO_PASSWORD": "${DATAFORSEO_PASSWORD}",
+        "ENABLED_MODULES": "SERP,KEYWORDS_DATA,ONPAGE,DATAFORSEO_LABS,BACKLINKS,DOMAIN_ANALYTICS,BUSINESS_DATA,CONTENT_ANALYSIS,AI_OPTIMIZATION",
+        "FIELD_CONFIG_PATH": "./extensions/dataforseo/field-config.json"
+      }
+    },
+    "firecrawl-mcp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "firecrawl-mcp"
+      ],
+      "env": {
+        "FIRECRAWL_API_KEY": "${FIRECRAWL_API_KEY}"
+      }
+    },
+    "nanobanana-mcp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@ycse/nanobanana-mcp@latest"
+      ],
+      "env": {
+        "GOOGLE_AI_API_KEY": "${GOOGLE_AI_API_KEY}"
+      }
+    }
+  }
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Python Mock Isolation Design"
+  short_description: "Use Python mocks without mock hell"
+  default_prompt: "Use $python-mock-isolation-design to decide what to mock and how to keep this Python test behavior-focused."

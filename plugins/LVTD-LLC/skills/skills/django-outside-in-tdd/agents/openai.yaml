@@ -1,0 +1,4 @@
+interface:
+  display_name: "Django Outside-In TDD"
+  short_description: "Drive Django features test-first"
+  default_prompt: "Use $django-outside-in-tdd to build this Django feature from a user-facing test down to focused unit tests."

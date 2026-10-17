@@ -1,0 +1,20 @@
+{
+  "name": "superpipelines-marketplace",
+  "interface": {
+    "displayName": "Superpipelines"
+  },
+  "plugins": [
+    {
+      "name": "superpipelines",
+      "source": {
+        "source": "local",
+        "path": "./plugins/superpipelines"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Development"
+    }
+  ]
+}

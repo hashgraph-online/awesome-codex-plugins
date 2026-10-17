@@ -1,0 +1,7 @@
+interface:
+  display_name: "HOTL Router"
+  short_description: "Choose the right HOTL workflow skill for substantial coding work."
+  default_prompt: "Use HOTL to route this implementation task to the right workflow stage."
+
+policy:
+  allow_implicit_invocation: false

@@ -1,0 +1,5 @@
+interface:
+  display_name: "Claude Code Cancel"
+  short_description: "Args: [job-id]. Cancel a queued or running Claude Code job."
+policy:
+  allow_implicit_invocation: false

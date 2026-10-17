@@ -1,0 +1,4 @@
+interface:
+  display_name: "Research Data Analysis"
+  short_description: "Design hypothesis-driven DOE and defensible analysis."
+  default_prompt: "Design a baseline-first, hypothesis-driven analysis plan for these experiments or simulations. Include controls, uncertainty, data provenance, plots, and decision criteria."

@@ -1,2 +1,2 @@
-job_id	layer	purpose	search_query	search_region	region_id	page	groups_on_page	docs_in_group	search_type	l10n	response_format	group_mode	family_mode	fix_typo_mode	sort_mode	sort_order	max_passages	x_forwarded_for_y	user_agent	enabled	notes
-org-rf-sport-01	organic_serp	competitor_discovery	спортивное освещение купить	rf	225	0	20	1	SEARCH_TYPE_RU	LOCALIZATION_RU	FORMAT_XML	GROUP_MODE_FLAT	FAMILY_MODE_MODERATE	FIX_TYPO_MODE_ON	SORT_MODE_BY_RELEVANCE	SORT_ORDER_DESC	4			1	RF first page
+job_id	layer	purpose	intent	search_query	search_region	region_id	page	groups_on_page	docs_in_group	search_type	l10n	response_format	group_mode	family_mode	fix_typo_mode	sort_mode	sort_order	max_passages	enabled	status	notes
+template-organic	organic_serp	competitor_discovery		пример запроса	пример региона	225	0	20	1	SEARCH_TYPE_RU	LOCALIZATION_RU	FORMAT_XML	GROUP_MODE_FLAT	FAMILY_MODE_MODERATE	FIX_TYPO_MODE_ON	SORT_MODE_BY_RELEVANCE	SORT_ORDER_DESC	4	0	unverified	Шаблон выключен.

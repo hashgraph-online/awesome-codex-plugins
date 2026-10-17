@@ -1,0 +1,43 @@
+{
+  "name": "tokenchronicle",
+  "version": "0.8.1",
+  "description": "TokenChronicle 词元日志 bilingual local-first Codex activity archive and memory continuity workflows",
+  "skills": "./skills/",
+  "author": {
+    "name": "Xin He",
+    "email": "service@h2me.tech",
+    "url": "https://h2me.tech"
+  },
+  "homepage": "https://h2me.tech",
+  "repository": "https://github.com/HuaHuiJian/tokenchronicle-marketplace",
+  "interface": {
+    "displayName": "TokenChronicle 词元日志",
+    "shortDescription": "Private Codex archive; guided activation required after install",
+    "longDescription": "Archive, browse, audit, and analyze Codex activity locally while keeping user conversations and settings outside the installed program.",
+    "developerName": "Huahuijian (tianjin) Technology Co., Ltd.",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write",
+      "Interactive"
+    ],
+    "websiteURL": "https://h2me.tech",
+    "privacyPolicyURL": "https://github.com/HuaHuiJian/tokenchronicle-marketplace/blob/main/PRIVACY.md",
+    "termsOfServiceURL": "https://github.com/HuaHuiJian/tokenchronicle-marketplace/blob/main/TERMS.md",
+    "brandColor": "#0F766E",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/logo.png",
+    "logoDark": "./assets/logo.png",
+    "defaultPrompt": [
+      "初始化 TokenChronicle 词元日志，并使用 tokenchronicle-setup 技能完成首次启用。先运行 readiness、guide 和 preflight 做只读环境检查；若未初始化，介绍用途和隐私边界，再逐项询问数据目录、语言、端口和首次归档选择。在我明确同意前，不要写入数据、启用后台任务或发送网络请求。初始化和首次归档成功后不要结束任务：必须让我明确二选一启用零模型 Token 的本地每日调度，或确认手动模式；最后再次运行 readiness，只有 operational 或 manual_only 才说明引导完成，并明确告知 daily_protection_active 的真实值。"
+    ]
+  },
+  "license": "Proprietary",
+  "keywords": [
+    "codex",
+    "archive",
+    "audit",
+    "privacy",
+    "tokens"
+  ]
+}

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Obsidian Official CLI"
+  short_description: "Operate on a local Obsidian vault through documented official desktop obsidian CLI commands only."
+  default_prompt: "Use only the official desktop Obsidian CLI for local vault note and metadata work. Resolve broad targets read-only first, require exact path= for any mutation, prefer structured output when available, and be explicit about target mode, commands, and limitations."
+policy:
+  allow_implicit_invocation: false

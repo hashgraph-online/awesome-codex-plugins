@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rust FFI Safe Wrappers"
+  short_description: "Wrap C ABI and foreign functions behind safe Rust APIs"
+  default_prompt: "Review this Rust FFI boundary and build safe wrappers around the raw bindings."

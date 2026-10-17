@@ -1,0 +1,53 @@
+{
+  "name": "taisly-agent-kit",
+  "version": "0.2.8",
+  "description": "Publish short-form videos to TikTok, Instagram Reels, YouTube Shorts, X, and Facebook from Codex through Taisly.",
+  "author": {
+    "name": "Taisly",
+    "url": "https://taisly.com"
+  },
+  "homepage": "https://taisly.com/en/ai-agent-kit",
+  "repository": "https://github.com/taisly/agent",
+  "license": "MIT",
+  "keywords": [
+    "taisly",
+    "codex",
+    "codex-plugin",
+    "codex-skills",
+    "mcp",
+    "mcp-server",
+    "social-media",
+    "video-publishing",
+    "tiktok",
+    "instagram-reels",
+    "youtube-shorts"
+  ],
+  "skills": "./SKILL.md",
+  "mcpServers": {
+    "taisly": {
+      "type": "http",
+      "url": "https://app.taisly.com/mcp"
+    }
+  },
+  "interface": {
+    "displayName": "Taisly Agent Kit",
+    "shortDescription": "Publish short-form videos from Codex.",
+    "longDescription": "Connect Codex to Taisly for AI-assisted video publishing to TikTok, Instagram Reels, YouTube Shorts, X, and Facebook. Includes the Taisly Social Media Posting skill and the official remote MCP server.",
+    "developerName": "Taisly",
+    "category": "Productivity",
+    "capabilities": [
+      "MCP",
+      "Skills",
+      "Write"
+    ],
+    "websiteURL": "https://taisly.com/en/ai-agent-kit",
+    "privacyPolicyURL": "https://taisly.com/privacy-policy",
+    "termsOfServiceURL": "https://taisly.com/terms-and-conditions",
+    "defaultPrompt": [
+      "Connect Taisly and list my social accounts.",
+      "Validate this video before publishing.",
+      "Publish this approved video with Taisly."
+    ],
+    "brandColor": "#B7F34A"
+  }
+}

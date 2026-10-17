@@ -1,6 +1,19 @@
 ---
 name: emc
-description: EMC pre-compliance risk analysis for KiCad PCB designs — 17 check categories, 42 rule IDs covering ground plane integrity, decoupling, I/O filtering, switching harmonics, clock routing, via stitching, stackup, differential pair skew, board edge radiation, PDN impedance, return path continuity, crosstalk, EMI filter verification, ESD protection paths, thermal-EMC interaction, shielding advisories, and emission estimates. Produces a structured risk report with severity scoring (CRITICAL/HIGH/MEDIUM/LOW/INFO), per-net EMC scores, pre-compliance test plan, and regulatory coverage analysis. Supports FCC Part 15, CISPR 32, CISPR 25 (automotive), and MIL-STD-461G. SPICE-enhanced when ngspice/LTspice/Xyce is available: PDN impedance, EMI filter insertion loss, harmonic FFT, and SPICE-verified cap suggestions. Use this skill when the user asks about EMC, EMI, radiated emissions, conducted emissions, FCC compliance, CE marking, CISPR testing, ground plane issues, decoupling strategy, clock routing EMC, switching noise, common-mode current, differential pair skew, or any question about whether their board will pass EMC testing. Also use when the user says things like "will this pass FCC?", "check my EMC", "is my ground plane okay?", "will my switching regulator cause EMI problems?", "check my decoupling", "analyze EMC risks", "check my differential pairs for EMI", or "generate an EMC pre-compliance test plan". During design reviews, consider running this automatically whenever both schematic and PCB analysis are available — EMC issues are the #1 cause of board respins.
+description: >-
+  EMC pre-compliance risk analysis for KiCad PCB designs — 18 check categories,
+  44 rule IDs covering ground planes, decoupling, I/O filtering, switching
+  harmonics, clock routing, differential pair skew, board edge radiation, PDN
+  impedance, return paths, crosstalk, ESD protection, shielding, and magnetic
+  leakage from switching inductors. Produces
+  severity-ranked risk report with pre-compliance test plan. Supports FCC
+  Part 15, CISPR 32, CISPR 25 (automotive), MIL-STD-461G. SPICE-enhanced when
+  available. Use when the user asks about EMC, EMI, radiated/conducted
+  emissions, FCC compliance, CE marking, CISPR, ground plane issues, decoupling
+  strategy, clock routing EMC, switching noise, differential pair skew, or
+  whether their board will pass EMC testing. Also for "will this pass FCC?",
+  "check my EMC", "is my ground plane okay?", "check my decoupling", or
+  "generate an EMC test plan".
 ---
 
 # EMC Pre-Compliance Skill
@@ -14,13 +27,14 @@ Automated EMC risk analysis for KiCad PCB designs. Identifies the most common ca
 | Skill | Purpose |
 |-------|---------|
 | `kicad` | Schematic/PCB analysis — produces the analyzer JSON this skill consumes |
+| `kicad` (thermal) | Thermal hotspot analysis — MLCC derating and ferrite/inductor overheating findings can amplify EMC decoupling and filter issues (an over-stressed MLCC degrades; a hot ferrite drifts impedance). Worth cross-checking when EMC flags DC-001/DC-002 or EF-001/EF-002. |
 | `spice` | SPICE simulation — provides simulator backend for SPICE-enhanced PDN/filter checks |
 
-**Handoff guidance:** Run the `kicad` skill's `analyze_schematic.py` and `analyze_pcb.py` first — this skill consumes their JSON output. Use `--full` on the PCB analyzer for best results (enables per-track coordinates for ground plane crossing, edge proximity, and return path checks). During a design review, run EMC analysis after the schematic/PCB analyzers and SPICE simulation, then incorporate EMC findings into the report.
+**Handoff guidance:** Run the `kicad` skill's `analyze_schematic.py` and `analyze_pcb.py` first — this skill consumes their JSON output. Use `--full` on the PCB analyzer for best results (enables per-track coordinates for ground plane crossing, edge proximity, and return path checks). During a design review, run EMC analysis after the schematic/PCB analyzers, SPICE simulation, and thermal analysis, then incorporate EMC findings into the report.
 
 ## Requirements
 
-- **Python 3.8+** — stdlib only, no pip dependencies
+- **Python 3.10+** — stdlib only, no pip dependencies
 - **Schematic analyzer JSON** — from `analyze_schematic.py --output`
 - **PCB analyzer JSON** — from `analyze_pcb.py --full --output` (recommended with `--full`)
 - **SPICE simulator** *(optional)* — ngspice, LTspice, or Xyce for SPICE-enhanced PDN/filter checks. Auto-detected. Without one, analytical models run unchanged.
@@ -30,30 +44,44 @@ Automated EMC risk analysis for KiCad PCB designs. Identifies the most common ca
 ### Step 1: Run the analyzers
 
 ```bash
-python3 <kicad-skill-path>/scripts/analyze_schematic.py design.kicad_sch --output schematic.json
-python3 <kicad-skill-path>/scripts/analyze_pcb.py design.kicad_pcb --full --output pcb.json
+python3 <kicad-skill-path>/scripts/analyze_schematic.py design.kicad_sch --analysis-dir analysis/
+python3 <kicad-skill-path>/scripts/analyze_pcb.py design.kicad_pcb --full --analysis-dir analysis/
 ```
 
 ### Step 2: Run EMC analysis
 
+Pass `--analysis-dir analysis/` — the script auto-resolves `schematic.json`
+and `pcb.json` from the manifest's current run, and writes `emc.json` into
+the same folder so the manifest tracks it.
+
 ```bash
-# Full analysis (both schematic and PCB)
+# Recommended: auto-resolve inputs from the current run
+python3 <skill-path>/scripts/analyze_emc.py --analysis-dir analysis/
+
+# Equivalent — explicit paths still accepted (and required if you want to
+# point at a non-current run or override one input)
+python3 <skill-path>/scripts/analyze_emc.py \
+    --schematic analysis/<run_id>/schematic.json \
+    --pcb analysis/<run_id>/pcb.json \
+    --analysis-dir analysis/
+
+# One-off JSON (bypasses the cache)
 python3 <skill-path>/scripts/analyze_emc.py --schematic schematic.json --pcb pcb.json --output emc.json
 
 # SPICE-enhanced (improved PDN and filter accuracy)
-python3 <skill-path>/scripts/analyze_emc.py --schematic schematic.json --pcb pcb.json --spice-enhanced
+python3 <skill-path>/scripts/analyze_emc.py --analysis-dir analysis/ --spice-enhanced
 
 # Select target standard
-python3 <skill-path>/scripts/analyze_emc.py --schematic schematic.json --pcb pcb.json --standard cispr-class-b
+python3 <skill-path>/scripts/analyze_emc.py --analysis-dir analysis/ --standard cispr-class-b
 
 # Select target market (sets all applicable standards)
-python3 <skill-path>/scripts/analyze_emc.py --schematic schematic.json --pcb pcb.json --market eu
+python3 <skill-path>/scripts/analyze_emc.py --analysis-dir analysis/ --market eu
 
 # Filter by severity
-python3 <skill-path>/scripts/analyze_emc.py --schematic schematic.json --pcb pcb.json --severity high
+python3 <skill-path>/scripts/analyze_emc.py --analysis-dir analysis/ --severity high
 
 # Human-readable text output
-python3 <skill-path>/scripts/analyze_emc.py --schematic schematic.json --pcb pcb.json --text
+python3 <skill-path>/scripts/analyze_emc.py --analysis-dir analysis/ --text
 ```
 
 ### Step 3: Interpret results
@@ -62,7 +90,7 @@ Read the JSON report and incorporate findings into the design review. Each findi
 
 ## What Gets Checked
 
-42 rule IDs across 17 categories. Each rule has a specific threshold, rationale, and source citation — see `references/pcb-emc-rules.md` for full details.
+44 rule IDs across 18 categories. Each rule has a specific threshold, rationale, and source citation — see `references/pcb-emc-rules.md` for full details.
 
 | Category | Rules | What it detects |
 |----------|-------|-----------------|

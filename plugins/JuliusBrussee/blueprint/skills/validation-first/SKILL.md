@@ -2,7 +2,7 @@
 name: validation-first
 description: |
   Validation-first design for AI agent output — every spec requirement must be automatically verifiable.
-  Covers the 6-gate validation pipeline, phase gates between DABI phases, merge protocol,
+  Covers the 6-gate validation pipeline, phase gates between Hunt phases, merge protocol,
   completion signals, and acceptance criteria design patterns.
   Trigger phrases: "validation gates", "quality gates", "validation-first design",
   "how to validate agent output", "acceptance criteria design"
@@ -218,7 +218,7 @@ curl -f http://localhost:{PORT}/health
 
 ## Mapping Spec Requirements to Gates
 
-Every spec requirement must map to at least one validation gate. When writing specs (see `bp:blueprint-writing`), each acceptance criterion should indicate which gate verifies it.
+Every spec requirement must map to at least one validation gate. When writing specs (see `ck:cavekit-writing`), each acceptance criterion should indicate which gate verifies it.
 
 ### Mapping Pattern
 
@@ -242,15 +242,15 @@ Either way, an unmapped requirement will not be reliably met by an agent.
 
 ---
 
-## Phase Gates Between DABI Phases
+## Phase Gates Between Hunt Phases
 
-Phase gates are mandatory verification checkpoints between DABI phases. They ensure that the output of one phase is solid before the next phase builds on it.
+Phase gates are mandatory verification checkpoints between Hunt phases. They ensure that the output of one phase is solid before the next phase builds on it.
 
 ### Phase Gate Definitions
 
 | Transition | Gate Condition | How to Verify |
 |------------|---------------|---------------|
-| **Spec → Plan** | All domains have specs with testable acceptance criteria | Review blueprint-overview.md; every R{N} has AC items |
+| **Spec → Plan** | All domains have specs with testable acceptance criteria | Review cavekit-overview.md; every R{N} has AC items |
 | **Plan → Implement** | Plans reference specs, define sequence, include test strategies | Review plan files; every task maps to spec requirements |
 | **Implement → Iterate** | Code builds (Gate 1), tests pass (Gate 2), impl tracking is current | Run `{BUILD_COMMAND}` and `{TEST_COMMAND}`; check impl tracking |
 | **Iterate → Monitor** | Convergence detected: changes decreasing iteration-over-iteration | Compare diffs across last 3-5 iterations |
@@ -281,7 +281,7 @@ Before reporting completion:
 
 ## Merge Protocol
 
-When working with agent teams (multiple agents dispatched with `isolation: "worktree"` via the Agent tool), the merge protocol ensures that integrating work from different agents does not break validation gates.
+When working with agent teams (multiple agents dispatched via the Agent tool), the merge protocol ensures that integrating work from different agents does not break validation gates.
 
 ### The Protocol
 
@@ -313,7 +313,7 @@ Merging all agent branches simultaneously and then running tests makes it imposs
 1. **Merge one agent branch at a time** — never batch-merge
 2. **Run Gates 1-3 after each merge** — build, unit tests, integration tests
 3. **Run Gate 5 after all merges** — launch verification on the fully integrated codebase
-4. **Clean up after each merge**: remove the worktree (`git worktree remove <path>`), then delete the branch (`git branch -D <branch>`). Claude Code only auto-cleans worktrees when agents make no changes; when changes are committed, the caller must remove the worktree before deleting the branch.
+4. **Clean up after each merge**: delete the merged branch (`git branch -D <branch>`).
 5. **If a merge fails validation,** fix it before proceeding to the next merge
 
 ---
@@ -423,19 +423,19 @@ The existing `verification-before-completion` skill provides a general framework
 
 **How they work together:**
 - `superpowers:verification-before-completion` ensures the agent checks its work
-- `bp:validation-first` defines exactly what checks to run and in what order
+- `ck:validation-first` defines exactly what checks to run and in what order
 
-### With `bp:blueprint-writing`
+### With `ck:cavekit-writing`
 
 Every spec requirement must have acceptance criteria that map to validation gates. The spec-writing skill defines how to write those criteria. Validation-first design defines how to verify them.
 
-### With `bp:impl-tracking`
+### With `ck:impl-tracking`
 
 Validation results are recorded in the implementation tracking document's Test Health table. Gate failures become Issues. Gate-related dead ends are documented in the Dead Ends section.
 
-### With `bp:methodology`
+### With `ck:methodology`
 
-Validation gates operate continuously across all DABI phases. Phase gates control transitions between phases. The iteration loop uses gate results as convergence signals.
+Validation gates operate continuously across all Hunt phases. Phase gates control transitions between phases. The iteration loop uses gate results as convergence signals.
 
 ---
 
@@ -445,7 +445,7 @@ Validation gates operate continuously across all DABI phases. Phase gates contro
 2. **6 gates in order:** Compilation → Unit Verification → Integration → Benchmarks → Smoke Test → Manual Audit
 3. **Earlier gates are cheaper** — catch problems at the build stage, not at launch
 4. **Every spec requirement maps to at least one gate** — unmapped requirements are unvalidated
-5. **Phase gates control DABI transitions** — do not proceed until the current phase passes its gate
+5. **Phase gates control Hunt transitions** — do not proceed until the current phase passes its gate
 6. **Merge one at a time** — validate between each merge to pinpoint failures
 7. **Completion signals enable automation** — agents emit a specific string when all gates pass
 8. **Regression is P0** — when a passing gate starts failing, stop and fix before proceeding

@@ -1,0 +1,8 @@
+.env
+.env.*
+*.pem
+*.key
+.DS_Store
+node_modules/
+coverage/
+*.log

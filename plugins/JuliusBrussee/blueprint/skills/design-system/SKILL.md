@@ -3,7 +3,7 @@ name: design-system
 description: |
   How to write and maintain a DESIGN.md in the 9-section Google Stitch format.
   Covers the 9-section structure, design token conventions, quality standards,
-  integration with blueprints and build tasks, revision patterns, and collection import.
+  integration with kits and build tasks, revision patterns, and collection import.
   Trigger phrases: "design system", "DESIGN.md", "visual design spec",
   "design tokens", "create design system", "import design system",
   "visual identity", "UI spec", "design language"
@@ -13,18 +13,18 @@ description: |
 
 ## Core Principle: DESIGN.md Describes WHAT It Looks Like, Not HOW to Build It
 
-DESIGN.md is the visual equivalent of blueprints. It defines the project's visual language — colors, typography, spacing, components, responsive behavior — in a format AI agents can read and apply consistently. It is a **parallel constraint layer** that all DABI phases consult.
+DESIGN.md is the visual equivalent of kits. It defines the project's visual language — colors, typography, spacing, components, responsive behavior — in a format AI agents can read and apply consistently. It is a **parallel constraint layer** that all Hunt phases consult.
 
 | Document | Defines | Audience |
 |----------|---------|----------|
 | CLAUDE.md | How to build the project | Coding agents |
-| Blueprints | What must be true (behavior) | All agents |
+| Kits | What must be true (behavior) | All agents |
 | **DESIGN.md** | **What it looks like (visual)** | **UI-building agents** |
 | Plans | How to build it (tasks) | Builder agents |
 
 ### Why a Dedicated Design System Document?
 
-Without DESIGN.md, visual decisions scatter across blueprints, plans, and code:
+Without DESIGN.md, visual decisions scatter across kits, plans, and code:
 - Colors get hardcoded differently per component
 - Typography choices vary between agents and sessions
 - Spacing becomes inconsistent across the UI
@@ -383,17 +383,17 @@ When using Tailwind, DESIGN.md tokens map to `tailwind.config.js` extensions. Th
 
 ---
 
-## Integration with Blueprints
+## Integration with Kits
 
-When DESIGN.md exists and blueprints contain UI requirements, acceptance criteria should reference design tokens by section and name. This creates a traceable chain:
+When DESIGN.md exists and kits contain UI requirements, acceptance criteria should reference design tokens by section and name. This creates a traceable chain:
 
 ```
-DESIGN.md → Blueprint acceptance criterion → Plan task → Implementation
+DESIGN.md → Cavekit acceptance criterion → Plan task → Implementation
 ```
 
 ### How to Reference
 
-| In Blueprint Acceptance Criteria | Design Reference |
+| In Cavekit Acceptance Criteria | Design Reference |
 |----------------------------------|-----------------|
 | "CTA button uses primary brand styling" | DESIGN.md Section 4: Buttons, primary variant |
 | "Headings follow the type hierarchy" | DESIGN.md Section 3: Type Scale |
@@ -401,11 +401,11 @@ DESIGN.md → Blueprint acceptance criterion → Plan task → Implementation
 | "Layout uses the standard grid" | DESIGN.md Section 5: Grid |
 | "Colors adapt for dark mode" | DESIGN.md Section 2: Dark Mode mapping |
 
-**Do NOT duplicate DESIGN.md content into blueprints.** Reference by section/token name only. If a color changes in DESIGN.md, blueprints should not need updating.
+**Do NOT duplicate DESIGN.md content into kits.** Reference by section/token name only. If a color changes in DESIGN.md, kits should not need updating.
 
 ### When No Design Reference Exists
 
-If a blueprint needs a visual pattern not in DESIGN.md, the acceptance criterion should note this:
+If a cavekit needs a visual pattern not in DESIGN.md, the acceptance criterion should note this:
 ```markdown
 - [ ] Component uses a card-like container [DESIGN.md: pattern not yet defined — flag for design update]
 ```
@@ -439,7 +439,7 @@ Task-builder agents follow this protocol for UI work:
 
 ## Revision Patterns
 
-When visual fixes are made manually (outside the DABI loop), `/bp:revise` traces them back to DESIGN.md:
+When visual fixes are made manually (outside the Hunt loop), `/ck:revise` traces them back to DESIGN.md:
 
 ### Visual Fix Classification
 
@@ -522,4 +522,4 @@ Every value in DESIGN.md must be concrete and unambiguous:
 5. **Missing dark mode** — If the app supports dark mode, every light color needs a mapping
 6. **Hex-only references in components** — Use semantic names, not raw values
 7. **No Agent Prompt Guide** — Section 9 is what makes DESIGN.md actionable for AI agents
-8. **Duplicating DESIGN.md into blueprints** — Reference by section/token name only
+8. **Duplicating DESIGN.md into kits** — Reference by section/token name only

@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "1.0.0",
+  "artifact": "ui-design",
+  "mode": "wireframe",
+  "feature": "{{FEATURE_NAME}}",
+  "updatedAt": "{{DATE}}T00:00:00Z",
+  "tokens": {
+    "colors": {},
+    "typography": {},
+    "spacing": {},
+    "radius": {}
+  },
+  "pages": [
+    {
+      "id": "main",
+      "name": "{{FEATURE_NAME}}",
+      "route": "/",
+      "viewport": { "width": 1440, "height": 960 },
+      "frames": [
+        {
+          "id": "main-page",
+          "type": "page",
+          "name": "{{FEATURE_NAME}}",
+          "layout": "vertical",
+          "children": []
+        }
+      ],
+      "states": []
+    }
+  ],
+  "components": [],
+  "prototype": {
+    "startPageId": "main",
+    "links": []
+  },
+  "implementationHints": {
+    "preferredFramework": "react",
+    "requiredComponents": [],
+    "accessibilityNotes": []
+  }
+}

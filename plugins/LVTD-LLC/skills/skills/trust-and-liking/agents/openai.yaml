@@ -1,0 +1,4 @@
+interface:
+  display_name: "Trust and Liking"
+  short_description: "Build rapport honestly"
+  default_prompt: "Use $trust-and-liking to improve this persuasion task ethically."

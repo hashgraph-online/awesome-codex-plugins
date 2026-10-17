@@ -1,0 +1,6 @@
+interface:
+  display_name: "Orchestrate Engineering"
+  short_description: "Coordinate bounded multi-agent engineering work"
+  default_prompt: "Use $orchestrate-engineering to divide this complex task into efficient, bounded agent work."
+policy:
+  allow_implicit_invocation: false

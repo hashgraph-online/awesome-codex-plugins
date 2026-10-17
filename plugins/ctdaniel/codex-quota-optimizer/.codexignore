@@ -1,0 +1,9 @@
+.git/
+node_modules/
+dist/
+build/
+coverage/
+.venv/
+__pycache__/
+*.pyc
+.DS_Store

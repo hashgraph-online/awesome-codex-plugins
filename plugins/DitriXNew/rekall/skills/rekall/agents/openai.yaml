@@ -1,0 +1,6 @@
+interface:
+  display_name: "Rekall"
+  short_description: "Compact context with a verified handoff"
+  default_prompt: "Use $rekall to compact this thread and safely continue the remaining work once."
+policy:
+  allow_implicit_invocation: true

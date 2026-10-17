@@ -1,0 +1,41 @@
+{
+  "name": "bgs-modding-superpowers",
+  "version": "0.2.0",
+  "description": "Agentic superpowers for Bethesda Game Studio modpack curation: MCP-driven xEdit conflict audit, MO2 control plane, and runtime install/dev-log skills.",
+  "author": {
+    "name": "awesome-bgs-mod-master contributors",
+    "url": "https://github.com/BB-84C/bgs-modding-superpowers"
+  },
+  "homepage": "https://github.com/BB-84C/bgs-modding-superpowers",
+  "repository": "https://github.com/BB-84C/bgs-modding-superpowers",
+  "license": "MIT",
+  "keywords": [
+    "bethesda",
+    "modding",
+    "mo2",
+    "xedit",
+    "modpack",
+    "skills",
+    "mcp"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "BGS Modding Superpowers",
+    "shortDescription": "Curate Bethesda modpacks with MO2 + xEdit superpowers",
+    "longDescription": "Agentic toolkit for Bethesda Game Studio modpack builders. Bundles an xEdit conflict-audit MCP, an MO2 control-plane plugin installer, and skills for first-time setup, dev-log maintenance, and release-changelog generation.",
+    "developerName": "awesome-bgs-mod-master contributors",
+    "category": "Coding",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Help me set up a new Bethesda modpack project.",
+      "Audit conflicts across my current load order.",
+      "Start a dev-log for my modpack project."
+    ],
+    "websiteURL": "https://github.com/BB-84C/bgs-modding-superpowers",
+    "brandColor": "#5C8A3A"
+  }
+}

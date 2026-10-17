@@ -1,0 +1,4 @@
+interface:
+  display_name: "Django Deployment Test Loop"
+  short_description: "Verify Django deployment changes"
+  default_prompt: "Use $django-deployment-test-loop to make this Django deployment change testable and production-ready."

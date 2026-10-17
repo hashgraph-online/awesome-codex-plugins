@@ -10,13 +10,14 @@ Parses a .kicad_sch file and outputs structured JSON with:
 - Design statistics
 
 Usage:
-    python analyze_schematic.py <file.kicad_sch> [--output file.json]
+    python analyze_schematic.py <file.kicad_sch|file.kicad_pro|dir/> [--output file.json]
 
 Output is JSON to stdout (or file if --output specified).
 """
 
 import json
 import math
+import os
 import re
 import sys
 from pathlib import Path
@@ -31,6 +32,7 @@ from sexp_parser import (
     get_properties,
     get_property,
     get_value,
+    has_flag,
     parse_file,
 )
 from kicad_utils import (
@@ -38,36 +40,162 @@ from kicad_utils import (
     _MIL_MM,
     _OUTPUT_DRIVE_KEYWORDS,
     classify_component,
+    classify_connector,
+    classify_ic_function,
+    extract_pro_text_variables,
     format_frequency as _format_frequency,
+    load_lib_tables,
     is_ground_name as _is_ground_name,
+    is_usb_data_net_name,
     is_power_net_name as _is_power_net_name,
+    load_kicad_pro,
     parse_value,
     parse_voltage_from_net_name as _parse_voltage_from_net_name,
     snap_to_mil_grid as _snap_mil,
+    MPN_FIELD_ALIASES_PRIMARY, MPN_FIELD_ALIASES_GENERIC,
+    DIGIKEY_FIELD_ALIASES, normalize_field_name, pick_field, pick_mpn,
 )
 from kicad_types import AnalysisContext
+from bus_resolver import BusGraph, expand_bus_name, match_ports
+from signal_detectors import (
+    audit_power_pin_dc_paths,
+    audit_rail_sources,
+    detect_bridge_circuits,
+    detect_crystal_circuits,
+    detect_current_sense,
+    detect_decoupling,
+    detect_design_observations,
+    detect_integrated_ldos,
+    detect_label_aliases,
+    detect_lc_filters,
+    detect_led_drivers,
+    detect_opamp_circuits,
+    detect_power_regulators,
+    detect_protection_devices,
+    detect_rc_filters,
+    detect_shorted_two_pin_components,
+    detect_solder_jumpers,
+    detect_transistor_circuits,
+    detect_voltage_dividers,
+    postfilter_vd_and_dedup,
+    _merge_series_dividers,
+)
+from domain_detectors import (
+    audit_connector_ground_distribution,
+    audit_esd_protection,
+    audit_led_circuits,
+    detect_adc_circuits,
+    detect_addressable_leds,
+    detect_audio_circuits,
+    detect_battery_chargers,
+    detect_bms_systems,
+    detect_buzzer_speakers,
+    detect_clock_distribution,
+    detect_debug_interfaces,
+    detect_display_interfaces,
+    detect_ethernet_interfaces,
+    detect_hdmi_dvi_interfaces,
+    detect_isolation_barriers,
+    detect_key_matrices,
+    detect_lvds_interfaces,
+    detect_led_driver_ics,
+    detect_level_shifters,
+    detect_memory_interfaces,
+    detect_motor_drivers,
+    detect_power_path,
+    detect_reset_supervisors,
+    detect_rf_chains,
+    detect_rf_matching,
+    detect_rtc_circuits,
+    detect_sensor_interfaces,
+    detect_thermocouple_rtd,
+    suggest_certifications,
+    validate_power_sequencing,
+    detect_wireless_modules,
+    detect_transformer_feedback,
+    detect_i2c_address_conflicts,
+    detect_energy_harvesting,
+    detect_pwm_led_dimming,
+    detect_headphone_jack,
+)
+from validation_detectors import (
+    validate_pullups,
+    validate_voltage_levels,
+    validate_i2c_bus,
+    validate_spi_bus,
+    validate_can_bus,
+    validate_usb_bus,
+    validate_power_sequencing as validate_power_seq_deps,
+    validate_led_resistors,
+    validate_feedback_stability,
+    validate_crystal_load_caps,
+)
+from lookup_detectors import (
+    detect_absolute_max_violations,
+    detect_vcc_outside_recommended,
+    detect_5v_on_non_tolerant_pin,
+    detect_wrong_signal_type,
+    detect_missing_required_components,
+)
+from finding_schema import compute_trust_summary, sort_findings, make_finding, assign_finding_ids
+from envelopes.schematic import SchematicEnvelope
+from schema_codec import emit_schema
+from inputs_builder import build_inputs, build_compat
+from capability_mode import get_capability_mode_ref
+from lookup_helpers import read_design_context
 
+
+def _resolve_lookup_paths(sch_path: str | Path,
+                           analysis_dir: str | Path | None) -> tuple[Path | None, dict | None]:
+    """Resolve (cache_dir, design_context) for AnalysisContext (Phase 4d-active).
+
+    cache_dir is the datasheets/extracted/ directory adjacent to the schematic
+    (matching the existing convention used by analyze_thermal.py and the
+    audit_datasheet_coverage check). Returns None when the directory doesn't
+    exist — `lookup()` already handles None gracefully.
+
+    design_context is the parsed design_context.json from the analysis dir,
+    or None when absent or analysis_dir is None.
+    """
+    sch_dir = Path(sch_path).resolve().parent
+    candidates = [
+        sch_dir / "datasheets" / "extracted",
+        sch_dir.parent / "datasheets" / "extracted",
+    ]
+    cache_dir = next((c for c in candidates if c.is_dir()), None)
+    dc = read_design_context(analysis_dir) if analysis_dir else None
+    return cache_dir, dc
+
+ANALYZER_SOURCE = "sch"
+
+MAX_TESTED_FORMAT_VERSION = 20260306  # bump when a newer corpus era is adopted
 
 # ---------------------------------------------------------------------------
 # Case-insensitive distributor / MPN property helpers
 # ---------------------------------------------------------------------------
+_UUID_RE = re.compile(
+    r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}',
+    re.IGNORECASE,
+)
+
+
+def _clean_hierarchical_name(name: str) -> str:
+    """Strip UUID path prefixes from hierarchical net/rail names.
+
+    ``/201ab4ae-...-c6b37cf9a2b1/VIN`` → ``VIN``
+    """
+    if '/' in name and _UUID_RE.search(name):
+        return name.rsplit('/', 1)[-1]
+    return name
+
+
 # KiCad lets users name fields however they like — "Digikey", "DigiKey",
 # "DIGIKEY", "Digi-Key Part Number" are all common.  Rather than maintaining
 # an ever-growing list of explicit variants, build a lowercase property dict
 # once and match against normalised known aliases.
 
-_MPN_KEYS = frozenset({
-    "mpn", "mfg part", "partnumber", "part number", "part#",
-    "manufacturer_part_number", "mfr no.", "mfr_no",
-    "manufacturerpartnumber", "partno", "partno.", "mfr_part_number",
-})
 _MANUFACTURER_KEYS = frozenset({
     "manufacturer", "mfr", "mfg",
-})
-_DIGIKEY_KEYS = frozenset({
-    "digikey", "digi-key", "digi-key part number", "digi-key_pn",
-    "digikey part", "digikey part number", "digikey_part_number",
-    "digi-key pn", "digikey part number", "dk",
 })
 _MOUSER_KEYS = frozenset({
     "mouser", "mouser part number", "mouser part", "mouser_pn", "mouser pn",
@@ -84,12 +212,12 @@ _ELEMENT14_KEYS = frozenset({
 
 
 def _pick(props: dict, keys: frozenset) -> str:
-    """Return the first non-empty value whose lowercased key is in *keys*."""
-    for k in keys:
-        v = props.get(k)
-        if v:
-            return v
-    return ""
+    """Return the first non-empty value whose normalized key is in *keys*.
+
+    Iterates the property dict in file order (not the alias frozenset) so
+    the pick is hash-seed independent when two aliases are present (KH-414).
+    """
+    return pick_field(props, keys)
 
 
 
@@ -114,10 +242,13 @@ def extract_lib_symbols(root: list) -> dict:
         pin_num_node = find_first(pin, "number")
         pin_name = str(pin_name_node[1]) if pin_name_node and len(pin_name_node) > 1 and pin_name_node[1] is not None else ""
         pin_num = str(pin_num_node[1]) if pin_num_node and len(pin_num_node) > 1 and pin_num_node[1] is not None else ""
+        # Detect hidden pins — KiCad uses (hide yes) inside pin node
+        hidden = has_flag(pin, "hide")
         return {
             "number": pin_num, "name": pin_name,
             "type": pin_type, "shape": pin_shape,
             "offset": list(at) if at else None,
+            "hidden": hidden,
         }
 
     def _extract_pins_from_node(node):
@@ -164,10 +295,18 @@ def extract_lib_symbols(root: list) -> dict:
         lib_value = get_property(sym, "Value") or ""
 
         # Check for (power) flag — marks this as a power symbol regardless of lib name
+        # KiCad 8+ writes (power global) or (power local); pre-8.0 writes bare (power)
         is_power = any(
-            isinstance(child, list) and len(child) == 1 and child[0] == "power"
+            isinstance(child, list) and len(child) >= 1 and child[0] == "power"
             for child in sym
         )
+        # Track global vs local power scope (default: global for bare (power))
+        power_scope = "global"
+        if is_power:
+            for child in sym:
+                if isinstance(child, list) and len(child) >= 2 and child[0] == "power":
+                    power_scope = child[1] if child[1] in ("global", "local") else "global"
+                    break
 
         # Extract alternate pin definitions (dual-function pins, e.g., GPIO/SPI/UART)
         alternates = {}
@@ -191,11 +330,22 @@ def extract_lib_symbols(root: list) -> dict:
             "description": desc,
             "keywords": ki_keywords,
             "is_power": is_power,
+            "power_scope": power_scope if is_power else None,
             "ki_fp_filters": ki_fp_filters,
             "alternates": alternates if alternates else None,
         }
 
     return symbols
+
+
+# KiCad Y-down base TRANSFORM matrix (x1,y1,x2,y2) per (at .. angle),
+# from sch_io_kicad_sexpr_parser.cpp:3490-3497 (parseSchematicSymbol T_at).
+_ANGLE_TRANSFORM = {
+    0:   (1, 0, 0, 1),
+    90:  (0, 1, -1, 0),
+    180: (-1, 0, 0, -1),
+    270: (0, -1, 1, 0),
+}
 
 
 def apply_rotation(px: float, py: float, angle_deg: float) -> tuple[float, float]:
@@ -242,14 +392,28 @@ def compute_pin_positions(component: dict, lib_symbols: dict) -> list[dict]:
             continue
         px, py = pin["offset"][0], pin["offset"][1]
 
-        # Apply mirroring before rotation
-        if mirror_x:
-            py = -py
-        if mirror_y:
-            px = -px
-
-        # Apply rotation to pin offset
-        rpx, rpy = apply_rotation(px, py, angle)
+        # Apply transform: prefer raw matrix (legacy KiCad 5) over decomposed angle/mirror
+        transform_matrix = component.get("transform_matrix")
+        if transform_matrix:
+            a, b, c, d = transform_matrix
+            rpx = a * px + b * py
+            rpy = c * px + d * py
+        else:
+            # KiCad 6+: decomposed angle + mirror. Compose exactly as KiCad does
+            # so rotation+mirror combos match (mirror inverts rotation handedness).
+            # KiCad builds a Y-down 2x2 TRANSFORM: the (at .. angle) sets the base
+            # rotation matrix, then (mirror x|y) is composed ON THE RIGHT via
+            # new = old * mirror (sch_symbol.cpp:SetOrientation, lines 2937-2941).
+            # TransformCoordinate(P)=(x1*Px+y1*Py, x2*Px+y2*Py) (kimath transform.cpp:40-43).
+            # We work in math-up offsets (Py positive = up), so convert the Y-down
+            # result back: rpx = x1*px - y1*py, rpy = -x2*px + y2*py.
+            x1, y1, x2, y2 = _ANGLE_TRANSFORM.get(int(angle) % 360, (1, 0, 0, 1))
+            if mirror_x:  # compose with SYM_MIRROR_X temp = (1,0,0,-1) on the right
+                x1, y1, x2, y2 = x1, y1, -x2, -y2
+            if mirror_y:  # compose with SYM_MIRROR_Y temp = (-1,0,0,1) on the right
+                x1, y1, x2, y2 = -x1, -y1, x2, y2
+            rpx = x1 * px - y1 * py
+            rpy = -x2 * px + y2 * py
 
         # Absolute position: Y-axis inversion (symbol coords are math-up, schematic is screen-down)
         abs_x = round(cx + rpx, 4)
@@ -267,13 +431,16 @@ def compute_pin_positions(component: dict, lib_symbols: dict) -> list[dict]:
         else:
             pin_name = str(pin_name)
 
-        pin_positions.append({
+        entry = {
             "number": pin_num,
             "name": pin_name,
             "type": pin["type"],
             "x": abs_x,
             "y": abs_y,
-        })
+        }
+        if pin.get("hidden"):
+            entry["hidden"] = True
+        pin_positions.append(entry)
 
     return pin_positions
 
@@ -347,12 +514,15 @@ def extract_components(root: list, lib_symbols: dict, instance_uuid: str = "",
         unit_num = int(unit_node[1]) if unit_node and len(unit_node) > 1 else None
 
         ref = get_property(sym, "Reference") or ""
-        value = get_property(sym, "Value") or ""
-        # KH-088: Eagle-imported schematics often have empty instance Value.
-        # Fall back to the lib_symbol's Value property.
-        if not value:
+        value = get_property(sym, "Value")
+        # KH-088: Eagle-imported schematics often have NO instance Value property.
+        # Fall back to the lib_symbol's Value property only when the property is
+        # missing entirely (None), not when it exists but is empty string (KH-230).
+        if value is None:
             sym_def_val = lib_symbols.get(lib_id, {})
-            value = sym_def_val.get("value", "")
+            value = sym_def_val.get("value", "") or ""
+        else:
+            value = value or ""
         footprint = get_property(sym, "Footprint") or ""
         datasheet = get_property(sym, "Datasheet") or ""
         description = get_property(sym, "Description") or ""
@@ -398,9 +568,9 @@ def extract_components(root: list, lib_symbols: dict, instance_uuid: str = "",
                     if si_entry.get("unit"):
                         unit_num = si_entry["unit"]
         _props = get_properties(sym)
-        mpn = _pick(_props, _MPN_KEYS)
+        mpn = pick_mpn(_props)
         manufacturer = _pick(_props, _MANUFACTURER_KEYS)
-        digikey = _pick(_props, _DIGIKEY_KEYS)
+        digikey = _pick(_props, DIGIKEY_FIELD_ALIASES)
         mouser = _pick(_props, _MOUSER_KEYS)
         lcsc = _pick(_props, _LCSC_KEYS)
         element14 = _pick(_props, _ELEMENT14_KEYS)
@@ -451,16 +621,127 @@ def extract_components(root: list, lib_symbols: dict, instance_uuid: str = "",
         # KH-083: Try lib_name first for correct lib_symbol lookup
         sym_def = (lib_symbols.get(lib_name) if lib_name else None) or lib_symbols.get(lib_id, {})
         is_power_sym = sym_def.get("is_power", False)
-        comp["type"] = classify_component(ref, lib_id, value, is_power_sym, footprint, in_bom=in_bom)
+        comp["type"] = classify_component(ref, lib_id, value, is_power_sym, footprint, in_bom=in_bom,
+                                          description=description, pins=sym_def.get("pins"))
         # Store ki_keywords for downstream analysis (e.g., P-channel detection)
         comp["keywords"] = sym_def.get("keywords", "")
+        # Track power scope (global vs local) for connectivity
+        if is_power_sym:
+            comp["_power_scope"] = sym_def.get("power_scope", "global")
+
+        # Enrich ICs with functional classification
+        if comp["type"] == "ic":
+            comp["functional_class"] = classify_ic_function(lib_id, value, description)
+
+        # Enrich connectors with external status and layout
+        if comp["type"] == "connector":
+            pin_count = len(sym_def.get("pins", [])) if sym_def else 0
+            is_ext, conn_layout = classify_connector(lib_id, value, pin_count)
+            comp["is_external_connector"] = is_ext
+            comp["connector_layout"] = conn_layout
 
         # Compute absolute pin positions
         comp["pins"] = compute_pin_positions(comp, lib_symbols)
+        # KH-216: Store unit-valid pin numbers for pin_nets filtering
+        comp["_unit_pins"] = {p["number"] for p in comp["pins"]}
 
         components.append(comp)
 
     return components
+
+
+def _build_net_classifications(results: dict) -> dict[str, dict]:
+    """Build net classification dict from existing detector results.
+
+    Tags nets with signal type and characteristics for downstream PCB
+    intelligence checks. Uses the 'nets' field from rich-format detections
+    plus domain-specific fields where available.
+    """
+    classifications: dict[str, dict] = {}
+
+    # Crystal circuits → clock nets (from load_cap nets and rich 'nets' field)
+    for xc in results.get('crystal_circuits', []):
+        freq = xc.get('frequency')
+        # Rich format 'nets' field contains the crystal's connected nets
+        for net in xc.get('nets', []):
+            if net and net not in classifications:
+                classifications[net] = {'type': 'clock', 'frequency_hz': freq, 'source': 'crystal_circuits'}
+        # Load cap nets are clock-passive
+        for lc in xc.get('load_caps', []):
+            net = lc.get('net')
+            if net and net not in classifications:
+                classifications[net] = {'type': 'clock_passive', 'source': 'crystal_circuits'}
+
+    # Power regulators → switching nodes and power rails
+    for reg in results.get('power_regulators', []):
+        sw_net = reg.get('sw_net')
+        if sw_net:
+            classifications[sw_net] = {'type': 'switching_node', 'frequency_hz': reg.get('switching_frequency_hz'), 'source': 'power_regulators'}
+        output_rail = reg.get('output_rail')
+        if output_rail and output_rail not in classifications:
+            classifications[output_rail] = {'type': 'power_rail', 'source': 'power_regulators'}
+
+    # Ethernet → differential nets (from rich 'nets' or domain-specific fields)
+    for eth in results.get('ethernet_interfaces', []):
+        # Try domain-specific differential net fields first
+        for key in ('tx_p', 'tx_n', 'rx_p', 'rx_n', 'txp', 'txn', 'rxp', 'rxn'):
+            net = eth.get(key)
+            if net:
+                classifications[net] = {'type': 'ethernet', 'differential': True, 'source': 'ethernet_interfaces'}
+        # Fall back to rich 'nets' field
+        for net in eth.get('nets', []):
+            if net and net not in classifications:
+                classifications[net] = {'type': 'ethernet', 'source': 'ethernet_interfaces'}
+
+    # HDMI/DVI
+    for hdmi in results.get('hdmi_dvi_interfaces', []):
+        for net in hdmi.get('nets', []):
+            if net and net not in classifications:
+                classifications[net] = {'type': 'hdmi', 'differential': True, 'source': 'hdmi_dvi_interfaces'}
+
+    # Memory interfaces
+    for mem in results.get('memory_interfaces', []):
+        for net in mem.get('nets', []):
+            if net and net not in classifications:
+                classifications[net] = {'type': 'memory', 'source': 'memory_interfaces'}
+
+    # LVDS
+    for lvds in results.get('lvds_interfaces', []):
+        for net in lvds.get('nets', []):
+            if net and net not in classifications:
+                classifications[net] = {'type': 'lvds', 'differential': True, 'source': 'lvds_interfaces'}
+
+    # RF chains
+    for rf in results.get('rf_chains', []):
+        for net in rf.get('nets', []):
+            if net and net not in classifications:
+                classifications[net] = {'type': 'rf', 'source': 'rf_chains'}
+
+    # Clock distribution
+    for clk in results.get('clock_distribution', []):
+        freq = clk.get('frequency_hz')
+        for net in clk.get('nets', []):
+            if net and net not in classifications:
+                classifications[net] = {'type': 'clock', 'frequency_hz': freq, 'source': 'clock_distribution'}
+
+    # Validation findings → protocol nets (I2C, CAN, USB)
+    for vf in results.get('validation_findings', []):
+        rule = vf.get('rule_id', '')
+        nets = vf.get('nets', [])
+        if rule == 'PR-001':
+            for net in nets:
+                if net not in classifications:
+                    classifications[net] = {'type': 'i2c', 'source': 'protocol_detection'}
+        elif rule == 'PR-003':
+            for net in nets:
+                if net not in classifications:
+                    classifications[net] = {'type': 'can', 'differential': True, 'source': 'protocol_detection'}
+        elif rule == 'PR-004':
+            for net in nets:
+                if net not in classifications:
+                    classifications[net] = {'type': 'usb', 'differential': True, 'source': 'protocol_detection'}
+
+    return classifications
 
 
 def analyze_signal_paths(ctx: AnalysisContext) -> dict:
@@ -469,54 +750,6 @@ def analyze_signal_paths(ctx: AnalysisContext) -> dict:
     Orchestrator that calls individual detector functions from signal_detectors.py.
     Each detector takes an AnalysisContext and returns its detection results.
     """
-    from signal_detectors import (
-        detect_bridge_circuits,
-        detect_crystal_circuits,
-        detect_current_sense,
-        detect_decoupling,
-        detect_design_observations,
-        detect_integrated_ldos,
-        detect_lc_filters,
-        detect_led_drivers,
-        detect_opamp_circuits,
-        detect_power_regulators,
-        detect_protection_devices,
-        detect_rc_filters,
-        detect_transistor_circuits,
-        detect_voltage_dividers,
-        postfilter_vd_and_dedup,
-        _merge_series_dividers,
-    )
-    from domain_detectors import (
-        audit_esd_protection,
-        audit_led_circuits,
-        detect_adc_circuits,
-        detect_addressable_leds,
-        detect_audio_circuits,
-        detect_battery_chargers,
-        detect_bms_systems,
-        detect_buzzer_speakers,
-        detect_clock_distribution,
-        detect_debug_interfaces,
-        detect_display_interfaces,
-        detect_ethernet_interfaces,
-        detect_hdmi_dvi_interfaces,
-        detect_isolation_barriers,
-        detect_key_matrices,
-        detect_led_driver_ics,
-        detect_level_shifters,
-        detect_memory_interfaces,
-        detect_motor_drivers,
-        detect_power_path,
-        detect_reset_supervisors,
-        detect_rf_chains,
-        detect_rf_matching,
-        detect_rtc_circuits,
-        detect_sensor_interfaces,
-        detect_thermocouple_rtd,
-        validate_power_sequencing,
-    )
-
     nets = ctx.nets
 
     # Run detectors in dependency order
@@ -538,6 +771,22 @@ def analyze_signal_paths(ctx: AnalysisContext) -> dict:
     power_regulators = detect_power_regulators(ctx, voltage_dividers)
     integrated_ldos = detect_integrated_ldos(ctx, power_regulators)
     power_regulators.extend(integrated_ldos)
+
+    # Build rail_voltages: net name → voltage from regulator outputs + power symbol names
+    rail_voltages: dict[str, float] = {}
+    for reg in power_regulators:
+        out_rail = reg.get("output_rail")
+        v_out = reg.get("estimated_vout")
+        if out_rail and v_out is not None:
+            rail_voltages[_clean_hierarchical_name(out_rail)] = v_out
+    # Augment with voltages inferred from power symbol / net names
+    for net_name in ctx.nets:
+        clean = _clean_hierarchical_name(net_name)
+        if clean not in rail_voltages:
+            v = _estimate_rail_voltage(clean)
+            if v is not None:
+                rail_voltages[clean] = v
+
     protection_devices = detect_protection_devices(ctx)
     bridge_circuits, matched_fets, fet_pins = detect_bridge_circuits(ctx)
     transistor_circuits = detect_transistor_circuits(ctx, matched_fets, fet_pins)
@@ -551,6 +800,7 @@ def analyze_signal_paths(ctx: AnalysisContext) -> dict:
     isolation_barriers = detect_isolation_barriers(ctx)
     ethernet_interfaces = detect_ethernet_interfaces(ctx)
     hdmi_dvi_interfaces = detect_hdmi_dvi_interfaces(ctx)
+    lvds_interfaces = detect_lvds_interfaces(ctx)
     memory_interfaces = detect_memory_interfaces(ctx)
     rf_chains = detect_rf_chains(ctx)
     rf_matching = detect_rf_matching(ctx)
@@ -574,6 +824,43 @@ def analyze_signal_paths(ctx: AnalysisContext) -> dict:
     thermocouple_rtd = detect_thermocouple_rtd(ctx)
     power_sequencing_validation = validate_power_sequencing(
         ctx, power_regulators, power_path, reset_supervisors)
+    connector_ground_audit = audit_connector_ground_distribution(ctx)
+
+    # Validation detectors (rich findings)
+    pullup_findings = validate_pullups(ctx)
+    voltage_level_findings = validate_voltage_levels(ctx, level_shifters)
+    i2c_findings = validate_i2c_bus(ctx)
+    spi_findings = validate_spi_bus(ctx)
+    can_findings = validate_can_bus(ctx)
+    usb_findings = validate_usb_bus(ctx)
+    power_seq_dep_findings = validate_power_seq_deps(ctx, power_regulators)
+    led_resistor_findings = validate_led_resistors(ctx)
+    feedback_stability_findings = validate_feedback_stability(ctx, power_regulators)
+    crystal_load_findings = validate_crystal_load_caps(ctx, crystal_circuits)
+
+    # Lookup detectors (Phase 4c) — consume v1.4 datasheet facts via lookup().
+    # Soft-skip when get_facts() returns None (no MPN cache). Synonym-resolved
+    # rail keys per addendum §A2; per-pin Pin.absolute_max overrides rail-level.
+    am_001_findings = detect_absolute_max_violations(ctx, rail_voltages)
+    ov_001_findings = detect_vcc_outside_recommended(ctx, rail_voltages)
+    ft_001_findings = detect_5v_on_non_tolerant_pin(ctx, rail_voltages)
+    pm_001_findings = detect_wrong_signal_type(ctx)
+    ex_001_findings = detect_missing_required_components(ctx, power_regulators)
+
+    # New domain detectors (rich format)
+    wireless_modules = detect_wireless_modules(ctx)
+    transformer_feedback = detect_transformer_feedback(ctx)
+    i2c_address_conflicts = detect_i2c_address_conflicts(ctx)
+    energy_harvesting = detect_energy_harvesting(ctx)
+    pwm_led_dimming = detect_pwm_led_dimming(ctx, transistor_circuits)
+    headphone_jacks = detect_headphone_jack(ctx)
+    solder_jumpers = detect_solder_jumpers(ctx)
+    shorted_two_pin_components = detect_shorted_two_pin_components(ctx)
+    rail_source_audit = audit_rail_sources(
+        ctx, power_regulators=power_regulators, solder_jumpers=solder_jumpers)
+    label_aliases = detect_label_aliases(ctx)
+    power_pin_dc_paths = audit_power_pin_dc_paths(
+        ctx, solder_jumpers=solder_jumpers)
 
     # Remove R/C components that appear in crystal circuits from RC filter
     # results — prevents misclassifying crystal feedback resistors + load caps
@@ -593,27 +880,41 @@ def analyze_signal_paths(ctx: AnalysisContext) -> dict:
             ]
 
     def _enrich_capacitor_data(results_dict, context):
-        """Add package size and ESR estimates to all capacitor entries in signal_analysis.
+        """Add package size, ESR, dielectric, and rated voltage to all cap entries.
 
         Walks through all detection dicts recursively, finds entries with a 'farads'
-        key and a 'ref' key, and adds 'package' and 'esr_ohm' fields from the
-        component's footprint.
+        key and a 'ref' key, and adds derived fields from the component's footprint
+        and value string.
         """
-        from kicad_utils import extract_cap_package, estimate_cap_esr
+        from kicad_utils import (extract_cap_package, estimate_cap_esr,
+                                 classify_dielectric, parse_rated_voltage)
 
         def _enrich(obj):
             if isinstance(obj, dict):
-                if "farads" in obj and "ref" in obj and "package" not in obj:
+                if "farads" in obj and "ref" in obj:
                     ref = obj["ref"]
                     comp = context.comp_lookup.get(ref)
                     if comp:
-                        fp = comp.get("footprint", "")
-                        pkg = extract_cap_package(fp)
-                        if pkg:
-                            obj["package"] = pkg
-                            esr = estimate_cap_esr(obj["farads"], pkg)
-                            if esr is not None:
-                                obj["esr_ohm"] = esr
+                        # Package and ESR (existing)
+                        if "package" not in obj:
+                            fp = comp.get("footprint", "")
+                            pkg = extract_cap_package(fp)
+                            if pkg:
+                                obj["package"] = pkg
+                                esr = estimate_cap_esr(obj["farads"], pkg)
+                                if esr is not None:
+                                    obj["esr_ohm"] = esr
+                        # Dielectric classification (new)
+                        if "dielectric" not in obj:
+                            value_str = comp.get("value", "")
+                            desc_str = comp.get("description", "")
+                            obj["dielectric"] = classify_dielectric(value_str, desc_str)
+                        # Rated voltage (new)
+                        if "rated_voltage_V" not in obj:
+                            value_str = comp.get("value", "")
+                            rv = parse_rated_voltage(value_str)
+                            if rv is not None:
+                                obj["rated_voltage_V"] = rv
                 for v in obj.values():
                     _enrich(v)
             elif isinstance(obj, list):
@@ -622,7 +923,93 @@ def analyze_signal_paths(ctx: AnalysisContext) -> dict:
 
         _enrich(results_dict)
 
+    def _apply_capacitor_derating(results_dict):
+        """Apply DC bias derating to capacitor entries where applied voltage is known.
+
+        Cross-references regulator output voltages with output_capacitors and
+        decoupling_analysis to compute effective_farads after DC bias derating.
+        Only adds derating fields when both package and applied voltage are known.
+        """
+        from kicad_utils import estimate_dc_bias_derating
+
+        # Build rail → voltage map from power regulators
+        rail_voltage = {}
+        for reg in results_dict.get("power_regulators", []):
+            vout = reg.get("vout_estimated") or reg.get("estimated_vout")
+            rail = reg.get("output_rail", "")
+            if vout and vout > 0 and rail:
+                # Use the highest voltage seen for a rail (conservative)
+                if rail not in rail_voltage or vout > rail_voltage[rail]:
+                    rail_voltage[rail] = vout
+
+        def _derate_cap(cap, applied_v):
+            """Add derating fields to a single cap entry."""
+            farads = cap.get("farads", 0)
+            package = cap.get("package")
+            dielectric = cap.get("dielectric")
+            if not farads or farads <= 0 or not package or not dielectric:
+                return
+
+            # Determine rated voltage: from cap entry, or estimate from rail
+            rated_v = cap.get("rated_voltage_V")
+            if rated_v is None:
+                # Conservative estimate based on typical voltage ratings
+                if applied_v <= 1.8:
+                    rated_v = 6.3
+                elif applied_v <= 3.3:
+                    rated_v = 6.3
+                elif applied_v <= 5.0:
+                    rated_v = 10.0
+                elif applied_v <= 12.0:
+                    rated_v = 25.0
+                else:
+                    rated_v = applied_v * 2  # assume 2:1 margin
+
+            voltage_ratio = applied_v / rated_v
+            remaining = estimate_dc_bias_derating(dielectric, package, voltage_ratio)
+
+            cap["applied_voltage_V"] = applied_v
+            cap["derating_factor"] = round(remaining, 3)
+            cap["effective_farads"] = farads * remaining
+
+        # Derate output and input capacitors on power regulators
+        for reg in results_dict.get("power_regulators", []):
+            vout = reg.get("vout_estimated") or reg.get("estimated_vout")
+            if not vout or vout <= 0:
+                continue
+            for cap in reg.get("output_capacitors", []):
+                _derate_cap(cap, vout)
+
+        # Derate decoupling analysis capacitors
+        for rail_entry in results_dict.get("decoupling_analysis", []):
+            rail_name = rail_entry.get("rail", "")
+            v = rail_voltage.get(rail_name)
+            if not v:
+                continue
+            any_derated = False
+            for cap in rail_entry.get("capacitors", []):
+                _derate_cap(cap, v)
+                if "effective_farads" in cap:
+                    any_derated = True
+            # Add total effective capacitance alongside nominal
+            if any_derated:
+                total_eff = sum(
+                    c.get("effective_farads", c["farads"])
+                    for c in rail_entry["capacitors"]
+                )
+                rail_entry["total_effective_capacitance_uF"] = round(total_eff * 1e6, 3)
+
+        # Derate LC filter capacitors where rail voltage is known
+        for filt in results_dict.get("lc_filters", []):
+            rail = filt.get("rail", "")
+            v = rail_voltage.get(rail)
+            if v and "capacitor" in filt:
+                cap = filt["capacitor"]
+                if isinstance(cap, dict) and "farads" in cap:
+                    _derate_cap(cap, v)
+
     results = {
+        "rail_voltages": rail_voltages,
         "voltage_dividers": voltage_dividers,
         "rc_filters": rc_filters,
         "lc_filters": lc_filters,
@@ -641,6 +1028,7 @@ def analyze_signal_paths(ctx: AnalysisContext) -> dict:
         "isolation_barriers": isolation_barriers,
         "ethernet_interfaces": ethernet_interfaces,
         "hdmi_dvi_interfaces": hdmi_dvi_interfaces,
+        "lvds_interfaces": lvds_interfaces,
         "memory_interfaces": memory_interfaces,
         "rf_chains": rf_chains,
         "rf_matching": rf_matching,
@@ -663,12 +1051,53 @@ def analyze_signal_paths(ctx: AnalysisContext) -> dict:
         "led_audit": led_audit,
         "thermocouple_rtd": thermocouple_rtd,
         "power_sequencing_validation": power_sequencing_validation,
+        "connector_ground_audit": connector_ground_audit,
+        "wireless_modules": wireless_modules,
+        "transformer_feedback": transformer_feedback,
+        "i2c_address_conflicts": i2c_address_conflicts,
+        "energy_harvesting": energy_harvesting,
+        "pwm_led_dimming": pwm_led_dimming,
+        "headphone_jacks": headphone_jacks,
+        "solder_jumpers": solder_jumpers,
+        "shorted_two_pin_components": shorted_two_pin_components,
+        "rail_source_audit": rail_source_audit,
+        "label_aliases": label_aliases,
+        "power_pin_dc_paths": power_pin_dc_paths,
+        "validation_findings": (
+            pullup_findings +
+            voltage_level_findings +
+            i2c_findings +
+            spi_findings +
+            can_findings +
+            usb_findings +
+            power_seq_dep_findings +
+            led_resistor_findings +
+            feedback_stability_findings +
+            crystal_load_findings
+        ),
+        "lookup_findings": (
+            am_001_findings +
+            ov_001_findings +
+            ft_001_findings +
+            pm_001_findings +
+            ex_001_findings
+        ),
     }
+
+    net_classifications = _build_net_classifications(results)
+    if net_classifications:
+        results["net_classifications"] = net_classifications
+
+    # Certification suggestions cross-reference all domain detections
+    cert_suggestions = suggest_certifications(ctx, results)
+    if cert_suggestions:
+        results["suggested_certifications"] = cert_suggestions
 
     results["design_observations"] = detect_design_observations(ctx, results)
 
     # Post-process: enrich capacitor entries with package size and estimated ESR
     _enrich_capacitor_data(results, ctx)
+    _apply_capacitor_derating(results)
 
     return results
 
@@ -693,7 +1122,7 @@ def extract_labels(root: list) -> list[dict]:
     """Extract all labels (local, global, hierarchical)."""
     labels = []
 
-    for label_type in ["label", "global_label", "hierarchical_label"]:
+    for label_type in ["label", "global_label", "hierarchical_label", "directive_label"]:
         for lbl in find_all(root, label_type):
             name = lbl[1] if len(lbl) > 1 else ""
             # KH-078: Malformed s-expressions can yield a list instead of string
@@ -740,6 +1169,7 @@ def extract_power_symbols(components: list[dict]) -> list[dict]:
                 "y": py,
                 "lib_id": comp["lib_id"],
                 "_sheet": comp.get("_sheet", 0),
+                "_power_scope": comp.get("_power_scope", "global"),
             })
     return power
 
@@ -822,11 +1252,9 @@ def extract_bus_elements(root: list) -> dict:
         pts = find_first(bus, "pts")
         if pts:
             xys = find_all(pts, "xy")
-            if len(xys) >= 2:
-                buses.append({
-                    "x1": float(xys[0][1]), "y1": float(xys[0][2]),
-                    "x2": float(xys[1][1]), "y2": float(xys[1][2]),
-                })
+            coords = [(float(p[1]), float(p[2])) for p in xys if len(p) > 2]
+            for (x1, y1), (x2, y2) in zip(coords, coords[1:]):
+                buses.append({"x1": x1, "y1": y1, "x2": x2, "y2": y2})
 
     bus_entries = []
     for entry in find_all(root, "bus_entry"):
@@ -889,11 +1317,20 @@ def extract_title_block(root: list) -> dict:
 
 def build_net_map(components: list[dict], wires: list[dict], labels: list[dict],
                   power_symbols: list[dict], junctions: list[dict],
-                  no_connects: list[dict] | None = None) -> dict:
+                  no_connects: list[dict] | None = None,
+                  sheet_names: list[str] | None = None,
+                  bus_elements: dict | None = None) -> dict:
     """Build a connectivity map using union-find on coordinates.
 
     Groups all electrically connected points into nets, then names them
     from labels and power symbols.
+
+    When ``bus_elements`` carries bus wires (GH #25), a per-sheet bus pass
+    resolves hierarchical bus connectivity: bus-name labels are consumed out
+    of the ordinary label handling, and their members are joined by name,
+    by bus entry, and — across sheet pins — positionally to the child sheet's
+    hier-label bus. On ``bus_elements=None`` or a board with no bus wires the
+    pass is inert and the output is byte-identical to the pre-#25 map.
     """
     EPSILON = COORD_EPSILON
 
@@ -925,19 +1362,25 @@ def build_net_map(components: list[dict], wires: list[dict], labels: list[dict],
         point_info.setdefault(k, []).append(info)
         return k
 
-    # Add component pins (skip PWR_FLAG — it's an ERC marker, not a real connection)
+    # Add component pins. PWR_FLAG is an ERC marker, not a real connection —
+    # still register its position so the net gets a has_pwr_flag annotation.
     for comp in components:
-        if comp.get("value") == "PWR_FLAG" or comp.get("type") == "power_flag":
-            continue
+        is_pwr_flag = comp.get("value") == "PWR_FLAG" or comp.get("type") == "power_flag"
         sheet = comp.get("_sheet", 0)
         for pin in comp.get("pins", []):
-            add_point(pin["x"], pin["y"], {
-                "source": "pin",
-                "component": comp["reference"],
-                "pin_number": pin["number"],
-                "pin_name": pin["name"],
-                "pin_type": pin["type"],
-            }, sheet)
+            if is_pwr_flag:
+                add_point(pin["x"], pin["y"], {
+                    "source": "pwr_flag",
+                    "component": comp["reference"],
+                }, sheet)
+            else:
+                add_point(pin["x"], pin["y"], {
+                    "source": "pin",
+                    "component": comp["reference"],
+                    "pin_number": pin["number"],
+                    "pin_name": pin["name"],
+                    "pin_type": pin["type"],
+                }, sheet)
 
     # Add wire endpoints and union them.
     # Also build a list of wire segments so we can detect points that land
@@ -986,7 +1429,7 @@ def build_net_map(components: list[dict], wires: list[dict], labels: list[dict],
         return True
 
     def union_with_overlapping_wires(k, px, py, sheet=0):
-        """Union point k with any wire segment it lies on (same sheet only)."""
+        """Union point k with every wire segment it lies on (same sheet only)."""
         gx = int(px // _WIRE_GRID_SIZE)
         gy = int(py // _WIRE_GRID_SIZE)
         candidates = wire_grid.get((sheet, gx, gy), ())
@@ -994,12 +1437,63 @@ def build_net_map(components: list[dict], wires: list[dict], labels: list[dict],
             wk1, wk2, wx1, wy1, wx2, wy2, ws = wire_segments[idx]
             if point_on_segment(px, py, wx1, wy1, wx2, wy2):
                 union(k, wk1)
-                return  # one match is enough since wire endpoints are already unioned
+                # KH-360: no early return — a junction/label at a crossing
+                # must join every wire under it, matching KiCad's
+                # connection_graph (all coincident lines are inserted).
+
+    # Bus pass classification (GH #25). Group bus wires/entries per sheet,
+    # build a BusGraph for every sheet that carries bus wire, and attach each
+    # bus-name label to its cluster. Consumed bus-name labels are removed from
+    # ordinary label handling (they create no coordinate point, no label_keys
+    # entry, no net_labels) — this drops the 0-pin bus-name phantoms and the
+    # bare-name parent↔child union, both of which the bus pass replaces.
+    bus_active = bool(bus_elements and bus_elements.get("bus_wires"))
+    bus_graphs: dict[int, BusGraph] = {}
+    bus_aliases: dict = {}
+    bus_label_idx: set[int] = set()
+    bus_named_labels: list[tuple] = []  # (sheet, bare, x, y) for local/hier labels
+    if bus_active:
+        bus_aliases = {a["name"]: a["members"]
+                       for a in bus_elements.get("bus_aliases", [])}
+        wires_by_sheet: dict[int, list] = {}
+        entries_by_sheet: dict[int, list] = {}
+        for bw in bus_elements.get("bus_wires", []):
+            wires_by_sheet.setdefault(bw.get("_sheet", 0), []).append(bw)
+        for be_ in bus_elements.get("bus_entries", []):
+            entries_by_sheet.setdefault(be_.get("_sheet", 0), []).append(be_)
+        for s in wires_by_sheet:
+            bus_graphs[s] = BusGraph(s, wires_by_sheet[s],
+                                     entries_by_sheet.get(s, []), bus_aliases)
+        for idx, lbl in enumerate(labels):
+            s = lbl.get("_sheet", 0)
+            g = bus_graphs.get(s)
+            if g is None:
+                continue
+            raw_name = lbl["name"]
+            if isinstance(raw_name, list):
+                raw_name = str(raw_name[0]) if raw_name else ""
+            bare = lbl.get("_bare_name", raw_name)
+            if expand_bus_name(bare, bus_aliases) is None:
+                continue
+            role = ("pin" if lbl.get("_is_sheet_pin")
+                    else ("hier" if lbl["type"] == "hierarchical_label"
+                          else "local"))
+            if g.add_bus_label(bare, lbl["x"], lbl["y"],
+                               ns=lbl.get("_hier_ns", ""), role=role):
+                bus_label_idx.add(idx)
+                if role in ("local", "hier"):
+                    bus_named_labels.append((s, bare, lbl["x"], lbl["y"]))
+            else:
+                g.note_unresolved("label_not_on_bus_wire", bare)
+        for g in bus_graphs.values():
+            g.finalize()
 
     # Add labels — in KiCad, labels can be placed anywhere on a wire,
     # not just at endpoints, so we must check for mid-wire placement.
     label_keys: dict[str, list] = {}  # label_name -> list of coordinate keys
-    for lbl in labels:
+    for idx, lbl in enumerate(labels):
+        if idx in bus_label_idx:
+            continue
         sheet = lbl.get("_sheet", 0)
         # KH-078: Defensive coercion — malformed labels can have list names
         lbl_name = lbl["name"]
@@ -1012,8 +1506,21 @@ def build_net_map(components: list[dict], wires: list[dict], labels: list[dict],
         }, sheet)
         # Only global labels and power symbols connect across sheets.
         # Local labels only connect within the same sheet (handled by wire union).
-        if lbl["type"] in ("global_label", "hierarchical_label"):
+        if lbl["type"] == "global_label":
             label_keys.setdefault(lbl_name, []).append(k)
+        elif lbl["type"] == "hierarchical_label":
+            # Cross-sheet by (namespaced) name — the pre-existing hier union.
+            label_keys.setdefault(lbl_name, []).append(k)
+            # AND same-name LOCAL labels on this sheet: KiCad joins a real
+            # hierarchical label to same-name local labels within its own sheet
+            # (openmd's root V_{ANA}, where a hier V_{ANA} and a local V_{ANA}
+            # name one net). Sheet PINS are excluded: a sheet pin's bare name is
+            # the child's, and several pins for different child instances share
+            # one bare name on one parent sheet — they must stay per-instance
+            # (mapped through the hierarchy), never merged by same-sheet name.
+            if not lbl.get("_is_sheet_pin"):
+                bare = lbl.get("_bare_name", lbl_name)
+                label_keys.setdefault((bare, sheet), []).append(k)
         else:
             # Local labels: union same-name labels within this sheet only
             local_key = (lbl_name, sheet)
@@ -1030,10 +1537,29 @@ def build_net_map(components: list[dict], wires: list[dict], labels: list[dict],
         k = add_point(ps["x"], ps["y"], {
             "source": "power_symbol",
             "net_name": ps["net_name"],
+            "power_scope": ps.get("_power_scope", "global"),
         }, sheet)
-        # Power symbols always connect across sheets (they define global nets)
-        label_keys.setdefault(ps["net_name"], []).append(k)
+        # Global power symbols connect across all sheets; local power symbols
+        # only connect within the same sheet (isolated power domains).
+        if ps.get("_power_scope") == "local":
+            local_key = (ps["net_name"], sheet)
+            label_keys.setdefault(local_key, []).append(k)
+        else:
+            label_keys.setdefault(ps["net_name"], []).append(k)
         union_with_overlapping_wires(k, ps["x"], ps["y"], sheet)
+
+    # Legacy hidden power-in pins: in KiCad 4/5, ICs could have invisible
+    # power-in pins (VCC, GND) that create implicit global net connections
+    # by pin name.  These pins have no wires attached — they connect solely
+    # by their name matching other hidden power pins or power symbols.
+    for comp in components:
+        if comp.get("type") == "power_symbol":
+            continue
+        sheet = comp.get("_sheet", 0)
+        for pin in comp.get("pins", []):
+            if pin.get("hidden") and pin["type"] == "power_in" and pin["name"]:
+                k = key(pin["x"], pin["y"], sheet)
+                label_keys.setdefault(pin["name"], []).append(k)
 
     # Union global/hierarchical labels and power symbols with the same name.
     # This is what connects nets across different parts of the schematic.
@@ -1054,18 +1580,158 @@ def build_net_map(components: list[dict], wires: list[dict], labels: list[dict],
     if no_connects:
         for nc in no_connects:
             sheet = nc.get("_sheet", 0)
-            k = add_point(nc["x"], nc["y"], {"source": "no_connect"}, sheet)
-            union_with_overlapping_wires(k, nc["x"], nc["y"], sheet)
+            # A no-connect marker is an ERC annotation, never a connection.
+            # add_point() already shares the coordinate key with a pin or wire
+            # endpoint on the same point, which is all the absorption and NC
+            # tagging described above needs. Unioning the marker with every
+            # *overlapping* wire also caught wires passing mid-span beneath it,
+            # which KiCad does not connect, dragging the NC'd pin into that
+            # wire's net — a false-positive connection.
+            add_point(nc["x"], nc["y"], {"source": "no_connect"}, sheet)
 
-    # Union component pins that land mid-wire (rare but possible)
-    for comp in components:
-        if comp.get("value") == "PWR_FLAG" or comp.get("type") == "power_flag":
-            continue
-        sheet = comp.get("_sheet", 0)
-        for pin in comp.get("pins", []):
-            k = key(pin["x"], pin["y"], sheet)
-            if k in parent:
-                union_with_overlapping_wires(k, pin["x"], pin["y"], sheet)
+    # Bus pass unions (GH #25). A bus member is joined into the coordinate
+    # union-find through a synthetic slot key ("bus", sheet, cluster, member).
+    # Three mechanisms feed the same slot:
+    #   (A) by name — a wire labelled with a member name (Increment0) IS that
+    #       member, bus entry or not (KiCad names bus members after labels);
+    #   (B) by bus entry — an entry-tapped wire, resolved by intersecting the
+    #       tapped net's local labels with the cluster member set (covers
+    #       unlabelled tapped wires that (A) can't reach);
+    #   (C) across a sheet pin — the parent's pin-port members map positionally
+    #       onto the matching child hier-port members.
+    if bus_active and bus_graphs:
+        def bus_slot(sheet, cid, member):
+            sk = ("bus", sheet, cid, member)
+            if sk not in parent:
+                parent[sk] = sk
+            return sk
+
+        # (A) Name-based member joining for local/hier bus labels. Sheet-pin
+        # ("pin") labels are excluded: their members name the child's nets,
+        # not the parent's local nets, so they map only positionally in (C).
+        # Only the same-sheet LOCAL key `(member, s)` is accepted — a
+        # local/hier bus member is local-scoped, so it must not fuse with a
+        # coincidentally same-named GLOBAL label (keyed bare) elsewhere; KiCad
+        # keeps local/hier bus scope separate from the global net space.
+        #
+        # Same-sheet bus-name joining (member_rep): a local or hierarchical
+        # bus label has sheet scope — KiCad connects same-name local/hier
+        # labels within a sheet. Two physically-separate bus clusters on one
+        # sheet that carry labels sharing a member name are therefore one net
+        # for that member (the member-level analogue of the ordinary same-name
+        # local-label union that the bus pass suppressed for bus labels). This
+        # is what chains a pass-through sheet's parent-side cluster to its
+        # child-side sheet-pin clusters (e.g. m68k's Memory routing D[0..31]
+        # down to Cache/SIMM/CDC). Sheet pins are excluded (not in
+        # bus_named_labels), so a pin without a co-located local label does not
+        # name-join — it connects only by wire and the positional match (C).
+        member_rep: dict[tuple, tuple] = {}  # (sheet, member) -> a member slot
+        for s, bare, lx, ly in bus_named_labels:
+            g = bus_graphs[s]
+            cid = g.cluster_at(lx, ly)
+            expansion = expand_bus_name(bare, bus_aliases)
+            if not expansion:
+                continue
+            for member in expansion:
+                slot = bus_slot(s, cid, member)
+                lk = label_keys.get((member, s))
+                if lk:
+                    union(slot, lk[0])
+                rep = member_rep.get((s, member))
+                if rep is None:
+                    member_rep[(s, member)] = slot
+                else:
+                    union(rep, slot)
+
+        # (B1) Register every bus-entry tap point and union it with the wires
+        # it lands on. This must precede the root_names sweep so a tapped
+        # wire's labels are visible on the tap's net.
+        tap_points = []  # (sheet, tap_key, tap)
+        for s in sorted(bus_graphs):
+            g = bus_graphs[s]
+            for tap in g.taps:
+                tk = add_point(tap["x"], tap["y"], {"source": "bus_tap"}, s)
+                union_with_overlapping_wires(tk, tap["x"], tap["y"], s)
+                tap_points.append((s, tk, tap))
+
+        # Local label names present on each union group, for tap member ID.
+        root_names: dict = {}
+        for pk, infos in point_info.items():
+            for i in infos:
+                if (i["source"] == "label"
+                        and (i.get("label_type") or "label")
+                        in ("label", "directive_label") and i.get("name")):
+                    root_names.setdefault(find(pk), set()).add(i["name"])
+
+        # (B2) Resolve each tap to its member slot(s) (after the root_names
+        # sweep). Normally the tapped wire carries exactly one member label.
+        # When several member wires of one bus are shorted together (e.g. all
+        # tied to GND), the tapped net carries every one of those labels — KiCad
+        # collapses those members to a single net, so we union the tap with each
+        # matched member slot (sorted for determinism). A tap whose net carries
+        # no label at all is genuinely unlabeled; a tap whose net DOES carry a
+        # label that just isn't one of this bus's member names is a distinct
+        # failure (the label misnamed/mistargeted, not absent) — kept separate
+        # so the reason says what was actually unresolved.
+        for s, tk, tap in tap_points:
+            g = bus_graphs[s]
+            names = root_names.get(find(tk), set())
+            mset = g.cluster_member_set(tap["cluster"])
+            cand = (names & mset) if mset is not None else set(names)
+            if cand:
+                for member in sorted(cand):
+                    union(tk, bus_slot(s, tap["cluster"], member))
+            elif names:
+                g.note_unresolved("entry_tap_name_not_in_bus", sorted(names)[0])
+            else:
+                g.note_unresolved("unlabeled_entry_tap", None)
+
+        # (C) Positional sheet-pin port matching.
+        pin_ports, hier_ports = [], []
+        for s in sorted(bus_graphs):
+            g = bus_graphs[s]
+            for p in g.ports:
+                p = dict(p, sheet=s)
+                if p["role"] == "pin":
+                    p["parent_ordered"] = g.cluster_ordered(
+                        p["cluster"], len(p["members"]))
+                    pin_ports.append(p)
+                else:
+                    hier_ports.append(p)
+
+        # (C0) Co-clustered sheet pins are one physical bus. When a bus is
+        # routed straight from one sub-sheet symbol's pin to another's on a
+        # single cluster (no relabeling local label to canonicalize it), the
+        # two differently-named pins are the same wire, so bit i of each is one
+        # net. Join their member slots positionally, using the SAME effective
+        # ordering (C) uses — the cluster's local-label ordering if present,
+        # else the pin's own members — so this stays consistent with the
+        # pin↔hier mapping below. With a local label all pins already share
+        # that ordering, so this is a no-op there; it only bridges the
+        # no-local-label case (e.g. m68k's Bus sheet routing PEP_AD↔AD,
+        # ISA_D↔D, ATA_D↔D straight through to the peripheral sub-sheets).
+        pins_by_cluster: dict[tuple, list] = {}
+        for p in pin_ports:
+            pins_by_cluster.setdefault((p["sheet"], p["cluster"]), []).append(p)
+        for grp in pins_by_cluster.values():
+            if len(grp) < 2:
+                continue
+            ref = grp[0]["parent_ordered"] or grp[0]["members"]
+            for other in grp[1:]:
+                eff = other["parent_ordered"] or other["members"]
+                if len(eff) != len(ref):
+                    continue
+                for i in range(len(ref)):
+                    union(bus_slot(grp[0]["sheet"], grp[0]["cluster"], ref[i]),
+                          bus_slot(other["sheet"], other["cluster"], eff[i]))
+
+        all_unresolved: list = []
+        for (ps, pc, pm), (cs, cc, cm) in match_ports(
+                pin_ports, hier_ports, all_unresolved):
+            union(bus_slot(ps, pc, pm), bus_slot(cs, cc, cm))
+
+        bus_elements["_unresolved"] = all_unresolved + [
+            u for s in sorted(bus_graphs) for u in bus_graphs[s].unresolved]
 
     # Build net groups
     net_groups: dict[tuple, list[tuple]] = {}
@@ -1074,7 +1740,7 @@ def build_net_map(components: list[dict], wires: list[dict], labels: list[dict],
         net_groups.setdefault(root_k, []).append(k)
 
     # Name the nets
-    nets = {}
+    staged = []
     net_id = 0
     for root_k, members in net_groups.items():
         # Collect all info for this net
@@ -1082,14 +1748,55 @@ def build_net_map(components: list[dict], wires: list[dict], labels: list[dict],
         for m in members:
             all_info.extend(point_info.get(m, []))
 
-        # Find net name from labels or power symbols
-        net_name = None
-        for info in all_info:
-            if info["source"] == "power_symbol":
-                net_name = info["net_name"]
-                break
-            if info["source"] == "label":
-                net_name = info["name"]
+        # Find net name using KiCad's priority:
+        # global_label > power_symbol > hierarchical_label > local label > pin
+        _NET_NAME_PRIORITY = {
+            "global_label": 0,
+            "power_symbol": 1,
+            "hierarchical_label": 2,
+            "label": 3,
+            "directive_label": 4,
+        }
+
+        # Accumulate every global / hierarchical / local label attached to
+        # this net (LB-001 reads this; also useful for report annotations).
+        # Dedup by (name, label_type).
+        # best = (priority, tiebreak_sheet, seq, name, is_local, sheet)
+        # tiebreak_sheet is -1 for global-scope sources so, at equal priority,
+        # a global name beats a local one and a lower (parent) sheet beats a
+        # higher one — KiCad names a resolved net after the parent member
+        # label. seq preserves first-seen order at full ties.
+        best = None
+        seq = 0
+        net_labels_seen: set[tuple[str, str]] = set()
+        net_labels: list[dict] = []
+        for m in members:
+            m_sheet = m[0]
+            for info in point_info.get(m, []):
+                src = info["source"]
+                if src == "power_symbol":
+                    p = _NET_NAME_PRIORITY["power_symbol"]
+                    cand_name = info["net_name"]
+                    is_local = info.get("power_scope") == "local"
+                elif src == "label":
+                    lbl_name = info.get("name") or ""
+                    lbl_type = info.get("label_type") or "label"
+                    p = _NET_NAME_PRIORITY.get(lbl_type, 3)
+                    cand_name = lbl_name
+                    is_local = lbl_type in ("label", "directive_label")
+                    key_tuple = (lbl_name, lbl_type)
+                    if lbl_name and key_tuple not in net_labels_seen:
+                        net_labels_seen.add(key_tuple)
+                        net_labels.append({"name": lbl_name, "type": lbl_type})
+                else:
+                    continue
+                if cand_name:
+                    cand = (p, m_sheet if is_local else -1, seq,
+                            cand_name, is_local, m_sheet)
+                    if best is None or cand[:3] < best[:3]:
+                        best = cand
+                seq += 1
+        net_name = best[3] if best else None
 
         # Check if any member of this group is a no-connect marker OR a
         # library-defined NC pin (pin type "no_connect" in the symbol def).
@@ -1098,6 +1805,8 @@ def build_net_map(components: list[dict], wires: list[dict], labels: list[dict],
             or any(i.get("pin_type") in ("no_connect", "unconnected")
                    for i in all_info if i["source"] == "pin")
         )
+
+        has_pwr_flag = any(i["source"] == "pwr_flag" for i in all_info)
 
         if net_name is None:
             # Only create unnamed nets if they have component pins
@@ -1121,24 +1830,69 @@ def build_net_map(components: list[dict], wires: list[dict], labels: list[dict],
         # Keep nets that have pin connections, OR named nets (from labels/power symbols)
         # even without pins — this supports legacy files where pin positions aren't available
         if pin_connections or not net_name.startswith("__unnamed_"):
-            if net_name in nets:
-                # Merge into existing net (can happen when a local label shares a
-                # name with a power symbol or global label on a disconnected wire
-                # network — e.g., a "GND" label on a connector that isn't wired
-                # to the main GND power symbol network).
-                nets[net_name]["pins"].extend(pin_connections)
-                nets[net_name]["point_count"] += len(members)
-                if has_nc_marker:
-                    nets[net_name]["no_connect"] = True
-            else:
-                nets[net_name] = {
-                    "name": net_name,
-                    "pins": pin_connections,
-                    "point_count": len(members),
-                    "no_connect": has_nc_marker,
-                }
+            staged.append({
+                "bare": net_name,
+                "is_local": bool(best) and best[4],
+                "sheet": best[5] if best else 0,
+                "pins": pin_connections,
+                "point_count": len([m for m in members if m[0] != "bus"]),
+                "no_connect": has_nc_marker,
+                "has_pwr_flag": has_pwr_flag,
+                "labels": net_labels,
+            })
 
+    # KH-359: one entry per union-find group. On bare-name collisions the
+    # global-scope group keeps the bare key; local groups get KiCad-style
+    # /<sheet>/<name> keys (sheet file stem, #N for repeated instance stems).
+    n_sheets = 1 + max((e["sheet"] for e in staged), default=0)
+    sheet_labels, _stem_counts = [], {}
+    for i in range(n_sheets):
+        stem = (sheet_names[i] if sheet_names and i < len(sheet_names)
+                else f"sheet{i}")
+        _stem_counts[stem] = _stem_counts.get(stem, 0) + 1
+        n = _stem_counts[stem]
+        sheet_labels.append(stem if n == 1 else f"{stem}#{n}")
+
+    by_bare: dict[str, list[dict]] = {}
+    for e in staged:
+        by_bare.setdefault(e["bare"], []).append(e)
+
+    nets = {}
+    for bare, entries in by_bare.items():
+        for e in entries:
+            if len(entries) == 1 or not e["is_local"]:
+                k = bare
+            else:
+                k = f"/{sheet_labels[e['sheet']]}/{bare}"
+            n = 2
+            while k in nets:
+                k = f"/{sheet_labels[e['sheet']]}/{bare}#{n}"
+                n += 1
+            entry = {
+                "name": k,
+                "pins": e["pins"],
+                "point_count": e["point_count"],
+                "no_connect": e["no_connect"],
+                "has_pwr_flag": e["has_pwr_flag"],
+                "labels": e["labels"],
+            }
+            if k != bare:
+                entry["display_name"] = bare
+            nets[k] = entry
     return nets
+
+
+# Internal-only fields the bus pass (GH #25) reads off namespaced hierarchical
+# labels. They must never reach the user-facing `labels` output. `_sheet` is
+# NOT one of these — it has leaked on every label since before this branch, so
+# stripping it would itself change baseline output.
+_INTERNAL_LABEL_KEYS = ("_bare_name", "_hier_ns", "_is_sheet_pin")
+
+
+def _labels_for_output(labels: list[dict]) -> list[dict]:
+    """Return a copy of `labels` with the bus-pass internal keys removed."""
+    return [{k: v for k, v in lbl.items() if k not in _INTERNAL_LABEL_KEYS}
+            for lbl in labels]
 
 
 def generate_bom(components: list[dict]) -> list[dict]:
@@ -1212,14 +1966,20 @@ def compute_statistics(components: list[dict], nets: dict, bom: list[dict],
         comp["value"] for comp in components if comp["type"] == "power_symbol"
     ))
     for net_name in nets:
-        if _is_power_net_name(net_name) and net_name not in power_rail_names:
-            power_rail_names.append(net_name)
+        if _is_power_net_name(net_name):
+            clean = _clean_hierarchical_name(net_name)
+            if clean not in power_rail_names:
+                power_rail_names.append(clean)
     power_rail_names = sorted(set(power_rail_names))
 
     power_rails = []
     for name in power_rail_names:
-        v = _parse_voltage_from_net_name(name)
-        power_rails.append({"name": name, "voltage": v})
+        clean = _clean_hierarchical_name(name)
+        # Skip PWR_FLAG — it's an ERC directive, not a physical rail.
+        if clean == "PWR_FLAG":
+            continue
+        v = _parse_voltage_from_net_name(clean)
+        power_rails.append({"name": clean, "voltage": v})
 
     # Missing properties
     missing_mpn = [c["reference"] for c in non_power
@@ -1480,7 +2240,8 @@ def _classify_ic_function(lib_id: str, value: str, description: str) -> str:
     return ""
 
 
-def analyze_ic_pinouts(ctx: AnalysisContext) -> list[dict]:
+def analyze_ic_pinouts(ctx: AnalysisContext,
+                       target_types: set[str] | None = None) -> list[dict]:
     """Analyze each IC's pinout for datasheet cross-referencing.
 
     For every IC, produces a detailed per-pin analysis showing:
@@ -1506,8 +2267,13 @@ def analyze_ic_pinouts(ctx: AnalysisContext) -> list[dict]:
 
     results = []
 
-    # Analyze ICs and other complex components (connectors, crystals, oscillators, etc.)
-    target_types = {"ic", "connector", "crystal", "oscillator"}
+    # Analyze ICs and other complex components (connectors, crystals, oscillators, etc.).
+    # target_types is parameterised so the same code path can build a parallel
+    # transistor_pin_analysis[] (F4) — verifying gate/source/drain wiring on
+    # half-bridges is one of the highest-value review tasks and previously
+    # required reconstructing the pin map from nets[].pins[] by hand.
+    if target_types is None:
+        target_types = {"ic", "connector", "crystal", "oscillator"}
     target_components = [c for c in components if c["type"] in target_types]
 
     for ic in target_components:
@@ -1532,14 +2298,22 @@ def analyze_ic_pinouts(ctx: AnalysisContext) -> list[dict]:
             net_name, net_info = pin_net.get(pin_key, (None, None))
 
             # Check if pin has a no-connect marker (by position, net flag, or
-            # library-defined NC pin type)
+            # library-defined NC pin type).
             pin_pos = (ic.get("_sheet", 0),
                        round(pin["x"] / EPSILON) * EPSILON,
                        round(pin["y"] / EPSILON) * EPSILON)
+            # The net-level no_connect flag is set when *any* point in a net's
+            # union-find group is an NC marker (extract_nets line ~1490). On a
+            # genuinely-connected multi-pin net it must NOT mark every pin as
+            # NO_CONNECT — e.g. a stray NC marker absorbed into VBUS/GND would
+            # otherwise flip all of that rail's IC pins to NO_CONNECT. Only honor
+            # the net flag for single-pin nets, which covers the real case where
+            # the marker sits on a short wire stub rather than exactly on the pin.
+            net_pin_count = len(net_info.get("pins", [])) if net_info else 0
             has_no_connect = (
                 pin_pos in nc_positions
-                or bool(net_info and net_info.get("no_connect"))
                 or pin.get("type") in ("no_connect", "unconnected")
+                or bool(net_info and net_info.get("no_connect") and net_pin_count <= 1)
             )
 
             # Get components sharing this net
@@ -2050,7 +2824,7 @@ def _parse_legacy_lib(path: str) -> dict:
     return symbols
 
 
-def _resolve_legacy_libs(sch_path: str, all_sch_lines: dict) -> dict:
+def _resolve_legacy_libs(sch_path: str, all_sch_lines: dict) -> tuple:
     """Find and parse .lib files for legacy schematics.
 
     Args:
@@ -2061,10 +2835,22 @@ def _resolve_legacy_libs(sch_path: str, all_sch_lines: dict) -> dict:
     1. Look for *-cache.lib alongside the root .sch file (self-contained, preferred)
     2. Parse LIBS: directives, search for each .lib in project directory tree
     3. Fall back to built-in defaults for standard KiCad symbols
+
+    Returns:
+        (symbols, resolution_info) where resolution_info describes which strategy
+        was used and how many symbols came from parsed vs built-in sources.
     """
     base = Path(sch_path)
     base_dir = base.parent
     stem = base.stem
+
+    resolution_info = {
+        "cache_lib_found": False,
+        "sym_lib_table_used": False,
+        "libs_directive_used": False,
+        "builtin_fallback_count": 0,
+        "parsed_lib_count": 0,
+    }
 
     # Strategy 1: cache lib — if present, it contains ALL symbols
     cache_path = base_dir / f"{stem}-cache.lib"
@@ -2078,7 +2864,10 @@ def _resolve_legacy_libs(sch_path: str, all_sch_lines: dict) -> dict:
                     "keywords": "", "is_power": False, "ki_fp_filters": "",
                     "alternates": None,
                 }
-        return symbols
+        resolution_info["cache_lib_found"] = True
+        resolution_info["parsed_lib_count"] = max(0, len(symbols) - len(_STANDARD_LIB_PINS))
+        resolution_info["builtin_fallback_count"] = len(_STANDARD_LIB_PINS)
+        return symbols, resolution_info
 
     # Strategy 2.5: Parse sym-lib-table for legacy library paths (KH-141)
     # KiCad 5 file version 4 uses sym-lib-table instead of LIBS: header directives
@@ -2104,7 +2893,7 @@ def _resolve_legacy_libs(sch_path: str, all_sch_lines: dict) -> dict:
                 if lib_path.exists():
                     parsed = _parse_legacy_lib(str(lib_path))
                     slt_symbols.update(parsed)
-        except Exception:
+        except (ValueError, IndexError, KeyError, OSError):
             pass  # Don't crash on malformed sym-lib-table
         if slt_symbols:
             # Add standard library fallbacks
@@ -2115,7 +2904,10 @@ def _resolve_legacy_libs(sch_path: str, all_sch_lines: dict) -> dict:
                         "keywords": "", "is_power": False, "ki_fp_filters": "",
                         "alternates": None,
                     }
-            return slt_symbols
+            resolution_info["sym_lib_table_used"] = True
+            resolution_info["parsed_lib_count"] = max(0, len(slt_symbols) - len(_STANDARD_LIB_PINS))
+            resolution_info["builtin_fallback_count"] = len(_STANDARD_LIB_PINS)
+            return slt_symbols, resolution_info
 
     # Strategy 2: collect LIBS: directives from all parsed sheets
     lib_names = []
@@ -2175,7 +2967,10 @@ def _resolve_legacy_libs(sch_path: str, all_sch_lines: dict) -> dict:
                 "alternates": None,
             }
 
-    return symbols
+    resolution_info["libs_directive_used"] = bool(lib_names)
+    resolution_info["parsed_lib_count"] = max(0, len(symbols) - len(_STANDARD_LIB_PINS))
+    resolution_info["builtin_fallback_count"] = len(_STANDARD_LIB_PINS)
+    return symbols, resolution_info
 
 
 def _snap_pins_to_wires(components: list[dict], wires: list[dict]) -> None:
@@ -2253,6 +3048,7 @@ def _snap_pins_to_wires(components: list[dict], wires: list[dict]) -> None:
             if best_pt is not None:
                 pin["x"] = _snap_mil(best_pt[0])
                 pin["y"] = _snap_mil(best_pt[1])
+                comp["_pin_source"] = "snapped_to_wire"
                 claimed.add((round(pin["x"] / EPS) * EPS, round(pin["y"] / EPS) * EPS))
 
 
@@ -2341,12 +3137,20 @@ def _parse_legacy_single_sheet(path: str) -> tuple:
                             name_match = re.search(r'"([^"]*)"[^"]*$', cl[fm.end():])
                             fname = name_match.group(1) if name_match else f"Field{field_num}"
                             if name_match:
-                                fl = fname.lower()
-                                if fl in _MPN_KEYS:
-                                    comp["mpn"] = field_val
+                                fl = normalize_field_name(fname)
+                                if fl in MPN_FIELD_ALIASES_PRIMARY:
+                                    # Final wave fix: a blank primary may still SET
+                                    # an unset mpn (old last-wins behaviour for
+                                    # blank-only symbols) but may not OVERWRITE a
+                                    # populated one.
+                                    if field_val.strip() or not comp.get("mpn"):
+                                        comp["mpn"] = field_val
+                                elif fl in MPN_FIELD_ALIASES_GENERIC:
+                                    if not (comp.get("mpn") or "").strip():
+                                        comp["mpn"] = field_val
                                 elif fl in _MANUFACTURER_KEYS:
                                     comp["manufacturer"] = field_val
-                                elif fl in _DIGIKEY_KEYS:
+                                elif fl in DIGIKEY_FIELD_ALIASES:
                                     comp["digikey"] = field_val
                                 elif fl in _MOUSER_KEYS:
                                     comp["mouser"] = field_val
@@ -2372,6 +3176,7 @@ def _parse_legacy_single_sheet(path: str) -> tuple:
                     parts = cl.split()
                     try:
                         a, b, c, d = [int(p) for p in parts]
+                        comp["transform_matrix"] = (a, b, c, d)
                         det = a * d - b * c
                         if det < 0:
                             comp["mirror_x"] = True
@@ -2405,7 +3210,8 @@ def _parse_legacy_single_sheet(path: str) -> tuple:
             # Check value field for DNP indication
             if not comp["dnp"] and comp["value"].upper() in ("DNP", "DO NOT POPULATE", "DO NOT PLACE", "NP"):
                 comp["dnp"] = True
-            comp["type"] = classify_component(comp["reference"], comp["lib_id"], comp["value"], is_power, comp.get("footprint", ""))
+            comp["type"] = classify_component(comp["reference"], comp["lib_id"], comp["value"], is_power, comp.get("footprint", ""),
+                                              description=comp.get("description", ""))
             components.append(comp)
 
         # Hierarchical sheet block — extract subsheet filename
@@ -2495,7 +3301,7 @@ def _parse_legacy_single_sheet(path: str) -> tuple:
     return components, wires, labels, junctions, no_connects, sub_sheet_paths, lib_lines
 
 
-def parse_legacy_schematic(path: str) -> dict:
+def parse_legacy_schematic(path: str, analysis_dir: str | Path | None = None) -> dict:
     """Parse a KiCad 5 legacy .sch file and return the same structure as analyze_schematic.
 
     Legacy format uses line-oriented text with $Comp/$EndComp blocks, coordinates
@@ -2555,7 +3361,7 @@ def parse_legacy_schematic(path: str) -> dict:
 
     # Resolve .lib files and parse pin data
     root_path = str(Path(path).resolve())
-    lib_symbols = _resolve_legacy_libs(root_path, all_sch_lines)
+    lib_symbols, legacy_resolution = _resolve_legacy_libs(root_path, all_sch_lines)
 
     # Build a reverse lookup for cache lib names: bare_symbol -> full cache name.
     # Cache libs store "Library_Symbol" while schematics reference bare "Symbol"
@@ -2583,6 +3389,7 @@ def parse_legacy_schematic(path: str) -> dict:
     for comp in all_components:
         lib_id = comp.get("lib_id", "")
         sym_def = lib_symbols.get(lib_id)
+        _pin_src = "parsed_lib"
         if not sym_def and ":" in lib_id:
             # V4: try underscore form (cache lib naming) and bare symbol name
             bare_name = lib_id.split(":", 1)[1]
@@ -2596,8 +3403,12 @@ def parse_legacy_schematic(path: str) -> dict:
             cache_key = _cache_suffix_map.get(bare_name)
             if cache_key:
                 sym_def = lib_symbols.get(cache_key)
+                _pin_src = "suffix_match"
         if sym_def:
             comp["pins"] = compute_pin_positions(comp, {lib_id: sym_def})
+            comp["_pin_source"] = _pin_src
+            # KH-216: Store unit-valid pin numbers for pin_nets filtering
+            comp["_unit_pins"] = {p["number"] for p in comp["pins"]}
             # Snap pin positions to mil grid — eliminates floating-point drift
             # from trig-based rotation so pins align with wire endpoints.
             for pin in comp["pins"]:
@@ -2625,6 +3436,7 @@ def parse_legacy_schematic(path: str) -> dict:
             }
             if "_sheet" in comp:
                 ps["_sheet"] = comp["_sheet"]
+            ps["_power_scope"] = comp.get("_power_scope", "global")
             power_symbols.append(ps)
 
     # Generate BOM
@@ -2632,7 +3444,8 @@ def parse_legacy_schematic(path: str) -> dict:
 
     # Build nets from wires + labels + power symbols + component pins
     nets = build_net_map(all_components, all_wires, all_labels, power_symbols, all_junctions,
-                         all_no_connects)
+                         all_no_connects,
+                         sheet_names=[Path(p).stem for p in sheets_parsed])
 
     stats = compute_statistics(all_components, nets, bom, all_wires, all_no_connects)
 
@@ -2640,13 +3453,20 @@ def parse_legacy_schematic(path: str) -> dict:
     pin_net = build_pin_to_net_map(nets)
 
     # Build shared analysis context for legacy path
+    _cache_dir, _design_context = _resolve_lookup_paths(path, analysis_dir)
     ctx = AnalysisContext(
         components=all_components,
         nets=nets,
         lib_symbols=lib_symbols,
         pin_net=pin_net,
         no_connects=all_no_connects,
+        cache_dir=_cache_dir,
+        design_context=_design_context,
+        project_dir=str(Path(path).parent),
     )
+    ctx.source = ANALYZER_SOURCE
+    from netlist_queries import NetlistQueries
+    ctx.nq = NetlistQueries(ctx)
 
     subcircuits = identify_subcircuits(ctx)
 
@@ -2663,10 +3483,78 @@ def parse_legacy_schematic(path: str) -> dict:
     ]
     annotation_issues = check_annotation_completeness(real_components)
 
-    return {
-        "file": str(path),
+    # Enrich components with pin-to-net mapping (legacy path)
+    # KH-211: Include __unnamed_* nets so that connections through unlabelled
+    # wires (common in hierarchical sub-sheets) appear in pin_nets.
+    _pin_nets_l: dict[str, dict[str, str]] = {}
+    for _net_name, _net_info in nets.items():
+        if isinstance(_net_info, dict):
+            for _p in _net_info.get('pins', []):
+                _comp_ref = _p.get('component', '')
+                _pin_num = _p.get('pin_number', '')
+                if _comp_ref and _pin_num:
+                    _pin_nets_l.setdefault(_comp_ref, {})[_pin_num] = _net_name
+    for _comp in all_components:
+        _all_pn = _pin_nets_l.get(_comp.get('reference', ''), {})
+        _valid = _comp.get("_unit_pins")
+        if _valid and len(_all_pn) > len(_valid):
+            _comp['pin_nets'] = {k: v for k, v in _all_pn.items() if k in _valid}
+        else:
+            _comp['pin_nets'] = _all_pn
+        _comp.pop("_unit_pins", None)
+
+    # Add stable detection IDs for diff matching (legacy path)
+    from detection_schema import compute_detection_id as _compute_det_id
+    for _det_type, _dets in signal_analysis.items():
+        if isinstance(_dets, list):
+            for _det in _dets:
+                if isinstance(_det, dict):
+                    _det["detection_id"] = _compute_det_id(_det, _det_type)
+
+    # Flatten signal_analysis: all list values become findings, dict values move to top level
+    findings = []
+    top_level_dicts = {}
+    for key, value in signal_analysis.items():
+        if isinstance(value, list):
+            _det_name = f"detect_{key}"
+            for _item in value:
+                if isinstance(_item, dict) and "detector" not in _item:
+                    _item["detector"] = _det_name
+            findings.extend(value)
+        elif isinstance(value, dict):
+            # rail_voltages, net_classifications, etc. — promote to top level
+            top_level_dicts[key] = value
+
+    sev_counts = {"error": 0, "warning": 0, "info": 0}
+    for f in findings:
+        sev = f.get("severity", "info").lower() if isinstance(f, dict) else "info"
+        if sev in ("critical", "high"):
+            sev_counts["error"] += 1
+        elif sev in ("medium", "warning"):
+            sev_counts["warning"] += 1
+        else:
+            sev_counts["info"] += 1
+
+    # Legacy analysis quality summary (KH-271)
+    _pin_source_counts = {"parsed_lib": 0, "suffix_match": 0, "snapped_to_wire": 0, "unresolved": 0}
+    for c in real_components:
+        src = c.get("_pin_source", "unresolved")
+        if src in _pin_source_counts:
+            _pin_source_counts[src] += 1
+        else:
+            _pin_source_counts[src] = 1
+
+    # Deterministic order for byte-identical repeated runs (KH-316).
+    sort_findings(findings)
+
+    result = {
+        "analyzer_type": "schematic",
+        "schema_version": "1.4.0",
+        "summary": {"total_findings": len(findings), "by_severity": sev_counts},
+        "trust_summary": compute_trust_summary(findings),
         "kicad_version": "5 (legacy)",
         "file_version": "4",
+        "title_block": {},  # legacy .sch has no (title_block ...) node (TH-043)
         "sheets_parsed": len(sheets_parsed),
         "sheet_files": sheets_parsed,
         "statistics": stats,
@@ -2674,13 +3562,22 @@ def parse_legacy_schematic(path: str) -> dict:
         "components": real_components,
         "nets": nets,
         "subcircuits": subcircuits,
-        "signal_analysis": signal_analysis,
+        "findings": findings,
+        "assessments": [],
         "design_analysis": design_analysis,
-        "labels": all_labels,
+        "labels": _labels_for_output(all_labels),
         "no_connects": all_no_connects,
         "power_symbols": power_symbols,
         "annotation_issues": annotation_issues,
+        "legacy_analysis_quality": {
+            "is_legacy_schematic": True,
+            "library_resolution": legacy_resolution,
+            "pin_source_coverage": _pin_source_counts,
+        },
     }
+    # Promote dict values from signal_analysis to top level (rail_voltages, etc.)
+    result.update(top_level_dicts)
+    return result
 
 
 def parse_single_sheet(path: str, instance_uuid: str = "",
@@ -2795,14 +3692,82 @@ def analyze_connectivity(components: list[dict], nets: dict, no_connects: list[d
                         "pin_type": pin["type"],
                     })
 
-    # Find single-pin nets (likely unfinished wiring)
+    # Find single-pin nets. Pin type determines severity — a floating
+    # power_in / input / bidirectional pin is a real wiring bug, while a
+    # lonely passive leg is usually mid-edit, and a no_connect pin is
+    # documentation. Unnamed nets (__unnamed_N) count when the pin type
+    # warrants it — KiCad lets users rely on the auto-generated name
+    # for boot caps and flying caps that genuinely shouldn't be labelled.
+    _SIGNAL_PIN_TYPES = {"power_in", "input", "bidirectional",
+                         "output", "tri_state", "open_collector",
+                         "open_emitter"}
+    _SKIP_PIN_TYPES = {"no_connect", "free", "unspecified", "unconnected"}
     single_pin_nets = []
+    single_pin_net_findings: list[dict] = []
     for net_name, net_info in nets.items():
-        if len(net_info["pins"]) == 1 and not net_name.startswith("__unnamed_") and not net_info.get("no_connect"):
-            single_pin_nets.append({
-                "net": net_name,
-                "pin": net_info["pins"][0],
-            })
+        if len(net_info["pins"]) != 1 or net_info.get("no_connect"):
+            continue
+        pin = net_info["pins"][0]
+        pin_type = (pin.get("pin_type") or "").lower()
+        if pin_type in _SKIP_PIN_TYPES:
+            continue
+        # Retain the legacy summary shape for downstream consumers —
+        # keep the pre-existing __unnamed_* guard on the legacy list so
+        # format-report / diff_analysis don't surface mid-edit passive
+        # stubs that the old code filtered out. The rich NT-001 finding
+        # below still covers those cases for reviewers who want them.
+        if not net_name.startswith("__unnamed_"):
+            single_pin_nets.append({"net": net_name, "pin": pin})
+        # Emit a weighted finding.
+        if pin_type in _SIGNAL_PIN_TYPES:
+            severity = "warning"
+            impact = ("Likely unfinished wiring: a driven or powered pin "
+                      "has no counterpart.")
+        elif pin_type == "power_out":
+            severity = "info"
+            impact = ("Power source with no declared load — acceptable if "
+                      "loads are on another sheet, otherwise suspicious.")
+        else:
+            severity = "info"
+            impact = "Passive or unclassified pin lonely on its own net."
+        display_ref = pin.get("component", "?")
+        display_num = pin.get("pin_number", "?")
+        display_name = pin.get("pin_name") or ""
+        display_label = (f"{display_ref}.{display_num}"
+                         + (f" ({display_name})" if display_name else ""))
+        net_display = (f"{display_ref}.{display_name}"
+                       if net_name.startswith("__unnamed_") and display_name
+                       else net_name)
+        single_pin_net_findings.append({
+            "detector": "analyze_connectivity",
+            "rule_id": "NT-001",
+            "severity": severity,
+            "confidence": "deterministic",
+            "evidence_source": "topology",
+            "category": "connectivity",
+            "summary": (f"Single-pin net: {net_display} only connects to "
+                        f"{display_label} ({pin_type or 'unknown'})"),
+            "description": (f"Net {net_name!r} has exactly one pin: "
+                            f"{display_label}, pin_type={pin_type!r}. "
+                            "Verify the intended target — if this pin "
+                            "should connect somewhere, the wire/label is "
+                            "missing."),
+            "components": [display_ref] if display_ref else [],
+            "nets": [net_name],
+            "pins": [f"{display_ref}.{display_num}"],
+            "net_display_name": net_display,
+            "pin_type": pin_type,
+            "pin_name": display_name,
+            "recommendation": (
+                "Check the schematic at the referenced pin — add the "
+                "missing wire or place a no-connect marker if the pin is "
+                "intentionally floating."),
+            "report_context": {
+                "section": "Connectivity",
+                "impact": impact,
+                "standard_ref": "",
+            },
+        })
 
     # Find multi-driver nets (multiple outputs driving the same net)
     # Exclude power flags (#FLG, #PWR) — they're virtual, not real drivers
@@ -2837,6 +3802,7 @@ def analyze_connectivity(components: list[dict], nets: dict, no_connects: list[d
     return {
         "unconnected_pins": unconnected_pins,
         "single_pin_nets": single_pin_nets,
+        "single_pin_net_findings": single_pin_net_findings,
         "multi_driver_nets": multi_driver_nets,
         "power_net_summary": power_net_summary,
     }
@@ -2914,11 +3880,17 @@ def _map_power_domains(ctx: AnalysisContext) -> dict:
                         "CSP", "CSN", "CS+", "CS-", "ISENSE", "IMON", "IOUT",
                         "SEN", "VS+", "VS-"}
     power_domains = {}
+    # KH-224: Accumulate rails/io_rails across all units of multi-unit ICs
+    _ref_rails: dict[str, set] = {}      # ref -> set of power rail nets
+    _ref_io_rails: dict[str, set] = {}   # ref -> set of IO rail nets
+    _ref_value: dict[str, str] = {}      # ref -> value (from first unit seen)
     ics = [c for c in components if c["type"] == "ic"]
     for ic in ics:
         ref = ic["reference"]
-        rails = set()
-        io_rails = set()
+        if ref not in _ref_value:
+            _ref_value[ref] = ic["value"]
+        rails = _ref_rails.setdefault(ref, set())
+        io_rails = _ref_io_rails.setdefault(ref, set())
         for pin in ic.get("pins", []):
             net_name, _ = pin_net.get((ref, pin["number"]), (None, None))
             if not net_name:
@@ -2935,9 +3907,11 @@ def _map_power_domains(ctx: AnalysisContext) -> dict:
                 rails.add(net_name)
                 if pname_upper in _io_pin_names:
                     io_rails.add(net_name)
+    for ref, rails in _ref_rails.items():
         if rails:
+            io_rails = _ref_io_rails.get(ref, set())
             power_domains[ref] = {
-                "value": ic["value"],
+                "value": _ref_value[ref],
                 "power_rails": sorted(rails),
                 "io_rails": sorted(io_rails) if io_rails else None,
             }
@@ -2946,11 +3920,15 @@ def _map_power_domains(ctx: AnalysisContext) -> dict:
     # Match IC power pin NAMES (VCC, VDD, etc.) against known_power_rails by string.
     _pwr_pin_to_rail = {"VCC", "VDD", "AVCC", "AVDD", "DVCC", "DVDD",
                         "VDDIO", "VIO", "VCCA", "VCCB", "VBUS"}
+    _fallback_rails: dict[str, set] = {}   # ref -> set of rails (aggregate across units)
+    _fallback_value: dict[str, str] = {}
     for ic in ics:
         ref = ic["reference"]
         if ref in power_domains:
             continue
-        rails = set()
+        if ref not in _fallback_value:
+            _fallback_value[ref] = ic["value"]
+        rails = _fallback_rails.setdefault(ref, set())
         for pin in ic.get("pins", []):
             pname = pin.get("name", "").upper()
             if pname not in _pwr_pin_to_rail:
@@ -2960,11 +3938,13 @@ def _map_power_domains(ctx: AnalysisContext) -> dict:
                 ru = rail.upper()
                 if pname == ru or pname in ru or ru.startswith(pname):
                     rails.add(rail)
+    for ref, rails in _fallback_rails.items():
         if rails:
             power_domains[ref] = {
-                "value": ic["value"],
+                "value": _fallback_value[ref],
                 "power_rails": sorted(rails),
                 "io_rails": None,
+                "_inferred_from": "pin_name_match",
             }
 
     # Group ICs by power domain
@@ -3127,6 +4107,16 @@ def _detect_cross_domain_signals(ctx: AnalysisContext, power_domains: dict,
     return cross_domain
 
 
+def _enrich_device_ref(ref: str, comp_lookup: dict) -> dict:
+    """Convert a bare component reference to {ref, value, lib_id} dict."""
+    comp = comp_lookup.get(ref, {})
+    return {
+        "ref": ref,
+        "value": comp.get("value", ""),
+        "lib_id": comp.get("lib_id", ""),
+    }
+
+
 def _detect_i2c_buses(ctx: AnalysisContext) -> list[dict]:
     """Detect I2C buses by net name and pin name matching."""
     nets = ctx.nets
@@ -3162,8 +4152,9 @@ def _detect_i2c_buses(ctx: AnalysisContext) -> list[dict]:
             i2c_seen_nets.add(net_name)
             net_info = nets.get(net_name, {})
             line = "SDA" if "SDA" in nu_key else "SCL"
-            devices = [p["component"] for p in net_info.get("pins", [])
-                       if comp_lookup.get(p["component"], {}).get("type") == "ic"]
+            device_refs = [p["component"] for p in net_info.get("pins", [])
+                           if comp_lookup.get(p["component"], {}).get("type") == "ic"]
+            devices = [_enrich_device_ref(r, comp_lookup) for r in device_refs]
             # Find pull-up resistors
             pullups = []
             for p in net_info.get("pins", []):
@@ -3184,6 +4175,34 @@ def _detect_i2c_buses(ctx: AnalysisContext) -> list[dict]:
                 load_count = len(devices)
                 # Typical I2C input capacitance: ~5pF per device pin
                 estimated_cin_pF = load_count * 5
+                # Electrical parameters from pull-ups
+                pu_ohms_list = [pu["ohms"] for pu in pullups if pu.get("ohms")]
+                min_pu_ohms = min(pu_ohms_list) if pu_ohms_list else None
+                if min_pu_ohms is not None:
+                    if min_pu_ohms <= 500:
+                        speed_mode = "high_speed"
+                    elif min_pu_ohms <= 1500:
+                        speed_mode = "fast_plus"
+                    elif min_pu_ohms <= 4700:
+                        speed_mode = "fast"
+                    else:
+                        speed_mode = "standard"
+                else:
+                    speed_mode = None
+                # Voltage level from pull-up rail
+                voltage_level = None
+                for pu in pullups:
+                    v = _estimate_rail_voltage(pu.get("to_rail", ""))
+                    if v is not None:
+                        voltage_level = v
+                        break
+                # Controller: MCU or FPGA on the bus
+                controller = None
+                for ref in device_refs:
+                    fc = comp_lookup.get(ref, {}).get("functional_class", "")
+                    if fc in ("mcu", "fpga"):
+                        controller = ref
+                        break
                 results.append({
                     "net": net_name,
                     "line": line,
@@ -3192,6 +4211,10 @@ def _detect_i2c_buses(ctx: AnalysisContext) -> list[dict]:
                     "estimated_bus_capacitance_pF": estimated_cin_pF,
                     "pull_ups": pullups,
                     "has_pull_up": len(pullups) > 0,
+                    "speed_mode": speed_mode,
+                    "voltage_level_V": voltage_level,
+                    "pull_up_ohms": min_pu_ohms,
+                    "controller": controller,
                 })
 
     # Also detect I2C from pin names (for nets without SDA/SCL in their name)
@@ -3232,12 +4255,39 @@ def _detect_i2c_buses(ctx: AnalysisContext) -> list[dict]:
                             })
 
             bus_type = "SDA" if sda_pins else "SCL"
-            devices = [p["component"] for p in net_info["pins"]
-                       if comp_lookup.get(p["component"], {}).get("type") == "ic"]
+            device_refs = [p["component"] for p in net_info["pins"]
+                           if comp_lookup.get(p["component"], {}).get("type") == "ic"]
+            devices = [_enrich_device_ref(r, comp_lookup) for r in device_refs]
 
             if devices:  # Skip connector-only routing with no ICs
                 load_count = len(devices)
-                results.append({
+                # Electrical parameters from pull-ups
+                pu_ohms_list = [pu["ohms"] for pu in pullups if pu.get("ohms")]
+                min_pu_ohms = min(pu_ohms_list) if pu_ohms_list else None
+                if min_pu_ohms is not None:
+                    if min_pu_ohms <= 500:
+                        speed_mode = "high_speed"
+                    elif min_pu_ohms <= 1500:
+                        speed_mode = "fast_plus"
+                    elif min_pu_ohms <= 4700:
+                        speed_mode = "fast"
+                    else:
+                        speed_mode = "standard"
+                else:
+                    speed_mode = None
+                voltage_level = None
+                for pu in pullups:
+                    v = _estimate_rail_voltage(pu.get("to_rail", ""))
+                    if v is not None:
+                        voltage_level = v
+                        break
+                controller = None
+                for ref in device_refs:
+                    fc = comp_lookup.get(ref, {}).get("functional_class", "")
+                    if fc in ("mcu", "fpga"):
+                        controller = ref
+                        break
+                entry = {
                     "net": net_name,
                     "line": bus_type,
                     "devices": devices,
@@ -3245,7 +4295,58 @@ def _detect_i2c_buses(ctx: AnalysisContext) -> list[dict]:
                     "estimated_bus_capacitance_pF": load_count * 5,
                     "pull_ups": pullups,
                     "has_pull_up": len(pullups) > 0,
-                })
+                    "speed_mode": speed_mode,
+                    "voltage_level_V": voltage_level,
+                    "pull_up_ohms": min_pu_ohms,
+                    "controller": controller,
+                }
+
+                # I2C rise time validation
+                # EQ-097: t_r = 0.8473 * R_pullup * C_bus (RC time constant to 70% VDD)
+                # I2C spec limits: Standard 1000ns, Fast 300ns, Fast+ 120ns, HS 50ns
+                if entry.get("pull_ups") and entry.get("estimated_bus_capacitance_pF"):
+                    pullup_ohms = [pu["ohms"] for pu in entry["pull_ups"] if pu.get("ohms")]
+                    if pullup_ohms:
+                        # Parallel combination if multiple pull-ups on same line
+                        if len(pullup_ohms) == 1:
+                            r_eff = pullup_ohms[0]
+                        else:
+                            r_eff = 1.0 / sum(1.0 / r for r in pullup_ohms)
+
+                        c_bus_f = entry["estimated_bus_capacitance_pF"] * 1e-12
+                        rise_time_ns = 0.8473 * r_eff * c_bus_f * 1e9
+
+                        entry["rise_time_ns"] = round(rise_time_ns, 1)
+                        entry["effective_pullup_ohms"] = round(r_eff, 1)
+
+                        # Determine maximum supported speed mode
+                        _I2C_MODES = [
+                            ("HS",         50),
+                            ("Fast-mode+", 120),
+                            ("Fast-mode",  300),
+                            ("Standard",  1000),
+                        ]
+                        max_mode = "Standard"
+                        for mode_name, limit_ns in _I2C_MODES:
+                            if rise_time_ns <= limit_ns:
+                                max_mode = mode_name
+                                break
+
+                        entry["max_speed_mode"] = max_mode
+
+                        # Warning if rise time is marginal (within 20% of limit)
+                        for mode_name, limit_ns in _I2C_MODES:
+                            if rise_time_ns <= limit_ns:
+                                margin_pct = (limit_ns - rise_time_ns) / limit_ns * 100
+                                if margin_pct < 20:
+                                    entry["rise_time_warning"] = (
+                                        f"Rise time {rise_time_ns:.0f}ns is within 20% of "
+                                        f"{mode_name} limit ({limit_ns}ns) — "
+                                        f"margin {margin_pct:.0f}%"
+                                    )
+                                break
+
+                results.append(entry)
 
     return results
 
@@ -3322,13 +4423,55 @@ def _detect_uart_buses(ctx: AnalysisContext) -> list[dict]:
             continue
         if any(kw in nu for kw in ("UART", "TX", "RX", "TXD", "RXD")):
             # Identify which devices connect
-            devices = [p["component"] for p in net_info["pins"]
-                       if comp_lookup.get(p["component"], {}).get("type") == "ic"]
+            device_refs = [p["component"] for p in net_info["pins"]
+                           if comp_lookup.get(p["component"], {}).get("type") == "ic"]
             uart_nets[net_name] = {
                 "net": net_name,
-                "devices": devices,
+                "devices": [_enrich_device_ref(r, comp_lookup) for r in device_refs],
                 "pin_count": len(net_info["pins"]),
             }
+
+    # UART TX→RX crossover verification
+    # For each TX net, check if it connects to a pin named RX on the other device (correct)
+    # or a pin named TX (incorrect — TX wired to TX)
+    _tx_pins = {"TX", "TXD", "UART_TX", "UART_TXD", "U_TX", "TXD0", "TXD1"}
+    _rx_pins = {"RX", "RXD", "UART_RX", "UART_RXD", "U_RX", "RXD0", "RXD1"}
+
+    for entry in uart_nets.values():
+        net_name = entry["net"]
+        nu = net_name.upper()
+        # Determine if this is a TX or RX net from its name
+        is_tx_net = any(kw in nu for kw in ("_TX", "TXD", "UART_TX")) and not any(kw in nu for kw in ("_RX", "RXD"))
+        is_rx_net = any(kw in nu for kw in ("_RX", "RXD", "UART_RX")) and not any(kw in nu for kw in ("_TX", "TXD"))
+
+        if not (is_tx_net or is_rx_net) or net_name not in nets:
+            continue
+
+        # Check pin names of connected ICs
+        tx_pin_count = 0
+        rx_pin_count = 0
+        for p in nets[net_name]["pins"]:
+            comp = comp_lookup.get(p["component"])
+            if not comp or comp["type"] != "ic":
+                continue
+            pname = p.get("pin_name", "").upper()
+            if pname in _tx_pins:
+                tx_pin_count += 1
+            elif pname in _rx_pins:
+                rx_pin_count += 1
+
+        # A TX net should connect to at least one RX pin (crossover)
+        # If it connects to 2+ TX pins and no RX pins, that's TX→TX (wrong)
+        if is_tx_net and tx_pin_count >= 2 and rx_pin_count == 0:
+            entry["crossover_warning"] = (
+                f"TX net {net_name} connects to {tx_pin_count} TX pins and "
+                f"no RX pins — possible missing TX→RX crossover"
+            )
+        elif is_rx_net and rx_pin_count >= 2 and tx_pin_count == 0:
+            entry["crossover_warning"] = (
+                f"RX net {net_name} connects to {rx_pin_count} RX pins and "
+                f"no TX pins — possible missing TX→RX crossover"
+            )
 
     return list(uart_nets.values())
 
@@ -3424,6 +4567,8 @@ def _detect_can_buses(ctx: AnalysisContext) -> list[dict]:
     components = ctx.components
     nets = ctx.nets
     comp_lookup = ctx.comp_lookup
+    pin_net = ctx.pin_net
+    parsed_values = ctx.parsed_values
 
     can_keywords = ("can_tx", "can_rx", "cantx", "canrx", "canh", "canl", "can_h", "can_l")
     # SN65HVD2xx/10xx are CAN; SN65HVD7x are RS-485 -- use specific prefixes
@@ -3434,9 +4579,12 @@ def _detect_can_buses(ctx: AnalysisContext) -> list[dict]:
     for net_name, net_info in nets.items():
         nu = net_name.upper()
         if any(kw in nu.lower() for kw in can_keywords):
-            devices = [p["component"] for p in net_info["pins"]
-                       if comp_lookup.get(p["component"], {}).get("type") == "ic"]
-            can_nets_found[net_name] = {"net": net_name, "devices": devices}
+            device_refs = [p["component"] for p in net_info["pins"]
+                           if comp_lookup.get(p["component"], {}).get("type") == "ic"]
+            can_nets_found[net_name] = {
+                "net": net_name,
+                "devices": [_enrich_device_ref(r, comp_lookup) for r in device_refs],
+            }
     # Also detect by CAN transceiver IC presence -- add transceiver info to bus
     for comp in components:
         if comp["type"] != "ic":
@@ -3449,8 +4597,33 @@ def _detect_can_buses(ctx: AnalysisContext) -> list[dict]:
                 can_nets_found["__can_transceiver__"] = {
                     "net": "CAN",
                     "transceiver": comp["reference"],
-                    "devices": [comp["reference"]],
+                    "devices": [_enrich_device_ref(comp["reference"], comp_lookup)],
                 }
+
+    # CAN termination detection: look for 100-150 ohm resistors between CANH and CANL
+    canh_nets = [n for n in can_nets_found if "CANH" in n.upper() or "CAN_H" in n.upper()]
+    canl_nets = [n for n in can_nets_found if "CANL" in n.upper() or "CAN_L" in n.upper()]
+    termination = None
+    for canh_net in canh_nets:
+        if canh_net not in nets:
+            continue
+        for p in nets[canh_net]["pins"]:
+            comp = comp_lookup.get(p["component"])
+            if not comp or comp["type"] != "resistor":
+                continue
+            r_val = parsed_values.get(p["component"])
+            if r_val and 100 <= r_val <= 150:
+                # Check if other end goes to a CANL net
+                other_pin = "1" if p["pin_number"] == "2" else "2"
+                other_net, _ = pin_net.get((p["component"], other_pin), (None, None))
+                if other_net and any(other_net == cl for cl in canl_nets):
+                    termination = f"{int(r_val)}\u03A9 ({p['component']})"
+                    break
+        if termination:
+            break
+    # Attach termination to all CAN bus entries
+    for entry in can_nets_found.values():
+        entry["termination"] = termination
 
     return list(can_nets_found.values())
 
@@ -3520,6 +4693,7 @@ def _detect_rs485_buses(ctx: AnalysisContext) -> list[dict]:
 def _analyze_bus_protocols(ctx: AnalysisContext) -> dict:
     """Detect I2C, SPI, UART, CAN, SDIO, RS-485 buses and check configuration."""
     nets = ctx.nets
+    comp_lookup = ctx.comp_lookup
 
     buses: dict = {
         "i2c": _detect_i2c_buses(ctx),
@@ -3544,16 +4718,59 @@ def _analyze_bus_protocols(ctx: AnalysisContext) -> dict:
         bus_id = spi_entry.get("bus_id", "")
         for net_name in nets:
             nu = net_name.upper()
-            if any(kw in nu for kw in ("CS", "SS", "NSS", "SPI_CS", "SPI_SS")):
+            if any(kw in nu for kw in ("CS", "SS", "NSS", "SPI_CS", "SPI_SS",
+                                       "CSN", "NCS", "SSEL", "CSEL")):
                 if bus_id in ("0", "") or bus_id in nu.replace("_", ""):
                     cs_nets.append(net_name)
         spi_entry["chip_select_count"] = len(cs_nets)
+        # SPI CS conflict: find cases where multiple ICs share the same CS net
+        cs_device_map = {}  # net_name -> [device_refs]
+        for net_name in cs_nets:
+            if net_name not in nets:
+                continue
+            devices_on_cs = []
+            for p in nets[net_name]["pins"]:
+                comp = comp_lookup.get(p["component"])
+                if comp and comp["type"] == "ic":
+                    devices_on_cs.append(p["component"])
+            if len(devices_on_cs) > 1:
+                cs_device_map[net_name] = devices_on_cs
+
+        if cs_device_map:
+            spi_entry["cs_conflicts"] = [
+                {
+                    "net": net_name,
+                    "devices": devices,
+                    "message": (f"CS net {net_name} shared by {len(devices)} devices "
+                                f"({', '.join(devices)}) — cannot address independently"),
+                }
+                for net_name, devices in cs_device_map.items()
+            ]
         has_mosi = "MOSI" in sigs
         has_miso = "MISO" in sigs
         if has_mosi and has_miso:
             spi_entry["bus_mode"] = "full_duplex"
         elif has_mosi or has_miso:
             spi_entry["bus_mode"] = "half_duplex"
+
+        # Add top-level devices list (aggregated from all signal entries)
+        # for schema consistency with I2C/UART/CAN which have flat devices[]
+        all_spi_devs: set[str] = set()
+        for sig_info in sigs.values():
+            if isinstance(sig_info, dict):
+                all_spi_devs.update(sig_info.get('devices', []))
+        spi_entry['devices'] = [_enrich_device_ref(r, comp_lookup) for r in sorted(all_spi_devs)]
+
+        # Controller: MCU/FPGA driving SCK (clock master)
+        sck_info = sigs.get("SCK")
+        controller = None
+        if isinstance(sck_info, dict):
+            for ref in sck_info.get("devices", []):
+                fc = comp_lookup.get(ref, {}).get("functional_class", "")
+                if fc in ("mcu", "fpga"):
+                    controller = ref
+                    break
+        spi_entry["controller"] = controller
 
     return buses
 
@@ -3607,18 +4824,30 @@ def _detect_differential_pairs(ctx: AnalysisContext) -> list:
         ("_TDP", "_TDN"), ("_RDP", "_RDN"),
     ]
 
-    # Net-name-based detection: find matching suffix pairs
-    net_names_upper = {n.upper(): n for n in nets}
+    # Net-name-based detection: find matching suffix pairs. Key by
+    # (sheet_prefix, display_name.upper()) so a KH-359 sheet-qualified net
+    # (e.g. /s1/USB_P, display_name "USB_P") still pairs by name, but two
+    # same-named nets on *different* sheets never cross-pair. Plain
+    # assignment (not setdefault) preserves the pre-KH-359 comprehension's
+    # last-wins semantics on a case-insensitive collision: unqualified
+    # boards must resolve a collision identically to the old
+    # `{n.upper(): n for n in nets}` one-liner.
+    net_names_upper: dict[tuple[str, str], str] = {}
+    for k, v in nets.items():
+        disp = v.get("display_name", k)
+        prefix = k[: -len(disp)] if k.endswith(disp) else ""
+        net_names_upper[(prefix, disp.upper())] = k
     found_pairs: set[tuple[str, str]] = set()  # track to avoid duplicates
 
     for pos_sfx, neg_sfx in _diff_suffix_pairs:
-        for nu, real_name in net_names_upper.items():
+        for (prefix, nu), real_name in net_names_upper.items():
             if nu.endswith(pos_sfx.upper()):
                 base = nu[:-len(pos_sfx)]
                 neg_candidate = base + neg_sfx.upper()
-                if neg_candidate in net_names_upper:
+                neg_key = (prefix, neg_candidate)
+                if neg_key in net_names_upper:
                     pos_real = real_name
-                    neg_real = net_names_upper[neg_candidate]
+                    neg_real = net_names_upper[neg_key]
                     pair_key = (min(pos_real, neg_real), max(pos_real, neg_real))
                     if pair_key in found_pairs:
                         continue
@@ -3646,7 +4875,7 @@ def _detect_differential_pairs(ctx: AnalysisContext) -> list:
                         entry["shared_ics"] = sorted(shared)
 
                     # Check for ESD protection
-                    esd_chips = [c for c in shared
+                    esd_chips = [c for c in sorted(shared)
                                  if comp_lookup.get(c, {}).get("type") == "ic"]
                     entry["has_esd"] = len(esd_chips) > 0
                     if esd_chips:
@@ -3797,7 +5026,10 @@ def _estimate_rail_voltage(net_name: str) -> float | None:
     if v is not None:
         return v
     # Hardcoded fallbacks for common names without voltage numbers
-    if "VBUS" in nu or "USB" in nu:
+    if "VBUS" in nu:
+        return 5.0
+    # KH-343: only non-data USB nets (VBUS-ish) default to 5V
+    if "USB" in nu and not is_usb_data_net_name(nu):
         return 5.0
     return None
 
@@ -3911,26 +5143,16 @@ def audit_pwr_flags(components: list[dict], nets: dict, known_power_rails: set) 
     """
     warnings = []
 
-    # Find nets with PWR_FLAG
-    flagged_nets = set()
-    for c in components:
-        if c["type"] == "power_flag" or (c["type"] == "flag" and "PWR_FLAG" in c.get("lib_id", "")):
-            # PWR_FLAG connects to whatever net its pin is on
-            for pin in c.get("pins", []):
-                px, py = pin["x"], pin["y"]
-                # Find which net this pin is on
-                for net_name, net_info in nets.items():
-                    for p in net_info["pins"]:
-                        if p["component"] == c["reference"]:
-                            flagged_nets.add(net_name)
-
-    # Check each power rail
-    for net_name in known_power_rails:
-        if net_name in flagged_nets:
-            continue
+    # Check each power rail (sorted: set order is hash-randomized per
+    # process and pwr_flag_warnings must be byte-stable across runs)
+    for net_name in sorted(known_power_rails):
         if net_name not in nets:
             continue
         net_info = nets[net_name]
+        # KH-354: PWR_FLAG pins never appear in pins[] (build_net_map
+        # registers them as source points) — credit the net-level flag.
+        if net_info.get("has_pwr_flag"):
+            continue
         pin_types = set(p["pin_type"] for p in net_info["pins"])
 
         # If the net has only power_in pins (no power_out), it needs PWR_FLAG
@@ -4018,6 +5240,219 @@ def validate_footprint_filters(components: list[dict], lib_symbols: dict) -> lis
     return warnings
 
 
+def _bom_real_components(components: list[dict]) -> list[dict]:
+    """Filter to components that count as real BOM parts.
+
+    Excludes power symbols/flags, test points, mounting holes, fiducials,
+    graphics, DNP parts, and anything not marked in_bom. Shared by
+    audit_datasheet_coverage (DS-001/002/003) and audit_sourcing_gate
+    (SS-001/002/003) — both need the same "real BOM part" definition
+    (KH-390).
+    """
+    return [c for c in components
+            if c.get("type") not in ("power_symbol", "power_flag", "flag",
+                                     "test_point", "mounting_hole",
+                                     "fiducial", "graphic")
+            and c.get("in_bom") and not c.get("dnp")]
+
+
+def audit_datasheet_coverage(components: list[dict],
+                             project_dir: str) -> list[dict]:
+    """Emit a banner-level finding when datasheet evidence is absent.
+
+    Datasheets are what separate a consistency check from a correctness
+    check: without them, the reviewer can only confirm the design agrees
+    with itself. When the project has no ``datasheets/`` directory AND
+    none of its BOM components carry an MPN, any pin-level or electrical
+    claim in a downstream review is guesswork. Surface that fact loudly
+    instead of letting it slip into a footnote.
+
+    Rule IDs: DS-001 (no datasheets dir + no MPNs — reviews cannot be
+    grounded in manufacturer data), DS-002 (datasheets dir missing but
+    MPNs are set — offer to sync).
+    """
+    findings: list[dict] = []
+    real = _bom_real_components(components)
+    # Deduplicate by reference (multi-unit symbols)
+    seen = set()
+    unique = []
+    for c in real:
+        ref = c.get("reference", "")
+        if ref and ref not in seen:
+            seen.add(ref)
+            unique.append(c)
+    total = len(unique)
+    if total == 0:
+        return findings
+
+    with_mpn = [c for c in unique if c.get("mpn")]
+    mpn_count = len(with_mpn)
+    mpn_pct = (mpn_count / total * 100) if total else 0.0
+
+    # Look for datasheets in conventional locations relative to the
+    # project directory. extracted/ holds structured extractions from the
+    # datasheet_extract_cache; its presence implies datasheets exist.
+    import os as _os
+    pd = project_dir or "."
+    # rc.2 4.2: widened search — walk up 1–2 parent dirs and match the case-
+    # insensitive [Dd]atasheets?/ pattern (singular or plural). Eliminates
+    # DS-001 FPs on repos where the datasheets directory lives one level up
+    # (multi-project monorepos, board variant subfolders, etc.).
+    _DS_DIR_NAMES = (
+        "datasheets", "Datasheets",
+        "datasheet", "Datasheet",
+    )
+    candidates: list[str] = []
+    _bases = [pd, _os.path.dirname(pd) or pd]
+    _grand = _os.path.dirname(_bases[1]) if _bases[1] else pd
+    if _grand and _grand != _bases[1]:
+        _bases.append(_grand)
+    for _base in _bases:
+        for _name in _DS_DIR_NAMES:
+            candidates.append(_os.path.join(_base, _name))
+            candidates.append(_os.path.join(_base, _name, "extracted"))
+        candidates.append(_os.path.join(_base, "docs", "datasheets"))
+        candidates.append(_os.path.join(_base, "documentation", "datasheets"))
+    ds_dir_found = next(
+        (c for c in candidates if _os.path.isdir(c)), None)
+    ds_file_count = 0
+    if ds_dir_found:
+        try:
+            for _root, _dirs, _files in _os.walk(ds_dir_found):
+                ds_file_count += sum(1 for f in _files
+                                     if f.lower().endswith((".pdf", ".json")))
+        except OSError:
+            pass
+
+    # Build finding.
+    if ds_dir_found and ds_file_count > 0:
+        # Datasheets present — no banner needed. Emit info-only if coverage
+        # is partial so the reviewer knows which lines are ungrounded.
+        # DS-003 counts by unique BOM line (value + footprint), the same
+        # basis SS-002 uses — a line has coverage if ANY instance carries
+        # an MPN (KH-390: the two denominators used to disagree).
+        line_groups: dict[tuple, dict] = {}
+        for c in real:
+            key = (c.get("value", ""), c.get("footprint", ""))
+            line = line_groups.setdefault(key, {"refs": [], "has_mpn": False})
+            r = c.get("reference", "")
+            if r:
+                line["refs"].append(r)
+            if c.get("mpn"):
+                line["has_mpn"] = True
+        line_total = len(line_groups)
+        missing_lines = [line for line in line_groups.values()
+                         if not line["has_mpn"]]
+        line_pct = ((line_total - len(missing_lines)) / line_total * 100
+                    if line_total else 0.0)
+        refs_without_mpn = sorted(
+            {r for line in missing_lines for r in line["refs"]})[:20]
+        if line_pct < 90 and refs_without_mpn:
+            findings.append({
+                "detector": "audit_datasheet_coverage",
+                "rule_id": "DS-003",
+                "severity": "info",
+                "confidence": "deterministic",
+                "evidence_source": "bom",
+                "category": "verification",
+                "summary": (f"Datasheets present ({ds_file_count} files) but "
+                            f"{len(missing_lines)} of {line_total} unique "
+                            "BOM lines lack an MPN — those lines can't be "
+                            "cross-referenced."),
+                "components": refs_without_mpn,
+                "nets": [],
+                "pins": [],
+                "datasheets_dir": ds_dir_found,
+                "datasheet_file_count": ds_file_count,
+                "bom_size": line_total,
+                "mpn_coverage_percent": round(line_pct, 1),
+                "recommendation": ("Set the MPN field on the listed parts "
+                                   "and re-sync datasheets so every BOM "
+                                   "entry has manufacturer evidence."),
+                "report_context": {
+                    "section": "Datasheet Coverage",
+                    "impact": ("Partial coverage: pin mapping and electrical "
+                               "claims for unmapped parts remain unverified."),
+                    "standard_ref": "",
+                },
+            })
+        return findings
+
+    if mpn_count == 0:
+        # DS-001: no datasheets dir AND no MPNs. Downstream review cannot
+        # make any verified claim — this is a correctness-vs-consistency
+        # gap the reviewer has to state up front.
+        findings.append({
+            "detector": "audit_datasheet_coverage",
+            "rule_id": "DS-001",
+            "severity": "error",
+            "confidence": "deterministic",
+            "evidence_source": "bom",
+            "category": "verification",
+            "summary": ("No datasheets directory found and no BOM parts "
+                        "have MPNs. Review is a consistency check only — "
+                        "manufacturer specs cannot be verified."),
+            "components": [],
+            "nets": [],
+            "pins": [],
+            "datasheets_dir": None,
+            "datasheet_file_count": 0,
+            "bom_size": total,
+            "mpn_coverage_percent": 0.0,
+            "recommendation": (
+                "Before reporting 'verified' findings, (1) populate the MPN "
+                "field on BOM parts, (2) run the datasheet sync skill "
+                "(digikey, mouser, lcsc, or element14) to download PDFs "
+                "into ./datasheets/, then re-run analysis. If datasheets "
+                "are unreachable, state every pin-level and electrical "
+                "claim as 'per symbol/library' (consistency), not "
+                "'verified against datasheet' (correctness)."),
+            "report_context": {
+                "section": "Datasheet Coverage",
+                "impact": ("Report wording must avoid 'verified' / "
+                           "'datasheet-confirmed' language for every BOM "
+                           "part — none have manufacturer evidence "
+                           "attached."),
+                "standard_ref": "",
+            },
+        })
+    else:
+        # DS-002: MPNs exist but no datasheets dir. Low-friction fix — tell
+        # the reviewer to run sync.
+        findings.append({
+            "detector": "audit_datasheet_coverage",
+            "rule_id": "DS-002",
+            "severity": "warning",
+            "confidence": "deterministic",
+            "evidence_source": "bom",
+            "category": "verification",
+            "summary": (f"No datasheets directory found ({mpn_count}/{total}"
+                        " parts have MPNs). Sync datasheets before making "
+                        "pin-level claims."),
+            "components": sorted(c.get("reference", "")
+                                 for c in with_mpn)[:20],
+            "nets": [],
+            "pins": [],
+            "datasheets_dir": None,
+            "datasheet_file_count": 0,
+            "bom_size": total,
+            "mpn_coverage_percent": round(mpn_pct, 1),
+            "recommendation": (
+                "Run datasheet sync via the digikey / mouser / lcsc / "
+                "element14 skill (which one depends on the user's "
+                "distributor access and API credentials). A ./datasheets/ "
+                "directory with PDFs and a manifest.json enables pin-level "
+                "verification in the next analyzer run."),
+            "report_context": {
+                "section": "Datasheet Coverage",
+                "impact": ("Review claims must stay at consistency level "
+                           "until datasheets land."),
+                "standard_ref": "",
+            },
+        })
+    return findings
+
+
 def audit_sourcing_fields(components: list[dict]) -> dict:
     """Audit component sourcing completeness: MPN, distributor part numbers.
 
@@ -4061,6 +5496,173 @@ def audit_sourcing_fields(components: list[dict]) -> dict:
     return result
 
 
+def audit_sourcing_gate(components: list[dict]) -> list[dict]:
+    """Emit rich findings that gate fabrication on BOM completeness.
+
+    `audit_sourcing_fields()` returns a numeric summary; this surfaces
+    the gap as findings so the stage filter and severity rollups see
+    it. Rule tiers:
+      SS-001  mpn_percent < 50        severity=high   (pre-fab blocker)
+      SS-002  50 <= mpn_percent < 80  severity=warning
+      SS-003  80 <= mpn_percent < 100 severity=info
+    mpn_percent == 100 emits nothing.
+    """
+    findings: list[dict] = []
+    real = _bom_real_components(components)
+    if not real:
+        return findings
+
+    # Group by BOM line (value + footprint).  A BOM line has coverage if any
+    # instance carries an MPN — the user can propagate it to siblings.
+    # Counting references instead inflates the denominator: a single generic
+    # 10 K resistor shared across 5 refs would register as 5 misses.
+    bom_lines: dict[tuple, dict] = {}
+    for c in real:
+        key = (c.get("value", ""), c.get("footprint", ""))
+        line = bom_lines.setdefault(key, {"refs": [], "has_mpn": False})
+        r = c.get("reference", "")
+        if r:
+            line["refs"].append(r)
+        if c.get("mpn"):
+            line["has_mpn"] = True
+
+    total = len(bom_lines)
+    if total == 0:
+        return findings
+    missing_lines = [line for line in bom_lines.values()
+                     if not line["has_mpn"]]
+    # Collect refs from missing lines for the description, sorted naturally.
+    missing = sorted({r for line in missing_lines for r in line["refs"]})
+    covered = total - len(missing_lines)
+    pct = covered / total * 100.0
+
+    if pct >= 100.0:
+        return findings
+    if pct < 50.0:
+        rid, sev = "SS-001", "error"
+        headline = ("Sourcing blocker: BOM has <50% MPN coverage "
+                    f"({covered}/{total} unique parts). Board is not pre-fab ready.")
+    elif pct < 80.0:
+        rid, sev = "SS-002", "warning"
+        headline = (f"Sourcing gap: {covered}/{total} unique BOM lines have an MPN "
+                    f"({pct:.0f}%). Populate before fab.")
+    else:
+        rid, sev = "SS-003", "info"
+        headline = (f"Sourcing nearly complete: {covered}/{total} unique parts "
+                    f"have MPNs ({pct:.0f}%). Fill in remaining lines.")
+
+    findings.append({
+        "detector": "audit_sourcing_gate",
+        "rule_id": rid,
+        "severity": sev,
+        "confidence": "deterministic",
+        "evidence_source": "bom",
+        "category": "sourcing",
+        "summary": headline,
+        "description": (f"Sourcing audit: {covered} of {total} unique BOM "
+                        f"lines (grouped by value + footprint) carry a "
+                        f"manufacturer part number ({pct:.1f}%). Pre-fab "
+                        f"readiness requires 100% coverage; production "
+                        f"assembly requires all parts sourceable via one of "
+                        f"the supported distributors."),
+        "components": missing[:50],
+        "nets": [],
+        "pins": [],
+        "mpn_coverage_percent": round(pct, 1),
+        "missing_mpn_lines": len(missing_lines),
+        "missing_mpn_refs": len(missing),
+        "total_bom_lines": total,
+        "recommendation": (
+            "Populate the MPN field on the listed refs (use the digikey / "
+            "mouser / lcsc / element14 skill to search by value/footprint "
+            "when the MPN isn't already known)."),
+        "report_context": {
+            "section": "Sourcing",
+            "impact": ("Pre-fab gate: board cannot be ordered until MPN "
+                       "coverage reaches 100%."),
+            "standard_ref": "",
+        },
+    })
+    return findings
+
+
+def audit_dnp_rate(components: list[dict]) -> list[dict]:
+    """Emit BL-001 when DNP coverage is high enough to make the BOM
+    effectively empty.
+
+    The SS-001..003 sourcing rules filter to non-DNP components first, so
+    a 100%-DNP BOM passes them silently — but a reviewer skimming "no
+    SS-* findings" might miss that no parts will actually be placed by
+    assembly. BL-001 surfaces that explicitly.
+
+    Tiers:
+      ≥90% DNP  →  severity=error    ("assembly cannot place this BOM")
+      ≥50% DNP  →  severity=warning  ("most parts marked DNP — confirm")
+      <50% DNP  →  no finding (DNP-by-variant is a normal pattern)
+
+    A single-component schematic doesn't fire — BL-001's value is on full
+    assemblies, not on one-component drafts.
+    """
+    real = [c for c in components
+            if c.get("type") not in ("power_symbol", "power_flag", "flag",
+                                     "test_point", "mounting_hole",
+                                     "fiducial", "graphic")
+            and c.get("in_bom")]
+    if len(real) < 2:
+        return []
+    dnp_count = sum(1 for c in real if c.get("dnp"))
+    total = len(real)
+    pct = dnp_count / total * 100.0
+    if pct < 50.0:
+        return []
+    if pct >= 90.0:
+        sev = "error"
+        headline = (
+            f"BOM is effectively empty: {dnp_count}/{total} ({pct:.0f}%) "
+            "components are marked DNP — no parts will be placed by assembly."
+        )
+        impact = ("Pre-fab gate: the BOM as-is cannot be sent to an assembly "
+                  "house. Confirm whether this is the intended stuffing variant.")
+    else:
+        sev = "warning"
+        headline = (
+            f"High DNP rate: {dnp_count}/{total} ({pct:.0f}%) components marked "
+            "DNP. Confirm intended stuffing variant before fab."
+        )
+        impact = ("Most components are flagged DNP — likely a no-stuff variant "
+                  "or an in-progress BOM. Confirm before assembly.")
+    dnp_refs = sorted(c.get("reference", "") for c in real if c.get("dnp"))
+    return [{
+        "detector": "audit_dnp_rate",
+        "rule_id": "BL-001",
+        "severity": sev,
+        "confidence": "deterministic",
+        "evidence_source": "bom",
+        "category": "sourcing",
+        "summary": headline,
+        "description": (
+            f"Audited {total} non-fixture BOM components; {dnp_count} are "
+            f"marked DNP ({pct:.1f}%). The DNP flag tells the assembly "
+            "house to skip a component — at this rate the resulting board "
+            "would be largely unpopulated."),
+        "components": dnp_refs[:50],
+        "nets": [],
+        "pins": [],
+        "dnp_rate_percent": round(pct, 1),
+        "dnp_count": dnp_count,
+        "total_components": total,
+        "recommendation": (
+            "If this BOM is for a no-stuff stuffing variant, suppress BL-001 "
+            "via project config. Otherwise clear the DNP flag on components "
+            "that should be assembled."),
+        "report_context": {
+            "section": "Sourcing",
+            "impact": impact,
+            "standard_ref": "",
+        },
+    }]
+
+
 # Generic transistor symbol prefixes that encode assumed pin order
 _GENERIC_TRANSISTOR_PREFIXES = ("Q_NPN_", "Q_PNP_", "Q_NMOS_", "Q_PMOS_")
 
@@ -4091,16 +5693,20 @@ def check_generic_transistor_symbols(components: list[dict],
     Device-specific symbols (MMBT3904, AO3400A) encode the correct pinout for
     that particular part and are always safer.
 
-    If a datasheets/index.json exists next to the schematic, the check also notes
+    If a datasheets/manifest.json (or legacy index.json) exists next to the schematic, the check also notes
     whether a datasheet is available for manual pinout verification.
     """
     warnings = []
 
-    # Load datasheet index if available
+    # Load datasheet manifest if available (prefer new manifest.json, fall
+    # back to legacy index.json for projects that haven't been migrated).
     ds_index: dict[str, dict] = {}
     if schematic_path:
         sch_dir = Path(schematic_path).parent
-        idx_path = sch_dir / "datasheets" / "index.json"
+        ds_dir = sch_dir / "datasheets"
+        idx_path = ds_dir / "manifest.json"
+        if not idx_path.is_file():
+            idx_path = ds_dir / "index.json"
         if idx_path.is_file():
             try:
                 ds_index = json.loads(idx_path.read_text())
@@ -4291,18 +5897,33 @@ def analyze_bus_topology(bus_elements: dict, labels: list[dict], nets: dict) -> 
     result = {
         "bus_wire_count": len(bus_elements.get("bus_wires", [])),
         "bus_entry_count": len(bus_elements.get("bus_entries", [])),
+        # GH #25 honesty invariant (spec §4): bus constructs the resolver
+        # could not confidently resolve are surfaced, never silently dropped.
+        "unresolved": sorted(
+            ({"reason": u.get("reason", ""), "name": u.get("name")}
+             for u in bus_elements.get("_unresolved", [])),
+            key=lambda u: (u["reason"], u["name"] is None, u["name"] or ""),
+        ),
     }
 
     aliases = bus_elements.get("bus_aliases", [])
     if aliases:
         alias_info = []
         all_label_names = set(l["name"] for l in labels)
+        # KH-359: net keys may be sheet-qualified (/<sheet>/<name>) with the
+        # bare name on display_name. Bus alias members are always bare
+        # label names, so match against keys ∪ display_names.
+        display_index = set(nets)
+        for _v in nets.values():
+            dn = _v.get("display_name")
+            if dn:
+                display_index.add(dn)
         for alias in aliases:
             members = alias["members"]
             present = [m for m in members if m in all_label_names]
             missing = [m for m in members if m not in all_label_names]
             # Check which member names resolve to actual nets
-            resolved = [m for m in members if m in nets]
+            resolved = [m for m in members if m in display_index]
             entry = {
                 "name": alias["name"],
                 "member_count": len(members),
@@ -4311,7 +5932,7 @@ def analyze_bus_topology(bus_elements: dict, labels: list[dict], nets: dict) -> 
             }
             if missing:
                 entry["missing_labels"] = missing
-            unresolved = [m for m in members if m not in nets]
+            unresolved = [m for m in members if m not in display_index]
             if unresolved:
                 entry["unresolved_members"] = unresolved
             alias_info.append(entry)
@@ -4692,7 +6313,8 @@ def check_instance_consistency(components: list[dict]) -> list[dict]:
     return warnings
 
 
-def validate_hierarchical_labels(labels: list[dict], nets: dict) -> dict:
+def validate_hierarchical_labels(labels: list[dict], nets: dict,
+                                 bus_elements: dict | None = None) -> dict:
     """Validate hierarchical label usage for cross-sheet connectivity.
 
     Checks for orphaned hierarchical labels (no matching sheet pin), hierarchical
@@ -4706,12 +6328,25 @@ def validate_hierarchical_labels(labels: list[dict], nets: dict) -> dict:
         "global_label_count": len(global_labels),
     }
 
-    # Check for hierarchical labels that don't appear in any net
+    # Bus-name hierarchical labels are consumed by the bus pass (expanded to
+    # members), so they legitimately never appear as a net under their own bus
+    # name — In[0..7], {PHASES}, etc. Excluding them keeps this validation from
+    # false-flagging every hierarchical bus as unconnected (GH #25).
+    aliases = {a["name"]: a["members"]
+               for a in (bus_elements or {}).get("bus_aliases", [])}
+
+    def _is_bus_label(l: dict) -> bool:
+        bare = l.get("_bare_name", l["name"])
+        return expand_bus_name(bare, aliases) is not None
+
+    # Check for hierarchical labels that don't appear in any net (bus labels
+    # excluded — they resolve to member nets, not a net under their bus name).
+    scalar_hier_names = set(l["name"] for l in hier_labels if not _is_bus_label(l))
     hier_names = set(l["name"] for l in hier_labels)
     global_names = set(l["name"] for l in global_labels)
     net_names = set(nets.keys())
 
-    unconnected_hier = sorted(hier_names - net_names)
+    unconnected_hier = sorted(scalar_hier_names - net_names)
     if unconnected_hier:
         result["unconnected_hierarchical"] = unconnected_hier
 
@@ -4958,8 +6593,15 @@ def analyze_pdn_impedance(ctx: AnalysisContext, signal_analysis: dict | None = N
     return result
 
 
+# KH-374: below this, a resistor bridging a rail to ground/a signal net is a
+# current-shunt/sense element, not a pull or bleeder -- a 5 mOhm shunt on
+# VBAT computed a nonsensical 740 A "worst-case" pull-up current pre-floor.
+SLEEP_PULL_MIN_OHM = 100.0
+
+
 def analyze_sleep_current(ctx: AnalysisContext,
-                          signal_analysis: dict | None = None) -> dict:
+                          signal_analysis: dict | None = None,
+                          power_sequencing: dict | None = None) -> dict:
     """Sleep/quiescent current audit.
 
     Finds all always-on current paths: resistive dividers between power and
@@ -4976,14 +6618,46 @@ def analyze_sleep_current(ctx: AnalysisContext,
     rail_currents: dict[str, list[dict]] = {}
     _get_two_pin_nets = ctx.get_two_pin_nets
 
+    # KH-374: rail voltage resolution that also knows about battery rails
+    # (VBAT/+BATT) and regulator estimated_vout, not just names
+    # _estimate_rail_voltage() can parse a number out of.
+    _battery_rail_re = re.compile(r'^\+?(BATT?|VBATT?|BATTERY|BAT\+)$', re.IGNORECASE)
+    _reg_vout_by_rail: dict[str, float] = {}
+    if signal_analysis:
+        for _reg in signal_analysis.get("power_regulators", []):
+            _out_rail = _reg.get("output_rail", "")
+            _vout = _reg.get("estimated_vout")
+            if _out_rail and _vout:
+                _reg_vout_by_rail.setdefault(_out_rail, _vout)
+
+    def _rail_voltage(name: str) -> float | None:
+        v = _estimate_rail_voltage(name)
+        if v is not None:
+            return v
+        if signal_analysis:
+            v = signal_analysis.get("rail_voltages", {}).get(_clean_hierarchical_name(name))
+            if v is not None:
+                return v
+        v = _reg_vout_by_rail.get(name)
+        if v is not None:
+            return v
+        if name and _battery_rail_re.match(name):
+            return 3.7
+        return None
+
     # --- Resistors between power and ground ---
+    _seen_refs = set()
     for comp in components:
         if comp["type"] != "resistor":
             continue
+        ref = comp["reference"]
+        if ref in _seen_refs:
+            continue
+        _seen_refs.add(ref)
         r_val = parse_value(comp.get("value", ""))
         if not r_val or r_val <= 0:
             continue
-        n1, n2 = _get_two_pin_nets(comp["reference"])
+        n1, n2 = _get_two_pin_nets(ref)
         if not n1 or not n2:
             continue
 
@@ -4995,11 +6669,16 @@ def analyze_sleep_current(ctx: AnalysisContext,
             pwr_net, gnd_net = n2, n1
 
         if pwr_net and gnd_net:
-            v_rail = _estimate_rail_voltage(pwr_net)
+            if r_val < SLEEP_PULL_MIN_OHM:
+                # KH-374: a sub-100 Ohm resistor bridging a rail straight
+                # to ground is a shunt/sense element, not a bleeder --
+                # don't guess a current for it.
+                continue
+            v_rail = _rail_voltage(pwr_net)
             if v_rail and v_rail > 0:
                 current_a = v_rail / r_val
                 entry = {
-                    "ref": comp["reference"],
+                    "ref": ref,
                     "value": comp["value"],
                     "type": "resistor_to_gnd",
                     "resistance_ohm": r_val,
@@ -5010,7 +6689,7 @@ def analyze_sleep_current(ctx: AnalysisContext,
                 if pwr_net in nets:
                     other_resistors = [
                         p["component"] for p in nets[pwr_net]["pins"]
-                        if p["component"] != comp["reference"]
+                        if p["component"] != ref
                         and comp_lookup.get(p["component"], {}).get("type") == "resistor"
                     ]
                     if other_resistors:
@@ -5020,18 +6699,81 @@ def analyze_sleep_current(ctx: AnalysisContext,
 
         # Pull-up resistor: one side to power rail, other side to a signal net
         if is_power_net(n1) and not is_ground(n1) and not is_power_net(n2):
-            pwr_net = n1
+            pwr_net, sig_net = n1, n2
         elif is_power_net(n2) and not is_ground(n2) and not is_power_net(n1):
-            pwr_net = n2
+            pwr_net, sig_net = n2, n1
         else:
             continue
 
-        v_rail = _estimate_rail_voltage(pwr_net)
-        if v_rail and v_rail > 0:
+        v_rail = _rail_voltage(pwr_net)
+        if not v_rail or v_rail <= 0:
+            continue
+
+        # KH-342: classify the signal side before assuming worst-case V/R.
+        # A second resistor to ground makes this a divider (DC = V/(R1+R2));
+        # a shunt cap with no other DC sink makes it an RC filter (DC ~ 0).
+        divider_r2_ref = None
+        divider_r2_ohm = None
+        has_shunt_cap = False
+        has_other_dc_sink = False
+        if sig_net in nets:
+            for p in nets[sig_net]["pins"]:
+                if p["component"] == ref:
+                    continue
+                oc = comp_lookup.get(p["component"])
+                if not oc:
+                    continue
+                o_type = oc.get("type")
+                if o_type == "resistor":
+                    o1, o2 = _get_two_pin_nets(oc["reference"])
+                    o_other = o2 if o1 == sig_net else o1
+                    o_val = parse_value(oc.get("value", ""))
+                    if o_other and is_ground(o_other) and o_val and o_val > 0:
+                        if divider_r2_ref is None:
+                            divider_r2_ref = oc["reference"]
+                            divider_r2_ohm = o_val
+                    else:
+                        has_other_dc_sink = True
+                elif o_type == "capacitor":
+                    o1, o2 = _get_two_pin_nets(oc["reference"])
+                    o_other = o2 if o1 == sig_net else o1
+                    if o_other and is_ground(o_other):
+                        has_shunt_cap = True
+                elif o_type in ("switch", "led", "diode", "transistor"):
+                    has_other_dc_sink = True
+
+        if divider_r2_ref:
+            current_a = v_rail / (r_val + divider_r2_ohm)
+            rail_currents.setdefault(pwr_net, []).append({
+                "ref": ref,
+                "value": comp["value"],
+                "type": "divider",
+                "resistance_ohm": r_val,
+                "divider_partner": divider_r2_ref,
+                "total_resistance_ohm": round(r_val + divider_r2_ohm, 1),
+                "rail_voltage": v_rail,
+                "current_uA": round(current_a * 1e6, 2),
+                "note": f"divider with {divider_r2_ref}: I = V/(R1+R2)",
+            })
+        elif has_shunt_cap and not has_other_dc_sink:
+            rail_currents.setdefault(pwr_net, []).append({
+                "ref": ref,
+                "value": comp["value"],
+                "type": "rc_filter",
+                "resistance_ohm": r_val,
+                "rail_voltage": v_rail,
+                "current_uA": 0.0,
+                "note": "series-R + shunt-C, no DC load — steady-state ~ 0",
+            })
+        elif r_val < SLEEP_PULL_MIN_OHM:
+            # KH-374: a sub-100 Ohm resistor here is a shunt/sense
+            # element, not a pull -- don't guess a current for it.
+            pass
+        else:
             # Pull-up: worst case current is V/R (pin driven low)
             current_a = v_rail / r_val
             rail_currents.setdefault(pwr_net, []).append({
-                "ref": comp["reference"],
+                "ref": ref,
                 "value": comp["value"],
                 "type": "pull_up",
                 "resistance_ohm": r_val,
@@ -5041,10 +6783,14 @@ def analyze_sleep_current(ctx: AnalysisContext,
             })
 
     # --- LEDs with series resistors ---
+    _seen_led_refs = set()
     for comp in components:
         if comp["type"] != "led":
             continue
         ref = comp["reference"]
+        if ref in _seen_led_refs:
+            continue
+        _seen_led_refs.add(ref)
         # Find nets connected to LED pins
         led_nets = [net for net, _ in ref_pins.get(ref, {}).values()]
 
@@ -5065,7 +6811,7 @@ def analyze_sleep_current(ctx: AnalysisContext,
                 r_n1, r_n2 = _get_two_pin_nets(r_comp["reference"])
                 for rn in (r_n1, r_n2):
                     if rn and rn != net_name and is_power_net(rn) and not is_ground(rn):
-                        v_rail = _estimate_rail_voltage(rn)
+                        v_rail = _rail_voltage(rn)
                         if v_rail and v_rail > 0:
                             # LED forward voltage ~2V typical
                             v_led = 2.0
@@ -5081,6 +6827,23 @@ def analyze_sleep_current(ctx: AnalysisContext,
                                     "current_uA": round(current_a * 1e6, 2),
                                     "note": "assuming ~2V forward drop, always-on if no switch",
                                 })
+
+    # KH-239: Drop pull_up entries that are actually LED current-limit
+    # resistors. The LED loop above already emitted led_indicator entries
+    # with series_resistor pointing at these refs, and the LED arithmetic
+    # (V_rail - V_f)/R is the correct one. The pull_up branch's V_rail/R
+    # arithmetic over-states the current by ~50% per LED. Symmetric with
+    # the detection criterion: drop any ref that appears as BOTH a
+    # pull_up entry AND an led_indicator's series_resistor on the same
+    # rail.
+    for _rail_name, _entries in rail_currents.items():
+        _led_series = {e.get("series_resistor") for e in _entries
+                       if e.get("type") == "led_indicator" and e.get("series_resistor")}
+        if _led_series:
+            rail_currents[_rail_name] = [
+                e for e in _entries
+                if not (e.get("type") == "pull_up" and e.get("ref") in _led_series)
+            ]
 
     # --- Regulator quiescent current estimates ---
     # Use detected regulators from signal analysis to estimate Iq per output rail.
@@ -5151,20 +6914,101 @@ def analyze_sleep_current(ctx: AnalysisContext,
     if not rail_currents:
         return {}
 
+    # Build set of disableable rails. KH-374: when power_sequencing (real EN
+    # connectivity from analyze_power_sequencing) is available, a rail is
+    # only disableable if its regulator's EN pin is actually driven by
+    # something (en_source == "controlled") — not merely because the part
+    # happens to have an EN-named pin. Falls back to the old EN-pin-NAME
+    # heuristic when power_sequencing wasn't supplied (back-compat).
+    _controlled_rails: set[str] = set()
+    _controlled_regs: set[str] = set()
+    if power_sequencing:
+        for d in power_sequencing.get("dependencies", []):
+            if d.get("en_source") == "controlled":
+                _controlled_rails.add(d.get("output_rail", ""))
+                _controlled_regs.add(d.get("regulator", ""))
+
+    if power_sequencing:
+        _disableable_rails: set[str] = _controlled_rails
+    else:
+        _disableable_rails = set()
+        if signal_analysis:
+            for reg in signal_analysis.get("power_regulators", []):
+                out_rail = reg.get("output_rail", "")
+                if not out_rail:
+                    continue
+                for comp in components:
+                    if comp["reference"] == reg.get("ref", ""):
+                        for pin in comp.get("pins", []):
+                            if pin.get("name", "").upper() in (
+                                    "EN", "ENABLE", "ON/OFF", "ON", "SHDN", "CE"):
+                                _disableable_rails.add(out_rail)
+                        break
+
+    # Add realistic state estimation to each entry
+    for rail, entries in rail_currents.items():
+        for e in entries:
+            etype = e["type"]
+            if etype == "pull_up":
+                # Check if signal net connects to a pin powered by the same
+                # rail (both ends at rail voltage → ~0µA)
+                e["likely_state"] = "worst-case (signal driven low)"
+                e["realistic_uA"] = e["current_uA"]
+            elif etype == "led_indicator":
+                # LEDs are typically GPIO-controlled
+                e["likely_state"] = "GPIO off during sleep"
+                e["realistic_uA"] = 0.0
+            elif etype == "regulator_iq":
+                # KH-374: with real EN connectivity available, only a
+                # regulator whose EN is actually driven (en_source ==
+                # "controlled") counts as disableable — having an
+                # EN-named pin isn't enough on its own.
+                if power_sequencing:
+                    can_disable = e["ref"] in _controlled_regs
+                else:
+                    can_disable = bool(e.get("has_enable_pin"))
+                if can_disable:
+                    e["likely_state"] = "can be disabled via EN"
+                    e["realistic_uA"] = 0.0
+                else:
+                    e["likely_state"] = "always-on"
+                    e["realistic_uA"] = e["current_uA"]
+            elif etype == "resistor_to_gnd":
+                if rail in _disableable_rails:
+                    e["likely_state"] = "rail disabled during sleep"
+                    e["realistic_uA"] = 0.0
+                else:
+                    e["likely_state"] = "always conducting"
+                    e["realistic_uA"] = e["current_uA"]
+            elif etype == "divider":
+                if rail in _disableable_rails:
+                    e["likely_state"] = "rail disabled during sleep"
+                    e["realistic_uA"] = 0.0
+                else:
+                    e["likely_state"] = "always conducting"
+                    e["realistic_uA"] = e["current_uA"]
+            elif etype == "rc_filter":
+                e["likely_state"] = "no DC path (shunt cap only)"
+                e["realistic_uA"] = 0.0
+
     # Summarize per rail — split always-on vs conditional (pull-ups)
     result_rails = {}
     always_on_uA = 0.0
     conditional_uA = 0.0
+    realistic_uA = 0.0
     for rail, entries in rail_currents.items():
         rail_always = sum(e["current_uA"] for e in entries if e["type"] != "pull_up")
         rail_cond = sum(e["current_uA"] for e in entries if e["type"] == "pull_up")
+        rail_realistic = sum(e.get("realistic_uA", e["current_uA"]) for e in entries)
         always_on_uA += rail_always
         conditional_uA += rail_cond
+        realistic_uA += rail_realistic
         result_rails[rail] = {
             "current_paths": entries,
             "total_uA": round(rail_always + rail_cond, 2),
             "always_on_uA": round(rail_always, 2),
             "conditional_uA": round(rail_cond, 2),
+            "realistic_uA": round(rail_realistic, 2),
         }
 
     observations = [
@@ -5174,11 +7018,15 @@ def analyze_sleep_current(ctx: AnalysisContext,
         observations.append(
             f"Conditional current (pull-ups, worst-case): {conditional_uA:.1f} uA ({conditional_uA / 1000:.2f} mA)"
         )
+    observations.append(
+        f"Realistic sleep estimate: {realistic_uA:.1f} uA ({realistic_uA / 1000:.2f} mA)"
+    )
 
     return {
         "rails": result_rails,
         "total_estimated_sleep_uA": round(always_on_uA, 2),
         "conditional_pull_up_uA": round(conditional_uA, 2),
+        "realistic_total_uA": round(realistic_uA, 2),
         "observations": observations,
     }
 
@@ -5204,7 +7052,7 @@ _DERATING_PROFILES = {
 
 def analyze_voltage_derating(ctx: AnalysisContext, signal_analysis: dict,
                              project_dir: str | None = None,
-                             derating_profile: str = "commercial") -> dict:
+                             derating_profile: str = "commercial") -> list[dict]:
     """Check component voltage/power ratings against applied conditions.
 
     Checks capacitors (voltage derating by dielectric type), IC absolute
@@ -5270,14 +7118,18 @@ def analyze_voltage_derating(ctx: AnalysisContext, signal_analysis: dict,
         sanitized = re.sub(r'[^A-Za-z0-9_]', '_', mpn.strip())
         extract_path = Path(project_dir) / "datasheets" / "extracted" / f"{sanitized}.json"
         if not extract_path.exists():
-            idx_path = Path(project_dir) / "datasheets" / "extracted" / "index.json"
+            # Prefer manifest.json, fall back to legacy index.json
+            extracted_dir = Path(project_dir) / "datasheets" / "extracted"
+            idx_path = extracted_dir / "manifest.json"
+            if not idx_path.exists():
+                idx_path = extracted_dir / "index.json"
             if idx_path.exists():
                 try:
                     with open(idx_path) as f:
                         idx = json.load(f)
                     for k, v in idx.get("extractions", {}).items():
                         if k.upper() == sanitized.upper():
-                            extract_path = Path(project_dir) / "datasheets" / "extracted" / v.get("file", "")
+                            extract_path = extracted_dir / v.get("file", "")
                             break
                 except (json.JSONDecodeError, OSError):
                     pass
@@ -5295,9 +7147,7 @@ def analyze_voltage_derating(ctx: AnalysisContext, signal_analysis: dict,
     _RESISTOR_POWER_RATING = {"0201": 0.05, "0402": 0.0625, "0603": 0.1, "0805": 0.125,
                               "1206": 0.25, "1210": 0.5, "2010": 0.75, "2512": 1.0}
 
-    derating_issues = []
-    over_designed = []
-    caps_checked = ics_checked = resistors_checked = 0
+    findings: list[dict] = []
 
     # ---- Capacitor voltage derating ----
     for comp in components:
@@ -5316,7 +7166,6 @@ def analyze_voltage_derating(ctx: AnalysisContext, signal_analysis: dict,
         dielectric = _classify_cap_dielectric(comp)
         derating_factor = _CAP_DERATING.get(dielectric, 0.50)
         max_working_v = rated_v * derating_factor
-        caps_checked += 1
         margin_pct = ((rated_v - v_rail) / rated_v) * 100 if rated_v > 0 else 0
         severity = derating_rule = None
         if v_rail > rated_v:
@@ -5324,10 +7173,22 @@ def analyze_voltage_derating(ctx: AnalysisContext, signal_analysis: dict,
         elif v_rail > max_working_v:
             severity, derating_rule = "warning", f"{dielectric}_{int(derating_factor * 100)}pct"
         if severity:
-            derating_issues.append({"ref": ref, "value": comp["value"], "component_type": "capacitor",
-                                    "rail": pwr_net, "rail_voltage": v_rail, "rated_voltage": rated_v,
-                                    "margin_pct": round(margin_pct, 1), "dielectric": dielectric,
-                                    "derating_rule": derating_rule, "severity": severity})
+            findings.append(make_finding(
+                detector="analyze_voltage_derating", rule_id="VD-001",
+                category="component_derating",
+                summary=(f"{ref} ({comp['value']}) {'exceeds' if severity == 'critical' else 'has marginal'} "
+                         f"voltage derating on {pwr_net} ({v_rail:.1f}V on {rated_v:.0f}V {dielectric} cap)"),
+                description=(f"Applied {v_rail:.1f}V on {pwr_net}; {rated_v:.0f}V-rated {dielectric} capacitor. "
+                             f"Derating rule: {derating_rule}. Margin {round(margin_pct, 1)}%."),
+                severity="error" if severity == "critical" else "warning",
+                confidence="heuristic", evidence_source="topology",
+                components=[ref], nets=[pwr_net],
+                recommendation=("Increase capacitor voltage rating." if severity == "critical"
+                                else f"Consider a higher voltage rating — {dielectric} caps need derating margin."),
+                impact="Capacitor may fail short under applied voltage." if severity == "critical" else "",
+                derating_rule=derating_rule, rail=pwr_net, rail_voltage=v_rail,
+                rated_voltage=rated_v, margin_pct=round(margin_pct, 1), dielectric=dielectric,
+            ))
         elif margin_pct > profile["over_designed_cap_margin"] * 100:
             suggested_v = v_rail * 2.5
             suggested_ratings = [v for v in (6.3, 10, 16, 25, 50, 100) if v >= suggested_v]
@@ -5335,9 +7196,17 @@ def analyze_voltage_derating(ctx: AnalysisContext, signal_analysis: dict,
             if suggested_ratings and suggested_ratings[0] < rated_v:
                 suggestion = (f"Consider {suggested_ratings[0]:.0f}V rating — "
                               f"{rated_v:.0f}V is significantly over-designed for a {v_rail:.1f}V rail")
-            over_designed.append({"ref": ref, "value": comp["value"], "component_type": "capacitor",
-                                  "rail": pwr_net, "rail_voltage": v_rail, "rated_voltage": rated_v,
-                                  "margin_pct": round(margin_pct, 1), "suggestion": suggestion})
+            findings.append(make_finding(
+                detector="analyze_voltage_derating", rule_id="VD-004",
+                category="component_derating",
+                summary=f"{ref} ({comp['value']}) is over-designed for {pwr_net} ({rated_v:.0f}V on {v_rail:.1f}V rail)",
+                description=f"{rated_v:.0f}V-rated capacitor on a {v_rail:.1f}V rail — margin {round(margin_pct, 1)}%.",
+                severity="info", confidence="heuristic", evidence_source="topology",
+                components=[ref], nets=[pwr_net],
+                recommendation=suggestion or "Consider a lower voltage rating to reduce cost/size.",
+                derating_rule="over_designed", rail=pwr_net, rail_voltage=v_rail,
+                rated_voltage=rated_v, margin_pct=round(margin_pct, 1),
+            ))
 
     # ---- IC absolute max voltage check ----
     for comp in components:
@@ -5369,20 +7238,34 @@ def analyze_voltage_derating(ctx: AnalysisContext, signal_analysis: dict,
                     max_rail_v, max_rail_name = v, net_name
         if max_rail_v <= 0:
             continue
-        ics_checked += 1
         margin_pct = ((vin_max - max_rail_v) / vin_max) * 100 if vin_max > 0 else 0
         if max_rail_v > vin_max:
-            derating_issues.append({"ref": ref, "value": comp["value"], "component_type": "ic",
-                                    "rail": max_rail_name, "rail_voltage": max_rail_v,
-                                    "abs_max_vin": vin_max, "margin_pct": round(margin_pct, 1),
-                                    "derating_rule": "exceeds_abs_max", "data_source": "extraction_cache",
-                                    "severity": "critical"})
+            findings.append(make_finding(
+                detector="analyze_voltage_derating", rule_id="VD-002",
+                category="component_derating",
+                summary=f"{ref} exceeds datasheet absolute-max voltage on {max_rail_name} ({max_rail_v:.1f}V > {vin_max:.1f}V)",
+                description=(f"{ref} ({comp['value']}) sees {max_rail_v:.1f}V on {max_rail_name}; datasheet "
+                             f"absolute-max input is {vin_max:.1f}V. Margin {round(margin_pct, 1)}%."),
+                severity="error", confidence="datasheet-backed", evidence_source="datasheet",
+                components=[ref], nets=[max_rail_name],
+                recommendation="Reduce the rail voltage or select a part rated for this rail.",
+                impact="Operating beyond absolute maximum risks immediate device damage.",
+                derating_rule="exceeds_abs_max", rail=max_rail_name, rail_voltage=max_rail_v,
+                abs_max_vin=vin_max, margin_pct=round(margin_pct, 1),
+            ))
         elif margin_pct < 10:
-            derating_issues.append({"ref": ref, "value": comp["value"], "component_type": "ic",
-                                    "rail": max_rail_name, "rail_voltage": max_rail_v,
-                                    "abs_max_vin": vin_max, "margin_pct": round(margin_pct, 1),
-                                    "derating_rule": "ic_10pct_abs_max", "data_source": "extraction_cache",
-                                    "severity": "warning"})
+            findings.append(make_finding(
+                detector="analyze_voltage_derating", rule_id="VD-002",
+                category="component_derating",
+                summary=f"{ref} operates near datasheet absolute-max voltage on {max_rail_name} ({round(margin_pct, 1)}% margin)",
+                description=(f"{ref} ({comp['value']}) sees {max_rail_v:.1f}V on {max_rail_name}; datasheet "
+                             f"absolute-max input is {vin_max:.1f}V. Only {round(margin_pct, 1)}% margin."),
+                severity="warning", confidence="datasheet-backed", evidence_source="datasheet",
+                components=[ref], nets=[max_rail_name],
+                recommendation="Confirm worst-case rail tolerance leaves margin to absolute max.",
+                derating_rule="ic_10pct_abs_max", rail=max_rail_name, rail_voltage=max_rail_v,
+                abs_max_vin=vin_max, margin_pct=round(margin_pct, 1),
+            ))
 
     # ---- Resistor power dissipation check ----
     for comp in components:
@@ -5415,7 +7298,6 @@ def analyze_voltage_derating(ctx: AnalysisContext, signal_analysis: dict,
         rated_power = _RESISTOR_POWER_RATING.get(pkg)
         if not rated_power:
             continue
-        resistors_checked += 1
         max_working_power = rated_power * profile["resistor_power"]
         margin_pct = ((rated_power - power_w) / rated_power) * 100 if rated_power > 0 else 0
         severity = derating_rule = None
@@ -5424,12 +7306,24 @@ def analyze_voltage_derating(ctx: AnalysisContext, signal_analysis: dict,
         elif power_w > max_working_power:
             severity, derating_rule = "warning", "resistor_50pct_power"
         if severity:
-            derating_issues.append({"ref": ref, "value": comp["value"], "component_type": "resistor",
-                                    "rail": pwr_net or n1, "voltage_across": v_across,
-                                    "resistance_ohms": pv, "estimated_power_w": round(power_w, 4),
-                                    "rated_power_w": rated_power, "package": pkg,
-                                    "margin_pct": round(margin_pct, 1), "derating_rule": derating_rule,
-                                    "severity": severity})
+            findings.append(make_finding(
+                detector="analyze_voltage_derating", rule_id="VD-003",
+                category="component_derating",
+                summary=(f"{ref} ({comp['value']}) {'exceeds' if severity == 'critical' else 'has marginal'} "
+                         f"power derating ({power_w*1000:.0f}mW on {rated_power*1000:.0f}mW {pkg})"),
+                description=(f"{ref} dissipates ~{power_w*1000:.0f}mW ({v_across:.1f}V across {pv:.0f}Ω); "
+                             f"{pkg} package rated {rated_power*1000:.0f}mW. Derating rule: {derating_rule}. "
+                             f"Margin {round(margin_pct, 1)}%."),
+                severity="error" if severity == "critical" else "warning",
+                confidence="heuristic", evidence_source="topology",
+                components=[ref], nets=[pwr_net or n1] if (pwr_net or n1) else [],
+                recommendation=("Use a larger package or higher power rating." if severity == "critical"
+                                else "Consider a larger package for power derating margin."),
+                impact="Resistor may overheat or fail open." if severity == "critical" else "",
+                derating_rule=derating_rule, voltage_across=v_across, resistance_ohms=pv,
+                estimated_power_w=round(power_w, 4), rated_power_w=rated_power, package=pkg,
+                margin_pct=round(margin_pct, 1),
+            ))
         elif margin_pct > profile["over_designed_res_margin"] * 100:
             pkg_sizes = ["0201", "0402", "0603", "0805", "1206", "1210", "2010", "2512"]
             suggested_pkg = None
@@ -5442,40 +7336,20 @@ def analyze_voltage_derating(ctx: AnalysisContext, signal_analysis: dict,
             if suggested_pkg and suggested_pkg != pkg:
                 suggestion = (f"Consider {suggested_pkg} package — {pkg} is significantly "
                               f"over-designed ({power_w*1000:.1f}mW vs {rated_power*1000:.0f}mW rated)")
-            over_designed.append({"ref": ref, "value": comp["value"], "component_type": "resistor",
-                                  "package": pkg, "estimated_power_w": round(power_w, 4),
-                                  "rated_power_w": rated_power, "margin_pct": round(margin_pct, 1),
-                                  "suggestion": suggestion})
+            findings.append(make_finding(
+                detector="analyze_voltage_derating", rule_id="VD-004",
+                category="component_derating",
+                summary=f"{ref} ({comp['value']}) package is over-designed ({power_w*1000:.1f}mW in {pkg})",
+                description=f"{ref} dissipates ~{power_w*1000:.1f}mW in a {pkg} ({rated_power*1000:.0f}mW rated) — margin {round(margin_pct, 1)}%.",
+                severity="info", confidence="heuristic", evidence_source="topology",
+                components=[ref], nets=[],
+                recommendation=suggestion or "Consider a smaller package to reduce cost/size.",
+                derating_rule="over_designed", estimated_power_w=round(power_w, 4),
+                rated_power_w=rated_power, package=pkg, margin_pct=round(margin_pct, 1),
+            ))
 
-    # ---- Build result ----
-    total_checked = caps_checked + ics_checked + resistors_checked
-    if not derating_issues and not over_designed and total_checked == 0:
-        return {}
-
-    result: dict = {
-        "derating_profile": derating_profile,
-        "caps_checked": caps_checked, "ics_checked": ics_checked, "resistors_checked": resistors_checked,
-        "issues": derating_issues,
-    }
-    observations = []
-    cap_critical = [i for i in derating_issues if i.get("component_type") == "capacitor" and i["severity"] == "critical"]
-    cap_warnings = [i for i in derating_issues if i.get("component_type") == "capacitor" and i["severity"] == "warning"]
-    ic_issues = [i for i in derating_issues if i.get("component_type") == "ic"]
-    res_issues = [i for i in derating_issues if i.get("component_type") == "resistor"]
-    if cap_critical:
-        observations.append(f"{len(cap_critical)} cap(s) exceed rated voltage — risk of failure")
-    if cap_warnings:
-        observations.append(f"{len(cap_warnings)} cap(s) have insufficient voltage derating margin")
-    if ic_issues:
-        observations.append(f"{len(ic_issues)} IC(s) operating near or beyond absolute maximum voltage")
-    if res_issues:
-        observations.append(f"{len(res_issues)} resistor(s) exceed power derating limit")
-    if over_designed:
-        result["over_designed"] = over_designed
-        observations.append(f"{len(over_designed)} component(s) significantly over-designed — potential cost/size optimization")
-    if observations:
-        result["observations"] = observations
-    return result
+    # ---- Return findings ----
+    return findings
 
 
 def analyze_protocol_compliance(components: list[dict], nets: dict,
@@ -5496,10 +7370,10 @@ def analyze_protocol_compliance(components: list[dict], nets: dict,
         for sda in sda_entries:
             checks, issues, obs = {}, [], []
             sda_net = sda["net"]
-            sda_devs = set(sda.get("devices", []))
+            sda_devs = set(d["ref"] if isinstance(d, dict) else d for d in sda.get("devices", []))
             scl = scl_net = None
             for s in scl_entries:
-                if set(s.get("devices", [])) & sda_devs:
+                if set(d["ref"] if isinstance(d, dict) else d for d in s.get("devices", [])) & sda_devs:
                     scl, scl_net = s, s["net"]
                     break
             sda_pullups = sda.get("pull_ups", [])
@@ -5551,7 +7425,8 @@ def analyze_protocol_compliance(components: list[dict], nets: dict,
                 pu_voltage = _estimate_rail_voltage(pu_rail) if pu_rail else None
                 device_voltages = set()
                 for dev in sda.get("devices", []):
-                    for rail_info in power_domains.get(dev, {}).get("power_rails", []):
+                    dev_ref = dev["ref"] if isinstance(dev, dict) else dev
+                    for rail_info in power_domains.get(dev_ref, {}).get("power_rails", []):
                         v = _estimate_rail_voltage(rail_info) if isinstance(rail_info, str) else None
                         if v:
                             device_voltages.add(v)
@@ -5563,9 +7438,73 @@ def analyze_protocol_compliance(components: list[dict], nets: dict,
                     if mismatched:
                         issues.append(f"Pull-up rail {pu_rail} ({pu_voltage}V) but device(s) on "
                                       f"{', '.join(f'{v}V' for v in mismatched)} — voltage mismatch")
+            # KH: I2C open-drain VOL compatibility
+            # I2C spec: VOL_max = 0.4V for standard/fast mode
+            # With pull-up R and sink current I_OL: VOL = I_OL × R_on
+            # If pull-up too strong (low R) relative to device sink current,
+            # VOL may exceed 0.4V threshold
+            if sda_pullups:
+                min_pu_ohms = min(pu.get("ohms", 10000) for pu in sda_pullups)
+                # I2C spec sink current: 3mA standard, 6mA fast, 20mA fast+
+                # Derive speed mode from rise time checks
+                speed = "standard"
+                if "rise_time" in checks:
+                    rt = checks["rise_time"]
+                    sda_rt = rt.get("sda", {})
+                    if sda_rt.get("valid_400khz"):
+                        speed = "fast"
+                iol_ma = {"standard": 3, "fast": 6, "fast_plus": 20,
+                          "high_speed": 20}.get(speed, 3)
+                # Max pull-up for VOL < 0.4V: R_max = 0.4V / I_OL
+                r_max_for_vol = 0.4 / (iol_ma * 1e-3) if iol_ma > 0 else 10000
+                if min_pu_ohms > r_max_for_vol:
+                    issues.append(
+                        f"Pull-up {min_pu_ohms:.0f}\u03a9 may not meet VOL<0.4V spec "
+                        f"at {speed} mode ({iol_ma}mA sink): max {r_max_for_vol:.0f}\u03a9")
+                    checks["vol_compatibility"] = {
+                        "status": "warning",
+                        "pull_up_ohms": min_pu_ohms,
+                        "max_for_vol": round(r_max_for_vol),
+                        "iol_ma": iol_ma,
+                        "speed_mode": speed,
+                    }
+
+            # I2C bus current budget
+            # Each device on the bus contributes leakage current (typically 1-10µA)
+            # Total must not exceed pull-up sourcing capability
+            n_devices = len(sda_devs)
+            if n_devices > 0 and sda_pullups:
+                # Conservative: 10µA leakage per device
+                total_leakage_ua = n_devices * 10
+                min_pu = min(pu.get("ohms", 10000) for pu in sda_pullups)
+                pu_voltage = checks.get("voltage_compatibility", {}).get("pull_up_voltage")
+                if pu_voltage:
+                    pull_up_current_ua = (pu_voltage / min_pu) * 1e6
+                    if total_leakage_ua > pull_up_current_ua * 0.1:
+                        # Leakage exceeds 10% of pull-up current
+                        checks["bus_current_budget"] = {
+                            "status": "warning",
+                            "device_count": n_devices,
+                            "estimated_leakage_ua": total_leakage_ua,
+                            "pull_up_current_ua": round(pull_up_current_ua),
+                        }
+                        issues.append(
+                            f"I2C bus has {n_devices} devices with ~{total_leakage_ua}\u00b5A "
+                            f"total leakage vs {pull_up_current_ua:.0f}\u00b5A pull-up capacity")
+
             if checks:
+                # Merge SDA + SCL device lists, deduplicate by ref
+                _all_devs = sda.get("devices", []) + (scl.get("devices", []) if scl else [])
+                _seen_refs: set[str] = set()
+                _merged_devs: list = []
+                for _d in _all_devs:
+                    _r = _d["ref"] if isinstance(_d, dict) else _d
+                    if _r not in _seen_refs:
+                        _seen_refs.add(_r)
+                        _merged_devs.append(_d)
+                _merged_devs.sort(key=lambda d: d["ref"] if isinstance(d, dict) else d)
                 entry_result = {"protocol": "i2c", "sda_net": sda_net, "scl_net": scl_net,
-                                "devices": sorted(set(sda.get("devices", []) + (scl.get("devices", []) if scl else []))),
+                                "devices": _merged_devs,
                                 "checks": checks}
                 if issues:
                     entry_result["issues"] = issues
@@ -5576,13 +7515,56 @@ def analyze_protocol_compliance(components: list[dict], nets: dict,
     # ---- SPI validation ----
     for spi in buses.get("spi", []):
         issues = []
+        spi_checks: dict = {}
         load_count = spi.get("load_count", 0)
         cs_count = spi.get("chip_select_count", 0)
         if load_count > 1 and cs_count < load_count - 1:
             issues.append(f"{load_count} SPI devices but only {cs_count} CS line(s) — need {load_count - 1}")
-        if issues:
-            findings.append({"protocol": "spi", "bus_id": spi.get("bus_id", ""),
-                             "load_count": load_count, "chip_select_count": cs_count, "issues": issues})
+
+        # SPI clock frequency advisory
+        # High device counts (>4 devices) increase capacitive loading on SCK
+        spi_sigs = spi.get("signals", {})
+        sck_sig = spi_sigs.get("SCK", {})
+        n_spi_devs = len(sck_sig.get("devices", [])) if isinstance(sck_sig, dict) else 0
+        if n_spi_devs == 0:
+            n_spi_devs = load_count
+        if n_spi_devs > 4:
+            issues.append(
+                f"SPI bus has {n_spi_devs} devices — capacitive loading may "
+                f"limit maximum clock frequency. Consider buffered clock.")
+            spi_checks["device_loading"] = {
+                "status": "warning",
+                "device_count": n_spi_devs,
+            }
+
+        # SPI signal integrity advisory for high-speed designs
+        # Flag when SPI bus has >2 devices and no series termination detected
+        if n_spi_devs > 2:
+            has_series_r = False
+            for sig_name in ("MOSI", "MISO", "SCK"):
+                sig = spi_sigs.get(sig_name, {})
+                if isinstance(sig, dict):
+                    for dev_ref in sig.get("devices", []):
+                        comp = next((c for c in components if c["reference"] == dev_ref), None)
+                        if comp and comp.get("type") == "resistor":
+                            has_series_r = True
+                            break
+                if has_series_r:
+                    break
+            if not has_series_r:
+                spi_checks["signal_integrity"] = {
+                    "status": "advisory",
+                    "detail": "No series termination detected on multi-device SPI bus",
+                }
+
+        if issues or spi_checks:
+            entry: dict = {"protocol": "spi", "bus_id": spi.get("bus_id", ""),
+                           "load_count": load_count, "chip_select_count": cs_count}
+            if issues:
+                entry["issues"] = issues
+            if spi_checks:
+                entry["checks"] = spi_checks
+            findings.append(entry)
 
     # ---- UART validation ----
     uart_buses = buses.get("uart", [])
@@ -5594,6 +7576,58 @@ def analyze_protocol_compliance(components: list[dict], nets: dict,
                 if len(domains) >= 2:
                     findings.append({"protocol": "uart", "net": xd["net"],
                                      "issues": [f"UART signal crosses voltage domains ({', '.join(domains)}) — level shifter may be needed"]})
+
+    # RS-232 transceiver detection and swing validation
+    if uart_buses:
+        _rs232_keywords = ("max232", "sp232", "sp3232", "max3232", "st3232",
+                           "icl232", "adm232", "sipex", "rs232", "rs-232",
+                           "max202", "max211", "max213")
+        # Build quick lookup from components list
+        _comp_by_ref: dict = {c["reference"]: c for c in components}
+        rs232_xcvrs: list[str] = []
+        for uart_entry in uart_buses:
+            for dev in uart_entry.get("devices", []):
+                dev_ref = dev["ref"] if isinstance(dev, dict) else dev
+                c = _comp_by_ref.get(dev_ref, {})
+                val_lib = (c.get("value", "") + " " + c.get("lib_id", "")).lower()
+                if any(k in val_lib for k in _rs232_keywords):
+                    if dev_ref not in rs232_xcvrs:
+                        rs232_xcvrs.append(dev_ref)
+
+        if rs232_xcvrs:
+            uart_checks: dict = {}
+            uart_issues: list[str] = []
+            uart_checks["rs232_transceiver"] = {
+                "status": "pass",
+                "transceivers": rs232_xcvrs,
+                "detail": f"RS-232 transceiver(s) detected: {', '.join(rs232_xcvrs)}",
+            }
+            # Check for charge pump capacitors (RS-232 transceivers need external caps)
+            cap_count = 0
+            _seen_caps: set[str] = set()
+            for xcvr_ref in rs232_xcvrs:
+                for (pref, _pnum), (net_name, _) in pin_net.items():
+                    if pref != xcvr_ref:
+                        continue
+                    if net_name and net_name in nets:
+                        for p in nets[net_name]["pins"]:
+                            pc = _comp_by_ref.get(p.get("component", ""), {})
+                            if pc.get("type") == "capacitor" and pc["reference"] not in _seen_caps:
+                                _seen_caps.add(pc["reference"])
+                                cap_count += 1
+            if cap_count < 4:  # Most RS-232 transceivers need 4-5 charge pump caps
+                uart_issues.append(
+                    f"RS-232 transceiver {rs232_xcvrs[0]} may have insufficient "
+                    f"charge pump capacitors (found ~{cap_count}, typical: 4-5)")
+                uart_checks["rs232_charge_pump_caps"] = {
+                    "status": "warning",
+                    "caps_found": cap_count,
+                    "typical_required": 4,
+                }
+            uart_finding: dict = {"protocol": "uart", "checks": uart_checks}
+            if uart_issues:
+                uart_finding["issues"] = uart_issues
+            findings.append(uart_finding)
 
     # ---- CAN validation ----
     diff_pairs = design_analysis.get("differential_pairs", [])
@@ -5619,7 +7653,7 @@ def analyze_protocol_compliance(components: list[dict], nets: dict,
 
     if not findings:
         return {}
-    return {"protocols_checked": list({f["protocol"] for f in findings}), "findings": findings,
+    return {"protocols_checked": sorted({f["protocol"] for f in findings}), "findings": findings,
             "total_issues": sum(len(f.get("issues", []) or []) for f in findings)}
 
 
@@ -5656,6 +7690,18 @@ def analyze_power_budget(ctx: AnalysisContext,
         "usb": 50, "uart": 5, "spi": 5, "i2c": 5,
     }
 
+    # Map regulators to output rails (built first: candidate_rails below
+    # needs it so a regulator's output rail counts even when its name
+    # doesn't look power-y and carries no #PWR symbol -- KH-375).
+    reg_by_rail: dict[str, dict] = {}
+    for reg in signal_analysis.get("power_regulators", []):
+        out_rail = reg.get("output_rail")
+        if out_rail:
+            reg_by_rail[out_rail] = reg
+
+    # Rails of interest: power-named nets, plus regulator output rails.
+    candidate_rails = {n for n in nets if is_power_net(n) and not is_ground(n)} | set(reg_by_rail)
+
     # Build power domain mapping: rail -> list of ICs
     rail_ics: dict[str, list[dict]] = {}
     for comp in components:
@@ -5663,33 +7709,36 @@ def analyze_power_budget(ctx: AnalysisContext,
             continue
         ref = comp["reference"]
         for pnum, (net_name, _) in ref_pins.get(ref, {}).items():
-            if net_name and is_power_net(net_name) and not is_ground(net_name):
-                # Check if this is a power pin (by pin type or name)
-                if net_name in nets:
-                    for p in nets[net_name]["pins"]:
-                        if p["component"] == ref:
-                            ptype = p.get("pin_type", "")
-                            pname = p.get("pin_name", "").upper()
-                            if ptype == "power_in" or pname in (
-                                "VCC", "VDD", "AVCC", "AVDD", "VDDIO", "DVDD",
-                                "VIN", "VCCA", "VCCB", "VDDQ", "VBUS"
-                            ):
-                                ic_entry = {
-                                    "ref": ref,
-                                    "value": comp["value"],
-                                }
-                                # Estimate current
-                                val_lower = comp.get("value", "").lower()
-                                lib_lower = comp.get("lib_id", "").lower()
-                                search_str = val_lower + " " + lib_lower
-                                est_ma = 10  # default
-                                for kw, ma in ic_current_estimates.items():
-                                    if kw in search_str:
-                                        est_ma = ma
-                                        break
-                                ic_entry["estimated_mA"] = est_ma
-                                rail_ics.setdefault(net_name, []).append(ic_entry)
-                            break
+            if net_name and net_name in candidate_rails:
+                # Look up THE ITERATED PIN specifically -- KH-375: this used
+                # to check the first pin `nets[net_name]["pins"]` listed for
+                # this component and `break`, which could be a non-power pin
+                # that happened to sort first (e.g. ~{SRCLR} before VCC).
+                pin = next((p for p in nets[net_name]["pins"]
+                           if p["component"] == ref
+                           and str(p.get("pin_number")) == str(pnum)), None)
+                if pin:
+                    ptype = pin.get("pin_type", "")
+                    pname = pin.get("pin_name", "").upper()
+                    if ptype == "power_in" or pname in (
+                        "VCC", "VDD", "AVCC", "AVDD", "VDDIO", "DVDD",
+                        "VIN", "VCCA", "VCCB", "VDDQ", "VBUS"
+                    ):
+                        ic_entry = {
+                            "ref": ref,
+                            "value": comp["value"],
+                        }
+                        # Estimate current
+                        val_lower = comp.get("value", "").lower()
+                        lib_lower = comp.get("lib_id", "").lower()
+                        search_str = val_lower + " " + lib_lower
+                        est_ma = 10  # default
+                        for kw, ma in ic_current_estimates.items():
+                            if kw in search_str:
+                                est_ma = ma
+                                break
+                        ic_entry["estimated_mA"] = est_ma
+                        rail_ics.setdefault(net_name, []).append(ic_entry)
 
     # Deduplicate ICs per rail (an IC may have multiple power pins on same rail)
     for rail in rail_ics:
@@ -5701,18 +7750,63 @@ def analyze_power_budget(ctx: AnalysisContext,
                 deduped.append(ic)
         rail_ics[rail] = deduped
 
-    # Map regulators to output rails
-    reg_by_rail: dict[str, dict] = {}
-    for reg in signal_analysis.get("power_regulators", []):
-        out_rail = reg.get("output_rail")
-        if out_rail:
-            reg_by_rail[out_rail] = reg
+    # Resistor net index (built once): net -> [resistor refs with a pin
+    # there]. Used below so an LED one hop behind a series resistor
+    # (rail -> R -> LED -> GND, the common wiring on real boards) still
+    # gets attributed to its rail.
+    resistor_nets: dict[str, tuple[str | None, str | None]] = {}
+    net_to_resistors: dict[str, list[str]] = {}
+    for comp in components:
+        if comp["type"] != "resistor":
+            continue
+        rref = comp["reference"]
+        rn1, rn2 = ctx.get_two_pin_nets(rref)
+        resistor_nets[rref] = (rn1, rn2)
+        for n in (rn1, rn2):
+            if n:
+                net_to_resistors.setdefault(n, []).append(rref)
 
-    if not rail_ics and not reg_by_rail:
+    # Non-IC loads (KH-375): LEDs draw real current; 5 mA nominal each.
+    rail_other: dict[str, list[dict]] = {}
+    for comp in components:
+        if comp["type"] != "led":
+            continue
+        n1, n2 = ctx.get_two_pin_nets(comp["reference"])
+        direct_rail = next((n for n in (n1, n2)
+                            if n in candidate_rails and not is_ground(n)), None)
+        if direct_rail:
+            rail_other.setdefault(direct_rail, []).append(
+                {"ref": comp["reference"], "type": "led", "estimated_mA": 5})
+            continue
+        # One resistor hop away: rail -> R -> LED (or LED -> R -> rail).
+        # Neither LED pin sits on a candidate rail directly, so look past
+        # the series resistor(s) tied to either LED pin for one that lands
+        # on a candidate rail on its far end. The anchor net (the LED's own
+        # pin) must NOT be ground or a candidate rail itself -- ground is a
+        # shared bus, not a series element, so anchoring through it would
+        # attribute the LED to any unrelated resistor that happens to sit
+        # between GND and some rail (e.g. a bleeder resistor) even when the
+        # LED has no series resistor of its own.
+        reachable_via: dict[str, str] = {}
+        for n in (n1, n2):
+            if not n or is_ground(n) or n in candidate_rails:
+                continue
+            for rref in net_to_resistors.get(n, []):
+                rn1, rn2 = resistor_nets[rref]
+                other_net = rn2 if rn1 == n else rn1
+                if other_net and other_net in candidate_rails and not is_ground(other_net):
+                    reachable_via.setdefault(other_net, rref)
+        if reachable_via:
+            rail = sorted(reachable_via)[0]
+            rail_other.setdefault(rail, []).append(
+                {"ref": comp["reference"], "type": "led", "estimated_mA": 5,
+                 "via": reachable_via[rail]})
+
+    if not rail_ics and not reg_by_rail and not rail_other:
         return {}
 
     # All rails of interest
-    all_rails = set(rail_ics.keys()) | set(reg_by_rail.keys())
+    all_rails = set(rail_ics.keys()) | set(reg_by_rail.keys()) | set(rail_other.keys())
 
     rails_result = {}
     observations = []
@@ -5720,12 +7814,15 @@ def analyze_power_budget(ctx: AnalysisContext,
     for rail in sorted(all_rails):
         ics = rail_ics.get(rail, [])
         total_ic_mA = sum(ic["estimated_mA"] for ic in ics)
+        other = rail_other.get(rail, [])
 
         rail_info: dict = {
             "ic_count": len(ics),
             "ics": ics,
-            "estimated_load_mA": total_ic_mA,
+            "estimated_load_mA": total_ic_mA + sum(o["estimated_mA"] for o in other),
         }
+        if other:
+            rail_info["other_loads"] = other
 
         reg = reg_by_rail.get(rail)
         if reg:
@@ -5739,12 +7836,14 @@ def analyze_power_budget(ctx: AnalysisContext,
             if v_out:
                 rail_info["regulator"]["output_voltage"] = v_out
 
-            # LDO thermal dissipation
+            # LDO thermal dissipation: uses the rail's total load (ICs +
+            # other loads like LEDs) -- KH-375/KH-386 need the same number.
             if reg.get("topology") == "LDO" and v_in_rail and v_out:
                 v_in = _estimate_rail_voltage(v_in_rail)
                 if v_in and v_in > v_out:
+                    total_load_mA = rail_info["estimated_load_mA"]
                     v_drop = v_in - v_out
-                    power_w = v_drop * (total_ic_mA / 1000.0)
+                    power_w = v_drop * (total_load_mA / 1000.0)
                     rail_info["ldo_dissipation"] = {
                         "input_voltage": v_in,
                         "dropout": round(v_drop, 2),
@@ -5753,7 +7852,7 @@ def analyze_power_budget(ctx: AnalysisContext,
                     if power_w > 0.5:
                         observations.append(
                             f"{rail}: LDO {reg['ref']} dissipates ~{power_w * 1000:.0f} mW "
-                            f"({v_drop:.1f}V drop x {total_ic_mA} mA) — verify thermal rating"
+                            f"({v_drop:.1f}V drop x {total_load_mA} mA) — verify thermal rating"
                         )
 
         rails_result[rail] = rail_info
@@ -5993,7 +8092,7 @@ def analyze_bom_optimization(components: list[dict]) -> dict:
         val_str = c.get("value", "")
         fp = c.get("footprint", "") or "unknown"
         cap_by_value.setdefault(val_str, {}).setdefault(fp, []).append(c["reference"])
-        val = parse_value(val_str)
+        val = parse_value(val_str, component_type="capacitor")
         if val and val > 0:
             c_values.setdefault(val, []).append(c["reference"])
 
@@ -6366,9 +8465,14 @@ def analyze_usb_compliance(ctx: AnalysisContext,
 
     # Find USB connectors
     usb_connectors = []
+    _seen_refs = set()
     for comp in components:
         if comp["type"] != "connector":
             continue
+        ref = comp["reference"]
+        if ref in _seen_refs:
+            continue
+        _seen_refs.add(ref)
         val = comp.get("value", "").upper()
         fp = comp.get("footprint", "").upper()
         lib = comp.get("lib_id", "").upper()
@@ -6376,7 +8480,7 @@ def analyze_usb_compliance(ctx: AnalysisContext,
         if "USB" in combined:
             is_type_c = any(k in combined for k in ("USB_C", "USBC", "TYPE-C", "TYPE_C", "TYPEC"))
             usb_connectors.append({
-                "ref": comp["reference"],
+                "ref": ref,
                 "value": comp.get("value", ""),
                 "is_type_c": is_type_c,
             })
@@ -6385,6 +8489,7 @@ def analyze_usb_compliance(ctx: AnalysisContext,
         return {}
 
     checklist = []
+    usb_findings: list[dict] = []
 
     for conn in usb_connectors:
         ref = conn["ref"]
@@ -6588,10 +8693,16 @@ def analyze_usb_compliance(ctx: AnalysisContext,
                 vbus_net = net_name
                 break
 
+        # Shared ESD-part keyword list: vbus_esd_protection credit (KH-338)
+        # + the usb_esd_ic check below.
+        esd_keywords = ("usblc", "prtr5v", "ip4", "sp0", "tpd", "esd", "pesd",
+                        "rclamp", "nup", "lesd")
+
         if vbus_net and vbus_net in nets:
             # ESD/TVS on VBUS
             has_esd = False
             has_decoupling = False
+            vbus_caps: list[dict] = []
             for p in nets[vbus_net]["pins"]:
                 pc = comp_lookup.get(p["component"])
                 if not pc:
@@ -6602,16 +8713,49 @@ def analyze_usb_compliance(ctx: AnalysisContext,
                     if any(k in val_lower or k in lib_lower
                            for k in ("tvs", "esd", "smaj", "smbj", "p6ke")):
                         has_esd = True
+                elif pc["type"] == "ic":
+                    # KH-338: ESD arrays (USBLC6 etc.) protect VBUS through
+                    # their own VBUS pin — credit them even when the net is
+                    # unnamed (resolution is by connector pin, not net name).
+                    _combined = (pc.get("value", "") + " "
+                                 + pc.get("lib_id", "")).lower()
+                    if any(k in _combined for k in esd_keywords):
+                        has_esd = True
                 if pc["type"] == "capacitor":
                     has_decoupling = True
+                    cap_val = parse_value(pc.get("value", ""), component_type="capacitor")
+                    if cap_val and cap_val > 0:
+                        vbus_caps.append({
+                            "ref": pc["reference"],
+                            "value": pc.get("value", ""),
+                            "farads": cap_val,
+                        })
 
             conn_checks["checks"]["vbus_esd_protection"] = "pass" if has_esd else "fail"
             conn_checks["checks"]["vbus_decoupling"] = "pass" if has_decoupling else "fail"
 
+            # USB VBUS capacitor sizing
+            # USB 2.0: 1-10µF bulk + 100nF local recommended
+            # USB 3.x: 10-120µF for higher power
+            # USB PD: up to 100µF for 100W
+            if vbus_caps:
+                total_uf = sum(c["farads"] for c in vbus_caps) * 1e6
+                if total_uf < 1.0:
+                    conn_checks["checks"]["vbus_capacitance"] = "warning"
+                    conn_checks["vbus_capacitance_detail"] = {
+                        "total_uf": round(total_uf, 2),
+                        "recommended_min_uf": 1.0,
+                        "detail": (f"VBUS decoupling may be insufficient: {total_uf:.1f}\u00b5F total "
+                                   f"(recommended \u22651\u00b5F for USB 2.0, \u226510\u00b5F for USB 3.x)"),
+                    }
+                else:
+                    conn_checks["checks"]["vbus_capacitance"] = "pass"
+                    conn_checks["vbus_capacitance_detail"] = {
+                        "total_uf": round(total_uf, 2),
+                    }
+
         # --- USB ESD protection ICs ---
         esd_ic_found = False
-        esd_keywords = ("usblc", "prtr5v", "ip4", "sp0", "tpd", "esd", "pesd",
-                        "rclamp", "nup", "lesd")
         for comp_c in components:
             if comp_c["type"] not in ("ic", "diode"):
                 continue
@@ -6626,6 +8770,84 @@ def analyze_usb_compliance(ctx: AnalysisContext,
                     break
 
         conn_checks["checks"]["usb_esd_ic"] = "pass" if esd_ic_found else "info"
+
+        # KH-338: promote failed checks to rich findings so they reach
+        # findings[] / summaries instead of living only in this aux section.
+        _uc_specs = {
+            "vbus_decoupling": (
+                "UC-001",
+                f"No decoupling capacitor on VBUS at {ref}",
+                f"USB connector {ref}: no capacitor found on the VBUS net. "
+                f"USB 2.0 recommends >=1uF bulk + 100nF local decoupling on VBUS.",
+                f"Add bulk (>=1uF) + 100nF decoupling on VBUS near {ref}.",
+                [vbus_net] if vbus_net else [],
+            ),
+            "vbus_esd_protection": (
+                "UC-002",
+                f"No ESD/TVS protection on VBUS at {ref}",
+                f"USB connector {ref}: no TVS diode or ESD array found on the "
+                f"VBUS net. VBUS is exposed to external ESD/surge events.",
+                f"Add a TVS diode or ESD array on VBUS at {ref}.",
+                [vbus_net] if vbus_net else [],
+            ),
+            "cc1_pulldown_5k1": (
+                "UC-003",
+                f"CC1 missing 5.1k pull-down at {ref}",
+                f"USB-C sink {ref}: CC1 has no 5.1k pull-down to GND and no "
+                f"PD controller was found. A source will not present VBUS.",
+                f"Add a 5.1k pull-down on CC1 (or a PD controller) at {ref}.",
+                [],
+            ),
+            "cc2_pulldown_5k1": (
+                "UC-003",
+                f"CC2 missing 5.1k pull-down at {ref}",
+                f"USB-C sink {ref}: CC2 has no 5.1k pull-down to GND and no "
+                f"PD controller was found. A source will not present VBUS.",
+                f"Add a 5.1k pull-down on CC2 (or a PD controller) at {ref}.",
+                [],
+            ),
+        }
+        for _check_name, _spec in _uc_specs.items():
+            if conn_checks["checks"].get(_check_name) != "fail":
+                continue
+            _rid, _summary, _desc, _rec, _nets_f = _spec
+            usb_findings.append(make_finding(
+                detector="analyze_usb_compliance",
+                rule_id=_rid,
+                category="usb_compliance",
+                summary=_summary,
+                description=_desc,
+                severity="warning",
+                confidence="deterministic",
+                evidence_source="topology",
+                components=[ref],
+                nets=[n for n in _nets_f if n],
+                recommendation=_rec,
+                report_section="USB Compliance",
+                impact="USB functionality / robustness",
+                check=_check_name,
+            ))
+        if conn_checks["checks"].get("vbus_capacitance") == "warning":
+            _detail = conn_checks.get("vbus_capacitance_detail", {})
+            usb_findings.append(make_finding(
+                detector="analyze_usb_compliance",
+                rule_id="UC-004",
+                category="usb_compliance",
+                summary=(f"VBUS decoupling may be undersized at {ref} "
+                         f"({_detail.get('total_uf')}uF total)"),
+                description=_detail.get(
+                    "detail", "VBUS capacitance below recommended minimum."),
+                severity="warning",
+                confidence="deterministic",
+                evidence_source="topology",
+                components=[ref],
+                nets=[vbus_net] if vbus_net else [],
+                recommendation=(f"Increase VBUS bulk capacitance at {ref} "
+                                f"to >=1uF (USB 2.0)."),
+                report_section="USB Compliance",
+                impact="VBUS droop on connect",
+                check="vbus_capacitance",
+            ))
 
         checklist.append(conn_checks)
 
@@ -6647,6 +8869,8 @@ def analyze_usb_compliance(ctx: AnalysisContext,
         "connectors": checklist,
         "summary": all_checks,
     }
+    if usb_findings:
+        result["findings"] = usb_findings
     if observations:
         result["observations"] = observations
     return result
@@ -6753,25 +8977,98 @@ def analyze_inrush_current(ctx: AnalysisContext,
     return result
 
 
-def analyze_schematic(path: str) -> dict:
-    """Main analysis function. Returns complete structured data.
+def detect_sub_sheet(root_tree: list, file_path: str = None) -> bool:
+    """Detect whether a parsed schematic is a sub-sheet (not the root).
 
-    For hierarchical designs (multi-sheet), recursively parses all sub-sheets
-    and merges connectivity. Global and hierarchical labels connect nets across sheets.
+    Uses a multi-tier heuristic (KH-228, refined KH-304/306):
+      1. symbol_instances present → ROOT (KiCad 7+ roots always have this)
+      2. sheet blocks present AND not referenced by sibling → ROOT
+         (KH-304: intermediate nodes also have sheet blocks; check
+         whether a sibling file references us as a child.)
+      3. .kicad_pro stem matches file stem → ROOT
+         (KH-306: when multiple .kicad_pro exist, only match if ANY
+         stem matches; don't blindly pick the first.)
+      4. hierarchical_label presence → SUB-SHEET (original heuristic)
+      5. Default: not a sub-sheet (standalone single-sheet design)
     """
-    # Detect legacy format
-    with open(path, "r", encoding="utf-8", errors="replace") as f:
-        first_line = f.readline().strip()
+    # Tier 1: symbol_instances is definitive for KiCad 7+ roots
+    has_symbol_instances = find_first(root_tree, "symbol_instances") is not None
+    if has_symbol_instances:
+        return False
 
-    if first_line.startswith("EESchema"):
-        return parse_legacy_schematic(path)
+    # Tier 2: Files with (sheet ...) blocks reference other sheets → root
+    # KH-304: intermediate sub-sheets also have sheet blocks (they have
+    # children). Check if any sibling file references US as a child —
+    # if so, we're an intermediate node, not the root.
+    has_sheet_blocks = len(find_all(root_tree, "sheet")) > 0
+    if has_sheet_blocks:
+        if file_path:
+            from kicad_utils import is_referenced_as_child
+            if is_referenced_as_child(file_path):
+                return True  # Intermediate node — has children but IS a child
+        return False  # Has children, not referenced → root
 
-    # Parse root sheet and all sub-sheets recursively.
-    # Multi-instance support: a sub-sheet file can be referenced multiple times
-    # by the parent (e.g., 3 identical half-bridge phases). Each instance has a
-    # unique UUID in the parent's (sheet) block. Component references are
-    # remapped per instance via the (instances) block in each symbol, OR via
-    # the centralized (symbol_instances) section in the root schematic.
+    # Tier 3: .kicad_pro stem matching (reliable across all KiCad versions)
+    # KH-306: when multiple .kicad_pro exist, check ALL of them.
+    if file_path:
+        parent_dir = os.path.dirname(os.path.abspath(file_path))
+        file_stem = os.path.splitext(os.path.basename(file_path))[0]
+        try:
+            pro_stems = [fname[:-len('.kicad_pro')]
+                         for fname in os.listdir(parent_dir)
+                         if fname.endswith('.kicad_pro')]
+            if pro_stems:
+                if file_stem in pro_stems:
+                    return False  # This file IS a root
+                else:
+                    return True   # Project(s) exist but this isn't any of them
+        except OSError:
+            pass
+
+    # Tier 4: hierarchical_label presence (original heuristic)
+    has_hier_labels = any(True for _ in find_all(root_tree, "hierarchical_label"))
+    if has_hier_labels:
+        return True
+
+    # Tier 5: Ambiguous — default to not a sub-sheet
+    return False
+
+
+def parse_all_sheets(root_path: str, root_tree: list | None = None,
+                     symbol_instances_override: dict | None = None):
+    """Parse a root schematic and all sub-sheets recursively.
+
+    Performs Phase A of schematic analysis: recursive sheet traversal,
+    component extraction with reference remapping, hierarchical label
+    namespacing, and sheet coordinate isolation.
+
+    Args:
+        root_path: Path to the root .kicad_sch file.
+        root_tree: Pre-parsed S-expression tree (avoids re-parsing if caller
+            already has it). Parsed from root_path if None.
+        symbol_instances_override: If provided, use these symbol_instances
+            instead of extracting from root_tree. Required when parsing a
+            sub-sheet that lacks (symbol_instances) — pass the root's
+            symbol_instances obtained from build_hierarchy_context().
+
+    Returns:
+        dict with keys:
+            components, wires, labels, junctions, no_connects, lib_symbols,
+            text_annotations, bus_elements, title_block, sheets_parsed,
+            power_symbols, root_symbol_instances, generator_version,
+            file_version
+    """
+    if root_tree is None:
+        root_tree = parse_file(root_path)
+
+    if symbol_instances_override is not None:
+        root_symbol_instances = symbol_instances_override
+    else:
+        root_symbol_instances = extract_symbol_instances(root_tree)
+
+    generator_version = get_value(root_tree, "generator_version") or "unknown"
+    file_version = get_value(root_tree, "version") or "unknown"
+
     all_components = []
     all_wires = []
     all_labels = []
@@ -6783,23 +9080,8 @@ def analyze_schematic(path: str) -> dict:
     root_title_block = {}
     sheets_parsed = []
 
-    # Pre-parse root schematic's (symbol_instances) for fallback remapping.
-    # Some KiCad projects (especially migrated ones) store instance-to-reference
-    # mappings only here, not inline in each symbol's (instances) block.
-    root_tree = parse_file(path)
-    root_symbol_instances = extract_symbol_instances(root_tree)
-
-    # Extract version info early so it's available during parsing.
-    generator_version = get_value(root_tree, "generator_version") or "unknown"
-    file_version = get_value(root_tree, "version") or "unknown"
-
-    # Queue items are (file_path, instance_path). instance_path is the
-    # hierarchical path prefix matching (symbol_instances) format:
-    #   "" for root sheet (symbols have path "/<sym_uuid>")
-    #   "/<sheet_uuid>" for direct child sheets
-    #   "/<sheet_uuid>/<child_uuid>" for nested sheets
-    to_parse = [(str(Path(path).resolve()), "")]
-    parsed = set()  # Track (file_path, instance_path) pairs
+    to_parse = [(str(Path(root_path).resolve()), "")]
+    parsed = set()
 
     while to_parse:
         sheet_path, inst_path = to_parse.pop(0)
@@ -6813,9 +9095,6 @@ def analyze_schematic(path: str) -> dict:
             parse_single_sheet(sheet_path, instance_uuid=inst_path,
                                symbol_instances=root_symbol_instances)
 
-        # Tag elements with sheet index so coordinate-based net building
-        # keeps each sheet's coordinate space separate (prevents false merges
-        # when different sheets have wires at the same coordinates).
         sheet_idx = len(sheets_parsed)
         for c in components:
             c["_sheet"] = sheet_idx
@@ -6827,32 +9106,28 @@ def analyze_schematic(path: str) -> dict:
             j["_sheet"] = sheet_idx
         for nc in no_connects:
             nc["_sheet"] = sheet_idx
+        for be in bus_elements.get("bus_wires", []):
+            be["_sheet"] = sheet_idx
+        for be in bus_elements.get("bus_entries", []):
+            be["_sheet"] = sheet_idx
 
-        # KH-026: Namespace hierarchical labels per instance to prevent
-        # multi-instance sub-sheets from merging unrelated nets.
-        # Pin stubs (parent-side, tagged with _sheet_uuid) get prefixed with
-        # inst_path + "/" + _sheet_uuid so they match the child instance's
-        # labels.  Actual hierarchical_labels (child-side, no _sheet_uuid)
-        # get prefixed with inst_path so they match their parent's pin stub.
-        # Global labels are left unchanged; local labels are already scoped
-        # by _sheet index.
-        if inst_path:  # not root sheet
-            for lbl in labels:
-                if lbl["type"] == "hierarchical_label":
-                    suuid = lbl.pop("_sheet_uuid", None)
-                    if suuid:
-                        # Pin stub on parent side — prefix with child instance path
-                        lbl["name"] = inst_path + "/" + suuid + "/" + lbl["name"]
-                    else:
-                        # Actual hierarchical label inside the child sheet
+        # Namespace hierarchical labels, but retain the bare identity and
+        # namespace on internal fields so the bus pass (GH #25) can pair
+        # parent sheet-pin ports with child hier-label ports positionally.
+        # Name-mangling must reproduce the pre-#25 values exactly.
+        for lbl in labels:
+            if lbl["type"] == "hierarchical_label":
+                suuid = lbl.pop("_sheet_uuid", None)
+                lbl["_bare_name"] = lbl["name"]
+                if suuid:
+                    lbl["_is_sheet_pin"] = True
+                    lbl["_hier_ns"] = ((inst_path + "/" + suuid)
+                                       if inst_path else ("/" + suuid))
+                    lbl["name"] = lbl["_hier_ns"] + "/" + lbl["name"]
+                else:
+                    lbl["_hier_ns"] = inst_path
+                    if inst_path:
                         lbl["name"] = inst_path + "/" + lbl["name"]
-        else:
-            # Root sheet — only pin stubs need prefixing (with child UUID)
-            for lbl in labels:
-                if lbl["type"] == "hierarchical_label":
-                    suuid = lbl.pop("_sheet_uuid", None)
-                    if suuid:
-                        lbl["name"] = "/" + suuid + "/" + lbl["name"]
 
         all_components.extend(components)
         all_wires.extend(wires)
@@ -6868,12 +9143,10 @@ def analyze_schematic(path: str) -> dict:
 
         for sub_path, sub_uuid in sub_sheets:
             sub_resolved = str(Path(sub_path).resolve())
-            # Build full hierarchical path for the child sheet
             child_path = inst_path + "/" + sub_uuid if sub_uuid else inst_path
             if (sub_resolved, child_path) not in parsed:
                 to_parse.append((sub_resolved, child_path))
 
-    # Merge bus elements across sheets
     merged_bus = {"bus_wires": [], "bus_entries": [], "bus_aliases": []}
     for be in all_bus_elements:
         merged_bus["bus_wires"].extend(be.get("bus_wires", []))
@@ -6882,9 +9155,500 @@ def analyze_schematic(path: str) -> dict:
 
     power_symbols = extract_power_symbols(all_components)
 
+    return {
+        "components": all_components,
+        "wires": all_wires,
+        "labels": all_labels,
+        "junctions": all_junctions,
+        "no_connects": all_no_connects,
+        "lib_symbols": all_lib_symbols,
+        "text_annotations": all_text_annotations,
+        "bus_elements": merged_bus,
+        "title_block": root_title_block,
+        "sheets_parsed": sheets_parsed,
+        "power_symbols": power_symbols,
+        "root_symbol_instances": root_symbol_instances,
+        "generator_version": generator_version,
+        "file_version": file_version,
+    }
+
+
+def build_hierarchy_context(target_path: str, root_path: str) -> tuple:
+    """Build cross-sheet context for a sub-sheet file.
+
+    Parses the full project from root_path, builds the unified net map,
+    and extracts cross-sheet component/net information visible through
+    the target sheet's hierarchical labels.
+
+    Args:
+        target_path: Absolute path to the sub-sheet being analyzed.
+        root_path: Absolute path to the root .kicad_sch file.
+
+    Returns:
+        (hierarchy_context_dict, root_symbol_instances_dict)
+
+        hierarchy_context_dict contains:
+            root_schematic, target_sheet, sheets_in_project,
+            cross_sheet_nets, project_power_rails,
+            reference_corrections_applied
+
+        root_symbol_instances_dict is used by the caller to fix
+        component references on the target sheet.
+    """
+    from kicad_utils import is_power_net_name
+
+    target_abs = str(Path(target_path).resolve())
+    root_abs = str(Path(root_path).resolve())
+
+    # Phase A: parse entire project
+    parsed = parse_all_sheets(root_abs)
+    all_components = parsed["components"]
+    all_labels = parsed["labels"]
+    power_symbols = parsed["power_symbols"]
+    sheets_parsed = parsed["sheets_parsed"]
+    root_symbol_instances = parsed["root_symbol_instances"]
+
+    # Build unified net map for the full project
+    nets = build_net_map(
+        all_components, parsed["wires"], all_labels,
+        power_symbols, parsed["junctions"], parsed["no_connects"],
+        sheet_names=[Path(p).stem for p in sheets_parsed],
+        bus_elements=parsed["bus_elements"])
+
+    # Identify which sheet index corresponds to the target file
+    target_sheet_idx = None
+    for idx, sp in enumerate(sheets_parsed):
+        if str(Path(sp).resolve()) == target_abs:
+            target_sheet_idx = idx
+            break
+
+    if target_sheet_idx is None:
+        # Target file not found in the hierarchy — return minimal context
+        return {
+            "root_schematic": Path(root_abs).name,
+            "target_sheet": Path(target_abs).name,
+            "sheets_in_project": [Path(s).name for s in sheets_parsed],
+            "cross_sheet_nets": {},
+            "project_power_rails": [],
+            "reference_corrections_applied": 0,
+            "warning": "Target file not found in project hierarchy",
+        }, root_symbol_instances
+
+    # Find hierarchical labels belonging to the target sheet
+    target_hier_label_names = set()
+    for lbl in all_labels:
+        if (lbl.get("_sheet") == target_sheet_idx
+                and lbl["type"] == "hierarchical_label"):
+            target_hier_label_names.add(lbl["name"])
+
+    # Collect known power rails from power symbols
+    known_power_rails = set()
+    for net_name, net_info in nets.items():
+        for p in net_info.get("pins", []):
+            if p["component"].startswith("#PWR") or p["component"].startswith("#FLG"):
+                known_power_rails.add(net_name)
+                break
+
+    # Map component reference -> sheet index
+    comp_sheet = {}
+    for c in all_components:
+        comp_sheet[c["reference"]] = c.get("_sheet", 0)
+
+    # For each hierarchical label net, find components on OTHER sheets
+    cross_sheet_nets = {}
+
+    for label_name in sorted(target_hier_label_names):
+        # Find which net this label ended up in. KH-359: on a bare-name
+        # collision the net may carry a sheet-qualified key with the bare
+        # label name on display_name instead.
+        matching_net = None
+        for net_name, net_info in nets.items():
+            if net_name == label_name or net_info.get("display_name") == label_name:
+                matching_net = net_name
+                break
+        if matching_net is None:
+            continue
+
+        net_info = nets[matching_net]
+        external_components = []
+        connected_sheets = set()
+
+        for pin in net_info.get("pins", []):
+            comp_ref = pin["component"]
+            if comp_ref.startswith("#PWR") or comp_ref.startswith("#FLG"):
+                continue
+            sheet_idx = comp_sheet.get(comp_ref, 0)
+            if sheet_idx == target_sheet_idx:
+                continue  # skip components on the target sheet itself
+
+            comp_data = None
+            for c in all_components:
+                if c["reference"] == comp_ref:
+                    comp_data = c
+                    break
+            if comp_data is None:
+                continue
+
+            sheet_file = (Path(sheets_parsed[sheet_idx]).name
+                          if sheet_idx < len(sheets_parsed) else "unknown")
+            connected_sheets.add(sheet_file)
+            external_components.append({
+                "reference": comp_ref,
+                "value": comp_data.get("value", ""),
+                "lib_id": comp_data.get("lib_id", ""),
+                "type": comp_data.get("type", ""),
+                "sheet": sheet_file,
+            })
+
+        if external_components or connected_sheets:
+            # Strip instance path prefix for the display name
+            display_name = label_name
+            parts = label_name.rsplit("/", 1)
+            if len(parts) == 2 and parts[1]:
+                display_name = parts[1]
+
+            cross_sheet_nets[display_name] = {
+                "external_components": external_components,
+                "is_power_rail": is_power_net_name(matching_net, known_power_rails),
+                "connected_sheets": sorted(connected_sheets),
+                "_namespaced_net": matching_net,
+            }
+
+    # Collect project-wide power rails
+    project_power_rails = sorted(known_power_rails)
+
+    # Count reference corrections
+    correction_count = 0
+    si_refs = {si.get("reference", "") for si in root_symbol_instances.values()}
+    for c in all_components:
+        if c.get("_sheet") == target_sheet_idx and c.get("reference") in si_refs:
+            correction_count += 1
+
+    hierarchy_context = {
+        "root_schematic": Path(root_abs).name,
+        "target_sheet": Path(target_abs).name,
+        "target_instance_path": "",
+        "sheets_in_project": [Path(s).name for s in sheets_parsed],
+        "cross_sheet_nets": cross_sheet_nets,
+        "project_power_rails": project_power_rails,
+        "reference_corrections_applied": correction_count,
+    }
+
+    return hierarchy_context, root_symbol_instances
+
+
+def enrich_from_hierarchy(signal_analysis: dict, design_analysis: dict,
+                          ctx: AnalysisContext) -> None:
+    """Annotate detector results with cross-sheet context.
+
+    Called after all detectors run. Adds cross_sheet_* fields to existing
+    detections. Modifies signal_analysis and design_analysis dicts in place.
+    Tagged with _enriched_from_hierarchy: true for consumer disambiguation.
+
+    Only runs when ctx.hierarchy_context is not None.
+    """
+    hctx = ctx.hierarchy_context
+    if not hctx:
+        return
+
+    cross_nets = hctx.get("cross_sheet_nets", {})
+    if not cross_nets:
+        return
+
+    # Build a lookup: net_name -> cross-sheet info
+    # Map the namespaced net names back to local display names
+    net_lookup = {}
+    for display_name, info in cross_nets.items():
+        namespaced = info.get("_namespaced_net", display_name)
+        net_lookup[namespaced] = (display_name, info)
+        net_lookup[display_name] = (display_name, info)
+
+    # --- Power regulators: add cross-sheet loads ---
+    for reg in signal_analysis.get("power_regulators", []):
+        output_rail = reg.get("output_rail") or reg.get("output_net")
+        if not output_rail:
+            continue
+        entry = net_lookup.get(output_rail)
+        if entry:
+            display_name, info = entry
+            loads = [
+                f"{c['reference']} ({c['value']}, {c['sheet']})"
+                for c in info["external_components"]
+            ]
+            if loads:
+                reg["cross_sheet_loads"] = loads
+                reg["_enriched_from_hierarchy"] = True
+
+    # --- Bus protocols: add cross-sheet pull-ups ---
+    buses = design_analysis.get("buses", {})
+    for bus_type in ("i2c", "spi"):
+        for bus in buses.get(bus_type, []):
+            for signal_key in ("sda_net", "scl_net", "mosi_net", "miso_net", "sck_net"):
+                net_name = bus.get(signal_key)
+                if not net_name:
+                    continue
+                entry = net_lookup.get(net_name)
+                if entry:
+                    display_name, info = entry
+                    pullups = [
+                        {"reference": c["reference"], "value": c["value"], "sheet": c["sheet"]}
+                        for c in info["external_components"]
+                        if c.get("type") == "resistor"
+                    ]
+                    if pullups:
+                        bus.setdefault("cross_sheet_pull_ups", []).extend(pullups)
+                        bus["_enriched_from_hierarchy"] = True
+
+    # --- Voltage dividers: add cross-sheet load on midpoint ---
+    for vd in signal_analysis.get("voltage_dividers", []):
+        output_net = vd.get("output_net") or vd.get("mid_net")
+        if not output_net:
+            continue
+        entry = net_lookup.get(output_net)
+        if entry:
+            display_name, info = entry
+            loads = [
+                {"reference": c["reference"], "value": c["value"],
+                 "type": c["type"], "sheet": c["sheet"]}
+                for c in info["external_components"]
+            ]
+            if loads:
+                vd["cross_sheet_load"] = loads
+                vd["_enriched_from_hierarchy"] = True
+
+    # --- ESD coverage: add cross-sheet protection ---
+    for entry in signal_analysis.get("esd_coverage_audit", []):
+        for pin_net in entry.get("unprotected_nets", []):
+            xnet = net_lookup.get(pin_net)
+            if xnet:
+                display_name, info = xnet
+                esd_devices = [
+                    {"reference": c["reference"], "value": c["value"], "sheet": c["sheet"]}
+                    for c in info["external_components"]
+                    if c.get("type") in ("tvs", "esd", "protection")
+                ]
+                if esd_devices:
+                    entry.setdefault("cross_sheet_protection", []).extend(esd_devices)
+                    entry["_enriched_from_hierarchy"] = True
+
+
+def analyze_schematic(path: str, project_root: str | None = None,
+                      no_hierarchy: bool = False,
+                      analysis_dir: str | Path | None = None) -> dict:
+    """Main analysis function. Returns complete structured data.
+
+    For hierarchical designs (multi-sheet), recursively parses all sub-sheets
+    and merges connectivity. Global and hierarchical labels connect nets across
+    sheets.
+
+    If *path* is a sub-sheet (not the root), the function auto-discovers the
+    root schematic via ``.kicad_pro`` and redirects to a full-project analysis.
+    The result includes ``_redirected_from`` with the original filename.  If the
+    file is not part of any active sheet tree, ``_stale_file_warning`` is set.
+
+    Args:
+        path: Path to .kicad_sch file to analyze.
+        project_root: Optional path to root .kicad_sch for hierarchy context.
+            Auto-discovered from .kicad_pro if not provided.
+        no_hierarchy: If True, skip hierarchy auto-discovery entirely.
+            Useful when analysing a sub-sheet in isolation.
+    """
+    # Detect legacy format
+    with open(path, "r", encoding="utf-8", errors="replace") as f:
+        first_line = f.readline().strip()
+
+    if first_line.startswith("EESchema"):
+        return parse_legacy_schematic(path, analysis_dir=analysis_dir)
+
+    # Parse root sheet and all sub-sheets recursively via parse_all_sheets().
+    root_tree = parse_file(path)
+
+    is_sub = detect_sub_sheet(root_tree, file_path=path)
+    hierarchy_ctx = None
+    hierarchy_warning = None
+
+    if is_sub and not no_hierarchy:
+        from kicad_utils import discover_root_schematic
+        root_path = project_root or discover_root_schematic(path)
+        if root_path:
+            # Redirect: analyze the full project from the root schematic.
+            # This gives a complete picture (all sheets, all components)
+            # instead of analyzing a sub-sheet in isolation.
+            original_basename = os.path.basename(path)
+            root_basename = os.path.basename(root_path)
+            print(f"Note: {original_basename} is a sub-sheet — analyzing "
+                  f"full project from root {root_basename}",
+                  file=sys.stderr)
+            result = analyze_schematic(root_path, no_hierarchy=True)
+            result["_redirected_from"] = original_basename
+
+            # Stale file check: is the original file in the project tree?
+            target_abs = str(Path(path).resolve())
+            in_project = any(
+                str(Path(s).resolve()) == target_abs
+                for s in result.get("sheets", []))
+            if not in_project:
+                result["_stale_file_warning"] = (
+                    f"{original_basename} is not referenced by any sheet "
+                    f"in the project ({root_basename}). It may be a stale "
+                    f"or abandoned child schematic.")
+                print(f"Warning: {original_basename} is not part of the "
+                      f"active project sheet tree", file=sys.stderr)
+
+            return result
+        else:
+            hierarchy_warning = (
+                "File appears to be a sub-sheet (has hierarchical labels but "
+                "no symbol_instances). No root schematic found. Component "
+                "references may be incomplete. Use --project-root for full "
+                "hierarchy analysis."
+            )
+    elif is_sub and no_hierarchy:
+        hierarchy_warning = (
+            "File appears to be a sub-sheet but hierarchy discovery is "
+            "disabled (--no-hierarchy). Component references may be incomplete."
+        )
+
+    parsed = parse_all_sheets(path, root_tree=root_tree)
+
+    # --- top_level_sheets support (Altium flat multi-page imports) ---
+    # KiCad's Altium importer registers all pages as top_level_sheets in
+    # .kicad_pro instead of creating (sheet ...) hierarchy references.
+    # Trigger only when the root has zero (sheet ...) nodes — checking
+    # len(sheets_parsed) alone is fragile because parse_all_sheets silently
+    # drops (sheet ...) refs whose files are missing, which would otherwise
+    # cause us to mix in unrelated top_level_sheets. Runs regardless of
+    # no_hierarchy so the sub-sheet redirect path still picks up peers.
+    if (len(parsed.get("sheets_parsed", [])) <= 1
+            and find_first(root_tree, "sheet") is None):
+        pro = load_kicad_pro(path)
+        if pro:
+            tls = pro.get("schematic", {}).get("top_level_sheets", [])
+            if len(tls) > 1:
+                root_abs = str(Path(path).resolve())
+                extra_sheets = []
+                seen = {root_abs}
+                for entry in tls:
+                    fn = entry.get("filename", "")
+                    if not fn:
+                        continue
+                    sheet_path = os.path.join(os.path.dirname(path), fn)
+                    if not os.path.isfile(sheet_path):
+                        continue
+                    abs_path = str(Path(sheet_path).resolve())
+                    if abs_path in seen:
+                        continue
+                    seen.add(abs_path)
+                    extra_sheets.append(abs_path)
+
+                if extra_sheets:
+                    print(f"Note: discovered {len(extra_sheets)} additional "
+                          f"top-level sheets from .kicad_pro",
+                          file=sys.stderr)
+                    sym_inst = parsed.get("root_symbol_instances", {})
+                    base_idx = len(parsed["sheets_parsed"])
+                    # Queue-based walk so peers with their own inner
+                    # (sheet ...) references — the "hybrid" Altium-flat
+                    # shape, flat top + sub-hierarchy beneath one or more
+                    # peers — get their child sheets merged in too. Pure
+                    # Altium-flat imports (no inner refs) walk this loop
+                    # exactly once per peer with no recursion. PR #19
+                    # follow-up #14 (Copilot review 3221428004).
+                    to_parse = list(extra_sheets)
+                    while to_parse:
+                        sheet_path = to_parse.pop(0)
+                        try:
+                            (_, comps, wires, labels, junctions,
+                             no_connects, sub_sheet_paths, lib_syms,
+                             text_annot, bus_elems, title_blk) = \
+                                parse_single_sheet(
+                                    sheet_path,
+                                    symbol_instances=sym_inst)
+                        except Exception as exc:
+                            print(f"Warning: failed to parse "
+                                  f"{os.path.basename(sheet_path)}: {exc}",
+                                  file=sys.stderr)
+                            continue
+                        sheet_idx = base_idx
+                        base_idx += 1
+                        for c in comps:
+                            c["_sheet"] = sheet_idx
+                        for w in wires:
+                            w["_sheet"] = sheet_idx
+                        for lb in labels:
+                            lb["_sheet"] = sheet_idx
+                        for j in junctions:
+                            j["_sheet"] = sheet_idx
+                        for nc in no_connects:
+                            nc["_sheet"] = sheet_idx
+                        # KH-409: untagged peer bus_wires/bus_entries made
+                        # build_net_map's wires_by_sheet/entries_by_sheet
+                        # (~line 1457) file every peer's bus geometry under
+                        # sheet 0 with the root's -- one shared BusGraph
+                        # instead of one per sheet, bogusly flagging a valid
+                        # peer tap "unlabeled_entry_tap".
+                        for be in bus_elems.get("bus_wires", []):
+                            be["_sheet"] = sheet_idx
+                        for be in bus_elems.get("bus_entries", []):
+                            be["_sheet"] = sheet_idx
+                        parsed["components"].extend(comps)
+                        parsed["wires"].extend(wires)
+                        parsed["labels"].extend(labels)
+                        parsed["junctions"].extend(junctions)
+                        parsed["no_connects"].extend(no_connects)
+                        parsed["lib_symbols"].update(lib_syms)
+                        parsed["text_annotations"].extend(text_annot)
+                        for bk, bv in bus_elems.items():
+                            if isinstance(bv, list):
+                                parsed["bus_elements"].setdefault(bk, []).extend(bv)
+                            elif isinstance(bv, dict):
+                                parsed["bus_elements"].setdefault(bk, {}).update(bv)
+                        parsed["sheets_parsed"].append(sheet_path)
+                        # Enqueue any sub-sheet references from THIS peer
+                        # for the hybrid case. `seen` is the cycle guard:
+                        # it already has root + every peer; we add each
+                        # sub-sheet on first sighting.
+                        for sub_path, _sheet_uuid in sub_sheet_paths:
+                            abs_sub = str(Path(sub_path).resolve())
+                            if abs_sub not in seen:
+                                seen.add(abs_sub)
+                                to_parse.append(abs_sub)
+                    # Power symbols were extracted from root-sheet components
+                    # only; refresh from the merged list so peer-sheet ones are
+                    # included.
+                    parsed["power_symbols"] = extract_power_symbols(
+                        parsed["components"])
+
+    all_components = parsed["components"]
+    all_wires = parsed["wires"]
+    all_labels = parsed["labels"]
+    all_junctions = parsed["junctions"]
+    all_no_connects = parsed["no_connects"]
+    all_lib_symbols = parsed["lib_symbols"]
+    all_text_annotations = parsed["text_annotations"]
+    merged_bus = parsed["bus_elements"]
+    root_title_block = parsed["title_block"]
+    sheets_parsed = parsed["sheets_parsed"]
+    power_symbols = parsed["power_symbols"]
+    root_symbol_instances = parsed["root_symbol_instances"]
+    generator_version = parsed["generator_version"]
+    file_version = parsed["file_version"]
+
+    try:
+        _v = int(file_version)
+    except (TypeError, ValueError):
+        _v = None
+    format_newer_note = None
+    if _v is not None and _v > MAX_TESTED_FORMAT_VERSION:
+        format_newer_note = (
+            f"file format version {_v} is newer than the max tested "
+            f"({MAX_TESTED_FORMAT_VERSION}); analysis is best-effort")
+
     # Build net map across all sheets
     nets = build_net_map(all_components, all_wires, all_labels, power_symbols, all_junctions,
-                         all_no_connects)
+                         all_no_connects,
+                         sheet_names=[Path(p).stem for p in sheets_parsed],
+                         bus_elements=merged_bus)
 
     # Generate BOM
     bom = generate_bom(all_components)
@@ -6893,6 +9657,7 @@ def analyze_schematic(path: str) -> dict:
     pin_net = build_pin_to_net_map(nets)
 
     # Build shared analysis context (replaces repeated comp_lookup / parsed_values / known_power_rails)
+    _cache_dir, _design_context = _resolve_lookup_paths(path, analysis_dir)
     ctx = AnalysisContext(
         components=all_components,
         nets=nets,
@@ -6900,13 +9665,24 @@ def analyze_schematic(path: str) -> dict:
         pin_net=pin_net,
         no_connects=all_no_connects,
         generator_version=generator_version,
+        hierarchy_context=hierarchy_ctx,
+        cache_dir=_cache_dir,
+        design_context=_design_context,
+        project_dir=str(Path(path).parent),
     )
+    ctx.source = ANALYZER_SOURCE
+    from netlist_queries import NetlistQueries
+    ctx.nq = NetlistQueries(ctx)
 
     # Identify subcircuits
     subcircuits = identify_subcircuits(ctx)
 
     # Detailed IC pinout analysis for datasheet cross-referencing
     ic_analysis = analyze_ic_pinouts(ctx)
+    # Parallel transistor pinout analysis (F4) — same code path, different
+    # filter. ic_pin_analysis stays IC/connector/crystal/oscillator-only for
+    # consumer compatibility; transistors go in their own array.
+    transistor_analysis = analyze_ic_pinouts(ctx, target_types={"transistor"})
 
     # Analyze connectivity for issues
     connectivity_issues = analyze_connectivity(all_components, nets, all_no_connects)
@@ -6916,6 +9692,9 @@ def analyze_schematic(path: str) -> dict:
 
     # Deep EE analysis: power domains, buses, differential pairs, ERC
     design_analysis = analyze_design_rules(ctx, results_in=signal_analysis)
+
+    # Cross-sheet enrichment (no-op when hierarchy_context is None)
+    enrich_from_hierarchy(signal_analysis, design_analysis, ctx)
 
     # ---- New Tier 1 + Tier 2 analyses ----
 
@@ -6927,6 +9706,10 @@ def analyze_schematic(path: str) -> dict:
     pwr_flag_warnings = audit_pwr_flags(all_components, nets, known_power_rails)
     fp_filter_warnings = validate_footprint_filters(all_components, all_lib_symbols)
     sourcing_audit = audit_sourcing_fields(all_components)
+    datasheet_coverage_findings = audit_datasheet_coverage(
+        all_components, str(Path(path).parent))
+    sourcing_gate_findings = audit_sourcing_gate(all_components)
+    dnp_rate_findings = audit_dnp_rate(all_components)
     alternate_pins = summarize_alternate_pins(all_lib_symbols)
     ground_domains = classify_ground_domains(nets, all_components)
     bus_topology = analyze_bus_topology(merged_bus, all_labels, nets)
@@ -6936,16 +9719,19 @@ def analyze_schematic(path: str) -> dict:
     placement = spatial_clustering(all_components)
     pin_coverage = verify_pin_coverage(all_components, all_lib_symbols)
     instance_issues = check_instance_consistency(all_components)
-    hier_label_analysis = validate_hierarchical_labels(all_labels, nets)
+    hier_label_analysis = validate_hierarchical_labels(all_labels, nets, merged_bus)
     generic_sym_warnings = check_generic_transistor_symbols(all_components, str(path))
 
     # ---- Tier 3: High-level design analyses ----
     pdn_analysis = analyze_pdn_impedance(ctx, signal_analysis)
-    sleep_current = analyze_sleep_current(ctx, signal_analysis)
+    # KH-374: power_sequencing must run before sleep_current so the sleep
+    # audit can consult real EN connectivity (en_source) instead of just
+    # EN-pin-name presence.
+    power_sequencing = analyze_power_sequencing(ctx, signal_analysis)
+    sleep_current = analyze_sleep_current(ctx, signal_analysis, power_sequencing)
     voltage_derating = analyze_voltage_derating(ctx, signal_analysis,
                                                  project_dir=str(Path(path).parent))
     power_budget = analyze_power_budget(ctx, signal_analysis)
-    power_sequencing = analyze_power_sequencing(ctx, signal_analysis)
     bom_optimization = analyze_bom_optimization(all_components)
     test_coverage = analyze_test_coverage(ctx)
     assembly_complexity = analyze_assembly_complexity(all_components)
@@ -6957,43 +9743,184 @@ def analyze_schematic(path: str) -> dict:
     for comp in all_components:
         comp["category"] = comp.get("type")
         if comp["type"] in ("resistor", "capacitor", "inductor", "ferrite_bead", "crystal"):
-            pv = parse_value(comp.get("value", ""))
+            pv = parse_value(comp.get("value", ""), component_type=comp["type"])
             if pv is not None:
                 comp["parsed_value"] = pv
 
     # Statistics
     stats = compute_statistics(all_components, nets, bom, all_wires, all_no_connects)
 
-    # Confidence map for downstream consumers (format-report.py, top-risk)
-    confidence_map = {
-        # Deterministic — structural/netlist checks
-        "erc_warnings": "deterministic",
-        "annotation_issues": "deterministic",
-        "label_shape_warnings": "deterministic",
-        "pwr_flag_warnings": "deterministic",
-        "connectivity_issues": "deterministic",
-        "pin_coverage_warnings": "deterministic",
-        "instance_consistency_warnings": "deterministic",
-        "hierarchical_labels": "deterministic",
-        # Heuristic — value parsing, net name inference
-        "footprint_filter_warnings": "heuristic",
-        "generic_symbol_warnings": "heuristic",
-        "voltage_derating": "heuristic",
-        "sleep_current_audit": "heuristic",
-        "property_issues": "heuristic",
-        "wire_geometry": "heuristic",
-        # Datasheet-backed — when Vref comes from lookup table
-        "signal_analysis.power_regulators": "heuristic",  # mixed; per-item vref_source overrides
-    }
+    # Annotate __unnamed_N nets with a human-readable display_name when
+    # exactly one named IC pin is on them. Does NOT rename the net —
+    # only adds a display hint consumers can use in reports.
+    _IC_TYPES = {"ic", "regulator", "opamp", "microcontroller", "memory",
+                 "connector_ic", "analog_ic", "mixed_signal",
+                 "power_management", "interface"}
+    _comp_by_ref = {c.get("reference"): c for c in all_components}
+    for _net_name, _info in nets.items():
+        if not _net_name.startswith("__unnamed_"):
+            continue
+        if _info.get("display_name"):
+            continue
+        _named_ic_pin = None
+        for _p in _info.get("pins", []) or []:
+            _pname = (_p.get("pin_name") or "").strip()
+            if not _pname or _pname in ("~", "NC"):
+                continue
+            _ref = _p.get("component") or ""
+            _comp = _comp_by_ref.get(_ref)
+            if not _comp:
+                continue
+            _ctype = (_comp.get("type") or _comp.get("category") or "").lower()
+            if _ctype not in _IC_TYPES:
+                continue
+            if _named_ic_pin is None:
+                _named_ic_pin = (_ref, _pname)
+            else:
+                # Multiple named IC pins — ambiguous, skip annotation.
+                _named_ic_pin = None
+                break
+        if _named_ic_pin:
+            _info["display_name"] = f"{_named_ic_pin[0]}.{_named_ic_pin[1]}"
+
+    # Load .kicad_pro for project metadata (KiCad 6+)
+    pro = load_kicad_pro(str(path))
+    project_settings = {}
+    if pro:
+        text_vars = extract_pro_text_variables(pro)
+        if text_vars:
+            project_settings['text_variables'] = text_vars
+            # Enrich title block with text variables where empty
+            if root_title_block:
+                for tb_key, var_name in (('title', 'TITLE'),
+                                          ('company', 'COMPANY'),
+                                          ('revision', 'REVISION')):
+                    if not root_title_block.get(tb_key) and var_name in text_vars:
+                        root_title_block[tb_key] = text_vars[var_name]
+
+    # Library tables
+    lib_tables = load_lib_tables(str(path))
+    if lib_tables.get('symbol_libs'):
+        project_settings['symbol_libs'] = lib_tables['symbol_libs']
+
+    # Enrich components with pin-to-net mapping for downstream consumers
+    # KH-211: Include __unnamed_* nets so that connections through unlabelled
+    # wires (common in hierarchical sub-sheets) appear in pin_nets.
+    _pin_nets: dict[str, dict[str, str]] = {}
+    for _net_name, _net_info in nets.items():
+        if isinstance(_net_info, dict):
+            for _p in _net_info.get('pins', []):
+                _comp_ref = _p.get('component', '')
+                _pin_num = _p.get('pin_number', '')
+                if _comp_ref and _pin_num:
+                    _pin_nets.setdefault(_comp_ref, {})[_pin_num] = _net_name
+    for _comp in all_components:
+        _all_pn = _pin_nets.get(_comp.get('reference', ''), {})
+        _valid = _comp.get("_unit_pins")
+        if _valid and len(_all_pn) > len(_valid):
+            _comp['pin_nets'] = {k: v for k, v in _all_pn.items() if k in _valid}
+        else:
+            _comp['pin_nets'] = _all_pn
+        _comp.pop("_unit_pins", None)
+
+    # Flatten signal_analysis: all list values become findings, dict values promote to top level
+    # KH-388: detect_voltage_dividers' feedback-network path deliberately
+    # appends the SAME finding dict to both the `voltage_dividers` and
+    # `feedback_networks` signal_analysis lists — see the 8c36212 cascade
+    # warning in signal_detectors.py:324-346; that double-emission must
+    # stay, it feeds detect_rc_filters' exclusion set. Dedup here instead
+    # so the shared object doesn't also duplicate in the flattened
+    # findings[] output. id()-based dedup is safe for ANY detector (a
+    # dict appearing twice in the SAME analysis output is always the same
+    # aliasing quirk noted in finding_schema.py's assign_finding_ids). The
+    # (detector, components) key belt is scoped to detect_voltage_dividers
+    # only — other detectors (e.g. VM-001) legitimately emit multiple
+    # distinct findings for the same component pair on different nets, so
+    # a components-only key would wrongly collapse those. Order-preserving
+    # (first occurrence wins).
+    findings = []
+    _flatten_seen_ids = set()
+    _flatten_seen_vd_keys = set()
+    for _sa_key, _sa_value in signal_analysis.items():
+        if isinstance(_sa_value, list):
+            _det_name = f"detect_{_sa_key}"
+            for _item in _sa_value:
+                if isinstance(_item, dict) and "detector" not in _item:
+                    _item["detector"] = _det_name
+            for _item in _sa_value:
+                if isinstance(_item, dict):
+                    _iid = id(_item)
+                    if _iid in _flatten_seen_ids:
+                        continue
+                    _flatten_seen_ids.add(_iid)
+                    if _item.get("detector") == "detect_voltage_dividers":
+                        _vkey = (_item.get("detector"), tuple(_item.get("components") or []))
+                        if _vkey in _flatten_seen_vd_keys:
+                            continue
+                        _flatten_seen_vd_keys.add(_vkey)
+                findings.append(_item)
+
+    # Datasheet-coverage audit findings (DS-001 / DS-002 / DS-003) surface
+    # up front so reviewers can't miss the "this is a consistency-only
+    # check" banner when no manufacturer evidence is available.
+    if datasheet_coverage_findings:
+        findings.extend(datasheet_coverage_findings)
+
+    if sourcing_gate_findings:
+        findings.extend(sourcing_gate_findings)
+
+    if dnp_rate_findings:
+        findings.extend(dnp_rate_findings)
+
+    # NT-001 — single-pin nets weighted by pin type (Task 3)
+    nt_findings = connectivity_issues.get("single_pin_net_findings", [])
+    if nt_findings:
+        findings.extend(nt_findings)
+
+    # VD-001..004 — component voltage/power derating (rich findings since v1.4)
+    if voltage_derating:
+        findings.extend(voltage_derating)
+
+    # UC-001..004 — USB compliance check failures (KH-338)
+    if usb_compliance:
+        findings.extend(usb_compliance.pop("findings", []))
+
+    if format_newer_note:
+        findings.append(make_finding(
+            detector="format_version_gate", rule_id="FV-001",
+            category="file_format",
+            summary=format_newer_note,
+            description=format_newer_note,
+            severity="info", confidence="deterministic",
+            evidence_source="topology",
+        ))
+
+    # Build severity summary
+    sev_counts = {"error": 0, "warning": 0, "info": 0}
+    for _f in findings:
+        _sev = _f.get("severity", "info").lower() if isinstance(_f, dict) else "info"
+        if _sev in ("critical", "high"):
+            sev_counts["error"] += 1
+        elif _sev in ("medium", "warning"):
+            sev_counts["warning"] += 1
+        else:
+            sev_counts["info"] += 1
+
+    # Deterministic order so repeated runs produce byte-identical output
+    # (KH-316).  Sort key: (rule_id, detector, first_component, first_net, summary).
+    sort_findings(findings)
 
     result = {
         "analyzer_type": "schematic",
-        "confidence_map": confidence_map,
-        "file": str(path),
+        "schema_version": "1.4.0",
+        "summary": {"total_findings": len(findings), "by_severity": sev_counts},
+        "trust_summary": compute_trust_summary(findings, bom=bom),
         "kicad_version": generator_version,
         "file_version": file_version,
         "title_block": root_title_block,
         "statistics": stats,
+        "findings": findings,
+        "assessments": [],
         "bom": bom,
         "components": [
             {k: v for k, v in c.items() if k != "pins"}
@@ -7003,10 +9930,10 @@ def analyze_schematic(path: str) -> dict:
         "nets": nets,
         "subcircuits": subcircuits,
         "ic_pin_analysis": ic_analysis,
-        "signal_analysis": signal_analysis,
+        "transistor_pin_analysis": transistor_analysis,
         "design_analysis": design_analysis,
         "connectivity_issues": connectivity_issues,
-        "labels": all_labels,
+        "labels": _labels_for_output(all_labels),
         "no_connects": all_no_connects,
         "power_symbols": power_symbols,
         "annotation_issues": annotation_issues,
@@ -7023,6 +9950,11 @@ def analyze_schematic(path: str) -> dict:
         "hierarchical_labels": hier_label_analysis,
     }
 
+    # Promote dict values from signal_analysis to top level (rail_voltages, net_classifications, etc.)
+    for _sa_key, _sa_value in signal_analysis.items():
+        if isinstance(_sa_value, dict):
+            result[_sa_key] = _sa_value
+
     # Only include non-empty optional sections
     if all_text_annotations:
         result["text_annotations"] = all_text_annotations
@@ -7038,8 +9970,6 @@ def analyze_schematic(path: str) -> dict:
         result["pdn_impedance"] = pdn_analysis
     if sleep_current:
         result["sleep_current_audit"] = sleep_current
-    if voltage_derating:
-        result["voltage_derating"] = voltage_derating
     if power_budget:
         result["power_budget"] = power_budget
     if power_sequencing:
@@ -7059,6 +9989,12 @@ def analyze_schematic(path: str) -> dict:
 
     if len(sheets_parsed) > 1:
         result["sheets"] = sheets_parsed
+    if project_settings:
+        result["project_settings"] = project_settings
+    if hierarchy_ctx:
+        result["hierarchy_context"] = hierarchy_ctx
+    if hierarchy_warning:
+        result["hierarchy_warning"] = hierarchy_warning
 
     # --- Missing information section ---
     # Aggregates data gaps so downstream consumers can separate
@@ -7086,79 +10022,96 @@ def analyze_schematic(path: str) -> dict:
     if missing_info:
         result["missing_info"] = missing_info
 
-    return result
-
-
-def _get_schema():
-    """Return JSON output schema description for --schema flag."""
-    return {
-        "file": "string — input file path",
-        "kicad_version": "string — generator version",
-        "file_version": "string",
-        "title_block": {"title": "string", "date": "string", "rev": "string",
-                        "company": "string", "comments": "{number: string}"},
-        "statistics": {
-            "total_components": "int", "unique_parts": "int", "dnp_parts": "int",
-            "total_nets": "int", "total_wires": "int", "total_no_connects": "int",
-            "component_types": "{type_name: count}", "power_rails": "[string]",
-            "missing_mpn": "[reference_string]", "missing_footprint": "[reference_string]",
-        },
-        "bom": "[{value, footprint, mpn, manufacturer, digikey, mouser, lcsc, element14, datasheet, description, references: [string], quantity: int, dnp: bool, type}]",
-        "components": "[{reference, value, lib_id, footprint, datasheet, description, mpn, manufacturer, digikey, mouser, lcsc, element14, x: float, y: float, angle: float, mirror_x: bool, mirror_y: bool, unit: int|null, uuid, in_bom: bool, dnp: bool, on_board: bool, type, keywords, pins: [{number, name, type}], parsed_value: {value: float, unit: string}}]",
-        "nets": "{net_name: {name, pins: [{component, pin_number, pin_name, pin_type}], point_count: int}}",
-        "subcircuits": "[{reference, path, sheet_name, sheet_file, instances: int}]",
-        "ic_pin_analysis": "{ic_ref: {reference, value, pin_summary: {pin_number: {name, type, connected: bool, net}}, function, notes: [string]}}",
-        "signal_analysis": {
-            "voltage_dividers": "[{top_ref, bottom_ref, ratio, vout_estimated, input_net, output_net}]",
-            "rc_filters": "[{resistor, capacitor, cutoff_frequency_hz, type: lowpass|highpass}]",
-            "lc_filters": "[{inductor, capacitors, resonant_formatted}]",
-            "power_regulators": "[{ref, value, lib_id, topology: ldo|buck|boost|buck_boost|inverting|..., input_rail, output_rail, vout_estimated, vref_source: lookup|heuristic}]",
-            "crystal_circuits": "[{reference, value, frequency, type: passive|active_oscillator, load_caps}]",
-            "opamp_circuits": "[{reference, configuration, gain}]",
-            "transistor_circuits": "[{reference, type, load_classification}]",
-            "bridge_circuits": "[{topology, fet_refs}]",
-            "protection_devices": "[{type: tvs|esd|fuse|..., reference, protected_net}]",
-            "current_sense": "[{shunt: {ref, value, ohms}, sense_ic: {ref, value, type}, high_net, low_net, max_current_50mV_A, max_current_100mV_A}]",
-            "decoupling": "[{capacitor_ref, ic_ref, distance}]",
-            "key_matrices": "[{rows, cols, diodes}]",
-            "isolation_barriers": "[{isolator_ref, side_a_nets, side_b_nets}]",
-            "ethernet_interfaces": "[{phy_ref, magnetics_ref, connector_ref}]",
-            "memory_interfaces": "[{type, bus_signals}]",
-            "rf_chains": "[{components_in_chain}]",
-            "rf_matching": "[{antenna, antenna_value, topology: pi_match|L_match|T_match|matching_network, components: [{ref, type, value}], target_ic, target_value}]",
-            "bms_systems": "[{ic_ref, cell_count}]",
-            "battery_chargers": "[{charger_reference, charger_type, charge_current: {prog_resistor, programmed_current_mA, formula}, cell_protection}]",
-            "motor_drivers": "[{driver_reference, driver_type: dc_brushed_h_bridge|stepper|brushless_3phase|gate_driver, motor_outputs, bootstrap_caps, freewheeling_diodes, external_fets}]",
-        },
-        "design_analysis": {
-            "buses": "{i2c|spi|uart|can|sdio|differential_pairs: [bus_instances]}",
-            "power_domains": "{ic_ref: domain_info}",
-            "cross_domain_signals": "[signals crossing voltage domains]",
-            "erc_warnings": "[string]",
-        },
-        "connectivity_issues": {"single_pin_nets": "[net_name]", "multi_driver_nets": "[net_name]", "floating_nets": "[net_name]"},
-        "_optional_sections": "power_budget, power_sequencing, pdn_impedance, sleep_current_audit, usb_compliance, inrush_analysis, bom_optimization, test_coverage, assembly_complexity, sheets (multi-sheet only)",
+    # BOM lock verification (production readiness)
+    _bom_real = [c for c in all_components
+                 if c.get("type") not in ("power_symbol", "power_flag", "flag",
+                                           "mounting_hole", "fiducial",
+                                           "test_point", "graphic")
+                 and not c.get("reference", "").startswith("#")
+                 and c.get("in_bom", True) and not c.get("dnp", False)]
+    # Deduplicate multi-unit symbols
+    _bom_seen = set()
+    _bom_dedup = []
+    for _bc in _bom_real:
+        if _bc["reference"] not in _bom_seen:
+            _bom_seen.add(_bc["reference"])
+            _bom_dedup.append(_bc)
+    _bom_real = _bom_dedup
+    _bom_no_mpn = [c["reference"] for c in _bom_real if not c.get("mpn")]
+    _bom_generic = [c["reference"] for c in _bom_real
+                    if c.get("value", "") in ("", "~", "DNP", "DNF", "NC")
+                    or c.get("value", "").startswith("?")]
+    _bom_lock_pct = round((1 - len(_bom_no_mpn) / max(len(_bom_real), 1)) * 100)
+    result["bom_lock"] = {
+        "total_bom_components": len(_bom_real),
+        "components_with_mpn": len(_bom_real) - len(_bom_no_mpn),
+        "missing_mpn": _bom_no_mpn[:20],
+        "missing_mpn_count": len(_bom_no_mpn),
+        "generic_values": _bom_generic[:10],
+        "lock_pct": _bom_lock_pct,
+        "status": "pass" if _bom_lock_pct >= 95 else
+                  "warning" if _bom_lock_pct >= 70 else "fail",
     }
+
+    # Add stable detection IDs for diff matching
+    from detection_schema import compute_detection_id as _compute_det_id
+    for _det_type, _dets in signal_analysis.items():
+        if isinstance(_dets, list):
+            for _det in _dets:
+                if isinstance(_det, dict):
+                    _det["detection_id"] = _compute_det_id(_det, _det_type)
+
+    return result
 
 
 def main():
     import argparse
     parser = argparse.ArgumentParser(description="KiCad Schematic Analyzer")
-    parser.add_argument("schematic", nargs="?", help="Path to .kicad_sch file")
+    parser.add_argument("schematic", nargs="?",
+                        help="Path to .kicad_sch, .kicad_pro, or project directory")
     parser.add_argument("--output", "-o", help="Output JSON file (default: stdout)")
     parser.add_argument("--compact", action="store_true", help="Compact JSON output")
     parser.add_argument("--schema", action="store_true",
                         help="Print JSON output schema and exit")
     parser.add_argument("--config", default=None,
                         help="Path to .kicad-happy.json project config file")
+    parser.add_argument("--project-root", default=None,
+                        help="Root .kicad_sch for hierarchy context (auto-discovered if omitted)")
+    parser.add_argument("--no-hierarchy", action="store_true",
+                        help="Disable hierarchy auto-discovery (treat file as standalone root)")
+    parser.add_argument("--lifecycle", action="store_true",
+                        help="Run lifecycle/obsolescence audit (requires network + API keys)")
+    parser.add_argument("--analysis-dir", default=None,
+                        help="Write output to analysis cache directory (timestamped runs)")
+    parser.add_argument("--text", action="store_true",
+                        help="Print human-readable text report to stdout")
+    parser.add_argument('--stage', default=None,
+                        choices=['schematic', 'layout', 'pre_fab', 'bring_up'],
+                        help='Filter findings by review stage')
+    parser.add_argument('--audience', default=None,
+                        choices=['designer', 'reviewer', 'manager'],
+                        help='Audience level for summaries and --text output')
+    parser.add_argument('--only-deterministic', action='store_true',
+                        help='Accepted for consistency; analyzers never write llm_* fields. '
+                             'Honored by downstream consumers (Phase 4 spec §3.4).')
     args = parser.parse_args()
 
     if args.schema:
-        print(json.dumps(_get_schema(), indent=2))
-        sys.exit(0)
+        emit_schema(SchematicEnvelope)
 
     if not args.schematic:
         parser.error("the following arguments are required: schematic")
+
+    # Resolve .kicad_pro or directory to the root .kicad_sch
+    from kicad_utils import resolve_project_input
+    try:
+        resolved, note = resolve_project_input(args.schematic, '.kicad_sch')
+        if note:
+            print(f"Note: {note} → {os.path.basename(resolved)}",
+                  file=sys.stderr)
+        args.schematic = resolved
+    except FileNotFoundError as e:
+        parser.error(str(e))
 
     # Load project config (for project settings — suppressions applied to
     # EMC/thermal findings, not schematic warnings which lack rule_ids)
@@ -7171,17 +10124,293 @@ def main():
     except ImportError:
         config = {"version": 1, "project": {}, "suppressions": []}
 
-    result = analyze_schematic(args.schematic)
+    # Resolve canonical analysis_dir ONCE — used for both AnalysisContext
+    # (Phase 4d-active) and capability_mode_ref (Phase 4 §3.3). This must
+    # be the same path so `--analysis-dir X` writes outputs AND capability
+    # mode to the same X, not to ./analysis (audit Highest-Risk #4).
+    if args.analysis_dir:
+        _analysis_dir_for_ctx = Path(args.analysis_dir)
+    elif args.output:
+        _analysis_dir_for_ctx = Path(args.output).parent
+    else:
+        _analysis_dir_for_ctx = Path("analysis")
+
+    # Resolve capability_mode_ref BEFORE build_inputs so inputs.run_id ==
+    # capability_mode_ref.run_id (Phase 4 spec §3.3, audit Highest-Risk #5).
+    # First-writer-wins side effect: creates capability_mode.json if absent.
+    _capability_mode_ref = get_capability_mode_ref(_analysis_dir_for_ctx)
+
+    # Build inputs provenance block (Track 1.3).
+    _sch_path = Path(args.schematic)
+    if args.config:
+        _cfg_path = Path(args.config) if Path(args.config).is_file() else None
+    else:
+        _default_cfg = _sch_path.parent / ".kicad-happy.json"
+        _cfg_path = _default_cfg if _default_cfg.is_file() else None
+    inputs = build_inputs(
+        source_files=[_sch_path],
+        config_path=_cfg_path,
+        run_id=_capability_mode_ref["run_id"],
+    )
+    compat = build_compat()
+
+    result = analyze_schematic(args.schematic,
+                               project_root=args.project_root,
+                               no_hierarchy=args.no_hierarchy,
+                               analysis_dir=_analysis_dir_for_ctx)
+    # Inject provenance and drop the legacy 'file' key (already removed
+    # from internal result assembly, but belt-and-suspenders).
+    result["inputs"] = inputs
+    result["compat"] = compat
+    result.pop("file", None)
 
     # Attach project config summary to output for downstream consumers
     project = config.get("project", {})
     if project:
         result["project_config"] = project
 
+    # Resolve design intent for downstream consumers
+    try:
+        from project_config import resolve_design_intent
+        sch_data_for_intent = {
+            'components': result.get('components', []),
+            'title_block': result.get('title_block', {}),
+        }
+        intent = resolve_design_intent(config,
+                                        schematic_data=sch_data_for_intent)
+        result['design_intent'] = intent
+
+        # Gate CERT-001 blanket certification suggestions on target_market.
+        # For hobby projects, "EU EMC compliance required" and the fallback
+        # FCC Part 15 Subpart B fire as noise on every board.  Keep specific
+        # triggers (RF, wireless, battery, USB, ethernet, HV) — those
+        # represent real circuit hazards regardless of market.
+        target_market = (intent or {}).get('target_market', 'hobby')
+        if target_market == 'hobby':
+            _blanket_cert_prefixes = (
+                'FCC Part 15 Subpart B',
+                'CISPR 32 / CE EMC Directive',
+            )
+            result['findings'] = [
+                f for f in result.get('findings', [])
+                if not (isinstance(f, dict)
+                        and f.get('rule_id') == 'CERT-001'
+                        and any(str(f.get('standard', '')).startswith(p)
+                                for p in _blanket_cert_prefixes))
+            ]
+    except ImportError:
+        pass
+
+    # Apply power_rails config (ignore/flag/voltage_overrides)
+    try:
+        from project_config import apply_power_rails_config
+        stats = result.get('statistics', {})
+        rv = result.get('rail_voltages', {})
+        pr = stats.get('power_rails', [])
+        if rv or pr:
+            filtered_rv, filtered_pr, flagged = apply_power_rails_config(
+                rv, pr, config)
+            result['rail_voltages'] = filtered_rv
+            stats['power_rails'] = filtered_pr
+            if flagged:
+                result['flagged_rails'] = flagged
+    except (ImportError, Exception):
+        pass
+
+    # rc.2 4.3 — LC-007 lifecycle-skipped INFO finding. Emit explicitly so
+    # reviewers see "lifecycle audit not run" in the findings list rather
+    # than silently missing it. Fires in three cases:
+    #   1. --lifecycle flag was not passed (most common — high frequency)
+    #   2. --lifecycle passed but no MPNs in BOM
+    #   3. --lifecycle passed but the audit raised an exception
+    _lifecycle_skip_reason: str | None = None
+    if not args.lifecycle:
+        _lifecycle_skip_reason = (
+            "--lifecycle flag not passed (run with --lifecycle to query "
+            "DigiKey / Mouser / LCSC / element14 for obsolescence + "
+            "operating-temp coverage; requires network + API keys)"
+        )
+    else:
+        try:
+            from lifecycle_audit import audit_bom
+            project_dir = str(Path(args.schematic).parent)
+            lifecycle = audit_bom(result, project_dir=project_dir)
+            if lifecycle and lifecycle.get("components_checked", 0) > 0:
+                result["lifecycle_audit"] = lifecycle
+                print(f"Lifecycle: {lifecycle.get('lifecycle_summary', {})}", file=sys.stderr)
+            else:
+                _lifecycle_skip_reason = (
+                    "no components with MPNs to check — populate MPN "
+                    "fields on BOM parts and re-run with --lifecycle"
+                )
+                print("Lifecycle: no components with MPNs to check", file=sys.stderr)
+        except ImportError:
+            _lifecycle_skip_reason = "lifecycle_audit.py not found"
+            print("Warning: lifecycle_audit.py not found", file=sys.stderr)
+        except (OSError, ValueError, TypeError, KeyError) as e:
+            _lifecycle_skip_reason = f"audit raised {type(e).__name__}: {e}"
+            print(f"Warning: lifecycle audit failed: {e}", file=sys.stderr)
+
+    if _lifecycle_skip_reason is not None:
+        if 'findings' not in result:
+            result['findings'] = []
+        result['findings'].append({
+            "detector": "audit_lifecycle_skipped",
+            "rule_id": "LC-007",
+            "severity": "info",
+            "confidence": "deterministic",
+            "evidence_source": "topology",
+            "category": "lifecycle",
+            "summary": f"Lifecycle audit not run — {_lifecycle_skip_reason.split(' (')[0]}",
+            "description": (
+                f"Component lifecycle / obsolescence audit was not run "
+                f"this session. Reason: {_lifecycle_skip_reason}. The "
+                f"review cannot report active / NRND / EOL / obsolete "
+                f"status, last-time-buy windows, or operating-temperature "
+                f"coverage for any BOM part. Treat the lifecycle section "
+                f"of the report as 'not performed'."
+            ),
+            "components": [],
+            "nets": [],
+            "pins": [],
+            "recommendation": (
+                "Run with --lifecycle (requires DIGIKEY_CLIENT_ID / "
+                "MOUSER_SEARCH_API_KEY / ELEMENT14_API_KEY env vars; "
+                "LCSC needs no auth) to populate this section. If "
+                "intentionally skipped, note it explicitly in the report's "
+                "'Not Performed' section."
+            ),
+            "report_context": {
+                "section": "Component Lifecycle",
+                "impact": "No obsolescence / temperature-grade evidence available.",
+                "standard_ref": "",
+            },
+        })
+
+    # Datasheet verification — cross-check extracted datasheet data against schematic
+    try:
+        # Import datasheet_verify from the datasheets skill
+        import os as _os, sys as _sys
+        _ds_scripts = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)),
+                                    '..', '..', 'datasheets', 'scripts')
+        if _os.path.isdir(_ds_scripts):
+            _sys.path.insert(0, _os.path.abspath(_ds_scripts))
+        from datasheet_verify import run_datasheet_verification
+        project_dir = str(Path(args.schematic).parent)
+        ds_verify = run_datasheet_verification(result, project_dir=project_dir)
+        if ds_verify.get("findings") or ds_verify.get("summary", {}).get("ics_with_extractions", 0) > 0:
+            result["datasheet_verification"] = ds_verify
+    except ImportError:
+        pass
+    except (OSError, ValueError, TypeError, KeyError, AttributeError) as e:
+        # AttributeError added for rc.3 — defense against future None-leaks
+        # in datasheet_verify.py (see _load_extraction normalization).
+        result["datasheet_verification"] = {
+            "findings": [],
+            "summary": {"error": f"{type(e).__name__}: {e}"},
+        }
+
+    from output_filters import apply_output_filters
+    apply_output_filters(result, args.stage, args.audience)
+
+    # Recompute summary + trust_summary from the final findings list — post-
+    # filters (CERT-001 hobby gating, power_rails config, lifecycle audit,
+    # datasheet verification, output_filters stage filter) can mutate
+    # findings[] after the initial summary was built. Keep the envelope
+    # consistent with what actually ships in findings[].
+    _final_findings = result.get('findings', []) if isinstance(result.get('findings'), list) else []
+    _sev_counts = {"error": 0, "warning": 0, "info": 0}
+    for _f in _final_findings:
+        if not isinstance(_f, dict):
+            continue
+        _s = str(_f.get('severity', 'info')).lower()
+        if _s in _sev_counts:
+            _sev_counts[_s] += 1
+        else:
+            _sev_counts['info'] += 1
+    if isinstance(result.get('summary'), dict):
+        result['summary']['total_findings'] = len(_final_findings)
+        result['summary']['by_severity'] = _sev_counts
+    try:
+        from finding_schema import compute_trust_summary
+        result['trust_summary'] = compute_trust_summary(_final_findings, bom=result.get('bom'))
+    except (ImportError, Exception):
+        pass
+
+    # Guarantee every finding carries a stable finding_id (Layer 2 merge keys
+    # on it). Runs after all filtering/appends; before any output branch.
+    assign_finding_ids(result.get('findings', []), 'schematic')
+
+    if args.text:
+        from output_filters import format_text
+        print(format_text(result.get('findings', []), args.audience or 'designer', args.stage))
+        sys.exit(0)
+
+    # Wire capability_mode_ref (Phase 4 spec §3.3). Already resolved early
+    # so inputs.run_id and capability_mode_ref.run_id match.
+    result["capability_mode_ref"] = _capability_mode_ref
+
     indent = None if args.compact else 2
     output = json.dumps(result, indent=indent, default=str)
 
-    if args.output:
+    if args.analysis_dir:
+        import tempfile
+        from analysis_cache import (ensure_analysis_dir, hash_source_file,
+                                     should_create_new_run, create_run,
+                                     overwrite_current, CANONICAL_OUTPUTS,
+                                     resolve_analysis_dir)
+
+        project_dir = str(Path(args.schematic).parent)
+        analysis_dir = resolve_analysis_dir(args.analysis_dir)
+
+        # Find .kicad_pro for manifest
+        pro_file = ""
+        try:
+            for f in os.listdir(project_dir):
+                if f.endswith(".kicad_pro"):
+                    pro_file = f
+                    break
+        except OSError:
+            pass
+
+        # Ensure the target directory exists with manifest
+        os.makedirs(analysis_dir, exist_ok=True)
+        from analysis_cache import MANIFEST_FILENAME, save_manifest, _empty_manifest, GITIGNORE_CONTENT
+        manifest_path = os.path.join(analysis_dir, MANIFEST_FILENAME)
+        if not os.path.isfile(manifest_path):
+            manifest = _empty_manifest()
+            manifest['project'] = pro_file
+            save_manifest(analysis_dir, manifest)
+        # Respect track_in_git config — skip .gitignore if user wants git tracking
+        _track_in_git = False
+        try:
+            _track_in_git = config.get('analysis', {}).get('track_in_git', False)
+        except (NameError, AttributeError):
+            pass
+        gitignore_path = os.path.join(analysis_dir, '.gitignore')
+        if not _track_in_git and not os.path.isfile(gitignore_path):
+            with open(gitignore_path, 'w') as f:
+                f.write(GITIGNORE_CONTENT)
+
+        source_hashes = {os.path.basename(args.schematic): hash_source_file(args.schematic)}
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            out_file = os.path.join(tmp_dir, CANONICAL_OUTPUTS.get("schematic", "schematic.json"))
+            Path(out_file).write_text(output)
+
+            if should_create_new_run(analysis_dir, tmp_dir):
+                run_id = create_run(
+                    analysis_dir=analysis_dir,
+                    outputs_dir=tmp_dir,
+                    source_hashes=source_hashes,
+                    scripts={"schematic": f"analyze_schematic.py {os.path.basename(args.schematic)}"},
+                )
+                print(f"Analysis cached: {os.path.join(analysis_dir, run_id, 'schematic.json')}", file=sys.stderr)
+            else:
+                overwrite_current(analysis_dir, tmp_dir, source_hashes=source_hashes)
+                print(f"Analysis cache updated (current run)", file=sys.stderr)
+
+    elif args.output:
         Path(args.output).write_text(output)
         print(f"Written to {args.output}", file=sys.stderr)
     else:

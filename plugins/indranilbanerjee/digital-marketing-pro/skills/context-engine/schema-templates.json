@@ -1,0 +1,240 @@
+{
+  "_readme": "Ready-to-use JSON-LD schema templates for common page types. Used by seo-specialist agent and schema-generator.py. Keep updated with Google's supported types and deprecation status.",
+  "_updated": "2026-03-30",
+  "deprecations": {
+    "HowTo": { "status": "deprecated", "date": "2023-09", "note": "Rich results removed. Use Article format with step-by-step structure instead." },
+    "FAQ": { "status": "restricted", "date": "2023-08", "note": "Rich results limited to government and health authority sites only." },
+    "SpecialAnnouncement": { "status": "deprecated", "date": "2025-07", "note": "Rich results removed." },
+    "EnergyConsumptionDetails": { "status": "replaced", "date": "2025-04", "note": "Replaced by Certification schema." }
+  },
+  "templates": [
+    {
+      "type": "VideoObject",
+      "description": "Video content pages with thumbnails, duration, and playback URLs. Enables video rich results.",
+      "template": {
+        "@context": "https://schema.org",
+        "@type": "VideoObject",
+        "name": "[Video Title]",
+        "description": "[Video Description]",
+        "thumbnailUrl": "[Thumbnail Image URL]",
+        "uploadDate": "[YYYY-MM-DD]",
+        "duration": "[ISO 8601 Duration, e.g. PT1H30M]",
+        "contentUrl": "[Direct Video File URL]",
+        "embedUrl": "[Embed Player URL]",
+        "publisher": {
+          "@type": "Organization",
+          "name": "[Publisher Name]",
+          "logo": { "@type": "ImageObject", "url": "[Logo URL]" }
+        }
+      }
+    },
+    {
+      "type": "BroadcastEvent",
+      "description": "Live streaming content for LIVE badge in search results. Requires VideoObject wrapper.",
+      "template": {
+        "@context": "https://schema.org",
+        "@type": "VideoObject",
+        "name": "[Live Stream Title]",
+        "description": "[Live Stream Description]",
+        "thumbnailUrl": "[Thumbnail Image URL]",
+        "uploadDate": "[YYYY-MM-DD]",
+        "contentUrl": "[Stream URL]",
+        "embedUrl": "[Embed Player URL]",
+        "publication": {
+          "@type": "BroadcastEvent",
+          "isLiveBroadcast": true,
+          "startDate": "[YYYY-MM-DDTHH:MM:SSZ]",
+          "endDate": "[YYYY-MM-DDTHH:MM:SSZ]"
+        }
+      }
+    },
+    {
+      "type": "Clip",
+      "description": "Key moments or chapters within a video. Enables key moments rich results with timestamp links.",
+      "template": {
+        "@context": "https://schema.org",
+        "@type": "VideoObject",
+        "name": "[Video Title]",
+        "description": "[Video Description]",
+        "thumbnailUrl": "[Thumbnail Image URL]",
+        "uploadDate": "[YYYY-MM-DD]",
+        "contentUrl": "[Direct Video File URL]",
+        "hasPart": [
+          {
+            "@type": "Clip",
+            "name": "[Clip Title]",
+            "startOffset": 0,
+            "endOffset": 120,
+            "url": "[Video URL with timestamp, e.g. ?t=0]"
+          }
+        ]
+      }
+    },
+    {
+      "type": "SeekToAction",
+      "description": "Enable seek functionality in video rich results. Allows users to jump to timestamps from search.",
+      "template": {
+        "@context": "https://schema.org",
+        "@type": "VideoObject",
+        "name": "[Video Title]",
+        "description": "[Video Description]",
+        "thumbnailUrl": "[Thumbnail Image URL]",
+        "uploadDate": "[YYYY-MM-DD]",
+        "contentUrl": "[Direct Video File URL]",
+        "potentialAction": {
+          "@type": "SeekToAction",
+          "target": "[Video URL]?t={seek_to_second_number}",
+          "startOffset-input": "required name=seek_to_second_number"
+        }
+      }
+    },
+    {
+      "type": "SoftwareSourceCode",
+      "description": "Open source and code repository pages.",
+      "template": {
+        "@context": "https://schema.org",
+        "@type": "SoftwareSourceCode",
+        "name": "[Repository Name]",
+        "description": "[Repository Description]",
+        "codeRepository": "[Repository URL]",
+        "programmingLanguage": "[Language]",
+        "runtimePlatform": "[Platform]",
+        "author": { "@type": "Person", "name": "[Author Name]" },
+        "license": "[License URL]",
+        "dateCreated": "[YYYY-MM-DD]",
+        "dateModified": "[YYYY-MM-DD]"
+      }
+    },
+    {
+      "type": "ProductGroup",
+      "description": "E-commerce product variants grouped by attributes (size, color). Enables variant-aware rich results.",
+      "template": {
+        "@context": "https://schema.org",
+        "@type": "ProductGroup",
+        "name": "[Product Name]",
+        "description": "[Product group description]",
+        "productGroupID": "[product-group-id]",
+        "variesBy": ["https://schema.org/size", "https://schema.org/color"],
+        "hasVariant": [
+          {
+            "@type": "Product",
+            "name": "[Variant Name]",
+            "sku": "[SKU]",
+            "color": "[Color]",
+            "size": "[Size]",
+            "offers": {
+              "@type": "Offer",
+              "price": "[Price]",
+              "priceCurrency": "USD",
+              "availability": "https://schema.org/InStock"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "ProfilePage",
+      "description": "Author/creator profile pages. Enhances E-E-A-T signals with mainEntity Person markup.",
+      "template": {
+        "@context": "https://schema.org",
+        "@type": "ProfilePage",
+        "mainEntity": {
+          "@type": "Person",
+          "name": "[Author Name]",
+          "url": "[Profile URL]",
+          "description": "[Author bio and expertise]",
+          "sameAs": ["[Twitter URL]", "[LinkedIn URL]"]
+        }
+      }
+    },
+    {
+      "type": "Certification",
+      "description": "Product certifications (Energy Star, safety, organic). Replaced EnergyConsumptionDetails (April 2025).",
+      "template": {
+        "@context": "https://schema.org",
+        "@type": "Product",
+        "name": "[Product Name]",
+        "hasCertification": {
+          "@type": "Certification",
+          "certificationIdentification": "[Certification Name]",
+          "issuedBy": { "@type": "Organization", "name": "[Issuing Organization]" }
+        }
+      }
+    },
+    {
+      "type": "OfferShippingDetails",
+      "description": "Shipping info for e-commerce products. Includes rate, handling time, transit time.",
+      "template": {
+        "@context": "https://schema.org",
+        "@type": "Product",
+        "name": "[Product Name]",
+        "offers": {
+          "@type": "Offer",
+          "price": "[Price]",
+          "priceCurrency": "USD",
+          "shippingDetails": {
+            "@type": "OfferShippingDetails",
+            "shippingRate": { "@type": "MonetaryAmount", "value": "[0]", "currency": "USD" },
+            "deliveryTime": {
+              "@type": "ShippingDeliveryTime",
+              "handlingTime": { "@type": "QuantitativeValue", "minValue": 0, "maxValue": 1, "unitCode": "DAY" },
+              "transitTime": { "@type": "QuantitativeValue", "minValue": 1, "maxValue": 5, "unitCode": "DAY" }
+            },
+            "shippingDestination": {
+              "@type": "DefinedRegion",
+              "addressCountry": "US"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "MerchantReturnPolicy",
+      "description": "Return policy for e-commerce. Enables return policy display in product rich results.",
+      "template": {
+        "@context": "https://schema.org",
+        "@type": "Product",
+        "name": "[Product Name]",
+        "offers": {
+          "@type": "Offer",
+          "price": "[Price]",
+          "priceCurrency": "USD",
+          "hasMerchantReturnPolicy": {
+            "@type": "MerchantReturnPolicy",
+            "applicableCountry": "US",
+            "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnWindow",
+            "merchantReturnDays": 30,
+            "returnMethod": "https://schema.org/ReturnByMail",
+            "returnFees": "https://schema.org/FreeReturn"
+          }
+        }
+      }
+    },
+    {
+      "type": "SoftwareApplication",
+      "description": "Software comparison and review pages.",
+      "template": {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "[Software Name]",
+        "applicationCategory": "[Category]",
+        "operatingSystem": "[OS]",
+        "offers": { "@type": "Offer", "price": "[Price]", "priceCurrency": "USD" }
+      }
+    },
+    {
+      "type": "ItemList",
+      "description": "Roundup and listicle pages. 'Best X tools', 'Top Y alternatives'.",
+      "template": {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        "name": "[List Title]",
+        "itemListOrder": "https://schema.org/ItemListOrderDescending",
+        "numberOfItems": "[Count]",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "[Item Name]", "url": "[Item URL]" }
+        ]
+      }
+    }
+  ]
+}

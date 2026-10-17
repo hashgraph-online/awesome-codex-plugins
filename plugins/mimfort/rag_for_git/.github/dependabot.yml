@@ -1,0 +1,7 @@
+version: 2
+updates:
+  # Держим SHA-пины GitHub Actions актуальными (workflow закреплён на commit-SHA).
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

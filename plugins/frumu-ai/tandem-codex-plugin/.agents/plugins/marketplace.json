@@ -1,0 +1,23 @@
+{
+  "name": "tandem-codex-marketplace",
+  "interface": {
+    "displayName": "Tandem Codex Plugins"
+  },
+  "description": "Marketplace entry that exposes the Tandem Workflow Architect plugin to Codex.",
+  "plugins": [
+    {
+      "name": "tandem-codex-plugin",
+      "category": "Productivity",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/frumu-ai/tandem-codex-plugin.git",
+        "ref": "main",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      }
+    }
+  ]
+}

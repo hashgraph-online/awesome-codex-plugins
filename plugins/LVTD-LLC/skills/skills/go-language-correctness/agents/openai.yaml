@@ -1,0 +1,4 @@
+interface:
+  display_name: "Go Language Correctness"
+  short_description: "Review Go language-level correctness risks"
+  default_prompt: "Use $go-language-correctness to review this Go code for representation, ownership, iteration, and text correctness."

@@ -1,0 +1,19 @@
+{
+  "skill_name": "browser-javascript-tdd",
+  "evals": [
+    {
+      "id": 1,
+      "name": "dom-fixture-test",
+      "prompt": "Add JavaScript that disables a submit button until an input has text. I want the fast unit test, not just Selenium.",
+      "expected_output": "Defines a DOM fixture, explicit initializer, failing JS test, minimal implementation plan, and one integration check if real page wiring changes.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "selenium-vs-js-tests",
+      "prompt": "This client-side behavior is covered only by a slow Selenium test. What should move into JavaScript tests?",
+      "expected_output": "Separates DOM-local behavior from server/browser integration, keeps a small e2e check, and warns against global state leaks.",
+      "files": []
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Magic Hour Character Consistency"
+  short_description: "Keep characters consistent across scenes"
+  default_prompt: "Use $magic-hour-character-consistency to create my requested scenes from one approved character reference, preserving identity and reviewing each shot."

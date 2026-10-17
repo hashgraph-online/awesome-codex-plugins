@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kicad-happy.dev/schemas/review_annotations.schema.json",
+  "title": "Layer 2 Review Annotations",
+  "description": "Output of reviewer subagent. Phase 4 spec §4.2.",
+  "type": "object",
+  "required": ["schema_version", "produced_for_run_id", "produced_at",
+                "annotations", "reviewer_observations"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "produced_for_run_id": {"type": "string"},
+    "produced_at": {"type": "string", "format": "date-time"},
+    "annotations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["finding_id", "status", "reason", "confidence", "reviewed_at"],
+        "additionalProperties": false,
+        "properties": {
+          "finding_id": {"type": "string", "minLength": 1},
+          "status": {"enum": ["confirmed", "suppressed", "escalated"]},
+          "reason": {"type": "string", "minLength": 20},
+          "confidence": {"enum": ["high", "medium", "low"]},
+          "suggested_severity": {"enum": ["error", "warning", "info"]},
+          "reviewed_at": {"type": "string", "format": "date-time"}
+        }
+      }
+    },
+    "reviewer_observations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["origin", "observation", "severity", "confidence",
+                      "reasoning", "reviewed_at"],
+        "additionalProperties": false,
+        "properties": {
+          "origin": {"const": "llm_novel"},
+          "observation": {"type": "string", "minLength": 1},
+          "severity": {"enum": ["error", "warning", "info"]},
+          "confidence": {"enum": ["high", "medium", "low"]},
+          "reasoning": {"type": "string", "minLength": 20},
+          "related_findings": {"type": "array", "items": {"type": "string"}},
+          "reviewed_at": {"type": "string", "format": "date-time"}
+        }
+      }
+    }
+  }
+}

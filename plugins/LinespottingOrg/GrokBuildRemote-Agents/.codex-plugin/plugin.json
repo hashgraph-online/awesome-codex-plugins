@@ -1,0 +1,14 @@
+{
+  "name": "build-remote-agent",
+  "version": "0.6.2",
+  "description": "Pair a phone via gbr-agent (gbr/1). Attach 127.0.0.1:8788 or gbr-mcp. Catalog entry in LinespottingOrg/GrokBuildRemote-Agents — not OpenAI Codex core.",
+  "homepage": "https://grokbuildremote.com/integrations.html",
+  "repository": "https://github.com/LinespottingOrg/GrokBuildRemote-Agents",
+  "license": "MIT",
+  "author": "Linespotting AB",
+  "interface": {
+    "displayName": "Build Remote Agent",
+    "shortDescription": "Pair a phone via gbr/1. Attach 127.0.0.1:8788 or gbr-mcp.",
+    "composerIcon": "./.codex-plugin/icon.svg"
+  }
+}

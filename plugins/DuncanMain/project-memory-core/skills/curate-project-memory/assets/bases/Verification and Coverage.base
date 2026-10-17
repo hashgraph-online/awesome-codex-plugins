@@ -1,0 +1,13 @@
+filters:
+  or:
+    - 'type == "coverage"'
+    - 'verification_status == "needs-review"'
+views:
+  - type: table
+    name: Verification and coverage
+    order:
+      - file.name
+      - project_id
+      - verification_status
+      - updated
+      - review_after

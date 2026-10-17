@@ -1,0 +1,4 @@
+interface:
+  display_name: "Customer Discovery Conversations"
+  short_description: "Rewrite interviews to avoid bad data."
+  default_prompt: "Rewrite these customer interview questions using Mom Test rules."

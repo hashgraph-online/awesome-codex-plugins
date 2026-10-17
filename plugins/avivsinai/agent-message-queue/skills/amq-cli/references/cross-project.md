@@ -39,6 +39,22 @@ amq send --to codex@proj-b:auth --body "to specific session"
 
 Flags take precedence over inline syntax.
 
+## Same-Handle Messages
+
+A matching sender and recipient handle has three distinct meanings:
+
+| Route | Meaning |
+|---|---|
+| `--project` is present | A different agent instance in another project. AMQ stamps `from_project` and reply routing metadata. |
+| `--session` or `--from-session` is present | A different agent instance in another session. AMQ stamps session reply routing metadata. |
+| No routing dimension is present | A same-root self-send with no provenance beyond the handle. `amq send` refuses it by default. |
+
+Use `--allow-self` only to confirm an intentional same-root self-send. The flag
+does not make `--root` a routing dimension, add reply metadata, or bypass the
+cross-tree and session-pin guards. To reach another instance of your handle,
+use `--project` or `--session` instead; routed same-handle sends do not require
+`--allow-self`.
+
 ## Session Defaults
 
 `--project proj-b` without `--session` delivers to the **same session name** in the peer project. If your source root is `.agent-mail/collab`, the message goes to `proj-b's .agent-mail/collab`. Override with explicit `--session`.
@@ -48,7 +64,7 @@ Flags take precedence over inline syntax.
 Cross-project messages carry `reply_to` (handle@session) and `reply_project` (project name). When you receive a cross-project message:
 
 ```bash
-amq reply --id <msg_id> --body "got it"
+amq reply --id "<msg_id>" --body "got it"
 ```
 
 The CLI reads `reply_project` from the message, resolves the peer, and delivers to the correct project/session. The reply re-stamps `reply_to` and `reply_project` with the replier's own identity for continued round-trip.
@@ -84,23 +100,23 @@ Decentralized decision protocol for cross-project coordination, based on RFC 728
 amq send --to codex --project proj-b --kind decision \
   --labels "decision:proposal,project:proj-a,project:proj-b" \
   --thread "decision/api-v2" \
-  --context '{"proposal_id":"api-v2","question":"Adopt new API?","required_projects":["proj-a","proj-b"],"deadline":"2026-03-25"}' \
-  --body "Proposal: migrate to API v2. All tests green."
+  --context '{"proposal_id":"api-v2","question":"Adopt new API?","required_projects":["proj-a","proj-b"]}' \
+  --body "Proposal: migrate to API v2. Please review the consumer contract."
 
 # Support
-amq reply --id <msg_id> --kind decision \
+amq reply --id "<msg_id>" --kind decision \
   --labels "decision:support" \
-  --body "LGTM. Tests pass on our side."
+  --body "The proposed contract meets our requirements."
 
 # Objection
-amq reply --id <msg_id> --kind decision \
+amq reply --id "<msg_id>" --kind decision \
   --labels "decision:objection,blocking" \
   --body "Breaks backward compat for our consumers."
 
 # Final decision
-amq reply --id <msg_id> --kind decision \
+amq reply --id "<msg_id>" --kind decision \
   --labels "decision:final" \
-  --body "Adopted with backward-compat shim. Shipping in v0.25."
+  --body "Agreed: retain backward compatibility for existing consumers."
 ```
 
 ### Context schema for proposals
@@ -111,8 +127,8 @@ amq reply --id <msg_id> --kind decision \
   "question": "Should we adopt the new API?",
   "options": ["adopt", "defer", "reject"],
   "required_projects": ["proj-a", "proj-b"],
-  "deadline": "2026-03-25",
-  "evidence": ["All CI green", "perf benchmarks attached"]
+  "deadline": "<agreed deadline>",
+  "evidence": ["<path or URL to observed results>"]
 }
 ```
 

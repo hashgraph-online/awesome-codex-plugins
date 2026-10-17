@@ -1,0 +1,4 @@
+interface:
+  display_name: "CodeTruss"
+  short_description: "First-pass verification gate for AI-written code"
+  default_prompt: "Review my current agent changes with CodeTruss and explain the receipt."

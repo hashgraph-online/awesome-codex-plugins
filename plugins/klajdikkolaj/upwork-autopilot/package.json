@@ -2,9 +2,13 @@
   "name": "upwork-autopilot",
   "private": false,
   "version": "0.4.0",
+  "description": "Codex plugin for controlled Upwork job search, qualification, and proposal submission sessions.",
   "type": "module",
   "scripts": {
     "bootstrap": "npm install",
+    "brew:formula": "node ./scripts/update-homebrew-formula.mjs",
+    "brew:formula:check": "node ./scripts/update-homebrew-formula.mjs --check",
+    "pack:dry-run": "npm pack --dry-run",
     "probe": "node ./scripts/upwork-session-probe.mjs",
     "setup:profile": "node ./scripts/setup-applicant-profile.mjs",
     "search:plan": "node ./scripts/upwork-search-plan.mjs",
@@ -13,6 +17,24 @@
     "export:github": "bash ./scripts/export-github-repo.sh",
     "validate": "bash ./scripts/validate.sh"
   },
+  "bin": {
+    "upwork-autopilot": "bin/upwork-autopilot.mjs"
+  },
+  "files": [
+    ".codex-plugin/",
+    "bin/",
+    "config/*.template.*",
+    "docs/",
+    "examples/",
+    "references/",
+    "scripts/",
+    "skills/",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "LICENSE",
+    "README.md",
+    "SECURITY.md"
+  ],
   "homepage": "https://github.com/klajdikkolaj/upwork-autopilot",
   "repository": {
     "type": "git",
@@ -20,6 +42,22 @@
   },
   "bugs": {
     "url": "https://github.com/klajdikkolaj/upwork-autopilot/issues"
+  },
+  "keywords": [
+    "upwork",
+    "freelance",
+    "proposal",
+    "playwright",
+    "automation",
+    "codex-plugin"
+  ],
+  "author": {
+    "name": "Klajdi Kolaj",
+    "url": "https://github.com/klajdikkolaj"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
   },
   "engines": {
     "node": ">=20"

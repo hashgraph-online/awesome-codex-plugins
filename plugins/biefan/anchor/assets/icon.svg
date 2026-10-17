@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>Anchor</title>
+  <rect width="512" height="512" rx="80" fill="#0E2A47"/>
+  <g fill="none" stroke="#F4E4BC" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="256" cy="118" r="34" fill="none"/>
+    <line x1="256" y1="152" x2="256" y2="408"/>
+    <line x1="192" y1="200" x2="320" y2="200"/>
+    <path d="M 256 408 Q 142 408 142 312"/>
+    <path d="M 256 408 Q 370 408 370 312"/>
+    <line x1="116" y1="290" x2="142" y2="312"/>
+    <line x1="142" y1="312" x2="168" y2="288"/>
+    <line x1="396" y1="290" x2="370" y2="312"/>
+    <line x1="370" y1="312" x2="344" y2="288"/>
+  </g>
+</svg>

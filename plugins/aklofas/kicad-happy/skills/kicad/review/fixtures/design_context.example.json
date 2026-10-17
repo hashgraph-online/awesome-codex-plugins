@@ -1,0 +1,9 @@
+{
+  "design_category": "power_supply",
+  "environment": "industrial",
+  "compliance_targets": ["IEC 62368"],
+  "user_declared_intent": "Industrial 24V buck regulator demo board",
+  "confidence": "high",
+  "evidence": "Inferred from BOM: LM2596-ADJ (buck regulator) + 24V input rail + industrial-grade passives. User declared 'industrial' in .kicad-happy.json.",
+  "resolution": "agree"
+}

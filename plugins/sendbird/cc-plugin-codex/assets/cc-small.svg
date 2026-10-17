@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-label="Claude Code">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="35%" r="70%">
+      <stop offset="0%" stop-color="#1A1A30"/>
+      <stop offset="100%" stop-color="#0A0A14"/>
+    </radialGradient>
+    <linearGradient id="cg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#B07BFF"/>
+      <stop offset="50%" stop-color="#7B39FE"/>
+      <stop offset="100%" stop-color="#6222E8"/>
+    </linearGradient>
+    <filter id="gl" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="b"/>
+      <feColorMatrix in="b" type="matrix" values="0 0 0 0 0.48 0 0 0 0 0.22 0 0 0 0 0.99 0 0 0 0.45 0"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="128" height="128" rx="28" fill="url(#bg)"/>
+  <rect x=".5" y=".5" width="127" height="127" rx="27.5" fill="none" stroke="#7B39FE" stroke-opacity=".15"/>
+
+  <!-- Glow layer -->
+  <g filter="url(#gl)">
+    <circle cx="38" cy="58" r="24" fill="none" stroke="#7B39FE" stroke-width="11"
+      stroke-dasharray="109 42" transform="rotate(48 38 58)" stroke-linecap="round"/>
+    <circle cx="90" cy="58" r="24" fill="none" stroke="#7B39FE" stroke-width="11"
+      stroke-dasharray="109 42" transform="rotate(48 90 58)" stroke-linecap="round"/>
+  </g>
+
+  <!-- Sharp CC -->
+  <circle cx="38" cy="58" r="24" fill="none" stroke="url(#cg)" stroke-width="11"
+    stroke-dasharray="109 42" transform="rotate(48 38 58)" stroke-linecap="round"/>
+  <circle cx="90" cy="58" r="24" fill="none" stroke="url(#cg)" stroke-width="11"
+    stroke-dasharray="109 42" transform="rotate(48 90 58)" stroke-linecap="round"/>
+
+  <!-- Subtle bridge dots -->
+  <circle cx="62" cy="58" r="2.5" fill="#7B39FE" opacity=".6"/>
+  <circle cx="66" cy="58" r="2.5" fill="#7B39FE" opacity=".6"/>
+</svg>

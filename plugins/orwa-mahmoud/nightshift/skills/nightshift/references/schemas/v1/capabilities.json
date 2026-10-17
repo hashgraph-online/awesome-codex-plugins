@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "capabilities": [
+    "owner-gates",
+    "scripts",
+    "task-runner",
+    "ci",
+    "structured-results",
+    "browser",
+    "build",
+    "test",
+    "coverage",
+    "lint",
+    "typecheck",
+    "dead-code",
+    "accessibility",
+    "security",
+    "api-schema",
+    "localization",
+    "documentation-link",
+    "benchmark",
+    "mutation-fuzz",
+    "seo-performance",
+    "source-export",
+    "connector",
+    "local-markdown",
+    "local-html"
+  ],
+  "stacks": [
+    "javascript-typescript",
+    "python",
+    "go",
+    "rust",
+    "shell-plugin",
+    "make"
+  ],
+  "provisioningDefault": "existing-tools"
+}

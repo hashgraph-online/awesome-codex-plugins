@@ -1,0 +1,4 @@
+interface:
+  display_name: "Customer Commitment Validation"
+  short_description: "Classify meetings by real commitment."
+  default_prompt: "Classify this meeting outcome as commitment, advancement, rejection, weak interest, or bad data."

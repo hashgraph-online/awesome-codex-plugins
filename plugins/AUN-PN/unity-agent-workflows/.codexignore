@@ -1,0 +1,28 @@
+.git/
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+
+# Local secrets and auth material
+.env*
+.npmrc
+
+# Logs and reports
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+coverage/
+
+# Generated artifacts and caches
+dist/
+build/
+.cache/
+cache/
+tmp/
+temp/
+*.tgz

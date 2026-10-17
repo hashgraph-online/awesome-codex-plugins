@@ -1,0 +1,20 @@
+{
+  "name": "codex-quota-title",
+  "interface": {
+    "displayName": "CodexQuotaTitle"
+  },
+  "plugins": [
+    {
+      "name": "codex-quota-title",
+      "source": {
+        "source": "local",
+        "path": "./plugins/codex-quota-title"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

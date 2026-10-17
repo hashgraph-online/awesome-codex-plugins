@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Claude Code Codex plugin screenshot</title>
+  <desc id="desc">A simple preview of Claude Code status, login, and prompt tools in Codex.</desc>
+  <rect width="1200" height="720" fill="#0f172a"/>
+  <rect x="72" y="72" width="1056" height="576" rx="28" fill="#111827" stroke="#334155" stroke-width="2"/>
+  <text x="112" y="140" fill="#f8fafc" font-family="Arial, sans-serif" font-size="44" font-weight="700">Claude Code for Codex</text>
+  <text x="112" y="196" fill="#cbd5e1" font-family="Arial, sans-serif" font-size="24">Safe local Claude Code access through Codex and MCP</text>
+  <g font-family="Arial, sans-serif" font-size="24">
+    <rect x="112" y="260" width="300" height="184" rx="16" fill="#1e293b"/>
+    <text x="144" y="318" fill="#38bdf8" font-weight="700">Status</text>
+    <text x="144" y="366" fill="#e2e8f0">Check local CLI</text>
+    <text x="144" y="406" fill="#94a3b8">Doctor and version</text>
+    <rect x="450" y="260" width="300" height="184" rx="16" fill="#1e293b"/>
+    <text x="482" y="318" fill="#a78bfa" font-weight="700">Login</text>
+    <text x="482" y="366" fill="#e2e8f0">Official auth flow</text>
+    <text x="482" y="406" fill="#94a3b8">No stored secrets</text>
+    <rect x="788" y="260" width="300" height="184" rx="16" fill="#1e293b"/>
+    <text x="820" y="318" fill="#34d399" font-weight="700">Prompt</text>
+    <text x="820" y="366" fill="#e2e8f0">Manual or plan mode</text>
+    <text x="820" y="406" fill="#94a3b8">Workspace-scoped</text>
+  </g>
+  <rect x="112" y="500" width="976" height="76" rx="14" fill="#020617" stroke="#334155"/>
+  <text x="144" y="548" fill="#f8fafc" font-family="Arial, sans-serif" font-size="24">Security-focused Claude Code CLI integration for OpenAI Codex</text>
+</svg>

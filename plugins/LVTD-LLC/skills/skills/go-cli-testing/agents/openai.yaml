@@ -1,0 +1,4 @@
+interface:
+  display_name: "Go CLI Testing"
+  short_description: "Test Go CLI behavior and integrations reliably"
+  default_prompt: "Use $go-cli-testing to build a reliable test strategy for this Go command-line application."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Start Process Job"
+  short_description: "Launch a detached tracked process job"
+  default_prompt: "Use $start to launch this command as a tracked background process."

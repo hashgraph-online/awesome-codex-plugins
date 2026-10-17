@@ -1,0 +1,15 @@
+filters:
+  or:
+    - 'review_status == "draft"'
+    - 'review_status == "requested"'
+    - 'review_status == "changes-requested"'
+views:
+  - type: table
+    name: Team review queue
+    order:
+      - file.name
+      - knowledge_id
+      - owner
+      - reviewers
+      - review_status
+      - updated

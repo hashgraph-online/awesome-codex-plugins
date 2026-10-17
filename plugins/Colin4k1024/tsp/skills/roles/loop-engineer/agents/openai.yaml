@@ -1,0 +1,4 @@
+interface:
+  display_name: "Loop Engineer（循环工程师）"
+  short_description: "负责自动化循环任务的设计、监控、收敛判断与异常升级，确保循环任务在预算内可靠收…"
+  default_prompt: "Use $loop-engineer to take the lead on the Loop Engineer（循环工程师） responsibilities for this task. Start with $systematic-debugging, $eval-harness when those shared capabilities apply. Pull in $continuous-agent-loop, $loop-heartbeat, $goal-convergence, $rework-loop when deeper engineering execution or verification guidance is needed."

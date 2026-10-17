@@ -1,0 +1,106 @@
+{
+  "name": "socraticode",
+  "mcpName": "io.github.giancarloerra/socraticode",
+  "version": "1.8.4",
+  "description": "SocratiCode — MCP server for local codebase indexing, semantic search, and code dependency graphs. All private, all local via Docker.",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "socraticode": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc && node scripts/copy-assets.mjs",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "lint": "biome check src/ tests/",
+    "lint:fix": "biome check --write src/ tests/",
+    "release": "release-it",
+    "prepublishOnly": "tsc && node scripts/copy-assets.mjs",
+    "release:dry": "release-it --dry-run",
+    "test": "vitest run",
+    "test:unit": "vitest run tests/unit/",
+    "test:integration": "vitest run tests/integration/",
+    "test:e2e": "vitest run tests/e2e/",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "keywords": [
+    "mcp",
+    "socraticode",
+    "codebase",
+    "indexer",
+    "vector-database",
+    "qdrant",
+    "ollama",
+    "embeddings",
+    "code-graph"
+  ],
+  "author": {
+    "name": "Giancarlo Erra",
+    "email": "giancarlo@altaire.com",
+    "url": "https://altaire.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/giancarloerra/socraticode.git"
+  },
+  "bugs": {
+    "url": "https://github.com/giancarloerra/socraticode/issues"
+  },
+  "homepage": "https://socraticode.cloud",
+  "license": "AGPL-3.0-only",
+  "files": [
+    "dist",
+    ".claude-plugin",
+    "skills",
+    "agents",
+    "hooks",
+    ".mcp.json",
+    "LICENSE",
+    "LICENSE-COMMERCIAL",
+    "README.md",
+    "THIRD-PARTY-LICENSES",
+    "socraticode_logo_thumbnail.png"
+  ],
+  "dependencies": {
+    "@ast-grep/lang-bash": "^0.0.7",
+    "@ast-grep/lang-c": "^0.0.5",
+    "@ast-grep/lang-cpp": "^0.0.5",
+    "@ast-grep/lang-csharp": "^0.0.5",
+    "@ast-grep/lang-go": "^0.0.5",
+    "@ast-grep/lang-java": "^0.0.6",
+    "@ast-grep/lang-kotlin": "^0.0.6",
+    "@ast-grep/lang-php": "^0.0.6",
+    "@ast-grep/lang-python": "^0.0.5",
+    "@ast-grep/lang-ruby": "^0.0.6",
+    "@ast-grep/lang-rust": "^0.0.6",
+    "@ast-grep/lang-scala": "^0.0.6",
+    "@ast-grep/lang-swift": "^0.0.7",
+    "@ast-grep/napi": "^0.40.5",
+    "@google/generative-ai": "^0.24.1",
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "@parcel/watcher": "^2.5.6",
+    "@qdrant/js-client-rest": "^1.17.0",
+    "glob": "^11.0.1",
+    "ignore": "^7.0.3",
+    "ollama": "^0.5.14",
+    "open": "^10.2.0",
+    "openai": "^6.22.0",
+    "proper-lockfile": "^4.1.2",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.4",
+    "@release-it/conventional-changelog": "^11.0.0",
+    "@types/node": "^22.13.4",
+    "@types/proper-lockfile": "^4.1.4",
+    "@vitest/coverage-v8": "^4.0.18",
+    "release-it": "^20.0.1",
+    "tsx": "^4.19.4",
+    "typescript": "^5.7.3",
+    "vitest": "^4.0.18"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

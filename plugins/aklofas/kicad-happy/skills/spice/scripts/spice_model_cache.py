@@ -11,7 +11,7 @@ Directory structure:
       datasheets/         # existing — PDF datasheets
       spice/
         models/
-          index.json      # MPN → file + metadata
+          manifest.json   # MPN → file + metadata (legacy name: index.json)
           LM358.sub       # .subckt OPAMP_LM358 ...
           AMS1117_3_3.sub # .subckt LDO_AMS1117_3_3 ...
 
@@ -65,8 +65,23 @@ def resolve_cache_dir(analysis_json, override_dir=None):
     return Path(tempfile.gettempdir()) / "kicad-happy-spice" / "models"
 
 
-# In-memory cache for index.json to avoid re-reading on every call
+# In-memory cache for manifest.json to avoid re-reading on every call.
+# Legacy name index.json still read for backward compat.
+MANIFEST_FILENAME = "manifest.json"
+LEGACY_MANIFEST_FILENAME = "index.json"
+
 _index_cache = {}  # cache_dir_str → (mtime, parsed_index)
+
+
+def _cache_manifest_path(cache_dir):
+    d = Path(cache_dir)
+    new = d / MANIFEST_FILENAME
+    if new.exists():
+        return new
+    old = d / LEGACY_MANIFEST_FILENAME
+    if old.exists():
+        return old
+    return new  # does not exist — return target path for write
 
 
 def get_cached_model(cache_dir, mpn):
@@ -79,7 +94,7 @@ def get_cached_model(cache_dir, mpn):
     Returns:
         (subckt_string, specs_dict) or (None, None) if not cached
     """
-    index_path = Path(cache_dir) / "index.json"
+    index_path = _cache_manifest_path(cache_dir)
     if not index_path.exists():
         return None, None
 
@@ -134,12 +149,12 @@ def cache_model(cache_dir, mpn, subckt, specs, source, component_type):
     # Write .sub file
     model_path.write_text(subckt)
 
-    # Update index
-    index_path = cache_dir / "index.json"
+    # Update manifest (prefer existing file; always write to manifest.json)
+    read_path = _cache_manifest_path(cache_dir)
     index = {}
-    if index_path.exists():
+    if read_path.exists():
         try:
-            with open(index_path) as f:
+            with open(read_path) as f:
                 index = json.load(f)
         except (json.JSONDecodeError, OSError):
             index = {}
@@ -151,11 +166,20 @@ def cache_model(cache_dir, mpn, subckt, specs, source, component_type):
         "type": component_type,
         "source": source,
         "specs": _serialize_specs(specs),
-        "created": datetime.datetime.now().isoformat(),
+        "created": datetime.datetime.now().astimezone().isoformat(timespec='seconds'),
     }
 
-    with open(index_path, "w") as f:
+    write_path = cache_dir / MANIFEST_FILENAME
+    with open(write_path, "w") as f:
         json.dump(index, f, indent=2)
+
+    # Remove legacy file after successful migration
+    old_path = cache_dir / LEGACY_MANIFEST_FILENAME
+    if old_path.exists() and old_path != write_path:
+        try:
+            old_path.unlink()
+        except OSError:
+            pass
 
     # Invalidate in-memory cache so next read picks up the new entry
     _index_cache.pop(str(cache_dir), None)

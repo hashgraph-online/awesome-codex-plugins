@@ -1,0 +1,7 @@
+interface:
+  display_name: "Dryforge migration"
+  short_description: "Bring an existing codebase into Dryforge."
+  default_prompt: "Use Dryforge migration to bring this project in."
+
+policy:
+  allow_implicit_invocation: false

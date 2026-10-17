@@ -1,0 +1,26 @@
+{
+  "name": "devin",
+  "version": "1.0.1",
+  "description": "Devin in Claude Code and Codex: AI code reviews, adversarial reviews, delegated coding tasks, Fusion sidekick workflows, and cloud handoffs.",
+  "author": {
+    "name": "devin-plugin-cc contributors"
+  },
+  "homepage": "https://github.com/TheOnlyFusionCube/devin-plugin-cc",
+  "repository": "https://github.com/TheOnlyFusionCube/devin-plugin-cc",
+  "license": "Apache-2.0",
+  "keywords": [
+    "devin",
+    "devin-ai",
+    "code-review",
+    "ai-code-review",
+    "coding-agent",
+    "ai-coding-assistant",
+    "codex",
+    "codex-cli",
+    "agent-skills",
+    "fusion",
+    "handoff"
+  ],
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json"
+}

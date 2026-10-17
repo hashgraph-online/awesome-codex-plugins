@@ -1,0 +1,7 @@
+interface:
+  display_name: "AtomLane"
+  short_description: "Run only the parallel work proven safe"
+  brand_color: "#65E6B4"
+  default_prompt: "Use $accelerate-local-work to compile this workload and execute only the concurrency proven safe, with live progress and time savings."
+policy:
+  allow_implicit_invocation: true

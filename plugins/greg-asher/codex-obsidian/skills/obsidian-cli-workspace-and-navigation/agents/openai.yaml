@@ -1,0 +1,6 @@
+interface:
+  display_name: "Obsidian CLI Workspace and Navigation"
+  short_description: "Operate vault/workspace/tab/navigation workflows through official Obsidian CLI commands."
+  default_prompt: "Use official Obsidian CLI workspace/navigation commands to inspect vault/workspace state, navigate files and tabs intentionally, and apply workspace layout changes with explicit side-effect reporting."
+policy:
+  allow_implicit_invocation: false

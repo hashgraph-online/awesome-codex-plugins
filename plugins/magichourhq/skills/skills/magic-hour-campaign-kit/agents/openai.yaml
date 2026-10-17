@@ -1,0 +1,4 @@
+interface:
+  display_name: "Magic Hour Campaign Kit"
+  short_description: "Finish product ads and matching campaign assets"
+  default_prompt: "Use $magic-hour-campaign-kit to turn my approved reference into finished assets for my requested placements, preserving the subject and exact label with editable copy and layout."

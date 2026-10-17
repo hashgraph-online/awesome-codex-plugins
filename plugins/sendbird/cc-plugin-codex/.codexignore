@@ -1,0 +1,7 @@
+# Local dependencies and generated packaging output
+node_modules/
+*.tgz
+
+# Local scratch and notes
+tasks/
+.DS_Store

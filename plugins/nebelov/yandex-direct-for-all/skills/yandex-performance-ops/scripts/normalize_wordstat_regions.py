@@ -36,9 +36,15 @@ def normalize_regions(source_dir: Path, lookup: dict[int, str], output_path: Pat
     rows: list[dict[str, str]] = []
     for source in sorted(glob.glob(str(source_dir / "*.json"))):
         source_path = Path(source)
-        if "regions_tree" in source_path.name:
+        if source_path.name.startswith("_") or "regions_tree" in source_path.name:
             continue
         payload = json.load(source_path.open("r", encoding="utf-8"))
+        if isinstance(payload, list):
+            payload = payload[0] if payload else {}
+        if isinstance(payload, dict) and isinstance(payload.get("data"), dict):
+            payload = payload["data"]
+        if not isinstance(payload, dict):
+            continue
         phrase = payload.get("requestPhrase", "")
         for item in payload.get("regions", []):
             region_id = int(item["regionId"])

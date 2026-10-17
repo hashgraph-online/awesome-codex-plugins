@@ -1,0 +1,9 @@
+.env
+.env.*
+*.key
+*.pem
+auth.json
+node_modules/
+*.tgz
+__pycache__/
+*.pyc

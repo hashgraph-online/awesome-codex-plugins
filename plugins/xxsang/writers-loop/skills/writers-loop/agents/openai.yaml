@@ -1,0 +1,7 @@
+interface:
+  display_name: "Writer's Loop"
+  short_description: "Writing, critique, style learning, translation, and preference learning"
+  brand_color: "#256D5A"
+  default_prompt: "Use $writers-loop to plan, draft, critique, revise, translate, learn style, and learn preferences for this writing task."
+policy:
+  allow_implicit_invocation: true

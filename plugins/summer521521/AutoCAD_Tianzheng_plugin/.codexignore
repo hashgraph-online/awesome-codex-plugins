@@ -1,0 +1,14 @@
+.git/
+node_modules/
+.venv/
+tmp/
+logs/
+*.log
+*.dwg
+*.dxf
+*.sqlite
+*.db
+*.bak
+*.zip
+*.7z
+.env

@@ -1,0 +1,11 @@
+{
+  "name": "tartinerlabs-quality",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Code quality skills — refactoring, naming conventions, and project structure",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./opencode.js"
+  }
+}

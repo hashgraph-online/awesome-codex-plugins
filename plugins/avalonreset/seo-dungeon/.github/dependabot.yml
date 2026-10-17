@@ -1,0 +1,28 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/dungeon"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+    groups:
+      dungeon-npm:
+        patterns:
+          - "*"
+        exclude-patterns:
+          - "phaser"
+    ignore:
+      - dependency-name: "phaser"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+    groups:
+      github-actions:
+        patterns:
+          - "*"

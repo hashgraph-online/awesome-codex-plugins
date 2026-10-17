@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- debt-ops: a registry list with one caught entry and a +1 marker -->
+  <rect width="512" height="512" rx="96" fill="#16161d"/>
+  <rect x="96" y="120" width="320" height="48" rx="24" fill="#3f3f4a"/>
+  <rect x="96" y="224" width="320" height="48" rx="24" fill="#d97757"/>
+  <rect x="96" y="328" width="216" height="48" rx="24" fill="#3f3f4a"/>
+  <circle cx="384" cy="352" r="44" fill="#d97757"/>
+  <path d="M384 330v44M362 352h44" stroke="#16161d" stroke-width="16" stroke-linecap="round"/>
+</svg>

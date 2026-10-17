@@ -1,0 +1,14 @@
+.git/
+.github/
+.claude/
+__pycache__/
+*.pyc
+.DS_Store
+coverage/
+dist/
+build/
+*.log
+*.out
+.env
+.env.*
+agenttrace-overview.*

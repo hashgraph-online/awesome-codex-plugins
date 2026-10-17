@@ -24,10 +24,10 @@ def find_client_context(explicit_path: Optional[str] = None) -> Optional[Path]:
     candidates = []
     if explicit_path:
         candidates.append(explicit_path)
-    candidates.extend(DEFAULT_CONTEXT_PATHS)
     env_path = os.environ.get("YANDEX_PERFORMANCE_CLIENT_CONTEXT")
     if env_path:
         candidates.append(env_path)
+    candidates.extend(DEFAULT_CONTEXT_PATHS)
 
     cwd = Path.cwd()
     for candidate in candidates:
@@ -56,7 +56,7 @@ def load_client_context(explicit_path: Optional[str] = None, required: bool = Fa
     data = load_json(found)
     if not isinstance(data, dict):
         raise ValueError(f"Client context must be a JSON object: {found}")
-    data["_context_path"] = str(found)
+    data["_context_source"] = "local-protected-file"
     return data
 
 

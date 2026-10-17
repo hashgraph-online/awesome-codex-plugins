@@ -1,0 +1,19 @@
+{
+  "name": "mobazha",
+  "description": "AI skills for Mobazha decentralized commerce: store deployment, product import, privacy tools",
+  "version": "0.1.1",
+  "author": {
+    "name": "Mobazha",
+    "url": "https://mobazha.org"
+  },
+  "homepage": "https://github.com/mobazha/mobazha-skills",
+  "repository": "https://github.com/mobazha/mobazha-skills",
+  "license": "MIT",
+  "keywords": [
+    "mobazha",
+    "ecommerce",
+    "decentralized",
+    "self-hosted",
+    "web3"
+  ]
+}

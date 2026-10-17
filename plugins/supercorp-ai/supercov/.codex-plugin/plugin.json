@@ -1,0 +1,45 @@
+{
+  "name": "supercov",
+  "version": "4.12.2",
+  "description": "Coverage, security and code quality for coding agents.",
+  "author": {
+    "name": "Supercorp",
+    "url": "https://supercorp.ai"
+  },
+  "homepage": "https://supercov.com",
+  "repository": "https://github.com/supercorp-ai/supercov",
+  "license": "MIT",
+  "keywords": [
+    "coverage",
+    "testing",
+    "code-quality",
+    "security"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Supercov",
+    "shortDescription": "Coverage, security and code quality for coding agents",
+    "longDescription": "Runs your project's existing tests, measures line, branch and MC/DC coverage, and hands the agent the untested code to test next. Finds risky lines and code smells file by file, on the whole repository or only on the change. JavaScript, TypeScript, Python, Ruby, Rust, Go, Java and Kotlin.",
+    "developerName": "Supercorp",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://supercov.com",
+    "privacyPolicyURL": "https://supercov.com/privacy",
+    "termsOfServiceURL": "https://supercov.com/terms",
+    "defaultPrompt": [
+      "Find the untested code in this repository and add tests for it.",
+      "Check this branch for security issues.",
+      "What should I refactor first?"
+    ],
+    "brandColor": "#000000",
+    "composerIcon": "./assets/logo.png",
+    "logo": "./assets/logo.png",
+    "screenshots": [
+      "./assets/screenshot.png"
+    ]
+  }
+}

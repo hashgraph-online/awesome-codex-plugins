@@ -9,7 +9,7 @@ scripts/node_modules/
 scripts/package-lock.json
 
 # === Go build (binary is platform-specific, users build from source) ===
-blueprint
+cavekit
 
 # === Internal docs & planning (not needed by consumers) ===
 docs/superpowers/

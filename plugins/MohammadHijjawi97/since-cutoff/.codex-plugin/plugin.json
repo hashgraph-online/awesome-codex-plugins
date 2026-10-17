@@ -1,0 +1,42 @@
+{
+  "name": "since-cutoff",
+  "version": "0.5.0",
+  "description": "Find which dependency APIs your code uses changed after your coding model's training cutoff, and write short AGENTS.md notes from the API diff, each with its source.",
+  "author": {
+    "name": "Mohammad Hijjawi",
+    "url": "https://github.com/MohammadHijjawi97"
+  },
+  "homepage": "https://mohammadhijjawi97.github.io/since-cutoff/",
+  "repository": "https://github.com/MohammadHijjawi97/since-cutoff",
+  "license": "MIT",
+  "keywords": [
+    "python",
+    "dependencies",
+    "knowledge-cutoff",
+    "api-changes",
+    "agents-md",
+    "mcp"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "since-cutoff",
+    "shortDescription": "Which of your pinned Python dependencies changed their API after the model's training cutoff.",
+    "longDescription": "Reads the project's lockfile and statically diffs each dependency's public API between the release at the model's training cutoff and the version you pin. `since-cutoff scan` lists the changed APIs your code uses, each with a note from the API diff that says where it comes from, and `since-cutoff sync` writes those notes into AGENTS.md and keeps them in step with the lockfile; neither calls a model or needs an API key, and neither do the MCP tools. `since-cutoff run` also tests the model on short tasks that need the changed APIs, scores its code with basedpyright against both versions, and writes notes written by the model only if their example type-checks.",
+    "developerName": "Mohammad Hijjawi",
+    "category": "Coding",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/MohammadHijjawi97/since-cutoff",
+    "privacyPolicyURL": "https://github.com/MohammadHijjawi97/since-cutoff/blob/main/PRIVACY.md",
+    "defaultPrompt": [
+      "Which of this project's dependencies changed their API since your training cutoff?",
+      "Before you write the httpx code, check what changed in httpx since your cutoff."
+    ],
+    "brandColor": "#F0883E",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg"
+  }
+}

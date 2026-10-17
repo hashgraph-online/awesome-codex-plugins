@@ -1,0 +1,3 @@
+# init is opt-in: solo users already get the same content from the SessionStart
+# inject, so the model should never auto-trigger it. Explicit $init only.
+allow_implicit_invocation: false

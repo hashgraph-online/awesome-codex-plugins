@@ -1,0 +1,4 @@
+interface:
+  display_name: "Customer Learning Notes"
+  short_description: "Turn notes into evidence and next questions."
+  default_prompt: "Synthesize these customer notes into evidence, belief updates, and next questions."

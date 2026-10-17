@@ -1,0 +1,17 @@
+.DS_Store
+.coverage
+.env
+.env.*
+.git/
+.pytest_cache/
+.ruff_cache/
+.venv/
+__pycache__/
+htmlcov/
+node_modules/
+runs/
+security-runs/
+work/
+*.log
+*.pyc
+*.tmp

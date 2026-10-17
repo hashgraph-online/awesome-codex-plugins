@@ -1,0 +1,37 @@
+{
+  "name": "canvas-apps-plugin-codex",
+  "version": "1.0.0",
+  "description": "Build and edit Power Apps Canvas Apps from natural language using Codex and the Canvas Authoring MCP server.",
+  "author": {
+    "name": "Ratnam Mishra"
+  },
+  "keywords": [
+    "power-apps",
+    "canvas-apps",
+    "mcp",
+    "power-fx",
+    "pa-yaml"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Canvas Apps",
+    "shortDescription": "Power Apps Canvas App generation and editing",
+    "longDescription": "Generate, edit, and validate Power Apps Canvas Apps through Codex skills backed by the Canvas Authoring MCP server and .pa.yaml source files.",
+    "developerName": "Ratnam Mishra",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Configure the Canvas Authoring MCP server",
+      "Generate a Power Apps canvas app from requirements",
+      "Edit an existing canvas app from Studio"
+    ],
+    "brandColor": "#0078D4",
+    "composerIcon": "./assets/plugin-icon.svg",
+    "logo": "./assets/plugin-logo.svg",
+    "screenshots": []
+  }
+}

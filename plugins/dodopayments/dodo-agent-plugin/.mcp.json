@@ -1,0 +1,14 @@
+{
+    "mcpServers": {
+        "dodopayments-api": {
+            "type": "http",
+            "url": "https://mcp.dodopayments.com/mcp",
+            "enabled": true
+        },
+        "dodo-knowledge": {
+            "type": "http",
+            "url": "https://knowledge.dodopayments.com/mcp",
+            "enabled": true
+        }
+    }
+}

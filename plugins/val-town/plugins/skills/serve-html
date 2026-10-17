@@ -1,0 +1,56 @@
+---
+name: serve-html
+description: Use when a val needs to serve an existing HTML file (e.g. uploading content authored elsewhere, like a Claude Artifact). Covers choosing between a static import and the serveFile util.
+triggers: [html, upload, static file, artifact, deploy, index.html]
+---
+
+# Serving Static HTML Content
+
+When the goal is to serve HTML content that already exists as a complete document, keep it as an `.html` file (`fileType: "file"`) and serve it from a small `http`-type handler. Avoid embedding the HTML in a JS/TS template string (it loses syntax highlighting, linting, and independent editability).
+
+## Choosing how to serve it
+
+Two patterns exist:
+
+1. Deno text import
+2. `serveFile`, which fetches the HTML file from esm.town
+
+**Default for a fixed, known file: a text import (`with { type: "text" }`).**
+Resolves the file content once, at module load / publish time — not on every
+request — so there's no per-request network hop at all, and the handler stays
+a plain sync function:
+
+```ts
+import html from "./index.html" with { type: "text" };
+
+export default function (_req: Request) {
+  return new Response(html, { headers: { "Content-Type": "text/html" } });
+}
+```
+
+Use this whenever the file being served is a relative, author-time-known
+path — the overwhelmingly common case for "serve this one HTML file."
+
+Deno also supports dynamic text imports:
+
+```ts
+const html = (await import("./index.html", { with: { type: "text" } })).default;
+```
+
+**`serveFile` from `std/utils`.** Reads the file via esm.town fetch API on
+every request, then sets `Content-Type` automatically by extension:
+
+```ts
+import { serveFile } from "https://esm.town/v/std/utils/index.ts";
+
+export default async function (req: Request) {
+  return serveFile("/index.html");
+}
+```
+
+Reach for this when the path is dynamic — resolved from the incoming
+request (a wildcard route serving a whole directory of assets) — since a
+static import can't express that. Not a good default for a single known
+file: it pays a network round-trip a static import avoids, in exchange for
+automatic content-type detection you don't need when you're serving one
+fixed file with a known type.

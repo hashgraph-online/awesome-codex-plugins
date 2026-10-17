@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  OPTIONAL LaunchAgent for figma-watchdog.sh (macOS only).
+
+  This is a TEMPLATE. launchd does not expand "~" or "$HOME", so replace the two
+  placeholders with absolute paths before installing:
+
+    __SCRIPTS_DIR__  absolute path of the directory that holds figma-watchdog.sh
+    __HOME__         absolute path of your home directory
+
+  Install and removal steps: ../references/watchdog.md
+  The bridge scripts work without this agent. Keep the Label unchanged:
+  figma-open.sh and figma-bridge-reset.sh look for it by this exact name.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.figma-maxxing.bridge-watchdog</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>__SCRIPTS_DIR__/figma-watchdog.sh</string>
+    </array>
+    <key>KeepAlive</key>
+    <true/>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>__HOME__/Library/Logs/figma-watchdog.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>__HOME__/Library/Logs/figma-watchdog.err.log</string>
+    <!--
+      Only if you set FIGMA_MAXXING_STATE_DIR in your shell: launchd does not
+      inherit it, so repeat it here or the watchdog watches the default dir.
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>FIGMA_MAXXING_STATE_DIR</key>
+        <string>/absolute/path/to/your/state-dir</string>
+    </dict>
+    -->
+</dict>
+</plist>

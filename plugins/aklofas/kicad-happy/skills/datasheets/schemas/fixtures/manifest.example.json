@@ -1,0 +1,31 @@
+{
+  "version": "1.0",
+  "last_updated": "2026-04-19T12:00:00Z",
+  "pdfs": {
+    "sha256:abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789": {
+      "path": "LM2596-ADJ.pdf",
+      "mpns": ["LM2596-ADJ", "LM2596S-ADJ"],
+      "source_url": "https://www.ti.com/lit/ds/symlink/lm2596.pdf",
+      "is_family": false
+    },
+    "sha256:1111111111111111111111111111111111111111111111111111111111111111": {
+      "path": "yageo-rc0603.pdf",
+      "mpns": ["RC0603FR-071KL", "RC0603FR-0750KL", "RC0603FR-1010KL"],
+      "source_url": null,
+      "is_family": null
+    }
+  },
+  "extractions": {
+    "LM2596_ADJ_abc123": {
+      "file": "LM2596-ADJ.json",
+      "mpn": "LM2596-ADJ",
+      "category": "regulator",
+      "source_pdf": "LM2596-ADJ.pdf",
+      "source_pdf_hash": "sha256:abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+      "extraction_date": "2026-04-19T12:00:00Z",
+      "extraction_score": 87,
+      "extraction_version": 2,
+      "pin_count": 5
+    }
+  }
+}

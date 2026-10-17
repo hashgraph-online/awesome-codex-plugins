@@ -1,0 +1,77 @@
+{
+  "skill_name": "campaign-plan",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "Plan a product launch campaign for a new cold brew coffee line targeting millennials with a $50,000 budget",
+      "expected_output": "A comprehensive multi-channel campaign plan with objectives, audience targeting, channel allocation, timeline, and KPI framework",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Campaign objectives are SMART (Specific, Measurable, Achievable, Relevant, Time-bound)",
+          "type": "qualitative"
+        },
+        {
+          "text": "Budget allocation across channels totals the specified $50,000",
+          "type": "quantitative"
+        },
+        {
+          "text": "Channel mix includes at least 3 channels appropriate for millennial targeting",
+          "type": "quantitative"
+        },
+        {
+          "text": "Timeline includes specific milestones with dates and dependencies",
+          "type": "quantitative"
+        },
+        {
+          "text": "KPI framework defines primary and secondary metrics with realistic targets",
+          "type": "quantitative"
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "prompt": "Create a B2B lead generation campaign for an enterprise SaaS product with a 6-month timeline",
+      "expected_output": "A B2B-focused campaign plan with LinkedIn emphasis, content marketing funnel, ABM tactics, and sales-marketing alignment",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Plan includes account-based marketing (ABM) tactics for enterprise targeting",
+          "type": "qualitative"
+        },
+        {
+          "text": "Content funnel maps to awareness, consideration, and decision stages",
+          "type": "quantitative"
+        },
+        {
+          "text": "LinkedIn and professional channels are prioritized over consumer channels",
+          "type": "qualitative"
+        },
+        {
+          "text": "Lead scoring criteria and MQL/SQL definitions are included",
+          "type": "quantitative"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Design a holiday season e-commerce campaign for Black Friday through Christmas",
+      "expected_output": "A seasonal campaign with phased execution (teaser, launch, sustain, close-out), promotional calendar, and urgency-driven tactics",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Campaign is phased with distinct pre-Black Friday, Black Friday, Cyber Monday, and holiday gift phases",
+          "type": "quantitative"
+        },
+        {
+          "text": "Email sequence includes at least 5 touchpoints across the campaign period",
+          "type": "quantitative"
+        },
+        {
+          "text": "Retargeting strategy addresses cart abandonment and browse abandonment",
+          "type": "qualitative"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,622 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Clean-Room Source Index",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "index_id",
+    "task_id",
+    "created_at",
+    "created_by_role",
+    "domain",
+    "generator",
+    "limits",
+    "source_roots",
+    "files",
+    "relationships",
+    "groups",
+    "recommended_batches",
+    "skipped_entries",
+    "aggregate_metrics"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "index_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "task_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "created_by_role": {
+      "enum": [
+        "controller-preflight",
+        "contaminated-manager-verifier"
+      ]
+    },
+    "domain": {
+      "const": "contaminated"
+    },
+    "generator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "python_version",
+        "scanner_modes"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "python_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scanner_modes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_files",
+        "max_file_bytes",
+        "max_total_bytes",
+        "max_batch_tokens",
+        "ignore_dirs"
+      ],
+      "properties": {
+        "max_files": {
+          "type": "integer"
+        },
+        "max_file_bytes": {
+          "type": "integer"
+        },
+        "max_total_bytes": {
+          "type": "integer"
+        },
+        "max_batch_tokens": {
+          "type": "integer"
+        },
+        "large_file_words": {
+          "type": "integer"
+        },
+        "large_group_words": {
+          "type": "integer"
+        },
+        "max_file_segments": {
+          "type": "integer"
+        },
+        "ignore_dirs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "dependency_report": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "source_roots": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "root_id",
+          "path"
+        ],
+        "properties": {
+          "root_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "file_id",
+          "root_id",
+          "path",
+          "language",
+          "scanner",
+          "metrics",
+          "imports",
+          "exports"
+        ],
+        "properties": {
+          "file_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "root_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "language": {
+            "enum": [
+              "python",
+              "javascript",
+              "typescript",
+              "go",
+              "rust",
+              "java",
+              "kotlin",
+              "swift",
+              "c",
+              "cpp",
+              "csharp",
+              "text"
+            ]
+          },
+          "scanner": {
+            "enum": [
+              "python-ast",
+              "python-ast-error",
+              "javascript-typescript-scanner",
+              "go-scanner",
+              "rust-scanner",
+              "java-scanner",
+              "kotlin-scanner",
+              "swift-scanner",
+              "c-scanner",
+              "cpp-scanner",
+              "csharp-scanner",
+              "text-metrics"
+            ]
+          },
+          "metrics": {
+            "$ref": "#/$defs/metrics"
+          },
+          "imports": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/import"
+            }
+          },
+          "exports": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/export"
+            }
+          }
+        }
+      }
+    },
+    "file_segments": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/file_segment"
+      }
+    },
+    "relationships": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "from_file_id",
+          "to_file_id",
+          "specifier",
+          "kind"
+        ],
+        "properties": {
+          "from_file_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "to_file_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "specifier": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "groups": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "group_id",
+          "reason",
+          "file_ids",
+          "metrics",
+          "notes"
+        ],
+        "properties": {
+          "group_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "enum": [
+              "dependency-component",
+              "directory-cluster"
+            ]
+          },
+          "file_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "metrics": {
+            "$ref": "#/$defs/metrics"
+          },
+          "language_counts": {
+            "$ref": "#/$defs/language_counts"
+          },
+          "relationship_count": {
+            "type": "integer"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "recommended_batches": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "batch_id",
+          "group_ids",
+          "file_ids",
+          "metrics",
+          "notes"
+        ],
+        "properties": {
+          "batch_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "group_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "file_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "segment_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "metrics": {
+            "$ref": "#/$defs/metrics"
+          },
+          "language_counts": {
+            "$ref": "#/$defs/language_counts"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "large_items": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/large_item"
+      }
+    },
+    "skipped_entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "reason",
+          "kind"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "enum": [
+              "file",
+              "directory"
+            ]
+          }
+        }
+      }
+    },
+    "aggregate_metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bytes",
+        "lines",
+        "words",
+        "characters",
+        "estimated_tokens",
+        "file_count",
+        "skipped_count",
+        "skipped_entries_truncated",
+        "relationship_count",
+        "resolved_relationship_count",
+        "group_count",
+        "batch_count"
+      ],
+      "properties": {
+        "bytes": {
+          "type": "integer"
+        },
+        "lines": {
+          "type": "integer"
+        },
+        "words": {
+          "type": "integer"
+        },
+        "characters": {
+          "type": "integer"
+        },
+        "estimated_tokens": {
+          "type": "integer"
+        },
+        "file_count": {
+          "type": "integer"
+        },
+        "file_segment_count": {
+          "type": "integer"
+        },
+        "skipped_count": {
+          "type": "integer"
+        },
+        "skipped_entries_truncated": {
+          "type": "boolean"
+        },
+        "relationship_count": {
+          "type": "integer"
+        },
+        "resolved_relationship_count": {
+          "type": "integer"
+        },
+        "group_count": {
+          "type": "integer"
+        },
+        "batch_count": {
+          "type": "integer"
+        },
+        "large_item_count": {
+          "type": "integer"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bytes",
+        "lines",
+        "words",
+        "characters",
+        "estimated_tokens"
+      ],
+      "properties": {
+        "bytes": {
+          "type": "integer"
+        },
+        "lines": {
+          "type": "integer"
+        },
+        "words": {
+          "type": "integer"
+        },
+        "characters": {
+          "type": "integer"
+        },
+        "estimated_tokens": {
+          "type": "integer"
+        }
+      }
+    },
+    "language_counts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer"
+      }
+    },
+    "file_segment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "segment_id",
+        "file_id",
+        "ordinal",
+        "start_line",
+        "end_line",
+        "metrics",
+        "reason"
+      ],
+      "properties": {
+        "segment_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "file_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ordinal": {
+          "type": "integer"
+        },
+        "start_line": {
+          "type": "integer"
+        },
+        "end_line": {
+          "type": "integer"
+        },
+        "metrics": {
+          "$ref": "#/$defs/metrics"
+        },
+        "reason": {
+          "enum": [
+            "large-file-token-count",
+            "large-file-word-count"
+          ]
+        }
+      }
+    },
+    "large_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "item_id",
+        "kind",
+        "metrics",
+        "reason",
+        "notes"
+      ],
+      "properties": {
+        "item_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "file",
+            "group",
+            "batch"
+          ]
+        },
+        "metrics": {
+          "$ref": "#/$defs/metrics"
+        },
+        "reason": {
+          "enum": [
+            "word-count-threshold",
+            "token-threshold"
+          ]
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "import": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "specifier",
+        "kind",
+        "is_relative",
+        "names",
+        "resolved_file_id"
+      ],
+      "properties": {
+        "specifier": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "is_relative": {
+          "type": "boolean"
+        },
+        "names": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "resolved_file_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "export": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "kind"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

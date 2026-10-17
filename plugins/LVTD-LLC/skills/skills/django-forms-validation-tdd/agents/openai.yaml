@@ -1,0 +1,4 @@
+interface:
+  display_name: "Django Forms Validation TDD"
+  short_description: "Test-drive Django validation"
+  default_prompt: "Use $django-forms-validation-tdd to add this Django validation behavior with the right tests."

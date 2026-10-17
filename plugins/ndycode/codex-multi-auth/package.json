@@ -1,7 +1,7 @@
 {
 	"name": "codex-multi-auth",
-	"version": "1.2.4",
-	"description": "Multi-account OAuth manager and codex auth wrapper for the official @openai/codex CLI, with switching, health checks, and recovery tools",
+	"version": "2.22.0",
+	"description": "Codex CLI multi-account OAuth manager with account switching, health checks, runtime rotation, diagnostics, and recovery tools for @openai/codex",
 	"main": "./dist/index.js",
 	"types": "./dist/index.d.ts",
 	"exports": {
@@ -48,12 +48,20 @@
 		"openai",
 		"codex",
 		"codex-cli",
+		"codex-auth",
+		"codex-multi-account",
 		"chatgpt",
+		"oauth",
 		"oauth2",
 		"pkce",
 		"multi-account",
 		"account-switching",
 		"oauth-manager",
+		"runtime-rotation",
+		"responses-api",
+		"local-proxy",
+		"quota-management",
+		"diagnostics",
 		"fault-tolerance",
 		"terminal-ui",
 		"cli-tool",
@@ -70,16 +78,17 @@
 		"url": "https://github.com/ndycode/codex-multi-auth/issues"
 	},
 	"scripts": {
-		"build": "tsc && node scripts/copy-oauth-success.js",
-		"typecheck": "tsc --noEmit",
-		"typecheck:scripts": "tsc -p tsconfig.scripts.json",
+		"build": "node node_modules/tsgo/bin/tsc && node scripts/copy-oauth-success.js",
+		"generate:schema": "npm run build && node scripts/generate-config-schema.mjs",
+		"typecheck": "node node_modules/tsgo/bin/tsc --noEmit",
+		"typecheck:scripts": "node node_modules/tsgo/bin/tsc -p tsconfig.scripts.json",
 		"lint": "npm run lint:ts && npm run lint:scripts",
 		"lint:ts": "eslint . --ext .ts",
 		"lint:scripts": "eslint scripts --ext .js,.mjs",
 		"lint:fix": "npm run lint:ts:fix && npm run lint:scripts:fix",
 		"lint:ts:fix": "eslint . --ext .ts --fix",
 		"lint:scripts:fix": "eslint scripts --ext .js,.mjs --fix",
-		"test": "vitest run",
+		"test": "vitest run --maxWorkers=1",
 		"test:watch": "vitest",
 		"test:ui": "vitest --ui",
 		"test:model-matrix": "node scripts/test-model-matrix.js",
@@ -87,39 +96,54 @@
 		"test:model-matrix:report": "node scripts/test-model-matrix.js --smoke --report-json=.tmp/model-matrix-report.json",
 		"clean:repo": "node scripts/repo-hygiene.js clean --mode aggressive",
 		"clean:repo:check": "node scripts/repo-hygiene.js check",
-		"pack:check": "node scripts/check-pack-budget.mjs",
+		"pack:check": "npm run build && node scripts/check-pack-budget.mjs",
 		"bench:edit-formats": "node scripts/benchmark-edit-formats.mjs --preset=codex-core",
 		"bench:edit-formats:smoke": "node scripts/benchmark-edit-formats.mjs --smoke --preset=codex-core",
 		"bench:edit-formats:render": "node scripts/benchmark-render-dashboard.mjs",
 		"bench:runtime-path": "npm run build && node scripts/benchmark-runtime-path.mjs",
 		"bench:runtime-path:quick": "node scripts/benchmark-runtime-path.mjs",
-		"test:coverage": "vitest run --coverage",
-		"coverage": "npm run build && vitest run --coverage",
+		"test:coverage": "vitest run --coverage --maxWorkers=1",
+		"coverage": "npm run build && vitest run --coverage --maxWorkers=1",
 		"audit:prod": "npm audit --omit=dev --audit-level=high",
 		"audit:all": "npm audit --audit-level=high",
 		"audit:dev:allowlist": "node scripts/audit-dev-allowlist.js",
 		"audit:ci": "npm run audit:prod && npm run audit:dev:allowlist",
 		"vendor:verify": "node scripts/verify-vendor-provenance.mjs",
 		"vendor:update-manifest": "node scripts/update-vendor-provenance.mjs",
+		"postinstall": "node scripts/postinstall.js",
 		"prepublishOnly": "npm run build",
 		"prepare": "husky"
 	},
 	"bin": {
-		"codex": "scripts/codex.js",
+		"mcodex": "scripts/mcodex.js",
+		"codex-multi-auth-codex": "scripts/codex.js",
+		"codex-multi-auth-app-launcher": "scripts/codex-app-launcher.js",
 		"codex-multi-auth": "scripts/codex-multi-auth.js"
 	},
 	"files": [
+		".codex-plugin/plugin.json",
 		"dist/",
 		"assets/",
 		"config/",
-		"scripts/",
+		"skills/",
+		"scripts/codex.js",
+		"scripts/codex-app-launcher.js",
+		"scripts/codex-app-router.js",
+		"scripts/codex-bin-resolver.js",
+		"scripts/codex-multi-auth.js",
+		"scripts/codex-routing.js",
+		"scripts/mcodex.js",
+		"scripts/install-codex-auth-utils.js",
+		"scripts/postinstall.js",
+		"scripts/preuninstall.js",
 		"vendor/codex-ai-plugin/",
 		"vendor/codex-ai-sdk/",
 		"README.md",
 		"LICENSE"
 	],
 	"bundleDependencies": [
-		"@codex-ai/plugin"
+		"@codex-ai/plugin",
+		"@codex-ai/sdk"
 	],
 	"lint-staged": {
 		"*.ts": [
@@ -130,46 +154,54 @@
 		]
 	},
 	"engines": {
-		"node": ">=18.0.0"
-	},
-	"peerDependencies": {
-		"typescript": "^5"
+		"node": ">=22.19.0"
 	},
 	"devDependencies": {
-		"@codex-ai/sdk": "file:vendor/codex-ai-sdk",
-		"@fast-check/vitest": "^0.2.4",
-		"@types/node": "^25.3.0",
-		"@typescript-eslint/eslint-plugin": "^8.56.0",
-		"@typescript-eslint/parser": "^8.56.0",
-		"@vitest/coverage-v8": "^4.0.18",
-		"@vitest/ui": "^4.0.18",
-		"eslint": "^10.0.0",
-		"fast-check": "^4.5.3",
+		"@types/node": "^26.6.3",
+		"@types/ws": "8.18.2",
+		"@typescript-eslint/eslint-plugin": "^8.71.1",
+		"@typescript-eslint/parser": "^8.71.1",
+		"@vitest/coverage-v8": "^5.0.2",
+		"@vitest/ui": "^5.0.2",
+		"eslint": "^10.12.0",
+		"eslint-import-resolver-typescript": "^4.4.5",
+		"eslint-plugin-import-x": "^4.17.1",
+		"fast-check": "^4.10.2",
 		"husky": "^9.1.7",
-		"lint-staged": "^16.2.7",
-		"typescript": "^5.9.3",
-		"typescript-language-server": "^5.1.3",
-		"vitest": "^4.0.18"
+		"lint-staged": "^17.6.0",
+		"tsgo": "npm:typescript@^7.0.2",
+		"typescript": "^6.0.3",
+		"typescript-language-server": "^6.0.1",
+		"vitest": "^5.0.2"
 	},
 	"dependencies": {
 		"@codex-ai/plugin": "file:vendor/codex-ai-plugin",
-		"@openauthjs/openauth": "^0.4.3",
-		"hono": "4.12.10",
-		"undici": "^6.24.1",
-		"zod": "^4.3.6"
+		"@codex-ai/sdk": "file:vendor/codex-ai-sdk",
+		"hono": "4.13.13",
+		"undici": "8.11.2",
+		"ws": "8.22.0",
+		"zod": "4.6.5"
 	},
 	"overrides": {
-		"hono": "4.12.10",
+		"hono": "4.13.13",
 		"flatted": "3.4.2",
-		"minimatch": "10.2.4",
+		"minimatch": {
+			".": "10.2.4",
+			"brace-expansion": "5.0.12"
+		},
 		"picomatch": "4.0.4",
 		"rollup": "4.59.0",
-		"vite": "^7.3.1",
+		"vite": "^7.3.2",
 		"micromatch": {
 			"picomatch": "2.3.2"
 		},
 		"@typescript-eslint/typescript-estree": {
-			"minimatch": "9.0.9"
-		}
+			"minimatch": {
+				".": "9.0.9",
+				"brace-expansion": "2.1.7"
+			}
+		},
+		"postcss": "8.5.25",
+		"nanoid": "3.3.18"
 	}
 }

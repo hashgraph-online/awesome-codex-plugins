@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">HOL Guard Plugin screenshot</title>
+  <desc id="desc">Illustrated HOL Guard Plugin command workflow.</desc>
+  <rect width="1200" height="720" rx="36" fill="#F5F7FC"/>
+  <rect x="72" y="72" width="1056" height="576" rx="34" fill="#FFFFFF" stroke="#DCE7FF" stroke-width="2"/>
+  <text x="120" y="145" fill="#3F4174" font-family="Arial, Helvetica, sans-serif" font-size="42" font-weight="700">HOL Guard Plugin</text>
+  <text x="120" y="190" fill="#64748B" font-family="Arial, Helvetica, sans-serif" font-size="24">Protect local AI harnesses before tools run.</text>
+  <rect x="120" y="245" width="460" height="310" rx="24" fill="#0F172A"/>
+  <circle cx="155" cy="282" r="8" fill="#B56CFF"/>
+  <circle cx="181" cy="282" r="8" fill="#5599FE"/>
+  <circle cx="207" cy="282" r="8" fill="#48DF7B"/>
+  <text x="148" y="345" fill="#E2E8F0" font-family="Courier New, monospace" font-size="24">hol-guard bootstrap</text>
+  <text x="148" y="392" fill="#E2E8F0" font-family="Courier New, monospace" font-size="24">hol-guard install codex</text>
+  <text x="148" y="439" fill="#E2E8F0" font-family="Courier New, monospace" font-size="24">plugin-scanner verify .</text>
+  <text x="148" y="486" fill="#48DF7B" font-family="Courier New, monospace" font-size="24">Guard status: protected</text>
+  <rect x="650" y="245" width="358" height="70" rx="20" fill="#5599FE" opacity=".12"/>
+  <text x="684" y="289" fill="#3F4174" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700">Harness protection</text>
+  <rect x="650" y="344" width="358" height="70" rx="20" fill="#48DF7B" opacity=".14"/>
+  <text x="684" y="388" fill="#3F4174" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700">Approval receipts</text>
+  <rect x="650" y="443" width="358" height="70" rx="20" fill="#B56CFF" opacity=".12"/>
+  <text x="684" y="487" fill="#3F4174" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700">Plugin scanning</text>
+</svg>

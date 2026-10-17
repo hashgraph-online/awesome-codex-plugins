@@ -1,0 +1,4 @@
+interface:
+  display_name: "Process Job Result"
+  short_description: "Open a finished process job result"
+  default_prompt: "Use $result to inspect the result of this finished process job."

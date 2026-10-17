@@ -23,6 +23,8 @@ Methodology for validating KiCad schematics against datasheets, common design pa
 
 **Fallback methodology**: If `analyze_schematic.py` fails, see [`manual-schematic-parsing.md`](manual-schematic-parsing.md) for direct file parsing instructions.
 
+**For full design reviews:** read `report-generation.md` before writing conclusions. The report format, evidence-basis labeling, skipped-analysis disclosure, and false-positive triage expectations are part of the review method, not post-processing.
+
 ---
 
 ## Analysis Workflow
@@ -34,7 +36,7 @@ Follow this sequence for a thorough schematic review. Each step builds on the pr
 Run `analyze_schematic.py` on the schematic file (see SKILL.md for the command). The JSON output provides:
 - Component inventory grouped by type, with values, footprints, MPNs
 - Full net connectivity map with pin-to-net mapping
-- **Automated subcircuit detection** (`signal_analysis` section): power regulators, voltage dividers, RC/LC filters, op-amp circuits, transistor circuits, bridge circuits, protection devices, current sense, crystal circuits, feedback networks, decoupling analysis, plus domain-specific detections (RF chains/matching, BMS, Ethernet, HDMI/DVI, memory interfaces, key matrices, isolation barriers, addressable LEDs, battery chargers, motor drivers, ESD protection audit, debug interfaces, power path/load switches, ADC signal conditioning, reset/supervisor circuits, clock distribution, display/touch interfaces, sensor fusion, level shifters, audio circuits, LED driver ICs, RTC circuits, LED lighting audit, thermocouple/RTD, power sequencing validation)
+- **Automated subcircuit detection** (in `findings[]`, filtered by `detector` field): power regulators, voltage dividers, RC/LC filters, op-amp circuits, transistor circuits, bridge circuits, protection devices, current sense, crystal circuits, feedback networks, decoupling analysis, plus domain-specific detections (RF chains/matching, BMS, Ethernet, HDMI/DVI, memory interfaces, key matrices, isolation barriers, addressable LEDs, battery chargers, motor drivers, ESD protection audit, debug interfaces, power path/load switches, ADC signal conditioning, reset/supervisor circuits, clock distribution, display/touch interfaces, sensor fusion, level shifters, audio circuits, LED driver ICs, RTC circuits, LED lighting audit, thermocouple/RTD, power sequencing validation)
 - Design observations (decoupling coverage, I2C pull-ups, crystal load caps, etc.)
 
 Use this structured data as the starting point — it replaces manual component extraction and most subcircuit identification.
@@ -69,9 +71,18 @@ Perform thorough verification of the analyzer output against the raw schematic. 
 
 This thorough verification catches the cases where the analyzer silently drops components, misidentifies subcircuits, or — most dangerously — reports wrong pin-to-net mappings.
 
+**Evidence classification during Step 2:** as you verify items, keep track of which bucket each conclusion belongs to:
+- datasheet-verified
+- extraction-verified
+- raw-file verified
+- analyzer-derived
+- inference-only
+
+Do not collapse these into a generic "verified" label in the final report.
+
 ### Step 3: Review and augment subcircuit identification
 
-The analyzer's `signal_analysis` automatically identifies most subcircuits. Review its output and augment with any subcircuits it may have missed. Spot-check a few detected subcircuits against the raw schematic — verify the components and nets are correct. Common subcircuit boundaries:
+The analyzer's `findings[]` array automatically identifies most subcircuits (filter by `detector` field). Review its output and augment with any subcircuits it may have missed. Spot-check a few detected subcircuits against the raw schematic — verify the components and nets are correct. Common subcircuit boundaries:
 - Each voltage regulator + its input/output caps + feedback resistors = one block
 - Each IC + its decoupling caps + supporting passives = one block
 - Each connector + its ESD protection + filtering = one block
@@ -89,7 +100,7 @@ python3 <digikey-skill-path>/scripts/sync_datasheets.py <file.kicad_sch>
 ```
 
 **Check for existing datasheets:** Before downloading, look for:
-- `<project>/datasheets/` with `index.json` (from a previous sync)
+- `<project>/datasheets/` with `manifest.json` (legacy name `index.json`) from a previous sync
 - `<project>/docs/` or `<project>/documentation/`
 - PDF files in the project directory whose names contain MPNs
 - `Datasheet` property URLs embedded in the KiCad symbols (the digikey skill names them as `<MPN>_<Description>.pdf`)
@@ -97,7 +108,7 @@ python3 <digikey-skill-path>/scripts/sync_datasheets.py <file.kicad_sch>
 **If datasheets are missing for any component:** Use these fallback methods in order:
 1. Use the `Datasheet` property URL from the schematic symbol
 2. Use the `digikey` skill to search by MPN and download
-3. Use WebSearch to find the manufacturer's datasheet page
+3. Use web search to find the manufacturer's datasheet page
 4. **Ask the user** — do not silently skip verification. Tell them: "I need datasheets for [list of parts] to verify the pinout and application circuit. Can you provide them or point me to a datasheets directory?"
 
 For each IC and active component, extract and **note the page/section numbers** for later citation:
@@ -120,6 +131,8 @@ Compare the actual schematic against the datasheet's reference design. Check:
 - Are pins connected correctly (no swaps)?
 - Are optional features (enable, power-good, soft-start) handled appropriately?
 - Are absolute maximum ratings respected with margin?
+
+When a datasheet recommendation is absent or ambiguous, say so. Do not overstate confidence just because the topology looks conventional.
 
 ### Step 6: Verify computed values
 
@@ -152,6 +165,23 @@ After subcircuit validation, check system-level issues:
 
 If your coordinate-based analysis finds "critical" issues (floating pins, wrong connections) but the user says the schematic is correct, **assume your coordinate math is wrong** and re-derive from scratch with the Y-axis formula from `net-tracing.md`.
 
+### Step 8b: Triage analyzer false positives before ranking severity
+
+Before turning analyzer output into blockers, explicitly classify each notable finding as one of:
+- real issue
+- likely false positive
+- expected-by-design tradeoff
+- unresolved / needs more evidence
+
+Common sources of false positives:
+- RF module courtyard / antenna keepout overlaps
+- intentional copper under bypass caps or local power islands
+- general USB resistor heuristics that do not apply to the specific PHY
+- board-edge warnings triggered by intentional antenna placement
+- inferred lifecycle or sourcing warnings based on partial distributor coverage
+
+A strong review explains why a finding was accepted, downgraded, or dismissed.
+
 ### Step 9: Produce the report
 
 Organize findings by severity (Critical / Warning / Suggestion / Info) and by subcircuit. For each finding, show the reasoning — not just the conclusion:
@@ -160,6 +190,8 @@ Organize findings by severity (Critical / Warning / Suggestion / Info) and by su
 - **Show formulas**: When validating computed values (feedback dividers, RC filters, current limits), write out the equation with the actual component values substituted in (e.g., "VOUT = VREF × (1 + R_top/R_bottom) = 0.595V × (1 + 732k/100k) = 4.95V").
 - **Compare against spec**: Show the design's value alongside the datasheet's recommended range so the reader can see the margin (e.g., "L = 1µH, datasheet recommends 0.37-2.9µH ✓").
 - **Explain the chain of reasoning** for non-obvious issues: if something looks wrong, explain how you traced the net, what you expected to find, and what you found instead.
+- **Disclose review limits**: If thermal, lifecycle, gerber, prior-review delta, or datasheet extraction work was not performed, state that explicitly in the report.
+- **Separate evidence from judgment**: A finding can be well-supported and still not be a blocker. Distinguish the factual observation from the severity judgment.
 
 ---
 
@@ -193,7 +225,7 @@ Trace nets outward from each IC. The IC plus everything directly connected to it
 
 ## Using Pre-Extracted Datasheet Specs
 
-When `datasheets/extracted/<MPN>.json` files are available (see `references/datasheet-extraction.md`), use them to accelerate pin-by-pin verification:
+When `datasheets/extracted/<MPN>.json` files are available (produced by the `datasheets` skill — see its `references/extraction-schema.md` for the canonical field layout), use them to accelerate pin-by-pin verification:
 
 1. **Load the extraction** for each IC alongside the analyzer's `ic_pin_analysis` output
 2. **Join on pin number** — the extraction's `pins[].number` matches the analyzer's `pins[].pin_number`

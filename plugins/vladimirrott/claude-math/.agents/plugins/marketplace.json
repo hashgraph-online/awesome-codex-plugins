@@ -1,0 +1,19 @@
+{
+  "name": "vladimirrott",
+  "interface": {
+    "displayName": "Vladimir Rotariu"
+  },
+  "plugins": [
+    {
+      "name": "claude-math",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

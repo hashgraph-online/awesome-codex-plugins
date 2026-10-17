@@ -1,0 +1,46 @@
+{
+  "name": "deepseek-minimal-anchor",
+  "version": "0.4.0",
+  "description": "DeepSeek Mini-Router for Codex: Pro sessions get the official Minimal one-sentence anchor; Flash sessions get a task-aware decide-and-verify router persona via trusted hooks, with a bundled skill fallback.",
+  "homepage": "https://github.com/hccccc01333/codex-deepseek-mini-router",
+  "repository": "https://github.com/hccccc01333/codex-deepseek-mini-router",
+  "author": {
+    "name": "Hzz"
+  },
+  "license": "MIT",
+  "keywords": [
+    "deepseek",
+    "codex",
+    "router",
+    "persona",
+    "hooks"
+  ],
+  "skills": "./plugins/deepseek-minimal-anchor/skills/",
+  "hooks": "./plugins/deepseek-minimal-anchor/hooks/hooks.json",
+  "interface": {
+    "displayName": "DeepSeek Mini-Router",
+    "shortDescription": "Task-aware spec/react/flash working contract for DeepSeek models in Codex.",
+    "longDescription": "DeepSeek models are highly sensitive to the agent scaffold and the first-visible persona. Following the community findings (dsh-anchored-standard, dsh-router-standard), Pro sessions get exactly the official Minimal system prompt - 'You are a helpful software engineer assistant.' - and nothing else. Flash sessions get a task-aware decide-and-verify router persona: decide the task type in one step, end each reasoning block with a decision, run a concrete check after writing, retry once on failure. Hooks inject the contract as developer context on desktop and CLI once trusted (trust is hash-keyed); the bundled skill is a self-executing fallback.",
+    "developerName": "Hzz",
+    "category": "Productivity",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg",
+    "websiteURL": "https://github.com/hccccc01333/codex-deepseek-mini-router",
+    "privacyPolicyURL": "https://github.com/hccccc01333/codex-deepseek-mini-router/blob/main/docs/privacy.md",
+    "termsOfServiceURL": "https://github.com/hccccc01333/codex-deepseek-mini-router/blob/main/docs/terms.md",
+    "screenshots": [
+      "./docs/pass-rate-by-arm.png",
+      "./docs/per-task-heatmap.png",
+      "./docs/thinking-metrics.png"
+    ],
+    "capabilities": [
+      "Skills",
+      "Hooks"
+    ],
+    "defaultPrompt": [
+      "Work in DeepSeek mini-router mode.",
+      "Show the trajectory fingerprint for this session.",
+      "Enable the DeepSeek mini-router (trust its hooks) and confirm it is active."
+    ]
+  }
+}

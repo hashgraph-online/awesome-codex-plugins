@@ -11,9 +11,11 @@ Common prompts include "What's new with Bitcoin?", "What progress has Ethereum m
 node cli.mjs search-articles "<user keyword>" --mode hit --take 5 --lang <lang>
 ```
 
+If the user specifies a period, use `--published-from` / `--published-to` as described in [workflow-search](./workflow-search.md). Use `--mode time` when the task prioritizes the latest developments.
+
 ### 2. Evaluate relevance
 
-Review the returned titles and summaries:
+Review the returned titles, summaries, and any body-match snippets:
 - Highly relevant (the title or summary is directly about the topic) -> continue
 - Empty or weakly relevant results -> tell the user directly and stop
 

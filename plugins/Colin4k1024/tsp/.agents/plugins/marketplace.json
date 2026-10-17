@@ -1,0 +1,20 @@
+{
+  "name": "engineering-team-marketplace",
+  "interface": {
+    "displayName": "Engineering Team Skills"
+  },
+  "plugins": [
+    {
+      "name": "team-skills-platform",
+      "source": {
+        "source": "local",
+        "path": "./plugins/team-skills-platform"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Engineering"
+    }
+  ]
+}

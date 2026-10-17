@@ -1,0 +1,7 @@
+{
+  "name": "lacuna-music-codex-plugin",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Codex plugin for Lacuna's hosted AI music MCP server.",
+  "license": "MIT"
+}

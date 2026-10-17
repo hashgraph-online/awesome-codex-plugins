@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">Computer Usage Summary</title>
+  <rect width="512" height="512" rx="112" fill="#0F766E"/>
+  <rect x="106" y="124" width="300" height="220" rx="24" fill="#F0FDFA"/>
+  <rect x="130" y="152" width="150" height="20" rx="10" fill="#99F6E4"/>
+  <rect x="130" y="204" width="204" height="22" rx="11" fill="#0F766E"/>
+  <rect x="130" y="250" width="142" height="22" rx="11" fill="#14B8A6"/>
+  <circle cx="354" cy="250" r="48" fill="#F59E0B"/>
+  <path d="M354 220v31l21 13" fill="none" stroke="#FFF7ED" stroke-linecap="round" stroke-linejoin="round" stroke-width="14"/>
+  <path d="M204 388h104" stroke="#F0FDFA" stroke-linecap="round" stroke-width="24"/>
+  <path d="M256 344v44" stroke="#F0FDFA" stroke-linecap="round" stroke-width="24"/>
+</svg>

@@ -12,7 +12,7 @@ zero-dependency and offline.
 Usage:
     python3 lifecycle_audit.py analysis.json
     python3 lifecycle_audit.py analysis.json --temp-range "industrial"
-    python3 lifecycle_audit.py analysis.json --temp-range "-40,85"
+    python3 lifecycle_audit.py analysis.json --temp-range="-40,85"  # use = for negative min
     python3 lifecycle_audit.py analysis.json --output lifecycle.json
     python3 lifecycle_audit.py analysis.json --only digikey
 
@@ -28,6 +28,7 @@ import json
 import os
 import re
 import sys
+import tempfile
 import time
 import urllib.error
 import urllib.parse
@@ -46,6 +47,14 @@ _TEMP_PRESETS = {
     "extended": (-40, 105),
     "automotive": (-40, 125),
     "military": (-55, 125),
+}
+
+_LIFECYCLE_STATUS_RULES = {
+    'obsolete': ('LC-001', 'error'),
+    'discontinued': ('LC-001', 'error'),
+    'last_time_buy': ('LC-002', 'warning'),
+    'nrnd': ('LC-003', 'warning'),
+    'unknown': ('LC-004', 'info'),
 }
 
 
@@ -97,6 +106,22 @@ def _normalize_status(raw: str | None) -> str:
 # ---------------------------------------------------------------------------
 # Temperature parsing
 # ---------------------------------------------------------------------------
+
+def _temp_evidence_source(source: str | None) -> str:
+    """Map a temperature-range source tag to a finding evidence_source.
+
+    "extraction_cache" is a per-MPN datasheet extraction and is genuinely
+    datasheet-backed; "api:<distributor>" is a catalogue lookup. Anything else
+    (or nothing) is not evidence of either.
+    """
+    if not source:
+        return 'heuristic_rule'
+    if source == 'extraction_cache':
+        return 'datasheet'
+    if source.startswith('api:'):
+        return 'api_lookup'
+    return 'heuristic_rule'
+
 
 def _parse_temp_range(text: str) -> tuple[float, float] | None:
     """Parse temperature range from distributor attribute string.
@@ -152,7 +177,7 @@ def _get_digikey_token() -> tuple[str, str] | None:
         return None
 
     # Token cache
-    cache_path = "/tmp/digikey_token_cache.json"
+    cache_path = os.path.join(tempfile.gettempdir(), "digikey_token_cache.json")
     try:
         with open(cache_path) as f:
             cache = json.load(f)
@@ -380,7 +405,10 @@ def read_extraction_temperature(mpn: str, project_dir: str) -> dict | None:
 
     if not extract_path.exists():
         # Try index lookup
-        idx_path = Path(project_dir) / "datasheets" / "extracted" / "index.json"
+        extracted_dir = Path(project_dir) / "datasheets" / "extracted"
+        idx_path = extracted_dir / "manifest.json"
+        if not idx_path.exists():
+            idx_path = extracted_dir / "index.json"
         if idx_path.exists():
             try:
                 with open(idx_path) as f:
@@ -420,7 +448,12 @@ def audit_component(mpn: str, sources: list[str], project_dir: str | None = None
                     delay: float = 1.0) -> dict:
     """Query all available sources for one component's lifecycle + temperature."""
     result = {"mpn": mpn, "sources": {}}
+    # Worst-case status across sources (drives the default finding severity).
     best_status = "unknown"
+    # Track every source's normalized status so callers can detect disagreement
+    # (e.g., DigiKey=active, Mouser=obsolete — severity should be WARNING, not
+    # ERROR, because the part is still orderable from one distributor).
+    per_source_status: dict[str, str] = {}
     temp_data = None
 
     # Try extraction cache first (no network, no delay)
@@ -437,9 +470,11 @@ def audit_component(mpn: str, sources: list[str], project_dir: str | None = None
         "mouser": query_lifecycle_mouser,
     }
 
+    attempted = []
     for source_name, fn in api_fns.items():
         if sources and source_name not in sources:
             continue
+        attempted.append(source_name)
         try:
             time.sleep(delay)
             data = fn(mpn)
@@ -449,6 +484,7 @@ def audit_component(mpn: str, sources: list[str], project_dir: str | None = None
                 raw_status = data.get("status")
                 if raw_status:
                     normalized = _normalize_status(raw_status)
+                    per_source_status[source_name] = normalized
                     if normalized != "unknown":
                         best_status = normalized
                 # Update temperature if not already from extraction
@@ -458,16 +494,26 @@ def audit_component(mpn: str, sources: list[str], project_dir: str | None = None
                         "temp_max_c": data["temp_max_c"],
                         "source": f"api:{source_name}",
                     }
-        except Exception:
+        except (urllib.error.URLError, OSError, json.JSONDecodeError,
+                KeyError, ValueError, TypeError):
             continue
 
     result["status"] = best_status
+    # Consensus: True when distributors disagree and at least one says active.
+    # A part reported obsolete by one distributor but active by another is
+    # still orderable, so the finding should be warning rather than error.
+    _non_active = {"obsolete", "discontinued", "last_time_buy", "nrnd"}
+    has_active = any(s == "active" for s in per_source_status.values())
+    has_non_active = any(s in _non_active for s in per_source_status.values())
+    result["consensus_split"] = has_active and has_non_active
+    result["per_source_status"] = per_source_status
+    result["attempted"] = sorted(attempted)
     if temp_data:
         result["temperature"] = temp_data
     return result
 
 
-def find_alternatives(mpn: str, description: str = "",
+def find_alternatives(mpn: str,
                       sources: list[str] | None = None,
                       delay: float = 1.0) -> list[dict]:
     """Search for active alternative parts when a component is EOL/NRND/obsolete.
@@ -611,6 +657,12 @@ def audit_bom(analysis_json: dict, project_dir: str | None = None,
             continue
         mpn_map.setdefault(mpn, []).extend(entry.get("references", []))
 
+    # KH-348: LCSC/jlcsearch exposes no lifecycle/obsolescence data — an
+    # LCSC-only audit can only ever return 'unknown'. Flag the capability
+    # gap up front and skip the per-part LC-004 noise (rows are kept for
+    # any temperature data).
+    lcsc_only = bool(sources) and set(sources) == {"lcsc"}
+
     lifecycle_findings = []
     temperature_findings = []
     status_counts = {"active": 0, "nrnd": 0, "last_time_buy": 0,
@@ -652,17 +704,163 @@ def audit_bom(analysis_json: dict, project_dir: str | None = None,
                     break
             # Search for alternatives if requested
             if suggest_alternatives:
-                desc = ""
-                for entry in bom:
-                    if entry.get("mpn", "").strip() == mpn:
-                        desc = entry.get("description", "")
-                        break
                 print(f"  Searching for alternatives...", file=sys.stderr)
-                alts = find_alternatives(mpn, desc, sources, delay)
+                alts = find_alternatives(mpn, sources, delay)
                 if alts:
                     finding["alternatives"] = alts
 
+        rule_info = _LIFECYCLE_STATUS_RULES.get(status)
+        if rule_info and not (lcsc_only and status == "unknown"):
+            rule_id, severity = rule_info
+            consensus_split = data.get('consensus_split', False)
+            per_source = data.get('per_source_status', {})
+            # Demote ERROR → WARNING when distributors disagree. The part is
+            # still orderable from at least one active source, so "obsolete"
+            # overstates the supply risk.
+            split_note = ''
+            if consensus_split and severity == 'error':
+                severity = 'warning'
+                active_srcs = sorted(s for s, st in per_source.items() if st == 'active')
+                eol_srcs = sorted(s for s, st in per_source.items() if st != 'active')
+                split_note = (f" Distributor disagreement: {', '.join(active_srcs)} "
+                              f"list it as active while {', '.join(eol_srcs)} "
+                              f"flag EOL. Part is orderable today.")
+            finding['detector'] = 'audit_bom'
+            finding['rule_id'] = rule_id
+            finding['category'] = 'lifecycle'
+            finding['severity'] = severity
+            finding['confidence'] = 'deterministic'
+            finding['evidence_source'] = 'api_lookup'
+            finding['summary'] = f"{mpn}: {status} ({len(refs)} ref(s))"
+            if per_source:
+                finding['per_source_status'] = per_source
+            if consensus_split:
+                finding['consensus_split'] = True
+            finding['description'] = (finding.get('alert', f'Component {mpn} is {status}.')
+                                      + split_note)
+            finding['components'] = sorted(refs)
+            finding['nets'] = []
+            finding['pins'] = []
+            finding['recommendation'] = (
+                f"Replace {mpn} — part is {status}." if not consensus_split
+                else f"Verify current availability before committing to {mpn}; "
+                     f"consider locking to the active distributor or finding an "
+                     f"alternate.")
+            finding['report_context'] = {'section': 'Lifecycle', 'impact': 'Supply chain risk', 'standard_ref': ''}
+        else:
+            finding['detector'] = 'audit_bom'
+            finding['rule_id'] = 'LC-ACT'
+            finding['category'] = 'lifecycle'
+            finding['severity'] = 'info'
+            finding['confidence'] = 'deterministic'
+            finding['evidence_source'] = 'api_lookup'
+            if lcsc_only and status == 'unknown':
+                # LCSC (jlcsearch) carries no lifecycle status field at all —
+                # say so plainly instead of reusing the "active" wording.
+                finding['summary'] = (f"{mpn}: unknown ({len(refs)} ref(s)) — "
+                                      f"LCSC returns no lifecycle status")
+                finding['description'] = (
+                    f"Lifecycle status for {mpn} could not be determined: "
+                    f"LCSC returns no lifecycle status. Use DigiKey, Mouser, "
+                    f"or element14 credentials for a real lifecycle audit.")
+            else:
+                finding['summary'] = f"{mpn}: active ({len(refs)} ref(s))"
+            finding['components'] = sorted(refs)
+            finding['nets'] = []
+            finding['pins'] = []
+            finding['report_context'] = {'section': 'Lifecycle', 'impact': '', 'standard_ref': ''}
+
         lifecycle_findings.append(finding)
+
+        # LC-005: Single-source detection (KH-372). Denominator is sources
+        # actually ATTEMPTED, not just the ones that responded — an errored
+        # or timed-out source didn't confirm anything, it isn't absent from
+        # the count. A response with status=None doesn't count as an active
+        # confirmation either. LCSC carries no lifecycle status field at
+        # all, so it's excluded from the lifecycle source counts entirely
+        # (it's a stock/price source, not a lifecycle source) — its
+        # presence is still called out in the description when relevant.
+        if status == 'active':
+            attempted = [s for s in data.get('attempted', []) if s != 'lcsc']
+            all_responded = finding.get('sources', {})
+            responded = [s for s in all_responded if s != 'lcsc']
+            per_source = data.get('per_source_status', {})
+            active_confirmed = sorted(s for s in responded if per_source.get(s) == 'active')
+
+            total_attempted = len(attempted)
+            n_responded = len(responded)
+            if len(active_confirmed) == 1 and n_responded >= 2:
+                stock_note = ''
+                if 'lcsc' in all_responded:
+                    stock_note = (' LCSC also responded but is excluded as a '
+                                  'stock-only source with no lifecycle status.')
+                lifecycle_findings.append({
+                    'mpn': mpn,
+                    'references': sorted(refs),
+                    'status': 'active',
+                    'single_source': True,
+                    'source_name': active_confirmed[0],
+                    'total_attempted': total_attempted,
+                    'responded': n_responded,
+                    'active_confirmed': len(active_confirmed),
+                    'detector': 'audit_bom',
+                    'rule_id': 'LC-005',
+                    'category': 'lifecycle',
+                    'severity': 'info',
+                    'confidence': 'deterministic',
+                    'evidence_source': 'api_lookup',
+                    'summary': f'{mpn}: single source ({active_confirmed[0]})',
+                    'description': (
+                        f'Component {mpn} ({len(refs)} ref(s)) is confirmed active by only '
+                        f'{active_confirmed[0]} ({total_attempted} attempted, '
+                        f'{n_responded} responded lifecycle source(s)).{stock_note}'),
+                    'components': sorted(refs),
+                    'nets': [],
+                    'pins': [],
+                    'recommendation': 'Consider qualifying an alternative source for supply chain resilience.',
+                    'report_context': {'section': 'Lifecycle', 'impact': 'Supply chain fragility', 'standard_ref': ''},
+                })
+
+        # LC-006: Long lead time
+        max_lead_weeks = 0
+        lead_source = ''
+        for src_name, src_data in finding.get('sources', {}).items():
+            lt = src_data.get('lead_time')
+            if lt:
+                weeks = 0
+                if isinstance(lt, (int, float)):
+                    weeks = int(lt)
+                elif isinstance(lt, str):
+                    m = re.search(r'(\d+)', lt)
+                    if m:
+                        weeks = int(m.group(1))
+                        if 'day' in lt.lower():
+                            weeks = weeks // 7
+                if weeks > max_lead_weeks:
+                    max_lead_weeks = weeks
+                    lead_source = src_name
+
+        if max_lead_weeks > 12:
+            severity = 'warning' if max_lead_weeks > 26 else 'info'
+            lifecycle_findings.append({
+                'mpn': mpn,
+                'references': sorted(refs),
+                'lead_weeks': max_lead_weeks,
+                'lead_source': lead_source,
+                'detector': 'audit_bom',
+                'rule_id': 'LC-006',
+                'category': 'lifecycle',
+                'severity': severity,
+                'confidence': 'deterministic',
+                'evidence_source': 'api_lookup',
+                'summary': f'{mpn}: {max_lead_weeks} week lead time',
+                'description': f'Component {mpn} has {max_lead_weeks} week lead time (from {lead_source}).',
+                'components': sorted(refs),
+                'nets': [],
+                'pins': [],
+                'recommendation': f'Pre-order or stock {mpn} — long lead time risk.',
+                'report_context': {'section': 'Lifecycle', 'impact': 'Procurement delay risk', 'standard_ref': ''},
+            })
 
         # Temperature
         temp = data.get("temperature")
@@ -695,6 +893,19 @@ def audit_bom(analysis_json: dict, project_dir: str | None = None,
                         "min_shortfall_c": design_min - comp_min if below_min else 0,
                         "max_shortfall_c": design_max - comp_max if above_max else 0,
                     },
+                    "detector": "audit_bom",
+                    "rule_id": "LT-001",
+                    "category": "temperature",
+                    "confidence": "deterministic",
+                    # "extraction_cache" is a real per-MPN datasheet extraction and must
+                    # not be downgraded to api_lookup; "api:<distributor>" is a lookup.
+                    "evidence_source": _temp_evidence_source(temp.get("source")),
+                    "summary": f"{mpn}: rated {comp_grade} ({comp_min}C to {comp_max}C), design needs {design_min}C to {design_max}C",
+                    "components": sorted(refs),
+                    "nets": [],
+                    "pins": [],
+                    "recommendation": f"Select component rated for full {design_min}C to {design_max}C range.",
+                    "report_context": {"section": "Temperature", "impact": "Operating range violation", "standard_ref": ""},
                 })
             else:
                 temp_ok += 1
@@ -704,16 +915,27 @@ def audit_bom(analysis_json: dict, project_dir: str | None = None,
 
     # Build output
     result = {
-        "audit_date": datetime.now(timezone.utc).isoformat(),
+        "analyzer_type": "lifecycle",
+        "schema_version": "1.4.0",
+        "audit_date": datetime.now().astimezone().isoformat(timespec='seconds'),
         "components_checked": total,
         "components_with_mpn": total,
         "components_without_mpn": skipped,
         "sources_available": list({src for f in lifecycle_findings for src in f.get("sources", {})}),
-        "lifecycle_findings": lifecycle_findings,
+        "findings": lifecycle_findings,
         "lifecycle_summary": status_counts,
     }
+    if lcsc_only:
+        result["capability_note"] = (
+            "LCSC (jlcsearch) exposes no lifecycle/obsolescence status — "
+            "every part reads 'unknown' by construction. Use DigiKey, "
+            "Mouser, or element14 credentials for a real lifecycle audit.")
 
     observations = []
+    if lcsc_only:
+        observations.append(
+            "LCSC-only audit: lifecycle status unavailable from this source "
+            "(all statuses 'unknown' by construction)")
     for status_key in ("nrnd", "last_time_buy", "obsolete", "discontinued"):
         count = status_counts.get(status_key, 0)
         if count:
@@ -727,7 +949,7 @@ def audit_bom(analysis_json: dict, project_dir: str | None = None,
 
     if temp_range:
         design_min, design_max = temp_range
-        result["temperature_findings"] = temperature_findings
+        result["findings"] = result["findings"] + temperature_findings
         result["temperature_summary"] = {
             "design_target": {
                 "min_c": design_min,
@@ -748,6 +970,26 @@ def audit_bom(analysis_json: dict, project_dir: str | None = None,
     if observations:
         result["observations"] = observations
 
+    all_findings = result.get("findings", [])
+    sev_counts = {"error": 0, "warning": 0, "info": 0}
+    for f in all_findings:
+        s = (f.get("severity") or "info").lower()
+        if s in ("critical", "high", "error"):
+            sev_counts["error"] += 1
+        elif s in ("medium", "low", "warning"):
+            sev_counts["warning"] += 1
+        else:
+            sev_counts["info"] += 1
+    result["summary"] = {
+        "total_findings": len(all_findings),
+        "by_severity": sev_counts,
+        "components_checked": total,
+        "lifecycle_issues": len(lifecycle_findings),
+        "temperature_issues": len(temperature_findings),
+    }
+    from finding_schema import compute_trust_summary
+    result["trust_summary"] = compute_trust_summary(all_findings)
+
     return result
 
 
@@ -766,11 +1008,19 @@ def main():
     parser.add_argument(
         "--temp-range",
         help="Design temperature range: preset name (commercial, industrial, "
-             "extended, automotive, military) or 'min,max' in °C (e.g., '-40,85')",
+             "extended, automotive, military) or 'min,max' in °C. When the min "
+             "is negative, use the = form so argparse doesn't read it as a flag: "
+             "--temp-range=\"-40,85\"",
     )
     parser.add_argument(
         "--output", "-o",
         help="Output file path (default: stdout)",
+    )
+    parser.add_argument(
+        "--analysis-dir",
+        help="Write lifecycle.json to this directory (analysis folder convention). "
+             "Routes the output through the current run via the manifest, matching "
+             "every other analyzer. Ignored if --output is also passed.",
     )
     parser.add_argument(
         "--only",
@@ -784,10 +1034,20 @@ def main():
         "--suggest-alternatives", action="store_true",
         help="Search for replacement parts when EOL/NRND/obsolete (extra API calls)",
     )
+    parser.add_argument(
+        "--only-deterministic", action="store_true",
+        help="Read raw analysis/<run>/<analyzer>.json instead of "
+             "analysis/merged/<run>/<analyzer>.json. "
+             "Strips Layer 2 overlays for CI/offline use (Phase 4 spec §3.4).",
+    )
     args = parser.parse_args()
 
-    # Load analyzer JSON
+    # Load analyzer JSON (honor --only-deterministic: skip merged/ overlay)
     input_path = Path(args.input)
+    if not args.only_deterministic:
+        candidate = input_path.parent.parent / "merged" / input_path.parent.name / input_path.name
+        if candidate.exists():
+            input_path = candidate
     with open(input_path) as f:
         analysis = json.load(f)
 
@@ -824,10 +1084,33 @@ def main():
 
     # Output
     output_json = json.dumps(result, indent=2)
-    if args.output:
-        with open(args.output, "w") as f:
+    output_path = args.output
+    analysis_dir_mode = (not output_path
+                         and hasattr(args, "analysis_dir")
+                         and args.analysis_dir)
+
+    if analysis_dir_mode:
+        import tempfile
+        from analysis_cache import overwrite_current, CANONICAL_OUTPUTS, get_current_run
+        analysis_dir = args.analysis_dir
+        if not os.path.isabs(analysis_dir):
+            analysis_dir = os.path.abspath(analysis_dir)
+        filename = CANONICAL_OUTPUTS.get("lifecycle", "lifecycle.json")
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_out = os.path.join(tmp_dir, filename)
+            with open(tmp_out, "w") as f:
+                f.write(output_json)
+            overwrite_current(analysis_dir, tmp_dir, source_hashes=None)
+        current = get_current_run(analysis_dir)
+        if current:
+            out_path = os.path.join(current[0], filename)
+        else:
+            out_path = os.path.join(analysis_dir, filename)
+        print(f"Audit written to {out_path}", file=sys.stderr)
+    elif output_path:
+        with open(output_path, "w") as f:
             f.write(output_json)
-        print(f"Audit written to {args.output}", file=sys.stderr)
+        print(f"Audit written to {output_path}", file=sys.stderr)
     else:
         print(output_json)
 

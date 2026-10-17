@@ -9,13 +9,6 @@ description: >-
   fix a broken Power Automate flow, diagnose a timeout, trace a DynamicOperationRequestFailure,
   check connector auth errors, read error details from a run, or troubleshoot
   expression failures. Requires a FlowStudio MCP subscription — see https://mcp.flowstudio.app
-metadata:
-  openclaw:
-    requires:
-      env:
-        - FLOWSTUDIO_MCP_TOKEN
-    primaryEnv: FLOWSTUDIO_MCP_TOKEN
-    homepage: https://mcp.flowstudio.app
 ---
 
 # Power Automate Debugging with FlowStudio MCP
@@ -28,18 +21,19 @@ cloud flows through the FlowStudio MCP server.
 > [Null value crashes child flow](https://github.com/ninihen1/power-automate-mcp-skills/blob/main/examples/null-child-flow.md)
 
 **Prerequisite**: A FlowStudio MCP server must be reachable with a valid JWT.
-See the `power-automate-mcp` skill for connection setup.  
+See the `power-automate-mcp` skill for connection setup.
 Subscribe at https://mcp.flowstudio.app
 
 ---
 
 ## Source of Truth
 
-> **Always call `tools/list` first** to confirm available tool names and their
-> parameter schemas. Tool names and parameters may change between server versions.
+> **Always call `list_skills` / `tool_search` first** to confirm available tool
+> names and parameter schemas. Tool names and parameters may change between
+> server versions.
 > This skill covers response shapes, behavioral notes, and diagnostic patterns —
-> things `tools/list` cannot tell you. If this document disagrees with `tools/list`
-> or a real API response, the API wins.
+> things tool schemas cannot tell you. If this document disagrees with
+> `tool_search` or a real API response, the API wins.
 
 ---
 
@@ -68,46 +62,6 @@ def mcp(tool, **kwargs):
     return json.loads(raw["result"]["content"][0]["text"])
 
 ENV = "<environment-id>"   # e.g. Default-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-```
-
----
-
-## FlowStudio for Teams: Fast-Path Diagnosis (Skip Steps 2–4)
-
-If you have a FlowStudio for Teams subscription, `get_store_flow_errors`
-returns per-run failure data including action names and remediation hints
-in a single call — no need to walk through live API steps.
-
-```python
-# Quick failure summary
-summary = mcp("get_store_flow_summary", environmentName=ENV, flowName=FLOW_ID)
-# {"totalRuns": 100, "failRuns": 10, "failRate": 0.1,
-#  "averageDurationSeconds": 29.4, "maxDurationSeconds": 158.9,
-#  "firstFailRunRemediation": "<hint or null>"}
-print(f"Fail rate: {summary['failRate']:.0%} over {summary['totalRuns']} runs")
-
-# Per-run error details (requires active monitoring to be configured)
-errors = mcp("get_store_flow_errors", environmentName=ENV, flowName=FLOW_ID)
-if errors:
-    for r in errors[:3]:
-        print(r["startTime"], "|", r.get("failedActions"), "|", r.get("remediationHint"))
-    # If errors confirms the failing action → jump to Step 6 (apply fix)
-else:
-    # Store doesn't have run-level detail for this flow — use live tools (Steps 2–5)
-    pass
-```
-
-For the full governance record (description, complexity, tier, connector list):
-```python
-record = mcp("get_store_flow", environmentName=ENV, flowName=FLOW_ID)
-# {"displayName": "My Flow", "state": "Started",
-#  "runPeriodTotal": 100, "runPeriodFailRate": 0.1, "runPeriodFails": 10,
-#  "runPeriodDurationAverage": 29410.8,   ← milliseconds
-#  "runError": "{\"code\": \"EACCES\", ...}",  ← JSON string, parse it
-#  "description": "...", "tier": "Premium", "complexity": "{...}"}
-if record.get("runError"):
-    last_err = json.loads(record["runError"])
-    print("Last run error:", last_err)
 ```
 
 ---
@@ -201,6 +155,8 @@ detail = mcp("get_live_flow_run_action_outputs",
     runName=RUN_ID,
     actionName=root_action)
 
+if len(detail) > 1:
+    print(f"{root_action} returned {len(detail)} repetitions; inspect iteration indexes")
 out = detail[0] if detail else {}
 print(f"Action: {out.get('actionName')}")
 print(f"Status: {out.get('status')}")
@@ -237,6 +193,39 @@ if out.get("inputs"):
 | `InternalServerError` | The server's error message, stack trace, or API error JSON |
 | `InvalidTemplate` | The exact expression that failed and the null/wrong-type value |
 | `BadRequest` | The request body that was sent and why the server rejected it |
+
+### Foreach iterations
+
+When `actionName` refers to an action inside a foreach, the output tool can
+return every repetition of that action. Each item may include
+`repetitionIndexes` with the loop name and zero-based `itemIndex`. Use
+`iterationIndex` to inspect one iteration after you find the suspicious item:
+
+```python
+all_reps = mcp("get_live_flow_run_action_outputs",
+    environmentName=ENV,
+    flowName=FLOW_ID,
+    runName=RUN_ID,
+    actionName=root_action)
+
+for rep in all_reps[:10]:
+    print(rep.get("repetitionIndexes"), rep.get("status"), rep.get("error"))
+
+one_rep = mcp("get_live_flow_run_action_outputs",
+    environmentName=ENV,
+    flowName=FLOW_ID,
+    runName=RUN_ID,
+    actionName=root_action,
+    iterationIndex=3)
+```
+
+### Evidence Compose Bookends
+
+For uncertain connector work, add a `Compose_*_Request` before the risky action
+and a `Compose_*_Result` after it, with the result action allowed on both
+`Succeeded` and `Failed`. This gives future debugging a clean payload snapshot
+without requiring another deploy. Do not include secrets or long binary payloads
+in these bookends.
 
 ### Example: HTTP action returning 500
 
@@ -299,10 +288,9 @@ for action_name in [root_action, "Compose_WeekEnd", "HTTP_Get_Data"]:
 > ⚠️ Output payloads from array-processing actions can be very large.
 > Always slice (e.g. `[:500]`) before printing.
 
-> **Tip**: Omit `actionName` to get ALL actions in a single call.
-> This returns every action's inputs/outputs — useful when you're not sure
-> which upstream action produced the bad data. But use 120s+ timeout as
-> the response can be very large.
+> **Tip**: Omit `actionName` to list top-level actions when you're not sure
+> which action produced the bad data. Once you pick an action inside a foreach,
+> pass `iterationIndex` to avoid pulling every repetition into context.
 
 ---
 
@@ -348,6 +336,21 @@ print(json.dumps(out['outputs']['body'], indent=2)[:500])
 ### Connection / Auth Failures
 Look for `ConnectionAuthorizationFailed` — the connection owner must match the
 service account running the flow. Cannot fix via API; fix in PA designer.
+
+### Outlook user-picker failures (`DynamicListValuesUndefinedOrInvalid`)
+Outlook actions like `GetEmailsV3` use parameters (`mailboxAddress`, `to`, `cc`,
+`from`) whose dropdown is backed by `builtInOperation:AadGraph.GetUsers` — which
+is broken at the PA listEnum layer and always returns
+`DynamicListValuesUndefinedOrInvalid`. This shows up when an agent rebuilds or
+modifies an Outlook action via `update_live_flow` and tries to resolve a user
+through dynamic options. **Don't fix it by retrying AadGraph** — switch to
+`shared_office365users.SearchUserV2` instead (returns the same AAD user shape).
+Use `describe_live_connector` to confirm whether the affected parameter exposes
+a structured `fallback`, then call `get_live_dynamic_options` against
+`shared_office365users.SearchUserV2` instead of the broken AadGraph operation.
+For dynamic field schemas rather than dropdown options, use
+`get_live_dynamic_properties` with the metadata returned by
+`describe_live_connector`.
 
 ---
 
@@ -406,22 +409,29 @@ print(new_runs[0]["status"])   # Succeeded = done
 | Scenario | Use | Why |
 |---|---|---|
 | **Testing a fix** on any flow | `resubmit_live_flow_run` | Replays the exact trigger payload that caused the failure — best way to verify |
-| Recurrence / scheduled flow | `resubmit_live_flow_run` | Cannot be triggered on demand any other way |
+| Recurrence / scheduled flow | `trigger_live_flow` (no `body`) | Runs it now, like the portal's "Run flow" button; resubmit replays a past run's data |
 | SharePoint / connector trigger | `resubmit_live_flow_run` | Cannot be triggered without creating a real SP item |
-| HTTP trigger with **custom** test payload | `trigger_live_flow` | When you need to send different data than the original run |
-| Brand-new flow, never run | `trigger_live_flow` (HTTP only) | No prior run exists to resubmit |
+| HTTP, Button, or PowerApps trigger with **custom** test payload | `trigger_live_flow` | When you need to send different data than the original run |
+| Brand-new flow, never run | `trigger_live_flow` | No prior run exists to resubmit |
 
-### Testing HTTP-Triggered Flows with custom payloads
+### Testing HTTP, Button, and PowerApps flows with custom payloads
 
-For flows with a `Request` (HTTP) trigger, use `trigger_live_flow` when you
-need to send a **different** payload than the original run:
+For flows with a `Request` trigger (HTTP request, manual Button, or PowerApps),
+use `trigger_live_flow` when you need to send a **different** payload than the
+original run. Pass trigger inputs as `body` for every kind:
 
 ```python
-# First inspect what the trigger expects
-schema = mcp("get_live_flow_http_schema",
-    environmentName=ENV, flowName=FLOW_ID)
-print("Expected body schema:", schema.get("requestSchema"))
-print("Response schemas:", schema.get("responseSchemas"))
+# First inspect what the trigger expects — read directly from the flow definition
+defn = mcp("get_live_flow", environmentName=ENV, flowName=FLOW_ID)
+triggers = defn["properties"]["definition"]["triggers"]
+manual = next(iter(triggers.values()))   # usually the only trigger on HTTP flows
+request_schema = manual.get("inputs", {}).get("schema")
+print("Expected body schema:", request_schema)
+
+# Response schemas live on Response action(s) in the actions block
+for name, act in defn["properties"]["definition"]["actions"].items():
+    if act.get("type") == "Response":
+        print(f"Response {name}:", act.get("inputs", {}).get("schema"))
 
 # Trigger with a test payload
 result = mcp("trigger_live_flow",
@@ -429,10 +439,29 @@ result = mcp("trigger_live_flow",
     flowName=FLOW_ID,
     body={"name": "Test User", "value": 42})
 print(f"Status: {result['responseStatus']}, Body: {result.get('responseBody')}")
+print(f"Kind: {result['triggerKind']}, via: {result['invocation']}, run: {result.get('runName')}")
+if result.get("warning"):
+    print(result["warning"])   # required trigger inputs you left out
 ```
 
 > `trigger_live_flow` handles AAD-authenticated triggers automatically.
-> Only works for flows with a `Request` (HTTP) trigger type.
+> Works for `Request` triggers (HTTP request, Button, PowerApps) and for
+> scheduled (Recurrence) flows, which it runs immediately — with no `body`,
+> since a scheduled trigger takes no inputs (a body is refused). Automated
+> connector triggers only fire from their source event.
+>
+> Power Automate does not enforce a trigger's `required` inputs. If you leave
+> one out the run still starts, with that input null, and the result carries a
+> `warning` naming the missing keys. Cancel the run and call again with the
+> full body if that matters.
+>
+> `runName` is only returned for Button and PowerApps runs. For HTTP triggers
+> find the run with `get_live_flow_runs`.
+>
+> Over a browser-extension key, Button and PowerApps triggers run only with an
+> empty body. The tool says so and lists the ways round it: resubmit a past run,
+> default the inputs inside the flow with `coalesce(triggerBody()?['x'], 'value')`,
+> or use a standard API key.
 
 ---
 
@@ -461,5 +490,5 @@ print(f"Status: {result['responseStatus']}, Body: {result.get('responseBody')}")
 
 ## Related Skills
 
-- `power-automate-mcp` — Core connection setup and operation reference
+- `power-automate-mcp` — Foundation skill: connection setup, MCP helper, tool discovery
 - `power-automate-build` — Build and deploy new flows

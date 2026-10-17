@@ -1,0 +1,45 @@
+{
+  "name": "vpai",
+  "version": "0.1.107",
+  "description": "Power your chat with B2B data to create lead lists, research companies, personalize your outreach, and more. Search any company or professional to access emails, phone numbers, roles, growth signals, tech stack details, business events, website changes, and more.",
+  "author": {
+    "name": "vibeprospecting.ai",
+    "email": "support@vibeprospecting.ai",
+    "url": "https://vibeprospecting.ai"
+  },
+  "homepage": "https://vibeprospecting.ai",
+  "repository": "https://github.com/explorium-ai/vibeprospecting-plugin",
+  "license": "MIT",
+  "keywords": [
+    "b2b",
+    "prospecting",
+    "leads",
+    "sales",
+    "enrichment",
+    "companies",
+    "contacts"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Vibe Prospecting",
+    "shortDescription": "B2B company and contact intelligence for prospecting workflows.",
+    "longDescription": "Power your chat with live B2B data to create lead lists, research companies, enrich contacts, personalize outreach, and inspect business signals, technology stacks, events, and website changes.",
+    "developerName": "vibeprospecting.ai",
+    "category": "Business & Operations",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://vibeprospecting.ai",
+    "privacyPolicyURL": "https://vibeprospecting.ai",
+    "termsOfServiceURL": "https://vibeprospecting.ai",
+    "defaultPrompt": [
+      "Find prospects at SaaS companies in New York.",
+      "Research the engineering leaders at Palo Alto Networks.",
+      "Build a lead list of companies using Salesforce."
+    ],
+    "brandColor": "#1769FF",
+    "composerIcon": "./assets/icon.png"
+  }
+}

@@ -1,0 +1,7 @@
+interface:
+  display_name: 'Tool Output Design'
+  short_description: 'Shape what a tool returns to an agent'
+  brand_color: '#6D5EF7'
+  default_prompt: 'Use $tool-design-output to design the result shape, pagination, and detail levels for this tool.'
+policy:
+  allow_implicit_invocation: true

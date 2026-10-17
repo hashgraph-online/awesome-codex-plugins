@@ -1,0 +1,142 @@
+{
+  "mcpServers": {
+    "omnimodal-recognize": {
+      "type": "stdio",
+      "command": "uv",
+      "args": [
+        "run",
+        "--project",
+        ".",
+        "omnimodal-recognize"
+      ],
+      "cwd": ".",
+      "env_vars": [
+        "OMNIMODAL_API_KEY",
+        "OMNIMODAL_PROVIDER",
+        "OMNIMODAL_BASE_URL",
+        "OMNIMODAL_IMAGE_MODEL",
+        "OMNIMODAL_VIDEO_MODEL",
+        "OMNIMODAL_AUDIO_MODEL_STANDARD",
+        "OMNIMODAL_AUDIO_MODEL_PRO",
+        "OMNIMODAL_OCR_MODEL",
+        "OMNIMODAL_ASR_MODEL",
+        "OMNIMODAL_OPENAI_THINKING_PARAM",
+        "OMNIMODAL_ENV_FILE",
+        "OMNIMODAL_LANGUAGE",
+        "OMNIMODAL_LOG_LEVEL",
+        "OMNIMODAL_PROFILES_JSON",
+        "OMNIMODAL_MODEL_CATALOG_JSON",
+        "OMNIMODAL_CACHE_USE_TASK",
+        "OMNIMODAL_CACHE_TTL_SEC",
+        "OMNIMODAL_CACHE_MAX_ENTRIES",
+        "OMNIMODAL_MAX_DIMENSION",
+        "OMNIMODAL_IMAGE_FORMAT",
+        "OMNIMODAL_JPEG_QUALITY",
+        "OMNIMODAL_EXTREME_ASPECT_RATIO_LIMIT",
+        "OMNIMODAL_IMAGE_TIMEOUT_SEC",
+        "OMNIMODAL_VIDEO_TIMEOUT_SEC",
+        "OMNIMODAL_AUDIO_TIMEOUT_SEC",
+        "OMNIMODAL_BATCH_WORKERS",
+        "OMNIMODAL_BATCH_TIMEOUT_SEC",
+        "OMNIMODAL_VIDEO_MAX_MB",
+        "OMNIMODAL_VIDEO_BASE64_MAX_MB",
+        "OMNIMODAL_VIDEO_DOWNLOAD_MAX_MB",
+        "OMNIMODAL_VIDEO_FILES_API_TIMEOUT_SEC",
+        "OMNIMODAL_VIDEO_KEEP_AUDIO",
+        "OMNIMODAL_VIDEO_WORKERS",
+        "OMNIMODAL_AUDIO_UNDERSTANDING_MAX_SEC",
+        "OMNIMODAL_DRAG_WINDOW_MIN",
+        "OMNIMODAL_DRAG_PATTERNS",
+        "OMNIMODAL_DRAG_DIRS",
+        "OMNIMODAL_ALLOWED_OUTPUT_DIRS",
+        "OMNIMODAL_ALLOW_PRIVATE_URLS"
+      ],
+      "tool_timeout_sec": 900
+    },
+    "omnimodal-capture-page": {
+      "type": "stdio",
+      "command": "uv",
+      "args": [
+        "run",
+        "--project",
+        ".",
+        "omnimodal-capture-page"
+      ],
+      "cwd": ".",
+      "env_vars": [
+        "OMNIMODAL_CAPTURE_PAGE_TIMEOUT_SEC",
+        "OMNIMODAL_CAPTURE_PAGE_BROWSER",
+        "OMNIMODAL_CAPTURE_PAGE_WAIT_UNTIL",
+        "OMNIMODAL_CAPTURE_PAGE_SETTLE_MS",
+        "OMNIMODAL_CAPTURE_PAGE_MAX_FULL_PAGE_HEIGHT",
+        "OMNIMODAL_ALLOWED_OUTPUT_DIRS",
+        "OMNIMODAL_ALLOW_PRIVATE_URLS",
+        "OMNIMODAL_LOG_LEVEL"
+      ],
+      "tool_timeout_sec": 240
+    },
+    "omnimodal-windows-capture": {
+      "type": "stdio",
+      "command": "uv",
+      "args": [
+        "run",
+        "--project",
+        ".",
+        "omnimodal-windows-capture"
+      ],
+      "cwd": ".",
+      "env_vars": [
+        "OMNIMODAL_WINDOWS_CAPTURE_DIR",
+        "OMNIMODAL_ALLOWED_OUTPUT_DIRS",
+        "OMNIMODAL_LOG_LEVEL"
+      ],
+      "tool_timeout_sec": 120
+    },
+    "omnimodal-generation": {
+      "type": "stdio",
+      "command": "uv",
+      "args": [
+        "run",
+        "--project",
+        ".",
+        "omnimodal-generation"
+      ],
+      "cwd": ".",
+      "env_vars": [
+        "OMNIMODAL_API_KEY",
+        "OMNIMODAL_PROVIDER",
+        "OMNIMODAL_BASE_URL",
+        "OMNIMODAL_ENV_FILE",
+        "OMNIMODAL_GENERATION_MODEL",
+        "OMNIMODAL_VIDEO_GEN_BASE_URL",
+        "OMNIMODAL_AUDIO_GEN_BASE_URL",
+        "OMNIMODAL_LOG_LEVEL",
+        "OMNIMODAL_LANGUAGE",
+        "OMNIMODAL_DEFAULT_TIER",
+        "OMNIMODAL_IMAGE_GEN_MODEL_STANDARD",
+        "OMNIMODAL_IMAGE_GEN_MODEL_PRO",
+        "OMNIMODAL_IMAGE_GEN_MODEL_MAX",
+        "OMNIMODAL_VIDEO_GEN_MODEL_STANDARD",
+        "OMNIMODAL_VIDEO_GEN_MODEL_PRO",
+        "OMNIMODAL_VIDEO_GEN_MODEL_MAX",
+        "OMNIMODAL_VIDEO_GEN_MODEL_STANDARD_I2V",
+        "OMNIMODAL_VIDEO_GEN_MODEL_MAX_I2V",
+        "OMNIMODAL_VIDEO_GEN_MODEL_EDIT",
+        "OMNIMODAL_AUDIO_GEN_MODEL_STANDARD",
+        "OMNIMODAL_AUDIO_GEN_MODEL_PRO",
+        "OMNIMODAL_AUDIO_GEN_MODEL_MAX",
+        "OMNIMODAL_ASR_MODEL",
+        "OMNIMODAL_IMAGE_GEN_TIMEOUT_SEC",
+        "OMNIMODAL_VIDEO_GEN_TIMEOUT_SEC",
+        "OMNIMODAL_AUDIO_GEN_TIMEOUT_SEC",
+        "OMNIMODAL_ASR_TIMEOUT_SEC",
+        "OMNIMODAL_MAX_VIDEO_DURATION",
+        "OMNIMODAL_GENERATION_OUTPUT_DIR",
+        "OMNIMODAL_PROBE_DIR",
+        "OMNIMODAL_ALLOWED_OUTPUT_DIRS",
+        "OMNIMODAL_ALLOW_PRIVATE_URLS"
+      ],
+      "tool_timeout_sec": 1800
+    }
+  }
+}

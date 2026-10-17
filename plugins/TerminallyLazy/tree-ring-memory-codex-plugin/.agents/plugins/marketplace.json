@@ -1,0 +1,20 @@
+{
+  "name": "tree-ring-memory",
+  "interface": {
+    "displayName": "Tree Ring Memory"
+  },
+  "plugins": [
+    {
+      "name": "tree-ring-memory",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

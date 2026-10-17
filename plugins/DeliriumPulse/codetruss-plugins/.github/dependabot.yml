@@ -1,0 +1,10 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    # The HOL action wraps a separately reviewed scanner wheel. Upgrade it only
+    # with the workflow comment, validator pin, wheel hash, provenance, and A/B report.
+    ignore:
+      - dependency-name: hashgraph-online/ai-plugin-scanner-action

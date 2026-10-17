@@ -1,18 +1,18 @@
 ---
 name: peer-review-loop
 description: >
-  Peer Review Ralph Loop — combines Blueprint blueprints with a Ralph Loop and true cross-model peer review
+  Peer Review Ralph Loop — combines Cavekit kits with a Ralph Loop and true cross-model peer review
   using Codex (OpenAI). Claude builds from specs; Codex reviews adversarially.
   Primary path: Codex CLI delegation via codex-review.sh (fast, no MCP overhead).
   Legacy fallback: Codex as MCP server when CLI delegation is unavailable.
   Covers setup, iteration patterns, convergence detection, and completion criteria.
-  Triggers: "peer review loop", "ralph loop with codex", "blueprint ralph", "peer review build loop",
-  "cross-model loop", "codex peer reviewer", "blueprint to ralph loop"
+  Triggers: "peer review loop", "ralph loop with codex", "cavekit ralph", "peer review build loop",
+  "cross-model loop", "codex peer reviewer", "cavekit to ralph loop"
 ---
 
-# Peer Review Loop — Blueprint + Ralph Loop + Codex Peer reviewer
+# Peer Review Loop — Cavekit + Ralph Loop + Codex Peer reviewer
 
-Run a Blueprint blueprint through a Ralph Loop where Claude builds and Codex adversarially reviews.
+Run a Cavekit cavekit through a Ralph Loop where Claude builds and Codex adversarially reviews.
 This is the most rigorous automated quality process available: every few iterations, a completely
 different model (different training data, different biases, different blind spots) challenges
 your implementation.
@@ -24,7 +24,7 @@ your implementation.
 | Factor | Single-Model Loop | Peer Review Loop |
 |--------|-------------------|------------------|
 | Blind spots | Same model, same blind spots every iteration | Two models catch different classes of issues |
-| Blueprint drift | Builder may silently deviate from blueprint | Peer reviewer checks blueprint compliance explicitly |
+| Cavekit drift | Builder may silently deviate from cavekit | Peer reviewer checks cavekit compliance explicitly |
 | Quality floor | Converges to "good enough for one model" | Converges to "survives cross-examination" |
 | Dead ends | May retry failed approaches | Peer reviewer flags repeated patterns |
 
@@ -39,7 +39,7 @@ your implementation.
 │                                                      │
 │  ┌──────────┐    ┌──────────────┐    ┌────────────┐ │
 │  │  Claude   │───▶│ Build from   │───▶│  Commit    │ │
-│  │  (Build)  │    │ blueprint +  │    │  changes   │ │
+│  │  (Build)  │    │ cavekit +  │    │  changes   │ │
 │  └──────────┘    └──────────────┘    └──────┬─────┘ │
 │       ▲                                      │       │
 │       │                                      ▼       │
@@ -48,7 +48,7 @@ your implementation.
 │  │  findings │    │ findings     │    │  (Review)  │ │
 │  └──────────┘    └──────────────┘    └────────────┘ │
 │                                                      │
-│  Completion: all blueprint requirements met +         │
+│  Completion: all cavekit requirements met +         │
 │              no CRITICAL/HIGH findings               │
 └─────────────────────────────────────────────────────┘
 ```
@@ -75,30 +75,30 @@ delegation. Otherwise it falls back to MCP configuration.
 ## Quick Start
 
 ```bash
-# Basic: implement a blueprint with peer review
-/bp:peer-review-loop context/blueprints/blueprint-auth.md
+# Basic: implement a cavekit with peer review
+/ck:peer-review-loop context/kits/cavekit-auth.md
 
 # With options
-/bp:peer-review-loop context/blueprints/blueprint-api.md --max-iterations 20 --codex-model gpt-5.4-mini
+/ck:peer-review-loop context/kits/cavekit-api.md --max-iterations 20 --codex-model gpt-5.4-mini
 
 # Review-only mode (review existing code, don't build new)
-/bp:peer-review-loop context/blueprints/blueprint-api.md --review-only
+/ck:peer-review-loop context/kits/cavekit-api.md --review-only
 
 # Review every iteration instead of every 2nd
-/bp:peer-review-loop context/blueprints/blueprint-auth.md --review-interval 1
+/ck:peer-review-loop context/kits/cavekit-auth.md --review-interval 1
 ```
 
 ---
 
 ## What the Command Does
 
-1. **Validates** the blueprint file exists and Codex CLI is installed
+1. **Validates** the cavekit file exists and Codex CLI is installed
 2. **Configures** Codex as an MCP server in `.mcp.json` (if not already configured)
 3. **Builds** a Ralph Loop prompt that embeds:
-   - The blueprint path and related plan/impl files
+   - The cavekit path and related plan/impl files
    - Instructions to alternate between build and review iterations
    - The peer review prompt template for Codex
-   - Completion criteria tied to blueprint acceptance criteria
+   - Completion criteria tied to cavekit acceptance criteria
 4. **Starts** the Ralph Loop via the stop hook mechanism
 
 ---
@@ -138,7 +138,7 @@ server automatically:
 ```
 
 Claude calls this MCP server on review iterations to get peer review feedback. The MCP server
-exposes Codex as a tool that accepts prompts and returns responses — Claude sends the blueprint +
+exposes Codex as a tool that accepts prompts and returns responses — Claude sends the cavekit +
 code diff, Codex returns findings.
 
 ### Changing the Codex Model
@@ -146,8 +146,8 @@ code diff, Codex returns findings.
 Use `--codex-model` to specify which OpenAI model Codex should use:
 
 ```bash
-/bp:peer-review-loop blueprint.md --codex-model gpt-5.4-mini    # faster, cheaper
-/bp:peer-review-loop blueprint.md --codex-model gpt-5.4          # default, most capable
+/ck:peer-review-loop cavekit.md --codex-model gpt-5.4-mini    # faster, cheaper
+/ck:peer-review-loop cavekit.md --codex-model gpt-5.4          # default, most capable
 ```
 
 ---
@@ -155,7 +155,7 @@ Use `--codex-model` to specify which OpenAI model Codex should use:
 ## Iteration Pattern
 
 ```
-Iteration 1: BUILD  — Read blueprint, implement first requirement
+Iteration 1: BUILD  — Read cavekit, implement first requirement
 Iteration 2: REVIEW — Call Codex CLI (or MCP fallback), get findings, fix CRITICAL/HIGH
 Iteration 3: BUILD  — Continue implementing, address remaining findings
 Iteration 4: REVIEW — Call Codex CLI (or MCP fallback) again, new findings on new code
@@ -200,7 +200,7 @@ Review findings are tracked in `context/peer-review-findings.md`:
 The loop exits when the completion promise is output. The prompt instructs Claude
 to ONLY output it when ALL of these are true:
 
-- All blueprint requirements (R-numbers) have been implemented
+- All cavekit requirements (R-numbers) have been implemented
 - All acceptance criteria pass
 - No CRITICAL or HIGH peer review findings remain unfixed
 - Build passes
@@ -212,11 +212,11 @@ to ONLY output it when ALL of these are true:
 ## Modes
 
 ### Build + Review (default)
-Alternates between implementing blueprint requirements and calling Codex for review.
-Use for greenfield implementation from a blueprint.
+Alternates between implementing cavekit requirements and calling Codex for review.
+Use for greenfield implementation from a cavekit.
 
 ### Review Only (`--review-only`)
-Skips building. Each iteration calls Codex to review existing code against the blueprint,
+Skips building. Each iteration calls Codex to review existing code against the cavekit,
 then fixes issues found. Use when code already exists and you want peer review QA.
 
 ---
@@ -225,7 +225,7 @@ then fixes issues found. Use when code already exists and you want peer review Q
 
 1. **Codex CLI installed**: `npm install -g @openai/codex`
 2. **OpenAI API key configured**: Codex needs authentication (via `codex login` or env var)
-3. **Blueprint context directory**: Blueprint file must exist at the given path
+3. **Cavekit context directory**: Cavekit file must exist at the given path
 4. **Ralph Loop plugin**: The ralph-loop plugin must be installed (provides the stop hook)
 
 ---
@@ -235,12 +235,12 @@ then fixes issues found. Use when code already exists and you want peer review Q
 The peer review loop has converged when:
 - Codex's findings drop to zero or only LOW/MEDIUM severity
 - Code diffs between iterations are minimal
-- All blueprint requirements confirmed as met by both Claude and Codex
+- All cavekit requirements confirmed as met by both Claude and Codex
 
 If the loop hits max iterations without converging:
 - Check `context/peer-review-findings.md` for persistent issues
-- Consider whether the blueprint needs clarification
-- Run `/bp:revise` to trace issues back to blueprints
+- Consider whether the cavekit needs clarification
+- Run `/ck:revise` to trace issues back to kits
 
 ---
 

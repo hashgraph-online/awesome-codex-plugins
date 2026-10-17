@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "mantis": {
+      "command": "npx",
+      "args": ["-y", "-p", "mantishack", "mantis-mcp"]
+    }
+  }
+}

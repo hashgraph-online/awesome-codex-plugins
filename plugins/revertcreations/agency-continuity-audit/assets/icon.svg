@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">Agency Continuity Audit</title>
+  <rect width="512" height="512" rx="96" fill="#171a1b"/>
+  <path d="M112 96v56M84 124h56M400 360v56M372 388h56" stroke="#f07a3b" stroke-width="18" stroke-linecap="square"/>
+  <path d="M154 154h204v204H154z" fill="none" stroke="#f3e9d7" stroke-width="22"/>
+  <path d="m201 257 36 36 78-88" fill="none" stroke="#54b8c5" stroke-width="28" stroke-linecap="square" stroke-linejoin="miter"/>
+</svg>

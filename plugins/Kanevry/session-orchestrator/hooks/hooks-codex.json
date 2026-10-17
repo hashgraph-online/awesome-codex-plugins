@@ -1,0 +1,60 @@
+{
+  "description": "Synchronous Codex hooks for payload-compatible Session Orchestrator handlers.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '🎯 Session Orchestrator v5.12.0 — /session [housekeeping|feature|deep] | /plan [new|feature|retro] | /discovery [scope] | /evolve [analyze|review|list]'",
+            "async": false
+          },
+          {
+            "type": "command",
+            "command": "SO_PLATFORM=codex CODEX_PLUGIN_ROOT=\"${PLUGIN_ROOT}\" sh \"${PLUGIN_ROOT}/hooks/run-node.sh\" \"${PLUGIN_ROOT}/hooks/on-session-start.mjs\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "SO_PLATFORM=codex CODEX_PLUGIN_ROOT=\"${PLUGIN_ROOT}\" sh \"${PLUGIN_ROOT}/hooks/run-node.sh\" \"${PLUGIN_ROOT}/hooks/loop-guard.mjs\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [],
+    "SubagentStop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "SO_PLATFORM=codex CODEX_PLUGIN_ROOT=\"${PLUGIN_ROOT}\" sh \"${PLUGIN_ROOT}/hooks/run-node.sh\" \"${PLUGIN_ROOT}/hooks/on-stop.mjs\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "SO_PLATFORM=codex CODEX_PLUGIN_ROOT=\"${PLUGIN_ROOT}\" sh \"${PLUGIN_ROOT}/hooks/run-node.sh\" \"${PLUGIN_ROOT}/hooks/on-stop.mjs\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

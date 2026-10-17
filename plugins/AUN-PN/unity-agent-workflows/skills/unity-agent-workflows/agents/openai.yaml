@@ -1,0 +1,6 @@
+interface:
+  display_name: "Unity Agent Workflows"
+  short_description: "Unity routing, runtime proof, state guards, and validation"
+  default_prompt: "Use $unity-agent-workflows only for Unity 2D repo work that needs editing, validation, routing, multi-agent scope, runtime numeric proof for visible-output/state failures, asmdef safety, or cleanup."
+policy:
+  allow_implicit_invocation: true

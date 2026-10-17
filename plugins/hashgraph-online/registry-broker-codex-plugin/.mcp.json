@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "registryBroker": {
+      "command": "node",
+      "args": [
+        "./dist/cli.cjs",
+        "up",
+        "--transport",
+        "stdio"
+      ]
+    }
+  }
+}

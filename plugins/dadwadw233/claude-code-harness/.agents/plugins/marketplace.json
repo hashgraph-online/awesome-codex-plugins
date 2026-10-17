@@ -1,0 +1,21 @@
+{
+  "name": "claude-code-harness-local",
+  "interface": {
+    "displayName": "Claude Code Harness Local"
+  },
+  "plugins": [
+    {
+      "name": "claude-code-harness",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}
+

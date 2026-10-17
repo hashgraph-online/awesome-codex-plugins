@@ -11,7 +11,8 @@ Add a new team member from a natural language description.
 
 ### 1. Auto-Init Guard
 
-Check for `.agenteam/config.yaml` (or legacy `agenteam.yaml`). If missing:
+Check for `.agenteam/config.yaml`, `.agenteam.team/config.yaml`, or legacy
+`agenteam.yaml`. If all are missing:
 - Create config dir: `mkdir -p .agenteam`
 - Copy the template: `cp <plugin-dir>/templates/agenteam.yaml.template .agenteam/config.yaml`
 - Set the team name to the project directory name
@@ -40,8 +41,8 @@ Infer as much as possible from the description:
 | `participates_in` | Match to pipeline stages: research, strategy, design, plan, implement, test, review |
 | `can_write` | Yes if the role creates/modifies files; no if it only analyzes |
 | `write_scope` | Infer from what the role writes (docs, src, tests, configs) |
-| `model` | Omit to inherit the user's default model, or set `gpt-5.3-codex` for coding-heavy roles |
-| `reasoning_effort` | high for analysis roles, medium for writing roles |
+| `model` | Omit to inherit platform default. If the user requests a pin, inspect `codex debug models` and choose only from the live catalog. Use evaluation evidence to justify a strong model for demanding analysis or a smaller model for bounded worker tasks. Model is a personal override — `share-config` strips it. |
+| `reasoning_effort` | high for analysis roles, medium for execution/writing roles |
 | `system_instructions` | Generate focused instructions from the role's domain |
 
 ### 3. Team Size Check

@@ -1,0 +1,20 @@
+{
+  "name": "computer-usage-summary-marketplace",
+  "interface": {
+    "displayName": "Computer Usage Summary"
+  },
+  "plugins": [
+    {
+      "name": "computer-usage-summary-skill",
+      "source": {
+        "source": "local",
+        "path": "."
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

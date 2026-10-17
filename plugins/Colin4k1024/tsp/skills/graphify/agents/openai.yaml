@@ -1,0 +1,4 @@
+interface:
+  display_name: "Graphify Knowledge Graph"
+  short_description: "用知识图谱补齐 brownfield 结构认知与依赖证据"
+  default_prompt: "Use $graphify to produce repository graph evidence (build/query/path/explain), then feed the findings back into /team-plan or /team-execute without creating a parallel workflow chain."

@@ -1,0 +1,176 @@
+/* ===========================================
+   FIXED 16:9 STAGE: MANDATORY BASE STYLES
+   Include this ENTIRE file in every presentation.
+   Slides are authored at 1920×1080 and scaled as a whole.
+
+   DUAL-MODE (embed-safe + standalone-safe):
+   - Standalone window: JS sizes .deck-viewport to the min-fit
+     scale and body flex centers it — same look as a full-window
+     fixed deck.
+   - Inside an iframe (Confluence "Advanced HTML & Iframe Embed"
+     macro, Notion embeds, etc.): JS adds .embed to <html> and
+     scales by WIDTH ONLY, so the document takes a natural 16:9
+     height and an auto-height host grows to fit; a same-origin
+     fixed-height host iframe is resized directly.
+   NEVER base heights on vh/% in embed mode: an auto-height iframe
+   computes those as ~0, the host locks in the collapsed height,
+   and the deck stays broken. NEVER use position:fixed for the
+   viewport or chrome: it does not scale inside iframes.
+   =========================================== */
+
+/* 1. Page: no window-filling height requirement */
+html,
+body {
+    margin: 0;
+    background: var(--stage-bg, #000);
+}
+
+/* 2. Standalone: fill the window and center the 16:9 box */
+body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+/* 3. Deck viewport: JS sets explicit px width/height (scaled 16:9).
+      position:relative — never position:fixed. */
+.deck-viewport {
+    position: relative;
+    overflow: hidden;
+    background: var(--stage-bg, #000);
+}
+
+/* 4. Fixed 16:9 design canvas.
+      JS sets transform: scale(...) only; centering comes from body flex. */
+.deck-stage {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    transform-origin: 0 0;
+    background: var(--slide-bg, #fff);
+}
+
+/* 5. Slides stack inside the fixed stage.
+   Content must be laid out at 1920×1080, not reflowed per device. */
+.slide {
+    position: absolute;
+    inset: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    display: block;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    background: var(--slide-bg, #fff);
+}
+
+.slide.active,
+.slide.visible {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    z-index: 1;
+}
+
+/* 6. Keep media inside authored slide bounds */
+img,
+video,
+canvas,
+svg {
+    max-width: 100%;
+    max-height: 100%;
+}
+
+/* 7. Presentation chrome (controls, counter, nav dots) lives INSIDE
+      .deck-stage, placed AFTER the slides in the DOM, and is authored
+      at 1920×1080 sizes — so it scales with the deck. Chrome kept
+      outside the stage does not scale in iframes and overlaps content
+      when the deck shrinks. */
+.deck-controls {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 22px;
+    z-index: 100;
+}
+
+/* 8. Embedded (iframe): drop every height base so the document takes
+      its natural 16:9 height. The stage-scaling JS adds .embed on
+      <html> when window.self !== window.top. */
+html.embed,
+html.embed body {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+}
+html.embed body {
+    display: block;
+}
+html.embed .deck-viewport {
+    margin: 0 auto;
+}
+
+/* 9. Print one fixed-size slide per page (neutralize JS inline sizes) */
+@media print {
+    html,
+    body {
+        width: 1920px;
+        height: auto;
+        overflow: visible;
+        background: #fff;
+        display: block;
+    }
+
+    .deck-viewport {
+        position: static;
+        overflow: visible;
+        background: #fff;
+        width: auto !important;
+        height: auto !important;
+    }
+
+    .deck-stage {
+        position: static;
+        width: auto;
+        height: auto;
+        transform: none !important;
+        background: none;
+    }
+
+    .slide {
+        position: relative;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        width: 1920px;
+        height: 1080px;
+        break-after: page;
+        page-break-after: always;
+    }
+
+    .slide:last-child {
+        break-after: auto;
+        page-break-after: auto;
+    }
+
+    .deck-controls {
+        display: none !important;
+    }
+}
+
+/* 10. Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.2s !important;
+    }
+}

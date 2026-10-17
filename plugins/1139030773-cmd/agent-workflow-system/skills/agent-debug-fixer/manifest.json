@@ -1,0 +1,1 @@
+{"name":"agent-debug-fixer","version":"1.0.0","description":"调试修复 - 代码问题诊断和修复","author":"1139030773-cmd","license":"MIT","capabilities":{"chat":true,"codeAnalysis":true,"debugging":true},"keywords":["调试","问题修复","代码诊断"]}

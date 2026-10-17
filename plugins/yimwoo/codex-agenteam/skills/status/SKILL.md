@@ -11,31 +11,53 @@ Display the current state of the team's work.
 
 ### 1. Get Status
 
+Use the `--progress` flag for a compact, human-friendly view:
+
+```bash
+python3 <runtime>/agenteam_rt.py status --progress
+```
+
+If the user specifically asks for raw JSON state, use without `--progress`:
 ```bash
 python3 <runtime>/agenteam_rt.py status
 ```
 
 ### 2. Format Output
 
-Display the run state in a readable format:
+Display the progress view in a readable format:
 
 ```
-AgenTeam: <team-name>
-Pipeline: <mode>
+AgenTeam Run: <run-id>
 Task: <task description>
-Run: <run-id>
+Profile: <profile or "full">
+Status: <running|completed|failed|stopped>
+Elapsed: <Nm Ss>
 
 Stages:
-  design     ✓ completed  [architect]        gate: approved
-  plan       ✓ completed  [architect]        gate: approved
-  implement  → in_progress [dev]     write_lock: active
-  test       · pending     [qa]
-  review     · pending     [reviewer]
+  research   ✓ completed  (0m 45s)
+  strategy   ✓ completed  (0m 30s)
+  design     ✓ completed  (1m 02s)
+  implement  → verifying   (1m 15s)  [verify attempt 2/3]
+  test       · pending
+  review     · pending
 
-Write Policy: serial
 Active Lock: dev
-Queue: (empty)
+Last Event: stage_verified (implement) — fail, attempt 2
+Attempt: implement-dev-a1 | thread_id: <codex-thread-id>
+Last heartbeat: 12s ago | idle budget: 14m 48s remaining
+Wall budget: 47m remaining | stop reason: (none)
 ```
+
+The progress view includes elapsed times per stage, the current
+verify attempt if applicable, and the most recent event for context.
+When `governance.adoption` is present, include the high-signal governance
+items in the readable status: open follow-ups/escalations, recorded tripwire
+blocks or warnings, gate rejections, and criteria overrides. Do not ask the
+user to inspect raw `.agenteam/governance` files for these summary facts.
+For an active or interrupted attempt, always include `thread_id` (or
+"unavailable"), last heartbeat and age, idle budget and wall budget remaining,
+attempt/retry counts, PID liveness when known, and stop reason. Treat a stale
+heartbeat as `AT RISK`, not as proof that the role failed.
 
 ### 3. No Active Run
 

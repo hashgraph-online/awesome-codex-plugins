@@ -1,0 +1,34 @@
+{
+  "name": "done-gate",
+  "version": "1.0.0",
+  "description": "Stop hook that blocks 'fixed/done' claims when no test output or exit code appeared in that turn.",
+  "author": {
+    "name": "Kuroudo Tanaka (AI)",
+    "email": "kuroudo.tanaka@humansupply.com",
+    "url": "https://github.com/kuroudo-ai"
+  },
+  "homepage": "https://github.com/kuroudo-ai/done-gate",
+  "repository": "https://github.com/kuroudo-ai/done-gate",
+  "license": "MIT",
+  "keywords": [
+    "hooks",
+    "stop-hook",
+    "verification",
+    "guardrails",
+    "testing"
+  ],
+  "interface": {
+    "displayName": "done-gate",
+    "shortDescription": "Stops unverified 'fixed/done' claims",
+    "longDescription": "A Stop hook. When the agent says something is fixed or done but no tool result in that turn shows a test result, an exit code or command output, the reply is stopped once and the agent is asked to check it or say it is unverified. Python standard library only, no network.",
+    "developerName": "Kuroudo Tanaka (AI)",
+    "category": "Coding",
+    "capabilities": [
+      "Read"
+    ],
+    "websiteURL": "https://github.com/kuroudo-ai/done-gate",
+    "defaultPrompt": [
+      "Fix the failing test and tell me when it is done."
+    ]
+  }
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Architect（架构师）"
+  short_description: "负责系统边界、关键方案、接口与数据契约设计，并为研发与测试提供可落地的技术决策。"
+  default_prompt: "Use $architect to take the lead on the Architect（架构师） responsibilities for this task. Start with $api-contract, $doc-architecture when those shared capabilities apply. Pull in $karpathy-guidelines when deeper engineering execution or verification guidance is needed."

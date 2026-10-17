@@ -1,0 +1,34 @@
+apiVersion: v3.1.0
+kind: DataContract
+
+id: "{{CONTRACT_ID}}"
+name: "{{DATA_PRODUCT_NAME}}"
+version: 1.0.0
+status: draft
+
+description:
+  usage: analytics
+  purpose: "{{PURPOSE}}"
+
+schema:
+  - name: "{{TABLE}}"
+    physicalType: table
+    properties:
+      - name: id
+        description: Primary key.
+        logicalType: string
+        required: true
+        primaryKey: true
+      - name: updated_at
+        description: Timestamp when this record was written by dbt.
+        logicalType: timestamp
+        required: true
+
+team:
+  name: "{{TEAM_NAME}}"
+
+servers:
+  - server: production
+    type: "{{PLATFORM}}"
+    catalog: "{{CATALOG}}"
+    schema: "{{SCHEMA}}"

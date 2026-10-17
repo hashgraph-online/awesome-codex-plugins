@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "pronounce": {
+      "command": "uvx",
+      "args": [
+        "pronounce-mcp"
+      ]
+    }
+  }
+}

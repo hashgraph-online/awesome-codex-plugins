@@ -1,0 +1,10 @@
+.git/
+.github/
+.claude/
+.codex/
+.cursor-plugin/
+.opencode/
+__pycache__/
+.pytest_cache/
+node_modules/
+assets/readme/

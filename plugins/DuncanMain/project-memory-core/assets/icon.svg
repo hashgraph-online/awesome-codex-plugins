@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" width="320" height="320" role="img" aria-label="Project Memory">
+  <rect x="8" y="8" width="304" height="304" rx="76" fill="#5966D9"/>
+  <path d="M78 70h122c28 0 50 22 50 50v138H128c-28 0-50-22-50-50V70Z" fill="#FFFFFF"/>
+  <path d="M128 70v188" fill="none" stroke="#5966D9" stroke-width="22"/>
+  <path d="M162 126h53M162 162h53M162 198h39" fill="none" stroke="#5966D9" stroke-width="20" stroke-linecap="round"/>
+</svg>

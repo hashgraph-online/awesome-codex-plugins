@@ -1,0 +1,32 @@
+{
+  "name": "tandem-codex-plugin",
+  "version": "0.1.5",
+  "private": true,
+  "description": "Helper scripts that the Tandem Codex plugin uses to talk to the Tandem engine HTTP API.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "release:notes": "node scripts/extract-release-notes.mjs",
+    "release:check": "node scripts/check-release-version.mjs",
+    "version:set": "node scripts/set-version.mjs",
+    "typecheck": "tsc --noEmit",
+    "healthcheck": "tsx scripts/tandem-api-healthcheck.ts",
+    "create-draft": "tsx scripts/tandem-create-workflow-draft.ts",
+    "preview": "tsx scripts/tandem-preview-workflow.ts",
+    "revise": "tsx scripts/tandem-revise-workflow.ts",
+    "apply": "tsx scripts/tandem-apply-workflow.ts",
+    "import-plan": "tsx scripts/tandem-import-plan.ts"
+  },
+  "dependencies": {
+    "@frumu/tandem-client": "^0.5.4",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}

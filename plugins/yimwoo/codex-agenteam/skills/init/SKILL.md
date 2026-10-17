@@ -54,6 +54,8 @@ Default to a fast setup unless the user explicitly asks to customize:
 - Team name: use the project directory name
 - Pipeline mode: keep the template default unless the user asked for HOTL or dispatch-only
 - Write scopes: keep defaults unless the repo clearly needs different paths
+- Models: inherit the Codex platform default. Do not add role pins during
+  setup unless the user asks and the live Codex model catalog confirms them.
 - Custom roles: do not ask up front; mention they can be added later with `$ateam:add-member`
 
 Only ask follow-up questions when a decision is genuinely ambiguous or the user
@@ -74,6 +76,9 @@ python3 <plugin-dir>/runtime/agenteam_rt.py generate
 ```
 
 This creates `.codex/agents/*.toml` for each role. Show the user what was generated.
+If the new roles do not appear in the `@` picker immediately, tell the user to:
+- Confirm the generated files exist under `.codex/agents/` in the current project
+- Open a new thread or restart Codex so it reloads workspace agents from that folder
 
 ### 6. HOTL Detection
 
@@ -135,11 +140,24 @@ collaborators, run @ATeam share-config.
 
 Do not show this if `.agenteam.team/config.yaml` already exists.
 
+After the roster/examples, add this note when setup created or refreshed local
+agents:
+
+```
+If the new roles do not show up in the `@` picker right away, first confirm this
+project now has `.codex/agents/*.toml` files, then open a new thread or restart
+Codex to reload workspace agents from `.codex/agents/`.
+```
+
 ## Runtime Path Resolution
 
 Resolve the AgenTeam runtime:
 1. If running from the plugin directory: `./runtime/agenteam_rt.py`
 2. If installed as a Codex plugin cache entry: `<plugin-install-path>/local/runtime/agenteam_rt.py`
+
+Resolve a versioned cache entry by locating its actual
+`runtime/agenteam_rt.py` file and validating the sibling `templates/` directory;
+never stop at the unversioned `.../ateam` parent.
 
 ## Performance Guardrails
 

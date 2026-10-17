@@ -1,0 +1,19 @@
+{
+  "skill_name": "django-outside-in-tdd",
+  "evals": [
+    {
+      "id": 1,
+      "name": "new-django-feature-plan",
+      "prompt": "Add a Django feature where logged-in users can rename a project. Show me the outside-in TDD plan and the first tests to write.",
+      "expected_output": "Starts from user behavior, chooses a thin outer functional test, maps inner Django tests by layer, avoids speculative implementation, and includes verification commands.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "working-state-refactor",
+      "prompt": "I need to split this Django view into separate create and detail flows without breaking existing behavior. How should I do it test-first?",
+      "expected_output": "Recommends working-state-to-working-state steps, identifies regression coverage, uses focused view/URL/template tests, and keeps the outer test as a safety check.",
+      "files": []
+    }
+  ]
+}

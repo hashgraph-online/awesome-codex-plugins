@@ -1,0 +1,40 @@
+{
+  "name": "socraticode",
+  "version": "1.8.4",
+  "description": "Codebase intelligence: semantic search workflows, dependency graph analysis, and context artifact exploration for SocratiCode",
+  "author": {
+    "name": "Giancarlo Erra",
+    "email": "giancarlo@altaire.com",
+    "url": "https://altaire.com"
+  },
+  "homepage": "https://github.com/giancarloerra/socraticode",
+  "repository": "https://github.com/giancarloerra/socraticode",
+  "license": "AGPL-3.0-only",
+  "keywords": [
+    "codebase",
+    "search",
+    "indexing",
+    "dependency-graph",
+    "semantic-search",
+    "mcp"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "SocratiCode",
+    "shortDescription": "Codebase intelligence: semantic search, dependency graphs, and context artifacts",
+    "longDescription": "SocratiCode provides codebase intelligence through semantic search workflows, dependency graph analysis, and context artifact exploration. Index your codebase, search with hybrid semantic + keyword search, visualize module dependencies, and manage context artifacts.",
+    "developerName": "Giancarlo Erra",
+    "category": "Development",
+    "capabilities": [
+      "Read"
+    ],
+    "websiteURL": "https://github.com/giancarloerra/socraticode",
+    "privacyPolicyURL": "https://github.com/giancarloerra/socraticode/blob/main/SECURITY.md",
+    "termsOfServiceURL": "https://github.com/giancarloerra/socraticode/blob/main/LICENSE",
+    "defaultPrompt": [
+      "Use SocratiCode to search the codebase for authentication handling.",
+      "Use SocratiCode to visualize the dependency graph of this project."
+    ]
+  }
+}

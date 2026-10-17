@@ -1,18 +1,18 @@
 ---
 name: brownfield-adoption
 description: >
-  Step-by-step process for adopting Blueprint on an existing codebase.
+  Step-by-step process for adopting Cavekit on an existing codebase.
   Covers the 6-step brownfield process, bootstrap prompt design, spec validation against
   existing behavior, and the decision between brownfield adoption vs deliberate rewrite.
-  Trigger phrases: "brownfield", "existing codebase", "add Blueprint to existing project",
-  "adopt Blueprint", "layer blueprints on code", "retrofit blueprints"
+  Trigger phrases: "brownfield", "existing codebase", "add Cavekit to existing project",
+  "adopt Cavekit", "layer kits on code", "retrofit kits"
 ---
 
-# Brownfield Adoption: Adding Blueprint to Existing Codebases
+# Brownfield Adoption: Adding Cavekit to Existing Codebases
 
-Brownfield adoption layers blueprints on top of existing code without rewriting it. The existing codebase becomes reference material, and blueprints are reverse-engineered from what the code actually does. Once blueprints exist, all future changes flow through the Blueprint lifecycle.
+Brownfield adoption layers kits on top of existing code without rewriting it. The existing codebase becomes reference material, and kits are reverse-engineered from what the code actually does. Once kits exist, all future changes flow through the Cavekit lifecycle.
 
-**Core principle:** The existing code is not the enemy -- it is the source of truth for blueprint generation. Respect what works; blueprint what matters.
+**Core principle:** The existing code is not the enemy -- it is the source of truth for cavekit generation. Respect what works; cavekit what matters.
 
 ---
 
@@ -21,15 +21,15 @@ Brownfield adoption layers blueprints on top of existing code without rewriting 
 Brownfield adoption is the right choice when:
 
 - You have a **working codebase** that you want to improve incrementally
-- You want to adopt Blueprint **without stopping development**
+- You want to adopt Cavekit **without stopping development**
 - The codebase is too large or critical for a full rewrite
-- You want **traceability** between blueprints and code for future changes
+- You want **traceability** between kits and code for future changes
 - You need to **onboard AI agents** to an existing project safely
-- The team wants to start with Blueprint on a subset of the codebase
+- The team wants to start with Cavekit on a subset of the codebase
 
 **Brownfield is NOT the right choice when:**
 - You are migrating to a completely different framework (use a deliberate rewrite instead)
-- The existing code is so broken that blueprints would just document bugs
+- The existing code is so broken that kits would just document bugs
 - The codebase is being sunset or replaced
 
 ---
@@ -40,13 +40,13 @@ Before starting, decide which approach fits your situation:
 
 | Dimension | Incremental Adoption | Clean-Slate Rebuild |
 |-----------|---------------------|---------------------|
-| **Objective** | Add blueprint coverage around working code | Replace the codebase with a new implementation |
-| **What happens to existing code** | Remains in place, evolves under Blueprint governance | Archived once blueprints are extracted; new code replaces it |
+| **Objective** | Add cavekit coverage around working code | Replace the codebase with a new implementation |
+| **What happens to existing code** | Remains in place, evolves under Cavekit governance | Archived once kits are extracted; new code replaces it |
 | **Risk profile** | Lower -- production system stays functional throughout | Higher -- new system must achieve feature parity before cutover |
-| **Time to first value** | Fast -- blueprints appear in days, improvements follow | Slow -- significant upfront investment before any return |
+| **Time to first value** | Fast -- kits appear in days, improvements follow | Slow -- significant upfront investment before any return |
 | **Ideal scenarios** | Production systems, incremental improvement, large legacy codebases | Technology stack changes, irrecoverable tech debt, greenfield-quality rebuilds |
-| **How blueprints originate** | Derived by analyzing existing behavior | Written forward from product requirements |
-| **Handling broken behavior** | Blueprints capture current state; bugs are fixed through normal Blueprint cycles | Blueprints capture intended state; fresh implementation avoids old bugs |
+| **How kits originate** | Derived by analyzing existing behavior | Written forward from product requirements |
+| **Handling broken behavior** | Kits capture current state; bugs are fixed through normal Cavekit cycles | Kits capture intended state; fresh implementation avoids old bugs |
 | **Impact on ongoing work** | Low -- regular development continues alongside adoption | High -- team capacity is split between old and new systems |
 
 ### Decision flowchart
@@ -67,10 +67,10 @@ Is the existing code fundamentally sound?
 
 ### Step 1: Set Up the Context Directory
 
-Create the standard Blueprint context directory structure alongside your existing codebase:
+Create the standard Cavekit context directory structure alongside your existing codebase:
 
 ```bash
-mkdir -p context/{refs,blueprints,plans,impl,prompts}
+mkdir -p context/{refs,kits,plans,impl,prompts}
 ```
 
 Resulting structure:
@@ -83,14 +83,14 @@ your-project/
 +-- context/
     +-- refs/
     |   +-- architecture-overview.md   # High-level description of existing system
-    +-- blueprints/
-    |   +-- CLAUDE.md                  # "Blueprints define WHAT needs implementing"
+    +-- kits/
+    |   +-- CLAUDE.md                  # "Kits define WHAT needs implementing"
     +-- plans/
     |   +-- CLAUDE.md                  # "Plans define HOW to implement something"
     +-- impl/
     |   +-- CLAUDE.md                  # "Impls record implementation progress"
     +-- prompts/
-        +-- 000-generate-blueprints-from-code.md   # Bootstrap prompt (this step)
+        +-- 000-generate-kits-from-code.md   # Bootstrap prompt (this step)
 ```
 
 **Create `context/refs/architecture-overview.md`** with a high-level description of the existing system:
@@ -152,10 +152,10 @@ The existing source code at `src/` is the primary reference material for spec ge
 
 ### Step 3: Create the Bootstrap Prompt (000)
 
-The bootstrap prompt is numbered `000` because it runs first and only once. It reverse-engineers blueprints from the existing code.
+The bootstrap prompt is numbered `000` because it runs first and only once. It reverse-engineers kits from the existing code.
 
 ```markdown
-# 000: Generate Blueprints from Existing Code (Brownfield Bootstrap)
+# 000: Generate Kits from Existing Code (Brownfield Bootstrap)
 
 ## Runtime Inputs
 - Framework: {FRAMEWORK}
@@ -176,32 +176,32 @@ Read `context/refs/architecture-overview.md` for system context.
 4. Read key source files in each domain
 5. Run existing tests to understand expected behavior: `{TEST_COMMAND}`
 
-### Phase 2: Generate Blueprints
+### Phase 2: Generate Kits
 For each identified domain:
-1. Create `context/blueprints/blueprint-{domain}.md`
-2. Each blueprint must include:
+1. Create `context/kits/cavekit-{domain}.md`
+2. Each cavekit must include:
    - **Scope:** What this domain covers
    - **Requirements:** What the code currently does, expressed as requirements
    - **Acceptance Criteria:** Testable criteria derived from existing behavior
    - **Dependencies:** What other domains this depends on
-   - **Out of Scope:** What this blueprint explicitly excludes
-   - **Cross-References:** Links to related blueprints
+   - **Out of Scope:** What this cavekit explicitly excludes
+   - **Cross-References:** Links to related kits
 
-3. Create `context/blueprints/blueprint-overview.md` as the index:
-   - One-line summary per domain blueprint
+3. Create `context/kits/cavekit-overview.md` as the index:
+   - One-line summary per domain cavekit
    - Dependency graph between domains
    - Overall system architecture summary
 
 ### Phase 3: Validate
-For each acceptance criterion in the generated blueprints:
+For each acceptance criterion in the generated kits:
 1. Verify the existing code satisfies it
 2. If a test exists that validates it, reference the test
 3. If no test exists, note it as a coverage gap
 
 ## Exit Criteria
-- [ ] All major domains have corresponding blueprint files
+- [ ] All major domains have corresponding cavekit files
 - [ ] Every requirement has testable acceptance criteria
-- [ ] blueprint-overview.md indexes all blueprints
+- [ ] cavekit-overview.md indexes all kits
 - [ ] Validation report shows which criteria are covered by existing tests
 - [ ] Coverage gaps are documented
 
@@ -214,27 +214,27 @@ For each acceptance criterion in the generated blueprints:
 Run the bootstrap prompt through the iteration loop:
 
 ```bash
-# Run 3-5 iterations to stabilize blueprints
-iteration-loop context/prompts/000-generate-blueprints-from-code.md -n 5 -t 1h
+# Run 3-5 iterations to stabilize kits
+iteration-loop context/prompts/000-generate-kits-from-code.md -n 5 -t 1h
 ```
 
 **What happens during iteration:**
-- **Iteration 1:** Agent explores codebase, generates initial blueprints (broad but shallow)
-- **Iteration 2:** Agent refines blueprints based on git history from iteration 1, adds detail
-- **Iteration 3:** Agent validates blueprints against code, fills coverage gaps
+- **Iteration 1:** Agent explores codebase, generates initial kits (broad but shallow)
+- **Iteration 2:** Agent refines kits based on git history from iteration 1, adds detail
+- **Iteration 3:** Agent validates kits against code, fills coverage gaps
 - **Iterations 4-5:** Convergence -- minor refinements, polishing cross-references
 
-**Watch for convergence:** Blueprints should stabilize after 3-5 iterations. If they do not, the codebase may be too large for a single prompt. Split into domain-specific bootstrap prompts.
+**Watch for convergence:** Kits should stabilize after 3-5 iterations. If they do not, the codebase may be too large for a single prompt. Split into domain-specific bootstrap prompts.
 
-### Step 5: Validate Blueprints Match Behavior
+### Step 5: Validate Kits Match Behavior
 
-After the bootstrap prompt converges, validate that the generated blueprints accurately describe the existing code:
+After the bootstrap prompt converges, validate that the generated kits accurately describe the existing code:
 
-#### 5a. Run tests against blueprints
+#### 5a. Run tests against kits
 
 ```bash
-# Use TDD to verify blueprints match behavior
-# For each domain blueprint, generate tests from acceptance criteria
+# Use TDD to verify kits match behavior
+# For each domain cavekit, generate tests from acceptance criteria
 # then verify existing code passes them
 {TEST_COMMAND}
 ```
@@ -242,12 +242,12 @@ After the bootstrap prompt converges, validate that the generated blueprints acc
 #### 5b. Manual review checklist
 
 ```markdown
-## Blueprint Validation Checklist
-- [ ] Each domain in the codebase has a corresponding blueprint
+## Cavekit Validation Checklist
+- [ ] Each domain in the codebase has a corresponding cavekit
 - [ ] Acceptance criteria match actual code behavior (not aspirational)
-- [ ] Dependencies between blueprints match actual code dependencies
-- [ ] No orphan code -- every significant module is covered by a blueprint
-- [ ] No phantom requirements -- blueprints do not describe behavior that does not exist
+- [ ] Dependencies between kits match actual code dependencies
+- [ ] No orphan code -- every significant module is covered by a cavekit
+- [ ] No phantom requirements -- kits do not describe behavior that does not exist
 - [ ] Cross-references are accurate
 ```
 
@@ -255,22 +255,22 @@ After the bootstrap prompt converges, validate that the generated blueprints acc
 
 | Mismatch Type | Action |
 |--------------|--------|
-| **Blueprint describes behavior that does not exist** | Remove the requirement (phantom requirement) |
-| **Code has behavior not in any blueprint** | Add a requirement (coverage gap) |
-| **Blueprint and code disagree on behavior** | Determine which is correct; update the other |
-| **Code has bugs that blueprints documented as-is** | Mark as known issue in blueprint; fix via normal Blueprint |
+| **Cavekit describes behavior that does not exist** | Remove the requirement (phantom requirement) |
+| **Code has behavior not in any cavekit** | Add a requirement (coverage gap) |
+| **Cavekit and code disagree on behavior** | Determine which is correct; update the other |
+| **Code has bugs that kits documented as-is** | Mark as known issue in cavekit; fix via normal Cavekit |
 
-### Step 6: Proceed with Normal DABI
+### Step 6: Proceed with Normal Hunt
 
-Once blueprints are validated, the project is ready for full Blueprint. All future changes flow through blueprints first:
+Once kits are validated, the project is ready for full Cavekit. All future changes flow through kits first:
 
 ```
 Future change workflow:
-  1. Update blueprint with new/changed requirement
-  2. Generate/update plans from blueprints (prompt 002)
+  1. Update cavekit with new/changed requirement
+  2. Generate/update plans from kits (prompt 002)
   3. Implement from plans (prompt 003)
   4. Validate: build + test + acceptance criteria
-  5. If issues found: revise blueprints
+  5. If issues found: revise kits
 ```
 
 Create the standard pipeline prompts:
@@ -278,8 +278,8 @@ Create the standard pipeline prompts:
 ```bash
 # Create greenfield-style prompts for ongoing development
 # (000 was the bootstrap; 001-003 are the ongoing pipeline)
-context/prompts/001-generate-blueprints-from-refs.md    # For new features
-context/prompts/002-generate-plans-from-blueprints.md   # Plan generation
+context/prompts/001-generate-kits-from-refs.md    # For new features
+context/prompts/002-generate-plans-from-kits.md   # Plan generation
 context/prompts/003-generate-impl-from-plans.md    # Implementation
 ```
 
@@ -287,30 +287,30 @@ context/prompts/003-generate-impl-from-plans.md    # Implementation
 
 ## 4. Incremental Adoption Strategy
 
-You do not have to blueprint the entire codebase at once. Start with the most active or highest-risk areas:
+You do not have to cavekit the entire codebase at once. Start with the most active or highest-risk areas:
 
-### Priority matrix for blueprint coverage
+### Priority matrix for cavekit coverage
 
 | Priority | Criteria | Example |
 |----------|----------|---------|
-| **P0: Blueprint immediately** | Code changes frequently, high risk, many bugs | Auth system, payment processing |
-| **P1: Blueprint soon** | Active development area, moderate complexity | Feature modules, API endpoints |
-| **P2: Blueprint when touched** | Stable code, rarely changes | Utility libraries, config modules |
+| **P0: Cavekit immediately** | Code changes frequently, high risk, many bugs | Auth system, payment processing |
+| **P1: Cavekit soon** | Active development area, moderate complexity | Feature modules, API endpoints |
+| **P2: Cavekit when touched** | Stable code, rarely changes | Utility libraries, config modules |
 | **P3: Skip until needed** | Dead code, deprecated features | Legacy compatibility layers |
 
 ### Incremental process
 
 ```
-Week 1: Bootstrap blueprints for P0 domains
+Week 1: Bootstrap kits for P0 domains
   -> Run 000 prompt scoped to P0 directories only
   -> Validate and refine
 
 Week 2-3: Extend to P1 domains
   -> Add P1 directories to the bootstrap prompt
-  -> Cross-reference with existing P0 blueprints
+  -> Cross-reference with existing P0 kits
 
-Week 4+: Blueprint-on-touch
-  -> When any P2 file is modified, generate its blueprint first
+Week 4+: Cavekit-on-touch
+  -> When any P2 file is modified, generate its cavekit first
   -> Gradually expand coverage
 ```
 
@@ -321,10 +321,10 @@ For incremental adoption, modify prompt 000 to target specific directories:
 ```markdown
 ## Scope
 This bootstrap targets the following domains only:
-- `src/auth/` -> blueprint-auth.md
-- `src/payments/` -> blueprint-payments.md
+- `src/auth/` -> cavekit-auth.md
+- `src/payments/` -> cavekit-payments.md
 
-Do NOT generate blueprints for other directories at this time.
+Do NOT generate kits for other directories at this time.
 ```
 
 ---
@@ -337,19 +337,19 @@ Do NOT generate blueprints for other directories at this time.
 
 ```
 context/prompts/
-+-- 000a-generate-blueprints-auth.md
-+-- 000b-generate-blueprints-data.md
-+-- 000c-generate-blueprints-ui.md
++-- 000a-generate-kits-auth.md
++-- 000b-generate-kits-data.md
++-- 000c-generate-kits-ui.md
 ```
 
-Run each independently, then create a manual `blueprint-overview.md` that ties them together.
+Run each independently, then create a manual `cavekit-overview.md` that ties them together.
 
 ### Challenge: No existing tests
 
-**Solution:** The bootstrap prompt generates blueprints from code behavior, not tests. After blueprints exist, use the implementation prompt to generate tests:
+**Solution:** The bootstrap prompt generates kits from code behavior, not tests. After kits exist, use the implementation prompt to generate tests:
 
 ```bash
-# After bootstrap, generate tests from blueprints
+# After bootstrap, generate tests from kits
 iteration-loop context/prompts/003-generate-impl-from-plans.md -n 5 -t 1h
 # Focus on test generation, not code changes
 ```
@@ -370,7 +370,7 @@ iteration-loop context/prompts/003-generate-impl-from-plans.md -n 5 -t 1h
 
 ### Challenge: Code has known bugs
 
-**Solution:** Blueprint the intended behavior, not the buggy behavior. Mark known bugs as issues:
+**Solution:** Cavekit the intended behavior, not the buggy behavior. Mark known bugs as issues:
 
 ```markdown
 ### R3: Search Results Pagination
@@ -382,41 +382,41 @@ iteration-loop context/prompts/003-generate-impl-from-plans.md -n 5 -t 1h
 - BUG: Off-by-one error on last page (see issue #142)
 ```
 
-### Challenge: Team resistance to Blueprint
+### Challenge: Team resistance to Cavekit
 
 **Solution:** Start small, show results:
 1. Pick ONE upcoming feature
-2. Write a blueprint before implementing it
-3. Show how the blueprint caught issues the team would have missed
-4. Gradually expand Blueprint coverage based on demonstrated value
+2. Write a cavekit before implementing it
+3. Show how the cavekit caught issues the team would have missed
+4. Gradually expand Cavekit coverage based on demonstrated value
 
 ---
 
-## 6. Lightweight Blueprint for Small Projects
+## 6. Lightweight Cavekit for Small Projects
 
-Even small projects benefit from minimal Blueprint. The "Blueprint floor" is:
+Even small projects benefit from minimal Cavekit. The "Cavekit floor" is:
 
 ```
 your-small-project/
 +-- src/
 +-- context/
-    +-- blueprints/
-    |   +-- blueprint-task.md     # One blueprint for the current task
+    +-- kits/
+    |   +-- cavekit-task.md     # One cavekit for the current task
     +-- plans/
         +-- plan-task.md          # One plan for the current task
 ```
 
-**No prompts directory needed.** Just write a focused blueprint and plan, then use the iteration loop against the plan.
+**No prompts directory needed.** Just write a focused cavekit and plan, then use the iteration loop against the plan.
 
 **Why bother for small projects?**
-- The blueprint catches requirements you would have missed
+- The cavekit catches requirements you would have missed
 - The plan sequences work so the agent does not thrash
 - If the project grows, you already have the structure in place
-- It is much easier to scale up from lightweight Blueprint than to retrofit full Blueprint later
+- It is much easier to scale up from lightweight Cavekit than to retrofit full Cavekit later
 
-### Lightweight Blueprint process
+### Lightweight Cavekit process
 
-1. Write `context/blueprints/blueprint-task.md` (15-30 minutes)
+1. Write `context/kits/cavekit-task.md` (15-30 minutes)
 2. Write `context/plans/plan-task.md` (10-20 minutes)
 3. Run the iteration loop against the plan
 4. If the project grows, add the full context directory structure
@@ -436,24 +436,24 @@ Track your brownfield adoption progress with these milestones:
 - [ ] Bootstrap prompt created
 
 ### Milestone 2: Initial Specs
-- [ ] P0 domains have blueprints
-- [ ] Blueprints validated against existing code
+- [ ] P0 domains have kits
+- [ ] Kits validated against existing code
 - [ ] Coverage gaps documented
 
 ### Milestone 3: Pipeline Active
 - [ ] Standard prompts (001-003) created
-- [ ] First feature developed through Blueprint pipeline
+- [ ] First feature developed through Cavekit pipeline
 - [ ] Revision process tested
 
 ### Milestone 4: Steady State
-- [ ] All active domains have blueprints
-- [ ] All new features go through blueprints first
+- [ ] All active domains have kits
+- [ ] All new features go through kits first
 - [ ] Revision is routine
 - [ ] Iteration loop runs are predictable (convergence in 3-5 iterations)
 
-### Milestone 5: Full Blueprint
-- [ ] All domains have blueprints
-- [ ] All changes flow through DABI
+### Milestone 5: Full Cavekit
+- [ ] All domains have kits
+- [ ] All changes flow through the Hunt
 - [ ] Convergence monitoring active
 - [ ] Team comfortable with the process
 ```
@@ -462,8 +462,8 @@ Track your brownfield adoption progress with these milestones:
 
 ## Cross-References
 
-- **Context architecture:** See `bp:context-architecture` skill for the full context directory structure and progressive disclosure patterns.
-- **Prompt pipeline:** See `bp:prompt-pipeline` skill for designing the 001-003 prompts after bootstrap.
-- **Blueprint writing:** See `bp:blueprint-writing` skill for how to write high-quality blueprints with testable acceptance criteria.
-- **Revision:** See `bp:revision` skill for tracing bugs back to blueprints after brownfield adoption.
-- **Convergence monitoring:** See `bp:convergence-monitoring` skill for detecting when the bootstrap prompt has converged.
+- **Context architecture:** See `ck:context-architecture` skill for the full context directory structure and progressive disclosure patterns.
+- **Prompt pipeline:** See `ck:prompt-pipeline` skill for designing the 001-003 prompts after bootstrap.
+- **Cavekit writing:** See `ck:cavekit-writing` skill for how to write high-quality kits with testable acceptance criteria.
+- **Revision:** See `ck:revision` skill for tracing bugs back to kits after brownfield adoption.
+- **Convergence monitoring:** See `ck:convergence-monitoring` skill for detecting when the bootstrap prompt has converged.

@@ -1,0 +1,4 @@
+interface:
+  display_name: Reverse Engineer
+  short_description: Inspect an external system and compare adoption options
+  default_prompt: Evaluate the authorized external system against the caller's question. Separate observed code behavior, documentation claims and unverified hosted features.

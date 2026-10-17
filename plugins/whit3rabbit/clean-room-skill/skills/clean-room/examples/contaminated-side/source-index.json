@@ -1,0 +1,156 @@
+{
+  "index_id": "source-index-task-example",
+  "task_id": "task-example",
+  "created_at": "2026-05-20T00:00:00Z",
+  "created_by_role": "controller-preflight",
+  "domain": "contaminated",
+  "generator": {
+    "name": "build_source_index.py",
+    "version": "1",
+    "python_version": "3.x",
+    "scanner_modes": [
+      "python-ast",
+      "javascript-typescript-scanner",
+      "text-metrics"
+    ]
+  },
+  "limits": {
+    "max_files": 2000,
+    "max_file_bytes": 1000000,
+    "max_total_bytes": 50000000,
+    "max_batch_tokens": 20000,
+    "ignore_dirs": [
+      ".git",
+      ".next",
+      ".venv",
+      "__pycache__",
+      "build",
+      "coverage",
+      "dist",
+      "node_modules",
+      "target",
+      "venv"
+    ]
+  },
+  "source_roots": [
+    {
+      "root_id": "root-001",
+      "path": "source-workspace"
+    }
+  ],
+  "files": [
+    {
+      "file_id": "file-000001",
+      "root_id": "root-001",
+      "path": "flow/controller.py",
+      "language": "python",
+      "scanner": "python-ast",
+      "metrics": {
+        "bytes": 120,
+        "lines": 6,
+        "words": 14,
+        "characters": 120,
+        "estimated_tokens": 30
+      },
+      "imports": [
+        {
+          "specifier": ".state",
+          "kind": "python-from-import",
+          "is_relative": true,
+          "names": [
+            "State"
+          ],
+          "resolved_file_id": "file-000002"
+        }
+      ],
+      "exports": [
+        {
+          "name": "Controller",
+          "kind": "top-level-class"
+        }
+      ]
+    },
+    {
+      "file_id": "file-000002",
+      "root_id": "root-001",
+      "path": "flow/state.py",
+      "language": "python",
+      "scanner": "python-ast",
+      "metrics": {
+        "bytes": 80,
+        "lines": 4,
+        "words": 9,
+        "characters": 80,
+        "estimated_tokens": 20
+      },
+      "imports": [],
+      "exports": [
+        {
+          "name": "State",
+          "kind": "top-level-class"
+        }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "from_file_id": "file-000001",
+      "to_file_id": "file-000002",
+      "specifier": ".state",
+      "kind": "python-from-import"
+    }
+  ],
+  "groups": [
+    {
+      "group_id": "group-0001",
+      "reason": "dependency-component",
+      "file_ids": [
+        "file-000001",
+        "file-000002"
+      ],
+      "metrics": {
+        "bytes": 200,
+        "lines": 10,
+        "words": 23,
+        "characters": 200,
+        "estimated_tokens": 50
+      },
+      "notes": "Files connected by resolved local imports."
+    }
+  ],
+  "recommended_batches": [
+    {
+      "batch_id": "batch-0001",
+      "group_ids": [
+        "group-0001"
+      ],
+      "file_ids": [
+        "file-000001",
+        "file-000002"
+      ],
+      "metrics": {
+        "bytes": 200,
+        "lines": 10,
+        "words": 23,
+        "characters": 200,
+        "estimated_tokens": 50
+      },
+      "notes": "Example Agent 0 unit source batch."
+    }
+  ],
+  "skipped_entries": [],
+  "aggregate_metrics": {
+    "bytes": 200,
+    "lines": 10,
+    "words": 23,
+    "characters": 200,
+    "estimated_tokens": 50,
+    "file_count": 2,
+    "skipped_count": 0,
+    "skipped_entries_truncated": false,
+    "relationship_count": 1,
+    "resolved_relationship_count": 1,
+    "group_count": 1,
+    "batch_count": 1
+  }
+}

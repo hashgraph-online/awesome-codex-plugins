@@ -1,0 +1,28 @@
+# Surfaces that are not part of the shipped plugin.
+# The plugin is emulo.py, the skills, the manifests, and MINING_PROMPT.md.
+# Everything below is internal tooling, tests, docs, or generated output, and
+# scanning it produces false positives (proof/privacy.py, for example, has to
+# contain secret-shaped regexes in order to detect secrets).
+
+# internal benchmark harness (never shipped to a plugin runtime)
+proof/
+docs/proof/
+
+# tests and their fixtures
+tests/
+
+# planning records and historical design docs
+docs/
+.viberaven/
+
+# local mining output (private session data, gitignored anyway)
+emulo-out/
+ditto-out/
+
+# build artifacts
+dist/
+*.egg-info/
+__pycache__/
+
+# marketing site
+site/

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Operate DevOps"
+  short_description: "Change infrastructure and delivery safely"
+  default_prompt: "Use $operate-devops to make this delivery change with validation and rollback steps."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Langfuse Coding Trace"
+  short_description: "为编码工作流上报 Langfuse 链路追踪"
+  default_prompt: "Use $langfuse-coding-trace to instrument coding workflow steps with Langfuse trace/span events."

@@ -1,0 +1,27 @@
+{
+  "name": "staff-engineer-mode",
+  "version": "3.0.1",
+  "type": "module",
+  "main": ".opencode/plugins/staff-engineer-mode.js",
+  "description": "Applies engineering best practices to reliability, security, delivery, data, and architecture work.",
+  "license": "MIT",
+  "repository": "https://github.com/sirmarkz/staff-engineer-mode",
+  "homepage": "https://github.com/sirmarkz/staff-engineer-mode",
+  "author": "sirmarkz",
+  "keywords": [
+    "skills",
+    "staff-engineer",
+    "engineering-lifecycle",
+    "devops",
+    "sre",
+    "reliability",
+    "security",
+    "architecture",
+    "claude-code",
+    "codex",
+    "cursor",
+    "copilot-cli",
+    "gemini-cli",
+    "opencode"
+  ]
+}

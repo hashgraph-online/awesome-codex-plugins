@@ -11,7 +11,15 @@ References:
 """
 
 import math
+import os
+import sys
 from typing import List, Tuple, Optional, Dict
+
+# Add kicad scripts to path for shared imports
+_kicad_scripts = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                              '..', '..', 'kicad', 'scripts')
+if os.path.isdir(_kicad_scripts) and os.path.abspath(_kicad_scripts) not in sys.path:
+    sys.path.insert(0, os.path.abspath(_kicad_scripts))
 
 # Physical constants
 C_0 = 2.998e8          # Speed of light in vacuum (m/s)
@@ -110,6 +118,8 @@ def dm_radiation_v_m(freq_hz: float, area_m2: float, current_a: float,
     Returns:
         Electric field in V/m.
     """
+    if freq_hz <= 0 or distance_m <= 0:
+        return 0.0
     # EQ-001: E = K × f² × A × I / r (differential-mode loop radiation)
     # Source: Ott "EMC Engineering" (Wiley, 2009) Eq. 6.4
     # Source: Paul "Introduction to EMC" (Wiley, 2006) Eq. 10.12
@@ -168,6 +178,8 @@ def cm_radiation_v_m(freq_hz: float, cable_length_m: float,
     Ref: Ott, "EMC Engineering" (Wiley, 2009), Chapter 6.
          Paul, "Introduction to EMC" (Wiley, 2006), Chapter 10.
     """
+    if freq_hz <= 0 or distance_m <= 0:
+        return 0.0
     # EQ-003: E = 1.257e-6 × f × L × I_CM / r (common-mode cable radiation)
     # Source: Ott "EMC Engineering" (Wiley, 2009) Ch. 6
     # Source: Paul "Introduction to EMC" (Wiley, 2006) Ch. 10
@@ -288,6 +300,8 @@ def harmonic_spectrum(switching_freq_hz: float, v_peak: float,
     Returns:
         List of dicts with keys: harmonic, freq_hz, amplitude_v, amplitude_dbuv.
     """
+    if switching_freq_hz <= 0:
+        return []
     # EQ-028: Full harmonic spectrum using EQ-004 per harmonic
     results = []
     n = 1
@@ -550,8 +564,8 @@ def cap_value_for_srf(target_srf_hz: float, esl_h: float) -> float:
     return 1.0 / (4 * math.pi**2 * target_srf_hz**2 * esl_h)
 
 
-# E12 standard capacitor values (one decade)
-_E12_DECADE = [1.0, 1.2, 1.5, 1.8, 2.2, 2.7, 3.3, 3.9, 4.7, 5.6, 6.8, 8.2]
+# E12 standard capacitor values — imported from shared kicad_utils
+from kicad_utils import E12_DECADE as _E12_DECADE, snap_to_e_series
 
 
 def round_to_e12(value: float) -> float:
@@ -563,12 +577,8 @@ def round_to_e12(value: float) -> float:
     """
     if value <= 0:
         return 0.0
-    # Normalize to 1-10 range
-    decade = 10 ** math.floor(math.log10(value))
-    normalized = value / decade
-    # Find nearest E12 value
-    best = min(_E12_DECADE, key=lambda e: abs(e - normalized))
-    return best * decade
+    snapped, _ = snap_to_e_series(value, "E12")
+    return snapped
 
 
 def cap_impedance_at_freq(freq_hz: float, capacitance_f: float,
@@ -771,7 +781,9 @@ def estimate_esr(package: str) -> float:
 #   PCIe: PCI Express Base Spec §4.3.3
 #   CAN: ISO 11898-2
 DIFF_PAIR_PROTOCOLS = {
-    'USB':      {'max_skew_ps': 25,  'v_diff': 0.4,  'rise_time_ns': 0.5,  'z_ohm': 90},
+    'USB':      {'max_skew_ps': 25,  'v_diff': 0.4,  'rise_time_ns': 0.5,  'z_ohm': 90},  # HS params (legacy key)
+    'USB-HS':   {'max_skew_ps': 25,  'v_diff': 0.4,  'rise_time_ns': 0.5,  'z_ohm': 90},
+    'USB-FS':   {'max_skew_ps': 10000, 'v_diff': 0.4, 'rise_time_ns': 15.0, 'z_ohm': 90},
     'USB3':     {'max_skew_ps': 5,   'v_diff': 0.4,  'rise_time_ns': 0.1,  'z_ohm': 90},
     'Ethernet': {'max_skew_ps': 50,  'v_diff': 1.0,  'rise_time_ns': 4.0,  'z_ohm': 100},
     'HDMI':     {'max_skew_ps': 20,  'v_diff': 0.4,  'rise_time_ns': 0.2,  'z_ohm': 100},
@@ -974,9 +986,9 @@ def build_power_tree(regulators: list, power_budget: dict,
     via input_rail/output_rail relationships.
 
     Args:
-        regulators: signal_analysis.power_regulators list.
+        regulators: findings filtered by detector=='detect_power_regulators'.
         power_budget: power_budget dict with 'rails' sub-dict.
-        decoupling_analysis: signal_analysis.decoupling_analysis list.
+        decoupling_analysis: findings filtered by detector=='detect_decoupling'.
 
     Returns:
         Dict of {rail_name: node_dict}.
@@ -1322,3 +1334,59 @@ def cross_rail_transient_current(downstream_node: dict,
         i_transient = i_in_avg * 0.5
 
     return (max(i_transient, 0.01), sw_freq)
+
+
+# ---------------------------------------------------------------------------
+# Inductor near-field H-field estimation
+# ---------------------------------------------------------------------------
+
+def estimate_inductor_h_field(peak_current_a, distance_m,
+                              inductor_size_mm=5.0):
+    """Estimate peak H-field from a power inductor at a given distance.
+
+    Uses a magnetic dipole approximation for the near-field region.
+    The inductor is modeled as a small current loop with area derived
+    from the package size. This is a worst-case estimate — actual fields
+    depend on core material, winding geometry, and shielding.
+
+    H = (m * sin(theta)) / (4 * pi * r^3)  [near-field dipole]
+
+    where m = N * I * A (magnetic moment), N=1 for single-turn approximation,
+    I = peak current, A = effective loop area.
+
+    For a typical power inductor, the effective radiating area is roughly
+    (package_size/2)^2, much smaller than the full footprint because the
+    magnetic circuit is partially closed by the core.
+
+    Args:
+        peak_current_a: Peak inductor current in amperes
+        distance_m: Distance from inductor center in meters
+        inductor_size_mm: Package dimension in mm (e.g., 5.0 for a 5x5mm inductor)
+
+    Returns:
+        Estimated H-field in A/m. Returns 0.0 if inputs are invalid.
+
+    Reference:
+        Ott, "Electromagnetic Compatibility Engineering", Ch. 2.
+        Paul, "Introduction to Electromagnetic Compatibility", near-field model.
+    """
+    if peak_current_a <= 0 or distance_m <= 0 or inductor_size_mm <= 0:
+        return 0.0
+
+    # Effective loop area: half the package dimension squared (conservative)
+    # Accounts for core partially containing the flux
+    a_eff = ((inductor_size_mm / 2.0) * 1e-3) ** 2  # m^2
+
+    # Magnetic moment (single-turn approximation)
+    m = peak_current_a * a_eff  # A*m^2
+
+    # EQ-105: H = (m · sin θ) / (4π · r³), with m = N · I · A (magnetic moment)
+    #   and A ≈ (package_mm / 2)² (effective loop area ≈ 25% of footprint).
+    # Source: Jackson, "Classical Electrodynamics" 3rd ed. §5.6 (magnetic
+    #   dipole near-field); Ott, "Electromagnetic Compatibility Engineering"
+    #   Ch. 11 (switching-regulator near-field coupling).
+    # Near-field H at broadside (theta=90, sin=1, worst case)
+    import math
+    h = m / (4.0 * math.pi * distance_m ** 3)
+
+    return h

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:project-memory:config:v1",
+  "title": "Project Memory local configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "mode", "vault_path", "session_summaries", "projects"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "mode": {"enum": ["review", "manual"]},
+    "vault_path": {"type": "string", "minLength": 1},
+    "session_summaries": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled"],
+      "properties": {
+        "enabled": {"type": "boolean", "default": false},
+        "path": {"type": ["string", "null"]}
+      }
+    },
+    "projects": {
+      "type": "object",
+      "propertyNames": {"pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "repo_path", "vault_folder"],
+        "properties": {
+          "name": {"type": "string", "minLength": 1},
+          "repo_path": {"type": "string", "minLength": 1},
+          "vault_folder": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,5 @@
+interface:
+  display_name: "Zagrosi Implement"
+  short_description: "Build lean code with targeted verification"
+  brand_color: "#0F766E"
+  default_prompt: "Use $zagrosi-forge:zagrosi-implement to implement these sections with clear code, targeted tests, and review."

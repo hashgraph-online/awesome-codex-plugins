@@ -38,5 +38,5 @@ tribute to the works that inspired this project.
 ## Online Tools
 
 - **Главред** ([glvrd.ru](https://glvrd.ru)) — checks text for info-style quality, highlights filler and канцелярит, scores 0–10
-- **Типограф Лебедева** ([typograf.artlebedev.ru](https://typograf.artlebedev.ru)) — auto-fixes typography: quotes, dashes, non-breaking spaces
+- **Типограф Лебедева** ([typograf.artlebedev.ru](https://www.artlebedev.ru/typograf/)) — auto-fixes typography: quotes, dashes, non-breaking spaces
 - **Орфограммка** ([orfogrammka.ru](https://orfogrammka.ru)) — grammar, spelling, punctuation checker beyond basic spellcheck

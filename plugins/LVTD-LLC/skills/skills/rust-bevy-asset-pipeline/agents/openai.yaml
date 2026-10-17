@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rust Bevy Asset Pipeline"
+  short_description: "Organize Bevy game assets"
+  default_prompt: "Use $rust-bevy-asset-pipeline to replace hard-coded Bevy asset paths with a typed loading pipeline."

@@ -1,6 +1,6 @@
 ---
 name: bom
-description: BOM (Bill of Materials) management for electronics projects — the primary orchestrator skill that coordinates DigiKey, Mouser, LCSC, element14, JLCPCB, PCBWay, and KiCad skills into a unified workflow. Create, update, and maintain BOMs with part numbers, costs, quantities stored as KiCad symbol properties. ALWAYS trigger this skill for any task involving component sourcing, pricing, ordering, distributor searches, BOM export, or fabrication preparation — even if the user names a specific distributor or fab house (e.g. "search DigiKey for...", "generate JLCPCB BOM", "order from Mouser"). This skill decides which distributor/fab skills to invoke and in what order. Also trigger on phrases like "what parts do I need", "order components", "how much will this cost", "export for JLCPCB", "find parts for this board", "cost estimate", "compare pricing", or "check stock".
+description: BOM (Bill of Materials) management for electronics projects — the workflow skill that coordinates DigiKey, Mouser, LCSC, element14, JLCPCB, PCBWay, and KiCad skills around a unified BOM lifecycle. Create, update, and maintain BOMs with part numbers, costs, quantities stored as KiCad symbol properties. ALWAYS trigger this skill for any task involving component sourcing, pricing, ordering, distributor searches, BOM export, or fabrication preparation — even if the user names a specific distributor or fab house (e.g. "search DigiKey for...", "generate JLCPCB BOM", "order from Mouser"). This skill analyzes the schematic for sourcing gaps, recommends which distributor/fab skills to call for each gap, and writes results back as symbol properties — the agent (or user) performs the actual searches via the called skills. Also trigger on phrases like "what parts do I need", "order components", "how much will this cost", "export for JLCPCB", "find parts for this board", "compare pricing", or "check stock".
 ---
 
 # BOM Management
@@ -40,8 +40,14 @@ python3 <skill-path>/scripts/bom_manager.py order bom/bom.csv --distributor digi
 echo '{"R1": {"MPN": "RC0805FR-0710KL", "Manufacturer": "Yageo"}}' \
   | python3 <skill-path>/scripts/edit_properties.py path/to/schematic.kicad_sch --dry-run
 
-# Sync datasheet URLs from index.json back into schematic Datasheet properties
+# Sync datasheet URLs from manifest.json back into schematic Datasheet properties
 python3 <skill-path>/scripts/sync_datasheet_urls.py path/to/schematic.kicad_sch --recursive --dry-run
+
+# Translate KiCad/Altium BOM and CPL files into JLCPCB upload format
+# (`pnp --bom` filter drops orphan designators — see skills/jlcpcb/SKILL.md
+# for the 3-step PCBA upload workflow)
+python3 <skill-path>/scripts/translate_bom_pnp.py bom input_bom.csv -o jlc_bom.csv
+python3 <skill-path>/scripts/translate_bom_pnp.py pnp input_cpl.csv -o jlc_cpl.csv --bom jlc_bom.csv
 ```
 
 ## Workflow
@@ -49,7 +55,7 @@ python3 <skill-path>/scripts/sync_datasheet_urls.py path/to/schematic.kicad_sch 
 Skip steps that don't apply. Common shortcuts:
 - **"Add Mouser PNs"** — search Mouser by MPN for each part → validate → write to schematic → update CSV
 - **"Fill in the gaps"** — run analyzer with `--gaps-only`, address each missing field
-- **"Update datasheet URLs"** — run `sync_datasheet_urls.py` to backfill empty Datasheet fields from index.json
+- **"Update datasheet URLs"** — run `sync_datasheet_urls.py` to backfill empty Datasheet fields from the datasheets manifest
 - **"Prepare for production"** — ensure every part has an LCSC number, check stock, set Chosen_Distributor to LCSC
 
 ### Step 1: Understand the Project
@@ -84,7 +90,7 @@ Re-sync after writing new MPNs (Step 5) — the scripts are idempotent. Then bac
 python3 <skill-path>/scripts/sync_datasheet_urls.py path/to/schematic.kicad_sch --recursive
 ```
 
-This reads `datasheets/index.json` and writes discovered datasheet URLs into empty schematic `Datasheet` properties. Opportunistic — only fills blanks. If a schematic already has a different URL, it warns about the mismatch without overwriting (use `--overwrite` to replace). Run with `--dry-run` first to preview.
+This reads `datasheets/manifest.json` (legacy name `index.json` still supported) and writes discovered datasheet URLs into empty schematic `Datasheet` properties. Opportunistic — only fills blanks. If a schematic already has a different URL, it warns about the mismatch without overwriting (use `--overwrite` to replace). Run with `--dry-run` first to preview.
 
 ### Step 3: Gather Part Information
 
@@ -230,7 +236,7 @@ The schematic symbol property is the best place for per-component notes, but pro
 
 4. **Existing BOM CSV Notes column** — if a `bom.csv` already exists, read the Notes column. The user may have added notes there that aren't in the schematic.
 
-5. **Project-level config** (`CLAUDE.md` / `AGENTS.md`) — project instructions may specify BOM conventions, preferred distributors, or special ordering rules.
+5. **Project-level config** (`.kicad-happy.json`) — `preferred_suppliers` sets sourcing priority, `bom` section sets field naming and grouping conventions. See `skills/kicad/references/config-reference.md` for the full schema.
 
 6. **Schematic symbol Description field** — sometimes used for assembly notes rather than part description (e.g., "100nF bypass - place close to U3 pin 4").
 
@@ -319,7 +325,7 @@ The BOM and distributor skills create files in the project tree. Know what they 
 | File/Dir | Created By | Purpose | Keep in git? |
 |----------|-----------|---------|--------------|
 | `datasheets/` | DigiKey, LCSC, element14, Mouser sync scripts | Downloaded PDF datasheets | No — large binaries, re-downloadable |
-| `datasheets/index.json` | Datasheet sync scripts | Tracks download status per MPN | No — regenerated by sync |
+| `datasheets/manifest.json` | Datasheet sync scripts | Tracks download status per MPN (legacy name: `index.json`) | No — regenerated by sync |
 | `bom/bom.csv` | `bom_manager.py export` | BOM tracking spreadsheet | Yes — user-curated data |
 | `bom/orders/*.csv` | `bom_manager.py order` | Per-distributor order upload files | No — regenerated before each order |
 | `*.YYYYMMDD_HHMMSS.bak` | `edit_properties.py --backup` | Schematic backup before edits | No — use git instead |
@@ -331,7 +337,7 @@ The `kicad` skill also creates analyzer JSON and design review markdown reports 
 | File | Location | Purpose |
 |------|----------|---------|
 | `digikey_token_cache.json` | System temp dir | OAuth token cache (9-min TTL, mode 0600) |
-| `index.tmp` | `datasheets/` | Atomic write staging — renamed to `index.json`, never persists |
+| `manifest.tmp` | `datasheets/` | Atomic write staging — renamed to `manifest.json`, never persists |
 
 ### Cleanup commands
 
@@ -345,7 +351,7 @@ rm -rf bom/orders/
 # Remove schematic backups
 rm -f *.bak
 
-# Remove KiCad analyzer/report files (filenames vary — check project CLAUDE.md/AGENTS.md)
+# Remove KiCad analyzer/report files (filenames vary — check project instructions file)
 ```
 
 ### Suggested .gitignore additions

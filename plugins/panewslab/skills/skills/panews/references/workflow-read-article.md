@@ -22,6 +22,8 @@ If the user provides a raw ID instead of a URL, use it directly.
 node cli.mjs get-article <articleId> --lang <lang>
 ```
 
+The CLI returns the requested language when available, otherwise the original article. The body is already Markdown; preserve its links, tables, code, and media without another HTML conversion.
+
 ### 2. Output structure
 
 - **Core takeaway**: one sentence

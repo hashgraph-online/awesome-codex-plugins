@@ -1,0 +1,271 @@
+# Decay Risk Reference
+
+Six patterns that cause software to degrade. Apply the Iron Law to each finding.
+
+---
+
+## Risk 1: Cognitive Overload (R1)
+
+**Diagnostic question:** How much mental effort does a human need to understand this?
+
+Cognitive load beyond working memory causes mistakes, avoidance, and blocks the refactoring that would fix it.
+
+### Symptoms
+
+- Function longer than 20 lines where multiple levels of abstraction are mixed together
+- Nesting depth greater than 3 levels
+- Parameter list with more than 4 parameters
+- Magic numbers or unexplained constants
+- Variable names that require reading the implementation to understand (e.g., `d`, `tmp2`, `flag`)
+- Boolean expressions with 3 or more conditions combined
+- Train-wreck chains: `a.getB().getC().doD()`
+- Code names that do not match what the business calls the same concept
+- Flag Arguments: a boolean parameter that makes the function do two fundamentally different
+  things depending on its value — a sign the function has two responsibilities
+- Primitive Obsession: domain concepts represented as primitive types (`String email`,
+  `int orderId`, `double money`) rather than purpose-built value types — forces callers to know
+  which string is an email and which is a name
+- Shallow module: the interface or documentation of a component is more complex relative to
+  the functionality it provides
+
+### Sources
+
+| Book | Principle / Smell |
+|------|-------------------|
+| Fowler — Refactoring | Long Method · Long Parameter List · Message Chains · Flag Arguments · Primitive Obsession |
+| McConnell — Code Complete | Ch. 7: High-Quality Routines (length, nesting) · Ch. 11: The Power of Variable Names · Ch. 12: Fundamental Data Types (magic numbers) |
+| Evans — Domain-Driven Design | Ubiquitous Language (domain name mismatch) |
+| Ousterhout — A Philosophy of Software Design | Ch. 4: Modules Should Be Deep (Shallow Module) |
+
+### Severity Guide
+
+- 🔴 Critical: function > 50 lines, nesting > 5, or virtually no meaningful names
+- 🟡 Warning: function 20–50 lines, nesting 4–5, some unclear names
+- 🟢 Suggestion: minor naming issues, 1–2 magic numbers, isolated train-wreck chains
+
+### What Not to Flag
+
+- Linear code with clear names and guard clauses is not automatically high cognitive load
+- Internal implementation detail hidden behind a deep, simple module boundary is not a shallow-module problem
+- Domain-specific terminology should not be flagged if it matches how experts actually speak
+
+---
+
+## Risk 2: Change Propagation (R2)
+
+**Diagnostic question:** How many unrelated things break when you change one thing?
+
+Each change ripples to unrelated modules, slowing velocity and multiplying regression risk.
+
+### Symptoms
+
+- Modifying one feature requires touching more than 3 files in unrelated modules
+- One class changes for multiple different business reasons (e.g., `UserService` changes for
+  billing logic AND notification logic AND profile logic)
+- A method uses more data from another class than from its own class
+- Two classes know each other's internal state directly
+- Changing one module requires recompiling or retesting many unrelated modules
+- **Hyrum's Law**: with sufficient callers, every observable behavior — including
+  implementation details, error message text, coincidental call ordering, and undocumented
+  side effects — becomes an implicit contract that callers depend on, even though it was
+  never guaranteed by the declared API
+- **Orthogonality violation**: changing one dimension of a feature forces edits in
+  unrelated dimensions — adding a new payment type should not require touching logging,
+  caching, or notification code, but in a non-orthogonal design it does
+- Information Leakage: a design decision (e.g., a file format, protocol detail, or data
+  shape) is encoded in more than one module, so changing it requires coordinated edits
+  in multiple places even though only one module "owns" the concept
+
+### Sources
+
+| Book | Principle / Smell |
+|------|-------------------|
+| Fowler — Refactoring | Shotgun Surgery · Divergent Change · Feature Envy · Inappropriate Intimacy |
+| Hunt & Thomas — The Pragmatic Programmer | Ch. 2: Orthogonality |
+| Martin — Clean Architecture | Dependency Inversion Principle |
+| Brooks — The Mythical Man-Month | Ch. 2: Brooks's Law (communication overhead, propagation radius) |
+| Winters et al. — Software Engineering at Google | Ch. 1: Hyrum's Law |
+| Ousterhout — A Philosophy of Software Design | Ch. 5: Information Hiding and Leakage |
+
+### Severity Guide
+
+- 🔴 Critical: one change touches > 5 files, or there is a structural dependency inversion (domain depends on infrastructure)
+- 🟡 Warning: one change touches 3–5 files, mild coupling between modules
+- 🟢 Suggestion: minor coupling, easily isolatable
+
+### What Not to Flag
+
+- A composition root wiring concrete dependencies is not a DIP violation by itself
+- A stable public API with intentionally supported behavior is not automatically Hyrum's Law debt
+- Similar edits inside one bounded context may be normal coordinated change, not shotgun surgery
+
+---
+
+## Risk 3: Knowledge Duplication (R3)
+
+**Diagnostic question:** Is the same decision expressed in more than one place?
+
+Multiple copies drift apart silently. DRY is about decisions, not code lines.
+
+### Symptoms
+
+- Same logic copy-pasted across multiple files or functions
+- Same concept named differently in different parts of the codebase
+  (e.g., `user`, `account`, `member`, `customer` all referring to the same domain entity)
+- Parallel class hierarchies that must change in sync
+  (e.g., adding a new payment type requires adding a class in 3 different hierarchies)
+- Configuration values repeated as literals in multiple places
+- Two modules that implement the same algorithm independently
+
+### Sources
+
+| Book | Principle / Smell |
+|------|-------------------|
+| Fowler — Refactoring | Duplicate Code · Parallel Inheritance Hierarchies · Alternative Classes with Different Interfaces |
+| Hunt & Thomas — The Pragmatic Programmer | DRY: Don't Repeat Yourself |
+| Evans — Domain-Driven Design | Ubiquitous Language (inconsistent naming) |
+
+### Severity Guide
+
+- 🔴 Critical: core business logic duplicated across modules, or same domain concept named 3+ different ways
+- 🟡 Warning: utility code duplicated, naming inconsistent within a subsystem
+- 🟢 Suggestion: minor literal duplication, single naming inconsistency
+
+### What Not to Flag
+
+- Repetition across separate bounded contexts is not automatically duplicate knowledge
+- Temporary duplication during an active extraction or migration is not necessarily debt
+- Shared protocol constants repeated at explicit boundaries may be acceptable when local ownership is clearer
+
+---
+
+## Risk 4: Accidental Complexity (R4)
+
+**Diagnostic question:** Is the code more complex than the problem it solves?
+
+Accidental complexity accumulates addition by addition until developers fight scaffolding more than solving the problem.
+
+### Symptoms
+
+- Abstractions built "for future use" with no current consumer
+  (e.g., a plugin system for a use case that has only one known implementation)
+- Classes that barely justify their existence (wrap a single method call)
+- Classes that only delegate to another class without adding behavior (pure middle-men)
+- Second attempt at a system that is significantly more elaborate than the first,
+  adding generality for requirements that do not yet exist
+- Switch statements that signal missing polymorphism
+- Configuration options that have never been changed from their defaults
+- Framework code larger than the application it powers
+- Code grown under sustained tactical shortcuts: each workaround seemed small, but
+  accumulated shortcuts mean every new feature requires fighting the existing structure
+
+### Sources
+
+| Book | Principle / Smell |
+|------|-------------------|
+| Fowler — Refactoring | Speculative Generality · Lazy Class · Middle Man · Switch Statements |
+| Brooks — The Mythical Man-Month | Ch. 5: The Second-System Effect |
+| McConnell — Code Complete | Ch. 5: Design in Construction (YAGNI) |
+| Hunt & Thomas — The Pragmatic Programmer | Topic 4: Good-Enough Software (over-engineering) |
+| Ousterhout — A Philosophy of Software Design | Ch. 3: Strategic vs. Tactical Programming |
+
+### Severity Guide
+
+- 🔴 Critical: an entire subsystem built around a speculative requirement, or framework overhead dominates domain logic
+- 🟡 Warning: several unnecessary abstractions or wrapper classes, unused configuration systems
+- 🟢 Suggestion: one or two lazy classes or middle-man patterns in non-critical paths
+
+### What Not to Flag
+
+- A switch over an external protocol, wire format, or closed enum is not automatically missing polymorphism
+- Thin wrappers that absorb vendor churn or hide instability may be justified
+- A larger second version is not second-system effect unless the added generality exceeds present needs
+
+---
+
+## Risk 5: Dependency Disorder (R5)
+
+**Diagnostic question:** Do dependencies flow in a consistent, predictable direction?
+
+When business logic depends on infrastructure, infrastructure changes cascade into domain changes. Cycles prevent isolation.
+
+### Symptoms
+
+- Circular dependencies between modules or packages
+- High-level business logic directly imports from low-level infrastructure
+  (e.g., a domain service imports from a specific database driver)
+- Stable, widely-used components depend on unstable, frequently-changing ones
+- Abstract components depending on concrete implementations
+- Law of Demeter violations: `order.getCustomer().getAddress().getCity()`
+- Module fan-out greater than 5 (imports from more than 5 other modules)
+- A module implements an interface but only uses a subset of its methods, or must
+  provide stub implementations for methods it does not need (ISP violation: fat interface
+  forces unwanted dependencies on callers)
+- The system feels like "one mind did not design this" — different modules use
+  incompatible architectural patterns with no clear rule for which to use where
+- Direct version-pinned dependencies on transitive packages (diamond dependency risk);
+  upgrading one library requires coordinating multiple unrelated teams or repositories
+
+### Sources
+
+| Book | Principle / Smell |
+|------|-------------------|
+| Martin — Clean Architecture | Acyclic Dependencies (ADP, cycles) · Dependency Inversion (DIP) · Stable Dependencies (SDP, instability direction) · Stable Abstractions (SAP) · Interface Segregation (ISP) · Single Responsibility · Open/Closed |
+| Brooks — The Mythical Man-Month | Ch. 4: Conceptual Integrity |
+| Hunt & Thomas — The Pragmatic Programmer | Ch. 5: Decoupling and the Law of Demeter |
+| Winters et al. — Software Engineering at Google | Ch. 21: Dependency Management (diamond dependency, upgrade blockage) |
+
+### Severity Guide
+
+- 🔴 Critical: dependency cycles present, or domain layer directly depends on infrastructure layer
+- 🟡 Warning: several SDP or DIP violations but no cycles; conceptual inconsistency across modules
+- 🟢 Suggestion: minor Demeter violations, slightly elevated fan-out in isolated modules
+
+### What Not to Flag
+
+- High fan-out in an orchestration layer or composition root is not automatically disorder
+- Adapter modules may depend on both domain and infrastructure when they explicitly translate across the boundary
+- A stable facade over many leaf dependencies can be healthy if dependency policy is clear
+
+---
+
+## Risk 6: Domain Model Distortion (R6)
+
+**Diagnostic question:** Does the code faithfully represent the problem it is solving?
+
+Code that mismatches business language forces mental translation. Over time it models schemas instead of the domain, with logic bleeding into service layers.
+
+### Symptoms
+
+- Business logic scattered across service layers while domain objects have only getters and setters
+  (anemic domain model)
+- Code variable, class, or method names that do not match what business stakeholders call the concept
+- A class whose only purpose is to hold data with no behavior (pure data bag)
+- A subclass that ignores or overrides most of its parent's behavior (refuses the inheritance)
+- Bounded context boundaries crossed without any translation or anti-corruption layer
+- Methods that are more interested in the data of another class than their own
+  (domain logic in the wrong place)
+- A subclass overrides most parent methods with incompatible behavior or throws exceptions
+  where the parent contract guarantees success (LSP violation: substitution breaks callers)
+- Value Objects treated as Entities: a concept defined entirely by its attributes (e.g., Money,
+  Email, Address) is given a mutable ID and lifecycle instead of being replaced when changed
+
+### Sources
+
+| Book | Principle / Smell |
+|------|-------------------|
+| Evans — Domain-Driven Design | Domain Model pattern (Anemic Domain Model) · Ubiquitous Language · Bounded Context |
+| Fowler — Refactoring | Data Class · Refused Bequest · Feature Envy |
+| Martin — Clean Architecture | Liskov Substitution Principle (LSP) |
+
+### Severity Guide
+
+- 🔴 Critical: domain logic entirely in service layer, domain objects are pure data bags with no behavior
+- 🟡 Warning: partial anemia, some naming inconsistency between code and domain language
+- 🟢 Suggestion: minor naming drift in non-core areas, isolated cases of Feature Envy
+
+### What Not to Flag
+
+- CRUD-heavy workflows may legitimately use transaction scripts instead of rich domain objects
+- DTOs, persistence records, and API payload models are allowed to be data-only
+- Shared infrastructure language should not be mistaken for domain drift if the business model itself is simple

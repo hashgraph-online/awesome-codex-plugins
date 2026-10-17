@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "ophis": {
+      "type": "http",
+      "url": "https://mcp.ophis.fi/mcp"
+    }
+  }
+}

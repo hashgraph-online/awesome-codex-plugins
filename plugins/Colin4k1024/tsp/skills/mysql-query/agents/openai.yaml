@@ -1,0 +1,4 @@
+interface:
+  display_name: "MySQL Query"
+  short_description: "执行只读 MySQL 查询"
+  default_prompt: "Use $mysql-query to inspect MySQL data with read-only SQL and user-provided connection details."

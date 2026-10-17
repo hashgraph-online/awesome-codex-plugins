@@ -1,19 +1,63 @@
 ---
 name: writing-plans
-description: Use after design approval to create a hotl-workflow-<slug>.md implementation plan with bite-sized tasks, exact file paths, and loop/gate definitions.
+description: Use after design approval to create a dated executable workflow file with bite-sized tasks, exact file paths, and loop/gate definitions.
 ---
 
 # Writing HOTL Plans
 
 ## Overview
 
-Produce a `hotl-workflow-<slug>.md` file that `loop-execution` can execute. The `<slug>` is a short kebab-case name from the intent (e.g., `hotl-workflow-add-rate-limiting.md`). Each step should be 2-5 minutes of work. Include loop conditions and gates from the design's governance contract.
+Produce a dated workflow file that `loop-execution` can execute. The canonical filename is `YYYY-MM-DD-<slug>-workflow.md`, where `<slug>` is a short kebab-case identity derived from the intent (e.g., `2026-04-22-add-rate-limiting-workflow.md`). Each step should be 2-5 minutes of work. Include loop conditions and gates from the design's governance contract.
 
-**Announce:** "I'm using the writing-plans skill to create the implementation plan."
+When the accepted design defines execution limits, include only the relevant optional portable budget fields (`max_total_attempts`, `max_agents`, `max_cost_usd`, `max_elapsed_minutes`) in workflow frontmatter. Do not invent numeric budgets. `policy_profile` is descriptive and never grants host permissions.
+
+**Announce:** "I'm using the writing-plans skill to create the executable workflow."
 
 ## Output Filename
 
-Save to project root as `hotl-workflow-<slug>.md`, where `<slug>` is a short kebab-case slug derived from the intent (e.g., `hotl-workflow-add-user-auth.md`, `hotl-workflow-refactor-api.md`). This prevents conflicts when multiple agents work on the same project simultaneously.
+Save as `YYYY-MM-DD-<slug>-workflow.md`, where:
+
+- `YYYY-MM-DD` is the current local date
+- `<slug>` is a short kebab-case semantic identity derived from the intent (e.g., `add-user-auth`, `refactor-api`)
+
+Examples:
+
+- `2026-04-22-add-user-auth-workflow.md`
+- `2026-04-22-refactor-api-workflow.md`
+
+The date makes workflow revisions easy to sort chronologically. The semantic identity remains `<slug>`, not the date-prefixed filename.
+
+## Semantic Identity
+
+The canonical workflow filename is human-friendly, but the stable execution identity is still `<slug>`.
+
+- Filename: `YYYY-MM-DD-<slug>-workflow.md`
+- Semantic identity: `<slug>`
+- Default branch derivation: `hotl/<slug>`
+
+When a later workflow revision is created for the same feature, it should use a new dated filename while keeping the same semantic identity.
+
+## Output Directory
+
+Default: `docs/plans`. Opt-in override via `.hotl/config.yml: workflows_dir: <path>`. Resolution procedure:
+
+1. Resolve the install path of `hotl-config-resolve.sh` using the same six-location rule documented for `document-lint.sh` and `hotl-config.sh` (see `skills/document-review/SKILL.md`):
+   1. In-repo: `scripts/hotl-config-resolve.sh`
+   2. Codex native-skills install: `~/.codex/hotl/scripts/hotl-config-resolve.sh`
+   3. Codex plugin install: `~/.codex/plugins/hotl-source/scripts/hotl-config-resolve.sh`
+   4. Codex plugin cache fallback: `~/.codex/plugins/cache/codex-plugins/hotl/*/scripts/hotl-config-resolve.sh`
+   5. Cline install fallback: `~/.cline/hotl/scripts/hotl-config-resolve.sh`
+   6. Claude Code plugin fallback: `~/.claude/plugins/hotl/scripts/hotl-config-resolve.sh`
+
+2. Invoke the resolver as a command proxy — it forwards argv to `hotl-config.sh`, no intermediate path-locator step:
+
+   ```bash
+   bash <resolved-hotl-config-resolve.sh> get workflows_dir --default=docs/plans
+   ```
+
+3. Use the returned directory as the output location. `docs/plans` is the canonical default. Any other value is an opt-in override — write `YYYY-MM-DD-<slug>-workflow.md` inside that directory, creating it if needed.
+
+Projects with no `.hotl/config.yml` receive `docs/plans` from the `--default=docs/plans` fallback.
 
 Format:
 
@@ -24,7 +68,7 @@ success_criteria: [from design's intent contract]
 risk_level: low | medium | high
 auto_approve: true | false
 # branch: custom/branch-name   # optional — execution derives hotl/<slug> if absent
-# worktree: true                # optional — default false, creates git worktree instead of branch checkout
+# worktree: host                # optional: only when a host tool already put this task on a feature-branch worktree
 # dirty_worktree: allow         # optional — proceed even if non-HOTL files are uncommitted
 ---
 
@@ -93,6 +137,38 @@ Break work into atomic steps:
 - "Verify UI renders correctly" (loop: false, verify: type: browser)
 - "Human review of security logic" (loop: false, gate: human — REQUIRED for risk_level: high)
 
+## No Placeholders
+
+Every workflow step must contain enough concrete information for an agent to execute it without guessing. These are plan failures:
+
+- `TBD`, `TODO`, `later`, `fill in`, or empty sections
+- Vague instructions such as "add validation", "handle edge cases", "improve error handling", or "update docs" without exact files and success signals
+- "Similar to Step N", "repeat the pattern", or references that require reading another step to know what to do
+- Functions, files, commands, artifacts, or config keys referenced before they are defined
+- Verification that does not prove the step's action worked
+- Human-review checks where an automated shell, browser, or artifact check would provide a deterministic signal
+
+If a step cannot be made concrete yet, stop and ask for clarification instead of saving the workflow.
+
+## Branch And Worktree Authoring Guidance
+
+- Default execution branch is `hotl/<slug>` unless the workflow frontmatter sets `branch: ...`
+- Default execution mode is an isolated worktree; HOTL copies the workflow into that worktree at the same relative path before execution
+- Use `branch:` only when downstream tooling or verify logic truly depends on a specific branch name
+- Use `worktree: false` only when execution must stay in the current checkout rather than a separate worktree
+- To keep execution on the exact current branch, set both `branch: <current-branch>` and `worktree: false`
+- Use `worktree: host` when Codex or another host tool already created the execution worktree and HOTL should use the current feature branch exactly as-is
+- Avoid brittle verify steps such as `git branch --show-current | grep '^feature/'` unless the workflow pins `branch:` to match that exact convention
+- If a step must confirm the workflow file exists, use its repo-relative path; HOTL preserves that relative path inside the isolated worktree
+- If the workflow is authored on a non-`main`/`master` branch and does not pin `branch:` or `worktree:`, execution should pause and ask whether to continue on the current branch or use HOTL's isolated execution branch/worktree
+
+Example:
+
+- If verify expects `pv6-ui/...`, set `branch: pv6-ui/plan-amendments`
+- If branch name does not matter, let HOTL derive `hotl/<slug>` and do not assert a custom prefix
+- If you want to keep using `pv6-ui/plan-amendments` itself, set `branch: pv6-ui/plan-amendments` and `worktree: false`
+- If Codex already opened the task in a worktree on `pv6-ui/plan-amendments`, set `worktree: host` and omit `branch:`
+
 ## Artifact Verification Rules
 
 - Prefer `kind: exists` when the step creates a new file or directory from scratch
@@ -110,9 +186,10 @@ Break work into atomic steps:
 
 ## Self-Check Loop
 
-After saving the workflow file, run a self-check before offering execution options. Review the plan for:
+After saving the workflow file, run a self-check before offering execution options. Review the workflow for:
 
 - **Step sizing** — each step should be 2-5 minutes of atomic work
+- **No placeholders** — no TBD/TODO text, vague instructions, undefined references, or "similar to Step N" shortcuts
 - **Verify coverage** — every looped step has a verify command that tests what the step claims
 - **Gate placement** — risky steps (auth, encryption, billing, secrets) have `gate: human`
 - **Loop safety** — `max_iterations` is reasonable (typically 3-5)
@@ -124,25 +201,30 @@ If issues are found, fix them in the workflow file and re-check until clean. Do 
 
 Once the self-check passes, offer execution options:
 
-**"Plan saved to `hotl-workflow-<slug>.md`. How would you like to execute?"**
+**"Workflow saved to `<resolved-workflows-dir>/YYYY-MM-DD-<slug>-workflow.md`. How would you like to execute?"**
 
 Present the three execution modes using the current host tool's native invocation style. Never show Claude Code slash commands in Codex or any other skill-based agent.
 
 Use these mappings:
 
 1. **Loop execution (this session)** — runs steps autonomously with auto-approve
-   - **Codex:** ask me to use `$hotl:loop-execution` on `hotl-workflow-<slug>.md`
-   - **Claude Code:** `/hotl:loop hotl-workflow-<slug>.md`
+   - **Codex:** ask me to use `$hotl:loop-execution` on `<resolved-workflows-dir>/YYYY-MM-DD-<slug>-workflow.md`
+   - **Claude Code:** `/hotl:loop <resolved-workflows-dir>/YYYY-MM-DD-<slug>-workflow.md`
 2. **Manual execution** — linear execution with explicit checkpoints
-   - **Codex:** ask me to use `$hotl:executing-plans` on `hotl-workflow-<slug>.md`
-   - **Claude Code:** `/hotl:execute-plan hotl-workflow-<slug>.md`
+   - **Codex:** ask me to use `$hotl:executing-plans` on `<resolved-workflows-dir>/YYYY-MM-DD-<slug>-workflow.md`
+   - **Claude Code:** `/hotl:execute-plan <resolved-workflows-dir>/YYYY-MM-DD-<slug>-workflow.md`
 3. **Subagent execution (this session)** — delegates implementation-friendly steps to fresh subagents while the controller keeps gates and verification
-   - **Codex:** ask me to use `$hotl:subagent-execution` on `hotl-workflow-<slug>.md`
-   - **Claude Code:** `/hotl:subagent-execute hotl-workflow-<slug>.md`
+   - **Codex:** ask me to use `$hotl:subagent-execution` on `<resolved-workflows-dir>/YYYY-MM-DD-<slug>-workflow.md`
+   - **Claude Code:** `/hotl:subagent-execute <resolved-workflows-dir>/YYYY-MM-DD-<slug>-workflow.md`
 
 If a previous run was interrupted, point the user to the host tool's native resume entry point.
-- **Codex:** ask me to use `$hotl:resuming` on `hotl-workflow-<slug>.md`
-- **Claude Code:** `/hotl:resume hotl-workflow-<slug>.md`
+- **Codex:** ask me to use `$hotl:resuming` on `<resolved-workflows-dir>/YYYY-MM-DD-<slug>-workflow.md`
+- **Claude Code:** `/hotl:resume <resolved-workflows-dir>/YYYY-MM-DD-<slug>-workflow.md`
 - **Other agents:** use that agent's native skill/command invocation instead of inventing Claude-style slash commands
 
-*(Always tell the user the exact filename so they can pass it to the execution request if multiple workflow files exist.)*
+*(Always tell the user the exact workflow filename so they can pass it to the execution request if multiple workflow files exist.)*
+
+If execution starts from a non-`main`/`master` branch and the workflow does not already pin `branch:` or `worktree:`, tell the user HOTL will ask one more continuity question at execution time:
+- continue on the current branch in this checkout
+- use HOTL's isolated execution branch/worktree (recommended)
+- choose a custom execution branch

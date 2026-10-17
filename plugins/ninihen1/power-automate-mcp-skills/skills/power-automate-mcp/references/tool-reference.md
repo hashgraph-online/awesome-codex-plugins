@@ -2,9 +2,10 @@
 
 Response shapes and behavioral notes for the FlowStudio Power Automate MCP server.
 
-> **For tool names and parameters**: Always call `tools/list` on the server.
-> It returns the authoritative, up-to-date schema for every tool.
-> This document covers what `tools/list` does NOT tell you: **response shapes**
+> **For tool names and parameters**: Prefer `list_skills` and `tool_search`.
+> They return focused, up-to-date schemas without loading every MCP tool at once.
+> Use `tools/list` only as a low-level fallback when the meta-tools are not available.
+> This document covers what tool schemas do NOT tell you: **response shapes**
 > and **non-obvious behaviors** discovered through real usage.
 
 ---
@@ -14,11 +15,11 @@ Response shapes and behavioral notes for the FlowStudio Power Automate MCP serve
 | Priority | Source | Covers |
 |----------|--------|--------|
 | 1 | **Real API response** | Always trust what the server actually returns |
-| 2 | **`tools/list`** | Tool names, parameter names, types, required flags |
+| 2 | **`list_skills` / `tool_search`** | Tool names, parameter names, types, required flags |
 | 3 | **This document** | Response shapes, behavioral notes, gotchas |
 
-> If this document disagrees with `tools/list` or real API behavior,
-> the API wins. Update this document accordingly.
+> If this document disagrees with `tool_search`, `tools/list`, or real API
+> behavior, the API wins. Update this document accordingly.
 
 ---
 
@@ -63,9 +64,20 @@ Response: wrapper object with `connections` array.
       "id": "shared-office365-9f9d2c8e-55f1-49c9-9f9c-1c45d1fbbdce",
       "displayName": "user@contoso.com",
       "connectorName": "shared_office365",
+      "environment": "Default-26e65220-...",
       "createdBy": "User Name",
+      "authenticatedUser": "user@contoso.com",
+      "overallStatus": "Connected",
       "statuses": [{"status": "Connected"}],
-      "createdTime": "2024-03-12T21:23:55.206815Z"
+      "createdTime": "2024-03-12T21:23:55.206815Z",
+      "connectionReferenceTemplate": {
+        "connectionName": "shared-office365-9f9d2c8e-55f1-49c9-9f9c-1c45d1fbbdce",
+        "source": "Invoker",
+        "id": "/providers/Microsoft.PowerApps/apis/shared_office365"
+      },
+      "hostTemplate": {
+        "connectionName": "shared_office365"
+      }
     }
   ],
   "totalCount": 56,
@@ -78,11 +90,16 @@ Response: wrapper object with `connections` array.
 > **Key field**: `connectorName` maps to apiId:
 > `"/providers/Microsoft.PowerApps/apis/" + connectorName`
 >
-> Filter by status: `statuses[0].status == "Connected"`.
+> Filter by status: prefer `overallStatus == "Connected"` when present; otherwise
+> check `statuses[0].status == "Connected"`.
 >
-> **Note**: `tools/list` marks `environmentName` as optional, but the server
-> returns `MissingEnvironmentFilter` (HTTP 400) if you omit it. Always pass
-> `environmentName`.
+> `environmentName` is required — the platform cannot list connections across
+> environments (omitting it answers 400 MissingEnvironmentFilter). Get one from
+> `list_live_environments`.
+>
+> Pass `search=<connector or account>` to narrow output and receive
+> `connectionReferenceTemplate` plus `hostTemplate` values that can be copied
+> directly into `update_live_flow`.
 
 ### `list_store_connections`
 
@@ -112,6 +129,7 @@ Response: wrapper object with `flows` array.
     }
   ],
   "totalCount": 100,
+  "nextLink": null,
   "error": null
 }
 ```
@@ -119,6 +137,14 @@ Response: wrapper object with `flows` array.
 > Access via `result["flows"]`. `id` is a plain UUID --- use directly as `flowName`.
 >
 > `mode` indicates the access scope used (`"owner"` or `"admin"`).
+>
+> Parameters added in newer server versions:
+> - `search`: filter by display name server-side.
+> - `mode`: `owner` for flows owned by the MCP identity; `admin` for all flows
+>   visible to an admin account.
+> - `timeoutSeconds`: return partial results with `nextLink` instead of waiting
+>   on very large environments.
+> - `continuationUrl`: pass the previous `nextLink` to continue the same query.
 
 ### `list_store_flows`
 
@@ -217,11 +243,72 @@ Response:
 >
 > On create: `created` is the new flow GUID (string). On update: `created` is `false`.
 >
-> `description` is **always required** (create and update).
+> Required fields can vary by server version. Use `tool_search` with
+> `select:update_live_flow` before creating or patching a flow; if a description
+> is required, include either the new description or the existing one from
+> `get_live_flow`.
+>
+> The flow description is part of the workflow definition (`definition.description`),
+> not a top-level tool argument in current schemas.
 
 ### `add_live_flow_to_solution`
 
 Migrates a non-solution flow into a solution. Returns error if already in a solution.
+
+Use this after creating a Copilot Studio Skills-triggered flow that must be
+discoverable as an agent tool. Pass `solutionId` for the target solution. If the
+server supports omitting `solutionId`, it uses the environment's default solution;
+prefer an explicit unmanaged solution for production ALM.
+
+This tool changes solution membership only. It does not validate the trigger
+schema, publish a Copilot Studio agent, or prove that the flow is callable by the
+agent.
+
+---
+
+## Connector Operation Discovery
+
+### `describe_live_connector`
+
+Describes a connector/API and its operations. Use it before creating connector
+actions instead of guessing operation JSON.
+
+Common modes:
+
+| Call shape | Use |
+|---|---|
+| `search="send email"` without `connectorName` | Search operations across connectors |
+| `connectorName="shared_sharepointonline"` | Compact operation catalog for one connector |
+| `operationId="GetItems"` | Expanded schema for one operation |
+| `variant="flowbot_chat"` | Authored example for one operation variant |
+
+The operation detail can include:
+- `hint`: authored guidance from the connector hints table.
+- `exampleDefinition`: copy-ready action/trigger shape when available.
+- Dynamic metadata with `nextTool=get_live_dynamic_options` or
+  `nextTool=get_live_dynamic_properties`.
+
+### `get_live_dynamic_options`
+
+Resolves live dropdown/list options for connector parameters. Use this for
+IDs selected from lists, such as SharePoint sites/lists, Teams teams/channels,
+or other `x-ms-dynamic-list` / `x-ms-dynamic-values` parameters.
+
+Pass the `dynamicMetadata` object returned by `describe_live_connector`, the
+connection id from `list_live_connections`, and any already-resolved dependent
+parameters.
+
+### `get_live_dynamic_properties`
+
+Resolves live schema/field properties for connector parameters. Use this for
+dynamic field sets such as SharePoint list item columns after the site and list
+are known.
+
+Useful parameters:
+- `parameters`: dependent values, for example `{ "dataset": "<site-url>",
+  "table": "<list-id>" }`.
+- `propertyName`: request one field after inspecting the compact response.
+- `includeRaw`: include raw connector schema only when needed; it can be large.
 
 ---
 
@@ -298,8 +385,10 @@ Response: array of action detail objects.
 ]
 ```
 
-> **`actionName` is optional**: omit it to return ALL actions in the run;
-> provide it to return a single-element array for that action only.
+> **`actionName` is optional**: omit it to return top-level actions in the run.
+> Provide it for a specific action. If that action runs inside a foreach, the
+> tool can return every repetition of that action across iterations; pass
+> `iterationIndex` to pin to one zero-based iteration.
 >
 > Outputs can be very large (50 MB+) for bulk-data actions. Use 120s+ timeout.
 
@@ -324,6 +413,9 @@ Cancels a `Running` flow run.
 
 ### `get_live_flow_http_schema`
 
+Deprecated. Prefer `get_live_flow` and inspect the `Request` trigger's
+`inputs.schema` plus any `Response` actions directly from the definition.
+
 Response keys:
 ```
 flowKey            - Flow GUID
@@ -343,28 +435,48 @@ responseSchemaCount - Number of Response actions that define output schemas
 
 ### `get_live_flow_trigger_url`
 
+Deprecated. Prefer `trigger_live_flow` when you need to run a flow; it fetches the
+callback URL internally for HTTP triggers and uses the connector runtime for
+Button and PowerApps triggers, which have no callback URL.
+
 Returns the signed callback URL for HTTP-triggered flows. Response includes
 `flowKey`, `triggerName`, `triggerType`, `triggerKind`, `triggerMethod`, `triggerUrl`.
 
 ### `trigger_live_flow`
 
-Response keys: `flowKey`, `triggerName`, `triggerUrl`, `requiresAadAuth`, `authType`,
-`responseStatus`, `responseBody`.
+Response keys: `flowKey`, `triggerName`, `triggerKind`, `invocation`, `triggerUrl`,
+`requiresAadAuth`, `authType`, `responseStatus`, `responseBody`, `runName`, and
+`warning` when a required trigger input was not supplied.
 
-> **Only works for `Request` (HTTP) triggers.** Returns an error for Recurrence
-> and other trigger types: `"only HTTP Request triggers can be invoked via this tool"`.
-> `Button`-kind triggers return `ListCallbackUrlOperationBlocked`.
+> **Works for `Request` triggers (HTTP request, Button, PowerApps) and for
+> scheduled (Recurrence) flows.** A scheduled flow runs immediately, like the
+> portal's "Run flow" button, and takes no `body` — one is refused. Automated
+> connector triggers only fire from their source event and return an error.
+>
+> HTTP triggers go through the signed callback URL (`invocation: callbackUrl`).
+> Button and PowerApps triggers have no callback URL; with a `body` they run
+> through the Power Platform connector runtime (`connectorFlowToken` or
+> `connectorApihubToken`), which is the only route that delivers the inputs.
+> With no body they use the cheaper direct run (`directRun`).
+>
+> `runName` is returned only for connector-runtime runs. Otherwise look the run
+> up with `get_live_flow_runs`.
+>
+> Power Automate does not enforce a trigger's `required` list. A missing input
+> still starts the run with a null value; `warning` names the missing keys and
+> the body shape to retry with.
+>
+> Browser-extension keys cannot reach the connector runtime, so Button and
+> PowerApps triggers run only with an empty body over that key type. The error
+> lists the alternatives (resubmit a past run, default the inputs inside the flow
+> with `coalesce()`, or use a standard key).
 >
 > `responseStatus` + `responseBody` contain the flow's Response action output.
 > AAD-authenticated triggers are handled automatically.
 >
-> **Content-type note**: The body is sent as `application/octet-stream` (raw),
-> not `application/json`. Flows with a trigger schema that has `required` fields
-> will reject the request with `InvalidRequestContent` (400) because PA validates
-> `Content-Type` before parsing against the schema. Flows without a schema, or
-> flows designed to accept raw input (e.g. Baker-pattern flows that parse the body
-> internally), will work fine. The flow receives the JSON as base64-encoded
-> `$content` with `$content-type: application/octet-stream`.
+> **Content type**: `body` is sent as `application/json`, so `triggerBody()` and
+> the trigger schema see the object you passed. Verified 2026-08-27 on server 1.2.43
+> against Button, PowerAppV2, and Skills triggers with `required` schemas.
 
 ---
 
@@ -372,8 +484,7 @@ Response keys: `flowKey`, `triggerName`, `triggerUrl`, `requiresAadAuth`, `authT
 
 ### `set_live_flow_state`
 
-Start or stop a Power Automate flow via the live PA API. Does **not** require
-a Power Clarity workspace — works for any flow the impersonated account can access.
+Start or stop a Power Automate flow in any environment you have access to.
 Reads the current state first and only issues the start/stop call if a change is
 actually needed.
 
@@ -399,9 +510,23 @@ Start or stop a flow via the live PA API **and** persist the updated state back
 to the Power Clarity cache. Same parameters as `set_live_flow_state` but requires
 a Power Clarity workspace.
 
-> Prefer `set_live_flow_state` when you only need to toggle state.
-> Use `set_store_flow_state` when the flow is managed in the Power Clarity store
-> and you want the cache to stay in sync.
+Response (different shape from `set_live_flow_state`):
+```json
+{
+  "flowKey": "<environmentId>.<flowId>",
+  "requestedState": "Stopped",
+  "currentState": "Stopped",
+  "flow": { /* full gFlows record, same shape as get_store_flow */ }
+}
+```
+
+> Prefer `set_live_flow_state` when you only need to toggle state — it's
+> simpler and has no subscription requirement.
+>
+> Use `set_store_flow_state` when you need the cache updated immediately
+> (without waiting for the next daily scan) AND want the full updated
+> governance record back in the same call — useful for workflows that
+> stop a flow and immediately tag or inspect it.
 
 ---
 
@@ -450,15 +575,18 @@ List all Power Apps canvas apps from the cache.
 ## Behavioral Notes
 
 Non-obvious behaviors discovered through real API usage. These are things
-`tools/list` cannot tell you.
+tool schemas cannot tell you.
 
 ### `get_live_flow_run_action_outputs`
-- **`actionName` is optional**: omit to get all actions, provide to get one.
-  This changes the response from N elements to 1 element (still an array).
+- **`actionName` is optional**: omit to get top-level actions, provide to get one
+  action. For actions inside foreach loops, a named action may return multiple
+  repetitions; use `iterationIndex` to pin to one iteration.
 - Outputs can be 50 MB+ for bulk-data actions --- always use 120s+ timeout.
 
 ### `update_live_flow`
-- `description` is **always required** (create and update modes).
+- Required fields can vary by server version; confirm with `tool_search`
+  (`select:update_live_flow`) before create/update. If `description` is required,
+  preserve the existing description when patching.
 - `error` key is **always present** in response --- `null` means success.
   Do NOT check `if "error" in result`; check `result.get("error") is not None`.
 - On create, `created` = new flow GUID (string). On update, `created` = `false`.
@@ -466,9 +594,11 @@ Non-obvious behaviors discovered through real API usage. These are things
   connectionReferences. Use `set_live_flow_state` to start/stop a flow.
 
 ### `trigger_live_flow`
-- **Only works for HTTP Request triggers.** Returns error for Recurrence, connector,
-  and other trigger types.
-- AAD-authenticated triggers are handled automatically (impersonated Bearer token).
+- **Works for HTTP, Button, PowerApps, and scheduled (Recurrence) triggers.**
+  A scheduled flow runs with no `body`. Automated connector triggers error.
+- Pass trigger inputs as `body`. A `warning` in the result means a required input
+  was missing and the run started with it null.
+- AAD-authenticated triggers are handled automatically (Bearer token attached).
 
 ### `get_live_flow_runs`
 - `top` defaults to **30** with automatic pagination for higher values.
@@ -481,5 +611,10 @@ Non-obvious behaviors discovered through real API usage. These are things
 - `poster`: `"Flow bot"` for Workflows bot identity, `"User"` for user identity.
 
 ### `list_live_connections`
+- `environmentName` is required; the platform cannot list connections across
+  environments. `top` is applied after `search` and the result carries
+  `truncated` + `matchedCount` when the cap drops matches.
+- Use `search=<connector/account>` to get smaller output and paste-ready
+  `connectionReferenceTemplate` / `hostTemplate` values.
 - `id` is the value you need for `connectionName` in `connectionReferences`.
 - `connectorName` maps to apiId: `"/providers/Microsoft.PowerApps/apis/" + connectorName`.

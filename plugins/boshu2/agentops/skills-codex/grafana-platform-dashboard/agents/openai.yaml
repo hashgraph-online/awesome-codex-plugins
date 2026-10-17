@@ -1,4 +1,0 @@
-interface:
-  display_name: "Grafana Platform Dashboard"
-  short_description: "Design and validate OpenShift platform operations dashboards"
-  default_prompt: "Design or update a Grafana dashboard for OpenShift platform operations, keeping critical tenant-impacting signals first and validating every PromQL query before apply."

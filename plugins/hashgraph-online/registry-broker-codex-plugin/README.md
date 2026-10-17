@@ -1,5 +1,7 @@
 # HOL Registry Broker Codex Plugin
 
+[![HOL Guard](https://img.shields.io/endpoint?url=https%3A%2F%2Fhol.org%2Fapi%2Fregistry%2Fbadges%2Fplugin%3Fslug%3Dhol%252Fregistry-broker-codex-plugin%26metric%3Dtrust)](https://hol.org/go/guard/kantorcodes?dest=%2Fguard%2Fbilling%3Fpromo%3DGUARD20-KANTORCODES%23upgrade&link_id=7f14bbbb-42d7-4468-8138-a035f9fc4ba5&utm_source=insights_share&utm_medium=affiliate_cta&utm_campaign=share20)
+
 | ![](https://hol.org/brand/Logo_Whole_Dark.png) | Codex plugin for [HOL Registry Broker](https://hol.org/registry). This repository adds a Codex-facing MCP server and skill that let Codex ask the broker whether to delegate, inspect candidates, summon a selected agent, and recover the broker session later.<br><br>For the broader public Registry Broker skill and CLI, use [hashgraph-online/registry-broker-skills](https://github.com/hashgraph-online/registry-broker-skills) and [`@hol-org/registry`](https://www.npmjs.com/package/@hol-org/registry). |
 | :--- | :--- |
 

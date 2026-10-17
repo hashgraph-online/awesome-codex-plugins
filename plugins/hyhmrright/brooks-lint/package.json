@@ -1,5 +1,18 @@
 {
   "name": "brooks-lint",
-  "version": "0.6.2",
-  "type": "module"
+  "version": "1.8.0",
+  "type": "module",
+  "scripts": {
+    "bump": "node scripts/bump-version.mjs",
+    "validate": "node scripts/validate-repo.mjs",
+    "test": "node scripts/validate-repo.test.mjs",
+    "evals": "node scripts/run-evals.mjs",
+    "evals:live": "node scripts/run-evals-live.mjs",
+    "benchmark": "node scripts/benchmark.mjs",
+    "history": "node scripts/history.mjs",
+    "changelog:audit": "node scripts/changelog-audit.mjs"
+  },
+  "devDependencies": {
+    "@anthropic-ai/sdk": "0.52.0"
+  }
 }

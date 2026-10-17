@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="oc-codex-multi-auth icon">
+  <rect width="512" height="512" rx="112" fill="#0b0f19"/>
+  <circle cx="168" cy="178" r="54" fill="#38bdf8" opacity=".95"/>
+  <circle cx="344" cy="178" r="54" fill="#a78bfa" opacity=".95"/>
+  <circle cx="256" cy="334" r="64" fill="#34d399" opacity=".95"/>
+  <path d="M206 205 256 282l50-77" fill="none" stroke="#f8fafc" stroke-width="34" stroke-linecap="round" stroke-linejoin="round" opacity=".92"/>
+  <path d="M144 334h224" fill="none" stroke="#f8fafc" stroke-width="28" stroke-linecap="round" opacity=".9"/>
+</svg>

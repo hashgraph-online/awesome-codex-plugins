@@ -1,0 +1,4 @@
+interface:
+  display_name: "Go CLI SQL Storage"
+  short_description: "Build safe SQL storage for Go CLIs"
+  default_prompt: "Use $go-cli-sql-storage to design and test this Go CLI database adapter."

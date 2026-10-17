@@ -2,326 +2,149 @@
 
 [![npm version](https://img.shields.io/npm/v/codex-multi-auth.svg)](https://www.npmjs.com/package/codex-multi-auth)
 [![npm downloads](https://img.shields.io/npm/dw/codex-multi-auth.svg)](https://www.npmjs.com/package/codex-multi-auth)
+[![CI](https://github.com/ndycode/codex-multi-auth/actions/workflows/ci.yml/badge.svg)](https://github.com/ndycode/codex-multi-auth/actions/workflows/ci.yml)
+[![MIT license](https://img.shields.io/npm/l/codex-multi-auth.svg)](LICENSE)
 
-Codex CLI-first multi-account OAuth manager for the official `@openai/codex` CLI.
+<img width="1270" height="729" alt="codex-multi-auth terminal dashboard for Codex CLI multi-account OAuth account status" src="https://github.com/user-attachments/assets/0cecb77e-a6d3-432a-ba48-3577db0c7093" />
 
-<img width="1270" height="729" alt="2026-02-28 12_54_58-prompt txt ‎- Notepads" src="https://github.com/user-attachments/assets/0cecb77e-a6d3-432a-ba48-3577db0c7093" />
+`codex-multi-auth` is a multi-account OAuth manager for the official `@openai/codex` CLI. It keeps a named pool of ChatGPT sign-ins on your machine, lets you switch the active account, and — when you run Codex through its optional wrapper — rotates accounts across live requests through a loopback-only proxy. It never installs or shadows a `codex` binary; the official OpenAI install keeps owning that command.
 
+Use it when one Codex account is not enough: you hit rate limits or quota windows, you split work across organizations and workspaces, you want per-project account pools, or you run unattended agents that need JSON diagnostics and safe repair commands instead of one opaque auth file.
+
+Using OpenCode rather than the Codex CLI? The sibling project [`oc-codex-multi-auth`](https://github.com/ndycode/oc-codex-multi-auth) is the plugin that manages the same kind of account pool there.
+
+## What it does
+
+- **Account pool** — OAuth login for multiple ChatGPT accounts, stored locally under `~/.codex/multi-auth` (files `0600`, directories `0700`), with per-project pools under `projects/<project-key>/`.
+- **Switching and selection** — pin an account, pick the forecast-best one, follow saved account order within customized priority tiers with sequential scheduling, or let health- and quota-aware hybrid selection rotate for you.
+- **Runtime rotation** — a default-on, loopback-only proxy that forwards Responses API, model-discovery, image, thread-goal, and Codex dictation/transcription traffic through managed accounts during wrapper-launched Codex sessions.
+- **API capability evidence** — opted-in API/ZDR routes receive daily billable checks while the router runs; status distinguishes configured access programs from verified responses. See [check behavior and controls](docs/reference/commands.md#codex-multi-auth-check).
+- **Diagnostics and repair** — status, live health checks, quota forecasts, JSON reports, and `fix`/`doctor`/`verify` commands that recover stale or damaged local state.
+- **Luna Reserve fallback** — treats `gpt-reserve` as a separately metered Luna allowance, automatically falls back after a genuine Luna quota 429, and exposes the Reserve percentage through `limits --json --refresh`.
+- **Local governance** — file-backed usage ledger, budget guards, account tags/weights/pause/drain policies, routing profiles, and an optional loopback bridge with bearer tokens for local OpenAI-compatible clients.
+- **Desktop routing (optional)** — a reversible bind of the packaged Codex app plus user-level launcher helpers; official app binaries are never patched.
+
+## The four binaries
+
+| Binary | Role |
+| --- | --- |
+| `codex-multi-auth` | The account manager. Runs all 31 management subcommands locally (`login`, `status`, `switch`, `forecast`, `rotation`, `fix`, ...). The `auth` prefix is optional: `codex-multi-auth login` ≡ `codex-multi-auth auth login`. |
+| `codex-multi-auth-codex` | Opt-in wrapper. Handles `auth ...` locally and forwards every other command to the official Codex CLI, enabling the rotation proxy for request-bearing commands. |
+| `mcodex` | Convenience launcher over the wrapper, with optional `--monitor` and `--tmux` modes. No account logic of its own. |
+| `codex-multi-auth-app-launcher` | User-level OS launcher routing helper (Windows shortcut, macOS wrapper app, Linux `.desktop`). |
+
+## Install
+
+Requirements: Node.js >= 22.19, and the official Codex CLI on `PATH` (`npm i -g @openai/codex`, Homebrew, or a release binary).
+
+```bash
+npm i -g codex-multi-auth
+```
 
 > [!NOTE]
-> Legacy scoped prerelease package `@ndycode/codex-multi-auth` is migration-only.
-> Use `codex-multi-auth` for all new installs.
-## What You Get
+> The legacy scoped prerelease `@ndycode/codex-multi-auth` is migration-only. Install `codex-multi-auth` for all new setups; see [docs/upgrade.md](docs/upgrade.md) to migrate.
 
-- Canonical `codex auth ...` workflow for account login, switching, checks, and diagnostics
-- Multi-account OAuth pool with health-aware selection and automatic failover
-- Project-scoped account storage under `~/.codex/multi-auth/projects/<project-key>/...`
-- Interactive dashboard for account actions and settings
-- Experimental settings tab for staged sync, backup, and refresh-guard controls
-- Forecast, report, fix, and doctor commands for operational safety
-- Flagged account verification and restore flow
-- Session affinity and live account sync controls
-- Proactive refresh and preemptive quota deferral controls
-- Codex-oriented request/prompt compatibility with strict runtime handling
-- Stable docs set for install, config, troubleshooting, and upgrade paths
-
----
-
-<details open>
-<summary><b>Terms and Usage Notice</b></summary>
-
-> [!CAUTION]
-> This project uses OAuth account credentials and is intended for personal development use.
->
-> By using this plugin, you acknowledge:
-> - This is an independent open-source project, not an official OpenAI product
-> - You are responsible for your own usage and policy compliance
-> - For production/commercial workloads, use the OpenAI Platform API
-
-</details>
-
----
-
-## Installation
-
-<details open>
-<summary><b>For Humans</b></summary>
-
-### Option A: Standard install
+## Quick start (5 minutes)
 
 ```bash
-npm i -g codex-multi-auth
+# 1. Sign in a ChatGPT account (browser OAuth, loopback callback on localhost:1455)
+codex-multi-auth login
+
+# 2. Repeat login to add more accounts, then inspect the pool
+codex-multi-auth status
+
+# 3. Probe account health and preview which account would serve next
+codex-multi-auth check
+codex-multi-auth forecast --live
 ```
 
-### Option B: Migrate from legacy scoped prerelease
+Headless or remote shell? Use `codex-multi-auth login --device-auth` — no callback port needed. Blocked browser? See [alternate login paths](docs/getting-started.md#log-in).
+
+Run Codex through the wrapper so requests rotate across the pool:
 
 ```bash
-npm uninstall -g @ndycode/codex-multi-auth
-npm i -g codex-multi-auth
+codex-multi-auth-codex          # interactive TUI, rotation on by default
+codex-multi-auth-codex exec "summarize this repo"
+mcodex                          # same wrapper, shorter name
 ```
 
-### Option C: Verify wiring
+## Command map
 
-`codex --version` confirms the official Codex CLI is reachable. `codex-multi-auth --version` confirms the installed wrapper package version.
+`codex-multi-auth` ships 31 subcommands. The full surface — every flag, hotkey, and JSON mode — is in [docs/reference/commands.md](docs/reference/commands.md).
+
+| Group | Commands | Purpose |
+| --- | --- | --- |
+| Accounts | `login`, `list`, `status`, `switch <i>`, `unpin`, `workspace` | sign in, inspect the pool, pin or switch the active account, pick workspaces |
+| Selection | `forecast`, `best`, `why-selected`, `check`, `limits`, `models` | preview, explain, and probe which account serves the next request |
+| Runtime | `rotation status` `enable` `disable` `bind-app` `unbind-app` `reset-runtime` `reset-rate-limits` | inspect and control live rotation and the app bind |
+| Repair | `fix`, `doctor`, `report`, `verify`, `verify-flagged`, `uninstall` | diagnose and repair storage, flagged accounts, and install residue; machine-readable health report |
+| Governance | `usage`, `budget`, `account`, `monitor`, `history`, `resets` | usage ledger, budget limits, tags/weights/pause/drain, snapshots |
+| Local clients | `bridge`, `integrations` | bearer tokens and client snippets for the loopback bridge |
+| Config | `config explain` `template`, `init-config`, `debug bundle`, `features` | effective-config report, config templates, sanitized debug bundle |
+
+Everyday examples:
 
 ```bash
-codex --version
-codex-multi-auth --version
-codex auth status
+codex-multi-auth switch 2                     # pin account #2
+codex-multi-auth report --live --json         # full machine-readable health report
+codex-multi-auth fix --live --model gpt-6.1-sol   # live repair probes with a chosen model
+codex-multi-auth doctor --fix                 # diagnose and apply the safest fixes
+codex-multi-auth usage --since 24h --by model # local usage ledger summary
+codex-multi-auth rotation status              # is live rotation enabled?
 ```
 
-</details>
+## Runtime rotation, in one paragraph
 
-<details>
-<summary><b>For LLM Agents</b></summary>
+With rotation on (the default), request-bearing wrapper commands — `exec`, `review`, `resume`, `fork`, `app`, and the bare TUI — route through a local proxy that picks the healthiest account per request, refreshes tokens as needed, and fails over across the pool on rate limits within a bounded retry budget. The proxy listens on loopback only, authenticates its own clients with a per-process token, forwards only Responses API, model-discovery, image, thread-goal, and `POST /transcribe` calls, and never writes account emails or tokens to client headers or logs. Transcription preserves the incoming multipart audio body and boundary, uses managed ChatGPT OAuth, and does not replay ambiguous audio uploads across accounts. Plain `codex` is never touched: rotation exists only inside `codex-multi-auth-codex`/`mcodex` sessions, or inside the packaged desktop app after an opt-in, reversible bind. Turn it off with `codex-multi-auth rotation disable` or `CODEX_MULTI_AUTH_RUNTIME_ROTATION_PROXY=0`.
 
-### Step-by-step
+## Where state lives
 
-1. Install global package:
-   - `npm i -g codex-multi-auth`
-2. Run first login flow with `codex auth login`
-3. Validate state with `codex auth status` and `codex auth check`
-4. Confirm routing with `codex auth forecast --live`
-
-### Verification
-
-```bash
-codex auth status
-codex auth check
-```
-
-</details>
-
----
-
-## Quick Start
-
-Install and sign in:
-
-```bash
-npm i -g @openai/codex
-npm i -g codex-multi-auth
-codex auth login
-```
-
-Verify the wrapper and the new account:
-
-```bash
-codex auth status
-codex auth check
-```
-
-Use these next:
-
-```bash
-codex auth list
-codex auth switch 2
-codex auth forecast --live
-```
-
-If browser launch is blocked, use the alternate login paths in [docs/getting-started.md](docs/getting-started.md#alternate-login-paths).
-
----
-
-## Command Toolkit
-
-### Start here
-
-| Command | What it answers |
+| What | Path |
 | --- | --- |
-| `codex auth login` | How do I add or re-open the account menu? |
-| `codex auth status` | Is the wrapper active right now? |
-| `codex auth check` | Do my saved accounts look healthy? |
+| Accounts, settings, quota cache, usage ledger, policies, observability | `~/.codex/multi-auth/` |
+| Per-project account pools | `~/.codex/multi-auth/projects/<project-key>/` |
+| Official Codex state (kept by the official install) | `~/.codex/` |
+| Override the multi-auth root | `CODEX_MULTI_AUTH_DIR=<path>` |
 
-### Daily use
+Full path map: [docs/reference/storage-paths.md](docs/reference/storage-paths.md).
 
-| Command | What it answers |
-| --- | --- |
-| `codex auth list` | Which accounts are saved and which one is active? |
-| `codex auth switch <index>` | How do I move to a different saved account? |
-| `codex auth forecast --live` | Which account looks best for the next session? |
-
-### Repair
-
-| Command | What it answers |
-| --- | --- |
-| `codex auth verify-flagged` | Can any previously flagged account be restored? |
-| `codex auth fix --dry-run` | What safe storage or account repairs are available? |
-| `codex auth doctor --fix` | Can the CLI diagnose and apply the safest fixes now? |
-
-### Advanced
-
-| Command | What it answers |
-| --- | --- |
-| `codex auth report --live --json` | How do I get the full machine-readable health report? |
-| `codex auth fix --live --model gpt-5-codex` | How do I run live repair probes with a chosen model? |
-
----
-
-## Dashboard Hotkeys
-
-### Main dashboard
-
-| Key | Action |
-| --- | --- |
-| `Up` / `Down` | Move selection |
-| `Enter` | Select/open |
-| `1-9` | Quick switch |
-| `/` | Search |
-| `?` | Toggle help |
-| `Q` | Back/cancel |
-
-### Account details
-
-| Key | Action |
-| --- | --- |
-| `S` | Set current account |
-| `R` | Refresh/re-login account |
-| `E` | Enable/disable account |
-| `D` | Delete account |
-
----
-
-## Storage Paths
-
-| File | Default path |
-| --- | --- |
-| Settings | `~/.codex/multi-auth/settings.json` |
-| Accounts | `~/.codex/multi-auth/openai-codex-accounts.json` |
-| Flagged accounts | `~/.codex/multi-auth/openai-codex-flagged-accounts.json` |
-| Quota cache | `~/.codex/multi-auth/quota-cache.json` |
-| Logs | `~/.codex/multi-auth/logs/codex-plugin/` |
-| Per-project accounts | `~/.codex/multi-auth/projects/<project-key>/openai-codex-accounts.json` |
-
-Override root with `CODEX_MULTI_AUTH_DIR=<path>`.
-
----
-
-## Configuration
-
-Primary config root:
-- `~/.codex/multi-auth/settings.json`
-- or `CODEX_MULTI_AUTH_DIR/settings.json` when custom root is set
-
-Selected runtime/environment overrides:
-
-| Variable | Effect |
-| --- | --- |
-| `CODEX_MULTI_AUTH_DIR` | Override settings/accounts root |
-| `CODEX_MULTI_AUTH_CONFIG_PATH` | Alternate config file path |
-| `CODEX_MODE=0/1` | Disable/enable Codex mode |
-| `CODEX_TUI_V2=0/1` | Disable/enable TUI v2 |
-| `CODEX_TUI_COLOR_PROFILE=truecolor|ansi256|ansi16` | TUI color profile |
-| `CODEX_TUI_GLYPHS=ascii|unicode|auto` | TUI glyph style |
-| `CODEX_AUTH_BACKGROUND_RESPONSES=0/1` | Opt in/out of stateful Responses `background: true` compatibility |
-| `CODEX_AUTH_FETCH_TIMEOUT_MS=<ms>` | Request timeout override |
-| `CODEX_AUTH_STREAM_STALL_TIMEOUT_MS=<ms>` | Stream stall timeout override |
-
-Validate config after changes:
+## Troubleshooting in 60 seconds
 
 ```bash
-codex auth status
-codex auth check
-codex auth forecast --live
+codex-multi-auth doctor --fix
+codex-multi-auth check
+codex-multi-auth forecast --live
 ```
 
-Responses background mode stays opt-in. Enable `backgroundResponses` in settings or `CODEX_AUTH_BACKGROUND_RESPONSES=1` only for callers that intentionally send `background: true`, because those requests switch from stateless `store=false` routing to stateful `store=true`. See [docs/upgrade.md](docs/upgrade.md) for rollout guidance.
-
----
-
-## Experimental Settings Highlights
-
-The Settings menu now includes an `Experimental` section for staged features:
-
-- preview-first sync into `oc-chatgpt-multi-auth`
-- named local pool backup export with filename prompt
-- refresh guard toggle and interval controls moved out of Backend Controls
-
-These flows are intentionally non-destructive by default: sync previews before apply, destination-only accounts are preserved, and backup filename collisions fail safely.
-
----
-
-## Troubleshooting
-
-<details open>
-<summary><b>60-second recovery</b></summary>
-
-```bash
-codex auth doctor --fix
-codex auth check
-codex auth forecast --live
-```
-
-If still broken:
-
-```bash
-codex auth login
-```
-
-</details>
-
-<details>
-<summary><b>Common symptoms</b></summary>
-
-- `codex auth` unrecognized: run `where codex`, then follow `docs/troubleshooting.md` for routing fallback commands
-- Switch succeeds but wrong account appears active: run `codex auth switch <index>`, then restart session
-- OAuth callback on port `1455` fails: free the port and re-run `codex auth login`
-- Browser launch is blocked or you are in a headless shell: re-run `codex auth login --manual` or set `CODEX_AUTH_NO_BROWSER=1`
-- `missing field id_token` / `token_expired` / `refresh_token_reused`: re-login affected account
-
-</details>
-
-<details>
-<summary><b>Diagnostics pack</b></summary>
-
-```bash
-codex auth list
-codex auth status
-codex auth check
-codex auth verify-flagged --json
-codex auth forecast --live
-codex auth fix --dry-run
-codex auth report --live --json
-codex auth doctor --json
-```
-
-</details>
-
----
+Common symptoms — wrong active account, OAuth callback port `1455` already bound, Windows/WSL port contention, `EBUSY`/`EPERM` on Windows — are covered in [docs/troubleshooting.md](docs/troubleshooting.md).
 
 ## Documentation
 
-- Docs portal: [docs/README.md](docs/README.md)
-- Getting started: [docs/getting-started.md](docs/getting-started.md)
-- Features: [docs/features.md](docs/features.md)
-- Configuration: [docs/configuration.md](docs/configuration.md)
-- Troubleshooting: [docs/troubleshooting.md](docs/troubleshooting.md)
-- Commands reference: [docs/reference/commands.md](docs/reference/commands.md)
-- Public API contract: [docs/reference/public-api.md](docs/reference/public-api.md)
-- Error contracts: [docs/reference/error-contracts.md](docs/reference/error-contracts.md)
-- Settings reference: [docs/reference/settings.md](docs/reference/settings.md)
-- Storage paths: [docs/reference/storage-paths.md](docs/reference/storage-paths.md)
-- Upgrade guide: [docs/upgrade.md](docs/upgrade.md)
-- Privacy: [docs/privacy.md](docs/privacy.md)
+| Doc | What it covers |
+| --- | --- |
+| [docs/index.md](docs/index.md) | Product overview — what it does at runtime and who needs it |
+| [docs/README.md](docs/README.md) | Full documentation portal and sitemap |
+| [docs/getting-started.md](docs/getting-started.md) | Install, first login, day-1 commands |
+| [docs/features.md](docs/features.md) | Feature tour |
+| [docs/architecture.md](docs/architecture.md) | Components, request flow, trust boundaries |
+| [docs/configuration.md](docs/configuration.md) | Settings and environment overrides |
+| [docs/reference/commands.md](docs/reference/commands.md) | Every command, flag, and hotkey |
+| [docs/reference/public-api.md](docs/reference/public-api.md) | Public API stability tiers and semver contract |
+| [docs/troubleshooting.md](docs/troubleshooting.md) | Recovery playbooks |
+| [docs/faq.md](docs/faq.md) | Common questions |
+| [docs/upgrade.md](docs/upgrade.md) | Version and legacy-package migration |
+| [docs/privacy.md](docs/privacy.md) | Data handling and local storage behavior |
+| [config/README.md](config/README.md) | Modern vs. legacy catalog templates |
+| [CHANGELOG.md](CHANGELOG.md) | Release history (short version) |
 
----
+## Release notes
 
-## Release Notes
+- Current stable: [v2.22.0](docs/releases/v2.22.0.md) — `npm i -g codex-multi-auth`
+- Earlier stable lines: [v2.6.0](docs/releases/v2.6.0.md), [v2.5.0](docs/releases/v2.5.0.md)
+- Full release archive: [docs/README.md#release-history](docs/README.md#release-history)
 
-- Current stable: [docs/releases/v1.2.4.md](docs/releases/v1.2.4.md)
-- Previous stable: [docs/releases/v1.2.2.md](docs/releases/v1.2.2.md)
-- Earlier stable: [docs/releases/v1.2.1.md](docs/releases/v1.2.1.md)
-- Archived prerelease: [docs/releases/v0.1.0-beta.0.md](docs/releases/v0.1.0-beta.0.md)
+## Terms and license
 
-## License
+`codex-multi-auth` uses OAuth account credentials and is intended for personal development use. It is an independent open-source project, not an official OpenAI product; you are responsible for your own usage and policy compliance, and for production or commercial workloads you should use the OpenAI Platform API. "ChatGPT", "Codex", and "OpenAI" are trademarks of OpenAI.
 
-MIT License. See [LICENSE](LICENSE).
-
-<details>
-<summary><b>Legal</b></summary>
-
-- Not affiliated with OpenAI.
-- "ChatGPT", "Codex", and "OpenAI" are trademarks of OpenAI.
-- You assume responsibility for your own usage and compliance.
-
-</details>
+MIT license — see [LICENSE](LICENSE).
