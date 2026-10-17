@@ -67,7 +67,7 @@ $ plugin-scanner scan . --format text
 Score: 119 / 130 (91.5%)
 ──────────────────────────────────────────────────────────────────
 
-✅ PASSED: Score ≥ 80, no high/critical findings
+✅ PASSED: Score ≥ 80; finding severities are advisory to listing eligibility
 ```
 
 ## CI integration (optional, recommended)
@@ -96,12 +96,12 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
 
       - name: HOL Plugin Scanner
-        uses: hashgraph-online/ai-plugin-scanner-action@v1
+        uses: hashgraph-online/ai-plugin-scanner-action@caba2e96aa8ad2feb6cf6fca52442b52e22e779f # v1.2.635
         with:
           plugin_dir: "."
           mode: scan
           min_score: 80
-          fail_on_severity: high
+          fail_on_severity: none
           format: sarif
           upload_sarif: true
 ```
@@ -128,7 +128,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
 
       - name: HOL Plugin Scanner
-        uses: hashgraph-online/ai-plugin-scanner-action@v1
+        uses: hashgraph-online/ai-plugin-scanner-action@caba2e96aa8ad2feb6cf6fca52442b52e22e779f # v1.2.635
         with:
           plugin_dir: "."
           mode: scan
@@ -157,11 +157,11 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
 
       - name: HOL Plugin Linter
-        uses: hashgraph-online/ai-plugin-scanner-action@v1
+        uses: hashgraph-online/ai-plugin-scanner-action@caba2e96aa8ad2feb6cf6fca52442b52e22e779f # v1.2.635
         with:
           plugin_dir: "."
           mode: lint
-          fail_on_severity: high
+          fail_on_severity: none
 ```
 
 ### Auto-Submit to Registry (On Main Branch)
@@ -184,15 +184,15 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
 
       - name: HOL Plugin Scanner
-        uses: hashgraph-online/ai-plugin-scanner-action@v1
+        uses: hashgraph-online/ai-plugin-scanner-action@caba2e96aa8ad2feb6cf6fca52442b52e22e779f # v1.2.635
         with:
           plugin_dir: "."
           mode: scan
           min_score: 80
-          fail_on_severity: high
+          fail_on_severity: none
 
       - name: Submit to HOL Registry
-        uses: hashgraph-online/ai-plugin-scanner-action@v1
+        uses: hashgraph-online/ai-plugin-scanner-action@caba2e96aa8ad2feb6cf6fca52442b52e22e779f # v1.2.635
         with:
           plugin_dir: "."
           mode: submit

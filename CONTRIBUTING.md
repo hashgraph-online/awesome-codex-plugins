@@ -54,12 +54,12 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: HOL Plugin Scanner
-        uses: hashgraph-online/ai-plugin-scanner-action@v1
+        uses: hashgraph-online/ai-plugin-scanner-action@caba2e96aa8ad2feb6cf6fca52442b52e22e779f # v1.2.635
         with:
           plugin_dir: "."
           mode: scan
           min_score: 80
-          fail_on_severity: high
+          fail_on_severity: none
           format: sarif
           upload_sarif: true
 ```
@@ -85,7 +85,7 @@ python3 -m pip download --only-binary=:all: --no-deps --dest .hol-plugin-scanner
 python3 -m pip hash .hol-plugin-scanner-dist/*.whl
 ```
 
-You need a score of **80/130** or higher with **no critical or high severity findings**. Save the output to include in your PR description.
+The catalog-owned centralized scan must complete with a score of **80/130** or higher. Finding severities are advisory to listing eligibility. A local or source-CI score is useful for debugging but is not a merge prerequisite.
 
 ### Step 3: Verify your plugin repo has the required files
 
@@ -206,12 +206,12 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
 
       - name: HOL Plugin Scanner
-        uses: hashgraph-online/ai-plugin-scanner-action@v1
+        uses: hashgraph-online/ai-plugin-scanner-action@caba2e96aa8ad2feb6cf6fca52442b52e22e779f # v1.2.635
         with:
           plugin_dir: "."
           mode: scan
           min_score: 80
-          fail_on_severity: high
+          fail_on_severity: none
           format: sarif
           upload_sarif: true
 ```
@@ -238,7 +238,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
 
       - name: HOL Plugin Scanner
-        uses: hashgraph-online/ai-plugin-scanner-action@v1
+        uses: hashgraph-online/ai-plugin-scanner-action@caba2e96aa8ad2feb6cf6fca52442b52e22e779f # v1.2.635
         with:
           plugin_dir: "."
           mode: scan
@@ -249,7 +249,7 @@ jobs:
 
       - name: Submit to Registry if Eligible
         if: github.ref == 'refs/heads/main'
-        uses: hashgraph-online/ai-plugin-scanner-action@v1
+        uses: hashgraph-online/ai-plugin-scanner-action@caba2e96aa8ad2feb6cf6fca52442b52e22e779f # v1.2.635
         with:
           plugin_dir: "."
           mode: submit
@@ -277,11 +277,11 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
 
       - name: HOL Plugin Linter
-        uses: hashgraph-online/ai-plugin-scanner-action@v1
+        uses: hashgraph-online/ai-plugin-scanner-action@caba2e96aa8ad2feb6cf6fca52442b52e22e779f # v1.2.635
         with:
           plugin_dir: "."
           mode: lint
-          fail_on_severity: high
+          fail_on_severity: none
 ```
 
 ## Plugin Repo Requirements

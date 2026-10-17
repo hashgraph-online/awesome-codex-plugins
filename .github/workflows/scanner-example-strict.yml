@@ -10,7 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
       - name: HOL Plugin Scanner
-        uses: hashgraph-online/ai-plugin-scanner-action@v1
+        uses: hashgraph-online/ai-plugin-scanner-action@caba2e96aa8ad2feb6cf6fca52442b52e22e779f # v1.2.635
         with:
           plugin_dir: "."
           mode: scan
@@ -20,7 +20,7 @@ jobs:
           upload_sarif: true
       - name: Submit to Registry if Eligible
         if: github.ref == 'refs/heads/main'
-        uses: hashgraph-online/ai-plugin-scanner-action@v1
+        uses: hashgraph-online/ai-plugin-scanner-action@caba2e96aa8ad2feb6cf6fca52442b52e22e779f # v1.2.635
         with:
           plugin_dir: "."
           mode: submit
