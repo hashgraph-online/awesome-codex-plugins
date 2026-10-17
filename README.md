@@ -387,6 +387,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [Kreuzberg](https://github.com/kreuzberg-dev/plugins) - Local document extraction for 91+ formats with skills for CLI usage, OCR, table extraction, output formats, and a local MCP server.
 - [Kreuzberg Cloud](https://github.com/kreuzberg-dev/plugins) - Managed document extraction for Codex with API-key setup, presigned uploads, job tracking, webhook workflows, and usage guidance.
 - [Kreuzcrawl](https://github.com/kreuzberg-dev/plugins) - Web crawling and scraping for Codex with skills for single-page scraping, site crawls, URL mapping, and headless browser fallback.
+- [Krexa](https://github.com/Krexa-xyz/skills) - Turn a trading idea, post or video into fixed rules, backtest and paper-trade them for free, and request a live trading agent on Binance, Coinbase, Kraken, OKX, Bybit, MEXC, Hyperliquid, Polymarket or Solana DEXs that you approve and sign, through Krexa's hosted MCP server.
 - [Lacuna Music](https://github.com/JOYLINK-LTD/lacuna-plugin) - Generate original instrumental music and vocal songs from Codex through the Lacuna MCP server.
 - [Langfuse Observability](https://github.com/avivsinai/langfuse-mcp) - Query traces, debug exceptions, analyze sessions, and manage prompts via MCP tools.
 - [Launch Fast](https://github.com/BlockchainHB/launchfast_codex_plugin) - Official Launch Fast plugin adapter for rapid SaaS deployment.
