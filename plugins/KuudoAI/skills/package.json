@@ -1,0 +1,39 @@
+{
+  "name": "@kuudoai/skills-repository",
+  "version": "0.4.1",
+  "private": true,
+  "license": "SEE LICENSE IN LICENSE.md",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "skill:new": "tsx tooling/src/cli.ts new",
+    "validate": "tsx tooling/src/cli.ts validate",
+    "catalog:build": "tsx tooling/src/cli.ts catalog build",
+    "catalog:check": "tsx tooling/src/cli.ts catalog check",
+    "version:bump": "bash scripts/bump-version.sh",
+    "version:check": "bash scripts/bump-version.sh --check",
+    "version:audit": "bash scripts/bump-version.sh --audit",
+    "skills:version-check": "tsx tooling/src/cli.ts version-check",
+    "commits:check": "tsx tooling/src/cli.ts commit-check",
+    "evals:export": "tsx tooling/src/cli.ts evals export",
+    "smoke": "node --import tsx --test tooling/test/smoke.test.ts",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "tsx --test tooling/test/*.test.ts",
+    "test": "npm run typecheck && npm run test:unit && npm run validate && npm run catalog:check"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "remark-parse": "^11.0.0",
+    "unified": "^11.0.5",
+    "unist-util-visit": "^5.0.0",
+    "yaml": "^2.6.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}

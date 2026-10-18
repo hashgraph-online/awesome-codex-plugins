@@ -6,6 +6,7 @@ import type {
 } from "../../../contracts/src/index.js";
 import { renderCompletionFooter } from "./completion-footer.js";
 import { renderCurrentSummary } from "./current-summary.js";
+import { renderDisplaySettingsMenu } from "./display-settings-menu.js";
 import { renderNotices } from "./notices.js";
 import { type ObjectiveListRenderOptions, renderObjectiveLists } from "./objective-list.js";
 import { renderOverallProgress } from "./overall-progress.js";
@@ -59,6 +60,7 @@ function renderDetails(viewModel: GoalProgressViewModel, options: TrackingRender
       ${renderObjectiveLists(viewModel, options)}
       ${renderNotices(viewModel, options.messages)}
       ${renderCompletionFooter(viewModel, options)}
+      ${renderDisplaySettingsMenu(options)}
     </div>
   `;
 }

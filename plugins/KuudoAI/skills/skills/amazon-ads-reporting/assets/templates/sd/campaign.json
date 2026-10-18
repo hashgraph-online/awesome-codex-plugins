@@ -1,0 +1,88 @@
+{
+  "accessRequestedAccounts": [
+    {
+      "advertiserAccountId": "amzn1.ads-account.g.REPLACE_ME"
+    }
+  ],
+  "reports": [
+    {
+      "format": "GZIP_JSON",
+      "query": {
+        "fields": [
+          "date.value",
+          "country.code",
+          "country.name",
+          "campaign.country",
+          "campaign.deliveryStatus",
+          "campaign.currencyCode",
+          "campaign.budgetAmount",
+          "campaign.budgetType",
+          "campaign.id",
+          "campaign.name",
+          "portfolio.portfolioId",
+          "portfolio.name",
+          "campaign.costType",
+          "adProduct.value",
+          "budgetCurrency.value",
+          "metric.impressions",
+          "metric.viewableImpressions",
+          "metric.clicks",
+          "metric.ctr",
+          "metric.detailPageViews",
+          "metric.totalCost",
+          "metric.cpc",
+          "metric.vcpm",
+          "metric.sales",
+          "metric.purchases",
+          "metric.unitsSold",
+          "metric.roas",
+          "metric.newToBrandPurchases",
+          "metric.newToBrandSales",
+          "metric.newToBrandUnitsSold",
+          "metric.salesFromClicks",
+          "metric.purchasesFromClicks",
+          "metric.unitsSoldFromClicks",
+          "metric.roasFromClicks",
+          "metric.newToBrandPurchasesFromClicks",
+          "metric.newToBrandSalesFromClicks",
+          "metric.newToBrandUnitsSoldFromClicks",
+          "metric.newToBrandDetailPageViews",
+          "metric.newToBrandDetailPageViewsFromViews",
+          "metric.newToBrandDetailPageViewsFromClicks",
+          "metric.newToBrandDetailPageViewRate",
+          "metric.costPerNewToBrandDetailPageView",
+          "metric.addToCart",
+          "metric.addToCartFromViews",
+          "metric.addToCartFromClicks",
+          "metric.addToCartRate",
+          "metric.costPerAddToCart",
+          "metric.brandedSearches",
+          "metric.brandedSearchesFromViews",
+          "metric.brandedSearchesFromClicks",
+          "metric.brandedSearchRate",
+          "metric.costPerBrandedSearch",
+          "metric.longTermSales",
+          "metric.longTermRoas"
+        ],
+        "filter": {
+          "on": {
+            "comparisonOperator": "EQUALS",
+            "field": "adProduct.value",
+            "not": false,
+            "values": [
+              "SPONSORED_DISPLAY"
+            ]
+          }
+        }
+      },
+      "periods": [
+        {
+          "datePeriod": {
+            "startDate": "START_DATE",
+            "endDate": "END_DATE"
+          }
+        }
+      ]
+    }
+  ]
+}

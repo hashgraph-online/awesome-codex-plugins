@@ -1,7 +1,7 @@
 {
-  "name": "quality",
-  "version": "2.0.0",
-  "description": "Code quality skills — refactoring, naming conventions, and project structure",
+  "name": "design",
+  "version": "2.2.0",
+  "description": "Design skills — UX psychology, accessibility, and Apple featuring readiness for web, SaaS, and mobile apps",
   "author": {
     "name": "Tartiner Labs",
     "url": "https://github.com/tartinerlabs"
@@ -9,17 +9,18 @@
   "repository": "https://github.com/tartinerlabs/skills",
   "license": "MIT",
   "keywords": [
-    "refactoring",
-    "naming",
-    "project-structure",
-    "code-quality"
+    "ux",
+    "ui",
+    "usability",
+    "psychology",
+    "design"
   ],
   "skills": "./skills/",
   "interface": {
-    "displayName": "Quality",
-    "shortDescription": "Code quality and refactoring skills.",
+    "displayName": "Design",
+    "shortDescription": "UX psychology for web and mobile apps.",
     "developerName": "Tartiner Labs",
-    "category": "Coding",
+    "category": "Design",
     "websiteURL": "https://github.com/tartinerlabs/skills",
     "composerIcon": "./assets/icon.svg"
   }

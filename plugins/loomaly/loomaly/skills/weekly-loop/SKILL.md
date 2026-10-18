@@ -9,18 +9,19 @@ Rankings that don't convert are worth nothing, and a sitewide audit gives no ide
 
 ## Tools (Loomaly MCP)
 
-- `sites_list`: find the site id.
-- `focus_page` (`siteId`): the owner's brief (what the site sells, to whom, what counts as a conversion), the focus page's Search Console numbers (last 28 days vs the 28 before), its open issues, a conversion checkup (the page read against the brief), and the change log, each change with a `verdict`. With no focus page it returns `candidates` instead.
+- `get_started` or `sites_list`: find the site id. If `needsSite` is true, find the domain in the repository or in what the user said and call `add_site`, then wait until the scan finishes before the weekly loop. Don't ask for the domain when you can see it.
+- `focus_page` (`siteId`): the owner's brief (what the site sells, to whom, what counts as a conversion), the focus page's target search phrase (`keyword`, `keywordSource`) and whether that phrase is already in the title, the H1, the description, the opening and the anchor text (`placement`), the focus page's Search Console numbers (last 28 days vs the 28 before), its open issues, a conversion checkup (the page read against the brief), and the change log, each change with a `verdict`. With no focus page it returns `candidates` instead.
 - `fix_prompt` (`findingId`): instructions for one open issue on the page.
 - `log_change` (`siteId`, `summary`, `shippedOn`, `ref`, optional `conversionsBefore` / `conversionsAfter`): record a change once it is live.
-- `set_focus_page` (`siteId`, `page`) and `set_brief` (`siteId`, `offer`, `customer`, `conversion`): save the owner's choice of page and their brief.
-- `mark_fixed` / `verify`: close an issue the change fixed.
+- `set_focus_page` (`siteId`, `page`, optional `keyword`): save the owner's choice of page, and the search phrase that page should rank for (`null` clears it). The reply includes whether that phrase is already in the title, the H1, the description, the opening and the anchor text.
+- `set_brief` (`siteId`, `offer`, `customer`, `conversion`, optional `keywords`): save the owner's brief, and up to five site-wide search phrases. The first one is the homepage phrase when that page has none of its own.
+- `mark_fixed` (`siteId` plus `findingId` or `ruleId` and `pathTemplate`, `ref`) records the claim and does not use a fix check. `verify` re-checks the live page after deploy and is what uses a fix check.
 
 ## Steps
 
 1. `sites_list`, then `focus_page`.
    - No focus page: suggest one of the `candidates` (pages already seen in search, ranking 3–20) that looks like it should convert; without Search Console there are none, so ask which page matters most (often pricing or the main product page). Once the owner picks, `set_focus_page`.
-   - `checkup.state` is `needs_brief`: ask the owner what the site sells, to whom, and what counts as a conversion, and `set_brief` with their words.
+   - `checkup.state` is `needs_brief`: ask the owner what the site sells, to whom, and what counts as a conversion, and `set_brief` with their words. Ask which search phrase the focus page should rank for, and save it with `set_focus_page`'s `keyword`.
 2. Report the week, short:
    - Search numbers for the page, and whether they moved beyond normal noise. Say plainly when they did not.
    - Every change whose verdict arrived. Conversions decide: `miss` means the page climbed but did not convert better; `win` means more conversions, even with flat rankings. `too_little` (and `lowTraffic`) means the page gets too few clicks for search to show anything: say so, and judge the page by the checkup and its index status until traffic grows. `search_up` only says search improved, because no conversions were given — ask the owner for them (before and after windows are in `measure.windows`) and record them with `log_change`'s fields on a new entry or in the dashboard.

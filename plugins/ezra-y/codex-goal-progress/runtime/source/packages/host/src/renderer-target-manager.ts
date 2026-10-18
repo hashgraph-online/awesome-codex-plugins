@@ -145,7 +145,19 @@ export class RendererTargetManager implements ViewModelPublisherSink {
       if (this.#closed || this.#source) {
         return;
       }
-      const source = await this.#connector();
+      let source: RendererTargetSource | undefined;
+      try {
+        source = await this.#connector();
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          error.message.startsWith("GOAL_PROGRESS_CDP_TIME_IDENTITY_REBUILD_REQUIRED")
+        ) {
+          // 连接等待受控重建时，保留后台与更新操作；下一次连接继续读取新身份。
+          return;
+        }
+        throw error;
+      }
       if (!source) {
         throw new Error("RENDERER_TARGET_SOURCE_UNAVAILABLE");
       }
@@ -261,18 +273,13 @@ export class RendererTargetManager implements ViewModelPublisherSink {
     targetId: string,
     expectedThreadId?: string,
   ): Promise<GoalProgressRendererBridgeDoctor> {
-    let doctor: GoalProgressRendererBridgeDoctor | undefined;
-    await this.#enqueue(async () => {
-      const target = this.#requireTarget(targetId);
-      if (!target.bridge) {
-        throw new Error(target.lastErrorCode ?? "RENDERER_TARGET_UNAVAILABLE");
-      }
-      doctor = await target.bridge.doctor(expectedThreadId);
-      target.doctor = doctor;
-    });
-    if (!doctor) {
-      throw new Error("RENDERER_TARGET_UNAVAILABLE");
-    }
+    const target = this.#requireTarget(targetId);
+    const bridge = target.bridge;
+    if (!bridge) throw new Error(target.lastErrorCode ?? "RENDERER_TARGET_UNAVAILABLE");
+    const doctor = await bridge.doctor(expectedThreadId);
+    if (this.#targets.get(targetId) !== target || target.bridge !== bridge || target.closed)
+      throw new Error("RENDERER_TARGET_UNKNOWN");
+    target.doctor = doctor;
     return doctor;
   }
 
@@ -343,21 +350,22 @@ export class RendererTargetManager implements ViewModelPublisherSink {
   async doctor(expectedThreadId?: string): Promise<GoalProgressRendererBridgeDoctor> {
     let lastError: unknown;
     const doctors: GoalProgressRendererBridgeDoctor[] = [];
-    for (const targetId of this.targetIds()) {
-      if (
-        expectedThreadId !== undefined &&
-        this.#targets.get(targetId)?.visibleThreadId !== expectedThreadId
-      ) {
-        continue;
-      }
-      try {
-        doctors.push(await this.doctorTarget(targetId, expectedThreadId));
-      } catch (error) {
-        lastError = error;
-      }
+    const results = await Promise.allSettled(
+      this.targetIds()
+        .filter(
+          (targetId) =>
+            expectedThreadId === undefined ||
+            this.#targets.get(targetId)?.visibleThreadId === expectedThreadId,
+        )
+        .map((targetId) => this.doctorTarget(targetId, expectedThreadId)),
+    );
+    for (const result of results) {
+      if (result.status === "fulfilled") doctors.push(result.value);
+      else lastError = result.reason;
     }
     if (doctors.length > 0 && lastError === undefined) {
       return (
+        doctors.find((doctor) => doctor.lastErrorCode !== null) ??
         doctors.find(
           (doctor) =>
             doctor.displayRequired === true &&

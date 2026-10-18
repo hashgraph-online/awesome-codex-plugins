@@ -84,6 +84,19 @@ Names are claimed under `makes.fyi` by default; pass `--domain agentdomains.co` 
 use the other one. Parse the `fqdn` field from `claim`/`get` to learn the live
 hostname, e.g. `mybot.makes.fyi`.
 
+### A claimed name without a record serves nothing
+
+A bare `claim` (no `--type/--content`, no forward, no proxy) registers the name
+but points it at nothing: DNS returns NXDOMAIN and `https://<name>` refuses to
+connect. When you already know where the name should point, set it up in the
+same step: `claim --type/--content` for an IP or CNAME, or `forward`/`proxy`
+(which claim the name for you) for a URL or a public backend host. If you claim first and decide later, the response carries
+`serving: false` and a `next_step` naming the command that fixes it; run that
+command before you tell the user the site is live. `list` and `get` show the
+same flag, so `agentdomains list --json` finds any names you hold that are
+still dead. Never report a hostname as working until `serving` is true (or a
+`curl` against it succeeds).
+
 ## Getting HTTPS
 
 AgentDomains handles DNS, so you bring your own certificate:

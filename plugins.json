@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-10-17",
-  "total": 303,
+  "last_updated": "2026-10-18",
+  "total": 307,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -1397,7 +1397,7 @@
       "description": "Agent skills for git workflows, GitHub automation, security audits, code refactoring, and project tooling.",
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
-      "install_url": "https://raw.githubusercontent.com/tartinerlabs/skills/HEAD/plugins/quality/.codex-plugin/plugin.json"
+      "install_url": "https://raw.githubusercontent.com/tartinerlabs/skills/HEAD/plugins/design/.codex-plugin/plugin.json"
     },
     {
       "name": "Team Skills Platform",
@@ -1780,6 +1780,16 @@
       "install_url": "https://raw.githubusercontent.com/LinespottingOrg/GrokBuildRemote-Agents/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "BulkTranscripts: YouTube Transcripts",
+      "url": "https://github.com/pratie/bulktranscripts-mcp",
+      "owner": "pratie",
+      "repo": "bulktranscripts-mcp",
+      "description": "Remote MCP server and skill for YouTube transcripts of one video, a whole channel or a playlist, plus YouTube search and new-upload tracking.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/pratie/bulktranscripts-mcp/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "BurpSuite MCP Bridge",
       "url": "https://github.com/6jeffr3y/burpsuite-mcp-bridge",
       "owner": "6jeffr3y",
@@ -1848,6 +1858,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/vladimirrott/claude-math/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Clera",
+      "url": "https://github.com/getclera/mcp",
+      "owner": "getclera",
+      "repo": "mcp",
+      "description": "Search 210,000+ vetted startup candidates, review Clera's picks for your open roles, and request intros through Clera's hosted MCP.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/getclera/mcp/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Codex Be Serious",
@@ -2110,6 +2130,16 @@
       "install_url": "https://raw.githubusercontent.com/GarethManning/education-agent-skills/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "Eigenheim Berlin Market Data",
+      "url": "https://github.com/magicSEO/eigenheim-mcp",
+      "owner": "magicSEO",
+      "repo": "eigenheim-mcp",
+      "description": "Read-only remote MCP server and skill for daily Berlin real estate data: price per m² by locality, rental yields, land values and active listings.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/magicSEO/eigenheim-mcp/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "Equibles",
       "url": "https://github.com/daniel3303/stock-market-mcp-server",
       "owner": "daniel3303",
@@ -2278,6 +2308,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/kreuzberg-dev/plugins/HEAD/plugins/crawlberg/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Kuudo Skills",
+      "url": "https://github.com/KuudoAI/skills",
+      "owner": "KuudoAI",
+      "repo": "skills",
+      "description": "Agent Skills for Amazon sellers and advertisers — Ads audits, search-term mining, budget pacing, DSP and AMC, listings, images, repricing, FBA inbound, and profitability, through Kuudo's Amazon Ads and SP-API MCP servers.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/KuudoAI/skills/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Lacuna Music",

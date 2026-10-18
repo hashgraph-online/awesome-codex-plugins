@@ -1,7 +1,10 @@
 import type { MacosCommandResult } from "./command-protocol.js";
 import type { MacosCommandResultFactory } from "./install-command.js";
 import type { InstallationState } from "./installation-state.js";
-import { inspectDisplayVerification } from "./installed-inspection.js";
+import {
+  inspectDisplayVerification,
+  inspectHelperDiagnosticFailure,
+} from "./installed-inspection.js";
 import { inspectOperationalHealth } from "./operational-health.js";
 
 export interface VerifyCommandDependencies {
@@ -25,11 +28,18 @@ export function createVerifyCommand(dependencies: VerifyCommandDependencies) {
       }
       if (failure === "helper-job-not-loaded" || failure === "helper-unhealthy") {
         const helper = facts.helper ?? null;
+        const diagnosticFailure = helper ? inspectHelperDiagnosticFailure(helper) : null;
         return dependencies.commandResult("verify", {
           ok: false,
-          code: "VERIFY_HELPER_UNAVAILABLE",
+          code: diagnosticFailure
+            ? diagnosticFailure === "timeout"
+              ? "VERIFY_DIAGNOSTIC_TIMEOUT"
+              : "VERIFY_DIAGNOSTIC_FAILED"
+            : "VERIFY_HELPER_UNAVAILABLE",
           changed: false,
-          nextStep: "Run install --json to repair and restart the Helper.",
+          nextStep: diagnosticFailure
+            ? "Retry verify --json; the diagnostic request did not complete."
+            : "Run install --json to repair and restart the Helper.",
           details: {
             helperJobLoaded: facts.helperJobLoaded,
             helper,

@@ -45,9 +45,11 @@ unrelated conversation or personal data in `queryText`.
 3. Call `poll_search_results` with that `sessionId` and `nights`.
 4. While `status` is neither `completed` nor `failed` and no useful results
    have arrived, poll again a few seconds later. Stop after about 10 polls (one
-   to two minutes) or when the session has expired: present what has arrived,
-   say which sources were still loading, and offer to check again with the same
-   `sessionId` rather than starting a new search.
+   to two minutes): present what has arrived, say which sources were still
+   loading, and offer to check again with the same `sessionId` rather than
+   starting a new search. If a poll says the search has expired, that
+   `sessionId` will return nothing more: present what arrived before it expired
+   and offer a new `search_hotels_live` call for current prices instead.
 5. Present a concise comparison of relevant results. Label the source and
    currency exactly as returned.
 
@@ -108,7 +110,9 @@ return one.
 4. While `status` is neither `completed` nor `failed` and no useful results
    have arrived, poll again a few seconds later, for at most about 10 polls.
    Then present what has arrived and offer to check again with the same
-   `sessionId`. A flight session expires 15 minutes after the search starts.
+   `sessionId`. A flight session expires 15 minutes after the search starts;
+   once a poll says it has expired, offer a new `search_flights_live` call
+   instead.
 5. Present relevant options with source, carrier, times, stops, cabin, currency,
    and fare exactly as returned.
 
@@ -127,9 +131,16 @@ instead.
 1. Call `request_booking` with the `propertyId`, `roomTypeId`, dates and the
    guest's name, phone number and email. Ask for whichever of those three is
    missing; they go to the hotel, which needs them to honour the reservation.
+   Several rooms of the same room type are one request: set `roomCount` and
+   call the tool once, with `totalAmount` covering all of them. Calling it once
+   per room sends the hotel unrelated requests.
 2. Relay the tool's reply as written. The two facts it leads with — that no
    room is held and that nothing has been charged — are the ones the guest
-   acts on.
+   acts on. If the reply says rooms were added to the guest's earlier request,
+   the confirmation code is the earlier one and the amount is the total for
+   all its rooms: do not present it as a second booking or add the amounts.
+   If it says no request was created, relay the reason and do not describe a
+   booking.
 3. Keep the `confirmationCode` it returns; `check_booking_status` reads the
    request's state back with it. Also keep the room's `propertyId`,
    `ratePlanId` and check-in date: the cancellation policy needs them and no
@@ -139,9 +150,7 @@ instead.
 No money changes hands through PriceWin: sending the request charges nothing,
 and the guest pays the hotel directly on arrival. Never ask how the guest wants
 to pay, and never mention a card, transfer, QR code, payment link or deposit —
-not even one the guest named earlier. If a property requires payment at
-booking time, `request_booking` creates nothing and returns a link to book on
-the PriceWin website instead; relay that link as given.
+not even one the guest named earlier.
 
 ## Cancel a booking
 

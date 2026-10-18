@@ -1219,6 +1219,10 @@ Contributions are welcome! Please feel free to submit:
 - GitHub: [@GSkuza](https://github.com/GSkuza)
 - Repository: [BABOK_ANALYST](https://github.com/GSkuza/BABOK_ANALYST)
 
+## Acknowledgements
+
+- **Consulting Profile**: concept and initial prototype by [Łukasz Stachowiak](https://github.com/stalubalub) (see the `archive-consulting-prototype` branch in his fork).
+
 ---
 
 **Version:** 2.2.8  

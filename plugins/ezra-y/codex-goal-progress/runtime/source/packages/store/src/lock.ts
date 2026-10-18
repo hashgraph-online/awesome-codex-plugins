@@ -99,7 +99,7 @@ async function inspectDarwinProcess(pid: number): Promise<{
     ["-p", String(pid), "-o", "lstart=", "-o", "comm="],
     {
       encoding: "utf8",
-      env: { ...process.env, LC_ALL: "C" },
+      env: { ...process.env, TZ: "UTC", LC_ALL: "C" },
     },
   );
   const match = String(stdout)
@@ -113,7 +113,7 @@ async function inspectDarwinProcess(pid: number): Promise<{
   if (!startedAt || !executablePath) {
     return null;
   }
-  const processStartedAtMs = Date.parse(startedAt);
+  const processStartedAtMs = Date.parse(`${startedAt} UTC`);
   if (!Number.isFinite(processStartedAtMs)) {
     return null;
   }

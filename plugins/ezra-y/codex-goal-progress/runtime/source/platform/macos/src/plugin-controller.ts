@@ -24,6 +24,7 @@ import {
 
 const PLUGIN_NAME = "codex-goal-progress";
 const MARKETPLACE_NAME = "codex-goal-progress-local";
+const CODEX_PLUGIN_COMMAND_TIMEOUT_MS = 30_000;
 const REQUIRED_HOOK_EVENTS = ["SessionStart", "PreToolUse", "PostToolUse"] as const;
 
 function record(value: unknown): Record<string, unknown> | null {
@@ -165,7 +166,14 @@ function runCodexJson(
       CODEX_HOME: codexHomeDirectory,
     },
     maxBuffer: 4 * 1024 * 1024,
+    timeout: CODEX_PLUGIN_COMMAND_TIMEOUT_MS,
+    killSignal: "SIGKILL",
   });
+  if (result.error && "code" in result.error && result.error.code === "ETIMEDOUT") {
+    throw new Error(
+      `GOAL_PROGRESS_CODEX_PLUGIN_COMMAND_TIMEOUT: operation=${args.slice(0, 3).join("-")}`,
+    );
+  }
   if (result.status !== 0) {
     const stderr = typeof result.stderr === "string" ? result.stderr : "";
     const stdout = typeof result.stdout === "string" ? result.stdout : "";
@@ -239,7 +247,11 @@ export function createPluginController(options: {
   };
   const pluginList = () =>
     listedRecords(
-      runCodexJson(command, ["plugin", "list", "--json"], options.codexHomeDirectory),
+      runCodexJson(
+        command,
+        ["plugin", "list", "--marketplace", MARKETPLACE_NAME, "--json"],
+        options.codexHomeDirectory,
+      ),
       "installed",
     );
   const marketplaceList = () =>

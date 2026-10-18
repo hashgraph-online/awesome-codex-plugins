@@ -1,0 +1,32 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci
+    # Minor and patch updates arrive together; each major update gets its own
+    # pull request so a breaking change never blocks the safe ones.
+    groups:
+      github-actions:
+        update-types:
+          - minor
+          - patch
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: build
+    groups:
+      npm-dependencies:
+        update-types:
+          - minor
+          - patch
+    ignore:
+      # Keep @types/node on the CI Node.js major (node-version in the workflows).
+      # Raise both together when the runtime moves.
+      - dependency-name: "@types/node"
+        update-types:
+          - version-update:semver-major

@@ -1,7 +1,7 @@
 {
   "name": "placecall",
-  "version": "6.1.0",
-  "description": "PlaceCall makes AI phone calls that book, confirm, and reach any business. It places a real outbound call and returns a structured outcome plus a full transcript. Sign in on first use, no API key needed.",
+  "version": "6.3.0",
+  "description": "PlaceCall makes AI phone calls that book, confirm, and reach US businesses. It places a real outbound call and returns a structured outcome plus a full transcript. Sign in on first use, no API key needed.",
   "author": {
     "name": "VOYGR",
     "email": "support@voygr.tech",
@@ -23,7 +23,7 @@
   "interface": {
     "displayName": "PlaceCall",
     "shortDescription": "Real phone calls to businesses",
-    "longDescription": "PlaceCall places real outbound phone calls to US businesses for your agent: book or cancel a table or an appointment, ask a question, check stock, get a quote. It works through phone menus and hold, then returns a verified outcome and the full transcript. With no number at hand, it can find places worth calling first. It connects to the PlaceCall MCP server at api.voygr.tech, where you sign in once in a browser; no API key needed to find places and place calls. An API key from https://api.voygr.tech/checkout adds recording options and cancelling. US numbers only. By default, every call opens with a notice that the line is recorded.",
+    "longDescription": "PlaceCall places real outbound phone calls to US businesses for your agent: book or cancel a table or an appointment, ask a question, check stock, get a quote. It works through phone menus and hold, then returns a verified outcome and the full transcript. With no number at hand, it can find places worth calling first. It connects to the PlaceCall MCP server at api.voygr.tech, where you sign in once in a browser; no API key needed to find places and place calls. An API key from https://api.voygr.tech/checkout adds recording options and cancelling. US numbers only, except Indiana, Louisiana, Minnesota, Montana and Nebraska. By default, every call opens with a notice that the line is recorded.",
     "developerName": "VOYGR",
     "category": "Productivity",
     "capabilities": [

@@ -2,7 +2,7 @@
 
 **The internet has APIs. The real world has phone numbers.**
 
-Give your agent a voice to call any US business, handle reservations, gather
+Give your agent a voice to call US businesses, handle reservations, gather
 information, get quotes. Handles IVRs & hold. Returns outcome + transcript.
 First 250 calls free.
 
@@ -398,19 +398,19 @@ in it (what to ask, who you're calling for, names/dates/party size/callback numb
 how to wrap up). One endpoint, describe the task, done.
 
 ## Good to know
-- **Two things draw on one credit balance: answered calls and answered place
-  suggestions.** Calls: successful ones are billed, and so are a call dropped
-  after something was obtained and a call you cancel 30 seconds or more
-  after the callee answered; a failed call where nothing was obtained
-  (voicemail, hangup, no answer) costs nothing. Suggestions: 5 credits per
-  answered `POST /v1/places/suggest`, nothing when it returns no cards or is
-  refused.
-  Both take a refundable hold at request time that is larger than the charge,
-  so either can return `402` while your balance still looks sufficient for the
-  charge alone (`GET /users/me` for your balance; rates and top-ups are
-  self-serve at <https://api.voygr.tech/checkout?src=gh-repo>). The free tier
-  is one shared pot: 250 free calls means 2,500 credits, and suggestions spend
-  from the same 2,500.
+- **A call costs 10 credits when it obtains something (an answer, a refusal
+  or a booking). Each call holds 30 credits while it runs, and the unused part
+  is released when it ends. A call that obtains nothing is free, and so is a
+  cancel within 30 seconds of the callee answering; a cancel 30 seconds or
+  more after they answered is charged.** Place suggestions draw on the same
+  balance: 5 credits per answered `POST /v1/places/suggest` (15 held while it
+  runs), nothing when it returns no cards or is refused. Because each hold is
+  larger than the charge, either can return `402` while your balance still
+  looks sufficient for the charge alone (`GET /users/me` for your balance;
+  rates and top-ups are self-serve at
+  <https://api.voygr.tech/checkout?src=gh-repo>). The free tier is one shared
+  pot: 250 free calls means 2,500 credits, and suggestions spend from the same
+  2,500.
 - After a call `completed`, the outcome/transcript can populate a moment
   *after* the status flips - poll `GET /calls/{id}` until `outcome_type` is
   non-null.
@@ -419,10 +419,10 @@ how to wrap up). One endpoint, describe the task, done.
   English and does not switch mid-call; send `es` for a call in Spanish).
   `en` is the most reliable; non-English is best-effort.
 - Only call numbers you're authorized to - real calls ring real phones.
-  US destinations only; by default every call opens with a notice that the
-  line is recorded (in English and Spanish it also names PlaceCall). The
-  optional `disclosure` and `record_call` fields change or switch off that
-  opening; see the skill's "Opening notice" section.
+  US destinations only, except IN, LA, MN, MT, NE; by default every call opens
+  with a notice that the line is recorded (in English and Spanish it also names
+  PlaceCall). The optional `disclosure` and `record_call` fields change or
+  switch off that opening; see the skill's "Opening notice" section.
 
 ## Network access
 The skill ships nothing that runs on its own. It is instructions your agent

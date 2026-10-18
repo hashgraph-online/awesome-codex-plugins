@@ -1,0 +1,73 @@
+{
+  "as_of": "2026-06-15",
+  "account_context": {
+    "advertiser_account_id": "amzn1.ads-account.g.example",
+    "profile_id": "1234567890",
+    "marketplace": "US",
+    "currency_code": "USD",
+    "timezone": "America/Los_Angeles"
+  },
+  "data_provenance": {
+    "current_budgets": {
+      "source": "fixture://campaign-snapshot",
+      "retrieved_at": "2026-06-15T07:00:00-07:00"
+    },
+    "performance_actuals": {
+      "source": "fixture://performance-report",
+      "retrieved_at": "2026-06-15T07:05:00-07:00",
+      "data_through": "2026-06-14",
+      "roas_data_through": "2026-06-12",
+      "preliminary": true
+    }
+  },
+  "amazon_budget_controls": {
+    "average_daily_budget_overdelivery_pct": 0.0,
+    "active_budget_rules": []
+  },
+  "portfolio_product_lines": {"Product A": "Product A"},
+  "controls": {
+    "min_daily_budget": 25.0,
+    "hard_spend_ceiling": true,
+    "honor_minimums_at_low_budget": true,
+    "apply_dow_seasonality": true,
+    "pacing_health_weight": 0.30,
+    "exhaustion_penalty_factor": 0.30,
+    "max_daily_change_pct": 0.35
+  },
+  "monthly_plan": {"month": "June 2026", "budget": 50000.0, "mtd_actual": 18000.0},
+  "mtd_planned_to_date": 16000.0,
+  "dow_index": {
+    "Monday": 0.8508326449, "Tuesday": 0.9471124705, "Wednesday": 1.146918298,
+    "Thursday": 1.022048441, "Friday": 1.198639032, "Saturday": 0.8773693929,
+    "Sunday": 0.9717946916
+  },
+  "event_multipliers": {},
+  "daily_actuals": {
+    "2026-06-01": 1150.0, "2026-06-02": 1250.0, "2026-06-03": 1500.0,
+    "2026-06-04": 1300.0, "2026-06-05": 1550.0, "2026-06-06": 1150.0,
+    "2026-06-07": 1250.0, "2026-06-08": 1150.0, "2026-06-09": 1250.0,
+    "2026-06-10": 1500.0, "2026-06-11": 1300.0, "2026-06-12": 1550.0,
+    "2026-06-13": 1150.0, "2026-06-14": 950.0
+  },
+  "target_rules": [
+    {"ad_type": "SP", "strategy": "Brand Defense", "product_line": "Product A", "target_roas": 9.0, "lookback_days": 14},
+    {"ad_type": "SD", "strategy": "Brand Defense", "product_line": "Product A", "target_roas": 1.5, "lookback_days": 28},
+    {"ad_type": "SD", "strategy": "Invest to Grow", "product_line": "Product A", "target_roas": 1.5, "lookback_days": 28},
+    {"ad_type": "SP", "strategy": "Non-Branded", "product_line": "Product A", "target_roas": 4.0, "lookback_days": 14},
+    {"ad_type": "SP", "strategy": "Conquesting", "product_line": "Product A", "target_roas": 2.0, "lookback_days": 14},
+    {"ad_type": "SP", "strategy": "Cross-Sell", "product_line": "Product A", "target_roas": 3.0, "lookback_days": 14},
+    {"ad_type": "SB", "strategy": "Non-Branded", "product_line": "Product A", "target_roas": 3.0, "lookback_days": 14},
+    {"ad_type": "SBV", "strategy": "Non-Branded", "product_line": "Product A", "target_roas": 2.0, "lookback_days": 14}
+  ],
+  "product_line_ceilings": {},
+  "strategy_ceilings": {"Brand Defense": 0.05},
+  "campaigns": [
+    {"campaign_id": "123456789", "name": "Example Brand | Product A | Brand Defense | SP | Exact", "portfolio": "Product A", "ad_type": "SP", "current_daily_budget": 60.0, "actual_roas": 8.0, "days_of_data": 14, "exhausted_before_6pm_days_l7": 0},
+    {"campaign_id": "234567890", "name": "Example Brand | Product A | Non-Branded | SP | Broad", "portfolio": "Product A", "ad_type": "SP", "current_daily_budget": 120.0, "actual_roas": 5.1, "days_of_data": 14, "exhausted_before_6pm_days_l7": 4},
+    {"campaign_id": "345678901", "name": "Example Brand | Product A | Conquesting | SP | Comp", "portfolio": "Product A", "ad_type": "SP", "current_daily_budget": 40.0, "actual_roas": 2.4, "days_of_data": 14, "exhausted_before_6pm_days_l7": 0},
+    {"campaign_id": "456789012", "name": "Example Brand | Product A | Cross-Sell | SP | ASIN", "portfolio": "Product A", "ad_type": "SP", "current_daily_budget": 35.0, "actual_roas": 2.0, "days_of_data": 14, "exhausted_before_6pm_days_l7": 0},
+    {"campaign_id": "567890123", "name": "Example Brand | Product A | Non-Branded | SB | Upper", "portfolio": "Product A", "ad_type": "SB", "current_daily_budget": 50.0, "actual_roas": 3.6, "days_of_data": 10, "exhausted_before_6pm_days_l7": 0},
+    {"campaign_id": "678901234", "name": "Example Brand | Product A | Invest to Grow | SD | Retarget", "portfolio": "Product A", "ad_type": "SD", "current_daily_budget": 30.0, "actual_roas": 1.6, "days_of_data": 2, "exhausted_before_6pm_days_l7": 0},
+    {"campaign_id": "999000111", "name": "Example Brand | Product A | Summer Sale Push", "portfolio": "Product A", "ad_type": "SP", "current_daily_budget": 25.0, "actual_roas": 3.0, "days_of_data": 7, "exhausted_before_6pm_days_l7": 0}
+  ]
+}

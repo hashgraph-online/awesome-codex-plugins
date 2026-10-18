@@ -1,6 +1,6 @@
 {
   "name": "agentdomains",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Claim and manage free domains (under makes.fyi or agentdomains.co) for the sites AI agents build, in one command.",
   "author": {
     "name": "Tashfeen Ahmed",

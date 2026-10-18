@@ -155,6 +155,7 @@ export class GoalProgressElement extends LitElement {
     super.connectedCallback();
     this.ownerDocument.addEventListener("pointerdown", this.#onDocumentPointerDown, true);
     this.ownerDocument.addEventListener("keydown", this.#onDocumentKeyDown, true);
+    this.ownerDocument.defaultView?.addEventListener("resize", this.#displaySettingsMenu.position);
     void this.updateComplete.then(() => {
       if (this.isConnected) {
         this.#scrollController.bind(this.renderRoot, objectiveScrollIdentity(this.viewModel));
@@ -165,6 +166,10 @@ export class GoalProgressElement extends LitElement {
   override disconnectedCallback(): void {
     this.ownerDocument.removeEventListener("pointerdown", this.#onDocumentPointerDown, true);
     this.ownerDocument.removeEventListener("keydown", this.#onDocumentKeyDown, true);
+    this.ownerDocument.defaultView?.removeEventListener(
+      "resize",
+      this.#displaySettingsMenu.position,
+    );
     this.#scrollController.release();
     super.disconnectedCallback();
   }
@@ -199,6 +204,7 @@ export class GoalProgressElement extends LitElement {
         }),
       );
     }
+    this.#displaySettingsMenu.position();
   }
 
   protected override willUpdate(changedProperties: PropertyValues<this>): void {

@@ -16,15 +16,13 @@
 
 ## 🆕 Latest update
 
-### v0.3.10 — Local refactor candidate
+### v0.3.10 — Reliable progress after Codex updates
 
-**Candidate date: October 5, 2026. Not publicly released.**
+- Restore the right progress when reopening chats or switching between windows.
+- Keep progress working when your system timezone changes.
+- Report missing progress correctly and finish local installation checks without waiting on unrelated plugin catalogs.
 
-- Restore progress within the currently displayed chat, excluding hidden cached pages.
-- Keep page recovery separate from the local connection.
-- Report installation, current display, and untested workflows separately.
-
-The latest published version remains [v0.3.9](https://github.com/Ezra-Y/codex-goal-progress/releases/tag/v0.3.9).
+Existing goals, checklists, progress and display preferences are preserved.
 
 ## ✨ Features
 

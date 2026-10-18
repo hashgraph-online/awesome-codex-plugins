@@ -1,8 +1,8 @@
 {
-  "name": "tartinerlabs-quality",
-  "version": "2.0.0",
+  "name": "tartinerlabs-design",
+  "version": "2.2.0",
   "private": true,
-  "description": "Code quality skills — refactoring, naming conventions, and project structure",
+  "description": "Design skills — UX psychology, accessibility, and Apple featuring readiness for web, SaaS, and mobile apps",
   "license": "MIT",
   "type": "module",
   "exports": {

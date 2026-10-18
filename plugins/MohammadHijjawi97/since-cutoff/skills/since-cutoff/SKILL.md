@@ -2,8 +2,8 @@
 name: since-cutoff
 description: Find which dependency APIs this project's Python code uses changed after the model's training cutoff (no model calls), write short AGENTS.md or CLAUDE.md notes from the API diff, each with its source, and keep them in step with the lockfile; optionally measure which of the changes the model gets wrong. Use when the user asks whether the model knows their library versions, when code keeps failing on renamed or removed library APIs, or after upgrading dependencies. Trigger with requests such as "does the model know my openai version", "scan my dependencies for API changes" or "check whether the library notes are up to date".
 license: MIT
-compatibility: Needs since-cutoff on PATH, or uv or pipx to run it, and network access to PyPI. The run command also needs model access (the claude CLI or a provider API key); scan, sync and status make no model calls, and status works offline.
-allowed-tools: Bash(since-cutoff scan:*), Bash(since-cutoff sync:*), Bash(since-cutoff status:*), Bash(since-cutoff run:*), Bash(since-cutoff models:*), Bash(since-cutoff unapply:*), Bash(uvx since-cutoff:*), Bash(pipx run since-cutoff:*), Read
+compatibility: Needs since-cutoff on PATH, or uv or pipx to run it, and network access to PyPI. The run command also needs model access (the claude CLI or a provider API key) and the basedpyright type checker (pip install "since-cutoff[run]", or uvx --with basedpyright since-cutoff run); scan, sync and status make no model calls, and status works offline.
+allowed-tools: Bash(since-cutoff scan:*), Bash(since-cutoff sync:*), Bash(since-cutoff status:*), Bash(since-cutoff run:*), Bash(since-cutoff models:*), Bash(since-cutoff unapply:*), Bash(uvx since-cutoff:*), Bash(uvx --with basedpyright since-cutoff:*), Bash(pipx run since-cutoff:*), Read
 metadata:
   author: Mohammad Hijjawi
   version: "0.5.0"
@@ -33,7 +33,9 @@ report what it prints.
 - since-cutoff on PATH, or uv or pipx to run it (`uvx since-cutoff`, `pipx run since-cutoff`).
 - Network access to PyPI; `status` works offline.
 - For `run` only: model access, through the `claude` CLI for Claude Code models or the
-  provider's API key for other models. `scan`, `sync` and `status` make no model calls.
+  provider's API key for other models, and the basedpyright type checker: `pip install
+  "since-cutoff[run]"`, or run it as `uvx --with basedpyright since-cutoff run`. Without it,
+  `run` stops at once and says so. `scan`, `sync` and `status` make no model calls.
 
 ## Instructions
 
@@ -56,7 +58,8 @@ report what it prints.
    uses their API credits or Claude Code usage, and can take 5-20 minutes. Wait for a yes.
    `scan` needs no confirmation.
 5. Run it. If `since-cutoff` is not installed, use `uvx since-cutoff` with the same arguments
-   (or use `pipx run since-cutoff`). Start `run` in the background or with a long timeout, not a
+   (or use `pipx run since-cutoff`); for `run`, `uvx --with basedpyright since-cutoff run`,
+   which adds the type checker. Start `run` in the background or with a long timeout, not a
    2-minute foreground call. Everything is cached, so re-running after an interruption resumes
    quickly.
 6. Summarise the result card: the model and its training cutoff, how many dependencies changed

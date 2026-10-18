@@ -113,8 +113,8 @@ then answers "Not connected".
 
 ## `/amq-remote status`
 
-List `~/.amq/remote/bindings/` (one file per connected session: carrier,
-root, and handle or target).
+Run `amq-remote bindings` and show its output. It lists each connected
+session as `live` or `unknown` and prunes the sessions proven ended.
 
 ## Trust limits
 

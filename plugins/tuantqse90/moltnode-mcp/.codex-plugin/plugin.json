@@ -1,7 +1,7 @@
 {
   "name": "moltnode",
   "version": "1.1.4",
-  "description": "MoltNode by Chord: read 31 blockchains over JSON-RPC and get DEX swap quotes and unsigned swap transactions through Chord, plus Chord market data and candlestick charts. Two hosted MCP servers and three skills, no API key.",
+  "description": "MoltNode by Chord: read 31 blockchains over JSON-RPC and get DEX swap quotes and unsigned swap transactions through Chord, plus Chord market data and candlestick charts. Two hosted MCP servers and four skills (including a safe swap skill), no API key.",
   "author": {
     "name": "Chord",
     "url": "https://getchord.xyz"

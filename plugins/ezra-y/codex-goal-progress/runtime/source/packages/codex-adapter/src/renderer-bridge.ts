@@ -343,10 +343,9 @@ export class GoalProgressRendererBridge {
   }
 
   async doctor(expectedThreadId?: string): Promise<GoalProgressRendererBridgeDoctor> {
-    await this.waitForIdle();
     let health: Record<string, unknown> | null = null;
     try {
-      const value = await invokeGoalProgressPageApi(this.#sender, "health");
+      const value = await invokeGoalProgressPageApi(this.#sender, "health", undefined, 500);
       health =
         value !== null && typeof value === "object" ? (value as Record<string, unknown>) : null;
       if (health) this.#lastErrorCode = null;
@@ -395,7 +394,7 @@ export class GoalProgressRendererBridge {
         : "pending";
     return {
       displayState:
-        displayState === "rendered" && latest && receivedViewModelRevision !== latest.revision
+        displayState === "rendered" && receivedViewModelRevision !== latest?.revision
           ? "pending"
           : displayState,
       displayRequired: typeof health?.displayRequired === "boolean" ? health.displayRequired : null,

@@ -62,6 +62,8 @@ Prefer a native plugin? See [Claude Code and Codex plugin installation, plus Cur
 
 Install one: `npx skills add magichourhq/skills --skill magic-hour-image-editing`. Install all: `npx skills add magichourhq/skills --skill '*'`. Each skill works independently; you do not need the whole collection for a single job.
 
+[Four ready-to-run MCP recipes with bundled inputs, exact request bodies and second edits →](examples/midnight-remix/recipes.md)
+
 ## Try a real job
 
 Attach your source media and use the matching prompt. The agent should use the current tool schema and your existing budget, not ask you to fill in API parameters.

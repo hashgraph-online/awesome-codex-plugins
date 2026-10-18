@@ -1,0 +1,40 @@
+{
+  "name": "kuudo-skills",
+  "version": "0.4.1",
+  "description": "Kuudo skills for Amazon commerce workflows",
+  "author": {
+    "name": "KuudoAI",
+    "url": "https://github.com/KuudoAI"
+  },
+  "homepage": "https://github.com/KuudoAI/skills",
+  "repository": "https://github.com/KuudoAI/skills",
+  "license": "PolyForm-Shield-1.0.0",
+  "keywords": [
+    "amazon",
+    "commerce",
+    "agent-skills",
+    "workflows"
+  ],
+  "skills": "./skills/",
+  "hooks": {},
+  "interface": {
+    "displayName": "Kuudo Skills",
+    "shortDescription": "Amazon commerce workflows for AI agents",
+    "composerIcon": "./assets/kuudo-skills-icon.png",
+    "longDescription": "Use Kuudo skills for structured Amazon Ads, Seller Central, Vendor Central, profitability, catalog, and related commerce workflows.",
+    "developerName": "KuudoAI",
+    "category": "Business & Operations",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Audit my Sponsored Products campaigns.",
+      "Review this Seller Central listing.",
+      "Calculate whether this FBA product is profitable."
+    ],
+    "websiteURL": "https://github.com/KuudoAI/skills",
+    "screenshots": []
+  }
+}

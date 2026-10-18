@@ -40,11 +40,18 @@ pipx install since-cutoff    # or: pip install since-cutoff
 Or run it without installing: `uvx since-cutoff scan` downloads the current release and runs it
 (`uvx since-cutoff@latest scan` picks up new releases instead of the first one uv cached).
 
+`run` type-checks the model's answers with
+[basedpyright](https://github.com/DetachHead/basedpyright), an extra of 180 MB that the other
+commands never use: `pip install "since-cutoff[run]"` (or `pipx install "since-cutoff[run]"`)
+installs it, and `uvx --with basedpyright since-cutoff run` adds it to a run without installing;
+without it, `run` stops at once and says so.
+
 Run it from your project root. It reads `uv.lock`, `poetry.lock`, `pdm.lock`, `pylock.toml`,
-`Pipfile.lock`, `requirements*.txt`, `pyproject.toml`, `Pipfile` or a `.venv` (not `setup.py` or
-`setup.cfg`). Without `--model` it uses the model your coding agent is set up with, from the
-Claude Code, Codex, Gemini CLI, OpenCode or Aider settings; for any other model, pass `--model`
-(see [Choosing the model](https://github.com/MohammadHijjawi97/since-cutoff#choosing-the-model)).
+`Pipfile.lock`, `requirements*.txt`, `pyproject.toml`, `Pipfile`, the `pip:` block of a conda
+`environment.yml` or a `.venv` (not `setup.py` or `setup.cfg`). Without `--model` it uses the
+model your coding agent is set up with, from the Claude Code, Codex, Gemini CLI, OpenCode or
+Aider settings; for any other model, pass `--model` (see
+[Choosing the model](https://github.com/MohammadHijjawi97/since-cutoff#choosing-the-model)).
 `scan`, `sync` and `status` call no model and need no API key; `run` sends prompts to the model
 provider and uses your API credits or Claude Code usage.
 
@@ -76,9 +83,8 @@ anthropic 0.56.0 -> 1.8.0 (0.56.0 was the latest release 30 days before the cuto
   Messages.create: temperature, top_k and top_p were removed                          uses this API
     app/main.py   calls create
     Note: `Messages.create()` no longer accepts `temperature`, `top_k` or `top_p` as keyword
-          arguments. If the API still needs them, pass them through its `extra_body` or
-          `extra_query` argument. since-cutoff found no replacement in anthropic's deprecation
-          text. [diff]
+          arguments. If the API still needs them, pass them through its `extra_body` argument.
+          [diff]
 
 2 notes ready: `since-cutoff sync` writes them to AGENTS.md and keeps them in step with
   pyproject.toml.
@@ -89,8 +95,8 @@ The call in `app/main.py` passes none of these parameters, so it is marked "uses
 it edits the call. The note is what `since-cutoff sync` writes into AGENTS.md so that it does
 not; its tag, `[diff]`, says what the note rests on: a static comparison of the two releases'
 public APIs. The parameters left the signature, which is not the same as the API dropping the
-field, so where the pinned method has an `extra_body` or `extra_query` argument the note says
-so instead of telling the assistant to drop the field.
+field, so where the pinned method has an `extra_body` argument the note says so instead of
+telling the assistant to drop the field.
 
 `since-cutoff sync` then writes the two notes. It prints the block as a diff and asks
 `Write this to AGENTS.md? [y/N]` (`--yes` writes without asking; `--dry-run` only shows the
@@ -98,17 +104,17 @@ diff). For the sample project, the block ends with:
 
 ```markdown
 **anthropic 1.8.0** (compared from 0.56.0)
-- `Messages.create()` no longer accepts `temperature`, `top_k` or `top_p` as keyword arguments. If the API still needs them, pass them through its `extra_body` or `extra_query` argument. since-cutoff found no replacement in anthropic's deprecation text. [diff]
+- `Messages.create()` no longer accepts `temperature`, `top_k` or `top_p` as keyword arguments. If the API still needs them, pass them through its `extra_body` argument. [diff]
 
 **huggingface-hub 2.0.0** (compared from 0.33.1)
-- `huggingface_hub.hf_hub_download()` no longer accepts `proxies`, `force_filename`, `local_dir_use_symlinks` or `resume_download`; do not pass them. huggingface-hub's deprecation text says there is no replacement for `force_filename`, `local_dir_use_symlinks` or `resume_download`. since-cutoff found no replacement for `proxies` in huggingface-hub's deprecation text. [diff]
+- `huggingface_hub.hf_hub_download()` no longer accepts `proxies`, `force_filename`, `local_dir_use_symlinks` or `resume_download`; do not pass them. huggingface-hub's deprecation text says there is no replacement for `force_filename`, `local_dir_use_symlinks` or `resume_download`. For `proxies`, see https://github.com/huggingface/huggingface_hub/releases (2.0.0). [diff]
 <!-- since-cutoff:end -->
 ```
 
 Above the bullets are the start marker, a meta line (the model, its cutoff, where the versions
 come from, a hash of the dependencies and a hash of the block's own text, so that a hand edit
 shows) and a header that names the model, the cutoff and the file the versions come from, says
-what the tags mean and that no library code was run. The whole block is about 420 tokens. Text
+what the tags mean and that no library code was run. The whole block is about 410 tokens. Text
 outside the block keeps its bytes, and `since-cutoff unapply` removes the block. After an
 upgrade, run `sync` again; `sync --check` in CI and `status` offline tell you when the notes
 fall behind ([Keep the notes current](https://github.com/MohammadHijjawi97/since-cutoff#keep-the-notes-current-sync-and-status)).
@@ -175,11 +181,11 @@ unpinned, the tool uses the latest release):
 | anthropic | 0.60.0 | 1.8.0 | `messages.create(temperature=..., top_p=..., top_k=...)` is no longer accepted |
 | huggingface-hub | 0.34.3 | 2.0.0 | `hf_hub_download(resume_download=..., force_filename=..., local_dir_use_symlinks=...)` left the signature in 1.0 (2.0.0 still accepts them at run time, ignores them and warns) |
 | langchain-core | 0.3.72 | 1.6.5 | `retriever.get_relevant_documents()` and `llm.predict()` removed |
-| openai | 1.98.0 | 3.19.2 | 22 breaking changes, 6 new deprecations |
+| openai | 1.98.0 | 3.19.2 | 19 breaking changes, 6 new deprecations (+3 internal) |
 
 In that project, 7 of 9 dependencies changed their public API after the cutoff. The static diff
-flags 307 breaking changes and 23 new deprecations; the project's code uses 2 of the changed
-APIs.
+flags 257 breaking changes and 23 new deprecations in public APIs, and 71 changes to internal
+ones; the project's code uses 2 of the changed APIs.
 
 It is not one model or one vendor. Across 36 widely used Python AI libraries and 21 models from
 OpenAI, Anthropic, Google, xAI, DeepSeek, Qwen, Moonshot and Mistral, even the newest model
@@ -223,17 +229,19 @@ uvx since-cutoff scan
 # write those notes into AGENTS.md (shows the diff and asks first); run it again after upgrades
 uvx since-cutoff sync
 
-# optional: measure which of the changes your model gets wrong, and test the notes (calls it)
-uvx since-cutoff run
+# optional: measure which of the changes your model gets wrong, and test the notes (calls it;
+# --with adds the basedpyright type checker, which only run needs)
+uvx --with basedpyright since-cutoff run
 ```
 
 What `scan` prints for the sample project, in full:
 
-<p align="center"><img src="https://raw.githubusercontent.com/MohammadHijjawi97/since-cutoff/main/docs/img/scan.svg" width="100%" alt="since-cutoff scan --model anthropic:claude-sonnet-4-5 on the sample project. Your code uses 2 APIs that changed after claude-sonnet-4-5's training cutoff (2025-07-31). huggingface-hub 0.33.1 -> 2.0.0: hf_hub_download, used in app/main.py, no longer has force_filename, local_dir_use_symlinks, resume_download and proxies in its signature; its note is tagged [diff], and a Runtime line says that 2.0.0's source still handles them, so calls passing them may run with a warning. anthropic 0.56.0 -> 1.8.0: Messages.create, called in app/main.py, no longer accepts temperature, top_k and top_p; its note is tagged [diff]. 2 notes ready for AGENTS.md; what uses this API and [diff] mean; 496 more changes in 7 packages that the code does not use."></p>
+<p align="center"><img src="https://raw.githubusercontent.com/MohammadHijjawi97/since-cutoff/main/docs/img/scan.svg" width="100%" alt="since-cutoff scan --model anthropic:claude-sonnet-4-5 on the sample project. Your code uses 2 APIs that changed after claude-sonnet-4-5's training cutoff (2025-07-31). huggingface-hub 0.33.1 -> 2.0.0: hf_hub_download, used in app/main.py, no longer has force_filename, local_dir_use_symlinks, resume_download and proxies in its signature; its note is tagged [diff], and a Runtime line says that 2.0.0's source still handles them, so calls passing them may run with a warning. anthropic 0.56.0 -> 1.8.0: Messages.create, called in app/main.py, no longer accepts temperature, top_k and top_p; its note is tagged [diff]. 2 notes ready for AGENTS.md; what uses this API and [diff] mean; 348 more changes in 7 packages that the code does not use, and 139 changes to internal APIs."></p>
 
 Both APIs are "uses this API"; a file that passed `resume_download=True` or `temperature=0.2`
 would make them "old form". `scan -v` lists every file that uses an API (3 are shown), and
-`scan --all` adds every other change, package by package. `scan --json` and
+`scan --all` adds every other change to a public API, package by package (`--internal` adds
+the changes to internal APIs, which every count gives apart as "+N internal"). `scan --json` and
 `.since-cutoff/results.json` have the same in `used_apis` (each API, where it is used, its
 changes and its note, with the note's tags, the versions it applies to and what was checked),
 and `.since-cutoff/report.md` starts with "Used by your code".
@@ -241,8 +249,9 @@ and `.since-cutoff/report.md` starts with "Used by your code".
 ### Keep the notes current: sync and status
 
 `since-cutoff sync` (0.4.0 and later) writes the notes that `scan` shows into a marked block: in
-AGENTS.md, or in CLAUDE.md when only that file exists, and where a block already is, into that
-one (`--target` names another file). It prints a unified diff and asks
+AGENTS.md, or in CLAUDE.md when only that file exists, or in both when CLAUDE.md does not import
+AGENTS.md, and where a block already is, into that one (`--target` names another file). It
+prints a unified diff and asks
 `Write this to AGENTS.md? [y/N]`; `--yes` writes without asking, and with no terminal to ask in
 it writes nothing. Text outside the block keeps its bytes, CRLF line breaks included, and
 `since-cutoff unapply` removes the block. The block for the sample project is in
@@ -273,8 +282,10 @@ exit with code 4; `sync --force` replaces it. When a package the notes are about
 checked (PyPI unreachable), `sync` writes nothing and exits with code 1.
 
 `sync --json` requires `--yes`, `--check` or `--dry-run`; without one it exits with code 2
-without prompting. Stdout contains only JSON (and stays empty for usage errors); progress,
-diffs and errors go to stderr. The object contains `exit_code` and `targets`. Each target
+without prompting. Stdout contains only JSON, and stays empty when sync fails (a usage error,
+exit code 2, or an error such as PyPI being unreachable, exit code 1); progress, diffs and
+errors go to stderr. The object contains `exit_code`, `tip` (what sync says about
+AGENTS.md and CLAUDE.md, or null) and `targets`. Each target
 reports `target`, `action`, `changed`, `edited`, `written`, `model`, `cutoff`, `scope`,
 `notes`, `changes` (each package's `package`, `done` and `state`), `retest` and `diff_lines`.
 `written` distinguishes an applied proposal from a preview or a refused hand edit. The usual
@@ -303,9 +314,15 @@ More options:
 
 Claude Code reads CLAUDE.md, and reads AGENTS.md only when there is no CLAUDE.md or when
 CLAUDE.md imports it with a line `@AGENTS.md`
-([memory docs](https://code.claude.com/docs/en/memory)). When the notes go to AGENTS.md and
-CLAUDE.md does not import it, `scan` and `sync` say so. Writing to both files is
-[#13](https://github.com/MohammadHijjawi97/since-cutoff/issues/13).
+([memory docs](https://code.claude.com/docs/en/memory)); Codex, Cursor and Copilot read
+AGENTS.md. With both files and no block yet, the notes go to AGENTS.md alone when CLAUDE.md
+imports it, and to both files when it does not
+([#13](https://github.com/MohammadHijjawi97/since-cutoff/issues/13)); `scan`, `sync` and
+`status` then say how to keep one copy: add the line `@AGENTS.md` to CLAUDE.md and run
+`since-cutoff unapply --target CLAUDE.md`. A block already in AGENTS.md alone stays there, and
+they say so when CLAUDE.md does not import it. When both files have a block and CLAUDE.md
+then imports AGENTS.md, they say CLAUDE.md holds a second copy, with the same `unapply`
+command. An `@AGENTS.md` in a code span or a fenced block is not an import.
 
 ### Measure your model
 
@@ -407,9 +424,13 @@ Vertex AI) is named after its maker, so `run` calls the maker's API (`openai:` n
 `OPENAI_API_KEY`). `sync` keeps the model a block was written for, whatever your agent uses now.
 
 Training cutoffs come from [models.dev](https://models.dev) (a snapshot is bundled for offline
-use). `since-cutoff models sonnet` lists them; `--cutoff 2025-07` overrides the date, and
-`since-cutoff scan --cutoff 2025-07` without `--model` scans against that date alone.
-`--cutoff-margin 30` (the default; `SINCE_CUTOFF_CUTOFF_MARGIN` sets it too) compares from the
+use). `since-cutoff models sonnet` lists them (`--makers` leaves out gateways and resellers,
+`--json` is for scripts). A model that several providers list takes the cutoff of the
+requested provider's listing (`opencode:glm-5.1`), else of its maker's, else the earliest
+that a gateway or reseller lists: more notes, the safe side. The model line names a listing
+that is not the maker's, and `since-cutoff models <id>` ends with the one `--model <id>`
+takes. `--cutoff 2025-07` overrides the date, and `since-cutoff scan --cutoff 2025-07` without `--model` scans against that
+date alone. `--cutoff-margin 30` (the default; `SINCE_CUTOFF_CUTOFF_MARGIN` sets it too) compares from the
 latest release published 30 days or more before the cutoff, since models know the weeks before
 their cutoff least; `--cutoff-margin 0` compares from the latest release at the cutoff itself.
 The model line shows both days. `scan` and
@@ -443,25 +464,28 @@ and [PRIVACY.md](https://github.com/MohammadHijjawi97/since-cutoff/blob/main/PRI
 
 **Why do some notes say "since-cutoff found no replacement"?** A note names a replacement only
 when the library's own deprecation text states one and that name exists in your pinned version
-(tag `[diff + library]`). Otherwise the note states the change and says that no replacement was
-found: a guessed replacement that an agent then follows is worse than none. Names in the pinned
+(tag `[diff + library]`). Otherwise the note states the change and points at the package's
+changelog with the pinned version (the Changelog URL in its PyPI metadata, else its GitHub
+releases page), or, when PyPI lists neither, says that no replacement was found: a guessed
+replacement that an agent then follows is worse than none. Names in the pinned
 version that merely look similar are shown in the terminal as "not confirmed as replacements";
 `sync --suggestions` writes them into the notes, tagged `[not confirmed]`. Where the pinned method
-still has an `extra_body` or `extra_query` argument, as anthropic's `Messages.create()` does, the
+still has an `extra_body` argument, as anthropic's `Messages.create()` does, the
 note points to it, since a request parameter that left the signature may still be accepted by the
 API.
 
 **AGENTS.md or CLAUDE.md?** `sync` writes to AGENTS.md; to CLAUDE.md when only that file
-exists; and into whichever of the two already has a block (`--target` names any file). Claude
-Code reads CLAUDE.md, and AGENTS.md only when CLAUDE.md imports it with a line `@AGENTS.md`;
-when the notes go to AGENTS.md and CLAUDE.md does not import it, `scan` and `sync` say so. To
-keep one copy, add `@AGENTS.md` to CLAUDE.md. To keep a block in both files, write the second
-one once with `sync --target CLAUDE.md --model <the same model>`; from then on `sync` updates
-both and `status` reports both. Writing to both by default is
-[#13](https://github.com/MohammadHijjawi97/since-cutoff/issues/13).
+exists; to both when CLAUDE.md does not import AGENTS.md
+([#13](https://github.com/MohammadHijjawi97/since-cutoff/issues/13)); and into whichever of the two
+already has a block (`--target` names any file). Claude Code reads CLAUDE.md, and AGENTS.md
+only when CLAUDE.md imports it with a line `@AGENTS.md`; Codex, Cursor and Copilot read
+AGENTS.md. To keep one copy, add `@AGENTS.md` to CLAUDE.md and run
+`since-cutoff unapply --target CLAUDE.md`; `scan`, `sync` and `status` say so while both
+files have the block, and say when a block in AGENTS.md alone is not imported. From then on
+`sync` updates every file that has a block, and `status` reports each.
 
 **How much do the notes cost in tokens?** The agent reads the block on every turn. For the
-sample project it is about 420 tokens, of which the two notes are about 160; the rest is the
+sample project it is about 410 tokens, of which the two notes are about 140; the rest is the
 header that names the model and the cutoff and says what the tags mean (counted at four
 characters per token, as since-cutoff does). `sync` writes notes only for the changed APIs your
 code uses (`--scope imported` adds up to 5 per imported package), and a model-written note has
@@ -664,7 +688,8 @@ What `api_changes("huggingface-hub", model="claude-haiku-4-5", to_version="2.0.0
 
 - From 0.29.1 (2025-02-20): the newest release on or before 2025-02-28 (training cutoff of claude-haiku-4-5, from models.dev)
 - To 2.0.0 (2026-09-24): as requested
-- 109 breaking changes, 0 new deprecations (dependencies switched 1, removed or moved 56, parameters removed 43, parameters now required 7, changed kind 1, now keyword-only or positional-only 1)
+- Warning: huggingface-hub 2.0.0: huggingface_hub.hf_file_system.HfFileSystemFile inherits from fsspec.spec.AbstractBufferedFile, which since-cutoff did not read; the attributes it sets are not compared
+- 98 breaking changes, 0 new deprecations (dependencies switched 1, removed or moved 45, parameters removed 43, parameters now required 7, changed kind 1, now keyword-only or positional-only 1, +8 internal)
 
 ## Dependencies switched
 
@@ -682,7 +707,7 @@ What `api_changes("huggingface-hub", model="claude-haiku-4-5", to_version="2.0.0
 - `huggingface_hub.snapshot_download(proxies=...)`: parameter `proxies` was removed; 2.0.0's source still handles `proxies` (huggingface_hub/utils/_validators.py:178), so calls passing it may run with a warning; type checkers reject it
 ...
 
-Not listed: 69 breaking changes, 0 new deprecations (removed or moved 41, parameters removed 28). Narrow with symbol="..." or raise limit.
+Not listed: 58 breaking changes, 0 new deprecations (removed or moved 30, parameters removed 28). Narrow with symbol="..." or raise limit.
 ```
 
 With `symbol="hf_hub_download"` it lists only the 8 changes to that function (`resume_download=`,
@@ -693,6 +718,9 @@ huggingface-hub 1.0, and the answer adds that 2.0.0's source still handles them,
 passing them may run with a warning.
 
 ## Use in CI
+
+Problems with command output or an MCP client? See the
+[troubleshooting guide](https://github.com/MohammadHijjawi97/since-cutoff/blob/main/docs/troubleshooting.md).
 
 ### GitHub Action
 
@@ -707,7 +735,7 @@ and models.dev: no model calls, no API key.
 name: since-cutoff
 on:
   pull_request:
-    paths: ["**/*.lock", "**/pylock*.toml", "**/requirements*.txt", "**/pyproject.toml", "**/AGENTS.md", "**/CLAUDE.md"]
+    paths: ["**/*.lock", "**/pylock*.toml", "**/requirements*.txt", "**/environment.y*ml", "**/pyproject.toml", "**/AGENTS.md", "**/CLAUDE.md"]
 jobs:
   scan:
     runs-on: ubuntu-latest
@@ -757,16 +785,19 @@ repos:
       - id: since-cutoff-sync  # keeps the notes in AGENTS.md current; args: [--check] only checks
 ```
 
-`since-cutoff-scan` runs when a lockfile, a requirements file or `pyproject.toml` changes, and
-prints the scan; give it `--model` in `args`. `since-cutoff-sync` runs when one of those files,
-AGENTS.md or CLAUDE.md changes, and updates the notes; when it changes the file, the hook fails,
-as pre-commit hooks that change files do: add the file and commit again. With `args: [--check]`
-it changes nothing and fails while the notes are out of date. It keeps the model the notes were
-written for; for a first block, give it one: `args: [--model=anthropic:claude-sonnet-4-5]`. Both
-need PyPI, so skip them on pre-commit.ci (`ci: {skip: [since-cutoff-scan, since-cutoff-sync]}`).
-`since-cutoff-status` needs no network: it fails when the notes do not match the lockfile.
+`since-cutoff-scan` runs when a lockfile, a requirements file, a conda `environment.yml` or
+`pyproject.toml` changes, and prints the scan; give it `--model` in `args`. `since-cutoff-sync`
+runs when one of those files, AGENTS.md or CLAUDE.md changes, and updates the notes; when it
+changes the file, the hook fails, as pre-commit hooks that change files do: add the file and
+commit again. With `args: [--check]` it changes nothing and fails while the notes are out of
+date. It keeps the model the notes were written for; for a first block, give it one:
+`args: [--model=anthropic:claude-sonnet-4-5]`. Both need PyPI, so skip them on pre-commit.ci
+(`ci: {skip: [since-cutoff-scan, since-cutoff-sync]}`). `since-cutoff-status` needs no network:
+it fails when the notes do not match the lockfile.
 
 ### Other CI
+
+See the [environment, files and exit-code reference](https://github.com/MohammadHijjawi97/since-cutoff/blob/main/docs/reference.md) when configuring CI.
 
 ```bash
 # Markdown summary for any CI; exit code 3 if your code uses a changed API in the old form
@@ -840,10 +871,10 @@ was checked, and nothing else is claimed:
 
 | tag | what was checked | what was not |
 |---|---|---|
-| `[diff]` | The change is in a static comparison (griffe) of the public APIs of two releases: the latest release published at least 30 days before the model's training cutoff (by default), and the version your project pins. The sources are read, not imported. With `[diff]` alone, no replacement is named: the note says what the library's own deprecation text says ("there is no replacement for `resume_download`"), or that since-cutoff found no replacement in it. | Behaviour, and whether a call still runs: the pinned release may still accept a removed parameter with a warning, as huggingface-hub 2.0.0 does for `resume_download`. The terminal, report.md, the MCP tools and the JSON add a "Runtime:" line when the pinned source still handles one; the block does not, since the advice is the same. Whether your model gets it wrong. |
+| `[diff]` | The change is in a static comparison (griffe) of the public APIs of two releases: the latest release published at least 30 days before the model's training cutoff (by default), and the version your project pins. The sources are read, not imported. With `[diff]` alone, no replacement is named: the note says what the library's own deprecation text says ("there is no replacement for `resume_download`"), or points at the package's changelog (the Changelog URL in its PyPI metadata, else its GitHub releases page) with the pinned version, or, when PyPI lists neither, that since-cutoff found no replacement in that text. | Behaviour, and whether a call still runs: the pinned release may still accept a removed parameter with a warning, as huggingface-hub 2.0.0 does for `resume_download`. The terminal, report.md, the MCP tools and the JSON add a "Runtime:" line when the pinned source still handles one; the block does not, since the advice is the same. Whether your model gets it wrong. |
 | `[diff + library]` | As `[diff]`, and the library's own deprecation text (a docstring, a parameter's docstring entry, an `@deprecated` message or a `warnings.warn` text, in the older release or, for a deprecation, in the pinned one) states the replacement ("Use `stop` instead"), and that name exists in your pinned version. Text that only mentions a name as advice is quoted under `[diff]`, not taken as a replacement. | That the replacement behaves the same. |
 | `[diff + move checked]` | As `[diff]`, and the object at the new path is the same object as far as can be counted: a class or module keeps at least half of the old one's public names, a function keeps its parameters, a value is the same. | Behaviour. |
-| `[diff + metadata]` | The older release's Requires-Dist (its wheel's METADATA) lists a library the pinned one does not, and places in the public API that named that library's types (parameters, return types, attributes, base classes, re-exports) name the types of another library the pinned release requires, or of a copy of the old one it ships, with none of the old library left: openai 3.x, anthropic 1.8, huggingface-hub 2.0 and mcp 2.2 take `httpx2` objects where they took `httpx` ones. | Behaviour: whether the pinned release still accepts the old library's objects (openai 3 converts some, anthropic 1.8 raises `TypeError`, according to their sources). The terminal, report.md, the MCP tools and the JSON add an "Installed:" line (whether your project, its virtual environment included, still has the old library) and a "Runtime:" line that points to where the pinned source still names it. |
+| `[diff + metadata]` | The older release's Requires-Dist (its wheel's METADATA) lists a library the pinned one does not, and places in the public API that named that library's types (parameters, return types, attributes, base classes, re-exports) name the types of another library the pinned release requires, or of a copy of the old one it ships, with none of the old library left: openai 3.x, anthropic 1.8, huggingface-hub 2.0 and mcp 2.2 take `httpx2` objects where they took `httpx` ones. `[metadata]` alone marks the one bullet for a package first released after the cutoff (or within the margin before it) that your code imports: there is no release to compare from, so the note gives the date of its first release, its PyPI summary and its changelog URL. | Behaviour: whether the pinned release still accepts the old library's objects (openai 3 converts some, anthropic 1.8 raises `TypeError`, according to their sources). The terminal, report.md, the MCP tools and the JSON add an "Installed:" line (whether your project, its virtual environment included, still has the old library) and a "Runtime:" line that points to where the pinned source still names it. |
 | `[diff; probable rename]` | A parameter in the same position, with the same annotation, has a new name, and no version note in the pinned release's docstring (`.. versionadded::`, `.. versionchanged::`) says that one was added or the other removed. A guess, labelled as one. | That it is the same parameter. |
 | `[type-checked]` | Written by a model during `since-cutoff run` and kept because its example passed the type check below. | Behaviour; that the bullet's explanation is true beyond the names it shows. |
 | `[not confirmed]` | Only with `sync --suggestions`: names in the pinned version that look similar to what was removed (the bullet's tag then reads `[diff; not confirmed]`). | That any of them replaces it. |
@@ -892,6 +923,8 @@ meaning the same as `checks.example_type_checks`).
 
 ## What it runs, sends and stores
 
+The [reference](https://github.com/MohammadHijjawi97/since-cutoff/blob/main/docs/reference.md) lists environment variables and files read or written.
+
 - **Runs no package code and no model-written code.** Packages are read statically (griffe with
   inspection off; only `.py`/`.pyi` files are extracted, with path and size checks). The model's
   answers are only type-checked, locally, with basedpyright.
@@ -910,7 +943,12 @@ meaning the same as `checks.example_type_checks`).
   `--annotate github` put it in a CI job's summary and annotations, and the MCP tool
   `project_changes` gives it to the agent that asked, which passes tool results to its model.
 - **Stores** results in `.since-cutoff/` in your project (it ignores itself in git) and a local
-  cache (`since-cutoff cache path` shows it, `since-cutoff cache clear` removes it). `sync` (after
+  cache: `since-cutoff cache info` shows where it is and its size by kind, `since-cutoff cache
+  clear` removes it, or with `--sources`, `--diffs` or `--pypi` only that kind (the model's
+  answers to `run`, which cost money, are kept). The extracted package sources, the bulk of it,
+  are capped at 2 GB (`SINCE_CUTOFF_CACHE_MAX_MB`; 0 for no cap): after a new version is
+  extracted, the least recently used ones go, never one a running scan uses, and the first
+  removal in a run prints one line saying how much went. `sync` (after
   you agree, or with `--yes`) and `run --apply` write one marked block into AGENTS.md or CLAUDE.md
   and leave the rest of the file byte-for-byte unchanged; `since-cutoff unapply` removes the
   block.
@@ -928,11 +966,19 @@ meaning the same as `checks.example_type_checks`).
   `__getattr__`, but `run` does not probe them.
 - The diff covers the public API: `_private` names, and test suites, benchmarks and examples
   shipped inside a package, are skipped.
-- "Your code uses" is a static name match, file by file: imports (re-exported names included),
-  calls, attribute reads and keyword arguments. It does not follow dynamic access such as
+- "Your code uses" is a static match, file by file: imports (re-exported names included),
+  calls, attribute reads and keyword arguments, with the receiver of a method call typed from
+  the package's own annotations (`df = pd.read_csv(...)` is a `DataFrame`; a class counts with
+  its base classes, across your pinned packages). It does not follow dynamic access such as
   `getattr`, and it names files, not lines, for now
-  ([#8](https://github.com/MohammadHijjawi97/since-cutoff/issues/8)). A parameter that became
-  required, keyword-only or positional-only is always "uses this API", never "old form", for now.
+  ([#8](https://github.com/MohammadHijjawi97/since-cutoff/issues/8)). A method read on a value
+  whose class the code does not show can count by its name alone, when that name is one
+  changed API's and neither a common one nor a member of a built-in or standard-library type:
+  such a `[name match]` is hidden from every report, the notes, `--fail-on` and `--annotate`
+  unless `--include-name-matches` is given (`include_name_matches` over MCP), as most are
+  another library's method of the same name. A parameter that became
+  required, keyword-only or positional-only is always "uses this API", never "old form", for
+  now.
 - A note names a replacement only when the library's own deprecation text states it. Advice that
   is only in a migration guide (anthropic's
   [MIGRATION.md](https://github.com/anthropics/anthropic-sdk-python/blob/main/MIGRATION.md)

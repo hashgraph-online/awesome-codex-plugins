@@ -20,6 +20,8 @@ import {
 } from "./verified-release.js";
 
 export interface HelperHealthInspection {
+  readonly diagnosticCompleted?: boolean;
+  readonly rendererCode?: string | null;
   readonly renderer?: GoalProgressDoctorResult["runtime"]["renderer"] | null;
   readonly ok: boolean;
   readonly socketPathExists: boolean;
@@ -87,6 +89,7 @@ export async function inspectInstalledHelperReadiness(
 
 export async function inspectInstalledHelper(
   paths: GoalProgressPaths,
+  timeoutMs = 1_000,
 ): Promise<HelperHealthInspection> {
   let socketPathExists = false;
   let socketIsSocket = false;
@@ -134,11 +137,13 @@ export async function inspectInstalledHelper(
   let startupListenerReady = false;
   let startupListenerPid: number | null = null;
   let renderer: HelperHealthInspection["renderer"] = null;
+  let diagnosticCompleted = false;
+  let rendererCode: string | null = null;
   let code: string | null = socketPathExists ? null : "HELPER_SOCKET_MISSING";
   if (socketIsSocket) {
     const client = new GoalProgressIpcClient(paths.helperSocketPath, {
       clientKind: "doctor",
-      timeoutMs: 1_000,
+      timeoutMs,
     });
     try {
       const ping = await client.request({ method: "ping", params: {} });
@@ -161,6 +166,7 @@ export async function inspectInstalledHelper(
           doctor.result !== null && typeof doctor.result === "object"
             ? (doctor.result as Record<string, unknown>)
             : {};
+        diagnosticCompleted = true;
         const storeSmoke =
           doctorResult.storeSmoke !== null && typeof doctorResult.storeSmoke === "object"
             ? (doctorResult.storeSmoke as Record<string, unknown>)
@@ -179,6 +185,7 @@ export async function inspectInstalledHelper(
           runtime.renderer !== null && typeof runtime.renderer === "object"
             ? (runtime.renderer as GoalProgressDoctorResult["runtime"]["renderer"])
             : null;
+        rendererCode = typeof runtime.lastErrorCode === "string" ? runtime.lastErrorCode : null;
         startupListenerRunning = startupListener.running === true;
         startupListenerReady = startupListener.ready === true;
         startupListenerPid = Number.isInteger(startupListener.pid)
@@ -213,6 +220,8 @@ export async function inspectInstalledHelper(
   }
   return {
     ok,
+    diagnosticCompleted,
+    rendererCode,
     renderer,
     socketPathExists,
     socketIsSocket,
@@ -233,6 +242,20 @@ export async function inspectInstalledHelper(
   };
 }
 
+export function inspectHelperDiagnosticFailure(
+  helper: HelperHealthInspection,
+): "timeout" | "failed" | null {
+  if (
+    !helper.pingOk ||
+    !helper.protocolMatches ||
+    !helper.pidMatches ||
+    !helper.singleOwner ||
+    helper.diagnosticCompleted !== false
+  )
+    return null;
+  return helper.code === "IPC_TIMEOUT" ? "timeout" : "failed";
+}
+
 export function inspectDisplayVerification(helper: HelperHealthInspection): {
   readonly installation: "pass" | "fail";
   readonly currentDisplay: "pass" | "fail" | "waiting" | "not-needed" | "unverified";
@@ -240,28 +263,33 @@ export function inspectDisplayVerification(helper: HelperHealthInspection): {
   readonly createAndUpdateFlow: "unverified";
 } {
   const renderer = helper.renderer;
+  const confirmedFailure =
+    renderer?.displayRequired === true &&
+    (renderer.displayState === "unrecognized" || renderer.retryExhausted === true);
   const currentDisplay =
     renderer?.visibleThreadStatus === "mismatch"
       ? "unverified"
-      : renderer?.displayRequired === false && renderer.displayState === "not-needed"
-        ? "not-needed"
-        : renderer?.displayRequired !== true
+      : confirmedFailure
+        ? "fail"
+        : helper.rendererCode
           ? "unverified"
-          : renderer.displayState === "unrecognized" || renderer.retryExhausted === true
-            ? "fail"
-            : renderer.componentVisible === true &&
-                renderer.displayState === "rendered" &&
-                renderer.componentCount === 1 &&
-                renderer.currentThreadMatched === true &&
-                (renderer.visibleThreadStatus === "matched" ||
-                  renderer.visibleThreadStatus === "retained") &&
-                Number.isSafeInteger(renderer.receivedViewModelRevision) &&
-                Number.isSafeInteger(renderer.latestViewModelRevision) &&
-                renderer.latestViewModelRevision === renderer.receivedViewModelRevision
-              ? "pass"
-              : renderer.displayState === "pending"
-                ? "waiting"
-                : "fail";
+          : renderer?.displayRequired === false && renderer.displayState === "not-needed"
+            ? "not-needed"
+            : renderer?.displayRequired !== true
+              ? "unverified"
+              : renderer.componentVisible === true &&
+                  renderer.displayState === "rendered" &&
+                  renderer.componentCount === 1 &&
+                  renderer.currentThreadMatched === true &&
+                  (renderer.visibleThreadStatus === "matched" ||
+                    renderer.visibleThreadStatus === "retained") &&
+                  Number.isSafeInteger(renderer.receivedViewModelRevision) &&
+                  Number.isSafeInteger(renderer.latestViewModelRevision) &&
+                  renderer.latestViewModelRevision === renderer.receivedViewModelRevision
+                ? "pass"
+                : renderer.displayState === "pending"
+                  ? "waiting"
+                  : "fail";
   return {
     installation: helper.ok ? "pass" : "fail",
     currentDisplay,

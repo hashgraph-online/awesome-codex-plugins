@@ -80,6 +80,7 @@ The router enforces `minAmountOut` on-chain. Chord's own router answers first; a
 Install with the skills CLI (Claude Code, Codex, Cursor, Gemini CLI and more): `npx skills add tuantqse90/moltnode-mcp`, or in Hermes: `hermes skills tap add tuantqse90/moltnode-mcp`. Gemini CLI extension: `gemini extensions install https://github.com/tuantqse90/moltnode-mcp`.
 
 - `skills/moltnode/`: read 31 chains and swap through Chord end to end, with the safety rules (never handle a private key, confirm the quote before signing).
+- `skills/chord-swap/`: safe best-route token swaps through Chord on Ethereum, Base, Arbitrum, BNB Chain, Avalanche, Monad, Robinhood Chain, Arc and Solana: finds the right token, checks it for honeypots and taxes, quotes, waits for the user's yes, then returns an unsigned transaction with a simulation for the user's own wallet. Plain HTTP, no key, no scripts.
 - `skills/chord-charts/`: candlestick chart (SVG) with volume for any token on Ethereum, Base, Monad, BNB Chain, Avalanche, Arbitrum, Robinhood Chain, Arc or Solana, from Chord's trade data (`python3 scripts/chart.py --chain base --token AERO --tf 1h`).
 - `skills/chord/`: Chord's trading and market-data skill (quotes, unsigned swaps, token boards, candles, wallet PnL, smart money, holders, LP pools), marketplace edition: no key handling, no environment variables, no installer (generated from Chord's skill at nullterminal `5f07c02e`; the Ask command, which needs a key, is left out). The original with Ask: https://getchord.xyz/docs/skills/chord/
 

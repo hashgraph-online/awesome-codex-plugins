@@ -1,0 +1,42 @@
+{
+  "name": "eigenheim-market",
+  "version": "0.1.2",
+  "description": "Berlin real estate market data for Codex: daily price per m² by locality, rental yields, land values (Bodenrichtwerte), market overview, population forecast and active listings. Read-only remote MCP, no login.",
+  "author": {
+    "name": "Eigenheim Invest",
+    "url": "https://eigenheim-invest.de/"
+  },
+  "homepage": "https://eigenheim-invest.de/immobilienpreise-berlin/",
+  "repository": "https://github.com/magicSEO/eigenheim-mcp",
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "real-estate",
+    "berlin",
+    "market-data",
+    "property-prices"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Eigenheim Berlin Market Data",
+    "shortDescription": "Read-only Berlin property prices, rental yields and land values.",
+    "longDescription": "Query daily Berlin real estate market data from Eigenheim Invest: price per m² for houses and apartments by locality, rental yields, Bodenrichtwerte, the Gutachterausschuss market report, the 2040 population forecast and active listings. All tools are read-only and require no account.",
+    "developerName": "Eigenheim Invest",
+    "category": "Data",
+    "capabilities": [
+      "Read"
+    ],
+    "websiteURL": "https://eigenheim-invest.de/",
+    "privacyPolicyURL": "https://eigenheim-invest.de/datenschutz/",
+    "termsOfServiceURL": "https://eigenheim-invest.de/impressum/",
+    "defaultPrompt": [
+      "What is the current price per m² for houses in Berlin-Zehlendorf?"
+    ],
+    "composerIcon": "./assets/app-icon.png",
+    "logo": "./assets/app-icon.png",
+    "screenshots": [
+      "./assets/example-area-prices.png"
+    ]
+  }
+}

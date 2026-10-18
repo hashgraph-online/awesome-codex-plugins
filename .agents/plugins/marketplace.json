@@ -2053,7 +2053,7 @@
       "icon": "./plugins/frumu-ai/tandem-codex-plugin/assets/icon.png"
     },
     {
-      "name": "quality",
+      "name": "design",
       "displayName": "Tartiner Labs",
       "source": {
         "source": "local",
@@ -2626,6 +2626,21 @@
       "icon": "./plugins/LinespottingOrg/GrokBuildRemote-Agents/.codex-plugin/icon.svg"
     },
     {
+      "name": "bulktranscripts",
+      "displayName": "BulkTranscripts: YouTube Transcripts",
+      "source": {
+        "source": "local",
+        "path": "./plugins/pratie/bulktranscripts-mcp"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Remote MCP server and skill for YouTube transcripts of one video, a whole channel or a playlist, plus YouTube search and new-upload tracking.",
+      "icon": "./plugins/pratie/bulktranscripts-mcp/assets/icon.png"
+    },
+    {
       "name": "burpsuite-mcp-bridge",
       "displayName": "BurpSuite MCP Bridge",
       "source": {
@@ -2727,6 +2742,21 @@
       },
       "category": "Tools & Integrations",
       "description": "Emit mathematics as copy- and search-safe inline Unicode (∑, ≤, ℝ, x², matrices, set-builder) instead of LaTeX so equations stay legible in the Codex TUI, terminals, and Claude Code."
+    },
+    {
+      "name": "clera",
+      "displayName": "Clera",
+      "source": {
+        "source": "local",
+        "path": "./plugins/getclera/mcp"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Search 210,000+ vetted startup candidates, review Clera's picks for your open roles, and request intros through Clera's hosted MCP.",
+      "icon": "./plugins/getclera/mcp/assets/logo.svg"
     },
     {
       "name": "be-serious",
@@ -3116,6 +3146,21 @@
       "icon": "./plugins/GarethManning/education-agent-skills/assets/education-agent-skills-icon.svg"
     },
     {
+      "name": "eigenheim-market",
+      "displayName": "Eigenheim Berlin Market Data",
+      "source": {
+        "source": "local",
+        "path": "./plugins/magicSEO/eigenheim-mcp"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Read-only remote MCP server and skill for daily Berlin real estate data: price per m² by locality, rental yields, land values and active listings.",
+      "icon": "./plugins/magicSEO/eigenheim-mcp/assets/app-icon.png"
+    },
+    {
       "name": "equibles",
       "displayName": "Equibles",
       "source": {
@@ -3364,6 +3409,21 @@
       "category": "Tools & Integrations",
       "description": "Web crawling and scraping for Codex with skills for single-page scraping, site crawls, URL mapping, and headless browser fallback.",
       "icon": "./plugins/kreuzberg-dev/plugins/plugins/crawlberg/assets/icon.svg"
+    },
+    {
+      "name": "kuudo-skills",
+      "displayName": "Kuudo Skills",
+      "source": {
+        "source": "local",
+        "path": "./plugins/KuudoAI/skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Agent Skills for Amazon sellers and advertisers — Ads audits, search-term mining, budget pacing, DSP and AMC, listings, images, repricing, FBA inbound, and profitability, through Kuudo's Amazon Ads and SP-API MCP servers.",
+      "icon": "./plugins/KuudoAI/skills/assets/kuudo-skills-icon.png"
     },
     {
       "name": "lacuna-music",

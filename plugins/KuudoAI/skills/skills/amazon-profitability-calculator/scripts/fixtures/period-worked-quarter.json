@@ -1,0 +1,29 @@
+{
+  "_case": "Clarisix worked quarter",
+  "_source": "referenced in references/period-pnl.md",
+  "period_label": "Worked quarter",
+  "date_basis": "order",
+  "currency": "EUR",
+  "gross_ordered_revenue": 31500.0,
+  "cancelled_orders": 950.0,
+  "refunds": 3180.0,
+  "a_to_z_claims": 145.0,
+  "chargebacks": 62.0,
+  "shipping_revenue": 78.0,
+  "gift_wrap_revenue": 12.0,
+  "shipping_refunds": 28.6,
+  "vat_memo": 5444.88,
+  "cogs": 9038.5,
+  "amazon_fees": 8276.22,
+  "advertising": 2177.95,
+  "reimbursements": 217.79,
+  "allocated_overheads": 1361.22,
+  "expected": {
+    "net_revenue": 27224.4,
+    "product_margin_pct": 0.668,
+    "channel_margin_pct": 0.364,
+    "growth_margin_pct": 0.292,
+    "net_operating_profit_pct": 0.242,
+    "tacos": 0.08
+  }
+}

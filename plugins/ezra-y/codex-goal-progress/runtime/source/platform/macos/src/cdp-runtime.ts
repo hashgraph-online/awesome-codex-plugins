@@ -9,6 +9,7 @@ import {
   type CodexMacosAppIdentity,
   type CommandRunner,
   discoveryError,
+  inspectCodexMacosApp,
   requireSuccessfulCommand,
   runSystemCommand,
 } from "./app-discovery.js";
@@ -316,8 +317,20 @@ async function readProcessField(
   pid: number,
   field: "ppid" | "lstart" | "command",
 ): Promise<string> {
-  const result = await runner("/bin/ps", ["-p", String(pid), "-o", `${field}=`]);
-  return requireSuccessfulCommand(result, "GOAL_PROGRESS_CDP_PROCESS_LOOKUP_FAILED").trim();
+  const args = ["-p", String(pid), "-o", `${field}=`];
+  const result =
+    field === "lstart"
+      ? await runner("/usr/bin/env", ["TZ=UTC", "LC_ALL=C", "/bin/ps", ...args])
+      : await runner("/bin/ps", args);
+  const value = requireSuccessfulCommand(result, "GOAL_PROGRESS_CDP_PROCESS_LOOKUP_FAILED").trim();
+  if (field !== "lstart") {
+    return value;
+  }
+  const milliseconds = Date.parse(`${value} UTC`);
+  if (!Number.isFinite(milliseconds)) {
+    throw discoveryError("GOAL_PROGRESS_CDP_INVALID_PROCESS_START_TIME");
+  }
+  return new Date(milliseconds).toISOString();
 }
 
 export async function inspectProcess(
@@ -345,7 +358,7 @@ export async function inspectProcess(
 }
 
 export async function listCodexMainProcesses(
-  app: CodexMacosAppIdentity,
+  app: Pick<CodexMacosAppIdentity, "realExecutablePath">,
   runner: CommandRunner = runSystemCommand,
 ): Promise<readonly CodexCdpProcessSnapshot[]> {
   const result = await runner("/bin/ps", ["-axo", "pid=,command="]);
@@ -365,13 +378,9 @@ export async function listCodexMainProcesses(
   });
   const processes: CodexCdpProcessSnapshot[] = [];
   for (const pid of candidatePids) {
-    try {
-      const snapshot = await inspectProcess(pid, runner);
-      if (commandBelongsToExecutable(snapshot.command, app.realExecutablePath)) {
-        processes.push(snapshot);
-      }
-    } catch {
-      // The process exited after the process list was captured.
+    const snapshot = await inspectRunningProcess(pid, runner);
+    if (snapshot && commandBelongsToExecutable(snapshot.command, app.realExecutablePath)) {
+      processes.push(snapshot);
     }
   }
   return processes;
@@ -538,7 +547,105 @@ export async function waitForCodexCdpListenerOwnership(
   );
 }
 
-function validateRuntimeState(state: CodexCdpRuntimeState): void {
+async function inspectRuntimeApp(
+  state: CodexCdpRuntimeState,
+  runner: CommandRunner,
+): Promise<CodexMacosAppIdentity> {
+  const app = await inspectCodexMacosApp(state.appPath, { runner });
+  if (app.realExecutablePath !== state.executablePath || app.realAppPath !== state.appPath) {
+    throw discoveryError("GOAL_PROGRESS_CDP_RUNTIME_APP_MISMATCH");
+  }
+  return app;
+}
+
+async function inspectRuntimeOwnership(
+  state: CodexCdpRuntimeState,
+  runner: CommandRunner,
+): Promise<CodexCdpListenerOwnership> {
+  const app = await inspectRuntimeApp(state, runner);
+  return verifyCodexCdpListenerOwnership(app, state.mainPid, state.port, runner);
+}
+
+function processExists(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ESRCH") return false;
+    throw error;
+  }
+}
+
+export async function inspectRunningProcess(
+  pid: number,
+  runner: CommandRunner = runSystemCommand,
+): Promise<CodexCdpProcessSnapshot | null> {
+  if (!processExists(pid)) return null;
+  try {
+    return await inspectProcess(pid, runner);
+  } catch (error) {
+    if (processExists(pid)) throw error;
+    return null;
+  }
+}
+
+async function verifyExitedRuntime(
+  state: CodexCdpRuntimeState,
+  runner: CommandRunner,
+): Promise<void> {
+  const result = await runner("/usr/sbin/lsof", [
+    "-nP",
+    `-iTCP:${state.port}`,
+    "-sTCP:LISTEN",
+    "-Fpctn",
+  ]);
+  if (result.exitCode === 0 && parseLsofListeners(result.stdout).length > 0) {
+    throw discoveryError("GOAL_PROGRESS_CDP_PORT_STILL_OPEN");
+  }
+  if (result.exitCode !== 1 || result.stdout.trim() || result.stderr.trim()) {
+    throw discoveryError("GOAL_PROGRESS_CDP_LISTENER_LOOKUP_FAILED");
+  }
+  if (await isLoopbackPortOpen(state.port)) {
+    throw discoveryError("GOAL_PROGRESS_CDP_PORT_STILL_OPEN");
+  }
+}
+
+export async function verifyCodexCdpRuntimeIdentity(
+  state: CodexCdpRuntimeState,
+  runner: CommandRunner = runSystemCommand,
+): Promise<"running" | "exited"> {
+  validateRuntimeState(state);
+  const app = await inspectRuntimeApp(state, runner);
+  return verifyRuntimeProcessIdentity(state, app, runner);
+}
+
+async function verifyRuntimeProcessIdentity(
+  state: CodexCdpRuntimeState,
+  app: CodexMacosAppIdentity,
+  runner: CommandRunner,
+): Promise<"running" | "exited"> {
+  if (!processExists(state.mainPid)) {
+    await verifyExitedRuntime(state, runner);
+    return "exited";
+  }
+  let ownership: CodexCdpListenerOwnership;
+  try {
+    ownership = await verifyCodexCdpListenerOwnership(app, state.mainPid, state.port, runner);
+  } catch (error) {
+    if (processExists(state.mainPid)) throw error;
+    await verifyExitedRuntime(state, runner);
+    return "exited";
+  }
+  if (ownership.mainProcess.startedAt !== state.processStartedAt) {
+    throw discoveryError("GOAL_PROGRESS_CDP_PROCESS_START_MISMATCH");
+  }
+  if (ownership.mainProcess.command !== state.command) {
+    throw discoveryError("GOAL_PROGRESS_CDP_PROCESS_COMMAND_MISMATCH");
+  }
+  return "running";
+}
+
+function validateRuntimeState(state: CodexCdpRuntimeState, allowLegacyTime = false): void {
   validatePort(state.port);
   if (
     state.schemaVersion !== 1 ||
@@ -547,6 +654,7 @@ function validateRuntimeState(state: CodexCdpRuntimeState): void {
     state.teamId !== CODEX_TEAM_ID ||
     !state.launchId ||
     !state.launchedAt ||
+    typeof state.processStartedAt !== "string" ||
     !state.processStartedAt ||
     !isAbsolute(state.executablePath) ||
     !isAbsolute(state.appPath) ||
@@ -556,9 +664,23 @@ function validateRuntimeState(state: CodexCdpRuntimeState): void {
   ) {
     throw discoveryError("GOAL_PROGRESS_CDP_INVALID_RUNTIME_STATE");
   }
+  if (!state.processStartedAt.endsWith("Z")) {
+    if (allowLegacyTime) return;
+    throw discoveryError("GOAL_PROGRESS_CDP_TIME_IDENTITY_REBUILD_REQUIRED");
+  }
+  const processStartedAtMs = Date.parse(state.processStartedAt);
+  if (
+    !Number.isFinite(processStartedAtMs) ||
+    new Date(processStartedAtMs).toISOString() !== state.processStartedAt
+  ) {
+    throw discoveryError("GOAL_PROGRESS_CDP_INVALID_PROCESS_START_TIME");
+  }
 }
 
-export async function readCodexCdpRuntimeState(statePath: string): Promise<CodexCdpRuntimeState> {
+export async function readCodexCdpRuntimeState(
+  statePath: string,
+  runner: CommandRunner = runSystemCommand,
+): Promise<CodexCdpRuntimeState> {
   if (!isAbsolute(statePath)) {
     throw discoveryError("GOAL_PROGRESS_CDP_STATE_PATH_NOT_ABSOLUTE");
   }
@@ -572,7 +694,32 @@ export async function readCodexCdpRuntimeState(statePath: string): Promise<Codex
   } catch {
     throw discoveryError("GOAL_PROGRESS_CDP_INVALID_RUNTIME_STATE");
   }
-  validateRuntimeState(state);
+  validateRuntimeState(state, true);
+  if (!state.processStartedAt.endsWith("Z")) {
+    try {
+      const ownership = await inspectRuntimeOwnership(state, runner);
+      // launchedAt 是调用启动命令前的时刻，仅作为五秒范围内的独立证据。
+      const launchedAtMs = /(?:Z|[+-]\d{2}:\d{2})$/u.test(state.launchedAt)
+        ? Date.parse(state.launchedAt)
+        : Number.NaN;
+      const deltaMs = Date.parse(ownership.mainProcess.startedAt) - launchedAtMs;
+      if (!Number.isFinite(deltaMs)) {
+        throw discoveryError("GOAL_PROGRESS_CDP_INVALID_PROCESS_START_TIME");
+      }
+      if (Math.abs(deltaMs) > 5_000) {
+        throw discoveryError("GOAL_PROGRESS_CDP_PROCESS_START_MISMATCH", `deltaMs=${deltaMs}`);
+      }
+      if (ownership.mainProcess.command !== state.command) {
+        throw discoveryError("GOAL_PROGRESS_CDP_PROCESS_COMMAND_MISMATCH");
+      }
+      return { ...state, processStartedAt: ownership.mainProcess.startedAt };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      const reason =
+        /^(GOAL_PROGRESS_[A-Z0-9_]+)(?:: deltaMs=-?\d+)?/u.exec(message)?.[0] ?? "lookup_failed";
+      throw discoveryError("GOAL_PROGRESS_CDP_TIME_IDENTITY_REBUILD_REQUIRED", reason);
+    }
+  }
   return state;
 }
 
@@ -671,16 +818,23 @@ async function waitForOriginalProcessExit(
 }
 
 async function isLoopbackPortOpen(port: number): Promise<boolean> {
-  return new Promise<boolean>((resolveOpen) => {
+  return new Promise<boolean>((resolveOpen, rejectOpen) => {
     const socket = new Socket();
     const finish = (isOpen: boolean) => {
       socket.destroy();
       resolveOpen(isOpen);
     };
+    const unavailable = () => {
+      socket.destroy();
+      rejectOpen(discoveryError("GOAL_PROGRESS_CDP_PORT_STATE_UNAVAILABLE"));
+    };
     socket.setTimeout(250);
     socket.once("connect", () => finish(true));
-    socket.once("timeout", () => finish(false));
-    socket.once("error", () => finish(false));
+    socket.once("timeout", unavailable);
+    socket.once("error", (error: NodeJS.ErrnoException) => {
+      if (error.code === "ECONNREFUSED") finish(false);
+      else unavailable();
+    });
     socket.connect(port, LOOPBACK_ADDRESS);
   });
 }
@@ -755,15 +909,39 @@ export async function stopCodexCdpRuntime(
   state: CodexCdpRuntimeState,
   options: StopCodexCdpOptions = {},
 ): Promise<RestoreCodexCdpResult> {
+  return (await inspectCodexCdpRuntime(state, options)).stop();
+}
+
+export async function inspectCodexCdpRuntime(
+  state: CodexCdpRuntimeState,
+  options: StopCodexCdpOptions = {},
+) {
   validateRuntimeState(state);
-  return stopProtectedCodexProcess(
-    {
-      mainPid: state.mainPid,
-      processStartedAt: state.processStartedAt,
-      command: state.command,
-      executablePath: state.executablePath,
-      port: state.port,
+  const runner = options.runner ?? runSystemCommand;
+  const app = await inspectRuntimeApp(state, runner);
+  const identity = await verifyRuntimeProcessIdentity(state, app, runner);
+  return {
+    app,
+    identity,
+    async stop(): Promise<RestoreCodexCdpResult> {
+      // 签名仅在本次操作中复用；停止前重新读取进程和端口身份。
+      if ((await verifyRuntimeProcessIdentity(state, app, runner)) === "exited") {
+        return { mainPid: state.mainPid, forced: false, portClosed: true };
+      }
+      const result = await stopProtectedCodexProcess(
+        {
+          mainPid: state.mainPid,
+          processStartedAt: state.processStartedAt,
+          command: state.command,
+          executablePath: state.executablePath,
+          port: state.port,
+        },
+        options,
+      );
+      if ((await verifyRuntimeProcessIdentity(state, app, runner)) !== "exited") {
+        throw discoveryError("GOAL_PROGRESS_CDP_RUNTIME_STOP_FAILED");
+      }
+      return result;
     },
-    options,
-  );
+  };
 }

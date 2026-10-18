@@ -2,8 +2,10 @@ import { randomUUID } from "node:crypto";
 import { constants } from "node:fs";
 import { access, chmod, cp, lstat, readFile, readlink, rename, rm, stat } from "node:fs/promises";
 import { basename, resolve } from "node:path";
+import { GoalProgressUpdateCoordinator } from "../../../packages/host/src/update-coordinator.js";
 import { atomicWriteFile, type GoalProgressPaths } from "../../../packages/store/src/index.js";
 import type { CdpController, RestoreCdpResult } from "./cdp-controller.js";
+import { readCodexCdpRuntimeState, writeCodexCdpRuntimeState } from "./cdp-runtime.js";
 import type {
   MacosCommandInput,
   MacosCommandName,
@@ -21,6 +23,7 @@ import {
 } from "./launch-agent-controller.js";
 import { isNotFound, stableErrorCode } from "./macos-errors.js";
 import type { PluginController } from "./plugin-controller.js";
+import { MacosGoalProgressUpdateStateStore } from "./update-state-store.js";
 import {
   type CodexInstallIdentity,
   copyRelease,
@@ -180,6 +183,44 @@ export function createInstallCommand(dependencies: InstallCommandDependencies) {
       /^[0-9a-f]{64}$/u.test(installed.hookSha256) &&
       (await currentLinkMatches(layout)) &&
       (await installedReleaseMatches(layout, release));
+    if (input.restartCodex && alreadyCurrent) {
+      const store = new MacosGoalProgressUpdateStateStore(dependencies.goalPaths);
+      const update = await store.read();
+      if (
+        (update?.phase === "restart-required" || update?.phase === "restarting") &&
+        update.latestVersion === release.releaseVersion
+      ) {
+        const coordinator = new GoalProgressUpdateCoordinator({
+          store,
+          paths: dependencies.goalPaths,
+          currentVersion: release.releaseVersion,
+        });
+        try {
+          const confirmation = await coordinator.handleIntent({
+            type: "restart-now",
+            version: release.releaseVersion,
+          });
+          await confirmation.afterResponse?.();
+          const pending = await coordinator.reconcilePersistedUpdateState();
+          return dependencies.commandResult(command, {
+            ok: pending.phase === "restarting",
+            changed: pending.phase === "restarting",
+            code:
+              pending.phase === "restarting"
+                ? "INSTALL_RESTART_PENDING"
+                : (pending.lastErrorCode ?? "GOAL_PROGRESS_UPDATE_RESTART_FAILED"),
+            nextStep: "After Codex reopens, run verify --json.",
+            details: {
+              releaseVersion: release.releaseVersion,
+              restartScheduled: pending.phase === "restarting",
+              states: [pending.phase],
+            },
+          });
+        } finally {
+          await coordinator.stop();
+        }
+      }
+    }
     const currentTarget = await captureLink(layout.currentReleasePath);
     const plistSnapshot = await captureFile(layout.launchAgentPath);
     const manifestSnapshot = await captureFile(layout.installManifestPath);
@@ -195,6 +236,7 @@ export function createInstallCommand(dependencies: InstallCommandDependencies) {
       installedRelease?.pluginTreeManifestSha256 !== release.pluginTreeManifestSha256;
     const releaseBackupPath = `${layout.programReleaseRoot}.rollback-${randomUUID()}`;
     let releaseBackupCreated = false;
+    let cdpIdentitySnapshot: FileSnapshot | undefined;
     try {
       const cdpInitiallyReady = await dependencies.cdp.verify();
       const cdpChanged = await transaction.step(
@@ -219,7 +261,13 @@ export function createInstallCommand(dependencies: InstallCommandDependencies) {
         },
       );
       const cdpReady = await dependencies.cdp.verify();
-      if (!cdpReady) {
+      const connectionRebuildPending =
+        !cdpReady &&
+        !input.restartCodex &&
+        command === "upgrade" &&
+        installed !== null &&
+        installedRelease !== null;
+      if (!cdpReady && !connectionRebuildPending) {
         transaction.commit();
         return dependencies.commandResult(command, {
           ok: true,
@@ -349,6 +397,27 @@ export function createInstallCommand(dependencies: InstallCommandDependencies) {
       );
 
       await transaction.step(
+        "write-cdp-identity",
+        async () => {
+          if (!cdpReady) return { changed: false, value: undefined };
+          const snapshot = await captureFile(dependencies.goalPaths.cdpRuntimePath);
+          if (!snapshot.exists) return { changed: false, value: undefined };
+          const state = await readCodexCdpRuntimeState(dependencies.goalPaths.cdpRuntimePath);
+          if (JSON.parse(snapshot.contents ?? "{}").processStartedAt === state.processStartedAt) {
+            return { changed: false, value: undefined };
+          }
+          cdpIdentitySnapshot = snapshot;
+          await writeCodexCdpRuntimeState(dependencies.goalPaths.cdpRuntimePath, state);
+          return { changed: true, value: undefined };
+        },
+        async () => {
+          if (cdpIdentitySnapshot) {
+            await restoreFile(dependencies.goalPaths.cdpRuntimePath, cdpIdentitySnapshot);
+          }
+        },
+      );
+
+      await transaction.step(
         "start-helper",
         async () => {
           const changed = await dependencies.launchAgent.ensure(
@@ -419,7 +488,7 @@ export function createInstallCommand(dependencies: InstallCommandDependencies) {
             !hook.stableCommand ||
             !hook.userLevelHookAbsent ||
             !hook.embeddedTrustStateAbsent ||
-            !cdpReadyNow
+            (!cdpReadyNow && !connectionRebuildPending)
           ) {
             throw new Error("GOAL_PROGRESS_INSTALL_DOCTOR_FAILED");
           }
@@ -494,9 +563,11 @@ export function createInstallCommand(dependencies: InstallCommandDependencies) {
               ? "UPGRADE_OK"
               : "UPGRADE_ALREADY_CURRENT",
         changed,
-        nextStep: codexSessionReconnectRequired
-          ? "Close and reopen the current Codex session so MCP loads this release."
-          : null,
+        nextStep: connectionRebuildPending
+          ? "After the user confirms a Codex restart, run install --json --restart-codex with the installed release to rebuild connection identity, or use the update restart action."
+          : codexSessionReconnectRequired
+            ? "Close and reopen the current Codex session so MCP loads this release."
+            : null,
         details: {
           releaseVersion: release.releaseVersion,
           applicationSupportRoot: layout.applicationSupportRoot,
@@ -505,7 +576,8 @@ export function createInstallCommand(dependencies: InstallCommandDependencies) {
           pluginInstalled: true,
           codexSessionReconnectRequired,
           hookSha256,
-          cdpReady: true,
+          cdpReady,
+          connectionRebuildPending,
           restartScheduled: false,
           cleanupPending,
           cleanupBackups,

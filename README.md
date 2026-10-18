@@ -337,6 +337,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [BabelDOC PDF Translate](https://github.com/reliable-ly0411/babeldoc-pdf-translate) - Translate PDFs with local BabelDOC typesetting, configurable translation providers, bilingual output and custom terminology.
 - [Bitbucket CLI](https://github.com/avivsinai/bitbucket-cli) - Manage Bitbucket repos, PRs, branches, issues, webhooks, and pipelines for Data Center and Cloud.
 - [Build Remote Agent](https://github.com/LinespottingOrg/GrokBuildRemote-Agents) - Pair a phone as spectator to a local Codex session via gbr-agent (QR / 8-char) and attach at 127.0.0.1:8788 or gbr-mcp.
+- [BulkTranscripts: YouTube Transcripts](https://github.com/pratie/bulktranscripts-mcp) - Remote MCP server and skill for YouTube transcripts of one video, a whole channel or a playlist, plus YouTube search and new-upload tracking.
 - [BurpSuite MCP Bridge](https://github.com/6jeffr3y/burpsuite-mcp-bridge) - Bridge Burp Suite traffic, replay, rewrite rules, and evidence export into Codex through MCP for WSL, Windows, and macOS workflows.
 - [Call-E](https://github.com/CALLE-AI/call-e-integrations) - Plan, run, and inspect Call-E phone call workflows from Codex through the calle CLI.
 - [Canvas Apps Plugin Codex](https://github.com/Ratnam-Mishra/canvas-apps-plugin-codex) - Build and edit Microsoft Power Apps Canvas Apps using natural language and Canvas Authoring MCP server.
@@ -344,6 +345,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [CentricMem](https://github.com/zeyu-j/centricmem-skill) - Hosted librarian for agent Markdown memory via host MCP.
 - [Chrome DevTools](https://github.com/win4r/chrome-devtools-codex-plugin) - One-click Codex plugin wrapper for chrome-devtools-mcp.
 - [claude-math](https://github.com/vladimirrott/claude-math) - Emit mathematics as copy- and search-safe inline Unicode (∑, ≤, ℝ, x², matrices, set-builder) instead of LaTeX so equations stay legible in the Codex TUI, terminals, and Claude Code.
+- [Clera](https://github.com/getclera/mcp) - Search 210,000+ vetted startup candidates, review Clera's picks for your open roles, and request intros through Clera's hosted MCP.
 - [Codex Be Serious](https://github.com/lulucatdev/codex-be-serious) - Enforce formal, textbook-grade written register across all agent output.
 - [Codex Discord Bridge](https://github.com/yaffalhakim1/codex-discord-bridge) - Control Codex CLI from Discord with a Rust serenity bridge that streams agent output live and turns approval requests into buttons.
 - [Codex Image Plugin](https://github.com/zlsbksdxl/codex-image-plugin) - Generate and edit raster images through any OpenAI-compatible image API, with model discovery, reference-image editing, masks, and provider configuration support.
@@ -370,6 +372,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [Droplinked](https://github.com/droplinked/droplinked-codex-plugin) - Verified-inventory agentic commerce over a hosted MCP server, with merchant and product discovery, agent-initiated checkout, and onchain brand, credit-risk, and repayment attestations.
 - [DropTheHassle](https://github.com/bosmdavid-gif/dropthehassle-skill) - Your AI publishes a site to a free HTTPS link or your own .com, and it never pays.
 - [Education Agent Skills](https://github.com/GarethManning/education-agent-skills) - 131 evidence-based education skills for curriculum design, lesson planning, and assessment, with transparent evidence ratings and MCP server.
+- [Eigenheim Berlin Market Data](https://github.com/magicSEO/eigenheim-mcp) - Read-only remote MCP server and skill for daily Berlin real estate data: price per m² by locality, rental yields, land values and active listings.
 - [Equibles](https://github.com/daniel3303/stock-market-mcp-server) - SEC filings, financial statements, earnings call transcripts, insider trades and 13F holdings for US stocks through the hosted Equibles MCP server.
 - [Exa Web Search](https://github.com/zlsbksdxl/codex-exa) - Search and fetch current web sources in Codex through the official Exa MCP server with browser OAuth.
 - [Fantasy Football Manager](https://github.com/krmisystems/fantasy-football-manager) - Manage ESPN fantasy drafts and season transactions with configurable approval limits and a multi-team portfolio dashboard.
@@ -388,6 +391,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [Kreuzberg Cloud](https://github.com/kreuzberg-dev/plugins) - Managed document extraction for Codex with API-key setup, presigned uploads, job tracking, webhook workflows, and usage guidance.
 - [Kreuzcrawl](https://github.com/kreuzberg-dev/plugins) - Web crawling and scraping for Codex with skills for single-page scraping, site crawls, URL mapping, and headless browser fallback.
 - [Krexa](https://github.com/Krexa-xyz/skills) - Turn a trading idea, post or video into fixed rules, backtest and paper-trade them for free, and request a live trading agent on Binance, Coinbase, Kraken, OKX, Bybit, MEXC, Hyperliquid, Polymarket or Solana DEXs that you approve and sign, through Krexa's hosted MCP server.
+- [Kuudo Skills](https://github.com/KuudoAI/skills) - Agent Skills for Amazon sellers and advertisers — Ads audits, search-term mining, budget pacing, DSP and AMC, listings, images, repricing, FBA inbound, and profitability, through Kuudo's Amazon Ads and SP-API MCP servers.
 - [Lacuna Music](https://github.com/JOYLINK-LTD/lacuna-plugin) - Generate original instrumental music and vocal songs from Codex through the Lacuna MCP server.
 - [Langfuse Observability](https://github.com/avivsinai/langfuse-mcp) - Query traces, debug exceptions, analyze sessions, and manage prompts via MCP tools.
 - [Launch Fast](https://github.com/BlockchainHB/launchfast_codex_plugin) - Official Launch Fast plugin adapter for rapid SaaS deployment.

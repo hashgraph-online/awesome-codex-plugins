@@ -780,7 +780,21 @@ score and other shared outcomes still arrive with the network. The studio choose
 Room state is saved automatically (default movementSeconds: 1, plus round end,
 pause and finish; a lasting world instead journals its durable fields at once and
 checkpoints the rest every 30 seconds). After 60 seconds with no person the room ends even if screens or
-AI remain. Use browser createSaves for player-owned character progress; it is not
+AI remain. A room whose people have all stopped playing rests: its clock stops with everybody still
+connected and the room hibernates, so it is not charged for duration while it sleeps. It still wakes about once a
+minute for a liveness alarm (one request, and the CPU of that short wake). A deliberate rest is restored as the same
+world, under the same epoch, without rewriting the save. The first input, command, AI command, returning page
+or new arrival starts it again on the tick it rested on. "Stopped playing" is nothing held, pressed or sent for
+`room.restSeconds` (default 60), or ten seconds with every page in the background. An AI command counts as playing
+and wakes a room that is already resting. `room.rest` says what else must be true. `"quiet"` (the default): the
+world has nothing of its own to do, meaning no round clock running, no event, timer, spawn or ask waiting, nothing
+moving, and no AI command for `restSeconds`. `"idle"`: rest anyway, pausing round clocks, timers, bots and AI with
+it; Coin Dash, Ember Vale, Gem Rush, Gem Rush 3D and Hero Rush 3D use it, as an away-from-keyboard pause.
+`"never"` (or `restSeconds: 0`): never while somebody is here, for a world that must keep going untouched, such as a
+turn timer that skips an absent player or a show people watch. A lasting world never rests. A spectator or agent on
+an older build keeps pinging the room itself, so the object stays in memory while that socket is open. Browser-hosted
+rules games rest the same way. A resting host's silence is not a stall. If its tab is hidden, another browser takes
+the same rest and stays asleep until somebody plays. Use browser createSaves for player-owned character progress; it is not
 server-verified money. Entity fields default to public. Declare visibility explicitly for private information (below); shared state and motion remain public. Use declared server round records for verified match history.
 
 

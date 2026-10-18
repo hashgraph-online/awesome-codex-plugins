@@ -345,6 +345,16 @@ Bring-your-own provider credentials: `list_provider_keys`, `create_provider_key`
 | `generate_proposal`          | Scope-of-work proposal tool for a client project |
 | `generate-proposal`          | MCP prompt variant of the proposal workflow      |
 
+## Delegation (flag-gated: `enableDelegateToRuntype`)
+
+| Tool                  | Use                                                                                               |
+| --------------------- | ------------------------------------------------------------------------------------------------- |
+| `delegate_to_runtype` | Hand a multi-step task to Runtype's in-account operator agent; streams progress, returns a digest |
+| `check_delegation`    | Long-poll a running delegation for events since `after`                                           |
+| `cancel_delegation`   | Stop a running delegation; completed changes stay                                                 |
+
+When the account has the flag, the server instructions recommend delegating multi-step work (build or change a flow, agent, product, surface or tool; debug a run; load records; run evals). Pass `wait_seconds: 240` on Claude Code; keep it under 60 on clients with a 60-second tool timeout. A result with `status: input_required` carries a `question`; answer it with `delegate_to_runtype { task_id, task: <answer> }`.
+
 Start with the `index` topic (task-to-topic map). Useful documentation topics include `platform-catalog`, `surface-types`, `flow-step-types`, `models`, `product-schema`, `types-fpo`, `types-flow-steps`, `types-entities`, `types-surface-configs`, `orthogonal-tools`, `builtin-tools`, `agent-skills`, `external-tools`, `external-agents`, `evals`, `limits`, `validation-errors`, `setup-readiness`, `dashboard-links`, `mock-ecommerce`, `persona-embed`, `persona-fullscreen-assistant`, and `sdk-reference`.
 
 For WebMCP page tools, read `persona-embed` and `types-surface-configs`. Configure

@@ -1,0 +1,49 @@
+{
+  "name": "bulktranscripts",
+  "version": "1.2.0",
+  "description": "YouTube transcripts for one video, a whole channel or a playlist, plus YouTube search and free new-upload tracking.",
+  "author": {
+    "name": "BulkTranscripts",
+    "email": "hello@bulktranscripts.co",
+    "url": "https://bulktranscripts.co"
+  },
+  "homepage": "https://bulktranscripts.co/youtube-mcp-server",
+  "repository": "https://github.com/pratie/bulktranscripts-mcp",
+  "license": "MIT",
+  "keywords": [
+    "youtube",
+    "youtube-transcript",
+    "transcripts",
+    "captions",
+    "channel-transcripts",
+    "playlist",
+    "research",
+    "mcp"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "BulkTranscripts: YouTube Transcripts",
+    "shortDescription": "YouTube transcripts in bulk",
+    "developerName": "BulkTranscripts",
+    "category": "Education & Research",
+    "capabilities": [
+      "Read"
+    ],
+    "defaultPrompt": [
+      "Get the transcript of https://www.youtube.com/watch?v=dQw4w9WgXcQ and summarize it.",
+      "Pull every transcript from @lexfridman and list the guests who talked about AI safety.",
+      "What did @mkbhd upload this week?"
+    ],
+    "websiteURL": "https://bulktranscripts.co",
+    "supportURL": "https://bulktranscripts.co/contact",
+    "longDescription": "Give Codex clean YouTube transcripts: one video, up to 20 at once, or a whole channel or playlist as one background job (up to 1,000 videos per job, with a start offset for bigger channels and a Shorts or live-streams option). It can also search YouTube, list a channel's or playlist's videos, and check a channel's newest uploads.\n\nConnect your BulkTranscripts account through OAuth (Google sign-in, 30 free credits, no card). Each new transcript or live lookup uses one credit; transcripts already in your library come back free, and checking a channel's newest uploads is never charged. Videos without captions, members-only or private videos are skipped, not charged.",
+    "privacyPolicyURL": "https://bulktranscripts.co/privacy",
+    "termsOfServiceURL": "https://bulktranscripts.co/terms",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png",
+    "screenshots": [
+      "./assets/screenshot.png"
+    ]
+  }
+}
